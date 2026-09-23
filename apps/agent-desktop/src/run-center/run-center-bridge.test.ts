@@ -98,6 +98,12 @@ describe('native team enrollment bridge', () => {
     await runCenterActions.signInOperator!();
     expect(invoke).toHaveBeenCalledWith('desktop_operator_sign_in');
   });
+  it('reads operator team choices through the native bridge', async () => {
+    const teams = { items: [{ id: 'team-id', name: 'Research' }] };
+    vi.mocked(invoke).mockResolvedValue(teams);
+    await expect(runCenterActions.operatorTeams!()).resolves.toEqual(teams);
+    expect(invoke).toHaveBeenCalledWith('desktop_operator_teams');
+  });
 });
 
 describe('native project location bridge', () => {

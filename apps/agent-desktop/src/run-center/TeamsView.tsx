@@ -39,6 +39,12 @@ export function TeamsView({
   const [mode, setMode] = useState<'enroll' | 'replace'>('enroll');
   const [team, setTeam] = useState<AgentServerCatalogueTeam | null>(null);
   const [destinationTeamId, setDestinationTeamId] = useState('');
+  const [operatorTeams, setOperatorTeams] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const [operatorTeamsLoading, setOperatorTeamsLoading] = useState(false);
+  const [operatorTeamsError, setOperatorTeamsError] = useState(false);
+  const [manualTeamId, setManualTeamId] = useState(false);
   const [busy, setBusy] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -100,6 +106,31 @@ export function TeamsView({
           '',
       );
   }, [data.status, identity]);
+  useEffect(() => {
+    let current = true;
+    if (!data.operatorConfigured || !actions.operatorTeams) {
+      setOperatorTeams([]);
+      return;
+    }
+    setOperatorTeamsLoading(true);
+    setOperatorTeamsError(false);
+    void actions
+      .operatorTeams()
+      .then(
+        ({ items }) => {
+          if (current) setOperatorTeams(items);
+        },
+        () => {
+          if (current) setOperatorTeamsError(true);
+        },
+      )
+      .finally(() => {
+        if (current) setOperatorTeamsLoading(false);
+      });
+    return () => {
+      current = false;
+    };
+  }, [actions, data.operatorConfigured, refreshVersion]);
 
   const submit = async () => {
     if (inFlight.current || (mode !== 'replace' && !destinationTeamId.trim()))
@@ -187,13 +218,9 @@ export function TeamsView({
         </Text>
       </Stack>
       {data.operatorConfigured ? (
-        <Stack direction="row" gap={3} align="center">
-          <Badge variant="success">Signed in</Badge>
-          <Text variant="caption" color="secondary">
-            Operator signed in on this computer
-          </Text>
-        </Stack>
-      ) : (
+        <Badge variant="success">Signed in</Badge>
+      ) : null}
+      <Stack direction="row" gap={3} align="center" wrap>
         <Button
           variant="secondary"
           disabled={busy}
@@ -205,7 +232,18 @@ export function TeamsView({
               if (!actions.signInOperator)
                 throw new Error('Native sign-in unavailable');
               await actions.signInOperator();
+              if (actions.operatorTeams) {
+                try {
+                  const { items } = await actions.operatorTeams();
+                  setOperatorTeams(items);
+                  setOperatorTeamsError(false);
+                } catch {
+                  setOperatorTeamsError(true);
+                }
+              }
               await actions.refresh?.();
+              if (data.operatorConfigured)
+                setRefreshVersion((value) => value + 1);
               setFeedback({
                 title: 'Local operator signed in',
                 message:
@@ -226,9 +264,16 @@ export function TeamsView({
             }
           }}
         >
-          Sign in as operator
+          {data.operatorConfigured
+            ? 'Refresh operator teams'
+            : 'Sign in as operator'}
         </Button>
-      )}
+        {data.operatorConfigured ? (
+          <Text variant="caption" color="secondary">
+            Team choices are updated when you approve again in the browser.
+          </Text>
+        ) : null}
+      </Stack>
       {busy && actions.cancelOperatorApproval ? (
         <Stack direction="row" gap={3} align="center" wrap>
           <Text variant="caption" color="secondary">
@@ -266,6 +311,7 @@ export function TeamsView({
           setTeam(null);
           setMode('enroll');
           setDestinationTeamId('');
+          setManualTeamId(false);
         }}
       >
         <option value="">Select an identity…</option>
@@ -371,12 +417,44 @@ export function TeamsView({
               : 'Enroll into a team'}
           </Text>
           {mode === 'enroll' ? (
-            <Input
-              label="Team ID"
-              value={destinationTeamId}
-              disabled={busy}
-              onChange={(event) => setDestinationTeamId(event.target.value)}
-            />
+            <Stack gap={3}>
+              {operatorTeamsLoading ? (
+                <Text variant="caption">Loading operator teams…</Text>
+              ) : operatorTeams.length ? (
+                <Select
+                  label="Team"
+                  value={manualTeamId ? 'manual' : destinationTeamId}
+                  disabled={busy}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setManualTeamId(value === 'manual');
+                    setDestinationTeamId(value === 'manual' ? '' : value);
+                  }}
+                >
+                  <option value="">Select a team…</option>
+                  {operatorTeams.map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {entry.name}
+                    </option>
+                  ))}
+                  <option value="manual">Enter a team ID…</option>
+                </Select>
+              ) : null}
+              {operatorTeamsError ? (
+                <InlineNotice tone="warning" title="Team choices unavailable">
+                  Refresh operator teams or enter a team ID.
+                </InlineNotice>
+              ) : null}
+              {(!operatorTeams.length || manualTeamId) &&
+              !operatorTeamsLoading ? (
+                <Input
+                  label="Team ID"
+                  value={destinationTeamId}
+                  disabled={busy}
+                  onChange={(event) => setDestinationTeamId(event.target.value)}
+                />
+              ) : null}
+            </Stack>
           ) : null}
           <Text variant="caption" color="secondary">
             Console will show the selected identity, team and permissions before

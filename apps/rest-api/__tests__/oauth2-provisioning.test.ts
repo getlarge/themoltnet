@@ -67,6 +67,84 @@ describe('provisioning grant scope ceiling', () => {
 });
 
 describe('OAuth consent target validation', () => {
+  it('includes only manageable active teams in the native sign-in grant', async () => {
+    const mocks = createMockServices();
+    const human = {
+      subjectType: 'human' as const,
+      humanId: 'cccccccc-0000-4000-8000-000000000003',
+      identityId: 'dddddddd-0000-4000-8000-000000000004',
+      clientId: null,
+      currentTeamId: null,
+      scopes: [...HUMAN_SESSION_SCOPES],
+    };
+    vi.stubEnv('MOLTNET_NATIVE_OAUTH_CLIENT_ID', 'native');
+    const app = await createTestApp(mocks, human);
+    apps.push(app);
+    app.sessionResolver = {
+      evictIdentity: vi.fn(),
+      resolveSession: vi.fn().mockResolvedValue(human),
+    };
+    const allowed = 'aaaaaaaa-0000-4000-8000-000000000001';
+    const blocked = 'bbbbbbbb-0000-4000-8000-000000000002';
+    mocks.relationshipReader.listTeamIdsAndRolesBySubject.mockResolvedValue([
+      { teamId: allowed, relation: 'managers' },
+      { teamId: blocked, relation: 'members' },
+    ]);
+    mocks.permissionChecker.canManageTeamCredentials.mockImplementation(
+      async (teamId: string) => teamId === allowed,
+    );
+    mocks.permissionChecker.canManageTeamMembers.mockResolvedValue(true);
+    mocks.teamRepository.listByIds.mockResolvedValue([
+      { id: allowed, name: 'Research', personal: false, status: 'active' },
+    ]);
+    const url = new URL('https://ory.example/oauth2/auth');
+    for (const [key, value] of Object.entries({
+      response_type: 'code',
+      code_challenge_method: 'S256',
+      code_challenge: 'A'.repeat(43),
+      instance: 'eeeeeeee-0000-4000-8000-000000000005',
+    }))
+      url.searchParams.set(key, value);
+    app.oauth2Client.getOAuth2ConsentRequest = vi.fn().mockResolvedValue({
+      subject: human.identityId,
+      client: {
+        client_id: 'native',
+        token_endpoint_auth_method: 'none',
+        grant_types: ['authorization_code'],
+        authorization_code_grant_access_token_lifespan: '5m',
+      },
+      requested_scope: [LOCAL_CONTROL_SCOPE],
+      requested_access_token_audience: ['moltnet:agent-server'],
+      request_url: url.href,
+    });
+    app.oauth2Client.acceptOAuth2ConsentRequest = vi
+      .fn()
+      .mockResolvedValue({ redirect_to: 'https://ory.example/approved' });
+    const approved = await app.inject({
+      method: 'POST',
+      url: '/oauth2/consent',
+      headers: {
+        cookie: 'ory_kratos_session=session',
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      payload: new URLSearchParams({
+        consent_challenge: 'challenge',
+        decision: 'allow',
+      }).toString(),
+    });
+    expect(approved.statusCode).toBe(303);
+    expect(app.oauth2Client.acceptOAuth2ConsentRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        acceptOAuth2ConsentRequest: expect.objectContaining({
+          session: {
+            access_token: expect.objectContaining({
+              'moltnet:operator_teams': [{ id: allowed, name: 'Research' }],
+            }),
+          },
+        }),
+      }),
+    );
+  });
   it('builds approval claims from the Ory request and repeats team permission checks on approval', async () => {
     const mocks = createMockServices();
     const human = {

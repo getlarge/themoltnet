@@ -377,6 +377,16 @@ async fn desktop_operator_sign_in(
 }
 
 #[tauri::command]
+async fn desktop_operator_teams(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let body = with_control_connection(&state, |connection| {
+        control::get(connection, "/v1/operator/teams")
+    })
+    .await?;
+    serde_json::from_str(&body)
+        .map_err(|_| "The Agent Server returned unreadable operator teams".to_string())
+}
+
+#[tauri::command]
 async fn desktop_cancel_operator_approval(state: State<'_, AppState>) -> Result<(), String> {
     with_control_connection(&state, move |connection| {
         control::post(connection, "/v1/operator/cancel", "{}")
@@ -956,6 +966,7 @@ pub fn run() {
             desktop_control_status,
             desktop_enroll_team,
             desktop_operator_sign_in,
+            desktop_operator_teams,
             desktop_operator_configured,
             desktop_connection_settings,
             desktop_preset_storage_scope,

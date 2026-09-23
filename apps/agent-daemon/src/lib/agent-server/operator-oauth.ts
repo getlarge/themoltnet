@@ -26,13 +26,38 @@ export interface NativeProvisioning {
   scopes: string[];
   idempotencyKey: string;
 }
+export interface OperatorTeam {
+  id: string;
+  name: string;
+}
+function readOperatorTeams(value: unknown): OperatorTeam[] {
+  if (!Array.isArray(value) || value.length > 256) return [];
+  const teams: unknown[] = value;
+  if (!teams.every(isOperatorTeam)) return [];
+  return teams.map(({ id, name }) => ({ id, name }));
+}
+function isOperatorTeam(value: unknown): value is OperatorTeam {
+  if (!value || typeof value !== 'object') return false;
+  const team = value as Record<string, unknown>;
+  return (
+    typeof team['id'] === 'string' &&
+    /^[0-9a-f-]{36}$/i.test(team['id']) &&
+    typeof team['name'] === 'string' &&
+    team['name'].length > 0 &&
+    team['name'].length <= 200
+  );
+}
 /** Trusted native controller owns the verifier, callback and token exchange. */
 export class OperatorOAuth {
   readonly instance = randomUUID();
   private readonly keys;
   private active = false;
   private pending?: AbortController;
-  private operator: { issuer: string; subject: string } | null;
+  private operator: {
+    issuer: string;
+    subject: string;
+    teams: OperatorTeam[];
+  } | null;
   constructor(
     readonly config: OperatorOAuthConfig,
     private readonly root: string,
@@ -84,7 +109,11 @@ export class OperatorOAuth {
         typeof value.subject !== 'string'
       )
         throw new Error('Invalid operator');
-      this.operator = { issuer: value.issuer, subject: value.subject };
+      this.operator = {
+        issuer: value.issuer,
+        subject: value.subject,
+        teams: 'teams' in value ? readOperatorTeams(value.teams) : [],
+      };
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
       this.operator = null;
@@ -95,6 +124,9 @@ export class OperatorOAuth {
   }
   operatorConfigured(): boolean {
     return this.operator !== null;
+  }
+  listTeams(): OperatorTeam[] {
+    return this.operator?.teams ?? [];
   }
   removeOperator() {
     this.cancel();
@@ -133,6 +165,7 @@ export class OperatorOAuth {
       issuer: payload.iss!,
       subject: payload.sub!,
       provisioning: claims['moltnet:provisioning'],
+      teams: readOperatorTeams(claims['moltnet:operator_teams']),
     };
   }
   async authorize(
@@ -283,6 +316,7 @@ export class OperatorOAuth {
             JSON.stringify({
               issuer: operator.issuer,
               subject: operator.subject,
+              teams: grant ? [] : operator.teams,
             }),
             { mode: 0o600, flag: 'wx' },
           );
@@ -303,7 +337,20 @@ export class OperatorOAuth {
               'Change the operator through native administration first',
             );
         }
-        this.operator = { issuer: operator.issuer, subject: operator.subject };
+        this.operator = {
+          issuer: operator.issuer,
+          subject: operator.subject,
+          teams: grant ? [] : operator.teams,
+        };
+      } else if (!grant) {
+        this.operator.teams = operator.teams;
+        writeFileSync(
+          join(this.root, 'operator.json'),
+          JSON.stringify(this.operator),
+          {
+            mode: 0o600,
+          },
+        );
       }
       return tokens.access_token;
     } finally {

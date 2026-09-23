@@ -584,6 +584,28 @@ export type SignInAgentServerOperatorResponses = {
 export type SignInAgentServerOperatorResponse =
   SignInAgentServerOperatorResponses[keyof SignInAgentServerOperatorResponses];
 
+export type ListAgentServerOperatorTeamsData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/v1/operator/teams';
+};
+
+export type ListAgentServerOperatorTeamsResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    items: Array<{
+      id: string;
+      name: string;
+    }>;
+  };
+};
+
+export type ListAgentServerOperatorTeamsResponse =
+  ListAgentServerOperatorTeamsResponses[keyof ListAgentServerOperatorTeamsResponses];
+
 export type ListAgentServerProvidersData = {
   body?: never;
   path?: never;
