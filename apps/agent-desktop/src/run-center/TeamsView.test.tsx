@@ -92,6 +92,64 @@ function show(data: RunCenterData, actions: RunCenterActions) {
 }
 
 describe('desktop team enrollment', () => {
+  it('creates a first agent with a team invite code', async () => {
+    const { data, actions } = fixture();
+    data.status = { ...data.status!, agents: [], selectedIdentity: undefined };
+    actions.createManagedAgent = vi.fn().mockResolvedValue({
+      kind: 'managed',
+      agentName: 'first-agent',
+      subjectId: 'subject',
+      fingerprint: 'fingerprint',
+      apiUrl: 'https://api.themolt.net',
+      createdAt: '2026-09-23T00:00:00Z',
+      hasAgentKey: true,
+      hasPrivateKey: true,
+    });
+    show(data, actions);
+    fireEvent.change(screen.getByLabelText('Agent name'), {
+      target: { value: 'first-agent' },
+    });
+    fireEvent.change(screen.getByLabelText('Team invite code'), {
+      target: { value: 'mlt_inv_example' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create and enroll' }));
+    expect(actions.createManagedAgent).toHaveBeenCalledWith(
+      'first-agent',
+      'mlt_inv_example',
+    );
+    expect(
+      await screen.findByText('Agent identity created'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Identity')).toHaveValue('first-agent');
+  });
+
+  it('offers identity creation when agents already exist', () => {
+    const { data, actions } = fixture();
+    show(data, actions);
+    fireEvent.click(screen.getByRole('button', { name: 'Create identity' }));
+    expect(screen.getByLabelText('Team invite code')).toBeInTheDocument();
+  });
+
+  it('keeps the entered name after an unconfirmed registration', async () => {
+    const { data, actions } = fixture();
+    actions.createManagedAgent = vi
+      .fn()
+      .mockRejectedValue(new Error('unavailable'));
+    show(data, actions);
+    fireEvent.click(screen.getByRole('button', { name: 'Create identity' }));
+    fireEvent.change(screen.getByLabelText('Agent name'), {
+      target: { value: 'example-agent' },
+    });
+    fireEvent.change(screen.getByLabelText('Team invite code'), {
+      target: { value: 'mlt_inv_example' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create and enroll' }));
+    expect(
+      await screen.findByText('Identity creation could not be confirmed'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Agent name')).toHaveValue('example-agent');
+  });
+
   it('shows a dismissible toast after sign-in completes', async () => {
     const { data, actions } = fixture();
     actions.signInOperator = vi.fn().mockResolvedValue(undefined);

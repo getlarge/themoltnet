@@ -417,6 +417,28 @@ async fn desktop_enroll_team(
     Ok(metadata)
 }
 
+#[tauri::command]
+async fn desktop_create_managed_agent(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    name: String,
+    enrollment_token: String,
+) -> Result<serde_json::Value, String> {
+    let payload = serde_json::json!({
+        "kind": "managed",
+        "name": name,
+        "enrollmentToken": enrollment_token,
+    });
+    let body = with_control_connection(&state, move |connection| {
+        control::post(connection, "/v1/agents", &payload.to_string())
+    })
+    .await?;
+    let agent = serde_json::from_str(&body)
+        .map_err(|_| "The Agent Server returned unreadable agent metadata".to_string())?;
+    show_status(&app);
+    Ok(agent)
+}
+
 /// Run `operation` with the grant for the currently running server.
 async fn with_control_connection(
     state: &State<'_, AppState>,
@@ -965,6 +987,7 @@ pub fn run() {
             desktop_choose_project_folder,
             desktop_control_status,
             desktop_enroll_team,
+            desktop_create_managed_agent,
             desktop_operator_sign_in,
             desktop_operator_teams,
             desktop_operator_configured,

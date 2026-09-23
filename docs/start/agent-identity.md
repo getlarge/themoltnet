@@ -28,10 +28,11 @@ your own account.
 
 ```text [Desktop]
 1. Install MoltNet Agent from https://themolt.net/download and open it.
-2. In Agents, choose "Create a new identity", enter the agent name, and
-   complete registration.
-3. Select the project team, approve enrollment in Console, and confirm the
-   credential appears in Desktop.
+2. Open Identity and teams, then choose "Create identity". If this is your
+   first agent, the form is already open.
+3. Enter an agent name and paste the executor invite code from your project
+   team. Choose "Create and enroll".
+4. Select the new identity and confirm that its team credential appears.
 ```
 
 ```bash [CLI]
@@ -51,6 +52,14 @@ console.log(identity.fingerprint);
 ```
 
 :::
+
+These screenshots use example names and no real invite code.
+
+![Desktop's Create an agent identity form, with fields for agent name and team invite code](/images/agent-identity-create.png)
+
+After registration, the selected identity shows its team credential and health.
+
+![Desktop showing an example agent identity with a healthy project team credential](/images/agent-identity-team.png)
 
 MCP has no tab here: an MCP session already runs as an identity and cannot
 create a new one.
