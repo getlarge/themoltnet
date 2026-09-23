@@ -863,6 +863,7 @@ describe('agent server providers and runs', () => {
     const { app, store, spawned } = await fixture({
       baseEnv: {
         PATH: '/usr/bin',
+        GONDOLIN_VMM: 'krun',
         HOME: '/tmp/home',
         SSH_AUTH_SOCK: '/tmp/agent.sock',
         KUBECONFIG: '/tmp/kubeconfig',
@@ -903,6 +904,7 @@ describe('agent server providers and runs', () => {
     const childEnv = spawned[0]?.options.env ?? {};
     expect(childEnv).toMatchObject({
       PATH: '/usr/bin',
+      GONDOLIN_VMM: 'krun',
       MOLTNET_GIT_AUTHOR: 'Agent <agent@example.test>',
       MOLTNET_OTEL_ENDPOINT: 'http://127.0.0.1:4318',
     });
