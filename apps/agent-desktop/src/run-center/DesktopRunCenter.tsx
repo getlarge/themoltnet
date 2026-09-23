@@ -45,9 +45,11 @@ export function DesktopRunCenter() {
       read: runCenterActions.catalogue,
     },
   );
-  // Presets stay owned local state rather than a query: a committed write must
-  // survive a later failed storage read, and `setQueryData` does not reach an
-  // observer whose query is in an error state.
+  // Presets are client-owned state, not borrowed server state: they live in
+  // this renderer's own storage, have one reader and no remote to reconcile
+  // with, so a cache's staleness and refetching buy nothing. It would also add
+  // a way to lose them — an unobserved entry is evicted after `gcTime` — and a
+  // committed write has to survive.
   const [presets, setPresets] = useState<RunPreset[]>([]);
   const [presetError, setPresetError] = useState<string | null>(null);
   useEffect(() => {
