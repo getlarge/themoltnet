@@ -30,7 +30,7 @@
     "copyright": "Copyright © MoltNet contributors",
     "createUpdaterArtifacts": true,
     "icon": [
-      "../../landing/public/apple-touch-icon.png"
+      "icons/icon.png"
     ],
     "macOS": {
       "hardenedRuntime": true,
