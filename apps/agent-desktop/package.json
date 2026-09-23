@@ -135,6 +135,7 @@
           "agentDesktopInstaller",
           "{projectRoot}/scripts/**/*.sh",
           "{workspaceRoot}/tools/release/agent-desktop/**/*.sh",
+          "{workspaceRoot}/tools/release/release-signer-pubkey.sh",
           "{workspaceRoot}/release-please-config.json",
           "^production",
           "sharedGlobals",
@@ -174,6 +175,7 @@
         "cache": true,
         "inputs": [
           "{workspaceRoot}/tools/release/agent-desktop/**/*.sh",
+          "{workspaceRoot}/tools/release/release-signer-pubkey.sh",
           "{workspaceRoot}/tools/release/agent-desktop/**/*.mjs",
           "{projectRoot}/scripts/**/*.sh",
           "{workspaceRoot}/release-please-config.json",
@@ -234,6 +236,7 @@
           "agentDesktopNative",
           "agentDesktopInstaller",
           "{workspaceRoot}/apps/rest-api/fly.toml",
+          "{workspaceRoot}/tools/release/release-signer-pubkey.sh",
           "{workspaceRoot}/tools/release/agent-desktop/validate.sh"
         ],
         "options": {

@@ -72,6 +72,24 @@ validate_release() {
 bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture"
 validate_release '0.57.0'
 
+# The trust anchor must be exactly one bare ssh-ed25519 key in rest-api's
+# fly.toml; anything else is refused rather than guessed at.
+api_fly="$fixture/apps/rest-api/fly.toml"
+cp "$api_fly" "$fixture/api-fly.toml.orig"
+for bad in \
+  '  RELEASE_SIGNER_PUBKEY = "ssh-ed25519 AAAATEST legreffier@themolt.net"' \
+  '  RELEASE_SIGNER_PUBKEY = "ssh-rsa AAAATEST"' \
+  "$(printf '%s\n%s' '  RELEASE_SIGNER_PUBKEY = "ssh-ed25519 AAAATEST"' '  RELEASE_SIGNER_PUBKEY = "ssh-ed25519 AAAAOTHER"')" \
+  '# no key'; do
+  printf '%s\n' "$bad" > "$api_fly"
+  if bash "$repo/tools/release/release-signer-pubkey.sh" "$fixture" >/dev/null 2>&1; then
+    echo "release signer key extraction accepted: $bad" >&2
+    exit 1
+  fi
+done
+cp "$fixture/api-fly.toml.orig" "$api_fly"
+[ "$(bash "$repo/tools/release/release-signer-pubkey.sh" "$fixture")" = 'ssh-ed25519 AAAATEST' ]
+
 if TAURI_UPDATER_PUBLIC_KEY='trusted-updater-key' \
   TAURI_SIGNING_PRIVATE_KEY='private-updater-key' \
   APPLE_CERT_P12='certificate' \

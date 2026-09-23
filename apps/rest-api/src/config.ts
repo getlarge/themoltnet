@@ -306,8 +306,9 @@ export const SecurityConfigSchema = Type.Object({
 
 export const ReleaseConfigSchema = Type.Object({
   // Publisher ssh-ed25519 key that signs release checksums, served in the
-  // discovery document. Must match the RELEASE_SIGNER_PUBKEY repo variable;
-  // rotate both together. Required in production (see loadConfig).
+  // discovery document. Set from apps/rest-api/fly.toml, the only maintained
+  // copy (release jobs read the same line). Required in production (see
+  // loadConfig).
   RELEASE_SIGNER_PUBKEY: Type.Optional(
     Type.String({ pattern: RELEASE_SIGNER_PUBLIC_KEY_PATTERN }),
   ),

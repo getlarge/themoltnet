@@ -1398,13 +1398,12 @@ jobs:
       - name: Render verified CLI installer
         env:
           RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
-          RELEASE_SIGNER_PUBKEY: ${{ vars.RELEASE_SIGNER_PUBKEY }}
           VERSION: ${{ steps.tag.outputs.semver }}
         run: |
-          if [ -z "$RELEASE_SIGNER_PUBKEY" ]; then
-            echo "::error::repo variable RELEASE_SIGNER_PUBKEY is not set; refusing to publish an installer without a trust anchor"
+          RELEASE_SIGNER_PUBKEY=$(bash tools/release/release-signer-pubkey.sh) || {
+            echo "::error::apps/rest-api/fly.toml has no valid RELEASE_SIGNER_PUBKEY; refusing to publish an installer without a trust anchor"
             exit 1
-          fi
+          }
           key="$RUNNER_TEMP/release-signing-key"
           printf '%s\n' "$RELEASE_SIGNING_KEY" > "$key"
           chmod 600 "$key"
@@ -1412,7 +1411,7 @@ jobs:
           rm -f "$key"
           declared=$(printf '%s' "$RELEASE_SIGNER_PUBKEY" | cut -d' ' -f1-2)
           if [ "$derived" != "$declared" ]; then
-            echo "::error::RELEASE_SIGNER_PUBKEY does not match RELEASE_SIGNING_KEY — fix the rotation before releasing"
+            echo "::error::RELEASE_SIGNER_PUBKEY in apps/rest-api/fly.toml does not match RELEASE_SIGNING_KEY — fix the rotation before releasing"
             exit 1
           fi
           sed -e "s#^RELEASE_PINNED_VERSION=\"\"#RELEASE_PINNED_VERSION=\"$VERSION\"#" \
@@ -2441,19 +2440,19 @@ jobs:
           ssh-keygen -Y sign -f "$key" -n moltnet-release "$PAYLOAD.tar.gz.sha256"
           rm -f "$key"
 
-      # The served installer embeds the release public key: injected here from
-      # the repo variable (rotation = variable update, no code change) and
-      # cross-checked against the actual signing key so a mismatched rotation
-      # can never publish an installer that rejects its own releases.
+      # The served installer embeds the release public key: read here from
+      # apps/rest-api/fly.toml (the single reviewed copy, also served in
+      # discovery) and cross-checked against the actual signing key so a
+      # mismatched rotation can never publish an installer that rejects its
+      # own releases.
       - name: Embed release public key into the installer
         env:
           RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
-          RELEASE_SIGNER_PUBKEY: ${{ vars.RELEASE_SIGNER_PUBKEY }}
         run: |
-          if [ -z "$RELEASE_SIGNER_PUBKEY" ]; then
-            echo "::error::repo variable RELEASE_SIGNER_PUBKEY is not set; refusing to publish an installer without a trust anchor"
+          RELEASE_SIGNER_PUBKEY=$(bash tools/release/release-signer-pubkey.sh) || {
+            echo "::error::apps/rest-api/fly.toml has no valid RELEASE_SIGNER_PUBKEY; refusing to publish an installer without a trust anchor"
             exit 1
-          fi
+          }
           key="$RUNNER_TEMP/release-signing-key"
           printf '%s\n' "$RELEASE_SIGNING_KEY" > "$key"
           chmod 600 "$key"
@@ -2461,7 +2460,7 @@ jobs:
           rm -f "$key"
           declared=$(printf '%s' "$RELEASE_SIGNER_PUBKEY" | cut -d' ' -f1-2)
           if [ "$derived" != "$declared" ]; then
-            echo "::error::RELEASE_SIGNER_PUBKEY does not match RELEASE_SIGNING_KEY — fix the rotation before releasing"
+            echo "::error::RELEASE_SIGNER_PUBKEY in apps/rest-api/fly.toml does not match RELEASE_SIGNING_KEY — fix the rotation before releasing"
             exit 1
           fi
           version="${{ needs.resolve-publish.outputs.agent-daemon-tag }}"

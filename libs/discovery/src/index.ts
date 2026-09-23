@@ -35,8 +35,8 @@ export const MOLTNET_DOWNLOAD_MANIFEST_URL =
   'https://themolt.net/download/manifest.json';
 // The publisher public key is deliberately NOT a constant here: rest-api adds
 // it to the discovery document at request time from its RELEASE_SIGNER_PUBKEY
-// runtime config (apps/rest-api/fly.toml, mirroring the repo variable of the
-// same name), so a rotation never needs a discovery release. Principal
+// runtime config (apps/rest-api/fly.toml, the only maintained copy), so a
+// rotation never needs a discovery release. Principal
 // matches install.sh; the namespace is verified against real release
 // signatures (ssh-keygen -Y verify).
 export const MOLTNET_RELEASE_SIGNER_PRINCIPAL = 'legreffier@themolt.net';

@@ -117,7 +117,8 @@ notarize:
 
 # Publisher signature over checksums.txt with the same ssh-ed25519 release key
 # and `moltnet-release` namespace the agent-daemon bundle uses, so one trust
-# anchor (RELEASE_SIGNER_PUBKEY) verifies every MoltNet download:
+# anchor (RELEASE_SIGNER_PUBKEY in apps/rest-api/fly.toml) verifies every
+# MoltNet download:
 #   ssh-keygen -Y verify -f allowed_signers -I <principal> -n moltnet-release \
 #     -s checksums.txt.sig < checksums.txt
 # Local runs without the key: `goreleaser release --snapshot --skip=sign,notarize`.
