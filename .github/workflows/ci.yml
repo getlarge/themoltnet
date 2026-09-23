@@ -737,10 +737,11 @@ jobs:
     needs: [affected]
     env:
       NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
-      # start-nx-agents ran in `affected`, so this runner has no local DTE
-      # marker. Enable distribution explicitly while retaining the shared
-      # GitHub-derived execution ID and the `distributed` environment.
-      NX_CLOUD_DISTRIBUTED_EXECUTION: 'true'
+      # NX_CLOUD_DISTRIBUTED_EXECUTION is deliberately NOT set at job level.
+      # It is scoped to the steps gated on has-agents: when nothing is
+      # affected, `affected` opens no execution and starts no agents, so any
+      # other Nx command here (check:quickstart) would wait for agents that
+      # never arrive until the job timeout.
       NX_CI_EXECUTION_ENV: distributed
       NX_BASE: ${{ needs.affected.outputs.base }}
       NX_HEAD: ${{ needs.affected.outputs.head }}
@@ -799,6 +800,10 @@ jobs:
       - name: Run affected lint, typecheck, test-ci, test-desktop-native, build, check:pack, docker:build
         if: needs.affected.outputs.has-agents == 'true'
         env:
+          # start-nx-agents ran in `affected`, so this runner has no local DTE
+          # marker. Enable distribution explicitly while retaining the shared
+          # GitHub-derived execution ID and the `distributed` environment.
+          NX_CLOUD_DISTRIBUTED_EXECUTION: 'true'
           # Registry install smokes require coordinated workspace dependencies
           # to have published first. Release jobs run those smokes in order;
           # pre-merge CI still runs every package's tarball checks.
@@ -807,6 +812,8 @@ jobs:
 
       - name: Complete Nx Cloud CI run
         if: always() && needs.affected.outputs.has-agents == 'true'
+        env:
+          NX_CLOUD_DISTRIBUTED_EXECUTION: 'true'
         run: pnpm exec nx-cloud complete-ci-run
 
   plugin-validation:
