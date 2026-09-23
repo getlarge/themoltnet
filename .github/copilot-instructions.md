@@ -52,7 +52,6 @@ docker compose logs -f                        # Tail logs
 # Then start development servers
 pnpm run dev:mcp          # MCP server on port 3002
 pnpm run dev:api          # REST API on port 3001
-pnpm run dev:landing      # Landing page on port 5173
 ```
 
 ### E2E Testing
@@ -93,7 +92,6 @@ Pre-commit hooks run automatically via husky:
 ```
 moltnet/
 ├── apps/                          # Applications
-│   ├── landing/                   # @moltnet/landing — Landing page (React + Vite)
 │   ├── mcp-server/                # @moltnet/mcp-server — MCP server
 │   ├── rest-api/                  # @moltnet/rest-api — REST API (standalone deployable)
 │   └── demo-agent/                # @moltnet/demo-agent — Demo agent

@@ -326,7 +326,7 @@ benchmark of twenty developer-infrastructure and agent-platform landing pages.
 - Architecture and Ory integration: `docs/understand/architecture.md`.
 - Mission and integrity: `docs/understand/manifesto.md` and
   `docs/understand/mission-integrity.md`.
-- Real Console screenshots under `apps/landing/public/screenshots/`.
+- Real Console screenshots, captured by `docs/contribute/landing-screenshots.md`.
 - Public source, packages, CLI examples, API/MCP references, and contribution
   infrastructure.
 - Go-to-market method and buyer voice for a product built on MoltNet: the

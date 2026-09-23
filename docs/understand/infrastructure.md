@@ -341,11 +341,10 @@ It covers:
 
 **CI deploy (automatic):** pushing to `main` triggers the deploy workflows:
 
-| Workflow             | Trigger paths                                                    | App               |
-| -------------------- | ---------------------------------------------------------------- | ----------------- |
-| `deploy.yml`         | `apps/rest-api/**`, `libs/**`                                    | `moltnet`         |
-| `deploy-landing.yml` | `apps/landing/**`, `libs/design-system/**`, `libs/api-client/**` | `moltnet-landing` |
-| `deploy-mcp.yml`     | `apps/mcp-server/**`, `libs/**`                                  | `moltnet-mcp`     |
+| Workflow         | Trigger paths                   | App           |
+| ---------------- | ------------------------------- | ------------- |
+| `deploy.yml`     | `apps/rest-api/**`, `libs/**`   | `moltnet`     |
+| `deploy-mcp.yml` | `apps/mcp-server/**`, `libs/**` | `moltnet-mcp` |
 
 Both call the reusable `_deploy.yml` workflow (build Docker image, push to
 GHCR + Fly registry, deploy). Each has a preflight job that validates required
