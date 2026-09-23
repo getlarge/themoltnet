@@ -15,16 +15,8 @@
  */
 import { queryOptions } from '@tanstack/react-query';
 
-import {
-  listPresets,
-  projectActions,
-  runCenterActions,
-} from './run-center-bridge.js';
-import type {
-  AgentServerCatalogue,
-  ProjectLocation,
-  RunPreset,
-} from './types.js';
+import { projectActions, runCenterActions } from './run-center-bridge.js';
+import type { AgentServerCatalogue, ProjectLocation } from './types.js';
 
 /**
  * Key roots, for invalidating a whole family. Leaves are built by the
@@ -36,7 +28,6 @@ export const runCenterKeys = {
   catalogues: () => [...runCenterKeys.all, 'catalogue'] as const,
   catalogue: (identity: string) =>
     [...runCenterKeys.catalogues(), identity] as const,
-  presets: () => [...runCenterKeys.all, 'presets'] as const,
   projectLocations: () => [...runCenterKeys.all, 'project-locations'] as const,
 };
 
@@ -63,17 +54,16 @@ export function catalogueQuery(
   });
 }
 
-/** Locally stored run presets. Never leaves this machine. */
-export function presetsQuery() {
-  return queryOptions({
-    queryKey: runCenterKeys.presets(),
-    queryFn: (): Promise<RunPreset[]> => listPresets(),
-  });
-}
-
-/** Folders registered for project work. */
+/**
+ * Folders registered for project work.
+ *
+ * `staleTime: 0` overrides the client default: these are machine-local and the
+ * user edits them from another screen, so a reader coming back should see the
+ * current list rather than a copy that is merely recent.
+ */
 export function projectLocationsQuery() {
   return queryOptions({
+    staleTime: 0,
     queryKey: runCenterKeys.projectLocations(),
     queryFn: async (): Promise<ProjectLocation[]> =>
       (await projectActions.list()).locations,

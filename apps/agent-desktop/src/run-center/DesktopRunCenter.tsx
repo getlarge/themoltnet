@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { desktopBridge, INITIAL_STATUS } from '../bridge.js';
 import { findRunPreset } from './preset-matching.js';
+import { projectLocationsQuery, runCenterKeys } from './queries.js';
 import {
   listPresets,
   projectActions,
@@ -18,7 +19,6 @@ import type {
   RunCenterActions,
   RunPreset,
 } from './types.js';
-import { projectLocationsQuery, runCenterKeys } from './queries.js';
 import { useCatalogue } from './useCatalogue.js';
 
 /** Native IPC owns all server access; this renderer receives public state only. */

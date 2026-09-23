@@ -178,6 +178,8 @@ export function ProjectsView({
     try {
       await projects.remove(name);
       setLocations((current) => current.filter((entry) => entry.name !== name));
+      // Other readers of the shared list must not keep the removed entry.
+      projects.invalidate?.();
       // An open form for this location would otherwise re-create it on save.
       setEditing((current) => (current?.name === name ? undefined : current));
       setFeedback({
@@ -529,6 +531,8 @@ export function ProjectsView({
                         ),
                       saved,
                     ]);
+                    // Other readers of the shared list must see the new entry.
+                    projects.invalidate?.();
                     setEditing(undefined);
                     setFeedback({
                       tone: 'info',
