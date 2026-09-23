@@ -768,6 +768,10 @@ jobs:
       # the affected graph (docs/skill drift, formatting). Run them on the
       # orchestrator regardless of has-agents.
       - name: Run check:quickstart
+        env:
+          # This local file check does not need Nx Cloud. Keep a Cloud outage
+          # from holding the orchestrator before image builds can start.
+          NX_NO_CLOUD: 'true'
         run: pnpm run check:quickstart
       - name: Check Vite package aliases
         run: pnpm run check:vite-aliases
