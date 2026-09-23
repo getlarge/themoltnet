@@ -9,8 +9,7 @@ trap 'rm -rf "$fixture"' EXIT
 
 mkdir -p \
   "$fixture/apps/agent-desktop/src-tauri" \
-  "$fixture/apps/landing/nginx" \
-  "$fixture/apps/landing" \
+  "$fixture/apps/rest-api" \
   "$fixture/bin"
 
 printf '%s\n' '{"version":"1.2.3"}' > "$fixture/apps/agent-desktop/package.json"
@@ -21,12 +20,7 @@ printf '%s\n' \
   'const RELEASE_SIGNER_PUBKEY: &str =' \
   '    "ssh-ed25519 AAAATEST";' \
   > "$fixture/apps/agent-desktop/src-tauri/build.rs"
-printf '%s\n' \
-  '    set $cli_version 2.4.0;' \
-  '    set $agent_cli_version 0.57.0;' \
-  '    set $agent_desktop_version 1.2.3;' \
-  > "$fixture/apps/landing/nginx/default.conf.template"
-printf '%s\n' '  RELEASE_SIGNER_PUBKEY = "ssh-ed25519 AAAATEST"' > "$fixture/apps/landing/fly.toml"
+printf '%s\n' '  RELEASE_SIGNER_PUBKEY = "ssh-ed25519 AAAATEST"' > "$fixture/apps/rest-api/fly.toml"
 printf '%s\n' 'rust 1.88.0' > "$fixture/.tool-versions"
 
 cat > "$fixture/bin/gh" <<'SH'
@@ -78,6 +72,24 @@ validate_release() {
 bash "$repo/tools/release/agent-desktop/validate.sh" "$fixture"
 validate_release '0.57.0'
 
+# The trust anchor must be exactly one bare ssh-ed25519 key in rest-api's
+# fly.toml; anything else is refused rather than guessed at.
+api_fly="$fixture/apps/rest-api/fly.toml"
+cp "$api_fly" "$fixture/api-fly.toml.orig"
+for bad in \
+  '  RELEASE_SIGNER_PUBKEY = "ssh-ed25519 AAAATEST legreffier@themolt.net"' \
+  '  RELEASE_SIGNER_PUBKEY = "ssh-rsa AAAATEST"' \
+  "$(printf '%s\n%s' '  RELEASE_SIGNER_PUBKEY = "ssh-ed25519 AAAATEST"' '  RELEASE_SIGNER_PUBKEY = "ssh-ed25519 AAAAOTHER"')" \
+  '# no key'; do
+  printf '%s\n' "$bad" > "$api_fly"
+  if bash "$repo/tools/release/release-signer-pubkey.sh" "$fixture" >/dev/null 2>&1; then
+    echo "release signer key extraction accepted: $bad" >&2
+    exit 1
+  fi
+done
+cp "$fixture/api-fly.toml.orig" "$api_fly"
+[ "$(bash "$repo/tools/release/release-signer-pubkey.sh" "$fixture")" = 'ssh-ed25519 AAAATEST' ]
+
 if TAURI_UPDATER_PUBLIC_KEY='trusted-updater-key' \
   TAURI_SIGNING_PRIVATE_KEY='private-updater-key' \
   APPLE_CERT_P12='certificate' \
@@ -104,33 +116,6 @@ validate_release '0.58.0'
 validate_release '0.59.0'
 printf '%s\n' '0.57.0' > "$fixture/apps/agent-desktop/agent-cli.minimum-version"
 
-TEMPLATE="$fixture/apps/landing/nginx/default.conf.template" \
-CLI_VERSION=2.5.0 \
-AGENT_CLI_VERSION=0.58.0 \
-AGENT_DESKTOP_VERSION=1.3.0 \
-bash "$repo/tools/release/propose-download-pin.sh"
-
-grep -q '^    set \$cli_version 2\.5\.0;$' "$fixture/apps/landing/nginx/default.conf.template"
-grep -q '^    set \$agent_cli_version 0\.58\.0;$' "$fixture/apps/landing/nginx/default.conf.template"
-grep -q '^    set \$agent_desktop_version 1\.3\.0;$' "$fixture/apps/landing/nginx/default.conf.template"
-[ "$(cat "$fixture/apps/agent-desktop/agent-cli.minimum-version")" = '0.57.0' ]
-
-if TEMPLATE="$fixture/apps/landing/nginx/default.conf.template" \
-  AGENT_CLI_VERSION=0.57.0 \
-  bash "$repo/tools/release/propose-download-pin.sh" 2>/dev/null; then
-  echo 'pin updater accepted an Agent CLI downgrade' >&2
-  exit 1
-fi
-grep -q '^    set \$agent_cli_version 0\.58\.0;$' "$fixture/apps/landing/nginx/default.conf.template"
-[ "$(cat "$fixture/apps/agent-desktop/agent-cli.minimum-version")" = '0.57.0' ]
-
-if TEMPLATE="$fixture/apps/landing/nginx/default.conf.template" \
-  AGENT_CLI_VERSION=01.2.3 \
-  bash "$repo/tools/release/propose-download-pin.sh" 2>/dev/null; then
-  echo 'pin updater accepted a noncanonical version' >&2
-  exit 1
-fi
-
 node - <<'NODE'
 const fs = require('node:fs');
 const config = require('./release-please-config.json');
@@ -156,31 +141,6 @@ if (tauriConfig !== releasePleaseLayout) {
   throw new Error(
     `${tauriConfigPath} must match Release Please's JSON serializer`,
   );
-}
-
-const manifestTemplate = fs.readFileSync(
-  'apps/landing/nginx/default.conf.template',
-  'utf8',
-);
-for (const field of ['agent', 'agentCli']) {
-  const expectedField = `"${field}":{"version":"$agent_cli_version","tag":"agent-daemon-v$agent_cli_version"}`;
-  if (!manifestTemplate.includes(expectedField)) {
-    throw new Error(`download manifest is missing compatible ${field} data`);
-  }
-}
-for (const route of [
-  '/download/desktop/macos-arm64',
-  '/download/desktop/linux-x64-deb',
-  '/download/desktop/linux-x64-appimage',
-]) {
-  if (!manifestTemplate.includes(`location = ${route}`)) {
-    throw new Error(`download manifest is missing Desktop route ${route}`);
-  }
-}
-for (const suffix of ['aarch64.dmg', 'amd64.deb', 'amd64.AppImage']) {
-  if (!manifestTemplate.includes(`MoltNet-Agent_\${agent_desktop_version}_${suffix}`)) {
-    throw new Error(`download manifest is missing Desktop artifact ${suffix}`);
-  }
 }
 NODE
 

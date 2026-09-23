@@ -33588,10 +33588,11 @@ func (s *NetworkInfoCommunityVisibilityLevels) SetPublic(val string) {
 }
 
 type NetworkInfoEndpoints struct {
-	Console NetworkInfoEndpointsConsole `json:"console"`
-	Docs    NetworkInfoEndpointsDocs    `json:"docs"`
-	Mcp     NetworkInfoEndpointsMcp     `json:"mcp"`
-	Rest    NetworkInfoEndpointsRest    `json:"rest"`
+	Console   NetworkInfoEndpointsConsole   `json:"console"`
+	Docs      NetworkInfoEndpointsDocs      `json:"docs"`
+	Downloads NetworkInfoEndpointsDownloads `json:"downloads"`
+	Mcp       NetworkInfoEndpointsMcp       `json:"mcp"`
+	Rest      NetworkInfoEndpointsRest      `json:"rest"`
 }
 
 // GetConsole returns the value of Console.
@@ -33602,6 +33603,11 @@ func (s *NetworkInfoEndpoints) GetConsole() NetworkInfoEndpointsConsole {
 // GetDocs returns the value of Docs.
 func (s *NetworkInfoEndpoints) GetDocs() NetworkInfoEndpointsDocs {
 	return s.Docs
+}
+
+// GetDownloads returns the value of Downloads.
+func (s *NetworkInfoEndpoints) GetDownloads() NetworkInfoEndpointsDownloads {
+	return s.Downloads
 }
 
 // GetMcp returns the value of Mcp.
@@ -33622,6 +33628,11 @@ func (s *NetworkInfoEndpoints) SetConsole(val NetworkInfoEndpointsConsole) {
 // SetDocs sets the value of Docs.
 func (s *NetworkInfoEndpoints) SetDocs(val NetworkInfoEndpointsDocs) {
 	s.Docs = val
+}
+
+// SetDownloads sets the value of Downloads.
+func (s *NetworkInfoEndpoints) SetDownloads(val NetworkInfoEndpointsDownloads) {
+	s.Downloads = val
 }
 
 // SetMcp sets the value of Mcp.
@@ -33672,12 +33683,18 @@ func (s *NetworkInfoEndpointsConsole) SetURL(val string) {
 
 type NetworkInfoEndpointsDocs struct {
 	APISpec string `json:"api_spec"`
+	LlmsTxt string `json:"llms_txt"`
 	URL     string `json:"url"`
 }
 
 // GetAPISpec returns the value of APISpec.
 func (s *NetworkInfoEndpointsDocs) GetAPISpec() string {
 	return s.APISpec
+}
+
+// GetLlmsTxt returns the value of LlmsTxt.
+func (s *NetworkInfoEndpointsDocs) GetLlmsTxt() string {
+	return s.LlmsTxt
 }
 
 // GetURL returns the value of URL.
@@ -33690,8 +33707,82 @@ func (s *NetworkInfoEndpointsDocs) SetAPISpec(val string) {
 	s.APISpec = val
 }
 
+// SetLlmsTxt sets the value of LlmsTxt.
+func (s *NetworkInfoEndpointsDocs) SetLlmsTxt(val string) {
+	s.LlmsTxt = val
+}
+
 // SetURL sets the value of URL.
 func (s *NetworkInfoEndpointsDocs) SetURL(val string) {
+	s.URL = val
+}
+
+type NetworkInfoEndpointsDownloads struct {
+	Description            string    `json:"description"`
+	Manifest               string    `json:"manifest"`
+	ReleaseSignerPrincipal string    `json:"release_signer_principal"`
+	ReleaseSignerPublicKey OptString `json:"release_signer_public_key"`
+	SignatureNamespace     string    `json:"signature_namespace"`
+	URL                    string    `json:"url"`
+}
+
+// GetDescription returns the value of Description.
+func (s *NetworkInfoEndpointsDownloads) GetDescription() string {
+	return s.Description
+}
+
+// GetManifest returns the value of Manifest.
+func (s *NetworkInfoEndpointsDownloads) GetManifest() string {
+	return s.Manifest
+}
+
+// GetReleaseSignerPrincipal returns the value of ReleaseSignerPrincipal.
+func (s *NetworkInfoEndpointsDownloads) GetReleaseSignerPrincipal() string {
+	return s.ReleaseSignerPrincipal
+}
+
+// GetReleaseSignerPublicKey returns the value of ReleaseSignerPublicKey.
+func (s *NetworkInfoEndpointsDownloads) GetReleaseSignerPublicKey() OptString {
+	return s.ReleaseSignerPublicKey
+}
+
+// GetSignatureNamespace returns the value of SignatureNamespace.
+func (s *NetworkInfoEndpointsDownloads) GetSignatureNamespace() string {
+	return s.SignatureNamespace
+}
+
+// GetURL returns the value of URL.
+func (s *NetworkInfoEndpointsDownloads) GetURL() string {
+	return s.URL
+}
+
+// SetDescription sets the value of Description.
+func (s *NetworkInfoEndpointsDownloads) SetDescription(val string) {
+	s.Description = val
+}
+
+// SetManifest sets the value of Manifest.
+func (s *NetworkInfoEndpointsDownloads) SetManifest(val string) {
+	s.Manifest = val
+}
+
+// SetReleaseSignerPrincipal sets the value of ReleaseSignerPrincipal.
+func (s *NetworkInfoEndpointsDownloads) SetReleaseSignerPrincipal(val string) {
+	s.ReleaseSignerPrincipal = val
+}
+
+// SetReleaseSignerPublicKey sets the value of ReleaseSignerPublicKey.
+func (s *NetworkInfoEndpointsDownloads) SetReleaseSignerPublicKey(val OptString) {
+	s.ReleaseSignerPublicKey = val
+}
+
+// SetSignatureNamespace sets the value of SignatureNamespace.
+func (s *NetworkInfoEndpointsDownloads) SetSignatureNamespace(val string) {
+	s.SignatureNamespace = val
+}
+
+// SetURL sets the value of URL.
+func (s *NetworkInfoEndpointsDownloads) SetURL(val string) {
 	s.URL = val
 }
 
@@ -33981,16 +34072,22 @@ func (s *NetworkInfoPhilosophy) SetWhatWeReject(val []string) {
 }
 
 type NetworkInfoQuickstart struct {
-	AfterConnecting []string                       `json:"after_connecting"`
-	Cli             NetworkInfoQuickstartCli       `json:"cli"`
-	McpConfig       NetworkInfoQuickstartMcpConfig `json:"mcp_config"`
-	Sdk             NetworkInfoQuickstartSdk       `json:"sdk"`
-	Steps           []string                       `json:"steps"`
+	AfterConnecting []string                         `json:"after_connecting"`
+	AgentDaemon     NetworkInfoQuickstartAgentDaemon `json:"agent_daemon"`
+	Cli             NetworkInfoQuickstartCli         `json:"cli"`
+	McpConfig       NetworkInfoQuickstartMcpConfig   `json:"mcp_config"`
+	Sdk             NetworkInfoQuickstartSdk         `json:"sdk"`
+	Steps           []string                         `json:"steps"`
 }
 
 // GetAfterConnecting returns the value of AfterConnecting.
 func (s *NetworkInfoQuickstart) GetAfterConnecting() []string {
 	return s.AfterConnecting
+}
+
+// GetAgentDaemon returns the value of AgentDaemon.
+func (s *NetworkInfoQuickstart) GetAgentDaemon() NetworkInfoQuickstartAgentDaemon {
+	return s.AgentDaemon
 }
 
 // GetCli returns the value of Cli.
@@ -34018,6 +34115,11 @@ func (s *NetworkInfoQuickstart) SetAfterConnecting(val []string) {
 	s.AfterConnecting = val
 }
 
+// SetAgentDaemon sets the value of AgentDaemon.
+func (s *NetworkInfoQuickstart) SetAgentDaemon(val NetworkInfoQuickstartAgentDaemon) {
+	s.AgentDaemon = val
+}
+
 // SetCli sets the value of Cli.
 func (s *NetworkInfoQuickstart) SetCli(val NetworkInfoQuickstartCli) {
 	s.Cli = val
@@ -34038,13 +34140,50 @@ func (s *NetworkInfoQuickstart) SetSteps(val []string) {
 	s.Steps = val
 }
 
+type NetworkInfoQuickstartAgentDaemon struct {
+	Description string `json:"description"`
+	Install     string `json:"install"`
+}
+
+// GetDescription returns the value of Description.
+func (s *NetworkInfoQuickstartAgentDaemon) GetDescription() string {
+	return s.Description
+}
+
+// GetInstall returns the value of Install.
+func (s *NetworkInfoQuickstartAgentDaemon) GetInstall() string {
+	return s.Install
+}
+
+// SetDescription sets the value of Description.
+func (s *NetworkInfoQuickstartAgentDaemon) SetDescription(val string) {
+	s.Description = val
+}
+
+// SetInstall sets the value of Install.
+func (s *NetworkInfoQuickstartAgentDaemon) SetInstall(val string) {
+	s.Install = val
+}
+
 type NetworkInfoQuickstartCli struct {
-	Description     string `json:"description"`
-	InstallApt      string `json:"install_apt"`
-	InstallHomebrew string `json:"install_homebrew"`
-	InstallNpm      string `json:"install_npm"`
-	InstallScoop    string `json:"install_scoop"`
-	Usage           string `json:"usage"`
+	AptRepositoryURL         string `json:"apt_repository_url"`
+	AptSigningKeyFingerprint string `json:"apt_signing_key_fingerprint"`
+	Description              string `json:"description"`
+	InstallApt               string `json:"install_apt"`
+	InstallHomebrew          string `json:"install_homebrew"`
+	InstallNpm               string `json:"install_npm"`
+	InstallScoop             string `json:"install_scoop"`
+	Usage                    string `json:"usage"`
+}
+
+// GetAptRepositoryURL returns the value of AptRepositoryURL.
+func (s *NetworkInfoQuickstartCli) GetAptRepositoryURL() string {
+	return s.AptRepositoryURL
+}
+
+// GetAptSigningKeyFingerprint returns the value of AptSigningKeyFingerprint.
+func (s *NetworkInfoQuickstartCli) GetAptSigningKeyFingerprint() string {
+	return s.AptSigningKeyFingerprint
 }
 
 // GetDescription returns the value of Description.
@@ -34075,6 +34214,16 @@ func (s *NetworkInfoQuickstartCli) GetInstallScoop() string {
 // GetUsage returns the value of Usage.
 func (s *NetworkInfoQuickstartCli) GetUsage() string {
 	return s.Usage
+}
+
+// SetAptRepositoryURL sets the value of AptRepositoryURL.
+func (s *NetworkInfoQuickstartCli) SetAptRepositoryURL(val string) {
+	s.AptRepositoryURL = val
+}
+
+// SetAptSigningKeyFingerprint sets the value of AptSigningKeyFingerprint.
+func (s *NetworkInfoQuickstartCli) SetAptSigningKeyFingerprint(val string) {
+	s.AptSigningKeyFingerprint = val
 }
 
 // SetDescription sets the value of Description.

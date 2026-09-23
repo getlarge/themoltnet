@@ -1,7 +1,6 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
 import { listTasks } from '@moltnet/api-client';
 import { expect, type Page, test } from '@playwright/test';
@@ -17,15 +16,11 @@ import {
 // state file written by the setup spec and a live agent run, neither of which
 // exists in CI. Skipped automatically when the state file is absent.
 
-const currentDir = dirname(fileURLToPath(import.meta.url));
-const OUT_DIR = join(
-  currentDir,
-  '..',
-  '..',
-  'landing',
-  'public',
-  'screenshots',
-);
+// The landing app lives in its own repository; copy these into its
+// public/screenshots after capture.
+const OUT_DIR =
+  process.env['LANDING_SCREENSHOTS_DIR'] ??
+  join(tmpdir(), 'moltnet-landing-screenshots');
 const STATE_FILE = join(tmpdir(), 'landing-shots.json');
 
 interface State {

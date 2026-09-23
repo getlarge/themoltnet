@@ -200,6 +200,8 @@ export interface AppOptions {
   oryClients: OryClients;
   security: SecurityOptions;
   packGcConfig: PackGcConfig;
+  /** Publisher ssh-ed25519 key served in the discovery document. */
+  releaseSignerPublicKey?: string;
   runtimeSessionMaxBytes: number;
   taskArtifactMaxBytes: number;
   /**
@@ -523,7 +525,9 @@ export async function registerApiRoutes(
   await app.register(runtimeProfileRoutes);
   await app.register(runtimeModelRoutes);
   await app.register(runtimePolicyRoutes);
-  await app.register(publicRoutes);
+  await app.register(publicRoutes, {
+    releaseSignerPublicKey: options.releaseSignerPublicKey,
+  });
   await app.register(taskRoutes);
   await app.register(problemRoutes);
 }

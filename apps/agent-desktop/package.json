@@ -52,7 +52,7 @@
           "env": "MOLTNET_AGENT_CLI_VERSION"
         },
         "{workspaceRoot}/.tool-versions",
-        "{workspaceRoot}/apps/landing/public/apple-touch-icon.png",
+        "{projectRoot}/src-tauri/icons/icon.png",
         {
           "runtime": "node -p \"process.platform + '-' + process.arch\""
         },
@@ -135,8 +135,8 @@
           "agentDesktopInstaller",
           "{projectRoot}/scripts/**/*.sh",
           "{workspaceRoot}/tools/release/agent-desktop/**/*.sh",
+          "{workspaceRoot}/tools/release/release-signer-pubkey.sh",
           "{workspaceRoot}/release-please-config.json",
-          "{workspaceRoot}/apps/landing/nginx/default.conf.template",
           "^production",
           "sharedGlobals",
           "{workspaceRoot}/tools/release/agent-desktop/**/*.mjs"
@@ -175,10 +175,10 @@
         "cache": true,
         "inputs": [
           "{workspaceRoot}/tools/release/agent-desktop/**/*.sh",
+          "{workspaceRoot}/tools/release/release-signer-pubkey.sh",
           "{workspaceRoot}/tools/release/agent-desktop/**/*.mjs",
           "{projectRoot}/scripts/**/*.sh",
           "{workspaceRoot}/release-please-config.json",
-          "{workspaceRoot}/apps/landing/nginx/default.conf.template",
           "{projectRoot}/agent-cli.minimum-version",
           "{projectRoot}/src-tauri/build.rs",
           "{projectRoot}/src-tauri/Cargo.toml",
@@ -235,7 +235,8 @@
         "inputs": [
           "agentDesktopNative",
           "agentDesktopInstaller",
-          "{workspaceRoot}/apps/landing/fly.toml",
+          "{workspaceRoot}/apps/rest-api/fly.toml",
+          "{workspaceRoot}/tools/release/release-signer-pubkey.sh",
           "{workspaceRoot}/tools/release/agent-desktop/validate.sh"
         ],
         "options": {

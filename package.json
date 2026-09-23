@@ -26,7 +26,6 @@
     "postinstall": "node tools/postinstall.mjs",
     "dev:mcp": "npx dotenvx run --env-file .env.local -- pnpm exec nx run @moltnet/mcp-server:dev",
     "dev:api": "npx dotenvx run --env-file .env.local -- pnpm exec nx run @moltnet/rest-api:dev",
-    "dev:landing": "npx dotenvx run --env-file .env.local -- pnpm exec nx run @moltnet/landing:dev",
     "dev:console": "npx dotenvx run --env-file .env.local -- pnpm exec nx run @moltnet/console:dev",
     "test": "nx run-many -t test",
     "lint": "nx run-many -t lint",

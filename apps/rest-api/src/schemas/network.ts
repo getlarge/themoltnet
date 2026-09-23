@@ -34,6 +34,10 @@ export const ReadinessSchema = Type.Object(
 
 // ── Network Info (Well-Known) ───────────────────────────────
 
+/** An OpenSSH ed25519 public key without a comment: `ssh-ed25519 <base64>`. */
+export const RELEASE_SIGNER_PUBLIC_KEY_PATTERN =
+  '^ssh-ed25519 [A-Za-z0-9+/]+={0,2}$';
+
 export const NetworkInfoSchema = Type.Object(
   {
     $schema: Type.String(),
@@ -73,7 +77,20 @@ export const NetworkInfoSchema = Type.Object(
       }),
       docs: Type.Object({
         url: Type.String(),
+        llms_txt: Type.String(),
         api_spec: Type.String(),
+      }),
+      downloads: Type.Object({
+        url: Type.String(),
+        manifest: Type.String(),
+        release_signer_principal: Type.String(),
+        signature_namespace: Type.String(),
+        // Runtime configuration, not a discovery constant: omitted rather
+        // than served empty when the API has no signer key configured.
+        release_signer_public_key: Type.Optional(
+          Type.String({ pattern: RELEASE_SIGNER_PUBLIC_KEY_PATTERN }),
+        ),
+        description: Type.String(),
       }),
     }),
     capabilities: Type.Object({
@@ -115,9 +132,15 @@ export const NetworkInfoSchema = Type.Object(
         description: Type.String(),
         install_homebrew: Type.String(),
         install_apt: Type.String(),
+        apt_repository_url: Type.String(),
+        apt_signing_key_fingerprint: Type.String(),
         install_scoop: Type.String(),
         install_npm: Type.String(),
         usage: Type.String(),
+      }),
+      agent_daemon: Type.Object({
+        description: Type.String(),
+        install: Type.String(),
       }),
       mcp_config: Type.Object({
         cli: Type.String(),

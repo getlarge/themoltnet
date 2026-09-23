@@ -45,9 +45,6 @@
       "path": "apps/console-e2e"
     },
     {
-      "path": "apps/landing"
-    },
-    {
       "path": "apps/mcp-host-e2e"
     },
     {

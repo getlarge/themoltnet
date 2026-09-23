@@ -30,7 +30,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, legreffier-plugin, cli, api-client, dspy-adapters, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, n8n-nodes-moltnet, node-red-theme, agent-daemon, agent-desktop, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector
+          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, legreffier-plugin, cli, api-client, dspy-adapters, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, n8n-nodes-moltnet, node-red-theme, agent-daemon, agent-desktop, console, database, mcp-host, mcp-server, rest-api, otel-custom-collector
         required: false
         type: string
 
@@ -121,9 +121,6 @@ jobs:
       database-release-created: ${{ steps.release.outputs['libs/database--release_created'] }}
       database-tag-name: ${{ steps.release.outputs['libs/database--tag_name'] }}
       database-version: ${{ steps.release.outputs['libs/database--version'] }}
-      landing-release-created: ${{ steps.release.outputs['apps/landing--release_created'] }}
-      landing-tag-name: ${{ steps.release.outputs['apps/landing--tag_name'] }}
-      landing-version: ${{ steps.release.outputs['apps/landing--version'] }}
       mcp-host-release-created: ${{ steps.release.outputs['apps/mcp-host--release_created'] }}
       mcp-host-tag-name: ${{ steps.release.outputs['apps/mcp-host--tag_name'] }}
       mcp-host-version: ${{ steps.release.outputs['apps/mcp-host--version'] }}
@@ -343,9 +340,6 @@ jobs:
           RP_DATABASE_CREATED: ${{ needs.release-please.outputs.database-release-created }}
           RP_DATABASE_TAG: ${{ needs.release-please.outputs.database-tag-name }}
           RP_DATABASE_VERSION: ${{ needs.release-please.outputs.database-version }}
-          RP_LANDING_CREATED: ${{ needs.release-please.outputs.landing-release-created }}
-          RP_LANDING_TAG: ${{ needs.release-please.outputs.landing-tag-name }}
-          RP_LANDING_VERSION: ${{ needs.release-please.outputs.landing-version }}
           RP_MCP_HOST_CREATED: ${{ needs.release-please.outputs.mcp-host-release-created }}
           RP_MCP_HOST_TAG: ${{ needs.release-please.outputs.mcp-host-tag-name }}
           RP_MCP_HOST_VERSION: ${{ needs.release-please.outputs.mcp-host-version }}
@@ -458,7 +452,6 @@ jobs:
 
           resolve_docker "console" "$RP_CONSOLE_CREATED" "$RP_CONSOLE_TAG" "$RP_CONSOLE_VERSION" "console"
           resolve_docker "database" "$RP_DATABASE_CREATED" "$RP_DATABASE_TAG" "$RP_DATABASE_VERSION" "database"
-          resolve_docker "landing" "$RP_LANDING_CREATED" "$RP_LANDING_TAG" "$RP_LANDING_VERSION" "landing"
           resolve_docker "mcp-host" "$RP_MCP_HOST_CREATED" "$RP_MCP_HOST_TAG" "$RP_MCP_HOST_VERSION" "mcp-host"
           resolve_docker "mcp-server" "$RP_MCP_SERVER_CREATED" "$RP_MCP_SERVER_TAG" "$RP_MCP_SERVER_VERSION" "mcp-server"
           resolve_docker "rest-api" "$RP_REST_API_CREATED" "$RP_REST_API_TAG" "$RP_REST_API_VERSION" "rest-api"
@@ -506,7 +499,6 @@ jobs:
             [
               {"project":"@moltnet/console","released":"${{ steps.resolve.outputs.docker-console }}","tag":"${{ steps.resolve.outputs.docker-console-tag }}","version":"${{ steps.resolve.outputs.docker-console-version }}"},
               {"project":"@moltnet/database","released":"${{ steps.resolve.outputs.docker-database }}","tag":"${{ steps.resolve.outputs.docker-database-tag }}","version":"${{ steps.resolve.outputs.docker-database-version }}"},
-              {"project":"@moltnet/landing","released":"${{ steps.resolve.outputs.docker-landing }}","tag":"${{ steps.resolve.outputs.docker-landing-tag }}","version":"${{ steps.resolve.outputs.docker-landing-version }}"},
               {"project":"@moltnet/mcp-host","released":"${{ steps.resolve.outputs.docker-mcp-host }}","tag":"${{ steps.resolve.outputs.docker-mcp-host-tag }}","version":"${{ steps.resolve.outputs.docker-mcp-host-version }}"},
               {"project":"@moltnet/mcp-server","released":"${{ steps.resolve.outputs.docker-mcp-server }}","tag":"${{ steps.resolve.outputs.docker-mcp-server-tag }}","version":"${{ steps.resolve.outputs.docker-mcp-server-version }}"},
               {"project":"@moltnet/rest-api","released":"${{ steps.resolve.outputs.docker-rest-api }}","tag":"${{ steps.resolve.outputs.docker-rest-api-tag }}","version":"${{ steps.resolve.outputs.docker-rest-api-version }}"},
@@ -1398,13 +1390,12 @@ jobs:
       - name: Render verified CLI installer
         env:
           RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
-          RELEASE_SIGNER_PUBKEY: ${{ vars.RELEASE_SIGNER_PUBKEY }}
           VERSION: ${{ steps.tag.outputs.semver }}
         run: |
-          if [ -z "$RELEASE_SIGNER_PUBKEY" ]; then
-            echo "::error::repo variable RELEASE_SIGNER_PUBKEY is not set; refusing to publish an installer without a trust anchor"
+          RELEASE_SIGNER_PUBKEY=$(bash tools/release/release-signer-pubkey.sh) || {
+            echo "::error::apps/rest-api/fly.toml has no valid RELEASE_SIGNER_PUBKEY; refusing to publish an installer without a trust anchor"
             exit 1
-          fi
+          }
           key="$RUNNER_TEMP/release-signing-key"
           printf '%s\n' "$RELEASE_SIGNING_KEY" > "$key"
           chmod 600 "$key"
@@ -1412,7 +1403,7 @@ jobs:
           rm -f "$key"
           declared=$(printf '%s' "$RELEASE_SIGNER_PUBKEY" | cut -d' ' -f1-2)
           if [ "$derived" != "$declared" ]; then
-            echo "::error::RELEASE_SIGNER_PUBKEY does not match RELEASE_SIGNING_KEY — fix the rotation before releasing"
+            echo "::error::RELEASE_SIGNER_PUBKEY in apps/rest-api/fly.toml does not match RELEASE_SIGNING_KEY — fix the rotation before releasing"
             exit 1
           fi
           sed -e "s#^RELEASE_PINNED_VERSION=\"\"#RELEASE_PINNED_VERSION=\"$VERSION\"#" \
@@ -2441,19 +2432,19 @@ jobs:
           ssh-keygen -Y sign -f "$key" -n moltnet-release "$PAYLOAD.tar.gz.sha256"
           rm -f "$key"
 
-      # The served installer embeds the release public key: injected here from
-      # the repo variable (rotation = variable update, no code change) and
-      # cross-checked against the actual signing key so a mismatched rotation
-      # can never publish an installer that rejects its own releases.
+      # The served installer embeds the release public key: read here from
+      # apps/rest-api/fly.toml (the single reviewed copy, also served in
+      # discovery) and cross-checked against the actual signing key so a
+      # mismatched rotation can never publish an installer that rejects its
+      # own releases.
       - name: Embed release public key into the installer
         env:
           RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
-          RELEASE_SIGNER_PUBKEY: ${{ vars.RELEASE_SIGNER_PUBKEY }}
         run: |
-          if [ -z "$RELEASE_SIGNER_PUBKEY" ]; then
-            echo "::error::repo variable RELEASE_SIGNER_PUBKEY is not set; refusing to publish an installer without a trust anchor"
+          RELEASE_SIGNER_PUBKEY=$(bash tools/release/release-signer-pubkey.sh) || {
+            echo "::error::apps/rest-api/fly.toml has no valid RELEASE_SIGNER_PUBKEY; refusing to publish an installer without a trust anchor"
             exit 1
-          fi
+          }
           key="$RUNNER_TEMP/release-signing-key"
           printf '%s\n' "$RELEASE_SIGNING_KEY" > "$key"
           chmod 600 "$key"
@@ -2461,7 +2452,7 @@ jobs:
           rm -f "$key"
           declared=$(printf '%s' "$RELEASE_SIGNER_PUBKEY" | cut -d' ' -f1-2)
           if [ "$derived" != "$declared" ]; then
-            echo "::error::RELEASE_SIGNER_PUBKEY does not match RELEASE_SIGNING_KEY — fix the rotation before releasing"
+            echo "::error::RELEASE_SIGNER_PUBKEY in apps/rest-api/fly.toml does not match RELEASE_SIGNING_KEY — fix the rotation before releasing"
             exit 1
           fi
           version="${{ needs.resolve-publish.outputs.agent-daemon-tag }}"
@@ -2843,31 +2834,6 @@ jobs:
     with:
       api_client_version: ${{ needs.resolve-publish.outputs.api-client == 'true' && needs.resolve-publish.outputs.api-client-version || '' }}
       dspy_adapters_version: ${{ needs.resolve-publish.outputs.dspy-adapters == 'true' && needs.resolve-publish.outputs.dspy-adapters-version || '' }}
-    secrets: inherit
-
-  # The binary-release jobs own artifact publication; this separate PR owns
-  # the stable public pin. A reviewer can verify the release before merging,
-  # while the normal landing release/deploy path remains unchanged.
-  propose-download-pin:
-    name: Propose stable download pin update
-    needs:
-      [
-        resolve-publish,
-        release-cli,
-        finalize-agent-daemon-release,
-        finalize-agent-desktop-release,
-      ]
-    if: >-
-      always() && !cancelled() &&
-      (needs.resolve-publish.outputs.cli == 'true' || needs.resolve-publish.outputs.agent-daemon == 'true' || needs.resolve-publish.outputs.agent-desktop == 'true') &&
-      (needs.resolve-publish.outputs.cli != 'true' || needs.release-cli.result == 'success') &&
-      (needs.resolve-publish.outputs.agent-daemon != 'true' || needs.finalize-agent-daemon-release.result == 'success') &&
-      (needs.resolve-publish.outputs.agent-desktop != 'true' || needs.finalize-agent-desktop-release.result == 'success')
-    uses: ./.github/workflows/publish-download-pins.yml
-    with:
-      cli_version: ${{ needs.resolve-publish.outputs.cli == 'true' && needs.resolve-publish.outputs.cli-tag || '' }}
-      agent_cli_version: ${{ needs.resolve-publish.outputs.agent-daemon == 'true' && needs.resolve-publish.outputs.agent-daemon-tag || '' }}
-      agent_desktop_version: ${{ needs.resolve-publish.outputs.agent-desktop == 'true' && needs.resolve-publish.outputs.agent-desktop-tag || '' }}
     secrets: inherit
 
   publish-design-system:

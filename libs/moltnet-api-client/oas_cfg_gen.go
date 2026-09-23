@@ -43,6 +43,7 @@ var regexMap = map[string]ogenregex.Regexp{
 	"^ed25519:[A-Za-z0-9+/=]+$":           ogenregex.MustCompile("^ed25519:[A-Za-z0-9+/=]+$"),
 	"^mlt_inv_[A-Za-z0-9_-]{22}$":         ogenregex.MustCompile("^mlt_inv_[A-Za-z0-9_-]{22}$"),
 	"^sha256:[0-9a-f]{64}$":               ogenregex.MustCompile("^sha256:[0-9a-f]{64}$"),
+	"^ssh-ed25519 [A-Za-z0-9+/]+={0,2}$":  ogenregex.MustCompile("^ssh-ed25519 [A-Za-z0-9+/]+={0,2}$"),
 }
 var (
 	// Allocate option closure once.

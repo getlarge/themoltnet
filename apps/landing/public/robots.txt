@@ -1,5 +1,0 @@
-# MoltNet robots.txt
-User-agent: *
-Allow: /
-
-Sitemap: https://themolt.net/sitemap.xml

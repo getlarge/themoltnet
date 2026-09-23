@@ -8,10 +8,7 @@ import { createHash } from 'node:crypto';
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { sealForEd25519PublicKey } from '@moltnet/crypto-service';
 import { DBOS, type PublicFeedCursor } from '@moltnet/database';
-import {
-  MOLTNET_NETWORK_INFO,
-  type MoltNetNetworkInfo,
-} from '@moltnet/discovery';
+import { MOLTNET_NETWORK_INFO } from '@moltnet/discovery';
 import {
   buildSelfRegistrationMessage,
   DIARY_TAG_MAX_LENGTH,
@@ -24,7 +21,7 @@ import {
   StartOnboardingResponseSchema,
 } from '@moltnet/models';
 import type { FastifyInstance } from 'fastify';
-import { Type } from 'typebox';
+import { type Static, Type } from 'typebox';
 
 import { createProblem } from '../problems/index.js';
 import {
@@ -72,11 +69,32 @@ function decodeCursor(cursor: string): PublicFeedCursor | null {
   return parsed ? { createdAt: parsed.c, id: parsed.i } : null;
 }
 
-/** Shared network discovery document — canonical source of truth. */
-const NETWORK_INFO = MOLTNET_NETWORK_INFO;
+type NetworkInfo = Static<typeof NetworkInfoSchema>;
 
-/** Render NETWORK_INFO as llms.txt (markdown per llmstxt.org spec). */
-function renderLlmsTxt(info: MoltNetNetworkInfo): string {
+/**
+ * The shared discovery document plus the runtime-configured release signer
+ * key. Typing the constant against the schema catches missing fields at
+ * compile time; the route test catches fields the serializer would drop.
+ */
+export function buildNetworkInfo(
+  releaseSignerPublicKey: string | undefined,
+): NetworkInfo {
+  const info: NetworkInfo = MOLTNET_NETWORK_INFO;
+  if (!releaseSignerPublicKey) return info;
+  return {
+    ...info,
+    endpoints: {
+      ...info.endpoints,
+      downloads: {
+        ...info.endpoints.downloads,
+        release_signer_public_key: releaseSignerPublicKey,
+      },
+    },
+  };
+}
+
+/** Render the discovery document as llms.txt (markdown per llmstxt.org spec). */
+function renderLlmsTxt(info: NetworkInfo): string {
   const list = (items: string[], prefix = '- ') =>
     items.map((i) => `${prefix}${i}`).join('\n');
 
@@ -97,9 +115,24 @@ Agents authenticate with ${info.identity.type} keypairs. Key format: \`${info.id
 - [MCP Server](${info.endpoints.mcp.url}): ${info.endpoints.mcp.description}
 - [REST API](${info.endpoints.rest.url}): ${info.endpoints.rest.description}
 - [Documentation](${info.endpoints.docs.url}): Guides and reference
-- [Full Documentation for LLMs](${info.endpoints.docs.url}/llms.txt): Concatenated Markdown corpus
+- [Full Documentation for LLMs](${info.endpoints.docs.llms_txt}): Concatenated Markdown corpus
 - [API Spec](${info.endpoints.docs.api_spec}): OpenAPI 3.1 JSON
+- [Downloads](${info.endpoints.downloads.url}): ${info.endpoints.downloads.description}
 - [Source](${info.community.github}): GitHub repository
+
+## Install and Verify
+
+- CLI (Homebrew): \`${info.quickstart.cli.install_homebrew}\`
+- CLI (Scoop): \`${info.quickstart.cli.install_scoop}\`
+- CLI (npm): \`${info.quickstart.cli.install_npm}\`
+- CLI (APT): repository ${info.quickstart.cli.apt_repository_url}, signing key fingerprint \`${info.quickstart.cli.apt_signing_key_fingerprint}\`
+- Agent daemon: \`${info.quickstart.agent_daemon.install}\`
+- [Release Manifest](${info.endpoints.downloads.manifest}): Current versions and tags
+- Release signatures: principal \`${info.endpoints.downloads.release_signer_principal}\`, namespace \`${info.endpoints.downloads.signature_namespace}\`${
+    info.endpoints.downloads.release_signer_public_key
+      ? `, public key \`${info.endpoints.downloads.release_signer_public_key}\``
+      : ''
+  }
 
 ## Capabilities
 
@@ -169,8 +202,18 @@ Technical stack: ${info.technical.auth_flow}, ${info.technical.database}, ${info
 - [GitHub](${info.community.github}): Source code`;
 }
 
-export async function publicRoutes(fastify: FastifyInstance) {
+export interface PublicRoutesOptions {
+  /** Publisher ssh-ed25519 key; omitted from discovery when unset. */
+  releaseSignerPublicKey?: string;
+}
+
+export async function publicRoutes(
+  fastify: FastifyInstance,
+  options: PublicRoutesOptions = {},
+) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
+  const networkInfo = buildNetworkInfo(options.releaseSignerPublicKey);
+  const llmsTxt = renderLlmsTxt(networkInfo);
 
   // ── Well-Known Discovery ────────────────────────────────────
   server.get(
@@ -191,7 +234,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
     async (_request, reply) => {
       reply.header('Cache-Control', 'public, max-age=3600');
       reply.header('Content-Type', 'application/json');
-      return NETWORK_INFO;
+      return networkInfo;
     },
   );
 
@@ -218,7 +261,7 @@ export async function publicRoutes(fastify: FastifyInstance) {
     async (_request, reply) => {
       reply.header('Cache-Control', 'public, max-age=3600');
       reply.type('text/plain; charset=utf-8');
-      return renderLlmsTxt(NETWORK_INFO);
+      return llmsTxt;
     },
   );
 

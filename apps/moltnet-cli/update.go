@@ -178,8 +178,7 @@ func fetchCLILatestFromReleases(ctx context.Context) (string, error) {
 	for _, release := range releases {
 		// An unauthenticated caller never sees drafts, but a token in CI does,
 		// and this repository carries stuck drafts months old — one would
-		// otherwise masquerade as the newest release.  Same lesson as
-		// tools/ci/check-download-pins.sh.
+		// otherwise masquerade as the newest release.
 		if release.Draft || release.Prerelease {
 			continue
 		}

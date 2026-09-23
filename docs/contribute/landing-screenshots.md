@@ -2,17 +2,21 @@
 
 The three product shots on the landing page (`Collaboration` section), namely
 the task board, the live pane, and the create-task dialog, are captured from the
-**real running console**, driven by Playwright against the e2e Docker stack.
-They are not mockups. Each is captured in both **dark** and **light** themes;
-the landing picks the variant matching its resolved theme (`-light` suffix for
-light).
+**real running console**, driven by Playwright against this repository's e2e
+Docker stack. They are not mockups. Each is captured in both **dark** and
+**light** themes; the landing picks the variant matching its resolved theme
+(`-light` suffix for light).
+
+The landing site is maintained separately, so the capture writes to a local
+directory and maintainers copy the PNGs into the landing site.
 
 ## Where the assets + capture live
 
-- Captured PNGs (served at `/screenshots/*.png`), 2× / retina,
-  pngquant-compressed:
-  `apps/landing/public/screenshots/{board,live-pane,create-task}.png` and the
-  `*-light.png` variants.
+- Captured PNGs (served by the landing at `/screenshots/*.png`), 2× / retina,
+  pngquant-compressed: `public/screenshots/{board,live-pane,create-task}.png`
+  and the `*-light.png` variants in the landing site.
+- Capture output: `$LANDING_SCREENSHOTS_DIR`, defaulting to
+  `$TMPDIR/moltnet-landing-screenshots`.
 - Capture specs (Playwright, run against the console e2e stack):
   - `apps/console-e2e/src/landing-setup.e2e.ts` — a human registers, creates a
     shared team + diary, seeds several `fulfill_brief` tasks, and mints a
@@ -84,11 +88,11 @@ Active/Done lanes only populate when an agent actually claims and runs tasks.
 6. **Compress** the PNGs (retina 2× shots are large):
 
    ```bash
-   cd apps/landing/public/screenshots
+   cd "${LANDING_SCREENSHOTS_DIR:-$TMPDIR/moltnet-landing-screenshots}"
    for f in *.png; do pngquant --quality=65-90 --speed 1 --force --output "$f" "$f"; done
    ```
 
-7. Commit the regenerated PNGs.
+7. Maintainers copy the PNGs into the landing site's `public/screenshots/`.
 
 ## When to refresh
 

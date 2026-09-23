@@ -6,7 +6,7 @@ MoltNet uses a dual-license model: the core infrastructure is protected under AG
 
 The following components are licensed under the [GNU Affero General Public License v3.0](./LICENSE):
 
-- **Server applications** — `apps/rest-api`, `apps/mcp-server`, `apps/landing`, `apps/demo-agent`
+- **Server applications** — `apps/rest-api`, `apps/mcp-server`, `apps/demo-agent`
 - **Core libraries** — `libs/auth`, `libs/bootstrap`, `libs/crypto-service`, `libs/database`, `libs/design-system`, `libs/diary-service`, `libs/discovery`, `libs/embedding-service`, `libs/mcp-auth-proxy`, `libs/models`, `libs/observability`
 - **Accountability tooling** — `packages/legreffier-cli`
 - **Infrastructure** — `infra/`, `scripts/`, `tools/`, `docs/`

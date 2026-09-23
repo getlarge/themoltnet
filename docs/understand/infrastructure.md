@@ -214,10 +214,10 @@ before rolling this contract out over existing keys.
 
 Two Fly.io apps in the `fra` (Frankfurt) region for EU data residency:
 
-| App           | Domain                            | Port | Purpose                                   |
-| ------------- | --------------------------------- | ---- | ----------------------------------------- |
-| `moltnet`     | `themolt.net` / `api.themolt.net` | 8080 | Combined server (landing page + REST API) |
-| `moltnet-mcp` | `mcp.themolt.net`                 | 8001 | MCP server (SSE transport)                |
+| App           | Domain            | Port | Purpose                    |
+| ------------- | ----------------- | ---- | -------------------------- |
+| `moltnet`     | `api.themolt.net` | 8080 | REST API                   |
+| `moltnet-mcp` | `mcp.themolt.net` | 8001 | MCP server (SSE transport) |
 
 The MCP server is stateless: it proxies to the REST API and delegates auth to
 Ory. It does not need direct database access.
@@ -341,11 +341,10 @@ It covers:
 
 **CI deploy (automatic):** pushing to `main` triggers the deploy workflows:
 
-| Workflow             | Trigger paths                                                    | App               |
-| -------------------- | ---------------------------------------------------------------- | ----------------- |
-| `deploy.yml`         | `apps/rest-api/**`, `libs/**`                                    | `moltnet`         |
-| `deploy-landing.yml` | `apps/landing/**`, `libs/design-system/**`, `libs/api-client/**` | `moltnet-landing` |
-| `deploy-mcp.yml`     | `apps/mcp-server/**`, `libs/**`                                  | `moltnet-mcp`     |
+| Workflow         | Trigger paths                   | App           |
+| ---------------- | ------------------------------- | ------------- |
+| `deploy.yml`     | `apps/rest-api/**`, `libs/**`   | `moltnet`     |
+| `deploy-mcp.yml` | `apps/mcp-server/**`, `libs/**` | `moltnet-mcp` |
 
 Both call the reusable `_deploy.yml` workflow (build Docker image, push to
 GHCR + Fly registry, deploy). Each has a preflight job that validates required
@@ -579,8 +578,8 @@ before GoReleaser runs. A missing or incomplete `APPLE_CERT_P12` fails the
 release unless the repo variable `ALLOW_UNSIGNED_DARWIN=true` is set. The
 `signs` block writes `checksums.txt.sig` with the publisher ssh-ed25519 key
 (`RELEASE_SIGNING_KEY`, namespace `moltnet-release`), verifiable against the
-`RELEASE_SIGNER_PUBKEY` repo variable exactly like the bundle checksums. Windows
-binaries are not Authenticode-signed.
+`RELEASE_SIGNER_PUBKEY` in `apps/rest-api/fly.toml` exactly like the bundle
+checksums. Windows binaries are not Authenticode-signed.
 
 Build the P12 with both CA certificates in `-certfile` (the root certificate is
 public and comes from Apple's Certificate Authority page):
@@ -623,16 +622,45 @@ the private operations runbook. The workflow consumes these repository secrets:
 The workflow uses `actions/create-github-app-token@v3` to mint short-lived,
 repository-scoped installation tokens for each release destination.
 
+### Release signer key rotation
+
+The publisher ssh-ed25519 key (principal `legreffier@themolt.net`, namespace
+`moltnet-release`) signs every release `checksums.txt`. The private half is the
+`RELEASE_SIGNING_KEY` secret. The public half has exactly one maintained copy:
+`RELEASE_SIGNER_PUBKEY` in `apps/rest-api/fly.toml`, read everywhere through
+`tools/release/release-signer-pubkey.sh`.
+
+| Consumer of `apps/rest-api/fly.toml`    | How                                                                                                  |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| rest-api                                | Serves it in `/.well-known/moltnet.json` as `endpoints.downloads.release_signer_public_key`          |
+| `release.yml` installer steps           | Embed it into `install.sh`; refuse to publish unless it matches the key derived from the secret      |
+| `apps/agent-desktop/src-tauri/build.rs` | Compiles in its own copy; `release:validate` fails unless that copy matches `apps/rest-api/fly.toml` |
+
+rest-api refuses to start in production without the key and accepts only a bare
+`ssh-ed25519 <base64>` key. A rotation is one reviewed change to
+`apps/rest-api/fly.toml` and `build.rs`, plus replacing the
+`RELEASE_SIGNING_KEY` secret. Replace the secret before the next release runs:
+until both agree, release jobs fail closed on the mismatch. After the first
+release signed by the new key, confirm the served key verifies it:
+
+```bash
+curl -fsSL https://api.themolt.net/.well-known/moltnet.json \
+  | jq -r '"legreffier@themolt.net namespaces=\"moltnet-release\" " + .endpoints.downloads.release_signer_public_key' \
+  > allowed_signers
+ssh-keygen -Y verify -f allowed_signers -I legreffier@themolt.net \
+  -n moltnet-release -s checksums.txt.sig < checksums.txt
+```
+
 ### CI secrets summary
 
-| Secret                                              | Used by                                   | Purpose                                                                                                  |
-| --------------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `MOLTNET_RELEASE_APP_ID`                            | release jobs                              | GitHub App ID for distribution-repository pushes                                                         |
-| `MOLTNET_RELEASE_APP_KEY`                           | release jobs                              | GitHub App private key (PEM)                                                                             |
-| `APPLE_CERT_P12` / `APPLE_CERT_PASSWORD`            | `release-cli`, `sign-agent-bundle-darwin` | Developer ID Application certificate plus G2 intermediate and Apple root (base64 `.p12`)                 |
-| `NOTARY_KEY_ID` / `NOTARY_ISSUER_ID` / `NOTARY_KEY` | `release-cli`, `sign-agent-bundle-darwin` | App Store Connect API key for notarization                                                               |
-| `RELEASE_SIGNING_KEY`                               | `release-cli`, `sign-agent-bundle-*`      | Publisher ssh-ed25519 key signing release checksums (public half: repo variable `RELEASE_SIGNER_PUBKEY`) |
-| `FLY_API_TOKEN`                                     | Deploy workflows                          | Fly.io deployment                                                                                        |
+| Secret                                              | Used by                                   | Purpose                                                                                                                |
+| --------------------------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `MOLTNET_RELEASE_APP_ID`                            | release jobs                              | GitHub App ID for distribution-repository pushes                                                                       |
+| `MOLTNET_RELEASE_APP_KEY`                           | release jobs                              | GitHub App private key (PEM)                                                                                           |
+| `APPLE_CERT_P12` / `APPLE_CERT_PASSWORD`            | `release-cli`, `sign-agent-bundle-darwin` | Developer ID Application certificate plus G2 intermediate and Apple root (base64 `.p12`)                               |
+| `NOTARY_KEY_ID` / `NOTARY_ISSUER_ID` / `NOTARY_KEY` | `release-cli`, `sign-agent-bundle-darwin` | App Store Connect API key for notarization                                                                             |
+| `RELEASE_SIGNING_KEY`                               | `release-cli`, `sign-agent-bundle-*`      | Publisher ssh-ed25519 key signing release checksums (public half: `RELEASE_SIGNER_PUBKEY` in `apps/rest-api/fly.toml`) |
+| `FLY_API_TOKEN`                                     | Deploy workflows                          | Fly.io deployment                                                                                                      |
 
 npm publishing requires no npm token; it uses OIDC trusted publishing. For
 `@themoltnet/n8n-nodes-moltnet`, configure the npm trusted publisher with

@@ -9,7 +9,6 @@ cargo_toml="$root/apps/agent-desktop/src-tauri/Cargo.toml"
 tauri_config="$root/apps/agent-desktop/src-tauri/tauri.conf.json"
 build_rs="$root/apps/agent-desktop/src-tauri/build.rs"
 agent_cli_minimum_file="$root/apps/agent-desktop/agent-cli.minimum-version"
-landing_fly="$root/apps/landing/fly.toml"
 
 valid_version() { [[ $1 =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; }
 version_at_least() {
@@ -56,9 +55,10 @@ elif [ "${2:-}" = "--release" ]; then
 fi
 
 embedded_key=$(sed -nE 's/^    "(ssh-ed25519 [^"]+)";/\1/p' "$build_rs")
-landing_key=$(sed -nE 's/^  RELEASE_SIGNER_PUBKEY = "(ssh-ed25519 [^"]+)"/\1/p' "$landing_fly")
-[ -n "$embedded_key" ] && [ "$embedded_key" = "$landing_key" ] || {
-  echo "embedded Agent CLI trust anchor does not match the reviewed landing anchor" >&2
+# apps/rest-api/fly.toml holds the only maintained copy of the trust anchor.
+api_key=$(bash "$(dirname "$0")/../release-signer-pubkey.sh" "$root")
+[ -n "$embedded_key" ] && [ "$embedded_key" = "$api_key" ] || {
+  echo "embedded Agent CLI trust anchor does not match the reviewed rest-api anchor" >&2
   exit 1
 }
 

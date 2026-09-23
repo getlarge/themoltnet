@@ -59,6 +59,8 @@ export const TEST_RECOVERY_SECRET = 'test-recovery-secret-at-least-16-chars';
 export const TEST_PACK_GC_TTL_DAYS = 11;
 
 export const TEST_BEARER_TOKEN = 'test-token';
+export const TEST_RELEASE_SIGNER_PUBLIC_KEY =
+  'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITestKeyOnly';
 export const TEST_SECURITY_OPTIONS = {
   corsOrigins: 'http://localhost:3000,http://localhost:8000',
   rateLimitGlobalAuth: 1000, // Higher limits for tests
@@ -1017,6 +1019,7 @@ export async function createTestApp(
       PACK_GC_CRON: '0 * * * *',
       PACK_GC_BATCH_SIZE: 100,
     },
+    releaseSignerPublicKey: TEST_RELEASE_SIGNER_PUBLIC_KEY,
     pool: healthOptions?.pool,
     dbosReady: healthOptions?.dbosReady ?? (() => true),
     oryProjectUrl: healthOptions?.oryProjectUrl,

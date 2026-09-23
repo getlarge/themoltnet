@@ -106,10 +106,6 @@ pnpm exec nx run @moltnet/console:lint
 pnpm exec nx run @moltnet/console:typecheck
 pnpm exec nx run @moltnet/console:test
 
-pnpm exec nx run @moltnet/landing:lint
-pnpm exec nx run @moltnet/landing:typecheck
-pnpm exec nx run @moltnet/landing:test
-
 pnpm exec nx run @moltnet/docs:lint
 pnpm exec nx run @moltnet/docs:typecheck
 pnpm exec nx run @moltnet/docs:build

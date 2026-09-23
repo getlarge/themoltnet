@@ -36,6 +36,9 @@ const validEnv = {
   // Required in production: rest-api runs more than one machine, so a
   // per-instance cache would break credential rotation (issue #1860).
   REDIS_URL: 'redis://localhost:6379',
+  // Required in production: the discovery document serves it as the release
+  // trust anchor.
+  RELEASE_SIGNER_PUBKEY: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITestKeyOnly',
 };
 
 // ============================================================================
@@ -398,6 +401,44 @@ describe('loadConfig', () => {
 
     // Assert
     expect(config.security.REDIS_URL).toBeUndefined();
+  });
+
+  it('refuses to start in production without a release signer key', () => {
+    // Arrange
+    const { RELEASE_SIGNER_PUBKEY: _omitted, ...withoutKey } = validEnv;
+
+    // Act + Assert
+    expect(() => loadConfig(withoutKey)).toThrow(
+      'RELEASE_SIGNER_PUBKEY must be set in production',
+    );
+  });
+
+  it('allows a missing release signer key outside production', () => {
+    // Arrange
+    const { RELEASE_SIGNER_PUBKEY: _omitted, ...env } = validEnv;
+
+    // Act
+    const config = loadConfig({ ...env, NODE_ENV: 'development' });
+
+    // Assert
+    expect(config.release.RELEASE_SIGNER_PUBKEY).toBeUndefined();
+  });
+
+  it('rejects a release signer key that is not a bare ssh-ed25519 key', () => {
+    // Arrange — a trailing comment or another algorithm must not be served
+    // as the trust anchor.
+    const withComment = `${validEnv.RELEASE_SIGNER_PUBKEY} legreffier@themolt.net`;
+
+    // Act + Assert
+    expect(() =>
+      loadConfig({ ...validEnv, RELEASE_SIGNER_PUBKEY: withComment }),
+    ).toThrow('Invalid Release config');
+    expect(() =>
+      loadConfig({
+        ...validEnv,
+        RELEASE_SIGNER_PUBKEY: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ',
+      }),
+    ).toThrow('Invalid Release config');
   });
 });
 

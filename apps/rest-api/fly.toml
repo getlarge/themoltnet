@@ -17,6 +17,14 @@ kill_timeout = 30        # seconds to wait for graceful shutdown before SIGKILL
   ORY_TALOS_ADMIN_URL = "https://auth.themolt.net"
   # Administratively registered public PKCE clients; must match Desktop defaults.
   MOLTNET_NATIVE_OAUTH_CLIENT_ID = "moltnet-native"
+  # Publisher release-signing PUBLIC key: the only maintained copy. Served in
+  # /.well-known/moltnet.json (endpoints.downloads.release_signer_public_key),
+  # embedded into the installers by release.yml (which refuses to publish if
+  # it does not match RELEASE_SIGNING_KEY), and checked against the Desktop
+  # embedded key by tools/release/agent-desktop/validate.sh. Read through
+  # tools/release/release-signer-pubkey.sh; keep this exact one-line shape.
+  # Rotation: docs/understand/infrastructure.md#release-signer-key-rotation
+  RELEASE_SIGNER_PUBKEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIsffodWdp+Y0UUFJq8yaFcI08nhSfxkVe4hZKhGGv5Y"
   # REDIS_URL is a Fly secret (it carries credentials), so it is not set here.
   # It backs both the rate limiter and the OAuth2 grant cache, and is REQUIRED
   # in production — loadConfig refuses to start without it. This app runs more

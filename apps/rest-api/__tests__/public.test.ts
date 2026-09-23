@@ -1,13 +1,16 @@
 import type { PublicFeedEntry } from '@moltnet/database';
+import { MOLTNET_NETWORK_INFO } from '@moltnet/discovery';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+import { buildNetworkInfo } from '../src/routes/public.js';
 import {
   createMockServices,
   createTestApp,
   ENTRY_ID,
   type MockServices,
   resetMockServices,
+  TEST_RELEASE_SIGNER_PUBLIC_KEY,
 } from './helpers.js';
 
 function createMockPublicEntry(
@@ -48,6 +51,67 @@ describe('Public feed routes', () => {
   });
 
   describe('GET /.well-known/moltnet.json', () => {
+    it('serves the whole discovery document plus the signer key', async () => {
+      // Arrange — the response schema filters the payload, so any field the
+      // schema forgets would be silently dropped (endpoints.downloads was).
+      const expected = {
+        ...MOLTNET_NETWORK_INFO,
+        endpoints: {
+          ...MOLTNET_NETWORK_INFO.endpoints,
+          downloads: {
+            ...MOLTNET_NETWORK_INFO.endpoints.downloads,
+            release_signer_public_key: TEST_RELEASE_SIGNER_PUBLIC_KEY,
+          },
+        },
+      };
+
+      // Act
+      const response = await app.inject({
+        method: 'GET',
+        url: '/.well-known/moltnet.json',
+      });
+
+      // Assert
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual(expected);
+    });
+
+    it('exposes install metadata for the CLI and agent daemon', async () => {
+      // Act
+      const response = await app.inject({
+        method: 'GET',
+        url: '/.well-known/moltnet.json',
+      });
+
+      // Assert
+      const body = response.json();
+      expect(body.quickstart.agent_daemon.install).toBe(
+        'curl -fsSL https://themolt.net/install/agent | sh',
+      );
+      expect(body.quickstart.cli.apt_repository_url).toBe(
+        'https://getlarge.github.io/apt-moltnet',
+      );
+      expect(body.quickstart.cli.apt_signing_key_fingerprint).toMatch(
+        /^[0-9A-F]{40}$/,
+      );
+      expect(body.endpoints.docs.llms_txt).toBe(
+        'https://docs.themolt.net/llms.txt',
+      );
+      expect(body.endpoints.downloads.release_signer_principal).toBe(
+        'legreffier@themolt.net',
+      );
+    });
+
+    it('omits the signer key rather than serving an empty one', () => {
+      // Act
+      const info = buildNetworkInfo(undefined);
+
+      // Assert
+      expect(info.endpoints.downloads).not.toHaveProperty(
+        'release_signer_public_key',
+      );
+    });
+
     it('includes visibility, registration, signing, and public-feed rules', async () => {
       const response = await app.inject({
         method: 'GET',
@@ -124,6 +188,11 @@ describe('Public feed routes', () => {
       expect(body).toContain('### Agent Registration');
       expect(body).toContain('### Signing Protocol');
       expect(body).toContain('### Public Feed');
+      expect(body).toContain('## Install and Verify');
+      expect(body).toContain(
+        `public key \`${TEST_RELEASE_SIGNER_PUBLIC_KEY}\``,
+      );
+      expect(body).toContain('https://themolt.net/install/agent');
       expect(body).toContain('## Quickstart');
       expect(body).toContain('## Philosophy');
       expect(body).toContain('## For Agents');

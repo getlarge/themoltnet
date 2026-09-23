@@ -13,6 +13,8 @@ import { Type } from 'typebox';
 import * as Format from 'typebox/format';
 import { Value } from 'typebox/value';
 
+import { RELEASE_SIGNER_PUBLIC_KEY_PATTERN } from './schemas/network.js';
+
 // Register formats required by TypeBox Value validation (not needed for Fastify schema
 // compilation, but required when using Value.Check / Value.Errors directly).
 if (!Format.Has('uuid')) {
@@ -302,6 +304,16 @@ export const SecurityConfigSchema = Type.Object({
   API_BASE_URL: Type.String({ default: 'https://api.themolt.net' }),
 });
 
+export const ReleaseConfigSchema = Type.Object({
+  // Publisher ssh-ed25519 key that signs release checksums, served in the
+  // discovery document. Set from apps/rest-api/fly.toml, the only maintained
+  // copy (release jobs read the same line). Required in production (see
+  // loadConfig).
+  RELEASE_SIGNER_PUBKEY: Type.Optional(
+    Type.String({ pattern: RELEASE_SIGNER_PUBLIC_KEY_PATTERN }),
+  ),
+});
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -327,6 +339,7 @@ export type TaskArtifactStorageConfig = Static<
 >;
 export type EmbeddingConfig = Static<typeof EmbeddingConfigSchema>;
 export type SecurityConfig = Static<typeof SecurityConfigSchema>;
+export type ReleaseConfig = Static<typeof ReleaseConfigSchema>;
 
 export interface AppConfig {
   server: ServerConfig;
@@ -342,6 +355,7 @@ export interface AppConfig {
   taskOrphanSweeper: TaskOrphanSweeperConfig;
   runtimeSessionStorage: RuntimeSessionStorageConfig;
   taskArtifactStorage: TaskArtifactStorageConfig;
+  release: ReleaseConfig;
 }
 
 export interface ResolvedOryUrls {
@@ -510,6 +524,16 @@ export function loadTaskArtifactStorageConfig(
   );
 }
 
+export function loadReleaseConfig(
+  env: Record<string, string | undefined> = process.env,
+): ReleaseConfig {
+  return validateSchema(
+    'Release',
+    ReleaseConfigSchema,
+    pickEnv(ReleaseConfigSchema, env),
+  );
+}
+
 export function loadSecurityConfig(
   env: Record<string, string | undefined> = process.env,
 ): SecurityConfig {
@@ -605,6 +629,15 @@ export function loadConfig(
   const server = loadServerConfig(env);
   const security = loadSecurityConfig(env);
   const ory = loadOryConfig(env);
+  const release = loadReleaseConfig(env);
+
+  if (server.NODE_ENV === 'production' && !release.RELEASE_SIGNER_PUBKEY) {
+    throw new Error(
+      'RELEASE_SIGNER_PUBKEY must be set in production. The discovery ' +
+        'document serves it as the trust anchor for release downloads; ' +
+        'refusing to start without it.',
+    );
+  }
 
   if (server.NODE_ENV === 'production' && !env['CORS_ORIGINS']) {
     throw new Error(
@@ -664,6 +697,7 @@ export function loadConfig(
     taskOrphanSweeper: loadTaskOrphanSweeperConfig(env),
     runtimeSessionStorage: loadRuntimeSessionStorageConfig(env),
     taskArtifactStorage: loadTaskArtifactStorageConfig(env),
+    release,
   };
 }
 
@@ -685,6 +719,7 @@ const allSchemas: TObject[] = [
   TaskOrphanSweeperConfigSchema,
   RuntimeSessionStorageConfigSchema,
   TaskArtifactStorageConfigSchema,
+  ReleaseConfigSchema,
 ];
 
 /**

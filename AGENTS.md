@@ -57,7 +57,7 @@ pnpm install
 pnpm run lint              # ESLint across all workspaces
 pnpm run typecheck         # tsc -b --emitDeclarationOnly across all workspaces
 pnpm run test              # Vitest across all workspaces
-pnpm run build             # libs: tsc -b, apps: vite build (SSR for Node.js, client for landing)
+pnpm run build             # libs: tsc -b, apps: vite build (SSR for Node.js, client for browser apps)
 pnpm run validate          # All four checks in sequence
 
 # Formatting
@@ -260,7 +260,7 @@ workflow sets `NX_LOAD_DOT_ENV_FILES: false` at the workflow level and pins
 
 ## Repository Structure
 
-- `apps/` — deployable applications: `landing`, `mcp-server`, `rest-api` (TypeScript/Node), `moltnet-cli` (Go, module `github.com/getlarge/themoltnet/apps/moltnet-cli`)
+- `apps/` — deployable applications: `console`, `mcp-server`, `rest-api` (TypeScript/Node), `moltnet-cli` (Go, module `github.com/getlarge/themoltnet/apps/moltnet-cli`)
 - `libs/` — shared libraries (TypeScript) + `moltnet-api-client` (Go, module `github.com/getlarge/themoltnet/libs/moltnet-api-client`)
 - `packages/` — published npm packages: `cli`, `github-agent`, `legreffier-cli`
 - `tools/` — internal CLI tooling (bootstrap, admin)
@@ -341,11 +341,11 @@ For Vite browser apps and Vite UI libs, prefer `tsconfig.lib.json` over `tsconfi
 
 Nx Cloud DTE caches `build` and `typecheck` artifacts independently. For caching to be coherent, the directory tsc actually writes to must match what `nx.json` declares as the target's outputs. Every workspace belongs to exactly one of these groups; **`dist/` and `out-tsc/` must never overlap within a workspace**.
 
-| Group                                                                    | Has `build` script? | Has `typecheck` target?                                             | `tsconfig.outDir` | `tsconfig.tsBuildInfoFile`       | Examples                                                                                                                                                                                        |
-| ------------------------------------------------------------------------ | ------------------- | ------------------------------------------------------------------- | ----------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1 — private libs** (no published `dist/`)                              | no                  | yes (auto, via `@nx/js/typescript`)                                 | `./out-tsc`       | `./out-tsc/tsconfig.tsbuildinfo` | `libs/auth`, `libs/bootstrap`, `libs/database`, `tools`                                                                                                                                         |
-| **2 — libs whose `dist/` is published or consumed by `vite-plugin-dts`** | yes (`tsc -b`)      | no — overridden to `nx:noop` in `package.json#nx.targets.typecheck` | `./dist`          | `./dist/tsconfig.tsbuildinfo`    | `libs/api-client`, `libs/crypto-service`, `libs/tasks`, `packages/github-agent`                                                                                                                 |
-| **3 — apps + vite-built packages**                                       | yes (`vite build`)  | yes (separate `tsc -b --emitDeclarationOnly`)                       | `./out-tsc`       | `./out-tsc/tsconfig.tsbuildinfo` | `apps/rest-api`, `apps/mcp-server`, `apps/console`, `apps/landing`, `libs/sdk`, `libs/design-system`, `libs/pi-extension`, `libs/task-ui`, `libs/agent-runtime`, `packages/agent-daemon-action` |
+| Group                                                                    | Has `build` script? | Has `typecheck` target?                                             | `tsconfig.outDir` | `tsconfig.tsBuildInfoFile`       | Examples                                                                                                                                                                        |
+| ------------------------------------------------------------------------ | ------------------- | ------------------------------------------------------------------- | ----------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1 — private libs** (no published `dist/`)                              | no                  | yes (auto, via `@nx/js/typescript`)                                 | `./out-tsc`       | `./out-tsc/tsconfig.tsbuildinfo` | `libs/auth`, `libs/bootstrap`, `libs/database`, `tools`                                                                                                                         |
+| **2 — libs whose `dist/` is published or consumed by `vite-plugin-dts`** | yes (`tsc -b`)      | no — overridden to `nx:noop` in `package.json#nx.targets.typecheck` | `./dist`          | `./dist/tsconfig.tsbuildinfo`    | `libs/api-client`, `libs/crypto-service`, `libs/tasks`, `packages/github-agent`                                                                                                 |
+| **3 — apps + vite-built packages**                                       | yes (`vite build`)  | yes (separate `tsc -b --emitDeclarationOnly`)                       | `./out-tsc`       | `./out-tsc/tsconfig.tsbuildinfo` | `apps/rest-api`, `apps/mcp-server`, `apps/console`, `libs/sdk`, `libs/design-system`, `libs/pi-extension`, `libs/task-ui`, `libs/agent-runtime`, `packages/agent-daemon-action` |
 
 `nx.json` `targetDefaults`:
 
@@ -381,9 +381,9 @@ The shape:
 
 - **Host targets (cached):** `build`, `build:migrate`, `download-model`, … produce `apps/<app>/dist/` (or `libs/<lib>/dist/`).
 - **Docker `build` stage:** runs `pnpm fetch --prod` in a lockfile-only layer, then `pnpm install --offline --frozen-lockfile --prod` and `pnpm --filter <pkg> deploy --legacy --prod /out` inside a linux container so optional native deps (sharp, onnxruntime-node, esbuild, …) resolve to the right linux binaries. The fetched store is a normal layer exported by CI's registry cache, so source and host-artifact changes do not force dependency downloads. No `nx`, `vite`, or `tsc` runs in here.
-- **Docker `production` stage:** `COPY --from=build /out ./` plus any sibling assets (e.g. `libs/database/drizzle/`). For nginx-only SPAs (landing, console), the whole image is a single `FROM nginx:alpine` + `COPY dist`.
+- **Docker `production` stage:** `COPY --from=build /out ./` plus any sibling assets (e.g. `libs/database/drizzle/`). For nginx-only SPAs (console), the whole image is a single `FROM nginx:alpine` + `COPY dist`.
 
-`docker:build` is the **single** image-build mechanism — local, CI, Release Please, and `nx release` all go through it (issue #1498). The six docker-images projects (`@moltnet/rest-api`, `@moltnet/mcp-server`, `@moltnet/console`, `@moltnet/mcp-host`, `@moltnet/landing`, `@moltnet/database`) each define `docker:build` as an `nx:run-commands` target that invokes `tools/docker-build.mjs` (overriding the `@nx/docker` plugin's inferred target — the plugin's `{projectName}` resolves to the scoped, non-tag-safe `@moltnet/x`). The script:
+`docker:build` is the **single** image-build mechanism — local, CI, Release Please, and `nx release` all go through it (issue #1498). The five docker-images projects (`@moltnet/rest-api`, `@moltnet/mcp-server`, `@moltnet/console`, `@moltnet/mcp-host`, `@moltnet/database`) each define `docker:build` as an `nx:run-commands` target that invokes `tools/docker-build.mjs` (overriding the `@nx/docker` plugin's inferred target — the plugin's `{projectName}` resolves to the scoped, non-tag-safe `@moltnet/x`). The script:
 
 - runs `docker buildx build -f <projectRoot>/Dockerfile .` from the repo root (Dockerfiles `COPY . .`), `DOCKER_BUILDKIT=1`, dynamic OCI `revision`/`created` labels (static `source`/`description`/`licenses` stay in each Dockerfile); local `--load` builds use the Docker host platform, CI builds explicitly target `linux/amd64`, and release builds target `linux/amd64,linux/arm64`;
 - always applies the clean `${registryUrl}/${repositoryName}:<tag>` ref (e.g. `ghcr.io/getlarge/themoltnet/rest-api:dev`) consumed by Compose; local `--load` builds also apply the path-derived ref (`apps-rest-api`, `libs-database`) that `nx release` retags from. Both names derive from the Nx project root or `nx.release.docker.repositoryName` + `release.docker.registryUrl` in `nx.json`, so tags can't drift;

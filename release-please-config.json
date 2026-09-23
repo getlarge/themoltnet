@@ -39,11 +39,6 @@
       "component": "console",
       "release-type": "node"
     },
-    "apps/landing": {
-      "bump-minor-pre-major": true,
-      "component": "landing",
-      "release-type": "node"
-    },
     "apps/mcp-host": {
       "bump-minor-pre-major": true,
       "component": "mcp-host",
