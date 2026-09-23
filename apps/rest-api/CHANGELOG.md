@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.62.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.62.0...rest-api-v0.62.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* **desktop:** stabilize operator and project locations ([29ec67d](https://github.com/getlarge/themoltnet/commit/29ec67d68a45feae3fc665227b89c4bd40102a28))
+
 ## [0.62.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.61.1...rest-api-v0.62.0) (2026-09-23)
 
 

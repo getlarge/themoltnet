@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.65.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.65.0...agent-daemon-v0.65.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* **desktop:** stabilize operator and project locations ([29ec67d](https://github.com/getlarge/themoltnet/commit/29ec67d68a45feae3fc665227b89c4bd40102a28))
+
 ## [0.65.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.64.0...agent-daemon-v0.65.0) (2026-09-23)
 
 
