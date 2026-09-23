@@ -153,6 +153,7 @@ for (const { definition } of operatorClients) {
   if (
     typeof definition.client_id !== 'string' ||
     !definition.client_id ||
+    definition.access_token_strategy !== 'jwt' ||
     definition.token_endpoint_auth_method !== 'none' ||
     definition.grant_types?.join(' ') !== 'authorization_code' ||
     definition.response_types?.join(' ') !== 'code' ||
@@ -502,6 +503,7 @@ function reconcileOperatorClients(onFailure) {
     const exactFields = [
       'client_id',
       'client_name',
+      'access_token_strategy',
       'token_endpoint_auth_method',
       'scope',
       'skip_consent',
