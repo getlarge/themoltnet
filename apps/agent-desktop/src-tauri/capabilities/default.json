@@ -2,6 +2,10 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "description": "The local MoltNet Agent status window.",
   "identifier": "main-window",
-  "permissions": ["core:default", "core:event:default"],
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "core:window:allow-is-focused"
+  ],
   "windows": ["main"]
 }

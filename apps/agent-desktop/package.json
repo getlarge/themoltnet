@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {},
   "dependencies": {
+    "@tanstack/react-query": "catalog:",
     "@tauri-apps/api": "2.11.1",
     "@themoltnet/design-system": "workspace:*",
     "react": "catalog:",
