@@ -155,7 +155,9 @@ pub fn post(connection: &NativeConnection, path: &str, body: &str) -> Result<Str
 }
 
 fn needs_approval_timeout(path: &str) -> bool {
-    path == "/v1/operator/sign-in" || (path.starts_with("/v1/agents/") && path.ends_with("/teams"))
+    path == "/v1/operator/sign-in"
+        || path == "/v1/agents"
+        || (path.starts_with("/v1/agents/") && path.ends_with("/teams"))
 }
 
 /// Replace a resource through the control API.
@@ -280,8 +282,9 @@ mod tests {
     }
 
     #[test]
-    fn only_interactive_approval_routes_receive_the_long_timeout() {
+    fn registration_and_approval_routes_receive_the_long_timeout() {
         assert!(needs_approval_timeout("/v1/operator/sign-in"));
+        assert!(needs_approval_timeout("/v1/agents"));
         assert!(needs_approval_timeout("/v1/agents/agent-id/teams"));
         assert!(!needs_approval_timeout("/v1/operator/cancel"));
         assert!(!needs_approval_timeout("/v1/providers"));

@@ -19,6 +19,7 @@ import type {
   AgentServerStatus,
   AgentServerSubscription,
   AgentServerSubscriptionLogin,
+  CreateAgentServerAgentResponses,
   EnrollAgentServerTeamData,
   EnrollAgentServerTeamResponses,
   ListAgentServerOperatorTeamsResponses,
@@ -114,6 +115,10 @@ export interface RunCenterActions {
     identity: string,
     request: EnrollAgentServerTeamData['body'],
   ) => Promise<EnrollAgentServerTeamResponses[200]>;
+  createManagedAgent?: (
+    name: string,
+    enrollmentToken: string,
+  ) => Promise<CreateAgentServerAgentResponses[201]>;
   refresh?: () => Promise<void>;
   /** Teams, diaries and profiles the selected identity can serve. */
   catalogue: (identity: string) => Promise<AgentServerCatalogue>;
