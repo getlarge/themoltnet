@@ -88,6 +88,7 @@ const LOG_TRUNCATION_MARKER = Buffer.from('[truncated]\n');
 const INHERITED_ENV_NAMES = new Set([
   'COLORTERM',
   'FORCE_COLOR',
+  'GONDOLIN_VMM',
   'LANG',
   'LC_ALL',
   'LC_CTYPE',
