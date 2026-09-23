@@ -46,6 +46,12 @@ function buildCspHeader(directives: CspDirectives): string {
     .join('; ');
 }
 
+/** The consent POST may redirect through Ory to any registered OAuth callback. */
+export function consentCspHeader(): string {
+  const { formAction: _formAction, ...directives } = API_CSP;
+  return buildCspHeader(directives);
+}
+
 async function securityHeaders(fastify: FastifyInstance) {
   await fastify.register(helmet, {
     contentSecurityPolicy: { useDefaults: false, directives: API_CSP },

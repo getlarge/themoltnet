@@ -73,7 +73,9 @@ describe('Security features', () => {
         url: '/health',
       });
 
-      expect(response.headers['content-security-policy']).toBeDefined();
+      expect(response.headers['content-security-policy']).toContain(
+        "form-action 'self' https://github.com",
+      );
     });
 
     it('does not include X-Powered-By header', async () => {

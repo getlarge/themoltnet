@@ -116,7 +116,7 @@ services:
       service: hydra
     environment:
       URLS_LOGIN: http://localhost:5174/oauth/login
-      URLS_CONSENT: http://localhost:5174/oauth/consent
+      URLS_CONSENT: http://localhost:8080/oauth2/consent
       URLS_SELF_ISSUER: http://hydra:4444
       URLS_SELF_PUBLIC: http://localhost:4444
     depends_on:

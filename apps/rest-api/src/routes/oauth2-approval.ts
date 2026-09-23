@@ -20,6 +20,7 @@ import {
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
 
+import { consentCspHeader } from '../plugins/security-headers.js';
 import { createProblem } from '../problems/index.js';
 import { AgentKeyWithSecretSchema } from '../schemas/agent-keys.js';
 import { requestAbortSignal } from '../utils/request-abort-signal.js';
@@ -384,6 +385,7 @@ export async function oauth2ApprovalRoutes(
           : 'Review the access this application requested before continuing.';
       reply
         .header('content-type', 'text/html; charset=utf-8')
+        .header('content-security-policy', consentCspHeader())
         .header('cache-control', 'no-store, no-cache, must-revalidate')
         .header('pragma', 'no-cache');
       return renderConsentPage({

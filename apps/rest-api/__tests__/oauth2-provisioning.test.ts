@@ -314,6 +314,12 @@ describe('project-wide OAuth consent', () => {
     expect(displayed.statusCode).toBe(200);
     expect(displayed.headers['content-type']).toContain('text/html');
     expect(displayed.headers['cache-control']).toContain('no-store');
+    expect(displayed.headers['content-security-policy']).toContain(
+      "default-src 'self'",
+    );
+    expect(displayed.headers['content-security-policy']).not.toContain(
+      'form-action',
+    );
     expect(displayed.body).toContain('Allow application access?');
     expect(displayed.body).toContain('MCP client');
     expect(displayed.body).toContain('Read diary entries and metadata');
