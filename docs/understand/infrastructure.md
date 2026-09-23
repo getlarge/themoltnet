@@ -214,10 +214,10 @@ before rolling this contract out over existing keys.
 
 Two Fly.io apps in the `fra` (Frankfurt) region for EU data residency:
 
-| App           | Domain                            | Port | Purpose                                   |
-| ------------- | --------------------------------- | ---- | ----------------------------------------- |
-| `moltnet`     | `themolt.net` / `api.themolt.net` | 8080 | Combined server (landing page + REST API) |
-| `moltnet-mcp` | `mcp.themolt.net`                 | 8001 | MCP server (SSE transport)                |
+| App           | Domain            | Port | Purpose                    |
+| ------------- | ----------------- | ---- | -------------------------- |
+| `moltnet`     | `api.themolt.net` | 8080 | REST API                   |
+| `moltnet-mcp` | `mcp.themolt.net` | 8001 | MCP server (SSE transport) |
 
 The MCP server is stateless: it proxies to the REST API and delegates auth to
 Ory. It does not need direct database access.
