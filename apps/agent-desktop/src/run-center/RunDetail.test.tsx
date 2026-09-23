@@ -1,10 +1,16 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { MoltThemeProvider } from '@themoltnet/design-system';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createTestWrapper } from '../test-query-client.js';
 import { expiryLabel } from './credential-health.js';
 import { RunDetail } from './RunDetail.js';
 import type { DesktopRun, RunCenterActions } from './types.js';
+
+// A fresh cache per test; the wrapper also supplies the theme provider.
+let Wrapper = createTestWrapper();
+beforeEach(() => {
+  Wrapper = createTestWrapper();
+});
 
 const credential = {
   keyId: 'predecessor',
@@ -55,7 +61,7 @@ describe('captured run credential', () => {
       subscribeRunLogs: () => () => {},
     };
     render(
-      <MoltThemeProvider mode="dark">
+      <Wrapper>
         <RunDetail
           run={run}
           actions={actions}
@@ -63,7 +69,7 @@ describe('captured run credential', () => {
           onBack={() => {}}
           onRunAgain={() => {}}
         />
-      </MoltThemeProvider>,
+      </Wrapper>,
     );
     await screen.findByText('Replacement available—restart to use it');
     expect(actions.catalogue).toHaveBeenCalledWith('another-identity');
@@ -90,7 +96,7 @@ it('suspends catalogue refresh and logs when hidden and resumes when visible', a
     subscribeRunLogs: vi.fn().mockReturnValue(unsubscribe),
   };
   const renderDetail = (active: boolean) => (
-    <MoltThemeProvider mode="dark">
+    <Wrapper>
       <RunDetail
         active={active}
         run={run}
@@ -99,7 +105,7 @@ it('suspends catalogue refresh and logs when hidden and resumes when visible', a
         onBack={() => {}}
         onRunAgain={() => {}}
       />
-    </MoltThemeProvider>
+    </Wrapper>
   );
   const view = render(renderDetail(true));
   expect(actions.subscribeRunLogs).toHaveBeenCalledTimes(1);
@@ -136,7 +142,7 @@ describe('captured workspace panel', () => {
   });
   const renderRun = (value: DesktopRun) =>
     render(
-      <MoltThemeProvider mode="dark">
+      <Wrapper>
         <RunDetail
           run={value}
           actions={actions()}
@@ -144,7 +150,7 @@ describe('captured workspace panel', () => {
           onBack={() => {}}
           onRunAgain={() => {}}
         />
-      </MoltThemeProvider>,
+      </Wrapper>,
     );
 
   it('shows what the run resolved to, with catalogue names', async () => {

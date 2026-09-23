@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MoltThemeProvider } from '@themoltnet/design-system';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { INITIAL_STATUS } from '../bridge.js';
+import { createTestWrapper } from '../test-query-client.js';
 import { ProjectsView } from './ProjectsView.js';
 import type {
   AgentServerCatalogue,
@@ -13,6 +13,12 @@ import type {
   RunCenterData,
   SaveProjectLocationInput,
 } from './types.js';
+
+// A fresh cache per test; the wrapper also supplies the theme provider.
+let Wrapper = createTestWrapper();
+beforeEach(() => {
+  Wrapper = createTestWrapper();
+});
 
 const running = { ...INITIAL_STATUS, state: 'running' as const };
 const status: AgentServerStatus = {
@@ -104,14 +110,14 @@ function setup(locations: ProjectLocation[] = [], waitingForIdentity = false) {
   };
   const onTeams = vi.fn();
   const view = render(
-    <MoltThemeProvider mode="dark">
+    <Wrapper>
       <ProjectsView
         data={data}
         actions={actions}
         projects={projects}
         onTeams={onTeams}
       />
-    </MoltThemeProvider>,
+    </Wrapper>,
   );
   return {
     actions,
@@ -119,14 +125,14 @@ function setup(locations: ProjectLocation[] = [], waitingForIdentity = false) {
     onTeams,
     hydrate: () =>
       view.rerender(
-        <MoltThemeProvider mode="dark">
+        <Wrapper>
           <ProjectsView
             data={{ ...data, status }}
             actions={actions}
             projects={projects}
             onTeams={onTeams}
           />
-        </MoltThemeProvider>,
+        </Wrapper>,
       ),
   };
 }

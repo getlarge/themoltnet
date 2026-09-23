@@ -23,6 +23,7 @@ import type {
   RunCenterActions,
   RunCenterData,
 } from './types.js';
+import { useCatalogue } from './useCatalogue.js';
 
 export interface ProjectContext {
   identity: string;
@@ -74,11 +75,8 @@ export function ProjectsView({
     '';
   const [teamId, setTeamId] = useState(initialSelection?.teamId ?? '');
   const [projectId, setProjectId] = useState(initialSelection?.projectId ?? '');
-  const [catalogue, setCatalogue] = useState<AgentServerCatalogue | null>(null);
   const [locations, setLocations] = useState<ProjectLocation[]>([]);
-  const [loading, setLoading] = useState(true);
   const [locationsLoading, setLocationsLoading] = useState(true);
-  const [catalogueError, setCatalogueError] = useState<string | null>(null);
   const [locationsError, setLocationsError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{
     tone: 'info' | 'error';
@@ -106,32 +104,16 @@ export function ProjectsView({
   const serverReady = ['running', 'update_available'].includes(
     data.server.state,
   );
+  const {
+    catalogue,
+    loading,
+    error: catalogueError,
+    retry: retryCatalogue,
+  } = useCatalogue(serverReady ? identity : '', { read: actions.catalogue });
   useEffect(() => {
-    let current = true;
-    setCatalogue(null);
-    setCatalogueError(null);
-    setLoading(Boolean(identity && serverReady));
-    if (!identity || !serverReady) return;
-    void actions.catalogue(identity).then(
-      (value) => {
-        if (!current) return;
-        setCatalogue(value);
-        setLoading(false);
-        setTeamId((selected) => selected || value.defaultTeamId || '');
-      },
-      () => {
-        if (current) {
-          setLoading(false);
-          setCatalogueError(
-            'Projects and team access could not be loaded. Retry discovery.',
-          );
-        }
-      },
-    );
-    return () => {
-      current = false;
-    };
-  }, [identity, actions, revision, serverReady]);
+    if (!catalogue) return;
+    setTeamId((selected) => selected || catalogue.defaultTeamId || '');
+  }, [catalogue]);
   useEffect(() => {
     let current = true;
     setLocationsError(null);
@@ -185,7 +167,11 @@ export function ProjectsView({
   const local = locations.filter(
     (entry) => entry.teamId === teamId && entry.projectId === projectId,
   );
-  const refresh = () => setRevision((value) => value + 1);
+  const refresh = () => {
+    // Locations are still local state; the catalogue lives in the cache.
+    setRevision((value) => value + 1);
+    retryCatalogue();
+  };
   const remove = async (name: string) => {
     setRemoving(name);
     setFeedback(null);

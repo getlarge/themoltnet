@@ -14,11 +14,11 @@ import { useEffect, useRef, useState } from 'react';
 
 import { credentialLabel, expiryLabel } from './credential-health.js';
 import type {
-  AgentServerCatalogue,
   AgentServerCatalogueTeam,
   RunCenterActions,
   RunCenterData,
 } from './types.js';
+import { useCatalogue } from './useCatalogue.js';
 
 export function TeamsView({
   data,
@@ -40,7 +40,8 @@ export function TeamsView({
   const [inviteCode, setInviteCode] = useState('');
   const [createError, setCreateError] = useState(false);
   const [createdIdentity, setCreatedIdentity] = useState<string | null>(null);
-  const [catalogue, setCatalogue] = useState<AgentServerCatalogue | null>(null);
+  // Drives the operator-teams read below; the catalogue refreshes via the cache.
+  const [refreshVersion, setRefreshVersion] = useState(0);
   const [mode, setMode] = useState<'enroll' | 'replace'>('enroll');
   const [team, setTeam] = useState<AgentServerCatalogueTeam | null>(null);
   const [destinationTeamId, setDestinationTeamId] = useState('');
@@ -52,7 +53,6 @@ export function TeamsView({
   const [manualTeamId, setManualTeamId] = useState(false);
   const [busy, setBusy] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [feedback, setFeedback] = useState<{
     title: string;
@@ -61,47 +61,34 @@ export function TeamsView({
   } | null>(null);
   const inFlight = useRef(false);
   const cancellationRequested = useRef(false);
-  const [refreshVersion, setRefreshVersion] = useState(0);
   useEffect(() => {
     if (!feedback || feedback.error) return;
     const timer = window.setTimeout(() => setFeedback(null), 8000);
     return () => window.clearTimeout(timer);
   }, [feedback]);
+  const {
+    catalogue,
+    loading,
+    error: catalogueError,
+    retry: retryCatalogue,
+  } = useCatalogue(identity, { read: actions.catalogue });
   useEffect(() => {
-    let current = true;
-    setCatalogue(null);
-    if (!identity) return;
-    setLoading(true);
-    void actions
-      .catalogue(identity)
-      .then(
-        (value) => {
-          if (current) {
-            setCatalogue(value);
-            setFeedback((previous) =>
-              previous?.title === 'Team access could not be refreshed'
-                ? null
-                : previous,
-            );
-          }
-        },
-        () => {
-          if (current)
-            setFeedback({
-              title: 'Team access could not be refreshed',
-              message:
-                'Check that the local server is running, then try again.',
-              error: true,
-            });
-        },
-      )
-      .finally(() => {
-        if (current) setLoading(false);
+    // Team access shares the feedback banner with enrollment results, so the
+    // catalogue's own error is mirrored into it and cleared once it recovers.
+    if (catalogueError) {
+      setFeedback({
+        title: 'Team access could not be refreshed',
+        message: 'Check that the local server is running, then try again.',
+        error: true,
       });
-    return () => {
-      current = false;
-    };
-  }, [actions, identity, refreshVersion, data.server.state]);
+      return;
+    }
+    setFeedback((previous) =>
+      previous?.title === 'Team access could not be refreshed'
+        ? null
+        : previous,
+    );
+  }, [catalogueError, catalogue]);
   useEffect(() => {
     if (!identity)
       setIdentity(
@@ -166,7 +153,7 @@ export function TeamsView({
           });
           return;
         }
-        setCatalogue(await actions.catalogue(identity));
+        retryCatalogue();
       }
       await actions.refresh?.();
       setFeedback({
@@ -242,7 +229,7 @@ export function TeamsView({
               variant="secondary"
               size="sm"
               disabled={busy || loading || !identity}
-              onClick={() => setRefreshVersion((value) => value + 1)}
+              onClick={retryCatalogue}
             >
               Refresh team access
             </Button>

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MoltThemeProvider } from '@themoltnet/design-system';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createTestWrapper } from '../test-query-client.js';
 import {
   catalogue,
   preset,
@@ -15,20 +15,32 @@ import type {
   RunCenterActions,
   RunCenterData,
 } from './types.js';
+import { CATALOGUE_ERROR } from './useCatalogue.js';
 
-function setup(overrides: Partial<RunCenterData> = {}, saved = true) {
+// A fresh cache per test; the wrapper also supplies the theme provider.
+let Wrapper = createTestWrapper();
+beforeEach(() => {
+  Wrapper = createTestWrapper();
+});
+
+function setup(
+  overrides: Partial<RunCenterData> = {},
+  saved = true,
+  shapeCatalogue?: (mock: ReturnType<typeof vi.fn>) => void,
+) {
   const data: RunCenterData = {
     server: running,
     status,
-    catalogue,
     runs: [],
     presets: [preset],
     providers: {},
     subscriptions: [],
     ...overrides,
   };
+  const catalogueMock = vi.fn().mockResolvedValue(catalogue);
+  shapeCatalogue?.(catalogueMock);
   const actions: RunCenterActions = {
-    catalogue: vi.fn().mockResolvedValue(catalogue),
+    catalogue: catalogueMock,
     refresh: vi.fn().mockResolvedValue(undefined),
     startRun: vi.fn().mockResolvedValue(status.runs[0]),
     stopRun: vi.fn(),
@@ -45,29 +57,32 @@ function setup(overrides: Partial<RunCenterData> = {}, saved = true) {
     onDone: done,
   };
   const view = render(
-    <MoltThemeProvider mode="dark">
+    <Wrapper>
       <RunComposer {...props} />
-    </MoltThemeProvider>,
+    </Wrapper>,
   );
   return {
     actions,
     done,
     update: (next: Partial<RunCenterData>) =>
       view.rerender(
-        <MoltThemeProvider mode="dark">
+        <Wrapper>
           <RunComposer {...props} data={{ ...data, ...next }} />
-        </MoltThemeProvider>,
+        </Wrapper>,
       ),
   };
 }
 
 describe('run draft and preset operations', () => {
-  it('uses the owned catalogue without fetching it again', async () => {
+  it('reads the catalogue once for the identity it is offering', async () => {
     const { actions } = setup();
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Start run' })).toBeEnabled();
     });
-    expect(actions.catalogue).not.toHaveBeenCalled();
+    // One shared entry per identity: the composer no longer keeps a second
+    // copy alongside the run center's, and asking twice would mean it does.
+    expect(actions.catalogue).toHaveBeenCalledTimes(1);
+    expect(actions.catalogue).toHaveBeenCalledWith(status.selectedIdentity);
   });
   it('launches without updating the saved preset', async () => {
     const { actions } = setup();
@@ -141,15 +156,14 @@ describe('run draft and preset operations', () => {
     await screen.findByRole('option', { name: /team.*unavailable/i });
     expect(screen.getByRole('button', { name: 'Start run' })).toBeDisabled();
   });
-  it('shares catalogue failures and routes retry to the owner', async () => {
-    const { actions } = setup({
-      catalogue: null,
-      catalogueError: 'Shared catalogue failure',
-    });
-    expect(screen.getByText('Shared catalogue failure')).toBeInTheDocument();
+  it('surfaces a catalogue failure and retries the shared entry', async () => {
+    const { actions } = setup({}, true, (mock) =>
+      mock.mockRejectedValue(new Error('unreachable')),
+    );
+    await screen.findByText(CATALOGUE_ERROR);
     fireEvent.click(screen.getByRole('button', { name: 'Retry catalogue' }));
-    await waitFor(() => expect(actions.refresh).toHaveBeenCalled());
-    expect(actions.catalogue).not.toHaveBeenCalled();
+    // Retry invalidates the one shared entry rather than a private copy.
+    await waitFor(() => expect(actions.catalogue).toHaveBeenCalledTimes(2));
   });
   it('clears the team when choosing another identity', async () => {
     const { actions } = setup();
@@ -166,23 +180,25 @@ describe('run draft and preset operations', () => {
     });
     expect(screen.getByLabelText('Team')).toHaveValue('');
   });
-  it.each([
-    {
-      data: { catalogueLoading: true },
-      problem: 'Loading teams and profiles…',
-    },
-    {
-      data: { catalogue: { ...catalogue, profiles: [] } },
-      problem:
-        'Selected runtime profile is no longer available. Choose another profile.',
-    },
-    {
-      data: { presets: [{ ...preset, taskTypes: [] }] },
-      problem: 'Choose at least one task type.',
-    },
-  ])('blocks launch when $problem', ({ data, problem }) => {
-    setup(data);
-    expect(screen.getAllByText(problem).length).toBeGreaterThan(0);
+  it('blocks launch while the catalogue is still loading', async () => {
+    setup({}, true, (mock) => mock.mockReturnValue(new Promise(() => {})));
+    expect(
+      screen.getAllByText('Loading teams and profiles…').length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: 'Start run' })).toBeDisabled();
+  });
+  it('blocks launch when the selected profile is gone', async () => {
+    setup({}, true, (mock) =>
+      mock.mockResolvedValue({ ...catalogue, profiles: [] }),
+    );
+    await screen.findAllByText(
+      'Selected runtime profile is no longer available. Choose another profile.',
+    );
+    expect(screen.getByRole('button', { name: 'Start run' })).toBeDisabled();
+  });
+  it('blocks launch without a task type', async () => {
+    setup({ presets: [{ ...preset, taskTypes: [] }] });
+    await screen.findAllByText('Choose at least one task type.');
     expect(screen.getByRole('button', { name: 'Start run' })).toBeDisabled();
   });
 });
@@ -253,7 +269,7 @@ describe('run again', () => {
       },
     };
     render(
-      <MoltThemeProvider mode="dark">
+      <Wrapper>
         <RunComposer
           data={data}
           actions={actions}
@@ -262,7 +278,7 @@ describe('run again', () => {
           now={0}
           onDone={vi.fn()}
         />
-      </MoltThemeProvider>,
+      </Wrapper>,
     );
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Start run' })).toBeEnabled();
@@ -321,7 +337,7 @@ describe('project selection rules', () => {
       },
     };
     render(
-      <MoltThemeProvider mode="dark">
+      <Wrapper>
         <RunComposer
           data={{
             server: running,
@@ -338,7 +354,7 @@ describe('project selection rules', () => {
           now={0}
           onDone={vi.fn()}
         />
-      </MoltThemeProvider>,
+      </Wrapper>,
     );
     return actions;
   }

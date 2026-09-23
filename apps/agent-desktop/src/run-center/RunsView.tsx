@@ -18,6 +18,7 @@ import type { RunsRoute } from './RunCenterApp.js';
 import { RunComposer } from './RunComposer.js';
 import { RunDetail } from './RunDetail.js';
 import type { DesktopRun, RunCenterActions, RunCenterData } from './types.js';
+import { useCatalogue } from './useCatalogue.js';
 
 export interface RunsViewProps {
   active?: boolean;
@@ -100,12 +101,23 @@ function RunsList({
   const [stopError, setStopError] = useState(false);
   const active = data.runs.filter((run) => run.status === 'running');
   const recent = data.runs.filter((run) => run.status !== 'running');
-  const verificationFailed = verificationUnavailable(
-    data.catalogue?.teams ?? [],
-  );
   const serverReady = ['running', 'update_available'].includes(
     data.server.state,
   );
+  const {
+    catalogue,
+    loading: catalogueLoading,
+    error: catalogueError,
+    retry: retryCatalogue,
+  } = useCatalogue(
+    serverReady
+      ? (data.status?.selectedIdentity ??
+          data.status?.agents[0]?.agentName ??
+          '')
+      : '',
+    { read: actions.catalogue },
+  );
+  const verificationFailed = verificationUnavailable(catalogue?.teams ?? []);
 
   const stop = async (runId: string) => {
     setStopping(runId);
@@ -160,21 +172,21 @@ function RunsList({
         </InlineNotice>
       ) : null}
 
-      {serverReady && data.catalogueLoading ? (
+      {serverReady && catalogueLoading ? (
         <div role="status">
           <Text>Loading teams and profiles…</Text>
         </div>
       ) : null}
-      {serverReady && (data.catalogueError || verificationFailed) ? (
+      {serverReady && (catalogueError || verificationFailed) ? (
         <InlineNotice tone="error" title="Catalogue unavailable">
-          {data.catalogueError ??
+          {catalogueError ??
             'Some team resources could not be verified. Check connectivity and retry.'}
-          <Button variant="secondary" onClick={() => void actions.refresh?.()}>
+          <Button variant="secondary" onClick={retryCatalogue}>
             Retry catalogue
           </Button>
         </InlineNotice>
       ) : null}
-      {serverReady && data.catalogue?.teams.length === 0 ? (
+      {serverReady && catalogue?.teams.length === 0 ? (
         <InlineNotice tone="info" title="No teams found">
           This identity has no teams in this environment.
           <Button variant="ghost" onClick={onTeams}>
@@ -184,9 +196,9 @@ function RunsList({
       ) : null}
       {serverReady &&
       !verificationFailed &&
-      data.catalogue &&
-      data.catalogue.teams.length > 0 &&
-      !data.catalogue.teams.some((team) => team.available) ? (
+      catalogue &&
+      catalogue.teams.length > 0 &&
+      !catalogue.teams.some((team) => team.available) ? (
         <InlineNotice tone="warning" title="Team access needs attention">
           Verify a team credential before starting a run.
           <Button variant="ghost" onClick={onTeams}>

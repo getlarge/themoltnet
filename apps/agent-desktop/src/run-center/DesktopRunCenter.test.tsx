@@ -3,6 +3,7 @@ import { act, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { desktopBridge } from '../bridge.js';
+import { createTestWrapper } from '../test-query-client.js';
 import {
   catalogue,
   preset,
@@ -45,7 +46,12 @@ afterEach(() => {
 });
 async function mount() {
   await act(async () => {
-    render(<DesktopRunCenter />);
+    const Wrapper = createTestWrapper();
+    render(
+      <Wrapper>
+        <DesktopRunCenter />
+      </Wrapper>,
+    );
   });
 }
 
@@ -61,20 +67,27 @@ describe('run center state ownership', () => {
     });
     expect(current().data.presets).toEqual([preset]);
   });
-  it('retains the last good catalogue without announcing loading on background failure', async () => {
+  it('reads the catalogue once on mount', async () => {
     await mount();
-    expect(current().data.catalogue).toEqual(catalogue);
-    vi.mocked(invoke).mockImplementation((command) => {
-      if (command === 'desktop_control_status') return Promise.resolve(status);
-      if (command === 'desktop_catalogue')
-        return Promise.reject(new Error('Temporary outage'));
-      return Promise.resolve(false);
-    });
+    // The status poll used to invalidate the catalogue on every pass, which
+    // stacked a second read on top of the cache's own first fetch.
+    expect(
+      vi.mocked(invoke).mock.calls.filter(([c]) => c === 'desktop_catalogue')
+        .length,
+    ).toBe(1);
+  });
+  it('keeps polling the catalogue it owns on its own interval', async () => {
+    await mount();
+    const reads = () =>
+      vi.mocked(invoke).mock.calls.filter(([c]) => c === 'desktop_catalogue')
+        .length;
+    expect(reads()).toBe(1);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(65000);
     });
-    expect(current().data.catalogue).toEqual(catalogue);
-    expect(current().data.catalogueLoading).toBe(false);
-    expect(current().data.catalogueError).toBeTruthy();
+    // The run center is the single polling owner for its identity; the
+    // retention and loading-flag behaviour it used to prop-drill is pinned in
+    // useCatalogue.test.tsx, against the hook that now owns it.
+    expect(reads()).toBeGreaterThan(1);
   });
 });

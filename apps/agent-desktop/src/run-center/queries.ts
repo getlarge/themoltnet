@@ -47,11 +47,17 @@ export const runCenterKeys = {
  * clearing and refilling one, which is what made a stale response able to land
  * under a newer selection.
  */
-export function catalogueQuery(identity: string) {
+export function catalogueQuery(
+  identity: string,
+  // Injected so a view can be driven by a test double, as the rest of the
+  // run center is; defaults to the real native bridge.
+  read: (
+    identity: string,
+  ) => Promise<AgentServerCatalogue> = runCenterActions.catalogue,
+) {
   return queryOptions({
     queryKey: runCenterKeys.catalogue(identity),
-    queryFn: (): Promise<AgentServerCatalogue> =>
-      runCenterActions.catalogue(identity),
+    queryFn: (): Promise<AgentServerCatalogue> => read(identity),
     // An identity is only meaningful once one is selected.
     enabled: Boolean(identity),
   });
