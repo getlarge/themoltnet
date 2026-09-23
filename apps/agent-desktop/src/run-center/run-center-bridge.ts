@@ -9,6 +9,7 @@
  * Presets are the exception: they are per-machine UI state the app owns, so
  * they live in the renderer's own storage rather than on the control API.
  */
+import { focusManager } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
 
 import type {
@@ -203,7 +204,12 @@ export const runCenterActions: RunCenterActions = {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let generation = 0;
     const poll = async (current: number) => {
-      if (stopped || document.visibilityState === 'hidden') return;
+      // `focusManager`, not `document.visibilityState`: this WebView reports
+      // hidden while its window is on screen, which stopped the tail outright.
+      // The log tail stays a subscription rather than a query, but it reads the
+      // same focus state the queries do, so there is one answer to "is this
+      // window in front" in the app.
+      if (stopped || !focusManager.isFocused()) return;
       try {
         const snapshot = await invoke<{ lines: string[] }>('desktop_run_logs', {
           runId,
@@ -216,16 +222,18 @@ export const runCenterActions: RunCenterActions = {
       if (!stopped && current === generation)
         timer = setTimeout(() => void poll(current), 3_000);
     };
-    const visible = () => {
+    const resume = () => {
       clearTimeout(timer);
       void poll(++generation);
     };
-    document.addEventListener('visibilitychange', visible);
-    visible();
+    const unsubscribe = focusManager.subscribe((focused) => {
+      if (focused) resume();
+    });
+    resume();
     return () => {
       stopped = true;
       clearTimeout(timer);
-      document.removeEventListener('visibilitychange', visible);
+      unsubscribe();
     };
   },
 };

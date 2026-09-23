@@ -1,19 +1,14 @@
 import { browser } from '@wdio/globals';
 import type { ChainablePromiseElement } from 'webdriverio';
 
-/** Embedded WebKit reports hidden even while its window is driven by WebDriver.
- * Exercise foreground polling without replacing native commands or API data.
- * This module is imported only by the explicit native acceptance specs.
+/*
+ * Input quirks of the embedded WebKit view.
+ *
+ * This module used to also force `document.visibilityState` to 'visible',
+ * because the app paused polling on a signal this WebView misreports. The app
+ * reads the window's real focus state now, so the specs no longer need to lie
+ * to it — and the native journeys exercising foreground polling are genuine.
  */
-export async function enableNativePolling() {
-  await browser.execute(() => {
-    Object.defineProperty(document, 'visibilityState', {
-      configurable: true,
-      get: () => 'visible',
-    });
-    document.dispatchEvent(new Event('visibilitychange'));
-  });
-}
 
 /** Embedded WebKit option clicks do not dispatch a select change event. */
 export async function selectNative(

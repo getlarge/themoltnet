@@ -65,6 +65,10 @@ describe('run center state ownership', () => {
         await current().actions.savePreset({ ...preset, id: null }),
       ).toEqual(preset);
     });
+    // Let the cache write flush into a render before reading the props.
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(current().data.presets).toEqual([preset]);
   });
   it('reads the catalogue once on mount', async () => {

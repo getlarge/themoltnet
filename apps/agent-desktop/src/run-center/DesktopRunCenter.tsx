@@ -29,7 +29,6 @@ export function DesktopRunCenter() {
   const [operatorEmail, setOperatorEmail] = useState<string | null>(null);
   const [presets, setPresets] = useState<RunPreset[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [presetError, setPresetError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now);
   const client = useQueryClient();
   const serverReady = ['running', 'update_available'].includes(server.state);
@@ -46,6 +45,11 @@ export function DesktopRunCenter() {
       read: runCenterActions.catalogue,
     },
   );
+  // Presets stay owned local state rather than a query: a committed write must
+  // survive a later failed storage read, and `setQueryData` does not reach an
+  // observer whose query is in an error state.
+  const [presets, setPresets] = useState<RunPreset[]>([]);
+  const [presetError, setPresetError] = useState<string | null>(null);
   useEffect(() => {
     let current = true;
     void listPresets().then(
@@ -56,10 +60,7 @@ export function DesktopRunCenter() {
         }
       },
       (cause: unknown) => {
-        if (current) {
-          setPresets([]);
-          setPresetError(`Could not load presets: ${String(cause)}`);
-        }
+        if (current) setPresetError(`Could not load presets: ${String(cause)}`);
       },
     );
     return () => {
