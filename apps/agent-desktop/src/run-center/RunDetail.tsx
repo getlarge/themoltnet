@@ -15,6 +15,7 @@ import { duration, pluralize, relativeTime } from './format.js';
 import { workspaceLabel } from './ProjectsView.js';
 import { ProfileChain, TaskTypeRow } from './RunsView.js';
 import type { DesktopRun, RunCenterActions } from './types.js';
+import { useCatalogue } from './useCatalogue.js';
 
 export interface RunDetailProps {
   active?: boolean;
@@ -40,51 +41,21 @@ export function RunDetail({
   onBack,
   onRunAgain,
 }: RunDetailProps) {
-  const [currentCredential, setCurrentCredential] =
-    useState<DesktopRun['credential']>();
-  // Names for the captured ids; the ids remain when the catalogue lacks them.
-  const [names, setNames] = useState<{
-    project?: string;
-    diary?: string;
-  }>({});
-  useEffect(() => {
-    if (!active) return;
-    let current = true;
-    setCurrentCredential(undefined);
-    const refresh = async () => {
-      try {
-        const catalogue = await actions.catalogue(run.agent);
-        if (!current) return;
-        const team = catalogue.teams.find(
-          (entry) => entry.teamId === run.teamId,
-        );
-        setCurrentCredential(team?.credential);
-        setNames({
-          project: catalogue.projects.find(
-            (entry) => entry.id === run.workspace?.projectId,
-          )?.name,
-          diary: team?.diaries.find(
-            (entry) => entry.id === run.workspace?.diaryId,
-          )?.name,
-        });
-      } catch {
-        if (current) setCurrentCredential(undefined);
-      }
-    };
-    void refresh();
-    const timer = window.setInterval(() => void refresh(), 30000);
-    return () => {
-      current = false;
-      window.clearInterval(timer);
-    };
-  }, [
-    actions,
-    run.agent,
-    run.teamId,
-    run.workspace?.projectId,
-    run.workspace?.diaryId,
+  // The run center already polls this identity's catalogue; reading the shared
+  // entry replaces the second 30s timer this view used to run against it.
+  const { catalogue } = useCatalogue(run.agent, {
     active,
-  ]);
+    read: actions.catalogue,
+  });
+  const team = catalogue?.teams.find((entry) => entry.teamId === run.teamId);
+  const currentCredential = team?.credential;
+  const names = {
+    project: catalogue?.projects.find(
+      (entry) => entry.id === run.workspace?.projectId,
+    )?.name,
+    diary: team?.diaries.find((entry) => entry.id === run.workspace?.diaryId)
+      ?.name,
+  };
   const [lines, setLines] = useState<string[]>([]);
   const [follow, setFollow] = useState(true);
   const [stopping, setStopping] = useState(false);

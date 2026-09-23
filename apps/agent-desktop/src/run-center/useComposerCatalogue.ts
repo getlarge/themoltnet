@@ -1,71 +1,22 @@
-import { useEffect, useState } from 'react';
+import type { AgentServerCatalogue } from './types.js';
+import { useCatalogue } from './useCatalogue.js';
 
-import type {
-  AgentServerCatalogue,
-  RunCenterActions,
-  RunCenterData,
-} from './types.js';
-export const CATALOGUE_ERROR =
-  'Teams and profiles could not be loaded. Retry to verify access.';
-/** The run center owns its identity; only a different identity needs a local request. */
+export { CATALOGUE_ERROR } from './useCatalogue.js';
+
+/**
+ * The composer's catalogue for whichever identity it is offering.
+ *
+ * This used to branch: when the composer showed the run center's own identity
+ * it read the parent's prop-drilled state, and otherwise it kept a second copy
+ * with its own loading flag, error string and retry counter. Those two paths
+ * disagreed, which is where the duplicated fetches and conflicting messages
+ * came from. There is one cache entry per identity now, so the branch is gone
+ * and the composer is an ordinary reader.
+ */
 export function useComposerCatalogue(
-  data: RunCenterData,
-  actions: RunCenterActions,
   identity: string,
   active: boolean,
+  read?: (identity: string) => Promise<AgentServerCatalogue>,
 ) {
-  const owner =
-    data.catalogueIdentity ??
-    data.status?.selectedIdentity ??
-    data.status?.agents[0]?.agentName;
-  const shared = identity === owner;
-  const [local, setLocal] = useState<{
-    identity: string;
-    catalogue: AgentServerCatalogue | null;
-    loading: boolean;
-    error: string | null;
-  }>({ identity: '', catalogue: null, loading: false, error: null });
-  const [revision, setRevision] = useState(0);
-  useEffect(() => {
-    if (shared || !active || !identity) return;
-    let current = true;
-    setLocal({ identity, catalogue: null, loading: true, error: null });
-    void actions.catalogue(identity).then(
-      (catalogue) => {
-        if (current)
-          setLocal({ identity, catalogue, loading: false, error: null });
-      },
-      () => {
-        if (current)
-          setLocal({
-            identity,
-            catalogue: null,
-            loading: false,
-            error: CATALOGUE_ERROR,
-          });
-      },
-    );
-    return () => {
-      current = false;
-    };
-  }, [actions, identity, shared, active, revision]);
-  return {
-    catalogue: shared
-      ? data.catalogue
-      : local.identity === identity
-        ? local.catalogue
-        : null,
-    loading: shared
-      ? Boolean(data.catalogueLoading)
-      : local.identity !== identity || local.loading,
-    error: shared
-      ? data.catalogueError
-      : local.identity === identity
-        ? local.error
-        : null,
-    retry: () => {
-      if (shared && actions.refresh) void actions.refresh();
-      else setRevision((value) => value + 1);
-    },
-  };
+  return useCatalogue(identity, { active, read });
 }

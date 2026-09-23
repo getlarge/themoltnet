@@ -75,10 +75,7 @@ export function RunComposer({
       '',
   );
   const [teamId, setTeamId] = useState(
-    previousRun?.teamId ??
-      preset?.teamId ??
-      data.catalogue?.defaultTeamId ??
-      '',
+    previousRun?.teamId ?? preset?.teamId ?? '',
   );
   const [locationRevision, setLocationRevision] = useState(0);
   const projects = actions.projects ?? projectActions;
@@ -195,7 +192,7 @@ export function RunComposer({
     loading: catalogueLoading,
     error: catalogueError,
     retry,
-  } = useComposerCatalogue(data, actions, agent, active);
+  } = useComposerCatalogue(agent, active, actions.catalogue);
   const teams = catalogue?.teams ?? [];
   useEffect(() => {
     if (catalogue)

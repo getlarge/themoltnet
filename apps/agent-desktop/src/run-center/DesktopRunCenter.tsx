@@ -1,11 +1,13 @@
 import './run-center.css';
 
+import { focusManager, useQueryClient } from '@tanstack/react-query';
 import { invoke } from '@tauri-apps/api/core';
 import { InlineNotice } from '@themoltnet/design-system';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { desktopBridge, INITIAL_STATUS } from '../bridge.js';
 import { findRunPreset } from './preset-matching.js';
+import { projectLocationsQuery, runCenterKeys } from './queries.js';
 import {
   listPresets,
   projectActions,
@@ -13,12 +15,11 @@ import {
 } from './run-center-bridge.js';
 import { RunCenterApp } from './RunCenterApp.js';
 import type {
-  AgentServerCatalogue,
   AgentServerStatus,
   RunCenterActions,
   RunPreset,
 } from './types.js';
-import { CATALOGUE_ERROR } from './useComposerCatalogue.js';
+import { useCatalogue } from './useCatalogue.js';
 
 /** Native IPC owns all server access; this renderer receives public state only. */
 export function DesktopRunCenter() {
@@ -26,23 +27,30 @@ export function DesktopRunCenter() {
   const [status, setStatus] = useState<AgentServerStatus | null>(null);
   const [operatorConfigured, setOperatorConfigured] = useState(false);
   const [operatorEmail, setOperatorEmail] = useState<string | null>(null);
-  const projectLocations = useRef<{
-    promise: Promise<Awaited<ReturnType<typeof projectActions.list>>> | null;
-  }>({ promise: null });
-  const [catalogue, setCatalogue] = useState<AgentServerCatalogue | null>(null);
-  const [catalogueIdentity, setCatalogueIdentity] = useState<string | null>(
-    null,
-  );
-  const catalogueSnapshot = useRef<{
-    identity: string | null;
-    value: AgentServerCatalogue | null;
-  }>({ identity: null, value: null });
-  const [catalogueLoading, setCatalogueLoading] = useState(false);
-  const [catalogueError, setCatalogueError] = useState<string | null>(null);
-  const [presets, setPresets] = useState<RunPreset[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [presetError, setPresetError] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now);
+  const client = useQueryClient();
+  const serverReady = ['running', 'update_available'].includes(server.state);
+  // The identity this surface owns. Every view reads the same cache entry for
+  // it; this one also refreshes it.
+  const catalogueIdentity = serverReady
+    ? (status?.selectedIdentity ?? status?.agents[0]?.agentName ?? null)
+    : null;
+  const { catalogue, retry: retryCatalogue } = useCatalogue(
+    catalogueIdentity ?? '',
+    {
+      active: serverReady,
+      poll: true,
+      read: runCenterActions.catalogue,
+    },
+  );
+  // Presets are client-owned state, not borrowed server state: they live in
+  // this renderer's own storage, have one reader and no remote to reconcile
+  // with, so a cache's staleness and refetching buy nothing. It would also add
+  // a way to lose them — an unobserved entry is evicted after `gcTime` — and a
+  // committed write has to survive.
+  const [presets, setPresets] = useState<RunPreset[]>([]);
+  const [presetError, setPresetError] = useState<string | null>(null);
   useEffect(() => {
     let current = true;
     void listPresets().then(
@@ -53,10 +61,7 @@ export function DesktopRunCenter() {
         }
       },
       (cause: unknown) => {
-        if (current) {
-          setPresets([]);
-          setPresetError(`Could not load presets: ${String(cause)}`);
-        }
+        if (current) setPresetError(`Could not load presets: ${String(cause)}`);
       },
     );
     return () => {
@@ -66,16 +71,9 @@ export function DesktopRunCenter() {
   const inFlight = useRef<Promise<void> | null>(null);
   const epoch = useRef(0);
   const failures = useRef(0);
-  const lastCatalogue = useRef(0);
-  const refresh = useCallback(function refreshSnapshot(
-    refreshCatalogue = true,
-  ): Promise<void> {
-    if (inFlight.current) {
-      // Mutations need a read started after they completed, not an older poll.
-      return refreshCatalogue
-        ? inFlight.current.then(() => refreshSnapshot(true))
-        : inFlight.current;
-    }
+  const refresh = useCallback(function refreshSnapshot(): Promise<void> {
+    // Mutations need a read started after they completed, not an older poll.
+    if (inFlight.current) return inFlight.current.then(() => refreshSnapshot());
     const currentEpoch = epoch.current;
     const pending = (async () => {
       try {
@@ -95,43 +93,9 @@ export function DesktopRunCenter() {
         }
         failures.current = 0;
         setError(null);
-        const identity =
-          snapshot.selectedIdentity ?? snapshot.agents[0]?.agentName ?? null;
-        const changedIdentity = catalogueSnapshot.current.identity !== identity;
-        if (
-          refreshCatalogue ||
-          changedIdentity ||
-          Date.now() - lastCatalogue.current > 60_000
-        ) {
-          setCatalogueIdentity(identity);
-          if (changedIdentity) {
-            catalogueSnapshot.current = { identity, value: null };
-            setCatalogue(null);
-          }
-          if (refreshCatalogue || !catalogueSnapshot.current.value)
-            setCatalogueLoading(true);
-          try {
-            const next = identity
-              ? await runCenterActions.catalogue(identity)
-              : null;
-            if (currentEpoch === epoch.current) {
-              catalogueSnapshot.current = { identity, value: next };
-              setCatalogue(next);
-              setCatalogueError(null);
-              lastCatalogue.current = Date.now();
-            }
-          } catch {
-            if (currentEpoch === epoch.current) {
-              setCatalogueError(CATALOGUE_ERROR);
-            }
-          } finally {
-            if (currentEpoch === epoch.current) setCatalogueLoading(false);
-          }
-        }
       } catch (cause) {
         if (currentEpoch !== epoch.current) return;
         failures.current++;
-        setCatalogue(null);
         setError(
           cause instanceof Error
             ? cause.message
@@ -178,76 +142,68 @@ export function DesktopRunCenter() {
   }, []);
   useEffect(() => {
     epoch.current++;
-    if (!['running', 'update_available'].includes(server.state)) {
-      projectLocations.current.promise = null;
+    if (!serverReady) {
       setStatus(null);
-      catalogueSnapshot.current = { identity: null, value: null };
-      setCatalogueIdentity(null);
       setOperatorConfigured(false);
       setOperatorEmail(null);
-      setCatalogue(null);
-      setCatalogueLoading(false);
-      setCatalogueError(null);
       return;
     }
     let stopped = false;
     let timer: number | undefined;
     let generation = 0;
-    const poll = async (current: number, includeCatalogue = false) => {
-      if (stopped || document.visibilityState === 'hidden') return;
+    const poll = async (current: number) => {
+      // `focusManager`, not `document.visibilityState`: this WebView reports
+      // hidden while its window is on screen, which stopped the poll outright.
+      if (stopped || !focusManager.isFocused()) return;
       setNow(Date.now());
-      await refresh(includeCatalogue);
+      await refresh();
       if (!stopped && generation === current)
         timer = window.setTimeout(
           () => void poll(current),
           Math.min(60_000, 5_000 * 2 ** failures.current),
         );
     };
-    const visible = () => {
+    const resume = () => {
       window.clearTimeout(timer);
-      void poll(++generation, true);
+      void poll(++generation);
     };
-    document.addEventListener('visibilitychange', visible);
-    visible();
+    const unsubscribe = focusManager.subscribe((focused) => {
+      if (focused) resume();
+    });
+    resume();
     return () => {
       stopped = true;
       epoch.current++;
       window.clearTimeout(timer);
-      document.removeEventListener('visibilitychange', visible);
+      unsubscribe();
     };
-  }, [server.state, refresh]);
+  }, [serverReady, refresh]);
+  // The cache dedupes concurrent reads and `invalidate` forces a fresh one, so
+  // this no longer needs a hand-held promise to coalesce on.
   const projects = useMemo(
     () => ({
       ...projectActions,
-      invalidate: () => undefined,
-      list: () => {
-        if (!projectLocations.current.promise) {
-          projectLocations.current.promise = projectActions.list().then(
-            (value) => {
-              projectLocations.current.promise = null;
-              return value;
-            },
-            (error) => {
-              projectLocations.current.promise = null;
-              throw error;
-            },
-          );
-        }
-        return projectLocations.current.promise;
+      invalidate: () => {
+        void client.invalidateQueries({
+          queryKey: runCenterKeys.projectLocations(),
+        });
       },
-      save: async (...args: Parameters<typeof projectActions.save>) => {
-        return projectActions.save(...args);
-      },
-      remove: async (...args: Parameters<typeof projectActions.remove>) => {
-        await projectActions.remove(...args);
-      },
+      list: () =>
+        client.fetchQuery(projectLocationsQuery()).then((locations) => ({
+          locations,
+        })),
     }),
-    [],
+    [client],
   );
   const actions = useMemo<RunCenterActions>(
     () => ({
       ...runCenterActions,
-      refresh,
+      // Callers expect a refresh to cover both surfaces: the status read, and
+      // the catalogue entry the cache owns.
+      refresh: async () => {
+        await refresh();
+        retryCatalogue();
+      },
       startRun: async (input) => {
         const run = await runCenterActions.startRun(input);
         await refresh();
@@ -271,7 +227,7 @@ export function DesktopRunCenter() {
         setPresets((current) => current.filter((preset) => preset.id !== id));
       },
     }),
-    [refresh],
+    [refresh, retryCatalogue],
   );
   const renderedActions = useMemo(
     () => ({ ...actions, projects }),
@@ -297,10 +253,6 @@ export function DesktopRunCenter() {
           operatorEmail,
           server,
           status,
-          catalogue,
-          catalogueIdentity,
-          catalogueLoading,
-          catalogueError,
           presets,
           providers: status?.providers ?? {},
           subscriptions: status?.subscriptions ?? [],

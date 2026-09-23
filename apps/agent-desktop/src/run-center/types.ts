@@ -176,10 +176,6 @@ export interface RunCenterData {
   status: AgentServerStatus | null;
   runs: DesktopRun[];
   presets: RunPreset[];
-  catalogue: AgentServerCatalogue | null;
-  catalogueIdentity?: string | null;
-  catalogueLoading?: boolean;
-  catalogueError?: string | null;
   providers: Record<string, AgentServerProvider>;
   subscriptions: AgentServerSubscription[];
 }

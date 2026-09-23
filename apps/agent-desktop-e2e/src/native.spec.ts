@@ -6,7 +6,7 @@ import type { DesktopStatus } from '@moltnet/agent-desktop/bridge';
 import { $, browser, expect } from '@wdio/globals';
 
 import { lifecycle } from './journey-helpers.js';
-import { enableNativePolling, selectNative } from './native-visibility.js';
+import { selectNative } from './native-input.js';
 import { expectNoAxeViolations, preset, WINDOW_SIZES } from './run-fixtures.js';
 
 const installedVersion = readFileSync(
@@ -292,7 +292,6 @@ describe('Native Projects screen', () => {
       console.error(await browser.execute(() => document.body.innerText));
   });
   it('explicitly saves and removes a local registration through the rendered interface', async () => {
-    await enableNativePolling();
     await lifecycle('start_agent_server');
     await $('a=Projects').click();
     await expect($('h2=Shared with the team')).toBeDisplayed({ wait: 15000 });

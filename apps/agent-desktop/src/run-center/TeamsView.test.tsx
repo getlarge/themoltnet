@@ -1,10 +1,16 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { MoltThemeProvider } from '@themoltnet/design-system';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { INITIAL_STATUS } from '../bridge.js';
+import { createTestWrapper } from '../test-query-client.js';
 import { TeamsView } from './TeamsView.js';
 import type { RunCenterActions, RunCenterData } from './types.js';
+
+// A fresh cache per test; the wrapper also supplies the theme provider.
+let Wrapper = createTestWrapper();
+beforeEach(() => {
+  Wrapper = createTestWrapper();
+});
 
 const team = {
   teamId: 'team-a',
@@ -81,13 +87,13 @@ function fixture() {
 }
 function show(data: RunCenterData, actions: RunCenterActions) {
   return render(
-    <MoltThemeProvider mode="dark">
+    <Wrapper>
       <TeamsView
         data={data}
         actions={actions}
         now={Date.parse('2026-09-18T00:00:00Z')}
       />
-    </MoltThemeProvider>,
+    </Wrapper>,
   );
 }
 

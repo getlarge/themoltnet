@@ -3,7 +3,7 @@ import { $, browser, expect } from '@wdio/globals';
 
 import { journeyAgent } from './docker-journey.js';
 import { field, lifecycle } from './journey-helpers.js';
-import { enableNativePolling, selectNative } from './native-visibility.js';
+import { selectNative } from './native-input.js';
 
 async function click(selector: string) {
   const element = $(selector);
@@ -50,7 +50,6 @@ describe('Personal Desktop journey against Docker services', () => {
   it('manages a location, claims project and General work separately, and persists captured history', async () => {
     const root = process.env.MOLTNET_DESKTOP_E2E_FIXTURE_ROOT;
     if (!root) throw new Error('Use the isolated Docker launcher');
-    await enableNativePolling();
     const { agent, journey } = await journeyAgent(root);
     let serverState = 'unknown';
     await browser
