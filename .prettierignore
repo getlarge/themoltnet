@@ -11,6 +11,12 @@ pnpm-lock.yaml
 .claude/skills/impeccable/**
 .agents/skills/impeccable/**
 
+# `npx impeccable install` also owns these agent definitions and the Codex hook
+# manifest. Keep their upstream layout intact and leave hook changes to the
+# installer instead of letting the repository formatter rewrite them.
+.claude/agents/impeccable-*.md
+.codex/hooks.json
+
 # Vendored DBOS agent skills installed through `npx skills add
 # dbos-inc/agent-skills`. Keep their content byte-for-byte compatible with the
 # upstream hashes recorded in skills-lock.json.
