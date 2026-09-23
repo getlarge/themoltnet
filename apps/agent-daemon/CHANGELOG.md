@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.65.2](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.65.1...agent-daemon-v0.65.2) (2026-09-23)
+
+
+### Bug Fixes
+
+* **agent-daemon:** preserve krun backend for managed runs ([46a21a9](https://github.com/getlarge/themoltnet/commit/46a21a915192a65440ea711ec7ff1da85a9d9692))
+* **agent-daemon:** preserve VM backend for managed runs ([57099d9](https://github.com/getlarge/themoltnet/commit/57099d90c277bf31a6c65c633adeef047456783d))
+
 ## [0.65.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.65.0...agent-daemon-v0.65.1) (2026-09-23)
 
 

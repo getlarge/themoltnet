@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.0](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.8.1...agent-desktop-v0.9.0) (2026-09-23)
+
+
+### Features
+
+* **desktop:** add TanStack Query with WebView host fixes ([c05d69e](https://github.com/getlarge/themoltnet/commit/c05d69e2ce650198e8145da3be2d86d16a06a0d3)), closes [#2420](https://github.com/getlarge/themoltnet/issues/2420)
+
+
+### Bug Fixes
+
+* **desktop:** ground the presets decision in ownership, not a false claim ([1910b98](https://github.com/getlarge/themoltnet/commit/1910b980aac42908935a79d78ea5adcd44352bc2)), closes [#2420](https://github.com/getlarge/themoltnet/issues/2420)
+* **desktop:** keep the shared locations list fresh across screens ([f7e65fd](https://github.com/getlarge/themoltnet/commit/f7e65fd022a6e141d1830a8a617926e40512ebec)), closes [#2420](https://github.com/getlarge/themoltnet/issues/2420)
+* **desktop:** start the renderer without a Tauri host ([beca6ff](https://github.com/getlarge/themoltnet/commit/beca6ff84d302213ff9d651655ae0ecfabc2a7e6)), closes [#2420](https://github.com/getlarge/themoltnet/issues/2420)
+
 ## [0.8.1](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.8.0...agent-desktop-v0.8.1) (2026-09-23)
 
 
