@@ -26,27 +26,6 @@ env:
   NX_LOAD_DOT_ENV_FILES: 'false'
 
 jobs:
-  # themolt.net/install serves a deliberately pinned installer release. This
-  # check keeps the pin honest: it warns (annotation + PR comment) when a
-  # newer agent-daemon release exists, without forcing the bump.
-  installer-pin:
-    name: Installer pin freshness
-    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-      - name: Compare the served download pins against the latest releases
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: bash tools/ci/check-download-pins.sh
-
   commit-convention:
     name: Commit Convention
     # Only a pull request has a well-defined range of *our* commits. Linting on
@@ -331,7 +310,6 @@ jobs:
       desktop-e2e: ${{ steps.compute.outputs.desktop-e2e }}
       agent-bundle: ${{ steps.compute.outputs.agent-bundle }}
       wsl-agent-daemon: ${{ steps.compute.outputs.wsl-agent-daemon }}
-      landing: ${{ steps.compute.outputs.landing }}
       legreffier-plugin: ${{ steps.compute.outputs.legreffier-plugin }}
       check-dist-agent-daemon-action: ${{ steps.compute.outputs.check-dist-agent-daemon-action }}
       agents-matrix: ${{ steps.matrix.outputs.matrix }}
@@ -499,12 +477,6 @@ jobs:
             echo "e2e-any=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if contains "@moltnet/landing"; then
-            echo "landing=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "landing=false" >> "$GITHUB_OUTPUT"
-          fi
-
           if contains "@themoltnet/legreffier-plugin" || ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- .github/workflows/ci.yml; then
             echo "legreffier-plugin=true" >> "$GITHUB_OUTPUT"
           else
@@ -545,7 +517,7 @@ jobs:
           # WSL acceptance covers the daemon, Pi/Gondolin host stack, bundle
           # contract, and the user-facing WSL guidance. CI/release changes
           # also gate it because they can alter the assembled artifact.
-          if contains "@themoltnet/agent-daemon" "@themoltnet/agent-daemon-e2e" "@themoltnet/sandbox-gondolin" "@moltnet/execution-integrations" "@moltnet/pi-extension" || ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- tools/release/agent-bundle apps/agent-daemon .github/actions/setup-workspace .github/workflows/ci.yml .github/workflows/release.yml docs/operate/running-agents.md apps/landing/src/pages/DownloadPage.tsx apps/landing/src/pages/GettingStartedPage.tsx; then
+          if contains "@themoltnet/agent-daemon" "@themoltnet/agent-daemon-e2e" "@themoltnet/sandbox-gondolin" "@moltnet/execution-integrations" "@moltnet/pi-extension" || ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- tools/release/agent-bundle apps/agent-daemon .github/actions/setup-workspace .github/workflows/ci.yml .github/workflows/release.yml docs/operate/running-agents.md; then
             echo "wsl-agent-daemon=true" >> "$GITHUB_OUTPUT"
           else
             echo "wsl-agent-daemon=false" >> "$GITHUB_OUTPUT"

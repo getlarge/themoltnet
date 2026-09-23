@@ -358,8 +358,6 @@ export default tseslint.config(
       'libs/observability/src/**/*.ts',
       'libs/models/src/**/*.ts',
       'libs/pi-extension/src/**/*.ts',
-      'apps/landing/src/**/*.ts',
-      'apps/landing/src/**/*.tsx',
     ],
     rules: {
       '@typescript-eslint/no-unsafe-argument': 'off',

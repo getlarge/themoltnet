@@ -216,7 +216,6 @@
         "projects": [
           "@moltnet/console",
           "@moltnet/database",
-          "@moltnet/landing",
           "@moltnet/mcp-host",
           "@moltnet/mcp-server",
           "@moltnet/rest-api",

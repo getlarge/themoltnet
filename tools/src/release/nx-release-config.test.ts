@@ -44,7 +44,6 @@ const agentDesktopPackage = JSON.parse(
 const dockerProjects = [
   { name: '@moltnet/console', root: 'apps/console' },
   { name: '@moltnet/database', root: 'libs/database' },
-  { name: '@moltnet/landing', root: 'apps/landing' },
   { name: '@moltnet/mcp-host', root: 'apps/mcp-host' },
   { name: '@moltnet/mcp-server', root: 'apps/mcp-server' },
   { name: '@moltnet/rest-api', root: 'apps/rest-api' },
@@ -313,7 +312,7 @@ describe('Nx release configuration', () => {
 
   it('can republish failed Docker releases from their existing drafts', () => {
     expect(workflow).toContain(
-      'agent-daemon, agent-desktop, console, database, landing, mcp-host, mcp-server, rest-api, otel-custom-collector',
+      'agent-daemon, agent-desktop, console, database, mcp-host, mcp-server, rest-api, otel-custom-collector',
     );
     expect(workflow).toContain(
       'resolve_docker "otel-custom-collector" "$RP_OTEL_COLLECTOR_CREATED" "$RP_OTEL_COLLECTOR_TAG" "$RP_OTEL_COLLECTOR_VERSION" "otel-collector"',
