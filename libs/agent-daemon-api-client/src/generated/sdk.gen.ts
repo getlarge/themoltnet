@@ -36,6 +36,8 @@ import type {
   ListAgentServerAgentsData,
   ListAgentServerAgentsErrors,
   ListAgentServerAgentsResponses,
+  ListAgentServerOperatorTeamsData,
+  ListAgentServerOperatorTeamsResponses,
   ListAgentServerProvidersData,
   ListAgentServerProvidersErrors,
   ListAgentServerProvidersResponses,
@@ -273,6 +275,21 @@ export const signInAgentServerOperator = <ThrowOnError extends boolean = false>(
     unknown,
     ThrowOnError
   >({ url: '/v1/operator/sign-in', ...options });
+
+export const listAgentServerOperatorTeams = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<ListAgentServerOperatorTeamsData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListAgentServerOperatorTeamsResponses,
+    unknown,
+    ThrowOnError
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/operator/teams',
+    ...options,
+  });
 
 export const listAgentServerProviders = <ThrowOnError extends boolean = false>(
   options?: Options<ListAgentServerProvidersData, ThrowOnError>,

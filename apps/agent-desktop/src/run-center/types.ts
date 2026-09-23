@@ -21,6 +21,7 @@ import type {
   AgentServerSubscriptionLogin,
   EnrollAgentServerTeamData,
   EnrollAgentServerTeamResponses,
+  ListAgentServerOperatorTeamsResponses,
   ListNativeProjectLocationsResponse,
   SaveNativeProjectLocationData,
   StartAgentServerRunData,
@@ -107,6 +108,7 @@ export interface SavePresetInput extends Omit<
 export interface RunCenterActions {
   projects?: ProjectActions;
   signInOperator?: () => Promise<void>;
+  operatorTeams?: () => Promise<ListAgentServerOperatorTeamsResponses[200]>;
   cancelOperatorApproval?: () => Promise<void>;
   enrollTeam?: (
     identity: string,

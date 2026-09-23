@@ -157,6 +157,33 @@ export async function oauth2ApprovalRoutes(
       );
     return { agent, team };
   }
+  async function operatorTeams(humanId: string) {
+    const memberships =
+      await app.relationshipReader.listTeamIdsAndRolesBySubject(humanId);
+    const manageable = await Promise.all(
+      memberships.map(async ({ teamId }) => ({
+        teamId,
+        allowed:
+          (await app.permissionChecker.canManageTeamCredentials(
+            teamId,
+            humanId,
+            KetoNamespace.Human,
+          )) &&
+          (await app.permissionChecker.canManageTeamMembers(
+            teamId,
+            humanId,
+            KetoNamespace.Human,
+          )),
+      })),
+    );
+    const teams = await app.teamRepository.listByIds(
+      manageable.filter(({ allowed }) => allowed).map(({ teamId }) => teamId),
+    );
+    return teams
+      .filter((team) => !team.personal && team.status === 'active')
+      .map((team) => ({ id: team.id, name: team.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
   async function consentSession(request: FastifyRequest, value: string) {
     const human = await humanSession(request);
     const consent = await oryRequest('getOAuth2ConsentRequest', () =>
@@ -306,6 +333,17 @@ export async function oauth2ApprovalRoutes(
     value: string,
     result: Awaited<ReturnType<typeof consent>>,
   ) {
+    let teams: Awaited<ReturnType<typeof operatorTeams>> | undefined;
+    if (result.kind === 'administrative' && !result.grant) {
+      try {
+        teams = await operatorTeams(result.human.humanId);
+      } catch {
+        // Team suggestions are optional; a directory outage must not prevent
+        // operator sign-in or the existing manual enrollment flow.
+        app.log.warn('Operator team choices could not be loaded');
+        teams = [];
+      }
+    }
     return oryRequest('acceptOAuth2ConsentRequest', () =>
       oauth.acceptOAuth2ConsentRequest({
         consentChallenge: value,
@@ -323,6 +361,7 @@ export async function oauth2ApprovalRoutes(
                     'moltnet:instance': result.instance,
                     'moltnet:approved_scope':
                       result.consent.requested_scope![0],
+                    ...(teams ? { 'moltnet:operator_teams': teams } : {}),
                     ...(result.grant
                       ? {
                           'moltnet:provisioning': result.grant,

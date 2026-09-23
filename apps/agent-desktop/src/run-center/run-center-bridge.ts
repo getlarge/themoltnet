@@ -128,6 +128,7 @@ export function listProviders(): Promise<Record<string, AgentServerProvider>> {
 
 export const runCenterActions: RunCenterActions = {
   signInOperator: () => invoke('desktop_operator_sign_in'),
+  operatorTeams: () => invoke('desktop_operator_teams'),
   cancelOperatorApproval: () => invoke('desktop_cancel_operator_approval'),
   enrollTeam: (identity, request) =>
     invoke('desktop_enroll_team', { identity, request }),

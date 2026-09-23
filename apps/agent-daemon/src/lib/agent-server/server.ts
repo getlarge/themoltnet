@@ -571,6 +571,43 @@ export function buildAgentServer(
         return { operatorConfigured: operator.operatorConfigured() };
       },
     );
+    app.get(
+      '/v1/operator/teams',
+      {
+        schema: {
+          operationId: 'listAgentServerOperatorTeams',
+          tags: ['operator'],
+          security: [{ agentServerToken: [] }],
+          response: {
+            200: {
+              type: 'object',
+              required: ['items'],
+              properties: {
+                items: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    required: ['id', 'name'],
+                    properties: {
+                      id: { type: 'string', format: 'uuid' },
+                      name: { type: 'string' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async (request) => {
+        const operator = await requireNativeOrigin(
+          requireAuthorizedOrigin,
+          request,
+          oauth,
+        );
+        return { items: operator.listTeams() };
+      },
+    );
     app.post(
       '/v1/operator/cancel',
       {

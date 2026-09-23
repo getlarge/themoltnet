@@ -136,7 +136,7 @@ async function fixture(
   };
 }
 describe('native PKCE operator', () => {
-  it('rejects wrong state, exchanges once with its verifier, and stores only issuer/subject', async () => {
+  it('rejects wrong state, exchanges once with its verifier, and stores no token', async () => {
     const f = await fixture();
     const pending = f.oauth.authorize();
     const url = await f.openedPromise;
@@ -151,10 +151,38 @@ describe('native PKCE operator', () => {
     expect(f.exchanges()).toBe(1);
     expect(
       JSON.parse(readFileSync(join(f.root, 'operator.json'), 'utf8')),
-    ).toEqual({ issuer: f.config.issuer, subject: 'human' });
+    ).toEqual({ issuer: f.config.issuer, subject: 'human', teams: [] });
     expect(f.oauth.operatorConfigured()).toBe(true);
     const restarted = new OperatorOAuth(f.config, f.root, () => undefined);
     expect(restarted.operatorConfigured()).toBe(true);
+  });
+  it('persists team choices from the verified native grant and reloads them', async () => {
+    const claims: Record<string, unknown> = {};
+    const f = await fixture(undefined, claims);
+    const teams = [
+      {
+        id: 'aaaaaaaa-0000-4000-8000-000000000001',
+        name: 'Research',
+      },
+    ];
+    claims.ext = {
+      'moltnet:identity_id': 'human',
+      'moltnet:subject_type': 'human',
+      'moltnet:instance': f.oauth.instance,
+      'moltnet:operator_teams': teams,
+    };
+    const pending = f.oauth.authorize();
+    const url = await f.openedPromise;
+    const callback = new URL(url.searchParams.get('redirect_uri')!);
+    callback.searchParams.set('state', url.searchParams.get('state')!);
+    callback.searchParams.set('code', 'approved-code');
+    await fetch(callback);
+    await pending;
+    expect(f.oauth.listTeams()).toEqual(teams);
+    expect(new OperatorOAuth(f.config, f.root).listTeams()).toEqual(teams);
+    expect(readFileSync(join(f.root, 'operator.json'), 'utf8')).not.toContain(
+      'access_token',
+    );
   });
   it.each([
     { agentId: 'other-agent' },

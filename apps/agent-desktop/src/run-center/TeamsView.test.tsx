@@ -54,6 +54,8 @@ function fixture() {
     catalogue: null,
     runs: [],
     presets: [],
+    providers: {},
+    subscriptions: [],
   };
   const actions: RunCenterActions = {
     catalogue: vi.fn().mockResolvedValue({
@@ -93,6 +95,11 @@ describe('desktop team enrollment', () => {
   it('shows a dismissible toast after sign-in completes', async () => {
     const { data, actions } = fixture();
     actions.signInOperator = vi.fn().mockResolvedValue(undefined);
+    actions.operatorTeams = vi.fn().mockResolvedValue({
+      items: [
+        { id: 'aaaaaaaa-0000-4000-8000-000000000001', name: 'Operations' },
+      ],
+    });
     show(data, actions);
     await screen.findByText('Research');
     fireEvent.click(
@@ -101,6 +108,9 @@ describe('desktop team enrollment', () => {
     expect(
       await screen.findByRole('status', { name: 'Approval completed' }),
     ).toHaveTextContent('Local operator signed in');
+    expect(
+      await screen.findByRole('option', { name: 'Operations' }),
+    ).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole('button', { name: 'Dismiss notification' }),
     );
@@ -108,13 +118,28 @@ describe('desktop team enrollment', () => {
       screen.queryByRole('status', { name: 'Approval completed' }),
     ).not.toBeInTheDocument();
   });
-  it('shows the persisted operator state without offering another sign-in', async () => {
+  it('shows the persisted operator state and offers a team-list refresh', async () => {
     const { data, actions } = fixture();
     show({ ...data, operatorConfigured: true }, actions);
     expect(await screen.findByText('Signed in')).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Sign in as operator' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('button', { name: 'Refresh operator teams' }),
+    ).toBeInTheDocument();
+  });
+  it('selects a signed-in operator team by name for enrollment', async () => {
+    const { data, actions } = fixture();
+    const teamId = 'aaaaaaaa-0000-4000-8000-000000000001';
+    actions.operatorTeams = vi.fn().mockResolvedValue({
+      items: [{ id: teamId, name: 'Research' }],
+    });
+    show({ ...data, operatorConfigured: true }, actions);
+    const selector = await screen.findByRole('combobox', { name: 'Team' });
+    fireEvent.change(selector, { target: { value: teamId } });
+    fireEvent.click(screen.getByRole('button', { name: 'Approve in browser' }));
+    expect(actions.enrollTeam).toHaveBeenCalledWith(
+      'agent',
+      expect.objectContaining({ teamId, mode: 'enroll' }),
+    );
   });
   it('cancels an abandoned sign-in and enables retry after native cancellation', async () => {
     const { data, actions } = fixture();

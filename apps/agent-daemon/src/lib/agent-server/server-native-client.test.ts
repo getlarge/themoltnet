@@ -18,6 +18,7 @@ import {
   NATIVE_CLIENT_ORIGIN,
   NativeGrantService,
 } from './native-grant-service.js';
+import type { OperatorOAuth } from './operator-oauth.js';
 import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
 import {
   activateManaged,
@@ -32,6 +33,42 @@ afterEach(cleanupAll);
 const BROWSER_ORIGIN = 'https://console.themolt.net';
 
 describe('native desktop client', () => {
+  it('returns operator team choices only to the native client', async () => {
+    const nativeGrant = new NativeGrantService();
+    nativeGrant.grantNative('supervisor-token');
+    const teams = [
+      {
+        id: 'aaaaaaaa-0000-4000-8000-000000000001',
+        name: 'Research',
+      },
+    ];
+    const { app } = await fixture({
+      nativeGrant,
+      operatorOAuth: {
+        listTeams: () => teams,
+        operatorConfigured: () => true,
+        cancel: () => undefined,
+      } as OperatorOAuth,
+    });
+    const headers = {
+      host: HOST,
+      origin: NATIVE_CLIENT_ORIGIN,
+      [AGENT_SERVER_TOKEN_HEADER]: 'supervisor-token',
+    };
+    const allowed = await app.inject({
+      method: 'GET',
+      url: '/v1/operator/teams',
+      headers,
+    });
+    expect(allowed.statusCode).toBe(200);
+    expect(allowed.json()).toEqual({ items: teams });
+    const denied = await app.inject({
+      method: 'GET',
+      url: '/v1/operator/teams',
+      headers: { ...headers, origin: BROWSER_ORIGIN },
+    });
+    expect(denied.statusCode).toBe(403);
+  });
   it('omits browser CORS headers from native-only errors even for configured browser origins', async () => {
     const { app } = await fixture({
       nativeOnly: true,
