@@ -23,6 +23,7 @@ export {
 } from './enroll-team.js';
 export {
   type EnrollmentRecoverySummary,
+  EnrollmentRestoreError,
   listEnrollmentRecoveries,
   restoreCapturedEnrollment,
 } from './enroll-team-recovery.js';

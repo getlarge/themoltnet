@@ -1,4 +1,13 @@
-import { mkdir, mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -280,7 +289,7 @@ describe('human enrollment replacement and recovery', () => {
     expect(JSON.stringify(summaries)).not.toContain('issued-secret');
 
     write.mockRestore();
-    const verify = vi.fn().mockResolvedValue(undefined);
+    const verify = vi.fn().mockResolvedValue({ keyId: 'key' });
     const restored = await restoreCapturedEnrollment({
       configDir: dir,
       recoveryId,
@@ -288,7 +297,7 @@ describe('human enrollment replacement and recovery', () => {
       verify,
     });
     expect(restored).toEqual({ teamId: 'team', keyId: 'key' });
-    expect(verify).toHaveBeenCalledWith('team');
+    expect(verify).toHaveBeenCalledWith('team', 'issued-secret');
     expect(await provider.read('agent-key/subject/team')).toBe('issued-secret');
     expect((await readConfig(dir))?.agent_key_refs?.team).toEqual({
       provider: 'file',
@@ -323,7 +332,104 @@ describe('human enrollment replacement and recovery', () => {
           throw new Error('remote verification unavailable');
         },
       }),
-    ).rejects.toThrow('remote verification unavailable');
+    ).rejects.toThrow('The captured credential could not be verified');
     expect(await listEnrollmentRecoveries(dir)).toHaveLength(1);
+  });
+
+  it.each([
+    'candidate-rejected',
+    'key-id-mismatch',
+    'subject-mismatch',
+    'team-mismatch',
+    'reference-mismatch',
+    'slot-mismatch',
+    'config-dir-mismatch',
+    'no-secret',
+  ] as const)(
+    'leaves a working renewal untouched when recovery is invalid: %s',
+    async (scenario) => {
+      const { dir, config, provider } = await fixture();
+      const reference = { provider: 'file', key: 'agent-key/subject/team' };
+      await provider.write(reference.key, 'predecessor');
+      await writeConfig(
+        { ...config, agent_key_refs: { team: reference } },
+        dir,
+      );
+      const recoveryDir = join(dir, 'credential-recovery');
+      await mkdir(recoveryDir, { mode: 0o700 });
+      const recoveryId = '11111111-1111-4111-8111-111111111111.json';
+      const path = join(recoveryDir, recoveryId);
+      const record = {
+        version: 1,
+        configDir: dir,
+        createdAt: new Date().toISOString(),
+        secretCaptured: true,
+        secret: 'candidate',
+        subjectId: 'subject',
+        teamId: 'team',
+        keyId: 'key',
+        reference,
+        retryContext: {
+          subjectId: 'subject',
+          idempotencyKey: 'request',
+          mode: 'human-pkce',
+          provisioning: {
+            teamId: 'team',
+            operation: 'renew',
+            scopes: ['task:execute'],
+          },
+          observedReference: reference,
+          observedCredentialHash: createHash('sha256')
+            .update('predecessor')
+            .digest('hex'),
+        },
+      };
+      if (scenario === 'subject-mismatch') record.subjectId = 'other';
+      if (scenario === 'team-mismatch')
+        record.retryContext.provisioning.teamId = 'other';
+      if (scenario === 'reference-mismatch')
+        record.reference = { ...reference, key: 'other' };
+      if (scenario === 'slot-mismatch')
+        record.retryContext.observedReference = { ...reference, key: 'other' };
+      if (scenario === 'config-dir-mismatch')
+        record.configDir = join(dir, 'other');
+      if (scenario === 'no-secret') record.secretCaptured = false;
+      await writeFile(path, JSON.stringify(record), { mode: 0o600 });
+      const verify = vi.fn(async () => {
+        if (scenario === 'candidate-rejected')
+          throw new Error('invalid candidate');
+        return { keyId: scenario === 'key-id-mismatch' ? 'other' : 'key' };
+      });
+      await expect(
+        restoreCapturedEnrollment({
+          configDir: dir,
+          recoveryId,
+          providers: new SecretProviderRegistry().register(provider),
+          verify,
+        }),
+      ).rejects.toThrow();
+      expect(await provider.read(reference.key)).toBe('predecessor');
+      expect((await readConfig(dir))?.agent_key_refs?.team).toEqual(reference);
+      expect(await readFile(path, 'utf8')).toContain('candidate');
+    },
+  );
+
+  it('rejects traversal IDs and skips an incomplete record during listing', async () => {
+    const { dir, provider } = await fixture();
+    const recoveryDir = join(dir, 'credential-recovery');
+    await mkdir(recoveryDir);
+    await writeFile(
+      join(recoveryDir, '11111111-1111-4111-8111-111111111111.json'),
+      '',
+    );
+    expect(await listEnrollmentRecoveries(dir)).toEqual([]);
+    await expect(
+      restoreCapturedEnrollment({
+        configDir: dir,
+        recoveryId: '../moltnet.json',
+        providers: new SecretProviderRegistry().register(provider),
+        verify: async () => ({ keyId: 'key' }),
+      }),
+    ).rejects.toThrow('Invalid enrollment recovery identifier');
   });
 });

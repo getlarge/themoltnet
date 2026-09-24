@@ -16,6 +16,7 @@ import {
   type SecretProviderRegistry,
 } from '@themoltnet/sdk';
 import {
+  EnrollmentRestoreError,
   type FileSecretProvider,
   type ProjectBinding,
   ProjectConfigError,
@@ -102,6 +103,7 @@ import {
 import {
   requireCredentialSnapshot,
   TeamCredentialError,
+  type verifyCandidateTeamCredential,
   verifyTeamActivation,
 } from './team-credentials.js';
 
@@ -232,6 +234,8 @@ export interface BuildAgentServerOptions {
   projectSaveTimeoutMs?: number;
   /** Optional OpenAPI plugin registration used by deterministic codegen. */
   registerOpenApi?: (app: FastifyInstance) => void;
+  /** Override for focused credential recovery tests. */
+  verifyCandidateTeamCredentialImpl?: typeof verifyCandidateTeamCredential;
 }
 
 function requireBody<T extends object>(request: FastifyRequest): T {
@@ -983,7 +987,7 @@ async function defaultCatalogueAgent(
       const [team, diaries, profiles] = await Promise.all([
         scopes.has('team:read')
           ? client.teams.get(teamId)
-          : Promise.resolve({ id: teamId, name: teamId }),
+          : Promise.resolve({ id: teamId, name: 'Team name unavailable' }),
         scopes.has('diary:read')
           ? client.diaries.list()
           : Promise.resolve({ items: [] }),
@@ -1147,7 +1151,7 @@ function registerAgentRoutes(
           'native_required',
           'Native OAuth enrollment required',
         );
-      return enrollIdentityTeam({
+      const result = await enrollIdentityTeam({
         oauth: options.operatorOAuth,
         apiUrl: options.operatorApiUrl,
         store,
@@ -1157,19 +1161,23 @@ function registerAgentRoutes(
         input: request.body as TeamEnrollmentInput,
         signal: requestOperationSignal(request, options.shutdownSignal),
       });
+      if (result.state === 'retryable')
+        request.log.info(
+          {
+            teamId: (request.body as TeamEnrollmentInput).teamId,
+            operation: (request.body as TeamEnrollmentInput).mode,
+            retryAfter: result.retryAfter,
+          },
+          'Operator provisioning throttled before issuance',
+        );
+      return result;
     },
   );
   app.get(
     '/v1/agents/:agentName/credential-recovery',
     { schema: AgentServerRouteSchemas.listEnrollmentRecoveries },
     async (request) => {
-      await requireAuthorizedOrigin(request);
-      if (request.headers.origin !== NATIVE_CLIENT_ORIGIN)
-        throw new AgentServerHttpError(
-          403,
-          'native_required',
-          'Native credential recovery required',
-        );
+      await requireNativeOrigin(requireAuthorizedOrigin, request);
       const { agentName } = request.params as { agentName: string };
       return listIdentityEnrollmentRecoveries({
         store,
@@ -1183,13 +1191,7 @@ function registerAgentRoutes(
     '/v1/agents/:agentName/credential-recovery/:recoveryId/restore',
     { schema: AgentServerRouteSchemas.restoreEnrollment },
     async (request) => {
-      await requireAuthorizedOrigin(request);
-      if (request.headers.origin !== NATIVE_CLIENT_ORIGIN)
-        throw new AgentServerHttpError(
-          403,
-          'native_required',
-          'Native credential recovery required',
-        );
+      await requireNativeOrigin(requireAuthorizedOrigin, request);
       const { agentName, recoveryId } = request.params as {
         agentName: string;
         recoveryId: string;
@@ -1201,12 +1203,31 @@ function registerAgentRoutes(
           managed: options.secretProviders,
           external: options.externalSecretProviders,
           recoveryId,
+          verifyCandidateImpl: options.verifyCandidateTeamCredentialImpl,
         });
-      } catch {
+      } catch (error) {
+        request.log.warn(
+          {
+            recoveryId,
+            ...(error instanceof EnrollmentRestoreError
+              ? { recoveryCode: error.code }
+              : {}),
+            ...safeErrorContext(error),
+          },
+          'Credential recovery remains incomplete',
+        );
+        if (error instanceof EnrollmentRestoreError)
+          throw new AgentServerHttpError(409, error.code, error.message);
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT')
+          throw new AgentServerHttpError(
+            404,
+            'recovery_not_found',
+            'Recovery record not found',
+          );
         throw new AgentServerHttpError(
-          409,
-          'recovery_incomplete',
-          'The captured credential could not be restored and verified. The recovery record was kept.',
+          500,
+          'recovery_failed',
+          'Credential recovery failed. The record was kept; inspect Agent Server logs.',
         );
       }
     },
