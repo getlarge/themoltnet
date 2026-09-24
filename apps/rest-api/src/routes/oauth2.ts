@@ -286,6 +286,12 @@ export async function oauth2Routes(
   server.post(
     '/oauth2/token',
     {
+      config: {
+        rateLimit: fastify.hasDecorator('rateLimitConfig')
+          ? fastify.rateLimitConfig.token
+          : undefined,
+        rateLimitBucket: 'token',
+      },
       schema: {
         operationId: 'getOAuth2Token',
         tags: ['auth'],

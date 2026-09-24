@@ -44,11 +44,18 @@ function form(overrides: Record<string, string> = {}): string {
   }).toString();
 }
 
-async function post(app: FastifyInstance, payload: string) {
+async function post(
+  app: FastifyInstance,
+  payload: string,
+  headers: Record<string, string> = {},
+) {
   return app.inject({
     method: 'POST',
     url: '/oauth2/token',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    headers: {
+      'content-type': 'application/x-www-form-urlencoded',
+      ...headers,
+    },
     payload,
   });
 }
@@ -179,35 +186,66 @@ describe('POST /oauth2/token caching', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it.each([
-    ['global anonymous limit', { rateLimitGlobalAnon: 1 }],
-    ['pre-resolution IP limit', { rateLimitPreResolveIp: 1 }],
-  ])(
-    'returns an OAuth error when the %s is exceeded',
-    async (_name, limits) => {
-      // Arrange
-      const limitedApp = await createTestApp(mocks, null, limits);
-      fetchMock.mockResolvedValueOnce(tokenResponse());
+  it('uses a dedicated token budget before the anonymous limit', async () => {
+    // Arrange
+    const limitedApp = await createTestApp(mocks, null, {
+      rateLimitGlobalAnon: 1,
+      rateLimitPreResolveIp: 1,
+      rateLimitTokenIp: 3,
+    });
+    fetchMock.mockResolvedValueOnce(tokenResponse());
 
-      try {
-        // Act
-        const first = await post(limitedApp, form());
-        const limited = await post(limitedApp, form());
-
-        // Assert
-        expect(first.statusCode).toBe(200);
-        expect(limited.statusCode, limited.body).toBe(429);
-        expect(limited.json()).toMatchObject({
-          error: 'temporarily_unavailable',
-          status_code: 429,
-        });
-        expect(limited.headers['retry-after']).toBeDefined();
-        expect(fetchMock).toHaveBeenCalledTimes(1);
-      } finally {
-        await limitedApp.close();
+    try {
+      // Act
+      const responses = [];
+      for (let n = 0; n < 4; n += 1) {
+        responses.push(await post(limitedApp, form()));
       }
-    },
-  );
+
+      // Assert
+      expect(responses.map((response) => response.statusCode)).toEqual([
+        200, 200, 200, 429,
+      ]);
+      expect(responses[3].json()).toMatchObject({
+        error: 'temporarily_unavailable',
+        status_code: 429,
+      });
+      expect(responses[3].headers['retry-after']).toBeDefined();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      await limitedApp.close();
+    }
+  });
+
+  it('separates configured client IPs behind the same proxy address', async () => {
+    // Arrange
+    const limitedApp = await createTestApp(mocks, null, {
+      rateLimitTokenIp: 1,
+      rateLimitClientIpHeader: 'x-client-ip',
+      trustProxy: 1,
+    });
+    fetchMock.mockResolvedValueOnce(tokenResponse());
+    const from = (ip: string) =>
+      post(limitedApp, form(), {
+        'x-client-ip': ip,
+        'x-forwarded-for': `${ip}, 203.0.113.20`,
+      });
+
+    try {
+      // Act
+      const first = await from('198.51.100.10');
+      const second = await from('198.51.100.11');
+      const repeated = await from('198.51.100.10');
+
+      // Assert
+      expect(first.statusCode).toBe(200);
+      expect(second.statusCode).toBe(200);
+      expect(repeated.statusCode).toBe(429);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      await limitedApp.close();
+    }
+  });
 
   it('collapses concurrent identical grants into one upstream call', async () => {
     // Arrange

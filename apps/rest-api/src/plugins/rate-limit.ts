@@ -5,6 +5,8 @@
  * its declared OAuth error response; other routes use RFC 9457 Problem Details.
  */
 
+import { isIP } from 'node:net';
+
 import rateLimit from '@fastify/rate-limit';
 import type {
   FastifyInstance,
@@ -26,6 +28,8 @@ export interface RateLimitPluginOptions {
   globalAuthLimit: number;
   /** Max requests per minute for anonymous users (default: 30) */
   globalAnonLimit: number;
+  /** Token requests per minute per client IP. */
+  tokenIpLimit: number;
   /** Max requests per minute for embedding endpoints (default: 20) */
   embeddingLimit: number;
   /** Max requests per minute for signing request creation (default: 5) */
@@ -57,6 +61,8 @@ export interface RateLimitPluginOptions {
   readLimit: number;
   /** Exact request paths exempt from rate limiting (e.g. liveness probes). */
   allowList: readonly string[];
+  /** Header overwritten with the client address by the trusted ingress. */
+  clientIpHeader?: string;
   /**
    * ioredis client for the SHARED rate-limit store (per-identity budgets
    * coherent across instances). When omitted, the limiter uses an in-memory
@@ -76,9 +82,23 @@ export interface PreResolveThrottleOptions {
   preResolveIpLimit: number;
   /** Exact request paths exempt from rate limiting (e.g. liveness probes). */
   allowList: readonly string[];
+  clientIpHeader?: string;
 }
 
 const ONE_MINUTE_MS = 60_000;
+
+/** Use the configured ingress header when it contains a valid IP address. */
+function rateLimitClientIp(
+  request: FastifyRequest,
+  clientIpHeader?: string,
+): string {
+  const headerValue = clientIpHeader
+    ? request.headers[clientIpHeader.toLowerCase()]
+    : undefined;
+  return typeof headerValue === 'string' && isIP(headerValue) !== 0
+    ? headerValue
+    : request.ip;
+}
 
 /**
  * Build an exact-path allowList predicate from a list of paths. Shared by the
@@ -127,9 +147,19 @@ export function registerPreResolveThrottle(
   fastify.addHook(
     'onRequest',
     async (request: FastifyRequest, reply: FastifyReply) => {
-      if (isAllowListed(request.url)) return;
+      // This guard exists for auth-context resolution on other routes. The
+      // token route has its own onRequest limiter before body parsing.
+      if (
+        isAllowListed(request.url) ||
+        request.routeOptions?.url === '/oauth2/token'
+      ) {
+        return;
+      }
 
-      const retryAfter = throttle.hit(request.ip, Date.now());
+      const retryAfter = throttle.hit(
+        rateLimitClientIp(request, options.clientIpHeader),
+        Date.now(),
+      );
       if (retryAfter !== null) {
         reply
           .code(429)
@@ -175,6 +205,7 @@ async function rateLimitPluginImpl(
   const {
     globalAuthLimit,
     globalAnonLimit,
+    tokenIpLimit,
     embeddingLimit,
     signingLimit,
     agentKeyLimit,
@@ -188,6 +219,7 @@ async function rateLimitPluginImpl(
     taskArtifactUploadLimit,
     readLimit,
     allowList,
+    clientIpHeader,
     redis,
   } = options;
 
@@ -211,7 +243,8 @@ async function rateLimitPluginImpl(
     // See issue #1336: the earlier bug was that authContext was resolved at the
     // auth preHandler (after this hook), so it was always null here.
     keyGenerator: (request: FastifyRequest) =>
-      request.authContext?.identityId ?? request.ip,
+      request.authContext?.identityId ??
+      rateLimitClientIp(request, clientIpHeader),
     // Authenticated principals get the higher auth limit; anonymous requests get
     // the stricter anon limit.
     max: (request: FastifyRequest) =>
@@ -238,8 +271,8 @@ async function rateLimitPluginImpl(
       const retryAfter = Math.ceil(context.ttl / 1000);
       return buildRateLimitResponse(request, retryAfter);
     },
-    // Skip rate limiting for the configured public paths (e.g. liveness probe —
-    // Fly.io polls /health every 30s — and the problem registry). Shared with
+    // Skip rate limiting for the configured public paths (e.g. liveness probes
+    // and the problem registry). Shared with
     // the pre-resolve throttle via the same allowList.
     allowList: (request: FastifyRequest) => isAllowListed(request.url),
     // Emit a structured warn on every 429 so rate-limit events are filterable in
@@ -268,12 +301,13 @@ async function rateLimitPluginImpl(
     max: agentKeyLimit,
     timeWindow: '1 minute',
     keyGenerator: (request: FastifyRequest) =>
-      `${request.authContext?.identityId ?? request.ip}:agent-key`,
+      `${request.authContext?.identityId ?? rateLimitClientIp(request, clientIpHeader)}:agent-key`,
   });
   const publicVerifyRateLimit = fastify.rateLimit({
     max: publicVerifyLimit,
     timeWindow: '1 minute',
-    keyGenerator: (request: FastifyRequest) => `${request.ip}:public-verify`,
+    keyGenerator: (request: FastifyRequest) =>
+      `${rateLimitClientIp(request, clientIpHeader)}:public-verify`,
   });
   fastify.decorate('rateLimitHooks', {
     agentKey: agentKeyRateLimit as onRequestAsyncHookHandler,
@@ -282,6 +316,12 @@ async function rateLimitPluginImpl(
 
   // Store route-specific configs for use in route definitions
   fastify.decorate('rateLimitConfig', {
+    token: {
+      max: tokenIpLimit,
+      timeWindow: '1 minute',
+      keyGenerator: (request: FastifyRequest) =>
+        rateLimitClientIp(request, clientIpHeader),
+    },
     embedding: {
       max: embeddingLimit,
       timeWindow: '1 minute',
@@ -347,6 +387,11 @@ declare module 'fastify' {
       publicVerify: onRequestAsyncHookHandler;
     };
     rateLimitConfig: {
+      token: {
+        max: number;
+        timeWindow: string;
+        keyGenerator: (request: FastifyRequest) => string;
+      };
       embedding: { max: number; timeWindow: string };
       signing: { max: number; timeWindow: string };
       recovery: { max: number; timeWindow: string };

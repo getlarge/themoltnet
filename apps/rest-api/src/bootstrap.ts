@@ -837,6 +837,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       corsOrigins: config.security.CORS_ORIGINS,
       rateLimitGlobalAuth: config.security.RATE_LIMIT_GLOBAL_AUTH,
       rateLimitGlobalAnon: config.security.RATE_LIMIT_GLOBAL_ANON,
+      rateLimitTokenIp: config.security.RATE_LIMIT_TOKEN_IP,
       rateLimitEmbedding: config.security.RATE_LIMIT_EMBEDDING,
       rateLimitSigning: config.security.RATE_LIMIT_SIGNING,
       rateLimitAgentKey: config.security.RATE_LIMIT_AGENT_KEY,
@@ -851,6 +852,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
         config.security.RATE_LIMIT_TASK_ARTIFACT_UPLOAD,
       rateLimitGlobalRead: config.security.RATE_LIMIT_GLOBAL_READ,
       rateLimitPreResolveIp: config.security.RATE_LIMIT_PRE_RESOLVE_IP,
+      rateLimitClientIpHeader: config.security.RATE_LIMIT_CLIENT_IP_HEADER,
       rateLimitAllowList: config.security.RATE_LIMIT_ALLOWLIST.split(',')
         .map((path) => path.trim())
         .filter((path) => path.length > 0),
