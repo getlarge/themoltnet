@@ -20,7 +20,7 @@ import {
 } from './workflow.js';
 
 const USAGE = `Usage: moltnet-docs-impact-review --repo owner/repo --pr N [--pr N ...]
-  --team <uuid> --diary <uuid> --profile <name-or-id>
+  --team <uuid> --diary <uuid> --profile <name-or-id> --project <uuid>
   [--out <dir>] [--poll-interval <sec>] [--routing <path>] [--dry-run]
 
 Runs the experimental docs-impact review against existing pull requests from a
@@ -66,6 +66,7 @@ async function main(): Promise<number> {
       team: { type: 'string' },
       diary: { type: 'string' },
       profile: { type: 'string' },
+      project: { type: 'string' },
       out: { type: 'string' },
       'poll-interval': { type: 'string' },
       routing: { type: 'string' },
@@ -81,7 +82,8 @@ async function main(): Promise<number> {
   if (
     !values.repo ||
     !values.pr?.length ||
-    (!dryRun && (!values.team || !values.diary || !values.profile))
+    (!dryRun &&
+      (!values.team || !values.diary || !values.profile || !values.project))
   ) {
     process.stderr.write(`${USAGE}\n`);
     return 2;
@@ -168,6 +170,7 @@ async function main(): Promise<number> {
         diaryId,
         correlationId: randomUUID(),
         profileId,
+        projectId: values.project,
         tags: [
           'review:docs-impact',
           'experiment:docs-impact',
