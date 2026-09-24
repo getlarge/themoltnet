@@ -30,17 +30,16 @@ Only the following interfaces belong on public ingress:
 - Hydra public API
 
 Kratos, Hydra, Keto, and Talos administrative APIs; PostgreSQL; Valkey; and the
-object store remain on a trusted service network. Talos administration is
-always server-side. Agents and browsers never receive its administrative
-credentials.
+object store remain on a trusted service network. Talos administration is always
+server-side. Agents and browsers never receive its administrative credentials.
 
 ## Configuration and secrets
 
-Applications receive configuration through environment variables. Store
-secrets in the deployment platform's secret manager and keep non-secret,
-portable defaults close to the deployment recipe. Do not commit credentials,
-generated Talos signing material, database URLs containing passwords, or
-provider access tokens.
+Applications receive configuration through environment variables. Store secrets
+in the deployment platform's secret manager and keep non-secret, portable
+defaults close to the deployment recipe. Do not commit credentials, generated
+Talos signing material, database URLs containing passwords, or provider access
+tokens.
 
 For local development, copy `env.local.example` to `.env.local` and use the
 repository's Docker Compose commands. The root `.env` is intentionally not part
@@ -62,11 +61,11 @@ material during backup and recovery.
 
 ## Observability
 
-Services emit structured logs and OpenTelemetry traces and metrics. A
-deployment may send OTLP directly to a provider or through a collector. Keep
-logs, traces, and metrics in separately tunable datasets when the backend
-supports it, and monitor user-visible symptoms: availability, latency, error
-rate, queue or workflow health, database pressure, and backup freshness.
+Services emit structured logs and OpenTelemetry traces and metrics. A deployment
+may send OTLP directly to a provider or through a collector. Keep logs, traces,
+and metrics in separately tunable datasets when the backend supports it, and
+monitor user-visible symptoms: availability, latency, error rate, queue or
+workflow health, database pressure, and backup freshness.
 
 The repository's generic observability assets are examples of the product
 signals. Exact hosted datasets, notifier destinations, thresholds, dashboards,
@@ -77,8 +76,8 @@ and incident runbooks are private operational state.
 The public [Docker Compose bundle](../deploy/docker-compose.md) is a complete
 single-host baseline. The [production contract](../deploy/production.md)
 describes the additional properties required for a reliable service without
-prescribing a cloud provider. Provider accounts, regions, application names,
-DNS records, capacity, and promotion procedures do not belong in public product
+prescribing a cloud provider. Provider accounts, regions, application names, DNS
+records, capacity, and promotion procedures do not belong in public product
 documentation.
 
 See [Backup and restore](../deploy/backup-and-restore.md) for state-specific
