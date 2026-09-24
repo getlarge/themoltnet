@@ -1,4 +1,4 @@
-import { OPERATOR_OAUTH } from '@moltnet/models';
+import { OPERATOR_OAUTH, validTeamAgentKeyScopes } from '@moltnet/models';
 
 import { TEAM_AGENT_KEY_SCOPES } from './scopes.js';
 
@@ -31,11 +31,8 @@ export function readProvisioningGrant(
     !Array.isArray(v.scopes) ||
     !v.scopes.length ||
     v.scopes.length > 128 ||
-    !v.scopes.every(
-      (s) =>
-        typeof s === 'string' &&
-        (TEAM_AGENT_KEY_SCOPES as readonly string[]).includes(s),
-    )
+    !v.scopes.every((s) => typeof s === 'string') ||
+    !validTeamAgentKeyScopes(v.scopes)
   )
     return null;
   return {
@@ -43,7 +40,7 @@ export function readProvisioningGrant(
     teamId: v.teamId,
     operation: v.operation,
     idempotencyKey: v.idempotencyKey,
-    scopes: [...new Set(v.scopes as string[])],
+    scopes: [...v.scopes],
   };
 }
 
@@ -53,6 +50,7 @@ export function readDelegableScopes(value: unknown): string[] | null {
     !Array.isArray(value) ||
     !value.length ||
     value.length > 128 ||
+    new Set(value).size !== value.length ||
     !value.every(
       (scope) =>
         typeof scope === 'string' &&
@@ -60,5 +58,5 @@ export function readDelegableScopes(value: unknown): string[] | null {
     )
   )
     return null;
-  return [...new Set(value as string[])];
+  return [...(value as string[])];
 }

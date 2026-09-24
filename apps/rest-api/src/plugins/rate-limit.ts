@@ -146,10 +146,11 @@ function createClientIpResolver(
   };
 }
 
-/** Group IPv6 token callers by /64 so address rotation cannot multiply quota. */
-function tokenClientKey(address: string): string {
+/** Group IPv6 callers by /64 while keeping IPv4-mapped peers per IPv4 address. */
+export function clientAddressBucket(address: string): string {
   if (isIP(address) !== 6) return address;
-  const [left, right] = address.split('::');
+  const canonical = new URL(`http://[${address}]/`).hostname.slice(1, -1);
+  const [left, right] = canonical.split('::');
   const leftGroups = left ? left.split(':') : [];
   const rightGroups = right ? right.split(':') : [];
   const groups = [
@@ -256,7 +257,7 @@ export function registerPreResolveThrottle(
       )?.rateLimitBucket;
       const selectedThrottle = approvalThrottles.get(bucket ?? '') ?? throttle;
       const retryAfter = selectedThrottle.hit(
-        tokenClientKey(clientIp(request)),
+        clientAddressBucket(clientIp(request)),
         Date.now(),
       );
       if (retryAfter !== null) {
@@ -380,7 +381,7 @@ async function rateLimitPluginImpl(
       })
     : undefined;
   fastify.decorate('tokenRateLimitKey', (request: FastifyRequest) =>
-    tokenClientKey(clientIp(request)),
+    clientAddressBucket(clientIp(request)),
   );
 
   // Register global rate limiter
@@ -482,19 +483,21 @@ async function rateLimitPluginImpl(
       max: tokenIpLimit,
       timeWindow: '1 minute',
       keyGenerator: (request: FastifyRequest) =>
-        tokenClientKey(clientIp(request)),
+        clientAddressBucket(clientIp(request)),
     },
     oauthConsent: {
       max: oauthConsentLimit,
       timeWindow: '1 minute',
       keyGenerator: (request: FastifyRequest) =>
-        request.authContext?.identityId ?? tokenClientKey(clientIp(request)),
+        request.authContext?.identityId ??
+        clientAddressBucket(clientIp(request)),
     },
     oauthProvision: {
       max: oauthProvisionLimit,
       timeWindow: '1 minute',
       keyGenerator: (request: FastifyRequest) =>
-        request.authContext?.identityId ?? tokenClientKey(clientIp(request)),
+        request.authContext?.identityId ??
+        clientAddressBucket(clientIp(request)),
     },
     embedding: {
       max: embeddingLimit,

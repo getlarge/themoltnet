@@ -267,12 +267,7 @@ export async function oauth2ApprovalRoutes(
         );
       }
       const grant = readProvisioningGrant(raw);
-      if (
-        !grant ||
-        grant.scopes.some(
-          (s) => !(TEAM_AGENT_KEY_SCOPES as readonly string[]).includes(s),
-        )
-      )
+      if (!grant)
         throw createProblem(
           'forbidden',
           'The provisioning target or scopes are invalid',

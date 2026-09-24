@@ -109,7 +109,8 @@ export const TEAM_AGENT_KEY_SCOPES = [
 export const CREDENTIAL_SCOPE_DESCRIPTIONS: Record<CredentialScope, string> = {
   'agent:profile': 'Read the authenticated agent profile',
   'connector:invoke': 'Invoke configured connectors',
-  'crypto:sign': 'Create cryptographic signatures',
+  'crypto:sign':
+    'Create cryptographic signatures (daemon signing needs this scope)',
   'diary:manage': 'Manage diaries and access grants',
   'diary:read': 'Read diary entries and metadata',
   'diary:write': 'Create diary entries',
