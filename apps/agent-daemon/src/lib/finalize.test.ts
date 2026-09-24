@@ -322,6 +322,178 @@ describe('finalizeTask', () => {
     expect(error.message).toContain('output.verification');
   });
 
+  it('adds actionable diagnostics to final provider request failures', async () => {
+    const failed = makeOutput('failed', null);
+    failed.error = {
+      code: 'llm_api_error',
+      message: 'Unsupported parameter: reasoning_effort',
+    };
+    const task = {
+      id: 't1',
+      taskType: 'freeform',
+      teamId: 'team-1',
+      input: { brief: 'do it' },
+      maxAttempts: 2,
+    } as unknown as Task;
+
+    await finalizeTask(stub.agent, failed, {
+      task,
+      providerFailureContext: {
+        provider: 'openai',
+        model: 'gpt-5',
+        runtimeProfileId: 'profile-1',
+        runtimeProfileName: 'default-coding',
+        runtimeProfileRevision: 7,
+        piAgentDirSource: 'store',
+      },
+    });
+
+    const error = stub.failAttempt.mock.calls[0][2].error;
+    expect(error).toMatchObject({
+      code: 'llm_api_error',
+      retryable: false,
+      retry: {
+        source: 'deterministic',
+        decision: 'do_not_retry',
+        confidence: 'high',
+      },
+    });
+    expect(error.message).toContain('Provider/model: openai/gpt-5.');
+    expect(error.message).toContain(
+      'Runtime profile: default-coding (profile-1), revision 7.',
+    );
+    expect(error.message).toContain('Pi config source: store.');
+    expect(error.message).toContain(
+      'Unsupported request field(s): reasoning_effort.',
+    );
+    expect(error.message).toContain(
+      'remove or disable these fields in the active Pi model/profile configuration',
+    );
+  });
+
+  it('does not add permanent-request diagnostics to a mixed transient failure', async () => {
+    const failed = makeOutput('failed', null);
+    failed.error = {
+      code: 'llm_api_error',
+      message: '429: invalid parameter temperature',
+      retryable: true,
+    };
+
+    await finalizeTask(stub.agent, failed, {
+      task: {
+        id: 't1',
+        taskType: 'freeform',
+        teamId: 'team-1',
+        input: { brief: 'do it' },
+        maxAttempts: 2,
+      } as unknown as Task,
+      providerFailureContext: {
+        provider: 'openai',
+        model: 'gpt-5',
+        runtimeProfileId: 'profile-1',
+        runtimeProfileName: 'default-coding',
+        runtimeProfileRevision: 7,
+        piAgentDirSource: 'store',
+      },
+    });
+
+    const error = stub.failAttempt.mock.calls[0][2].error;
+    expect(error.retryable).toBe(true);
+    expect(error.message).not.toContain('Unsupported request field(s):');
+    expect(error.message).toBe('429: invalid parameter temperature');
+  });
+
+  it('fails a monthly quota response without requeuing the task', async () => {
+    const failed = makeOutput('failed', null);
+    failed.error = {
+      code: 'llm_api_error',
+      message: '429: you (account) have reached your monthly usage limit',
+      retryable: true,
+    };
+
+    await finalizeTask(stub.agent, failed, {
+      task: {
+        id: 't1',
+        taskType: 'freeform',
+        teamId: 'team-1',
+        input: { brief: 'do it' },
+        maxAttempts: 3,
+      } as unknown as Task,
+    });
+
+    expect(stub.failAttempt.mock.calls[0][2].error).toMatchObject({
+      code: 'llm_api_error',
+      retryable: false,
+      retry: { decision: 'do_not_retry', confidence: 'high' },
+    });
+  });
+
+  it('adds actionable diagnostics when the permanent provider failure exhausts the final attempt', async () => {
+    const failed = makeOutput('failed', null);
+    failed.error = {
+      code: 'llm_api_error',
+      message: 'Unsupported parameter: reasoning_effort',
+    };
+
+    await finalizeTask(stub.agent, failed, {
+      task: {
+        id: 't1',
+        taskType: 'freeform',
+        teamId: 'team-1',
+        input: { brief: 'do it' },
+        maxAttempts: 1,
+      } as unknown as Task,
+      providerFailureContext: {
+        provider: 'openai',
+        model: 'gpt-5',
+        runtimeProfileId: 'profile-1',
+        runtimeProfileName: 'default-coding',
+        runtimeProfileRevision: 7,
+        piAgentDirSource: 'store',
+      },
+    });
+
+    const error = stub.failAttempt.mock.calls[0][2].error;
+    expect(error.retry).toMatchObject({ source: 'attempts_exhausted' });
+    expect(error.message).toContain('Provider/model: openai/gpt-5.');
+    expect(error.message).toContain('Runtime profile: default-coding');
+    expect(error.message).toContain('Pi config source: store.');
+    expect(error.message).toContain(
+      'Unsupported request field(s): reasoning_effort.',
+    );
+  });
+
+  it('does not add permanent-request diagnostics to an exhausted transient failure', async () => {
+    const failed = makeOutput('failed', null);
+    failed.error = {
+      code: 'llm_api_error',
+      message: '500 response: unknown field request_id',
+    };
+
+    await finalizeTask(stub.agent, failed, {
+      task: {
+        id: 't1',
+        taskType: 'freeform',
+        teamId: 'team-1',
+        input: { brief: 'do it' },
+        maxAttempts: 1,
+      } as unknown as Task,
+      providerFailureContext: {
+        provider: 'openai',
+        model: 'gpt-5',
+        runtimeProfileId: 'profile-1',
+        runtimeProfileName: 'default-coding',
+        runtimeProfileRevision: 7,
+        piAgentDirSource: 'store',
+      },
+    });
+
+    const error = stub.failAttempt.mock.calls[0][2].error;
+    expect(error.retry).toMatchObject({ source: 'attempts_exhausted' });
+    expect(error.message).toBe('500 response: unknown field request_id');
+    expect(error.message).not.toContain('Unsupported request field(s):');
+  });
+
   it('logs the classification verdict (code, retryability, triage decision) as structured fields', async () => {
     const failed = makeOutput('failed', null);
     failed.error = { code: 'executor_unexpected_error', message: 'unclear' };

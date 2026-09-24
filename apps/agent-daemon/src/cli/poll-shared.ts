@@ -685,6 +685,15 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             piAgentDir: piAgentDir.path,
             cwd: ctx.agentRootDir,
           }),
+          providerFailureContext: {
+            provider: selected.profile.provider,
+            model: selected.profile.model,
+            runtimeProfileId: selected.profile.id,
+            runtimeProfileName: selected.profile.name,
+            runtimeProfileRevision:
+              claimedTask.claimAuthority?.runtimeProfileRevision ?? null,
+            piAgentDirSource: piAgentDir.source,
+          },
           executorAttestor: selected.preparedRuntime.attestor,
           writeCorrelationAnchors: makePrBodyAnchorWriter({
             gh: createGhCliClient(),
@@ -862,6 +871,13 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           mountPath: sandbox.rootDir,
           provider: profile.provider,
           model: profile.model,
+          providerFailureContext: {
+            provider: profile.provider,
+            model: profile.model,
+            runtimeProfileId: profile.id,
+            runtimeProfileName: profile.name,
+            piAgentDirSource: piAgentDir.source,
+          },
           thinkingLevel: profile.thinkingLevel,
           temperature: profile.temperature,
           topP: profile.topP,
