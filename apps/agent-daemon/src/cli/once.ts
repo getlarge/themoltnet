@@ -460,8 +460,6 @@ export async function runOnce(
       provider: profile.provider,
       model: profile.model,
       providerFailureContext: {
-        provider: profile.provider,
-        model: profile.model,
         runtimeProfileId: profile.id,
         runtimeProfileName: profile.name,
         piAgentDirSource: piAgentDir.source,

@@ -118,6 +118,7 @@ import {
   classifyProviderFailure,
   type ProviderFailureCode,
   type ProviderFailureContext,
+  type ProviderFailureVerdict,
 } from './provider-error-classification.js';
 
 export const GONDOLIN_TOOL_NAMES = [
@@ -442,6 +443,12 @@ function guardGondolinExtensionFactories(
   });
 }
 
+export interface ProviderFailureProfileContext {
+  runtimeProfileId: string;
+  runtimeProfileName: string;
+  piAgentDirSource: string;
+}
+
 export interface ExecutePiTaskOptions {
   /** MoltNet agent whose credentials the VM boots with. */
   agentName: string;
@@ -460,10 +467,7 @@ export interface ExecutePiTaskOptions {
   provider: string;
   model: string;
   /** Context used to enrich terminal permanent provider failures. */
-  providerFailureContext?: Omit<
-    ProviderFailureContext,
-    'runtimeProfileRevision'
-  >;
+  providerFailureContext?: ProviderFailureProfileContext;
   /**
    * Runtime-profile reasoning/thinking level. Null/undefined means use Pi's
    * configured default; explicit `off` disables provider thinking where
@@ -1913,7 +1917,7 @@ export async function executePiTask(
           await emit('info', event);
           await notifyProviderErrorRetryUi(opts.providerErrorRetryUi, event);
         },
-        onRetrySkipped: (event) => emit('info', event),
+        onRetryStopped: (event) => emit('info', event),
         onPromptError: (message) =>
           emit('error', { message, phase: 'session_prompt' }),
         parentContext: piSessionContext,
@@ -2079,6 +2083,8 @@ export async function executePiTask(
       llmErrorMessage: turnState.llmErrorMessage,
       providerFailureContext: opts.providerFailureContext
         ? {
+            provider: opts.provider,
+            model: opts.model,
             ...opts.providerFailureContext,
             runtimeProfileRevision:
               typeof claimedTask.claimAuthority?.runtimeProfileRevision ===
@@ -2602,7 +2608,8 @@ export function buildAttemptResult(args: BuildAttemptResultArgs): TaskOutput {
     args.runError || args.llmAbort || args.parseError || args.reporterError
       ? 'failed'
       : 'completed';
-  const providerMessage = args.llmErrorMessage ?? 'LLM API error during turn';
+  const providerMessage =
+    args.llmErrorMessage?.trim() || 'LLM API error during turn';
   const providerFailure = classifyProviderFailure(providerMessage);
   const winningError = args.runError ?? args.parseError ?? args.reporterError;
   const error = winningError
@@ -2829,12 +2836,6 @@ export function shouldEmitToolCallError(event: {
   return true;
 }
 
-export function shouldRetryProviderErrorMessage(
-  message: string | null | undefined,
-): boolean {
-  return classifyProviderFailure(message).retryable;
-}
-
 export function computeProviderErrorRetryDelay(
   attempt: number,
   baseDelayMs: number,
@@ -2882,10 +2883,12 @@ export interface PromptWithProviderErrorRetriesArgs {
   maxDelayMs: number;
   retryPrompt: string;
   onRetry?: (event: ProviderErrorRetryEvent) => Promise<void>;
-  onRetrySkipped?: (event: {
-    event: 'provider_error_retry_skipped';
+  onRetryStopped?: (event: {
+    event: 'provider_error_retry_stopped';
+    reason: 'cancelled' | 'cap_aborted' | 'exhausted' | 'permanent';
+    classificationReason: ProviderFailureVerdict['reason'];
+    retryCount: number;
     code: ProviderFailureCode;
-    reason: string;
     message: string;
   }) => Promise<void>;
   onPromptError?: (message: string) => Promise<void>;
@@ -2932,20 +2935,36 @@ export async function promptWithProviderErrorRetries(
     }
 
     const { llmAbort, llmErrorMessage } = args.getProviderErrorState();
-    if (
-      !llmAbort ||
-      args.cancelSignal.aborted ||
-      args.isCapAborted?.() ||
-      retryCount >= args.maxRetries
-    ) {
+    if (!llmAbort) {
+      return { runError: null, retryCount };
+    }
+    const stopReason = args.cancelSignal.aborted
+      ? 'cancelled'
+      : args.isCapAborted?.()
+        ? 'cap_aborted'
+        : retryCount >= args.maxRetries
+          ? 'exhausted'
+          : null;
+    if (stopReason) {
+      const verdict = classifyProviderFailure(llmErrorMessage);
+      await args.onRetryStopped?.({
+        event: 'provider_error_retry_stopped',
+        reason: stopReason,
+        retryCount,
+        code: verdict.code,
+        classificationReason: verdict.reason,
+        message: sanitizeProviderErrorRetryReason(llmErrorMessage),
+      });
       return { runError: null, retryCount };
     }
     const verdict = classifyProviderFailure(llmErrorMessage);
     if (!verdict.retryable) {
-      await args.onRetrySkipped?.({
-        event: 'provider_error_retry_skipped',
+      await args.onRetryStopped?.({
+        event: 'provider_error_retry_stopped',
+        reason: 'permanent',
+        retryCount,
         code: verdict.code,
-        reason: verdict.reason,
+        classificationReason: verdict.reason,
         message: sanitizeProviderErrorRetryReason(llmErrorMessage),
       });
       return { runError: null, retryCount };

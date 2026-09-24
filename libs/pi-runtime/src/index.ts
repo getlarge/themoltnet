@@ -25,8 +25,10 @@ export {
   type ProviderErrorRetryEvent,
   type ProviderErrorRetryLevel,
   type ProviderErrorRetryUi,
+  type ProviderFailureProfileContext,
   resolveHostExecBaseEnv,
   resolveTaskWorktreePath,
+  sanitizeProviderErrorRetryReason,
   type TurnEventHandlerFactory,
 } from './runtime/execute-pi-task.js';
 export {

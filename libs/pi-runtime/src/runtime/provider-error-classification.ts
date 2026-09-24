@@ -1,5 +1,3 @@
-import { isRetryableAssistantError } from '@earendil-works/pi-ai';
-
 /**
  * Return true for provider messages that describe a request shape the
  * selected model cannot accept. These failures are deterministic until the
@@ -28,13 +26,16 @@ const LEADING_TRANSPORT_PATTERN =
 const MONTHLY_QUOTA_PATTERN =
   /\b(?:monthly usage limit reached|(?:reached|exceeded)\s+(?:(?:your|the)\s+)?monthly\s+usage\s+limit|monthly\s+(?:usage\s+)?quota\s+(?:exceeded|exhausted))\b/i;
 const ACCOUNT_QUOTA_PATTERN =
-  /\b(?:insufficient_quota|out of budget|billing|available balance|GoUsageLimitError|FreeUsageLimitError)\b/i;
+  /\b(?:insufficient_quota|insufficient credits?|out of budget|billing|available balance|credit balance is too low|GoUsageLimitError|FreeUsageLimitError)\b/i;
 const TIME_WINDOW_PATTERN =
   /\b(?:per\s+(?:second|minute|hour|day)|retry\s+(?:in|after)|try again in|retry-after)\b/i;
 const PROVIDER_AUTH_PATTERN =
   /\b(?:unauthori[sz]ed|forbidden|invalid (?:api )?key|missing credentials?)\b/i;
 const PROVIDER_MODEL_PATTERN =
-  /\b(?:model [^\n]{0,120}not (?:found|registered|available)|unknown model)\b/i;
+  /\b(?:model [^\n]{0,120}(?:not (?:found|registered|available)|does not exist)|unknown model)\b/i;
+const VALIDATION_FAILURE_PATTERN =
+  /\b(?:request validation failed|validation failed)\b/i;
+const CANCELLED_PATTERN = /\b(?:cancelled|canceled)\b/i;
 
 const REQUEST_DESCRIPTORS = new Set([
   'unsupported',
@@ -65,15 +66,34 @@ export interface ProviderFailureVerdict {
     | 'quota_exhausted'
     | 'auth_error'
     | 'model_invalid'
+    | 'cancelled'
     | 'transient_status'
     | 'transient_transport'
-    | 'pi_transient'
     | 'unknown';
 }
 
 function leadingStatus(message: string): number | null {
   const match = LEADING_STATUS_PATTERN.exec(message);
   return match?.[1] ? Number(match[1]) : null;
+}
+
+function jsonStatus(message: string): number | null {
+  if (message.length > 4096 || !message.trimStart().startsWith('{'))
+    return null;
+  try {
+    const parsed: unknown = JSON.parse(message);
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    const outer = parsed as Record<string, unknown>;
+    const payload = outer.error;
+    const error =
+      typeof payload === 'object' && payload !== null
+        ? (payload as Record<string, unknown>)
+        : outer;
+    const code = error.code;
+    return typeof code === 'number' && code >= 100 && code <= 599 ? code : null;
+  } catch {
+    return null;
+  }
 }
 
 /** One verdict for same-session retries and the terminal TaskError. */
@@ -87,7 +107,7 @@ export function classifyProviderFailure(
       reason: 'unknown',
     };
   }
-  const status = leadingStatus(message);
+  const status = leadingStatus(message) ?? jsonStatus(message);
   if (status === 408 || status === 429 || (status !== null && status >= 500)) {
     if (status === 429 && isPermanentProviderQuotaError(message)) {
       return {
@@ -109,18 +129,18 @@ export function classifyProviderFailure(
       reason: 'transient_transport',
     };
   }
+  if (status === 402 || isPermanentProviderQuotaError(message)) {
+    return {
+      code: PROVIDER_FAILURE_CODES.quotaExhausted,
+      retryable: false,
+      reason: 'quota_exhausted',
+    };
+  }
   if (status === 401 || status === 403) {
     return {
       code: PROVIDER_FAILURE_CODES.authError,
       retryable: false,
       reason: 'auth_error',
-    };
-  }
-  if (isPermanentProviderQuotaError(message)) {
-    return {
-      code: PROVIDER_FAILURE_CODES.quotaExhausted,
-      retryable: false,
-      reason: 'quota_exhausted',
     };
   }
   if (PROVIDER_MODEL_PATTERN.test(message)) {
@@ -137,6 +157,20 @@ export function classifyProviderFailure(
       reason: 'request_rejected',
     };
   }
+  if (VALIDATION_FAILURE_PATTERN.test(message)) {
+    return {
+      code: PROVIDER_FAILURE_CODES.requestRejected,
+      retryable: false,
+      reason: 'request_rejected',
+    };
+  }
+  if (CANCELLED_PATTERN.test(message)) {
+    return {
+      code: PROVIDER_FAILURE_CODES.requestRejected,
+      retryable: false,
+      reason: 'cancelled',
+    };
+  }
   if (isProviderAuthError(message)) {
     return {
       code: PROVIDER_FAILURE_CODES.authError,
@@ -144,16 +178,12 @@ export function classifyProviderFailure(
       reason: 'auth_error',
     };
   }
-  // Pi owns the general transient vocabulary. Unknown errors get one bounded
-  // same-session continuation even when Pi has no matching phrase.
-  const piTransient = isRetryableAssistantError({
-    stopReason: 'error',
-    errorMessage: message,
-  } as Parameters<typeof isRetryableAssistantError>[0]);
+  // Unknown errors get one bounded same-session continuation. Pi's broad
+  // substring matcher is deliberately not authoritative for request fields.
   return {
     code: PROVIDER_FAILURE_CODES.apiError,
     retryable: true,
-    reason: piTransient ? 'pi_transient' : 'unknown',
+    reason: 'unknown',
   };
 }
 

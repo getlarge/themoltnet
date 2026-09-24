@@ -62,10 +62,13 @@ import {
   sanitizeProviderErrorRetryReason,
   type SessionSubscribeEvent,
   shouldEmitToolCallError,
-  shouldRetryProviderErrorMessage,
   submitRepromptStopped,
   wireSessionAbort,
 } from './execute-pi-task.js';
+import { classifyProviderFailure } from './provider-error-classification.js';
+
+const shouldRetryProviderErrorMessage = (message: string | null | undefined) =>
+  classifyProviderFailure(message).retryable;
 
 function executorTestClaimedTask(): ClaimedTask {
   return {
@@ -1053,7 +1056,7 @@ describe('provider error same-session retry helpers', () => {
   });
 
   it('reports when a permanent provider error skips the same-session retry', async () => {
-    const onRetrySkipped = vi.fn();
+    const onRetryStopped = vi.fn();
     const prompt = vi.fn(async () => {});
     const result = await promptWithProviderErrorRetries({
       session: { prompt },
@@ -1067,17 +1070,55 @@ describe('provider error same-session retry helpers', () => {
       baseDelayMs: 0,
       maxDelayMs: 0,
       retryPrompt: 'Go on',
-      onRetrySkipped,
+      onRetryStopped,
     });
     expect(result).toEqual({ runError: null, retryCount: 0 });
     expect(prompt).toHaveBeenCalledTimes(1);
-    expect(onRetrySkipped).toHaveBeenCalledWith({
-      event: 'provider_error_retry_skipped',
+    expect(onRetryStopped).toHaveBeenCalledWith({
+      event: 'provider_error_retry_stopped',
       code: 'llm_request_rejected',
-      reason: 'request_rejected',
+      reason: 'permanent',
+      classificationReason: 'request_rejected',
+      retryCount: 0,
       message: '400 Unsupported parameter: timeout',
     });
   });
+
+  it.each([
+    ['exhausted', false, false, 0],
+    ['cancelled', true, false, 2],
+    ['cap_aborted', false, true, 2],
+  ] as const)(
+    'reports provider retry stop reason %s',
+    async (reason, cancelled, capAborted, maxRetries) => {
+      const controller = new AbortController();
+      if (cancelled) controller.abort();
+      const onRetryStopped = vi.fn();
+      await promptWithProviderErrorRetries({
+        session: { prompt: async () => {} },
+        initialPrompt: 'do the task',
+        cancelSignal: controller.signal,
+        isCapAborted: () => capAborted,
+        getProviderErrorState: () => ({
+          llmAbort: true,
+          llmErrorMessage: '503 Service Unavailable',
+        }),
+        maxRetries,
+        baseDelayMs: 0,
+        maxDelayMs: 0,
+        retryPrompt: 'Go on',
+        onRetryStopped,
+      });
+      expect(onRetryStopped).toHaveBeenCalledWith({
+        event: 'provider_error_retry_stopped',
+        code: 'llm_api_error',
+        reason,
+        classificationReason: 'transient_status',
+        retryCount: 0,
+        message: '503 Service Unavailable',
+      });
+    },
+  );
 
   it('publishes the provider request context only while prompt is active', async () => {
     const controller = new AbortController();

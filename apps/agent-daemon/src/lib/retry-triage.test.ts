@@ -228,6 +228,22 @@ describe('retry triage classification', () => {
     ).toBe('retryable');
   });
 
+  it('keeps main-branch guards for older llm_api_error rows', () => {
+    for (const message of [
+      '{"error":{"code":401,"status":"UNAUTHENTICATED"}}',
+      '400 Request validation failed: bad arguments',
+      'Request was cancelled.',
+    ]) {
+      expect(
+        classifyDeterministically({
+          code: 'llm_api_error',
+          message,
+          retryable: false,
+        }),
+      ).toBe('non_retryable');
+    }
+  });
+
   it('keeps completion-reporting failures retryable despite provider-like wording', () => {
     for (const message of [
       '500 response: unknown field request_id',

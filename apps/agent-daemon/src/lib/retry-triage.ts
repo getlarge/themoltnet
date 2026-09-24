@@ -35,6 +35,7 @@ export interface ClassifiedAttemptFailure {
 }
 
 type RetrySource = ClassifiedAttemptFailure['source'];
+const MAX_TASK_ERROR_MESSAGE_LENGTH = 4000;
 
 const RETRYABLE_CODES = new Set([
   'complete_call_failed',
@@ -219,8 +220,11 @@ export function classifyDeterministically(
   }
 
   if (NON_RETRYABLE_CODES.has(code)) return 'non_retryable';
-  // Pi already classified this provider failure. Never reinterpret its text.
-  if (code === PROVIDER_FAILURE_CODES.apiError) return 'retryable';
+  // Current Pi outputs explicitly mark transient/unknown provider failures.
+  // Older persisted llm_api_error rows had retryable: false, so keep main's
+  // message guards for those rows before the broad retryable code fallback.
+  if (code === PROVIDER_FAILURE_CODES.apiError && error.retryable === true)
+    return 'retryable';
   if (NON_RETRYABLE_MESSAGE_PATTERNS.some((pattern) => pattern.test(message))) {
     return 'non_retryable';
   }
@@ -238,13 +242,16 @@ function appendTriageReason(
 ): string {
   const suffix = ` Retry triage: ${triage.decision}/${triage.confidence}: ${triage.reason}`;
   if (message.includes('Retry triage:')) return message;
-  return `${message}${suffix}`.slice(0, 4000);
+  return `${message}${suffix}`.slice(0, MAX_TASK_ERROR_MESSAGE_LENGTH);
 }
 
 function appendTriageFailure(message: string, err: unknown): string {
   if (message.includes('Retry triage failed:')) return message;
   const sanitized = sanitizeReason(err);
-  return `${message} Retry triage failed: ${sanitized}`.slice(0, 4000);
+  return `${message} Retry triage failed: ${sanitized}`.slice(
+    0,
+    MAX_TASK_ERROR_MESSAGE_LENGTH,
+  );
 }
 
 function sanitizeReason(value: unknown): string {

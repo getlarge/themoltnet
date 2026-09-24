@@ -57,6 +57,9 @@ describe('provider request error classification', () => {
     ["400 Unsupported parameter: 'timeout'", 'llm_request_rejected'],
     ['400 Unsupported parameter: forbidden', 'llm_request_rejected'],
     ['Error 429: invalid parameter temperature', 'llm_api_error'],
+    ['status: 503 unknown field request_id', 'llm_api_error'],
+    ['provider returned 429: invalid field temperature', 'llm_api_error'],
+    ['response: 408 unsupported parameter top_p', 'llm_api_error'],
     [
       '400 Unsupported parameter: request_id=req_8a5003f1',
       'llm_request_rejected',
@@ -74,11 +77,40 @@ describe('provider request error classification', () => {
     ],
     ['429: you have reached your monthly usage limit', 'llm_quota_exhausted'],
     ['HTTP 403 forbidden', 'llm_auth_error'],
+    ['{"error":{"code":401,"status":"UNAUTHENTICATED"}}', 'llm_auth_error'],
+    [
+      '400 Request validation failed: unsupported shape',
+      'llm_request_rejected',
+    ],
+    ['Request was cancelled.', 'llm_request_rejected'],
+    ['402 Insufficient credits for this request', 'llm_quota_exhausted'],
+    ['404 The model `gpt-9` does not exist', 'invalid_model'],
+    [
+      'Error 403: Your credit balance is too low. Billing required',
+      'llm_quota_exhausted',
+    ],
     ["Model 'x' not found in registry", 'invalid_model'],
     ['500 response: unknown field request_id', 'llm_api_error'],
     ['request timed out: unsupported field response_format', 'llm_api_error'],
   ])('classifies provider text %s as %s', (message, code) => {
-    expect(classifyProviderFailure(message).code).toBe(code);
+    expect(classifyProviderFailure(message)).toMatchObject({
+      code,
+      retryable: code === 'llm_api_error',
+    });
+  });
+
+  it.each([
+    ['status: 503 unknown field request_id', 'transient_status'],
+    [
+      'request timed out: unsupported field response_format',
+      'transient_transport',
+    ],
+    ['400 Unsupported parameter: timeout', 'request_rejected'],
+    ['{"error":{"code":401}}', 'auth_error'],
+    ['Request was cancelled.', 'cancelled'],
+    ['a provider error without known evidence', 'unknown'],
+  ])('records classification reason for %s', (message, reason) => {
+    expect(classifyProviderFailure(message).reason).toBe(reason);
   });
 
   it("pins Pi's broad retry wording to our request-shape guard", () => {
@@ -94,9 +126,13 @@ describe('provider request error classification', () => {
 
   it('pins Pi account-limit wording while allowing time-windowed quota', () => {
     for (const message of [
+      'GoUsageLimitError',
+      'FreeUsageLimitError',
       'Monthly usage limit reached',
+      'available balance',
       'insufficient_quota',
       'out of budget',
+      'billing',
     ]) {
       expect(
         isRetryableAssistantError({
