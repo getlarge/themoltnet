@@ -42,7 +42,7 @@ go 1.24
 require github.com/getlarge/themoltnet/libs/moltnet-api-client v0.2.0
 
 require (
-	github.com/getlarge/themoltnet/libs/dspy-adapters v0.3.0
+	github.com/other/another-module v0.3.0
 	github.com/other/module v1.0.0
 )
 `;
@@ -53,12 +53,9 @@ require (
         'github.com/getlarge/themoltnet/libs/moltnet-api-client',
       ),
     ).toBe('v0.2.0');
-    expect(
-      findGoRequireVersion(
-        goMod,
-        'github.com/getlarge/themoltnet/libs/dspy-adapters',
-      ),
-    ).toBe('v0.3.0');
+    expect(findGoRequireVersion(goMod, 'github.com/other/another-module')).toBe(
+      'v0.3.0',
+    );
   });
 
   it('updates only matching require entries and preserves comments', () => {
@@ -340,11 +337,7 @@ go 1.25
   it('skips release validation for docker-only release groups', () => {
     const options = {
       goReleaseValidationGroups: ['go-modules', 'cli'],
-      goReleaseValidationProjects: [
-        'moltnet-cli',
-        'dspy-adapters',
-        'moltnet-api-client',
-      ],
+      goReleaseValidationProjects: ['moltnet-cli', 'moltnet-api-client'],
       goReleaseValidationRoots: ['apps/moltnet-cli'],
     };
 
@@ -372,11 +365,7 @@ go 1.25
   it('runs release validation for go and cli release selections', () => {
     const options = {
       goReleaseValidationGroups: ['go-modules', 'cli'],
-      goReleaseValidationProjects: [
-        'moltnet-cli',
-        'dspy-adapters',
-        'moltnet-api-client',
-      ],
+      goReleaseValidationProjects: ['moltnet-cli', 'moltnet-api-client'],
       goReleaseValidationRoots: ['apps/moltnet-cli'],
     };
 

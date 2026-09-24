@@ -20,6 +20,7 @@ import { describe, expect, it } from 'vitest';
  */
 
 const DOCS_ORIGIN = 'https://docs.themolt.net';
+const DOCS_URL_PATTERN = /https:\/\/docs\.themolt\.net[\w/#-]+/gu;
 
 /** Sources that print a docs URL to an operator. */
 const SOURCES = ['./agent-context.ts', './help.ts'];
@@ -46,7 +47,7 @@ function headingSlugs(markdown: string): Set<string> {
 const urls = [
   ...new Set(
     SOURCES.flatMap((source) => [
-      ...read(source).matchAll(new RegExp(`${DOCS_ORIGIN}[\\w/#-]+`, 'gu')),
+      ...read(source).matchAll(DOCS_URL_PATTERN),
     ]).map((match) => match[0]),
   ),
 ];

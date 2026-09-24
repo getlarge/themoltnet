@@ -107,11 +107,6 @@
       "release-type": "node",
       "versioning": "always-bump-minor"
     },
-    "libs/dspy-adapters": {
-      "bump-minor-pre-major": true,
-      "component": "dspy-adapters",
-      "release-type": "go"
-    },
     "libs/moltnet-api-client": {
       "bump-minor-pre-major": true,
       "changelog-sections": [

@@ -455,7 +455,7 @@ asks for one in the task at hand.
   `release-please-config.json`, and packages below `1.0.0` are capped by
   `bump-minor-pre-major`. A new package that reaches `1.0.0` must get the same
   setting in the PR that releases it.
-- Go library modules (`libs/moltnet-api-client`, `libs/dspy-adapters`) cannot
+- The Go library module (`libs/moltnet-api-client`) cannot
   publish `v2+` without a `/vN` module path; a major there breaks the CLI
   `go.mod` sync and every Go consumer.
 - If a release PR proposes a major anyway, do not merge it: fix the commit

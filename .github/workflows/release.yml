@@ -30,7 +30,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, legreffier-plugin, cli, api-client, dspy-adapters, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, n8n-nodes-moltnet, node-red-theme, agent-daemon, agent-desktop, console, database, mcp-host, mcp-server, rest-api, otel-custom-collector
+          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, legreffier-plugin, cli, api-client, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, n8n-nodes-moltnet, node-red-theme, agent-daemon, agent-desktop, console, database, mcp-host, mcp-server, rest-api, otel-custom-collector
         required: false
         type: string
 
@@ -82,9 +82,6 @@ jobs:
       api-client-release-created: ${{ steps.release.outputs['libs/moltnet-api-client--release_created'] }}
       api-client-tag-name: ${{ steps.release.outputs['libs/moltnet-api-client--tag_name'] }}
       api-client-version: ${{ steps.release.outputs['libs/moltnet-api-client--version'] }}
-      dspy-adapters-release-created: ${{ steps.release.outputs['libs/dspy-adapters--release_created'] }}
-      dspy-adapters-tag-name: ${{ steps.release.outputs['libs/dspy-adapters--tag_name'] }}
-      dspy-adapters-version: ${{ steps.release.outputs['libs/dspy-adapters--version'] }}
       cli-release-created: ${{ steps.release.outputs['apps/moltnet-cli--release_created'] }}
       cli-tag-name: ${{ steps.release.outputs['apps/moltnet-cli--tag_name'] }}
       github-agent-release-created: ${{ steps.release.outputs['packages/github-agent--release_created'] }}
@@ -243,9 +240,6 @@ jobs:
       api-client: ${{ steps.resolve.outputs.api-client }}
       api-client-tag: ${{ steps.resolve.outputs.api-client-tag }}
       api-client-version: ${{ steps.resolve.outputs.api-client-version }}
-      dspy-adapters: ${{ steps.resolve.outputs.dspy-adapters }}
-      dspy-adapters-tag: ${{ steps.resolve.outputs.dspy-adapters-tag }}
-      dspy-adapters-version: ${{ steps.resolve.outputs.dspy-adapters-version }}
       legreffier: ${{ steps.resolve.outputs.legreffier }}
       legreffier-tag: ${{ steps.resolve.outputs.legreffier-tag }}
       legreffier-plugin: ${{ steps.resolve.outputs.legreffier-plugin }}
@@ -305,9 +299,6 @@ jobs:
           RP_API_CREATED: ${{ needs.release-please.outputs.api-client-release-created }}
           RP_API_TAG: ${{ needs.release-please.outputs.api-client-tag-name }}
           RP_API_VERSION: ${{ needs.release-please.outputs.api-client-version }}
-          RP_DSPY_CREATED: ${{ needs.release-please.outputs.dspy-adapters-release-created }}
-          RP_DSPY_TAG: ${{ needs.release-please.outputs.dspy-adapters-tag-name }}
-          RP_DSPY_VERSION: ${{ needs.release-please.outputs.dspy-adapters-version }}
           RP_LEGREFFIER_CREATED: ${{ needs.release-please.outputs.legreffier-release-created }}
           RP_LEGREFFIER_TAG: ${{ needs.release-please.outputs.legreffier-tag-name }}
           RP_LEGREFFIER_PLUGIN_CREATED: ${{ needs.release-please.outputs.legreffier-plugin-release-created }}
@@ -435,7 +426,6 @@ jobs:
           resolve "github-agent" "$RP_AGENT_CREATED"     "$RP_AGENT_TAG"     "github-agent"
           resolve "cli"          "$RP_CLI_CREATED"       "$RP_CLI_TAG"       "cli"
           resolve "api-client"   "$RP_API_CREATED"       "$RP_API_TAG"       "moltnet-api-client"
-          resolve "dspy-adapters" "$RP_DSPY_CREATED"     "$RP_DSPY_TAG"      "dspy-adapters"
           resolve "legreffier"   "$RP_LEGREFFIER_CREATED" "$RP_LEGREFFIER_TAG" "legreffier"
           resolve "legreffier-plugin" "$RP_LEGREFFIER_PLUGIN_CREATED" "$RP_LEGREFFIER_PLUGIN_TAG" "legreffier-plugin"
           resolve "design-system" "$RP_DESIGN_SYSTEM_CREATED" "$RP_DESIGN_SYSTEM_TAG" "design-system"
@@ -463,13 +453,6 @@ jobs:
           elif wants_republish "api-client"; then
             tag=$(find_draft_tag "moltnet-api-client")
             [ -n "$tag" ] && echo "api-client-version=$(version_from_tag "$tag" "moltnet-api-client")" >> "$GITHUB_OUTPUT"
-          fi
-
-          if [ -n "$RP_DSPY_VERSION" ]; then
-            echo "dspy-adapters-version=${RP_DSPY_VERSION}" >> "$GITHUB_OUTPUT"
-          elif wants_republish "dspy-adapters"; then
-            tag=$(find_draft_tag "dspy-adapters")
-            [ -n "$tag" ] && echo "dspy-adapters-version=$(version_from_tag "$tag" "dspy-adapters")" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Resolve Agent CLI version for Desktop
@@ -1216,38 +1199,6 @@ jobs:
 
       - name: Publish API client release
         run: gh release edit "${{ needs.resolve-publish.outputs.api-client-tag }}" --draft=false
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  release-dspy-adapters:
-    name: Tag Go module for dspy-adapters
-    needs: resolve-publish
-    if: ${{ needs.resolve-publish.outputs.dspy-adapters == 'true' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Push Go module proxy tag
-        # The Go module proxy resolves github.com/getlarge/themoltnet/libs/dspy-adapters@vX.Y.Z
-        # by looking for a git tag of the form "libs/dspy-adapters/vX.Y.Z".
-        run: |
-          TAG="libs/dspy-adapters/v${{ needs.resolve-publish.outputs.dspy-adapters-version }}"
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG already exists, skipping"
-          else
-            git tag "$TAG"
-            git push origin "$TAG"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish dspy-adapters release
-        run: gh release edit "${{ needs.resolve-publish.outputs.dspy-adapters-tag }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -2587,16 +2538,14 @@ jobs:
   # reviewable PR once the libs/<name>/vX.Y.Z tags the Go proxy resolves exist.
   propose-cli-go-mod-sync:
     name: Propose CLI go.mod sync
-    needs: [resolve-publish, release-api-client, release-dspy-adapters]
+    needs: [resolve-publish, release-api-client]
     if: >-
       always() && !cancelled() &&
-      (needs.resolve-publish.outputs.api-client == 'true' || needs.resolve-publish.outputs.dspy-adapters == 'true') &&
-      (needs.resolve-publish.outputs.api-client != 'true' || needs.release-api-client.result == 'success') &&
-      (needs.resolve-publish.outputs.dspy-adapters != 'true' || needs.release-dspy-adapters.result == 'success')
+      needs.resolve-publish.outputs.api-client == 'true' &&
+      needs.release-api-client.result == 'success'
     uses: ./.github/workflows/sync-cli-go-mod.yml
     with:
       api_client_version: ${{ needs.resolve-publish.outputs.api-client == 'true' && needs.resolve-publish.outputs.api-client-version || '' }}
-      dspy_adapters_version: ${{ needs.resolve-publish.outputs.dspy-adapters == 'true' && needs.resolve-publish.outputs.dspy-adapters-version || '' }}
     secrets: inherit
 
   publish-design-system:

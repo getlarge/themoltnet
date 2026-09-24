@@ -51,7 +51,9 @@ function getConsoleUrl(
 ): string | undefined {
   if (explicitUrl) return explicitUrl;
   if (!taskId || !deps.consoleBaseUrl) return undefined;
-  return `${deps.consoleBaseUrl.replaceAll(/\/+$/g, '')}/tasks/${taskId}`;
+  let end = deps.consoleBaseUrl.length;
+  while (end > 0 && deps.consoleBaseUrl[end - 1] === '/') end--;
+  return `${deps.consoleBaseUrl.slice(0, end)}/tasks/${taskId}`;
 }
 
 function definedEntries<T extends Record<string, unknown>>(

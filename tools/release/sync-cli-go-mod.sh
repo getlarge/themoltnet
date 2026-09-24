@@ -11,7 +11,6 @@
 #
 # Environment:
 #   API_CLIENT_VERSION     target moltnet-api-client version; blank reads the manifest
-#   DSPY_ADAPTERS_VERSION  target dspy-adapters version; blank reads the manifest
 #   MANIFEST               release-please manifest path
 #   CLI_DIR                the module whose pins are advanced
 set -euo pipefail
@@ -69,7 +68,6 @@ advance_pin() {
 
 changed=false
 advance_pin moltnet-api-client "${API_CLIENT_VERSION:-}"
-advance_pin dspy-adapters "${DSPY_ADAPTERS_VERSION:-}"
 
 [ "$changed" = true ] || { echo "go.mod pins are current or ahead"; exit 0; }
 
