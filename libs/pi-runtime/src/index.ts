@@ -41,13 +41,8 @@ export {
   RuntimeProfileModelResolutionError,
 } from './runtime/model-selection.js';
 export {
-  appendPermanentProviderRequestDiagnostics,
-  extractPermanentProviderRequestFields,
-  getPermanentProviderRequestDiagnostics,
-  isPermanentProviderQuotaError,
-  isPermanentProviderRequestError,
-  type PermanentProviderRequestDiagnostics,
-  type ProviderFailureContext,
+  PROVIDER_FAILURE_CODES,
+  type ProviderFailureCode,
 } from './runtime/provider-error-classification.js';
 export {
   createPiRetryTriage,

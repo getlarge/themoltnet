@@ -2,6 +2,7 @@ import type { Task, TaskError, TaskMessage } from '@moltnet/tasks';
 import {
   normalizeRetryTriageResult,
   type PiRetryTriageResult,
+  PROVIDER_FAILURE_CODES,
   redactRetryTriageSecrets,
   type RetryTriageConfidence,
   type RetryTriageDecision,
@@ -40,7 +41,7 @@ const RETRYABLE_CODES = new Set([
   'daemon_abort',
   'dispatch_expired',
   'lease_expired',
-  'llm_api_error',
+  PROVIDER_FAILURE_CODES.apiError,
   'session_prompt_failed',
 ]);
 
@@ -51,10 +52,10 @@ const NON_RETRYABLE_CODES = new Set([
   // a probabilistic triage model must not promote it to a fresh attempt.
   'executor_threw',
   'invalid_api_key',
-  'invalid_model',
-  'llm_auth_error',
-  'llm_quota_exhausted',
-  'llm_request_rejected',
+  PROVIDER_FAILURE_CODES.invalidModel,
+  PROVIDER_FAILURE_CODES.authError,
+  PROVIDER_FAILURE_CODES.quotaExhausted,
+  PROVIDER_FAILURE_CODES.requestRejected,
   // Hitting the turn cap is usually a deterministic model/workload/tool-loop
   // mismatch for the selected runtime profile. Retrying the same attempt shape
   // tends to burn another slot without adding useful evidence.
@@ -77,9 +78,8 @@ const NON_RETRYABLE_CODES = new Set([
 ]);
 
 const RETRYABLE_MESSAGE_PATTERNS = [
-  /\b408\b/i,
   /\b429\b/i,
-  /\b5\d{2}\b/i,
+  /\b5(?:02|03|04)\b/i,
   /\btimeout\b/i,
   /\btimed out\b/i,
   /\brate limit/i,
@@ -220,7 +220,7 @@ export function classifyDeterministically(
 
   if (NON_RETRYABLE_CODES.has(code)) return 'non_retryable';
   // Pi already classified this provider failure. Never reinterpret its text.
-  if (code === 'llm_api_error') return 'retryable';
+  if (code === PROVIDER_FAILURE_CODES.apiError) return 'retryable';
   if (NON_RETRYABLE_MESSAGE_PATTERNS.some((pattern) => pattern.test(message))) {
     return 'non_retryable';
   }

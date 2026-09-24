@@ -1052,6 +1052,33 @@ describe('provider error same-session retry helpers', () => {
     expect(prompt).toHaveBeenCalledTimes(2);
   });
 
+  it('reports when a permanent provider error skips the same-session retry', async () => {
+    const onRetrySkipped = vi.fn();
+    const prompt = vi.fn(async () => {});
+    const result = await promptWithProviderErrorRetries({
+      session: { prompt },
+      initialPrompt: 'do the task',
+      cancelSignal: new AbortController().signal,
+      getProviderErrorState: () => ({
+        llmAbort: true,
+        llmErrorMessage: '400 Unsupported parameter: timeout',
+      }),
+      maxRetries: 2,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+      retryPrompt: 'Go on',
+      onRetrySkipped,
+    });
+    expect(result).toEqual({ runError: null, retryCount: 0 });
+    expect(prompt).toHaveBeenCalledTimes(1);
+    expect(onRetrySkipped).toHaveBeenCalledWith({
+      event: 'provider_error_retry_skipped',
+      code: 'llm_request_rejected',
+      reason: 'request_rejected',
+      message: '400 Unsupported parameter: timeout',
+    });
+  });
+
   it('publishes the provider request context only while prompt is active', async () => {
     const controller = new AbortController();
     const parentSpan = trace.getTracer('provider-context-test').startSpan('pi');
@@ -1458,7 +1485,7 @@ describe('buildAttemptResult (result-construction characterization)', () => {
       llmErrorMessage: "Model 'x' not found in registry",
     });
     expect(out.error).toEqual({
-      code: 'llm_request_rejected',
+      code: 'invalid_model',
       message: "Model 'x' not found in registry",
       retryable: false,
     });
@@ -1475,6 +1502,7 @@ describe('buildAttemptResult (result-construction characterization)', () => {
     ],
     ['429: invalid parameter temperature', 'llm_api_error'],
     ['500: unknown field request_id', 'llm_api_error'],
+    ["Model 'x' not found in registry", 'invalid_model'],
   ])('emits a stable provider error code for %s', (message, code) => {
     const out = buildAttemptResult({
       ...base,

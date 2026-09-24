@@ -17,7 +17,6 @@
 import { isAbsolute, resolve } from 'node:path';
 
 import type { VM } from '@earendil-works/gondolin';
-import { isRetryableAssistantError } from '@earendil-works/pi-ai';
 import type {
   AgentSession,
   ToolDefinition,
@@ -116,10 +115,8 @@ import { recordToolPolicyDecisionSpan } from '../tool-policy/telemetry.js';
 import { resumeVm } from '../vm.js';
 import {
   appendPermanentProviderRequestDiagnostics,
-  hasTransientProviderStatus,
-  isPermanentProviderQuotaError,
-  isPermanentProviderRequestError,
-  isProviderAuthError,
+  classifyProviderFailure,
+  type ProviderFailureCode,
   type ProviderFailureContext,
 } from './provider-error-classification.js';
 
@@ -1916,6 +1913,7 @@ export async function executePiTask(
           await emit('info', event);
           await notifyProviderErrorRetryUi(opts.providerErrorRetryUi, event);
         },
+        onRetrySkipped: (event) => emit('info', event),
         onPromptError: (message) =>
           emit('error', { message, phase: 'session_prompt' }),
         parentContext: piSessionContext,
@@ -2618,7 +2616,11 @@ export function buildAttemptResult(args: BuildAttemptResultArgs): TaskOutput {
       }
     : args.llmAbort
       ? appendPermanentProviderRequestDiagnostics(
-          { ...providerFailure, message: providerMessage },
+          {
+            code: providerFailure.code,
+            message: providerMessage,
+            retryable: providerFailure.retryable,
+          },
           args.providerFailureContext,
         )
       : undefined;
@@ -2827,44 +2829,6 @@ export function shouldEmitToolCallError(event: {
   return true;
 }
 
-export type ProviderFailureCode =
-  | 'llm_api_error'
-  | 'llm_request_rejected'
-  | 'llm_quota_exhausted'
-  | 'llm_auth_error';
-
-/** Classify a Pi provider abort once, before it crosses the task boundary. */
-export function classifyProviderFailure(message: string | null | undefined): {
-  code: ProviderFailureCode;
-  retryable: boolean;
-} {
-  if (!message?.trim()) return { code: 'llm_api_error', retryable: true };
-  if (isPermanentProviderQuotaError(message)) {
-    return { code: 'llm_quota_exhausted', retryable: false };
-  }
-  if (isProviderAuthError(message)) {
-    return { code: 'llm_auth_error', retryable: false };
-  }
-  // Pi is the source for provider and transport retry signals. The minimal
-  // assistant shape is sufficient: its helper only reads these two fields.
-  // Pi treats the generic wrapper 'provider returned error' as retryable.
-  // Remove only that wrapper when a concrete request-shape error is present;
-  // explicit status and transport evidence still goes through Pi unchanged.
-  const retryMessage = isPermanentProviderRequestError(message)
-    ? message.replace(/provider.?returned.?error/gi, '')
-    : message;
-  const piRetryable = isRetryableAssistantError({
-    stopReason: 'error',
-    errorMessage: retryMessage,
-  } as Parameters<typeof isRetryableAssistantError>[0]);
-  const transient = piRetryable || hasTransientProviderStatus(message);
-  if (isPermanentProviderRequestError(message, transient)) {
-    return { code: 'llm_request_rejected', retryable: false };
-  }
-  // Unknown provider errors get the same-session continuation opportunity.
-  return { code: 'llm_api_error', retryable: true };
-}
-
 export function shouldRetryProviderErrorMessage(
   message: string | null | undefined,
 ): boolean {
@@ -2918,6 +2882,12 @@ export interface PromptWithProviderErrorRetriesArgs {
   maxDelayMs: number;
   retryPrompt: string;
   onRetry?: (event: ProviderErrorRetryEvent) => Promise<void>;
+  onRetrySkipped?: (event: {
+    event: 'provider_error_retry_skipped';
+    code: ProviderFailureCode;
+    reason: string;
+    message: string;
+  }) => Promise<void>;
   onPromptError?: (message: string) => Promise<void>;
   /** Pi session context used to parent each provider request. */
   parentContext?: Context;
@@ -2966,9 +2936,18 @@ export async function promptWithProviderErrorRetries(
       !llmAbort ||
       args.cancelSignal.aborted ||
       args.isCapAborted?.() ||
-      retryCount >= args.maxRetries ||
-      !shouldRetryProviderErrorMessage(llmErrorMessage)
+      retryCount >= args.maxRetries
     ) {
+      return { runError: null, retryCount };
+    }
+    const verdict = classifyProviderFailure(llmErrorMessage);
+    if (!verdict.retryable) {
+      await args.onRetrySkipped?.({
+        event: 'provider_error_retry_skipped',
+        code: verdict.code,
+        reason: verdict.reason,
+        message: sanitizeProviderErrorRetryReason(llmErrorMessage),
+      });
       return { runError: null, retryCount };
     }
 

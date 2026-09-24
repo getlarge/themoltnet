@@ -331,6 +331,7 @@ describe('finalizeTask', () => {
       message,
       retryable: false,
     };
+    const log = vi.fn();
     await finalizeTask(stub.agent, failed, {
       task: {
         id: 't1',
@@ -339,6 +340,7 @@ describe('finalizeTask', () => {
         input: { brief: 'do it' },
         maxAttempts: 2,
       } as unknown as Task,
+      log,
     });
     const error = stub.failAttempt.mock.calls[0][2].error;
     expect(error).toMatchObject({
@@ -347,6 +349,10 @@ describe('finalizeTask', () => {
       retry: { source: 'explicit', decision: 'do_not_retry' },
     });
     expect(error.message).toBe(message);
+    expect(log).toHaveBeenCalledWith(
+      'attempt-failure-classified',
+      expect.objectContaining({ diagnostic: message }),
+    );
   });
 
   it('does not duplicate runtime diagnostics on an exhausted attempt', async () => {
@@ -366,6 +372,22 @@ describe('finalizeTask', () => {
     const error = stub.failAttempt.mock.calls[0][2].error;
     expect(error.retry).toMatchObject({ source: 'attempts_exhausted' });
     expect(error.message).toBe(message);
+  });
+
+  it('redacts provider diagnostics in the classification log', async () => {
+    const failed = makeOutput('failed', null);
+    failed.error = {
+      code: 'llm_request_rejected',
+      message: 'Unsupported parameter: api_key sk-abcdef0123456789abcdef',
+      retryable: false,
+    };
+    const log = vi.fn();
+    await finalizeTask(stub.agent, failed, { log });
+    const fields = log.mock.calls.find(
+      (call) => call[0] === 'attempt-failure-classified',
+    )?.[1] as { diagnostic?: string };
+    expect(fields.diagnostic).toContain('[redacted]');
+    expect(fields.diagnostic).not.toContain('sk-abcdef0123456789abcdef');
   });
 
   it('logs the classification verdict (code, retryability, triage decision) as structured fields', async () => {

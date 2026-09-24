@@ -1,5 +1,8 @@
 import type { Task, TaskOutput } from '@moltnet/tasks';
-import { redactRetryTriageSecrets } from '@themoltnet/pi-runtime';
+import {
+  PROVIDER_FAILURE_CODES,
+  redactRetryTriageSecrets,
+} from '@themoltnet/pi-runtime';
 import type { Agent, ExecutorAttestor, TasksNamespace } from '@themoltnet/sdk';
 import { MoltNetError } from '@themoltnet/sdk';
 
@@ -58,6 +61,10 @@ export interface FinalizeContext {
   log?: (msg: string, fields?: Record<string, unknown>) => void;
 }
 
+const PROVIDER_ERROR_CODE_SET = new Set<string>(
+  Object.values(PROVIDER_FAILURE_CODES),
+);
+
 /**
  * Flatten a classified attempt failure into the structured fields logged
  * alongside `attempt-failure-classified`. Surfaces the triage verdict that
@@ -81,6 +88,14 @@ function classificationLogFields(
     ...(ids.correlationId ? { correlationId: ids.correlationId } : {}),
     source: classified.source,
     code: classified.error.code,
+    ...(PROVIDER_ERROR_CODE_SET.has(classified.error.code)
+      ? {
+          diagnostic: redactRetryTriageSecrets(classified.error.message).slice(
+            0,
+            500,
+          ),
+        }
+      : {}),
     retryable: classified.error.retryable,
     ...(retry?.decision ? { decision: retry.decision } : {}),
     ...(retry?.confidence ? { confidence: retry.confidence } : {}),
@@ -321,7 +336,7 @@ async function prepareAttemptFailure(
           })
       : [];
 
-  const classified = await classifyAttemptFailure({
+  return classifyAttemptFailure({
     task,
     attemptN: output.attemptN,
     maxAttempts: ctx.task?.maxAttempts ?? null,
@@ -333,7 +348,6 @@ async function prepareAttemptFailure(
     recentMessages,
     triage: ctx.retryTriage,
   });
-  return classified;
 }
 
 async function maybeWriteAnchors(
