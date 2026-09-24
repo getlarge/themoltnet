@@ -23433,6 +23433,88 @@ func (s GetLlmsTxtOK) Read(p []byte) (n int, err error) {
 	return s.Data.Read(p)
 }
 
+type GetOAuth2TokenBadGateway struct {
+	Error            string     `json:"error"`
+	ErrorDebug       OptString  `json:"error_debug"`
+	ErrorDescription OptString  `json:"error_description"`
+	ErrorHint        OptString  `json:"error_hint"`
+	StatusCode       OptFloat64 `json:"status_code"`
+	AdditionalProps  GetOAuth2TokenBadGatewayAdditional
+}
+
+// GetError returns the value of Error.
+func (s *GetOAuth2TokenBadGateway) GetError() string {
+	return s.Error
+}
+
+// GetErrorDebug returns the value of ErrorDebug.
+func (s *GetOAuth2TokenBadGateway) GetErrorDebug() OptString {
+	return s.ErrorDebug
+}
+
+// GetErrorDescription returns the value of ErrorDescription.
+func (s *GetOAuth2TokenBadGateway) GetErrorDescription() OptString {
+	return s.ErrorDescription
+}
+
+// GetErrorHint returns the value of ErrorHint.
+func (s *GetOAuth2TokenBadGateway) GetErrorHint() OptString {
+	return s.ErrorHint
+}
+
+// GetStatusCode returns the value of StatusCode.
+func (s *GetOAuth2TokenBadGateway) GetStatusCode() OptFloat64 {
+	return s.StatusCode
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *GetOAuth2TokenBadGateway) GetAdditionalProps() GetOAuth2TokenBadGatewayAdditional {
+	return s.AdditionalProps
+}
+
+// SetError sets the value of Error.
+func (s *GetOAuth2TokenBadGateway) SetError(val string) {
+	s.Error = val
+}
+
+// SetErrorDebug sets the value of ErrorDebug.
+func (s *GetOAuth2TokenBadGateway) SetErrorDebug(val OptString) {
+	s.ErrorDebug = val
+}
+
+// SetErrorDescription sets the value of ErrorDescription.
+func (s *GetOAuth2TokenBadGateway) SetErrorDescription(val OptString) {
+	s.ErrorDescription = val
+}
+
+// SetErrorHint sets the value of ErrorHint.
+func (s *GetOAuth2TokenBadGateway) SetErrorHint(val OptString) {
+	s.ErrorHint = val
+}
+
+// SetStatusCode sets the value of StatusCode.
+func (s *GetOAuth2TokenBadGateway) SetStatusCode(val OptFloat64) {
+	s.StatusCode = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *GetOAuth2TokenBadGateway) SetAdditionalProps(val GetOAuth2TokenBadGatewayAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*GetOAuth2TokenBadGateway) getOAuth2TokenRes() {}
+
+type GetOAuth2TokenBadGatewayAdditional map[string]jx.Raw
+
+func (s *GetOAuth2TokenBadGatewayAdditional) init() GetOAuth2TokenBadGatewayAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
 type GetOAuth2TokenBadRequest struct {
 	Error            string     `json:"error"`
 	ErrorDebug       OptString  `json:"error_debug"`
