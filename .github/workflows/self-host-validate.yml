@@ -64,4 +64,5 @@ jobs:
           NODE
           compose=(docker compose -p self-host-ci --env-file "$RUNNER_TEMP/self-host-ci.env" --env-file .env.release)
           trap '"${compose[@]}" down -v' EXIT
-          "${compose[@]}" up -d --wait --wait-timeout 120 postgres kratos hydra hydra-native-client keto talos
+          "${compose[@]}" up -d --wait --wait-timeout 120 postgres kratos hydra keto talos
+          "${compose[@]}" run --rm --no-deps hydra-native-client
