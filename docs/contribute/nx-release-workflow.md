@@ -179,7 +179,6 @@ Prime or inspect local Go proxy resolution after release tags exist:
 
 ```bash
 GOPROXY=http://localhost:3000,direct GONOSUMDB=github.com/getlarge/themoltnet go list -m github.com/getlarge/themoltnet/libs/moltnet-api-client@vX.Y.Z
-GOPROXY=http://localhost:3000,direct GONOSUMDB=github.com/getlarge/themoltnet go list -m github.com/getlarge/themoltnet/libs/dspy-adapters@vX.Y.Z
 ```
 
 Cleanup local release services:
