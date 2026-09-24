@@ -12,6 +12,12 @@ export interface ProvisioningGrant {
   scopes: string[];
   idempotencyKey: string;
 }
+export function isProvisioningDelegableScope(scope: string): boolean {
+  return (
+    scope === 'key:manage' ||
+    (TEAM_AGENT_KEY_SCOPES as readonly string[]).includes(scope)
+  );
+}
 export function readProvisioningGrant(
   value: unknown,
 ): ProvisioningGrant | null {
@@ -53,8 +59,7 @@ export function readDelegableScopes(value: unknown): string[] | null {
     new Set(value).size !== value.length ||
     !value.every(
       (scope) =>
-        typeof scope === 'string' &&
-        (TEAM_AGENT_KEY_SCOPES as readonly string[]).includes(scope),
+        typeof scope === 'string' && isProvisioningDelegableScope(scope),
     )
   )
     return null;

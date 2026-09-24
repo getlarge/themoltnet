@@ -11,7 +11,6 @@ import crypto from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import {
-  AGENT_CREDENTIAL_SCOPES,
   LOCAL_CONTROL_SCOPE,
   type OryClients,
   PROVISIONING_SCOPE,
@@ -652,12 +651,6 @@ export async function hookRoutes(fastify: FastifyInstance) {
               !delegableScopes?.includes('key:manage') ||
               provisioning.scopes.some(
                 (scope) => !delegableScopes.includes(scope),
-              ) ||
-              provisioning.scopes.some(
-                (value) =>
-                  !(AGENT_CREDENTIAL_SCOPES as readonly string[]).includes(
-                    value,
-                  ),
               ))
               ? 'provisioning_grant'
               : undefined,

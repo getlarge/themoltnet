@@ -1,5 +1,9 @@
 import { DBOSErrors } from '@moltnet/database';
-import { AGENT_OAUTH_SCOPES, DCR_MAX_SCOPES } from '@moltnet/models';
+import {
+  AGENT_CREDENTIAL_SCOPES,
+  AGENT_OAUTH_SCOPES,
+  DCR_MAX_SCOPES,
+} from '@moltnet/models';
 import type { FastifyInstance } from 'fastify';
 import {
   afterAll,
@@ -457,7 +461,7 @@ describe('Hook routes', () => {
             agentId: OWNER_ID,
             teamId: HUMAN_ID,
             operation: 'enroll',
-            scopes: ['task:execute'],
+            scopes: [...AGENT_CREDENTIAL_SCOPES, 'diary:write'],
             idempotencyKey: 'approved-request',
           };
           const response = await app.inject({
@@ -478,7 +482,8 @@ describe('Hook routes', () => {
                         'moltnet:provisioning': provisioning,
                         'moltnet:delegable_scopes': [
                           'key:manage',
-                          'task:execute',
+                          ...AGENT_CREDENTIAL_SCOPES,
+                          'diary:write',
                         ],
                       }
                     : {}),
@@ -500,7 +505,11 @@ describe('Hook routes', () => {
             ...(scope === 'moltnet:provision'
               ? {
                   'moltnet:provisioning': provisioning,
-                  'moltnet:delegable_scopes': ['key:manage', 'task:execute'],
+                  'moltnet:delegable_scopes': [
+                    'key:manage',
+                    ...AGENT_CREDENTIAL_SCOPES,
+                    'diary:write',
+                  ],
                 }
               : {}),
           });

@@ -1,6 +1,7 @@
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { createAgentKeyService } from '@moltnet/agent-key-service';
 import {
+  isProvisioningDelegableScope,
   KetoNamespace,
   LOCAL_CONTROL_SCOPE,
   type OryClients,
@@ -8,7 +9,6 @@ import {
   type ProvisioningGrant,
   readProvisioningGrant,
   requireAuth,
-  TEAM_AGENT_KEY_SCOPES,
 } from '@moltnet/auth';
 import { cryptoService, enrollmentProofMessage } from '@moltnet/crypto-service';
 import {
@@ -363,10 +363,8 @@ export async function oauth2ApprovalRoutes(
                       ? {
                           'moltnet:provisioning': result.grant,
                           'moltnet:delegable_scopes':
-                            result.human.scopes.filter((scope) =>
-                              (
-                                TEAM_AGENT_KEY_SCOPES as readonly string[]
-                              ).includes(scope),
+                            result.human.scopes.filter(
+                              isProvisioningDelegableScope,
                             ),
                         }
                       : {}),

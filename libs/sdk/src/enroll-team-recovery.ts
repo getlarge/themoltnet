@@ -40,17 +40,33 @@ export interface EnrollmentRecoverySummary {
   createdAt: string;
 }
 
-function recordPath(configDir: string, recoveryId: string): string {
+async function recordPath(
+  configDir: string,
+  recoveryId: string,
+): Promise<string> {
   if (!ENROLLMENT_RECOVERY_ID.test(recoveryId))
     throw new EnrollmentRestoreError(
       'record_invalid',
       'Invalid recovery identifier',
     );
-  return join(configDir, ENROLLMENT_RECOVERY_DIRECTORY, recoveryId);
+  const directory = join(configDir, ENROLLMENT_RECOVERY_DIRECTORY);
+  const entries = await readdir(directory).catch((error: unknown) => {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+    throw error;
+  });
+  // Select an actual directory entry. The HTTP parameter only compares names;
+  // it is never used as a filesystem path component.
+  const entry = entries.find((name) => name === recoveryId);
+  if (!entry)
+    throw new EnrollmentRestoreError(
+      'recovery_not_found',
+      'Recovery record not found',
+    );
+  return join(directory, entry);
 }
 
 async function readRecord(configDir: string, recoveryId: string) {
-  const path = recordPath(configDir, recoveryId);
+  const path = await recordPath(configDir, recoveryId);
   const file = await open(
     path,
     constants.O_RDONLY | constants.O_NOFOLLOW,
@@ -93,6 +109,7 @@ async function readRecord(configDir: string, recoveryId: string) {
         'Enrollment recovery record does not match this identity',
       );
     return {
+      path,
       record: value as EnrollmentRecoveryRecord,
       createdAt:
         typeof (value as EnrollmentRecoveryRecord).createdAt === 'string'
@@ -149,7 +166,8 @@ export async function discardEnrollmentRecovery(options: {
   expectedSecretCaptured: boolean;
 }): Promise<void> {
   const { configDir, recoveryId, expectedSecretCaptured } = options;
-  if (isEnrollmentRecoveryActive(recordPath(configDir, recoveryId)))
+  const path = await recordPath(configDir, recoveryId);
+  if (isEnrollmentRecoveryActive(path))
     throw new EnrollmentRestoreError(
       'recovery_in_progress',
       'Enrollment is still using this recovery record',
@@ -160,12 +178,12 @@ export async function discardEnrollmentRecovery(options: {
       'recovery_state_changed',
       'Recovery record changed; refresh it before discarding',
     );
-  if (isEnrollmentRecoveryActive(recordPath(configDir, recoveryId)))
+  if (isEnrollmentRecoveryActive(path))
     throw new EnrollmentRestoreError(
       'recovery_in_progress',
       'Enrollment is still using this recovery record',
     );
-  await rm(recordPath(configDir, recoveryId), { force: true });
+  await rm(path, { force: true });
 }
 
 /** Finish a captured enrollment on its original machine and verify before cleanup. */
@@ -176,7 +194,7 @@ export async function restoreCapturedEnrollment(options: {
   verify: (teamId: string, secret: string) => Promise<{ keyId: string }>;
 }): Promise<{ teamId: string; keyId: string }> {
   const { configDir, recoveryId, providers, verify } = options;
-  const { record } = await readRecord(configDir, recoveryId);
+  const { record, path } = await readRecord(configDir, recoveryId);
   const config = await readConfig(configDir).catch(() => {
     throw new EnrollmentRestoreError(
       'identity_unavailable',
@@ -335,6 +353,6 @@ export async function restoreCapturedEnrollment(options: {
       'The identity or credential provider could not be updated; retry after checking the local server logs',
     );
   }
-  await rm(recordPath(configDir, recoveryId), { force: true });
+  await rm(path, { force: true });
   return { teamId, keyId };
 }

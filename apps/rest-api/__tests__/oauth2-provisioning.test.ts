@@ -1,8 +1,8 @@
 import {
   HUMAN_SESSION_SCOPES,
+  isProvisioningDelegableScope,
   LOCAL_CONTROL_SCOPE,
   PROVISIONING_SCOPE,
-  TEAM_AGENT_KEY_SCOPES,
 } from '@moltnet/auth';
 import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
 import { ResponseError } from '@ory/client-fetch';
@@ -352,8 +352,8 @@ describe('OAuth consent target validation', () => {
             'moltnet:instance': 'eeeeeeee-0000-4000-8000-000000000005',
             'moltnet:approved_scope': PROVISIONING_SCOPE,
             'moltnet:provisioning': grant,
-            'moltnet:delegable_scopes': human.scopes.filter((scope) =>
-              (TEAM_AGENT_KEY_SCOPES as readonly string[]).includes(scope),
+            'moltnet:delegable_scopes': human.scopes.filter(
+              isProvisioningDelegableScope,
             ),
           },
         },

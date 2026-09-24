@@ -39,6 +39,10 @@ describe('provisioning scope validation', () => {
 
   it('rejects duplicate delegation claims without imposing the daemon floor', () => {
     expect(readDelegableScopes(['team:read'])).toEqual(['team:read']);
+    expect(readDelegableScopes(['key:manage', 'team:read'])).toEqual([
+      'key:manage',
+      'team:read',
+    ]);
     expect(readDelegableScopes(['team:read', 'team:read'])).toBeNull();
   });
 });
