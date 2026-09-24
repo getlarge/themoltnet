@@ -91,6 +91,54 @@ export function createSleepingContext(): WorkflowContext {
 /** Default poll delay; it only adds to wall-clock, never to phase timings. */
 export const DEFAULT_POLL_INTERVAL_SEC = 0.5;
 
+/** Consecutive failed reads of one poll before the review gives up. */
+export const POLL_READ_RETRY_LIMIT = 5;
+
+/**
+ * Statuses worth retrying while polling a task this run created. 403 is
+ * included only because production maps Keto 429s to a false 403 until the
+ * 503 fix in libs/auth ships; drop it once deployed.
+ */
+const RETRYABLE_READ_STATUSES = new Set([403, 429, 502, 503, 504]);
+
+/**
+ * Wraps task reads with bounded, logged retries so one throttled poll does
+ * not discard a review whose task is still running server-side.
+ */
+function withReadRetries(
+  tasks: TaskClient,
+  ctx: WorkflowContext,
+  backoffSec: number,
+  logger?: Logger,
+): TaskClient {
+  const retry = async <T>(label: string, read: () => Promise<T>) => {
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        return await read();
+      } catch (error) {
+        const status = (error as { statusCode?: unknown }).statusCode;
+        if (
+          attempt >= POLL_READ_RETRY_LIMIT ||
+          typeof status !== 'number' ||
+          !RETRYABLE_READ_STATUSES.has(status)
+        ) {
+          throw error;
+        }
+        logger?.warn(
+          { label, status, attempt, limit: POLL_READ_RETRY_LIMIT },
+          'docs_impact.task_read.retry',
+        );
+        await ctx.sleepFor(`${label}.retry.${attempt}`, backoffSec * attempt);
+      }
+    }
+  };
+  return {
+    ...tasks,
+    getTask: (id) => retry(`get:${id}`, () => tasks.getTask(id)),
+    listAttempts: (id) => retry(`attempts:${id}`, () => tasks.listAttempts(id)),
+  };
+}
+
 async function transcriptHead(
   tasks: TaskClient,
   taskId: string,
@@ -114,12 +162,13 @@ async function runStage<T>(
   timings: DocsImpactReport['timings']['stages'],
 ): Promise<T> {
   const now = deps.now ?? Date.now;
+  const pollIntervalSec = input.pollIntervalSec ?? DEFAULT_POLL_INTERVAL_SEC;
   const createdAt = now();
   const task = await deps.tasks.createTask(body);
   const outcome = await waitForTaskOutcome(task.id, {
-    tasks: deps.tasks,
+    tasks: withReadRetries(deps.tasks, deps.ctx, pollIntervalSec, deps.logger),
     ctx: deps.ctx,
-    pollIntervalSec: input.pollIntervalSec ?? DEFAULT_POLL_INTERVAL_SEC,
+    pollIntervalSec,
     parse,
     logger: deps.logger,
     description: `docs-impact ${stage}`,

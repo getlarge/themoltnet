@@ -61,7 +61,7 @@ never skews the split:
 
 | Field               | Span                                                                               |
 | ------------------- | ---------------------------------------------------------------------------------- |
-| `queueMs`           | task created → claimed                                                             |
+| `queueMs`           | task queued → claimed                                                              |
 | `openMs`            | claimed → first heartbeat (`startedAt`)                                            |
 | `setupMs`           | first heartbeat → `execute_start`: snapshot, worktree, VM resume, guest projection |
 | `firstModelEventMs` | `execute_start` → first model text or tool call                                    |

@@ -113,13 +113,13 @@ export interface SelectedDoc {
 /**
  * Per-stage timing from server timestamps plus transcript events, so poll
  * delay never skews the phase split. Phases, in runtime order:
- * created → claimed (queue) → started (first heartbeat, before any VM work)
+ * queued → claimed (queue) → started (first heartbeat, before any VM work)
  * → `execute_start` (snapshot, worktree, VM resume, guest projection)
  * → first model event (prompt assembly, first token) → completed.
  */
 export interface StageTiming {
   taskId: string;
-  createdAt: string;
+  queuedAt: string | null;
   claimedAt: string | null;
   startedAt: string | null;
   executeStartAt: string | null;
@@ -133,7 +133,7 @@ export interface StageTiming {
   modelMs: number | null;
   /** started → completed. */
   executionMs: number | null;
-  /** Client-observed create → terminal state, including poll delay. */
+  /** Client-observed create call → terminal state, including poll delay. */
   observedMs: number;
   toolCalls: number | null;
   inputTokens: number | null;

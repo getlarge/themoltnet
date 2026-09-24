@@ -41,7 +41,7 @@ export function stageTiming(args: {
 }): StageTiming {
   const { task, attempt, messages } = args;
   const ordered = [...messages].sort((a, b) => a.seq - b.seq);
-  const createdAt = (task as { createdAt?: string }).createdAt ?? '';
+  const queuedAt = task.queuedAt ?? null;
   const claimedAt = attempt?.claimedAt ?? null;
   const startedAt = attempt?.startedAt ?? null;
   const completedAt = attempt?.completedAt ?? null;
@@ -49,13 +49,13 @@ export function stageTiming(args: {
   const firstModelEventAt = ordered.find(isModelEvent)?.timestamp ?? null;
   return {
     taskId: task.id,
-    createdAt,
+    queuedAt,
     claimedAt,
     startedAt,
     executeStartAt,
     firstModelEventAt,
     completedAt,
-    queueMs: elapsed(createdAt, claimedAt),
+    queueMs: elapsed(queuedAt, claimedAt),
     openMs: elapsed(claimedAt, startedAt),
     setupMs: elapsed(startedAt, executeStartAt),
     firstModelEventMs: elapsed(executeStartAt, firstModelEventAt),

@@ -17,7 +17,11 @@ import {
 type StageOutput = { summary: string } | Error;
 
 /** Scripted task client: each created task completes with the next output. */
-function fakeTasks(outputs: StageOutput[]) {
+function fakeTasks(
+  outputs: StageOutput[],
+  options: { failedGets?: number } = {},
+) {
+  let failedGets = options.failedGets ?? 0;
   const created: CreateBody[] = [];
   const tasks = new Map<string, { task: SdkTask; attempt: SdkTaskAttempt }>();
   const client: TaskClient = {
@@ -31,7 +35,7 @@ function fakeTasks(outputs: StageOutput[]) {
           id,
           status: failed ? 'failed' : 'completed',
           acceptedAttemptN: failed ? null : 1,
-          createdAt: '2026-09-24T10:00:00.000Z',
+          queuedAt: '2026-09-24T10:00:00.000Z',
         } as unknown as SdkTask,
         attempt: {
           attemptN: 1,
@@ -47,6 +51,14 @@ function fakeTasks(outputs: StageOutput[]) {
       return Promise.resolve(tasks.get(id)!.task);
     },
     getTask(id) {
+      if (failedGets > 0) {
+        failedGets -= 1;
+        return Promise.reject(
+          Object.assign(new Error('Not authorized to view this task'), {
+            statusCode: 403,
+          }),
+        );
+      }
       return Promise.resolve(tasks.get(id)!.task);
     },
     listAttempts(id) {
@@ -112,8 +124,13 @@ describe('runDocsImpactReview', () => {
     };
   }
 
-  function run(head: string, outputs: StageOutput[], overrides = {}) {
-    const tasks = fakeTasks(outputs);
+  function run(
+    head: string,
+    outputs: StageOutput[],
+    overrides = {},
+    failedGets = 0,
+  ) {
+    const tasks = fakeTasks(outputs, { failedGets });
     const report = runDocsImpactReview(
       {
         git: repo.git,
@@ -251,6 +268,37 @@ describe('runDocsImpactReview', () => {
     const result = await report;
     expect(result.status).toBe('failed');
     expect(result.error).toMatch(/status failed/);
+  });
+
+  it('keeps polling through transient read failures', async () => {
+    // Arrange
+    const head = repo.commit({
+      'apps/cli/src/flags.ts': 'export const flags: string[] = [];\n',
+    });
+
+    // Act
+    const { report } = run(head, [json({ version: 1, changes: [] })], {}, 3);
+
+    // Assert
+    await expect(report).resolves.toMatchObject({
+      status: 'completed',
+      outcome: 'not-needed',
+    });
+  });
+
+  it('fails when reads keep failing past the retry limit', async () => {
+    // Arrange
+    const head = repo.commit({
+      'apps/cli/src/flags.ts': 'export const flags: string[] = [];\n',
+    });
+
+    // Act
+    const { report } = run(head, [json({ version: 1, changes: [] })], {}, 50);
+
+    // Assert
+    const result = await report;
+    expect(result.status).toBe('failed');
+    expect(result.error).toMatch(/Not authorized/);
   });
 
   it('downgrades a clean result to incomplete when the diff budget dropped files', async () => {

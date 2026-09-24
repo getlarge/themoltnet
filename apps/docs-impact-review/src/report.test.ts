@@ -109,7 +109,7 @@ describe('summarizeCorpus', () => {
     // Arrange
     const stage = (setupMs: number) => ({
       taskId: 't',
-      createdAt: '',
+      queuedAt: null,
       claimedAt: null,
       startedAt: null,
       executeStartAt: null,

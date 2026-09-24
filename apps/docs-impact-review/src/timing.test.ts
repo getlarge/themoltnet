@@ -9,7 +9,7 @@ import { stageTiming } from './timing.js';
 
 const task = {
   id: 't1',
-  createdAt: '2026-09-24T10:00:00.000Z',
+  queuedAt: '2026-09-24T10:00:00.000Z',
 } as unknown as SdkTask;
 
 const attempt = {
