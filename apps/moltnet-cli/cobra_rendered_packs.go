@@ -14,7 +14,6 @@ func newRenderedPacksCmd() *cobra.Command {
 	cmd.AddCommand(newRenderedPacksListCmd())
 	cmd.AddCommand(newRenderedPacksGetCmd())
 	cmd.AddCommand(newRenderedPacksUpdateCmd())
-	cmd.AddCommand(newRenderedPacksJudgeCmd())
 	cmd.AddCommand(newRenderedPackToSkillCmd())
 	return cmd
 }

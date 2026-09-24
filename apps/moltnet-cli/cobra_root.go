@@ -82,7 +82,6 @@ without human intervention.`,
 	rootCmd.AddCommand(newProfileCmd())
 	rootCmd.AddCommand(newPolicyCmd())
 	rootCmd.AddCommand(newTaskCmd())
-	rootCmd.AddCommand(newEvalCmd())
 	rootCmd.AddCommand(newCompletionCmd())
 	rootCmd.AddCommand(newUseCmd())
 	rootCmd.AddCommand(newEnvCmd())

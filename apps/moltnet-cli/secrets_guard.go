@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -42,6 +43,20 @@ type secretGuardPathContext struct {
 	cwd         string
 	currentRoot string
 	mainRoot    string
+}
+
+func currentRepoRoot() (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("get working directory: %w", err)
+	}
+	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	cmd.Dir = wd
+	root, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("resolve repo root: %w", err)
+	}
+	return strings.TrimSpace(string(root)), nil
 }
 
 func resolveSecretGuardPathContext() (secretGuardPathContext, error) {
