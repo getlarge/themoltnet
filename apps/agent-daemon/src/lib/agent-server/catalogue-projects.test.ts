@@ -168,6 +168,30 @@ describe('project catalogue', () => {
     );
   });
 
+  it('bounds a team read even when a step ignores the abort signal', async () => {
+    // Arrange: e.g. a secret-provider lookup that never settles.
+    const port = agent();
+    port.readTeam.mockImplementation(() => new Promise<never>(() => {}));
+
+    // Act
+    const result = await buildCatalogue({
+      agent: port,
+      machine,
+      identityDefault: {},
+      teamBudgetMs: 20,
+    });
+
+    // Assert
+    expect(result.teams[0]).toMatchObject({
+      available: false,
+      blockers: [
+        expect.objectContaining({
+          message: 'Verifying this team credential took too long.',
+        }),
+      ],
+    });
+  });
+
   it('keeps a verified team when only project discovery exceeds the budget', async () => {
     // Arrange
     const port = agent();

@@ -118,6 +118,25 @@ describe('CatalogueSourceCache', () => {
     expect(load).toHaveBeenCalledTimes(2);
   });
 
+  it('invalidates only the keys under a prefix', async () => {
+    // Arrange: two teams of one identity, and another identity.
+    const subject = cache();
+    let n = 0;
+    const load = vi.fn(() => Promise.resolve({ healthy: true, n: ++n }));
+    await subject.read('bot\u0000team-a', load);
+    await subject.read('bot\u0000team-b', load);
+    await subject.read('other\u0000team-a', load);
+
+    // Act
+    subject.invalidate('bot\u0000');
+    await subject.read('bot\u0000team-a', load);
+    await subject.read('bot\u0000team-b', load);
+    await subject.read('other\u0000team-a', load);
+
+    // Assert: both of bot's teams re-read; the other identity reused.
+    expect(load).toHaveBeenCalledTimes(5);
+  });
+
   it('keeps identities apart and invalidates all of them at once', async () => {
     // Arrange
     const subject = cache();

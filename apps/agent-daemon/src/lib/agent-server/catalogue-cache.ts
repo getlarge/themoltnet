@@ -8,8 +8,10 @@
  * times out. So concurrent callers join one read, and a healthy result is
  * reused for a few seconds. An explicit refresh always reads fresh.
  *
- * Only the remote sources are shared. Machine readiness and the identity
- * binding are local and assembled fresh on every request.
+ * Only the remote sources are shared, one entry per identity and team, so a
+ * degraded team never forces its healthy siblings to be verified again.
+ * Machine readiness and the identity binding are local and assembled fresh on
+ * every request.
  */
 /** Long enough to merge the poll, tray and views asking at once; no longer. */
 export const CATALOGUE_CACHE_TTL_MS = 10_000;
@@ -67,10 +69,13 @@ export class CatalogueSourceCache<T> {
     return pending;
   }
 
-  /** Drop a key, or every key; reads in flight finish but are not kept. */
-  invalidate(key?: string): void {
-    const slots = key === undefined ? this.#slots.values() : [this.#slot(key)];
-    for (const slot of slots) {
+  /**
+   * Drop every key starting with `prefix`, or every key; reads in flight
+   * finish but are not kept.
+   */
+  invalidate(prefix = ''): void {
+    for (const [key, slot] of this.#slots) {
+      if (!key.startsWith(prefix)) continue;
       slot.generation += 1;
       slot.pending = undefined;
       slot.value = undefined;

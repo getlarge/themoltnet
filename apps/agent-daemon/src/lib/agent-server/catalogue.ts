@@ -200,95 +200,147 @@ export async function readCatalogueSources(
     signal?: AbortSignal;
     teamBudgetMs?: number;
     logger?: Pick<FastifyBaseLogger, 'warn'>;
+    /**
+     * Lets a caller share or reuse each team's read. Per team, so one degraded
+     * team never forces the healthy ones to be verified again.
+     */
+    share?: (
+      teamId: string,
+      load: () => Promise<CatalogueTeamSource>,
+    ) => Promise<CatalogueTeamSource>;
   } = {},
 ): Promise<CatalogueTeamSource[]> {
-  const { signal, logger } = options;
+  const { signal, logger, share } = options;
   const budgetMs = options.teamBudgetMs ?? CATALOGUE_TEAM_BUDGET_MS;
   return Promise.all(
-    agent.teamIds.map(async (teamId): Promise<CatalogueTeamSource> => {
-      const budget = AbortSignal.timeout(budgetMs);
-      const teamSignal = signal ? AbortSignal.any([signal, budget]) : budget;
-      let result: Awaited<ReturnType<CatalogueAgentPort['readTeam']>>;
-      try {
-        result = await agent.readTeam(teamId, teamSignal);
-        if (result.team.id !== teamId)
-          throw new Error('Team response mismatch');
-      } catch (error) {
-        const timedOut = budget.aborted && !signal?.aborted;
-        const blocker = timedOut
-          ? TEAM_TIMEOUT_BLOCKER
-          : credentialBlocker(error);
-        // The catalogue answers 200 either way; without this line an
-        // unavailable team leaves no trace of why.
-        logger?.warn(
-          {
-            ...safeErrorContext(error),
-            teamId,
-            blocker: blocker.code,
-            timedOut,
-            code: 'agent_server_team_unavailable',
-          },
-          'AgentServer team credential unavailable',
-        );
-        return { teamId, available: false, blocker };
-      }
-      const verified = {
-        teamId,
-        available: true as const,
-        team: result.team,
-        diaries: result.diaries,
-        profiles: result.profiles,
-        credential: result.credential,
-      };
-      try {
-        const page = await agent.readProjects(teamId, teamSignal);
-        return {
-          ...verified,
-          projects: page.items,
-          projectErrors: page.truncated
-            ? [
-                {
-                  teamId,
-                  code: 'truncated',
-                  message:
-                    'Only the first projects are listed. Archive unused projects to see the rest.',
-                },
-              ]
-            : [],
-        };
-      } catch (error) {
-        // Project discovery does not invalidate the credential just verified
-        // above. General work and team/profile recovery remain available.
-        logger?.warn(
-          {
-            ...safeErrorContext(error),
-            teamId,
-            timedOut: budget.aborted && !signal?.aborted,
-            code: 'agent_server_project_discovery_failed',
-          },
-          'AgentServer project discovery failed',
-        );
-        return {
-          ...verified,
-          projects: [],
-          projectErrors: [projectError(teamId, error)],
-        };
-      }
+    agent.teamIds.map((teamId) => {
+      const load = () =>
+        readTeamSource(agent, teamId, { signal, budgetMs, logger });
+      return share ? share(teamId, load) : load();
     }),
   );
 }
 
 /**
- * Whether a source read may be reused. Anything degraded is re-read on the
+ * Settles when `work` does or when `signal` aborts, whichever is first. Not
+ * every step honours a signal (a secret-provider lookup may not), so the
+ * budget is enforced here and a late result is discarded.
+ */
+function withinBudget<T>(work: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) return Promise.reject(abortError(signal));
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(abortError(signal));
+    signal.addEventListener('abort', onAbort, { once: true });
+    work.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(value);
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      },
+    );
+  });
+}
+
+function abortError(signal: AbortSignal): Error {
+  const reason: unknown = signal.reason;
+  return reason instanceof Error
+    ? reason
+    : new DOMException('The operation was aborted.', 'AbortError');
+}
+
+async function readTeamSource(
+  agent: CatalogueAgentPort,
+  teamId: string,
+  options: {
+    signal?: AbortSignal;
+    budgetMs: number;
+    logger?: Pick<FastifyBaseLogger, 'warn'>;
+  },
+): Promise<CatalogueTeamSource> {
+  const { signal, logger } = options;
+  const budget = AbortSignal.timeout(options.budgetMs);
+  const teamSignal = signal ? AbortSignal.any([signal, budget]) : budget;
+  let result: Awaited<ReturnType<CatalogueAgentPort['readTeam']>>;
+  try {
+    result = await withinBudget(agent.readTeam(teamId, teamSignal), teamSignal);
+    if (result.team.id !== teamId) throw new Error('Team response mismatch');
+  } catch (error) {
+    const timedOut = budget.aborted && !signal?.aborted;
+    const blocker = timedOut ? TEAM_TIMEOUT_BLOCKER : credentialBlocker(error);
+    // The catalogue answers 200 either way; without this line an
+    // unavailable team leaves no trace of why.
+    logger?.warn(
+      {
+        ...safeErrorContext(error),
+        teamId,
+        blocker: blocker.code,
+        timedOut,
+        code: 'agent_server_team_unavailable',
+      },
+      'AgentServer team credential unavailable',
+    );
+    return { teamId, available: false, blocker };
+  }
+  const verified = {
+    teamId,
+    available: true as const,
+    team: result.team,
+    diaries: result.diaries,
+    profiles: result.profiles,
+    credential: result.credential,
+  };
+  try {
+    const page = await withinBudget(
+      agent.readProjects(teamId, teamSignal),
+      teamSignal,
+    );
+    return {
+      ...verified,
+      projects: page.items,
+      projectErrors: page.truncated
+        ? [
+            {
+              teamId,
+              code: 'truncated',
+              message:
+                'Only the first projects are listed. Archive unused projects to see the rest.',
+            },
+          ]
+        : [],
+    };
+  } catch (error) {
+    // Project discovery does not invalidate the credential just verified
+    // above. General work and team/profile recovery remain available.
+    logger?.warn(
+      {
+        ...safeErrorContext(error),
+        teamId,
+        timedOut: budget.aborted && !signal?.aborted,
+        code: 'agent_server_project_discovery_failed',
+      },
+      'AgentServer project discovery failed',
+    );
+    return {
+      ...verified,
+      projects: [],
+      projectErrors: [projectError(teamId, error)],
+    };
+  }
+}
+
+/**
+ * Whether a team's read may be reused. Anything degraded is re-read on the
  * next request: a transient failure must never outlive its cause.
  */
 export function isCatalogueSourceReusable(
-  sources: readonly CatalogueTeamSource[],
+  source: CatalogueTeamSource,
 ): boolean {
-  return sources.every(
-    (source) =>
-      source.available &&
-      source.projectErrors.every((error) => error.code === 'truncated'),
+  return (
+    source.available &&
+    source.projectErrors.every((error) => error.code === 'truncated')
   );
 }
 

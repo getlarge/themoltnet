@@ -315,6 +315,37 @@ describe('run catalogue', () => {
       expect(readTeam).toHaveBeenCalledTimes(2);
     });
 
+    it('reuses a healthy team while re-reading only the degraded one', async () => {
+      // Arrange: two teams; the second cannot be verified yet.
+      const OTHER = '9c1d7f3e-2a4b-4c6d-8e0f-1a2b3c4d5e6f';
+      const readTeam = vi.fn(async (teamId: string, signal?: AbortSignal) => {
+        if (teamId === OTHER) throw new Error('not yet verifiable');
+        return catalogueAgent.readTeam(teamId, signal);
+      });
+      const readProjects = vi.fn((teamId: string, signal?: AbortSignal) =>
+        catalogueAgent.readProjects(teamId, signal),
+      );
+      const { read } = await setup({
+        ...catalogueAgent,
+        teamIds: [TEAM, OTHER],
+        readTeam,
+        readProjects,
+      });
+
+      // Act: the recovery poll asks again while the second team is degraded.
+      await read();
+      const again = (await read()).json<Catalogue>();
+
+      // Assert
+      expect(again.teams.map((team) => team.available)).toEqual([true, false]);
+      expect(readTeam.mock.calls.map(([teamId]) => teamId)).toEqual([
+        TEAM,
+        OTHER,
+        OTHER,
+      ]);
+      expect(readProjects).toHaveBeenCalledTimes(1);
+    });
+
     it('re-reads a degraded catalogue instead of serving the failure again', async () => {
       // Arrange: a freshly renewed credential that the API rejects once.
       const readTeam = vi

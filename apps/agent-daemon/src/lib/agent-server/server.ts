@@ -368,7 +368,7 @@ export function buildAgentServer(
 ): FastifyInstance {
   const options = { ...input };
   const { nativeGrant } = options;
-  const catalogueSources = new CatalogueSourceCache<CatalogueTeamSource[]>({
+  const catalogueSources = new CatalogueSourceCache<CatalogueTeamSource>({
     ttlMs: options.catalogueCacheTtlMs,
     reusable: isCatalogueSourceReusable,
   });
@@ -931,23 +931,23 @@ async function readIdentityCatalogue(
   options: BuildAgentServerOptions,
   alias: string,
   logger: FastifyBaseLogger,
-  sources: CatalogueSourceCache<CatalogueTeamSource[]>,
+  sources: CatalogueSourceCache<CatalogueTeamSource>,
   refresh: boolean,
 ) {
   // Throws a typed not-found when the alias is not activated here.
   requireActivation(options.store, alias);
+  const identityKey = `${alias}\u0000`;
   // Someone asked to look again: whatever was read before is not an answer.
-  if (refresh) sources.invalidate(alias);
+  if (refresh) sources.invalidate(identityKey);
   const agent = await catalogueAgent(options, alias);
   // The shared read is not tied to one request: a caller that disconnects
   // must not abort the read other callers joined. The team budget bounds it.
-  const teams = await sources.read(alias, () =>
-    readCatalogueSources(agent, {
-      signal: options.shutdownSignal,
-      teamBudgetMs: options.catalogueTeamBudgetMs,
-      logger,
-    }),
-  );
+  const teams = await readCatalogueSources(agent, {
+    signal: options.shutdownSignal,
+    teamBudgetMs: options.catalogueTeamBudgetMs,
+    logger,
+    share: (teamId, load) => sources.read(identityKey + teamId, load),
+  });
   return assembleCatalogue(teams, {
     machine: machineCapabilities(options),
     identityDefault: readIdentityDefaultBinding(
@@ -964,7 +964,7 @@ async function readIdentityCatalogue(
  */
 function registerCatalogueInvalidation(
   app: FastifyInstance,
-  sources: CatalogueSourceCache<CatalogueTeamSource[]>,
+  sources: CatalogueSourceCache<CatalogueTeamSource>,
 ): void {
   app.addHook('onSend', async (request, reply) => {
     const route = request.routeOptions.url ?? '';
@@ -981,7 +981,7 @@ function registerCatalogueRoute(
   app: FastifyInstance,
   options: BuildAgentServerOptions,
   requireAuthorizedOrigin: AuthorizedOriginGuard,
-  sources: CatalogueSourceCache<CatalogueTeamSource[]>,
+  sources: CatalogueSourceCache<CatalogueTeamSource>,
 ): void {
   app.get(
     '/v1/catalogue',
