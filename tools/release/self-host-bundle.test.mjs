@@ -45,9 +45,27 @@ test('builds an installable source archive with current component versions', () 
       releaseEnv,
       new RegExp(`DB_MIGRATE_IMAGE=.*:${versions['libs/database']}`),
     );
+    const releaseSignerPublicKey = execFileSync(
+      'bash',
+      [path.join(repoRoot, 'tools/release/release-signer-pubkey.sh'), repoRoot],
+      { encoding: 'utf8' },
+    ).trim();
+    assert.ok(
+      releaseEnv.includes(`RELEASE_SIGNER_PUBKEY=${releaseSignerPublicKey}\n`),
+    );
 
     const composeDir = path.join(output, 'deploy/self-host');
     assert.equal(existsSync(path.join(composeDir, '.env')), false);
+    assert.equal(
+      existsSync(path.join(composeDir, 'config/provision-native-client.mjs')),
+      true,
+    );
+    assert.equal(
+      existsSync(
+        path.join(output, 'infra/ory/oauth2-clients/moltnet-native.json'),
+      ),
+      true,
+    );
     const config = spawnSync(
       'docker',
       [

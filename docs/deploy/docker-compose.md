@@ -33,6 +33,91 @@ The generated directory uses the component versions in
 component's `package.json`. Published archives replace those tags with registry
 digests.
 
+Hydra's one-shot initialization job applies the tracked `moltnet-native`
+authorization-code client before the REST API starts. Its loopback redirect,
+scopes, and audiences match the Desktop provisioning flow. Other OAuth clients
+can use Hydra dynamic registration; the REST API serves the shared consent page
+at `/oauth2/consent`. Keto loads the bundled permission model from
+`infra/ory/permissions.ts`.
+
+## Collect logs and telemetry
+
+The base bundle keeps bounded Docker logs and leaves `OTLP_ENDPOINT` empty. To
+export telemetry, add a deployment-local OpenTelemetry Collector Contrib to the
+Compose network and set `OTLP_ENDPOINT=http://otel-collector:4318` for the REST
+API and MCP server. Configure its OTLP receiver and an exporter for your
+telemetry backend. Keep its OTLP ports private to the Compose network.
+
+Docker stdout is a separate source. The pattern used by MoltNet operations is to
+bind the Collector's Fluent Forward receiver to the Docker host's loopback
+interface and select Docker's `fluentd` logging driver for infrastructure
+services. For example, these are the relevant parts of a Compose override:
+
+```yaml
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:<pinned-version-or-digest>
+    command: [--config=/etc/otelcol/config.yaml]
+    ports: ['127.0.0.1:24224:24224']
+    volumes: ['./config/otel-collector.yaml:/etc/otelcol/config.yaml:ro']
+
+  rest-api:
+    environment:
+      OTLP_ENDPOINT: http://otel-collector:4318
+  mcp-server:
+    environment:
+      OTLP_ENDPOINT: http://otel-collector:4318
+
+  postgres:
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: 127.0.0.1:24224
+        fluentd-async: 'true'
+        fluentd-buffer-limit: '1048576'
+        tag: 'docker.{{.Name}}'
+```
+
+The Collector config needs an `otlp` receiver for app signals and a
+`fluent_forward` receiver on `0.0.0.0:24224` for Docker logs, each in its own
+pipeline. The receiver portion is:
+
+```yaml
+receivers:
+  otlp:
+    protocols:
+      http: { endpoint: '0.0.0.0:4318' }
+  fluent_forward:
+    endpoint: '0.0.0.0:24224'
+```
+
+Route both receivers through processors and an exporter to your chosen backend.
+Apply the `postgres` logging stanza to the other infrastructure services whose
+stdout you want to export. Keep REST and MCP on the bounded Docker logging
+driver when their logs already flow through OTLP; this avoids duplicate
+ingestion. Keep the Collector itself on a bounded local logging driver to avoid
+a forwarding loop. Docker's `fluentd-async` allows containers to start if the
+Collector is temporarily unavailable, but its buffer is not a durable log queue.
+
+MoltNet's
+[custom Collector](https://github.com/getlarge/themoltnet/blob/main/infra/otel/custom-collector/README.md)
+has a different role: it authenticates and attributes **remote agent** OTLP
+traffic. If you expose agent telemetry, run it as a separate gateway, configure
+`moltnetauth` with the private Hydra, Talos, and Kratos admin URLs, and expose
+only its authenticated HTTP receiver on port `4319` through TLS ingress. Send
+its output to the deployment-local Collector. The custom image does not include
+the `fluent_forward` receiver, so it cannot collect Docker stdout directly. For
+the bundled self-hosted Ory services, its authentication extension uses:
+
+```yaml
+extensions:
+  moltnetauth:
+    hydra_admin_url: http://hydra:4445
+    talos_admin_url: http://talos:4420
+    kratos_admin_url: http://kratos:4434
+    required_scopes: [task:execute]
+```
+
 ## Upgrade
 
 1. Take and verify a fresh backup.

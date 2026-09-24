@@ -198,6 +198,17 @@ services:
       timeout: 5s
       retries: 12
 
+  hydra-native-client:
+    image: ${DB_MIGRATE_IMAGE:?set DB_MIGRATE_IMAGE}
+    command: [node, /etc/config/hydra/provision-native-client.mjs]
+    volumes:
+      - ./config/provision-native-client.mjs:/etc/config/hydra/provision-native-client.mjs:ro
+      - ../../infra/ory/oauth2-clients/moltnet-native.json:/etc/config/hydra/moltnet-native.json:ro
+    depends_on:
+      hydra:
+        condition: service_healthy
+    restart: on-failure:3
+
   keto-migrate:
     image: oryd/keto:v25.4.0
     command: migrate up --yes --config /etc/config/keto/keto.yaml
@@ -293,6 +304,7 @@ services:
       ORY_TALOS_ADMIN_URL: http://talos:4420
       ORY_ACTION_API_KEY: ${ORY_ACTION_API_KEY:?set ORY_ACTION_API_KEY}
       RECOVERY_CHALLENGE_SECRET: ${RECOVERY_CHALLENGE_SECRET:?set RECOVERY_CHALLENGE_SECRET}
+      RELEASE_SIGNER_PUBKEY: ${RELEASE_SIGNER_PUBKEY:?set RELEASE_SIGNER_PUBKEY}
       CORS_ORIGINS: https://${CONSOLE_DOMAIN},https://${IDENTITY_DOMAIN}
       AUTH_SCOPE_ENFORCEMENT: enforce
       REDIS_HOST: valkey
@@ -315,6 +327,8 @@ services:
         condition: service_healthy
       hydra:
         condition: service_healthy
+      hydra-native-client:
+        condition: service_completed_successfully
       keto:
         condition: service_healthy
       talos:

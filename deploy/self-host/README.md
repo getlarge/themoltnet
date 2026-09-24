@@ -34,6 +34,9 @@ backup of the Talos volume (SQLite database, JWK, and HMAC secret). See the
 
 The Ory administrative ports, PostgreSQL, Valkey, Talos, and the object store
 are private to the Compose network. Only Caddy publishes host ports.
+Hydra provisions the tracked `moltnet-native` public PKCE client before the REST
+API starts. The same client definition is reapplied on subsequent starts; review
+it when upgrading if you manage additional OAuth clients.
 
 ## Single-host limitations
 

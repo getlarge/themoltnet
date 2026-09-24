@@ -175,6 +175,15 @@ function writeImageLock(destination, skipDigests) {
     }
     lines.push(`${variable}=${imageWithoutTag(image)}@${digest}`);
   }
+  const releaseSignerPublicKey = run(
+    'bash',
+    ['tools/release/release-signer-pubkey.sh', repoRoot],
+    { capture: true },
+  ).trim();
+  if (!/^ssh-ed25519 [A-Za-z0-9+/]+={0,2}$/.test(releaseSignerPublicKey)) {
+    throw new Error('Invalid release signer public key');
+  }
+  lines.push(`RELEASE_SIGNER_PUBKEY=${releaseSignerPublicKey}`);
   writeFileSync(destination, `${lines.join('\n')}\n`, { mode: 0o644 });
 }
 
