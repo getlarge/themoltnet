@@ -197,6 +197,32 @@ async function errorHandler(fastify: FastifyInstance) {
           ? 'An unexpected error occurred'
           : (handledError.detail ?? handledError.message);
 
+      // The token route declares OAuth error bodies for these statuses. Local
+      // errors (including the global rate limiter) also pass through this
+      // handler; sending Problem Details there fails response serialization.
+      if (request.routeOptions?.url === '/oauth2/token') {
+        const oauthError =
+          status === 429 || status === 503
+            ? 'temporarily_unavailable'
+            : status === 400
+              ? 'invalid_request'
+              : status === 401
+                ? 'invalid_client'
+                : 'server_error';
+        const description =
+          typeof detail === 'string'
+            ? detail
+            : 'The token request could not be completed';
+        return reply
+          .status(status)
+          .header('content-type', 'application/json')
+          .send({
+            error: oauthError,
+            error_description: description,
+            status_code: status,
+          });
+      }
+
       const body: Record<string, unknown> = {
         type: getTypeUri(
           isValidationError ? 'validation-failed' : problemType.slug,

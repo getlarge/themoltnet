@@ -1,8 +1,8 @@
 /**
  * Rate limiting plugin using @fastify/rate-limit
  *
- * Configures global and per-route rate limits with RFC 9457 Problem Details
- * format for rate limit exceeded responses.
+ * Configures global and per-route rate limits. The OAuth token endpoint uses
+ * its declared OAuth error response; other routes use RFC 9457 Problem Details.
  */
 
 import rateLimit from '@fastify/rate-limit';
@@ -141,9 +141,21 @@ export function registerPreResolveThrottle(
 }
 
 /**
- * Build RFC 9457 Problem Details response for rate limit exceeded.
+ * Build the response required by the route's 429 schema.
  */
 function buildRateLimitResponse(request: FastifyRequest, retryAfter: number) {
+  // The token route declares an OAuth error schema for 429. Sending Problem
+  // Details there makes Fastify's serializer throw because `error` is missing,
+  // which can turn an intentional throttle into a 500.
+  if (request.routeOptions?.url === '/oauth2/token') {
+    return {
+      error: 'temporarily_unavailable',
+      error_description: `Too many requests. Please retry after ${retryAfter} seconds.`,
+      status_code: 429,
+      statusCode: 429,
+    };
+  }
+
   return {
     type: getTypeUri('rate-limit-exceeded'),
     title: 'Rate Limit Exceeded',
