@@ -219,31 +219,35 @@ describe('retry triage classification', () => {
         retryable: true,
       }),
     ).toBe('retryable');
+  });
+
+  it.each([
+    '{"error":{"code":401,"status":"UNAUTHENTICATED"}}',
+    '400 Request validation failed: bad arguments',
+    'Request was cancelled.',
+  ])('keeps main-branch guards for unknown or older error %s', (message) => {
     expect(
       classifyDeterministically({
         code: 'llm_api_error',
-        message: '401 Unauthorized',
-        retryable: true,
+        message,
+        retryable: false,
       }),
     ).toBe('non_retryable');
   });
 
-  it('keeps main-branch guards for older llm_api_error rows', () => {
-    for (const message of [
-      '{"error":{"code":401,"status":"UNAUTHENTICATED"}}',
-      '400 Request validation failed: bad arguments',
-      'Request was cancelled.',
-    ]) {
-      for (const retryable of [false, true]) {
-        expect(
-          classifyDeterministically({
-            code: 'llm_api_error',
-            message,
-            retryable,
-          }),
-        ).toBe('non_retryable');
-      }
-    }
+  it.each([
+    '502 Bad Gateway: upstream responded 401',
+    'OpenAI API error (503): The model gpt-4o is currently not available, please retry',
+    'OpenAI API error (429): Request was cancelled because of rate limiting',
+    '503 upstream request cancelled',
+  ])('preserves explicit Pi transient evidence in %s', (message) => {
+    expect(
+      classifyDeterministically({
+        code: 'llm_api_error',
+        message,
+        retryable: true,
+      }),
+    ).toBe('retryable');
   });
 
   it('keeps completion-reporting failures retryable despite provider-like wording', () => {

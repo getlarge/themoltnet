@@ -2,10 +2,10 @@ import { isRetryableAssistantError } from '@earendil-works/pi-ai';
 import { describe, expect, it } from 'vitest';
 
 import {
-  appendPermanentProviderRequestDiagnostics,
+  appendProviderFailureDiagnostics,
   classifyProviderFailure,
   extractPermanentProviderRequestFields,
-  getPermanentProviderRequestDiagnostics,
+  getProviderFailureDiagnostics,
   isPermanentProviderQuotaError,
   isPermanentProviderRequestError,
 } from './provider-error-classification.js';
@@ -94,6 +94,29 @@ describe('provider request error classification', () => {
     ['[{"error":{"code":401,"status":"UNAUTHENTICATED"}}]', 'llm_auth_error'],
     ['Provider API error (401): {"error":{"code":401}}', 'llm_auth_error'],
     ['Provider returned error: {"error":{"code":401}}', 'llm_auth_error'],
+    ['Provider returned error 403: Forbidden', 'llm_auth_error'],
+    [
+      'OpenAI API error (400): Request validation failed',
+      'llm_request_rejected',
+    ],
+    ['OpenAI API error (400): Request was cancelled', 'llm_request_cancelled'],
+    [
+      'OpenAI API error (400): Unsupported parameter: top_p',
+      'llm_request_rejected',
+    ],
+    ['OpenAI API error (400): {"error":{"code":503}}', 'llm_api_error'],
+    ['Error: {"error":{"code":403}}', 'llm_auth_error'],
+    ['401 Invalid API key, see billing for more information', 'llm_auth_error'],
+    ['502 Bad Gateway: upstream responded 401', 'llm_api_error'],
+    [
+      'OpenAI API error (503): The model gpt-4o is currently not available, please retry',
+      'llm_api_error',
+    ],
+    [
+      'OpenAI API error (429): Request was cancelled because of rate limiting',
+      'llm_api_error',
+    ],
+    ['503 upstream request cancelled', 'llm_api_error'],
     ['402 Insufficient credits for this request', 'llm_quota_exhausted'],
     ['404 The model `gpt-9` does not exist', 'invalid_model'],
     [
@@ -165,7 +188,7 @@ describe('provider request error classification', () => {
   });
 
   it('constructs structured actionable diagnostics for a terminal provider error', () => {
-    const diagnostics = getPermanentProviderRequestDiagnostics(
+    const diagnostics = getProviderFailureDiagnostics(
       'Unsupported parameter: reasoning_effort',
       CONTEXT,
     );
@@ -180,7 +203,7 @@ describe('provider request error classification', () => {
   });
 
   it('provides model remediation for invalid_model', () => {
-    const error = appendPermanentProviderRequestDiagnostics(
+    const error = appendProviderFailureDiagnostics(
       {
         code: 'invalid_model',
         message: "Model 'x' not found in registry",
@@ -194,6 +217,20 @@ describe('provider request error classification', () => {
     );
   });
 
+  it.each([
+    ['llm_auth_error', '401 Invalid API key'],
+    ['llm_quota_exhausted', 'Monthly usage limit reached'],
+    ['llm_request_cancelled', 'Request was cancelled'],
+  ])('adds provider and profile context to %s', (code, message) => {
+    const error = appendProviderFailureDiagnostics(
+      { code, message, retryable: false },
+      CONTEXT,
+    );
+    expect(error.message).toContain('Provider/model: openai/gpt-5.');
+    expect(error.message).toContain('Runtime profile: default-coding');
+    expect(error.message).not.toContain('Unsupported request field(s):');
+  });
+
   it('gives transient evidence precedence over request-shape wording', () => {
     const error = {
       code: 'llm_api_error',
@@ -202,17 +239,13 @@ describe('provider request error classification', () => {
     };
 
     expect(isPermanentProviderRequestError(error.message)).toBe(true);
-    expect(
-      getPermanentProviderRequestDiagnostics(error.message, CONTEXT),
-    ).toBeDefined();
-    expect(appendPermanentProviderRequestDiagnostics(error, CONTEXT)).toEqual(
-      error,
-    );
+    expect(getProviderFailureDiagnostics(error.message, CONTEXT)).toBeDefined();
+    expect(appendProviderFailureDiagnostics(error, CONTEXT)).toEqual(error);
   });
 
   it('does not attach provider diagnostics to other or already retryable errors', () => {
     expect(
-      appendPermanentProviderRequestDiagnostics(
+      appendProviderFailureDiagnostics(
         {
           code: 'complete_call_failed',
           message: 'Unsupported parameter: reasoning_effort',
@@ -226,7 +259,7 @@ describe('provider request error classification', () => {
       retryable: true,
     });
     expect(
-      appendPermanentProviderRequestDiagnostics(
+      appendProviderFailureDiagnostics(
         {
           code: 'llm_request_rejected',
           message: 'Unsupported parameter: reasoning_effort',
@@ -250,7 +283,7 @@ describe('provider request error classification', () => {
     expect(
       extractPermanentProviderRequestFields(fields)[0]?.length,
     ).toBeLessThanOrEqual(64);
-    const error = appendPermanentProviderRequestDiagnostics(
+    const error = appendProviderFailureDiagnostics(
       { code: 'llm_request_rejected', message: fields, retryable: false },
       CONTEXT,
     );

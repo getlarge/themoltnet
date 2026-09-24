@@ -114,7 +114,7 @@ import {
 import { recordToolPolicyDecisionSpan } from '../tool-policy/telemetry.js';
 import { resumeVm } from '../vm.js';
 import {
-  appendPermanentProviderRequestDiagnostics,
+  appendProviderFailureDiagnostics,
   classifyProviderFailure,
   PROVIDER_FAILURE_CODES,
   type ProviderFailureCode,
@@ -2622,11 +2622,15 @@ export function buildAttemptResult(args: BuildAttemptResultArgs): TaskOutput {
             : false,
       }
     : args.llmAbort
-      ? appendPermanentProviderRequestDiagnostics(
+      ? appendProviderFailureDiagnostics(
           {
             code: providerFailure.code,
             message: providerMessage,
-            retryable: providerFailure.retryable,
+            // Only explicit transient evidence can bypass the daemon's
+            // compatibility guards for older llm_api_error task rows.
+            retryable:
+              providerFailure.reason === 'transient_status' ||
+              providerFailure.reason === 'transient_transport',
           },
           args.providerFailureContext,
         )

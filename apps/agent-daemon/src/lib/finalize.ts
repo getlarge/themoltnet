@@ -1,7 +1,6 @@
 import type { Task, TaskOutput } from '@moltnet/tasks';
 import {
   PROVIDER_FAILURE_CODES,
-  redactRetryTriageSecrets,
   sanitizeProviderDiagnostic,
 } from '@themoltnet/pi-runtime';
 import type { Agent, ExecutorAttestor, TasksNamespace } from '@themoltnet/sdk';
@@ -75,7 +74,7 @@ const PROVIDER_ERROR_CODE_SET = new Set<string>(
  * (the daemon log child carries agent/team/profile but not these). See #1528.
  *
  * `reason` is model-authored on the LLM-triage path, so it is run through
- * `redactRetryTriageSecrets` before it reaches the (wide-access) log sink —
+ * `sanitizeProviderDiagnostic` before it reaches the (wide-access) log sink —
  * parity with the `triage_failed` path, which already sanitizes.
  */
 function classificationLogFields(
@@ -98,7 +97,7 @@ function classificationLogFields(
     ...(retry?.decision ? { decision: retry.decision } : {}),
     ...(retry?.confidence ? { confidence: retry.confidence } : {}),
     ...(retry?.reason
-      ? { reason: redactRetryTriageSecrets(retry.reason) }
+      ? { reason: sanitizeProviderDiagnostic(retry.reason) }
       : {}),
   };
 }

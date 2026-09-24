@@ -3,9 +3,9 @@ import {
   normalizeRetryTriageResult,
   type PiRetryTriageResult,
   PROVIDER_FAILURE_CODES,
-  redactRetryTriageSecrets,
   type RetryTriageConfidence,
   type RetryTriageDecision,
+  sanitizeProviderDiagnostic,
 } from '@themoltnet/pi-runtime';
 
 export type RetryTriageResult = PiRetryTriageResult;
@@ -102,7 +102,7 @@ const NON_RETRYABLE_MESSAGE_PATTERNS = [
   /\bforbidden\b/i,
   /\binvalid (?:api )?key\b/i,
   /\bmissing credentials?\b/i,
-  /\bmodel .*?(?:not (?:found|registered|available)|does not exist)\b/i,
+  /\bmodel [^\n]{0,120}(?:not (?:found|registered|available)|does not exist)\b/i,
   /\bpath escapes workspace\b/i,
   /\bunknown task type\b/i,
   /\bvalidation failed\b/i,
@@ -221,8 +221,10 @@ export function classifyDeterministically(
   }
 
   if (NON_RETRYABLE_CODES.has(code)) return 'non_retryable';
-  // Keep the legacy text guards for persisted and current unknown API errors.
-  // Structured terminal provider codes above take precedence over this text.
+  // Pi sets this flag only with explicit status or transport evidence. Unknown
+  // and persisted API errors still pass through the legacy text guards.
+  if (code === PROVIDER_FAILURE_CODES.apiError && error.retryable === true)
+    return 'retryable';
   if (NON_RETRYABLE_MESSAGE_PATTERNS.some((pattern) => pattern.test(message))) {
     return 'non_retryable';
   }
@@ -254,7 +256,7 @@ function appendTriageFailure(message: string, err: unknown): string {
 
 function sanitizeReason(value: unknown): string {
   const raw = value instanceof Error ? value.message : String(value);
-  return redactRetryTriageSecrets(raw).slice(0, 500);
+  return sanitizeProviderDiagnostic(raw);
 }
 
 function withRetryInfo(
@@ -274,7 +276,9 @@ function withRetryInfo(
       source: info.source,
       ...(info.decision ? { decision: info.decision } : {}),
       ...(info.confidence ? { confidence: info.confidence } : {}),
-      ...(info.reason ? { reason: info.reason.slice(0, 500) } : {}),
+      ...(info.reason
+        ? { reason: sanitizeProviderDiagnostic(info.reason) }
+        : {}),
     },
   };
 }

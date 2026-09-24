@@ -18,7 +18,7 @@ const PERMANENT_REQUEST_ERROR_PATTERNS = [
 // A request field or request ID can contain a status-looking token.
 const LEADING_STATUS_PATTERN =
   /^\s*(?:(?:HTTP(?:\/\d+(?:\.\d+)?)?|status(?: code)?|provider returned(?: error)?|response|(?:API\s+)?error)\s*[:=]?\s*)?([1-5]\d{2})\b/i;
-// Pi formats these errors with a named API prefix before the status.
+// pi-ai/utils/error-body formatProviderError emits "<Prefix> API error (NNN):".
 const PI_API_STATUS_PATTERN =
   /^\s*[\w ]{1,48}API error\s*\(([1-5]\d{2})\)\s*:/i;
 const REQUEST_STATUS_PATTERN =
@@ -31,13 +31,13 @@ const LEADING_TRANSPORT_PATTERN =
 const MONTHLY_QUOTA_PATTERN =
   /\b(?:monthly usage limit reached|(?:reached|exceeded)\s+(?:(?:your|the)\s+)?monthly\s+usage\s+limit|monthly\s+(?:usage\s+)?quota\s+(?:exceeded|exhausted))\b/i;
 const ACCOUNT_QUOTA_PATTERN =
-  /\b(?:insufficient_quota|insufficient credits?|out of budget|billing_hard_limit_reached|billing (?:limit|quota|required|error)|available balance|credit balance is too low|GoUsageLimitError|FreeUsageLimitError)\b/i;
+  /^\s*(?:(?:your|the)\s+)?(?:insufficient_quota|insufficient credits?|out of budget|billing_hard_limit_reached|billing (?:limit|quota|required|error)|available balance|credit balance is too low|GoUsageLimitError|FreeUsageLimitError)\b/i;
 const TIME_WINDOW_PATTERN =
   /\b(?:per\s+(?:second|minute|hour|day)|retry\s+(?:in|after)|try again in|retry-after)\b/i;
 const PROVIDER_AUTH_PATTERN =
-  /\b(?:unauthori[sz]ed|forbidden|invalid (?:api )?key|missing credentials?)\b/i;
+  /^\s*(?:unauthori[sz]ed|forbidden|invalid (?:api )?key|missing credentials?)\b/i;
 const PROVIDER_MODEL_PATTERN =
-  /\b(?:model [^\n]{0,120}(?:not (?:found|registered|available)|does not exist)|unknown model)\b/i;
+  /^\s*(?:(?:the )?model [^\n]{0,120}(?:not (?:found|registered|available)|does not exist)|unknown model)\b/i;
 const VALIDATION_FAILURE_PATTERN =
   /^\s*(?:(?:[1-4]\d{2}|error)\s*[: -]\s*)?(?:request )?validation failed\b/i;
 const CANCELLED_PATTERN = /^\s*(?:request (?:was )?)?cancell?ed\b/i;
@@ -87,11 +87,18 @@ function leadingStatus(message: string): number | null {
   return match?.[1] ? Number(match[1]) : null;
 }
 
+function providerBody(message: string): string {
+  const trimmed = message.trimStart();
+  const prefix =
+    PI_API_STATUS_PATTERN.exec(trimmed)?.[0] ??
+    /^(?:Provider returned error|Error)\s*:\s*/i.exec(trimmed)?.[0] ??
+    /^(?:Error\s+)?\d{3}\s*[: -]\s*/i.exec(trimmed)?.[0];
+  return prefix ? trimmed.slice(prefix.length) : trimmed;
+}
+
 function jsonStatus(message: string): number | null {
   if (message.length > MAX_JSON_ENVELOPE_LENGTH) return null;
-  const trimmed = message.trimStart();
-  const prefix = /^Provider returned error:\s*/i.exec(trimmed)?.[0];
-  const json = prefix ? trimmed.slice(prefix.length) : trimmed;
+  const json = providerBody(message).trimStart();
   if (!json.startsWith('{') && !json.startsWith('[')) return null;
   try {
     const parsed: unknown = JSON.parse(json);
@@ -121,9 +128,17 @@ export function classifyProviderFailure(
       reason: 'unknown',
     };
   }
-  const status = leadingStatus(message) ?? jsonStatus(message);
+  const envelopeStatus = leadingStatus(message);
+  const bodyStatus = jsonStatus(message);
+  // A generic 400 wrapper can contain a more specific provider status.
+  // An explicit transient envelope remains authoritative over quoted JSON.
+  const status =
+    envelopeStatus === 400 && bodyStatus !== null
+      ? bodyStatus
+      : (envelopeStatus ?? bodyStatus);
+  const body = providerBody(message);
   if (status === 408 || status === 429 || (status !== null && status >= 500)) {
-    if (status === 429 && isPermanentProviderQuotaError(message)) {
+    if (status === 429 && isPermanentProviderQuotaError(body)) {
       return {
         code: PROVIDER_FAILURE_CODES.quotaExhausted,
         retryable: false,
@@ -143,7 +158,7 @@ export function classifyProviderFailure(
       reason: 'transient_transport',
     };
   }
-  if (status === 402 || isPermanentProviderQuotaError(message)) {
+  if (status === 403 && isPermanentProviderQuotaError(body)) {
     return {
       code: PROVIDER_FAILURE_CODES.quotaExhausted,
       retryable: false,
@@ -157,7 +172,14 @@ export function classifyProviderFailure(
       reason: 'auth_error',
     };
   }
-  if (PROVIDER_MODEL_PATTERN.test(message)) {
+  if (status === 402 || isPermanentProviderQuotaError(body)) {
+    return {
+      code: PROVIDER_FAILURE_CODES.quotaExhausted,
+      retryable: false,
+      reason: 'quota_exhausted',
+    };
+  }
+  if (PROVIDER_MODEL_PATTERN.test(body)) {
     return {
       code: PROVIDER_FAILURE_CODES.invalidModel,
       retryable: false,
@@ -171,21 +193,21 @@ export function classifyProviderFailure(
       reason: 'request_rejected',
     };
   }
-  if (VALIDATION_FAILURE_PATTERN.test(message)) {
+  if (VALIDATION_FAILURE_PATTERN.test(body)) {
     return {
       code: PROVIDER_FAILURE_CODES.requestRejected,
       retryable: false,
       reason: 'request_rejected',
     };
   }
-  if (CANCELLED_PATTERN.test(message)) {
+  if (CANCELLED_PATTERN.test(body)) {
     return {
       code: PROVIDER_FAILURE_CODES.requestCancelled,
       retryable: false,
       reason: 'cancelled',
     };
   }
-  if (isProviderAuthError(message)) {
+  if (isProviderAuthError(body)) {
     return {
       code: PROVIDER_FAILURE_CODES.authError,
       retryable: false,
@@ -210,7 +232,7 @@ export interface ProviderFailureContext {
   piAgentDirSource: 'env' | 'store' | 'repo';
 }
 
-export interface PermanentProviderRequestDiagnostics {
+export interface ProviderFailureDiagnostics {
   provider: string;
   model: string;
   runtimeProfileId: string;
@@ -280,14 +302,17 @@ export function extractPermanentProviderRequestFields(
   return [...fields].slice(0, MAX_FIELDS);
 }
 
-export function getPermanentProviderRequestDiagnostics(
+export function getProviderFailureDiagnostics(
   message: string,
   context: ProviderFailureContext | undefined,
   code: ProviderFailureCode = PROVIDER_FAILURE_CODES.requestRejected,
-): PermanentProviderRequestDiagnostics | undefined {
+): ProviderFailureDiagnostics | undefined {
   if (!context) return undefined;
 
-  const unsupportedFields = extractPermanentProviderRequestFields(message);
+  const unsupportedFields =
+    code === PROVIDER_FAILURE_CODES.requestRejected
+      ? extractPermanentProviderRequestFields(message)
+      : [];
   return {
     provider: context.provider,
     model: context.model,
@@ -299,7 +324,8 @@ export function getPermanentProviderRequestDiagnostics(
     remediation:
       code === PROVIDER_FAILURE_CODES.invalidModel
         ? 'select a model available from the configured provider, then retry.'
-        : unsupportedFields.length > 0
+        : code === PROVIDER_FAILURE_CODES.requestRejected &&
+            unsupportedFields.length > 0
           ? 'remove or disable these fields in the active Pi model/profile ' +
             'configuration, or select a provider/model that supports them, ' +
             'then retry.'
@@ -307,16 +333,17 @@ export function getPermanentProviderRequestDiagnostics(
   };
 }
 
-export function appendPermanentProviderRequestDiagnostics<
+export function appendProviderFailureDiagnostics<
   T extends { code: string; message: string; retryable?: boolean },
 >(error: T, context: ProviderFailureContext | undefined): T {
   if (
-    (error.code !== PROVIDER_FAILURE_CODES.requestRejected &&
-      error.code !== PROVIDER_FAILURE_CODES.invalidModel) ||
+    !Object.values(PROVIDER_FAILURE_CODES).some(
+      (code) => code === error.code && code !== PROVIDER_FAILURE_CODES.apiError,
+    ) ||
     error.retryable
   )
     return error;
-  const diagnostics = getPermanentProviderRequestDiagnostics(
+  const diagnostics = getProviderFailureDiagnostics(
     error.message,
     context,
     error.code as ProviderFailureCode,

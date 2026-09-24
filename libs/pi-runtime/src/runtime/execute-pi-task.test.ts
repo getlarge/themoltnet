@@ -1604,7 +1604,7 @@ describe('buildAttemptResult (result-construction characterization)', () => {
     expect(out.error).toMatchObject({
       code: 'llm_api_error',
       message: 'LLM API error during turn',
-      retryable: true,
+      retryable: false,
     });
   });
 
@@ -1628,7 +1628,7 @@ describe('buildAttemptResult (result-construction characterization)', () => {
     });
     expect(out.error).toMatchObject({
       code,
-      retryable: code === 'llm_api_error',
+      retryable: code === 'llm_api_error' && /^(?:429|500):/.test(message),
     });
   });
 
@@ -1676,12 +1676,26 @@ describe('buildAttemptResult (result-construction characterization)', () => {
     expect(out.error?.message).toBe('500 response: unknown field request_id');
   });
 
-  it('uses a generic retryable provider message when no diagnostic was captured', () => {
+  it.each([
+    '502 Bad Gateway: upstream responded 401',
+    'OpenAI API error (503): The model gpt-4o is currently not available, please retry',
+    'OpenAI API error (429): Request was cancelled because of rate limiting',
+    '503 upstream request cancelled',
+  ])('marks explicit transient evidence retryable despite %s', (message) => {
+    const out = buildAttemptResult({
+      ...base,
+      llmAbort: true,
+      llmErrorMessage: message,
+    });
+    expect(out.error).toMatchObject({ code: 'llm_api_error', retryable: true });
+  });
+
+  it('uses a generic provider message when no diagnostic was captured', () => {
     const out = buildAttemptResult({ ...base, llmAbort: true });
     expect(out.error).toEqual({
       code: 'llm_api_error',
       message: 'LLM API error during turn',
-      retryable: true,
+      retryable: false,
     });
   });
 
