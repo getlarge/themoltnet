@@ -10,23 +10,28 @@ cache, object-storage, and ingress dependencies.
 - a Linux host with persistent storage
 - five DNS names resolving to the host
 - outbound SMTP for account recovery and verification
-- an S3-compatible destination if enabling off-host backups
+- a separate off-host backup destination for PostgreSQL and Talos state
 
 Download a `self-host-vX.Y.Z` archive from GitHub Releases, verify its checksum,
 and follow the included `deploy/self-host/README.md`. The release's
 `.env.release` pins MoltNet images by digest; do not replace those pins with
 floating tags in a production installation.
 
+The Compose bundle does not set up off-host backup or point-in-time recovery.
+Arrange both before using it for data you need to keep. The archive includes a
+`SHA256SUMS` file; run `sha256sum -c SHA256SUMS` from its root after extraction.
+
 To reproduce the archive from a source checkout without resolving registry
-digests, run:
+digests, run this command with Docker Compose installed:
 
 ```bash
 node tools/release/self-host-bundle.mjs --version dev --skip-digests
 ```
 
 The generated directory uses the component versions in
-`deploy/self-host/images.json`. Published archives replace those tags with
-registry digests.
+`.release-please-manifest.json` and the Docker repository names in each
+component's `package.json`. Published archives replace those tags with registry
+digests.
 
 ## Upgrade
 

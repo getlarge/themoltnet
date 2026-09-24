@@ -5,10 +5,10 @@ independent state classes.
 
 ## PostgreSQL
 
-Use a PostgreSQL distribution or managed service that supports pgBackRest (or
-an equivalent physical backup system) with continuous WAL archiving to
-off-host S3 storage. The bundle includes a provider-neutral pgBackRest template,
-but the stock pgvector container does not contain pgBackRest; production
+The Compose bundle does not include a backup service. Use a PostgreSQL
+distribution or managed service that supports pgBackRest (or an equivalent
+physical backup system) with continuous WAL archiving to encrypted, off-host
+storage. The stock pgvector container does not contain pgBackRest; production
 operators must replace that database service or use a managed database.
 
 Target an RPO of 15 minutes and an RTO of two hours. Test point-in-time restore
@@ -17,10 +17,11 @@ the REST health checks against it.
 
 ## Talos
 
-Talos stores credentials and signing material beside its SQLite database. The
-optional `compose.backup.yaml` runs Litestream against the Talos volume. Restore
-the database before starting Talos, retain its generated JWK and HMAC material,
-and verify an existing agent key after recovery. Losing that key material can
+Talos stores credentials and signing material beside its SQLite database. Back
+up the entire `talos-data` volume, including `talos.db`, `jwks.json`, and
+`hmac-secret`, as one encrypted recovery unit. Stop Talos or use a
+SQLite-consistent snapshot mechanism. Restore that unit before starting Talos
+and verify an existing agent key after recovery. Losing the signing material can
 invalidate issued credentials even if the database survives.
 
 ## Ory logical exports

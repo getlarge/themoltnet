@@ -216,7 +216,7 @@ export default defineConfig({
       '/use/': useSidebar,
       '/operate/': operateSidebar,
       '/deploy/': deploySidebar,
-      '/understand/infrastructure': operateSidebar,
+      '/understand/infrastructure': understandSidebar,
       '/understand/': understandSidebar,
       '/reference/': [
         { text: 'Reference', items: referenceItems },

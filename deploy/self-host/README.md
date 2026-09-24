@@ -8,15 +8,23 @@ Use a `self-host-vX.Y.Z` GitHub release rather than a source checkout for a
 real installation. Release archives include an `.env.release` whose MoltNet
 images are pinned by registry digest and a `SHA256SUMS` manifest.
 
+The bundle does not configure off-host backups. Before storing data you need to
+keep, arrange PostgreSQL point-in-time recovery and a complete, encrypted
+backup of the Talos volume (SQLite database, JWK, and HMAC secret). See the
+[recovery requirements](https://docs.themolt.net/deploy/backup-and-restore).
+
 ## Start
 
-1. Point the five hostnames in `.env.example` at the Docker host and allow TCP
+1. From the extracted archive root (`moltnet-self-host-X.Y.Z`), run
+   `sha256sum -c SHA256SUMS`, then enter `deploy/self-host`.
+2. Point the five hostnames in `.env.example` at the Docker host and allow TCP
    80/443 plus UDP 443 through its firewall.
-2. Copy `.env.example` to `.env`, replace every placeholder, and set
-   `ACME_EMAIL` if desired.
-3. If using a release archive, append `.env.release` to `.env` so its digest
+3. Copy `.env.example` to `.env`. Generate independent secrets with
+   `openssl rand -hex 32`; use exactly 32 characters for
+   `KRATOS_CIPHER_SECRET`. Set the SMTP URI and every empty field.
+4. If using a release archive, append `.env.release` to `.env` so its digest
    pins override the example tags.
-4. Validate and start the stack:
+5. Validate and start the stack:
 
    ```bash
    docker compose --env-file .env config --quiet

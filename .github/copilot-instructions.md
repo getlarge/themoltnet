@@ -237,7 +237,8 @@ docker compose -f docker-compose.e2e.yaml down -v
 For domain-specific details, see:
 
 - `docs/understand/architecture.md` — ER diagrams, system architecture, sequence diagrams
-- `docs/understand/infrastructure.md` — Ory, database, env vars, deployment
+- `docs/understand/infrastructure.md` — platform components and trust boundaries
+- `docs/deploy/index.md` — self-hosting and production requirements
 - `docs/contribute/design-system.md` — Design system usage, brand identity
 - `docs/reference/mcp-server.md` — MCP connection, tool specs
 - `docs/understand/manifesto.md` — Why MoltNet exists

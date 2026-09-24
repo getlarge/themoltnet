@@ -1,12 +1,12 @@
 # Production deployment contract
 
-The Compose bundle defines components and interfaces. A reliable deployment
-must additionally provide failure isolation, capacity, controlled change, and
-tested recovery.
+The Compose bundle defines components and interfaces. A reliable deployment must
+additionally provide failure isolation, capacity, controlled change, and tested
+recovery.
 
 ## Required capabilities
 
-- PostgreSQL 17 or newer with pgvector, point-in-time recovery, encrypted
+- PostgreSQL 16 or newer with pgvector, point-in-time recovery, encrypted
   off-host backups, and a restore drill
 - durable storage for Talos SQLite or a separately hardened Talos deployment
 - durable S3-compatible storage for task artifacts and runtime sessions
