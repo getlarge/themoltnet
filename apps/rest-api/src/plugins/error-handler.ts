@@ -1,4 +1,7 @@
-import { RemoteAuthenticationError } from '@moltnet/auth';
+import {
+  PermissionCheckUnavailableError,
+  RemoteAuthenticationError,
+} from '@moltnet/auth';
 import type {
   FastifyError,
   FastifyInstance,
@@ -36,6 +39,27 @@ function mapRemoteAuthenticationError(
     error.retryAfter === undefined
       ? undefined
       : { retryAfter: error.retryAfter },
+  ) as ProblemError;
+  mapped.exposeServerDetail = true;
+  mapped.cause = error;
+  return mapped;
+}
+
+/**
+ * Fallback when Keto gave no Retry-After: outages and rate-limit windows are
+ * short, and a hint keeps pollers from hammering.
+ */
+const PERMISSION_UNAVAILABLE_RETRY_AFTER_SEC = 1;
+
+function mapPermissionCheckUnavailableError(
+  error: PermissionCheckUnavailableError,
+): ProblemError {
+  const mapped = createProblem(
+    'service-unavailable',
+    'Authorization service unavailable',
+    {
+      retryAfter: error.retryAfter ?? PERMISSION_UNAVAILABLE_RETRY_AFTER_SEC,
+    },
   ) as ProblemError;
   mapped.exposeServerDetail = true;
   mapped.cause = error;
@@ -101,7 +125,10 @@ async function errorHandler(fastify: FastifyInstance) {
   fastify.addHook('onError', (request, _reply, error, done) => {
     // The main handler maps and logs these with semantic operation/kind
     // fields. Avoid a second generic server-error line here.
-    if (error instanceof RemoteAuthenticationError) {
+    if (
+      error instanceof RemoteAuthenticationError ||
+      error instanceof PermissionCheckUnavailableError
+    ) {
       done();
       return;
     }
@@ -133,7 +160,9 @@ async function errorHandler(fastify: FastifyInstance) {
         error instanceof RemoteAuthenticationError ? error : null;
       const handledError = remoteError
         ? mapRemoteAuthenticationError(remoteError)
-        : error;
+        : error instanceof PermissionCheckUnavailableError
+          ? mapPermissionCheckUnavailableError(error)
+          : error;
       const status = handledError.statusCode ?? 500;
       const isServerError = status >= 500;
       const validationContext = (
