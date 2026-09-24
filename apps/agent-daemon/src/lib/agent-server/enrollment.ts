@@ -4,8 +4,7 @@ import { enrollmentProofMessage } from '@moltnet/crypto-service';
 import { isLoopbackHostname } from '@moltnet/loopback-companion';
 import {
   AGENT_CREDENTIAL_SCOPES,
-  AGENT_OAUTH_SCOPES,
-  DAEMON_MINIMUM_SCOPES,
+  validTeamAgentKeyScopes,
 } from '@moltnet/models';
 import { type SecretProviderRegistry, signBytes } from '@themoltnet/sdk';
 import {
@@ -18,10 +17,11 @@ import {
   restoreCapturedEnrollment,
 } from '@themoltnet/sdk/node';
 
+import { AgentServerHttpError } from './http-error.js';
 import { loadEnrollmentIdentity } from './identity.js';
 import type { OperatorOAuth } from './operator-oauth.js';
 import type { AgentServerStore } from './store.js';
-import { verifyTeamActivation } from './team-credentials.js';
+import { verifyCandidateTeamCredential } from './team-credentials.js';
 
 function recoveryLocation(
   options: {
@@ -63,6 +63,7 @@ export async function restoreIdentityEnrollment(options: {
   managed: SecretProviderRegistry;
   external: SecretProviderRegistry;
   recoveryId: string;
+  verifyCandidateImpl?: typeof verifyCandidateTeamCredential;
 }) {
   const { activation } = await loadEnrollmentIdentity(
     options.store,
@@ -73,16 +74,11 @@ export async function restoreIdentityEnrollment(options: {
     configDir,
     recoveryId: options.recoveryId,
     providers,
-    verify: async (teamId) => {
-      await verifyTeamActivation(
-        options.store,
-        options.alias,
-        options.managed,
-        options.external,
-        undefined,
-        undefined,
-        teamId,
-      );
+    verify: async (teamId, secret) => {
+      const metadata = await (
+        options.verifyCandidateImpl ?? verifyCandidateTeamCredential
+      )(options.store, options.alias, secret, teamId);
+      return { keyId: metadata.keyId };
     },
   });
   return { state: 'persisted' as const, ...restored };
@@ -121,13 +117,13 @@ export async function enrollIdentityTeam(options: {
   const requestedScopes = options.input.scopes ?? [...AGENT_CREDENTIAL_SCOPES];
   if (
     !Array.isArray(requestedScopes) ||
-    requestedScopes.length !== new Set(requestedScopes).size ||
-    requestedScopes.some(
-      (scope) => !(AGENT_OAUTH_SCOPES as readonly string[]).includes(scope),
-    ) ||
-    DAEMON_MINIMUM_SCOPES.some((scope) => !requestedScopes.includes(scope))
+    !validTeamAgentKeyScopes(requestedScopes)
   )
-    throw new Error('Select valid team scopes including the daemon minimum');
+    throw new AgentServerHttpError(
+      400,
+      'invalid_scopes',
+      'Select valid team scopes including the daemon minimum',
+    );
   const apiUrl = new URL(options.apiUrl);
   if (
     apiUrl.username ||

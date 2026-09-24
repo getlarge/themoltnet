@@ -305,6 +305,44 @@ describe('desktop team enrollment', () => {
     );
   });
 
+  it('keeps the default scope set when renewal metadata is unavailable', async () => {
+    const { data, actions } = fixture();
+    actions.catalogue = vi.fn().mockResolvedValue({
+      teams: [
+        { ...team, credential: { ...team.credential, scopes: undefined } },
+      ],
+      profiles: [],
+      projects: [],
+      projectErrors: [],
+      defaultTeamId: null,
+    });
+    show(data, actions);
+    await screen.findByText('Research');
+    fireEvent.click(screen.getByRole('button', { name: 'Renew' }));
+    expect(screen.getByRole('checkbox', { name: /team:read/ })).toBeChecked();
+  });
+
+  it('accepts persisted enrollment from an older server without scope metadata', async () => {
+    const { data, actions } = fixture();
+    vi.mocked(actions.enrollTeam!).mockResolvedValue({
+      state: 'persisted',
+      teamId: 'team-a',
+      keyId: 'issued-key',
+    } as Awaited<ReturnType<NonNullable<typeof actions.enrollTeam>>>);
+    show(data, actions);
+    await screen.findByText('Research');
+    fireEvent.change(screen.getByLabelText('Team ID'), {
+      target: { value: 'new-team' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Approve in browser' }));
+    expect(
+      await screen.findByText('Team enrollment complete'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Refresh team access to inspect the issued scopes/),
+    ).toBeInTheDocument();
+  });
+
   it('submits the selected optional scope for a new enrollment', async () => {
     const { data, actions } = fixture();
     show(data, actions);

@@ -1,9 +1,10 @@
 import {
-  AGENT_OAUTH_SCOPES,
   HUMAN_SESSION_SCOPES,
   LOCAL_CONTROL_SCOPE,
   PROVISIONING_SCOPE,
+  TEAM_AGENT_KEY_SCOPES,
 } from '@moltnet/auth';
+import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
 import { ResponseError } from '@ory/client-fetch';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -159,7 +160,7 @@ describe('OAuth consent target validation', () => {
       agentId: 'aaaaaaaa-0000-4000-8000-000000000001',
       teamId: 'bbbbbbbb-0000-4000-8000-000000000002',
       operation: 'enroll',
-      scopes: ['task:execute', 'diary:write'],
+      scopes: [...AGENT_CREDENTIAL_SCOPES, 'diary:write'],
       idempotencyKey: 'same-request',
     };
     vi.stubEnv('MOLTNET_NATIVE_OAUTH_CLIENT_ID', 'native');
@@ -308,6 +309,21 @@ describe('OAuth consent target validation', () => {
     vi.mocked(app.oauth2Client.getOAuth2ConsentRequest).mockResolvedValue(
       original,
     );
+    human.scopes = human.scopes.filter((scope) => scope !== 'diary:write');
+    const nonDelegable = await app.inject({
+      method: 'POST',
+      url: '/oauth2/consent',
+      headers: {
+        cookie: 'ory_kratos_session=session',
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      payload: new URLSearchParams({
+        consent_challenge: 'challenge',
+        decision: 'allow',
+      }).toString(),
+    });
+    expect(nonDelegable.statusCode).toBe(403);
+    human.scopes.push('diary:write');
     const approved = await app.inject({
       method: 'POST',
       url: '/oauth2/consent',
@@ -336,7 +352,9 @@ describe('OAuth consent target validation', () => {
             'moltnet:instance': 'eeeeeeee-0000-4000-8000-000000000005',
             'moltnet:approved_scope': PROVISIONING_SCOPE,
             'moltnet:provisioning': grant,
-            'moltnet:delegable_scopes': [...AGENT_OAUTH_SCOPES],
+            'moltnet:delegable_scopes': human.scopes.filter((scope) =>
+              (TEAM_AGENT_KEY_SCOPES as readonly string[]).includes(scope),
+            ),
           },
         },
       },

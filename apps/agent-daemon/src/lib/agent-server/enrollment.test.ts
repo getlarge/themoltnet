@@ -86,6 +86,21 @@ async function fixture(activated = true) {
 }
 
 describe('local team enrollment boundary', () => {
+  it('rejects invalid team scope requests as client errors before approval', async () => {
+    const { options, authorize } = await fixture();
+    await expect(
+      enrollIdentityTeam({
+        ...options,
+        input: {
+          teamId: 'team',
+          idempotencyKey: 'bad-scopes',
+          mode: 'enroll',
+          scopes: ['team:manage'],
+        },
+      }),
+    ).rejects.toMatchObject({ statusCode: 400, code: 'invalid_scopes' });
+    expect(authorize).not.toHaveBeenCalled();
+  });
   it('lists recovery metadata from the Agent Server identity store', async () => {
     const f = await fixture();
     const recoveryDir = join(
@@ -279,4 +294,31 @@ describe('local team enrollment boundary', () => {
       ),
     ).toEqual([]);
   });
+
+  it.each([
+    { status: 429, code: 'OTHER_LIMIT' },
+    { status: 503, code: 'SERVICE_UNAVAILABLE' },
+  ])(
+    'retains uncertainty for non-definitive provisioning failure $status/$code',
+    async ({ status, code }) => {
+      const f = await fixture();
+      f.authorize.mockResolvedValue('human-approval');
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(JSON.stringify({ code }), { status }),
+      );
+      const result = await enrollIdentityTeam({
+        ...f.options,
+        input: { mode: 'replace', teamId: 'team', idempotencyKey: 'request' },
+      });
+      expect(result).toMatchObject({
+        state: 'recovery_required',
+        secretCaptured: false,
+      });
+      expect(
+        readdirSync(
+          join(dirname(f.store.agentPath('agent')), 'credential-recovery'),
+        ),
+      ).toHaveLength(1);
+    },
+  );
 });

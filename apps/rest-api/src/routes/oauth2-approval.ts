@@ -1,7 +1,6 @@
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { createAgentKeyService } from '@moltnet/agent-key-service';
 import {
-  AGENT_OAUTH_SCOPES,
   KetoNamespace,
   LOCAL_CONTROL_SCOPE,
   type OryClients,
@@ -9,6 +8,7 @@ import {
   type ProvisioningGrant,
   readProvisioningGrant,
   requireAuth,
+  TEAM_AGENT_KEY_SCOPES,
 } from '@moltnet/auth';
 import { cryptoService, enrollmentProofMessage } from '@moltnet/crypto-service';
 import {
@@ -270,7 +270,7 @@ export async function oauth2ApprovalRoutes(
       if (
         !grant ||
         grant.scopes.some(
-          (s) => !(AGENT_OAUTH_SCOPES as readonly string[]).includes(s),
+          (s) => !(TEAM_AGENT_KEY_SCOPES as readonly string[]).includes(s),
         )
       )
         throw createProblem(
@@ -370,7 +370,7 @@ export async function oauth2ApprovalRoutes(
                           'moltnet:delegable_scopes':
                             result.human.scopes.filter((scope) =>
                               (
-                                AGENT_OAUTH_SCOPES as readonly string[]
+                                TEAM_AGENT_KEY_SCOPES as readonly string[]
                               ).includes(scope),
                             ),
                         }

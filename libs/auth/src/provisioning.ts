@@ -1,6 +1,6 @@
 import { OPERATOR_OAUTH } from '@moltnet/models';
 
-import { AGENT_OAUTH_SCOPES } from './scopes.js';
+import { TEAM_AGENT_KEY_SCOPES } from './scopes.js';
 
 /** Claims are supplied only by the server-side consent handler. */
 export const PROVISIONING_SCOPE = OPERATOR_OAUTH.provisioningScope;
@@ -34,7 +34,7 @@ export function readProvisioningGrant(
     !v.scopes.every(
       (s) =>
         typeof s === 'string' &&
-        (AGENT_OAUTH_SCOPES as readonly string[]).includes(s),
+        (TEAM_AGENT_KEY_SCOPES as readonly string[]).includes(s),
     )
   )
     return null;
@@ -56,7 +56,7 @@ export function readDelegableScopes(value: unknown): string[] | null {
     !value.every(
       (scope) =>
         typeof scope === 'string' &&
-        (AGENT_OAUTH_SCOPES as readonly string[]).includes(scope),
+        (TEAM_AGENT_KEY_SCOPES as readonly string[]).includes(scope),
     )
   )
     return null;

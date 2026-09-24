@@ -1,8 +1,9 @@
 /** Team access extends the Run Center's existing control surfaces and native actions. */
 import {
   AGENT_CREDENTIAL_SCOPES,
-  AGENT_OAUTH_SCOPES,
+  CREDENTIAL_SCOPE_DESCRIPTIONS,
   DAEMON_MINIMUM_SCOPES,
+  TEAM_AGENT_KEY_SCOPES,
 } from '@moltnet/models';
 import {
   Badge,
@@ -25,27 +26,14 @@ import type {
 } from './types.js';
 import { useCatalogue } from './useCatalogue.js';
 
-const SCOPE_DESCRIPTIONS: Record<string, string> = {
-  'agent:profile': 'Read the agent profile',
-  'connector:invoke': 'Invoke configured connectors',
-  'crypto:sign': 'Sign on behalf of the agent',
-  'diary:manage': 'Manage diaries and access grants',
-  'diary:read': 'Read diary entries',
-  'diary:write': 'Create diary entries',
-  'key:manage': 'Issue and rotate agent keys',
-  'pack:read': 'Read context packs',
-  'pack:write': 'Create and update context packs',
-  'runtime:manage': 'Manage runtime configuration',
-  'runtime:read': 'Read runtime configuration',
-  'task:claim': 'Claim queued tasks',
-  'task:execute': 'Execute and report task attempts',
-  'task:manage': 'Manage tasks and grants',
-  'task:read': 'Read tasks and attempts',
-  'task:write': 'Create and edit tasks',
-  'team:join': 'Join teams using invitations',
-  'team:manage': 'Manage teams and membership',
-  'team:read': 'Read teams and membership',
-};
+/** Preserve a verified set; an unavailable credential needs the safe default. */
+function scopesForRenewal(entry: AgentServerCatalogueTeam): string[] {
+  const verified = entry.credential?.scopes;
+  const selected = verified?.length ? verified : AGENT_CREDENTIAL_SCOPES;
+  return [...new Set([...DAEMON_MINIMUM_SCOPES, ...selected])].filter((scope) =>
+    (TEAM_AGENT_KEY_SCOPES as readonly string[]).includes(scope),
+  );
+}
 
 export function TeamsView({
   data,
@@ -227,7 +215,7 @@ export function TeamsView({
           mode === 'replace'
             ? 'Team credential renewed'
             : 'Team enrollment complete',
-        message: `Issued scopes: ${result.scopes.join(', ')}. New runs will use the stored credential. Existing runs keep their current credential until restarted.`,
+        message: `${Array.isArray(result.scopes) ? `Issued scopes: ${result.scopes.join(', ')}. ` : 'Refresh team access to inspect the issued scopes. '}New runs will use the stored credential. Existing runs keep their current credential until restarted.`,
         error: false,
       });
       setMode('enroll');
@@ -553,18 +541,7 @@ export function TeamsView({
                 onClick={() => {
                   setTeam(entry);
                   setMode('replace');
-                  setScopes(
-                    [
-                      ...DAEMON_MINIMUM_SCOPES,
-                      ...(entry.credential?.scopes ?? []).filter((scope) =>
-                        (AGENT_OAUTH_SCOPES as readonly string[]).includes(
-                          scope,
-                        ),
-                      ),
-                    ].filter(
-                      (scope, index, all) => all.indexOf(scope) === index,
-                    ),
-                  );
+                  setScopes(scopesForRenewal(entry));
                   setDestinationTeamId('');
                 }}
               >
@@ -662,7 +639,7 @@ export function TeamsView({
                 Required permissions keep the agent running. Choose any extra
                 permissions this team should grant.
               </Text>
-              {AGENT_OAUTH_SCOPES.map((scope) => {
+              {TEAM_AGENT_KEY_SCOPES.map((scope) => {
                 const required = (
                   DAEMON_MINIMUM_SCOPES as readonly string[]
                 ).includes(scope);
@@ -680,7 +657,7 @@ export function TeamsView({
                         )
                       }
                     />{' '}
-                    {SCOPE_DESCRIPTIONS[scope] ?? scope} · {scope}
+                    {CREDENTIAL_SCOPE_DESCRIPTIONS[scope]} · {scope}
                     {required ? ' (required)' : ''}
                   </label>
                 );
@@ -770,7 +747,8 @@ export function TeamsView({
       ) : null}
       {identity && recoveriesError ? (
         <InlineNotice tone="warning" title="Recovery records unavailable">
-          Check the Agent Server connection and refresh team access.
+          Recovery controls require an updated Agent Server. Check its
+          connection and version, then refresh team access.
         </InlineNotice>
       ) : null}
       {feedback?.error ? (

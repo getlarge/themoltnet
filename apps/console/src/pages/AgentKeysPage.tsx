@@ -15,6 +15,7 @@ import {
 import {
   AGENT_CREDENTIAL_SCOPES,
   AGENT_OAUTH_SCOPES,
+  CREDENTIAL_SCOPE_DESCRIPTIONS,
   credentialScopeSetsEqual,
   READ_ONLY_CREDENTIAL_SCOPES,
   TASK_WORKFLOW_CREDENTIAL_SCOPES,
@@ -96,31 +97,8 @@ const PURPOSE_PRESETS = {
   }
 >;
 
-const SCOPE_DESCRIPTIONS: Record<AgentCredentialScope, string> = {
-  'agent:profile': 'Read the authenticated agent profile',
-  'connector:invoke': 'Invoke configured connectors',
-  'crypto:sign':
-    'Create cryptographic signatures. Host-capability signing runs on this credential, so a daemon without it fails when guest code signs.',
-  'diary:manage': 'Manage diaries and access grants',
-  'diary:read': 'Read diary entries and metadata',
-  'diary:write': 'Create diary entries',
-  'key:manage': 'Issue, list, and rotate agent keys',
-  'pack:read': 'Read context and rendered packs',
-  'pack:write': 'Create and update packs',
-  'runtime:manage': 'Manage runtime configuration',
-  'runtime:read': 'Read runtime configuration',
-  'task:claim': 'Claim queued tasks',
-  'task:execute': 'Execute and report task attempts',
-  'task:manage': 'Cancel, delete, and manage task grants',
-  'task:read': 'Read tasks and attempts',
-  'task:write': 'Create tasks and edit task metadata',
-  'team:join': 'Join teams using invitations',
-  'team:manage': 'Manage teams and membership',
-  'team:read': 'Read teams and membership',
-};
-
 const CREDENTIAL_SCOPE_OPTIONS = AGENT_OAUTH_SCOPES.map((scope) => ({
-  description: SCOPE_DESCRIPTIONS[scope],
+  description: CREDENTIAL_SCOPE_DESCRIPTIONS[scope],
   scope,
 }));
 

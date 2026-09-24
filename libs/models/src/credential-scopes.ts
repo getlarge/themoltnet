@@ -100,6 +100,45 @@ export const AGENT_CREDENTIAL_SCOPES = [
   ...DAEMON_OPTIONAL_SCOPES,
 ] as const satisfies readonly CredentialScope[];
 
+/** Human-approved ceiling for team-bound daemon credentials. */
+export const TEAM_AGENT_KEY_SCOPES = [
+  ...AGENT_CREDENTIAL_SCOPES,
+  CREDENTIAL_SCOPES.DiaryWrite,
+] as const satisfies readonly CredentialScope[];
+
+export const CREDENTIAL_SCOPE_DESCRIPTIONS: Record<CredentialScope, string> = {
+  'agent:profile': 'Read the authenticated agent profile',
+  'connector:invoke': 'Invoke configured connectors',
+  'crypto:sign': 'Create cryptographic signatures',
+  'diary:manage': 'Manage diaries and access grants',
+  'diary:read': 'Read diary entries and metadata',
+  'diary:write': 'Create diary entries',
+  'human:profile': 'Read your human profile',
+  'key:manage': 'Issue, list, and rotate agent keys',
+  'pack:read': 'Read context and rendered packs',
+  'pack:write': 'Create and update packs',
+  'runtime:manage': 'Manage runtime configuration',
+  'runtime:read': 'Read runtime configuration',
+  'task:claim': 'Claim queued tasks',
+  'task:execute': 'Execute and report task attempts',
+  'task:manage': 'Cancel, delete, and manage task grants',
+  'task:read': 'Read tasks and attempts',
+  'task:write': 'Create tasks and edit task metadata',
+  'team:join': 'Join teams using invitations',
+  'team:manage': 'Manage teams and membership',
+  'team:read': 'Read teams and membership',
+};
+
+export function validTeamAgentKeyScopes(scopes: readonly string[]): boolean {
+  return (
+    scopes.length === new Set(scopes).size &&
+    scopes.every((scope) =>
+      (TEAM_AGENT_KEY_SCOPES as readonly string[]).includes(scope),
+    ) &&
+    DAEMON_MINIMUM_SCOPES.every((scope) => scopes.includes(scope))
+  );
+}
+
 /**
  * Minimum grant for integrations that create tasks and wait for results.
  *
