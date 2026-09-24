@@ -5,7 +5,7 @@
  * contract surface and an authorization surface — hence the full-body
  * assertion alongside the native-authorization and scope cases.
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Catalogue, CatalogueAgentPort } from './catalogue.js';
 import { AGENT_SERVER_TOKEN_HEADER } from './server.js';
@@ -257,5 +257,111 @@ describe('run catalogue', () => {
 
     // Assert
     expect(response.statusCode).toBe(400);
+  });
+
+  describe('shared reads', () => {
+    async function setup(port: CatalogueAgentPort) {
+      const { app, store } = await fixture({
+        catalogueAgentFor: () => Promise.resolve(port),
+      });
+      const token = await authorize(app);
+      activateManaged(store);
+      const headers = {
+        host: HOST,
+        origin: TEST_CLIENT_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      };
+      const read = () =>
+        app.inject({
+          method: 'GET',
+          url: '/v1/catalogue?identity=course-bot',
+          headers,
+        });
+      return { app, headers, read };
+    }
+
+    it('verifies team credentials once for concurrent and repeated reads', async () => {
+      // Arrange: the Run Center poll, the tray and a view refreshing at once.
+      const readTeam = vi.fn((teamId: string, signal?: AbortSignal) =>
+        catalogueAgent.readTeam(teamId, signal),
+      );
+      const { read } = await setup({ ...catalogueAgent, readTeam });
+
+      // Act
+      const responses = await Promise.all([read(), read(), read()]);
+      const later = await read();
+
+      // Assert
+      for (const response of [...responses, later])
+        expect(response.statusCode).toBe(200);
+      expect(readTeam).toHaveBeenCalledTimes(1);
+    });
+
+    it('re-reads a degraded catalogue instead of serving the failure again', async () => {
+      // Arrange: a freshly renewed credential that the API rejects once.
+      const readTeam = vi
+        .fn((teamId: string, signal?: AbortSignal) =>
+          catalogueAgent.readTeam(teamId, signal),
+        )
+        .mockRejectedValueOnce(new Error('not yet verifiable'));
+      const { read } = await setup({ ...catalogueAgent, readTeam });
+
+      // Act
+      const first = (await read()).json<Catalogue>();
+      const second = (await read()).json<Catalogue>();
+
+      // Assert
+      expect(first.teams[0]?.available).toBe(false);
+      expect(second.teams[0]?.available).toBe(true);
+    });
+
+    it('drops the shared read after a successful administrative change', async () => {
+      // Arrange
+      const readTeam = vi.fn((teamId: string, signal?: AbortSignal) =>
+        catalogueAgent.readTeam(teamId, signal),
+      );
+      const { app, headers, read } = await setup({
+        ...catalogueAgent,
+        readTeam,
+      });
+      await read();
+
+      // Act
+      const changed = await app.inject({
+        method: 'POST',
+        url: '/v1/operator/cancel',
+        headers,
+      });
+      await read();
+
+      // Assert
+      expect(changed.statusCode).toBe(200);
+      expect(readTeam).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps the shared read after a refused change', async () => {
+      // Arrange
+      const readTeam = vi.fn((teamId: string, signal?: AbortSignal) =>
+        catalogueAgent.readTeam(teamId, signal),
+      );
+      const { app, headers, read } = await setup({
+        ...catalogueAgent,
+        readTeam,
+      });
+      await read();
+
+      // Act
+      const refused = await app.inject({
+        method: 'POST',
+        url: '/v1/agents',
+        headers: { ...headers, 'content-type': 'application/json' },
+        payload: { kind: 'managed', name: 'orphan-bot' },
+      });
+      await read();
+
+      // Assert
+      expect(refused.statusCode).toBe(400);
+      expect(readTeam).toHaveBeenCalledTimes(1);
+    });
   });
 });

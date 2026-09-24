@@ -37,10 +37,14 @@ import {
 } from '../provider-configuration.js';
 import { safeErrorContext } from '../safe-error-context.js';
 import {
-  buildCatalogue,
+  assembleCatalogue,
   type CatalogueAgentPort,
   type CatalogueDiaryRecord,
+  type CatalogueTeamSource,
+  isCatalogueSourceReusable,
+  readCatalogueSources,
 } from './catalogue.js';
+import { CatalogueSourceCache } from './catalogue-cache.js';
 import {
   readCatalogueProject,
   readCatalogueProjects,
@@ -233,6 +237,10 @@ export interface BuildAgentServerOptions {
   rateLimitMax?: number;
   /** Override used by focused project-location deadline tests. */
   projectSaveTimeoutMs?: number;
+  /** How long a healthy catalogue read is reused; 0 disables reuse. */
+  catalogueCacheTtlMs?: number;
+  /** Per-team catalogue budget override for focused deadline tests. */
+  catalogueTeamBudgetMs?: number;
   /** Optional OpenAPI plugin registration used by deterministic codegen. */
   registerOpenApi?: (app: FastifyInstance) => void;
   /** Override for focused credential recovery tests. */
@@ -360,6 +368,10 @@ export function buildAgentServer(
 ): FastifyInstance {
   const options = { ...input };
   const { nativeGrant } = options;
+  const catalogueSources = new CatalogueSourceCache<CatalogueTeamSource[]>({
+    ttlMs: options.catalogueCacheTtlMs,
+    reusable: isCatalogueSourceReusable,
+  });
   const oauth = options.operatorOAuth;
   let restartRequired = false;
 
@@ -498,6 +510,7 @@ export function buildAgentServer(
         requireNativeGrant(request);
       });
     }
+    registerCatalogueInvalidation(app, catalogueSources);
     app.get(
       '/health',
       { schema: AgentServerRouteSchemas.health },
@@ -678,7 +691,12 @@ export function buildAgentServer(
     registerProviderRoutes(app, options, requireAuthorizedOrigin);
     registerSubscriptionRoutes(app, options, requireAuthorizedOrigin);
     registerRunRoutes(app, options, requireAuthorizedOrigin);
-    registerCatalogueRoute(app, options, requireAuthorizedOrigin);
+    registerCatalogueRoute(
+      app,
+      options,
+      requireAuthorizedOrigin,
+      catalogueSources,
+    );
     registerProjectLocationRoutes(app, options, requireAuthorizedOrigin);
   });
   app.addHook('preClose', async () => {
@@ -913,16 +931,46 @@ async function readIdentityCatalogue(
   options: BuildAgentServerOptions,
   alias: string,
   logger: FastifyBaseLogger,
+  sources: CatalogueSourceCache<CatalogueTeamSource[]>,
 ) {
   // Throws a typed not-found when the alias is not activated here.
   requireActivation(options.store, alias);
-  return buildCatalogue({
-    agent: await catalogueAgent(options, alias),
+  const agent = await catalogueAgent(options, alias);
+  // The shared read is not tied to one request: a caller that disconnects
+  // must not abort the read other callers joined. The team budget bounds it.
+  const teams = await sources.read(alias, () =>
+    readCatalogueSources(agent, {
+      signal: options.shutdownSignal,
+      teamBudgetMs: options.catalogueTeamBudgetMs,
+      logger,
+    }),
+  );
+  return assembleCatalogue(teams, {
     machine: machineCapabilities(options),
     identityDefault: readIdentityDefaultBinding(
       options.store.identityDir(alias),
     ),
-    logger,
+    lastVerified: (teamId) => agent.lastVerified(teamId),
+  });
+}
+
+/**
+ * Credential and identity changes make a shared catalogue read stale. Dropping
+ * it before the response is sent means the refresh Desktop issues on success
+ * already reads the new credential.
+ */
+function registerCatalogueInvalidation(
+  app: FastifyInstance,
+  sources: CatalogueSourceCache<CatalogueTeamSource[]>,
+): void {
+  app.addHook('onSend', async (request, reply) => {
+    const route = request.routeOptions.url ?? '';
+    if (
+      request.method !== 'GET' &&
+      reply.statusCode < 400 &&
+      (route.startsWith('/v1/agents') || route.startsWith('/v1/operator'))
+    )
+      sources.invalidate();
   });
 }
 
@@ -930,6 +978,7 @@ function registerCatalogueRoute(
   app: FastifyInstance,
   options: BuildAgentServerOptions,
   requireAuthorizedOrigin: AuthorizedOriginGuard,
+  sources: CatalogueSourceCache<CatalogueTeamSource[]>,
 ): void {
   app.get(
     '/v1/catalogue',
@@ -945,7 +994,7 @@ function registerCatalogueRoute(
         );
       }
       const alias = identity.trim();
-      return readIdentityCatalogue(options, alias, request.log);
+      return readIdentityCatalogue(options, alias, request.log, sources);
     },
   );
 }
@@ -1002,8 +1051,11 @@ async function defaultCatalogueAgent(
         credential: metadata,
       };
     },
-    readProjects: async (teamId) =>
-      readCatalogueProjects(verifiedClient(teamId).projects, teamId),
+    readProjects: async (teamId, signal) => {
+      // The verified client already carries the team's budget signal.
+      signal?.throwIfAborted();
+      return readCatalogueProjects(verifiedClient(teamId).projects, teamId);
+    },
     readProject: async (teamId, projectId, signal) => {
       signal?.throwIfAborted();
       return readCatalogueProject(

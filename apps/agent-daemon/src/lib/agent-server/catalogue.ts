@@ -106,7 +106,10 @@ export interface CatalogueAgentPort {
   teamIds: string[];
   lastVerified(teamId: string): CredentialMetadata | undefined;
   /** Called only after readTeam verifies this team's credential. */
-  readProjects(teamId: string): Promise<CatalogueProjectPage>;
+  readProjects(
+    teamId: string,
+    signal?: AbortSignal,
+  ): Promise<CatalogueProjectPage>;
   /** Called only after readTeam verifies this team's credential; null when not visible. */
   readProject(
     teamId: string,
@@ -159,43 +162,90 @@ export interface IdentityDefaultBinding {
   diaryId?: string;
 }
 
-export async function buildCatalogue(options: {
-  agent: CatalogueAgentPort;
-  machine: MachineCapabilities;
-  identityDefault: IdentityDefaultBinding;
-  logger?: Pick<FastifyBaseLogger, 'warn'>;
-}): Promise<Catalogue> {
-  const { agent, machine, identityDefault, logger } = options;
-  const entries = await Promise.all(
-    agent.teamIds.map(async (teamId) => {
+/**
+ * One team's budget for credential verification, resources and projects. It
+ * must fit inside Desktop's 15 s control timeout with room to spare: a slow
+ * team degrades to a blocker instead of failing the whole catalogue.
+ */
+export const CATALOGUE_TEAM_BUDGET_MS = 8_000;
+
+/** What the network said about one team, before this machine's view is applied. */
+export type CatalogueTeamSource =
+  | {
+      teamId: string;
+      available: true;
+      team: CatalogueTeamRecord;
+      diaries: CatalogueDiaryRecord[];
+      profiles: CatalogueProfileRecord[];
+      credential: CredentialMetadata;
+      projects: CatalogueProject[];
+      projectErrors: ProjectError[];
+    }
+  | { teamId: string; available: false; blocker: CredentialBlocker };
+
+const TEAM_TIMEOUT_BLOCKER: CredentialBlocker = {
+  code: 'agent_key_unavailable',
+  message: 'Verifying this team credential took too long.',
+  remedy:
+    'The catalogue retries automatically. Check connectivity if it persists.',
+};
+
+/**
+ * The remote half of the catalogue: every team read with its own credential,
+ * each bounded by its own budget so one slow team cannot hold the others.
+ */
+export async function readCatalogueSources(
+  agent: CatalogueAgentPort,
+  options: {
+    signal?: AbortSignal;
+    teamBudgetMs?: number;
+    logger?: Pick<FastifyBaseLogger, 'warn'>;
+  } = {},
+): Promise<CatalogueTeamSource[]> {
+  const { signal, logger } = options;
+  const budgetMs = options.teamBudgetMs ?? CATALOGUE_TEAM_BUDGET_MS;
+  return Promise.all(
+    agent.teamIds.map(async (teamId): Promise<CatalogueTeamSource> => {
+      const budget = AbortSignal.timeout(budgetMs);
+      const teamSignal = signal ? AbortSignal.any([signal, budget]) : budget;
+      let result: Awaited<ReturnType<CatalogueAgentPort['readTeam']>>;
       try {
-        const result = await agent.readTeam(teamId);
+        result = await agent.readTeam(teamId, teamSignal);
         if (result.team.id !== teamId)
           throw new Error('Team response mismatch');
-        const diaries = result.diaries
-          .filter((diary) => diary.teamId === teamId)
-          .map(({ id, name }) => ({ id, name }));
-        const team: CatalogueTeam = {
-          teamId,
-          teamName: result.team.name,
-          available: true,
-          blockers: [],
-          credential: result.credential,
-          diaries,
-          defaultDiaryId: resolveDefaultDiary(teamId, diaries, identityDefault),
-        };
-        const profiles = result.profiles
-          .filter((profile) => profile.teamId === teamId)
-          .map((profile) => ({
-            ...profile,
-            ...deriveProfileReadiness(profile, machine),
-          }));
-        try {
-          const page = await agent.readProjects(teamId);
-          const projects = page.items.filter(
-            (project) => project.teamId === teamId && !project.archived,
-          );
-          const projectErrors: ProjectError[] = page.truncated
+      } catch (error) {
+        const timedOut = budget.aborted && !signal?.aborted;
+        const blocker = timedOut
+          ? TEAM_TIMEOUT_BLOCKER
+          : credentialBlocker(error);
+        // The catalogue answers 200 either way; without this line an
+        // unavailable team leaves no trace of why.
+        logger?.warn(
+          {
+            ...safeErrorContext(error),
+            teamId,
+            blocker: blocker.code,
+            timedOut,
+            code: 'agent_server_team_unavailable',
+          },
+          'AgentServer team credential unavailable',
+        );
+        return { teamId, available: false, blocker };
+      }
+      const verified = {
+        teamId,
+        available: true as const,
+        team: result.team,
+        diaries: result.diaries,
+        profiles: result.profiles,
+        credential: result.credential,
+      };
+      try {
+        const page = await agent.readProjects(teamId, teamSignal);
+        return {
+          ...verified,
+          projects: page.items,
+          projectErrors: page.truncated
             ? [
                 {
                   teamId,
@@ -204,67 +254,121 @@ export async function buildCatalogue(options: {
                     'Only the first projects are listed. Archive unused projects to see the rest.',
                 },
               ]
-            : [];
-          return { team, profiles, projects, projectErrors };
-        } catch (error) {
-          // Project discovery does not invalidate the credential just verified
-          // above. General work and team/profile recovery remain available.
-          logger?.warn(
-            {
-              ...safeErrorContext(error),
-              teamId,
-              code: 'agent_server_project_discovery_failed',
-            },
-            'AgentServer project discovery failed',
-          );
-          return {
-            team,
-            profiles,
-            projects: [],
-            projectErrors: [projectError(teamId, error)],
-          };
-        }
+            : [],
+        };
       } catch (error) {
-        const blocker = credentialBlocker(error);
-        // The catalogue answers 200 either way; without this line an
-        // unavailable team leaves no trace of why.
+        // Project discovery does not invalidate the credential just verified
+        // above. General work and team/profile recovery remain available.
         logger?.warn(
           {
             ...safeErrorContext(error),
             teamId,
-            blocker: blocker.code,
-            code: 'agent_server_team_unavailable',
+            timedOut: budget.aborted && !signal?.aborted,
+            code: 'agent_server_project_discovery_failed',
           },
-          'AgentServer team credential unavailable',
+          'AgentServer project discovery failed',
         );
-        const team: CatalogueTeam = {
-          teamId,
-          teamName: teamId,
-          available: false,
-          blockers: [blocker],
-          credential: agent.lastVerified(teamId),
-          diaries: [],
-          defaultDiaryId: null,
+        return {
+          ...verified,
+          projects: [],
+          projectErrors: [projectError(teamId, error)],
         };
-        return { team, profiles: [], projects: [], projectErrors: [] };
       }
     }),
   );
+}
+
+/**
+ * Whether a source read may be reused. Anything degraded is re-read on the
+ * next request: a transient failure must never outlive its cause.
+ */
+export function isCatalogueSourceReusable(
+  sources: readonly CatalogueTeamSource[],
+): boolean {
+  return sources.every(
+    (source) =>
+      source.available &&
+      source.projectErrors.every((error) => error.code === 'truncated'),
+  );
+}
+
+/** The local half: this machine's readiness and the identity binding, always fresh. */
+export function assembleCatalogue(
+  sources: readonly CatalogueTeamSource[],
+  options: {
+    machine: MachineCapabilities;
+    identityDefault: IdentityDefaultBinding;
+    lastVerified: CatalogueAgentPort['lastVerified'];
+  },
+): Catalogue {
+  const { machine, identityDefault, lastVerified } = options;
+  const entries = sources.map((source) => {
+    const { teamId } = source;
+    if (!source.available) {
+      const team: CatalogueTeam = {
+        teamId,
+        teamName: teamId,
+        available: false,
+        blockers: [source.blocker],
+        credential: lastVerified(teamId),
+        diaries: [],
+        defaultDiaryId: null,
+      };
+      return { team, profiles: [], projects: [], projectErrors: [] };
+    }
+    const diaries = source.diaries
+      .filter((diary) => diary.teamId === teamId)
+      .map(({ id, name }) => ({ id, name }));
+    const team: CatalogueTeam = {
+      teamId,
+      teamName: source.team.name,
+      available: true,
+      blockers: [],
+      credential: source.credential,
+      diaries,
+      defaultDiaryId: resolveDefaultDiary(teamId, diaries, identityDefault),
+    };
+    const profiles = source.profiles
+      .filter((profile) => profile.teamId === teamId)
+      .map((profile) => ({
+        ...profile,
+        ...deriveProfileReadiness(profile, machine),
+      }));
+    const projects = source.projects.filter(
+      (project) => project.teamId === teamId && !project.archived,
+    );
+    return { team, profiles, projects, projectErrors: source.projectErrors };
+  });
   const teams = entries.map(({ team }) => team);
   const available = teams.filter((team) => team.available);
   const defaultTeamId =
     available.find((team) => team.teamId === identityDefault.teamId)?.teamId ??
     available[0]?.teamId ??
     null;
-  const profiles = entries.flatMap((entry) => entry.profiles);
 
   return {
     teams,
     defaultTeamId,
-    profiles,
+    profiles: entries.flatMap((entry) => entry.profiles),
     projects: entries.flatMap((entry) => entry.projects),
     projectErrors: entries.flatMap((entry) => entry.projectErrors),
   };
+}
+
+export async function buildCatalogue(options: {
+  agent: CatalogueAgentPort;
+  machine: MachineCapabilities;
+  identityDefault: IdentityDefaultBinding;
+  logger?: Pick<FastifyBaseLogger, 'warn'>;
+  signal?: AbortSignal;
+  teamBudgetMs?: number;
+}): Promise<Catalogue> {
+  const { agent, machine, identityDefault } = options;
+  return assembleCatalogue(await readCatalogueSources(agent, options), {
+    machine,
+    identityDefault,
+    lastVerified: (teamId) => agent.lastVerified(teamId),
+  });
 }
 
 function projectError(teamId: string, error: unknown): ProjectError {
