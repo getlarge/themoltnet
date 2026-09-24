@@ -15,7 +15,7 @@
   "model": "glm-5.3-flash",
   "name": "legreffier-docs-review-v1",
   "provider": "ollama-cloud",
-  "requiredEnv": ["OLLAMA_API_KEY"],
+  "requiredEnv": [],
   "runtimeKind": "gondolin_pi",
   "sandbox": {
     "env": {},
