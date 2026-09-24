@@ -139,6 +139,16 @@ export interface BootstrapResult {
   nonceRepository: NonceRepository;
   /** ioredis client backing the rate limiter, or null when Redis is unconfigured. */
   rateLimitRedis: Redis | null;
+  /** Dedicated bounded-wait client for token-cache commands. */
+  tokenCacheRedis: Redis | null;
+}
+
+/** Keep short token-cache waits off the limiter's shared Redis connection. */
+export function createTokenCacheRedisClient(shared: Redis): Redis {
+  return shared.duplicate({
+    connectionName: 'rest-api-oauth-cache',
+    commandTimeout: 250,
+  });
 }
 
 function postgresDatabaseIdentity(databaseUrl: string): string {
@@ -256,6 +266,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   // outage fails fast (and the limiter fails open) instead of hanging requests.
   const redisConfig = resolveRedisConfig(config.security);
   let rateLimitRedis: Redis | null = null;
+  let tokenCacheRedis: Redis | null = null;
   if (redisConfig) {
     rateLimitRedis = new Redis({
       connectionName: 'rest-api-ratelimit',
@@ -265,18 +276,20 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       db: redisConfig.db,
       tls: redisConfig.tls,
       connectTimeout: 500,
-      // A connected Upstash socket can accept commands without replying.
-      // Bound both rate-limit and OAuth2 cache commands on this shared client.
-      commandTimeout: 250,
       maxRetriesPerRequest: 1,
       enableOfflineQueue: false,
       lazyConnect: false,
     });
-    // The limiter fails open on store errors (skipOnError), which swallows them
-    // silently — so surface Redis problems here at error level. ioredis may
-    // re-emit on each reconnect attempt; that's acceptable as a loud alarm.
+    // Connection errors complement the limiter's callback-level bypass metric.
+    // ioredis may re-emit on reconnect attempts.
     rateLimitRedis.on('error', (err) => {
       app.log.error({ err }, 'rate-limit redis store error');
+    });
+    // Token-cache commands have a tighter latency budget than the limiter.
+    // Keep that timeout off sessions, locks and rate-limit commands.
+    tokenCacheRedis = createTokenCacheRedisClient(rateLimitRedis);
+    tokenCacheRedis.on('error', (err) => {
+      app.log.error({ err }, 'OAuth2 token-cache Redis connection error');
     });
     app.log.info(
       { host: redisConfig.host, port: redisConfig.port },
@@ -838,6 +851,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       rateLimitGlobalAuth: config.security.RATE_LIMIT_GLOBAL_AUTH,
       rateLimitGlobalAnon: config.security.RATE_LIMIT_GLOBAL_ANON,
       rateLimitTokenIp: config.security.RATE_LIMIT_TOKEN_IP,
+      rateLimitTokenUpstreamIp: config.security.RATE_LIMIT_TOKEN_UPSTREAM_IP,
       rateLimitEmbedding: config.security.RATE_LIMIT_EMBEDDING,
       rateLimitSigning: config.security.RATE_LIMIT_SIGNING,
       rateLimitAgentKey: config.security.RATE_LIMIT_AGENT_KEY,
@@ -853,6 +867,10 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       rateLimitGlobalRead: config.security.RATE_LIMIT_GLOBAL_READ,
       rateLimitPreResolveIp: config.security.RATE_LIMIT_PRE_RESOLVE_IP,
       rateLimitClientIpHeader: config.security.RATE_LIMIT_CLIENT_IP_HEADER,
+      rateLimitTrustedProxyCidrs:
+        config.security.RATE_LIMIT_TRUSTED_PROXY_CIDRS.split(',')
+          .map((cidr) => cidr.trim())
+          .filter(Boolean),
       rateLimitAllowList: config.security.RATE_LIMIT_ALLOWLIST.split(',')
         .map((path) => path.trim())
         .filter((path) => path.length > 0),
@@ -865,6 +883,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     dbosReady: isDBOSReady,
     oryProjectUrl: config.ory.ORY_PROJECT_URL,
     ...(rateLimitRedis ? { rateLimitRedis } : {}),
+    ...(tokenCacheRedis ? { tokenCacheRedis } : {}),
   });
 
   // ── Observability metrics plugin ───────────────────────────────
@@ -875,5 +894,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     });
   }
 
-  return { app, dbConnection, observability, nonceRepository, rateLimitRedis };
+  return {
+    app,
+    dbConnection,
+    observability,
+    nonceRepository,
+    rateLimitRedis,
+    tokenCacheRedis,
+  };
 }

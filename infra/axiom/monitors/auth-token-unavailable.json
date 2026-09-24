@@ -1,0 +1,16 @@
+{
+  "alertOnNoData": false,
+  "description": "OAuth token requests refused before an upstream exchange. Inspect grant_type and correlate with token-cache command failures and the token-route 429/503 trace groups.",
+  "intervalMinutes": 1,
+  "mplQuery": "`moltnet-metrics`:`auth.token.unavailable`\n| align to 1m using prom::rate\n| group by `grant_type`, `service.name` using sum",
+  "name": "MoltNet OAuth token requests unavailable",
+  "notifierIds": [],
+  "notifyByGroup": true,
+  "operator": "Above",
+  "rangeMinutes": 5,
+  "resolvable": true,
+  "threshold": 0,
+  "triggerAfterNPositiveResults": 2,
+  "triggerFromNRuns": 3,
+  "type": "Threshold"
+}

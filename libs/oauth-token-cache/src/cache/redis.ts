@@ -26,7 +26,7 @@ export interface RedisCacheStoreOptions {
   keyPrefix?: string;
 }
 
-export type RedisCacheOperation = 'get' | 'set' | 'delete' | 'scan';
+export type RedisCacheOperation = 'get' | 'set' | 'delete' | 'scan' | 'probe';
 const MAX_ATTEMPTS = 2;
 
 /** Identifies cache transport failures without exposing grant keys or secrets. */
@@ -34,9 +34,10 @@ export class RedisCacheStoreError extends Error {
   constructor(
     public readonly operation: RedisCacheOperation,
     cause: unknown,
+    attempts: number,
   ) {
     super(
-      `OAuth2 Redis cache ${operation} failed after ${MAX_ATTEMPTS} attempts`,
+      `OAuth2 Redis cache ${operation} failed after ${attempts} attempt${attempts === 1 ? '' : 's'}`,
       {
         cause,
       },
@@ -55,9 +56,14 @@ async function runRedisCommand<T>(
       return await command();
     } catch (cause) {
       lastError = cause;
+      // ioredis does not cancel a timed-out command. Retrying on that same
+      // stalled connection adds another timeout without improving recovery.
+      if (cause instanceof Error && cause.message === 'Command timed out') {
+        throw new RedisCacheStoreError(operation, cause, attempt + 1);
+      }
     }
   }
-  throw new RedisCacheStoreError(operation, lastError);
+  throw new RedisCacheStoreError(operation, lastError, MAX_ATTEMPTS);
 }
 
 const DEFAULT_PREFIX = 'moltnet:oauth-token:';
@@ -80,7 +86,7 @@ export function createRedisCacheStore<T>(
 
   return {
     async probeWrite() {
-      await runRedisCommand('set', () =>
+      await runRedisCommand('probe', () =>
         client.set(`${prefix}__write-probe__`, '1', 'PX', 1_000),
       );
     },

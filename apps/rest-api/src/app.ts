@@ -111,6 +111,8 @@ export interface SecurityOptions {
   rateLimitGlobalAnon: number;
   /** Token requests per minute per client IP, separate from anonymous routes. */
   rateLimitTokenIp: number;
+  /** Per-instance limit on token requests that actually reach Hydra. */
+  rateLimitTokenUpstreamIp: number;
   /** Max requests per minute for embedding endpoints */
   rateLimitEmbedding: number;
   /** Max requests per minute for signing request creation */
@@ -142,6 +144,8 @@ export interface SecurityOptions {
   rateLimitPreResolveIp: number;
   /** Client IP header set by a trusted ingress, when configured. */
   rateLimitClientIpHeader?: string;
+  /** Socket peer CIDRs allowed to supply the client IP header. */
+  rateLimitTrustedProxyCidrs?: string[];
   /**
    * Exact request paths exempt from all rate limiting (pre-resolve throttle and
    * main limiter), e.g. liveness/registry probes.
@@ -213,6 +217,8 @@ export interface AppOptions {
    * (bootstrap) so its lifecycle/shutdown is managed alongside the DB pool.
    */
   rateLimitRedis?: Redis;
+  /** Dedicated Redis client with bounded token-cache command waits. */
+  tokenCacheRedis?: Redis;
   /** Database pool for readiness probe */
   pool?: HealthRouteOptions['pool'];
   /** DBOS lifecycle readiness probe. */
@@ -328,6 +334,7 @@ export async function registerApiRoutes(
     preResolveIpLimit: options.security.rateLimitPreResolveIp,
     allowList: options.security.rateLimitAllowList,
     clientIpHeader: options.security.rateLimitClientIpHeader,
+    trustedProxyCidrs: options.security.rateLimitTrustedProxyCidrs,
   });
 
   // Register auth plugin (decorates tokenValidator, permissionChecker, request.authContext)
@@ -406,6 +413,7 @@ export async function registerApiRoutes(
     redis: options.rateLimitRedis,
     allowList: options.security.rateLimitAllowList,
     clientIpHeader: options.security.rateLimitClientIpHeader,
+    trustedProxyCidrs: options.security.rateLimitTrustedProxyCidrs,
   });
 
   // Decorate with services (guard to allow pre-decoration by DBOS plugin)
@@ -483,14 +491,11 @@ export async function registerApiRoutes(
   // sibling plugins (see oauth2GrantCachePlugin).
   await app.register(oauth2GrantCachePlugin, {
     hydraPublicUrl: options.hydraPublicUrl,
-    redis: options.rateLimitRedis,
+    redis: options.tokenCacheRedis ?? options.rateLimitRedis,
   });
   await app.register(oauth2Routes, {
     hydraPublicUrl: options.hydraPublicUrl,
-    // Reuse the rate limiter's client so cached grants survive a deploy and
-    // are shared across instances. Falls back to a process-local store when
-    // Redis is unconfigured (issue #1860).
-    redis: options.rateLimitRedis,
+    tokenUpstreamIpLimit: options.security.rateLimitTokenUpstreamIp,
   });
   await app.register(oauth2ApprovalRoutes, {
     ory: options.oryClients,

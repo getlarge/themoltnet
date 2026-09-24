@@ -309,7 +309,6 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     : undefined;
 
   const redis = resolveRedisConfig(config);
-  const redisOptions = redis ? { ...redis, commandTimeout: 250 } : undefined;
   app.log.info(
     {
       sessionStore: redis ? 'redis' : 'memory',
@@ -329,7 +328,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     messageBroker: redis ? 'redis' : 'memory',
     // The plugin creates its own client (and pub/sub duplicates). Bound a
     // stalled Redis command so MCP sessions fail promptly rather than hang.
-    ...(redisOptions ? { redis: redisOptions } : {}),
+    ...(redis ? { redis } : {}),
     authorization,
     ...(tracer ? { telemetry: { tracer } } : {}),
   });

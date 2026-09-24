@@ -48,7 +48,7 @@ kill_timeout = 30        # seconds to wait for graceful shutdown before SIGKILL
   # Proxy metadata for request handling.
   TRUST_PROXY = "1"
   RATE_LIMIT_CLIENT_IP_HEADER = "fly-client-ip"
-  RATE_LIMIT_TOKEN_IP = "1000"
+  RATE_LIMIT_TRUSTED_PROXY_CIDRS = "172.16.0.0/12"
   DBOS_WORKFLOW_RETENTION_ENABLED = "true"
   DBOS_WORKFLOW_RETENTION_DAYS = "30"
   DBOS_WORKFLOW_RETENTION_BATCH_SIZE = "1000"

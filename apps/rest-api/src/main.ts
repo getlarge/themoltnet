@@ -12,7 +12,8 @@ import { loadConfig } from './config.js';
 
 async function main(): Promise<void> {
   const config = loadConfig();
-  const { app, dbConnection, rateLimitRedis } = await bootstrap(config);
+  const { app, dbConnection, rateLimitRedis, tokenCacheRedis } =
+    await bootstrap(config);
 
   try {
     await app.listen({ port: config.server.PORT, host: '0.0.0.0' });
@@ -26,6 +27,7 @@ async function main(): Promise<void> {
       app.log.info({ signal }, 'Shutting down');
       void app
         .close()
+        .then(() => tokenCacheRedis?.quit())
         .then(() => rateLimitRedis?.quit())
         .then(() => dbConnection.pool.end())
         .then(() => process.exit(0));

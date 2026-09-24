@@ -1,0 +1,16 @@
+{
+  "alertOnNoData": false,
+  "description": "Redis rate-limit checks failed open. Inspect Redis health and correlate with OAuth token upstream-miss volume; the local pre-resolution and paid-miss guards remain active.",
+  "intervalMinutes": 1,
+  "mplQuery": "`moltnet-metrics`:`auth.rate_limit.store_bypasses`\n| align to 1m using prom::rate\n| group by `service.name` using sum",
+  "name": "MoltNet auth rate-limit store bypasses",
+  "notifierIds": [],
+  "notifyByGroup": true,
+  "operator": "Above",
+  "rangeMinutes": 5,
+  "resolvable": true,
+  "threshold": 0,
+  "triggerAfterNPositiveResults": 2,
+  "triggerFromNRuns": 3,
+  "type": "Threshold"
+}

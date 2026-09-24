@@ -66,6 +66,7 @@ export const TEST_SECURITY_OPTIONS = {
   rateLimitGlobalAuth: 1000, // Higher limits for tests
   rateLimitGlobalAnon: 1000,
   rateLimitTokenIp: 1000,
+  rateLimitTokenUpstreamIp: 1000,
   rateLimitEmbedding: 1000,
   rateLimitSigning: 1000,
   rateLimitAgentKey: 1000,

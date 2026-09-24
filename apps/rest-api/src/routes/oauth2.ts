@@ -35,10 +35,18 @@ import {
   type RedisLikeClient,
   type TokenExchangeMetrics,
 } from '@moltnet/oauth-token-cache';
-import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import { getRequestContextFields } from '@moltnet/observability';
+import type {
+  FastifyError,
+  FastifyInstance,
+  FastifyPluginOptions,
+  FastifyReply,
+  FastifyRequest,
+} from 'fastify';
 import fp from 'fastify-plugin';
 import { Type } from 'typebox';
 
+import { createPreResolveThrottle } from '../plugins/pre-resolve-throttle.js';
 import { createProblem } from '../problems/index.js';
 
 export interface OAuth2RouteOptions extends FastifyPluginOptions {
@@ -55,6 +63,8 @@ export interface OAuth2RouteOptions extends FastifyPluginOptions {
    * Kept deliberately short — see `GRANT_CACHE_POLICY`. Default 60s.
    */
   refreshGrantCacheSeconds?: number;
+  /** Per-instance ceiling on grants that actually reach Hydra. */
+  tokenUpstreamIpLimit?: number;
 }
 
 /**
@@ -82,6 +92,9 @@ const GRANT_CACHE_POLICY: Record<string, { maxSeconds?: number } | undefined> =
     client_credentials: {},
     refresh_token: { maxSeconds: 60 },
   };
+const CACHE_FALLBACK_MAX_MS = 5_000;
+const CACHE_RETRY_MIN_SECONDS = 3;
+const CACHE_RETRY_JITTER_SECONDS = 5;
 
 /** Hydra oauth2TokenExchange success payload. */
 interface HydraTokenSuccess {
@@ -198,6 +211,53 @@ const OAuth2ErrorResponseSchema = Type.Object(
   { $id: 'OAuth2ErrorResponse', additionalProperties: true },
 );
 
+type OAuthErrorCode =
+  | 'invalid_request'
+  | 'invalid_client'
+  | 'unauthorized_client'
+  | 'temporarily_unavailable'
+  | 'server_error';
+
+class TokenRateLimitError extends Error {
+  readonly statusCode = 429;
+  readonly code = 'TOKEN_RATE_LIMITED';
+  constructor(retryAfter: number) {
+    super(`Too many requests. Please retry after ${retryAfter} seconds.`);
+    this.name = 'TokenRateLimitError';
+  }
+}
+
+function oauthErrorCode(status: number): OAuthErrorCode {
+  if (status === 400 || status === 413 || status === 415)
+    return 'invalid_request';
+  if (status === 401) return 'invalid_client';
+  if (status === 403 || status === 404) return 'unauthorized_client';
+  if (status === 429 || status === 503) return 'temporarily_unavailable';
+  return 'server_error';
+}
+
+/** One local error shape for all token-route failures. */
+export function oauthErrorBody(status: number, description: string) {
+  return {
+    error: oauthErrorCode(status),
+    error_description: description,
+    status_code: status,
+  };
+}
+
+function tokenRouteErrorHandler(
+  error: FastifyError,
+  _request: FastifyRequest,
+  reply: FastifyReply,
+): void {
+  const status = error.statusCode ?? 500;
+  const description =
+    status >= 500 && status !== 503
+      ? 'The token request could not be completed'
+      : error.message;
+  void reply.status(status).send(oauthErrorBody(status, description));
+}
+
 export type GrantCache = ReturnType<
   typeof createSingleFlightCache<{
     status: number;
@@ -221,6 +281,7 @@ export const oauth2GrantCachePlugin = fp(
     options: OAuth2RouteOptions,
   ) {
     const metrics = options.metrics ?? createTokenExchangeMetrics();
+    const failingOperations = new Set<string>();
     const grantCache: GrantCache = createSingleFlightCache({
       store: options.redis
         ? createRedisCacheStore({ client: options.redis })
@@ -228,9 +289,12 @@ export const oauth2GrantCachePlugin = fp(
       metrics,
       source: 'rest-proxy',
       onStoreError: (cacheOperation, err) => {
+        if (failingOperations.has(cacheOperation)) return;
+        failingOperations.add(cacheOperation);
         fastify.log.error(
           {
             err,
+            ...getRequestContextFields(),
             cacheOperation,
             failureKind: 'oauth2_grant_cache_unavailable',
             upstreamMinted: cacheOperation === 'set',
@@ -238,6 +302,30 @@ export const oauth2GrantCachePlugin = fp(
           'OAuth2 grant cache command failed',
         );
       },
+      onStoreSuccess: (cacheOperation) => {
+        if (!failingOperations.delete(cacheOperation)) return;
+        fastify.log.info(
+          { cacheOperation },
+          'OAuth2 grant cache command recovered',
+        );
+      },
+      onWriteGateChange: (blocked) => {
+        fastify.log[blocked ? 'warn' : 'info'](
+          { state: blocked ? 'blocked' : 'open' },
+          'OAuth2 grant cache write gate changed',
+        );
+      },
+    });
+    // Short process-local fallback bounds Hydra fanout while Redis reads fail.
+    // Keep its lifetime small because invalidation is not shared across nodes.
+    const fallbackCache: GrantCache = createSingleFlightCache({
+      metrics,
+      source: 'rest-proxy-fallback',
+    });
+    // Deduplicate non-cacheable grants without reading or writing Redis.
+    const uncachedGrantCache: GrantCache = createSingleFlightCache({
+      metrics,
+      source: 'rest-proxy-uncached',
     });
 
     fastify.log.info(
@@ -246,10 +334,25 @@ export const oauth2GrantCachePlugin = fp(
     );
 
     fastify.decorate('oauth2GrantCache', grantCache);
+    fastify.decorate('oauth2FallbackCache', fallbackCache);
+    fastify.decorate('oauth2UncachedGrantCache', uncachedGrantCache);
+    fastify.addHook('onClose', async () => {
+      await Promise.all([
+        grantCache.close(),
+        fallbackCache.close(),
+        uncachedGrantCache.close(),
+      ]);
+    });
     fastify.decorate(
       'invalidateOAuth2ClientCache',
-      (clientId: string): Promise<void> =>
-        grantCache.invalidatePrefix(clientCacheKeyPrefix(clientId)),
+      async (clientId: string): Promise<void> => {
+        const prefix = clientCacheKeyPrefix(clientId);
+        try {
+          await grantCache.invalidatePrefix(prefix);
+        } finally {
+          await fallbackCache.invalidatePrefix(prefix);
+        }
+      },
     );
   },
   { name: 'oauth2-grant-cache' },
@@ -263,12 +366,22 @@ export async function oauth2Routes(
   const { hydraPublicUrl } = options;
   const expiryBufferSeconds = options.expiryBufferSeconds ?? 30;
   const metrics = options.metrics ?? createTokenExchangeMetrics();
-  if (options.refreshGrantCacheSeconds !== undefined) {
-    GRANT_CACHE_POLICY.refresh_token = {
-      maxSeconds: options.refreshGrantCacheSeconds,
+  const grantCachePolicy: Record<string, { maxSeconds?: number } | undefined> =
+    {
+      ...GRANT_CACHE_POLICY,
+      refresh_token: {
+        maxSeconds:
+          options.refreshGrantCacheSeconds ??
+          GRANT_CACHE_POLICY.refresh_token?.maxSeconds,
+      },
     };
-  }
   const grantCache = fastify.oauth2GrantCache;
+  const fallbackCache = fastify.oauth2FallbackCache;
+  const uncachedGrantCache = fastify.oauth2UncachedGrantCache;
+  const upstreamThrottle = createPreResolveThrottle(
+    options.tokenUpstreamIpLimit ?? 300,
+    60_000,
+  );
 
   // Parse application/x-www-form-urlencoded into a Record<string, string>
   fastify.addContentTypeParser(
@@ -287,11 +400,23 @@ export async function oauth2Routes(
     '/oauth2/token',
     {
       config: {
+        skipAuthContextResolution: true,
+        oauth2TokenRoute: true,
         rateLimit: fastify.hasDecorator('rateLimitConfig')
-          ? fastify.rateLimitConfig.token
+          ? {
+              ...fastify.rateLimitConfig.token,
+              errorResponseBuilder: (
+                _request: FastifyRequest,
+                context: { ttl: number },
+              ) => {
+                const retryAfter = Math.ceil(context.ttl / 1000);
+                return new TokenRateLimitError(retryAfter);
+              },
+            }
           : undefined,
         rateLimitBucket: 'token',
       },
+      errorHandler: tokenRouteErrorHandler,
       schema: {
         operationId: 'getOAuth2Token',
         tags: ['auth'],
@@ -309,6 +434,7 @@ export async function oauth2Routes(
           403: OAuth2ErrorResponseSchema,
           429: OAuth2ErrorResponseSchema,
           500: OAuth2ErrorResponseSchema,
+          502: OAuth2ErrorResponseSchema,
           503: OAuth2ErrorResponseSchema,
         },
       },
@@ -322,7 +448,9 @@ export async function oauth2Routes(
       // Every grant Hydra supports is forwarded. This endpoint is advertised
       // as the token endpoint, so an allowlist here would silently break any
       // grant Hydra gains later; Hydra stays the authority on what is valid.
-      const policy = GRANT_CACHE_POLICY[grantType];
+      const policy = Object.hasOwn(grantCachePolicy, grantType)
+        ? grantCachePolicy[grantType]
+        : undefined;
       const cacheKey = grantCacheKey(
         body,
         authorization,
@@ -332,6 +460,15 @@ export async function oauth2Routes(
       );
 
       const loadGrant = async () => {
+        const upstreamKey = fastify.hasDecorator('tokenRateLimitKey')
+          ? fastify.tokenRateLimitKey(request)
+          : request.ip;
+        const retryAfter = upstreamThrottle.hit(upstreamKey, Date.now());
+        if (retryAfter !== null) {
+          metrics.recordUnavailable('rest-proxy', grantType);
+          reply.header('retry-after', String(retryAfter));
+          throw new TokenRateLimitError(retryAfter);
+        }
         const upstreamHeaders: Record<string, string> = {
           'Content-Type': 'application/x-www-form-urlencoded',
         };
@@ -404,40 +541,41 @@ export async function oauth2Routes(
 
       let resolved: Awaited<ReturnType<GrantCache['resolve']>>;
       try {
-        // Grants outside the cache policy must not depend on Redis at all.
+        // Non-cacheable grants still use process-local single-flight, but never
+        // read or write Redis or retain the grant after the exchange completes.
         resolved = policy
           ? await grantCache.resolve(cacheKey, loadGrant)
-          : {
-              value: (await loadGrant()).value,
-              origin: 'load',
-              remainingSeconds: null,
-            };
+          : await uncachedGrantCache.resolve(cacheKey, loadGrant);
       } catch (error) {
         if (!(error instanceof RedisCacheStoreError)) throw error;
-
-        metrics.recordUnavailable('rest-proxy', grantType);
-
-        request.log.error(
-          {
-            err: error,
-            cacheOperation: error.operation,
-            failureKind: 'oauth2_grant_cache_unavailable',
-            grantType: policy ? grantType : 'other',
-            upstreamMinted: false,
-          },
-          'OAuth2 grant cache command failed',
-        );
-
-        // Spread retries across a few seconds when many clients see the same
-        // cache outage; a fixed delay makes them retry together.
-        const retryAfterSeconds = 3 + Math.floor(Math.random() * 5);
-        return reply
-          .status(503)
-          .header('retry-after', String(retryAfterSeconds))
-          .send({
-            error: 'temporarily_unavailable',
-            error_description: 'Token service temporarily unavailable',
+        if (error.operation === 'get' && policy) {
+          resolved = await fallbackCache.resolve(cacheKey, async () => {
+            const result = await loadGrant();
+            return !('expiresAt' in result)
+              ? result
+              : {
+                  ...result,
+                  expiresAt: Math.min(
+                    result.expiresAt,
+                    Date.now() + CACHE_FALLBACK_MAX_MS,
+                  ),
+                };
           });
+        } else {
+          metrics.recordUnavailable('rest-proxy', grantType);
+
+          // A timed-out token-cache command costs one 250 ms wait (never a
+          // second retry on the stalled socket). Spread retries 3–7 seconds
+          // apart when the write gate refuses another mint; the upstream-miss
+          // limiter remains active meanwhile.
+          const retryAfterSeconds =
+            CACHE_RETRY_MIN_SECONDS +
+            Math.floor(Math.random() * CACHE_RETRY_JITTER_SECONDS);
+          return reply
+            .status(503)
+            .header('retry-after', String(retryAfterSeconds))
+            .send(oauthErrorBody(503, 'Token service temporarily unavailable'));
+        }
       }
 
       for (const [name, value] of Object.entries(resolved.value.headers)) {

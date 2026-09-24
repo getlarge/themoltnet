@@ -121,7 +121,7 @@ describe('createRedisCacheStore', () => {
       operation: 'get',
       cause,
     });
-    expect(client.get).toHaveBeenCalledTimes(2);
+    expect(client.get).toHaveBeenCalledTimes(1);
     expect(load).not.toHaveBeenCalled();
   });
 

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MemoryCacheStore } from '../src/cache/memory.js';
+import { RedisCacheStoreError } from '../src/cache/redis.js';
 import type { CacheStore } from '../src/cache/types.js';
 import { entryFromExpiresIn } from '../src/cache/types.js';
 import type { TokenExchangeMetrics } from '../src/metrics.js';
@@ -13,6 +14,7 @@ function mockMetrics(): TokenExchangeMetrics {
   return {
     recordCacheAccess: vi.fn(),
     recordCacheError: vi.fn(),
+    recordWriteGateChange: vi.fn(),
     recordUnavailable: vi.fn(),
     recordExchange: vi.fn(),
     recordServedTtl: vi.fn(),
@@ -140,6 +142,32 @@ describe('createSingleFlightCache', () => {
     expect(first.remainingSeconds).toBeNull();
     expect(second.origin).toBe('load');
     expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it('counts scan failures during prefix invalidation', async () => {
+    // Arrange
+    const failure = new RedisCacheStoreError(
+      'scan',
+      new TypeError('scan unavailable'),
+      2,
+    );
+    cache = createSingleFlightCache({
+      store: {
+        get: vi.fn(async () => null),
+        set: vi.fn(async () => {}),
+        delete: vi.fn(async () => {}),
+        deleteByPrefix: vi.fn(async () => {
+          throw failure;
+        }),
+        close: vi.fn(async () => {}),
+      },
+      metrics,
+      source: 'test',
+    });
+
+    // Act + Assert
+    await expect(cache.invalidatePrefix('agent|')).rejects.toBe(failure);
+    expect(metrics.recordCacheError).toHaveBeenCalledWith('test', 'scan');
   });
 
   it('propagates a load failure and leaves the key loadable', async () => {

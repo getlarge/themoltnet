@@ -521,6 +521,9 @@ function resolveIdentityOnce(
  */
 export const populateAuthContext: onRequestAsyncHookHandler =
   async function populateAuthContext(request: FastifyRequest) {
+    // Public routes can opt out of eager identity resolution. Protected routes
+    // still resolve at requireAuth in preHandler if they use this flag.
+    if (request.routeOptions.config?.skipAuthContextResolution) return;
     // Identity resolution is non-fatal here; never let it abort the request.
     // An invalid/garbage credential simply leaves authContext null (the request
     // is then IP-keyed and, on protected routes, 401'd by requireAuth).
@@ -542,6 +545,12 @@ export const populateAuthContext: onRequestAsyncHookHandler =
       );
     }
   };
+
+declare module 'fastify' {
+  interface FastifyContextConfig {
+    skipAuthContextResolution?: boolean;
+  }
+}
 
 export const requireAuth: preHandlerAsyncHookHandler =
   async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
