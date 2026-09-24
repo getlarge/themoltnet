@@ -28,7 +28,7 @@ const grant = {
   scopes: ['task:execute'],
   idempotencyKey: 'proof-request',
 };
-async function setup() {
+async function setup(delegableScopes: string[] = [...AGENT_OAUTH_SCOPES]) {
   vi.stubEnv('MOLTNET_NATIVE_OAUTH_CLIENT_ID', 'native');
   const keys = await cryptoService.generateKeyPair();
   const mocks = createMockServices();
@@ -57,7 +57,7 @@ async function setup() {
       currentTeamId: null,
       scopes: [PROVISIONING_SCOPE],
       provisioning: grant,
-      delegableScopes: [...AGENT_OAUTH_SCOPES],
+      delegableScopes,
     },
     undefined,
     {
@@ -70,6 +70,22 @@ async function setup() {
   return { app, keys, patchRelationships, mocks };
 }
 describe('enrollment target proof', () => {
+  it('rejects an otherwise valid team scope absent from the approved delegation', async () => {
+    const { app, keys, patchRelationships } = await setup(['diary:write']);
+    const agentProof = await cryptoService.sign(
+      enrollmentProofMessage({ accessToken: 'approved-token', grant }),
+      keys.privateKey,
+    );
+    const response = await app.inject({
+      method: 'POST',
+      url: '/oauth2/provision',
+      headers: { authorization: 'Bearer approved-token' },
+      payload: { agentProof },
+    });
+    expect(response.statusCode).toBe(403);
+    expect(patchRelationships).not.toHaveBeenCalled();
+    expect(issue).not.toHaveBeenCalled();
+  });
   it('checks human credential authority before accepting an identity proof', async () => {
     const { app, keys, patchRelationships, mocks } = await setup();
     mocks.permissionChecker.canManageTeamCredentials.mockResolvedValue(false);

@@ -346,6 +346,112 @@ export type CreateAgentServerAgentResponses = {
 export type CreateAgentServerAgentResponse =
   CreateAgentServerAgentResponses[keyof CreateAgentServerAgentResponses];
 
+export type ListAgentServerEnrollmentRecoveriesData = {
+  body?: never;
+  path: {
+    agentName: string;
+  };
+  query?: never;
+  url: '/v1/agents/{agentName}/credential-recovery';
+};
+
+export type ListAgentServerEnrollmentRecoveriesErrors = {
+  /**
+   * Default Response
+   */
+  default: AgentServerProblem;
+};
+
+export type ListAgentServerEnrollmentRecoveriesError =
+  ListAgentServerEnrollmentRecoveriesErrors[keyof ListAgentServerEnrollmentRecoveriesErrors];
+
+export type ListAgentServerEnrollmentRecoveriesResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    items: Array<{
+      createdAt: string;
+      keyId?: string;
+      operation?: string;
+      recoveryId: string;
+      secretCaptured: boolean;
+      teamId?: string;
+    }>;
+  };
+};
+
+export type ListAgentServerEnrollmentRecoveriesResponse =
+  ListAgentServerEnrollmentRecoveriesResponses[keyof ListAgentServerEnrollmentRecoveriesResponses];
+
+export type DiscardAgentServerEnrollmentRecoveryData = {
+  body: {
+    expectedSecretCaptured: boolean;
+  };
+  path: {
+    agentName: string;
+    recoveryId: string;
+  };
+  query?: never;
+  url: '/v1/agents/{agentName}/credential-recovery/{recoveryId}/discard';
+};
+
+export type DiscardAgentServerEnrollmentRecoveryErrors = {
+  /**
+   * Default Response
+   */
+  default: AgentServerProblem;
+};
+
+export type DiscardAgentServerEnrollmentRecoveryError =
+  DiscardAgentServerEnrollmentRecoveryErrors[keyof DiscardAgentServerEnrollmentRecoveryErrors];
+
+export type DiscardAgentServerEnrollmentRecoveryResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    state: 'discarded';
+  };
+};
+
+export type DiscardAgentServerEnrollmentRecoveryResponse =
+  DiscardAgentServerEnrollmentRecoveryResponses[keyof DiscardAgentServerEnrollmentRecoveryResponses];
+
+export type RestoreAgentServerEnrollmentData = {
+  body?: never;
+  path: {
+    agentName: string;
+    recoveryId: string;
+  };
+  query?: never;
+  url: '/v1/agents/{agentName}/credential-recovery/{recoveryId}/restore';
+};
+
+export type RestoreAgentServerEnrollmentErrors = {
+  /**
+   * Default Response
+   */
+  default: AgentServerProblem;
+};
+
+export type RestoreAgentServerEnrollmentError =
+  RestoreAgentServerEnrollmentErrors[keyof RestoreAgentServerEnrollmentErrors];
+
+export type RestoreAgentServerEnrollmentResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    keyId: string;
+    state: 'persisted';
+    teamId: string;
+  };
+};
+
+export type RestoreAgentServerEnrollmentResponse =
+  RestoreAgentServerEnrollmentResponses[keyof RestoreAgentServerEnrollmentResponses];
+
 export type ReconcileAgentServerAgentData = {
   body: {
     action: 'resume' | 'abandon';
@@ -380,6 +486,7 @@ export type ReconcileAgentServerAgentResponse =
 export type EnrollAgentServerTeamData = {
   body?: {
     idempotencyKey: string;
+    scopes?: Array<string>;
     teamId: string;
   } & (
     | {
@@ -413,8 +520,14 @@ export type EnrollAgentServerTeamResponses = {
   200:
     | {
         keyId: string;
+        scopes: Array<string>;
         state: 'persisted';
         teamId: string;
+      }
+    | {
+        message: string;
+        retryAfter?: number;
+        state: 'retryable';
       }
     | {
         issuedKeyId?: string;

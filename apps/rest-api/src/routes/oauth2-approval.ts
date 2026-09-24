@@ -1,8 +1,7 @@
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { createAgentKeyService } from '@moltnet/agent-key-service';
 import {
-  AGENT_CREDENTIAL_SCOPES,
-  AGENT_OAUTH_SCOPES,
+  isProvisioningDelegableScope,
   KetoNamespace,
   LOCAL_CONTROL_SCOPE,
   type OryClients,
@@ -268,12 +267,7 @@ export async function oauth2ApprovalRoutes(
         );
       }
       const grant = readProvisioningGrant(raw);
-      if (
-        !grant ||
-        grant.scopes.some(
-          (s) => !(AGENT_CREDENTIAL_SCOPES as readonly string[]).includes(s),
-        )
-      )
+      if (!grant)
         throw createProblem(
           'forbidden',
           'The provisioning target or scopes are invalid',
@@ -369,10 +363,8 @@ export async function oauth2ApprovalRoutes(
                       ? {
                           'moltnet:provisioning': result.grant,
                           'moltnet:delegable_scopes':
-                            result.human.scopes.filter((scope) =>
-                              (
-                                AGENT_OAUTH_SCOPES as readonly string[]
-                              ).includes(scope),
+                            result.human.scopes.filter(
+                              isProvisioningDelegableScope,
                             ),
                         }
                       : {}),
@@ -392,6 +384,10 @@ export async function oauth2ApprovalRoutes(
   server.get(
     '/oauth2/consent',
     {
+      config: {
+        rateLimit: app.rateLimitConfig.oauthConsent,
+        rateLimitBucket: 'oauth-consent',
+      },
       schema: { hide: true },
     },
     async (request, reply) => {
@@ -453,7 +449,11 @@ export async function oauth2ApprovalRoutes(
   server.post(
     '/oauth2/consent',
     {
-      config: { auth: policy },
+      config: {
+        auth: policy,
+        rateLimit: app.rateLimitConfig.oauthConsent,
+        rateLimitBucket: 'oauth-consent',
+      },
       schema: { hide: true },
     },
     async (request, reply) => {
@@ -490,7 +490,11 @@ export async function oauth2ApprovalRoutes(
     '/oauth2/provision',
     {
       preHandler: requireAuth,
-      config: { auth: { ...policy, acceptsProvisioningGrant: true } },
+      config: {
+        auth: { ...policy, acceptsProvisioningGrant: true },
+        rateLimit: app.rateLimitConfig.oauthProvision,
+        rateLimitBucket: 'oauth-provision',
+      },
       schema: {
         operationId: 'provisionAgentCredential',
         tags: ['agent-keys'],

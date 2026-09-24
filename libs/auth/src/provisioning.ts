@@ -1,6 +1,6 @@
-import { OPERATOR_OAUTH } from '@moltnet/models';
+import { OPERATOR_OAUTH, validTeamAgentKeyScopes } from '@moltnet/models';
 
-import { AGENT_CREDENTIAL_SCOPES, AGENT_OAUTH_SCOPES } from './scopes.js';
+import { TEAM_AGENT_KEY_SCOPES } from './scopes.js';
 
 /** Claims are supplied only by the server-side consent handler. */
 export const PROVISIONING_SCOPE = OPERATOR_OAUTH.provisioningScope;
@@ -11,6 +11,12 @@ export interface ProvisioningGrant {
   operation: 'enroll' | 'renew';
   scopes: string[];
   idempotencyKey: string;
+}
+export function isProvisioningDelegableScope(scope: string): boolean {
+  return (
+    scope === 'key:manage' ||
+    (TEAM_AGENT_KEY_SCOPES as readonly string[]).includes(scope)
+  );
 }
 export function readProvisioningGrant(
   value: unknown,
@@ -31,11 +37,8 @@ export function readProvisioningGrant(
     !Array.isArray(v.scopes) ||
     !v.scopes.length ||
     v.scopes.length > 128 ||
-    !v.scopes.every(
-      (s) =>
-        typeof s === 'string' &&
-        (AGENT_CREDENTIAL_SCOPES as readonly string[]).includes(s),
-    )
+    !v.scopes.every((s) => typeof s === 'string') ||
+    !validTeamAgentKeyScopes(v.scopes)
   )
     return null;
   return {
@@ -43,7 +46,7 @@ export function readProvisioningGrant(
     teamId: v.teamId,
     operation: v.operation,
     idempotencyKey: v.idempotencyKey,
-    scopes: [...new Set(v.scopes as string[])],
+    scopes: [...v.scopes],
   };
 }
 
@@ -53,12 +56,12 @@ export function readDelegableScopes(value: unknown): string[] | null {
     !Array.isArray(value) ||
     !value.length ||
     value.length > 128 ||
+    new Set(value).size !== value.length ||
     !value.every(
       (scope) =>
-        typeof scope === 'string' &&
-        (AGENT_OAUTH_SCOPES as readonly string[]).includes(scope),
+        typeof scope === 'string' && isProvisioningDelegableScope(scope),
     )
   )
     return null;
-  return [...new Set(value as string[])];
+  return [...(value as string[])];
 }

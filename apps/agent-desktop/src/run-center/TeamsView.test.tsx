@@ -1,3 +1,7 @@
+import {
+  AGENT_CREDENTIAL_SCOPES,
+  DAEMON_MINIMUM_SCOPES,
+} from '@moltnet/models';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -75,6 +79,7 @@ function fixture() {
       state: 'persisted',
       teamId: 'team-a',
       keyId: 'new-key',
+      scopes: ['agent:profile', 'task:execute'],
     }),
     refresh: vi.fn().mockResolvedValue(undefined),
     startRun: vi.fn(),
@@ -264,6 +269,207 @@ describe('desktop team enrollment', () => {
     expect(actions.stopRun).not.toHaveBeenCalled();
   });
 
+  it('starts renewal from verified scopes and submits an exact optional choice', async () => {
+    const { data, actions } = fixture();
+    actions.catalogue = vi.fn().mockResolvedValue({
+      teams: [
+        {
+          ...team,
+          credential: {
+            ...team.credential,
+            scopes: [...DAEMON_MINIMUM_SCOPES, 'diary:write'],
+          },
+        },
+      ],
+      profiles: [],
+      projects: [],
+      projectErrors: [],
+      defaultTeamId: null,
+    });
+    show(data, actions);
+    await screen.findByText('Research');
+    fireEvent.click(screen.getByRole('button', { name: 'Renew' }));
+    expect(screen.getByRole('checkbox', { name: /diary:write/ })).toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: /team:read/ }),
+    ).not.toBeChecked();
+    fireEvent.click(screen.getByRole('checkbox', { name: /diary:write/ }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Replace team credential' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Replace credential' }));
+    await screen.findByText('Team credential renewed');
+    expect(actions.enrollTeam).toHaveBeenCalledWith(
+      'agent',
+      expect.objectContaining({ scopes: [...DAEMON_MINIMUM_SCOPES] }),
+    );
+  });
+
+  it('warns when renewal will omit scopes held by an older team key', async () => {
+    const { data, actions } = fixture();
+    actions.catalogue = vi.fn().mockResolvedValue({
+      teams: [
+        {
+          ...team,
+          credential: {
+            ...team.credential,
+            scopes: [...DAEMON_MINIMUM_SCOPES, 'key:manage'],
+          },
+        },
+      ],
+      profiles: [],
+      projects: [],
+      projectErrors: [],
+      defaultTeamId: null,
+    });
+    show(data, actions);
+    fireEvent.click(await screen.findByRole('button', { name: 'Renew' }));
+    expect(screen.getByText('Permissions will change')).toBeInTheDocument();
+  });
+
+  it.each([
+    { error: 'HTTP 404', hint: /updated Agent Server/ },
+    { error: 'HTTP 503', hint: /Check the Agent Server connection/ },
+  ])('explains a recovery-list failure: $error', async ({ error, hint }) => {
+    const { data, actions } = fixture();
+    actions.listEnrollmentRecoveries = vi
+      .fn()
+      .mockRejectedValue(new Error(error));
+    show(data, actions);
+    expect(await screen.findByText(hint)).toBeInTheDocument();
+  });
+
+  it('keeps the default scope set when renewal metadata is unavailable', async () => {
+    const { data, actions } = fixture();
+    actions.catalogue = vi.fn().mockResolvedValue({
+      teams: [
+        { ...team, credential: { ...team.credential, scopes: undefined } },
+      ],
+      profiles: [],
+      projects: [],
+      projectErrors: [],
+      defaultTeamId: null,
+    });
+    show(data, actions);
+    await screen.findByText('Research');
+    fireEvent.click(screen.getByRole('button', { name: 'Renew' }));
+    expect(screen.getByRole('checkbox', { name: /team:read/ })).toBeChecked();
+  });
+
+  it('accepts persisted enrollment from an older server without scope metadata', async () => {
+    const { data, actions } = fixture();
+    vi.mocked(actions.enrollTeam!).mockResolvedValue({
+      state: 'persisted',
+      teamId: 'team-a',
+      keyId: 'issued-key',
+    } as Awaited<ReturnType<NonNullable<typeof actions.enrollTeam>>>);
+    show(data, actions);
+    await screen.findByText('Research');
+    fireEvent.change(screen.getByLabelText('Team ID'), {
+      target: { value: 'new-team' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Approve in browser' }));
+    expect(
+      await screen.findByText('Team enrollment complete'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Refresh team access to inspect the issued scopes/),
+    ).toBeInTheDocument();
+  });
+
+  it('submits the selected optional scope for a new enrollment', async () => {
+    const { data, actions } = fixture();
+    show(data, actions);
+    await screen.findByText('Research');
+    fireEvent.change(screen.getByLabelText('Team ID'), {
+      target: { value: 'new-team' },
+    });
+    fireEvent.click(screen.getByRole('checkbox', { name: /diary:write/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Approve in browser' }));
+    await screen.findByText('Team enrollment complete');
+    expect(actions.enrollTeam).toHaveBeenCalledWith(
+      'agent',
+      expect.objectContaining({
+        scopes: [...AGENT_CREDENTIAL_SCOPES, 'diary:write'],
+      }),
+    );
+  });
+
+  it('restores a captured credential through the Agent Server without exposing its secret', async () => {
+    const { data, actions } = fixture();
+    actions.listEnrollmentRecoveries = vi.fn().mockResolvedValue({
+      items: [
+        {
+          recoveryId: 'record.json',
+          secretCaptured: true,
+          teamId: 'team-a',
+          operation: 'renew',
+          createdAt: '2026-09-01T00:00:00Z',
+        },
+      ],
+    });
+    actions.restoreEnrollment = vi.fn().mockResolvedValue({
+      state: 'persisted',
+      teamId: 'team-a',
+      keyId: 'restored',
+    });
+    show(data, actions);
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Restore captured credential',
+      }),
+    );
+    await screen.findByText('Credential restored');
+    expect(actions.restoreEnrollment).toHaveBeenCalledWith(
+      'agent',
+      'record.json',
+    );
+    expect(actions.catalogue).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([false, true])(
+    'confirms discarding a recovery record with captured secret %s',
+    async (secretCaptured) => {
+      const { data, actions } = fixture();
+      actions.listEnrollmentRecoveries = vi.fn().mockResolvedValue({
+        items: [
+          {
+            recoveryId: 'record.json',
+            secretCaptured,
+            teamId: 'team-a',
+            createdAt: '2026-09-01T00:00:00Z',
+          },
+        ],
+      });
+      actions.discardEnrollmentRecovery = vi.fn().mockResolvedValue({
+        state: 'discarded',
+      });
+      show(data, actions);
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Discard record' }),
+      );
+      expect(actions.discardEnrollmentRecovery).not.toHaveBeenCalled();
+      expect(
+        screen.getByText(
+          secretCaptured
+            ? /may hold the only local copy/
+            : /retry context but no captured credential/,
+        ),
+      ).toBeInTheDocument();
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Discard local record' }),
+      );
+      expect(
+        await screen.findByText('Recovery record discarded'),
+      ).toBeInTheDocument();
+      expect(actions.discardEnrollmentRecovery).toHaveBeenCalledWith(
+        'agent',
+        'record.json',
+        secretCaptured,
+      );
+    },
+  );
+
   it('shows lost-response recovery without claiming a captured secret', async () => {
     const { data, actions } = fixture();
     vi.mocked(actions.enrollTeam!).mockResolvedValue({
@@ -282,7 +488,7 @@ describe('desktop team enrollment', () => {
     await screen.findByText('Enrollment needs recovery');
     expect(
       screen.getByText(/No credential secret was captured/),
-    ).toHaveTextContent('issued-key');
+    ).toHaveTextContent('No secret is available to restore');
     expect(
       screen.queryByText('Credential saved for recovery'),
     ).not.toBeInTheDocument();

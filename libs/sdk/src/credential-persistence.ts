@@ -5,6 +5,45 @@ import { join } from 'node:path';
 import type { SecretReference } from './credentials.js';
 import { type SecretProvider, SecretProviderRegistry } from './secrets.js';
 
+export const ENROLLMENT_RECOVERY_DIRECTORY = 'credential-recovery';
+export const ENROLLMENT_RECOVERY_ID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.json$/i;
+const activeRecoveryPaths = new Set<string>();
+
+export function isEnrollmentRecoveryActive(path: string): boolean {
+  return activeRecoveryPaths.has(path);
+}
+
+export interface EnrollmentRetryContext {
+  subjectId: string;
+  code?: string;
+  idempotencyKey: string;
+  expectedTeamId?: string;
+  provisioning?: {
+    teamId: string;
+    operation: 'enroll' | 'renew';
+    scopes: string[];
+  };
+  mode: 'human-pkce' | 'authenticated';
+  observedReference?: SecretReference;
+  observedCredentialHash?: string | null;
+  apiUrl?: string;
+}
+
+/** Versioned on-disk state, shared by the capture and restore paths. */
+export interface EnrollmentRecoveryRecord {
+  version: 1;
+  configDir: string;
+  createdAt: string;
+  retryContext?: EnrollmentRetryContext;
+  secretCaptured: boolean;
+  reference?: SecretReference;
+  secret?: string;
+  subjectId?: string;
+  teamId?: string;
+  keyId?: string;
+}
+
 /** Deliberately excludes provider error causes, which may contain secret values. */
 export class CredentialPersistenceError extends Error {
   readonly code = 'CREDENTIAL_PERSISTENCE_FAILED';
@@ -25,15 +64,17 @@ export class CredentialPersistenceError extends Error {
 /** Reserve writable recovery storage before requesting a one-time credential. */
 export async function prepareCredentialPersistence(
   configDir: string,
-  retryContext?: Record<string, unknown>,
+  retryContext?: EnrollmentRetryContext,
 ) {
-  const recoveryDir = join(configDir, 'credential-recovery');
+  const recoveryDir = join(configDir, ENROLLMENT_RECOVERY_DIRECTORY);
   await mkdir(recoveryDir, { recursive: true, mode: 0o700 });
   const path = join(recoveryDir, `${randomUUID()}.json`);
   const file = await open(path, 'wx', 0o600);
+  activeRecoveryPaths.add(path);
+  const createdAt = new Date().toISOString();
   // Persist request identity before issuance, so a process interruption retains
   // the exact retry context even when the one-time response never arrives.
-  const writeRecord = async (record: object) => {
+  const writeRecord = async (record: EnrollmentRecoveryRecord) => {
     const data = Buffer.from(JSON.stringify(record) + '\n');
     let offset = 0;
     while (offset < data.length) {
@@ -54,11 +95,13 @@ export async function prepareCredentialPersistence(
       await writeRecord({
         version: 1,
         configDir,
+        createdAt,
         retryContext,
         secretCaptured: false,
       });
     } catch {
       await file.close();
+      activeRecoveryPaths.delete(path);
       throw new CredentialPersistenceError(path);
     }
   }
@@ -85,6 +128,7 @@ export async function prepareCredentialPersistence(
       await writeRecord({
         version: 1,
         configDir,
+        createdAt,
         retryContext,
         reference,
         secret,
@@ -105,13 +149,21 @@ export async function prepareCredentialPersistence(
     },
     capture,
     async retain() {
-      await close();
-      return path;
+      try {
+        await close();
+        return path;
+      } finally {
+        activeRecoveryPaths.delete(path);
+      }
     },
     async cancel() {
-      await close();
-      await rm(path, { force: true });
-      completed = true;
+      try {
+        await close();
+        await rm(path, { force: true });
+        completed = true;
+      } finally {
+        activeRecoveryPaths.delete(path);
+      }
     },
     async persist(
       provider: SecretProvider,
@@ -135,6 +187,8 @@ export async function prepareCredentialPersistence(
           captured,
           metadata.keyId,
         );
+      } finally {
+        activeRecoveryPaths.delete(path);
       }
     },
   };

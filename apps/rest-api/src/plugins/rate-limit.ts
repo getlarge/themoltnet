@@ -32,6 +32,10 @@ export interface RateLimitPluginOptions {
   globalAnonLimit: number;
   /** Token requests per minute per client IP. */
   tokenIpLimit: number;
+  /** Operator consent requests per minute per verified identity or client IP. */
+  oauthConsentLimit: number;
+  /** Operator provisioning requests per minute per verified identity or client IP. */
+  oauthProvisionLimit: number;
   /** Max requests per minute for embedding endpoints (default: 20) */
   embeddingLimit: number;
   /** Max requests per minute for signing request creation (default: 5) */
@@ -83,6 +87,8 @@ export interface PreResolveThrottleOptions {
    * spray, not the per-principal budget. Should be generous.
    */
   preResolveIpLimit: number;
+  /** Reserved pre-auth budget for each operator OAuth route. */
+  oauthApprovalIpLimit: number;
   /** Exact request paths exempt from rate limiting (e.g. liveness probes). */
   allowList: readonly string[];
   /** Header overwritten with the client address by the trusted ingress. */
@@ -140,10 +146,11 @@ function createClientIpResolver(
   };
 }
 
-/** Group IPv6 token callers by /64 so address rotation cannot multiply quota. */
-function tokenClientKey(address: string): string {
+/** Group IPv6 callers by /64 while keeping IPv4-mapped peers per IPv4 address. */
+export function clientAddressBucket(address: string): string {
   if (isIP(address) !== 6) return address;
-  const [left, right] = address.split('::');
+  const canonical = new URL(`http://[${address}]/`).hostname.slice(1, -1);
+  const [left, right] = canonical.split('::');
   const leftGroups = left ? left.split(':') : [];
   const rightGroups = right ? right.split(':') : [];
   const groups = [
@@ -214,6 +221,18 @@ export function registerPreResolveThrottle(
     options.preResolveIpLimit,
     ONE_MINUTE_MS,
   );
+  const consentThrottle = createPreResolveThrottle(
+    options.oauthApprovalIpLimit,
+    ONE_MINUTE_MS,
+  );
+  const provisionThrottle = createPreResolveThrottle(
+    options.oauthApprovalIpLimit,
+    ONE_MINUTE_MS,
+  );
+  const approvalThrottles = new Map([
+    ['oauth-consent', consentThrottle],
+    ['oauth-provision', provisionThrottle],
+  ]);
   const isAllowListed = makeAllowList(options.allowList);
   const clientIp = createClientIpResolver(
     options.clientIpHeader,
@@ -232,8 +251,26 @@ export function registerPreResolveThrottle(
         return;
       }
 
-      const retryAfter = throttle.hit(clientIp(request), Date.now());
+      const route = request.routeOptions?.url;
+      const bucket = (
+        request.routeOptions?.config as { rateLimitBucket?: string } | undefined
+      )?.rateLimitBucket;
+      const selectedThrottle = approvalThrottles.get(bucket ?? '') ?? throttle;
+      const retryAfter = selectedThrottle.hit(
+        clientAddressBucket(clientIp(request)),
+        Date.now(),
+      );
       if (retryAfter !== null) {
+        request.log.warn(
+          {
+            bucket: approvalThrottles.has(bucket ?? '')
+              ? `pre-resolve-${bucket}`
+              : 'pre-resolve',
+            method: request.method,
+            route: route ?? request.url.split('?')[0],
+          },
+          'rate limit exceeded',
+        );
         reply
           .code(429)
           .header('retry-after', String(retryAfter))
@@ -260,7 +297,7 @@ function buildRateLimitResponse(request: FastifyRequest, retryAfter: number) {
     statusCode: 429,
     code: 'RATE_LIMIT_EXCEEDED',
     detail: `Too many requests. Please retry after ${retryAfter} seconds.`,
-    instance: request.url,
+    instance: request.routeOptions?.url ?? request.url.split('?')[0],
     retryAfter,
   };
 }
@@ -273,6 +310,8 @@ async function rateLimitPluginImpl(
     globalAuthLimit,
     globalAnonLimit,
     tokenIpLimit,
+    oauthConsentLimit,
+    oauthProvisionLimit,
     embeddingLimit,
     signingLimit,
     agentKeyLimit,
@@ -342,7 +381,7 @@ async function rateLimitPluginImpl(
       })
     : undefined;
   fastify.decorate('tokenRateLimitKey', (request: FastifyRequest) =>
-    tokenClientKey(clientIp(request)),
+    clientAddressBucket(clientIp(request)),
   );
 
   // Register global rate limiter
@@ -444,7 +483,21 @@ async function rateLimitPluginImpl(
       max: tokenIpLimit,
       timeWindow: '1 minute',
       keyGenerator: (request: FastifyRequest) =>
-        tokenClientKey(clientIp(request)),
+        clientAddressBucket(clientIp(request)),
+    },
+    oauthConsent: {
+      max: oauthConsentLimit,
+      timeWindow: '1 minute',
+      keyGenerator: (request: FastifyRequest) =>
+        request.authContext?.identityId ??
+        clientAddressBucket(clientIp(request)),
+    },
+    oauthProvision: {
+      max: oauthProvisionLimit,
+      timeWindow: '1 minute',
+      keyGenerator: (request: FastifyRequest) =>
+        request.authContext?.identityId ??
+        clientAddressBucket(clientIp(request)),
     },
     embedding: {
       max: embeddingLimit,
@@ -513,6 +566,16 @@ declare module 'fastify' {
     };
     rateLimitConfig: {
       token: {
+        max: number;
+        timeWindow: string;
+        keyGenerator: (request: FastifyRequest) => string;
+      };
+      oauthConsent: {
+        max: number;
+        timeWindow: string;
+        keyGenerator: (request: FastifyRequest) => string;
+      };
+      oauthProvision: {
         max: number;
         timeWindow: string;
         keyGenerator: (request: FastifyRequest) => string;

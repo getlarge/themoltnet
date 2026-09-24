@@ -21,6 +21,13 @@ export {
   type EnrollTeamResult,
   ProvisioningNotStartedError,
 } from './enroll-team.js';
+export {
+  discardEnrollmentRecovery,
+  type EnrollmentRecoverySummary,
+  EnrollmentRestoreError,
+  listEnrollmentRecoveries,
+  restoreCapturedEnrollment,
+} from './enroll-team-recovery.js';
 import {
   type EnvironmentLookup,
   FileSecretProvider,

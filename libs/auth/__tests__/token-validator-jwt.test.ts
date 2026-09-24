@@ -1,5 +1,6 @@
 import http from 'node:http';
 
+import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
 import { exportJWK, generateKeyPair, type JWK, SignJWT } from 'jose';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -227,14 +228,14 @@ describe('TokenValidator jose JWT verification', () => {
         agentId: AGENT_ID,
         teamId: IDENTITY_ID,
         operation: 'enroll',
-        scopes: ['task:execute'],
+        scopes: [...AGENT_CREDENTIAL_SCOPES],
         idempotencyKey: 'request',
       };
       const claims = {
         'moltnet:subject_type': 'human',
         'moltnet:human_id': IDENTITY_ID,
         'moltnet:provisioning': grant,
-        'moltnet:delegable_scopes': ['key:manage', 'task:execute'],
+        'moltnet:delegable_scopes': ['key:manage', ...AGENT_CREDENTIAL_SCOPES],
         scope: 'moltnet:provision',
       };
       const valid = await createTestJwt(rs256A, server.issuer, {
@@ -243,7 +244,7 @@ describe('TokenValidator jose JWT verification', () => {
       expect(await validator.resolveAuthContext(valid)).toMatchObject({
         subjectType: 'human',
         provisioning: grant,
-        delegableScopes: ['key:manage', 'task:execute'],
+        delegableScopes: ['key:manage', ...AGENT_CREDENTIAL_SCOPES],
       });
       for (const changed of [
         { 'moltnet:provisioning': '{bad-json' },

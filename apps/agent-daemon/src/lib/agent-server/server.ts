@@ -16,6 +16,7 @@ import {
   type SecretProviderRegistry,
 } from '@themoltnet/sdk';
 import {
+  EnrollmentRestoreError,
   type FileSecretProvider,
   type ProjectBinding,
   ProjectConfigError,
@@ -45,7 +46,13 @@ import {
   readCatalogueProjects,
 } from './catalogue-project-reader.js';
 import type { ConnectionSettingsStore } from './connection-settings.js';
-import { enrollIdentityTeam, type TeamEnrollmentInput } from './enrollment.js';
+import {
+  discardIdentityEnrollmentRecovery,
+  enrollIdentityTeam,
+  listIdentityEnrollmentRecoveries,
+  restoreIdentityEnrollment,
+  type TeamEnrollmentInput,
+} from './enrollment.js';
 import { AgentServerHttpError } from './http-error.js';
 import {
   AgentServerIdentityError,
@@ -97,6 +104,7 @@ import {
 import {
   requireCredentialSnapshot,
   TeamCredentialError,
+  type verifyCandidateTeamCredential,
   verifyTeamActivation,
 } from './team-credentials.js';
 
@@ -227,6 +235,8 @@ export interface BuildAgentServerOptions {
   projectSaveTimeoutMs?: number;
   /** Optional OpenAPI plugin registration used by deterministic codegen. */
   registerOpenApi?: (app: FastifyInstance) => void;
+  /** Override for focused credential recovery tests. */
+  verifyCandidateTeamCredentialImpl?: typeof verifyCandidateTeamCredential;
 }
 
 function requireBody<T extends object>(request: FastifyRequest): T {
@@ -974,9 +984,14 @@ async function defaultCatalogueAgent(
       );
       signal?.throwIfAborted();
       const { client, metadata } = requireCredentialSnapshot(activated);
+      const scopes = new Set(metadata.scopes);
       const [team, diaries, profiles] = await Promise.all([
-        client.teams.get(teamId),
-        client.diaries.list(),
+        scopes.has('team:read')
+          ? client.teams.get(teamId)
+          : Promise.resolve({ id: teamId, name: 'Team name unavailable' }),
+        scopes.has('diary:read')
+          ? client.diaries.list()
+          : Promise.resolve({ items: [] }),
         client.runtimeProfiles.list({ teamId }),
       ]);
       clients.set(teamId, client);
@@ -1137,7 +1152,7 @@ function registerAgentRoutes(
           'native_required',
           'Native OAuth enrollment required',
         );
-      return enrollIdentityTeam({
+      const result = await enrollIdentityTeam({
         oauth: options.operatorOAuth,
         apiUrl: options.operatorApiUrl,
         store,
@@ -1147,6 +1162,119 @@ function registerAgentRoutes(
         input: request.body as TeamEnrollmentInput,
         signal: requestOperationSignal(request, options.shutdownSignal),
       });
+      if (result.state === 'retryable')
+        request.log.info(
+          {
+            teamId: (request.body as TeamEnrollmentInput).teamId,
+            operation: (request.body as TeamEnrollmentInput).mode,
+            retryAfter: result.retryAfter,
+          },
+          'Operator provisioning throttled before issuance',
+        );
+      return result;
+    },
+  );
+  app.get(
+    '/v1/agents/:agentName/credential-recovery',
+    { schema: AgentServerRouteSchemas.listEnrollmentRecoveries },
+    async (request) => {
+      await requireNativeOrigin(requireAuthorizedOrigin, request);
+      const { agentName } = request.params as { agentName: string };
+      return listIdentityEnrollmentRecoveries({
+        store,
+        alias: agentName,
+        managed: options.secretProviders,
+        external: options.externalSecretProviders,
+      });
+    },
+  );
+  app.post(
+    '/v1/agents/:agentName/credential-recovery/:recoveryId/restore',
+    { schema: AgentServerRouteSchemas.restoreEnrollment },
+    async (request) => {
+      await requireNativeOrigin(requireAuthorizedOrigin, request);
+      const { agentName, recoveryId } = request.params as {
+        agentName: string;
+        recoveryId: string;
+      };
+      try {
+        return await restoreIdentityEnrollment({
+          store,
+          alias: agentName,
+          managed: options.secretProviders,
+          external: options.externalSecretProviders,
+          recoveryId,
+          verifyCandidateImpl: options.verifyCandidateTeamCredentialImpl,
+        });
+      } catch (error) {
+        request.log.warn(
+          {
+            recoveryId,
+            ...(error instanceof EnrollmentRestoreError
+              ? { recoveryCode: error.code }
+              : {}),
+            ...safeErrorContext(error),
+          },
+          'Credential recovery remains incomplete',
+        );
+        if (error instanceof EnrollmentRestoreError)
+          throw new AgentServerHttpError(
+            error.code === 'recovery_not_found'
+              ? 404
+              : error.code === 'verification_unavailable' ||
+                  error.code === 'restore_unavailable' ||
+                  error.code === 'identity_unavailable'
+                ? 503
+                : 409,
+            error.code,
+            error.message,
+          );
+        throw new AgentServerHttpError(
+          500,
+          'recovery_failed',
+          'Credential recovery failed. The record was kept; inspect Agent Server logs.',
+        );
+      }
+    },
+  );
+  app.post(
+    '/v1/agents/:agentName/credential-recovery/:recoveryId/discard',
+    { schema: AgentServerRouteSchemas.discardEnrollmentRecovery },
+    async (request) => {
+      await requireNativeOrigin(requireAuthorizedOrigin, request);
+      const { agentName, recoveryId } = request.params as {
+        agentName: string;
+        recoveryId: string;
+      };
+      const { expectedSecretCaptured } = request.body as {
+        expectedSecretCaptured: boolean;
+      };
+      try {
+        return await discardIdentityEnrollmentRecovery({
+          store,
+          alias: agentName,
+          managed: options.secretProviders,
+          external: options.externalSecretProviders,
+          recoveryId,
+          expectedSecretCaptured,
+        });
+      } catch (error) {
+        request.log.warn(
+          { recoveryId, ...safeErrorContext(error) },
+          'Credential recovery discard failed',
+        );
+        if (error instanceof EnrollmentRestoreError)
+          throw new AgentServerHttpError(
+            error.code === 'recovery_not_found' ? 404 : 409,
+            error.code,
+            error.message,
+          );
+        throw new AgentServerHttpError(
+          500,
+          'recovery_discard_failed',
+          'Recovery record could not be discarded',
+        );
+      }
     },
   );
   app.post(

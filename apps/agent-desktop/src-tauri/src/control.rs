@@ -217,7 +217,8 @@ pub fn enrollment_metadata(body: &str) -> Result<serde_json::Value, String> {
     let value: serde_json::Value =
         serde_json::from_str(body).map_err(|_| "Unreadable enrollment response".to_string())?;
     let fields: &[&str] = match value.get("state").and_then(|v| v.as_str()) {
-        Some("persisted") => &["state", "teamId", "keyId"],
+        Some("persisted") => &["state", "teamId", "keyId", "scopes"],
+        Some("retryable") => &["state", "retryAfter", "message"],
         Some("recovery_required") => &[
             "state",
             "secretCaptured",
@@ -236,6 +237,25 @@ pub fn enrollment_metadata(body: &str) -> Result<serde_json::Value, String> {
     Ok(serde_json::Value::Object(output))
 }
 
+/// Recovery records are enumerated by the server; forward metadata fields only.
+pub fn recovery_list_metadata(body: &str) -> Result<serde_json::Value, String> {
+    let value: serde_json::Value = serde_json::from_str(body)
+        .map_err(|_| "Unreadable credential recovery list".to_string())?;
+    let items = value
+        .get("items")
+        .and_then(|items| items.as_array())
+        .ok_or("Unreadable credential recovery list")?;
+    Ok(serde_json::json!({ "items": items.iter().map(|item| {
+        let mut output = serde_json::Map::new();
+        for field in ["recoveryId", "secretCaptured", "teamId", "keyId", "operation", "createdAt"] {
+            if let Some(value) = item.get(field) {
+                output.insert(field.to_string(), value.clone());
+            }
+        }
+        serde_json::Value::Object(output)
+    }).collect::<Vec<_>>() }))
+}
+
 fn base64_url_nopad(bytes: &[u8]) -> String {
     use base64::Engine as _;
     base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
@@ -252,6 +272,23 @@ mod tests {
             result,
             serde_json::json!({"state":"persisted","teamId":"team","keyId":"key"})
         );
+    }
+
+    #[test]
+    fn retryable_enrollment_only_forwards_safe_status() {
+        let result = enrollment_metadata(r#"{"state":"retryable","retryAfter":34,"message":"Retry after 34 seconds","secret":"sentinel"}"#).unwrap();
+        assert_eq!(
+            result,
+            serde_json::json!({"state":"retryable","retryAfter":34,"message":"Retry after 34 seconds"})
+        );
+    }
+
+    #[test]
+    fn recovery_list_only_forwards_metadata() {
+        let result = recovery_list_metadata(r#"{"items":[{"recoveryId":"record.json","secretCaptured":true,"createdAt":"2026-09-24T00:00:00Z","secret":"sentinel","reference":{"key":"private"}}]}"#).unwrap();
+        assert!(!result.to_string().contains("sentinel"));
+        assert!(!result.to_string().contains("private"));
+        assert_eq!(result["items"][0]["recoveryId"], "record.json");
     }
 
     #[test]

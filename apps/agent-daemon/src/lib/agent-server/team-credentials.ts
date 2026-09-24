@@ -2,14 +2,14 @@ import { DAEMON_MINIMUM_SCOPES } from '@moltnet/models';
 import { resolveAgentKey, type SecretProviderRegistry } from '@themoltnet/sdk';
 import { connect } from '@themoltnet/sdk/node';
 
-import { type ActivatedAgent, loadAgentActivation } from './identity.js';
+import {
+  type ActivatedAgent,
+  loadAgentActivation,
+  loadEnrollmentIdentity,
+} from './identity.js';
 import type { AgentServerStore } from './store.js';
 
-export const AGENT_SERVER_REQUIRED_SCOPES = [
-  ...DAEMON_MINIMUM_SCOPES,
-  'team:read',
-  'diary:read',
-];
+export const AGENT_SERVER_REQUIRED_SCOPES = [...DAEMON_MINIMUM_SCOPES];
 
 export interface CredentialMetadata {
   keyId: string;
@@ -66,6 +66,82 @@ export function requireCredentialSnapshot(agent: ActivatedAgent) {
   return snapshot;
 }
 
+async function verifyTeamCredential(
+  activated: ActivatedAgent,
+  agentKey: string,
+  teamId: string,
+  connectImpl: typeof connect,
+  signal?: AbortSignal,
+) {
+  const { config, activation } = activated;
+  const client = await connectImpl({
+    agentKey,
+    apiUrl:
+      activation.apiUrl ??
+      (activation.source === 'external' ? activation.configApiUrl : undefined),
+    signal,
+  });
+  const whoami = await client.agents.whoami({ signal });
+  if (
+    whoami.subjectType !== 'agent' ||
+    whoami.subjectId !== activation.subjectId ||
+    whoami.publicKey !== config.keys.public_key ||
+    whoami.fingerprint !== config.keys.fingerprint ||
+    whoami.publicKey !== activation.publicKey ||
+    whoami.fingerprint !== activation.fingerprint ||
+    whoami.credentialBinding?.bindingScope !== 'team' ||
+    whoami.credentialBinding.boundTeamId !== teamId
+  )
+    throw new TeamCredentialError({
+      code: 'agent_key_binding_invalid',
+      message: 'The selected credential does not match this identity and team.',
+      remedy: 'Renew the selected team credential.',
+    });
+  const metadata: CredentialMetadata = {
+    keyId: whoami.credentialBinding.keyId,
+    ...(Object.hasOwn(whoami.credentialBinding, 'expiresAt')
+      ? { expiresAt: whoami.credentialBinding.expiresAt }
+      : {}),
+    scopes: [...(whoami.scopes ?? [])],
+    verifiedAt: new Date().toISOString(),
+  };
+  return { client, metadata };
+}
+
+function requireMinimumScopes(metadata: CredentialMetadata): void {
+  const missing = AGENT_SERVER_REQUIRED_SCOPES.filter(
+    (scope) => !metadata.scopes.includes(scope),
+  );
+  if (missing.length)
+    throw new TeamCredentialError({
+      code: 'agent_key_scopes_insufficient',
+      message: `This credential lacks ${missing.join(', ')}.`,
+      remedy:
+        'Renew through browser approval with the required desktop scopes.',
+    });
+}
+
+/** Verify a captured credential without changing the live team slot. */
+export async function verifyCandidateTeamCredential(
+  store: AgentServerStore,
+  alias: string,
+  agentKey: string,
+  teamId: string,
+  connectImpl: typeof connect = connect,
+): Promise<CredentialMetadata> {
+  const activated = await loadEnrollmentIdentity(store, alias);
+  const timeout = AbortSignal.timeout(10_000);
+  const { metadata } = await verifyTeamCredential(
+    activated,
+    agentKey,
+    teamId,
+    connectImpl,
+    timeout,
+  );
+  requireMinimumScopes(metadata);
+  return metadata;
+}
+
 /** The only supervised credential path. No fallback reference or OAuth resolution. */
 export async function verifyTeamActivation(
   store: AgentServerStore,
@@ -106,50 +182,16 @@ export async function verifyTeamActivation(
       remedy: 'Repair its secret provider or renew this team credential.',
     });
   }
-  const client = await connectImpl({
+  const { client, metadata } = await verifyTeamCredential(
+    activated,
     agentKey,
-    apiUrl:
-      activation.apiUrl ??
-      (activation.source === 'external' ? activation.configApiUrl : undefined),
+    teamId,
+    connectImpl,
     signal,
-  });
-  const whoami = await client.agents.whoami({ signal });
-  if (
-    whoami.subjectType !== 'agent' ||
-    whoami.subjectId !== activation.subjectId ||
-    whoami.publicKey !== config.keys.public_key ||
-    whoami.fingerprint !== config.keys.fingerprint ||
-    whoami.publicKey !== activation.publicKey ||
-    whoami.fingerprint !== activation.fingerprint ||
-    whoami.credentialBinding?.bindingScope !== 'team' ||
-    whoami.credentialBinding.boundTeamId !== teamId
-  ) {
-    throw new TeamCredentialError({
-      code: 'agent_key_binding_invalid',
-      message: 'The selected credential does not match this identity and team.',
-      remedy: 'Renew the selected team credential.',
-    });
-  }
-  const metadata: CredentialMetadata = {
-    keyId: whoami.credentialBinding.keyId,
-    ...(Object.hasOwn(whoami.credentialBinding, 'expiresAt')
-      ? { expiresAt: whoami.credentialBinding.expiresAt }
-      : {}),
-    scopes: [...(whoami.scopes ?? [])],
-    verifiedAt: new Date().toISOString(),
-  };
+  );
   // Last verification is display information, never an authorization cache.
   store.writeCredentialMetadata(alias, teamId, metadata);
-  const missing = AGENT_SERVER_REQUIRED_SCOPES.filter(
-    (scope) => !metadata.scopes.includes(scope),
-  );
-  if (missing.length)
-    throw new TeamCredentialError({
-      code: 'agent_key_scopes_insufficient',
-      message: `This credential lacks ${missing.join(', ')}.`,
-      remedy:
-        'Renew through browser approval with the required desktop scopes.',
-    });
+  requireMinimumScopes(metadata);
   activated.boundTeamId = teamId;
   return captureTeamCredential(activated, { agentKey, client, metadata });
 }

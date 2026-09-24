@@ -160,6 +160,9 @@ describe('strict supervised credentials', () => {
     await expect(f.verify('a')).rejects.toMatchObject({
       blocker: { code: 'agent_key_scopes_insufficient' },
     });
+    expect(f.store.readActivation('agent')?.credentialHealth?.a).toMatchObject({
+      scopes: [],
+    });
     expect(
       f.store.readActivation('agent')?.credentialHealth?.a,
     ).not.toHaveProperty('expiresAt');

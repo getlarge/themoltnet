@@ -116,6 +116,7 @@ export async function fixture(
     startTimeoutMs?: number;
     /** Replaces credential preflight, e.g. to simulate a slow API. */
     verifyActivationImpl?: typeof verifyTeamActivation;
+    verifyCandidateTeamCredentialImpl?: BuildAgentServerOptions['verifyCandidateTeamCredentialImpl'];
     discoverFetch?: typeof fetch;
     symlinkImpl?: typeof symlinkSync;
     activeIdentity?: string;

@@ -13,9 +13,24 @@ import {
   MCP_M2M_SCOPES,
   READ_ONLY_CREDENTIAL_SCOPES,
   TASK_WORKFLOW_CREDENTIAL_SCOPES,
+  validTeamAgentKeyScopes,
 } from '../src/credential-scopes.js';
 
 describe('credential scopes', () => {
+  it('validates a team daemon grant without dropping duplicates or the boot floor', () => {
+    expect(validTeamAgentKeyScopes([...AGENT_CREDENTIAL_SCOPES])).toBe(true);
+    expect(
+      validTeamAgentKeyScopes([...AGENT_CREDENTIAL_SCOPES, 'key:manage']),
+    ).toBe(false);
+    expect(
+      validTeamAgentKeyScopes([...AGENT_CREDENTIAL_SCOPES, 'team:join']),
+    ).toBe(false);
+    expect(
+      validTeamAgentKeyScopes(
+        AGENT_CREDENTIAL_SCOPES.filter((scope) => scope !== 'crypto:sign'),
+      ),
+    ).toBe(false);
+  });
   it('keeps the canonical grant unique and complete', () => {
     expect(new Set(ALL_CREDENTIAL_SCOPES).size).toBe(
       ALL_CREDENTIAL_SCOPES.length,

@@ -111,6 +111,10 @@ export interface SecurityOptions {
   rateLimitGlobalAnon: number;
   /** Token requests per minute per client IP, separate from anonymous routes. */
   rateLimitTokenIp: number;
+  /** Isolated per-principal consent budget. */
+  rateLimitOauthConsent: number;
+  /** Isolated per-principal provisioning budget. */
+  rateLimitOauthProvision: number;
   /** Per-instance limit on token requests that actually reach Hydra. */
   rateLimitTokenUpstreamIp: number;
   /** Max requests per minute for embedding endpoints */
@@ -142,6 +146,8 @@ export interface SecurityOptions {
    * budget.
    */
   rateLimitPreResolveIp: number;
+  /** Reserved pre-resolution IP budget for each operator OAuth route. */
+  rateLimitOauthApprovalIp: number;
   /** Client IP header set by a trusted ingress, when configured. */
   rateLimitClientIpHeader?: string;
   /** Socket peer CIDRs allowed to supply the client IP header. */
@@ -332,6 +338,7 @@ export async function registerApiRoutes(
   // the identity limiter (which runs after resolution) can throttle it.
   registerPreResolveThrottle(app, {
     preResolveIpLimit: options.security.rateLimitPreResolveIp,
+    oauthApprovalIpLimit: options.security.rateLimitOauthApprovalIp,
     allowList: options.security.rateLimitAllowList,
     clientIpHeader: options.security.rateLimitClientIpHeader,
     trustedProxyCidrs: options.security.rateLimitTrustedProxyCidrs,
@@ -398,6 +405,8 @@ export async function registerApiRoutes(
     globalAuthLimit: options.security.rateLimitGlobalAuth,
     globalAnonLimit: options.security.rateLimitGlobalAnon,
     tokenIpLimit: options.security.rateLimitTokenIp,
+    oauthConsentLimit: options.security.rateLimitOauthConsent,
+    oauthProvisionLimit: options.security.rateLimitOauthProvision,
     embeddingLimit: options.security.rateLimitEmbedding,
     signingLimit: options.security.rateLimitSigning,
     agentKeyLimit: options.security.rateLimitAgentKey,

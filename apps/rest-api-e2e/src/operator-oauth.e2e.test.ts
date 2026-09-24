@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
-import { OPERATOR_OAUTH } from '@moltnet/models';
+import { DAEMON_MINIMUM_SCOPES, OPERATOR_OAUTH } from '@moltnet/models';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createHuman, type TestHuman } from './helpers.js';
@@ -339,10 +339,10 @@ describe('operator OAuth authorization code E2E', { timeout: 120_000 }, () => {
           agentId: randomUUID(),
           teamId: randomUUID(),
           operation: 'renew',
-          scopes: ['task:read'],
+          scopes: [...DAEMON_MINIMUM_SCOPES],
           idempotencyKey: randomUUID(),
         },
-        'moltnet:delegable_scopes': ['key:manage', 'task:read'],
+        'moltnet:delegable_scopes': ['key:manage', ...DAEMON_MINIMUM_SCOPES],
       },
     },
   ])(

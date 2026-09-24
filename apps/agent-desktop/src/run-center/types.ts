@@ -115,6 +115,25 @@ export interface RunCenterActions {
     identity: string,
     request: EnrollAgentServerTeamData['body'],
   ) => Promise<EnrollAgentServerTeamResponses[200]>;
+  listEnrollmentRecoveries?: (identity: string) => Promise<{
+    items: {
+      recoveryId: string;
+      secretCaptured: boolean;
+      teamId?: string;
+      keyId?: string;
+      operation?: string;
+      createdAt: string;
+    }[];
+  }>;
+  restoreEnrollment?: (
+    identity: string,
+    recoveryId: string,
+  ) => Promise<{ state: 'persisted'; teamId: string; keyId: string }>;
+  discardEnrollmentRecovery?: (
+    identity: string,
+    recoveryId: string,
+    expectedSecretCaptured: boolean,
+  ) => Promise<{ state: 'discarded' }>;
   createManagedAgent?: (
     name: string,
     enrollmentToken: string,

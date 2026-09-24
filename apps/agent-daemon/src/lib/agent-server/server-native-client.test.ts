@@ -5,8 +5,11 @@
  * token and passes it in the child's environment, so no browser ceremony is
  * involved and the native origin must never be reachable through one.
  */
+import { mkdir, symlink, writeFile } from 'node:fs/promises';
 import { request } from 'node:http';
+import { dirname, join } from 'node:path';
 
+import { agentKeyKey } from '@themoltnet/sdk';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
@@ -33,6 +36,144 @@ afterEach(cleanupAll);
 const BROWSER_ORIGIN = 'https://console.themolt.net';
 
 describe('native desktop client', () => {
+  it('limits recovery to the native grant and restores a verified capture', async () => {
+    const nativeGrant = new NativeGrantService();
+    nativeGrant.grantNative('supervisor-token');
+    const teamId = 'aaaaaaaa-0000-4000-8000-000000000001';
+    const recoveryId = '4cb090aa-0c05-4166-9ae5-5a26d7c08193.json';
+    const { app, store, secrets } = await fixture({
+      nativeGrant,
+      verifyCandidateTeamCredentialImpl: (_store, _alias, secret) => {
+        if (secret !== 'captured-key')
+          return Promise.reject(new Error('Candidate rejected'));
+        return Promise.resolve({
+          keyId: 'issued-key',
+          scopes: [],
+          verifiedAt: new Date().toISOString(),
+        });
+      },
+    });
+    activateManaged(store);
+    const configDir = dirname(store.agentPath('course-bot'));
+    const recoveryDir = join(configDir, 'credential-recovery');
+    await mkdir(recoveryDir, { recursive: true });
+    await writeFile(
+      join(recoveryDir, recoveryId),
+      JSON.stringify({
+        version: 1,
+        configDir,
+        createdAt: new Date().toISOString(),
+        retryContext: {
+          provisioning: { teamId, operation: 'enroll', scopes: [] },
+        },
+        secretCaptured: true,
+        subjectId: 'agent-1',
+        teamId,
+        keyId: 'issued-key',
+        reference: { provider: 'file', key: agentKeyKey('agent-1', teamId) },
+        secret: 'captured-key',
+      }),
+      { mode: 0o600 },
+    );
+    const url = `/v1/agents/course-bot/credential-recovery`;
+    const headers = {
+      host: HOST,
+      origin: NATIVE_CLIENT_ORIGIN,
+      [AGENT_SERVER_TOKEN_HEADER]: 'supervisor-token',
+    };
+    expect(
+      (
+        await app.inject({
+          method: 'GET',
+          url,
+          headers: { ...headers, origin: BROWSER_ORIGIN },
+        })
+      ).statusCode,
+    ).toBe(403);
+    const listed = await app.inject({ method: 'GET', url, headers });
+    expect(listed.statusCode).toBe(200);
+    expect(listed.json()).toMatchObject({
+      items: [{ recoveryId, secretCaptured: true }],
+    });
+    const restored = await app.inject({
+      method: 'POST',
+      url: `${url}/${recoveryId}/restore`,
+      headers,
+    });
+    expect(restored.statusCode).toBe(200);
+    expect(restored.json()).toMatchObject({
+      state: 'persisted',
+      teamId,
+      keyId: 'issued-key',
+    });
+    expect(await secrets.read(agentKeyKey('agent-1', teamId))).toBe(
+      'captured-key',
+    );
+    const repeat = await app.inject({
+      method: 'POST',
+      url: `${url}/${recoveryId}/restore`,
+      headers,
+    });
+    expect(repeat.statusCode).toBe(404);
+    const unreadableId = 'f56bdbe0-0c05-4166-9ae5-5a26d7c08193.json';
+    await symlink(
+      join(recoveryDir, recoveryId),
+      join(recoveryDir, unreadableId),
+    );
+    const failed = await app.inject({
+      method: 'POST',
+      url: `${url}/${unreadableId}/restore`,
+      headers,
+    });
+    expect(failed.statusCode).toBe(500);
+    expect(failed.json()).toMatchObject({ code: 'recovery_failed' });
+    const incompleteId = 'a9fd6de4-15e4-4d20-a7d9-e908ec8ac13d.json';
+    await writeFile(
+      join(recoveryDir, incompleteId),
+      JSON.stringify({
+        version: 1,
+        configDir,
+        secretCaptured: false,
+      }),
+    );
+    const incomplete = await app.inject({
+      method: 'POST',
+      url: `${url}/${incompleteId}/restore`,
+      headers,
+    });
+    expect(incomplete.statusCode).toBe(409);
+    expect(incomplete.json()).toMatchObject({ code: 'secret_not_captured' });
+    const discardUrl = `${url}/${incompleteId}/discard`;
+    const browserDiscard = await app.inject({
+      method: 'POST',
+      url: discardUrl,
+      headers: {
+        ...headers,
+        origin: BROWSER_ORIGIN,
+        'content-type': 'application/json',
+      },
+      payload: { expectedSecretCaptured: false },
+    });
+    expect(browserDiscard.statusCode, browserDiscard.body).toBe(403);
+    const changed = await app.inject({
+      method: 'POST',
+      url: discardUrl,
+      headers: { ...headers, 'content-type': 'application/json' },
+      payload: { expectedSecretCaptured: true },
+    });
+    expect(changed.statusCode).toBe(409);
+    const discarded = await app.inject({
+      method: 'POST',
+      url: discardUrl,
+      headers: { ...headers, 'content-type': 'application/json' },
+      payload: { expectedSecretCaptured: false },
+    });
+    expect(discarded.statusCode).toBe(200);
+    expect(discarded.json()).toMatchObject({ state: 'discarded' });
+    expect(
+      (await app.inject({ method: 'GET', url, headers })).json(),
+    ).toMatchObject({ items: [] });
+  });
   it('returns operator team choices only to the native client', async () => {
     const nativeGrant = new NativeGrantService();
     nativeGrant.grantNative('supervisor-token');
