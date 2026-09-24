@@ -59,13 +59,16 @@ import {
   resolveHostExecBaseEnv,
   resolveSubmitMissingConfig,
   retireManagedGondolinVm,
-  sanitizeProviderErrorRetryReason,
+  sanitizeProviderDiagnostic,
   type SessionSubscribeEvent,
   shouldEmitToolCallError,
-  shouldRetryProviderErrorMessage,
   submitRepromptStopped,
   wireSessionAbort,
 } from './execute-pi-task.js';
+import { classifyProviderFailure } from './provider-error-classification.js';
+
+const shouldRetryProviderErrorMessage = (message: string | null | undefined) =>
+  classifyProviderFailure(message).retryable;
 
 function executorTestClaimedTask(): ClaimedTask {
   return {
@@ -867,6 +870,52 @@ describe('provider error same-session retry helpers', () => {
       shouldRetryProviderErrorMessage('model pi-large is not available'),
     ).toBe(false);
     expect(shouldRetryProviderErrorMessage('insufficient_quota')).toBe(false);
+    expect(shouldRetryProviderErrorMessage('Monthly usage limit reached')).toBe(
+      false,
+    );
+    expect(
+      shouldRetryProviderErrorMessage(
+        '429: you (account) have reached your monthly usage limit, upgrade for higher limits or add usage credits',
+      ),
+    ).toBe(false);
+  });
+
+  it('does not retry deterministic unsupported request-shape errors', () => {
+    for (const message of [
+      'Unsupported parameter: reasoning_effort',
+      'Unsupported argument: top_p',
+      'Unsupported field: response_format',
+      'unrecognized parameter top_p',
+      'unrecognized argument top_p',
+      'unrecognized field response_format',
+      'unknown parameter top_p',
+      'unknown argument top_p',
+      'unknown request field response_format',
+      'invalid parameter temperature',
+      'invalid argument temperature',
+      'invalid field temperature',
+      'parameter verbosity is not supported',
+    ]) {
+      expect(shouldRetryProviderErrorMessage(message)).toBe(false);
+    }
+  });
+
+  it('does not overmatch generic validation while preserving transient retries', () => {
+    expect(shouldRetryProviderErrorMessage('invalid request body')).toBe(true);
+    expect(shouldRetryProviderErrorMessage('provider returned 408')).toBe(true);
+    expect(shouldRetryProviderErrorMessage('provider returned 429')).toBe(true);
+    expect(shouldRetryProviderErrorMessage('provider returned 500')).toBe(true);
+    expect(shouldRetryProviderErrorMessage('provider overloaded')).toBe(true);
+  });
+
+  it('keeps transient evidence retryable when diagnostics mention request shape', () => {
+    for (const message of [
+      '500 response: unknown field request_id',
+      '429: invalid parameter temperature',
+      'request timed out: unsupported field response_format',
+    ]) {
+      expect(shouldRetryProviderErrorMessage(message)).toBe(true);
+    }
   });
 
   it('computes capped exponential retry delays', () => {
@@ -977,6 +1026,154 @@ describe('provider error same-session retry helpers', () => {
     expect(retryEvents).toHaveLength(1);
   });
 
+  it('re-prompts for a mixed transient provider diagnostic instead of failing fast', async () => {
+    const controller = new AbortController();
+    const prompt = vi.fn(async () => {});
+    let first = true;
+
+    const result = await promptWithProviderErrorRetries({
+      session: { prompt },
+      initialPrompt: 'do the task',
+      cancelSignal: controller.signal,
+      getProviderErrorState: () => {
+        if (first) {
+          first = false;
+          return {
+            llmAbort: true,
+            llmErrorMessage: '429: invalid parameter temperature',
+          };
+        }
+        return { llmAbort: false, llmErrorMessage: null };
+      },
+      maxRetries: 1,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+      retryPrompt: 'Go on',
+    });
+
+    expect(result).toEqual({ runError: null, retryCount: 1 });
+    expect(prompt).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports when a permanent provider error skips the same-session retry', async () => {
+    const onRetryStopped = vi.fn();
+    const prompt = vi.fn(async () => {});
+    const result = await promptWithProviderErrorRetries({
+      session: { prompt },
+      initialPrompt: 'do the task',
+      cancelSignal: new AbortController().signal,
+      getProviderErrorState: () => ({
+        llmAbort: true,
+        llmErrorMessage: '400 Unsupported parameter: timeout',
+      }),
+      maxRetries: 2,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+      retryPrompt: 'Go on',
+      onRetryStopped,
+    });
+    expect(result).toEqual({ runError: null, retryCount: 0 });
+    expect(prompt).toHaveBeenCalledTimes(1);
+    expect(onRetryStopped).toHaveBeenCalledWith({
+      event: 'provider_error_retry_stopped',
+      code: 'llm_request_rejected',
+      reason: 'permanent',
+      classificationReason: 'request_rejected',
+      retryCount: 0,
+      message: '400 Unsupported parameter: timeout',
+    });
+  });
+
+  it.each([
+    {
+      messages: [
+        '503 Service Unavailable',
+        'OpenAI API error (401): invalid_api_key',
+      ],
+      prompts: 2,
+      retries: 1,
+      stoppedCode: 'llm_auth_error',
+    },
+    {
+      messages: [
+        'OpenAI API error (401): invalid_api_key',
+        '503 Service Unavailable',
+      ],
+      prompts: 1,
+      retries: 0,
+      stoppedCode: 'llm_auth_error',
+    },
+  ])(
+    'stops mixed provider turns after $messages',
+    async ({ messages, prompts, retries, stoppedCode }) => {
+      const prompt = vi.fn(async () => {});
+      const onRetry = vi.fn();
+      const onRetryStopped = vi.fn();
+      let turn = 0;
+      const result = await promptWithProviderErrorRetries({
+        session: { prompt },
+        initialPrompt: 'do the task',
+        cancelSignal: new AbortController().signal,
+        getProviderErrorState: () => ({
+          llmAbort: true,
+          llmErrorMessage: messages[turn++],
+        }),
+        maxRetries: 2,
+        baseDelayMs: 0,
+        maxDelayMs: 0,
+        retryPrompt: 'Go on',
+        onRetry,
+        onRetryStopped,
+      });
+      expect(result).toEqual({ runError: null, retryCount: retries });
+      expect(prompt).toHaveBeenCalledTimes(prompts);
+      expect(onRetry).toHaveBeenCalledTimes(retries);
+      expect(onRetryStopped).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reason: 'permanent',
+          code: stoppedCode,
+          retryCount: retries,
+        }),
+      );
+    },
+  );
+
+  it.each([
+    ['exhausted', false, false, 0],
+    ['cancelled', true, false, 2],
+    ['cap_aborted', false, true, 2],
+  ] as const)(
+    'reports provider retry stop reason %s',
+    async (reason, cancelled, capAborted, maxRetries) => {
+      const controller = new AbortController();
+      if (cancelled) controller.abort();
+      const onRetryStopped = vi.fn();
+      await promptWithProviderErrorRetries({
+        session: { prompt: async () => {} },
+        initialPrompt: 'do the task',
+        cancelSignal: controller.signal,
+        isCapAborted: () => capAborted,
+        getProviderErrorState: () => ({
+          llmAbort: true,
+          llmErrorMessage: '503 Service Unavailable',
+        }),
+        maxRetries,
+        baseDelayMs: 0,
+        maxDelayMs: 0,
+        retryPrompt: 'Go on',
+        onRetryStopped,
+      });
+      expect(onRetryStopped).toHaveBeenCalledWith({
+        event: 'provider_error_retry_stopped',
+        code: 'llm_api_error',
+        reason,
+        classificationReason: 'transient_status',
+        retryCount: 0,
+        message: '503 Service Unavailable',
+      });
+    },
+  );
+
   it('publishes the provider request context only while prompt is active', async () => {
     const controller = new AbortController();
     const parentSpan = trace.getTracer('provider-context-test').startSpan('pi');
@@ -1027,6 +1224,29 @@ describe('provider error same-session retry helpers', () => {
         llmErrorMessage: 'model pi-large is not available',
       }),
       maxRetries: 2,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+      retryPrompt: 'Go on',
+    });
+
+    expect(result).toEqual({ runError: null, retryCount: 0 });
+    expect(prompt).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not re-prompt after a permanent monthly quota 429', async () => {
+    const controller = new AbortController();
+    const prompt = vi.fn(async () => {});
+
+    const result = await promptWithProviderErrorRetries({
+      session: { prompt },
+      initialPrompt: 'do the task',
+      cancelSignal: controller.signal,
+      getProviderErrorState: () => ({
+        llmAbort: true,
+        llmErrorMessage:
+          '429: you (account) have reached your monthly usage limit',
+      }),
+      maxRetries: 4,
       baseDelayMs: 0,
       maxDelayMs: 0,
       retryPrompt: 'Go on',
@@ -1109,8 +1329,17 @@ describe('provider error same-session retry helpers', () => {
     expect(retryEvents[0].reason.length).toBeLessThanOrEqual(500);
   });
 
+  it('preserves remediation at the end of a long provider diagnostic', () => {
+    const diagnostic = sanitizeProviderDiagnostic(
+      `Provider error: ${'x'.repeat(800)} Remediation: change the model profile.`,
+    );
+    expect(diagnostic).toContain('Provider error:');
+    expect(diagnostic).toContain('Remediation: change the model profile.');
+    expect(diagnostic.length).toBeLessThanOrEqual(500);
+  });
+
   it('uses a generic provider retry reason when Pi omitted the diagnostic', () => {
-    expect(sanitizeProviderErrorRetryReason(null)).toBe(
+    expect(sanitizeProviderDiagnostic(null)).toBe(
       'Pi turn ended with stopReason=error',
     );
   });
@@ -1353,17 +1582,112 @@ describe('buildAttemptResult (result-construction characterization)', () => {
     ).toBe('reporter_failed');
   });
 
-  it('maps a provider abort to llm_api_error with the captured diagnostic', () => {
+  it('maps a rejected model to a request error with the captured diagnostic', () => {
     const out = buildAttemptResult({
       ...base,
       llmAbort: true,
       llmErrorMessage: "Model 'x' not found in registry",
     });
     expect(out.error).toEqual({
-      code: 'llm_api_error',
+      code: 'invalid_model',
       message: "Model 'x' not found in registry",
       retryable: false,
     });
+  });
+
+  it('uses a message when Pi reports an empty provider error', () => {
+    const out = buildAttemptResult({
+      ...base,
+      llmAbort: true,
+      llmErrorMessage: '',
+    });
+    expect(out.error).toMatchObject({
+      code: 'llm_api_error',
+      message: 'LLM API error during turn',
+      retryable: false,
+    });
+  });
+
+  it.each([
+    ['Monthly usage limit reached', 'llm_quota_exhausted'],
+    ['429: you have reached your monthly usage limit', 'llm_quota_exhausted'],
+    ['401 unauthorized: invalid api key', 'llm_auth_error'],
+    ['Unsupported parameter: reasoning_effort', 'llm_request_rejected'],
+    [
+      'Provider returned error: Unsupported parameter: top_p',
+      'llm_request_rejected',
+    ],
+    ['429: invalid parameter temperature', 'llm_api_error'],
+    ['500: unknown field request_id', 'llm_api_error'],
+    ["Model 'x' not found in registry", 'invalid_model'],
+  ])('emits a stable provider error code for %s', (message, code) => {
+    const out = buildAttemptResult({
+      ...base,
+      llmAbort: true,
+      llmErrorMessage: message,
+    });
+    expect(out.error).toMatchObject({
+      code,
+      retryable: code === 'llm_api_error' && /^(?:429|500):/.test(message),
+    });
+  });
+
+  it('enriches a terminal permanent provider failure with execution context', () => {
+    const out = buildAttemptResult({
+      ...base,
+      llmAbort: true,
+      llmErrorMessage: 'Unsupported parameter: reasoning_effort',
+      providerFailureContext: {
+        provider: 'openai',
+        model: 'gpt-5',
+        runtimeProfileId: 'profile-1',
+        runtimeProfileName: 'default-coding',
+        runtimeProfileRevision: 7,
+        piAgentDirSource: 'store',
+      },
+    });
+    expect(out.error).toMatchObject({
+      code: 'llm_request_rejected',
+      retryable: false,
+    });
+    expect(out.error?.message).toContain('Provider/model: openai/gpt-5.');
+    expect(out.error?.message).toContain('Runtime profile: default-coding');
+    expect(out.error?.message).toContain('Pi config source: store.');
+    expect(out.error?.message).toContain(
+      'Unsupported request field(s): reasoning_effort.',
+    );
+  });
+
+  it('preserves transient provider evidence over request-shape wording', () => {
+    const out = buildAttemptResult({
+      ...base,
+      llmAbort: true,
+      llmErrorMessage: '500 response: unknown field request_id',
+      providerFailureContext: {
+        provider: 'openai',
+        model: 'gpt-5',
+        runtimeProfileId: 'profile-1',
+        runtimeProfileName: 'default-coding',
+        runtimeProfileRevision: 7,
+        piAgentDirSource: 'store',
+      },
+    });
+    expect(out.error).toMatchObject({ code: 'llm_api_error', retryable: true });
+    expect(out.error?.message).toBe('500 response: unknown field request_id');
+  });
+
+  it.each([
+    '502 Bad Gateway: upstream responded 401',
+    'OpenAI API error (503): The model gpt-4o is currently not available, please retry',
+    'OpenAI API error (429): Request was cancelled because of rate limiting',
+    '503 upstream request cancelled',
+  ])('marks explicit transient evidence retryable despite %s', (message) => {
+    const out = buildAttemptResult({
+      ...base,
+      llmAbort: true,
+      llmErrorMessage: message,
+    });
+    expect(out.error).toMatchObject({ code: 'llm_api_error', retryable: true });
   });
 
   it('uses a generic provider message when no diagnostic was captured', () => {

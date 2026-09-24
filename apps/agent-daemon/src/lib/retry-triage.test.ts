@@ -194,19 +194,75 @@ describe('retry triage classification', () => {
     ).toBe('non_retryable');
   });
 
-  it('lets non-retryable messages override broad retryable provider codes', () => {
+  it('uses runtime provider codes without re-parsing diagnostic text', async () => {
+    for (const code of [
+      'llm_request_rejected',
+      'llm_quota_exhausted',
+      'llm_auth_error',
+    ]) {
+      const result = await classifyAttemptFailure({
+        ...BASE_INPUT,
+        error: {
+          code,
+          message: '429: invalid parameter temperature',
+          retryable: false,
+        },
+      });
+      expect(result.source).toBe('explicit');
+      expect(result.error.retryable).toBe(false);
+      expect(result.error.retry?.decision).toBe('do_not_retry');
+    }
     expect(
       classifyDeterministically({
         code: 'llm_api_error',
-        message: 'provider returned 401 unauthorized: invalid api key',
+        message: 'Unsupported parameter: reasoning_effort',
+        retryable: true,
       }),
-    ).toBe('non_retryable');
+    ).toBe('retryable');
+  });
+
+  it.each([
+    '{"error":{"code":401,"status":"UNAUTHENTICATED"}}',
+    '400 Request validation failed: bad arguments',
+    'Request was cancelled.',
+  ])('keeps main-branch guards for unknown or older error %s', (message) => {
     expect(
       classifyDeterministically({
         code: 'llm_api_error',
-        message: 'model pi-large is not available',
+        message,
+        retryable: false,
       }),
     ).toBe('non_retryable');
+  });
+
+  it.each([
+    '502 Bad Gateway: upstream responded 401',
+    'OpenAI API error (503): The model gpt-4o is currently not available, please retry',
+    'OpenAI API error (429): Request was cancelled because of rate limiting',
+    '503 upstream request cancelled',
+  ])('preserves explicit Pi transient evidence in %s', (message) => {
+    expect(
+      classifyDeterministically({
+        code: 'llm_api_error',
+        message,
+        retryable: true,
+      }),
+    ).toBe('retryable');
+  });
+
+  it('keeps completion-reporting failures retryable despite provider-like wording', () => {
+    for (const message of [
+      '500 response: unknown field request_id',
+      '500 response: invalid argument request_id',
+    ]) {
+      expect(
+        classifyDeterministically({
+          code: 'complete_call_failed',
+          message,
+          retryable: true,
+        }),
+      ).toBe('retryable');
+    }
   });
 
   it('uses medium/high retry triage for ambiguous errors', async () => {

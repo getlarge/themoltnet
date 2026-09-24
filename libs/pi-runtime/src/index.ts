@@ -25,8 +25,10 @@ export {
   type ProviderErrorRetryEvent,
   type ProviderErrorRetryLevel,
   type ProviderErrorRetryUi,
+  type ProviderFailureProfileContext,
   resolveHostExecBaseEnv,
   resolveTaskWorktreePath,
+  sanitizeProviderDiagnostic,
   type TurnEventHandlerFactory,
 } from './runtime/execute-pi-task.js';
 export {
@@ -40,6 +42,10 @@ export {
   type RuntimeModelSelection,
   RuntimeProfileModelResolutionError,
 } from './runtime/model-selection.js';
+export {
+  PROVIDER_FAILURE_CODES,
+  type ProviderFailureCode,
+} from './runtime/provider-error-classification.js';
 export {
   createPiRetryTriage,
   normalizeRetryTriageResult,

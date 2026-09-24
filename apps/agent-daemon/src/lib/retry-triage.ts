@@ -2,9 +2,10 @@ import type { Task, TaskError, TaskMessage } from '@moltnet/tasks';
 import {
   normalizeRetryTriageResult,
   type PiRetryTriageResult,
-  redactRetryTriageSecrets,
+  PROVIDER_FAILURE_CODES,
   type RetryTriageConfidence,
   type RetryTriageDecision,
+  sanitizeProviderDiagnostic,
 } from '@themoltnet/pi-runtime';
 
 export type RetryTriageResult = PiRetryTriageResult;
@@ -34,13 +35,14 @@ export interface ClassifiedAttemptFailure {
 }
 
 type RetrySource = ClassifiedAttemptFailure['source'];
+const MAX_TASK_ERROR_MESSAGE_LENGTH = 4000;
 
 const RETRYABLE_CODES = new Set([
   'complete_call_failed',
   'daemon_abort',
   'dispatch_expired',
   'lease_expired',
-  'llm_api_error',
+  PROVIDER_FAILURE_CODES.apiError,
   'session_prompt_failed',
 ]);
 
@@ -51,7 +53,11 @@ const NON_RETRYABLE_CODES = new Set([
   // a probabilistic triage model must not promote it to a fresh attempt.
   'executor_threw',
   'invalid_api_key',
-  'invalid_model',
+  PROVIDER_FAILURE_CODES.invalidModel,
+  PROVIDER_FAILURE_CODES.authError,
+  PROVIDER_FAILURE_CODES.quotaExhausted,
+  PROVIDER_FAILURE_CODES.requestRejected,
+  PROVIDER_FAILURE_CODES.requestCancelled,
   // Hitting the turn cap is usually a deterministic model/workload/tool-loop
   // mismatch for the selected runtime profile. Retrying the same attempt shape
   // tends to burn another slot without adding useful evidence.
@@ -96,7 +102,7 @@ const NON_RETRYABLE_MESSAGE_PATTERNS = [
   /\bforbidden\b/i,
   /\binvalid (?:api )?key\b/i,
   /\bmissing credentials?\b/i,
-  /\bmodel .*not (?:found|registered|available)\b/i,
+  /\bmodel [^\n]{0,120}(?:not (?:found|registered|available)|does not exist)\b/i,
   /\bpath escapes workspace\b/i,
   /\bunknown task type\b/i,
   /\bvalidation failed\b/i,
@@ -215,6 +221,10 @@ export function classifyDeterministically(
   }
 
   if (NON_RETRYABLE_CODES.has(code)) return 'non_retryable';
+  // Pi sets this flag only with explicit status or transport evidence. Unknown
+  // and persisted API errors still pass through the legacy text guards.
+  if (code === PROVIDER_FAILURE_CODES.apiError && error.retryable === true)
+    return 'retryable';
   if (NON_RETRYABLE_MESSAGE_PATTERNS.some((pattern) => pattern.test(message))) {
     return 'non_retryable';
   }
@@ -232,18 +242,21 @@ function appendTriageReason(
 ): string {
   const suffix = ` Retry triage: ${triage.decision}/${triage.confidence}: ${triage.reason}`;
   if (message.includes('Retry triage:')) return message;
-  return `${message}${suffix}`.slice(0, 4000);
+  return `${message}${suffix}`.slice(0, MAX_TASK_ERROR_MESSAGE_LENGTH);
 }
 
 function appendTriageFailure(message: string, err: unknown): string {
   if (message.includes('Retry triage failed:')) return message;
   const sanitized = sanitizeReason(err);
-  return `${message} Retry triage failed: ${sanitized}`.slice(0, 4000);
+  return `${message} Retry triage failed: ${sanitized}`.slice(
+    0,
+    MAX_TASK_ERROR_MESSAGE_LENGTH,
+  );
 }
 
 function sanitizeReason(value: unknown): string {
   const raw = value instanceof Error ? value.message : String(value);
-  return redactRetryTriageSecrets(raw).slice(0, 500);
+  return sanitizeProviderDiagnostic(raw);
 }
 
 function withRetryInfo(
@@ -263,7 +276,9 @@ function withRetryInfo(
       source: info.source,
       ...(info.decision ? { decision: info.decision } : {}),
       ...(info.confidence ? { confidence: info.confidence } : {}),
-      ...(info.reason ? { reason: info.reason.slice(0, 500) } : {}),
+      ...(info.reason
+        ? { reason: sanitizeProviderDiagnostic(info.reason) }
+        : {}),
     },
   };
 }

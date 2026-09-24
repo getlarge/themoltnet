@@ -1,5 +1,8 @@
 import type { Task, TaskOutput } from '@moltnet/tasks';
-import { redactRetryTriageSecrets } from '@themoltnet/pi-runtime';
+import {
+  PROVIDER_FAILURE_CODES,
+  sanitizeProviderDiagnostic,
+} from '@themoltnet/pi-runtime';
 import type { Agent, ExecutorAttestor, TasksNamespace } from '@themoltnet/sdk';
 import { MoltNetError } from '@themoltnet/sdk';
 
@@ -58,6 +61,10 @@ export interface FinalizeContext {
   log?: (msg: string, fields?: Record<string, unknown>) => void;
 }
 
+const PROVIDER_ERROR_CODE_SET = new Set<string>(
+  Object.values(PROVIDER_FAILURE_CODES),
+);
+
 /**
  * Flatten a classified attempt failure into the structured fields logged
  * alongside `attempt-failure-classified`. Surfaces the triage verdict that
@@ -67,7 +74,7 @@ export interface FinalizeContext {
  * (the daemon log child carries agent/team/profile but not these). See #1528.
  *
  * `reason` is model-authored on the LLM-triage path, so it is run through
- * `redactRetryTriageSecrets` before it reaches the (wide-access) log sink —
+ * `sanitizeProviderDiagnostic` before it reaches the (wide-access) log sink —
  * parity with the `triage_failed` path, which already sanitizes.
  */
 function classificationLogFields(
@@ -81,11 +88,16 @@ function classificationLogFields(
     ...(ids.correlationId ? { correlationId: ids.correlationId } : {}),
     source: classified.source,
     code: classified.error.code,
+    ...(PROVIDER_ERROR_CODE_SET.has(classified.error.code)
+      ? {
+          diagnostic: sanitizeProviderDiagnostic(classified.error.message),
+        }
+      : {}),
     retryable: classified.error.retryable,
     ...(retry?.decision ? { decision: retry.decision } : {}),
     ...(retry?.confidence ? { confidence: retry.confidence } : {}),
     ...(retry?.reason
-      ? { reason: redactRetryTriageSecrets(retry.reason) }
+      ? { reason: sanitizeProviderDiagnostic(retry.reason) }
       : {}),
   };
 }

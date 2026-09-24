@@ -113,6 +113,14 @@ import {
 } from '../tool-policy/session-policy.js';
 import { recordToolPolicyDecisionSpan } from '../tool-policy/telemetry.js';
 import { resumeVm } from '../vm.js';
+import {
+  appendProviderFailureDiagnostics,
+  classifyProviderFailure,
+  PROVIDER_FAILURE_CODES,
+  type ProviderFailureCode,
+  type ProviderFailureContext,
+  type ProviderFailureVerdict,
+} from './provider-error-classification.js';
 
 export const GONDOLIN_TOOL_NAMES = [
   'read',
@@ -436,6 +444,11 @@ function guardGondolinExtensionFactories(
   });
 }
 
+export type ProviderFailureProfileContext = Pick<
+  ProviderFailureContext,
+  'runtimeProfileId' | 'runtimeProfileName' | 'piAgentDirSource'
+>;
+
 export interface ExecutePiTaskOptions {
   /** MoltNet agent whose credentials the VM boots with. */
   agentName: string;
@@ -453,6 +466,8 @@ export interface ExecutePiTaskOptions {
   /** LLM selection. */
   provider: string;
   model: string;
+  /** Context used to enrich terminal permanent provider failures. */
+  providerFailureContext?: ProviderFailureProfileContext;
   /**
    * Runtime-profile reasoning/thinking level. Null/undefined means use Pi's
    * configured default; explicit `off` disables provider thinking where
@@ -1787,7 +1802,7 @@ export async function executePiTask(
         );
       }
       if (err instanceof RuntimeProfileModelResolutionError) {
-        return makeFailedOutput('invalid_model', message);
+        return makeFailedOutput(PROVIDER_FAILURE_CODES.invalidModel, message);
       }
       if (err instanceof GuestExecutableProbeError) {
         return makeFailedOutput(err.code, message, finalUsage, true);
@@ -1902,6 +1917,7 @@ export async function executePiTask(
           await emit('info', event);
           await notifyProviderErrorRetryUi(opts.providerErrorRetryUi, event);
         },
+        onRetryStopped: (event) => emit('info', event),
         onPromptError: (message) =>
           emit('error', { message, phase: 'session_prompt' }),
         parentContext: piSessionContext,
@@ -2065,6 +2081,18 @@ export async function executePiTask(
       reporterError,
       llmAbort: turnState.llmAbort,
       llmErrorMessage: turnState.llmErrorMessage,
+      providerFailureContext: opts.providerFailureContext
+        ? {
+            ...opts.providerFailureContext,
+            provider: opts.provider,
+            model: opts.model,
+            runtimeProfileRevision:
+              typeof claimedTask.claimAuthority?.runtimeProfileRevision ===
+              'number'
+                ? claimedTask.claimAuthority.runtimeProfileRevision
+                : null,
+          }
+        : undefined,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -2559,6 +2587,7 @@ export interface BuildAttemptResultArgs {
   reporterError: { code: string; message: string; retryable?: boolean } | null;
   llmAbort: boolean;
   llmErrorMessage: string | null;
+  providerFailureContext?: ProviderFailureContext;
 }
 
 /**
@@ -2569,8 +2598,8 @@ export interface BuildAttemptResultArgs {
  * orchestrator. A provider abort with no captured diagnostic falls back to a
  * generic message.
  *
- * Errors are non-retryable EXCEPT a reporterError that both wins the ladder
- * and set `retryable: true` (a transient reporter failure, #1538).
+ * Reporter failures carry their own retryability; provider aborts are
+ * classified once here and carry a stable code to the daemon.
  *
  * @internal Exported for unit testing; not part of the package's public API.
  */
@@ -2579,32 +2608,33 @@ export function buildAttemptResult(args: BuildAttemptResultArgs): TaskOutput {
     args.runError || args.llmAbort || args.parseError || args.reporterError
       ? 'failed'
       : 'completed';
-  const errorCode =
-    args.runError?.code ??
-    args.parseError?.code ??
-    args.reporterError?.code ??
-    (args.llmAbort ? 'llm_api_error' : undefined);
-  const errorMessage =
-    args.runError?.message ??
-    args.parseError?.message ??
-    args.reporterError?.message ??
-    (args.llmAbort
-      ? // Prefer the diagnostic pi captured on the assistant message
-        // over the generic fallback. Most provider failures (model
-        // not in registry, auth errors, rate limits, …) surface here
-        // with the exact reason; without it operators have no way
-        // to distinguish "wrong model id" from "expired token" from
-        // "rate limited" without re-running locally.
-        (args.llmErrorMessage ?? 'LLM API error during turn')
-      : undefined);
-  // Only the reporterError propagates retryability, and only when it is the
-  // error actually surfaced (runError/parseError take precedence above).
-  const errorRetryable =
-    args.reporterError &&
-    errorCode === args.reporterError.code &&
-    errorMessage === args.reporterError.message
-      ? (args.reporterError.retryable ?? false)
-      : false;
+  const providerMessage =
+    args.llmErrorMessage?.trim() || 'LLM API error during turn';
+  const providerFailure = classifyProviderFailure(providerMessage);
+  const winningError = args.runError ?? args.parseError ?? args.reporterError;
+  const error = winningError
+    ? {
+        code: winningError.code,
+        message: winningError.message,
+        retryable:
+          winningError === args.reporterError
+            ? (args.reporterError.retryable ?? false)
+            : false,
+      }
+    : args.llmAbort
+      ? appendProviderFailureDiagnostics(
+          {
+            code: providerFailure.code,
+            message: providerMessage,
+            // Only explicit transient evidence can bypass the daemon's
+            // compatibility guards for older llm_api_error task rows.
+            retryable:
+              providerFailure.reason === 'transient_status' ||
+              providerFailure.reason === 'transient_transport',
+          },
+          args.providerFailureContext,
+        )
+      : undefined;
 
   return {
     taskId: args.taskId,
@@ -2614,15 +2644,7 @@ export function buildAttemptResult(args: BuildAttemptResultArgs): TaskOutput {
     outputCid: args.outputCid,
     usage: args.usage,
     durationMs: args.durationMs,
-    ...(errorCode && errorMessage
-      ? {
-          error: {
-            code: errorCode,
-            message: errorMessage,
-            retryable: errorRetryable,
-          },
-        }
-      : {}),
+    ...(error ? { error } : {}),
   };
 }
 
@@ -2818,58 +2840,6 @@ export function shouldEmitToolCallError(event: {
   return true;
 }
 
-const PROVIDER_ERROR_NON_RETRYABLE_PATTERNS = [
-  /\b401\b/i,
-  /\b403\b/i,
-  /\bunauthori[sz]ed\b/i,
-  /\bforbidden\b/i,
-  /\binvalid (?:api )?key\b/i,
-  /\bmissing credentials?\b/i,
-  /\binsufficient[_\s-]?quota\b/i,
-  /\bbilling\b/i,
-  /\bmodel .*not (?:found|registered|available)\b/i,
-  /\bunknown model\b/i,
-];
-
-const PROVIDER_ERROR_RETRYABLE_PATTERNS = [
-  /\b429\b/i,
-  /\b5\d{2}\b/i,
-  /\btimeout\b/i,
-  /\btimed out\b/i,
-  /\brate limit/i,
-  /\btemporar(?:y|ily)\b/i,
-  /\bunavailable\b/i,
-  /\boverloaded\b/i,
-  /\bECONNRESET\b/i,
-  /\bECONNREFUSED\b/i,
-  /\bETIMEDOUT\b/i,
-  /\bENOTFOUND\b/i,
-  /\bEAI_AGAIN\b/i,
-  /\bDNS\b/i,
-];
-
-export function shouldRetryProviderErrorMessage(
-  message: string | null | undefined,
-): boolean {
-  if (!message || !message.trim()) return true;
-  if (
-    PROVIDER_ERROR_NON_RETRYABLE_PATTERNS.some((pattern) =>
-      pattern.test(message),
-    )
-  ) {
-    return false;
-  }
-  if (
-    PROVIDER_ERROR_RETRYABLE_PATTERNS.some((pattern) => pattern.test(message))
-  ) {
-    return true;
-  }
-  // Pi's `stopReason: "error"` is itself provider-error metadata. If the
-  // diagnostic is unfamiliar but not a known config/auth failure, prefer one
-  // same-session continuation over failing the whole attempt immediately.
-  return true;
-}
-
 export function computeProviderErrorRetryDelay(
   attempt: number,
   baseDelayMs: number,
@@ -2917,6 +2887,14 @@ export interface PromptWithProviderErrorRetriesArgs {
   maxDelayMs: number;
   retryPrompt: string;
   onRetry?: (event: ProviderErrorRetryEvent) => Promise<void>;
+  onRetryStopped?: (event: {
+    event: 'provider_error_retry_stopped';
+    reason: 'cancelled' | 'cap_aborted' | 'exhausted' | 'permanent';
+    classificationReason: ProviderFailureVerdict['reason'];
+    retryCount: number;
+    code: ProviderFailureCode;
+    message: string;
+  }) => Promise<void>;
   onPromptError?: (message: string) => Promise<void>;
   /** Pi session context used to parent each provider request. */
   parentContext?: Context;
@@ -2961,13 +2939,27 @@ export async function promptWithProviderErrorRetries(
     }
 
     const { llmAbort, llmErrorMessage } = args.getProviderErrorState();
-    if (
-      !llmAbort ||
-      args.cancelSignal.aborted ||
-      args.isCapAborted?.() ||
-      retryCount >= args.maxRetries ||
-      !shouldRetryProviderErrorMessage(llmErrorMessage)
-    ) {
+    if (!llmAbort) {
+      return { runError: null, retryCount };
+    }
+    const stopReason = args.cancelSignal.aborted
+      ? 'cancelled'
+      : args.isCapAborted?.()
+        ? 'cap_aborted'
+        : retryCount >= args.maxRetries
+          ? 'exhausted'
+          : null;
+    const verdict = classifyProviderFailure(llmErrorMessage);
+    const reason = stopReason ?? (!verdict.retryable ? 'permanent' : null);
+    if (reason) {
+      await args.onRetryStopped?.({
+        event: 'provider_error_retry_stopped',
+        reason,
+        retryCount,
+        code: verdict.code,
+        classificationReason: verdict.reason,
+        message: sanitizeProviderDiagnostic(llmErrorMessage),
+      });
       return { runError: null, retryCount };
     }
 
@@ -2982,7 +2974,7 @@ export async function promptWithProviderErrorRetries(
       retry: retryCount,
       maxRetries: args.maxRetries,
       delayMs,
-      reason: sanitizeProviderErrorRetryReason(llmErrorMessage),
+      reason: sanitizeProviderDiagnostic(llmErrorMessage),
     });
     await sleepUnlessAborted(delayMs, args.cancelSignal);
     if (args.cancelSignal.aborted || args.isCapAborted?.()) {
@@ -3198,11 +3190,14 @@ export async function promptUntilSubmitted(
   return { runError: null, submitReprompts };
 }
 
-export function sanitizeProviderErrorRetryReason(
+export function sanitizeProviderDiagnostic(
   value: string | null | undefined,
 ): string {
   const raw = value ?? 'Pi turn ended with stopReason=error';
-  return redactRetryTriageSecrets(raw).slice(0, 500);
+  const redacted = redactRetryTriageSecrets(raw);
+  return redacted.length <= 500
+    ? redacted
+    : `${redacted.slice(0, 240)}…${redacted.slice(-259)}`;
 }
 
 async function sleepUnlessAborted(
