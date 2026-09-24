@@ -88,8 +88,14 @@ export function createSleepingContext(): WorkflowContext {
   };
 }
 
-/** Default poll delay; it only adds to wall-clock, never to phase timings. */
-export const DEFAULT_POLL_INTERVAL_SEC = 0.5;
+/**
+ * Default poll delay. It only adds wall-clock, never skews phase timings
+ * (those come from server timestamps). Faster polling trips the REST API's
+ * per-principal read limit (150/min by default), which a co-located daemon
+ * running as the same identity also consumes; the SDK then sleeps through
+ * Retry-After and stalls the review for minutes.
+ */
+export const DEFAULT_POLL_INTERVAL_SEC = 2;
 
 /** Consecutive failed reads of one poll before the review gives up. */
 export const POLL_READ_RETRY_LIMIT = 5;

@@ -68,7 +68,9 @@ never skews the split:
 | `modelMs`           | first model event → completed                                                      |
 | `observedMs`        | client-observed create → terminal, including poll delay                            |
 
-Polling defaults to 0.5 s (`--poll-interval`). The corpus summary prints
+Polling defaults to 2 s (`--poll-interval`). Faster polling trips the REST
+API's per-principal read limit, shared with a daemon running as the same
+identity, and the SDK then stalls on `Retry-After`. The corpus summary prints
 p50/p95 for each phase, plus ingest, retrieval, and total wall time.
 
 ## Run against existing PRs
