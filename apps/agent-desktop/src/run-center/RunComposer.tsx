@@ -238,14 +238,16 @@ export function RunComposer({
     ...(source && strategy !== 'none' ? { source } : {}),
     ...(strategy ? { strategy } : {}),
   };
-  const replayOptions = previousRun
+  const replaySource = previousRun?.teamId === teamId ? previousRun : undefined;
+  const runMode = replaySource?.mode ?? 'poll';
+  const replayOptions = replaySource
     ? {
-        correlationId: previousRun.correlationId,
-        diaryIds: previousRun.diaryIds,
-        pollIntervalMs: previousRun.pollIntervalMs,
-        maxPollIntervalMs: previousRun.maxPollIntervalMs,
-        waitForFirstTaskSec: previousRun.waitForFirstTaskSec,
-        waitAfterTaskSec: previousRun.waitAfterTaskSec,
+        correlationId: replaySource.correlationId,
+        diaryIds: replaySource.diaryIds,
+        pollIntervalMs: replaySource.pollIntervalMs,
+        maxPollIntervalMs: replaySource.maxPollIntervalMs,
+        waitForFirstTaskSec: replaySource.waitForFirstTaskSec,
+        waitAfterTaskSec: replaySource.waitAfterTaskSec,
       }
     : {};
 
@@ -344,7 +346,7 @@ export function RunComposer({
         teamId,
         profiles: [primaryId, ...fallbackIds],
         taskTypes,
-        mode: previousRun?.mode ?? 'poll',
+        mode: runMode,
         ...projectSelection,
         ...replayOptions,
         ...(requestedDiary ? { diaryId: requestedDiary } : {}),
@@ -704,10 +706,11 @@ export function RunComposer({
               Mode
             </Text>
             <Stack direction="row" gap={2} align="center" wrap>
-              <Badge variant="primary">poll</Badge>
+              <Badge variant="primary">{runMode}</Badge>
               <Text variant="caption" color="secondary">
-                Keeps claiming matching tasks until you stop it. The desktop app
-                runs polling workers only.
+                {runMode === 'drain'
+                  ? 'Claims matching tasks until the queue stays empty, using the previous run settings.'
+                  : 'Keeps claiming matching tasks until you stop it.'}
               </Text>
             </Stack>
           </Stack>
