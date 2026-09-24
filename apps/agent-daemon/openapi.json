@@ -720,6 +720,10 @@
           "agent": {
             "type": "string"
           },
+          "correlationId": {
+            "format": "uuid",
+            "type": "string"
+          },
           "credential": {
             "properties": {
               "expiresAt": {
@@ -757,6 +761,12 @@
           "diaryId": {
             "type": "string"
           },
+          "diaryIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "endedAt": {
             "format": "date-time",
             "type": "string"
@@ -793,6 +803,10 @@
             "minLength": 1,
             "type": "string"
           },
+          "maxPollIntervalMs": {
+            "minimum": 1,
+            "type": "integer"
+          },
           "mode": {
             "anyOf": [
               {
@@ -811,6 +825,10 @@
           },
           "pid": {
             "type": "number"
+          },
+          "pollIntervalMs": {
+            "minimum": 1,
+            "type": "integer"
           },
           "profiles": {
             "items": {
@@ -901,6 +919,14 @@
           },
           "teamId": {
             "type": "string"
+          },
+          "waitAfterTaskSec": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "waitForFirstTaskSec": {
+            "minimum": 0,
+            "type": "integer"
           },
           "workspace": {
             "properties": {
@@ -2341,12 +2367,26 @@
                   "agent": {
                     "type": "string"
                   },
+                  "correlationId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
                   "diaryId": {
                     "type": "string"
+                  },
+                  "diaryIds": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
                   },
                   "location": {
                     "minLength": 1,
                     "type": "string"
+                  },
+                  "maxPollIntervalMs": {
+                    "minimum": 1,
+                    "type": "integer"
                   },
                   "mode": {
                     "anyOf": [
@@ -2363,6 +2403,10 @@
                         "type": "string"
                       }
                     ]
+                  },
+                  "pollIntervalMs": {
+                    "minimum": 1,
+                    "type": "integer"
                   },
                   "profiles": {
                     "items": {
@@ -2476,6 +2520,14 @@
                   },
                   "teamId": {
                     "type": "string"
+                  },
+                  "waitAfterTaskSec": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "waitForFirstTaskSec": {
+                    "minimum": 0,
+                    "type": "integer"
                   }
                 },
                 "required": [

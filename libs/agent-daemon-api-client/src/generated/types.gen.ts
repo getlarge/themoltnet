@@ -137,6 +137,7 @@ export type AgentServerRun = AgentServerRunRecord & {
 
 export type AgentServerRunRecord = {
   agent: string;
+  correlationId?: string;
   credential?: {
     expiresAt?: string | null;
     keyId: string;
@@ -144,6 +145,7 @@ export type AgentServerRunRecord = {
     verifiedAt: string;
   };
   diaryId?: string;
+  diaryIds?: Array<string>;
   endedAt?: string;
   exitCode?: number | null;
   id: string;
@@ -152,8 +154,10 @@ export type AgentServerRunRecord = {
     message: string;
   };
   location?: string;
+  maxPollIntervalMs?: number;
   mode: 'poll' | 'drain';
   pid?: number;
+  pollIntervalMs?: number;
   profiles: Array<string>;
   projectId?: string | null;
   source?: string;
@@ -162,6 +166,8 @@ export type AgentServerRunRecord = {
   strategy?: 'none' | 'existing' | 'git-worktree' | 'isolated-directory';
   taskTypes: Array<string>;
   teamId: string;
+  waitAfterTaskSec?: number;
+  waitForFirstTaskSec?: number;
   workspace?: {
     diaryId?: string;
     location?: string;
@@ -758,9 +764,13 @@ export type ListAgentServerRunsResponse =
 export type StartAgentServerRunData = {
   body: {
     agent: string;
+    correlationId?: string;
     diaryId?: string;
+    diaryIds?: Array<string>;
     location?: string;
+    maxPollIntervalMs?: number;
     mode: 'poll' | 'drain';
+    pollIntervalMs?: number;
     profiles: Array<string>;
     projectId?: string | null;
     source?: string;
@@ -777,6 +787,8 @@ export type StartAgentServerRunData = {
       | 'run_eval'
     >;
     teamId: string;
+    waitAfterTaskSec?: number;
+    waitForFirstTaskSec?: number;
   };
   path?: never;
   query?: never;

@@ -47,6 +47,90 @@ afterEach(async () => {
 });
 
 describe('agent server providers and runs', () => {
+  it('persists and forwards scoped drain and polling options', async () => {
+    const { app, store, spawned } = await fixture();
+    activateManaged(store);
+    const token = await authorize(app);
+    const correlationId = '78fa1119-6126-44b4-b3aa-249e942ef53b';
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: TEST_CLIENT_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-1',
+        profiles: ['course-profile'],
+        taskTypes: ['freeform'],
+        mode: 'drain',
+        correlationId,
+        diaryIds: ['diary-1', 'diary-2'],
+        pollIntervalMs: 750,
+        maxPollIntervalMs: 5_000,
+        waitForFirstTaskSec: 15,
+        waitAfterTaskSec: 3,
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    const run = response.json<{ id: string }>();
+    expect(store.readRun(run.id)).toMatchObject({
+      correlationId,
+      diaryIds: ['diary-1', 'diary-2'],
+      pollIntervalMs: 750,
+      maxPollIntervalMs: 5_000,
+      waitForFirstTaskSec: 15,
+      waitAfterTaskSec: 3,
+    });
+    expect(spawned[0]?.args).toEqual(
+      expect.arrayContaining([
+        'drain',
+        '--correlation-id',
+        correlationId,
+        '--diary-ids',
+        'diary-1,diary-2',
+        '--poll-interval-ms',
+        '750',
+        '--max-poll-interval-ms',
+        '5000',
+        '--wait-for-first-task-sec',
+        '15',
+        '--wait-after-task-sec',
+        '3',
+      ]),
+    );
+  });
+
+  it('rejects drain waits in poll mode before spawning', async () => {
+    const { app, store, spawned } = await fixture();
+    activateManaged(store);
+    const token = await authorize(app);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: TEST_CLIENT_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-1',
+        profiles: ['course-profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+        waitForFirstTaskSec: 1,
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'invalid_spec' });
+    expect(spawned).toHaveLength(0);
+  });
+
   it('rejects unsupported managed signing providers before spawning', async () => {
     const { app, store, spawned } = await fixture();
     activateManaged(store);

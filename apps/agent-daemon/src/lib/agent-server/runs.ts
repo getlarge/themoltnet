@@ -243,6 +243,16 @@ export function validateRunSpec(spec: RunSpec): void {
       `unknown task type "${unknownTaskType}"`,
     );
   }
+  if (
+    spec.mode !== 'drain' &&
+    (spec.waitForFirstTaskSec !== undefined ||
+      spec.waitAfterTaskSec !== undefined)
+  ) {
+    throw new AgentServerRunError(
+      'invalid_spec',
+      'waitForFirstTaskSec and waitAfterTaskSec require drain mode',
+    );
+  }
 }
 
 interface ActiveRun {
@@ -332,6 +342,20 @@ export class RunManager {
       ...spec.profiles.flatMap((profile) => ['--profile', profile]),
       '--task-types',
       spec.taskTypes.join(','),
+      ...(spec.correlationId ? ['--correlation-id', spec.correlationId] : []),
+      ...(spec.diaryIds ? ['--diary-ids', spec.diaryIds.join(',')] : []),
+      ...(spec.pollIntervalMs !== undefined
+        ? ['--poll-interval-ms', String(spec.pollIntervalMs)]
+        : []),
+      ...(spec.maxPollIntervalMs !== undefined
+        ? ['--max-poll-interval-ms', String(spec.maxPollIntervalMs)]
+        : []),
+      ...(spec.waitForFirstTaskSec !== undefined
+        ? ['--wait-for-first-task-sec', String(spec.waitForFirstTaskSec)]
+        : []),
+      ...(spec.waitAfterTaskSec !== undefined
+        ? ['--wait-after-task-sec', String(spec.waitAfterTaskSec)]
+        : []),
       '--heartbeat-interval-ms',
       String(runtimeSettings.heartbeatIntervalMs),
       '--warm-retention-sec',

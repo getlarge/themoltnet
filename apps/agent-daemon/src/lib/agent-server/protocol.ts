@@ -267,6 +267,12 @@ export const AgentServerRunRecordSchema = Type.Object(
     profiles: StringList,
     taskTypes: StringList,
     mode: Type.Union([Type.Literal('poll'), Type.Literal('drain')]),
+    correlationId: Type.Optional(Type.String({ format: 'uuid' })),
+    diaryIds: Type.Optional(StringList),
+    pollIntervalMs: Type.Optional(Type.Integer({ minimum: 1 })),
+    maxPollIntervalMs: Type.Optional(Type.Integer({ minimum: 1 })),
+    waitForFirstTaskSec: Type.Optional(Type.Integer({ minimum: 0 })),
+    waitAfterTaskSec: Type.Optional(Type.Integer({ minimum: 0 })),
     status: Type.Union([
       Type.Literal('running'),
       Type.Literal('exited'),
@@ -391,6 +397,12 @@ export const StartRunSchema = Type.Object({
   profiles: StringList,
   taskTypes: Type.Array(AgentServerTaskTypeSchema),
   mode: Type.Union([Type.Literal('poll'), Type.Literal('drain')]),
+  correlationId: Type.Optional(Type.String({ format: 'uuid' })),
+  diaryIds: Type.Optional(StringList),
+  pollIntervalMs: Type.Optional(Type.Integer({ minimum: 1 })),
+  maxPollIntervalMs: Type.Optional(Type.Integer({ minimum: 1 })),
+  waitForFirstTaskSec: Type.Optional(Type.Integer({ minimum: 0 })),
+  waitAfterTaskSec: Type.Optional(Type.Integer({ minimum: 0 })),
 });
 
 export const CancelledSubscriptionSchema = Type.Object(
