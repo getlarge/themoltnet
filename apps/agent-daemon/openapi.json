@@ -1463,6 +1463,161 @@
         ]
       }
     },
+    "/v1/agents/{agentName}/credential-recovery": {
+      "get": {
+        "operationId": "listAgentServerEnrollmentRecoveries",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "agentName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "properties": {
+                          "createdAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "keyId": {
+                            "type": "string"
+                          },
+                          "operation": {
+                            "type": "string"
+                          },
+                          "recoveryId": {
+                            "type": "string"
+                          },
+                          "secretCaptured": {
+                            "type": "boolean"
+                          },
+                          "teamId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "recoveryId",
+                          "secretCaptured",
+                          "createdAt"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "agents"
+        ]
+      }
+    },
+    "/v1/agents/{agentName}/credential-recovery/{recoveryId}/restore": {
+      "post": {
+        "operationId": "restoreAgentServerEnrollment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "agentName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "recoveryId",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\.json$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "keyId": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "enum": [
+                        "persisted"
+                      ],
+                      "type": "string"
+                    },
+                    "teamId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "state",
+                    "teamId",
+                    "keyId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "agents"
+        ]
+      }
+    },
     "/v1/agents/{agentName}/reconcile": {
       "post": {
         "operationId": "reconcileAgentServerAgent",
@@ -1564,6 +1719,14 @@
                         "minLength": 1,
                         "type": "string"
                       },
+                      "scopes": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "minItems": 1,
+                        "type": "array",
+                        "uniqueItems": true
+                      },
                       "teamId": {
                         "format": "uuid",
                         "type": "string"
@@ -1623,6 +1786,12 @@
                         "keyId": {
                           "type": "string"
                         },
+                        "scopes": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
                         "state": {
                           "enum": [
                             "persisted"
@@ -1636,7 +1805,29 @@
                       "required": [
                         "state",
                         "teamId",
-                        "keyId"
+                        "keyId",
+                        "scopes"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "message": {
+                          "type": "string"
+                        },
+                        "retryAfter": {
+                          "type": "number"
+                        },
+                        "state": {
+                          "enum": [
+                            "retryable"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "state",
+                        "message"
                       ],
                       "type": "object"
                     },

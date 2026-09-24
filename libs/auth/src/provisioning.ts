@@ -1,6 +1,6 @@
 import { OPERATOR_OAUTH } from '@moltnet/models';
 
-import { AGENT_CREDENTIAL_SCOPES, AGENT_OAUTH_SCOPES } from './scopes.js';
+import { AGENT_OAUTH_SCOPES } from './scopes.js';
 
 /** Claims are supplied only by the server-side consent handler. */
 export const PROVISIONING_SCOPE = OPERATOR_OAUTH.provisioningScope;
@@ -34,7 +34,7 @@ export function readProvisioningGrant(
     !v.scopes.every(
       (s) =>
         typeof s === 'string' &&
-        (AGENT_CREDENTIAL_SCOPES as readonly string[]).includes(s),
+        (AGENT_OAUTH_SCOPES as readonly string[]).includes(s),
     )
   )
     return null;

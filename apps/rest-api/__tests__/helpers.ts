@@ -66,6 +66,8 @@ export const TEST_SECURITY_OPTIONS = {
   rateLimitGlobalAuth: 1000, // Higher limits for tests
   rateLimitGlobalAnon: 1000,
   rateLimitTokenIp: 1000,
+  rateLimitOauthConsent: 1000,
+  rateLimitOauthProvision: 1000,
   rateLimitTokenUpstreamIp: 1000,
   rateLimitEmbedding: 1000,
   rateLimitSigning: 1000,
@@ -80,6 +82,7 @@ export const TEST_SECURITY_OPTIONS = {
   rateLimitTaskArtifactUpload: 1000,
   rateLimitGlobalRead: 1000,
   rateLimitPreResolveIp: 1000,
+  rateLimitOauthApprovalIp: 1000,
   rateLimitAllowList: ['/health', '/problems'],
   trustProxy: 0,
   apiBaseUrl: 'http://localhost:8000',

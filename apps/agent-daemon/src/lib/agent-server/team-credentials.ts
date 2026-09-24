@@ -5,11 +5,7 @@ import { connect } from '@themoltnet/sdk/node';
 import { type ActivatedAgent, loadAgentActivation } from './identity.js';
 import type { AgentServerStore } from './store.js';
 
-export const AGENT_SERVER_REQUIRED_SCOPES = [
-  ...DAEMON_MINIMUM_SCOPES,
-  'team:read',
-  'diary:read',
-];
+export const AGENT_SERVER_REQUIRED_SCOPES = [...DAEMON_MINIMUM_SCOPES];
 
 export interface CredentialMetadata {
   keyId: string;

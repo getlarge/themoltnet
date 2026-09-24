@@ -45,7 +45,12 @@ import {
   readCatalogueProjects,
 } from './catalogue-project-reader.js';
 import type { ConnectionSettingsStore } from './connection-settings.js';
-import { enrollIdentityTeam, type TeamEnrollmentInput } from './enrollment.js';
+import {
+  enrollIdentityTeam,
+  listIdentityEnrollmentRecoveries,
+  restoreIdentityEnrollment,
+  type TeamEnrollmentInput,
+} from './enrollment.js';
 import { AgentServerHttpError } from './http-error.js';
 import {
   AgentServerIdentityError,
@@ -974,9 +979,14 @@ async function defaultCatalogueAgent(
       );
       signal?.throwIfAborted();
       const { client, metadata } = requireCredentialSnapshot(activated);
+      const scopes = new Set(metadata.scopes);
       const [team, diaries, profiles] = await Promise.all([
-        client.teams.get(teamId),
-        client.diaries.list(),
+        scopes.has('team:read')
+          ? client.teams.get(teamId)
+          : Promise.resolve({ id: teamId, name: teamId }),
+        scopes.has('diary:read')
+          ? client.diaries.list()
+          : Promise.resolve({ items: [] }),
         client.runtimeProfiles.list({ teamId }),
       ]);
       clients.set(teamId, client);
@@ -1147,6 +1157,58 @@ function registerAgentRoutes(
         input: request.body as TeamEnrollmentInput,
         signal: requestOperationSignal(request, options.shutdownSignal),
       });
+    },
+  );
+  app.get(
+    '/v1/agents/:agentName/credential-recovery',
+    { schema: AgentServerRouteSchemas.listEnrollmentRecoveries },
+    async (request) => {
+      await requireAuthorizedOrigin(request);
+      if (request.headers.origin !== NATIVE_CLIENT_ORIGIN)
+        throw new AgentServerHttpError(
+          403,
+          'native_required',
+          'Native credential recovery required',
+        );
+      const { agentName } = request.params as { agentName: string };
+      return listIdentityEnrollmentRecoveries({
+        store,
+        alias: agentName,
+        managed: options.secretProviders,
+        external: options.externalSecretProviders,
+      });
+    },
+  );
+  app.post(
+    '/v1/agents/:agentName/credential-recovery/:recoveryId/restore',
+    { schema: AgentServerRouteSchemas.restoreEnrollment },
+    async (request) => {
+      await requireAuthorizedOrigin(request);
+      if (request.headers.origin !== NATIVE_CLIENT_ORIGIN)
+        throw new AgentServerHttpError(
+          403,
+          'native_required',
+          'Native credential recovery required',
+        );
+      const { agentName, recoveryId } = request.params as {
+        agentName: string;
+        recoveryId: string;
+      };
+      try {
+        return await restoreIdentityEnrollment({
+          store,
+          alias: agentName,
+          managed: options.secretProviders,
+          external: options.externalSecretProviders,
+          recoveryId,
+        });
+      } catch {
+        throw new AgentServerHttpError(
+          409,
+          'recovery_incomplete',
+          'The captured credential could not be restored and verified. The recovery record was kept.',
+        );
+      }
     },
   );
   app.post(

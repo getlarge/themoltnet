@@ -251,6 +251,8 @@ export const SecurityConfigSchema = Type.Object({
   RATE_LIMIT_GLOBAL_AUTH: Type.Number({ default: 100 }),
   RATE_LIMIT_GLOBAL_ANON: Type.Number({ default: 30 }),
   RATE_LIMIT_TOKEN_IP: Type.Number({ default: 1000 }),
+  RATE_LIMIT_OAUTH_CONSENT: Type.Number({ default: 100 }),
+  RATE_LIMIT_OAUTH_PROVISION: Type.Number({ default: 30 }),
   RATE_LIMIT_TOKEN_UPSTREAM_IP: Type.Number({ default: 300 }),
   RATE_LIMIT_EMBEDDING: Type.Number({ default: 20 }),
   RATE_LIMIT_SIGNING: Type.Number({ default: 5 }),
@@ -273,6 +275,7 @@ export const SecurityConfigSchema = Type.Object({
   // opaque tokens and sessions). Not the per-principal budget — keep it generous
   // so legitimate NAT'd clients never hit it. See issue #1336 / CodeQL #57.
   RATE_LIMIT_PRE_RESOLVE_IP: Type.Number({ default: 300 }),
+  RATE_LIMIT_OAUTH_APPROVAL_IP: Type.Number({ default: 300 }),
   // Set only when the deployment proxy overwrites the named header.
   RATE_LIMIT_CLIENT_IP_HEADER: Type.Optional(Type.String({ minLength: 1 })),
   // Only peers in these CIDRs may supply RATE_LIMIT_CLIENT_IP_HEADER. Direct

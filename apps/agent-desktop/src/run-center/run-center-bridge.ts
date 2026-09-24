@@ -135,6 +135,10 @@ export const runCenterActions: RunCenterActions = {
   cancelOperatorApproval: () => invoke('desktop_cancel_operator_approval'),
   enrollTeam: (identity, request) =>
     invoke('desktop_enroll_team', { identity, request }),
+  listEnrollmentRecoveries: (identity) =>
+    invoke('desktop_list_enrollment_recoveries', { identity }),
+  restoreEnrollment: (identity, recoveryId) =>
+    invoke('desktop_restore_enrollment', { identity, recoveryId }),
   catalogue: (identity) =>
     invoke<AgentServerCatalogue>('desktop_catalogue', { identity }),
 

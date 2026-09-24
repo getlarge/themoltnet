@@ -1,5 +1,10 @@
 /** Team access extends the Run Center's existing control surfaces and native actions. */
 import {
+  AGENT_CREDENTIAL_SCOPES,
+  AGENT_OAUTH_SCOPES,
+  DAEMON_MINIMUM_SCOPES,
+} from '@moltnet/models';
+import {
   Badge,
   Button,
   ConfirmDialog,
@@ -19,6 +24,28 @@ import type {
   RunCenterData,
 } from './types.js';
 import { useCatalogue } from './useCatalogue.js';
+
+const SCOPE_DESCRIPTIONS: Record<string, string> = {
+  'agent:profile': 'Read the agent profile',
+  'connector:invoke': 'Invoke configured connectors',
+  'crypto:sign': 'Sign on behalf of the agent',
+  'diary:manage': 'Manage diaries and access grants',
+  'diary:read': 'Read diary entries',
+  'diary:write': 'Create diary entries',
+  'key:manage': 'Issue and rotate agent keys',
+  'pack:read': 'Read context packs',
+  'pack:write': 'Create and update context packs',
+  'runtime:manage': 'Manage runtime configuration',
+  'runtime:read': 'Read runtime configuration',
+  'task:claim': 'Claim queued tasks',
+  'task:execute': 'Execute and report task attempts',
+  'task:manage': 'Manage tasks and grants',
+  'task:read': 'Read tasks and attempts',
+  'task:write': 'Create and edit tasks',
+  'team:join': 'Join teams using invitations',
+  'team:manage': 'Manage teams and membership',
+  'team:read': 'Read teams and membership',
+};
 
 export function TeamsView({
   data,
@@ -44,6 +71,14 @@ export function TeamsView({
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [mode, setMode] = useState<'enroll' | 'replace'>('enroll');
   const [team, setTeam] = useState<AgentServerCatalogueTeam | null>(null);
+  const [scopes, setScopes] = useState<string[]>([...AGENT_CREDENTIAL_SCOPES]);
+  const [recoveries, setRecoveries] = useState<
+    Awaited<
+      ReturnType<NonNullable<RunCenterActions['listEnrollmentRecoveries']>>
+    >['items']
+  >([]);
+  const [recoveriesError, setRecoveriesError] = useState(false);
+  const [recoveryVersion, setRecoveryVersion] = useState(0);
   const [destinationTeamId, setDestinationTeamId] = useState('');
   const [operatorTeams, setOperatorTeams] = useState<
     { id: string; name: string }[]
@@ -99,6 +134,26 @@ export function TeamsView({
       );
   }, [data.status, identity]);
   useEffect(() => {
+    if (!identity || !actions.listEnrollmentRecoveries) {
+      setRecoveries([]);
+      return;
+    }
+    let current = true;
+    setRecoveries([]);
+    setRecoveriesError(false);
+    void actions.listEnrollmentRecoveries(identity).then(
+      ({ items }) => {
+        if (current) setRecoveries(items);
+      },
+      () => {
+        if (current) setRecoveriesError(true);
+      },
+    );
+    return () => {
+      current = false;
+    };
+  }, [actions, identity, recoveryVersion]);
+  useEffect(() => {
     let current = true;
     if (!data.operatorConfigured || !actions.operatorTeams) {
       setOperatorTeams([]);
@@ -134,35 +189,45 @@ export function TeamsView({
     setBusy(true);
     setFeedback(null);
     try {
-      {
-        if (!actions.enrollTeam) throw new Error('Enrollment unavailable');
-        const result = await actions.enrollTeam(identity, {
-          teamId,
-          idempotencyKey: crypto.randomUUID(),
-          ...(mode === 'replace' && team
-            ? { mode: 'replace' }
-            : { mode: 'enroll' }),
+      if (!actions.enrollTeam) throw new Error('Enrollment unavailable');
+      const result = await actions.enrollTeam(identity, {
+        teamId,
+        idempotencyKey: crypto.randomUUID(),
+        scopes,
+        ...(mode === 'replace' && team
+          ? { mode: 'replace' }
+          : { mode: 'enroll' }),
+      });
+      if (result.state === 'retryable') {
+        setFeedback({
+          title: 'Approval request was throttled',
+          message: result.message,
+          error: true,
         });
-        if (result.state === 'recovery_required') {
-          setFeedback({
-            title: result.secretCaptured
-              ? 'Credential saved for recovery'
-              : 'Enrollment needs recovery',
-            message: `${result.message}${result.issuedKeyId ? ` Issued key: ${result.issuedKeyId}.` : ''}${result.recoveryId ? ` Recovery record: ${result.recoveryId}.` : ''}`,
-            error: true,
-          });
-          return;
-        }
-        retryCatalogue();
+        return;
       }
+      if (result.state === 'recovery_required') {
+        setRecoveryVersion((value) => value + 1);
+        setFeedback({
+          title: result.secretCaptured
+            ? 'Credential saved for recovery'
+            : 'Enrollment needs recovery',
+          message: result.secretCaptured
+            ? `${result.message} Use Restore captured credential below on the Agent Server machine.`
+            : `${result.message} No secret is available to restore. Refresh team access and inspect retry context before requesting new approval.`,
+          error: true,
+        });
+        return;
+      }
+      retryCatalogue();
+      setRecoveryVersion((value) => value + 1);
       await actions.refresh?.();
       setFeedback({
         title:
           mode === 'replace'
             ? 'Team credential renewed'
             : 'Team enrollment complete',
-        message:
-          'New runs will use the stored credential. Existing runs keep their current credential until restarted.',
+        message: `Issued scopes: ${result.scopes.join(', ')}. New runs will use the stored credential. Existing runs keep their current credential until restarted.`,
         error: false,
       });
       setMode('enroll');
@@ -237,7 +302,7 @@ export function TeamsView({
         </Stack>
         <Text color="secondary">
           {identity
-            ? 'Approve team access in the browser. The credential is saved automatically on this computer.'
+            ? 'Approve team access in the browser. The Agent Server stores the credential on its own machine.'
             : 'Create an agent identity to run work for your team.'}
         </Text>
       </Stack>
@@ -416,6 +481,7 @@ export function TeamsView({
             setIdentity(event.target.value);
             setTeam(null);
             setMode('enroll');
+            setScopes([...AGENT_CREDENTIAL_SCOPES]);
             setDestinationTeamId('');
             setManualTeamId(false);
           }}
@@ -487,6 +553,18 @@ export function TeamsView({
                 onClick={() => {
                   setTeam(entry);
                   setMode('replace');
+                  setScopes(
+                    [
+                      ...DAEMON_MINIMUM_SCOPES,
+                      ...(entry.credential?.scopes ?? []).filter((scope) =>
+                        (AGENT_OAUTH_SCOPES as readonly string[]).includes(
+                          scope,
+                        ),
+                      ),
+                    ].filter(
+                      (scope, index, all) => all.indexOf(scope) === index,
+                    ),
+                  );
                   setDestinationTeamId('');
                 }}
               >
@@ -514,6 +592,7 @@ export function TeamsView({
                 disabled={busy || !identity}
                 onClick={() => {
                   setMode('enroll');
+                  setScopes([...AGENT_CREDENTIAL_SCOPES]);
                   setTeam(null);
                 }}
               >
@@ -577,6 +656,36 @@ export function TeamsView({
               Console will show the selected identity, team and permissions
               before you approve.
             </Text>
+            <Stack gap={2}>
+              <Text weight="semibold">Credential permissions</Text>
+              <Text variant="caption" color="secondary">
+                Required permissions keep the agent running. Choose any extra
+                permissions this team should grant.
+              </Text>
+              {AGENT_OAUTH_SCOPES.map((scope) => {
+                const required = (
+                  DAEMON_MINIMUM_SCOPES as readonly string[]
+                ).includes(scope);
+                return (
+                  <label key={scope}>
+                    <input
+                      type="checkbox"
+                      checked={required || scopes.includes(scope)}
+                      disabled={busy || required}
+                      onChange={(event) =>
+                        setScopes((current) =>
+                          event.target.checked
+                            ? [...current, scope]
+                            : current.filter((item) => item !== scope),
+                        )
+                      }
+                    />{' '}
+                    {SCOPE_DESCRIPTIONS[scope] ?? scope} · {scope}
+                    {required ? ' (required)' : ''}
+                  </label>
+                );
+              })}
+            </Stack>
             <Stack direction="row" gap={2} wrap>
               <Button
                 disabled={
@@ -597,6 +706,72 @@ export function TeamsView({
             </Stack>
           </Stack>
         </ControlSurface>
+      ) : null}
+      {identity && recoveries.length ? (
+        <ControlSurface>
+          <Stack gap={3}>
+            <Text as="h2" variant="h4">
+              Credential recovery
+            </Text>
+            <Text variant="caption" color="secondary">
+              These records are stored on the Agent Server machine. Captured
+              credentials can be restored here without exposing the secret.
+            </Text>
+            {recoveries.map((record) => (
+              <Stack key={record.recoveryId} gap={2}>
+                <Text>
+                  {record.teamId ?? 'Team'} · {record.operation ?? 'enrollment'}{' '}
+                  · {new Date(record.createdAt).toLocaleString()}
+                </Text>
+                {record.secretCaptured ? (
+                  <Button
+                    variant="secondary"
+                    disabled={busy || !actions.restoreEnrollment}
+                    onClick={async () => {
+                      setBusy(true);
+                      try {
+                        await actions.restoreEnrollment?.(
+                          identity,
+                          record.recoveryId,
+                        );
+                        setRecoveryVersion((value) => value + 1);
+                        retryCatalogue();
+                        await actions.refresh?.();
+                        setFeedback({
+                          title: 'Credential restored',
+                          message:
+                            'Team access was verified on the Agent Server.',
+                          error: false,
+                        });
+                      } catch {
+                        setFeedback({
+                          title: 'Credential recovery incomplete',
+                          message:
+                            'The recovery record was kept on the Agent Server. Check its secret provider and team access, then try again.',
+                          error: true,
+                        });
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  >
+                    Restore captured credential
+                  </Button>
+                ) : (
+                  <Text variant="caption" color="secondary">
+                    No credential secret was captured. Check team access before
+                    requesting another approval.
+                  </Text>
+                )}
+              </Stack>
+            ))}
+          </Stack>
+        </ControlSurface>
+      ) : null}
+      {identity && recoveriesError ? (
+        <InlineNotice tone="warning" title="Recovery records unavailable">
+          Check the Agent Server connection and refresh team access.
+        </InlineNotice>
       ) : null}
       {feedback?.error ? (
         <InlineNotice

@@ -556,6 +556,9 @@ export const AgentServerRouteSchemas = {
       Type.Object({
         teamId: Type.String({ format: 'uuid' }),
         idempotencyKey: Type.String({ minLength: 1, maxLength: 256 }),
+        scopes: Type.Optional(
+          Type.Array(Type.String(), { minItems: 1, uniqueItems: true }),
+        ),
       }),
       Type.Union([
         Type.Object({ mode: Type.Literal('enroll') }),
@@ -570,6 +573,12 @@ export const AgentServerRouteSchemas = {
           state: Type.Literal('persisted'),
           teamId: Type.String(),
           keyId: Type.String(),
+          scopes: Type.Array(Type.String()),
+        }),
+        Type.Object({
+          state: Type.Literal('retryable'),
+          retryAfter: Type.Optional(Type.Number()),
+          message: Type.String(),
         }),
         Type.Object({
           state: Type.Literal('recovery_required'),
@@ -579,6 +588,47 @@ export const AgentServerRouteSchemas = {
           message: Type.String(),
         }),
       ]),
+      ...problemResponse,
+    },
+  },
+  listEnrollmentRecoveries: {
+    operationId: 'listAgentServerEnrollmentRecoveries',
+    tags: ['agents'],
+    security: localControlSecurity,
+    params: AgentParamsSchema,
+    response: {
+      200: Type.Object({
+        items: Type.Array(
+          Type.Object({
+            recoveryId: Type.String(),
+            secretCaptured: Type.Boolean(),
+            teamId: Type.Optional(Type.String()),
+            keyId: Type.Optional(Type.String()),
+            operation: Type.Optional(Type.String()),
+            createdAt: DateTime,
+          }),
+        ),
+      }),
+      ...problemResponse,
+    },
+  },
+  restoreEnrollment: {
+    operationId: 'restoreAgentServerEnrollment',
+    tags: ['agents'],
+    security: localControlSecurity,
+    params: Type.Object({
+      agentName: Type.String(),
+      recoveryId: Type.String({
+        pattern:
+          '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\.json$',
+      }),
+    }),
+    response: {
+      200: Type.Object({
+        state: Type.Literal('persisted'),
+        teamId: Type.String(),
+        keyId: Type.String(),
+      }),
       ...problemResponse,
     },
   },

@@ -159,7 +159,7 @@ describe('OAuth consent target validation', () => {
       agentId: 'aaaaaaaa-0000-4000-8000-000000000001',
       teamId: 'bbbbbbbb-0000-4000-8000-000000000002',
       operation: 'enroll',
-      scopes: ['task:execute'],
+      scopes: ['task:execute', 'diary:write'],
       idempotencyKey: 'same-request',
     };
     vi.stubEnv('MOLTNET_NATIVE_OAUTH_CLIENT_ID', 'native');
@@ -266,7 +266,7 @@ describe('OAuth consent target validation', () => {
     const excessiveScopes = new URL(url);
     excessiveScopes.searchParams.set(
       'provisioning',
-      JSON.stringify({ ...grant, scopes: ['key:manage'] }),
+      JSON.stringify({ ...grant, scopes: ['human:profile'] }),
     );
     const renewal = new URL(url);
     renewal.searchParams.set(

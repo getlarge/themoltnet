@@ -423,6 +423,50 @@ async fn desktop_enroll_team(
 }
 
 #[tauri::command]
+async fn desktop_list_enrollment_recoveries(
+    state: State<'_, AppState>,
+    identity: String,
+) -> Result<serde_json::Value, String> {
+    let body = with_control_connection(&state, move |connection| {
+        control::get(
+            connection,
+            &format!("/v1/agents/{}/credential-recovery", urlencode(&identity)),
+        )
+    })
+    .await?;
+    control::recovery_list_metadata(&body)
+}
+
+#[tauri::command]
+async fn desktop_restore_enrollment(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    identity: String,
+    recovery_id: String,
+) -> Result<serde_json::Value, String> {
+    let body = with_control_connection(&state, move |connection| {
+        control::post(
+            connection,
+            &format!(
+                "/v1/agents/{}/credential-recovery/{}/restore",
+                urlencode(&identity),
+                urlencode(&recovery_id)
+            ),
+            "{}",
+        )
+    })
+    .await?;
+    let value: serde_json::Value = serde_json::from_str(&body)
+        .map_err(|_| "Unreadable credential recovery result".to_string())?;
+    show_status(&app);
+    Ok(serde_json::json!({
+        "state": value.get("state"),
+        "teamId": value.get("teamId"),
+        "keyId": value.get("keyId"),
+    }))
+}
+
+#[tauri::command]
 async fn desktop_create_managed_agent(
     app: AppHandle,
     state: State<'_, AppState>,
@@ -992,6 +1036,8 @@ pub fn run() {
             desktop_choose_project_folder,
             desktop_control_status,
             desktop_enroll_team,
+            desktop_list_enrollment_recoveries,
+            desktop_restore_enrollment,
             desktop_create_managed_agent,
             desktop_operator_sign_in,
             desktop_operator_teams,

@@ -2,24 +2,108 @@ import { basename, dirname } from 'node:path';
 
 import { enrollmentProofMessage } from '@moltnet/crypto-service';
 import { isLoopbackHostname } from '@moltnet/loopback-companion';
+import {
+  AGENT_CREDENTIAL_SCOPES,
+  AGENT_OAUTH_SCOPES,
+  DAEMON_MINIMUM_SCOPES,
+} from '@moltnet/models';
 import { type SecretProviderRegistry, signBytes } from '@themoltnet/sdk';
 import {
   CredentialPersistenceError,
   EnrollmentRecoveryError,
   enrollTeam,
   type EnrollTeamResult,
+  listEnrollmentRecoveries,
   ProvisioningNotStartedError,
+  restoreCapturedEnrollment,
 } from '@themoltnet/sdk/node';
 
 import { loadEnrollmentIdentity } from './identity.js';
 import type { OperatorOAuth } from './operator-oauth.js';
 import type { AgentServerStore } from './store.js';
-import { AGENT_SERVER_REQUIRED_SCOPES } from './team-credentials.js';
+import { verifyTeamActivation } from './team-credentials.js';
+
+function recoveryLocation(
+  options: {
+    store: AgentServerStore;
+    alias: string;
+    managed: SecretProviderRegistry;
+    external: SecretProviderRegistry;
+  },
+  activation: Awaited<ReturnType<typeof loadEnrollmentIdentity>>['activation'],
+) {
+  const configPath =
+    activation.source === 'managed'
+      ? options.store.agentPath(options.alias)
+      : activation.configPath;
+  return {
+    configDir: dirname(configPath),
+    providers:
+      activation.source === 'managed' ? options.managed : options.external,
+  };
+}
+
+export async function listIdentityEnrollmentRecoveries(options: {
+  store: AgentServerStore;
+  alias: string;
+  managed: SecretProviderRegistry;
+  external: SecretProviderRegistry;
+}) {
+  const { activation } = await loadEnrollmentIdentity(
+    options.store,
+    options.alias,
+  );
+  const { configDir } = recoveryLocation(options, activation);
+  return { items: await listEnrollmentRecoveries(configDir) };
+}
+
+export async function restoreIdentityEnrollment(options: {
+  store: AgentServerStore;
+  alias: string;
+  managed: SecretProviderRegistry;
+  external: SecretProviderRegistry;
+  recoveryId: string;
+}) {
+  const { activation } = await loadEnrollmentIdentity(
+    options.store,
+    options.alias,
+  );
+  const { configDir, providers } = recoveryLocation(options, activation);
+  const restored = await restoreCapturedEnrollment({
+    configDir,
+    recoveryId: options.recoveryId,
+    providers,
+    verify: async (teamId) => {
+      await verifyTeamActivation(
+        options.store,
+        options.alias,
+        options.managed,
+        options.external,
+        undefined,
+        undefined,
+        teamId,
+      );
+    },
+  });
+  return { state: 'persisted' as const, ...restored };
+}
 
 export type TeamEnrollmentInput = {
   teamId: string;
   idempotencyKey: string;
+  scopes?: string[];
 } & ({ mode: 'enroll' } | { mode: 'replace' });
+
+class ProvisioningRateLimitedError extends Error {
+  constructor(readonly retryAfter?: number) {
+    super('Operator provisioning was rate limited before credential issuance');
+  }
+}
+
+function rateLimitRetryAfter(response: Response): number | undefined {
+  const value = Number(response.headers.get('retry-after'));
+  return Number.isSafeInteger(value) && value > 0 ? value : undefined;
+}
 
 /** Native callers receive metadata only; approval and storage stay local. */
 export async function enrollIdentityTeam(options: {
@@ -32,6 +116,18 @@ export async function enrollIdentityTeam(options: {
   apiUrl: string;
   signal?: AbortSignal;
 }) {
+  // Older Desktop builds omit scopes; preserve their existing default while
+  // updated clients send the exact reviewed set.
+  const requestedScopes = options.input.scopes ?? [...AGENT_CREDENTIAL_SCOPES];
+  if (
+    !Array.isArray(requestedScopes) ||
+    requestedScopes.length !== new Set(requestedScopes).size ||
+    requestedScopes.some(
+      (scope) => !(AGENT_OAUTH_SCOPES as readonly string[]).includes(scope),
+    ) ||
+    DAEMON_MINIMUM_SCOPES.some((scope) => !requestedScopes.includes(scope))
+  )
+    throw new Error('Select valid team scopes including the daemon minimum');
   const apiUrl = new URL(options.apiUrl);
   if (
     apiUrl.username ||
@@ -79,7 +175,7 @@ export async function enrollIdentityTeam(options: {
       provisioningContext: {
         teamId: options.input.teamId,
         operation: replacement ? 'renew' : 'enroll',
-        scopes: [...AGENT_SERVER_REQUIRED_SCOPES],
+        scopes: [...requestedScopes],
       },
       replacement,
       provision: async () => {
@@ -87,7 +183,7 @@ export async function enrollIdentityTeam(options: {
           agentId: config.subject_id,
           teamId: options.input.teamId,
           operation: replacement ? ('renew' as const) : ('enroll' as const),
-          scopes: [...AGENT_SERVER_REQUIRED_SCOPES],
+          scopes: [...requestedScopes],
           idempotencyKey: options.input.idempotencyKey,
         };
         let token: string;
@@ -121,6 +217,21 @@ export async function enrollIdentityTeam(options: {
             body: JSON.stringify(agentProof ? { agentProof } : {}),
           },
         );
+        if (response.status === 429) {
+          // Only this API problem is known to be emitted by the onRequest
+          // limiter, before the one-time credential can be issued.
+          const body: unknown = await response.json().catch(() => null);
+          if (
+            body &&
+            typeof body === 'object' &&
+            'code' in body &&
+            body.code === 'RATE_LIMIT_EXCEEDED'
+          ) {
+            throw new ProvisioningNotStartedError(
+              new ProvisioningRateLimitedError(rateLimitRetryAfter(response)),
+            );
+          }
+        }
         if (!response.ok)
           throw new Error(
             'Provisioning unavailable; inspect recovery before fresh approval',
@@ -143,9 +254,20 @@ export async function enrollIdentityTeam(options: {
       state: 'persisted' as const,
       teamId: result.teamId,
       keyId: result.key.id,
+      scopes: [...(result.key.scopes ?? [])],
     };
   } catch (error) {
-    if (error instanceof ProvisioningNotStartedError) throw error;
+    if (error instanceof ProvisioningNotStartedError) {
+      if (error.cause instanceof ProvisioningRateLimitedError)
+        return {
+          state: 'retryable' as const,
+          retryAfter: error.cause.retryAfter,
+          message: error.cause.retryAfter
+            ? `The approval service is busy. Retry in ${error.cause.retryAfter} seconds; no credential was issued.`
+            : 'The approval service is busy. Retry shortly; no credential was issued.',
+        };
+      throw error;
+    }
     if (
       error instanceof CredentialPersistenceError ||
       error instanceof EnrollmentRecoveryError

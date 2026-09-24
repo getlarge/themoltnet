@@ -36,6 +36,9 @@ import type {
   ListAgentServerAgentsData,
   ListAgentServerAgentsErrors,
   ListAgentServerAgentsResponses,
+  ListAgentServerEnrollmentRecoveriesData,
+  ListAgentServerEnrollmentRecoveriesErrors,
+  ListAgentServerEnrollmentRecoveriesResponses,
   ListAgentServerOperatorTeamsData,
   ListAgentServerOperatorTeamsResponses,
   ListAgentServerProvidersData,
@@ -61,6 +64,9 @@ import type {
   RemoveNativeProjectLocationData,
   RemoveNativeProjectLocationErrors,
   RemoveNativeProjectLocationResponses,
+  RestoreAgentServerEnrollmentData,
+  RestoreAgentServerEnrollmentErrors,
+  RestoreAgentServerEnrollmentResponses,
   SaveNativeProjectLocationData,
   SaveNativeProjectLocationErrors,
   SaveNativeProjectLocationResponses,
@@ -134,6 +140,36 @@ export const createAgentServerAgent = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options?.headers,
     },
+  });
+
+export const listAgentServerEnrollmentRecoveries = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<ListAgentServerEnrollmentRecoveriesData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListAgentServerEnrollmentRecoveriesResponses,
+    ListAgentServerEnrollmentRecoveriesErrors,
+    ThrowOnError
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/agents/{agentName}/credential-recovery',
+    ...options,
+  });
+
+export const restoreAgentServerEnrollment = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<RestoreAgentServerEnrollmentData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    RestoreAgentServerEnrollmentResponses,
+    RestoreAgentServerEnrollmentErrors,
+    ThrowOnError
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/agents/{agentName}/credential-recovery/{recoveryId}/restore',
+    ...options,
   });
 
 export const reconcileAgentServerAgent = <ThrowOnError extends boolean = false>(

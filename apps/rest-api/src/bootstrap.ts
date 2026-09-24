@@ -851,6 +851,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       rateLimitGlobalAuth: config.security.RATE_LIMIT_GLOBAL_AUTH,
       rateLimitGlobalAnon: config.security.RATE_LIMIT_GLOBAL_ANON,
       rateLimitTokenIp: config.security.RATE_LIMIT_TOKEN_IP,
+      rateLimitOauthConsent: config.security.RATE_LIMIT_OAUTH_CONSENT,
+      rateLimitOauthProvision: config.security.RATE_LIMIT_OAUTH_PROVISION,
       rateLimitTokenUpstreamIp: config.security.RATE_LIMIT_TOKEN_UPSTREAM_IP,
       rateLimitEmbedding: config.security.RATE_LIMIT_EMBEDDING,
       rateLimitSigning: config.security.RATE_LIMIT_SIGNING,
@@ -866,6 +868,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
         config.security.RATE_LIMIT_TASK_ARTIFACT_UPLOAD,
       rateLimitGlobalRead: config.security.RATE_LIMIT_GLOBAL_READ,
       rateLimitPreResolveIp: config.security.RATE_LIMIT_PRE_RESOLVE_IP,
+      rateLimitOauthApprovalIp: config.security.RATE_LIMIT_OAUTH_APPROVAL_IP,
       rateLimitClientIpHeader: config.security.RATE_LIMIT_CLIENT_IP_HEADER,
       rateLimitTrustedProxyCidrs:
         config.security.RATE_LIMIT_TRUSTED_PROXY_CIDRS.split(',')

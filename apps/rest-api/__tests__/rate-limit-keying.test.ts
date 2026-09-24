@@ -198,4 +198,40 @@ describe('Rate limiter keys by verified identity (#1336)', () => {
 
     await app.close();
   });
+
+  it('reserves separate pre-resolution budgets for consent and provisioning', async () => {
+    const app = await createTestApp(mocks, null, {
+      rateLimitPreResolveIp: 1,
+      rateLimitOauthApprovalIp: 2,
+      rateLimitGlobalAnon: 1,
+      rateLimitOauthConsent: 2,
+      rateLimitOauthProvision: 2,
+    });
+    try {
+      await app.inject({ method: 'GET', url: '/tasks' });
+      expect(
+        (await app.inject({ method: 'GET', url: '/tasks' })).statusCode,
+      ).toBe(429);
+
+      const consent = () =>
+        app.inject({
+          method: 'GET',
+          url: '/oauth2/consent?consent_challenge=private-challenge',
+        });
+      expect((await consent()).statusCode).not.toBe(429);
+      expect((await consent()).statusCode).not.toBe(429);
+      const limitedConsent = await consent();
+      expect(limitedConsent.statusCode).toBe(429);
+      expect(limitedConsent.json().instance).toBe('/oauth2/consent');
+      expect(limitedConsent.body).not.toContain('private-challenge');
+
+      const provision = () =>
+        app.inject({ method: 'POST', url: '/oauth2/provision', payload: {} });
+      expect((await provision()).statusCode).not.toBe(429);
+      expect((await provision()).statusCode).not.toBe(429);
+      expect((await provision()).statusCode).toBe(429);
+    } finally {
+      await app.close();
+    }
+  });
 });

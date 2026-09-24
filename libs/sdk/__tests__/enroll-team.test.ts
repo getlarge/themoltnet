@@ -2,7 +2,11 @@ import { mkdir, mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { type MoltNetConfig, writeConfig } from '@moltnet/agent-config';
+import {
+  type MoltNetConfig,
+  readConfig,
+  writeConfig,
+} from '@moltnet/agent-config';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Agent } from '../src/agent.js';
@@ -12,7 +16,12 @@ import {
   enrollTeam,
   ProvisioningNotStartedError,
 } from '../src/enroll-team.js';
+import {
+  listEnrollmentRecoveries,
+  restoreCapturedEnrollment,
+} from '../src/enroll-team-recovery.js';
 import { FileSecretProvider } from '../src/file-secret-provider.js';
+import { SecretProviderRegistry } from '../src/secrets.js';
 const directories: string[] = [];
 afterEach(async () => {
   await Promise.all(
@@ -243,4 +252,78 @@ describe('human enrollment replacement and recovery', () => {
       );
     },
   );
+
+  it('restores a captured credential locally without returning its secret', async () => {
+    const { dir, provider, response } = await fixture();
+    const write = vi
+      .spyOn(provider, 'write')
+      .mockRejectedValueOnce(new Error('temporary provider failure'));
+    const failed = await enrollTeam({
+      provision: async () => response as never,
+      provisioningContext: {
+        teamId: 'team',
+        operation: 'enroll',
+        scopes: ['task:execute'],
+      },
+      idempotencyKey: 'capture',
+      configDir: dir,
+      secretProvider: provider,
+    }).catch((error: unknown) => error);
+    expect(failed).toBeInstanceOf(CredentialPersistenceError);
+    const recoveryId = (failed as CredentialPersistenceError)
+      .recoveryPath!.split('/')
+      .at(-1)!;
+    const summaries = await listEnrollmentRecoveries(dir);
+    expect(summaries).toMatchObject([
+      { recoveryId, secretCaptured: true, teamId: 'team', keyId: 'key' },
+    ]);
+    expect(JSON.stringify(summaries)).not.toContain('issued-secret');
+
+    write.mockRestore();
+    const verify = vi.fn().mockResolvedValue(undefined);
+    const restored = await restoreCapturedEnrollment({
+      configDir: dir,
+      recoveryId,
+      providers: new SecretProviderRegistry().register(provider),
+      verify,
+    });
+    expect(restored).toEqual({ teamId: 'team', keyId: 'key' });
+    expect(verify).toHaveBeenCalledWith('team');
+    expect(await provider.read('agent-key/subject/team')).toBe('issued-secret');
+    expect((await readConfig(dir))?.agent_key_refs?.team).toEqual({
+      provider: 'file',
+      key: 'agent-key/subject/team',
+    });
+    expect(await listEnrollmentRecoveries(dir)).toEqual([]);
+  });
+
+  it('keeps a captured record when verification fails', async () => {
+    const { dir, provider, response } = await fixture();
+    vi.spyOn(provider, 'write').mockRejectedValueOnce(new Error('offline'));
+    const failed = await enrollTeam({
+      provision: async () => response as never,
+      provisioningContext: {
+        teamId: 'team',
+        operation: 'enroll',
+        scopes: ['task:execute'],
+      },
+      idempotencyKey: 'capture',
+      configDir: dir,
+      secretProvider: provider,
+    }).catch((error: unknown) => error);
+    const recoveryId = (failed as CredentialPersistenceError)
+      .recoveryPath!.split('/')
+      .at(-1)!;
+    await expect(
+      restoreCapturedEnrollment({
+        configDir: dir,
+        recoveryId,
+        providers: new SecretProviderRegistry().register(provider),
+        verify: async () => {
+          throw new Error('remote verification unavailable');
+        },
+      }),
+    ).rejects.toThrow('remote verification unavailable');
+    expect(await listEnrollmentRecoveries(dir)).toHaveLength(1);
+  });
 });
