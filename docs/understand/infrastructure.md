@@ -166,6 +166,15 @@ process-local LRU. Entries never contain raw credentials as keys.
 `ORY_AUTH_REQUEST_TIMEOUT_MS` separately caps each upstream Talos, Hydra, or
 Kratos request (5 seconds by default); it does not change cache lifetime.
 
+Keto permission checks for `read`, `view`, and `access` use a separate
+process-local positive-result cache. `ORY_KETO_PERMISSION_CACHE_TTL_MS` defaults
+to 30 seconds, and `ORY_KETO_PERMISSION_CACHE_MAX_ENTRIES` defaults to 10,000.
+Set the TTL to zero to disable retained results. Denials and errors are never
+cached, and management and deletion permissions always go to Keto. Local
+relationship writes clear the cache; a revocation on another instance may remain
+effective here until the TTL expires. Metrics `auth.keto.cache.accesses` and
+`auth.keto.calls` track cache use and outbound checks.
+
 Revocation and rotation evict an affected Talos key on the current REST API
 instance immediately. OAuth client and Kratos identity entries are tagged for
 process-local invalidation, but their current lifecycle paths do not broadcast
@@ -242,6 +251,7 @@ Ory. It does not need direct database access.
 
 Non-secret env vars (`PORT`, `NODE_ENV`, `ORY_PROJECT_URL`,
 `ORY_TALOS_ADMIN_URL`, `ORY_AUTH_CACHE_TTL_MS`, `ORY_AUTH_CACHE_MAX_ENTRIES`,
+`ORY_KETO_PERMISSION_CACHE_TTL_MS`, `ORY_KETO_PERMISSION_CACHE_MAX_ENTRIES`,
 `ORY_AUTH_REQUEST_TIMEOUT_MS`, `CORS_ORIGINS`, `OTLP_ENDPOINT`, `AXIOM_DATASET`,
 `AXIOM_LOGS_DATASET`, `AXIOM_TRACES_DATASET`, `AXIOM_METRICS_DATASET`) are in
 `apps/rest-api/fly.toml`.
