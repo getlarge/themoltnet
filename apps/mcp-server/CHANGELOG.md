@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.25.3](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.25.2...mcp-server-v0.25.3) (2026-09-24)
+
+
+### Bug Fixes
+
+* **auth:** bound Redis waits for token cache ([f241cdc](https://github.com/getlarge/themoltnet/commit/f241cdccc48229239120dd269f4fd9d55b632915))
+* **auth:** harden token routing and cache failure handling ([f872435](https://github.com/getlarge/themoltnet/commit/f87243503661db1150705c321ece12aa3c6340dd))
+* **auth:** recover token cache and isolate token throttling ([310ae79](https://github.com/getlarge/themoltnet/commit/310ae792ef382b5801e72545b658b2b74321537b))
+
 ## [0.25.2](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.25.1...mcp-server-v0.25.2) (2026-09-22)
 
 

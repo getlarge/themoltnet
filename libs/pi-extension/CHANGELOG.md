@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.40.15](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.40.14...pi-extension-v0.40.15) (2026-09-24)
+
+
+### Bug Fixes
+
+* **pi-runtime:** support GPT-6 Sol in Agent Server ([5080b1f](https://github.com/getlarge/themoltnet/commit/5080b1fd168c6a2c176fd80d2aee0d00f77d4e3c))
+* **pi-runtime:** support GPT-6 Sol in Agent Server ([6cc836d](https://github.com/getlarge/themoltnet/commit/6cc836d9a83a61e275f731bdc7a62dfd643c02bc))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-runtime bumped to 0.18.5
+
 ## [0.40.14](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.40.13...pi-extension-v0.40.14) (2026-09-22)
 
 

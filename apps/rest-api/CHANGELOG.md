@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.62.2](https://github.com/getlarge/themoltnet/compare/rest-api-v0.62.1...rest-api-v0.62.2) (2026-09-24)
+
+
+### Bug Fixes
+
+* **auth:** bound Redis waits for token cache ([f241cdc](https://github.com/getlarge/themoltnet/commit/f241cdccc48229239120dd269f4fd9d55b632915))
+* **auth:** gate grants on Redis write recovery ([8085bf5](https://github.com/getlarge/themoltnet/commit/8085bf52aa9fc07ca157b7807f417161dfe01a4c))
+* **auth:** harden token routing and cache failure handling ([f872435](https://github.com/getlarge/themoltnet/commit/f87243503661db1150705c321ece12aa3c6340dd))
+* **auth:** isolate token rate limit behind configurable client IP header ([abe3766](https://github.com/getlarge/themoltnet/commit/abe376649c802eef65529572e6ded51fa5b02875))
+* **auth:** recover token cache and isolate token throttling ([310ae79](https://github.com/getlarge/themoltnet/commit/310ae792ef382b5801e72545b658b2b74321537b))
+* **auth:** regenerate token error OpenAPI artifacts ([6aa40fd](https://github.com/getlarge/themoltnet/commit/6aa40fdeec7132ee7b12cb85d0a1b553cb3ae422))
+* **auth:** return OAuth errors for token throttles ([1ba2e56](https://github.com/getlarge/themoltnet/commit/1ba2e5646400e1feb63418048de9291682804aef))
+* **auth:** reuse grants when Redis writes fail ([cb5b157](https://github.com/getlarge/themoltnet/commit/cb5b15713e8c37c944582654c06ecb509f684c07))
+
 ## [0.62.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.62.0...rest-api-v0.62.1) (2026-09-23)
 
 

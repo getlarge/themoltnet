@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.5.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.4.0...agent-runtime-v1.5.0) (2026-09-24)
+
+
+### Features
+
+* **agent-daemon:** expose run claim and polling options ([b24b62d](https://github.com/getlarge/themoltnet/commit/b24b62db5b93f6b72847719c4d6c403fa2052341))
+
+
+### Bug Fixes
+
+* **agent-daemon:** validate run claim and timing options ([8542a91](https://github.com/getlarge/themoltnet/commit/8542a919d7d586cc7057c997030bb16badd4f9f2))
+
 ## [1.4.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.3.0...agent-runtime-v1.4.0) (2026-09-22)
 
 
