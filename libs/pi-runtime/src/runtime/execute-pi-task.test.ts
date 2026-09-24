@@ -867,6 +867,49 @@ describe('provider error same-session retry helpers', () => {
       shouldRetryProviderErrorMessage('model pi-large is not available'),
     ).toBe(false);
     expect(shouldRetryProviderErrorMessage('insufficient_quota')).toBe(false);
+    expect(
+      shouldRetryProviderErrorMessage(
+        '429: you (account) have reached your monthly usage limit, upgrade for higher limits or add usage credits',
+      ),
+    ).toBe(false);
+  });
+
+  it('does not retry deterministic unsupported request-shape errors', () => {
+    for (const message of [
+      'Unsupported parameter: reasoning_effort',
+      'Unsupported argument: top_p',
+      'Unsupported field: response_format',
+      'unrecognized parameter top_p',
+      'unrecognized argument top_p',
+      'unrecognized field response_format',
+      'unknown parameter top_p',
+      'unknown argument top_p',
+      'unknown request field response_format',
+      'invalid parameter temperature',
+      'invalid argument temperature',
+      'invalid field temperature',
+      'parameter verbosity is not supported',
+    ]) {
+      expect(shouldRetryProviderErrorMessage(message)).toBe(false);
+    }
+  });
+
+  it('does not overmatch generic validation while preserving transient retries', () => {
+    expect(shouldRetryProviderErrorMessage('invalid request body')).toBe(true);
+    expect(shouldRetryProviderErrorMessage('provider returned 408')).toBe(true);
+    expect(shouldRetryProviderErrorMessage('provider returned 429')).toBe(true);
+    expect(shouldRetryProviderErrorMessage('provider returned 500')).toBe(true);
+    expect(shouldRetryProviderErrorMessage('provider overloaded')).toBe(true);
+  });
+
+  it('keeps transient evidence retryable when diagnostics mention request shape', () => {
+    for (const message of [
+      '500 response: unknown field request_id',
+      '429: invalid parameter temperature',
+      'request timed out: unsupported field response_format',
+    ]) {
+      expect(shouldRetryProviderErrorMessage(message)).toBe(true);
+    }
   });
 
   it('computes capped exponential retry delays', () => {
@@ -977,6 +1020,35 @@ describe('provider error same-session retry helpers', () => {
     expect(retryEvents).toHaveLength(1);
   });
 
+  it('re-prompts for a mixed transient provider diagnostic instead of failing fast', async () => {
+    const controller = new AbortController();
+    const prompt = vi.fn(async () => {});
+    let first = true;
+
+    const result = await promptWithProviderErrorRetries({
+      session: { prompt },
+      initialPrompt: 'do the task',
+      cancelSignal: controller.signal,
+      getProviderErrorState: () => {
+        if (first) {
+          first = false;
+          return {
+            llmAbort: true,
+            llmErrorMessage: '429: invalid parameter temperature',
+          };
+        }
+        return { llmAbort: false, llmErrorMessage: null };
+      },
+      maxRetries: 1,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+      retryPrompt: 'Go on',
+    });
+
+    expect(result).toEqual({ runError: null, retryCount: 1 });
+    expect(prompt).toHaveBeenCalledTimes(2);
+  });
+
   it('publishes the provider request context only while prompt is active', async () => {
     const controller = new AbortController();
     const parentSpan = trace.getTracer('provider-context-test').startSpan('pi');
@@ -1027,6 +1099,29 @@ describe('provider error same-session retry helpers', () => {
         llmErrorMessage: 'model pi-large is not available',
       }),
       maxRetries: 2,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+      retryPrompt: 'Go on',
+    });
+
+    expect(result).toEqual({ runError: null, retryCount: 0 });
+    expect(prompt).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not re-prompt after a permanent monthly quota 429', async () => {
+    const controller = new AbortController();
+    const prompt = vi.fn(async () => {});
+
+    const result = await promptWithProviderErrorRetries({
+      session: { prompt },
+      initialPrompt: 'do the task',
+      cancelSignal: controller.signal,
+      getProviderErrorState: () => ({
+        llmAbort: true,
+        llmErrorMessage:
+          '429: you (account) have reached your monthly usage limit',
+      }),
+      maxRetries: 4,
       baseDelayMs: 0,
       maxDelayMs: 0,
       retryPrompt: 'Go on',
@@ -1364,6 +1459,45 @@ describe('buildAttemptResult (result-construction characterization)', () => {
       message: "Model 'x' not found in registry",
       retryable: false,
     });
+  });
+
+  it('enriches a terminal permanent provider failure with execution context', () => {
+    const out = buildAttemptResult({
+      ...base,
+      llmAbort: true,
+      llmErrorMessage: 'Unsupported parameter: reasoning_effort',
+      providerFailureContext: {
+        provider: 'openai',
+        model: 'gpt-5',
+        runtimeProfileId: 'profile-1',
+        runtimeProfileName: 'default-coding',
+        runtimeProfileRevision: 7,
+        piAgentDirSource: 'store',
+      },
+    });
+    expect(out.error?.message).toContain('Provider/model: openai/gpt-5.');
+    expect(out.error?.message).toContain('Runtime profile: default-coding');
+    expect(out.error?.message).toContain('Pi config source: store.');
+    expect(out.error?.message).toContain(
+      'Unsupported request field(s): reasoning_effort.',
+    );
+  });
+
+  it('preserves transient provider evidence over request-shape wording', () => {
+    const out = buildAttemptResult({
+      ...base,
+      llmAbort: true,
+      llmErrorMessage: '500 response: unknown field request_id',
+      providerFailureContext: {
+        provider: 'openai',
+        model: 'gpt-5',
+        runtimeProfileId: 'profile-1',
+        runtimeProfileName: 'default-coding',
+        runtimeProfileRevision: 7,
+        piAgentDirSource: 'store',
+      },
+    });
+    expect(out.error?.message).toBe('500 response: unknown field request_id');
   });
 
   it('uses a generic provider message when no diagnostic was captured', () => {
