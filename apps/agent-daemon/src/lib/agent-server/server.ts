@@ -932,9 +932,12 @@ async function readIdentityCatalogue(
   alias: string,
   logger: FastifyBaseLogger,
   sources: CatalogueSourceCache<CatalogueTeamSource[]>,
+  refresh: boolean,
 ) {
   // Throws a typed not-found when the alias is not activated here.
   requireActivation(options.store, alias);
+  // Someone asked to look again: whatever was read before is not an answer.
+  if (refresh) sources.invalidate(alias);
   const agent = await catalogueAgent(options, alias);
   // The shared read is not tied to one request: a caller that disconnects
   // must not abort the read other callers joined. The team budget bounds it.
@@ -985,7 +988,10 @@ function registerCatalogueRoute(
     { schema: AgentServerRouteSchemas.catalogue, attachValidation: true },
     async (request) => {
       await requireAuthorizedOrigin(request);
-      const { identity } = (request.query ?? {}) as { identity?: string };
+      const { identity, refresh } = (request.query ?? {}) as {
+        identity?: string;
+        refresh?: boolean;
+      };
       if (!identity || identity.trim().length === 0) {
         throw new AgentServerHttpError(
           400,
@@ -994,7 +1000,13 @@ function registerCatalogueRoute(
         );
       }
       const alias = identity.trim();
-      return readIdentityCatalogue(options, alias, request.log, sources);
+      return readIdentityCatalogue(
+        options,
+        alias,
+        request.log,
+        sources,
+        refresh === true,
+      );
     },
   );
 }

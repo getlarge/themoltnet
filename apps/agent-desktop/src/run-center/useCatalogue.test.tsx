@@ -114,6 +114,27 @@ describe('useCatalogue', () => {
     expect(result.current.catalogue).toBeNull();
   });
 
+  it('asks the Agent Server for a fresh read on an explicit retry only', async () => {
+    // Arrange
+    vi.mocked(runCenterActions.catalogue).mockResolvedValue(catalogue);
+    const { result } = renderHook(() => useCatalogue('agent-a'), {
+      wrapper: createTestWrapper(),
+    });
+    await waitFor(() => expect(result.current.catalogue).toEqual(catalogue));
+
+    // Act
+    result.current.retry();
+    await waitFor(() =>
+      expect(runCenterActions.catalogue).toHaveBeenCalledTimes(2),
+    );
+
+    // Assert: the first read may be shared, the retry may not.
+    expect(vi.mocked(runCenterActions.catalogue).mock.calls).toEqual([
+      ['agent-a'],
+      ['agent-a', { refresh: true }],
+    ]);
+  });
+
   it('does not report loading without an identity', () => {
     const { result } = renderHook(() => useCatalogue(''), {
       wrapper: createTestWrapper(),

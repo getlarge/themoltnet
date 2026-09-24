@@ -6,12 +6,13 @@
  * against the API. Run concurrently, those reads multiply the API calls enough
  * to be throttled, and a throttled read waits out its retries until Desktop
  * times out. So concurrent callers join one read, and a healthy result is
- * reused briefly.
+ * reused for a few seconds. An explicit refresh always reads fresh.
  *
  * Only the remote sources are shared. Machine readiness and the identity
  * binding are local and assembled fresh on every request.
  */
-export const CATALOGUE_CACHE_TTL_MS = 20_000;
+/** Long enough to merge the poll, tray and views asking at once; no longer. */
+export const CATALOGUE_CACHE_TTL_MS = 10_000;
 
 interface Slot<T> {
   /** Bumped by invalidation so a read started earlier cannot repopulate. */

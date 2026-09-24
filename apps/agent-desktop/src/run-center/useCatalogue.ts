@@ -6,7 +6,11 @@ import {
 } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
-import { catalogueQuery, runCenterKeys } from './queries.js';
+import {
+  catalogueQuery,
+  requestCatalogueRefresh,
+  runCenterKeys,
+} from './queries.js';
 import type { AgentServerCatalogue } from './types.js';
 
 export const CATALOGUE_ERROR =
@@ -116,8 +120,10 @@ export function useCatalogue(
         : false,
   });
   const retry = useCallback(() => {
-    // An explicit refresh (Retry, a renewal) restarts the quick checks.
+    // An explicit refresh (Retry, a renewal) reads fresh and restarts the
+    // quick checks.
     degradedMarks(client).delete(identity);
+    requestCatalogueRefresh(client, identity);
     void client.invalidateQueries({
       queryKey: runCenterKeys.catalogue(identity),
     });

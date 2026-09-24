@@ -271,10 +271,10 @@ describe('run catalogue', () => {
         origin: TEST_CLIENT_ORIGIN,
         [AGENT_SERVER_TOKEN_HEADER]: token,
       };
-      const read = () =>
+      const read = (query = '') =>
         app.inject({
           method: 'GET',
-          url: '/v1/catalogue?identity=course-bot',
+          url: `/v1/catalogue?identity=course-bot${query}`,
           headers,
         });
       return { app, headers, read };
@@ -295,6 +295,24 @@ describe('run catalogue', () => {
       for (const response of [...responses, later])
         expect(response.statusCode).toBe(200);
       expect(readTeam).toHaveBeenCalledTimes(1);
+    });
+
+    it('reads fresh when a caller explicitly asks to refresh', async () => {
+      // Arrange: a project was just created elsewhere; Retry must show it.
+      const readTeam = vi.fn((teamId: string, signal?: AbortSignal) =>
+        catalogueAgent.readTeam(teamId, signal),
+      );
+      const { read } = await setup({ ...catalogueAgent, readTeam });
+      await read();
+
+      // Act
+      const refreshed = await read('&refresh=true');
+      const afterwards = await read();
+
+      // Assert: the forced read is then shared like any other.
+      expect(refreshed.statusCode).toBe(200);
+      expect(afterwards.statusCode).toBe(200);
+      expect(readTeam).toHaveBeenCalledTimes(2);
     });
 
     it('re-reads a degraded catalogue instead of serving the failure again', async () => {

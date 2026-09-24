@@ -145,8 +145,11 @@ export const runCenterActions: RunCenterActions = {
       recoveryId,
       expectedSecretCaptured,
     }),
-  catalogue: (identity) =>
-    invoke<AgentServerCatalogue>('desktop_catalogue', { identity }),
+  catalogue: (identity, options) =>
+    invoke<AgentServerCatalogue>('desktop_catalogue', {
+      identity,
+      refresh: options?.refresh === true,
+    }),
 
   startRun: (input: StartRunInput) =>
     invoke<AgentServerRun>('desktop_start_run', {

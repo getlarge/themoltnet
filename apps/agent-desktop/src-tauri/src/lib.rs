@@ -205,11 +205,18 @@ fn stop_and_exit(app: &AppHandle) -> Result<(), String> {
 async fn desktop_catalogue(
     state: State<'_, AppState>,
     identity: String,
+    refresh: Option<bool>,
 ) -> Result<serde_json::Value, String> {
+    // `refresh` skips the Agent Server's shared read for explicit refreshes.
+    let query = if refresh.unwrap_or(false) {
+        "&refresh=true"
+    } else {
+        ""
+    };
     let body = with_control_connection(&state, move |connection| {
         control::get(
             connection,
-            &format!("/v1/catalogue?identity={}", urlencode(&identity)),
+            &format!("/v1/catalogue?identity={}{query}", urlencode(&identity)),
         )
     })
     .await?;
