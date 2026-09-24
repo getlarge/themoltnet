@@ -18,6 +18,10 @@ import {
   TaskPermission,
   TeamPermission,
 } from './keto-constants.js';
+import {
+  PermissionCheckCache,
+  type PermissionTuple,
+} from './permission-check-cache.js';
 
 /**
  * Minimal logger surface this module needs. Structurally compatible
@@ -279,7 +283,7 @@ export interface PermissionChecker {
   ): Promise<boolean>;
 }
 
-async function checkPermission(
+async function rawCheckPermission(
   permissionApi: PermissionApi,
   namespace: string,
   object: string,
@@ -317,7 +321,7 @@ async function checkPermission(
   }
 }
 
-async function batchCheckPermissions(
+async function rawBatchCheckPermissions(
   permissionApi: PermissionApi,
   logger: PermissionCheckerLogger,
   tuples: Array<{
@@ -331,11 +335,12 @@ async function batchCheckPermissions(
     };
   }>,
 ): Promise<boolean[]> {
-  return (await batchCheckPermissionsWithStatus(permissionApi, logger, tuples))
-    .permissions;
+  return (
+    await rawBatchCheckPermissionsWithStatus(permissionApi, logger, tuples)
+  ).permissions;
 }
 
-async function batchCheckPermissionsWithStatus(
+async function rawBatchCheckPermissionsWithStatus(
   permissionApi: PermissionApi,
   logger: PermissionCheckerLogger,
   tuples: Array<{
@@ -423,8 +428,81 @@ async function batchCheckPermissionsWithStatus(
 export function createPermissionChecker(
   permissionApi: PermissionApi,
   logger: PermissionCheckerLogger = pino({ name: 'permission-checker' }),
+  cache: PermissionCheckCache = new PermissionCheckCache(),
 ): PermissionChecker {
   const log = logger.child({ component: 'permission-checker' });
+  const checkPermissionCached = (
+    api: PermissionApi,
+    namespace: string,
+    object: string,
+    relation: string,
+    subjectNs: string,
+    subjectId: string,
+    logger: PermissionCheckerLogger,
+  ): Promise<boolean> =>
+    cache.check(
+      {
+        namespace,
+        object,
+        relation,
+        subject_set: { namespace: subjectNs, object: subjectId, relation: '' },
+      },
+      async () => {
+        try {
+          const allowed = await rawCheckPermission(
+            api,
+            namespace,
+            object,
+            relation,
+            subjectNs,
+            subjectId,
+            logger,
+          );
+          cache.recordCall('single', 'ok');
+          return allowed;
+        } catch (error) {
+          cache.recordCall('single', 'error');
+          throw error;
+        }
+      },
+    );
+  const batchCheckPermissionsCached = (
+    api: PermissionApi,
+    logger: PermissionCheckerLogger,
+    tuples: PermissionTuple[],
+  ): Promise<boolean[]> =>
+    cache.batch(tuples, async (misses) => {
+      try {
+        const result = await rawBatchCheckPermissions(api, logger, misses);
+        cache.recordCall('batch', 'ok');
+        return result;
+      } catch (error) {
+        cache.recordCall('batch', 'error');
+        throw error;
+      }
+    });
+  const batchCheckPermissionsWithStatusTracked = async (
+    api: PermissionApi,
+    logger: PermissionCheckerLogger,
+    tuples: PermissionTuple[],
+  ): Promise<{ permissions: boolean[]; hadErrors: boolean }> => {
+    try {
+      const result = await rawBatchCheckPermissionsWithStatus(
+        api,
+        logger,
+        tuples,
+      );
+      if (tuples.length > 0) cache.recordCall('batch', 'ok');
+      return result;
+    } catch (error) {
+      cache.recordCall('batch', 'error');
+      throw error;
+    }
+  };
+  const checkPermission = checkPermissionCached;
+  const batchCheckPermissions = batchCheckPermissionsCached;
+  const batchCheckPermissionsWithStatus =
+    batchCheckPermissionsWithStatusTracked;
   return {
     canReadDiary(
       diaryId: string,

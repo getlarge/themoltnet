@@ -20,6 +20,7 @@ import {
   TaskRelation,
   TeamRelation,
 } from './keto-constants.js';
+import type { PermissionCheckCache } from './permission-check-cache.js';
 
 export interface RelationshipWriter {
   // Diary relations
@@ -163,6 +164,7 @@ export interface RelationshipWriter {
 export function createRelationshipWriter(
   relationshipApi: RelationshipApi,
   relationshipReadApi: RelationshipApi = relationshipApi,
+  permissionCache?: PermissionCheckCache,
 ): RelationshipWriter {
   const taskPatchBatchSize = 100;
   const teamRoleRelations = [
@@ -259,7 +261,7 @@ export function createRelationshipWriter(
     return matches;
   }
 
-  return {
+  const writer: RelationshipWriter = {
     async removeDiaryRelations(diaryId: string): Promise<void> {
       await relationshipApi.deleteRelationships({
         namespace: KetoNamespace.Diary,
@@ -869,6 +871,21 @@ export function createRelationshipWriter(
       await relationshipApi.patchRelationships({ relationshipPatch });
     },
   };
+
+  // A removed team/group/diary edge can change permissions on descendants.
+  // Clear the local derived cache after any successful tuple write. In-flight
+  // checks from the old generation cannot repopulate it.
+  if (!permissionCache) return writer;
+  return new Proxy(writer, {
+    get(target, property, receiver) {
+      const value: unknown = Reflect.get(target, property, receiver);
+      if (typeof value !== 'function') return value;
+      return async (...args: unknown[]) => {
+        await (value as (...args: unknown[]) => Promise<void>)(...args);
+        permissionCache.invalidate();
+      };
+    },
+  });
 }
 
 function toolTuple(policyId: string, toolName: string) {

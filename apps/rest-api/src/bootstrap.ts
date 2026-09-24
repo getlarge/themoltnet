@@ -20,6 +20,7 @@ import {
   createRemoteAuthMetrics,
   createSessionResolver,
   createTokenValidator,
+  PermissionCheckCache,
   RemoteAuthCache,
 } from '@moltnet/auth';
 import { ContextPackService } from '@moltnet/context-pack-service';
@@ -386,9 +387,14 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const nonceRepository = createNonceRepository(dbConnection.db);
 
   // ── Services ───────────────────────────────────────────────────
+  const permissionCache = new PermissionCheckCache({
+    ttlMs: config.ory.ORY_KETO_PERMISSION_CACHE_TTL_MS,
+    maxEntries: config.ory.ORY_KETO_PERMISSION_CACHE_MAX_ENTRIES,
+  });
   const permissionChecker = createPermissionChecker(
     oryClients.permission,
     app.log,
+    permissionCache,
   );
   const relationshipReader = createRelationshipReader(
     oryClients.relationshipRead,
@@ -396,6 +402,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const relationshipWriter = createRelationshipWriter(
     oryClients.relationship,
     oryClients.relationshipRead,
+    permissionCache,
   );
   const registrationAgentKeyService = createAgentKeyService({
     agentRepository,

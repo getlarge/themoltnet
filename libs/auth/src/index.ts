@@ -47,6 +47,10 @@ export {
   type OryClients,
 } from './ory-client.js';
 export {
+  PermissionCheckCache,
+  type PermissionCheckCacheOptions,
+} from './permission-check-cache.js';
+export {
   createPermissionChecker,
   type PermissionChecker,
   PermissionCheckUnavailableError,
