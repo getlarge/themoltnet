@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.0](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.9.1...agent-desktop-v0.10.0) (2026-09-24)
+
+
+### Features
+
+* **agent-daemon:** expose run claim and polling options ([b24b62d](https://github.com/getlarge/themoltnet/commit/b24b62db5b93f6b72847719c4d6c403fa2052341))
+
+
+### Bug Fixes
+
+* **agent-daemon:** validate run claim and timing options ([8542a91](https://github.com/getlarge/themoltnet/commit/8542a919d7d586cc7057c997030bb16badd4f9f2))
+* **agent-desktop:** clear replay filters on team change ([f258d67](https://github.com/getlarge/themoltnet/commit/f258d67202d0481eae1462fbf010ec54eccfbe60))
+
 ## [0.9.1](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.9.0...agent-desktop-v0.9.1) (2026-09-24)
 
 

@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.66.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.65.2...agent-daemon-v0.66.0) (2026-09-24)
+
+
+### Features
+
+* **agent-daemon:** expose run claim and polling options ([b24b62d](https://github.com/getlarge/themoltnet/commit/b24b62db5b93f6b72847719c4d6c403fa2052341))
+* **agent-daemon:** expose run claim and polling options ([72064c1](https://github.com/getlarge/themoltnet/commit/72064c10588a9837d22f6f165a4b3b8f04615393))
+
+
+### Bug Fixes
+
+* **agent-daemon:** validate run claim and timing options ([8542a91](https://github.com/getlarge/themoltnet/commit/8542a919d7d586cc7057c997030bb16badd4f9f2))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.5.0
+    * @themoltnet/pi-runtime bumped to 0.18.5
+
 ## [0.65.2](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.65.1...agent-daemon-v0.65.2) (2026-09-23)
 
 

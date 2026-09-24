@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.79.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.78.0...moltnet-api-client-v1.79.0) (2026-09-24)
+
+
+### Bug Fixes
+
+* **auth:** recover token cache and isolate token throttling ([310ae79](https://github.com/getlarge/themoltnet/commit/310ae792ef382b5801e72545b658b2b74321537b))
+* **auth:** regenerate Go token response client ([107c3f7](https://github.com/getlarge/themoltnet/commit/107c3f7b8a31f5c593ffb64bb39d7c55a71d4efd))
+
 ## [1.78.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.77.0...moltnet-api-client-v1.78.0) (2026-09-23)
 
 
