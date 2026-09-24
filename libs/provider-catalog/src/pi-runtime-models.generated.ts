@@ -17,6 +17,18 @@ export const piRuntimeModels: readonly RuntimeModelCatalogEntry[] = [
   },
   {
     provider: 'anthropic',
+    model: 'claude-fable-5-1',
+    displayName: 'Anthropic · Claude Fable 5.1',
+    description: 'Generated from Pi static provider catalog.',
+    capabilities: {
+      supportsReasoning: true,
+      supportsVision: true,
+      contextWindow: 1000000,
+      maxOutputTokens: 128000,
+    },
+  },
+  {
+    provider: 'anthropic',
     model: 'claude-haiku-4-5',
     displayName: 'Anthropic · Claude Haiku 4.5 (latest)',
     description: 'Generated from Pi static provider catalog.',
@@ -113,6 +125,18 @@ export const piRuntimeModels: readonly RuntimeModelCatalogEntry[] = [
   },
   {
     provider: 'anthropic',
+    model: 'claude-opus-5-5',
+    displayName: 'Anthropic · Claude Opus 5.5',
+    description: 'Generated from Pi static provider catalog.',
+    capabilities: {
+      supportsReasoning: true,
+      supportsVision: true,
+      contextWindow: 1000000,
+      maxOutputTokens: 128000,
+    },
+  },
+  {
+    provider: 'anthropic',
     model: 'claude-sonnet-4-5',
     displayName: 'Anthropic · Claude Sonnet 4.5 (latest)',
     description: 'Generated from Pi static provider catalog.',
@@ -173,30 +197,6 @@ export const piRuntimeModels: readonly RuntimeModelCatalogEntry[] = [
   },
   {
     provider: 'openai-codex',
-    model: 'gpt-5.4',
-    displayName: 'OpenAI Codex · GPT-5.4',
-    description: 'Generated from Pi static provider catalog.',
-    capabilities: {
-      supportsReasoning: true,
-      supportsVision: true,
-      contextWindow: 272000,
-      maxOutputTokens: 128000,
-    },
-  },
-  {
-    provider: 'openai-codex',
-    model: 'gpt-5.4-mini',
-    displayName: 'OpenAI Codex · GPT-5.4 mini',
-    description: 'Generated from Pi static provider catalog.',
-    capabilities: {
-      supportsReasoning: true,
-      supportsVision: true,
-      contextWindow: 272000,
-      maxOutputTokens: 128000,
-    },
-  },
-  {
-    provider: 'openai-codex',
     model: 'gpt-5.5',
     displayName: 'OpenAI Codex · GPT-5.5',
     description: 'Generated from Pi static provider catalog.',
@@ -235,6 +235,42 @@ export const piRuntimeModels: readonly RuntimeModelCatalogEntry[] = [
     provider: 'openai-codex',
     model: 'gpt-5.6-terra',
     displayName: 'OpenAI Codex · GPT-5.6 Terra',
+    description: 'Generated from Pi static provider catalog.',
+    capabilities: {
+      supportsReasoning: true,
+      supportsVision: true,
+      contextWindow: 272000,
+      maxOutputTokens: 128000,
+    },
+  },
+  {
+    provider: 'openai-codex',
+    model: 'gpt-6-astra',
+    displayName: 'OpenAI Codex · GPT-6 Astra',
+    description: 'Generated from Pi static provider catalog.',
+    capabilities: {
+      supportsReasoning: true,
+      supportsVision: true,
+      contextWindow: 272000,
+      maxOutputTokens: 128000,
+    },
+  },
+  {
+    provider: 'openai-codex',
+    model: 'gpt-6-luna',
+    displayName: 'OpenAI Codex · GPT-6 Luna',
+    description: 'Generated from Pi static provider catalog.',
+    capabilities: {
+      supportsReasoning: true,
+      supportsVision: true,
+      contextWindow: 272000,
+      maxOutputTokens: 128000,
+    },
+  },
+  {
+    provider: 'openai-codex',
+    model: 'gpt-6-sol',
+    displayName: 'OpenAI Codex · GPT-6 Sol',
     description: 'Generated from Pi static provider catalog.',
     capabilities: {
       supportsReasoning: true,

@@ -53,6 +53,20 @@ afterEach(() => {
 });
 
 describe('resolveRuntimeProfileModel', () => {
+  it('resolves the Codex subscription model selected by Agent Server', async () => {
+    const selection = await resolveRuntimeProfileModel(
+      createPiDir(),
+      'openai-codex',
+      'gpt-6-sol',
+      'status-board-demo',
+    );
+
+    expect(selection.modelHandle).toMatchObject({
+      provider: 'openai-codex',
+      id: 'gpt-6-sol',
+    });
+  });
+
   it('resolves a custom provider model from the active Pi directory', async () => {
     const piDir = createPiDir();
     writeCustomModels(piDir);
