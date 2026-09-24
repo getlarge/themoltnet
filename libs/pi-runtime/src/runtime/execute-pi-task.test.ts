@@ -867,6 +867,9 @@ describe('provider error same-session retry helpers', () => {
       shouldRetryProviderErrorMessage('model pi-large is not available'),
     ).toBe(false);
     expect(shouldRetryProviderErrorMessage('insufficient_quota')).toBe(false);
+    expect(shouldRetryProviderErrorMessage('Monthly usage limit reached')).toBe(
+      false,
+    );
     expect(
       shouldRetryProviderErrorMessage(
         '429: you (account) have reached your monthly usage limit, upgrade for higher limits or add usage credits',
@@ -1448,16 +1451,39 @@ describe('buildAttemptResult (result-construction characterization)', () => {
     ).toBe('reporter_failed');
   });
 
-  it('maps a provider abort to llm_api_error with the captured diagnostic', () => {
+  it('maps a rejected model to a request error with the captured diagnostic', () => {
     const out = buildAttemptResult({
       ...base,
       llmAbort: true,
       llmErrorMessage: "Model 'x' not found in registry",
     });
     expect(out.error).toEqual({
-      code: 'llm_api_error',
+      code: 'llm_request_rejected',
       message: "Model 'x' not found in registry",
       retryable: false,
+    });
+  });
+
+  it.each([
+    ['Monthly usage limit reached', 'llm_quota_exhausted'],
+    ['429: you have reached your monthly usage limit', 'llm_quota_exhausted'],
+    ['401 unauthorized: invalid api key', 'llm_auth_error'],
+    ['Unsupported parameter: reasoning_effort', 'llm_request_rejected'],
+    [
+      'Provider returned error: Unsupported parameter: top_p',
+      'llm_request_rejected',
+    ],
+    ['429: invalid parameter temperature', 'llm_api_error'],
+    ['500: unknown field request_id', 'llm_api_error'],
+  ])('emits a stable provider error code for %s', (message, code) => {
+    const out = buildAttemptResult({
+      ...base,
+      llmAbort: true,
+      llmErrorMessage: message,
+    });
+    expect(out.error).toMatchObject({
+      code,
+      retryable: code === 'llm_api_error',
     });
   });
 
@@ -1474,6 +1500,10 @@ describe('buildAttemptResult (result-construction characterization)', () => {
         runtimeProfileRevision: 7,
         piAgentDirSource: 'store',
       },
+    });
+    expect(out.error).toMatchObject({
+      code: 'llm_request_rejected',
+      retryable: false,
     });
     expect(out.error?.message).toContain('Provider/model: openai/gpt-5.');
     expect(out.error?.message).toContain('Runtime profile: default-coding');
@@ -1497,15 +1527,16 @@ describe('buildAttemptResult (result-construction characterization)', () => {
         piAgentDirSource: 'store',
       },
     });
+    expect(out.error).toMatchObject({ code: 'llm_api_error', retryable: true });
     expect(out.error?.message).toBe('500 response: unknown field request_id');
   });
 
-  it('uses a generic provider message when no diagnostic was captured', () => {
+  it('uses a generic retryable provider message when no diagnostic was captured', () => {
     const out = buildAttemptResult({ ...base, llmAbort: true });
     expect(out.error).toEqual({
       code: 'llm_api_error',
       message: 'LLM API error during turn',
-      retryable: false,
+      retryable: true,
     });
   });
 

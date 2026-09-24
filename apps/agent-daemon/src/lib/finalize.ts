@@ -1,9 +1,5 @@
 import type { Task, TaskOutput } from '@moltnet/tasks';
-import {
-  appendPermanentProviderRequestDiagnostics,
-  type ProviderFailureContext,
-  redactRetryTriageSecrets,
-} from '@themoltnet/pi-runtime';
+import { redactRetryTriageSecrets } from '@themoltnet/pi-runtime';
 import type { Agent, ExecutorAttestor, TasksNamespace } from '@themoltnet/sdk';
 import { MoltNetError } from '@themoltnet/sdk';
 
@@ -54,8 +50,6 @@ export interface FinalizeContext {
   writeCorrelationAnchors?: WriteCorrelationAnchors;
   /** Signs the executor manifest together with the terminal output CID. */
   executorAttestor?: ExecutorAttestor;
-  /** Runtime identity needed to make final provider failures actionable. */
-  providerFailureContext?: ProviderFailureContext;
   /**
    * Structured logger. `fields` is merged into the log record (pino-style)
    * so the daemon emits queryable classification verdicts and error
@@ -339,20 +333,7 @@ async function prepareAttemptFailure(
     recentMessages,
     triage: ctx.retryTriage,
   });
-  return {
-    ...classified,
-    error: appendProviderFailureDiagnostics(
-      classified.error,
-      ctx.providerFailureContext,
-    ),
-  };
-}
-
-function appendProviderFailureDiagnostics(
-  error: NonNullable<Parameters<TasksNamespace['failAttempt']>[2]>['error'],
-  context: ProviderFailureContext | undefined,
-): NonNullable<Parameters<TasksNamespace['failAttempt']>[2]>['error'] {
-  return appendPermanentProviderRequestDiagnostics(error, context);
+  return classified;
 }
 
 async function maybeWriteAnchors(

@@ -1,7 +1,5 @@
 import type { Task, TaskError, TaskMessage } from '@moltnet/tasks';
 import {
-  isPermanentProviderQuotaError,
-  isPermanentProviderRequestError,
   normalizeRetryTriageResult,
   type PiRetryTriageResult,
   redactRetryTriageSecrets,
@@ -54,6 +52,9 @@ const NON_RETRYABLE_CODES = new Set([
   'executor_threw',
   'invalid_api_key',
   'invalid_model',
+  'llm_auth_error',
+  'llm_quota_exhausted',
+  'llm_request_rejected',
   // Hitting the turn cap is usually a deterministic model/workload/tool-loop
   // mismatch for the selected runtime profile. Retrying the same attempt shape
   // tends to burn another slot without adding useful evidence.
@@ -105,15 +106,6 @@ const NON_RETRYABLE_MESSAGE_PATTERNS = [
   /\bvalidation failed\b/i,
   /\bcancelled\b/i,
   /\bmax (?:turn|bash)/i,
-];
-
-const PROVIDER_AUTH_ERROR_PATTERNS = [
-  /\b401\b/i,
-  /\b403\b/i,
-  /\bunauthori[sz]ed\b/i,
-  /\bforbidden\b/i,
-  /\binvalid (?:api )?key\b/i,
-  /\bmissing credentials?\b/i,
 ];
 
 export async function classifyAttemptFailure(
@@ -227,34 +219,8 @@ export function classifyDeterministically(
   }
 
   if (NON_RETRYABLE_CODES.has(code)) return 'non_retryable';
-  if (code === 'llm_api_error' && isPermanentProviderQuotaError(message)) {
-    return 'non_retryable';
-  }
-  if (
-    code === 'llm_api_error' &&
-    PROVIDER_AUTH_ERROR_PATTERNS.some((pattern) => pattern.test(message))
-  ) {
-    return 'non_retryable';
-  }
-  // The Pi provider retry loop records explicit transient evidence on the
-  // surfaced error. Preserve that evidence even when the provider's text
-  // also contains a generic "unsupported parameter" phrase.
-  if (code === 'llm_api_error' && error.retryable === true) {
-    return 'retryable';
-  }
-  // Provider responses can combine authoritative transient evidence with a
-  // request-shape phrase, such as `429: invalid parameter` or
-  // `500: unknown field`. Do not let the fallback phrase matcher override
-  // the status/transport signal.
-  if (
-    code === 'llm_api_error' &&
-    RETRYABLE_MESSAGE_PATTERNS.some((pattern) => pattern.test(message))
-  ) {
-    return 'retryable';
-  }
-  if (code === 'llm_api_error' && isPermanentProviderRequestError(message)) {
-    return 'non_retryable';
-  }
+  // Pi already classified this provider failure. Never reinterpret its text.
+  if (code === 'llm_api_error') return 'retryable';
   if (NON_RETRYABLE_MESSAGE_PATTERNS.some((pattern) => pattern.test(message))) {
     return 'non_retryable';
   }

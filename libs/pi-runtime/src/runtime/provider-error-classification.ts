@@ -13,31 +13,15 @@ const PERMANENT_REQUEST_ERROR_PATTERNS = [
   /\b(?:parameter|argument|field)\b[^\n]{0,120}\b(?:is\s+)?not\s+supported\b/i,
 ];
 
-// A provider can use 429 for both short-lived throttling and exhausted paid
-// capacity. The latter cannot recover during a task retry. Keep this narrower
-// than generic "quota" or "rate limit" wording so ordinary 429s still retry.
-const PERMANENT_QUOTA_ERROR_PATTERNS = [
-  /\b(?:reached|exceeded)\s+(?:(?:your|the)\s+)?monthly\s+usage\s+limit\b/i,
-  /\bmonthly\s+(?:usage\s+)?quota\s+(?:exceeded|exhausted)\b/i,
-];
-
-const TRANSIENT_PROVIDER_ERROR_PATTERNS = [
-  /\b408\b/i,
-  /\b429\b/i,
-  /\b5\d{2}\b/i,
-  /\btimeout\b/i,
-  /\btimed out\b/i,
-  /\brate limit/i,
-  /\btemporar(?:y|ily)\b/i,
-  /\bunavailable\b/i,
-  /\boverloaded\b/i,
-  /\bECONNRESET\b/i,
-  /\bECONNREFUSED\b/i,
-  /\bETIMEDOUT\b/i,
-  /\bENOTFOUND\b/i,
-  /\bEAI_AGAIN\b/i,
-  /\bDNS\b/i,
-];
+// Pi owns the broad transient/quota vocabulary. These narrow additions cover
+// HTTP statuses and account-limit wording seen in provider responses.
+const TRANSIENT_STATUS_PATTERN = /\b(?:408|5\d{2})\b/i;
+const PROVIDER_QUOTA_PATTERN =
+  /\b(?:monthly usage limit reached|(?:reached|exceeded)\s+(?:(?:your|the)\s+)?monthly\s+usage\s+limit|monthly\s+(?:usage\s+)?quota\s+(?:exceeded|exhausted)|insufficient_quota|quota exceeded|out of budget|billing|available balance|GoUsageLimitError|FreeUsageLimitError)\b/i;
+const PROVIDER_AUTH_PATTERN =
+  /\b(?:401|403|unauthori[sz]ed|forbidden|invalid (?:api )?key|missing credentials?)\b/i;
+const PROVIDER_MODEL_PATTERN =
+  /\b(?:model [^\n]{0,120}not (?:found|registered|available)|unknown model)\b/i;
 
 const REQUEST_DESCRIPTORS = new Set([
   'unsupported',
@@ -69,27 +53,27 @@ export interface PermanentProviderRequestDiagnostics {
 
 export function isPermanentProviderRequestError(
   message: string | null | undefined,
+  transient = false,
 ): boolean {
-  if (!message || !message.trim()) return false;
-  // Provider diagnostics can contain both a request-shape phrase and an
-  // authoritative status/transport signal. The transient signal wins.
-  if (
-    TRANSIENT_PROVIDER_ERROR_PATTERNS.some((pattern) => pattern.test(message))
-  ) {
-    return false;
-  }
-  return PERMANENT_REQUEST_ERROR_PATTERNS.some((pattern) =>
-    pattern.test(message),
+  if (!message?.trim() || transient) return false;
+  return (
+    PROVIDER_MODEL_PATTERN.test(message) ||
+    PERMANENT_REQUEST_ERROR_PATTERNS.some((pattern) => pattern.test(message))
   );
 }
 
 export function isPermanentProviderQuotaError(
   message: string | null | undefined,
 ): boolean {
-  if (!message || !message.trim()) return false;
-  return PERMANENT_QUOTA_ERROR_PATTERNS.some((pattern) =>
-    pattern.test(message),
-  );
+  return Boolean(message && PROVIDER_QUOTA_PATTERN.test(message));
+}
+
+export function isProviderAuthError(message: string): boolean {
+  return PROVIDER_AUTH_PATTERN.test(message);
+}
+
+export function hasTransientProviderStatus(message: string): boolean {
+  return TRANSIENT_STATUS_PATTERN.test(message);
 }
 
 export function extractPermanentProviderRequestFields(
@@ -129,7 +113,7 @@ export function getPermanentProviderRequestDiagnostics(
 ): PermanentProviderRequestDiagnostics | undefined {
   if (
     !context ||
-    error.code.toLowerCase() !== 'llm_api_error' ||
+    error.code.toLowerCase() !== 'llm_request_rejected' ||
     error.retryable !== false ||
     !isPermanentProviderRequestError(error.message)
   ) {
@@ -160,7 +144,7 @@ export function appendPermanentProviderRequestDiagnostics<
   T extends { code: string; message: string; retryable?: boolean },
 >(error: T, context: ProviderFailureContext | undefined): T {
   const diagnostics = getPermanentProviderRequestDiagnostics(error, context);
-  if (!diagnostics || error.message.includes('Provider/model:')) {
+  if (!diagnostics) {
     return error;
   }
 

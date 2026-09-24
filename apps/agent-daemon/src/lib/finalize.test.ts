@@ -322,63 +322,15 @@ describe('finalizeTask', () => {
     expect(error.message).toContain('output.verification');
   });
 
-  it('adds actionable diagnostics to final provider request failures', async () => {
+  it('preserves runtime diagnostics and terminal provider code', async () => {
     const failed = makeOutput('failed', null);
+    const message =
+      'Unsupported parameter: reasoning_effort Provider/model: openai/gpt-5.';
     failed.error = {
-      code: 'llm_api_error',
-      message: 'Unsupported parameter: reasoning_effort',
-    };
-    const task = {
-      id: 't1',
-      taskType: 'freeform',
-      teamId: 'team-1',
-      input: { brief: 'do it' },
-      maxAttempts: 2,
-    } as unknown as Task;
-
-    await finalizeTask(stub.agent, failed, {
-      task,
-      providerFailureContext: {
-        provider: 'openai',
-        model: 'gpt-5',
-        runtimeProfileId: 'profile-1',
-        runtimeProfileName: 'default-coding',
-        runtimeProfileRevision: 7,
-        piAgentDirSource: 'store',
-      },
-    });
-
-    const error = stub.failAttempt.mock.calls[0][2].error;
-    expect(error).toMatchObject({
-      code: 'llm_api_error',
+      code: 'llm_request_rejected',
+      message,
       retryable: false,
-      retry: {
-        source: 'deterministic',
-        decision: 'do_not_retry',
-        confidence: 'high',
-      },
-    });
-    expect(error.message).toContain('Provider/model: openai/gpt-5.');
-    expect(error.message).toContain(
-      'Runtime profile: default-coding (profile-1), revision 7.',
-    );
-    expect(error.message).toContain('Pi config source: store.');
-    expect(error.message).toContain(
-      'Unsupported request field(s): reasoning_effort.',
-    );
-    expect(error.message).toContain(
-      'remove or disable these fields in the active Pi model/profile configuration',
-    );
-  });
-
-  it('does not add permanent-request diagnostics to a mixed transient failure', async () => {
-    const failed = makeOutput('failed', null);
-    failed.error = {
-      code: 'llm_api_error',
-      message: '429: invalid parameter temperature',
-      retryable: true,
     };
-
     await finalizeTask(stub.agent, failed, {
       task: {
         id: 't1',
@@ -387,54 +339,21 @@ describe('finalizeTask', () => {
         input: { brief: 'do it' },
         maxAttempts: 2,
       } as unknown as Task,
-      providerFailureContext: {
-        provider: 'openai',
-        model: 'gpt-5',
-        runtimeProfileId: 'profile-1',
-        runtimeProfileName: 'default-coding',
-        runtimeProfileRevision: 7,
-        piAgentDirSource: 'store',
-      },
     });
-
     const error = stub.failAttempt.mock.calls[0][2].error;
-    expect(error.retryable).toBe(true);
-    expect(error.message).not.toContain('Unsupported request field(s):');
-    expect(error.message).toBe('429: invalid parameter temperature');
-  });
-
-  it('fails a monthly quota response without requeuing the task', async () => {
-    const failed = makeOutput('failed', null);
-    failed.error = {
-      code: 'llm_api_error',
-      message: '429: you (account) have reached your monthly usage limit',
-      retryable: true,
-    };
-
-    await finalizeTask(stub.agent, failed, {
-      task: {
-        id: 't1',
-        taskType: 'freeform',
-        teamId: 'team-1',
-        input: { brief: 'do it' },
-        maxAttempts: 3,
-      } as unknown as Task,
-    });
-
-    expect(stub.failAttempt.mock.calls[0][2].error).toMatchObject({
-      code: 'llm_api_error',
+    expect(error).toMatchObject({
+      code: 'llm_request_rejected',
       retryable: false,
-      retry: { decision: 'do_not_retry', confidence: 'high' },
+      retry: { source: 'explicit', decision: 'do_not_retry' },
     });
+    expect(error.message).toBe(message);
   });
 
-  it('adds actionable diagnostics when the permanent provider failure exhausts the final attempt', async () => {
+  it('does not duplicate runtime diagnostics on an exhausted attempt', async () => {
     const failed = makeOutput('failed', null);
-    failed.error = {
-      code: 'llm_api_error',
-      message: 'Unsupported parameter: reasoning_effort',
-    };
-
+    const message =
+      'Unsupported parameter: reasoning_effort Provider/model: openai/gpt-5.';
+    failed.error = { code: 'llm_request_rejected', message, retryable: false };
     await finalizeTask(stub.agent, failed, {
       task: {
         id: 't1',
@@ -443,55 +362,10 @@ describe('finalizeTask', () => {
         input: { brief: 'do it' },
         maxAttempts: 1,
       } as unknown as Task,
-      providerFailureContext: {
-        provider: 'openai',
-        model: 'gpt-5',
-        runtimeProfileId: 'profile-1',
-        runtimeProfileName: 'default-coding',
-        runtimeProfileRevision: 7,
-        piAgentDirSource: 'store',
-      },
     });
-
     const error = stub.failAttempt.mock.calls[0][2].error;
     expect(error.retry).toMatchObject({ source: 'attempts_exhausted' });
-    expect(error.message).toContain('Provider/model: openai/gpt-5.');
-    expect(error.message).toContain('Runtime profile: default-coding');
-    expect(error.message).toContain('Pi config source: store.');
-    expect(error.message).toContain(
-      'Unsupported request field(s): reasoning_effort.',
-    );
-  });
-
-  it('does not add permanent-request diagnostics to an exhausted transient failure', async () => {
-    const failed = makeOutput('failed', null);
-    failed.error = {
-      code: 'llm_api_error',
-      message: '500 response: unknown field request_id',
-    };
-
-    await finalizeTask(stub.agent, failed, {
-      task: {
-        id: 't1',
-        taskType: 'freeform',
-        teamId: 'team-1',
-        input: { brief: 'do it' },
-        maxAttempts: 1,
-      } as unknown as Task,
-      providerFailureContext: {
-        provider: 'openai',
-        model: 'gpt-5',
-        runtimeProfileId: 'profile-1',
-        runtimeProfileName: 'default-coding',
-        runtimeProfileRevision: 7,
-        piAgentDirSource: 'store',
-      },
-    });
-
-    const error = stub.failAttempt.mock.calls[0][2].error;
-    expect(error.retry).toMatchObject({ source: 'attempts_exhausted' });
-    expect(error.message).toBe('500 response: unknown field request_id');
-    expect(error.message).not.toContain('Unsupported request field(s):');
+    expect(error.message).toBe(message);
   });
 
   it('logs the classification verdict (code, retryability, triage decision) as structured fields', async () => {

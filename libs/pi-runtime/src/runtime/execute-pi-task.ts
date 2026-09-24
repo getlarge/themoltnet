@@ -17,6 +17,7 @@
 import { isAbsolute, resolve } from 'node:path';
 
 import type { VM } from '@earendil-works/gondolin';
+import { isRetryableAssistantError } from '@earendil-works/pi-ai';
 import type {
   AgentSession,
   ToolDefinition,
@@ -115,8 +116,10 @@ import { recordToolPolicyDecisionSpan } from '../tool-policy/telemetry.js';
 import { resumeVm } from '../vm.js';
 import {
   appendPermanentProviderRequestDiagnostics,
+  hasTransientProviderStatus,
   isPermanentProviderQuotaError,
   isPermanentProviderRequestError,
+  isProviderAuthError,
   type ProviderFailureContext,
 } from './provider-error-classification.js';
 
@@ -2591,8 +2594,8 @@ export interface BuildAttemptResultArgs {
  * orchestrator. A provider abort with no captured diagnostic falls back to a
  * generic message.
  *
- * Errors are non-retryable EXCEPT a reporterError that both wins the ladder
- * and set `retryable: true` (a transient reporter failure, #1538).
+ * Reporter failures carry their own retryability; provider aborts are
+ * classified once here and carry a stable code to the daemon.
  *
  * @internal Exported for unit testing; not part of the package's public API.
  */
@@ -2601,41 +2604,21 @@ export function buildAttemptResult(args: BuildAttemptResultArgs): TaskOutput {
     args.runError || args.llmAbort || args.parseError || args.reporterError
       ? 'failed'
       : 'completed';
-  const errorCode =
-    args.runError?.code ??
-    args.parseError?.code ??
-    args.reporterError?.code ??
-    (args.llmAbort ? 'llm_api_error' : undefined);
-  const errorMessage =
-    args.runError?.message ??
-    args.parseError?.message ??
-    args.reporterError?.message ??
-    (args.llmAbort
-      ? // Prefer the diagnostic pi captured on the assistant message
-        // over the generic fallback. Most provider failures (model
-        // not in registry, auth errors, rate limits, …) surface here
-        // with the exact reason; without it operators have no way
-        // to distinguish "wrong model id" from "expired token" from
-        // "rate limited" without re-running locally.
-        (args.llmErrorMessage ?? 'LLM API error during turn')
-      : undefined);
-  // Only the reporterError propagates retryability, and only when it is the
-  // error actually surfaced (runError/parseError take precedence above).
-  const errorRetryable =
-    args.reporterError &&
-    errorCode === args.reporterError.code &&
-    errorMessage === args.reporterError.message
-      ? (args.reporterError.retryable ?? false)
-      : false;
-
-  const error =
-    errorCode && errorMessage
+  const providerMessage = args.llmErrorMessage ?? 'LLM API error during turn';
+  const providerFailure = classifyProviderFailure(providerMessage);
+  const winningError = args.runError ?? args.parseError ?? args.reporterError;
+  const error = winningError
+    ? {
+        code: winningError.code,
+        message: winningError.message,
+        retryable:
+          winningError === args.reporterError
+            ? (args.reporterError.retryable ?? false)
+            : false,
+      }
+    : args.llmAbort
       ? appendPermanentProviderRequestDiagnostics(
-          {
-            code: errorCode,
-            message: errorMessage,
-            retryable: errorRetryable,
-          },
+          { ...providerFailure, message: providerMessage },
           args.providerFailureContext,
         )
       : undefined;
@@ -2844,63 +2827,48 @@ export function shouldEmitToolCallError(event: {
   return true;
 }
 
-const PROVIDER_ERROR_NON_RETRYABLE_PATTERNS = [
-  /\b401\b/i,
-  /\b403\b/i,
-  /\bunauthori[sz]ed\b/i,
-  /\bforbidden\b/i,
-  /\binvalid (?:api )?key\b/i,
-  /\bmissing credentials?\b/i,
-  /\binsufficient[_\s-]?quota\b/i,
-  /\bbilling\b/i,
-  /\bmodel .*not (?:found|registered|available)\b/i,
-  /\bunknown model\b/i,
-];
+export type ProviderFailureCode =
+  | 'llm_api_error'
+  | 'llm_request_rejected'
+  | 'llm_quota_exhausted'
+  | 'llm_auth_error';
 
-const PROVIDER_ERROR_RETRYABLE_PATTERNS = [
-  /\b429\b/i,
-  /\b5\d{2}\b/i,
-  /\btimeout\b/i,
-  /\btimed out\b/i,
-  /\brate limit/i,
-  /\btemporar(?:y|ily)\b/i,
-  /\bunavailable\b/i,
-  /\boverloaded\b/i,
-  /\bECONNRESET\b/i,
-  /\bECONNREFUSED\b/i,
-  /\bETIMEDOUT\b/i,
-  /\bENOTFOUND\b/i,
-  /\bEAI_AGAIN\b/i,
-  /\bDNS\b/i,
-];
+/** Classify a Pi provider abort once, before it crosses the task boundary. */
+export function classifyProviderFailure(message: string | null | undefined): {
+  code: ProviderFailureCode;
+  retryable: boolean;
+} {
+  if (!message?.trim()) return { code: 'llm_api_error', retryable: true };
+  if (isPermanentProviderQuotaError(message)) {
+    return { code: 'llm_quota_exhausted', retryable: false };
+  }
+  if (isProviderAuthError(message)) {
+    return { code: 'llm_auth_error', retryable: false };
+  }
+  // Pi is the source for provider and transport retry signals. The minimal
+  // assistant shape is sufficient: its helper only reads these two fields.
+  // Pi treats the generic wrapper 'provider returned error' as retryable.
+  // Remove only that wrapper when a concrete request-shape error is present;
+  // explicit status and transport evidence still goes through Pi unchanged.
+  const retryMessage = isPermanentProviderRequestError(message)
+    ? message.replace(/provider.?returned.?error/gi, '')
+    : message;
+  const piRetryable = isRetryableAssistantError({
+    stopReason: 'error',
+    errorMessage: retryMessage,
+  } as Parameters<typeof isRetryableAssistantError>[0]);
+  const transient = piRetryable || hasTransientProviderStatus(message);
+  if (isPermanentProviderRequestError(message, transient)) {
+    return { code: 'llm_request_rejected', retryable: false };
+  }
+  // Unknown provider errors get the same-session continuation opportunity.
+  return { code: 'llm_api_error', retryable: true };
+}
 
 export function shouldRetryProviderErrorMessage(
   message: string | null | undefined,
 ): boolean {
-  if (!message || !message.trim()) return true;
-  // A provider may report exhausted monthly capacity as HTTP 429. Unlike a
-  // short-lived rate limit, retrying the same request cannot recover it.
-  if (isPermanentProviderQuotaError(message)) return false;
-  if (
-    PROVIDER_ERROR_NON_RETRYABLE_PATTERNS.some((pattern) =>
-      pattern.test(message),
-    )
-  ) {
-    return false;
-  }
-  if (
-    PROVIDER_ERROR_RETRYABLE_PATTERNS.some((pattern) => pattern.test(message))
-  ) {
-    return true;
-  }
-  // A provider may include request-shape wording in a transient diagnostic
-  // (for example, `429: invalid parameter` or `500: unknown field`). Status
-  // and transport evidence must win over the defensive phrase matcher.
-  if (isPermanentProviderRequestError(message)) return false;
-  // Pi's `stopReason: "error"` is itself provider-error metadata. If the
-  // diagnostic is unfamiliar but not a known config/auth failure, prefer one
-  // same-session continuation over failing the whole attempt immediately.
-  return true;
+  return classifyProviderFailure(message).retryable;
 }
 
 export function computeProviderErrorRetryDelay(

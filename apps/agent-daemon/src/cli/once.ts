@@ -691,15 +691,6 @@ export async function runOnce(
             piAgentDir: piAgentDir.path,
             cwd: ctx.agentRootDir,
           }),
-          providerFailureContext: {
-            provider: profile.provider,
-            model: profile.model,
-            runtimeProfileId: profile.id,
-            runtimeProfileName: profile.name,
-            runtimeProfileRevision:
-              claimedTask.claimAuthority?.runtimeProfileRevision ?? null,
-            piAgentDirSource: piAgentDir.source,
-          },
           executorAttestor: preparedRuntime.attestor,
           writeCorrelationAnchors,
           log: (msg, fields) => rootLogger.warn(fields ?? {}, msg),

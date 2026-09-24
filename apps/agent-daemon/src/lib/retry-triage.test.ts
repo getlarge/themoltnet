@@ -194,115 +194,38 @@ describe('retry triage classification', () => {
     ).toBe('non_retryable');
   });
 
-  it('lets non-retryable messages override broad retryable provider codes', () => {
-    expect(
-      classifyDeterministically({
-        code: 'llm_api_error',
-        message: 'provider returned 401 unauthorized: invalid api key',
-      }),
-    ).toBe('non_retryable');
-    expect(
-      classifyDeterministically({
-        code: 'llm_api_error',
-        message: 'model pi-large is not available',
-      }),
-    ).toBe('non_retryable');
-  });
-
-  it('does not retry deterministic unsupported request-shape errors', () => {
-    for (const message of [
-      'Unsupported parameter: reasoning_effort',
-      'Unsupported argument: top_p',
-      'Unsupported field: response_format',
-      'unrecognized parameter top_p',
-      'unrecognized argument top_p',
-      'unrecognized field response_format',
-      'unknown parameter top_p',
-      'unknown argument top_p',
-      'unknown request field response_format',
-      'invalid parameter temperature',
-      'invalid argument temperature',
-      'invalid field temperature',
-      'parameter verbosity is not supported',
+  it('uses runtime provider codes without re-parsing diagnostic text', async () => {
+    for (const code of [
+      'llm_request_rejected',
+      'llm_quota_exhausted',
+      'llm_auth_error',
     ]) {
-      expect(
-        classifyDeterministically({ code: 'llm_api_error', message }),
-      ).toBe('non_retryable');
+      const result = await classifyAttemptFailure({
+        ...BASE_INPUT,
+        error: {
+          code,
+          message: '429: invalid parameter temperature',
+          retryable: false,
+        },
+      });
+      expect(result.source).toBe('explicit');
+      expect(result.error.retryable).toBe(false);
+      expect(result.error.retry?.decision).toBe('do_not_retry');
     }
-  });
-
-  it('preserves explicit transient provider evidence over request-shape wording', async () => {
-    const result = await classifyAttemptFailure({
-      ...BASE_INPUT,
-      error: {
+    expect(
+      classifyDeterministically({
         code: 'llm_api_error',
         message: 'Unsupported parameter: reasoning_effort',
         retryable: true,
-      },
-    });
-
-    expect(result.source).toBe('explicit');
-    expect(result.error.retryable).toBe(true);
-    expect(result.error.retry).toMatchObject({
-      source: 'explicit',
-      decision: 'retry',
-      confidence: 'high',
-    });
-  });
-
-  it('does not requeue a monthly quota 429 even with a generic retryable flag', async () => {
-    const result = await classifyAttemptFailure({
-      ...BASE_INPUT,
-      error: {
-        code: 'llm_api_error',
-        message: '429: you (account) have reached your monthly usage limit',
-        retryable: true,
-      },
-    });
-
-    expect(result.error.retryable).toBe(false);
-    expect(result.error.retry?.decision).toBe('do_not_retry');
+      }),
+    ).toBe('retryable');
     expect(
       classifyDeterministically({
-        code: 'complete_call_failed',
-        message: '429: you (account) have reached your monthly usage limit',
+        code: 'llm_api_error',
+        message: '401 Unauthorized',
         retryable: true,
       }),
     ).toBe('retryable');
-  });
-
-  it('keeps generic validation and transient provider failures retryable or ambiguous', () => {
-    expect(
-      classifyDeterministically({
-        code: 'llm_api_error',
-        message: 'invalid request body',
-      }),
-    ).toBe('retryable');
-    expect(
-      classifyDeterministically({
-        code: 'llm_api_error',
-        message: 'provider returned 408 timeout',
-      }),
-    ).toBe('retryable');
-    expect(
-      classifyDeterministically({
-        code: 'llm_api_error',
-        message: 'provider returned 429',
-      }),
-    ).toBe('retryable');
-  });
-
-  it('keeps transient provider evidence ahead of request-shape wording', () => {
-    for (const message of [
-      '500 response: unknown field request_id',
-      '500 response: validation failed for unknown field request_id',
-      '429: invalid parameter temperature',
-      'request timed out: unsupported field response_format',
-    ]) {
-      expect(
-        classifyDeterministically({ code: 'llm_api_error', message }),
-      ).toBe('retryable');
-    }
   });
 
   it('keeps completion-reporting failures retryable despite provider-like wording', () => {

@@ -37,6 +37,9 @@ describe('provider request error classification', () => {
         '429: you (account) have reached your monthly usage limit, upgrade for higher limits or add usage credits',
       ),
     ).toBe(true);
+    expect(isPermanentProviderQuotaError('Monthly usage limit reached')).toBe(
+      true,
+    );
     expect(isPermanentProviderQuotaError('429: rate limit exceeded')).toBe(
       false,
     );
@@ -46,7 +49,7 @@ describe('provider request error classification', () => {
   it('constructs structured actionable diagnostics for a terminal provider error', () => {
     const diagnostics = getPermanentProviderRequestDiagnostics(
       {
-        code: 'llm_api_error',
+        code: 'llm_request_rejected',
         message: 'Unsupported parameter: reasoning_effort',
         retryable: false,
       },
@@ -69,7 +72,7 @@ describe('provider request error classification', () => {
       retryable: false,
     };
 
-    expect(isPermanentProviderRequestError(error.message)).toBe(false);
+    expect(isPermanentProviderRequestError(error.message, true)).toBe(false);
     expect(
       getPermanentProviderRequestDiagnostics(error, CONTEXT),
     ).toBeUndefined();
@@ -92,7 +95,7 @@ describe('provider request error classification', () => {
     expect(
       getPermanentProviderRequestDiagnostics(
         {
-          code: 'llm_api_error',
+          code: 'llm_request_rejected',
           message: 'Unsupported parameter: reasoning_effort',
           retryable: true,
         },
