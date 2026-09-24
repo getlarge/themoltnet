@@ -77,6 +77,14 @@ describe('agent server providers and runs', () => {
 
     expect(response.statusCode).toBe(201);
     const run = response.json<{ id: string }>();
+    expect(run).toMatchObject({
+      correlationId,
+      diaryIds: ['diary-1', 'diary-2'],
+      pollIntervalMs: 750,
+      maxPollIntervalMs: 5_000,
+      waitForFirstTaskSec: 15,
+      waitAfterTaskSec: 3,
+    });
     expect(store.readRun(run.id)).toMatchObject({
       correlationId,
       diaryIds: ['diary-1', 'diary-2'],
@@ -102,6 +110,91 @@ describe('agent server providers and runs', () => {
         '3',
       ]),
     );
+    const list = await app.inject({
+      method: 'GET',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: TEST_CLIENT_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+    });
+    expect(list.statusCode).toBe(200);
+    expect(list.json()).toContainEqual(expect.objectContaining(run));
+  });
+
+  it('forwards polling cadence without drain-only flags in poll mode', async () => {
+    const { app, store, spawned } = await fixture();
+    activateManaged(store);
+    const token = await authorize(app);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: TEST_CLIENT_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-1',
+        profiles: ['course-profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+        pollIntervalMs: 1_000,
+        maxPollIntervalMs: 10_000,
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toMatchObject({
+      mode: 'poll',
+      pollIntervalMs: 1_000,
+      maxPollIntervalMs: 10_000,
+    });
+    expect(spawned[0]?.args).toEqual(
+      expect.arrayContaining([
+        'poll',
+        '--poll-interval-ms',
+        '1000',
+        '--max-poll-interval-ms',
+        '10000',
+      ]),
+    );
+    expect(spawned[0]?.args).not.toContain('--wait-for-first-task-sec');
+    expect(spawned[0]?.args).not.toContain('--wait-after-task-sec');
+  });
+
+  it.each([
+    { pollIntervalMs: 0 },
+    { maxPollIntervalMs: 1.5 },
+    { waitAfterTaskSec: -1 },
+    { correlationId: 'not-a-uuid' },
+  ])('rejects invalid run options before spawning: %j', async (invalid) => {
+    const { app, store, spawned } = await fixture();
+    activateManaged(store);
+    const token = await authorize(app);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: TEST_CLIENT_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-1',
+        profiles: ['course-profile'],
+        taskTypes: ['freeform'],
+        mode: 'drain',
+        ...invalid,
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'invalid_spec' });
+    expect(spawned).toHaveLength(0);
   });
 
   it('rejects drain waits in poll mode before spawning', async () => {
