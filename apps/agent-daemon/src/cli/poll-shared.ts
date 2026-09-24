@@ -8,6 +8,8 @@ import {
   ApiTaskReporter,
   type ClaimedTask,
   createLocalSeedSigner,
+  DEFAULT_MAX_POLL_INTERVAL_MS,
+  DEFAULT_POLL_INTERVAL_MS,
   resolveRuntimeProfiles,
 } from '@themoltnet/agent-runtime';
 import {
@@ -158,12 +160,12 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   const pollIntervalMs = optionalPositiveInt(
     values['poll-interval-ms'],
     'poll-interval-ms',
-    2_000,
+    DEFAULT_POLL_INTERVAL_MS,
   );
   const maxPollIntervalMs = optionalPositiveInt(
     values['max-poll-interval-ms'],
     'max-poll-interval-ms',
-    30_000,
+    DEFAULT_MAX_POLL_INTERVAL_MS,
   );
   const listLimit = optionalPositiveInt(values['list-limit'], 'list-limit', 10);
   const waitForFirstTaskSec = optionalNonNegativeInt(

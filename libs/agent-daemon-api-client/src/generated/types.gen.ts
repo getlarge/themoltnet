@@ -137,6 +137,9 @@ export type AgentServerRun = AgentServerRunRecord & {
 
 export type AgentServerRunRecord = {
   agent: string;
+  /**
+   * Claim only tasks with this orchestration correlation ID.
+   */
   correlationId?: string;
   credential?: {
     expiresAt?: string | null;
@@ -144,7 +147,13 @@ export type AgentServerRunRecord = {
     scopes: Array<string>;
     verifiedAt: string;
   };
+  /**
+   * Diary context for the worker to write to; this does not filter task claims.
+   */
   diaryId?: string;
+  /**
+   * Claim only tasks belonging to these diaries.
+   */
   diaryIds?: Array<string>;
   endedAt?: string;
   exitCode?: number | null;
@@ -154,9 +163,15 @@ export type AgentServerRunRecord = {
     message: string;
   };
   location?: string;
+  /**
+   * Idle polling backoff ceiling in milliseconds. Default: 30000.
+   */
   maxPollIntervalMs?: number;
   mode: 'poll' | 'drain';
   pid?: number;
+  /**
+   * Idle polling backoff floor in milliseconds. Default: 2000.
+   */
   pollIntervalMs?: number;
   profiles: Array<string>;
   projectId?: string | null;
@@ -166,7 +181,13 @@ export type AgentServerRunRecord = {
   strategy?: 'none' | 'existing' | 'git-worktree' | 'isolated-directory';
   taskTypes: Array<string>;
   teamId: string;
+  /**
+   * In drain mode, require the queue to stay empty this many seconds after a claim. Default: 0.
+   */
   waitAfterTaskSec?: number;
+  /**
+   * In drain mode, wait up to this many seconds for the first matching task. Default: 0.
+   */
   waitForFirstTaskSec?: number;
   workspace?: {
     diaryId?: string;
@@ -764,12 +785,27 @@ export type ListAgentServerRunsResponse =
 export type StartAgentServerRunData = {
   body: {
     agent: string;
+    /**
+     * Claim only tasks with this orchestration correlation ID.
+     */
     correlationId?: string;
+    /**
+     * Diary context for the worker to write to; this does not filter task claims.
+     */
     diaryId?: string;
+    /**
+     * Claim only tasks belonging to these diaries.
+     */
     diaryIds?: Array<string>;
     location?: string;
+    /**
+     * Idle polling backoff ceiling in milliseconds. Default: 30000.
+     */
     maxPollIntervalMs?: number;
     mode: 'poll' | 'drain';
+    /**
+     * Idle polling backoff floor in milliseconds. Default: 2000.
+     */
     pollIntervalMs?: number;
     profiles: Array<string>;
     projectId?: string | null;
@@ -787,7 +823,13 @@ export type StartAgentServerRunData = {
       | 'run_eval'
     >;
     teamId: string;
+    /**
+     * In drain mode, require the queue to stay empty this many seconds after a claim. Default: 0.
+     */
     waitAfterTaskSec?: number;
+    /**
+     * In drain mode, wait up to this many seconds for the first matching task. Default: 0.
+     */
     waitForFirstTaskSec?: number;
   };
   path?: never;

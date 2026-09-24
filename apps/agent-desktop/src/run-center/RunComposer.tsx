@@ -238,6 +238,16 @@ export function RunComposer({
     ...(source && strategy !== 'none' ? { source } : {}),
     ...(strategy ? { strategy } : {}),
   };
+  const replayOptions = previousRun
+    ? {
+        correlationId: previousRun.correlationId,
+        diaryIds: previousRun.diaryIds,
+        pollIntervalMs: previousRun.pollIntervalMs,
+        maxPollIntervalMs: previousRun.maxPollIntervalMs,
+        waitForFirstTaskSec: previousRun.waitForFirstTaskSec,
+        waitAfterTaskSec: previousRun.waitAfterTaskSec,
+      }
+    : {};
 
   const boundElsewhere = Boolean(team && !team.available);
   const verificationFailed = verificationUnavailable(team ? [team] : teams);
@@ -334,8 +344,9 @@ export function RunComposer({
         teamId,
         profiles: [primaryId, ...fallbackIds],
         taskTypes,
-        mode: 'poll',
+        mode: previousRun?.mode ?? 'poll',
         ...projectSelection,
+        ...replayOptions,
         ...(requestedDiary ? { diaryId: requestedDiary } : {}),
       });
       onDone();

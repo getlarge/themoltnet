@@ -47,8 +47,8 @@ export type {
 /** A profile blocker, as the server derives it for this machine. */
 export type ProfileBlocker = AgentServerCatalogueProfile['blockers'][number];
 
-/** v1 is polling only; the server also accepts `drain`. */
-export type RunMode = Extract<AgentServerRun['mode'], 'poll'>;
+/** New runs poll by default; Run again can replay a previous drain run. */
+export type RunMode = AgentServerRun['mode'];
 
 /**
  * A run plus the names only the app can resolve: the preset it was launched

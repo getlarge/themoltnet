@@ -208,7 +208,14 @@ describe('run again', () => {
     const previous = {
       ...status.runs[0],
       agent: 'first-agent',
+      mode: 'drain' as const,
       diaryId: undefined,
+      correlationId: '78fa1119-6126-44b4-b3aa-249e942ef53b',
+      diaryIds: ['41c8030b-fc3f-44df-b84d-df2240087733'],
+      pollIntervalMs: 750,
+      maxPollIntervalMs: 5_000,
+      waitForFirstTaskSec: 15,
+      waitAfterTaskSec: 3,
       projectId: 'project',
       location: 'Laptop',
       workspace: {
@@ -287,6 +294,15 @@ describe('run again', () => {
     await waitFor(() => expect(actions.startRun).toHaveBeenCalled());
     const input = vi.mocked(actions.startRun).mock.calls[0][0];
     expect(input).toMatchObject({ projectId: 'project', location: 'Laptop' });
+    expect(input).toMatchObject({
+      mode: 'drain',
+      correlationId: previous.correlationId,
+      diaryIds: previous.diaryIds,
+      pollIntervalMs: 750,
+      maxPollIntervalMs: 5_000,
+      waitForFirstTaskSec: 15,
+      waitAfterTaskSec: 3,
+    });
     expect(input).not.toHaveProperty('source');
     expect(input).not.toHaveProperty('strategy');
     expect(input).not.toHaveProperty('diaryId');

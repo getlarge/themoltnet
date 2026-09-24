@@ -306,8 +306,8 @@ export interface PollingApiTaskSourceOptions {
 }
 
 const DEFAULT_LIST_LIMIT = 10;
-const DEFAULT_POLL_INTERVAL_MS = 2_000;
-const DEFAULT_MAX_POLL_INTERVAL_MS = 30_000;
+export const DEFAULT_POLL_INTERVAL_MS = 2_000;
+export const DEFAULT_MAX_POLL_INTERVAL_MS = 30_000;
 
 /**
  * Long-running pull-based source for the daemon mode.

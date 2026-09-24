@@ -23,7 +23,11 @@ import { dirname, join, resolve } from 'node:path';
 import { Transform } from 'node:stream';
 
 import { BUILT_IN_TASK_TYPES } from '@moltnet/tasks';
-import { resolveRuntimeProfiles } from '@themoltnet/agent-runtime';
+import {
+  DEFAULT_MAX_POLL_INTERVAL_MS,
+  DEFAULT_POLL_INTERVAL_MS,
+  resolveRuntimeProfiles,
+} from '@themoltnet/agent-runtime';
 import {
   formatSecretReferenceString,
   getConfigDir,
@@ -245,14 +249,35 @@ export function validateRunSpec(spec: RunSpec): void {
   }
   if (
     spec.mode !== 'drain' &&
-    (spec.waitForFirstTaskSec !== undefined ||
-      spec.waitAfterTaskSec !== undefined)
+    ((spec.waitForFirstTaskSec ?? 0) > 0 || (spec.waitAfterTaskSec ?? 0) > 0)
   ) {
     throw new AgentServerRunError(
       'invalid_spec',
-      'waitForFirstTaskSec and waitAfterTaskSec require drain mode',
+      'positive waitForFirstTaskSec and waitAfterTaskSec require drain mode',
     );
   }
+  if (
+    (spec.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS) >
+    (spec.maxPollIntervalMs ?? DEFAULT_MAX_POLL_INTERVAL_MS)
+  ) {
+    throw new AgentServerRunError(
+      'invalid_spec',
+      'pollIntervalMs must not exceed maxPollIntervalMs',
+    );
+  }
+}
+
+function runClaimArgs(spec: RunSpec): string[] {
+  return Object.entries({
+    'correlation-id': spec.correlationId,
+    'diary-ids': spec.diaryIds?.join(','),
+    'poll-interval-ms': spec.pollIntervalMs,
+    'max-poll-interval-ms': spec.maxPollIntervalMs,
+    'wait-for-first-task-sec': spec.waitForFirstTaskSec,
+    'wait-after-task-sec': spec.waitAfterTaskSec,
+  }).flatMap(([flag, value]) =>
+    value === undefined ? [] : [`--${flag}`, String(value)],
+  );
 }
 
 interface ActiveRun {
@@ -342,20 +367,7 @@ export class RunManager {
       ...spec.profiles.flatMap((profile) => ['--profile', profile]),
       '--task-types',
       spec.taskTypes.join(','),
-      ...(spec.correlationId ? ['--correlation-id', spec.correlationId] : []),
-      ...(spec.diaryIds ? ['--diary-ids', spec.diaryIds.join(',')] : []),
-      ...(spec.pollIntervalMs !== undefined
-        ? ['--poll-interval-ms', String(spec.pollIntervalMs)]
-        : []),
-      ...(spec.maxPollIntervalMs !== undefined
-        ? ['--max-poll-interval-ms', String(spec.maxPollIntervalMs)]
-        : []),
-      ...(spec.waitForFirstTaskSec !== undefined
-        ? ['--wait-for-first-task-sec', String(spec.waitForFirstTaskSec)]
-        : []),
-      ...(spec.waitAfterTaskSec !== undefined
-        ? ['--wait-after-task-sec', String(spec.waitAfterTaskSec)]
-        : []),
+      ...runClaimArgs(spec),
       '--heartbeat-interval-ms',
       String(runtimeSettings.heartbeatIntervalMs),
       '--warm-retention-sec',
@@ -1133,6 +1145,20 @@ function selectionContext(
   workspace: RunWorkspace | undefined,
 ): Record<string, unknown> {
   return {
+    ...(spec.correlationId ? { correlationId: spec.correlationId } : {}),
+    ...(spec.diaryIds ? { claimDiaryIds: spec.diaryIds } : {}),
+    ...(spec.pollIntervalMs !== undefined
+      ? { pollIntervalMs: spec.pollIntervalMs }
+      : {}),
+    ...(spec.maxPollIntervalMs !== undefined
+      ? { maxPollIntervalMs: spec.maxPollIntervalMs }
+      : {}),
+    ...(spec.waitForFirstTaskSec !== undefined
+      ? { waitForFirstTaskSec: spec.waitForFirstTaskSec }
+      : {}),
+    ...(spec.waitAfterTaskSec !== undefined
+      ? { waitAfterTaskSec: spec.waitAfterTaskSec }
+      : {}),
     ...(spec.projectId !== undefined
       ? { requestedProjectId: spec.projectId }
       : {}),

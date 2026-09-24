@@ -23,7 +23,7 @@ import {
 } from './native-grant-service.js';
 import type { OperatorOAuth } from './operator-oauth.js';
 import { ProviderLoginService } from './provider-login.js';
-import { RunManager, type SpawnImpl } from './runs.js';
+import { type RunLogger, RunManager, type SpawnImpl } from './runs.js';
 import { RuntimeRegistry } from './runtime-registry.js';
 import type { BuildAgentServerOptions } from './server.js';
 import { buildAgentServer } from './server.js';
@@ -128,6 +128,7 @@ export async function fixture(
       agent: ActivatedAgent,
       cwd: string,
     ) => Promise<string | undefined>;
+    runLogger?: RunLogger;
   } = {},
 ): Promise<Fixture> {
   const {
@@ -138,6 +139,7 @@ export async function fixture(
     verifyActivationImpl,
     symlinkImpl,
     resolveRuntimeModule,
+    runLogger,
     externalSecrets = {},
     realCredentialPreflight = false,
     connectionState = false,
@@ -276,6 +278,7 @@ export async function fixture(
       scriptPath: '/app/main.js',
     },
     spawnImpl,
+    ...(runLogger ? { logger: runLogger } : {}),
     verifyActivationImpl:
       verifyActivationImpl ??
       (realCredentialPreflight ? verifyTeamActivation : verifyActivation),
