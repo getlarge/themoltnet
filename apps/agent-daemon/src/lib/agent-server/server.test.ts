@@ -47,6 +47,256 @@ afterEach(async () => {
 });
 
 describe('agent server providers and runs', () => {
+  it('persists and forwards scoped drain and polling options', async () => {
+    const info = vi.fn();
+    const { app, store, spawned } = await fixture({
+      runLogger: { info, warn: vi.fn(), error: vi.fn() },
+    });
+    activateManaged(store);
+    const token = await authorize(app);
+    const correlationId = '78fa1119-6126-44b4-b3aa-249e942ef53b';
+    const diaryIds = [
+      '41c8030b-fc3f-44df-b84d-df2240087733',
+      'bb93a675-548a-44ea-962f-31491d476f77',
+    ];
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: TEST_CLIENT_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-1',
+        profiles: ['course-profile'],
+        taskTypes: ['freeform'],
+        mode: 'drain',
+        correlationId,
+        diaryIds,
+        pollIntervalMs: 750,
+        maxPollIntervalMs: 5_000,
+        waitForFirstTaskSec: 15,
+        waitAfterTaskSec: 3,
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    const run = response.json<{ id: string }>();
+    expect(run).toMatchObject({
+      correlationId,
+      diaryIds,
+      pollIntervalMs: 750,
+      maxPollIntervalMs: 5_000,
+      waitForFirstTaskSec: 15,
+      waitAfterTaskSec: 3,
+    });
+    expect(store.readRun(run.id)).toMatchObject({
+      correlationId,
+      diaryIds,
+      pollIntervalMs: 750,
+      maxPollIntervalMs: 5_000,
+      waitForFirstTaskSec: 15,
+      waitAfterTaskSec: 3,
+    });
+    expect(spawned[0]?.args).toEqual([
+      '/app/main.js',
+      'drain',
+      '--agent',
+      'course-bot',
+      '--team',
+      'team-1',
+      '--profile',
+      'course-profile',
+      '--task-types',
+      'freeform',
+      '--correlation-id',
+      correlationId,
+      '--diary-ids',
+      diaryIds.join(','),
+      '--poll-interval-ms',
+      '750',
+      '--max-poll-interval-ms',
+      '5000',
+      '--wait-for-first-task-sec',
+      '15',
+      '--wait-after-task-sec',
+      '3',
+      '--heartbeat-interval-ms',
+      '60000',
+      '--warm-retention-sec',
+      '1800',
+    ]);
+    expect(info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        correlationId,
+        claimDiaryIds: diaryIds,
+        pollIntervalMs: 750,
+        maxPollIntervalMs: 5_000,
+        waitForFirstTaskSec: 15,
+        waitAfterTaskSec: 3,
+      }),
+      'agent server run started',
+    );
+    const list = await app.inject({
+      method: 'GET',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: TEST_CLIENT_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+    });
+    expect(list.statusCode).toBe(200);
+    expect(list.json()).toContainEqual(expect.objectContaining(run));
+  });
+
+  it('forwards polling cadence without drain-only flags in poll mode', async () => {
+    const { app, store, spawned } = await fixture();
+    activateManaged(store);
+    const token = await authorize(app);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: TEST_CLIENT_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-1',
+        profiles: ['course-profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+        pollIntervalMs: 1_000,
+        maxPollIntervalMs: 10_000,
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toMatchObject({
+      mode: 'poll',
+      pollIntervalMs: 1_000,
+      maxPollIntervalMs: 10_000,
+    });
+    expect(spawned[0]?.args).toEqual(
+      expect.arrayContaining([
+        'poll',
+        '--poll-interval-ms',
+        '1000',
+        '--max-poll-interval-ms',
+        '10000',
+      ]),
+    );
+    expect(spawned[0]?.args).not.toContain('--wait-for-first-task-sec');
+    expect(spawned[0]?.args).not.toContain('--wait-after-task-sec');
+  });
+
+  it.each([
+    { pollIntervalMs: 0 },
+    { pollIntervalMs: 1 },
+    { pollIntervalMs: 3_600_001 },
+    { maxPollIntervalMs: 1.5 },
+    { maxPollIntervalMs: 3_600_001 },
+    { waitAfterTaskSec: -1 },
+    { waitAfterTaskSec: 86_401 },
+    { pollIntervalMs: 5_000, maxPollIntervalMs: 4_000 },
+    { pollIntervalMs: 60_000 },
+    { maxPollIntervalMs: 1_000 },
+    { correlationId: 'not-a-uuid' },
+    { diaryIds: [] },
+    { diaryIds: [''] },
+    { diaryIds: ['41c8030b-fc3f-44df-b84d-df2240087733,other'] },
+  ])('rejects invalid run options before spawning: %j', async (invalid) => {
+    const { app, store, spawned } = await fixture();
+    activateManaged(store);
+    const token = await authorize(app);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: TEST_CLIENT_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-1',
+        profiles: ['course-profile'],
+        taskTypes: ['freeform'],
+        mode: 'drain',
+        ...invalid,
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'invalid_spec' });
+    expect(spawned).toHaveLength(0);
+  });
+
+  it('rejects drain waits in poll mode before spawning', async () => {
+    const { app, store, spawned } = await fixture();
+    activateManaged(store);
+    const token = await authorize(app);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: TEST_CLIENT_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-1',
+        profiles: ['course-profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+        waitForFirstTaskSec: 1,
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'invalid_spec' });
+    expect(spawned).toHaveLength(0);
+  });
+
+  it('accepts explicit zero drain waits in poll mode', async () => {
+    const { app, store, spawned } = await fixture();
+    activateManaged(store);
+    const token = await authorize(app);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers: {
+        host: HOST,
+        origin: TEST_CLIENT_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-1',
+        profiles: ['course-profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+        waitForFirstTaskSec: 0,
+        waitAfterTaskSec: 0,
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(spawned[0]?.args).toEqual(
+      expect.arrayContaining([
+        '--wait-for-first-task-sec',
+        '0',
+        '--wait-after-task-sec',
+        '0',
+      ]),
+    );
+  });
+
   it('rejects unsupported managed signing providers before spawning', async () => {
     const { app, store, spawned } = await fixture();
     activateManaged(store);

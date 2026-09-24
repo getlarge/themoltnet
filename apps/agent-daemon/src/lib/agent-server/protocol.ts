@@ -240,6 +240,59 @@ const RunProjectFields = {
   source: Type.Optional(Type.String({ minLength: 1 })),
   strategy: Type.Optional(AgentServerProjectLocationSchema.properties.strategy),
 };
+/** Claim filters and timing controls shared by run requests and stored records. */
+const RunClaimFields = {
+  diaryId: Type.Optional(
+    Type.String({
+      description:
+        'Diary context for the worker to write to; this does not filter task claims.',
+    }),
+  ),
+  correlationId: Type.Optional(
+    Type.String({
+      format: 'uuid',
+      description: 'Claim only tasks with this orchestration correlation ID.',
+    }),
+  ),
+  diaryIds: Type.Optional(
+    Type.Array(Type.String({ format: 'uuid' }), {
+      minItems: 1,
+      maxItems: 32,
+      description: 'Claim only tasks belonging to these diaries.',
+    }),
+  ),
+  pollIntervalMs: Type.Optional(
+    Type.Integer({
+      minimum: 250,
+      maximum: 3_600_000,
+      description: 'Idle polling backoff floor in milliseconds. Default: 2000.',
+    }),
+  ),
+  maxPollIntervalMs: Type.Optional(
+    Type.Integer({
+      minimum: 250,
+      maximum: 3_600_000,
+      description:
+        'Idle polling backoff ceiling in milliseconds. Default: 30000.',
+    }),
+  ),
+  waitForFirstTaskSec: Type.Optional(
+    Type.Integer({
+      minimum: 0,
+      maximum: 86_400,
+      description:
+        'In drain mode, wait up to this many seconds for the first matching task. Default: 0.',
+    }),
+  ),
+  waitAfterTaskSec: Type.Optional(
+    Type.Integer({
+      minimum: 0,
+      maximum: 86_400,
+      description:
+        'In drain mode, require the queue to stay empty this many seconds after a claim. Default: 0.',
+    }),
+  ),
+};
 /** Names gated to the native client; derived so a new field is gated automatically. */
 export const NATIVE_RUN_FIELDS = Object.keys(RunProjectFields) as Array<
   keyof typeof RunProjectFields
@@ -263,7 +316,7 @@ export const AgentServerRunRecordSchema = Type.Object(
     id: Type.String(),
     agent: Type.String(),
     teamId: Type.String(),
-    diaryId: Type.Optional(Type.String()),
+    ...RunClaimFields,
     profiles: StringList,
     taskTypes: StringList,
     mode: Type.Union([Type.Literal('poll'), Type.Literal('drain')]),
@@ -387,7 +440,7 @@ export const StartRunSchema = Type.Object({
   agent: Type.String(),
   teamId: Type.String(),
   /** Paired with `teamId`; never inherited from the supervisor. */
-  diaryId: Type.Optional(Type.String()),
+  ...RunClaimFields,
   profiles: StringList,
   taskTypes: Type.Array(AgentServerTaskTypeSchema),
   mode: Type.Union([Type.Literal('poll'), Type.Literal('drain')]),

@@ -1429,6 +1429,24 @@ function registerRunRoutes(
           profiles: stringArray(body, 'profiles'),
           taskTypes: stringArray(body, 'taskTypes'),
           mode: requireString(body, 'mode') as 'poll' | 'drain',
+          ...(body.correlationId !== undefined
+            ? { correlationId: requireString(body, 'correlationId') }
+            : {}),
+          ...(body.diaryIds !== undefined
+            ? { diaryIds: stringArray(body, 'diaryIds') }
+            : {}),
+          ...(body.pollIntervalMs !== undefined
+            ? { pollIntervalMs: body.pollIntervalMs as number }
+            : {}),
+          ...(body.maxPollIntervalMs !== undefined
+            ? { maxPollIntervalMs: body.maxPollIntervalMs as number }
+            : {}),
+          ...(body.waitForFirstTaskSec !== undefined
+            ? { waitForFirstTaskSec: body.waitForFirstTaskSec as number }
+            : {}),
+          ...(body.waitAfterTaskSec !== undefined
+            ? { waitAfterTaskSec: body.waitAfterTaskSec as number }
+            : {}),
         },
         requestOperationSignal(request, options.shutdownSignal),
       );

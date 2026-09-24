@@ -238,6 +238,18 @@ export function RunComposer({
     ...(source && strategy !== 'none' ? { source } : {}),
     ...(strategy ? { strategy } : {}),
   };
+  const replaySource = previousRun?.teamId === teamId ? previousRun : undefined;
+  const runMode = replaySource?.mode ?? 'poll';
+  const replayOptions = replaySource
+    ? {
+        correlationId: replaySource.correlationId,
+        diaryIds: replaySource.diaryIds,
+        pollIntervalMs: replaySource.pollIntervalMs,
+        maxPollIntervalMs: replaySource.maxPollIntervalMs,
+        waitForFirstTaskSec: replaySource.waitForFirstTaskSec,
+        waitAfterTaskSec: replaySource.waitAfterTaskSec,
+      }
+    : {};
 
   const boundElsewhere = Boolean(team && !team.available);
   const verificationFailed = verificationUnavailable(team ? [team] : teams);
@@ -334,8 +346,9 @@ export function RunComposer({
         teamId,
         profiles: [primaryId, ...fallbackIds],
         taskTypes,
-        mode: 'poll',
+        mode: runMode,
         ...projectSelection,
+        ...replayOptions,
         ...(requestedDiary ? { diaryId: requestedDiary } : {}),
       });
       onDone();
@@ -693,10 +706,11 @@ export function RunComposer({
               Mode
             </Text>
             <Stack direction="row" gap={2} align="center" wrap>
-              <Badge variant="primary">poll</Badge>
+              <Badge variant="primary">{runMode}</Badge>
               <Text variant="caption" color="secondary">
-                Keeps claiming matching tasks until you stop it. The desktop app
-                runs polling workers only.
+                {runMode === 'drain'
+                  ? 'Claims matching tasks until the queue stays empty, using the previous run settings.'
+                  : 'Keeps claiming matching tasks until you stop it.'}
               </Text>
             </Stack>
           </Stack>

@@ -204,11 +204,18 @@ describe('run draft and preset operations', () => {
 });
 
 describe('run again', () => {
-  it('replays the request rather than the workspace it resolved to', async () => {
+  it('replays the request on the same team and clears hidden options on a team change', async () => {
     const previous = {
       ...status.runs[0],
       agent: 'first-agent',
+      mode: 'drain' as const,
       diaryId: undefined,
+      correlationId: '78fa1119-6126-44b4-b3aa-249e942ef53b',
+      diaryIds: ['41c8030b-fc3f-44df-b84d-df2240087733'],
+      pollIntervalMs: 750,
+      maxPollIntervalMs: 5_000,
+      waitForFirstTaskSec: 15,
+      waitAfterTaskSec: 3,
       projectId: 'project',
       location: 'Laptop',
       workspace: {
@@ -221,6 +228,26 @@ describe('run again', () => {
     };
     const withProject = {
       ...catalogue,
+      teams: [
+        ...catalogue.teams,
+        {
+          teamId: 'other-team',
+          teamName: 'Other team',
+          available: true,
+          blockers: [],
+          defaultDiaryId: null,
+          diaries: [],
+        },
+      ],
+      profiles: [
+        ...catalogue.profiles,
+        {
+          ...catalogue.profiles[0],
+          id: 'other-profile',
+          name: 'Other profile',
+          teamId: 'other-team',
+        },
+      ],
       projects: [
         {
           id: 'project',
@@ -283,13 +310,54 @@ describe('run again', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Start run' })).toBeEnabled();
     });
+    expect(screen.getByText('drain')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Start run' }));
     await waitFor(() => expect(actions.startRun).toHaveBeenCalled());
     const input = vi.mocked(actions.startRun).mock.calls[0][0];
     expect(input).toMatchObject({ projectId: 'project', location: 'Laptop' });
+    expect(input).toMatchObject({
+      mode: 'drain',
+      correlationId: previous.correlationId,
+      diaryIds: previous.diaryIds,
+      pollIntervalMs: 750,
+      maxPollIntervalMs: 5_000,
+      waitForFirstTaskSec: 15,
+      waitAfterTaskSec: 3,
+    });
     expect(input).not.toHaveProperty('source');
     expect(input).not.toHaveProperty('strategy');
     expect(input).not.toHaveProperty('diaryId');
+
+    vi.mocked(actions.startRun).mockClear();
+    fireEvent.change(screen.getByLabelText('Team'), {
+      target: { value: 'other-team' },
+    });
+    fireEvent.change(screen.getByLabelText('Runtime profile'), {
+      target: { value: 'other-profile' },
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Start run' })).toBeEnabled();
+    });
+    expect(screen.getByText('poll')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Start run' }));
+    await waitFor(() => expect(actions.startRun).toHaveBeenCalled());
+    const switched = vi.mocked(actions.startRun).mock.calls[0][0];
+    expect(switched).toMatchObject({
+      teamId: 'other-team',
+      mode: 'poll',
+      projectId: null,
+      profiles: ['other-profile'],
+    });
+    for (const field of [
+      'correlationId',
+      'diaryIds',
+      'pollIntervalMs',
+      'maxPollIntervalMs',
+      'waitForFirstTaskSec',
+      'waitAfterTaskSec',
+    ]) {
+      expect(switched).not.toHaveProperty(field);
+    }
   });
 });
 

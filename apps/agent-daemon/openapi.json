@@ -720,6 +720,11 @@
           "agent": {
             "type": "string"
           },
+          "correlationId": {
+            "description": "Claim only tasks with this orchestration correlation ID.",
+            "format": "uuid",
+            "type": "string"
+          },
           "credential": {
             "properties": {
               "expiresAt": {
@@ -755,7 +760,18 @@
             "type": "object"
           },
           "diaryId": {
+            "description": "Diary context for the worker to write to; this does not filter task claims.",
             "type": "string"
+          },
+          "diaryIds": {
+            "description": "Claim only tasks belonging to these diaries.",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 32,
+            "minItems": 1,
+            "type": "array"
           },
           "endedAt": {
             "format": "date-time",
@@ -793,6 +809,12 @@
             "minLength": 1,
             "type": "string"
           },
+          "maxPollIntervalMs": {
+            "description": "Idle polling backoff ceiling in milliseconds. Default: 30000.",
+            "maximum": 3600000,
+            "minimum": 250,
+            "type": "integer"
+          },
           "mode": {
             "anyOf": [
               {
@@ -811,6 +833,12 @@
           },
           "pid": {
             "type": "number"
+          },
+          "pollIntervalMs": {
+            "description": "Idle polling backoff floor in milliseconds. Default: 2000.",
+            "maximum": 3600000,
+            "minimum": 250,
+            "type": "integer"
           },
           "profiles": {
             "items": {
@@ -901,6 +929,18 @@
           },
           "teamId": {
             "type": "string"
+          },
+          "waitAfterTaskSec": {
+            "description": "In drain mode, require the queue to stay empty this many seconds after a claim. Default: 0.",
+            "maximum": 86400,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "waitForFirstTaskSec": {
+            "description": "In drain mode, wait up to this many seconds for the first matching task. Default: 0.",
+            "maximum": 86400,
+            "minimum": 0,
+            "type": "integer"
           },
           "workspace": {
             "properties": {
@@ -2341,12 +2381,34 @@
                   "agent": {
                     "type": "string"
                   },
-                  "diaryId": {
+                  "correlationId": {
+                    "description": "Claim only tasks with this orchestration correlation ID.",
+                    "format": "uuid",
                     "type": "string"
+                  },
+                  "diaryId": {
+                    "description": "Diary context for the worker to write to; this does not filter task claims.",
+                    "type": "string"
+                  },
+                  "diaryIds": {
+                    "description": "Claim only tasks belonging to these diaries.",
+                    "items": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "maxItems": 32,
+                    "minItems": 1,
+                    "type": "array"
                   },
                   "location": {
                     "minLength": 1,
                     "type": "string"
+                  },
+                  "maxPollIntervalMs": {
+                    "description": "Idle polling backoff ceiling in milliseconds. Default: 30000.",
+                    "maximum": 3600000,
+                    "minimum": 250,
+                    "type": "integer"
                   },
                   "mode": {
                     "anyOf": [
@@ -2363,6 +2425,12 @@
                         "type": "string"
                       }
                     ]
+                  },
+                  "pollIntervalMs": {
+                    "description": "Idle polling backoff floor in milliseconds. Default: 2000.",
+                    "maximum": 3600000,
+                    "minimum": 250,
+                    "type": "integer"
                   },
                   "profiles": {
                     "items": {
@@ -2476,6 +2544,18 @@
                   },
                   "teamId": {
                     "type": "string"
+                  },
+                  "waitAfterTaskSec": {
+                    "description": "In drain mode, require the queue to stay empty this many seconds after a claim. Default: 0.",
+                    "maximum": 86400,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "waitForFirstTaskSec": {
+                    "description": "In drain mode, wait up to this many seconds for the first matching task. Default: 0.",
+                    "maximum": 86400,
+                    "minimum": 0,
+                    "type": "integer"
                   }
                 },
                 "required": [

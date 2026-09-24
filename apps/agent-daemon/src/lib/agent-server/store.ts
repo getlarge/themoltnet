@@ -253,6 +253,12 @@ export interface RunSpec {
   profiles: string[];
   taskTypes: string[];
   mode: 'poll' | 'drain';
+  correlationId?: string;
+  diaryIds?: string[];
+  pollIntervalMs?: number;
+  maxPollIntervalMs?: number;
+  waitForFirstTaskSec?: number;
+  waitAfterTaskSec?: number;
 }
 
 /** Why a run stopped, in the operator's terms rather than an exit code. */
