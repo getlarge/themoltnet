@@ -16,6 +16,7 @@ import { workspaceLabel } from './ProjectsView.js';
 import { ProfileChain, TaskTypeRow } from './RunsView.js';
 import type { DesktopRun, RunCenterActions } from './types.js';
 import { useCatalogue } from './useCatalogue.js';
+import { type RunStopControl, useStopRun } from './useStopRun.js';
 
 export interface RunDetailProps {
   active?: boolean;
@@ -24,6 +25,7 @@ export interface RunDetailProps {
   now: number;
   onBack: () => void;
   onRunAgain: () => void;
+  stopControl?: RunStopControl;
 }
 
 const STATUS_BADGE = {
@@ -40,7 +42,13 @@ export function RunDetail({
   now,
   onBack,
   onRunAgain,
+  stopControl,
 }: RunDetailProps) {
+  const localStopControl = useStopRun(
+    actions,
+    run.status === 'running' ? [run.id] : [],
+  );
+  const stops = stopControl ?? localStopControl;
   // The run center already polls this identity's catalogue; reading the shared
   // entry replaces the second 30s timer this view used to run against it.
   const { catalogue } = useCatalogue(run.agent, {
@@ -58,8 +66,8 @@ export function RunDetail({
   };
   const [lines, setLines] = useState<string[]>([]);
   const [follow, setFollow] = useState(true);
-  const [stopping, setStopping] = useState(false);
-  const [stopError, setStopError] = useState(false);
+  const stopping = stops.pending.has(run.id);
+  const stopError = stops.errors.has(run.id);
   const logRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
@@ -186,14 +194,7 @@ export function RunDetail({
                 size="sm"
                 loading={stopping}
                 loadingLabel="Stopping run"
-                onClick={() => {
-                  setStopping(true);
-                  setStopError(false);
-                  void actions
-                    .stopRun(run.id)
-                    .catch(() => setStopError(true))
-                    .finally(() => setStopping(false));
-                }}
+                onClick={() => stops.stop(run.id)}
               >
                 Stop
               </Button>

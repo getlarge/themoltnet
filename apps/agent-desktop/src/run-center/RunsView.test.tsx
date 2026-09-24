@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { INITIAL_STATUS } from '../bridge.js';
@@ -70,9 +76,9 @@ describe('stopping a run from the list', () => {
     expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled();
   });
 
-  it('shows no failure notice when the run stops cleanly', async () => {
+  it('keeps Stop disabled and pending after the request succeeds until status changes', async () => {
     const { data, actions } = fixture(vi.fn().mockResolvedValue(undefined));
-    render(
+    const view = render(
       <Wrapper>
         <RunsView
           data={data}
@@ -84,9 +90,42 @@ describe('stopping a run from the list', () => {
       </Wrapper>,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
-    await screen.findByRole('button', { name: 'Stop' });
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(actions.stopRun).toHaveBeenCalledWith('run');
+    expect(screen.getByRole('button', { name: 'Stopping run' })).toBeDisabled();
     expect(screen.queryByText('Run could not be stopped')).toBeNull();
+
+    view.rerender(
+      <Wrapper>
+        <RunsView
+          data={data}
+          actions={actions}
+          now={0}
+          route={{ kind: 'detail', runId: run.id }}
+          onRoute={() => {}}
+        />
+      </Wrapper>,
+    );
+    expect(screen.getByRole('button', { name: 'Stopping run' })).toBeDisabled();
+
+    view.rerender(
+      <Wrapper>
+        <RunsView
+          data={{
+            ...data,
+            runs: [{ ...run, status: 'stopped', active: false }],
+          }}
+          actions={actions}
+          now={0}
+          route={{ kind: 'detail', runId: run.id }}
+          onRoute={() => {}}
+        />
+      </Wrapper>,
+    );
+    expect(screen.queryByRole('button', { name: 'Stopping run' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Run again' })).toBeEnabled();
   });
 });
 
