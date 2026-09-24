@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.9.1](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.9.0...agent-desktop-v0.9.1) (2026-09-24)
+
+
+### Bug Fixes
+
+* **agent-desktop:** keep run center actions stable across polls ([19b356b](https://github.com/getlarge/themoltnet/commit/19b356b81ecc18f714fc4b4b0415e3b625b11bc5))
+* **agent-desktop:** keep run center actions stable across polls ([494fa4c](https://github.com/getlarge/themoltnet/commit/494fa4c3fd48c05c9474365df02f1c13b725c455))
+* **agent-desktop:** keep Stop pending until run exits ([8b087b5](https://github.com/getlarge/themoltnet/commit/8b087b56949ebcf67c3711793bd68278ab44e25b))
+* **agent-desktop:** keep Stop pending until run exits ([0a3d0ef](https://github.com/getlarge/themoltnet/commit/0a3d0ef299b72ad9a0d68c97028a71f4f9663ad9))
+
 ## [0.9.0](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.8.1...agent-desktop-v0.9.0) (2026-09-23)
 
 
