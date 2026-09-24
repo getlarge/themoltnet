@@ -94,4 +94,14 @@ describe('run center state ownership', () => {
     // useCatalogue.test.tsx, against the hook that now owns it.
     expect(reads()).toBeGreaterThan(1);
   });
+  it('keeps view actions stable across status polls', async () => {
+    await mount();
+    const actions = current().actions;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5500);
+    });
+    // RunDetail subscribes to logs and TeamsView loads operator teams using
+    // this object as an effect dependency. Polling must not restart either.
+    expect(current().actions).toBe(actions);
+  });
 });

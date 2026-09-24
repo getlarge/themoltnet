@@ -50,7 +50,6 @@ describe('captured run credential', () => {
           },
         ],
         profiles: [],
-        projects: [],
         projectErrors: [],
         defaultTeamId: 'team',
       }),
@@ -82,6 +81,58 @@ describe('captured run credential', () => {
     await screen.findByText('Run could not be stopped');
     expect(screen.getByRole('button', { name: 'Stop' })).toBeEnabled();
   });
+});
+
+it('follows new log lines only while Follow is checked', () => {
+  let onLines: (lines: string[]) => void = () => {};
+  const actions: RunCenterActions = {
+    catalogue: vi.fn().mockResolvedValue({ teams: [], projects: [] }),
+    startRun: vi.fn(),
+    stopRun: vi.fn(),
+    savePreset: vi.fn(),
+    deletePreset: vi.fn(),
+    subscribeRunLogs: vi.fn(
+      (_id: string, callback: (lines: string[]) => void) => {
+        onLines = callback;
+        return () => {};
+      },
+    ),
+  };
+  const view = render(
+    <Wrapper>
+      <RunDetail
+        run={run}
+        actions={actions}
+        now={0}
+        onBack={() => {}}
+        onRunAgain={() => {}}
+      />
+    </Wrapper>,
+  );
+  const log = screen.getByLabelText('Log for run run');
+  Object.defineProperty(log, 'scrollHeight', { value: 120 });
+
+  act(() => onLines(['first line']));
+  expect(log.scrollTop).toBe(120);
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Follow' }));
+  log.scrollTop = 30;
+  act(() => onLines(['first line', 'second line']));
+  expect(log.scrollTop).toBe(30);
+  view.rerender(
+    <Wrapper>
+      <RunDetail
+        run={run}
+        actions={actions}
+        now={5000}
+        onBack={() => {}}
+        onRunAgain={() => {}}
+      />
+    </Wrapper>,
+  );
+  expect(actions.subscribeRunLogs).toHaveBeenCalledTimes(1);
+  expect(log.scrollTop).toBe(30);
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Follow' }));
+  expect(log.scrollTop).toBe(120);
 });
 
 it('suspends catalogue refresh and logs when hidden and resumes when visible', async () => {
