@@ -7,18 +7,10 @@ on:
         description: moltnet-api-client version or release tag to pin.
         required: false
         type: string
-      dspy_adapters_version:
-        description: dspy-adapters version or release tag to pin.
-        required: false
-        type: string
   workflow_dispatch:
     inputs:
       api_client_version:
         description: Optional moltnet-api-client version; blank selects the version in the release manifest.
-        required: false
-        type: string
-      dspy_adapters_version:
-        description: Optional dspy-adapters version; blank selects the version in the release manifest.
         required: false
         type: string
 
@@ -59,7 +51,6 @@ jobs:
         id: pins
         env:
           API_CLIENT_VERSION: ${{ inputs.api_client_version }}
-          DSPY_ADAPTERS_VERSION: ${{ inputs.dspy_adapters_version }}
         run: |
           bash tools/release/sync-cli-go-mod.sh
           if git diff --quiet -- apps/moltnet-cli/go.mod apps/moltnet-cli/go.sum; then

@@ -1,5 +1,8 @@
 name: CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main]
@@ -925,10 +928,8 @@ jobs:
           set -euo pipefail
 
           EXPECTED_API=$(jq -r '."libs/moltnet-api-client"' .release-please-manifest.json)
-          EXPECTED_DSPY=$(jq -r '."libs/dspy-adapters"' .release-please-manifest.json)
 
           CURRENT_API=$(grep 'github.com/getlarge/themoltnet/libs/moltnet-api-client' apps/moltnet-cli/go.mod | awk '{print $2}' | sed 's/^v//')
-          CURRENT_DSPY=$(grep 'github.com/getlarge/themoltnet/libs/dspy-adapters' apps/moltnet-cli/go.mod | awk '{print $2}' | sed 's/^v//')
 
           STALE=false
           MESSAGES=()
@@ -938,12 +939,6 @@ jobs:
             STALE=true
             MESSAGES+=("- \`moltnet-api-client\`: go.mod has \`v$CURRENT_API\`, expected \`v$EXPECTED_API\`")
             COMMANDS+=("GOWORK=off go get github.com/getlarge/themoltnet/libs/moltnet-api-client@v$EXPECTED_API")
-          fi
-
-          if [ "$CURRENT_DSPY" != "$EXPECTED_DSPY" ]; then
-            STALE=true
-            MESSAGES+=("- \`dspy-adapters\`: go.mod has \`v$CURRENT_DSPY\`, expected \`v$EXPECTED_DSPY\`")
-            COMMANDS+=("GOWORK=off go get github.com/getlarge/themoltnet/libs/dspy-adapters@v$EXPECTED_DSPY")
           fi
 
           if [ "$STALE" = true ]; then

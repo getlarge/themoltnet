@@ -234,7 +234,7 @@
         }
       },
       "go-modules": {
-        "projects": ["dspy-adapters", "moltnet-api-client"],
+        "projects": ["moltnet-api-client"],
         "projectsRelationship": "independent",
         "releaseTag": {
           "pattern": "libs/{projectName}/v{version}"
@@ -282,11 +282,7 @@
       "versionActionsOptions": {
         "goReleaseGoproxy": "direct",
         "goReleaseValidationGroups": ["go-modules", "cli"],
-        "goReleaseValidationProjects": [
-          "moltnet-cli",
-          "dspy-adapters",
-          "moltnet-api-client"
-        ],
+        "goReleaseValidationProjects": ["moltnet-cli", "moltnet-api-client"],
         "goReleaseValidationRoots": ["apps/moltnet-cli"]
       }
     }
