@@ -1,6 +1,6 @@
 import {
-  type Query,
   type QueryClient,
+  type QueryState,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
@@ -47,17 +47,10 @@ function degradedMarks(client: QueryClient): Map<string, number> {
   return marks;
 }
 
-function isDegraded(
-  query: Query<
-    AgentServerCatalogue,
-    Error,
-    AgentServerCatalogue,
-    readonly unknown[]
-  >,
-): boolean {
-  if (query.state.status === 'error') return true;
+function isDegraded(state: QueryState<AgentServerCatalogue, Error>): boolean {
+  if (state.status === 'error') return true;
   return (
-    query.state.data?.teams.some(
+    state.data?.teams.some(
       (team) =>
         !team.available &&
         team.blockers.some(
@@ -108,7 +101,7 @@ export function useCatalogue(
       poll && active
         ? (current) => {
             const marks = degradedMarks(client);
-            if (!isDegraded(current)) {
+            if (!isDegraded(current.state)) {
               marks.delete(identity);
               return nextCatalogueRefresh(null);
             }
