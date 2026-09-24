@@ -179,6 +179,36 @@ describe('POST /oauth2/token caching', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it.each([
+    ['global anonymous limit', { rateLimitGlobalAnon: 1 }],
+    ['pre-resolution IP limit', { rateLimitPreResolveIp: 1 }],
+  ])(
+    'returns an OAuth error when the %s is exceeded',
+    async (_name, limits) => {
+      // Arrange
+      const limitedApp = await createTestApp(mocks, null, limits);
+      fetchMock.mockResolvedValueOnce(tokenResponse());
+
+      try {
+        // Act
+        const first = await post(limitedApp, form());
+        const limited = await post(limitedApp, form());
+
+        // Assert
+        expect(first.statusCode).toBe(200);
+        expect(limited.statusCode, limited.body).toBe(429);
+        expect(limited.json()).toMatchObject({
+          error: 'temporarily_unavailable',
+          status_code: 429,
+        });
+        expect(limited.headers['retry-after']).toBeDefined();
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+      } finally {
+        await limitedApp.close();
+      }
+    },
+  );
+
   it('collapses concurrent identical grants into one upstream call', async () => {
     // Arrange
     let release: (value: unknown) => void = () => undefined;
