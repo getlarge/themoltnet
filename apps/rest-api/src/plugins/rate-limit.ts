@@ -228,6 +228,10 @@ export function registerPreResolveThrottle(
     options.oauthApprovalIpLimit,
     ONE_MINUTE_MS,
   );
+  const approvalThrottles = new Map([
+    ['oauth-consent', consentThrottle],
+    ['oauth-provision', provisionThrottle],
+  ]);
   const isAllowListed = makeAllowList(options.allowList);
   const clientIp = createClientIpResolver(
     options.clientIpHeader,
@@ -247,22 +251,20 @@ export function registerPreResolveThrottle(
       }
 
       const route = request.routeOptions?.url;
-      const selectedThrottle =
-        route === '/oauth2/consent'
-          ? consentThrottle
-          : route === '/oauth2/provision'
-            ? provisionThrottle
-            : throttle;
-      const retryAfter = selectedThrottle.hit(clientIp(request), Date.now());
+      const bucket = (
+        request.routeOptions?.config as { rateLimitBucket?: string } | undefined
+      )?.rateLimitBucket;
+      const selectedThrottle = approvalThrottles.get(bucket ?? '') ?? throttle;
+      const retryAfter = selectedThrottle.hit(
+        tokenClientKey(clientIp(request)),
+        Date.now(),
+      );
       if (retryAfter !== null) {
         request.log.warn(
           {
-            bucket:
-              route === '/oauth2/consent'
-                ? 'pre-resolve-oauth-consent'
-                : route === '/oauth2/provision'
-                  ? 'pre-resolve-oauth-provision'
-                  : 'pre-resolve',
+            bucket: approvalThrottles.has(bucket ?? '')
+              ? `pre-resolve-${bucket}`
+              : 'pre-resolve',
             method: request.method,
             route: route ?? request.url.split('?')[0],
           },
@@ -486,13 +488,13 @@ async function rateLimitPluginImpl(
       max: oauthConsentLimit,
       timeWindow: '1 minute',
       keyGenerator: (request: FastifyRequest) =>
-        request.authContext?.identityId ?? clientIp(request),
+        request.authContext?.identityId ?? tokenClientKey(clientIp(request)),
     },
     oauthProvision: {
       max: oauthProvisionLimit,
       timeWindow: '1 minute',
       keyGenerator: (request: FastifyRequest) =>
-        request.authContext?.identityId ?? clientIp(request),
+        request.authContext?.identityId ?? tokenClientKey(clientIp(request)),
     },
     embedding: {
       max: embeddingLimit,

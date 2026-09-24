@@ -202,7 +202,7 @@ describe('Rate limiter keys by verified identity (#1336)', () => {
   it('reserves separate pre-resolution budgets for consent and provisioning', async () => {
     const app = await createTestApp(mocks, null, {
       rateLimitPreResolveIp: 1,
-      rateLimitOauthApprovalIp: 2,
+      rateLimitOauthApprovalIp: 3,
       rateLimitGlobalAnon: 1,
       rateLimitOauthConsent: 2,
       rateLimitOauthProvision: 2,
@@ -224,6 +224,7 @@ describe('Rate limiter keys by verified identity (#1336)', () => {
       expect(limitedConsent.statusCode).toBe(429);
       expect(limitedConsent.json().instance).toBe('/oauth2/consent');
       expect(limitedConsent.body).not.toContain('private-challenge');
+      expect((await consent()).statusCode).toBe(429);
 
       const provision = () =>
         app.inject({ method: 'POST', url: '/oauth2/provision', payload: {} });
