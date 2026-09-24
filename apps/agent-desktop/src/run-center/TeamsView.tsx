@@ -35,6 +35,14 @@ function scopesForRenewal(entry: AgentServerCatalogueTeam): string[] {
   );
 }
 
+function recoveryRouteUnavailable(error: unknown): boolean {
+  if (typeof error === 'object' && error !== null) {
+    const value = error as { status?: unknown; statusCode?: unknown };
+    if (value.status === 404 || value.statusCode === 404) return true;
+  }
+  return /\b404\b/.test(String(error));
+}
+
 export function TeamsView({
   data,
   actions,
@@ -65,7 +73,9 @@ export function TeamsView({
       ReturnType<NonNullable<RunCenterActions['listEnrollmentRecoveries']>>
     >['items']
   >([]);
-  const [recoveriesError, setRecoveriesError] = useState(false);
+  const [recoveriesError, setRecoveriesError] = useState<
+    'unavailable' | 'unsupported' | null
+  >(null);
   const [recoveryVersion, setRecoveryVersion] = useState(0);
   const [destinationTeamId, setDestinationTeamId] = useState('');
   const [operatorTeams, setOperatorTeams] = useState<
@@ -77,6 +87,11 @@ export function TeamsView({
   const [busy, setBusy] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [confirm, setConfirm] = useState(false);
+  const [discardTarget, setDiscardTarget] = useState<{
+    identity: string;
+    recoveryId: string;
+    secretCaptured: boolean;
+  } | null>(null);
   const [feedback, setFeedback] = useState<{
     title: string;
     message: string;
@@ -128,13 +143,16 @@ export function TeamsView({
     }
     let current = true;
     setRecoveries([]);
-    setRecoveriesError(false);
+    setRecoveriesError(null);
     void actions.listEnrollmentRecoveries(identity).then(
       ({ items }) => {
         if (current) setRecoveries(items);
       },
-      () => {
-        if (current) setRecoveriesError(true);
+      (error: unknown) => {
+        if (current)
+          setRecoveriesError(
+            recoveryRouteUnavailable(error) ? 'unsupported' : 'unavailable',
+          );
       },
     );
     return () => {
@@ -633,6 +651,16 @@ export function TeamsView({
               Console will show the selected identity, team and permissions
               before you approve.
             </Text>
+            {mode === 'replace' &&
+            team?.credential?.scopes?.some(
+              (scope) =>
+                !(TEAM_AGENT_KEY_SCOPES as readonly string[]).includes(scope),
+            ) ? (
+              <InlineNotice tone="warning" title="Permissions will change">
+                This renewal cannot retain permissions outside the Desktop team
+                credential set. Review the selected permissions before approval.
+              </InlineNotice>
+            ) : null}
             <Stack gap={2}>
               <Text weight="semibold">Credential permissions</Text>
               <Text variant="caption" color="secondary">
@@ -740,6 +768,19 @@ export function TeamsView({
                     requesting another approval.
                   </Text>
                 )}
+                <Button
+                  variant="secondary"
+                  disabled={busy || !actions.discardEnrollmentRecovery}
+                  onClick={() =>
+                    setDiscardTarget({
+                      identity,
+                      recoveryId: record.recoveryId,
+                      secretCaptured: record.secretCaptured,
+                    })
+                  }
+                >
+                  Discard record
+                </Button>
               </Stack>
             ))}
           </Stack>
@@ -747,8 +788,9 @@ export function TeamsView({
       ) : null}
       {identity && recoveriesError ? (
         <InlineNotice tone="warning" title="Recovery records unavailable">
-          Recovery controls require an updated Agent Server. Check its
-          connection and version, then refresh team access.
+          {recoveriesError === 'unsupported'
+            ? 'Recovery controls require an updated Agent Server. Update it, then refresh team access.'
+            : 'Could not load recovery records. Check the Agent Server connection and try again.'}
         </InlineNotice>
       ) : null}
       {feedback?.error ? (
@@ -790,6 +832,48 @@ export function TeamsView({
         confirmLabel="Replace credential"
         onCancel={() => setConfirm(false)}
         onConfirm={() => void submit()}
+      />
+      <ConfirmDialog
+        open={discardTarget !== null}
+        title="Discard this recovery record?"
+        destructive
+        message={
+          discardTarget?.secretCaptured
+            ? 'This record may hold the only local copy of the issued credential. Discarding it cannot be undone. Restore it or verify team access first.'
+            : 'This record has retry context but no captured credential. Discarding it removes that context. Check team access before requesting another approval.'
+        }
+        confirmLabel="Discard local record"
+        onCancel={() => setDiscardTarget(null)}
+        onConfirm={() => {
+          const target = discardTarget;
+          if (!target || !actions.discardEnrollmentRecovery) return;
+          setBusy(true);
+          void actions
+            .discardEnrollmentRecovery(
+              target.identity,
+              target.recoveryId,
+              target.secretCaptured,
+            )
+            .then(() => {
+              setRecoveryVersion((value) => value + 1);
+              setFeedback({
+                title: 'Recovery record discarded',
+                message: 'The local recovery record was removed.',
+                error: false,
+              });
+            })
+            .catch(() => {
+              setFeedback({
+                title: 'Recovery record was kept',
+                message: 'Refresh the recovery list and try again.',
+                error: true,
+              });
+            })
+            .finally(() => {
+              setDiscardTarget(null);
+              setBusy(false);
+            });
+        }}
       />
     </Stack>
   );

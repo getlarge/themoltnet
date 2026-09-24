@@ -129,6 +129,11 @@ export interface RunCenterActions {
     identity: string,
     recoveryId: string,
   ) => Promise<{ state: 'persisted'; teamId: string; keyId: string }>;
+  discardEnrollmentRecovery?: (
+    identity: string,
+    recoveryId: string,
+    expectedSecretCaptured: boolean,
+  ) => Promise<{ state: 'discarded' }>;
   createManagedAgent?: (
     name: string,
     enrollmentToken: string,

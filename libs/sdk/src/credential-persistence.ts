@@ -8,6 +8,11 @@ import { type SecretProvider, SecretProviderRegistry } from './secrets.js';
 export const ENROLLMENT_RECOVERY_DIRECTORY = 'credential-recovery';
 export const ENROLLMENT_RECOVERY_ID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.json$/i;
+const activeRecoveryPaths = new Set<string>();
+
+export function isEnrollmentRecoveryActive(path: string): boolean {
+  return activeRecoveryPaths.has(path);
+}
 
 export interface EnrollmentRetryContext {
   subjectId: string;
@@ -65,6 +70,7 @@ export async function prepareCredentialPersistence(
   await mkdir(recoveryDir, { recursive: true, mode: 0o700 });
   const path = join(recoveryDir, `${randomUUID()}.json`);
   const file = await open(path, 'wx', 0o600);
+  activeRecoveryPaths.add(path);
   const createdAt = new Date().toISOString();
   // Persist request identity before issuance, so a process interruption retains
   // the exact retry context even when the one-time response never arrives.
@@ -95,6 +101,7 @@ export async function prepareCredentialPersistence(
       });
     } catch {
       await file.close();
+      activeRecoveryPaths.delete(path);
       throw new CredentialPersistenceError(path);
     }
   }
@@ -142,13 +149,21 @@ export async function prepareCredentialPersistence(
     },
     capture,
     async retain() {
-      await close();
-      return path;
+      try {
+        await close();
+        return path;
+      } finally {
+        activeRecoveryPaths.delete(path);
+      }
     },
     async cancel() {
-      await close();
-      await rm(path, { force: true });
-      completed = true;
+      try {
+        await close();
+        await rm(path, { force: true });
+        completed = true;
+      } finally {
+        activeRecoveryPaths.delete(path);
+      }
     },
     async persist(
       provider: SecretProvider,
@@ -172,6 +187,8 @@ export async function prepareCredentialPersistence(
           captured,
           metadata.keyId,
         );
+      } finally {
+        activeRecoveryPaths.delete(path);
       }
     },
   };

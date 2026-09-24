@@ -1545,6 +1545,89 @@
         ]
       }
     },
+    "/v1/agents/{agentName}/credential-recovery/{recoveryId}/discard": {
+      "post": {
+        "operationId": "discardAgentServerEnrollmentRecovery",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "agentName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "recoveryId",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}[.]json$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "expectedSecretCaptured": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "expectedSecretCaptured"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "state": {
+                      "enum": [
+                        "discarded"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "state"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "agents"
+        ]
+      }
+    },
     "/v1/agents/{agentName}/credential-recovery/{recoveryId}/restore": {
       "post": {
         "operationId": "restoreAgentServerEnrollment",
@@ -1562,7 +1645,7 @@
             "name": "recoveryId",
             "required": true,
             "schema": {
-              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\.json$",
+              "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}[.]json$",
               "type": "string"
             }
           }

@@ -105,6 +105,10 @@ async function verifyTeamCredential(
     scopes: [...(whoami.scopes ?? [])],
     verifiedAt: new Date().toISOString(),
   };
+  return { client, metadata };
+}
+
+function requireMinimumScopes(metadata: CredentialMetadata): void {
   const missing = AGENT_SERVER_REQUIRED_SCOPES.filter(
     (scope) => !metadata.scopes.includes(scope),
   );
@@ -115,7 +119,6 @@ async function verifyTeamCredential(
       remedy:
         'Renew through browser approval with the required desktop scopes.',
     });
-  return { client, metadata };
 }
 
 /** Verify a captured credential without changing the live team slot. */
@@ -127,8 +130,16 @@ export async function verifyCandidateTeamCredential(
   connectImpl: typeof connect = connect,
 ): Promise<CredentialMetadata> {
   const activated = await loadEnrollmentIdentity(store, alias);
-  return (await verifyTeamCredential(activated, agentKey, teamId, connectImpl))
-    .metadata;
+  const timeout = AbortSignal.timeout(10_000);
+  const { metadata } = await verifyTeamCredential(
+    activated,
+    agentKey,
+    teamId,
+    connectImpl,
+    timeout,
+  );
+  requireMinimumScopes(metadata);
+  return metadata;
 }
 
 /** The only supervised credential path. No fallback reference or OAuth resolution. */
@@ -180,6 +191,7 @@ export async function verifyTeamActivation(
   );
   // Last verification is display information, never an authorization cache.
   store.writeCredentialMetadata(alias, teamId, metadata);
+  requireMinimumScopes(metadata);
   activated.boundTeamId = teamId;
   return captureTeamCredential(activated, { agentKey, client, metadata });
 }

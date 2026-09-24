@@ -305,6 +305,40 @@ describe('desktop team enrollment', () => {
     );
   });
 
+  it('warns when renewal will omit scopes held by an older team key', async () => {
+    const { data, actions } = fixture();
+    actions.catalogue = vi.fn().mockResolvedValue({
+      teams: [
+        {
+          ...team,
+          credential: {
+            ...team.credential,
+            scopes: [...DAEMON_MINIMUM_SCOPES, 'key:manage'],
+          },
+        },
+      ],
+      profiles: [],
+      projects: [],
+      projectErrors: [],
+      defaultTeamId: null,
+    });
+    show(data, actions);
+    fireEvent.click(await screen.findByRole('button', { name: 'Renew' }));
+    expect(screen.getByText('Permissions will change')).toBeInTheDocument();
+  });
+
+  it.each([
+    { error: 'HTTP 404', hint: /updated Agent Server/ },
+    { error: 'HTTP 503', hint: /Check the Agent Server connection/ },
+  ])('explains a recovery-list failure: $error', async ({ error, hint }) => {
+    const { data, actions } = fixture();
+    actions.listEnrollmentRecoveries = vi
+      .fn()
+      .mockRejectedValue(new Error(error));
+    show(data, actions);
+    expect(await screen.findByText(hint)).toBeInTheDocument();
+  });
+
   it('keeps the default scope set when renewal metadata is unavailable', async () => {
     const { data, actions } = fixture();
     actions.catalogue = vi.fn().mockResolvedValue({
@@ -392,6 +426,49 @@ describe('desktop team enrollment', () => {
     );
     expect(actions.catalogue).toHaveBeenCalledTimes(2);
   });
+
+  it.each([false, true])(
+    'confirms discarding a recovery record with captured secret %s',
+    async (secretCaptured) => {
+      const { data, actions } = fixture();
+      actions.listEnrollmentRecoveries = vi.fn().mockResolvedValue({
+        items: [
+          {
+            recoveryId: 'record.json',
+            secretCaptured,
+            teamId: 'team-a',
+            createdAt: '2026-09-01T00:00:00Z',
+          },
+        ],
+      });
+      actions.discardEnrollmentRecovery = vi.fn().mockResolvedValue({
+        state: 'discarded',
+      });
+      show(data, actions);
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Discard record' }),
+      );
+      expect(actions.discardEnrollmentRecovery).not.toHaveBeenCalled();
+      expect(
+        screen.getByText(
+          secretCaptured
+            ? /may hold the only local copy/
+            : /retry context but no captured credential/,
+        ),
+      ).toBeInTheDocument();
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Discard local record' }),
+      );
+      expect(
+        await screen.findByText('Recovery record discarded'),
+      ).toBeInTheDocument();
+      expect(actions.discardEnrollmentRecovery).toHaveBeenCalledWith(
+        'agent',
+        'record.json',
+        secretCaptured,
+      );
+    },
+  );
 
   it('shows lost-response recovery without claiming a captured secret', async () => {
     const { data, actions } = fixture();

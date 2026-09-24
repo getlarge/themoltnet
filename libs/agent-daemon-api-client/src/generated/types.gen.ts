@@ -384,6 +384,40 @@ export type ListAgentServerEnrollmentRecoveriesResponses = {
 export type ListAgentServerEnrollmentRecoveriesResponse =
   ListAgentServerEnrollmentRecoveriesResponses[keyof ListAgentServerEnrollmentRecoveriesResponses];
 
+export type DiscardAgentServerEnrollmentRecoveryData = {
+  body: {
+    expectedSecretCaptured: boolean;
+  };
+  path: {
+    agentName: string;
+    recoveryId: string;
+  };
+  query?: never;
+  url: '/v1/agents/{agentName}/credential-recovery/{recoveryId}/discard';
+};
+
+export type DiscardAgentServerEnrollmentRecoveryErrors = {
+  /**
+   * Default Response
+   */
+  default: AgentServerProblem;
+};
+
+export type DiscardAgentServerEnrollmentRecoveryError =
+  DiscardAgentServerEnrollmentRecoveryErrors[keyof DiscardAgentServerEnrollmentRecoveryErrors];
+
+export type DiscardAgentServerEnrollmentRecoveryResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    state: 'discarded';
+  };
+};
+
+export type DiscardAgentServerEnrollmentRecoveryResponse =
+  DiscardAgentServerEnrollmentRecoveryResponses[keyof DiscardAgentServerEnrollmentRecoveryResponses];
+
 export type RestoreAgentServerEnrollmentData = {
   body?: never;
   path: {

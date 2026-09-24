@@ -19,13 +19,17 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { Agent } from '../src/agent.js';
-import { CredentialPersistenceError } from '../src/credential-persistence.js';
+import {
+  CredentialPersistenceError,
+  prepareCredentialPersistence,
+} from '../src/credential-persistence.js';
 import {
   EnrollmentRecoveryError,
   enrollTeam,
   ProvisioningNotStartedError,
 } from '../src/enroll-team.js';
 import {
+  discardEnrollmentRecovery,
   listEnrollmentRecoveries,
   restoreCapturedEnrollment,
 } from '../src/enroll-team-recovery.js';
@@ -332,8 +336,64 @@ describe('human enrollment replacement and recovery', () => {
           throw new Error('remote verification unavailable');
         },
       }),
-    ).rejects.toThrow('The captured credential could not be verified');
+    ).rejects.toMatchObject({ code: 'verification_unavailable' });
     expect(await listEnrollmentRecoveries(dir)).toHaveLength(1);
+  });
+
+  it('discards only the recovery record whose capture state was confirmed', async () => {
+    const { dir } = await fixture();
+    const recoveryDir = join(dir, 'credential-recovery');
+    await mkdir(recoveryDir, { mode: 0o700 });
+    const recoveryId = '11111111-1111-4111-8111-111111111111.json';
+    const path = join(recoveryDir, recoveryId);
+    await writeFile(
+      path,
+      JSON.stringify({
+        version: 1,
+        configDir: dir,
+        secretCaptured: true,
+        secret: 'captured-secret',
+      }),
+      { mode: 0o600 },
+    );
+    await expect(
+      discardEnrollmentRecovery({
+        configDir: dir,
+        recoveryId,
+        expectedSecretCaptured: false,
+      }),
+    ).rejects.toMatchObject({ code: 'recovery_state_changed' });
+    expect(await readFile(path, 'utf8')).toContain('captured-secret');
+    await discardEnrollmentRecovery({
+      configDir: dir,
+      recoveryId,
+      expectedSecretCaptured: true,
+    });
+    await expect(stat(path)).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('keeps an in-progress enrollment record until issuance has stopped', async () => {
+    const { dir } = await fixture();
+    const recovery = await prepareCredentialPersistence(dir, {
+      subjectId: 'subject',
+      idempotencyKey: 'pending',
+      mode: 'human-pkce',
+    });
+    const recoveryId = recovery.path.split('/').at(-1)!;
+    await expect(
+      discardEnrollmentRecovery({
+        configDir: dir,
+        recoveryId,
+        expectedSecretCaptured: false,
+      }),
+    ).rejects.toMatchObject({ code: 'recovery_in_progress' });
+    await recovery.retain();
+    await discardEnrollmentRecovery({
+      configDir: dir,
+      recoveryId,
+      expectedSecretCaptured: false,
+    });
+    expect(await listEnrollmentRecoveries(dir)).toEqual([]);
   });
 
   it.each([
@@ -430,6 +490,6 @@ describe('human enrollment replacement and recovery', () => {
         providers: new SecretProviderRegistry().register(provider),
         verify: async () => ({ keyId: 'key' }),
       }),
-    ).rejects.toThrow('Invalid enrollment recovery identifier');
+    ).rejects.toMatchObject({ code: 'record_invalid' });
   });
 });

@@ -480,6 +480,13 @@ export const AGENT_SERVER_SCHEMAS = [
 
 const localControlSecurity = [{ agentServerToken: [] }] as const;
 const problemResponse = { default: schemaRef(AgentServerProblemSchema) };
+const RecoveryParamsSchema = Type.Object({
+  agentName: Type.String(),
+  recoveryId: Type.String({
+    pattern:
+      '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}[.]json$',
+  }),
+});
 
 export const AgentServerRouteSchemas = {
   listProjectLocations: {
@@ -616,19 +623,24 @@ export const AgentServerRouteSchemas = {
     operationId: 'restoreAgentServerEnrollment',
     tags: ['agents'],
     security: localControlSecurity,
-    params: Type.Object({
-      agentName: Type.String(),
-      recoveryId: Type.String({
-        pattern:
-          '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\.json$',
-      }),
-    }),
+    params: RecoveryParamsSchema,
     response: {
       200: Type.Object({
         state: Type.Literal('persisted'),
         teamId: Type.String(),
         keyId: Type.String(),
       }),
+      ...problemResponse,
+    },
+  },
+  discardEnrollmentRecovery: {
+    operationId: 'discardAgentServerEnrollmentRecovery',
+    tags: ['agents'],
+    security: localControlSecurity,
+    params: RecoveryParamsSchema,
+    body: Type.Object({ expectedSecretCaptured: Type.Boolean() }),
+    response: {
+      200: Type.Object({ state: Type.Literal('discarded') }),
       ...problemResponse,
     },
   },

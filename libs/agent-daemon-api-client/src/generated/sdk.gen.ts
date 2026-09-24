@@ -14,6 +14,9 @@ import type {
   DeleteAgentServerProviderData,
   DeleteAgentServerProviderErrors,
   DeleteAgentServerProviderResponses,
+  DiscardAgentServerEnrollmentRecoveryData,
+  DiscardAgentServerEnrollmentRecoveryErrors,
+  DiscardAgentServerEnrollmentRecoveryResponses,
   DiscoverAgentServerProviderModelsData,
   DiscoverAgentServerProviderModelsErrors,
   DiscoverAgentServerProviderModelsResponses,
@@ -155,6 +158,25 @@ export const listAgentServerEnrollmentRecoveries = <
     security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
     url: '/v1/agents/{agentName}/credential-recovery',
     ...options,
+  });
+
+export const discardAgentServerEnrollmentRecovery = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<DiscardAgentServerEnrollmentRecoveryData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    DiscardAgentServerEnrollmentRecoveryResponses,
+    DiscardAgentServerEnrollmentRecoveryErrors,
+    ThrowOnError
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/agents/{agentName}/credential-recovery/{recoveryId}/discard',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 export const restoreAgentServerEnrollment = <

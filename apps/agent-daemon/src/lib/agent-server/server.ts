@@ -47,6 +47,7 @@ import {
 } from './catalogue-project-reader.js';
 import type { ConnectionSettingsStore } from './connection-settings.js';
 import {
+  discardIdentityEnrollmentRecovery,
   enrollIdentityTeam,
   listIdentityEnrollmentRecoveries,
   restoreIdentityEnrollment,
@@ -1217,17 +1218,61 @@ function registerAgentRoutes(
           'Credential recovery remains incomplete',
         );
         if (error instanceof EnrollmentRestoreError)
-          throw new AgentServerHttpError(409, error.code, error.message);
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT')
           throw new AgentServerHttpError(
-            404,
-            'recovery_not_found',
-            'Recovery record not found',
+            error.code === 'recovery_not_found'
+              ? 404
+              : error.code === 'verification_unavailable' ||
+                  error.code === 'restore_unavailable' ||
+                  error.code === 'identity_unavailable'
+                ? 503
+                : 409,
+            error.code,
+            error.message,
           );
         throw new AgentServerHttpError(
           500,
           'recovery_failed',
           'Credential recovery failed. The record was kept; inspect Agent Server logs.',
+        );
+      }
+    },
+  );
+  app.post(
+    '/v1/agents/:agentName/credential-recovery/:recoveryId/discard',
+    { schema: AgentServerRouteSchemas.discardEnrollmentRecovery },
+    async (request) => {
+      await requireNativeOrigin(requireAuthorizedOrigin, request);
+      const { agentName, recoveryId } = request.params as {
+        agentName: string;
+        recoveryId: string;
+      };
+      const { expectedSecretCaptured } = request.body as {
+        expectedSecretCaptured: boolean;
+      };
+      try {
+        return await discardIdentityEnrollmentRecovery({
+          store,
+          alias: agentName,
+          managed: options.secretProviders,
+          external: options.externalSecretProviders,
+          recoveryId,
+          expectedSecretCaptured,
+        });
+      } catch (error) {
+        request.log.warn(
+          { recoveryId, ...safeErrorContext(error) },
+          'Credential recovery discard failed',
+        );
+        if (error instanceof EnrollmentRestoreError)
+          throw new AgentServerHttpError(
+            error.code === 'recovery_not_found' ? 404 : 409,
+            error.code,
+            error.message,
+          );
+        throw new AgentServerHttpError(
+          500,
+          'recovery_discard_failed',
+          'Recovery record could not be discarded',
         );
       }
     },

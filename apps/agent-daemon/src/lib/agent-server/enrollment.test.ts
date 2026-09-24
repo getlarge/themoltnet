@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 import { cryptoService, enrollmentProofMessage } from '@moltnet/crypto-service';
+import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
 import { SecretProviderRegistry } from '@themoltnet/sdk';
 import * as SdkNode from '@themoltnet/sdk/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -86,21 +87,32 @@ async function fixture(activated = true) {
 }
 
 describe('local team enrollment boundary', () => {
-  it('rejects invalid team scope requests as client errors before approval', async () => {
-    const { options, authorize } = await fixture();
-    await expect(
-      enrollIdentityTeam({
-        ...options,
-        input: {
-          teamId: 'team',
-          idempotencyKey: 'bad-scopes',
-          mode: 'enroll',
-          scopes: ['team:manage'],
-        },
-      }),
-    ).rejects.toMatchObject({ statusCode: 400, code: 'invalid_scopes' });
-    expect(authorize).not.toHaveBeenCalled();
-  });
+  it.each([
+    { scopes: [...AGENT_CREDENTIAL_SCOPES, 'team:manage'] },
+    {
+      scopes: AGENT_CREDENTIAL_SCOPES.filter(
+        (scope) => scope !== 'crypto:sign',
+      ),
+    },
+    { scopes: [...AGENT_CREDENTIAL_SCOPES, 'team:join'] },
+  ])(
+    'rejects invalid team scope requests as client errors before approval',
+    async ({ scopes }) => {
+      const { options, authorize } = await fixture();
+      await expect(
+        enrollIdentityTeam({
+          ...options,
+          input: {
+            teamId: 'team',
+            idempotencyKey: 'bad-scopes',
+            mode: 'enroll',
+            scopes,
+          },
+        }),
+      ).rejects.toMatchObject({ statusCode: 400, code: 'invalid_scopes' });
+      expect(authorize).not.toHaveBeenCalled();
+    },
+  );
   it('lists recovery metadata from the Agent Server identity store', async () => {
     const f = await fixture();
     const recoveryDir = join(

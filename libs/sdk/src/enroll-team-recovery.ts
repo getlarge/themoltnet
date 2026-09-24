@@ -14,6 +14,7 @@ import {
   ENROLLMENT_RECOVERY_DIRECTORY,
   ENROLLMENT_RECOVERY_ID,
   type EnrollmentRecoveryRecord,
+  isEnrollmentRecoveryActive,
 } from './credential-persistence.js';
 import type { SecretProviderRegistry } from './secrets.js';
 
@@ -41,19 +42,43 @@ export interface EnrollmentRecoverySummary {
 
 function recordPath(configDir: string, recoveryId: string): string {
   if (!ENROLLMENT_RECOVERY_ID.test(recoveryId))
-    throw new Error('Invalid enrollment recovery identifier');
+    throw new EnrollmentRestoreError(
+      'record_invalid',
+      'Invalid recovery identifier',
+    );
   return join(configDir, ENROLLMENT_RECOVERY_DIRECTORY, recoveryId);
 }
 
 async function readRecord(configDir: string, recoveryId: string) {
   const path = recordPath(configDir, recoveryId);
-  const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  const file = await open(
+    path,
+    constants.O_RDONLY | constants.O_NOFOLLOW,
+  ).catch((error: unknown) => {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT')
+      throw new EnrollmentRestoreError(
+        'recovery_not_found',
+        'Recovery record not found',
+      );
+    throw error;
+  });
   try {
     const info = await file.stat();
     if (!info.isFile() || info.size > MAX_RECORD_BYTES)
-      throw new Error('Enrollment recovery record is invalid');
+      throw new EnrollmentRestoreError(
+        'record_invalid',
+        'Enrollment recovery record is invalid',
+      );
     const text = await file.readFile('utf8');
-    const value: unknown = JSON.parse(text);
+    let value: unknown;
+    try {
+      value = JSON.parse(text);
+    } catch {
+      throw new EnrollmentRestoreError(
+        'record_invalid',
+        'Enrollment recovery record is invalid',
+      );
+    }
     if (
       !value ||
       typeof value !== 'object' ||
@@ -63,7 +88,8 @@ async function readRecord(configDir: string, recoveryId: string) {
       typeof value.configDir !== 'string' ||
       resolve(value.configDir) !== resolve(configDir)
     )
-      throw new Error(
+      throw new EnrollmentRestoreError(
+        'record_invalid',
         'Enrollment recovery record does not match this identity',
       );
     return {
@@ -116,6 +142,32 @@ export async function listEnrollmentRecoveries(
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
+/** Discard only the record the native operator inspected and confirmed. */
+export async function discardEnrollmentRecovery(options: {
+  configDir: string;
+  recoveryId: string;
+  expectedSecretCaptured: boolean;
+}): Promise<void> {
+  const { configDir, recoveryId, expectedSecretCaptured } = options;
+  if (isEnrollmentRecoveryActive(recordPath(configDir, recoveryId)))
+    throw new EnrollmentRestoreError(
+      'recovery_in_progress',
+      'Enrollment is still using this recovery record',
+    );
+  const { record } = await readRecord(configDir, recoveryId);
+  if (record.secretCaptured !== expectedSecretCaptured)
+    throw new EnrollmentRestoreError(
+      'recovery_state_changed',
+      'Recovery record changed; refresh it before discarding',
+    );
+  if (isEnrollmentRecoveryActive(recordPath(configDir, recoveryId)))
+    throw new EnrollmentRestoreError(
+      'recovery_in_progress',
+      'Enrollment is still using this recovery record',
+    );
+  await rm(recordPath(configDir, recoveryId), { force: true });
+}
+
 /** Finish a captured enrollment on its original machine and verify before cleanup. */
 export async function restoreCapturedEnrollment(options: {
   configDir: string;
@@ -125,13 +177,25 @@ export async function restoreCapturedEnrollment(options: {
 }): Promise<{ teamId: string; keyId: string }> {
   const { configDir, recoveryId, providers, verify } = options;
   const { record } = await readRecord(configDir, recoveryId);
-  const config = await readConfig(configDir);
+  const config = await readConfig(configDir).catch(() => {
+    throw new EnrollmentRestoreError(
+      'identity_unavailable',
+      'Enrollment identity configuration could not be read',
+    );
+  });
   if (!config)
     throw new EnrollmentRestoreError(
       'identity_missing',
       'Enrollment identity configuration is missing',
     );
-  assertCanonicalConfig(config);
+  try {
+    assertCanonicalConfig(config);
+  } catch {
+    throw new EnrollmentRestoreError(
+      'identity_invalid',
+      'Enrollment identity configuration is invalid',
+    );
+  }
   const { subjectId, teamId, keyId, reference, secret } = record;
   if (
     record.secretCaptured !== true ||
@@ -167,10 +231,11 @@ export async function restoreCapturedEnrollment(options: {
   // A candidate must authenticate with the exact identity, team, key ID, and
   // daemon minimum scopes before touching a live slot. This also rejects a
   // captured response that failed the normal enrollment commit guard.
-  const verified = await verify(teamId, secret).catch(() => {
+  const verified = await verify(teamId, secret).catch((error: unknown) => {
+    if (error instanceof EnrollmentRestoreError) throw error;
     throw new EnrollmentRestoreError(
-      'candidate_unverified',
-      'The captured credential could not be verified for this identity and team',
+      'verification_unavailable',
+      'Credential verification is unavailable; retry when the service is reachable',
     );
   });
   if (verified.keyId !== keyId)
@@ -180,66 +245,95 @@ export async function restoreCapturedEnrollment(options: {
     );
 
   const previous = record.retryContext?.observedReference;
-  if (record.retryContext?.provisioning?.operation === 'renew') {
-    if (
-      !previous ||
-      previous.provider !== reference.provider ||
-      previous.key !== reference.key ||
-      config.agent_key_refs?.[teamId]?.provider !== reference.provider ||
-      config.agent_key_refs?.[teamId]?.key !== reference.key
-    )
-      throw new Error('The team credential changed after renewal');
-    await updateTeamAgentKeyReference(
-      subjectId,
-      teamId,
-      reference,
-      configDir,
-      async (current) => {
-        if (
-          current.agent_key_refs?.[teamId]?.provider !== reference.provider ||
-          current.agent_key_refs?.[teamId]?.key !== reference.key
-        )
-          throw new Error('The team credential changed after renewal');
-        const stored = await provider.read(reference.key);
-        const oldHash = record.retryContext?.observedCredentialHash;
-        if (
-          stored !== secret &&
-          (stored === null
-            ? oldHash !== null
-            : createHash('sha256').update(stored).digest('hex') !== oldHash)
-        )
-          throw new Error('The team credential changed after renewal');
-        if (stored !== secret) {
-          if (!provider.write)
-            throw new Error('The original credential provider is not writable');
-          await provider.write(reference.key, secret);
-        }
-        if ((await provider.read(reference.key)) !== secret)
-          throw new Error('Recovered credential read-back failed');
-      },
-    );
-  } else if (record.retryContext?.provisioning?.operation === 'enroll') {
-    await updateTeamAgentKeyReference(
-      subjectId,
-      teamId,
-      reference,
-      configDir,
-      async (current) => {
-        const existing = current.agent_key_refs?.[teamId];
-        if (existing) {
+  try {
+    if (record.retryContext?.provisioning?.operation === 'renew') {
+      if (
+        !previous ||
+        previous.provider !== reference.provider ||
+        previous.key !== reference.key ||
+        config.agent_key_refs?.[teamId]?.provider !== reference.provider ||
+        config.agent_key_refs?.[teamId]?.key !== reference.key
+      )
+        throw new EnrollmentRestoreError(
+          'credential_changed',
+          'The team credential changed after renewal',
+        );
+      await updateTeamAgentKeyReference(
+        subjectId,
+        teamId,
+        reference,
+        configDir,
+        async (current) => {
           if (
-            existing.provider !== reference.provider ||
-            existing.key !== reference.key ||
-            (await provider.read(reference.key)) !== secret
+            current.agent_key_refs?.[teamId]?.provider !== reference.provider ||
+            current.agent_key_refs?.[teamId]?.key !== reference.key
           )
-            throw new Error('The team credential changed after enrollment');
-        } else {
-          await providers.ensure(reference, secret);
-        }
-      },
+            throw new EnrollmentRestoreError(
+              'credential_changed',
+              'The team credential changed after renewal',
+            );
+          const stored = await provider.read(reference.key);
+          const oldHash = record.retryContext?.observedCredentialHash;
+          if (
+            stored !== secret &&
+            (stored === null
+              ? oldHash !== null
+              : createHash('sha256').update(stored).digest('hex') !== oldHash)
+          )
+            throw new EnrollmentRestoreError(
+              'credential_changed',
+              'The team credential changed after renewal',
+            );
+          if (stored !== secret) {
+            if (!provider.write)
+              throw new EnrollmentRestoreError(
+                'provider_unwritable',
+                'The original credential provider is not writable',
+              );
+            await provider.write(reference.key, secret);
+          }
+          if ((await provider.read(reference.key)) !== secret)
+            throw new EnrollmentRestoreError(
+              'readback_failed',
+              'Recovered credential read-back failed',
+            );
+        },
+      );
+    } else if (record.retryContext?.provisioning?.operation === 'enroll') {
+      await updateTeamAgentKeyReference(
+        subjectId,
+        teamId,
+        reference,
+        configDir,
+        async (current) => {
+          const existing = current.agent_key_refs?.[teamId];
+          if (existing) {
+            if (
+              existing.provider !== reference.provider ||
+              existing.key !== reference.key ||
+              (await provider.read(reference.key)) !== secret
+            )
+              throw new EnrollmentRestoreError(
+                'credential_changed',
+                'The team credential changed after enrollment',
+              );
+          } else {
+            await providers.ensure(reference, secret);
+          }
+        },
+      );
+    } else {
+      throw new EnrollmentRestoreError(
+        'operation_invalid',
+        'Enrollment recovery operation is invalid',
+      );
+    }
+  } catch (error) {
+    if (error instanceof EnrollmentRestoreError) throw error;
+    throw new EnrollmentRestoreError(
+      'restore_unavailable',
+      'The identity or credential provider could not be updated; retry after checking the local server logs',
     );
-  } else {
-    throw new Error('Enrollment recovery operation is invalid');
   }
   await rm(recordPath(configDir, recoveryId), { force: true });
   return { teamId, keyId };

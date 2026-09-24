@@ -22,6 +22,7 @@ export {
   ProvisioningNotStartedError,
 } from './enroll-team.js';
 export {
+  discardEnrollmentRecovery,
   type EnrollmentRecoverySummary,
   EnrollmentRestoreError,
   listEnrollmentRecoveries,

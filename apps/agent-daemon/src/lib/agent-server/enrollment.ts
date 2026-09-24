@@ -9,7 +9,9 @@ import {
 import { type SecretProviderRegistry, signBytes } from '@themoltnet/sdk';
 import {
   CredentialPersistenceError,
+  discardEnrollmentRecovery,
   EnrollmentRecoveryError,
+  EnrollmentRestoreError,
   enrollTeam,
   type EnrollTeamResult,
   listEnrollmentRecoveries,
@@ -21,7 +23,10 @@ import { AgentServerHttpError } from './http-error.js';
 import { loadEnrollmentIdentity } from './identity.js';
 import type { OperatorOAuth } from './operator-oauth.js';
 import type { AgentServerStore } from './store.js';
-import { verifyCandidateTeamCredential } from './team-credentials.js';
+import {
+  TeamCredentialError,
+  verifyCandidateTeamCredential,
+} from './team-credentials.js';
 
 function recoveryLocation(
   options: {
@@ -57,6 +62,27 @@ export async function listIdentityEnrollmentRecoveries(options: {
   return { items: await listEnrollmentRecoveries(configDir) };
 }
 
+export async function discardIdentityEnrollmentRecovery(options: {
+  store: AgentServerStore;
+  alias: string;
+  managed: SecretProviderRegistry;
+  external: SecretProviderRegistry;
+  recoveryId: string;
+  expectedSecretCaptured: boolean;
+}) {
+  const { activation } = await loadEnrollmentIdentity(
+    options.store,
+    options.alias,
+  );
+  const { configDir } = recoveryLocation(options, activation);
+  await discardEnrollmentRecovery({
+    configDir,
+    recoveryId: options.recoveryId,
+    expectedSecretCaptured: options.expectedSecretCaptured,
+  });
+  return { state: 'discarded' as const };
+}
+
 export async function restoreIdentityEnrollment(options: {
   store: AgentServerStore;
   alias: string;
@@ -65,9 +91,17 @@ export async function restoreIdentityEnrollment(options: {
   recoveryId: string;
   verifyCandidateImpl?: typeof verifyCandidateTeamCredential;
 }) {
-  const { activation } = await loadEnrollmentIdentity(
+  const activation = await loadEnrollmentIdentity(
     options.store,
     options.alias,
+  ).then(
+    (identity) => identity.activation,
+    () => {
+      throw new EnrollmentRestoreError(
+        'identity_unavailable',
+        'Enrollment identity could not be loaded',
+      );
+    },
   );
   const { configDir, providers } = recoveryLocation(options, activation);
   const restored = await restoreCapturedEnrollment({
@@ -75,9 +109,19 @@ export async function restoreIdentityEnrollment(options: {
     recoveryId: options.recoveryId,
     providers,
     verify: async (teamId, secret) => {
-      const metadata = await (
-        options.verifyCandidateImpl ?? verifyCandidateTeamCredential
-      )(options.store, options.alias, secret, teamId);
+      let metadata;
+      try {
+        metadata = await (
+          options.verifyCandidateImpl ?? verifyCandidateTeamCredential
+        )(options.store, options.alias, secret, teamId);
+      } catch (error) {
+        if (error instanceof TeamCredentialError)
+          throw new EnrollmentRestoreError(
+            'candidate_unverified',
+            error.message,
+          );
+        throw error;
+      }
       return { keyId: metadata.keyId };
     },
   });

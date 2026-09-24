@@ -5,7 +5,7 @@
  * token and passes it in the child's environment, so no browser ceremony is
  * involved and the native origin must never be reachable through one.
  */
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, symlink, writeFile } from 'node:fs/promises';
 import { request } from 'node:http';
 import { dirname, join } from 'node:path';
 
@@ -115,6 +115,18 @@ describe('native desktop client', () => {
       headers,
     });
     expect(repeat.statusCode).toBe(404);
+    const unreadableId = 'f56bdbe0-0c05-4166-9ae5-5a26d7c08193.json';
+    await symlink(
+      join(recoveryDir, recoveryId),
+      join(recoveryDir, unreadableId),
+    );
+    const failed = await app.inject({
+      method: 'POST',
+      url: `${url}/${unreadableId}/restore`,
+      headers,
+    });
+    expect(failed.statusCode).toBe(500);
+    expect(failed.json()).toMatchObject({ code: 'recovery_failed' });
     const incompleteId = 'a9fd6de4-15e4-4d20-a7d9-e908ec8ac13d.json';
     await writeFile(
       join(recoveryDir, incompleteId),
@@ -131,6 +143,36 @@ describe('native desktop client', () => {
     });
     expect(incomplete.statusCode).toBe(409);
     expect(incomplete.json()).toMatchObject({ code: 'secret_not_captured' });
+    const discardUrl = `${url}/${incompleteId}/discard`;
+    const browserDiscard = await app.inject({
+      method: 'POST',
+      url: discardUrl,
+      headers: {
+        ...headers,
+        origin: BROWSER_ORIGIN,
+        'content-type': 'application/json',
+      },
+      payload: { expectedSecretCaptured: false },
+    });
+    expect(browserDiscard.statusCode, browserDiscard.body).toBe(403);
+    const changed = await app.inject({
+      method: 'POST',
+      url: discardUrl,
+      headers: { ...headers, 'content-type': 'application/json' },
+      payload: { expectedSecretCaptured: true },
+    });
+    expect(changed.statusCode).toBe(409);
+    const discarded = await app.inject({
+      method: 'POST',
+      url: discardUrl,
+      headers: { ...headers, 'content-type': 'application/json' },
+      payload: { expectedSecretCaptured: false },
+    });
+    expect(discarded.statusCode).toBe(200);
+    expect(discarded.json()).toMatchObject({ state: 'discarded' });
+    expect(
+      (await app.inject({ method: 'GET', url, headers })).json(),
+    ).toMatchObject({ items: [] });
   });
   it('returns operator team choices only to the native client', async () => {
     const nativeGrant = new NativeGrantService();

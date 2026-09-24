@@ -139,6 +139,12 @@ export const runCenterActions: RunCenterActions = {
     invoke('desktop_list_enrollment_recoveries', { identity }),
   restoreEnrollment: (identity, recoveryId) =>
     invoke('desktop_restore_enrollment', { identity, recoveryId }),
+  discardEnrollmentRecovery: (identity, recoveryId, expectedSecretCaptured) =>
+    invoke('desktop_discard_enrollment_recovery', {
+      identity,
+      recoveryId,
+      expectedSecretCaptured,
+    }),
   catalogue: (identity) =>
     invoke<AgentServerCatalogue>('desktop_catalogue', { identity }),
 
