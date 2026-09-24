@@ -325,80 +325,91 @@ export async function oauth2Routes(
           : undefined,
       );
 
+      const loadGrant = async () => {
+        const upstreamHeaders: Record<string, string> = {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        };
+        // client_secret_basic and private_key_jwt carry the client's identity
+        // here; dropping it silently broke both.
+        if (authorization) upstreamHeaders.Authorization = authorization;
+        const dpop = request.headers.dpop;
+        if (typeof dpop === 'string') upstreamHeaders.DPoP = dpop;
+
+        let upstreamResponse: Response;
+        try {
+          upstreamResponse = await fetch(`${hydraPublicUrl}/oauth2/token`, {
+            method: 'POST',
+            headers: upstreamHeaders,
+            body: new URLSearchParams(body).toString(),
+          });
+        } catch (error: unknown) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          fastify.log.error({ error }, 'Hydra token endpoint unreachable');
+          metrics.recordExchange('rest-proxy', grantType, 'unavailable');
+          throw createProblem(
+            'upstream-error',
+            `Token endpoint unreachable: ${message}`,
+          );
+        }
+
+        let responseBody: unknown;
+        try {
+          responseBody = await upstreamResponse.json();
+        } catch {
+          fastify.log.error('Failed to parse JSON from Hydra token endpoint');
+          metrics.recordExchange('rest-proxy', grantType, 'unavailable');
+          throw createProblem(
+            'upstream-error',
+            'Token endpoint returned invalid JSON response',
+          );
+        }
+
+        const status = upstreamResponse.status;
+        const grant = responseBody as HydraResponse;
+        const expiresIn = (grant as HydraTokenSuccess).expires_in;
+        metrics.recordExchange(
+          'rest-proxy',
+          grantType,
+          status === 200 ? 'success' : 'invalid',
+        );
+
+        // Headers Hydra uses to drive the client's next step must survive the
+        // proxy, or DPoP nonce negotiation and 401 challenges break.
+        const passthroughHeaders: Record<string, string> = {};
+        for (const name of ['dpop-nonce', 'www-authenticate']) {
+          const value = upstreamResponse.headers?.get?.(name);
+          if (value) passthroughHeaders[name] = value;
+        }
+
+        const value = { status, body: grant, headers: passthroughHeaders };
+
+        // Omitting expiresAt tells the cache not to store this. Errors are
+        // never cached, and neither is any grant outside the policy.
+        if (status !== 200 || typeof expiresIn !== 'number' || !policy) {
+          return { value };
+        }
+        const cappedSeconds =
+          policy.maxSeconds === undefined
+            ? expiresIn
+            : Math.min(expiresIn, policy.maxSeconds);
+        return entryFromExpiresIn(value, cappedSeconds, expiryBufferSeconds);
+      };
+
       let resolved: Awaited<ReturnType<GrantCache['resolve']>>;
       try {
-        resolved = await grantCache.resolve(cacheKey, async () => {
-          const upstreamHeaders: Record<string, string> = {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          };
-          // client_secret_basic and private_key_jwt carry the client's identity
-          // here; dropping it silently broke both.
-          if (authorization) upstreamHeaders.Authorization = authorization;
-          const dpop = request.headers.dpop;
-          if (typeof dpop === 'string') upstreamHeaders.DPoP = dpop;
-
-          let upstreamResponse: Response;
-          try {
-            upstreamResponse = await fetch(`${hydraPublicUrl}/oauth2/token`, {
-              method: 'POST',
-              headers: upstreamHeaders,
-              body: new URLSearchParams(body).toString(),
-            });
-          } catch (error: unknown) {
-            const message =
-              error instanceof Error ? error.message : String(error);
-            fastify.log.error({ error }, 'Hydra token endpoint unreachable');
-            metrics.recordExchange('rest-proxy', grantType, 'unavailable');
-            throw createProblem(
-              'upstream-error',
-              `Token endpoint unreachable: ${message}`,
-            );
-          }
-
-          let responseBody: unknown;
-          try {
-            responseBody = await upstreamResponse.json();
-          } catch {
-            fastify.log.error('Failed to parse JSON from Hydra token endpoint');
-            metrics.recordExchange('rest-proxy', grantType, 'unavailable');
-            throw createProblem(
-              'upstream-error',
-              'Token endpoint returned invalid JSON response',
-            );
-          }
-
-          const status = upstreamResponse.status;
-          const grant = responseBody as HydraResponse;
-          const expiresIn = (grant as HydraTokenSuccess).expires_in;
-          metrics.recordExchange(
-            'rest-proxy',
-            grantType,
-            status === 200 ? 'success' : 'invalid',
-          );
-
-          // Headers Hydra uses to drive the client's next step must survive the
-          // proxy, or DPoP nonce negotiation and 401 challenges break.
-          const passthroughHeaders: Record<string, string> = {};
-          for (const name of ['dpop-nonce', 'www-authenticate']) {
-            const value = upstreamResponse.headers?.get?.(name);
-            if (value) passthroughHeaders[name] = value;
-          }
-
-          const value = { status, body: grant, headers: passthroughHeaders };
-
-          // Omitting expiresAt tells the cache not to store this. Errors are
-          // never cached, and neither is any grant outside the policy.
-          if (status !== 200 || typeof expiresIn !== 'number' || !policy) {
-            return { value };
-          }
-          const cappedSeconds =
-            policy.maxSeconds === undefined
-              ? expiresIn
-              : Math.min(expiresIn, policy.maxSeconds);
-          return entryFromExpiresIn(value, cappedSeconds, expiryBufferSeconds);
-        });
+        // Grants outside the cache policy must not depend on Redis at all.
+        resolved = policy
+          ? await grantCache.resolve(cacheKey, loadGrant)
+          : {
+              value: (await loadGrant()).value,
+              origin: 'load',
+              remainingSeconds: null,
+            };
       } catch (error) {
         if (!(error instanceof RedisCacheStoreError)) throw error;
+
+        metrics.recordUnavailable('rest-proxy', grantType);
 
         request.log.error(
           {
@@ -411,10 +422,16 @@ export async function oauth2Routes(
           'OAuth2 grant cache command failed',
         );
 
-        return reply.status(503).header('retry-after', '5').send({
-          error: 'temporarily_unavailable',
-          error_description: 'Token service temporarily unavailable',
-        });
+        // Spread retries across a few seconds when many clients see the same
+        // cache outage; a fixed delay makes them retry together.
+        const retryAfterSeconds = 3 + Math.floor(Math.random() * 5);
+        return reply
+          .status(503)
+          .header('retry-after', String(retryAfterSeconds))
+          .send({
+            error: 'temporarily_unavailable',
+            error_description: 'Token service temporarily unavailable',
+          });
       }
 
       for (const [name, value] of Object.entries(resolved.value.headers)) {

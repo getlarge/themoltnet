@@ -18,9 +18,9 @@ function fakeRedis(): RedisLikeClient & { data: Map<string, string> } {
       data.set(key, value);
       return 'OK';
     }),
-    del: vi.fn(async (key: string) => {
-      data.delete(key);
-      return 1;
+    del: vi.fn(async (key: string, ...keys: string[]) => {
+      for (const found of [key, ...keys]) data.delete(found);
+      return keys.length + 1;
     }),
     // Minimal SCAN: one page, MATCH honoured for the trailing-* patterns the
     // store builds. Enough to exercise the cursor loop.
@@ -166,6 +166,7 @@ describe('createRedisCacheStore', () => {
     expect(await store.get('client-a|cc|hash1')).toBeNull();
     expect(await store.get('client-a|cc|hash2')).toBeNull();
     expect((await store.get('client-b|cc|hash3'))?.value).toBe('b1');
+    expect(client.del).toHaveBeenCalledTimes(1);
   });
 
   it('does not disconnect the shared client on close', async () => {

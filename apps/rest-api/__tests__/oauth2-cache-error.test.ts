@@ -1,4 +1,7 @@
-import type { RedisLikeClient } from '@moltnet/oauth-token-cache';
+import type {
+  RedisLikeClient,
+  TokenExchangeMetrics,
+} from '@moltnet/oauth-token-cache';
 import Fastify from 'fastify';
 import pino from 'pino';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -21,11 +24,19 @@ describe('POST /oauth2/token when Redis fails', () => {
   const logs: Record<string, unknown>[] = [];
   let app: ReturnType<typeof Fastify>;
   let redis: RedisLikeClient;
+  let metrics: TokenExchangeMetrics;
 
   beforeEach(async () => {
     logs.length = 0;
     fetchMock.mockReset();
     redis = fakeRedis();
+    metrics = {
+      recordCacheAccess: vi.fn(),
+      recordCacheError: vi.fn(),
+      recordUnavailable: vi.fn(),
+      recordExchange: vi.fn(),
+      recordServedTtl: vi.fn(),
+    };
     app = Fastify({
       loggerInstance: pino(
         { level: 'error' },
@@ -35,7 +46,7 @@ describe('POST /oauth2/token when Redis fails', () => {
         },
       ),
     });
-    const options = { hydraPublicUrl: 'http://hydra.test', redis };
+    const options = { hydraPublicUrl: 'http://hydra.test', redis, metrics };
     await app.register(oauth2GrantCachePlugin, options);
     await app.register(oauth2Routes, options);
     await app.ready();
@@ -45,13 +56,14 @@ describe('POST /oauth2/token when Redis fails', () => {
     await app.close();
   });
 
-  async function requestToken() {
+  async function requestToken(
+    payload = 'grant_type=client_credentials&client_id=agent&client_secret=secret',
+  ) {
     return app.inject({
       method: 'POST',
       url: '/oauth2/token',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      payload:
-        'grant_type=client_credentials&client_id=agent&client_secret=secret',
+      payload,
     });
   }
 
@@ -64,12 +76,22 @@ describe('POST /oauth2/token when Redis fails', () => {
 
     // Assert
     expect(response.statusCode).toBe(503);
-    expect(response.headers['retry-after']).toBe('5');
+    expect(Number(response.headers['retry-after'])).toBeGreaterThanOrEqual(3);
+    expect(Number(response.headers['retry-after'])).toBeLessThanOrEqual(7);
     expect(response.json()).toMatchObject({
       error: 'temporarily_unavailable',
     });
     expect(redis.get).toHaveBeenCalledTimes(2);
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(metrics.recordCacheError).toHaveBeenCalledWith('rest-proxy', 'get');
+    expect(metrics.recordUnavailable).toHaveBeenCalledWith(
+      'rest-proxy',
+      'client_credentials',
+    );
+    expect(metrics.recordCacheAccess).toHaveBeenCalledWith(
+      'rest-proxy',
+      'error',
+    );
     expect(logs).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -80,6 +102,31 @@ describe('POST /oauth2/token when Redis fails', () => {
       ]),
     );
     expect(JSON.stringify(logs)).not.toContain('client_secret');
+  });
+
+  it('forwards a grant outside the cache policy without reading Redis', async () => {
+    // Arrange
+    vi.mocked(redis.get).mockRejectedValue(new Error('Command timed out'));
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          access_token: 'authorization-token',
+          token_type: 'bearer',
+          expires_in: 3600,
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+
+    // Act
+    const response = await requestToken(
+      'grant_type=authorization_code&code=code&client_id=agent',
+    );
+
+    // Assert
+    expect(response.statusCode).toBe(200);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(redis.get).not.toHaveBeenCalled();
   });
 
   it('calls Hydra after a retry returns an empty cache response', async () => {
@@ -139,7 +186,7 @@ describe('POST /oauth2/token when Redis fails', () => {
     );
   });
 
-  it('shares one minted token across concurrent requests when the cache write fails', async () => {
+  it('shares one minted token, then blocks new mints until Redis accepts a write', async () => {
     // Arrange
     vi.mocked(redis.set).mockRejectedValue(new Error('Command timed out'));
     let releaseFetch!: (response: Response) => void;
@@ -151,7 +198,12 @@ describe('POST /oauth2/token when Redis fails', () => {
     // Act
     const firstRequest = requestToken();
     const secondRequest = requestToken();
-    await vi.waitFor(() => expect(redis.get).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() =>
+      expect(metrics.recordCacheAccess).toHaveBeenCalledWith(
+        'rest-proxy',
+        'single_flight',
+      ),
+    );
     releaseFetch(
       new Response(
         JSON.stringify({
@@ -163,17 +215,39 @@ describe('POST /oauth2/token when Redis fails', () => {
       ),
     );
     const [first, second] = await Promise.all([firstRequest, secondRequest]);
-    const next = await requestToken();
+    const duringWriteFailure = await requestToken();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    vi.mocked(redis.set).mockResolvedValue('OK');
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          access_token: 'recovered-token',
+          token_type: 'bearer',
+          expires_in: 3600,
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    const afterRecovery = await requestToken();
 
     // Assert
     expect(first.statusCode).toBe(200);
     expect(second.statusCode).toBe(200);
-    expect(next.statusCode).toBe(200);
+    expect(duringWriteFailure.statusCode).toBe(503);
+    expect(afterRecovery.statusCode).toBe(200);
     expect(first.json().access_token).toBe('shared-token');
     expect(second.json().access_token).toBe('shared-token');
-    expect(next.json().access_token).toBe('shared-token');
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(redis.set).toHaveBeenCalledTimes(2);
+    expect(afterRecovery.json().access_token).toBe('recovered-token');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(redis.set).toHaveBeenCalledTimes(6);
+    expect(vi.mocked(redis.set).mock.calls[2]?.[0]).toBe(
+      'moltnet:oauth-token:__write-probe__',
+    );
+    expect(metrics.recordUnavailable).toHaveBeenCalledWith(
+      'rest-proxy',
+      'client_credentials',
+    );
     expect(logs).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

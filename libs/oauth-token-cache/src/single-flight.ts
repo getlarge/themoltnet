@@ -1,5 +1,5 @@
 import { MemoryCacheStore } from './cache/memory.js';
-import type { CacheStore, LoadResult } from './cache/types.js';
+import type { CacheEntry, CacheStore, LoadResult } from './cache/types.js';
 import {
   NOOP_TOKEN_EXCHANGE_METRICS,
   type TokenExchangeMetrics,
@@ -51,16 +51,17 @@ export interface SingleFlightCache<T> {
 export function createSingleFlightCache<T>(
   options: SingleFlightCacheOptions<T> = {},
 ): SingleFlightCache<T> {
-  const store = options.store ?? new MemoryCacheStore<T>();
+  const store: CacheStore<T> = options.store ?? new MemoryCacheStore<T>();
   const metrics = options.metrics ?? NOOP_TOKEN_EXCHANGE_METRICS;
   const source = options.source ?? 'unknown';
   const now = options.now ?? Date.now;
   const inFlight = new Map<string, Promise<Resolved<T>>>();
-  // Only grants whose shared-store write failed live here. The memory store
-  // bounds cardinality; the expiry check below bounds how long one is served.
-  const localFallback = new MemoryCacheStore<T>();
+  // A failed write must not trigger more paid loads until Redis accepts a
+  // harmless probe write. No grant response is retained in this process.
+  let writeFailed = false;
 
   function reportStoreError(operation: 'set' | 'delete', error: unknown): void {
+    metrics.recordCacheError(source, operation);
     try {
       options.onStoreError?.(operation, error);
     } catch {
@@ -72,18 +73,27 @@ export function createSingleFlightCache<T>(
     key: string,
     load: () => Promise<LoadResult<T>>,
   ): Promise<Resolved<T>> {
-    const local = await localFallback.get(key);
-    if (local) {
-      if (local.expiresAt > now()) {
-        const remainingSeconds = Math.floor((local.expiresAt - now()) / 1000);
-        metrics.recordCacheAccess(source, 'hit');
-        metrics.recordServedTtl(source, remainingSeconds);
-        return { value: local.value, origin: 'hit', remainingSeconds };
-      }
-      await localFallback.delete(key);
+    const existing = inFlight.get(key);
+    if (existing) {
+      metrics.recordCacheAccess(source, 'single_flight');
+      const shared = await existing;
+      return { ...shared, origin: 'single_flight' };
     }
 
-    const cached = await store.get(key);
+    let cached: CacheEntry<T> | null;
+    try {
+      cached = await store.get(key);
+    } catch (error) {
+      metrics.recordCacheAccess(source, 'error');
+      metrics.recordCacheError(source, 'get');
+      const pending = inFlight.get(key);
+      if (pending) {
+        metrics.recordCacheAccess(source, 'single_flight');
+        const shared = await pending;
+        return { ...shared, origin: 'single_flight' };
+      }
+      throw error;
+    }
     if (cached && cached.expiresAt > now()) {
       const remainingSeconds = Math.floor((cached.expiresAt - now()) / 1000);
       metrics.recordCacheAccess(source, 'hit');
@@ -100,16 +110,27 @@ export function createSingleFlightCache<T>(
       }
     }
 
-    const existing = inFlight.get(key);
-    if (existing) {
+    const pendingForKey = inFlight.get(key);
+    if (pendingForKey) {
       metrics.recordCacheAccess(source, 'single_flight');
-      const shared = await existing;
+      const shared = await pendingForKey;
       return { ...shared, origin: 'single_flight' };
     }
 
     metrics.recordCacheAccess(source, 'miss');
 
     const pending = (async (): Promise<Resolved<T>> => {
+      if (writeFailed && store.probeWrite) {
+        try {
+          await store.probeWrite();
+          writeFailed = false;
+        } catch (error) {
+          metrics.recordCacheAccess(source, 'error');
+          reportStoreError('set', error);
+          throw error;
+        }
+      }
+
       const result = await load();
       if (result.expiresAt === undefined) {
         // Explicitly not cacheable — an upstream error, which must reach the
@@ -122,8 +143,9 @@ export function createSingleFlightCache<T>(
       };
       try {
         await store.set(key, entry);
+        writeFailed = false;
       } catch (error) {
-        await localFallback.set(key, entry);
+        if (store.probeWrite) writeFailed = true;
         reportStoreError('set', error);
         return { value: result.value, origin: 'load', remainingSeconds: null };
       }
@@ -149,17 +171,10 @@ export function createSingleFlightCache<T>(
 
   return {
     resolve,
-    invalidate: async (key) => {
-      await localFallback.delete(key);
-      await store.delete(key);
-    },
-    invalidatePrefix: async (prefix) => {
-      await localFallback.deleteByPrefix(prefix);
-      await store.deleteByPrefix(prefix);
-    },
+    invalidate: (key) => store.delete(key),
+    invalidatePrefix: (prefix) => store.deleteByPrefix(prefix),
     close: async () => {
       inFlight.clear();
-      await localFallback.close();
       await store.close();
     },
   };

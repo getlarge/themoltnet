@@ -33,6 +33,8 @@ export interface LoadResult<T> {
 export interface CacheStore<T> {
   get(key: string): Promise<CacheEntry<T> | null>;
   set(key: string, entry: CacheEntry<T>): Promise<void>;
+  /** Optional write check before loading after a failed store write. */
+  probeWrite?(): Promise<void>;
   delete(key: string): Promise<void>;
   /**
    * Drop every key starting with `prefix`.

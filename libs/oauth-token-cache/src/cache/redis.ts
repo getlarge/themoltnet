@@ -10,7 +10,7 @@ import type { CacheEntry, CacheStore } from './types.js';
 export interface RedisLikeClient {
   get(key: string): Promise<string | null>;
   set(key: string, value: string, mode: 'PX', ttlMs: number): Promise<unknown>;
-  del(key: string): Promise<unknown>;
+  del(key: string, ...keys: string[]): Promise<unknown>;
   scan(
     cursor: string,
     matchToken: 'MATCH',
@@ -27,6 +27,7 @@ export interface RedisCacheStoreOptions {
 }
 
 export type RedisCacheOperation = 'get' | 'set' | 'delete' | 'scan';
+const MAX_ATTEMPTS = 2;
 
 /** Identifies cache transport failures without exposing grant keys or secrets. */
 export class RedisCacheStoreError extends Error {
@@ -34,9 +35,12 @@ export class RedisCacheStoreError extends Error {
     public readonly operation: RedisCacheOperation,
     cause: unknown,
   ) {
-    super(`OAuth2 Redis cache ${operation} failed after two attempts`, {
-      cause,
-    });
+    super(
+      `OAuth2 Redis cache ${operation} failed after ${MAX_ATTEMPTS} attempts`,
+      {
+        cause,
+      },
+    );
     this.name = 'RedisCacheStoreError';
   }
 }
@@ -46,7 +50,7 @@ async function runRedisCommand<T>(
   command: () => Promise<T>,
 ): Promise<T> {
   let lastError: unknown;
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     try {
       return await command();
     } catch (cause) {
@@ -75,6 +79,12 @@ export function createRedisCacheStore<T>(
   const namespaced = (key: string) => `${prefix}${key}`;
 
   return {
+    async probeWrite() {
+      await runRedisCommand('set', () =>
+        client.set(`${prefix}__write-probe__`, '1', 'PX', 1_000),
+      );
+    },
+
     async get(key) {
       const raw = await runRedisCommand('get', () =>
         client.get(namespaced(key)),
@@ -118,8 +128,11 @@ export function createRedisCacheStore<T>(
           ),
         );
         cursor = next;
-        for (const key of found) {
-          await runRedisCommand('delete', () => client.del(key));
+        if (found.length > 0) {
+          // One idempotent DEL per page keeps rotation latency bounded even
+          // when a client has several cached grant variants.
+          const [first, ...rest] = found;
+          await runRedisCommand('delete', () => client.del(first, ...rest));
         }
       } while (cursor !== '0');
     },
