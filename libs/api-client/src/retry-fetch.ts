@@ -45,6 +45,9 @@ export function createRetryFetch(options?: RetryOptions): typeof fetch {
     const method = (
       input instanceof Request ? input.method : (init?.method ?? 'GET')
     ).toUpperCase();
+    // A caller that gives up must not be held in a backoff it no longer wants.
+    const signal =
+      init?.signal ?? (input instanceof Request ? input.signal : undefined);
 
     let lastError: unknown;
     let lastResponse: Response | undefined;
@@ -80,10 +83,11 @@ export function createRetryFetch(options?: RetryOptions): typeof fetch {
           response,
         );
         onRetry?.(attempt, delay, `status ${response.status}`);
-        await sleep(delay);
+        await sleep(delay, signal);
       } catch (err) {
         lastError = err;
         if (
+          signal?.aborted ||
           !retryOnNetworkError ||
           !retryMethodSet.has(method) ||
           attempt === maxRetries
@@ -92,7 +96,7 @@ export function createRetryFetch(options?: RetryOptions): typeof fetch {
         }
         const delay = computeDelay(attempt, baseDelay, maxDelay, jitter);
         onRetry?.(attempt, delay, 'network error');
-        await sleep(delay);
+        await sleep(delay, signal);
       }
     }
 
@@ -128,9 +132,28 @@ function computeDelay(
   return Math.min(exponential + jitterMs, maxDelay);
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
+function abortReason(signal?: AbortSignal | null): Error {
+  const reason: unknown = signal?.reason;
+  return reason instanceof Error
+    ? reason
+    : new DOMException('The operation was aborted.', 'AbortError');
+}
+
+function sleep(ms: number, signal?: AbortSignal | null): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(abortReason(signal));
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(abortReason(signal));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener('abort', onAbort, { once: true });
   });
 }
 
