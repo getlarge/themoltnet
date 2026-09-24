@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createRedisCacheStore,
+  RedisCacheStoreError,
   type RedisLikeClient,
 } from '../src/cache/redis.js';
 import type { CacheEntry, CacheStore } from '../src/cache/types.js';
@@ -17,9 +18,9 @@ function fakeRedis(): RedisLikeClient & { data: Map<string, string> } {
       data.set(key, value);
       return 'OK';
     }),
-    del: vi.fn(async (key: string) => {
-      data.delete(key);
-      return 1;
+    del: vi.fn(async (key: string, ...keys: string[]) => {
+      for (const found of [key, ...keys]) data.delete(found);
+      return keys.length + 1;
     }),
     // Minimal SCAN: one page, MATCH honoured for the trailing-* patterns the
     // store builds. Enough to exercise the cursor loop.
@@ -93,6 +94,37 @@ describe('createRedisCacheStore', () => {
     expect(await store.get('nope')).toBeNull();
   });
 
+  it('retries a failed cache read once before giving up', async () => {
+    // Arrange
+    vi.mocked(client.get)
+      .mockRejectedValueOnce(new Error('temporary Redis failure'))
+      .mockResolvedValueOnce(null);
+
+    // Act
+    const result = await store.get('k');
+
+    // Assert
+    expect(result).toBeNull();
+    expect(client.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('identifies a persistent read failure without calling the loader', async () => {
+    // Arrange
+    const cause = new Error('Command timed out');
+    vi.mocked(client.get).mockRejectedValue(cause);
+    const cache = createSingleFlightCache<string>({ store });
+    const load = vi.fn(async () => ({ value: 'paid-token' }));
+
+    // Act + Assert
+    await expect(cache.resolve('k', load)).rejects.toMatchObject({
+      name: RedisCacheStoreError.name,
+      operation: 'get',
+      cause,
+    });
+    expect(client.get).toHaveBeenCalledTimes(1);
+    expect(load).not.toHaveBeenCalled();
+  });
+
   it('treats a malformed entry as a miss rather than throwing', async () => {
     // Arrange
     client.data.set('moltnet:oauth-token:k', 'not json');
@@ -134,6 +166,7 @@ describe('createRedisCacheStore', () => {
     expect(await store.get('client-a|cc|hash1')).toBeNull();
     expect(await store.get('client-a|cc|hash2')).toBeNull();
     expect((await store.get('client-b|cc|hash3'))?.value).toBe('b1');
+    expect(client.del).toHaveBeenCalledTimes(1);
   });
 
   it('does not disconnect the shared client on close', async () => {

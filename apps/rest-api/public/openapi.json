@@ -23444,6 +23444,37 @@
             },
             "description": "Default Response"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "error_debug": {
+                      "type": "string"
+                    },
+                    "error_description": {
+                      "type": "string"
+                    },
+                    "error_hint": {
+                      "type": "string"
+                    },
+                    "status_code": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
           "503": {
             "content": {
               "application/json": {

@@ -4,9 +4,11 @@
  * so rate-limit events are filterable in logs/traces without a dedicated metric.
  */
 
-import type { FastifyInstance } from 'fastify';
-import { beforeEach, describe, expect, it } from 'vitest';
+import Fastify, { type FastifyInstance } from 'fastify';
+import type { Redis } from 'ioredis';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { rateLimitPlugin } from '../src/plugins/rate-limit.js';
 import {
   createMockServices,
   createTestApp,
@@ -112,5 +114,56 @@ describe('Rate limiter observability (#1336 part 4)', () => {
     });
 
     await app.close();
+  });
+
+  it('records and logs a limiter store bypass when Redis returns a callback error', async () => {
+    // Arrange
+    const sink = captureStream();
+    const redis = {
+      defineCommand: vi.fn(function (this: { rateLimit?: unknown }) {
+        this.rateLimit = (...args: unknown[]) => {
+          const callback = args.at(-1) as (error: Error) => void;
+          callback(new TypeError('rate-limit store unavailable'));
+        };
+      }),
+    } as unknown as Redis;
+    const app = Fastify({ logger: { level: 'error', stream: sink } });
+    await app.register(rateLimitPlugin, {
+      globalAuthLimit: 10,
+      globalAnonLimit: 10,
+      tokenIpLimit: 10,
+      embeddingLimit: 10,
+      signingLimit: 10,
+      agentKeyLimit: 10,
+      recoveryLimit: 10,
+      publicVerifyLimit: 10,
+      publicSearchLimit: 10,
+      legreffierStartLimit: 10,
+      legreffierStatusLimit: 10,
+      registrationLimit: 10,
+      readinessLimit: 10,
+      taskArtifactUploadLimit: 10,
+      readLimit: 10,
+      allowList: [],
+      redis,
+    });
+    app.get('/check', () => ({ ok: true }));
+
+    try {
+      // Act
+      const response = await app.inject('/check');
+
+      // Assert
+      expect(response.statusCode).toBe(200);
+      expect(sink.lines).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            msg: 'rate-limit Redis store check bypassed',
+          }),
+        ]),
+      );
+    } finally {
+      await app.close();
+    }
   });
 });

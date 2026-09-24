@@ -109,6 +109,10 @@ export interface SecurityOptions {
   rateLimitGlobalAuth: number;
   /** Max requests per minute for anonymous users */
   rateLimitGlobalAnon: number;
+  /** Token requests per minute per client IP, separate from anonymous routes. */
+  rateLimitTokenIp: number;
+  /** Per-instance limit on token requests that actually reach Hydra. */
+  rateLimitTokenUpstreamIp: number;
   /** Max requests per minute for embedding endpoints */
   rateLimitEmbedding: number;
   /** Max requests per minute for signing request creation */
@@ -138,14 +142,17 @@ export interface SecurityOptions {
    * budget.
    */
   rateLimitPreResolveIp: number;
+  /** Client IP header set by a trusted ingress, when configured. */
+  rateLimitClientIpHeader?: string;
+  /** Socket peer CIDRs allowed to supply the client IP header. */
+  rateLimitTrustedProxyCidrs?: string[];
   /**
    * Exact request paths exempt from all rate limiting (pre-resolve throttle and
    * main limiter), e.g. liveness/registry probes.
    */
   rateLimitAllowList: string[];
   /**
-   * Number of trusted reverse-proxy hops (Fastify `trustProxy`). 0 = trust no
-   * proxy. Set to 1 behind Fly so request.ip is the real client, not the edge.
+   * Number of trusted reverse-proxy hops for Fastify proxy metadata.
    */
   trustProxy: number;
   /** Base URL for callback URLs in GitHub App manifests (e.g. http://localhost:8000 in dev) */
@@ -210,6 +217,8 @@ export interface AppOptions {
    * (bootstrap) so its lifecycle/shutdown is managed alongside the DB pool.
    */
   rateLimitRedis?: Redis;
+  /** Dedicated Redis client with bounded token-cache command waits. */
+  tokenCacheRedis?: Redis;
   /** Database pool for readiness probe */
   pool?: HealthRouteOptions['pool'];
   /** DBOS lifecycle readiness probe. */
@@ -324,6 +333,8 @@ export async function registerApiRoutes(
   registerPreResolveThrottle(app, {
     preResolveIpLimit: options.security.rateLimitPreResolveIp,
     allowList: options.security.rateLimitAllowList,
+    clientIpHeader: options.security.rateLimitClientIpHeader,
+    trustedProxyCidrs: options.security.rateLimitTrustedProxyCidrs,
   });
 
   // Register auth plugin (decorates tokenValidator, permissionChecker, request.authContext)
@@ -386,6 +397,7 @@ export async function registerApiRoutes(
   await app.register(rateLimitPlugin, {
     globalAuthLimit: options.security.rateLimitGlobalAuth,
     globalAnonLimit: options.security.rateLimitGlobalAnon,
+    tokenIpLimit: options.security.rateLimitTokenIp,
     embeddingLimit: options.security.rateLimitEmbedding,
     signingLimit: options.security.rateLimitSigning,
     agentKeyLimit: options.security.rateLimitAgentKey,
@@ -400,6 +412,8 @@ export async function registerApiRoutes(
     readLimit: options.security.rateLimitGlobalRead,
     redis: options.rateLimitRedis,
     allowList: options.security.rateLimitAllowList,
+    clientIpHeader: options.security.rateLimitClientIpHeader,
+    trustedProxyCidrs: options.security.rateLimitTrustedProxyCidrs,
   });
 
   // Decorate with services (guard to allow pre-decoration by DBOS plugin)
@@ -477,14 +491,11 @@ export async function registerApiRoutes(
   // sibling plugins (see oauth2GrantCachePlugin).
   await app.register(oauth2GrantCachePlugin, {
     hydraPublicUrl: options.hydraPublicUrl,
-    redis: options.rateLimitRedis,
+    redis: options.tokenCacheRedis ?? options.rateLimitRedis,
   });
   await app.register(oauth2Routes, {
     hydraPublicUrl: options.hydraPublicUrl,
-    // Reuse the rate limiter's client so cached grants survive a deploy and
-    // are shared across instances. Falls back to a process-local store when
-    // Redis is unconfigured (issue #1860).
-    redis: options.rateLimitRedis,
+    tokenUpstreamIpLimit: options.security.rateLimitTokenUpstreamIp,
   });
   await app.register(oauth2ApprovalRoutes, {
     ory: options.oryClients,
@@ -535,9 +546,8 @@ export async function registerApiRoutes(
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger: options.logger ?? false,
-    // Trust the configured number of proxy hops so request.ip reflects the real
-    // client (used by the anonymous rate-limit fallback), not the Fly edge IP.
-    // Defaults to 0 (no proxy) for local/dev/test; set TRUST_PROXY=1 in Fly.
+    // Configure Fastify proxy metadata. The rate-limit plugin can use a
+    // separately configured client IP header from the trusted ingress.
     trustProxy: options.security.trustProxy,
     ajv: {
       customOptions: {

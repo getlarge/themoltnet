@@ -65,6 +65,8 @@ export const TEST_SECURITY_OPTIONS = {
   corsOrigins: 'http://localhost:3000,http://localhost:8000',
   rateLimitGlobalAuth: 1000, // Higher limits for tests
   rateLimitGlobalAnon: 1000,
+  rateLimitTokenIp: 1000,
+  rateLimitTokenUpstreamIp: 1000,
   rateLimitEmbedding: 1000,
   rateLimitSigning: 1000,
   rateLimitAgentKey: 1000,

@@ -9,7 +9,11 @@ import {
  */
 export type TokenExchangeSource = 'mcp-proxy' | 'rest-proxy';
 
-export type TokenExchangeCacheResult = 'hit' | 'miss' | 'single_flight';
+export type TokenExchangeCacheResult =
+  | 'hit'
+  | 'miss'
+  | 'single_flight'
+  | 'error';
 
 export type TokenExchangeOutcome =
   | 'invalid'
@@ -28,6 +32,14 @@ export type TokenExchangeOutcome =
  */
 export interface TokenExchangeMetrics {
   recordCacheAccess(source: string, result: TokenExchangeCacheResult): void;
+  recordCacheError(
+    source: string,
+    operation: 'get' | 'set' | 'delete' | 'scan' | 'probe',
+  ): void;
+  /** Whether a failed cache write is blocking another paid mint. */
+  recordWriteGateChange(source: string, blocked: boolean): void;
+  /** Token requests refused before an upstream exchange. */
+  recordUnavailable(source: string, grantType: string): void;
   /** Called only when an upstream request actually happened. */
   recordExchange(
     source: string,
@@ -40,6 +52,9 @@ export interface TokenExchangeMetrics {
 
 export const NOOP_TOKEN_EXCHANGE_METRICS: TokenExchangeMetrics = {
   recordCacheAccess: () => undefined,
+  recordCacheError: () => undefined,
+  recordWriteGateChange: () => undefined,
+  recordUnavailable: () => undefined,
   recordExchange: () => undefined,
   recordServedTtl: () => undefined,
 };
@@ -54,6 +69,21 @@ export function createTokenExchangeMetrics(): TokenExchangeMetrics {
     '@moltnet/oauth-token-cache',
     'auth.token.cache.accesses',
     'Token cache accesses by result',
+  );
+  const cacheErrors = createMetricCounter(
+    '@moltnet/oauth-token-cache',
+    'auth.token.cache.errors',
+    'Token cache store failures by operation',
+  );
+  const unavailable = createMetricCounter(
+    '@moltnet/oauth-token-cache',
+    'auth.token.unavailable',
+    'Token requests refused before an upstream exchange',
+  );
+  const writeGateChanges = createMetricCounter(
+    '@moltnet/oauth-token-cache',
+    'auth.token.cache.write_gate_changes',
+    'Token cache write-gate transitions',
   );
   const exchanges = createMetricCounter(
     '@moltnet/oauth-token-cache',
@@ -70,6 +100,15 @@ export function createTokenExchangeMetrics(): TokenExchangeMetrics {
   return {
     recordCacheAccess(source, result) {
       cacheAccesses.add(1, { source, result });
+    },
+    recordCacheError(source, operation) {
+      cacheErrors.add(1, { source, operation });
+    },
+    recordWriteGateChange(source, blocked) {
+      writeGateChanges.add(1, { source, state: blocked ? 'blocked' : 'open' });
+    },
+    recordUnavailable(source, grantType) {
+      unavailable.add(1, { source, grant_type: grantType });
     },
     recordExchange(source, grantType, outcome) {
       exchanges.add(1, { source, grant_type: grantType, outcome });

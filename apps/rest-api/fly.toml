@@ -45,9 +45,10 @@ kill_timeout = 30        # seconds to wait for graceful shutdown before SIGKILL
   AXIOM_TRACES_DATASET = "moltnet-traces"
   AXIOM_METRICS_DATASET = "moltnet-metrics"
   # AXIOM_API_TOKEN — set via fly secrets
-  # One proxy hop (Fly edge) so request.ip is the real client for the
-  # anonymous rate-limit fallback, not the Fly edge IP. See issue #1336.
+  # Proxy metadata for request handling.
   TRUST_PROXY = "1"
+  RATE_LIMIT_CLIENT_IP_HEADER = "fly-client-ip"
+  RATE_LIMIT_TRUSTED_PROXY_CIDRS = "172.16.0.0/12"
   DBOS_WORKFLOW_RETENTION_ENABLED = "true"
   DBOS_WORKFLOW_RETENTION_DAYS = "30"
   DBOS_WORKFLOW_RETENTION_BATCH_SIZE = "1000"

@@ -6118,6 +6118,19 @@ func encodeGetOAuth2TokenResponse(response GetOAuth2TokenRes, w http.ResponseWri
 
 		return nil
 
+	case *GetOAuth2TokenBadGateway:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(502)
+		span.SetStatus(codes.Error, http.StatusText(502))
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
 	case *GetOAuth2TokenServiceUnavailable:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(503)

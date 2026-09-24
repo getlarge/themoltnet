@@ -15,6 +15,9 @@ function mockLogger(): TokenExchangeLogger {
 function mockMetrics(): TokenExchangeMetrics {
   return {
     recordCacheAccess: vi.fn(),
+    recordCacheError: vi.fn(),
+    recordWriteGateChange: vi.fn(),
+    recordUnavailable: vi.fn(),
     recordExchange: vi.fn(),
     recordServedTtl: vi.fn(),
   };

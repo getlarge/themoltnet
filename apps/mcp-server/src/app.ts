@@ -326,6 +326,8 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     enableSSE: true,
     sessionStore: redis ? 'redis' : 'memory',
     messageBroker: redis ? 'redis' : 'memory',
+    // The plugin creates its own client (and pub/sub duplicates). Bound a
+    // stalled Redis command so MCP sessions fail promptly rather than hang.
     ...(redis ? { redis } : {}),
     authorization,
     ...(tracer ? { telemetry: { tracer } } : {}),

@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MemoryCacheStore } from '../src/cache/memory.js';
+import { RedisCacheStoreError } from '../src/cache/redis.js';
+import type { CacheStore } from '../src/cache/types.js';
 import { entryFromExpiresIn } from '../src/cache/types.js';
 import type { TokenExchangeMetrics } from '../src/metrics.js';
 import {
@@ -11,6 +13,9 @@ import {
 function mockMetrics(): TokenExchangeMetrics {
   return {
     recordCacheAccess: vi.fn(),
+    recordCacheError: vi.fn(),
+    recordWriteGateChange: vi.fn(),
+    recordUnavailable: vi.fn(),
     recordExchange: vi.fn(),
     recordServedTtl: vi.fn(),
   };
@@ -139,6 +144,32 @@ describe('createSingleFlightCache', () => {
     expect(load).toHaveBeenCalledTimes(2);
   });
 
+  it('counts scan failures during prefix invalidation', async () => {
+    // Arrange
+    const failure = new RedisCacheStoreError(
+      'scan',
+      new TypeError('scan unavailable'),
+      2,
+    );
+    cache = createSingleFlightCache({
+      store: {
+        get: vi.fn(async () => null),
+        set: vi.fn(async () => {}),
+        delete: vi.fn(async () => {}),
+        deleteByPrefix: vi.fn(async () => {
+          throw failure;
+        }),
+        close: vi.fn(async () => {}),
+      },
+      metrics,
+      source: 'test',
+    });
+
+    // Act + Assert
+    await expect(cache.invalidatePrefix('agent|')).rejects.toBe(failure);
+    expect(metrics.recordCacheError).toHaveBeenCalledWith('test', 'scan');
+  });
+
   it('propagates a load failure and leaves the key loadable', async () => {
     // Arrange
     const load = vi
@@ -174,6 +205,105 @@ describe('createSingleFlightCache', () => {
     await expect(a).rejects.toThrow('boom');
     await expect(b).rejects.toThrow('boom');
     expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it('shares a loaded value but does not retain it when the store write fails', async () => {
+    // Arrange
+    const writeError = new Error('write timed out');
+    const store: CacheStore<string> = {
+      get: vi.fn(async () => null),
+      set: vi.fn(async () => {
+        throw writeError;
+      }),
+      delete: vi.fn(async () => {}),
+      deleteByPrefix: vi.fn(async () => {}),
+      close: vi.fn(async () => {}),
+    };
+    const onStoreError = vi.fn();
+    cache = createSingleFlightCache({
+      store,
+      metrics,
+      source: 'test',
+      now: () => clock,
+      onStoreError,
+    });
+    let release!: (value: { value: string; expiresAt: number }) => void;
+    const pending = new Promise<{ value: string; expiresAt: number }>(
+      (resolve) => {
+        release = resolve;
+      },
+    );
+    const load = vi.fn(() => pending);
+
+    // Act
+    const a = cache.resolve('k', load);
+    const b = cache.resolve('k', load);
+    release(entryFromExpiresIn('shared', 60, 10, clock));
+    const [first, second] = await Promise.all([a, b]);
+    const next = await cache.resolve('k', load);
+
+    // Assert
+    expect(first.value).toBe('shared');
+    expect(second.value).toBe('shared');
+    expect(second.origin).toBe('single_flight');
+    expect(next.origin).toBe('load');
+    expect(next.remainingSeconds).toBeNull();
+    expect(load).toHaveBeenCalledTimes(2);
+    expect(store.set).toHaveBeenCalledTimes(2);
+    expect(onStoreError).toHaveBeenCalledTimes(2);
+    expect(onStoreError).toHaveBeenCalledWith('set', writeError);
+    expect(metrics.recordCacheError).toHaveBeenCalledWith('test', 'set');
+  });
+
+  it('continues loading when deletion of an expired entry fails', async () => {
+    // Arrange
+    const deleteError = new Error('delete timed out');
+    const store: CacheStore<string> = {
+      get: vi.fn(async () => ({ value: 'expired', expiresAt: clock - 1 })),
+      set: vi.fn(async () => {}),
+      delete: vi.fn(async () => {
+        throw deleteError;
+      }),
+      deleteByPrefix: vi.fn(async () => {}),
+      close: vi.fn(async () => {}),
+    };
+    const onStoreError = vi.fn();
+    cache = createSingleFlightCache({
+      store,
+      now: () => clock,
+      onStoreError,
+    });
+    const load = vi.fn(async () => entryFromExpiresIn('fresh', 60, 0, clock));
+
+    // Act
+    const result = await cache.resolve('k', load);
+
+    // Assert
+    expect(result.value).toBe('fresh');
+    expect(load).toHaveBeenCalledOnce();
+    expect(onStoreError).toHaveBeenCalledWith('delete', deleteError);
+  });
+
+  it('records a cache read error without calling the loader', async () => {
+    // Arrange
+    const readError = new Error('read timed out');
+    const store: CacheStore<string> = {
+      get: vi.fn(async () => {
+        throw readError;
+      }),
+      set: vi.fn(async () => {}),
+      delete: vi.fn(async () => {}),
+      deleteByPrefix: vi.fn(async () => {}),
+      close: vi.fn(async () => {}),
+    };
+    cache = createSingleFlightCache({ store, metrics, source: 'test' });
+    const load = vi.fn(async () => entryFromExpiresIn('token', 60, 0, clock));
+
+    // Act + Assert
+    await expect(cache.resolve('k', load)).rejects.toBe(readError);
+    expect(load).not.toHaveBeenCalled();
+    expect(metrics.recordCacheAccess).toHaveBeenCalledWith('test', 'error');
+    expect(metrics.recordCacheError).toHaveBeenCalledWith('test', 'get');
   });
 
   it('invalidate forces the next call to reload', async () => {

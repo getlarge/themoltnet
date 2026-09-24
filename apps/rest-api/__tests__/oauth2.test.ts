@@ -164,7 +164,7 @@ describe('POST /oauth2/token', () => {
 
     expect(response.statusCode).toBe(502);
     const body = response.json();
-    expect(body.code).toBe('UPSTREAM_ERROR');
+    expect(body).toMatchObject({ error: 'server_error', status_code: 502 });
   });
 
   it('returns 502 when Hydra is unreachable', async () => {
@@ -180,6 +180,6 @@ describe('POST /oauth2/token', () => {
 
     expect(response.statusCode).toBe(502);
     const body = response.json();
-    expect(body.code).toBe('UPSTREAM_ERROR');
+    expect(body).toMatchObject({ error: 'server_error', status_code: 502 });
   });
 });

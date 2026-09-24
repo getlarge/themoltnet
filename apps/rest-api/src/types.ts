@@ -104,6 +104,8 @@ declare module 'fastify' {
     invalidateOAuth2ClientCache(clientId: string): Promise<void>;
     /** Shared OAuth2 grant cache, built by oauth2GrantCachePlugin. */
     oauth2GrantCache: GrantCache;
+    oauth2FallbackCache: GrantCache;
+    oauth2UncachedGrantCache: GrantCache;
     diaryService: DiaryService;
     /** Raw entry repository — used only by public feed routes (listPublic, searchPublic, findPublicById) */
     diaryEntryRepository: DiaryEntryRepository;

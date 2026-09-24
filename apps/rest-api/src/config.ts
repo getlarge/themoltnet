@@ -250,6 +250,8 @@ export const SecurityConfigSchema = Type.Object({
   // Rate limiting (requests per minute)
   RATE_LIMIT_GLOBAL_AUTH: Type.Number({ default: 100 }),
   RATE_LIMIT_GLOBAL_ANON: Type.Number({ default: 30 }),
+  RATE_LIMIT_TOKEN_IP: Type.Number({ default: 1000 }),
+  RATE_LIMIT_TOKEN_UPSTREAM_IP: Type.Number({ default: 300 }),
   RATE_LIMIT_EMBEDDING: Type.Number({ default: 20 }),
   RATE_LIMIT_SIGNING: Type.Number({ default: 5 }),
   RATE_LIMIT_AGENT_KEY: Type.Number({ default: 5 }),
@@ -271,6 +273,11 @@ export const SecurityConfigSchema = Type.Object({
   // opaque tokens and sessions). Not the per-principal budget — keep it generous
   // so legitimate NAT'd clients never hit it. See issue #1336 / CodeQL #57.
   RATE_LIMIT_PRE_RESOLVE_IP: Type.Number({ default: 300 }),
+  // Set only when the deployment proxy overwrites the named header.
+  RATE_LIMIT_CLIENT_IP_HEADER: Type.Optional(Type.String({ minLength: 1 })),
+  // Only peers in these CIDRs may supply RATE_LIMIT_CLIENT_IP_HEADER. Direct
+  // callers, including private-network clients, always use their socket IP.
+  RATE_LIMIT_TRUSTED_PROXY_CIDRS: Type.String({ default: '' }),
   // Comma-separated exact request paths exempt from ALL rate limiting (both the
   // pre-resolve IP throttle and the main limiter). Liveness/registry probes that
   // must never be throttled. Matched against request.url by exact equality.
@@ -292,12 +299,9 @@ export const SecurityConfigSchema = Type.Object({
   REDIS_PASSWORD: Type.Optional(Type.String({ minLength: 1 })),
   REDIS_DB: Type.Optional(Type.Number({ minimum: 0 })),
   REDIS_TLS: Type.Optional(Type.Boolean({ default: false })),
-  // Number of trusted reverse-proxy hops in front of the API. Fastify uses this
-  // to compute request.ip from X-Forwarded-For. 0 (default) = trust no proxy
-  // (request.ip is the socket peer) — correct for local/dev/direct. Set to 1 in
-  // Fly (one proxy hop) so the anonymous rate-limit fallback keys on the real
-  // client IP, not the Fly edge IP. Do NOT over-trust: trusting more hops than
-  // exist lets clients spoof X-Forwarded-For to evade the per-IP anon bucket.
+  // Number of trusted reverse-proxy hops for Fastify proxy metadata. Rate
+  // limits use the configured client-IP header only from trusted proxy CIDRs;
+  // direct connections are keyed by their socket address.
   TRUST_PROXY: Type.Number({ default: 0 }),
   // Base URL for callback URLs baked into GitHub App manifests.
   // Defaults to production; override in local dev / staging.

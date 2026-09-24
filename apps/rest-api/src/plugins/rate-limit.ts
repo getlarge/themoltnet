@@ -1,11 +1,14 @@
 /**
  * Rate limiting plugin using @fastify/rate-limit
  *
- * Configures global and per-route rate limits with RFC 9457 Problem Details
- * format for rate limit exceeded responses.
+ * Configures global and per-route rate limits. The OAuth token endpoint uses
+ * its declared OAuth error response; other routes use RFC 9457 Problem Details.
  */
 
+import { BlockList, isIP } from 'node:net';
+
 import rateLimit from '@fastify/rate-limit';
+import { createMetricCounter } from '@moltnet/observability';
 import type {
   FastifyInstance,
   FastifyReply,
@@ -16,6 +19,7 @@ import fp from 'fastify-plugin';
 import type { Redis } from 'ioredis';
 
 import { getTypeUri } from '../problems/registry.js';
+import { oauthErrorBody } from '../routes/oauth2.js';
 import { createPreResolveThrottle } from './pre-resolve-throttle.js';
 
 /** Redis key prefix so MoltNet rate-limit keys are identifiable in shared Redis. */
@@ -26,6 +30,8 @@ export interface RateLimitPluginOptions {
   globalAuthLimit: number;
   /** Max requests per minute for anonymous users (default: 30) */
   globalAnonLimit: number;
+  /** Token requests per minute per client IP. */
+  tokenIpLimit: number;
   /** Max requests per minute for embedding endpoints (default: 20) */
   embeddingLimit: number;
   /** Max requests per minute for signing request creation (default: 5) */
@@ -57,12 +63,15 @@ export interface RateLimitPluginOptions {
   readLimit: number;
   /** Exact request paths exempt from rate limiting (e.g. liveness probes). */
   allowList: readonly string[];
+  /** Header overwritten with the client address by the trusted ingress. */
+  clientIpHeader?: string;
+  /** Peer CIDRs permitted to supply the client IP header. */
+  trustedProxyCidrs?: readonly string[];
   /**
    * ioredis client for the SHARED rate-limit store (per-identity budgets
    * coherent across instances). When omitted, the limiter uses an in-memory
-   * store (single-instance). On a Redis error the limiter fails OPEN
-   * (skipOnError) so a Redis outage never 500s the API — the error surfaces via
-   * the client's own 'error' event (logged at bootstrap), not here.
+   * store (single-instance). On a Redis error the limiter fails open
+   * (skipOnError); callback failures are counted and logged here.
    */
   redis?: Redis;
 }
@@ -76,9 +85,92 @@ export interface PreResolveThrottleOptions {
   preResolveIpLimit: number;
   /** Exact request paths exempt from rate limiting (e.g. liveness probes). */
   allowList: readonly string[];
+  /** Header overwritten with the client address by the trusted ingress. */
+  clientIpHeader?: string;
+  /** Peer CIDRs permitted to supply the client IP header. */
+  trustedProxyCidrs?: readonly string[];
 }
 
 const ONE_MINUTE_MS = 60_000;
+
+/** Trust an ingress header only from configured peers; direct callers use request.ip. */
+function createClientIpResolver(
+  clientIpHeader?: string,
+  trustedProxyCidrs: readonly string[] = [],
+): (request: FastifyRequest) => string {
+  if (clientIpHeader && trustedProxyCidrs.length === 0) {
+    throw new TypeError('Client IP header requires trusted proxy CIDRs');
+  }
+  const trustedPeers = new BlockList();
+  for (const cidr of trustedProxyCidrs) {
+    const [address, bits, ...extra] = cidr.split('/');
+    const family = isIP(address ?? '');
+    const prefix = Number(bits);
+    if (
+      extra.length ||
+      !family ||
+      !Number.isInteger(prefix) ||
+      prefix < 0 ||
+      prefix > (family === 4 ? 32 : 128)
+    ) {
+      throw new TypeError(`Invalid trusted proxy CIDR: ${cidr}`);
+    }
+    trustedPeers.addSubnet(address, prefix, family === 4 ? 'ipv4' : 'ipv6');
+  }
+  const headerName = clientIpHeader?.toLowerCase();
+  return (request) => {
+    const peer = request.raw.socket.remoteAddress;
+    if (!headerName || !peer) return request.ip;
+    // Fastify's request.ip may reflect a caller-supplied X-Forwarded-For on
+    // direct private connections. The socket peer is the safe fallback there.
+    if (!trustedPeers.check(peer)) return peer;
+    const value = request.headers[headerName];
+    if (typeof value !== 'string' || value.includes('%')) return request.ip;
+    const family = isIP(value);
+    if (family === 4) return value;
+    if (family === 6) {
+      try {
+        // URL parsing canonicalizes IPv6 and rejects scoped addresses.
+        return new URL(`http://[${value}]/`).hostname.slice(1, -1);
+      } catch {
+        return request.ip;
+      }
+    }
+    return request.ip;
+  };
+}
+
+/** Group IPv6 token callers by /64 so address rotation cannot multiply quota. */
+function tokenClientKey(address: string): string {
+  if (isIP(address) !== 6) return address;
+  const [left, right] = address.split('::');
+  const leftGroups = left ? left.split(':') : [];
+  const rightGroups = right ? right.split(':') : [];
+  const groups = [
+    ...leftGroups,
+    ...Array.from(
+      { length: 8 - leftGroups.length - rightGroups.length },
+      () => '0',
+    ),
+    ...rightGroups,
+  ];
+  const values = groups.map((group) => Number.parseInt(group, 16));
+  if (
+    values.slice(0, 5).every((value) => value === 0) &&
+    values[5] === 0xffff
+  ) {
+    return [
+      values[6] >> 8,
+      values[6] & 0xff,
+      values[7] >> 8,
+      values[7] & 0xff,
+    ].join('.');
+  }
+  return `${groups
+    .slice(0, 4)
+    .map((group) => group.padStart(4, '0'))
+    .join(':')}::/64`;
+}
 
 /**
  * Build an exact-path allowList predicate from a list of paths. Shared by the
@@ -123,13 +215,24 @@ export function registerPreResolveThrottle(
     ONE_MINUTE_MS,
   );
   const isAllowListed = makeAllowList(options.allowList);
+  const clientIp = createClientIpResolver(
+    options.clientIpHeader,
+    options.trustedProxyCidrs,
+  );
 
   fastify.addHook(
     'onRequest',
     async (request: FastifyRequest, reply: FastifyReply) => {
-      if (isAllowListed(request.url)) return;
+      // This guard exists for auth-context resolution on other routes. The
+      // token route has its own onRequest limiter before body parsing.
+      if (
+        isAllowListed(request.url) ||
+        request.routeOptions?.config?.oauth2TokenRoute
+      ) {
+        return;
+      }
 
-      const retryAfter = throttle.hit(request.ip, Date.now());
+      const retryAfter = throttle.hit(clientIp(request), Date.now());
       if (retryAfter !== null) {
         reply
           .code(429)
@@ -141,9 +244,15 @@ export function registerPreResolveThrottle(
 }
 
 /**
- * Build RFC 9457 Problem Details response for rate limit exceeded.
+ * Build the response required by the route's 429 schema.
  */
 function buildRateLimitResponse(request: FastifyRequest, retryAfter: number) {
+  if (request.routeOptions?.config?.oauth2TokenRoute)
+    return oauthErrorBody(
+      429,
+      `Too many requests. Please retry after ${retryAfter} seconds.`,
+    );
+
   return {
     type: getTypeUri('rate-limit-exceeded'),
     title: 'Rate Limit Exceeded',
@@ -163,6 +272,7 @@ async function rateLimitPluginImpl(
   const {
     globalAuthLimit,
     globalAnonLimit,
+    tokenIpLimit,
     embeddingLimit,
     signingLimit,
     agentKeyLimit,
@@ -176,20 +286,79 @@ async function rateLimitPluginImpl(
     taskArtifactUploadLimit,
     readLimit,
     allowList,
+    clientIpHeader,
+    trustedProxyCidrs,
     redis,
   } = options;
 
   const isAllowListed = makeAllowList(allowList);
+  const clientIp = createClientIpResolver(clientIpHeader, trustedProxyCidrs);
+  const storeBypasses = createMetricCounter(
+    'moltnet-rest-api',
+    'auth.rate_limit.store_bypasses',
+    'Requests whose Redis rate-limit check failed open',
+  );
+  let lastStoreErrorLog = 0;
+  // @fastify/rate-limit's skipOnError catches store callback errors internally.
+  // Observe that callback so a bypass is counted even when ioredis emits no
+  // connection-level error event (for example, a command timeout).
+  const observedRedis = redis
+    ? new Proxy(redis, {
+        get(target, property) {
+          const value: unknown = Reflect.get(target, property, target);
+          if (typeof value !== 'function') return value;
+          const method = value as (...args: unknown[]) => unknown;
+          const boundMethod: (...args: unknown[]) => unknown =
+            method.bind(target);
+          if (property !== 'rateLimit') return boundMethod;
+          return (...args: unknown[]) => {
+            const rawCallback: unknown = args.at(-1);
+            if (typeof rawCallback === 'function') {
+              const callback = rawCallback as (
+                error: Error | null,
+                result: unknown,
+              ) => void;
+              args[args.length - 1] = (
+                error: Error | null,
+                result: unknown,
+              ) => {
+                if (error) {
+                  storeBypasses.add(1);
+                  const now = Date.now();
+                  if (now - lastStoreErrorLog >= 60_000) {
+                    lastStoreErrorLog = now;
+                    fastify.log.error(
+                      { err: error },
+                      'rate-limit Redis store check bypassed',
+                    );
+                  }
+                }
+                callback(error, result);
+              };
+            }
+            return boundMethod(...args);
+          };
+        },
+      })
+    : undefined;
+  fastify.decorate('tokenRateLimitKey', (request: FastifyRequest) =>
+    tokenClientKey(clientIp(request)),
+  );
 
   // Register global rate limiter
   await fastify.register(rateLimit, {
     global: true,
     // Shared store across instances when Redis is configured; otherwise the
-    // plugin's default in-memory store. skipOnError makes the limiter fail OPEN
-    // on a Redis error (a protective control must not 500 the whole API on a
-    // Redis blip) — the error is surfaced via the ioredis client's 'error'
-    // event, logged at bootstrap. nameSpace keeps keys identifiable in Redis.
-    ...(redis ? { redis, nameSpace: REDIS_NAMESPACE, skipOnError: true } : {}),
+    // plugin's default in-memory store. skipOnError keeps a Redis blip from
+    // failing API requests; observedRedis counts and logs each bypass.
+    // nameSpace keeps keys identifiable in Redis.
+    ...(observedRedis
+      ? {
+          redis: observedRedis,
+          nameSpace: REDIS_NAMESPACE,
+          skipOnError: true,
+        }
+      : {}),
     // Key by the VERIFIED principal so all of one identity's tokens/sessions
     // share a single budget. request.authContext is populated by the auth
     // plugin's global `populateAuthContext` onRequest hook, which is registered
@@ -199,7 +368,7 @@ async function rateLimitPluginImpl(
     // See issue #1336: the earlier bug was that authContext was resolved at the
     // auth preHandler (after this hook), so it was always null here.
     keyGenerator: (request: FastifyRequest) =>
-      request.authContext?.identityId ?? request.ip,
+      request.authContext?.identityId ?? clientIp(request),
     // Authenticated principals get the higher auth limit; anonymous requests get
     // the stricter anon limit.
     max: (request: FastifyRequest) =>
@@ -226,8 +395,8 @@ async function rateLimitPluginImpl(
       const retryAfter = Math.ceil(context.ttl / 1000);
       return buildRateLimitResponse(request, retryAfter);
     },
-    // Skip rate limiting for the configured public paths (e.g. liveness probe —
-    // Fly.io polls /health every 30s — and the problem registry). Shared with
+    // Skip rate limiting for the configured public paths (e.g. liveness probes
+    // and the problem registry). Shared with
     // the pre-resolve throttle via the same allowList.
     allowList: (request: FastifyRequest) => isAllowListed(request.url),
     // Emit a structured warn on every 429 so rate-limit events are filterable in
@@ -256,12 +425,13 @@ async function rateLimitPluginImpl(
     max: agentKeyLimit,
     timeWindow: '1 minute',
     keyGenerator: (request: FastifyRequest) =>
-      `${request.authContext?.identityId ?? request.ip}:agent-key`,
+      `${request.authContext?.identityId ?? clientIp(request)}:agent-key`,
   });
   const publicVerifyRateLimit = fastify.rateLimit({
     max: publicVerifyLimit,
     timeWindow: '1 minute',
-    keyGenerator: (request: FastifyRequest) => `${request.ip}:public-verify`,
+    keyGenerator: (request: FastifyRequest) =>
+      `${clientIp(request)}:public-verify`,
   });
   fastify.decorate('rateLimitHooks', {
     agentKey: agentKeyRateLimit as onRequestAsyncHookHandler,
@@ -270,6 +440,12 @@ async function rateLimitPluginImpl(
 
   // Store route-specific configs for use in route definitions
   fastify.decorate('rateLimitConfig', {
+    token: {
+      max: tokenIpLimit,
+      timeWindow: '1 minute',
+      keyGenerator: (request: FastifyRequest) =>
+        tokenClientKey(clientIp(request)),
+    },
     embedding: {
       max: embeddingLimit,
       timeWindow: '1 minute',
@@ -327,6 +503,7 @@ export const rateLimitPlugin = fp(rateLimitPluginImpl, {
 declare module 'fastify' {
   interface FastifyContextConfig {
     rateLimitBucket?: string;
+    oauth2TokenRoute?: boolean;
   }
 
   interface FastifyInstance {
@@ -335,6 +512,11 @@ declare module 'fastify' {
       publicVerify: onRequestAsyncHookHandler;
     };
     rateLimitConfig: {
+      token: {
+        max: number;
+        timeWindow: string;
+        keyGenerator: (request: FastifyRequest) => string;
+      };
       embedding: { max: number; timeWindow: string };
       signing: { max: number; timeWindow: string };
       recovery: { max: number; timeWindow: string };
@@ -350,5 +532,6 @@ declare module 'fastify' {
       };
       read: { max: number; timeWindow: string; groupId: string };
     };
+    tokenRateLimitKey(request: FastifyRequest): string;
   }
 }

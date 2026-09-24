@@ -101,6 +101,8 @@ async function main() {
       corsOrigins: 'http://localhost:3000',
       rateLimitGlobalAuth: 100,
       rateLimitGlobalAnon: 30,
+      rateLimitTokenIp: 1000,
+      rateLimitTokenUpstreamIp: 1000,
       rateLimitEmbedding: 20,
       rateLimitSigning: 5,
       rateLimitAgentKey: 5,

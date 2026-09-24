@@ -1,0 +1,16 @@
+{
+  "alertOnNoData": false,
+  "description": "Token-cache store failures grouped by command. Inspect the operation, Redis connection health, and token-cache write-gate transitions in moltnet-logs before changing retry policy.",
+  "intervalMinutes": 1,
+  "mplQuery": "`moltnet-metrics`:`auth.token.cache.errors`\n| align to 1m using prom::rate\n| group by `operation`, `service.name` using sum",
+  "name": "MoltNet OAuth token-cache command failures",
+  "notifierIds": [],
+  "notifyByGroup": true,
+  "operator": "Above",
+  "rangeMinutes": 5,
+  "resolvable": true,
+  "threshold": 0,
+  "triggerAfterNPositiveResults": 2,
+  "triggerFromNRuns": 3,
+  "type": "Threshold"
+}
