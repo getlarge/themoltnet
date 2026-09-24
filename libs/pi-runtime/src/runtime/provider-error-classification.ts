@@ -18,6 +18,11 @@ const PERMANENT_REQUEST_ERROR_PATTERNS = [
 // A request field or request ID can contain a status-looking token.
 const LEADING_STATUS_PATTERN =
   /^\s*(?:(?:HTTP(?:\/\d+(?:\.\d+)?)?|status(?: code)?|provider returned(?: error)?|response|(?:API\s+)?error)\s*[:=]?\s*)?([1-5]\d{2})\b/i;
+// Pi formats these errors with a named API prefix before the status.
+const PI_API_STATUS_PATTERN =
+  /^\s*[\w ]{1,48}API error\s*\(([1-5]\d{2})\)\s*:/i;
+const REQUEST_STATUS_PATTERN =
+  /^\s*Request failed with status code\s+([1-5]\d{2})\b/i;
 const LEADING_TRANSPORT_PATTERN =
   /^\s*(?:(?:request|connection)\s+)?(?:timed?\s*out|timeout|ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|network error|service unavailable|overloaded)\b/i;
 // Pi's private deny-list is broader than terminal account exhaustion. Keep
@@ -26,7 +31,7 @@ const LEADING_TRANSPORT_PATTERN =
 const MONTHLY_QUOTA_PATTERN =
   /\b(?:monthly usage limit reached|(?:reached|exceeded)\s+(?:(?:your|the)\s+)?monthly\s+usage\s+limit|monthly\s+(?:usage\s+)?quota\s+(?:exceeded|exhausted))\b/i;
 const ACCOUNT_QUOTA_PATTERN =
-  /\b(?:insufficient_quota|insufficient credits?|out of budget|billing|available balance|credit balance is too low|GoUsageLimitError|FreeUsageLimitError)\b/i;
+  /\b(?:insufficient_quota|insufficient credits?|out of budget|billing_hard_limit_reached|billing (?:limit|quota|required|error)|available balance|credit balance is too low|GoUsageLimitError|FreeUsageLimitError)\b/i;
 const TIME_WINDOW_PATTERN =
   /\b(?:per\s+(?:second|minute|hour|day)|retry\s+(?:in|after)|try again in|retry-after)\b/i;
 const PROVIDER_AUTH_PATTERN =
@@ -34,8 +39,8 @@ const PROVIDER_AUTH_PATTERN =
 const PROVIDER_MODEL_PATTERN =
   /\b(?:model [^\n]{0,120}(?:not (?:found|registered|available)|does not exist)|unknown model)\b/i;
 const VALIDATION_FAILURE_PATTERN =
-  /\b(?:request validation failed|validation failed)\b/i;
-const CANCELLED_PATTERN = /\b(?:cancelled|canceled)\b/i;
+  /^\s*(?:(?:[1-4]\d{2}|error)\s*[: -]\s*)?(?:request )?validation failed\b/i;
+const CANCELLED_PATTERN = /^\s*(?:request (?:was )?)?cancell?ed\b/i;
 
 const REQUEST_DESCRIPTORS = new Set([
   'unsupported',
@@ -45,12 +50,14 @@ const REQUEST_DESCRIPTORS = new Set([
 ]);
 const REQUEST_FIELD_KINDS = new Set(['parameter', 'argument', 'field']);
 const MAX_DIAGNOSTIC_LENGTH = 4000;
+const MAX_JSON_ENVELOPE_LENGTH = 4096;
 const MAX_FIELDS = 8;
 const MAX_FIELD_LENGTH = 64;
 
 export const PROVIDER_FAILURE_CODES = {
   apiError: 'llm_api_error',
   requestRejected: 'llm_request_rejected',
+  requestCancelled: 'llm_request_cancelled',
   quotaExhausted: 'llm_quota_exhausted',
   authError: 'llm_auth_error',
   invalidModel: 'invalid_model',
@@ -73,17 +80,24 @@ export interface ProviderFailureVerdict {
 }
 
 function leadingStatus(message: string): number | null {
-  const match = LEADING_STATUS_PATTERN.exec(message);
+  const match =
+    LEADING_STATUS_PATTERN.exec(message) ??
+    PI_API_STATUS_PATTERN.exec(message) ??
+    REQUEST_STATUS_PATTERN.exec(message);
   return match?.[1] ? Number(match[1]) : null;
 }
 
 function jsonStatus(message: string): number | null {
-  if (message.length > 4096 || !message.trimStart().startsWith('{'))
-    return null;
+  if (message.length > MAX_JSON_ENVELOPE_LENGTH) return null;
+  const trimmed = message.trimStart();
+  const prefix = /^Provider returned error:\s*/i.exec(trimmed)?.[0];
+  const json = prefix ? trimmed.slice(prefix.length) : trimmed;
+  if (!json.startsWith('{') && !json.startsWith('[')) return null;
   try {
-    const parsed: unknown = JSON.parse(message);
-    if (typeof parsed !== 'object' || parsed === null) return null;
-    const outer = parsed as Record<string, unknown>;
+    const parsed: unknown = JSON.parse(json);
+    const root = Array.isArray(parsed) ? parsed[0] : parsed;
+    if (typeof root !== 'object' || root === null) return null;
+    const outer = root as Record<string, unknown>;
     const payload = outer.error;
     const error =
       typeof payload === 'object' && payload !== null
@@ -166,7 +180,7 @@ export function classifyProviderFailure(
   }
   if (CANCELLED_PATTERN.test(message)) {
     return {
-      code: PROVIDER_FAILURE_CODES.requestRejected,
+      code: PROVIDER_FAILURE_CODES.requestCancelled,
       retryable: false,
       reason: 'cancelled',
     };
@@ -193,7 +207,7 @@ export interface ProviderFailureContext {
   runtimeProfileId: string;
   runtimeProfileName: string;
   runtimeProfileRevision: number | null;
-  piAgentDirSource: string;
+  piAgentDirSource: 'env' | 'store' | 'repo';
 }
 
 export interface PermanentProviderRequestDiagnostics {

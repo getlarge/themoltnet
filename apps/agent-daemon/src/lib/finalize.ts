@@ -2,7 +2,7 @@ import type { Task, TaskOutput } from '@moltnet/tasks';
 import {
   PROVIDER_FAILURE_CODES,
   redactRetryTriageSecrets,
-  sanitizeProviderErrorRetryReason,
+  sanitizeProviderDiagnostic,
 } from '@themoltnet/pi-runtime';
 import type { Agent, ExecutorAttestor, TasksNamespace } from '@themoltnet/sdk';
 import { MoltNetError } from '@themoltnet/sdk';
@@ -91,9 +91,7 @@ function classificationLogFields(
     code: classified.error.code,
     ...(PROVIDER_ERROR_CODE_SET.has(classified.error.code)
       ? {
-          diagnostic: sanitizeProviderErrorRetryReason(
-            classified.error.message,
-          ),
+          diagnostic: sanitizeProviderDiagnostic(classified.error.message),
         }
       : {}),
     retryable: classified.error.retryable,

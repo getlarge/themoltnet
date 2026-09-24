@@ -28,7 +28,7 @@ export {
   type ProviderFailureProfileContext,
   resolveHostExecBaseEnv,
   resolveTaskWorktreePath,
-  sanitizeProviderErrorRetryReason,
+  sanitizeProviderDiagnostic,
   type TurnEventHandlerFactory,
 } from './runtime/execute-pi-task.js';
 export {

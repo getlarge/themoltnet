@@ -59,7 +59,7 @@ import {
   resolveHostExecBaseEnv,
   resolveSubmitMissingConfig,
   retireManagedGondolinVm,
-  sanitizeProviderErrorRetryReason,
+  sanitizeProviderDiagnostic,
   type SessionSubscribeEvent,
   shouldEmitToolCallError,
   submitRepromptStopped,
@@ -1085,6 +1085,60 @@ describe('provider error same-session retry helpers', () => {
   });
 
   it.each([
+    {
+      messages: [
+        '503 Service Unavailable',
+        'OpenAI API error (401): invalid_api_key',
+      ],
+      prompts: 2,
+      retries: 1,
+      stoppedCode: 'llm_auth_error',
+    },
+    {
+      messages: [
+        'OpenAI API error (401): invalid_api_key',
+        '503 Service Unavailable',
+      ],
+      prompts: 1,
+      retries: 0,
+      stoppedCode: 'llm_auth_error',
+    },
+  ])(
+    'stops mixed provider turns after $messages',
+    async ({ messages, prompts, retries, stoppedCode }) => {
+      const prompt = vi.fn(async () => {});
+      const onRetry = vi.fn();
+      const onRetryStopped = vi.fn();
+      let turn = 0;
+      const result = await promptWithProviderErrorRetries({
+        session: { prompt },
+        initialPrompt: 'do the task',
+        cancelSignal: new AbortController().signal,
+        getProviderErrorState: () => ({
+          llmAbort: true,
+          llmErrorMessage: messages[turn++],
+        }),
+        maxRetries: 2,
+        baseDelayMs: 0,
+        maxDelayMs: 0,
+        retryPrompt: 'Go on',
+        onRetry,
+        onRetryStopped,
+      });
+      expect(result).toEqual({ runError: null, retryCount: retries });
+      expect(prompt).toHaveBeenCalledTimes(prompts);
+      expect(onRetry).toHaveBeenCalledTimes(retries);
+      expect(onRetryStopped).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reason: 'permanent',
+          code: stoppedCode,
+          retryCount: retries,
+        }),
+      );
+    },
+  );
+
+  it.each([
     ['exhausted', false, false, 0],
     ['cancelled', true, false, 2],
     ['cap_aborted', false, true, 2],
@@ -1275,8 +1329,17 @@ describe('provider error same-session retry helpers', () => {
     expect(retryEvents[0].reason.length).toBeLessThanOrEqual(500);
   });
 
+  it('preserves remediation at the end of a long provider diagnostic', () => {
+    const diagnostic = sanitizeProviderDiagnostic(
+      `Provider error: ${'x'.repeat(800)} Remediation: change the model profile.`,
+    );
+    expect(diagnostic).toContain('Provider error:');
+    expect(diagnostic).toContain('Remediation: change the model profile.');
+    expect(diagnostic.length).toBeLessThanOrEqual(500);
+  });
+
   it('uses a generic provider retry reason when Pi omitted the diagnostic', () => {
-    expect(sanitizeProviderErrorRetryReason(null)).toBe(
+    expect(sanitizeProviderDiagnostic(null)).toBe(
       'Pi turn ended with stopReason=error',
     );
   });
@@ -1529,6 +1592,19 @@ describe('buildAttemptResult (result-construction characterization)', () => {
       code: 'invalid_model',
       message: "Model 'x' not found in registry",
       retryable: false,
+    });
+  });
+
+  it('uses a message when Pi reports an empty provider error', () => {
+    const out = buildAttemptResult({
+      ...base,
+      llmAbort: true,
+      llmErrorMessage: '',
+    });
+    expect(out.error).toMatchObject({
+      code: 'llm_api_error',
+      message: 'LLM API error during turn',
+      retryable: true,
     });
   });
 

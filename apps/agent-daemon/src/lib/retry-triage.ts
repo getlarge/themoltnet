@@ -57,6 +57,7 @@ const NON_RETRYABLE_CODES = new Set([
   PROVIDER_FAILURE_CODES.authError,
   PROVIDER_FAILURE_CODES.quotaExhausted,
   PROVIDER_FAILURE_CODES.requestRejected,
+  PROVIDER_FAILURE_CODES.requestCancelled,
   // Hitting the turn cap is usually a deterministic model/workload/tool-loop
   // mismatch for the selected runtime profile. Retrying the same attempt shape
   // tends to burn another slot without adding useful evidence.
@@ -101,7 +102,7 @@ const NON_RETRYABLE_MESSAGE_PATTERNS = [
   /\bforbidden\b/i,
   /\binvalid (?:api )?key\b/i,
   /\bmissing credentials?\b/i,
-  /\bmodel .*not (?:found|registered|available)\b/i,
+  /\bmodel .*?(?:not (?:found|registered|available)|does not exist)\b/i,
   /\bpath escapes workspace\b/i,
   /\bunknown task type\b/i,
   /\bvalidation failed\b/i,
@@ -220,11 +221,8 @@ export function classifyDeterministically(
   }
 
   if (NON_RETRYABLE_CODES.has(code)) return 'non_retryable';
-  // Current Pi outputs explicitly mark transient/unknown provider failures.
-  // Older persisted llm_api_error rows had retryable: false, so keep main's
-  // message guards for those rows before the broad retryable code fallback.
-  if (code === PROVIDER_FAILURE_CODES.apiError && error.retryable === true)
-    return 'retryable';
+  // Keep the legacy text guards for persisted and current unknown API errors.
+  // Structured terminal provider codes above take precedence over this text.
   if (NON_RETRYABLE_MESSAGE_PATTERNS.some((pattern) => pattern.test(message))) {
     return 'non_retryable';
   }

@@ -116,6 +116,7 @@ import { resumeVm } from '../vm.js';
 import {
   appendPermanentProviderRequestDiagnostics,
   classifyProviderFailure,
+  PROVIDER_FAILURE_CODES,
   type ProviderFailureCode,
   type ProviderFailureContext,
   type ProviderFailureVerdict,
@@ -443,11 +444,10 @@ function guardGondolinExtensionFactories(
   });
 }
 
-export interface ProviderFailureProfileContext {
-  runtimeProfileId: string;
-  runtimeProfileName: string;
-  piAgentDirSource: string;
-}
+export type ProviderFailureProfileContext = Pick<
+  ProviderFailureContext,
+  'runtimeProfileId' | 'runtimeProfileName' | 'piAgentDirSource'
+>;
 
 export interface ExecutePiTaskOptions {
   /** MoltNet agent whose credentials the VM boots with. */
@@ -1802,7 +1802,7 @@ export async function executePiTask(
         );
       }
       if (err instanceof RuntimeProfileModelResolutionError) {
-        return makeFailedOutput('invalid_model', message);
+        return makeFailedOutput(PROVIDER_FAILURE_CODES.invalidModel, message);
       }
       if (err instanceof GuestExecutableProbeError) {
         return makeFailedOutput(err.code, message, finalUsage, true);
@@ -2083,9 +2083,9 @@ export async function executePiTask(
       llmErrorMessage: turnState.llmErrorMessage,
       providerFailureContext: opts.providerFailureContext
         ? {
+            ...opts.providerFailureContext,
             provider: opts.provider,
             model: opts.model,
-            ...opts.providerFailureContext,
             runtimeProfileRevision:
               typeof claimedTask.claimAuthority?.runtimeProfileRevision ===
               'number'
@@ -2945,27 +2945,16 @@ export async function promptWithProviderErrorRetries(
         : retryCount >= args.maxRetries
           ? 'exhausted'
           : null;
-    if (stopReason) {
-      const verdict = classifyProviderFailure(llmErrorMessage);
-      await args.onRetryStopped?.({
-        event: 'provider_error_retry_stopped',
-        reason: stopReason,
-        retryCount,
-        code: verdict.code,
-        classificationReason: verdict.reason,
-        message: sanitizeProviderErrorRetryReason(llmErrorMessage),
-      });
-      return { runError: null, retryCount };
-    }
     const verdict = classifyProviderFailure(llmErrorMessage);
-    if (!verdict.retryable) {
+    const reason = stopReason ?? (!verdict.retryable ? 'permanent' : null);
+    if (reason) {
       await args.onRetryStopped?.({
         event: 'provider_error_retry_stopped',
-        reason: 'permanent',
+        reason,
         retryCount,
         code: verdict.code,
         classificationReason: verdict.reason,
-        message: sanitizeProviderErrorRetryReason(llmErrorMessage),
+        message: sanitizeProviderDiagnostic(llmErrorMessage),
       });
       return { runError: null, retryCount };
     }
@@ -2981,7 +2970,7 @@ export async function promptWithProviderErrorRetries(
       retry: retryCount,
       maxRetries: args.maxRetries,
       delayMs,
-      reason: sanitizeProviderErrorRetryReason(llmErrorMessage),
+      reason: sanitizeProviderDiagnostic(llmErrorMessage),
     });
     await sleepUnlessAborted(delayMs, args.cancelSignal);
     if (args.cancelSignal.aborted || args.isCapAborted?.()) {
@@ -3197,11 +3186,14 @@ export async function promptUntilSubmitted(
   return { runError: null, submitReprompts };
 }
 
-export function sanitizeProviderErrorRetryReason(
+export function sanitizeProviderDiagnostic(
   value: string | null | undefined,
 ): string {
   const raw = value ?? 'Pi turn ended with stopReason=error';
-  return redactRetryTriageSecrets(raw).slice(0, 500);
+  const redacted = redactRetryTriageSecrets(raw);
+  return redacted.length <= 500
+    ? redacted
+    : `${redacted.slice(0, 240)}…${redacted.slice(-259)}`;
 }
 
 async function sleepUnlessAborted(

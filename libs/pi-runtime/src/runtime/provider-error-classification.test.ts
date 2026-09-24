@@ -16,7 +16,7 @@ const CONTEXT = {
   runtimeProfileId: 'profile-1',
   runtimeProfileName: 'default-coding',
   runtimeProfileRevision: 7,
-  piAgentDirSource: 'store',
+  piAgentDirSource: 'store' as const,
 };
 
 describe('provider request error classification', () => {
@@ -82,7 +82,18 @@ describe('provider request error classification', () => {
       '400 Request validation failed: unsupported shape',
       'llm_request_rejected',
     ],
-    ['Request was cancelled.', 'llm_request_rejected'],
+    ['Request was cancelled.', 'llm_request_cancelled'],
+    [
+      'OpenAI API error (401): {"error":{"code":"invalid_api_key"}}',
+      'llm_auth_error',
+    ],
+    ['Azure OpenAI API error (401): Unauthorized', 'llm_auth_error'],
+    ['Mistral API error (403): Forbidden', 'llm_auth_error'],
+    ['Request failed with status code 401: Unauthorized', 'llm_auth_error'],
+    ['OpenAI API error (503): {"error":{"code":401}}', 'llm_api_error'],
+    ['[{"error":{"code":401,"status":"UNAUTHENTICATED"}}]', 'llm_auth_error'],
+    ['Provider API error (401): {"error":{"code":401}}', 'llm_auth_error'],
+    ['Provider returned error: {"error":{"code":401}}', 'llm_auth_error'],
     ['402 Insufficient credits for this request', 'llm_quota_exhausted'],
     ['404 The model `gpt-9` does not exist', 'invalid_model'],
     [
@@ -92,6 +103,10 @@ describe('provider request error classification', () => {
     ["Model 'x' not found in registry", 'invalid_model'],
     ['500 response: unknown field request_id', 'llm_api_error'],
     ['request timed out: unsupported field response_format', 'llm_api_error'],
+    ['stream canceled by peer', 'llm_api_error'],
+    ['upstream says request validation failed', 'llm_api_error'],
+    ['Invalid API key, see https://example.test/billing', 'llm_auth_error'],
+    ['400 billing_hard_limit_reached', 'llm_quota_exhausted'],
   ])('classifies provider text %s as %s', (message, code) => {
     expect(classifyProviderFailure(message)).toMatchObject({
       code,
@@ -132,7 +147,7 @@ describe('provider request error classification', () => {
       'available balance',
       'insufficient_quota',
       'out of budget',
-      'billing',
+      'billing_hard_limit_reached',
     ]) {
       expect(
         isRetryableAssistantError({

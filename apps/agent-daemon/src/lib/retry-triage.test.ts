@@ -225,7 +225,7 @@ describe('retry triage classification', () => {
         message: '401 Unauthorized',
         retryable: true,
       }),
-    ).toBe('retryable');
+    ).toBe('non_retryable');
   });
 
   it('keeps main-branch guards for older llm_api_error rows', () => {
@@ -234,13 +234,15 @@ describe('retry triage classification', () => {
       '400 Request validation failed: bad arguments',
       'Request was cancelled.',
     ]) {
-      expect(
-        classifyDeterministically({
-          code: 'llm_api_error',
-          message,
-          retryable: false,
-        }),
-      ).toBe('non_retryable');
+      for (const retryable of [false, true]) {
+        expect(
+          classifyDeterministically({
+            code: 'llm_api_error',
+            message,
+            retryable,
+          }),
+        ).toBe('non_retryable');
+      }
     }
   });
 
