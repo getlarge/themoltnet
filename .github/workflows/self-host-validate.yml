@@ -1,0 +1,67 @@
+name: Validate self-host bundle
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/release-self-host.yml'
+      - '.github/workflows/self-host-validate.yml'
+      - '.release-please-manifest.json'
+      - 'deploy/self-host/**'
+      - 'infra/ory/**'
+      - 'tools/release/self-host-bundle*'
+      - 'apps/console/package.json'
+      - 'apps/mcp-server/package.json'
+      - 'apps/rest-api/package.json'
+      - 'libs/database/package.json'
+  push:
+    branches: [main]
+    paths:
+      - '.release-please-manifest.json'
+      - 'deploy/self-host/**'
+      - 'infra/ory/**'
+      - 'tools/release/self-host-bundle*'
+      - 'apps/console/package.json'
+      - 'apps/mcp-server/package.json'
+      - 'apps/rest-api/package.json'
+      - 'libs/database/package.json'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test tools/release/self-host-bundle.test.mjs
+      - name: Verify archive checksum manifest
+        run: |
+          set -euo pipefail
+          node tools/release/self-host-bundle.mjs --version ci --skip-digests --output "$RUNNER_TEMP/moltnet-self-host-ci"
+          cd "$RUNNER_TEMP/moltnet-self-host-ci"
+          find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+          sha256sum -c SHA256SUMS
+      - name: Boot identity services from the archive
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/moltnet-self-host-ci/deploy/self-host"
+          node --input-type=module <<'NODE'
+          import { randomBytes } from 'node:crypto';
+          import { readFileSync, writeFileSync } from 'node:fs';
+          import path from 'node:path';
+
+          const input = readFileSync('.env.example', 'utf8');
+          const filled = input.replace(/^([A-Z][A-Z0-9_]*)=$/gm, (_, name) => {
+            if (name === 'SMTP_CONNECTION_URI') return `${name}=smtp://localhost:1025/`;
+            if (name === 'ACME_EMAIL') return `${name}=ci@example.com`;
+            if (name.endsWith('_IMAGE')) return `${name}=ci-placeholder`;
+            return `${name}=${randomBytes(name === 'KRATOS_CIPHER_SECRET' ? 16 : 32).toString('hex')}`;
+          });
+          writeFileSync(path.join(process.env.RUNNER_TEMP, 'self-host-ci.env'), filled, { mode: 0o600 });
+          NODE
+          compose=(docker compose -p self-host-ci --env-file "$RUNNER_TEMP/self-host-ci.env" --env-file .env.release)
+          trap '"${compose[@]}" down -v' EXIT
+          "${compose[@]}" up -d --wait --wait-timeout 120 postgres kratos hydra keto talos

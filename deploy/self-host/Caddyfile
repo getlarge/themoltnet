@@ -9,6 +9,8 @@
 
 {$API_DOMAIN} {
 	encode zstd gzip
+	@hooks path /hooks/*
+	respond @hooks 404
 	reverse_proxy rest-api:8080
 }
 

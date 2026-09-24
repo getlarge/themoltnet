@@ -2,13 +2,17 @@ name: moltnet
 
 x-restart: &restart
   restart: unless-stopped
+  logging:
+    options:
+      max-size: 10m
+      max-file: '3'
 
 services:
   caddy:
     <<: *restart
     image: caddy:2.10.2-alpine
     environment:
-      ACME_EMAIL: ${ACME_EMAIL:-}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL}
       CONSOLE_DOMAIN: ${CONSOLE_DOMAIN:?set CONSOLE_DOMAIN}
       API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN}
       MCP_DOMAIN: ${MCP_DOMAIN:?set MCP_DOMAIN}
@@ -26,13 +30,14 @@ services:
       console:
         condition: service_started
       rest-api:
-        condition: service_healthy
+        condition: service_started
       mcp-server:
-        condition: service_healthy
+        condition: service_started
 
   postgres:
     <<: *restart
-    image: pgvector/pgvector:pg17
+    image: pgvector/pgvector:pg16
+    shm_size: 256m
     environment:
       POSTGRES_USER: moltnet
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
@@ -76,13 +81,13 @@ services:
       SERVE_PUBLIC_BASE_URL: https://${IDENTITY_DOMAIN}/
       SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_0: https://${CONSOLE_DOMAIN}
       SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_1: https://${IDENTITY_DOMAIN}
-      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_2: https://${CONSOLE_DOMAIN}
-      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_3: https://${IDENTITY_DOMAIN}
+      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_2: https://${API_DOMAIN}
+      SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_3: https://${MCP_DOMAIN}
       SELFSERVICE_DEFAULT_BROWSER_RETURN_URL: https://${CONSOLE_DOMAIN}/
       SELFSERVICE_ALLOWED_RETURN_URLS_0: https://${CONSOLE_DOMAIN}/
       SELFSERVICE_ALLOWED_RETURN_URLS_1: https://${IDENTITY_DOMAIN}/
-      SELFSERVICE_ALLOWED_RETURN_URLS_2: https://${CONSOLE_DOMAIN}/
-      SELFSERVICE_ALLOWED_RETURN_URLS_3: https://${IDENTITY_DOMAIN}/
+      SELFSERVICE_ALLOWED_RETURN_URLS_2: https://${API_DOMAIN}/
+      SELFSERVICE_ALLOWED_RETURN_URLS_3: https://${MCP_DOMAIN}/
       SELFSERVICE_FLOWS_REGISTRATION_UI_URL: https://${IDENTITY_DOMAIN}/registration
       SELFSERVICE_FLOWS_LOGIN_UI_URL: https://${IDENTITY_DOMAIN}/login
       SELFSERVICE_FLOWS_RECOVERY_UI_URL: https://${IDENTITY_DOMAIN}/recovery
@@ -109,12 +114,12 @@ services:
       SELFSERVICE_METHODS_PASSWORD_CONFIG_HAVEIBEENPWNED_ENABLED: 'true'
       SELFSERVICE_FLOWS_VERIFICATION_ENABLED: 'true'
       SELFSERVICE_FLOWS_VERIFICATION_USE: code
-      COURIER_SMTP_CONNECTION_URI: ${SMTP_CONNECTION_URI}
+      COURIER_SMTP_CONNECTION_URI: ${SMTP_CONNECTION_URI:?set SMTP_CONNECTION_URI}
       COURIER_SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS}
       CONSOLE_DOMAIN: ${CONSOLE_DOMAIN}
       IDENTITY_DOMAIN: ${IDENTITY_DOMAIN}
       ORY_ACTION_API_KEY: ${ORY_ACTION_API_KEY}
-      SMTP_CONNECTION_URI: ${SMTP_CONNECTION_URI}
+      SMTP_CONNECTION_URI: ${SMTP_CONNECTION_URI:?set SMTP_CONNECTION_URI}
       SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS}
     volumes:
       - ../../infra/ory/kratos/kratos.yaml:/etc/config/kratos/kratos.yaml:ro
@@ -137,6 +142,7 @@ services:
       SECURITY_MODE: standalone
       KRATOS_PUBLIC_URL: http://kratos:4433/
       KRATOS_ADMIN_URL: http://kratos:4434/
+      HYDRA_ADMIN_URL: http://hydra:4445/
       KRATOS_BROWSER_URL: https://${IDENTITY_DOMAIN}/
       COOKIE_SECRET: ${KRATOS_UI_COOKIE_SECRET:?set KRATOS_UI_COOKIE_SECRET}
       CSRF_COOKIE_NAME: ory_csrf_ui
@@ -172,7 +178,7 @@ services:
       SERVE_PUBLIC_CORS_ALLOWED_ORIGINS_1: https://${API_DOMAIN}
       URLS_SELF_ISSUER: https://${OAUTH_DOMAIN}/
       URLS_SELF_PUBLIC: https://${OAUTH_DOMAIN}/
-      URLS_CONSENT: https://${IDENTITY_DOMAIN}/consent
+      URLS_CONSENT: https://${API_DOMAIN}/oauth2/consent
       URLS_LOGIN: https://${IDENTITY_DOMAIN}/login
       URLS_LOGOUT: https://${IDENTITY_DOMAIN}/logout
       URLS_ERROR: https://${CONSOLE_DOMAIN}/auth/error
@@ -250,8 +256,8 @@ services:
 
   valkey:
     <<: *restart
-    image: valkey/valkey:8.1.3-alpine
-    command: valkey-server --save 60 1 --appendonly yes
+    image: valkey/valkey:8-alpine
+    command: valkey-server --save '' --appendonly no --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - valkey-data:/data
     healthcheck:
@@ -351,6 +357,7 @@ services:
       REST_API_URL: http://rest-api:8080
       CONSOLE_BASE_URL: https://${CONSOLE_DOMAIN}
       AUTH_ENABLED: 'true'
+      ORY_PROJECT_URL: http://hydra:4444
       ORY_HYDRA_PUBLIC_URL: http://hydra:4444
       ORY_HYDRA_ADMIN_URL: http://hydra:4445
       CLIENT_CREDENTIALS_PROXY: 'true'
