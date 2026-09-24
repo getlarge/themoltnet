@@ -181,7 +181,7 @@ describe('catalogue state in the Runs overview', () => {
   });
 });
 
-it('offers catalogue retry when upstream team verification cannot complete', async () => {
+it('reports unverified team access as a recoverable check, not a missing catalogue', async () => {
   const { data, actions } = fixture(vi.fn());
   actions.catalogue = vi.fn().mockResolvedValue({
     ...EMPTY_CATALOGUE,
@@ -202,8 +202,9 @@ it('offers catalogue retry when upstream team verification cannot complete', asy
     ],
   });
   renderRuns(actions, data);
-  await screen.findByText('Catalogue unavailable');
-  fireEvent.click(screen.getByRole('button', { name: 'Retry catalogue' }));
+  await screen.findByText('Checking team access');
+  expect(screen.queryByText('Catalogue unavailable')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Check now' }));
   await waitFor(() => expect(actions.catalogue).toHaveBeenCalledTimes(2));
 });
 

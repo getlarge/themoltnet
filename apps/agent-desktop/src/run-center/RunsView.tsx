@@ -113,6 +113,7 @@ function RunsList({
     catalogue,
     loading: catalogueLoading,
     error: catalogueError,
+    stale: catalogueStale,
     retry: retryCatalogue,
   } = useCatalogue(
     serverReady
@@ -168,12 +169,25 @@ function RunsList({
           <Text>Loading teams and profiles…</Text>
         </div>
       ) : null}
-      {serverReady && (catalogueError || verificationFailed) ? (
+      {serverReady && catalogueError ? (
         <InlineNotice tone="error" title="Catalogue unavailable">
-          {catalogueError ??
-            'Some team resources could not be verified. Check connectivity and retry.'}
+          {catalogueError}
           <Button variant="secondary" onClick={retryCatalogue}>
             Retry catalogue
+          </Button>
+        </InlineNotice>
+      ) : null}
+      {serverReady &&
+      !catalogueError &&
+      (verificationFailed || catalogueStale) ? (
+        // Usually transient — a renewal the API has not settled, a throttled
+        // read — and the catalogue is already re-checking on its own.
+        <InlineNotice tone="warning" title="Checking team access">
+          {verificationFailed
+            ? 'Some team credentials could not be verified yet. Checking again automatically.'
+            : 'Showing the last loaded teams and profiles. Checking again automatically.'}
+          <Button variant="secondary" onClick={retryCatalogue}>
+            Check now
           </Button>
         </InlineNotice>
       ) : null}

@@ -9,7 +9,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTestWrapper } from '../test-query-client.js';
 import { runCenterActions } from './run-center-bridge.js';
 import type { AgentServerCatalogue } from './types.js';
-import { CATALOGUE_ERROR, useCatalogue } from './useCatalogue.js';
+import {
+  CATALOGUE_ERROR,
+  nextCatalogueRefresh,
+  useCatalogue,
+} from './useCatalogue.js';
 
 const catalogue = {
   teams: [],
@@ -91,9 +95,11 @@ describe('useCatalogue', () => {
       new Error('unreachable'),
     );
     result.current.retry();
-    await waitFor(() => expect(result.current.error).toBe(CATALOGUE_ERROR));
-    // A failed background read replaced a good catalogue with null before.
+    await waitFor(() => expect(result.current.stale).toBe(true));
+    // A failed background read replaced a good catalogue with null before, and
+    // then a full-page error hid the catalogue that was still usable.
     expect(result.current.catalogue).toEqual(catalogue);
+    expect(result.current.error).toBeNull();
     expect(result.current.loading).toBe(false);
   });
 
@@ -114,6 +120,42 @@ describe('useCatalogue', () => {
     });
     expect(result.current.loading).toBe(false);
     expect(runCenterActions.catalogue).not.toHaveBeenCalled();
+  });
+});
+
+const unverified = {
+  teams: [
+    {
+      teamId: 'team-a',
+      teamName: 'team-a',
+      available: false,
+      blockers: [
+        {
+          code: 'agent_key_unavailable',
+          message: 'This team credential could not be verified.',
+          remedy: 'Renew it.',
+        },
+      ],
+      diaries: [],
+      defaultDiaryId: null,
+    },
+  ],
+  projects: [],
+  profiles: [],
+  projectErrors: [],
+  defaultTeamId: null,
+} as unknown as AgentServerCatalogue;
+
+describe('nextCatalogueRefresh', () => {
+  it.each([
+    [null, 60_000],
+    [0, 5_000],
+    [10_000, 5_000],
+    [30_000, 15_000],
+    [90_000, 45_000],
+    [600_000, 60_000],
+  ])('after %s ms degraded waits %s ms', (degradedFor, expected) => {
+    expect(nextCatalogueRefresh(degradedFor)).toBe(expected);
   });
 });
 
@@ -162,6 +204,52 @@ describe('useCatalogue polling', () => {
     expect(
       vi.mocked(runCenterActions.catalogue).mock.calls.length,
     ).toBeGreaterThan(1);
+  });
+
+  it('checks again soon while a team credential cannot be verified, then backs off', async () => {
+    // Arrange: a renewal the API has not settled yet.
+    vi.mocked(runCenterActions.catalogue).mockResolvedValue(unverified);
+    renderHook(() => useCatalogue('agent-a', { poll: true }), {
+      wrapper: createTestWrapper(),
+    });
+    await flush();
+
+    // Act + Assert: quick checks first, not the minute-long normal poll.
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(runCenterActions.catalogue).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(runCenterActions.catalogue).toHaveBeenCalledTimes(3);
+
+    // Recovered: back to the normal interval.
+    vi.mocked(runCenterActions.catalogue).mockResolvedValue(catalogue);
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(runCenterActions.catalogue).toHaveBeenCalledTimes(4);
+    await vi.advanceTimersByTimeAsync(59_000);
+    expect(runCenterActions.catalogue).toHaveBeenCalledTimes(4);
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(runCenterActions.catalogue).toHaveBeenCalledTimes(5);
+  });
+
+  it('checks again soon after a failed read', async () => {
+    // Arrange
+    vi.mocked(runCenterActions.catalogue).mockRejectedValueOnce(
+      new Error('timed out'),
+    );
+    const { result } = renderHook(
+      () => useCatalogue('agent-a', { poll: true }),
+      { wrapper: createTestWrapper() },
+    );
+    await flush();
+    expect(result.current.error).toBe(CATALOGUE_ERROR);
+
+    // Act: the recovery interval, plus a scheduler turn for the fetch to
+    // settle and notify.
+    await vi.advanceTimersByTimeAsync(5_100);
+
+    // Assert
+    expect(runCenterActions.catalogue).toHaveBeenCalledTimes(2);
+    expect(result.current.error).toBeNull();
+    expect(result.current.catalogue).toEqual(catalogue);
   });
 
   it('does not poll from a follower', async () => {
