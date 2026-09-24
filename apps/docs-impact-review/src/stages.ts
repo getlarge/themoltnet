@@ -30,6 +30,12 @@ export interface StageContext {
   diaryId: string;
   correlationId: string;
   profileId: string;
+  /**
+   * Project whose local binding supplies the repository. Required for the
+   * coverage stage's dedicated worktree: an unscoped daemon runs tasks in a
+   * scratch directory that is not a git repository.
+   */
+  projectId?: string;
   tags: string[];
 }
 
@@ -222,6 +228,7 @@ function baseTask(
     runningTimeoutSec: STAGE_RUNNING_TIMEOUT_SEC,
     maxAttempts: 1,
     allowedProfiles: [{ profileId: ctx.profileId }],
+    ...(ctx.projectId ? { projectId: ctx.projectId } : {}),
     tags: [...ctx.tags, `stage:${stage}`],
   };
 }

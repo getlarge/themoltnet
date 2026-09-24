@@ -93,14 +93,16 @@ moltnet profile create \
   --team-id "$MOLTNET_TEAM_ID"
 
 # terminal 1: a daemon that claims the review stages
+# --binding: the coverage stage needs a git worktree of the reviewed repo
 moltnet-agent poll --agent "$MOLTNET_AGENT_NAME" --team "$MOLTNET_TEAM_ID" \
-  --profile legreffier-docs-review-v1 --task-types freeform
+  --profile legreffier-docs-review-v1 --task-types freeform --binding themoltnet
 
 # terminal 2: review a corpus, write per-PR reports
 pnpm exec nx run @moltnet/docs-impact-review:cli -- \
   --repo getlarge/themoltnet --pr 2462 --pr 2454 --pr 2459 \
   --team "$MOLTNET_TEAM_ID" --diary "$MOLTNET_DIARY_ID" \
-  --profile legreffier-docs-review-v1 --out /tmp/docs-impact
+  --profile legreffier-docs-review-v1 --project "$MOLTNET_PROJECT_ID" \
+  --out /tmp/docs-impact
 ```
 
 Each stage task is tagged `review:docs-impact`, `stage:<extract|coverage>`,

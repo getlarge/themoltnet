@@ -235,6 +235,22 @@ describe('buildExtractTask', () => {
   });
 });
 
+describe('project scoping', () => {
+  it('scopes stage tasks to the project whose binding owns the repository', () => {
+    // Arrange
+    const projectId = '00000000-0000-4000-8000-000000000005';
+
+    // Act
+    const task = buildExtractTask(
+      { ...context, projectId },
+      { manifest: '', diff: '' },
+    );
+
+    // Assert
+    expect(task.projectId).toBe(projectId);
+  });
+});
+
 describe('buildCoverageTask', () => {
   it('pins a dedicated worktree to the reviewed head', () => {
     // Arrange
