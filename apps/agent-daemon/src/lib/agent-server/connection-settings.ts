@@ -16,6 +16,11 @@ export const RELEASE_CONNECTION = {
   publicUrl: 'https://auth.themolt.net',
   nativeClientId: 'moltnet-native',
 };
+function withoutTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === '/') end--;
+  return value.slice(0, end);
+}
 export type ConnectionSettings = typeof RELEASE_CONNECTION;
 export type ConnectionOverrides = Partial<ConnectionSettings>;
 const KEYS = Object.keys(RELEASE_CONNECTION) as (keyof ConnectionSettings)[];
@@ -132,8 +137,8 @@ export function connectionStateRoot(
   settings: ConnectionSettings,
 ): string {
   const identity = [
-    settings.apiUrl.replace(/\/+$/u, ''),
-    settings.issuer.replace(/\/+$/u, ''),
+    withoutTrailingSlashes(settings.apiUrl),
+    withoutTrailingSlashes(settings.issuer),
   ];
   if (
     identity[0] === RELEASE_CONNECTION.apiUrl &&
