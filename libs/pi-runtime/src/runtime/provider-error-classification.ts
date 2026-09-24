@@ -39,10 +39,13 @@ const TRANSIENT_PROVIDER_ERROR_PATTERNS = [
   /\bDNS\b/i,
 ];
 
-const PERMANENT_REQUEST_FIELD_PATTERNS = [
-  /\b(?:unsupported|unrecognized|unknown|invalid)\s+(?:request\s+)?(?:parameter|argument|field)\s*:?\s*["'`]?([A-Za-z][\w.-]*)/gi,
-  /\b(?:parameter|argument|field)\s+["'`]?([A-Za-z][\w.-]*)["'`]?(?:[^\n]{0,120})\b(?:is\s+)?not\s+supported\b/gi,
-];
+const REQUEST_DESCRIPTORS = new Set([
+  'unsupported',
+  'unrecognized',
+  'unknown',
+  'invalid',
+]);
+const REQUEST_FIELD_KINDS = new Set(['parameter', 'argument', 'field']);
 
 export interface ProviderFailureContext {
   provider: string;
@@ -94,9 +97,27 @@ export function extractPermanentProviderRequestFields(
 ): string[] {
   if (!message || !message.trim()) return [];
   const fields = new Set<string>();
-  for (const pattern of PERMANENT_REQUEST_FIELD_PATTERNS) {
-    for (const match of message.matchAll(pattern)) {
-      if (match[1]) fields.add(match[1]);
+  // Provider text is untrusted. Bound the scan and use a single-pass token
+  // parser rather than overlapping optional regex groups on long whitespace.
+  for (const line of message.slice(0, 4000).split(/\r?\n/)) {
+    const tokens = line.match(/[A-Za-z][\w.-]*|:/g) ?? [];
+    const lower = tokens.map((token) => token.toLowerCase());
+    for (let i = 0; i < tokens.length; i++) {
+      if (REQUEST_DESCRIPTORS.has(lower[i])) {
+        let kind = i + 1;
+        if (lower[kind] === 'request') kind++;
+        if (!REQUEST_FIELD_KINDS.has(lower[kind])) continue;
+        const field = tokens[kind + (tokens[kind + 1] === ':' ? 2 : 1)];
+        if (field && field !== ':' && field.toLowerCase() !== 'is') {
+          fields.add(field);
+        }
+        continue;
+      }
+      if (!REQUEST_FIELD_KINDS.has(lower[i])) continue;
+      const field = tokens[i + 1];
+      if (!field || field === ':') continue;
+      const suffix = lower.slice(i + 2, i + 8).join(' ');
+      if (suffix.includes('not supported')) fields.add(field);
     }
   }
   return [...fields];

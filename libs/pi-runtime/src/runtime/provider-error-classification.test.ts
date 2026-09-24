@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   appendPermanentProviderRequestDiagnostics,
+  extractPermanentProviderRequestFields,
   getPermanentProviderRequestDiagnostics,
   isPermanentProviderQuotaError,
   isPermanentProviderRequestError,
@@ -17,6 +18,19 @@ const CONTEXT = {
 };
 
 describe('provider request error classification', () => {
+  it('extracts supported field forms with bounded parsing of provider text', () => {
+    expect(
+      extractPermanentProviderRequestFields(
+        'Unsupported parameter: reasoning_effort\nunknown request field "response_format"\nparameter verbosity is not supported',
+      ),
+    ).toEqual(['reasoning_effort', 'response_format', 'verbosity']);
+    expect(
+      extractPermanentProviderRequestFields(
+        `unsupported parameter${' '.repeat(10_000)}`,
+      ),
+    ).toEqual([]);
+  });
+
   it('distinguishes exhausted monthly capacity from ordinary rate limiting', () => {
     expect(
       isPermanentProviderQuotaError(
