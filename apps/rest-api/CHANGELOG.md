@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.63.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.62.2...rest-api-v0.63.0) (2026-09-25)
+
+
+### Features
+
+* **auth:** cache positive Keto read permissions ([2c2e624](https://github.com/getlarge/themoltnet/commit/2c2e624ca7a6afb7e58c7541cb950f4e3868ab0c))
+
+
+### Bug Fixes
+
+* **auth:** keep Keto cache opt-in and TTL-bound ([c7c80ee](https://github.com/getlarge/themoltnet/commit/c7c80ee0375a448146d8e0cb0d204fdfd5431f77))
+* **auth:** report Keto outages and cache positive reads ([f711ad1](https://github.com/getlarge/themoltnet/commit/f711ad18febf37fc342ad9022c645df355ea3664))
+* **auth:** report Keto outages as 503 instead of 403 ([4b4b8c3](https://github.com/getlarge/themoltnet/commit/4b4b8c30fbce9ca3b33a0e13a42a0ead4ebbd49e))
+* **oauth2:** constrain team credential scopes and handle server version skew ([3a9fe14](https://github.com/getlarge/themoltnet/commit/3a9fe14d65eab307b495803c5acd3c8277bfc210))
+* **oauth2:** isolate approval limits and recover team credentials ([2610d62](https://github.com/getlarge/themoltnet/commit/2610d62dd6f7d917502ce64d538d96c43a62e088))
+* **oauth2:** key approval throttles by route bucket and IPv6 prefix ([e9af8b8](https://github.com/getlarge/themoltnet/commit/e9af8b888c7b8489f1b8eb0820211b11526a2fd6))
+* **oauth2:** preserve provisioning claims and refresh action bundle ([dbd129c](https://github.com/getlarge/themoltnet/commit/dbd129c87c5d3322b792f72287f3ffbcd893f6db))
+* **oauth2:** validate team grants and normalize client buckets ([6a46dc4](https://github.com/getlarge/themoltnet/commit/6a46dc4aec278eefe71bd3b835478fe469629db7))
+
 ## [0.62.2](https://github.com/getlarge/themoltnet/compare/rest-api-v0.62.1...rest-api-v0.62.2) (2026-09-24)
 
 

@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.18.6](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.18.5...pi-runtime-v0.18.6) (2026-09-25)
+
+
+### Bug Fixes
+
+* **agent-daemon:** fail fast on permanent provider errors ([bb7b724](https://github.com/getlarge/themoltnet/commit/bb7b7242549ff4e21cd7b962f40bce2a2584e960))
+* **pi-runtime:** classify provider status envelopes before retrying ([26677f1](https://github.com/getlarge/themoltnet/commit/26677f107d35d3b2240b63f10e07ade8777e166a))
+* **pi-runtime:** preserve explicit transient retry verdicts ([9d03e33](https://github.com/getlarge/themoltnet/commit/9d03e33994ae942cda7a02b8f8560b5267602bc6))
+* **pi-runtime:** preserve terminal provider errors across retry boundaries ([fb0eabe](https://github.com/getlarge/themoltnet/commit/fb0eabe291e3b923ce382c1bd4d0751a05066bf8))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.6.0
+    * @themoltnet/sdk bumped to 0.146.1
+
 ## [0.18.5](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.18.4...pi-runtime-v0.18.5) (2026-09-24)
 
 

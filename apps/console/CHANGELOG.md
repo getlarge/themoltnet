@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.21.2](https://github.com/getlarge/themoltnet/compare/console-v0.21.1...console-v0.21.2) (2026-09-25)
+
+
+### Bug Fixes
+
+* **oauth2:** constrain team credential scopes and handle server version skew ([3a9fe14](https://github.com/getlarge/themoltnet/commit/3a9fe14d65eab307b495803c5acd3c8277bfc210))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @themoltnet/sdk bumped to 0.146.1
+
 ## [0.21.1](https://github.com/getlarge/themoltnet/compare/console-v0.21.0...console-v0.21.1) (2026-09-22)
 
 

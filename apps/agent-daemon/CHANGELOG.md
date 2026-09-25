@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.66.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.66.0...agent-daemon-v0.66.1) (2026-09-25)
+
+
+### Bug Fixes
+
+* **agent-daemon:** bound and share catalogue team reads ([380bd19](https://github.com/getlarge/themoltnet/commit/380bd19bca35573897e532ff8ac19edb2df60377))
+* **agent-daemon:** bound whole team reads and share catalogue reads per team ([3f99721](https://github.com/getlarge/themoltnet/commit/3f99721adc3473789c38112cfd542b20c633a66f))
+* **agent-daemon:** fail fast on permanent provider errors ([bb7b724](https://github.com/getlarge/themoltnet/commit/bb7b7242549ff4e21cd7b962f40bce2a2584e960))
+* **agent-daemon:** hold stuck catalogue lookups and prune idle cache entries ([4938044](https://github.com/getlarge/themoltnet/commit/49380448d732a068c7cbfdb104717bd37e09ef2b))
+* **agent-desktop:** make explicit catalogue refreshes bypass the shared read ([9267873](https://github.com/getlarge/themoltnet/commit/92678733d28d9a1c23ff276d2ec7712e93901d8e))
+* **agent-desktop:** resilient catalogue reads and fast recovery after renewal ([7d83ffa](https://github.com/getlarge/themoltnet/commit/7d83ffac596328e59dbb19bfeed11f8b5906d6b9))
+* **credential-recovery:** add native discard and typed restore failures ([5571f85](https://github.com/getlarge/themoltnet/commit/5571f859eba73c84565c26991488ac1af614bdb5))
+* **oauth2:** constrain team credential scopes and handle server version skew ([3a9fe14](https://github.com/getlarge/themoltnet/commit/3a9fe14d65eab307b495803c5acd3c8277bfc210))
+* **oauth2:** isolate approval limits and recover team credentials ([2610d62](https://github.com/getlarge/themoltnet/commit/2610d62dd6f7d917502ce64d538d96c43a62e088))
+* **pi-runtime:** classify provider status envelopes before retrying ([26677f1](https://github.com/getlarge/themoltnet/commit/26677f107d35d3b2240b63f10e07ade8777e166a))
+* **pi-runtime:** preserve explicit transient retry verdicts ([9d03e33](https://github.com/getlarge/themoltnet/commit/9d03e33994ae942cda7a02b8f8560b5267602bc6))
+* **pi-runtime:** preserve terminal provider errors across retry boundaries ([fb0eabe](https://github.com/getlarge/themoltnet/commit/fb0eabe291e3b923ce382c1bd4d0751a05066bf8))
+* **recovery:** verify captured team credentials before restoring slots ([9a7da55](https://github.com/getlarge/themoltnet/commit/9a7da55cc3574733b1fa38093168203af48c3abb))
+* **urls:** avoid flagged trailing slash patterns ([d0a1f6e](https://github.com/getlarge/themoltnet/commit/d0a1f6e61483f7d5e15a643991de9217f0880376))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.6.0
+    * @themoltnet/pi-runtime bumped to 0.18.6
+    * @themoltnet/sdk bumped to 0.146.1
+
 ## [0.66.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.65.2...agent-daemon-v0.66.0) (2026-09-24)
 
 

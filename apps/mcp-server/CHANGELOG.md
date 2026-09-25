@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.25.4](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.25.3...mcp-server-v0.25.4) (2026-09-25)
+
+
+### Bug Fixes
+
+* **urls:** avoid flagged trailing slash patterns ([d0a1f6e](https://github.com/getlarge/themoltnet/commit/d0a1f6e61483f7d5e15a643991de9217f0880376))
+
 ## [0.25.3](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.25.2...mcp-server-v0.25.3) (2026-09-24)
 
 
