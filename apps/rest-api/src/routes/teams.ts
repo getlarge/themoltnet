@@ -358,7 +358,12 @@ export function teamRoutes(
         tags: ['teams'],
         description:
           'Create a new project team. Caller becomes owner. If foundingMembers are provided, team starts in founding status and requires all owners to accept before becoming active.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         body: CreateTeamWithFoundingSchema,
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
@@ -494,7 +499,12 @@ export function teamRoutes(
         operationId: 'listTeams',
         tags: ['teams'],
         description: 'List teams the caller belongs to.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         headers: TeamHeaderOptionalSchema,
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
@@ -561,7 +571,12 @@ export function teamRoutes(
         operationId: 'getTeam',
         tags: ['teams'],
         description: 'Get team details. Requires team access.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         params: TeamParamsSchema,
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
@@ -622,7 +637,12 @@ export function teamRoutes(
         operationId: 'deleteTeam',
         tags: ['teams'],
         description: 'Delete a team. Requires manage permission (owner only).',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         params: TeamParamsSchema,
         response: {
           200: DeletedResponseSchema,
@@ -691,7 +711,12 @@ export function teamRoutes(
         operationId: 'listTeamMembers',
         tags: ['teams'],
         description: 'List team members. Requires team access.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         params: TeamParamsSchema,
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
@@ -741,7 +766,12 @@ export function teamRoutes(
         operationId: 'removeTeamMember',
         tags: ['teams'],
         description: 'Remove a member. Requires manage_members permission.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         params: TeamMemberParamsSchema,
         response: {
           200: RemovedResponseSchema,
@@ -825,7 +855,12 @@ export function teamRoutes(
         tags: ['teams'],
         description:
           'Update an agent role between member, executor, and manager, or a human role between member and manager. Requires manage_members permission.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         params: TeamMemberParamsSchema,
         body: UpdateTeamMemberRoleSchema,
         response: {
@@ -908,7 +943,12 @@ export function teamRoutes(
         tags: ['teams'],
         description:
           'Create an invite code. Requires manage_members permission.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         params: TeamParamsSchema,
         body: CreateTeamInviteSchema,
         response: {
@@ -971,7 +1011,12 @@ export function teamRoutes(
         operationId: 'listTeamInvites',
         tags: ['teams'],
         description: 'List invite codes. Requires manage_members permission.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         params: TeamParamsSchema,
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
@@ -1022,7 +1067,12 @@ export function teamRoutes(
         tags: ['teams'],
         description:
           'Delete an invite code. Requires manage_members permission.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         params: TeamInviteParamsSchema,
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
@@ -1070,7 +1120,12 @@ export function teamRoutes(
         tags: ['teams'],
         description:
           'Join using an invitation and a credential/session with team:join. Key issuance requires Idempotency-Key; secrets are returned once and completed replays return 409.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         body: JoinTeamSchema,
         headers: Type.Object({
           'idempotency-key': Type.Optional(
@@ -1220,7 +1275,12 @@ export function teamRoutes(
         tags: ['teams'],
         description:
           'Accept a founding role in a team. Only valid while team is in founding status.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         params: TeamParamsSchema,
         body: AcceptFoundingSchema,
         response: {

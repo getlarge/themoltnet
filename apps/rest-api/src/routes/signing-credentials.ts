@@ -230,7 +230,12 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'listSigningCredentials',
         tags: ['crypto'],
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         headers: TeamHeaderRequiredSchema,
         querystring: Type.Object({
           limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
@@ -277,7 +282,12 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'getSigningCredential',
         tags: ['crypto'],
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         headers: TeamHeaderRequiredSchema,
         params: ParamsSchema,
         response: {
@@ -323,6 +333,7 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
           tags: ['crypto'],
           security: [
             { bearerAuth: [] },
+            { agentKeyAuth: [] },
             { sessionAuth: [] },
             { cookieAuth: [] },
           ],

@@ -1173,10 +1173,21 @@ func (c *Client) sendAbortTaskAttempt(ctx context.Context, request OptAbortTaskA
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, AbortTaskAttemptOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, AbortTaskAttemptOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -1187,7 +1198,7 @@ func (c *Client) sendAbortTaskAttempt(ctx context.Context, request OptAbortTaskA
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, AbortTaskAttemptOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -1201,6 +1212,7 @@ func (c *Client) sendAbortTaskAttempt(ctx context.Context, request OptAbortTaskA
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -1332,10 +1344,21 @@ func (c *Client) sendAcceptTeamFounding(ctx context.Context, request *AcceptTeam
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, AcceptTeamFoundingOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, AcceptTeamFoundingOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -1346,7 +1369,7 @@ func (c *Client) sendAcceptTeamFounding(ctx context.Context, request *AcceptTeam
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, AcceptTeamFoundingOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -1360,6 +1383,7 @@ func (c *Client) sendAcceptTeamFounding(ctx context.Context, request *AcceptTeam
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -1488,10 +1512,21 @@ func (c *Client) sendAcceptTransfer(ctx context.Context, params AcceptTransferPa
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, AcceptTransferOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, AcceptTransferOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -1502,7 +1537,7 @@ func (c *Client) sendAcceptTransfer(ctx context.Context, params AcceptTransferPa
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, AcceptTransferOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -1516,6 +1551,7 @@ func (c *Client) sendAcceptTransfer(ctx context.Context, params AcceptTransferPa
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -1647,10 +1683,21 @@ func (c *Client) sendAddGroupMember(ctx context.Context, request *AddGroupMember
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, AddGroupMemberOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, AddGroupMemberOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -1661,7 +1708,7 @@ func (c *Client) sendAddGroupMember(ctx context.Context, request *AddGroupMember
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, AddGroupMemberOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -1675,6 +1722,7 @@ func (c *Client) sendAddGroupMember(ctx context.Context, request *AddGroupMember
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -1842,10 +1890,21 @@ func (c *Client) sendAppendTaskMessages(ctx context.Context, request *AppendTask
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, AppendTaskMessagesOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, AppendTaskMessagesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -1856,7 +1915,7 @@ func (c *Client) sendAppendTaskMessages(ctx context.Context, request *AppendTask
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, AppendTaskMessagesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -1870,6 +1929,7 @@ func (c *Client) sendAppendTaskMessages(ctx context.Context, request *AppendTask
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -2013,10 +2073,21 @@ func (c *Client) sendApproveSigningCredential(ctx context.Context, request OptAp
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ApproveSigningCredentialOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ApproveSigningCredentialOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -2027,7 +2098,7 @@ func (c *Client) sendApproveSigningCredential(ctx context.Context, request OptAp
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ApproveSigningCredentialOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -2041,6 +2112,7 @@ func (c *Client) sendApproveSigningCredential(ctx context.Context, request OptAp
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -2153,10 +2225,21 @@ func (c *Client) sendBatchDeleteDiaryEntries(ctx context.Context, request *Batch
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, BatchDeleteDiaryEntriesOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, BatchDeleteDiaryEntriesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -2167,7 +2250,7 @@ func (c *Client) sendBatchDeleteDiaryEntries(ctx context.Context, request *Batch
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, BatchDeleteDiaryEntriesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -2181,6 +2264,7 @@ func (c *Client) sendBatchDeleteDiaryEntries(ctx context.Context, request *Batch
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -2314,10 +2398,21 @@ func (c *Client) sendBatchDeleteTasks(ctx context.Context, request *BatchDeleteT
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, BatchDeleteTasksOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, BatchDeleteTasksOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -2328,7 +2423,7 @@ func (c *Client) sendBatchDeleteTasks(ctx context.Context, request *BatchDeleteT
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, BatchDeleteTasksOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -2342,6 +2437,7 @@ func (c *Client) sendBatchDeleteTasks(ctx context.Context, request *BatchDeleteT
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -2468,10 +2564,21 @@ func (c *Client) sendBeginRuntimeSlot(ctx context.Context, request *BeginRuntime
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, BeginRuntimeSlotOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, BeginRuntimeSlotOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -2482,7 +2589,7 @@ func (c *Client) sendBeginRuntimeSlot(ctx context.Context, request *BeginRuntime
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, BeginRuntimeSlotOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -2496,6 +2603,7 @@ func (c *Client) sendBeginRuntimeSlot(ctx context.Context, request *BeginRuntime
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -2784,10 +2892,21 @@ func (c *Client) sendCancelTask(ctx context.Context, request *CancelTaskReq, par
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, CancelTaskOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, CancelTaskOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -2798,7 +2917,7 @@ func (c *Client) sendCancelTask(ctx context.Context, request *CancelTaskReq, par
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, CancelTaskOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -2812,6 +2931,7 @@ func (c *Client) sendCancelTask(ctx context.Context, request *CancelTaskReq, par
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -3119,10 +3239,21 @@ func (c *Client) sendClaimTask(ctx context.Context, request OptClaimTaskReq, par
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ClaimTaskOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ClaimTaskOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -3133,7 +3264,7 @@ func (c *Client) sendClaimTask(ctx context.Context, request OptClaimTaskReq, par
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ClaimTaskOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -3147,6 +3278,7 @@ func (c *Client) sendClaimTask(ctx context.Context, request OptClaimTaskReq, par
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -3632,10 +3764,21 @@ func (c *Client) sendCompleteTask(ctx context.Context, request *CompleteTaskReq,
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, CompleteTaskOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, CompleteTaskOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -3646,7 +3789,7 @@ func (c *Client) sendCompleteTask(ctx context.Context, request *CompleteTaskReq,
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, CompleteTaskOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -3660,6 +3803,7 @@ func (c *Client) sendCompleteTask(ctx context.Context, request *CompleteTaskReq,
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -3800,10 +3944,21 @@ func (c *Client) sendCreateAgentKey(ctx context.Context, request *CreateAgentKey
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, CreateAgentKeyOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, CreateAgentKeyOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -3814,7 +3969,7 @@ func (c *Client) sendCreateAgentKey(ctx context.Context, request *CreateAgentKey
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, CreateAgentKeyOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -3828,6 +3983,7 @@ func (c *Client) sendCreateAgentKey(ctx context.Context, request *CreateAgentKey
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -3954,10 +4110,21 @@ func (c *Client) sendCreateDiary(ctx context.Context, request *CreateDiaryReq, p
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, CreateDiaryOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, CreateDiaryOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -3968,7 +4135,7 @@ func (c *Client) sendCreateDiary(ctx context.Context, request *CreateDiaryReq, p
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, CreateDiaryOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -3982,6 +4149,7 @@ func (c *Client) sendCreateDiary(ctx context.Context, request *CreateDiaryReq, p
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -4115,10 +4283,21 @@ func (c *Client) sendCreateDiaryCustomPack(ctx context.Context, request *CreateD
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, CreateDiaryCustomPackOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, CreateDiaryCustomPackOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -4129,7 +4308,7 @@ func (c *Client) sendCreateDiaryCustomPack(ctx context.Context, request *CreateD
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, CreateDiaryCustomPackOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -4143,6 +4322,7 @@ func (c *Client) sendCreateDiaryCustomPack(ctx context.Context, request *CreateD
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -4274,10 +4454,21 @@ func (c *Client) sendCreateDiaryEntry(ctx context.Context, request *CreateDiaryE
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, CreateDiaryEntryOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, CreateDiaryEntryOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -4288,7 +4479,7 @@ func (c *Client) sendCreateDiaryEntry(ctx context.Context, request *CreateDiaryE
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, CreateDiaryEntryOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -4302,6 +4493,7 @@ func (c *Client) sendCreateDiaryEntry(ctx context.Context, request *CreateDiaryE
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -4433,10 +4625,21 @@ func (c *Client) sendCreateDiaryGrant(ctx context.Context, request *CreateDiaryG
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, CreateDiaryGrantOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, CreateDiaryGrantOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -4447,7 +4650,7 @@ func (c *Client) sendCreateDiaryGrant(ctx context.Context, request *CreateDiaryG
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, CreateDiaryGrantOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -4461,6 +4664,7 @@ func (c *Client) sendCreateDiaryGrant(ctx context.Context, request *CreateDiaryG
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -4593,10 +4797,21 @@ func (c *Client) sendCreateEntryRelation(ctx context.Context, request *CreateEnt
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, CreateEntryRelationOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, CreateEntryRelationOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -4607,7 +4822,7 @@ func (c *Client) sendCreateEntryRelation(ctx context.Context, request *CreateEnt
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, CreateEntryRelationOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -4621,6 +4836,7 @@ func (c *Client) sendCreateEntryRelation(ctx context.Context, request *CreateEnt
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -4752,10 +4968,21 @@ func (c *Client) sendCreateGroup(ctx context.Context, request *CreateGroupReq, p
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, CreateGroupOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, CreateGroupOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -4766,7 +4993,7 @@ func (c *Client) sendCreateGroup(ctx context.Context, request *CreateGroupReq, p
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, CreateGroupOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -4780,6 +5007,7 @@ func (c *Client) sendCreateGroup(ctx context.Context, request *CreateGroupReq, p
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -4907,10 +5135,21 @@ func (c *Client) sendCreateProject(ctx context.Context, request *CreateProjectRe
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, CreateProjectOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, CreateProjectOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -4921,7 +5160,7 @@ func (c *Client) sendCreateProject(ctx context.Context, request *CreateProjectRe
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, CreateProjectOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -4935,6 +5174,7 @@ func (c *Client) sendCreateProject(ctx context.Context, request *CreateProjectRe
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -5065,10 +5305,21 @@ func (c *Client) sendCreateRuntimeModel(ctx context.Context, request OptCreateRu
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, CreateRuntimeModelOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, CreateRuntimeModelOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -5079,7 +5330,7 @@ func (c *Client) sendCreateRuntimeModel(ctx context.Context, request OptCreateRu
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, CreateRuntimeModelOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -5093,6 +5344,7 @@ func (c *Client) sendCreateRuntimeModel(ctx context.Context, request OptCreateRu
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -5219,10 +5471,21 @@ func (c *Client) sendCreateRuntimePolicy(ctx context.Context, request OptCreateR
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, CreateRuntimePolicyOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, CreateRuntimePolicyOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -5233,7 +5496,7 @@ func (c *Client) sendCreateRuntimePolicy(ctx context.Context, request OptCreateR
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, CreateRuntimePolicyOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -5247,6 +5510,7 @@ func (c *Client) sendCreateRuntimePolicy(ctx context.Context, request OptCreateR
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -5376,10 +5640,21 @@ func (c *Client) sendCreateRuntimeProfile(ctx context.Context, request OptCreate
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, CreateRuntimeProfileOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, CreateRuntimeProfileOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -5390,7 +5665,7 @@ func (c *Client) sendCreateRuntimeProfile(ctx context.Context, request OptCreate
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, CreateRuntimeProfileOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -5404,6 +5679,7 @@ func (c *Client) sendCreateRuntimeProfile(ctx context.Context, request OptCreate
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -5517,10 +5793,21 @@ func (c *Client) sendCreateSigningRequest(ctx context.Context, request *CreateSi
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, CreateSigningRequestOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, CreateSigningRequestOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -5531,7 +5818,7 @@ func (c *Client) sendCreateSigningRequest(ctx context.Context, request *CreateSi
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, CreateSigningRequestOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -5545,6 +5832,7 @@ func (c *Client) sendCreateSigningRequest(ctx context.Context, request *CreateSi
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -5685,10 +5973,21 @@ func (c *Client) sendCreateTask(ctx context.Context, request *CreateTaskReq, par
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, CreateTaskOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, CreateTaskOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -5699,7 +5998,7 @@ func (c *Client) sendCreateTask(ctx context.Context, request *CreateTaskReq, par
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, CreateTaskOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -5713,6 +6012,7 @@ func (c *Client) sendCreateTask(ctx context.Context, request *CreateTaskReq, par
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -5858,10 +6158,21 @@ func (c *Client) sendCreateTaskGrant(ctx context.Context, request *CreateTaskGra
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, CreateTaskGrantOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, CreateTaskGrantOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -5872,7 +6183,7 @@ func (c *Client) sendCreateTaskGrant(ctx context.Context, request *CreateTaskGra
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, CreateTaskGrantOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -5886,6 +6197,7 @@ func (c *Client) sendCreateTaskGrant(ctx context.Context, request *CreateTaskGra
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -5999,10 +6311,21 @@ func (c *Client) sendCreateTeam(ctx context.Context, request *CreateTeamReq) (re
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, CreateTeamOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, CreateTeamOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -6013,7 +6336,7 @@ func (c *Client) sendCreateTeam(ctx context.Context, request *CreateTeamReq) (re
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, CreateTeamOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -6027,6 +6350,7 @@ func (c *Client) sendCreateTeam(ctx context.Context, request *CreateTeamReq) (re
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -6158,10 +6482,21 @@ func (c *Client) sendCreateTeamInvite(ctx context.Context, request OptCreateTeam
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, CreateTeamInviteOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, CreateTeamInviteOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -6172,7 +6507,7 @@ func (c *Client) sendCreateTeamInvite(ctx context.Context, request OptCreateTeam
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, CreateTeamInviteOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -6186,6 +6521,7 @@ func (c *Client) sendCreateTeamInvite(ctx context.Context, request OptCreateTeam
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -6330,10 +6666,21 @@ func (c *Client) sendDeleteDiary(ctx context.Context, params DeleteDiaryParams) 
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, DeleteDiaryOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, DeleteDiaryOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -6344,7 +6691,7 @@ func (c *Client) sendDeleteDiary(ctx context.Context, params DeleteDiaryParams) 
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, DeleteDiaryOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -6358,6 +6705,7 @@ func (c *Client) sendDeleteDiary(ctx context.Context, params DeleteDiaryParams) 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -6485,10 +6833,21 @@ func (c *Client) sendDeleteDiaryEntryById(ctx context.Context, params DeleteDiar
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, DeleteDiaryEntryByIdOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, DeleteDiaryEntryByIdOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -6499,7 +6858,7 @@ func (c *Client) sendDeleteDiaryEntryById(ctx context.Context, params DeleteDiar
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, DeleteDiaryEntryByIdOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -6513,6 +6872,7 @@ func (c *Client) sendDeleteDiaryEntryById(ctx context.Context, params DeleteDiar
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -6640,10 +7000,21 @@ func (c *Client) sendDeleteEntryRelation(ctx context.Context, params DeleteEntry
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, DeleteEntryRelationOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, DeleteEntryRelationOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -6654,7 +7025,7 @@ func (c *Client) sendDeleteEntryRelation(ctx context.Context, params DeleteEntry
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, DeleteEntryRelationOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -6668,6 +7039,7 @@ func (c *Client) sendDeleteEntryRelation(ctx context.Context, params DeleteEntry
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -6795,10 +7167,21 @@ func (c *Client) sendDeleteGroup(ctx context.Context, params DeleteGroupParams) 
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, DeleteGroupOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, DeleteGroupOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -6809,7 +7192,7 @@ func (c *Client) sendDeleteGroup(ctx context.Context, params DeleteGroupParams) 
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, DeleteGroupOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -6823,6 +7206,7 @@ func (c *Client) sendDeleteGroup(ctx context.Context, params DeleteGroupParams) 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -6950,10 +7334,21 @@ func (c *Client) sendDeleteRuntimeModel(ctx context.Context, params DeleteRuntim
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, DeleteRuntimeModelOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, DeleteRuntimeModelOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -6964,7 +7359,7 @@ func (c *Client) sendDeleteRuntimeModel(ctx context.Context, params DeleteRuntim
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, DeleteRuntimeModelOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -6978,6 +7373,7 @@ func (c *Client) sendDeleteRuntimeModel(ctx context.Context, params DeleteRuntim
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -7119,10 +7515,21 @@ func (c *Client) sendDeleteRuntimePolicy(ctx context.Context, params DeleteRunti
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, DeleteRuntimePolicyOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, DeleteRuntimePolicyOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -7133,7 +7540,7 @@ func (c *Client) sendDeleteRuntimePolicy(ctx context.Context, params DeleteRunti
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, DeleteRuntimePolicyOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -7147,6 +7554,7 @@ func (c *Client) sendDeleteRuntimePolicy(ctx context.Context, params DeleteRunti
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -7274,10 +7682,21 @@ func (c *Client) sendDeleteRuntimeProfile(ctx context.Context, params DeleteRunt
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, DeleteRuntimeProfileOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, DeleteRuntimeProfileOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -7288,7 +7707,7 @@ func (c *Client) sendDeleteRuntimeProfile(ctx context.Context, params DeleteRunt
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, DeleteRuntimeProfileOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -7302,6 +7721,7 @@ func (c *Client) sendDeleteRuntimeProfile(ctx context.Context, params DeleteRunt
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -7429,10 +7849,21 @@ func (c *Client) sendDeleteTeam(ctx context.Context, params DeleteTeamParams) (r
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, DeleteTeamOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, DeleteTeamOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -7443,7 +7874,7 @@ func (c *Client) sendDeleteTeam(ctx context.Context, params DeleteTeamParams) (r
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, DeleteTeamOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -7457,6 +7888,7 @@ func (c *Client) sendDeleteTeam(ctx context.Context, params DeleteTeamParams) (r
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -7603,10 +8035,21 @@ func (c *Client) sendDeleteTeamInvite(ctx context.Context, params DeleteTeamInvi
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, DeleteTeamInviteOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, DeleteTeamInviteOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -7617,7 +8060,7 @@ func (c *Client) sendDeleteTeamInvite(ctx context.Context, params DeleteTeamInvi
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, DeleteTeamInviteOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -7631,6 +8074,7 @@ func (c *Client) sendDeleteTeamInvite(ctx context.Context, params DeleteTeamInvi
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -7891,10 +8335,21 @@ func (c *Client) sendDiffContextPacksByCid(ctx context.Context, params DiffConte
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, DiffContextPacksByCidOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, DiffContextPacksByCidOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -7905,7 +8360,7 @@ func (c *Client) sendDiffContextPacksByCid(ctx context.Context, params DiffConte
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, DiffContextPacksByCidOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -7919,6 +8374,7 @@ func (c *Client) sendDiffContextPacksByCid(ctx context.Context, params DiffConte
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -8065,10 +8521,21 @@ func (c *Client) sendDiffContextPacksById(ctx context.Context, params DiffContex
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, DiffContextPacksByIdOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, DiffContextPacksByIdOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -8079,7 +8546,7 @@ func (c *Client) sendDiffContextPacksById(ctx context.Context, params DiffContex
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, DiffContextPacksByIdOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -8093,6 +8560,7 @@ func (c *Client) sendDiffContextPacksById(ctx context.Context, params DiffContex
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -8254,10 +8722,21 @@ func (c *Client) sendDownloadRuntimeSession(ctx context.Context, params Download
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, DownloadRuntimeSessionOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, DownloadRuntimeSessionOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -8268,7 +8747,7 @@ func (c *Client) sendDownloadRuntimeSession(ctx context.Context, params Download
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, DownloadRuntimeSessionOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -8282,6 +8761,7 @@ func (c *Client) sendDownloadRuntimeSession(ctx context.Context, params Download
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -8462,10 +8942,21 @@ func (c *Client) sendDownloadTaskArtifact(ctx context.Context, params DownloadTa
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, DownloadTaskArtifactOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, DownloadTaskArtifactOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -8476,7 +8967,7 @@ func (c *Client) sendDownloadTaskArtifact(ctx context.Context, params DownloadTa
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, DownloadTaskArtifactOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -8490,6 +8981,7 @@ func (c *Client) sendDownloadTaskArtifact(ctx context.Context, params DownloadTa
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -8652,10 +9144,21 @@ func (c *Client) sendDownloadTaskArtifactByCid(ctx context.Context, params Downl
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, DownloadTaskArtifactByCidOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, DownloadTaskArtifactByCidOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -8666,7 +9169,7 @@ func (c *Client) sendDownloadTaskArtifactByCid(ctx context.Context, params Downl
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, DownloadTaskArtifactByCidOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -8680,6 +9183,7 @@ func (c *Client) sendDownloadTaskArtifactByCid(ctx context.Context, params Downl
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -8945,10 +9449,21 @@ func (c *Client) sendFailTaskAttempt(ctx context.Context, request *FailTaskAttem
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, FailTaskAttemptOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, FailTaskAttemptOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -8959,7 +9474,7 @@ func (c *Client) sendFailTaskAttempt(ctx context.Context, request *FailTaskAttem
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, FailTaskAttemptOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -8973,6 +9488,7 @@ func (c *Client) sendFailTaskAttempt(ctx context.Context, request *FailTaskAttem
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -9128,10 +9644,21 @@ func (c *Client) sendFindLatestRuntimeSlotForAttempt(ctx context.Context, params
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, FindLatestRuntimeSlotForAttemptOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, FindLatestRuntimeSlotForAttemptOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -9142,7 +9669,7 @@ func (c *Client) sendFindLatestRuntimeSlotForAttempt(ctx context.Context, params
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, FindLatestRuntimeSlotForAttemptOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -9156,6 +9683,7 @@ func (c *Client) sendFindLatestRuntimeSlotForAttempt(ctx context.Context, params
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -9282,10 +9810,21 @@ func (c *Client) sendFinishRuntimeSlot(ctx context.Context, request *FinishRunti
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, FinishRuntimeSlotOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, FinishRuntimeSlotOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -9296,7 +9835,7 @@ func (c *Client) sendFinishRuntimeSlot(ctx context.Context, request *FinishRunti
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, FinishRuntimeSlotOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -9310,6 +9849,7 @@ func (c *Client) sendFinishRuntimeSlot(ctx context.Context, request *FinishRunti
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -9556,10 +10096,21 @@ func (c *Client) sendGetContextPackById(ctx context.Context, params GetContextPa
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetContextPackByIdOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetContextPackByIdOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -9570,7 +10121,7 @@ func (c *Client) sendGetContextPackById(ctx context.Context, params GetContextPa
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetContextPackByIdOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -9584,6 +10135,7 @@ func (c *Client) sendGetContextPackById(ctx context.Context, params GetContextPa
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -9733,10 +10285,21 @@ func (c *Client) sendGetContextPackProvenanceByCid(ctx context.Context, params G
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetContextPackProvenanceByCidOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetContextPackProvenanceByCidOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -9747,7 +10310,7 @@ func (c *Client) sendGetContextPackProvenanceByCid(ctx context.Context, params G
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetContextPackProvenanceByCidOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -9761,6 +10324,7 @@ func (c *Client) sendGetContextPackProvenanceByCid(ctx context.Context, params G
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -9910,10 +10474,21 @@ func (c *Client) sendGetContextPackProvenanceById(ctx context.Context, params Ge
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetContextPackProvenanceByIdOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetContextPackProvenanceByIdOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -9924,7 +10499,7 @@ func (c *Client) sendGetContextPackProvenanceById(ctx context.Context, params Ge
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetContextPackProvenanceByIdOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -9938,6 +10513,7 @@ func (c *Client) sendGetContextPackProvenanceById(ctx context.Context, params Ge
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -10047,10 +10623,21 @@ func (c *Client) sendGetCryptoIdentity(ctx context.Context) (res GetCryptoIdenti
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetCryptoIdentityOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetCryptoIdentityOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -10061,7 +10648,7 @@ func (c *Client) sendGetCryptoIdentity(ctx context.Context) (res GetCryptoIdenti
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetCryptoIdentityOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -10075,6 +10662,7 @@ func (c *Client) sendGetCryptoIdentity(ctx context.Context) (res GetCryptoIdenti
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -10219,10 +10807,21 @@ func (c *Client) sendGetDiary(ctx context.Context, params GetDiaryParams) (res G
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetDiaryOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetDiaryOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -10233,7 +10832,7 @@ func (c *Client) sendGetDiary(ctx context.Context, params GetDiaryParams) (res G
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetDiaryOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -10247,6 +10846,7 @@ func (c *Client) sendGetDiary(ctx context.Context, params GetDiaryParams) (res G
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -10413,10 +11013,21 @@ func (c *Client) sendGetDiaryEntryById(ctx context.Context, params GetDiaryEntry
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetDiaryEntryByIdOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetDiaryEntryByIdOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -10427,7 +11038,7 @@ func (c *Client) sendGetDiaryEntryById(ctx context.Context, params GetDiaryEntry
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetDiaryEntryByIdOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -10441,6 +11052,7 @@ func (c *Client) sendGetDiaryEntryById(ctx context.Context, params GetDiaryEntry
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -10568,10 +11180,21 @@ func (c *Client) sendGetGroup(ctx context.Context, params GetGroupParams) (res G
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetGroupOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetGroupOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -10582,7 +11205,7 @@ func (c *Client) sendGetGroup(ctx context.Context, params GetGroupParams) (res G
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetGroupOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -10596,6 +11219,7 @@ func (c *Client) sendGetGroup(ctx context.Context, params GetGroupParams) (res G
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -10804,10 +11428,21 @@ func (c *Client) sendGetLatestRenderedPack(ctx context.Context, params GetLatest
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetLatestRenderedPackOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetLatestRenderedPackOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -10818,7 +11453,7 @@ func (c *Client) sendGetLatestRenderedPack(ctx context.Context, params GetLatest
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetLatestRenderedPackOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -10832,6 +11467,7 @@ func (c *Client) sendGetLatestRenderedPack(ctx context.Context, params GetLatest
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -11414,10 +12050,21 @@ func (c *Client) sendGetProject(ctx context.Context, params GetProjectParams) (r
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetProjectOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetProjectOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -11428,7 +12075,7 @@ func (c *Client) sendGetProject(ctx context.Context, params GetProjectParams) (r
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetProjectOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -11442,6 +12089,7 @@ func (c *Client) sendGetProject(ctx context.Context, params GetProjectParams) (r
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -11899,10 +12547,21 @@ func (c *Client) sendGetRenderedPackById(ctx context.Context, params GetRendered
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetRenderedPackByIdOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetRenderedPackByIdOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -11913,7 +12572,7 @@ func (c *Client) sendGetRenderedPackById(ctx context.Context, params GetRendered
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetRenderedPackByIdOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -11927,6 +12586,7 @@ func (c *Client) sendGetRenderedPackById(ctx context.Context, params GetRendered
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -12054,10 +12714,21 @@ func (c *Client) sendGetRuntimeModel(ctx context.Context, params GetRuntimeModel
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetRuntimeModelOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetRuntimeModelOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -12068,7 +12739,7 @@ func (c *Client) sendGetRuntimeModel(ctx context.Context, params GetRuntimeModel
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetRuntimeModelOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -12082,6 +12753,7 @@ func (c *Client) sendGetRuntimeModel(ctx context.Context, params GetRuntimeModel
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -12223,10 +12895,21 @@ func (c *Client) sendGetRuntimePolicy(ctx context.Context, params GetRuntimePoli
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetRuntimePolicyOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetRuntimePolicyOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -12237,7 +12920,7 @@ func (c *Client) sendGetRuntimePolicy(ctx context.Context, params GetRuntimePoli
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetRuntimePolicyOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -12251,6 +12934,7 @@ func (c *Client) sendGetRuntimePolicy(ctx context.Context, params GetRuntimePoli
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -12378,10 +13062,21 @@ func (c *Client) sendGetRuntimeProfile(ctx context.Context, params GetRuntimePro
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetRuntimeProfileOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetRuntimeProfileOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -12392,7 +13087,7 @@ func (c *Client) sendGetRuntimeProfile(ctx context.Context, params GetRuntimePro
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetRuntimeProfileOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -12406,6 +13101,7 @@ func (c *Client) sendGetRuntimeProfile(ctx context.Context, params GetRuntimePro
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -12548,10 +13244,21 @@ func (c *Client) sendGetRuntimeProfileAllowedTools(ctx context.Context, params G
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetRuntimeProfileAllowedToolsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetRuntimeProfileAllowedToolsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -12562,7 +13269,7 @@ func (c *Client) sendGetRuntimeProfileAllowedTools(ctx context.Context, params G
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetRuntimeProfileAllowedToolsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -12576,6 +13283,7 @@ func (c *Client) sendGetRuntimeProfileAllowedTools(ctx context.Context, params G
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -12718,10 +13426,21 @@ func (c *Client) sendGetRuntimeProfilePolicies(ctx context.Context, params GetRu
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetRuntimeProfilePoliciesOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetRuntimeProfilePoliciesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -12732,7 +13451,7 @@ func (c *Client) sendGetRuntimeProfilePolicies(ctx context.Context, params GetRu
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetRuntimeProfilePoliciesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -12746,6 +13465,7 @@ func (c *Client) sendGetRuntimeProfilePolicies(ctx context.Context, params GetRu
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -12906,10 +13626,21 @@ func (c *Client) sendGetRuntimeSession(ctx context.Context, params GetRuntimeSes
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetRuntimeSessionOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetRuntimeSessionOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -12920,7 +13651,7 @@ func (c *Client) sendGetRuntimeSession(ctx context.Context, params GetRuntimeSes
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetRuntimeSessionOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -12934,6 +13665,7 @@ func (c *Client) sendGetRuntimeSession(ctx context.Context, params GetRuntimeSes
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -13073,10 +13805,21 @@ func (c *Client) sendGetSigningCredential(ctx context.Context, params GetSigning
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetSigningCredentialOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetSigningCredentialOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -13087,7 +13830,7 @@ func (c *Client) sendGetSigningCredential(ctx context.Context, params GetSigning
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetSigningCredentialOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -13101,6 +13844,7 @@ func (c *Client) sendGetSigningCredential(ctx context.Context, params GetSigning
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -13228,10 +13972,21 @@ func (c *Client) sendGetSigningRequest(ctx context.Context, params GetSigningReq
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetSigningRequestOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetSigningRequestOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -13242,7 +13997,7 @@ func (c *Client) sendGetSigningRequest(ctx context.Context, params GetSigningReq
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetSigningRequestOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -13256,6 +14011,7 @@ func (c *Client) sendGetSigningRequest(ctx context.Context, params GetSigningReq
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -13400,10 +14156,21 @@ func (c *Client) sendGetTask(ctx context.Context, params GetTaskParams) (res Get
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetTaskOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetTaskOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -13414,7 +14181,7 @@ func (c *Client) sendGetTask(ctx context.Context, params GetTaskParams) (res Get
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetTaskOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -13428,6 +14195,7 @@ func (c *Client) sendGetTask(ctx context.Context, params GetTaskParams) (res Get
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -13737,10 +14505,21 @@ func (c *Client) sendGetTaskActivityAnalytics(ctx context.Context, params GetTas
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetTaskActivityAnalyticsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetTaskActivityAnalyticsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -13751,7 +14530,7 @@ func (c *Client) sendGetTaskActivityAnalytics(ctx context.Context, params GetTas
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetTaskActivityAnalyticsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -13765,6 +14544,7 @@ func (c *Client) sendGetTaskActivityAnalytics(ctx context.Context, params GetTas
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -13892,10 +14672,21 @@ func (c *Client) sendGetTeam(ctx context.Context, params GetTeamParams) (res Get
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetTeamOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetTeamOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -13906,7 +14697,7 @@ func (c *Client) sendGetTeam(ctx context.Context, params GetTeamParams) (res Get
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetTeamOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -13920,6 +14711,7 @@ func (c *Client) sendGetTeam(ctx context.Context, params GetTeamParams) (res Get
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -14030,10 +14822,21 @@ func (c *Client) sendGetWhoami(ctx context.Context) (res GetWhoamiRes, err error
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, GetWhoamiOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, GetWhoamiOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -14044,7 +14847,7 @@ func (c *Client) sendGetWhoami(ctx context.Context) (res GetWhoamiRes, err error
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, GetWhoamiOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -14058,6 +14861,7 @@ func (c *Client) sendGetWhoami(ctx context.Context) (res GetWhoamiRes, err error
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -14189,10 +14993,21 @@ func (c *Client) sendInitiateTransfer(ctx context.Context, request *InitiateTran
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, InitiateTransferOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, InitiateTransferOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -14203,7 +15018,7 @@ func (c *Client) sendInitiateTransfer(ctx context.Context, request *InitiateTran
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, InitiateTransferOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -14217,6 +15032,7 @@ func (c *Client) sendInitiateTransfer(ctx context.Context, request *InitiateTran
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -14347,10 +15163,21 @@ func (c *Client) sendJoinTeam(ctx context.Context, request *JoinTeamReq, params 
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, JoinTeamOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, JoinTeamOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -14361,7 +15188,7 @@ func (c *Client) sendJoinTeam(ctx context.Context, request *JoinTeamReq, params 
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, JoinTeamOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -14375,6 +15202,7 @@ func (c *Client) sendJoinTeam(ctx context.Context, request *JoinTeamReq, params 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -14591,10 +15419,21 @@ func (c *Client) sendListAgentKeys(ctx context.Context, params ListAgentKeysPara
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListAgentKeysOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListAgentKeysOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -14605,7 +15444,7 @@ func (c *Client) sendListAgentKeys(ctx context.Context, params ListAgentKeysPara
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListAgentKeysOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -14619,6 +15458,7 @@ func (c *Client) sendListAgentKeys(ctx context.Context, params ListAgentKeysPara
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -14853,10 +15693,21 @@ func (c *Client) sendListContextPacks(ctx context.Context, params ListContextPac
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListContextPacksOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListContextPacksOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -14867,7 +15718,7 @@ func (c *Client) sendListContextPacks(ctx context.Context, params ListContextPac
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListContextPacksOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -14881,6 +15732,7 @@ func (c *Client) sendListContextPacks(ctx context.Context, params ListContextPac
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -15007,10 +15859,21 @@ func (c *Client) sendListDiaries(ctx context.Context, params ListDiariesParams) 
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListDiariesOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListDiariesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -15021,7 +15884,7 @@ func (c *Client) sendListDiaries(ctx context.Context, params ListDiariesParams) 
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListDiariesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -15035,6 +15898,7 @@ func (c *Client) sendListDiaries(ctx context.Context, params ListDiariesParams) 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -15305,10 +16169,21 @@ func (c *Client) sendListDiaryEntries(ctx context.Context, params ListDiaryEntri
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListDiaryEntriesOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListDiaryEntriesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -15319,7 +16194,7 @@ func (c *Client) sendListDiaryEntries(ctx context.Context, params ListDiaryEntri
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListDiaryEntriesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -15333,6 +16208,7 @@ func (c *Client) sendListDiaryEntries(ctx context.Context, params ListDiaryEntri
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -15461,10 +16337,21 @@ func (c *Client) sendListDiaryGrants(ctx context.Context, params ListDiaryGrants
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListDiaryGrantsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListDiaryGrantsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -15475,7 +16362,7 @@ func (c *Client) sendListDiaryGrants(ctx context.Context, params ListDiaryGrants
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListDiaryGrantsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -15489,6 +16376,7 @@ func (c *Client) sendListDiaryGrants(ctx context.Context, params ListDiaryGrants
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -15672,10 +16560,21 @@ func (c *Client) sendListDiaryPacks(ctx context.Context, params ListDiaryPacksPa
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListDiaryPacksOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListDiaryPacksOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -15686,7 +16585,7 @@ func (c *Client) sendListDiaryPacks(ctx context.Context, params ListDiaryPacksPa
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListDiaryPacksOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -15700,6 +16599,7 @@ func (c *Client) sendListDiaryPacks(ctx context.Context, params ListDiaryPacksPa
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -15900,10 +16800,21 @@ func (c *Client) sendListDiaryRenderedPacks(ctx context.Context, params ListDiar
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListDiaryRenderedPacksOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListDiaryRenderedPacksOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -15914,7 +16825,7 @@ func (c *Client) sendListDiaryRenderedPacks(ctx context.Context, params ListDiar
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListDiaryRenderedPacksOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -15928,6 +16839,7 @@ func (c *Client) sendListDiaryRenderedPacks(ctx context.Context, params ListDiar
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -16120,10 +17032,21 @@ func (c *Client) sendListDiaryTags(ctx context.Context, params ListDiaryTagsPara
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListDiaryTagsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListDiaryTagsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -16134,7 +17057,7 @@ func (c *Client) sendListDiaryTags(ctx context.Context, params ListDiaryTagsPara
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListDiaryTagsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -16148,6 +17071,7 @@ func (c *Client) sendListDiaryTags(ctx context.Context, params ListDiaryTagsPara
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -16384,10 +17308,21 @@ func (c *Client) sendListEntryRelations(ctx context.Context, params ListEntryRel
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListEntryRelationsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListEntryRelationsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -16398,7 +17333,7 @@ func (c *Client) sendListEntryRelations(ctx context.Context, params ListEntryRel
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListEntryRelationsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -16412,6 +17347,7 @@ func (c *Client) sendListEntryRelations(ctx context.Context, params ListEntryRel
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -16540,10 +17476,21 @@ func (c *Client) sendListGroupMembers(ctx context.Context, params ListGroupMembe
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListGroupMembersOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListGroupMembersOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -16554,7 +17501,7 @@ func (c *Client) sendListGroupMembers(ctx context.Context, params ListGroupMembe
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListGroupMembersOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -16568,6 +17515,7 @@ func (c *Client) sendListGroupMembers(ctx context.Context, params ListGroupMembe
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -16696,10 +17644,21 @@ func (c *Client) sendListGroups(ctx context.Context, params ListGroupsParams) (r
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListGroupsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListGroupsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -16710,7 +17669,7 @@ func (c *Client) sendListGroups(ctx context.Context, params ListGroupsParams) (r
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListGroupsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -16724,6 +17683,7 @@ func (c *Client) sendListGroups(ctx context.Context, params ListGroupsParams) (r
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -16833,10 +17793,21 @@ func (c *Client) sendListPendingTransfers(ctx context.Context) (res ListPendingT
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListPendingTransfersOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListPendingTransfersOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -16847,7 +17818,7 @@ func (c *Client) sendListPendingTransfers(ctx context.Context) (res ListPendingT
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListPendingTransfersOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -16861,6 +17832,7 @@ func (c *Client) sendListPendingTransfers(ctx context.Context) (res ListPendingT
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -17120,10 +18092,21 @@ func (c *Client) sendListProjects(ctx context.Context, params ListProjectsParams
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListProjectsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListProjectsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -17134,7 +18117,7 @@ func (c *Client) sendListProjects(ctx context.Context, params ListProjectsParams
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListProjectsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -17148,6 +18131,7 @@ func (c *Client) sendListProjects(ctx context.Context, params ListProjectsParams
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -17297,10 +18281,21 @@ func (c *Client) sendListRuntimeModels(ctx context.Context, params ListRuntimeMo
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListRuntimeModelsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListRuntimeModelsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -17311,7 +18306,7 @@ func (c *Client) sendListRuntimeModels(ctx context.Context, params ListRuntimeMo
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListRuntimeModelsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -17325,6 +18320,7 @@ func (c *Client) sendListRuntimeModels(ctx context.Context, params ListRuntimeMo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -17448,10 +18444,21 @@ func (c *Client) sendListRuntimePolicies(ctx context.Context, params ListRuntime
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListRuntimePoliciesOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListRuntimePoliciesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -17462,7 +18469,7 @@ func (c *Client) sendListRuntimePolicies(ctx context.Context, params ListRuntime
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListRuntimePoliciesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -17476,6 +18483,7 @@ func (c *Client) sendListRuntimePolicies(ctx context.Context, params ListRuntime
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -17602,10 +18610,21 @@ func (c *Client) sendListRuntimeProfiles(ctx context.Context, params ListRuntime
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListRuntimeProfilesOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListRuntimeProfilesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -17616,7 +18635,7 @@ func (c *Client) sendListRuntimeProfiles(ctx context.Context, params ListRuntime
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListRuntimeProfilesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -17630,6 +18649,7 @@ func (c *Client) sendListRuntimeProfiles(ctx context.Context, params ListRuntime
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -17825,10 +18845,21 @@ func (c *Client) sendListRuntimeSlots(ctx context.Context, params ListRuntimeSlo
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListRuntimeSlotsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListRuntimeSlotsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -17839,7 +18870,7 @@ func (c *Client) sendListRuntimeSlots(ctx context.Context, params ListRuntimeSlo
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListRuntimeSlotsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -17853,6 +18884,7 @@ func (c *Client) sendListRuntimeSlots(ctx context.Context, params ListRuntimeSlo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -18012,10 +19044,21 @@ func (c *Client) sendListSigningCredentials(ctx context.Context, params ListSign
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListSigningCredentialsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListSigningCredentialsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -18026,7 +19069,7 @@ func (c *Client) sendListSigningCredentials(ctx context.Context, params ListSign
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListSigningCredentialsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -18040,6 +19083,7 @@ func (c *Client) sendListSigningCredentials(ctx context.Context, params ListSign
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -18230,10 +19274,21 @@ func (c *Client) sendListSigningRequests(ctx context.Context, params ListSigning
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListSigningRequestsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListSigningRequestsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -18244,7 +19299,7 @@ func (c *Client) sendListSigningRequests(ctx context.Context, params ListSigning
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListSigningRequestsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -18258,6 +19313,7 @@ func (c *Client) sendListSigningRequests(ctx context.Context, params ListSigning
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -18438,10 +19494,21 @@ func (c *Client) sendListTaskArtifacts(ctx context.Context, params ListTaskArtif
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListTaskArtifactsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListTaskArtifactsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -18452,7 +19519,7 @@ func (c *Client) sendListTaskArtifacts(ctx context.Context, params ListTaskArtif
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListTaskArtifactsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -18466,6 +19533,7 @@ func (c *Client) sendListTaskArtifacts(ctx context.Context, params ListTaskArtif
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -18611,10 +19679,21 @@ func (c *Client) sendListTaskAttempts(ctx context.Context, params ListTaskAttemp
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListTaskAttemptsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListTaskAttemptsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -18625,7 +19704,7 @@ func (c *Client) sendListTaskAttempts(ctx context.Context, params ListTaskAttemp
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListTaskAttemptsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -18639,6 +19718,7 @@ func (c *Client) sendListTaskAttempts(ctx context.Context, params ListTaskAttemp
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -18781,10 +19861,21 @@ func (c *Client) sendListTaskGrants(ctx context.Context, params ListTaskGrantsPa
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListTaskGrantsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListTaskGrantsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -18795,7 +19886,7 @@ func (c *Client) sendListTaskGrants(ctx context.Context, params ListTaskGrantsPa
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListTaskGrantsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -18809,6 +19900,7 @@ func (c *Client) sendListTaskGrants(ctx context.Context, params ListTaskGrantsPa
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -19037,10 +20129,21 @@ func (c *Client) sendListTaskMessages(ctx context.Context, params ListTaskMessag
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListTaskMessagesOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListTaskMessagesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -19051,7 +20154,7 @@ func (c *Client) sendListTaskMessages(ctx context.Context, params ListTaskMessag
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListTaskMessagesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -19065,6 +20168,7 @@ func (c *Client) sendListTaskMessages(ctx context.Context, params ListTaskMessag
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -19175,10 +20279,21 @@ func (c *Client) sendListTaskSchemas(ctx context.Context) (res ListTaskSchemasRe
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListTaskSchemasOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListTaskSchemasOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -19189,7 +20304,7 @@ func (c *Client) sendListTaskSchemas(ctx context.Context) (res ListTaskSchemasRe
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListTaskSchemasOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -19203,6 +20318,7 @@ func (c *Client) sendListTaskSchemas(ctx context.Context) (res ListTaskSchemasRe
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -19689,10 +20805,21 @@ func (c *Client) sendListTasks(ctx context.Context, params ListTasksParams) (res
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListTasksOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListTasksOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -19703,7 +20830,7 @@ func (c *Client) sendListTasks(ctx context.Context, params ListTasksParams) (res
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListTasksOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -19717,6 +20844,7 @@ func (c *Client) sendListTasks(ctx context.Context, params ListTasksParams) (res
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -19845,10 +20973,21 @@ func (c *Client) sendListTeamInvites(ctx context.Context, params ListTeamInvites
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListTeamInvitesOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListTeamInvitesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -19859,7 +20998,7 @@ func (c *Client) sendListTeamInvites(ctx context.Context, params ListTeamInvites
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListTeamInvitesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -19873,6 +21012,7 @@ func (c *Client) sendListTeamInvites(ctx context.Context, params ListTeamInvites
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -20001,10 +21141,21 @@ func (c *Client) sendListTeamMembers(ctx context.Context, params ListTeamMembers
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListTeamMembersOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListTeamMembersOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -20015,7 +21166,7 @@ func (c *Client) sendListTeamMembers(ctx context.Context, params ListTeamMembers
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListTeamMembersOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -20029,6 +21180,7 @@ func (c *Client) sendListTeamMembers(ctx context.Context, params ListTeamMembers
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -20155,10 +21307,21 @@ func (c *Client) sendListTeams(ctx context.Context, params ListTeamsParams) (res
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, ListTeamsOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, ListTeamsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -20169,7 +21332,7 @@ func (c *Client) sendListTeams(ctx context.Context, params ListTeamsParams) (res
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, ListTeamsOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -20183,6 +21346,7 @@ func (c *Client) sendListTeams(ctx context.Context, params ListTeamsParams) (res
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -20314,10 +21478,21 @@ func (c *Client) sendPreviewDiaryCustomPack(ctx context.Context, request *Previe
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, PreviewDiaryCustomPackOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, PreviewDiaryCustomPackOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -20328,7 +21503,7 @@ func (c *Client) sendPreviewDiaryCustomPack(ctx context.Context, request *Previe
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, PreviewDiaryCustomPackOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -20342,6 +21517,7 @@ func (c *Client) sendPreviewDiaryCustomPack(ctx context.Context, request *Previe
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -20473,10 +21649,21 @@ func (c *Client) sendPreviewRenderedPack(ctx context.Context, request *PreviewRe
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, PreviewRenderedPackOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, PreviewRenderedPackOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -20487,7 +21674,7 @@ func (c *Client) sendPreviewRenderedPack(ctx context.Context, request *PreviewRe
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, PreviewRenderedPackOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -20501,6 +21688,7 @@ func (c *Client) sendPreviewRenderedPack(ctx context.Context, request *PreviewRe
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -20911,11 +22099,23 @@ func (c *Client) sendRegisterExecutorManifest(ctx context.Context, request *Regi
 				return res, errors.Wrap(err, "security \"BearerAuth\"")
 			}
 		}
+		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, RegisterExecutorManifestOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -21203,10 +22403,21 @@ func (c *Client) sendRejectTransfer(ctx context.Context, params RejectTransferPa
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, RejectTransferOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, RejectTransferOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -21217,7 +22428,7 @@ func (c *Client) sendRejectTransfer(ctx context.Context, params RejectTransferPa
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, RejectTransferOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -21231,6 +22442,7 @@ func (c *Client) sendRejectTransfer(ctx context.Context, params RejectTransferPa
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -21377,10 +22589,21 @@ func (c *Client) sendRemoveGroupMember(ctx context.Context, params RemoveGroupMe
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, RemoveGroupMemberOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, RemoveGroupMemberOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -21391,7 +22614,7 @@ func (c *Client) sendRemoveGroupMember(ctx context.Context, params RemoveGroupMe
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, RemoveGroupMemberOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -21405,6 +22628,7 @@ func (c *Client) sendRemoveGroupMember(ctx context.Context, params RemoveGroupMe
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -21551,10 +22775,21 @@ func (c *Client) sendRemoveTeamMember(ctx context.Context, params RemoveTeamMemb
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, RemoveTeamMemberOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, RemoveTeamMemberOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -21565,7 +22800,7 @@ func (c *Client) sendRemoveTeamMember(ctx context.Context, params RemoveTeamMemb
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, RemoveTeamMemberOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -21579,6 +22814,7 @@ func (c *Client) sendRemoveTeamMember(ctx context.Context, params RemoveTeamMemb
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -21711,10 +22947,21 @@ func (c *Client) sendRenderContextPack(ctx context.Context, request *RenderConte
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, RenderContextPackOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, RenderContextPackOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -21725,7 +22972,7 @@ func (c *Client) sendRenderContextPack(ctx context.Context, request *RenderConte
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, RenderContextPackOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -21739,6 +22986,7 @@ func (c *Client) sendRenderContextPack(ctx context.Context, request *RenderConte
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -21991,10 +23239,21 @@ func (c *Client) sendRevokeAgentKey(ctx context.Context, request OptRevokeAgentK
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, RevokeAgentKeyOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, RevokeAgentKeyOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -22005,7 +23264,7 @@ func (c *Client) sendRevokeAgentKey(ctx context.Context, request OptRevokeAgentK
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, RevokeAgentKeyOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -22019,6 +23278,7 @@ func (c *Client) sendRevokeAgentKey(ctx context.Context, request OptRevokeAgentK
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -22150,10 +23410,21 @@ func (c *Client) sendRevokeDiaryGrant(ctx context.Context, request *RevokeDiaryG
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, RevokeDiaryGrantOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, RevokeDiaryGrantOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -22164,7 +23435,7 @@ func (c *Client) sendRevokeDiaryGrant(ctx context.Context, request *RevokeDiaryG
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, RevokeDiaryGrantOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -22178,6 +23449,7 @@ func (c *Client) sendRevokeDiaryGrant(ctx context.Context, request *RevokeDiaryG
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -22321,10 +23593,21 @@ func (c *Client) sendRevokeSigningCredential(ctx context.Context, request OptRev
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, RevokeSigningCredentialOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, RevokeSigningCredentialOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -22335,7 +23618,7 @@ func (c *Client) sendRevokeSigningCredential(ctx context.Context, request OptRev
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, RevokeSigningCredentialOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -22349,6 +23632,7 @@ func (c *Client) sendRevokeSigningCredential(ctx context.Context, request OptRev
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -22494,10 +23778,21 @@ func (c *Client) sendRevokeTaskGrant(ctx context.Context, request *RevokeTaskGra
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, RevokeTaskGrantOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, RevokeTaskGrantOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -22508,7 +23803,7 @@ func (c *Client) sendRevokeTaskGrant(ctx context.Context, request *RevokeTaskGra
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, RevokeTaskGrantOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -22522,6 +23817,7 @@ func (c *Client) sendRevokeTaskGrant(ctx context.Context, request *RevokeTaskGra
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -22688,10 +23984,21 @@ func (c *Client) sendRotateAgentKey(ctx context.Context, params RotateAgentKeyPa
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, RotateAgentKeyOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, RotateAgentKeyOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -22702,7 +24009,7 @@ func (c *Client) sendRotateAgentKey(ctx context.Context, params RotateAgentKeyPa
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, RotateAgentKeyOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -22716,6 +24023,7 @@ func (c *Client) sendRotateAgentKey(ctx context.Context, params RotateAgentKeyPa
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -22826,10 +24134,21 @@ func (c *Client) sendRotateClientSecret(ctx context.Context) (res RotateClientSe
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, RotateClientSecretOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, RotateClientSecretOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -22840,7 +24159,7 @@ func (c *Client) sendRotateClientSecret(ctx context.Context) (res RotateClientSe
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, RotateClientSecretOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -22854,6 +24173,7 @@ func (c *Client) sendRotateClientSecret(ctx context.Context) (res RotateClientSe
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -22966,10 +24286,21 @@ func (c *Client) sendSearchDiary(ctx context.Context, request OptSearchDiaryReq)
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, SearchDiaryOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, SearchDiaryOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -22980,7 +24311,7 @@ func (c *Client) sendSearchDiary(ctx context.Context, request OptSearchDiaryReq)
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, SearchDiaryOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -22994,6 +24325,7 @@ func (c *Client) sendSearchDiary(ctx context.Context, request OptSearchDiaryReq)
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -23331,10 +24663,21 @@ func (c *Client) sendSetRuntimeProfilePolicies(ctx context.Context, request OptS
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, SetRuntimeProfilePoliciesOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, SetRuntimeProfilePoliciesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -23345,7 +24688,7 @@ func (c *Client) sendSetRuntimeProfilePolicies(ctx context.Context, request OptS
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, SetRuntimeProfilePoliciesOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -23359,6 +24702,7 @@ func (c *Client) sendSetRuntimeProfilePolicies(ctx context.Context, request OptS
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -23525,10 +24869,21 @@ func (c *Client) sendStageTaskArtifact(ctx context.Context, request StageTaskArt
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, StageTaskArtifactOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, StageTaskArtifactOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -23539,7 +24894,7 @@ func (c *Client) sendStageTaskArtifact(ctx context.Context, request StageTaskArt
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, StageTaskArtifactOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -23553,6 +24908,7 @@ func (c *Client) sendStageTaskArtifact(ctx context.Context, request StageTaskArt
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -23783,10 +25139,21 @@ func (c *Client) sendSubmitSignature(ctx context.Context, request *SubmitSignatu
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, SubmitSignatureOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, SubmitSignatureOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -23797,7 +25164,7 @@ func (c *Client) sendSubmitSignature(ctx context.Context, request *SubmitSignatu
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, SubmitSignatureOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -23811,6 +25178,7 @@ func (c *Client) sendSubmitSignature(ctx context.Context, request *SubmitSignatu
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -23954,10 +25322,21 @@ func (c *Client) sendSuspendSigningCredential(ctx context.Context, request OptSu
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, SuspendSigningCredentialOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, SuspendSigningCredentialOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -23968,7 +25347,7 @@ func (c *Client) sendSuspendSigningCredential(ctx context.Context, request OptSu
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, SuspendSigningCredentialOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -23982,6 +25361,7 @@ func (c *Client) sendSuspendSigningCredential(ctx context.Context, request OptSu
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -24149,10 +25529,21 @@ func (c *Client) sendTaskHeartbeat(ctx context.Context, request OptTaskHeartbeat
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, TaskHeartbeatOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, TaskHeartbeatOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -24163,7 +25554,7 @@ func (c *Client) sendTaskHeartbeat(ctx context.Context, request OptTaskHeartbeat
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, TaskHeartbeatOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -24177,6 +25568,7 @@ func (c *Client) sendTaskHeartbeat(ctx context.Context, request OptTaskHeartbeat
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -24307,10 +25699,21 @@ func (c *Client) sendUpdateContextPack(ctx context.Context, request OptUpdateCon
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, UpdateContextPackOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, UpdateContextPackOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -24321,7 +25724,7 @@ func (c *Client) sendUpdateContextPack(ctx context.Context, request OptUpdateCon
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, UpdateContextPackOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -24335,6 +25738,7 @@ func (c *Client) sendUpdateContextPack(ctx context.Context, request OptUpdateCon
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -24482,10 +25886,21 @@ func (c *Client) sendUpdateDiary(ctx context.Context, request OptUpdateDiaryReq,
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, UpdateDiaryOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, UpdateDiaryOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -24496,7 +25911,7 @@ func (c *Client) sendUpdateDiary(ctx context.Context, request OptUpdateDiaryReq,
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, UpdateDiaryOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -24510,6 +25925,7 @@ func (c *Client) sendUpdateDiary(ctx context.Context, request OptUpdateDiaryReq,
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -24640,10 +26056,21 @@ func (c *Client) sendUpdateDiaryEntryById(ctx context.Context, request OptUpdate
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, UpdateDiaryEntryByIdOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, UpdateDiaryEntryByIdOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -24654,7 +26081,7 @@ func (c *Client) sendUpdateDiaryEntryById(ctx context.Context, request OptUpdate
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, UpdateDiaryEntryByIdOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -24668,6 +26095,7 @@ func (c *Client) sendUpdateDiaryEntryById(ctx context.Context, request OptUpdate
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -24798,10 +26226,21 @@ func (c *Client) sendUpdateEntryRelationStatus(ctx context.Context, request *Upd
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, UpdateEntryRelationStatusOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, UpdateEntryRelationStatusOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -24812,7 +26251,7 @@ func (c *Client) sendUpdateEntryRelationStatus(ctx context.Context, request *Upd
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, UpdateEntryRelationStatusOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -24826,6 +26265,7 @@ func (c *Client) sendUpdateEntryRelationStatus(ctx context.Context, request *Upd
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -24971,10 +26411,21 @@ func (c *Client) sendUpdateProject(ctx context.Context, request OptUpdateProject
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, UpdateProjectOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, UpdateProjectOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -24985,7 +26436,7 @@ func (c *Client) sendUpdateProject(ctx context.Context, request OptUpdateProject
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, UpdateProjectOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -24999,6 +26450,7 @@ func (c *Client) sendUpdateProject(ctx context.Context, request OptUpdateProject
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -25129,10 +26581,21 @@ func (c *Client) sendUpdateRenderedPack(ctx context.Context, request OptUpdateRe
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, UpdateRenderedPackOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, UpdateRenderedPackOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -25143,7 +26606,7 @@ func (c *Client) sendUpdateRenderedPack(ctx context.Context, request OptUpdateRe
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, UpdateRenderedPackOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -25157,6 +26620,7 @@ func (c *Client) sendUpdateRenderedPack(ctx context.Context, request OptUpdateRe
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -25288,10 +26752,21 @@ func (c *Client) sendUpdateRuntimeModel(ctx context.Context, request OptUpdateRu
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, UpdateRuntimeModelOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, UpdateRuntimeModelOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -25302,7 +26777,7 @@ func (c *Client) sendUpdateRuntimeModel(ctx context.Context, request OptUpdateRu
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, UpdateRuntimeModelOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -25316,6 +26791,7 @@ func (c *Client) sendUpdateRuntimeModel(ctx context.Context, request OptUpdateRu
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -25460,10 +26936,21 @@ func (c *Client) sendUpdateRuntimePolicy(ctx context.Context, request OptUpdateR
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, UpdateRuntimePolicyOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, UpdateRuntimePolicyOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -25474,7 +26961,7 @@ func (c *Client) sendUpdateRuntimePolicy(ctx context.Context, request OptUpdateR
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, UpdateRuntimePolicyOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -25488,6 +26975,7 @@ func (c *Client) sendUpdateRuntimePolicy(ctx context.Context, request OptUpdateR
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -25618,10 +27106,21 @@ func (c *Client) sendUpdateRuntimeProfile(ctx context.Context, request OptUpdate
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, UpdateRuntimeProfileOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, UpdateRuntimeProfileOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -25632,7 +27131,7 @@ func (c *Client) sendUpdateRuntimeProfile(ctx context.Context, request OptUpdate
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, UpdateRuntimeProfileOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -25646,6 +27145,7 @@ func (c *Client) sendUpdateRuntimeProfile(ctx context.Context, request OptUpdate
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -25793,10 +27293,21 @@ func (c *Client) sendUpdateTaskMetadata(ctx context.Context, request OptUpdateTa
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, UpdateTaskMetadataOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, UpdateTaskMetadataOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -25807,7 +27318,7 @@ func (c *Client) sendUpdateTaskMetadata(ctx context.Context, request OptUpdateTa
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, UpdateTaskMetadataOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -25821,6 +27332,7 @@ func (c *Client) sendUpdateTaskMetadata(ctx context.Context, request OptUpdateTa
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -25971,10 +27483,21 @@ func (c *Client) sendUpdateTeamMemberRole(ctx context.Context, request *UpdateTe
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, UpdateTeamMemberRoleOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, UpdateTeamMemberRoleOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -25985,7 +27508,7 @@ func (c *Client) sendUpdateTeamMemberRole(ctx context.Context, request *UpdateTe
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, UpdateTeamMemberRoleOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -25999,6 +27522,7 @@ func (c *Client) sendUpdateTeamMemberRole(ctx context.Context, request *UpdateTe
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -26350,10 +27874,21 @@ func (c *Client) sendUploadRuntimeSession(ctx context.Context, request UploadRun
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, UploadRuntimeSessionOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, UploadRuntimeSessionOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -26364,7 +27899,7 @@ func (c *Client) sendUploadRuntimeSession(ctx context.Context, request UploadRun
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, UploadRuntimeSessionOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -26378,6 +27913,7 @@ func (c *Client) sendUploadRuntimeSession(ctx context.Context, request UploadRun
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -26608,10 +28144,21 @@ func (c *Client) sendUploadTaskArtifact(ctx context.Context, request UploadTaskA
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, UploadTaskArtifactOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, UploadTaskArtifactOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -26622,7 +28169,7 @@ func (c *Client) sendUploadTaskArtifact(ctx context.Context, request UploadTaskA
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, UploadTaskArtifactOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -26636,6 +28183,7 @@ func (c *Client) sendUploadTaskArtifact(ctx context.Context, request UploadTaskA
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -27034,10 +28582,21 @@ func (c *Client) sendVerifyDiaryEntryById(ctx context.Context, params VerifyDiar
 			}
 		}
 		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, VerifyDiaryEntryByIdOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
 			stage = "Security:SessionAuth"
 			switch err := c.securitySessionAuth(ctx, VerifyDiaryEntryByIdOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -27048,7 +28607,7 @@ func (c *Client) sendVerifyDiaryEntryById(ctx context.Context, params VerifyDiar
 			stage = "Security:CookieAuth"
 			switch err := c.securityCookieAuth(ctx, VerifyDiaryEntryByIdOperation, r); {
 			case err == nil: // if NO error
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
 				// Skip this security.
 			default:
@@ -27062,6 +28621,7 @@ func (c *Client) sendVerifyDiaryEntryById(ctx context.Context, params VerifyDiar
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {

@@ -154,7 +154,12 @@ export async function agentRoutes(fastify: FastifyInstance) {
           'Get the authenticated caller identity and context. Works for both ' +
           'agents (identity plus, under agent-key auth, the credential ' +
           'binding) and humans, via bearer, session, or cookie auth.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         response: {
           200: Type.Ref(WhoamiSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),

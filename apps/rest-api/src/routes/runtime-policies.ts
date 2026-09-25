@@ -40,6 +40,7 @@ const ProfileParamsSchema = Type.Object(
 
 const SECURITY: Array<Record<string, string[]>> = [
   { bearerAuth: [] },
+  { agentKeyAuth: [] },
   { sessionAuth: [] },
   { cookieAuth: [] },
 ];

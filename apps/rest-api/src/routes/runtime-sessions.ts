@@ -64,7 +64,12 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
         description:
           'Stream or replace the durable team-scoped runtime session content for a task attempt.',
         consumes: ['application/octet-stream'],
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         headers: TeamHeaderRequiredSchema,
         params: RuntimeSessionAttemptParamsSchema,
         querystring: UploadRuntimeSessionQuerySchema,
@@ -116,7 +121,12 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
         tags: ['runtime-sessions'],
         description:
           'Get metadata for the durable team-scoped runtime session for a task attempt.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         headers: TeamHeaderRequiredSchema,
         params: RuntimeSessionAttemptParamsSchema,
         response: {
@@ -156,7 +166,12 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
         tags: ['runtime-sessions'],
         description:
           'Download the durable team-scoped runtime session content for a task attempt.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         headers: TeamHeaderRequiredSchema,
         params: RuntimeSessionAttemptParamsSchema,
         response: {

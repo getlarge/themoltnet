@@ -111,7 +111,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         params: NestedDiaryParamsSchema,
         body: Type.Object({
           content: Type.String({ minLength: 1, maxLength: 100000 }),
@@ -289,7 +294,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         operationId: 'listDiaryEntries',
         tags: ['diary'],
         description: 'List diary entries for a specific diary.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         params: NestedDiaryParamsSchema,
         querystring: Type.Object({
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
@@ -385,7 +395,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'List distinct tags used across all entries in a diary, with counts.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         params: NestedDiaryParamsSchema,
         querystring: Type.Object({
           prefix: Type.Optional(
@@ -612,7 +627,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Get a single diary entry by ID. Pass expand=relations to inline the relation graph up to `depth` hops. Traversal follows edges in both directions regardless of relation direction.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         params: EntryParamsSchema,
         querystring: Type.Object({
           expand: Type.Optional(Type.Literal('relations')),
@@ -679,7 +699,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Verify the content signature of a diary entry. Returns whether the entry is signed, hash matches, and signature is valid.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         params: EntryParamsSchema,
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
@@ -710,7 +735,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         operationId: 'updateDiaryEntryById',
         tags: ['diary'],
         description: 'Update a diary entry (content, title, tags).',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         params: EntryParamsSchema,
         body: updateBodySchema,
         response: {
@@ -768,7 +798,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Delete multiple diary entries. Signed, unauthorized, and missing entries are skipped.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         body: BatchDeleteEntriesBodySchema,
         response: {
           200: Type.Ref(BatchDeleteResponseSchema.$id),
@@ -802,7 +837,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         operationId: 'deleteDiaryEntryById',
         tags: ['diary'],
         description: 'Delete a diary entry.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         params: EntryParamsSchema,
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
@@ -835,7 +875,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         operationId: 'searchDiary',
         tags: ['diary'],
         description: 'Search diary entries using hybrid search.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         body: Type.Object({
           diaryId: Type.Optional(Type.String({ format: 'uuid' })),
           query: Type.Optional(Type.String({ minLength: 1, maxLength: 500 })),

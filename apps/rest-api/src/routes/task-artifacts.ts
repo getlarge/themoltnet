@@ -120,7 +120,12 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
         description:
           'Upload immutable content-addressed artifact content for a task attempt.',
         consumes: ['application/octet-stream'],
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         headers: TeamHeaderRequiredSchema,
         params: TaskArtifactAttemptParamsSchema,
         querystring: UploadTaskArtifactQuerySchema,
@@ -199,7 +204,12 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
           'bound to a task, and unbound objects are garbage-collected after ' +
           'a grace window.',
         consumes: ['application/octet-stream'],
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         headers: TeamHeaderRequiredSchema,
         querystring: StageTaskArtifactQuerySchema,
         response: {
@@ -254,7 +264,12 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
         operationId: 'listTaskArtifacts',
         tags: ['task-artifacts'],
         description: 'List task artifact metadata for the current team.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         headers: TeamHeaderRequiredSchema,
         params: TaskArtifactTaskParamsSchema,
         querystring: ListTaskArtifactsQuerySchema,
@@ -311,7 +326,12 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
           'Download immutable task artifact content by CID without naming ' +
           'an attempt. Resolves input artifacts bound at task creation as ' +
           'well as attempt artifacts.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         headers: TeamHeaderRequiredSchema,
         params: TaskArtifactTaskContentParamsSchema,
         response: {
@@ -396,7 +416,12 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
         operationId: 'downloadTaskArtifact',
         tags: ['task-artifacts'],
         description: 'Download immutable task artifact content by CID.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         headers: TeamHeaderRequiredSchema,
         params: TaskArtifactContentParamsSchema,
         response: {

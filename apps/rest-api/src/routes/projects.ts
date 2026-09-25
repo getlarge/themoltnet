@@ -45,6 +45,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
   };
   const security: Record<string, string[]>[] = [
     { bearerAuth: [] },
+    { agentKeyAuth: [] },
     { sessionAuth: [] },
     { cookieAuth: [] },
   ];

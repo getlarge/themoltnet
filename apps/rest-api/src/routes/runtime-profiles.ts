@@ -235,7 +235,12 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         operationId: 'listRuntimeProfiles',
         tags: ['runtime-profiles'],
         description: 'List runtime profiles for the active team context.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         headers: TeamHeaderOptionalSchema,
         response: {
           200: Type.Ref(RuntimeProfileListResponseSchema.$id),
@@ -273,7 +278,12 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         operationId: 'createRuntimeProfile',
         tags: ['runtime-profiles'],
         description: 'Create a runtime profile for the active team context.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         headers: TeamHeaderOptionalSchema,
         body: Type.Ref(CreateRuntimeProfileBodySchema.$id),
         response: {
@@ -366,7 +376,12 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         operationId: 'getRuntimeProfile',
         tags: ['runtime-profiles'],
         description: 'Get one runtime profile.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         params: ProfileParamsSchema,
         response: {
           200: Type.Ref(RuntimeProfileSchema.$id),
@@ -405,7 +420,12 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         operationId: 'updateRuntimeProfile',
         tags: ['runtime-profiles'],
         description: 'Update one runtime profile.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         params: ProfileParamsSchema,
         body: Type.Ref(UpdateRuntimeProfileBodySchema.$id),
         response: {
@@ -522,7 +542,12 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         operationId: 'deleteRuntimeProfile',
         tags: ['runtime-profiles'],
         description: 'Delete one runtime profile.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: [
+          { bearerAuth: [] },
+          { agentKeyAuth: [] },
+          { sessionAuth: [] },
+          { cookieAuth: [] },
+        ],
         params: ProfileParamsSchema,
         response: {
           204: { type: 'null' },

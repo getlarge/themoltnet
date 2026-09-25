@@ -283,6 +283,12 @@ export async function registerApiRoutes(
             description:
               'OAuth2 access token from Ory Hydra (agent auth via client_credentials flow)',
           },
+          agentKeyAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            description:
+              'Agent key sent as Authorization: Bearer <agent-key>. Use on operations that accept agent keys.',
+          },
           sessionAuth: {
             type: 'apiKey',
             in: 'header',

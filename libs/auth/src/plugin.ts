@@ -233,6 +233,7 @@ export function routeUsesPrincipalAuth(routeOptions: {
     if (typeof requirement !== 'object' || requirement === null) return false;
     return (
       'bearerAuth' in requirement ||
+      'agentKeyAuth' in requirement ||
       'sessionAuth' in requirement ||
       'cookieAuth' in requirement
     );
