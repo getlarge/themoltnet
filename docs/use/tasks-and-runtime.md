@@ -513,6 +513,11 @@ claim condition requiring the source task to be complete.
 Do not run two `extend` continuations of the same branch concurrently; git
 cannot check one branch out into two worktrees at once.
 
+A continuation also inherits the parent task's project: `task continue` copies
+it rather than accepting a new one, and passing a `--project-id` that doesn't
+match the parent's is rejected before the continuation is created. See
+[Projects and Workspaces § Create project work](../use/projects-and-workspaces.md#create-project-work).
+
 ## Operations
 
 Every operation below is the same action through three surfaces:
@@ -582,6 +587,13 @@ const task = await molt.tasks.create(
 The create envelope, timeout fields, claim conditions, dependencies, references,
 and `allowedProfiles` shape are documented in
 [Task Reference § Create envelope](../reference/tasks.md#create-envelope).
+
+Add `--project-id <project-id>` (CLI), `.project(projectId)` (SDK builder), or
+`project_id` (MCP `tasks_create`) to scope the task to a project instead of
+General work — it is never inferred from a local binding, and omitting it always
+creates General work. See
+[Projects and Workspaces § Create project work](../use/projects-and-workspaces.md#create-project-work)
+for the end-to-end create/claim/read flow.
 
 ### Inspect, List, And Watch
 
