@@ -313,6 +313,24 @@ describe('MoltNet node', () => {
     expect(api.createdBodies[0].projectId).toBeUndefined();
   });
 
+  it('rejects "none" as a create Project ID before sending a request', async () => {
+    const api = new FakeMoltNetApi();
+    vi.stubGlobal('fetch', api.fetch);
+    const context = createExecuteContext({
+      parameters: {
+        operation: 'create',
+        taskType: 'freeform',
+        input: '{"brief":"Should not be created"}',
+        options: { projectId: 'none' },
+      },
+    });
+
+    await expect(new MoltNet().execute.call(context)).rejects.toBeInstanceOf(
+      NodeOperationError,
+    );
+    expect(api.createdBodies).toHaveLength(0);
+  });
+
   it('uses credential team and diary defaults', async () => {
     const api = new FakeMoltNetApi();
     vi.stubGlobal('fetch', api.fetch);

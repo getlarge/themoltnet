@@ -502,6 +502,17 @@ async function createTask(
     const title = optionalString(options.title);
     const correlationId = optionalString(options.correlationId);
     const projectId = optionalString(options.projectId);
+    if (projectId === 'none') {
+      throw new NodeOperationError(
+        context.getNode(),
+        '\'Project ID\' cannot be "none" when creating a task',
+        {
+          itemIndex,
+          description:
+            '"none" is only valid as a Get Many filter. Leave \'Project ID\' empty to create General work.',
+        },
+      );
+    }
     const tags = optionalString(options.tags)
       ?.split(',')
       .map((tag) => tag.trim())
