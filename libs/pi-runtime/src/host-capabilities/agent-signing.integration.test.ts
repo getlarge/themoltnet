@@ -4,13 +4,11 @@
  * the CLI's ssh-agent adapter, and signs a diary request through
  * `moltnet capability call`, while the Ed25519 seed exists only on the host.
  *
- * Opt-in: MOLTNET_PI_VM_INTEGRATION=1. The guest needs this branch's CLI, so
- * the test cross-compiles apps/moltnet-cli for the guest (or uses
- * MOLTNET_CLI_LINUX_BINARY) and projects it as /home/agent/bin/moltnet.
+ * Opt-in: MOLTNET_PI_VM_INTEGRATION=1. The guest uses the CLI installed in
+ * the stock snapshot, exercising the same binary used by production tasks.
  */
 
-import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -28,28 +26,7 @@ import { agentSigningCapability } from './agent-signing.js';
 const describeVm =
   process.env.MOLTNET_PI_VM_INTEGRATION === '1' ? describe : describe.skip;
 
-const REPO_ROOT = path.resolve(import.meta.dirname, '../../../..');
-const GUEST_CLI = '/home/agent/bin/moltnet';
-
-function guestCliBinary(): Uint8Array {
-  const configured = process.env.MOLTNET_CLI_LINUX_BINARY;
-  if (configured) return readFileSync(configured);
-  const out = path.join(
-    mkdtempSync(path.join(tmpdir(), 'moltnet-cli-')),
-    'moltnet',
-  );
-  execFileSync('go', ['build', '-o', out, '.'], {
-    cwd: path.join(REPO_ROOT, 'apps/moltnet-cli'),
-    env: {
-      ...process.env,
-      CGO_ENABLED: '0',
-      GOOS: 'linux',
-      GOARCH: process.arch === 'arm64' ? 'arm64' : 'amd64',
-    },
-    stdio: 'pipe',
-  });
-  return readFileSync(out);
-}
+const GUEST_CLI = '/usr/local/bin/moltnet';
 
 async function execGuest(
   vm: Awaited<ReturnType<typeof resumeVm>>['vm'],
@@ -146,19 +123,6 @@ describeVm('agent-signing capability in a real Gondolin VM', () => {
     });
     router.setPolicy({ enforcement: 'off', allowedTools: new Set() });
 
-    const binary = guestCliBinary();
-    const projection = {
-      env: router.guestProjection.env,
-      files: [
-        ...router.guestProjection.files,
-        { path: GUEST_CLI, content: binary, mode: 0o755 },
-      ],
-      services: router.guestProjection.services.map((service) => ({
-        ...service,
-        command: [GUEST_CLI, ...service.command.slice(1)],
-      })),
-    };
-
     const checkpointPath = await ensureSnapshot();
     let managed: Awaited<ReturnType<typeof resumeVm>> | undefined;
     try {
@@ -168,7 +132,7 @@ describeVm('agent-signing capability in a real Gondolin VM', () => {
         agentRootDir: root,
         mountPath: workspace,
         hostOrigins: router.origins,
-        guestProjection: projection,
+        guestProjection: router.guestProjection,
       });
 
       const output = await execGuest(

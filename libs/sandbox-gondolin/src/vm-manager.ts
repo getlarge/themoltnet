@@ -56,6 +56,12 @@ export const GUEST_TASK_CONTEXT_MOUNT = '/moltnet-task-context';
 export const GUEST_SERVICE_PID_DIR = '/run/moltnet/services';
 const GUEST_SERVICE_ID_RE = /^[a-z][a-z0-9-]{0,62}$/;
 
+function stderrTail(previous: string, next: string | Uint8Array): string {
+  return Buffer.concat([Buffer.from(previous), Buffer.from(next)])
+    .subarray(-4096)
+    .toString('utf8');
+}
+
 function assertGuestServiceId(id: string): void {
   if (!GUEST_SERVICE_ID_RE.test(id)) {
     throw new Error(
@@ -1205,6 +1211,14 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   const servicesAbort = new AbortController();
   const serviceHandles: Promise<unknown>[] = [];
   const serviceIds: string[] = [];
+  const serviceExits = new Map<
+    string,
+    Promise<{ exitCode: number | undefined; stderr: string }>
+  >();
+  const serviceExitResults = new Map<
+    string,
+    { exitCode: number | undefined; stderr: string }
+  >();
   const services: GuestServices = {
     async stop() {
       if (serviceIds.length > 0) {
@@ -1404,12 +1418,41 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
         ],
         {
           stdout: 'ignore',
-          stderr: 'ignore',
+          stderr: 'pipe',
           ...(service.env && { env: service.env }),
           signal: servicesAbort.signal,
         },
       );
-      serviceHandles.push(Promise.resolve(handle).catch(() => undefined));
+      // Drain stderr while retaining only its tail. Awaiting the process alone
+      // can deadlock when a noisy service fills the guest pipe.
+      let stderr = '';
+      const exited = (async () => {
+        try {
+          if ('output' in handle && typeof handle.output === 'function') {
+            for await (const chunk of handle.output()) {
+              if (chunk.stream === 'stderr') {
+                stderr = stderrTail(stderr, chunk.data);
+              }
+            }
+          }
+          const result = await handle;
+          stderr = stderrTail(stderr, String(result.stderr ?? ''));
+          return { exitCode: result.exitCode, stderr };
+        } catch (error) {
+          return {
+            exitCode: undefined,
+            stderr: stderrTail(stderr, String(error)),
+          };
+        }
+      })();
+      serviceExits.set(
+        service.id,
+        exited.then((result) => {
+          serviceExitResults.set(service.id, result);
+          return result;
+        }),
+      );
+      serviceHandles.push(exited);
       serviceIds.push(service.id);
     }
     // Readiness: probe every service that declares a path concurrently under
@@ -1422,9 +1465,13 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       if (!service.readiness) return;
       const deadline = Date.now() + (service.readiness.timeoutMs ?? 10_000);
       const pidFile = `${GUEST_SERVICE_PID_DIR}/${service.id}.pid`;
+      const exited = serviceExits.get(service.id);
+      if (!exited) throw new Error(`Service "${service.id}" was not started`);
       let ready = false;
+      let failure: string | undefined;
       while (Date.now() < deadline) {
         throwIfAborted(config.signal, `service "${service.id}" readiness`);
+        if (servicesAbort.signal.aborted) return;
         // Readiness requires BOTH the declared path AND the recorded process
         // still running: a bare path check accepts a stale socket left by a
         // prior crashed service, and misses a service that created its socket
@@ -1440,18 +1487,39 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
           ],
           { stdout: 'ignore', stderr: 'ignore', signal: config.signal },
         );
+        const alreadyExited = serviceExitResults.get(service.id);
+        if (alreadyExited) {
+          failure = `exited (code ${alreadyExited.exitCode ?? 'unknown'})`;
+          if (alreadyExited.stderr)
+            failure += `; stderr tail: ${alreadyExited.stderr}`;
+          break;
+        }
         if (probe.exitCode === 0) {
           ready = true;
           break;
         }
-        await new Promise((resolve) => {
-          setTimeout(resolve, 200);
-        });
+        const outcome = await Promise.race([
+          exited.then((result) => ({ kind: 'exit' as const, result })),
+          delay(
+            Math.min(200, Math.max(0, deadline - Date.now())),
+            servicesAbort.signal,
+            `service "${service.id}" readiness`,
+          ).then(() => ({ kind: 'retry' as const })),
+        ]);
+        if (outcome.kind === 'exit') {
+          failure = `exited (code ${outcome.result.exitCode ?? 'unknown'})`;
+          if (outcome.result.stderr) {
+            failure += `; stderr tail: ${outcome.result.stderr}`;
+          }
+          break;
+        }
       }
       if (!ready) {
+        if (servicesAbort.signal.aborted) return;
+        failure ??= `${service.readiness.path} absent after ${service.readiness.timeoutMs ?? 10_000} ms`;
         if (service.readiness.required) {
           throw new Error(
-            `Projected guest service "${service.id}" did not become ready: ${service.readiness.path} absent or its process exited`,
+            `Projected guest service "${service.id}" did not become ready: ${failure}`,
           );
         }
         // Best-effort service (e.g. a signing socket whose guest CLI may
@@ -1462,12 +1530,27 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
           level: 'warning',
           message:
             `Projected guest service "${service.id}" did not become ready ` +
-            `(${service.readiness.path} absent or its process exited); continuing without it`,
+            `(${failure}); continuing without it`,
         });
       }
     }
+    for (const service of projectedServices.filter(
+      (item) => item.readiness && !item.readiness.required,
+    )) {
+      void awaitServiceReady(service).catch((error: unknown) => {
+        if (!servicesAbort.signal.aborted) {
+          config.onDiagnostic?.({
+            event: 'vm.guest_service.not_ready',
+            level: 'warning',
+            message: `Projected guest service "${service.id}" readiness failed: ${String(error)}`,
+          });
+        }
+      });
+    }
     await Promise.all(
-      projectedServices.map((service) => awaitServiceReady(service)),
+      projectedServices
+        .filter((service) => service.readiness?.required)
+        .map((service) => awaitServiceReady(service)),
     );
     if (projectedFiles.length > 0 || projectedServices.length > 0) {
       config.onDiagnostic?.({

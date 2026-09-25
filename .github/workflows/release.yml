@@ -1613,6 +1613,18 @@ jobs:
           retry_wait_seconds: 30
           command: pnpm --filter @themoltnet/cli publish --no-git-checks --access public --provenance
 
+  propose-gondolin-cli-pin:
+    name: Propose Gondolin CLI pin
+    needs: [resolve-publish, publish-cli-wrapper]
+    if: >-
+      always() && !cancelled() &&
+      needs.resolve-publish.outputs.cli == 'true' &&
+      needs.publish-cli-wrapper.result == 'success'
+    uses: ./.github/workflows/sync-gondolin-cli-pin.yml
+    with:
+      cli_version: ${{ needs.resolve-publish.outputs.cli-tag }}
+    secrets: inherit
+
   # The cli is an 8-component linked-versions group. Only apps/moltnet-cli
   # gets a real GitHub release (cli-v<x>); the other 7 siblings use
   # `skip-github-release: true`. release-please still needs a git tag per
