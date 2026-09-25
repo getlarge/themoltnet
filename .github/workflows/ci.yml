@@ -91,16 +91,12 @@ jobs:
             libs/moltnet-api-client/go.sum
       - run: pnpm exec nx run @moltnet/tools:test:agent-bundle
 
-  # Documented in packages/agent-daemon-action/README.md under "Releasing this
-  # action" — but never actually implemented, which is how the committed bundle
-  # drifted three weeks behind its sources while everyone believed CI guarded
-  # it. The composite action executes dist/, not src/, and the bundle inlines
-  # libs/sdk, so a stale copy ships old SDK behaviour to every workflow using
-  # the action.
-  #
-  # tools/src/release/github-action-publisher.ts asserts the same thing via
-  # assertGitPathClean, but only during `nx release` — too late, and it
-  # inspects dist/main.js alone.
+  # The composite action executes dist/, not src/, and the bundle inlines
+  # libs/sdk. sync-action-bundle.yml keeps main's bundle current; this job
+  # runs only for PRs that commit dist/ (see the `affected` job) and fails when
+  # that committed bundle does not match its sources. The action publisher
+  # (tools/src/release/github-action-publisher.ts) refuses to release a stale
+  # bundle as the last line of defence.
   check-dist-agent-daemon-action:
     name: Action bundle is current
     needs: [affected]
@@ -486,9 +482,13 @@ jobs:
             echo "legreffier-plugin=false" >> "$GITHUB_OUTPUT"
           fi
 
-          # The action's committed bundle inlines libs/sdk, so anything the
-          # bundle absorbs can make it stale, not just its own sources.
-          if contains "@themoltnet/agent-daemon-action" "@themoltnet/sdk"; then
+          # The action's committed bundle is refreshed on main by
+          # sync-action-bundle.yml, so source-only PRs do not carry it. Verify
+          # it only when a PR commits dist/ itself (the bundle-sync PR, or an
+          # author shipping a bundle deliberately): a committed bundle must
+          # still match its sources.
+          if [ "${{ github.event_name }}" = "pull_request" ] &&
+            ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- packages/agent-daemon-action/dist/; then
             echo "check-dist-agent-daemon-action=true" >> "$GITHUB_OUTPUT"
           else
             echo "check-dist-agent-daemon-action=false" >> "$GITHUB_OUTPUT"

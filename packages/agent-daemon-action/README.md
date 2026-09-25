@@ -395,17 +395,26 @@ pattern used by `actions/checkout`, `actions/setup-node`, and the
 resolved by checking out the repo at the requested `ref` — there is no
 build step on the consumer's runner.
 
-The repo's CI workflow has a `check-dist-agent-daemon-action` job
+The bundle inlines `@themoltnet/sdk`, so SDK changes make it stale too.
+PRs that change sources do **not** need to rebuild it. After they merge,
+[`sync-action-bundle.yml`](https://github.com/getlarge/themoltnet/blob/main/.github/workflows/sync-action-bundle.yml)
+rebuilds the bundle on `main` and opens or refreshes a single
+`chore(agent-daemon-action): refresh action bundle` PR from
+`automation/action-bundle-sync`. Until that PR merges, `main`'s bundle
+lags its sources, and in-repo workflows that use
+`./packages/agent-daemon-action` run the previous bundle.
+
+A PR may still commit `dist/` itself, for example so this repo's own
+workflows exercise the change before merge. The CI job
+`check-dist-agent-daemon-action`
 (see [`.github/workflows/ci.yml`](https://github.com/getlarge/themoltnet/blob/main/.github/workflows/ci.yml))
-that rebuilds the bundle from source on every PR touching this package
-or `@themoltnet/sdk` — the bundle inlines the SDK, so SDK changes make
-it stale too — and fails if the result differs from what is committed.
-It checks the whole `dist/` directory, because the build code-splits
-into content-hashed `assets/` chunks. To update the action:
+runs only for PRs that change `dist/`. It rebuilds from source and fails
+if the whole `dist/` directory differs from what is committed; the build
+code-splits into content-hashed `assets/` chunks. To commit a bundle:
 
 ```bash
 pnpm exec nx run @themoltnet/agent-daemon-action:build
-git add packages/agent-daemon-action/dist/
+git add -A packages/agent-daemon-action/dist/
 git commit -m "..."
 ```
 
@@ -420,7 +429,9 @@ behind its sources unnoticed.
 The action is semvered by Nx release in the `github-actions` group.
 Consumers can pin the immutable `agent-daemon-action-vX.Y.Z` tag or the
 moving major tag (`v0`, later `v1`) that the action release publish target
-updates after the semver tag is created.
+updates after the semver tag is created. The publish target rebuilds the
+bundle and refuses to release while `dist/` differs from its sources, so
+merge any open bundle sync PR before releasing.
 
 ## License
 
