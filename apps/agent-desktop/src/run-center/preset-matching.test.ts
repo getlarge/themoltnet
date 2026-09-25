@@ -60,3 +60,33 @@ describe('preset attribution across project selection', () => {
     expect(findRunPreset([projectPreset], run)?.id).toBe(preset.id);
   });
 });
+
+it('matches a preset only when run claim options match', () => {
+  const scoped = {
+    ...preset,
+    mode: 'drain' as const,
+    correlationId: '78fa1119-6126-44b4-b3aa-249e942ef53b',
+    diaryIds: ['41c8030b-fc3f-44df-b84d-df2240087733'],
+    pollIntervalMs: 750,
+    maxPollIntervalMs: 5_000,
+    waitForFirstTaskSec: 15,
+    waitAfterTaskSec: 3,
+  };
+  const run = {
+    ...status.runs[0],
+    agent: scoped.agent,
+    profiles: scoped.profileIds,
+    taskTypes: scoped.taskTypes,
+    mode: 'drain' as const,
+    correlationId: scoped.correlationId,
+    diaryIds: scoped.diaryIds,
+    pollIntervalMs: 750,
+    maxPollIntervalMs: 5_000,
+    waitForFirstTaskSec: 15,
+    waitAfterTaskSec: 3,
+  };
+  expect(findRunPreset([scoped], run)?.id).toBe(preset.id);
+  expect(
+    findRunPreset([scoped], { ...run, pollIntervalMs: 1_000 }),
+  ).toBeUndefined();
+});

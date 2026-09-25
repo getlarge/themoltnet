@@ -201,6 +201,102 @@ describe('run draft and preset operations', () => {
     await screen.findAllByText('Choose at least one task type.');
     expect(screen.getByRole('button', { name: 'Start run' })).toBeDisabled();
   });
+  it('composes claim filters and timing for a new drain run and preset', async () => {
+    const diaryId = '41c8030b-fc3f-44df-b84d-df2240087733';
+    const correlationId = '78fa1119-6126-44b4-b3aa-249e942ef53b';
+    const { actions } = setup({ presets: [] }, false, (mock) =>
+      mock.mockResolvedValue({
+        ...catalogue,
+        teams: [
+          {
+            ...catalogue.teams[0],
+            diaries: [
+              ...catalogue.teams[0].diaries,
+              { id: diaryId, name: 'Claims diary' },
+            ],
+          },
+        ],
+      }),
+    );
+    await screen.findAllByRole('option', { name: 'Careful review' });
+    fireEvent.change(screen.getByLabelText('Runtime profile'), {
+      target: { value: 'careful' },
+    });
+    fireEvent.change(screen.getByLabelText('Run mode'), {
+      target: { value: 'drain' },
+    });
+    fireEvent.click(screen.getByText('Advanced'));
+    fireEvent.change(screen.getByLabelText('Correlation ID'), {
+      target: { value: correlationId },
+    });
+    fireEvent.click(screen.getByLabelText('Claims diary'));
+    fireEvent.change(screen.getByLabelText('Poll interval (ms)'), {
+      target: { value: '750' },
+    });
+    fireEvent.change(screen.getByLabelText('Maximum poll interval (ms)'), {
+      target: { value: '5000' },
+    });
+    fireEvent.change(screen.getByLabelText('Wait for first task (sec)'), {
+      target: { value: '15' },
+    });
+    fireEvent.change(screen.getByLabelText('Wait after task (sec)'), {
+      target: { value: '3' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Start run' }));
+    await waitFor(() =>
+      expect(actions.startRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mode: 'drain',
+          correlationId,
+          diaryIds: [diaryId],
+          pollIntervalMs: 750,
+          maxPollIntervalMs: 5_000,
+          waitForFirstTaskSec: 15,
+          waitAfterTaskSec: 3,
+        }),
+      ),
+    );
+    fireEvent.change(screen.getByLabelText('Preset name'), {
+      target: { value: 'Scoped drain' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save preset' }));
+    await waitFor(() =>
+      expect(actions.savePreset).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mode: 'drain',
+          correlationId,
+          diaryIds: [diaryId],
+          pollIntervalMs: 750,
+          maxPollIntervalMs: 5_000,
+          waitForFirstTaskSec: 15,
+          waitAfterTaskSec: 3,
+        }),
+      ),
+    );
+  });
+  it('blocks invalid correlation and polling cadence before start', async () => {
+    setup();
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Start run' })).toBeEnabled();
+    });
+    fireEvent.click(screen.getByText('Advanced'));
+    fireEvent.change(screen.getByLabelText('Correlation ID'), {
+      target: { value: 'not-a-uuid' },
+    });
+    expect(screen.getByRole('button', { name: 'Start run' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Correlation ID'), {
+      target: { value: '' },
+    });
+    fireEvent.change(screen.getByLabelText('Poll interval (ms)'), {
+      target: { value: '60000' },
+    });
+    expect(
+      screen.getByText(
+        'Maximum poll interval must be at least the poll interval.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start run' })).toBeDisabled();
+  });
 });
 
 describe('run again', () => {
@@ -229,7 +325,13 @@ describe('run again', () => {
     const withProject = {
       ...catalogue,
       teams: [
-        ...catalogue.teams,
+        {
+          ...catalogue.teams[0],
+          diaries: [
+            ...catalogue.teams[0].diaries,
+            { id: previous.diaryIds[0], name: 'Previous claim diary' },
+          ],
+        },
         {
           teamId: 'other-team',
           teamName: 'Other team',
@@ -310,7 +412,7 @@ describe('run again', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Start run' })).toBeEnabled();
     });
-    expect(screen.getByText('drain')).toBeInTheDocument();
+    expect(screen.getByLabelText('Run mode')).toHaveValue('drain');
     fireEvent.click(screen.getByRole('button', { name: 'Start run' }));
     await waitFor(() => expect(actions.startRun).toHaveBeenCalled());
     const input = vi.mocked(actions.startRun).mock.calls[0][0];
@@ -338,7 +440,7 @@ describe('run again', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Start run' })).toBeEnabled();
     });
-    expect(screen.getByText('poll')).toBeInTheDocument();
+    expect(screen.getByLabelText('Run mode')).toHaveValue('poll');
     fireEvent.click(screen.getByRole('button', { name: 'Start run' }));
     await waitFor(() => expect(actions.startRun).toHaveBeenCalled());
     const switched = vi.mocked(actions.startRun).mock.calls[0][0];

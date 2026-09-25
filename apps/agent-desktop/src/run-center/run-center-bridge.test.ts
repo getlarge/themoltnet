@@ -87,10 +87,50 @@ describe('native team enrollment bridge', () => {
       source: '/work/override',
       strategy: 'existing' as const,
       diaryId: 'diary',
+      correlationId: '78fa1119-6126-44b4-b3aa-249e942ef53b',
+      diaryIds: ['41c8030b-fc3f-44df-b84d-df2240087733'],
+      pollIntervalMs: 750,
+      maxPollIntervalMs: 5_000,
     };
     await runCenterActions.startRun(input);
     expect(invoke).toHaveBeenCalledWith('desktop_start_run', { spec: input });
     expect(localStorage.length).toBe(0);
+  });
+
+  it('forwards drain waits and saves run options in presets', async () => {
+    vi.mocked(invoke).mockResolvedValue({ storageScope: '' });
+    await runCenterActions.startRun({
+      agent: 'agent',
+      teamId: 'team',
+      profiles: ['profile'],
+      taskTypes: ['freeform'],
+      mode: 'drain',
+      waitForFirstTaskSec: 15,
+      waitAfterTaskSec: 3,
+    });
+    expect(vi.mocked(invoke).mock.calls[0]?.[1]).toMatchObject({
+      spec: {
+        waitForFirstTaskSec: 15,
+        waitAfterTaskSec: 3,
+      },
+    });
+    const saved = await runCenterActions.savePreset({
+      id: null,
+      name: 'Scoped drain',
+      agent: 'agent',
+      teamId: 'team',
+      diaryId: null,
+      profileIds: ['profile'],
+      taskTypes: ['freeform'],
+      mode: 'drain',
+      correlationId: '78fa1119-6126-44b4-b3aa-249e942ef53b',
+      diaryIds: ['41c8030b-fc3f-44df-b84d-df2240087733'],
+      pollIntervalMs: 750,
+      maxPollIntervalMs: 5_000,
+      waitForFirstTaskSec: 15,
+      waitAfterTaskSec: 3,
+    });
+    expect(await listPresets()).toContainEqual(saved);
   });
 
   it('starts native operator sign-in without carrying a browser token', async () => {
