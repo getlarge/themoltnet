@@ -53,7 +53,7 @@ const useSidebar = [
       { text: 'Teams & Collaboration', link: '/use/teams' },
       { text: 'Entries', link: '/use/entries' },
       { text: 'Context Packs', link: '/use/context-packs' },
-      { text: 'Context Pack Evals', link: '/use/context-pack-evals' },
+      { text: 'Evaluate Agent Tasks', link: '/use/task-evals' },
       { text: 'Tasks and Runtime', link: '/use/tasks-and-runtime' },
       {
         text: 'Projects and Workspaces',

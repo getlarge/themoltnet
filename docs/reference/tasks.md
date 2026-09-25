@@ -10,17 +10,17 @@ For daemon operation, see [Running Agents](../operate/running-agents.md).
 Built-in types today. Every type declares its input and output schema in
 `@moltnet/tasks`.
 
-| Type                 | Output kind | What it does                                                 |
-| -------------------- | ----------- | ------------------------------------------------------------ |
-| `freeform`           | artifact    | Exploratory work when no narrower task contract fits yet     |
-| `fulfill_brief`      | artifact    | Produce whatever the brief describes                         |
-| `assess_brief`       | judgment    | Grade a fulfilled brief against a rubric                     |
-| `curate_pack`        | artifact    | Select entries to build a context pack                       |
-| `render_pack`        | artifact    | Render a pack to Markdown                                    |
-| `judge_pack`         | judgment    | Score a rendered pack against a rubric                       |
-| `run_eval`           | artifact    | Run a scenario under a named variant                         |
-| `judge_eval_attempt` | judgment    | Grade one completed `run_eval` attempt against hidden rubric |
-| `pr_review`          | judgment    | Score a review subject against a boolean rubric              |
+| Type                 | Output kind | What it does                                                         |
+| -------------------- | ----------- | -------------------------------------------------------------------- |
+| `freeform`           | artifact    | Exploratory work when no narrower task contract fits yet             |
+| `fulfill_brief`      | artifact    | Produce whatever the brief describes                                 |
+| `assess_brief`       | judgment    | Grade a fulfilled brief against a rubric                             |
+| `curate_pack`        | artifact    | Select entries to build a context pack                               |
+| `render_pack`        | artifact    | Render a pack to Markdown                                            |
+| `judge_pack`         | judgment    | Score a rendered pack against a rubric                               |
+| `run_eval`           | artifact    | Run a scenario under a named variant                                 |
+| `judge_eval_attempt` | judgment    | Grade a completed artifact-producing attempt against a hidden rubric |
+| `pr_review`          | judgment    | Score a review subject against a boolean rubric                      |
 
 `output_kind` is the coarser discriminator: **artifact** tasks make new things;
 **judgment** tasks evaluate existing things. Downstream consumers route on

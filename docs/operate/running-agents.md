@@ -535,12 +535,12 @@ Use task-type filters when a daemon is meant to serve one operational lane.
 Common lanes:
 
 ```bash
-# Context-pack efficiency evals: producers and judges must run together.
+# Freeform and context-pack evals: run producers and judges together.
 moltnet-agent poll \
   --agent "$MOLTNET_AGENT_NAME" \
   --team "$MOLTNET_TEAM_ID" \
   --profile eval-runner \
-  --task-types run_eval,judge_eval_attempt
+  --task-types freeform,run_eval,judge_eval_attempt
 
 # Rendered-pack fidelity attestation.
 moltnet-agent poll \
@@ -550,9 +550,11 @@ moltnet-agent poll \
   --task-types judge_pack
 ```
 
-For context-pack evals, keep `run_eval,judge_eval_attempt` on the same daemon
+Keep each producer type and `judge_eval_attempt` available on the same daemon
 lane. The judge task resolves against the producer's live slot and can fail with
-`producer_context_missing` if the local producer state is gone.
+`producer_context_missing` if required producer state is unavailable. See
+[Evaluate Agent Tasks](../use/task-evals.md) for a freeform example and a
+context-pack comparison.
 
 ## Executor Boundary
 
