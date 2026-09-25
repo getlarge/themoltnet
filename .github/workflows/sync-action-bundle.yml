@@ -106,7 +106,9 @@ jobs:
 
       # A later push can make main's bundle current again (for example a PR
       # that committed a rebuilt dist/ itself). Close the now-obsolete sync PR
-      # so it cannot be merged over a newer bundle.
+      # so it cannot be merged over a newer bundle. The branch itself is kept:
+      # repository rules forbid deleting it, and the next proposal force-pushes
+      # over it with a lease, as the go.mod sync bot does with its branch.
       - name: Close obsolete bundle sync PR
         if: steps.bundle.outputs.changed == 'false'
         env:
@@ -122,6 +124,5 @@ jobs:
           if [ -n "$pr_number" ]; then
             gh pr close "$pr_number" \
               --repo "$GITHUB_REPOSITORY" \
-              --delete-branch \
               --comment "main's action bundle is already current; closing this obsolete bundle sync PR."
           fi
