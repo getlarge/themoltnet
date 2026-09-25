@@ -16,6 +16,7 @@ import { type Agent, MoltNetError } from '@themoltnet/sdk';
 import type { FastifyBaseLogger } from 'fastify';
 
 import { safeErrorContext } from '../safe-error-context.js';
+import type { HoldAbandonedWork } from './catalogue-cache.js';
 import { ProjectPaginationError } from './catalogue-project-reader.js';
 import {
   deriveProfileReadiness,
@@ -206,7 +207,7 @@ export async function readCatalogueSources(
      */
     share?: (
       teamId: string,
-      load: () => Promise<CatalogueTeamSource>,
+      load: (hold: HoldAbandonedWork) => Promise<CatalogueTeamSource>,
     ) => Promise<CatalogueTeamSource>;
   } = {},
 ): Promise<CatalogueTeamSource[]> {
@@ -214,9 +215,9 @@ export async function readCatalogueSources(
   const budgetMs = options.teamBudgetMs ?? CATALOGUE_TEAM_BUDGET_MS;
   return Promise.all(
     agent.teamIds.map((teamId) => {
-      const load = () =>
-        readTeamSource(agent, teamId, { signal, budgetMs, logger });
-      return share ? share(teamId, load) : load();
+      const load = (hold: HoldAbandonedWork) =>
+        readTeamSource(agent, teamId, { signal, budgetMs, logger, hold });
+      return share ? share(teamId, load) : load(() => undefined);
     }),
   );
 }
@@ -224,12 +225,23 @@ export async function readCatalogueSources(
 /**
  * Settles when `work` does or when `signal` aborts, whichever is first. Not
  * every step honours a signal (a secret-provider lookup may not), so the
- * budget is enforced here and a late result is discarded.
+ * budget is enforced here, a late result is discarded, and work still running
+ * at the deadline is handed to `hold` so no one starts more of it meanwhile.
  */
-function withinBudget<T>(work: Promise<T>, signal: AbortSignal): Promise<T> {
-  if (signal.aborted) return Promise.reject(abortError(signal));
+function withinBudget<T>(
+  work: Promise<T>,
+  signal: AbortSignal,
+  hold: HoldAbandonedWork,
+): Promise<T> {
+  if (signal.aborted) {
+    hold(work);
+    return Promise.reject(abortError(signal));
+  }
   return new Promise<T>((resolve, reject) => {
-    const onAbort = () => reject(abortError(signal));
+    const onAbort = () => {
+      hold(work);
+      reject(abortError(signal));
+    };
     signal.addEventListener('abort', onAbort, { once: true });
     work.then(
       (value) => {
@@ -258,14 +270,19 @@ async function readTeamSource(
     signal?: AbortSignal;
     budgetMs: number;
     logger?: Pick<FastifyBaseLogger, 'warn'>;
+    hold: HoldAbandonedWork;
   },
 ): Promise<CatalogueTeamSource> {
-  const { signal, logger } = options;
+  const { signal, logger, hold } = options;
   const budget = AbortSignal.timeout(options.budgetMs);
   const teamSignal = signal ? AbortSignal.any([signal, budget]) : budget;
   let result: Awaited<ReturnType<CatalogueAgentPort['readTeam']>>;
   try {
-    result = await withinBudget(agent.readTeam(teamId, teamSignal), teamSignal);
+    result = await withinBudget(
+      agent.readTeam(teamId, teamSignal),
+      teamSignal,
+      hold,
+    );
     if (result.team.id !== teamId) throw new Error('Team response mismatch');
   } catch (error) {
     const timedOut = budget.aborted && !signal?.aborted;
@@ -296,6 +313,7 @@ async function readTeamSource(
     const page = await withinBudget(
       agent.readProjects(teamId, teamSignal),
       teamSignal,
+      hold,
     );
     return {
       ...verified,

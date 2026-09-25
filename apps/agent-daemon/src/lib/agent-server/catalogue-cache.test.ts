@@ -153,4 +153,43 @@ describe('CatalogueSourceCache', () => {
     // Assert
     expect(load).toHaveBeenCalledTimes(4);
   });
+
+  it('does not start more work while an abandoned lookup is still stuck', async () => {
+    // Arrange: a read that timed out, leaving an uncancellable lookup behind.
+    const subject = cache();
+    const stuck = deferred<void>();
+    const load = vi.fn((hold: (work: Promise<unknown>) => void) => {
+      hold(stuck.promise);
+      return Promise.resolve({ healthy: false, n: load.mock.calls.length });
+    });
+
+    // Act
+    const first = await subject.read('bot\u0000team-a', load);
+    const whileStuck = await subject.read('bot\u0000team-a', load);
+    stuck.resolve();
+    await stuck.promise;
+    const afterwards = await subject.read('bot\u0000team-a', load);
+
+    // Assert: the recovery poll got the last answer, not another lookup.
+    expect(whileStuck).toBe(first);
+    expect(afterwards.n).toBe(2);
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it('forgets expired, degraded and invalidated entries', async () => {
+    // Arrange
+    let time = 0;
+    const subject = cache(() => time);
+    await subject.read('a', () => Promise.resolve({ healthy: true, n: 1 }));
+    await subject.read('b', () => Promise.resolve({ healthy: false, n: 2 }));
+    await subject.read('c', () => Promise.resolve({ healthy: true, n: 3 }));
+
+    // Act
+    subject.invalidate('c');
+    time = 20_000;
+    await subject.read('d', () => Promise.resolve({ healthy: true, n: 4 }));
+
+    // Assert: only the entry just read remains.
+    expect(subject.size).toBe(1);
+  });
 });

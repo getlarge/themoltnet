@@ -17,15 +17,24 @@
 export const CATALOGUE_CACHE_TTL_MS = 10_000;
 
 interface Slot<T> {
-  /** Bumped by invalidation so a read started earlier cannot repopulate. */
-  generation: number;
   pending?: Promise<T>;
+  /** A reusable result, until `expiresAt`. */
   value?: T;
   expiresAt: number;
+  /** The latest result, served while abandoned work for this key still runs. */
+  last?: T;
 }
+
+/** Registers work a read gave up waiting for but could not cancel. */
+export type HoldAbandonedWork = (work: Promise<unknown>) => void;
 
 export class CatalogueSourceCache<T> {
   readonly #slots = new Map<string, Slot<T>>();
+  /**
+   * Abandoned work per key. Kept apart from the slots so invalidation, which
+   * discards results, cannot forget that a lookup is still stuck.
+   */
+  readonly #held = new Map<string, Promise<unknown>>();
   readonly #ttlMs: number;
   readonly #reusable: (value: T) => boolean;
   readonly #now: () => number;
@@ -41,31 +50,44 @@ export class CatalogueSourceCache<T> {
     this.#now = options.now ?? Date.now;
   }
 
-  read(key: string, load: () => Promise<T>): Promise<T> {
-    const slot = this.#slot(key);
+  read(key: string, load: (hold: HoldAbandonedWork) => Promise<T>): Promise<T> {
+    this.#prune();
+    let slot = this.#slots.get(key);
+    if (!slot) {
+      slot = { expiresAt: 0 };
+      this.#slots.set(key, slot);
+    }
     if (slot.value !== undefined && this.#now() < slot.expiresAt)
       return Promise.resolve(slot.value);
     if (slot.pending) return slot.pending;
-    const generation = slot.generation;
-    const pending = load().then(
+    // A lookup that ignored its deadline is still running. Starting another
+    // would pile more stuck work onto the same team; answer as last time.
+    if (this.#held.has(key) && slot.last !== undefined)
+      return Promise.resolve(slot.last);
+    const own = slot;
+    // A read whose slot was invalidated meanwhile answers its callers but
+    // writes nothing: its slot is no longer in the map.
+    const current = () => this.#slots.get(key) === own;
+    const pending = load((work) => this.#hold(key, work)).then(
       (value) => {
-        if (slot.generation === generation) {
-          slot.pending = undefined;
+        if (current()) {
+          own.pending = undefined;
+          own.last = value;
           if (this.#ttlMs > 0 && this.#reusable(value)) {
-            slot.value = value;
-            slot.expiresAt = this.#now() + this.#ttlMs;
+            own.value = value;
+            own.expiresAt = this.#now() + this.#ttlMs;
           } else {
-            slot.value = undefined;
+            own.value = undefined;
           }
         }
         return value;
       },
       (error: unknown) => {
-        if (slot.generation === generation) slot.pending = undefined;
+        if (current()) own.pending = undefined;
         throw error;
       },
     );
-    slot.pending = pending;
+    own.pending = pending;
     return pending;
   }
 
@@ -74,20 +96,30 @@ export class CatalogueSourceCache<T> {
    * finish but are not kept.
    */
   invalidate(prefix = ''): void {
-    for (const [key, slot] of this.#slots) {
-      if (!key.startsWith(prefix)) continue;
-      slot.generation += 1;
-      slot.pending = undefined;
-      slot.value = undefined;
-    }
+    for (const key of [...this.#slots.keys()])
+      if (key.startsWith(prefix)) this.#slots.delete(key);
   }
 
-  #slot(key: string): Slot<T> {
-    let slot = this.#slots.get(key);
-    if (!slot) {
-      slot = { generation: 0, expiresAt: 0 };
-      this.#slots.set(key, slot);
+  /** Entries currently retained; for tests. */
+  get size(): number {
+    return this.#slots.size;
+  }
+
+  #hold(key: string, work: Promise<unknown>): void {
+    this.#held.set(key, work);
+    const release = () => {
+      if (this.#held.get(key) === work) this.#held.delete(key);
+    };
+    work.then(release, release);
+  }
+
+  /** Forget entries with nothing to serve, so churned identities do not accumulate. */
+  #prune(): void {
+    const now = this.#now();
+    for (const [key, slot] of this.#slots) {
+      if (slot.pending || this.#held.has(key)) continue;
+      if (slot.value !== undefined && now < slot.expiresAt) continue;
+      this.#slots.delete(key);
     }
-    return slot;
   }
 }

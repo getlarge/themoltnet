@@ -1,7 +1,11 @@
 import { MoltNetError } from '@themoltnet/sdk';
 import { describe, expect, it, vi } from 'vitest';
 
-import { buildCatalogue, type CatalogueAgentPort } from './catalogue.js';
+import {
+  buildCatalogue,
+  type CatalogueAgentPort,
+  readCatalogueSources,
+} from './catalogue.js';
 import { ProjectPaginationError } from './catalogue-project-reader.js';
 
 const project = {
@@ -190,6 +194,23 @@ describe('project catalogue', () => {
         }),
       ],
     });
+  });
+
+  it('hands a lookup still running at the deadline to the caller to hold', async () => {
+    // Arrange
+    const port = agent();
+    const stuck = new Promise<never>(() => {});
+    port.readTeam.mockReturnValue(stuck);
+    const hold = vi.fn();
+
+    // Act
+    await readCatalogueSources(port, {
+      teamBudgetMs: 20,
+      share: (_teamId, load) => load(hold),
+    });
+
+    // Assert
+    expect(hold).toHaveBeenCalledWith(stuck);
   });
 
   it('keeps a verified team when only project discovery exceeds the budget', async () => {
