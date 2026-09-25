@@ -923,6 +923,46 @@ describe('resumeVm task-context mount', () => {
     expect(gondolinMock.vm.close).toHaveBeenCalled();
   });
 
+  it('reports an immediate exit with a bounded stderr tail before the deadline', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-service-exit-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    mkdirSync(workspace, { recursive: true });
+    gondolinMock.vm.exec.mockImplementation((async (command: string[]) =>
+      command[0] === 'setsid'
+        ? { exitCode: 42, stdout: '', stderr: 'x'.repeat(5000) + 'TAIL' }
+        : command[3] === 'moltnet-readiness'
+          ? { exitCode: 1, stdout: '', stderr: '' }
+          : { exitCode: 0, stdout: '', stderr: '' }) as never);
+    const started = Date.now();
+    const failedResume = resumeVm({
+      checkpointPath: path.join(root, 'checkpoint.qcow2'),
+      agentName: 'configless',
+      agentRootDir: root,
+      mountPath: workspace,
+      guestProjection: {
+        services: [
+          {
+            id: 'critical',
+            command: ['false'],
+            readiness: {
+              path: '/run/x.sock',
+              timeoutMs: 10_000,
+              required: true,
+            },
+          },
+        ],
+      },
+    });
+    await expect(failedResume).rejects.toThrow(
+      /exited \(code 42\); stderr tail: x+TAIL/,
+    );
+    await failedResume.catch((error: Error) => {
+      expect(Buffer.byteLength(error.message)).toBeLessThan(4300);
+    });
+    expect(Date.now() - started).toBeLessThan(1_000);
+  });
+
   it('degrades but does not fail when a best-effort service never becomes ready', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-readiness-soft-'));
     tempRoots.push(root);
@@ -946,11 +986,62 @@ describe('resumeVm task-context mount', () => {
         ],
       },
     });
-    expect(diagnostics).toContainEqual(
-      expect.objectContaining({ event: 'vm.guest_service.not_ready' }),
-    );
+    await vi.waitFor(() => {
+      expect(diagnostics).toContainEqual(
+        expect.objectContaining({ event: 'vm.guest_service.not_ready' }),
+      );
+    });
     expect(gondolinMock.vm.close).not.toHaveBeenCalled();
     await managed.services.stop();
+  });
+
+  it('returns without waiting for best-effort readiness and stops monitoring cleanly', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-background-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    mkdirSync(workspace, { recursive: true });
+    const diagnostics: VmDiagnostic[] = [];
+    gondolinMock.vm.exec.mockImplementation(((
+      command: string[],
+      options?: { signal?: AbortSignal },
+    ) => {
+      if (command[0] === 'setsid') {
+        return new Promise((resolve) => {
+          options?.signal?.addEventListener(
+            'abort',
+            () => resolve({ exitCode: 143, stderr: '' }),
+            { once: true },
+          );
+        });
+      }
+      return Promise.resolve({
+        exitCode: command[3] === 'moltnet-readiness' ? 1 : 0,
+        stdout: '',
+        stderr: '',
+      });
+    }) as never);
+    const started = Date.now();
+    const managed = await resumeVm({
+      checkpointPath: path.join(root, 'checkpoint.qcow2'),
+      agentName: 'configless',
+      agentRootDir: root,
+      mountPath: workspace,
+      onDiagnostic: (diagnostic) => diagnostics.push(diagnostic),
+      guestProjection: {
+        services: [
+          {
+            id: 'signer',
+            command: ['true'],
+            readiness: { path: '/run/x.sock', timeoutMs: 10_000 },
+          },
+        ],
+      },
+    });
+    expect(Date.now() - started).toBeLessThan(1_000);
+    await managed.services.stop();
+    expect(diagnostics).not.toContainEqual(
+      expect.objectContaining({ event: 'vm.guest_service.not_ready' }),
+    );
   });
 
   it('rejects a path-unsafe service id before launching anything', async () => {
@@ -1128,7 +1219,7 @@ describe('resumeVm task-context mount', () => {
         'serve',
         'agent-signing',
       ]),
-      expect.objectContaining({ stdout: 'ignore', stderr: 'ignore' }),
+      expect.objectContaining({ stdout: 'ignore', stderr: 'pipe' }),
     );
     expect(diagnostics).toContainEqual(
       expect.objectContaining({
