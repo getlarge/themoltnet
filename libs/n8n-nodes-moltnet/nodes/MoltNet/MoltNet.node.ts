@@ -45,6 +45,7 @@ const taskOutputFields = [
   { name: 'Expires At', value: 'expiresAt' },
   { name: 'Input', value: 'input' },
   { name: 'Maximum Attempts', value: 'maxAttempts' },
+  { name: 'Project ID', value: 'projectId' },
   { name: 'Queued At', value: 'queuedAt' },
   { name: 'Status', value: 'status' },
   { name: 'Tags', value: 'tags' },
@@ -71,11 +72,13 @@ interface CreateOptions extends IDataObject {
   correlationId?: string;
   teamId?: string;
   diaryId?: string;
+  projectId?: string;
 }
 
 interface GetManyFilters extends IDataObject {
   correlationId?: string;
   diaryId?: string;
+  projectId?: string;
   query?: string;
   statuses?: string[];
   tags?: string;
@@ -364,6 +367,9 @@ function taskListQuery(
     ...(optionalString(filters.correlationId)
       ? { correlationId: optionalString(filters.correlationId) }
       : {}),
+    ...(optionalString(filters.projectId)
+      ? { projectId: optionalString(filters.projectId) }
+      : {}),
   };
 }
 
@@ -379,6 +385,7 @@ function simplifyTask(task: IDataObject): IDataObject {
     'maxAttempts',
     'queuedAt',
     'expiresAt',
+    'projectId',
   ]);
 }
 
@@ -494,6 +501,7 @@ async function createTask(
     }
     const title = optionalString(options.title);
     const correlationId = optionalString(options.correlationId);
+    const projectId = optionalString(options.projectId);
     const tags = optionalString(options.tags)
       ?.split(',')
       .map((tag) => tag.trim())
@@ -508,6 +516,7 @@ async function createTask(
         ? { maxAttempts: options.maxAttempts }
         : {}),
       ...(tags?.length ? { tags } : {}),
+      ...(projectId ? { projectId } : {}),
     };
     for (let retry = 0; ; retry += 1) {
       try {
@@ -833,6 +842,15 @@ export class MoltNet implements INodeType {
             default: 1,
           },
           {
+            displayName: 'Project ID',
+            name: 'projectId',
+            type: 'string',
+            default: '',
+            placeholder: 'e.g. 99999999-9999-4999-8999-999999999999',
+            description:
+              'Only runs bound to this project can claim the task. Leave empty for General work.',
+          },
+          {
             displayName: 'Tags',
             name: 'tags',
             type: 'string',
@@ -969,6 +987,14 @@ export class MoltNet implements INodeType {
             type: 'string',
             default: '',
             placeholder: 'e.g. 22222222-2222-4222-8222-222222222222',
+          },
+          {
+            displayName: 'Project ID',
+            name: 'projectId',
+            type: 'string',
+            default: '',
+            placeholder: 'e.g. 99999999-9999-4999-8999-999999999999',
+            description: 'Project UUID, or "none" for General tasks',
           },
           {
             displayName: 'Query',

@@ -199,6 +199,29 @@ describe('MoltNet node', () => {
     expect(listRequest?.url).toContain('statuses=queued');
   });
 
+  it('lists tasks filtered to General work with the Project ID filter', async () => {
+    const api = new FakeMoltNetApi();
+    vi.stubGlobal('fetch', api.fetch);
+
+    await new MoltNet().execute.call(
+      createExecuteContext({
+        parameters: {
+          operation: 'getMany',
+          teamId: '',
+          returnAll: false,
+          limit: 1,
+          filters: { projectId: 'none' },
+          simplify: true,
+        },
+      }),
+    );
+
+    const listRequest = api.requests.find(
+      ({ method, url }) => method === 'GET' && url.includes('/tasks?'),
+    );
+    expect(listRequest?.url).toContain('projectId=none');
+  });
+
   it('searches tasks for the Resource Locator using credential team context', async () => {
     const api = new FakeMoltNetApi();
     vi.stubGlobal('fetch', api.fetch);
@@ -246,6 +269,7 @@ describe('MoltNet node', () => {
           correlationId: '66666666-6666-4666-8666-666666666666',
           teamId: '77777777-7777-4777-8777-777777777777',
           diaryId: '88888888-8888-4888-8888-888888888888',
+          projectId: '99999999-9999-4999-8999-999999999999',
         },
       },
     });
@@ -262,6 +286,7 @@ describe('MoltNet node', () => {
       maxAttempts: 3,
       correlationId: '66666666-6666-4666-8666-666666666666',
       diaryId: '88888888-8888-4888-8888-888888888888',
+      projectId: '99999999-9999-4999-8999-999999999999',
     });
     const createRequest = api.requests.find(
       ({ method, url }) => method === 'POST' && url.endsWith('/tasks'),
@@ -269,6 +294,23 @@ describe('MoltNet node', () => {
     expect(createRequest?.headers.get('x-moltnet-team-id')).toBe(
       '77777777-7777-4777-8777-777777777777',
     );
+  });
+
+  it('creates a task with no project ID option as General work', async () => {
+    const api = new FakeMoltNetApi();
+    vi.stubGlobal('fetch', api.fetch);
+    const context = createExecuteContext({
+      parameters: {
+        operation: 'create',
+        taskType: 'freeform',
+        input: '{"brief":"General work"}',
+        options: {},
+      },
+    });
+
+    await new MoltNet().execute.call(context);
+
+    expect(api.createdBodies[0].projectId).toBeUndefined();
   });
 
   it('uses credential team and diary defaults', async () => {

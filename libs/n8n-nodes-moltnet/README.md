@@ -127,12 +127,16 @@ For binding, rotation, and revocation, see
 
 - **Cancel** stops a task that has not finished and records the supplied reason.
 - **Create** accepts a task type and JSON input plus optional title, tags,
-  maximum attempts, correlation ID, team ID, and diary ID. The node validates
-  required context locally, while MoltNet performs task-specific validation.
+  maximum attempts, correlation ID, team ID, diary ID, and project ID. The node
+  validates required context locally, while MoltNet performs task-specific
+  validation. Leave **Project ID** empty for General work; MoltNet never infers
+  a project.
 - **Get** retrieves one task. Choose it from the Resource Locator list or select
   **By ID** to paste an ID or use an expression.
-- **Get Many** lists tasks with optional text, status, task type, tag, diary, and
-  correlation filters. Set **Return All** to follow pagination automatically.
+- **Get Many** lists tasks with optional text, status, task type, tag, diary,
+  correlation, and project filters. Set **Return All** to follow pagination
+  automatically. Filter by **Project ID** with a project UUID, or `none` to
+  return only General tasks.
 - **Get Result** reads a task and its attempts once, then emits a normalized
   snapshot containing the current status, accepted output, latest error, and a
   `terminal` boolean. It does not occupy the worker by polling. For long-running
