@@ -54,6 +54,12 @@ interface TaskBuilderDef extends NodeDef {
   /** Optional diary override; falls back to the agent's diary when blank. */
   diaryId?: string;
   diaryIdType?: ValueType;
+  /**
+   * Optional project override. No agent-config fallback exists by design —
+   * project scope is never inferred; blank means General work.
+   */
+  projectId?: string;
+  projectIdType?: ValueType;
   contexts?: ContextMapping[];
   /** msg path to an output, attempt-artifact, or staged input-artifact ref. */
   referencesFrom?: string;
@@ -197,6 +203,13 @@ const init: NodeInitializer = (RED): void => {
           agentNode?.diaryId;
         if (teamId) builder.team(teamId);
         if (diaryId) builder.diary(diaryId);
+
+        // Project: explicit override (node typedInput, or msg.payload) only.
+        // No agent fallback — project scope is never inferred.
+        const projectId =
+          resolveOverride(RED, this, msg, def.projectId, def.projectIdType) ??
+          (payloadInput.projectId as string | undefined);
+        if (projectId) builder.project(projectId);
 
         // Context rows: resolve each value, then bind it. context_inline /
         // user_inline JSON-stringify objects automatically; other bindings

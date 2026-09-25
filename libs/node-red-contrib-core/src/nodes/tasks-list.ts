@@ -19,6 +19,7 @@ interface TasksListDef extends NodeDef {
   profileId?: string;
   correlationId?: string;
   diaryId?: string;
+  projectId?: string;
   proposedByAgentId?: string;
   proposedByHumanId?: string;
   claimedByAgentId?: string;
@@ -97,6 +98,7 @@ function buildTasksQuery(
     profileId: nonEmpty(def.profileId),
     correlationId: nonEmpty(def.correlationId),
     diaryId: nonEmpty(def.diaryId),
+    projectId: nonEmpty(def.projectId),
     proposedByAgentId: nonEmpty(def.proposedByAgentId),
     proposedByHumanId: nonEmpty(def.proposedByHumanId),
     claimedByAgentId: nonEmpty(def.claimedByAgentId),

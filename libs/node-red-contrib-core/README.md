@@ -132,8 +132,9 @@ For binding, rotation, and revocation, see
   the SDK lives only in the config node.
 - **`moltnet-tasks-list`** (palette: _tasks: list_) — lists tasks for the
   referenced agent's team. Supports the server task filters (`status`,
-  `statuses`, `taskTypes`, `tags`, `excludeTags`, profile/correlation/diary,
-  proposer/claimer ids, attempts, date windows, `limit`, `cursor`). Node fields
+  `statuses`, `taskTypes`, `tags`, `excludeTags`, profile/correlation/diary/project,
+  proposer/claimer ids, attempts, date windows, `limit`, `cursor`). `projectId`
+  accepts a project UUID or `none` (unscoped/General tasks only). Node fields
   fill the query; an object `msg.payload` overrides them. Emits task rows on
   `msg.payload` and pagination/query metadata on `msg.tasks`.
 - **`moltnet-task-get`** (palette: _task: get_) — one-shot read of a task and its
@@ -183,6 +184,9 @@ attempts, error, task }`. `state` is the accepted attempt's output artifact
   `tasks.create` body from the SDK fluent builder (`buildFreeform`). Pure offline
   transform: reads `teamId`/`diaryId` from the referenced `agent` (with optional
   typedInput overrides), maps **context rows** (slug ← msg/flow/global/str/json),
+  optionally scopes the task to a **project** via a typedInput override or
+  `msg.payload.projectId` (unlike team/diary, project has no agent-config
+  fallback; blank means General work),
   binds a prior task's output or staged input artifact via **References from**
   (a `msg`-path to an `outputRef` from `task: read` or metadata from
   `task artifact: stage`), and toggles the **submit-output** / schema gates.
@@ -227,7 +231,8 @@ through the run, see below).
 | `correlationId`    | minted/threaded         |                                                   |
 
 The task **`input`** (and advanced fields like `references`, `claimCondition`,
-`successCriteria`, timeouts) is not a `tasks: create` node field. The preferred
+`successCriteria`, `projectId`, timeouts) is not a `tasks: create` node field.
+The preferred
 way to compose it is the **`task: build`** node (palette _task: build_), which
 drives the SDK builder: set the brief, map context rows, toggle the
 submit-output gate, and chain a prior task's `outputRef` via **References from**,

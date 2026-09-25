@@ -86,6 +86,27 @@ describe('moltnet-task-builder', () => {
   });
 });
 
+describe('moltnet-task-builder project override', () => {
+  it('sets projectId from the node config override', async () => {
+    const { red, node } = setup({
+      taskType: 'freeform',
+      brief: 'b',
+      projectId: 'project-override',
+      projectIdType: 'str',
+    });
+    const { outputs } = await red.input(node, { payload: {} });
+    expect((outputs[0].payload as Record<string, unknown>).projectId).toBe(
+      'project-override',
+    );
+  });
+
+  it('leaves projectId unset when no override is configured', async () => {
+    const { red, node } = setup({ taskType: 'freeform', brief: 'b' });
+    const { outputs } = await red.input(node, { payload: {} });
+    expect('projectId' in (outputs[0].payload as object)).toBe(false);
+  });
+});
+
 describe('moltnet-task-builder context mappings', () => {
   it('pulls a context value from a msg path and JSON-stringifies objects', async () => {
     const { red, node } = setup({
