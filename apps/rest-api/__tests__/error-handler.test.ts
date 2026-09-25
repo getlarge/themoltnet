@@ -1,4 +1,7 @@
-import { RemoteAuthenticationError } from '@moltnet/auth';
+import {
+  PermissionCheckUnavailableError,
+  RemoteAuthenticationError,
+} from '@moltnet/auth';
 import Fastify from 'fastify';
 import { describe, expect, it } from 'vitest';
 
@@ -33,6 +36,12 @@ async function buildTestApp() {
 
   app.get('/test-auth-rate-limit', async () => {
     throw new RemoteAuthenticationError('rate_limited', 'kratos.session', 17);
+  });
+
+  app.get('/test-permission-unavailable', async () => {
+    throw new PermissionCheckUnavailableError({
+      cause: new Error('connect ECONNREFUSED keto:4466'),
+    });
   });
 
   app.post(
@@ -131,6 +140,27 @@ describe('Error handler plugin', () => {
       instance: '/test-auth-unavailable',
     });
     expect(response.body).not.toContain('oauth2.introspect');
+  });
+
+  it('maps an unavailable permission check to a retryable 503, not a 403', async () => {
+    const app = await buildTestApp();
+    const response = await app.inject({
+      method: 'GET',
+      url: '/test-permission-unavailable',
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.headers['retry-after']).toBe('1');
+    expect(response.json()).toEqual({
+      type: 'https://themolt.net/problems/service-unavailable',
+      title: 'Service Unavailable',
+      status: 503,
+      code: 'SERVICE_UNAVAILABLE',
+      detail: 'Authorization service unavailable',
+      instance: '/test-permission-unavailable',
+      retryAfter: 1,
+    });
+    expect(response.body).not.toContain('ECONNREFUSED');
   });
 
   it('preserves remote auth throttling and Retry-After', async () => {

@@ -18,6 +18,11 @@ import {
   TaskPermission,
   TeamPermission,
 } from './keto-constants.js';
+import type {
+  PermissionCheckCache,
+  PermissionTuple,
+} from './permission-check-cache.js';
+import { parseRetryAfter, remoteErrorStatus } from './remote-auth-error.js';
 
 /**
  * Minimal logger surface this module needs. Structurally compatible
@@ -32,10 +37,77 @@ export interface PermissionCheckerLogger {
 }
 
 export class PermissionCheckUnavailableError extends Error {
-  constructor() {
-    super('Permission service unavailable');
+  /** Seconds Keto asked callers to wait, when it said so (e.g. on 429). */
+  readonly retryAfter?: number;
+
+  constructor(options?: { cause?: unknown; retryAfter?: number }) {
+    super('Permission service unavailable', { cause: options?.cause });
     this.name = 'PermissionCheckUnavailableError';
+    if (options?.retryAfter !== undefined) {
+      this.retryAfter = options.retryAfter;
+    }
   }
+}
+
+interface KetoFailure {
+  /** HTTP status Keto answered with; absent for network failures. */
+  status?: number;
+  retryAfter?: number;
+}
+
+/**
+ * Reads the HTTP details off an Ory client `ResponseError`. They must be
+ * extracted explicitly: a fetch `Response` serializes to `{}` in logs, which
+ * hid that production "denials" were Keto 429s.
+ */
+function describeKetoFailure(err: unknown): KetoFailure {
+  const status = remoteErrorStatus(err);
+  const retryAfter = parseRetryAfter(err);
+  return {
+    ...(status !== undefined ? { status } : {}),
+    ...(retryAfter !== undefined ? { retryAfter } : {}),
+  };
+}
+
+/**
+ * Whether a failed Keto call means "cannot decide right now" (network error,
+ * 5xx, 429 rate limit) rather than a request Keto rejected as malformed.
+ */
+function isKetoUnavailable(failure: KetoFailure): boolean {
+  if (failure.status === undefined) return true;
+  return failure.status >= 500 || failure.status === 429;
+}
+
+/**
+ * A failed Keto call is never a denial. Transient failures become
+ * {@link PermissionCheckUnavailableError} (retryable); a request Keto
+ * rejects is a bug and propagates as a plain error.
+ */
+function ketoCallFailed(
+  err: unknown,
+  logger: PermissionCheckerLogger,
+  context: Record<string, unknown>,
+  event: string,
+): never {
+  const failure = describeKetoFailure(err);
+  const unavailable = isKetoUnavailable(failure);
+  logger.warn(
+    {
+      err,
+      unavailable,
+      ketoStatus: failure.status ?? null,
+      ketoRetryAfter: failure.retryAfter ?? null,
+      ...context,
+    },
+    event,
+  );
+  if (unavailable) {
+    throw new PermissionCheckUnavailableError({
+      cause: err,
+      retryAfter: failure.retryAfter,
+    });
+  }
+  throw new Error('Keto rejected permission check', { cause: err });
 }
 
 export interface PermissionChecker {
@@ -200,7 +272,7 @@ export interface PermissionChecker {
   ): Promise<boolean>;
 }
 
-async function checkPermission(
+async function rawCheckPermission(
   permissionApi: PermissionApi,
   namespace: string,
   object: string,
@@ -227,36 +299,18 @@ async function checkPermission(
     }
     return data.allowed;
   } catch (err) {
-    // Previously this catch silently returned false — a transient Keto
-    // blip then surfaced as a 403 to the caller. Log it so flakes are
-    // visible; keep deny-on-error semantics (failing open is worse).
-    logger.warn(
-      { err, namespace, object, relation, subjectNs, subjectId },
+    // Fail closed without masquerading as a denial: a Keto outage used to
+    // return false and surface as a misleading 403.
+    return ketoCallFailed(
+      err,
+      logger,
+      { namespace, object, relation, subjectNs, subjectId },
       'keto.permission_check_failed',
     );
-    return false;
   }
 }
 
-async function batchCheckPermissions(
-  permissionApi: PermissionApi,
-  logger: PermissionCheckerLogger,
-  tuples: Array<{
-    namespace: string;
-    object: string;
-    relation: string;
-    subject_set: {
-      namespace: string;
-      object: string;
-      relation: string;
-    };
-  }>,
-): Promise<boolean[]> {
-  return (await batchCheckPermissionsWithStatus(permissionApi, logger, tuples))
-    .permissions;
-}
-
-async function batchCheckPermissionsWithStatus(
+async function rawBatchCheckPermissionsWithStatus(
   permissionApi: PermissionApi,
   logger: PermissionCheckerLogger,
   tuples: Array<{
@@ -321,9 +375,13 @@ async function batchCheckPermissionsWithStatus(
     });
     return { permissions, hadErrors };
   } catch (err) {
-    logger.warn(
+    // Whole-batch failure: nothing was decided. Per-item errors above stay
+    // logged denials, since one persistently bad tuple must not turn a
+    // list endpoint into a permanent outage.
+    return ketoCallFailed(
+      err,
+      logger,
       {
-        err,
         tuples: tuples.map((tuple) => ({
           namespace: tuple.namespace,
           object: tuple.object,
@@ -334,15 +392,102 @@ async function batchCheckPermissionsWithStatus(
       },
       'keto.batch_permission_check_failed',
     );
-    return { permissions: tuples.map(() => false), hadErrors: true };
   }
 }
 
 export function createPermissionChecker(
   permissionApi: PermissionApi,
   logger: PermissionCheckerLogger = pino({ name: 'permission-checker' }),
+  cache?: PermissionCheckCache,
 ): PermissionChecker {
   const log = logger.child({ component: 'permission-checker' });
+  const checkPermissionCached = (
+    api: PermissionApi,
+    namespace: string,
+    object: string,
+    relation: string,
+    subjectNs: string,
+    subjectId: string,
+    logger: PermissionCheckerLogger,
+  ): Promise<boolean> => {
+    const load = async () => {
+      try {
+        const allowed = await rawCheckPermission(
+          api,
+          namespace,
+          object,
+          relation,
+          subjectNs,
+          subjectId,
+          logger,
+        );
+        cache?.recordCall('single', 'ok');
+        return allowed;
+      } catch (error) {
+        cache?.recordCall('single', 'error');
+        throw error;
+      }
+    };
+    return cache
+      ? cache.check(
+          {
+            namespace,
+            object,
+            relation,
+            subject_set: {
+              namespace: subjectNs,
+              object: subjectId,
+              relation: '',
+            },
+          },
+          load,
+        )
+      : load();
+  };
+  const batchCheckPermissionsCached = (
+    api: PermissionApi,
+    logger: PermissionCheckerLogger,
+    tuples: PermissionTuple[],
+  ): Promise<boolean[]> => {
+    const load = async (misses: PermissionTuple[]) => {
+      try {
+        const result = await rawBatchCheckPermissionsWithStatus(
+          api,
+          logger,
+          misses,
+        );
+        cache?.recordCall('batch', result.hadErrors ? 'partial_error' : 'ok');
+        return result.permissions;
+      } catch (error) {
+        cache?.recordCall('batch', 'error');
+        throw error;
+      }
+    };
+    return cache ? cache.batch(tuples, load) : load(tuples);
+  };
+  const batchCheckPermissionsWithStatusTracked = async (
+    api: PermissionApi,
+    logger: PermissionCheckerLogger,
+    tuples: PermissionTuple[],
+  ): Promise<{ permissions: boolean[]; hadErrors: boolean }> => {
+    try {
+      const result = await rawBatchCheckPermissionsWithStatus(
+        api,
+        logger,
+        tuples,
+      );
+      if (tuples.length > 0)
+        cache?.recordCall('batch', result.hadErrors ? 'partial_error' : 'ok');
+      return result;
+    } catch (error) {
+      cache?.recordCall('batch', 'error');
+      throw error;
+    }
+  };
+  const checkPermission = checkPermissionCached;
+  const batchCheckPermissions = batchCheckPermissionsCached;
+  const batchCheckPermissionsWithStatus =
+    batchCheckPermissionsWithStatusTracked;
   return {
     canReadDiary(
       diaryId: string,

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { KetoNamespace } from '../src/keto-constants.js';
+import { PermissionCheckCache } from '../src/permission-check-cache.js';
 import {
   createPermissionChecker,
   type PermissionChecker,
@@ -286,18 +287,105 @@ describe('PermissionChecker', () => {
       expect(result).toBe(false);
     });
 
-    it('returns false on API error', async () => {
+    it('reports a Keto network failure as unavailable, not a denial', async () => {
       mockPermissionApi.checkPermission.mockRejectedValue(
-        new Error('Keto unavailable'),
+        Object.assign(new Error('fetch failed'), { name: 'FetchError' }),
       );
 
-      const result = await checker.canViewEntry(
+      await expect(
+        checker.canViewEntry(ENTRY_ID, AGENT_ID, KetoNamespace.Agent),
+      ).rejects.toBeInstanceOf(PermissionCheckUnavailableError);
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({ object: ENTRY_ID, unavailable: true }),
+        'keto.permission_check_failed',
+      );
+    });
+
+    it('reports a Keto rate limit as unavailable and keeps its Retry-After', async () => {
+      mockPermissionApi.checkPermission.mockRejectedValue(
+        Object.assign(new Error('Response returned an error code'), {
+          name: 'ResponseError',
+          response: new Response(null, {
+            status: 429,
+            headers: { 'retry-after': '3' },
+          }),
+        }),
+      );
+
+      const result = checker.canViewTask(
+        TASK_ID,
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
+
+      await expect(result).rejects.toBeInstanceOf(
+        PermissionCheckUnavailableError,
+      );
+      await expect(result).rejects.toMatchObject({ retryAfter: 3 });
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          object: TASK_ID,
+          ketoStatus: 429,
+          ketoRetryAfter: 3,
+          unavailable: true,
+        }),
+        'keto.permission_check_failed',
+      );
+    });
+
+    it('uses an HTTP-date Retry-After from Keto', async () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date('Wed, 21 Oct 2015 07:27:59 GMT'));
+        mockPermissionApi.checkPermission.mockRejectedValue({
+          response: {
+            status: 429,
+            headers: { 'Retry-After': 'Wed, 21 Oct 2015 07:28:03 GMT' },
+          },
+        });
+
+        await expect(
+          checker.canViewTask(TASK_ID, AGENT_ID, KetoNamespace.Agent),
+        ).rejects.toMatchObject({ retryAfter: 4 });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it.each([500, 503, 429])(
+      'reports a Keto %i response as unavailable',
+      async (status) => {
+        mockPermissionApi.checkPermission.mockRejectedValue(
+          Object.assign(new Error('Response returned an error code'), {
+            name: 'ResponseError',
+            response: { status },
+          }),
+        );
+
+        await expect(
+          checker.canViewEntry(ENTRY_ID, AGENT_ID, KetoNamespace.Agent),
+        ).rejects.toBeInstanceOf(PermissionCheckUnavailableError);
+      },
+    );
+
+    it('surfaces a Keto 4xx as a server error, not a denial or outage', async () => {
+      const keto400 = Object.assign(
+        new Error('Response returned an error code'),
+        { name: 'ResponseError', response: { status: 400 } },
+      );
+      mockPermissionApi.checkPermission.mockRejectedValue(keto400);
+
+      const result = checker.canViewEntry(
         ENTRY_ID,
         AGENT_ID,
         KetoNamespace.Agent,
       );
 
-      expect(result).toBe(false);
+      await expect(result).rejects.toThrow('Keto rejected permission check');
+      await expect(result).rejects.not.toBeInstanceOf(
+        PermissionCheckUnavailableError,
+      );
+      await expect(result).rejects.toMatchObject({ cause: keto400 });
     });
   });
 
@@ -411,23 +499,18 @@ describe('PermissionChecker', () => {
       });
     });
 
-    it('denies all batch permissions when the batch API errors', async () => {
+    it('reports a failed batch as unavailable instead of denying every item', async () => {
       mockPermissionApi.batchCheckPermission.mockRejectedValue(
         new Error('Keto unavailable'),
       );
 
-      const result = await checker.canReadPacks(
-        [DIARY_ID, ENTRY_ID],
-        AGENT_ID,
-        KetoNamespace.Agent,
-      );
-
-      expect(result).toEqual(
-        new Map([
-          [DIARY_ID, false],
-          [ENTRY_ID, false],
-        ]),
-      );
+      await expect(
+        checker.canReadPacks(
+          [DIARY_ID, ENTRY_ID],
+          AGENT_ID,
+          KetoNamespace.Agent,
+        ),
+      ).rejects.toBeInstanceOf(PermissionCheckUnavailableError);
       expect(logger.warn).toHaveBeenCalledWith(
         expect.objectContaining({
           err: expect.any(Error),
@@ -548,23 +631,18 @@ describe('PermissionChecker', () => {
       });
     });
 
-    it('denies all task deletion permissions when the batch API errors', async () => {
+    it('reports a failed task deletion batch as unavailable', async () => {
       mockPermissionApi.batchCheckPermission.mockRejectedValue(
         new Error('Keto unavailable'),
       );
 
-      const result = await checker.canDeleteTasks(
-        [TASK_ID, ENTRY_ID],
-        AGENT_ID,
-        KetoNamespace.Agent,
-      );
-
-      expect(result).toEqual(
-        new Map([
-          [TASK_ID, false],
-          [ENTRY_ID, false],
-        ]),
-      );
+      await expect(
+        checker.canDeleteTasks(
+          [TASK_ID, ENTRY_ID],
+          AGENT_ID,
+          KetoNamespace.Agent,
+        ),
+      ).rejects.toBeInstanceOf(PermissionCheckUnavailableError);
       expect(logger.warn).toHaveBeenCalledWith(
         expect.objectContaining({
           err: expect.any(Error),
@@ -658,6 +736,43 @@ describe('PermissionChecker', () => {
         }),
         'keto.batch_permission_result_failed',
       );
+    });
+  });
+
+  describe('Keto call metrics', () => {
+    it('marks per-item errors and count mismatches as partial failures', async () => {
+      const cache = new PermissionCheckCache({ ttlMs: 0 });
+      const recordCall = vi.spyOn(cache, 'recordCall');
+      const trackedChecker = createPermissionChecker(
+        mockPermissionApi as any,
+        logger,
+        cache,
+      );
+      mockPermissionApi.batchCheckPermission
+        .mockResolvedValueOnce({
+          results: [
+            { allowed: true },
+            { allowed: false, error: 'resolution failed' },
+          ],
+        })
+        .mockResolvedValueOnce({ results: [{ allowed: true }] });
+
+      await trackedChecker.canReadPacks(
+        [DIARY_ID, ENTRY_ID],
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
+      await expect(
+        trackedChecker.checkTaskCreatePermissions(
+          TEAM_ID,
+          DIARY_ID,
+          AGENT_ID,
+          KetoNamespace.Agent,
+        ),
+      ).rejects.toBeInstanceOf(PermissionCheckUnavailableError);
+
+      expect(recordCall).toHaveBeenNthCalledWith(1, 'batch', 'partial_error');
+      expect(recordCall).toHaveBeenNthCalledWith(2, 'batch', 'partial_error');
     });
   });
 

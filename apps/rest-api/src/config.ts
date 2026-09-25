@@ -71,6 +71,14 @@ export const OryConfigSchema = Type.Object({
   ORY_HYDRA_ADMIN_URL: Type.Optional(Type.String({ minLength: 1 })),
   ORY_KETO_PUBLIC_URL: Type.Optional(Type.String({ minLength: 1 })),
   ORY_KETO_ADMIN_URL: Type.Optional(Type.String({ minLength: 1 })),
+  ORY_KETO_PERMISSION_CACHE_TTL_MS: Type.Integer({
+    minimum: 0,
+    default: 30_000,
+  }),
+  ORY_KETO_PERMISSION_CACHE_MAX_ENTRIES: Type.Integer({
+    minimum: 1,
+    default: 10_000,
+  }),
   /** Trusted Talos admin endpoint. Omit to disable Talos-key authentication. */
   ORY_TALOS_ADMIN_URL: Type.Optional(
     Type.String({ minLength: 1, format: 'uri' }),
