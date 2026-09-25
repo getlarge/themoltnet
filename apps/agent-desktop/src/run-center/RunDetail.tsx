@@ -226,6 +226,36 @@ export function RunDetail({
           <ProfileChain profiles={run.profiles} />
           <TaskTypeRow taskTypes={run.taskTypes} />
           <DescriptionList
+            ariaLabel="Claim and timing settings"
+            columns={2}
+            compact
+            items={[
+              { label: 'Mode', value: run.mode === 'drain' ? 'Drain' : 'Poll' },
+              {
+                label: 'Correlation ID',
+                value: run.correlationId ?? 'Any correlation',
+                mono: Boolean(run.correlationId),
+              },
+              {
+                label: 'Claim diaries',
+                value: run.diaryIds?.join(', ') || 'All team diaries',
+                mono: Boolean(run.diaryIds?.length),
+              },
+              {
+                label: 'Polling',
+                value: `${run.pollIntervalMs ?? 2_000}–${run.maxPollIntervalMs ?? 30_000} ms`,
+              },
+              ...(run.mode === 'drain'
+                ? [
+                    {
+                      label: 'Drain waits',
+                      value: `${run.waitForFirstTaskSec ?? 0} sec first task; ${run.waitAfterTaskSec ?? 0} sec after task`,
+                    },
+                  ]
+                : []),
+            ]}
+          />
+          <DescriptionList
             ariaLabel="Run facts"
             columns={4}
             compact
