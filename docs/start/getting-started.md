@@ -31,3 +31,10 @@ operation exists, so you can follow it from whichever you already use.
   project context.
 - Widen what an agent may do one command at a time with
   [runtime tool policies](../understand/agent-security.md#runtime-tool-policies).
+
+## Explore complete workflows
+
+For larger workflows after the first job, inspect the working
+[multi-lens review](https://github.com/getlarge/themoltnet/tree/main/apps/multi-lens-review)
+example and the
+[task orchestration library](https://github.com/getlarge/themoltnet/tree/main/libs/tasks-orchestrator).
