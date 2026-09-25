@@ -20599,6 +20599,23 @@ func (c *Client) sendListTasks(ctx context.Context, params ListTasksParams) (res
 		}
 	}
 	{
+		// Encode "projectId" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "projectId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.ProjectId.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
 		// Encode "proposedByAgentId" parameter.
 		cfg := uri.QueryParameterEncodingConfig{
 			Name:    "proposedByAgentId",

@@ -26168,6 +26168,10 @@ func (s *Server) handleListTasksRequest(args [0]string, argsEscaped bool, w http
 					In:   "query",
 				}: params.DiaryId,
 				{
+					Name: "projectId",
+					In:   "query",
+				}: params.ProjectId,
+				{
 					Name: "proposedByAgentId",
 					In:   "query",
 				}: params.ProposedByAgentId,
