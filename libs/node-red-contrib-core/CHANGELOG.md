@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.16.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.15.5...node-red-contrib-core-v0.16.0) (2026-09-25)
+
+
+### Features
+
+* **n8n:** project ID option on task create and getMany filter ([e26ce8e](https://github.com/getlarge/themoltnet/commit/e26ce8e9a5588377e0434cc88ca4b93acc8e0d60))
+* **node-red:** project override on task builder and tasks list filter ([96eb255](https://github.com/getlarge/themoltnet/commit/96eb2557ef35089193bd9858ccebffb6355a7ab6))
+
+
+### Bug Fixes
+
+* **node-red:** reject empty or unresolved project override ([1a259ac](https://github.com/getlarge/themoltnet/commit/1a259ac00e3ca97de7372827f9216b07532755e8))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.147.0
+
 ## [0.15.5](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.15.4...node-red-contrib-core-v0.15.5) (2026-09-25)
 
 

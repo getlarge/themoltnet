@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.63.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.63.0...rest-api-v0.63.1) (2026-09-25)
+
+
+### Bug Fixes
+
+* **rest-api:** keep API docs available and document agent keys ([cc5cbe4](https://github.com/getlarge/themoltnet/commit/cc5cbe41e3ebd9097f70a89d36c03ff2746950d8))
+* **rest-api:** tolerate omitted rate-limit allowlist ([11cf743](https://github.com/getlarge/themoltnet/commit/11cf743c9f86f3b204b66ada7ef637809dd5a45d))
+
 ## [0.63.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.62.2...rest-api-v0.63.0) (2026-09-25)
 
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.80.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.79.0...moltnet-api-client-v1.80.0) (2026-09-25)
+
+
+### Features
+
+* **rest-api:** expose agent-key auth in OpenAPI ([7ac3965](https://github.com/getlarge/themoltnet/commit/7ac396503ded47af2790007a19e35445c95b9326))
+
+
+### Bug Fixes
+
+* **api-client-go:** recover projectId task list filter dropped by ogen ([109290a](https://github.com/getlarge/themoltnet/commit/109290a16a03e5a7a99579f79737ed826f690304))
+* **api-client-go:** recover projectId task list filter dropped by ogen ([ffcb740](https://github.com/getlarge/themoltnet/commit/ffcb74083f70446a3f76a42a5d03ef9de7ff63e5))
+* **rest-api:** keep API docs available and document agent keys ([cc5cbe4](https://github.com/getlarge/themoltnet/commit/cc5cbe41e3ebd9097f70a89d36c03ff2746950d8))
+
 ## [1.79.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.78.0...moltnet-api-client-v1.79.0) (2026-09-24)
 
 

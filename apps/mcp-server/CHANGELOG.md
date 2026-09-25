@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.26.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.25.4...mcp-server-v0.26.0) (2026-09-25)
+
+
+### Features
+
+* **mcp:** accept project_id on tasks_create and tasks_list ([409efb5](https://github.com/getlarge/themoltnet/commit/409efb503d2d3fd0d0e452691ad08223b356d9a4))
+* **n8n:** project ID option on task create and getMany filter ([e26ce8e](https://github.com/getlarge/themoltnet/commit/e26ce8e9a5588377e0434cc88ca4b93acc8e0d60))
+
+
+### Bug Fixes
+
+* **mcp:** wire project_id through tasks_app_open filters ([c2f0aeb](https://github.com/getlarge/themoltnet/commit/c2f0aeb9a97aaa5b24f50c81067b7e37908f00b5))
+
 ## [0.25.4](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.25.3...mcp-server-v0.25.4) (2026-09-25)
 
 

@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.0](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.7.1...n8n-nodes-moltnet-v0.8.0) (2026-09-25)
+
+
+### Features
+
+* **n8n:** project ID option on task create and getMany filter ([e26ce8e](https://github.com/getlarge/themoltnet/commit/e26ce8e9a5588377e0434cc88ca4b93acc8e0d60))
+* **n8n:** project ID option on task create and getMany filter ([dd992cc](https://github.com/getlarge/themoltnet/commit/dd992cc0c76d6ff812df63729cb1d6ca6c834409))
+
+
+### Bug Fixes
+
+* **n8n:** reject "none" as a create Project ID ([78049b4](https://github.com/getlarge/themoltnet/commit/78049b474be58afe3c805b39141e98114a2bb203))
+
 ## [0.7.1](https://github.com/getlarge/themoltnet/compare/n8n-nodes-moltnet-v0.7.0...n8n-nodes-moltnet-v0.7.1) (2026-09-15)
 
 
