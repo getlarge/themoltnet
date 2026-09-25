@@ -659,6 +659,12 @@ export const TaskAppOpenSchema = Type.Object({
       description: 'Optional diary ID filter used to pre-load the queue.',
     }),
   ),
+  project_id: Type.Optional(
+    Type.Union([Type.String({ format: 'uuid' }), Type.Literal('none')], {
+      description:
+        'Optional project filter used to pre-load the queue: a project UUID, or "none" for General tasks.',
+    }),
+  ),
   proposed_by_agent_id: Type.Optional(
     Type.String({
       format: 'uuid',

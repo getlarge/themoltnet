@@ -47,6 +47,7 @@ import { parseResult } from './helpers.js';
 
 const TASK_ID = '110e8400-e29b-41d4-a716-446655440091';
 const TEAM_ID = '220e8400-e29b-41d4-a716-446655440091';
+const PROJECT_ID = '99999999-9999-4999-8999-999999999999';
 
 describe('Task MCP App', () => {
   it('opens with structured fallback data and a console handoff URL', () => {
@@ -101,6 +102,40 @@ describe('Task MCP App', () => {
       ]),
     );
     expect(result.structuredContent).toMatchObject(parsed);
+  });
+
+  it('echoes project_id in filters for the pre-loaded queue', () => {
+    const result = handleTasksAppOpen(
+      {
+        team_id: TEAM_ID,
+        project_id: PROJECT_ID,
+      },
+      { consoleBaseUrl: 'https://console.example.com' },
+    );
+
+    const parsed = parseResult<{ filters: Record<string, unknown> }>(result);
+
+    expect(parsed.filters).toMatchObject({
+      team_id: TEAM_ID,
+      project_id: PROJECT_ID,
+    });
+  });
+
+  it('echoes project_id "none" in filters for the pre-loaded queue', () => {
+    const result = handleTasksAppOpen(
+      {
+        team_id: TEAM_ID,
+        project_id: 'none',
+      },
+      { consoleBaseUrl: 'https://console.example.com' },
+    );
+
+    const parsed = parseResult<{ filters: Record<string, unknown> }>(result);
+
+    expect(parsed.filters).toMatchObject({
+      team_id: TEAM_ID,
+      project_id: 'none',
+    });
   });
 
   it('serves an MCP App HTML resource with CSP metadata', async () => {

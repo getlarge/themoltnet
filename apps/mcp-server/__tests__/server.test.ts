@@ -921,7 +921,7 @@ describe('buildApp', () => {
           "name": "task_grants_revoke",
         },
         {
-          "inputSchema": "2a5a9330f4f278d3",
+          "inputSchema": "242ac24f0a1a5a9f",
           "name": "tasks_app_open",
         },
         {

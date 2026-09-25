@@ -74,6 +74,7 @@ export function handleTasksAppOpen(
     task_type: args.task_type,
     correlation_id: args.correlation_id,
     diary_id: args.diary_id,
+    project_id: args.project_id,
     proposed_by_agent_id: args.proposed_by_agent_id,
     proposed_by_human_id: args.proposed_by_human_id,
     claimed_by_agent_id: args.claimed_by_agent_id,
