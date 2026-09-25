@@ -546,6 +546,7 @@ export type GetAgentServerCatalogueData = {
   path?: never;
   query: {
     identity: string;
+    refresh?: boolean;
   };
   url: '/v1/catalogue';
 };

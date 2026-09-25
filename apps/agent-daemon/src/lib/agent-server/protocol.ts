@@ -184,6 +184,8 @@ export const AgentServerCatalogueSchema = Type.Object(
 export const CatalogueQuerySchema = Type.Object({
   /** Local alias of the identity whose teams and profiles are listed. */
   identity: Type.String({ minLength: 1 }),
+  /** Skip the shared read and verify every team now, for explicit refreshes. */
+  refresh: Type.Optional(Type.Boolean()),
 });
 
 export const AgentServerProjectLocationSchema = Type.Object(

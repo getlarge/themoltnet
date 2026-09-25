@@ -201,18 +201,21 @@ fn stop_and_exit(app: &AppHandle) -> Result<(), String> {
 /// The renderer names an identity and receives JSON. It never sees the control
 /// token: the grant stays in the lifecycle manager and is applied here, in
 /// native code, on the way out.
+/// `refresh` skips the Agent Server's shared read, for explicit refreshes.
+fn catalogue_path(identity: &str, refresh: bool) -> String {
+    let refresh = if refresh { "&refresh=true" } else { "" };
+    format!("/v1/catalogue?identity={}{refresh}", urlencode(identity))
+}
+
 #[tauri::command]
 async fn desktop_catalogue(
     state: State<'_, AppState>,
     identity: String,
+    refresh: Option<bool>,
 ) -> Result<serde_json::Value, String> {
-    let body = with_control_connection(&state, move |connection| {
-        control::get(
-            connection,
-            &format!("/v1/catalogue?identity={}", urlencode(&identity)),
-        )
-    })
-    .await?;
+    let path = catalogue_path(&identity, refresh.unwrap_or(false));
+    let body =
+        with_control_connection(&state, move |connection| control::get(connection, &path)).await?;
     serde_json::from_str(&body)
         .map_err(|error| format!("the Agent Server returned an unreadable catalogue: {error}"))
 }
@@ -1134,6 +1137,18 @@ pub fn run() {
 mod tests {
     use super::*;
     use std::sync::Arc;
+
+    #[test]
+    fn catalogue_path_forwards_an_explicit_refresh_only() {
+        assert_eq!(
+            catalogue_path("course bot", false),
+            "/v1/catalogue?identity=course%20bot"
+        );
+        assert_eq!(
+            catalogue_path("course bot", true),
+            "/v1/catalogue?identity=course%20bot&refresh=true"
+        );
+    }
 
     #[test]
     fn invalid_environment_is_a_visible_failure_without_a_lifecycle() {

@@ -132,3 +132,24 @@ describe('native project location bridge', () => {
     ]);
   });
 });
+
+describe('native catalogue bridge', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('forwards an explicit refresh to the native command', async () => {
+    // Arrange
+    vi.mocked(invoke).mockResolvedValue({ teams: [] });
+
+    // Act
+    await runCenterActions.catalogue('agent-a');
+    await runCenterActions.catalogue('agent-a', { refresh: true });
+
+    // Assert: Tauri maps these argument names onto `desktop_catalogue`.
+    expect(vi.mocked(invoke).mock.calls).toEqual([
+      ['desktop_catalogue', { identity: 'agent-a', refresh: false }],
+      ['desktop_catalogue', { identity: 'agent-a', refresh: true }],
+    ]);
+  });
+});

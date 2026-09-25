@@ -196,6 +196,52 @@ describe('createRetryFetch', () => {
     // baseDelay * 2^attempt: 500*2^0=500, 500*2^1=1000
     expect(delays).toEqual([500, 1000]);
   });
+
+  it('stops waiting for a retry as soon as the request signal aborts', async () => {
+    // Arrange
+    mockFetch.mockImplementation(() =>
+      Promise.resolve(
+        new Response('slow down', {
+          status: 429,
+          headers: { 'Retry-After': '30' },
+        }),
+      ),
+    );
+    const retryFetch = createRetryFetch({
+      baseFetch: mockFetch,
+      maxDelay: 30_000,
+    });
+    const controller = new AbortController();
+
+    // Act
+    const promise = retryFetch('https://api.test/foo', {
+      signal: controller.signal,
+    });
+    const settled = expect(promise).rejects.toThrow('caller gave up');
+    await vi.advanceTimersByTimeAsync(1_000);
+    controller.abort(new Error('caller gave up'));
+    await settled;
+
+    // Assert: no second attempt after the abort, not 30 seconds later.
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry a network error caused by an aborted signal', async () => {
+    // Arrange
+    const controller = new AbortController();
+    controller.abort(new Error('caller gave up'));
+    mockFetch.mockRejectedValue(new DOMException('aborted', 'AbortError'));
+    const retryFetch = createRetryFetch({ baseFetch: mockFetch });
+
+    // Act
+    const promise = retryFetch('https://api.test/foo', {
+      signal: controller.signal,
+    });
+
+    // Assert
+    await expect(promise).rejects.toThrow('aborted');
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('createRateLimitFetch (backward-compat alias)', () => {

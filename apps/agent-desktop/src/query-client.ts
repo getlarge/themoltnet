@@ -1,5 +1,7 @@
 import { focusManager, QueryClient } from '@tanstack/react-query';
 
+import { runCenterKeys } from './run-center/queries.js';
+
 /**
  * Query's browser defaults are wrong in this app, in two ways that both fail
  * silently — the interval keeps firing, nothing errors, and `refetchOnMount`
@@ -15,7 +17,7 @@ import { focusManager, QueryClient } from '@tanstack/react-query';
  *    IPC, so losing the network says nothing about whether it is reachable.
  */
 export function createQueryClient(): QueryClient {
-  return new QueryClient({
+  const client = new QueryClient({
     defaultOptions: {
       queries: {
         retry: false,
@@ -25,6 +27,20 @@ export function createQueryClient(): QueryClient {
       },
     },
   });
+  // The catalogue verifies team credentials against the MoltNet API, so a
+  // single slow or throttled read is common and not worth a banner. Retry it
+  // gently before reporting a failure.
+  client.setQueryDefaults(runCenterKeys.catalogues(), {
+    retry: CATALOGUE_RETRIES,
+    retryDelay: catalogueRetryDelay,
+  });
+  return client;
+}
+
+export const CATALOGUE_RETRIES = 2;
+
+export function catalogueRetryDelay(attempt: number): number {
+  return Math.min(1_000 * 2 ** attempt, 4_000);
 }
 
 /** Resolves the window's focus state; injected so tests need no native host. */

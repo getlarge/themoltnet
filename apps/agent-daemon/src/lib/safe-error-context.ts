@@ -8,6 +8,10 @@ export function safeErrorContext(
     (error as { code?: unknown } | null)?.code,
   );
   if (applicationCode) context['applicationCode'] = applicationCode;
+  // An upstream status (401 vs 429 vs 5xx) is what separates a revoked key
+  // from a throttled or unreachable API.
+  const statusCode = (error as { statusCode?: unknown } | null)?.statusCode;
+  if (typeof statusCode === 'number') context['statusCode'] = statusCode;
   const cause = error instanceof Error ? error.cause : undefined;
   if (cause instanceof Error) {
     context['causeType'] = cause.name;

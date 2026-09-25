@@ -106,6 +106,11 @@ export interface SavePresetInput extends Omit<
  * contract — `desktopBridge` in `../bridge.ts` — and is used directly by the
  * shipped Server panel. Nothing here duplicates it.
  */
+export interface CatalogueReadOptions {
+  /** Verify every team now instead of accepting the Agent Server's shared read. */
+  refresh?: boolean;
+}
+
 export interface RunCenterActions {
   projects?: ProjectActions;
   signInOperator?: () => Promise<void>;
@@ -140,7 +145,10 @@ export interface RunCenterActions {
   ) => Promise<CreateAgentServerAgentResponses[201]>;
   refresh?: () => Promise<void>;
   /** Teams, diaries and profiles the selected identity can serve. */
-  catalogue: (identity: string) => Promise<AgentServerCatalogue>;
+  catalogue: (
+    identity: string,
+    options?: CatalogueReadOptions,
+  ) => Promise<AgentServerCatalogue>;
   startRun: (input: StartRunInput) => Promise<AgentServerRun>;
   stopRun: (runId: string) => Promise<void>;
   savePreset: (input: SavePresetInput) => Promise<RunPreset>;

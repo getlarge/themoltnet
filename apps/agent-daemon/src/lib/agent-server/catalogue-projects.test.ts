@@ -1,7 +1,11 @@
 import { MoltNetError } from '@themoltnet/sdk';
 import { describe, expect, it, vi } from 'vitest';
 
-import { buildCatalogue, type CatalogueAgentPort } from './catalogue.js';
+import {
+  buildCatalogue,
+  type CatalogueAgentPort,
+  readCatalogueSources,
+} from './catalogue.js';
 import { ProjectPaginationError } from './catalogue-project-reader.js';
 
 const project = {
@@ -16,7 +20,7 @@ function agent() {
   return {
     teamIds: ['team-a'],
     lastVerified: () => undefined,
-    readTeam: vi.fn(async () => ({
+    readTeam: vi.fn(async (_teamId: string, _signal?: AbortSignal) => ({
       team: { id: 'team-a', name: 'Research team' },
       diaries: [{ id: 'diary-a', teamId: 'team-a', name: 'Research diary' }],
       profiles: [],
@@ -27,9 +31,18 @@ function agent() {
         scopes: ['team:read'],
       },
     })),
-    readProjects: vi.fn(async () => ({ items: [project], truncated: false })),
+    readProjects: vi.fn(async (_teamId: string, _signal?: AbortSignal) => ({
+      items: [project],
+      truncated: false,
+    })),
     readProject: vi.fn(async () => project),
   } satisfies CatalogueAgentPort;
+}
+/** A read that ends only when aborted, like a request stuck in retry backoff. */
+function untilAborted(signal?: AbortSignal): Promise<never> {
+  return new Promise((_resolve, reject) => {
+    signal?.addEventListener('abort', () => reject(new Error('aborted')));
+  });
 }
 const machine = {
   providerEnv: new Map<string, boolean>(),
@@ -56,7 +69,10 @@ describe('project catalogue', () => {
 
     expect(result.projects).toEqual([project]);
     expect(result.projectErrors).toEqual([]);
-    expect(port.readProjects).toHaveBeenCalledWith('team-a');
+    expect(port.readProjects).toHaveBeenCalledWith(
+      'team-a',
+      expect.any(AbortSignal),
+    );
   });
 
   it('keeps verified team access when project discovery fails, and logs why', async () => {
@@ -123,5 +139,99 @@ describe('project catalogue', () => {
     expect(result.teams[0]?.available).toBe(false);
     expect(result.projects).toEqual([]);
     expect(port.readProjects).not.toHaveBeenCalled();
+  });
+
+  it('reports a team that exceeds its budget as a timeout instead of hanging', async () => {
+    // Arrange
+    const port = agent();
+    port.readTeam.mockImplementation((_teamId, signal) => untilAborted(signal));
+    const logger = { warn: vi.fn() };
+
+    // Act
+    const result = await buildCatalogue({
+      agent: port,
+      machine,
+      identityDefault: {},
+      logger,
+      teamBudgetMs: 20,
+    });
+
+    // Assert
+    expect(result.teams[0]).toMatchObject({
+      available: false,
+      blockers: [
+        expect.objectContaining({
+          code: 'agent_key_unavailable',
+          message: 'Verifying this team credential took too long.',
+        }),
+      ],
+    });
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ timedOut: true, teamId: 'team-a' }),
+      'AgentServer team credential unavailable',
+    );
+  });
+
+  it('bounds a team read even when a step ignores the abort signal', async () => {
+    // Arrange: e.g. a secret-provider lookup that never settles.
+    const port = agent();
+    port.readTeam.mockImplementation(() => new Promise<never>(() => {}));
+
+    // Act
+    const result = await buildCatalogue({
+      agent: port,
+      machine,
+      identityDefault: {},
+      teamBudgetMs: 20,
+    });
+
+    // Assert
+    expect(result.teams[0]).toMatchObject({
+      available: false,
+      blockers: [
+        expect.objectContaining({
+          message: 'Verifying this team credential took too long.',
+        }),
+      ],
+    });
+  });
+
+  it('hands a lookup still running at the deadline to the caller to hold', async () => {
+    // Arrange
+    const port = agent();
+    const stuck = new Promise<never>(() => {});
+    port.readTeam.mockReturnValue(stuck);
+    const hold = vi.fn();
+
+    // Act
+    await readCatalogueSources(port, {
+      teamBudgetMs: 20,
+      share: (_teamId, load) => load(hold),
+    });
+
+    // Assert
+    expect(hold).toHaveBeenCalledWith(stuck);
+  });
+
+  it('keeps a verified team when only project discovery exceeds the budget', async () => {
+    // Arrange
+    const port = agent();
+    port.readProjects.mockImplementation((_teamId, signal) =>
+      untilAborted(signal),
+    );
+
+    // Act
+    const result = await buildCatalogue({
+      agent: port,
+      machine,
+      identityDefault: {},
+      teamBudgetMs: 20,
+    });
+
+    // Assert
+    expect(result.teams[0]?.available).toBe(true);
+    expect(result.projectErrors).toEqual([
+      expect.objectContaining({ teamId: 'team-a', code: 'unreachable' }),
+    ]);
   });
 });

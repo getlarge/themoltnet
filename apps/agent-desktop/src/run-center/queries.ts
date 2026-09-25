@@ -13,10 +13,14 @@
  * extra interval is an extra read. Views that only read pass
  * `refetchInterval: false` (the default here) and share the owner's data.
  */
-import { queryOptions } from '@tanstack/react-query';
+import { type QueryClient, queryOptions } from '@tanstack/react-query';
 
 import { projectActions, runCenterActions } from './run-center-bridge.js';
-import type { AgentServerCatalogue, ProjectLocation } from './types.js';
+import type {
+  AgentServerCatalogue,
+  CatalogueReadOptions,
+  ProjectLocation,
+} from './types.js';
 
 /**
  * Key roots, for invalidating a whole family. Leaves are built by the
@@ -44,14 +48,41 @@ export function catalogueQuery(
   // run center is; defaults to the real native bridge.
   read: (
     identity: string,
+    options?: CatalogueReadOptions,
   ) => Promise<AgentServerCatalogue> = runCenterActions.catalogue,
 ) {
   return queryOptions({
     queryKey: runCenterKeys.catalogue(identity),
-    queryFn: (): Promise<AgentServerCatalogue> => read(identity),
+    queryFn: ({ client }): Promise<AgentServerCatalogue> =>
+      takeCatalogueRefresh(client, identity)
+        ? read(identity, { refresh: true })
+        : read(identity),
     // An identity is only meaningful once one is selected.
     enabled: Boolean(identity),
   });
+}
+
+/**
+ * Identities whose next catalogue read was explicitly asked for. The Agent
+ * Server shares reads between its callers for a few seconds; a person pressing
+ * Retry, or a renewal that just finished, must see the network's answer now.
+ */
+const refreshRequests = new WeakMap<QueryClient, Set<string>>();
+
+export function requestCatalogueRefresh(
+  client: QueryClient,
+  identity: string,
+): void {
+  let identities = refreshRequests.get(client);
+  if (!identities) {
+    identities = new Set();
+    refreshRequests.set(client, identities);
+  }
+  identities.add(identity);
+}
+
+function takeCatalogueRefresh(client: QueryClient, identity: string): boolean {
+  return refreshRequests.get(client)?.delete(identity) ?? false;
 }
 
 /**
