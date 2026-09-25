@@ -1,0 +1,127 @@
+name: Sync action bundle
+
+# packages/agent-daemon-action/dist/ is a committed bundle that inlines
+# @themoltnet/sdk and its dependencies. Rather than making every PR that
+# touches that dependency chain carry a rebuilt bundle, main rebuilds it here
+# and proposes the result as a single, continuously refreshed PR. CI verifies
+# that PR's bundle (see `check-dist-agent-daemon-action` in ci.yml), and the
+# action publisher refuses to release while main's bundle is stale.
+
+on:
+  push:
+    branches: [main]
+    # Coarse prefilter: anything the bundle can absorb. The build itself is
+    # Nx-cached, so a push that does not affect the action restores the cached
+    # bundle and finds nothing to propose.
+    paths:
+      - 'packages/agent-daemon-action/**'
+      - 'libs/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-action-bundle
+  cancel-in-progress: false
+
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          app-id: ${{ secrets.MOLTNET_RELEASE_APP_ID }}
+          private-key: ${{ secrets.MOLTNET_RELEASE_APP_KEY }}
+          owner: getlarge
+          repositories: themoltnet
+
+      - name: Rebuild the action bundle
+        id: bundle
+        run: |
+          pnpm exec nx run @themoltnet/agent-daemon-action:build
+          # `git status --porcelain`, not `git diff`: the build code-splits
+          # into content-hashed assets/ chunks, and a renamed chunk arrives
+          # untracked, which `git diff` does not report.
+          if [ -n "$(git status --porcelain -- packages/agent-daemon-action/dist/)" ]; then
+            git status --short -- packages/agent-daemon-action/dist/
+            echo changed=true >> "$GITHUB_OUTPUT"
+          else
+            echo changed=false >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or refresh bundle sync PR
+        if: steps.bundle.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          title="chore(agent-daemon-action): refresh action bundle"
+          branch="automation/action-bundle-sync"
+          git config user.name "MoltNet Release[bot]"
+          git config user.email "261968324+moltnet-release[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add -A packages/agent-daemon-action/dist/
+          git commit -m "$title"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          remote_branch_sha=$(git ls-remote --heads origin "refs/heads/${branch}" | awk '{print $1}')
+          if [ -n "$remote_branch_sha" ]; then
+            git push \
+              --force-with-lease="refs/heads/${branch}:${remote_branch_sha}" \
+              origin "HEAD:${branch}"
+          else
+            git push --set-upstream origin "HEAD:${branch}"
+          fi
+          pr_url=$(gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head "$branch" \
+            --state open \
+            --json url \
+            --jq '.[0].url // empty')
+          if [ -z "$pr_url" ]; then
+            gh pr create \
+              --repo "$GITHUB_REPOSITORY" \
+              --base main \
+              --head "$branch" \
+              --title "$title" \
+              --body "Rebuilt \`packages/agent-daemon-action/dist/\` from main's sources. The bundle inlines \`@themoltnet/sdk\`, so SDK changes make it stale. In-repo workflows that use \`./packages/agent-daemon-action\` and action releases run this bundle, so merge this PR before releasing the action."
+          fi
+
+      # A later push can make main's bundle current again (for example a PR
+      # that committed a rebuilt dist/ itself). Close the now-obsolete sync PR
+      # so it cannot be merged over a newer bundle.
+      - name: Close obsolete bundle sync PR
+        if: steps.bundle.outputs.changed == 'false'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          pr_number=$(gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head automation/action-bundle-sync \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty')
+          if [ -n "$pr_number" ]; then
+            gh pr close "$pr_number" \
+              --repo "$GITHUB_REPOSITORY" \
+              --delete-branch \
+              --comment "main's action bundle is already current; closing this obsolete bundle sync PR."
+          fi

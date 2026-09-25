@@ -114,14 +114,17 @@ function git(args: string[], options: { stdio?: 'ignore' | 'inherit' } = {}) {
   }).trim();
 }
 
-function assertGitPathClean(path: string) {
-  try {
-    git(['diff', '--quiet', '--', path], { stdio: 'ignore' });
-    git(['diff', '--cached', '--quiet', '--', path], { stdio: 'ignore' });
-  } catch (error) {
+// `git status --porcelain`, not `git diff`: the bundle code-splits into
+// content-hashed chunks, and a renamed chunk is untracked, which `git diff`
+// does not report.
+function assertBundleCommitted(bundleDir: string) {
+  const changes = git(['status', '--porcelain', '--', bundleDir]);
+  if (changes) {
     throw new Error(
-      `${path} is not committed. Run the Nx build target and commit the generated action bundle before releasing.`,
-      { cause: error },
+      `${bundleDir} does not match its sources:\n${changes}\n` +
+        'Merge the open "chore(agent-daemon-action): refresh action bundle" PR ' +
+        '(branch automation/action-bundle-sync, opened by sync-action-bundle.yml) ' +
+        'or commit a rebuilt bundle before releasing.',
     );
   }
 }
@@ -155,7 +158,7 @@ async function main() {
     }
   }
 
-  assertGitPathClean(bundlePath);
+  assertBundleCommitted(join(projectRoot, 'dist'));
 
   const packageJson = JSON.parse(
     readFileSync(packageJsonPath, 'utf-8'),
