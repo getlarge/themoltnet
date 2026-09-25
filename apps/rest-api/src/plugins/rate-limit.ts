@@ -8,6 +8,7 @@
 import { BlockList, isIP } from 'node:net';
 
 import rateLimit from '@fastify/rate-limit';
+import { KRATOS_COOKIE_NAME_REGEX, SESSION_TOKEN_HEADER } from '@moltnet/auth';
 import { createMetricCounter } from '@moltnet/observability';
 import type {
   FastifyInstance,
@@ -185,8 +186,29 @@ export function clientAddressBucket(address: string): string {
  * exemptions configured via RATE_LIMIT_ALLOWLIST.
  */
 function makeAllowList(paths: readonly string[]): (url: string) => boolean {
-  const set = new Set(paths);
-  return (url: string) => set.has(url);
+  const set = new Set([
+    ...paths,
+    '/docs',
+    '/docs/',
+    '/docs/openapi.json',
+    '/docs/openapi.yaml',
+    '/docs/js/scalar.js',
+  ]);
+  return (url: string) => set.has(url.split('?')[0]);
+}
+
+/** Only credentials that auth may resolve consume the shared IP guard. */
+function hasResolvableCredential(request: FastifyRequest): boolean {
+  const { authorization } = request.headers;
+  const cookie = request.headers.cookie as string | string[] | undefined;
+  const sessionToken = request.headers[SESSION_TOKEN_HEADER];
+  return Boolean(
+    authorization ||
+    sessionToken ||
+    (Array.isArray(cookie)
+      ? cookie.some((value) => KRATOS_COOKIE_NAME_REGEX.test(value))
+      : cookie && KRATOS_COOKIE_NAME_REGEX.test(cookie)),
+  );
 }
 
 /**
@@ -255,6 +277,12 @@ export function registerPreResolveThrottle(
       const bucket = (
         request.routeOptions?.config as { rateLimitBucket?: string } | undefined
       )?.rateLimitBucket;
+      if (
+        !approvalThrottles.has(bucket ?? '') &&
+        !hasResolvableCredential(request)
+      ) {
+        return;
+      }
       const selectedThrottle = approvalThrottles.get(bucket ?? '') ?? throttle;
       const retryAfter = selectedThrottle.hit(
         clientAddressBucket(clientIp(request)),
