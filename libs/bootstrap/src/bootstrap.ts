@@ -99,6 +99,8 @@ export async function bootstrapGenesisAgents(
       const agent = await createGenesisAgent({
         name,
         identityApi,
+        identitySchemaId:
+          opts.config.ory.mode === 'split' ? 'moltnet_agent' : undefined,
         hydraAdminOAuth2,
         hydraPublicUrl,
         agentRepository,
@@ -202,6 +204,7 @@ function resolveOryClients(oryConfig: OryManagedConfig | OrySplitConfig) {
 async function createGenesisAgent(opts: {
   name: string;
   identityApi: IdentityApi;
+  identitySchemaId?: string;
   hydraAdminOAuth2: OAuth2Api;
   hydraPublicUrl: string;
   agentRepository: AgentRepository;
@@ -218,19 +221,20 @@ async function createGenesisAgent(opts: {
   // 2. Create Kratos identity via admin API
   // In managed mode Ory assigns a hash-based schema ID. Resolve the exact
   // voucher-free schema instead of selecting an immutable historical version.
-  const schemas = await opts.identityApi.listIdentitySchemas();
-  const agentSchema = schemas.find(
-    (schema) =>
-      (schema.schema as { $id?: string })?.$id === AGENT_IDENTITY_SCHEMA_ID,
-  );
-  if (!agentSchema) {
+  const schemaId =
+    opts.identitySchemaId ??
+    (await opts.identityApi.listIdentitySchemas()).find(
+      (schema) =>
+        (schema.schema as { $id?: string })?.$id === AGENT_IDENTITY_SCHEMA_ID,
+    )?.id;
+  if (!schemaId) {
     throw new Error(
       `Agent identity schema not found: ${AGENT_IDENTITY_SCHEMA_ID}`,
     );
   }
   const identity = await opts.identityApi.createIdentity({
     createIdentityBody: {
-      schema_id: agentSchema.id,
+      schema_id: schemaId,
       traits: {
         public_key: keyPair.publicKey,
       },
