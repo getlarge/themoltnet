@@ -6,6 +6,7 @@ import {
   parseContractExtraction,
   parseCoverageCheck,
   type StageContext,
+  TEXT_LIMITS,
 } from './stages.js';
 import type { ContractChange, SelectedDoc } from './types.js';
 
@@ -114,6 +115,26 @@ describe('parseCoverageCheck', () => {
 
     // Assert
     expect(parsed.findings).toEqual([finding]);
+  });
+
+  it('accepts evidence detail up to the stated limit', () => {
+    // Arrange
+    const detail = 'x'.repeat(TEXT_LIMITS.evidenceDetail);
+
+    // Act
+    const parsed = parseCoverageCheck(
+      freeform({
+        version: 1,
+        outcome: 'updates-needed',
+        findings: [{ ...finding, evidence: { ...finding.evidence, detail } }],
+      }),
+      allowed,
+    );
+
+    // Assert
+    expect(parsed.findings[0].evidence.detail).toHaveLength(
+      TEXT_LIMITS.evidenceDetail,
+    );
   });
 
   it('accepts a proposed new markdown location', () => {
@@ -281,6 +302,11 @@ describe('buildCoverageTask', () => {
       revision: HEAD,
     });
     expect(input.brief).toContain('dry-run-flag');
+    // The model must be told every bound that validation enforces.
+    expect(input.brief).toContain(
+      `evidence detail ≤ ${TEXT_LIMITS.evidenceDetail}`,
+    );
+    expect(input.brief).toContain(`update ≤ ${TEXT_LIMITS.findingUpdate}`);
     expect(input.brief).toContain('apps/cli/README.md');
   });
 });
