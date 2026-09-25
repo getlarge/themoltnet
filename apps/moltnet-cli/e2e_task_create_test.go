@@ -376,3 +376,154 @@ func mapKeys(m map[string]any) []string {
 	}
 	return out
 }
+
+// TestE2E_CLI_TaskCreate_ProjectScoped_RoundTrip exercises `--project-id` end
+// to end: a task created against a real project is readable with that
+// project bound, `task list --project-id <p>` surfaces it while
+// `task list --project-id none` excludes it, and a General-work claim (no
+// project) is refused while a project-matching claim succeeds.
+func TestE2E_CLI_TaskCreate_ProjectScoped_RoundTrip(t *testing.T) {
+	h := newTaskCreateHarness(t)
+
+	projectRes, err := e2eClient.CreateProject(
+		context.Background(),
+		&moltnetapi.CreateProjectReq{Name: "e2e-cli-project-" + uuid.New().String()[:8]},
+		moltnetapi.CreateProjectParams{XMoltnetTeamID: moltnetapi.NewOptUUID(e2ePersonalTeamID)},
+	)
+	if err != nil {
+		t.Fatalf("create project: %v", err)
+	}
+	project, ok := projectRes.(*moltnetapi.CreateProjectCreated)
+	if !ok {
+		t.Fatalf("create project: unexpected response type %T", projectRes)
+	}
+	projectID := project.ID
+
+	corr := uuid.NewString()
+	stdout, _ := h.runWithStdin(t, fulfillBriefInput(corr),
+		"task", "create",
+		"--task-type", "fulfill_brief",
+		"--team-id", e2ePersonalTeamID.String(),
+		"--diary-id", e2eDiaryID.String(),
+		"--project-id", projectID.String(),
+		"--correlation-id", corr,
+		"--output", "id",
+	)
+	taskID, err := uuid.Parse(strings.TrimSpace(stdout))
+	if err != nil {
+		t.Fatalf("--output id stdout is not a UUID: %q (%v)", stdout, err)
+	}
+
+	// (1) GetTask shows ProjectId == p.
+	getRes, err := e2eClient.GetTask(context.Background(), moltnetapi.GetTaskParams{
+		ID:             taskID,
+		XMoltnetTeamID: moltnetapi.NewOptUUID(e2ePersonalTeamID),
+	})
+	if err != nil {
+		t.Fatalf("get task: %v", err)
+	}
+	task, ok := getRes.(*moltnetapi.Task)
+	if !ok {
+		t.Fatalf("get task: unexpected response type %T", getRes)
+	}
+	if got, isSet := task.ProjectId.Get(); !isSet || got != projectID {
+		t.Errorf("task.ProjectId = %+v (null=%v), want %s", task.ProjectId, task.ProjectId.Null, projectID)
+	}
+
+	// (2) `task list --project-id <p>` contains it; `--project-id none` does not.
+	listStdout, _ := h.run(t, "task", "list",
+		"--team-id", e2ePersonalTeamID.String(),
+		"--project-id", projectID.String(),
+		"--correlation-id", corr,
+	)
+	var scoped moltnetapi.TaskListResponse
+	decodeJSON(t, listStdout, &scoped)
+	foundScoped := false
+	for _, item := range scoped.Items {
+		if item.ID == taskID {
+			foundScoped = true
+		}
+	}
+	if !foundScoped {
+		t.Errorf("task list --project-id %s missing task %s; items=%+v", projectID, taskID, scoped.Items)
+	}
+
+	noneStdout, _ := h.run(t, "task", "list",
+		"--team-id", e2ePersonalTeamID.String(),
+		"--project-id", "none",
+		"--correlation-id", corr,
+	)
+	var unscoped moltnetapi.TaskListResponse
+	decodeJSON(t, noneStdout, &unscoped)
+	for _, item := range unscoped.Items {
+		if item.ID == taskID {
+			t.Errorf("task list --project-id none unexpectedly includes project-scoped task %s", taskID)
+		}
+	}
+
+	// (3) ClaimTask: General (projectId: null) is refused; the matching
+	// project succeeds. There is no CLI `task claim` command yet, so this
+	// drives the generated client directly — same auth as the rest of the
+	// harness (the bootstrapped genesis agent).
+	var generalClaim moltnetapi.OptNilUUID
+	generalClaim.SetToNull()
+	generalRes, err := e2eClient.ClaimTask(
+		context.Background(),
+		moltnetapi.NewOptClaimTaskReq(moltnetapi.ClaimTaskReq{ProjectId: generalClaim}),
+		moltnetapi.ClaimTaskParams{ID: taskID, XMoltnetTeamID: moltnetapi.NewOptUUID(e2ePersonalTeamID)},
+	)
+	if err != nil {
+		t.Fatalf("claim task (general): %v", err)
+	}
+	if _, isConflict := generalRes.(*moltnetapi.ConflictProblemDetails); !isConflict {
+		t.Errorf("General claim of project-scoped task = %T, want *ConflictProblemDetails", generalRes)
+	}
+
+	matchedRes, err := e2eClient.ClaimTask(
+		context.Background(),
+		moltnetapi.NewOptClaimTaskReq(moltnetapi.ClaimTaskReq{ProjectId: moltnetapi.NewOptNilUUID(projectID)}),
+		moltnetapi.ClaimTaskParams{ID: taskID, XMoltnetTeamID: moltnetapi.NewOptUUID(e2ePersonalTeamID)},
+	)
+	if err != nil {
+		t.Fatalf("claim task (matching project): %v", err)
+	}
+	claimed, ok := matchedRes.(*moltnetapi.ClaimTaskResponseHeaders)
+	if !ok {
+		t.Fatalf("claim task (matching project) = %T, want *ClaimTaskResponseHeaders", matchedRes)
+	}
+	if got, isSet := claimed.Response.Task.ProjectId.Get(); !isSet || got != projectID {
+		t.Errorf("claimed task.ProjectId = %+v, want %s", claimed.Response.Task.ProjectId, projectID)
+	}
+}
+
+// TestE2E_CLI_TaskCreate_ProjectScoped_ForeignProjectRejected asserts the
+// server-side project/team ownership check surfaces as a readable CLI error.
+func TestE2E_CLI_TaskCreate_ProjectScoped_ForeignProjectRejected(t *testing.T) {
+	h := newTaskCreateHarness(t)
+	corr := uuid.NewString()
+	foreignProjectID := uuid.NewString() // not created in any team
+
+	_, stderr := h.runExpectingFailure(t, fulfillBriefInput(corr),
+		"task", "create",
+		"--task-type", "fulfill_brief",
+		"--team-id", e2ePersonalTeamID.String(),
+		"--diary-id", e2eDiaryID.String(),
+		"--project-id", foreignProjectID,
+		"--correlation-id", corr,
+	)
+	if !strings.Contains(stderr, "Project must belong to the task team") {
+		t.Errorf("expected project-ownership error, got:\n%s", stderr)
+	}
+
+	listed, err := e2eClient.ListTasks(context.Background(), moltnetapi.ListTasksParams{
+		XMoltnetTeamID: e2ePersonalTeamID,
+		CorrelationId:  moltnetapi.NewOptUUID(uuid.MustParse(corr)),
+	})
+	if err != nil {
+		t.Fatalf("list tasks: %v", err)
+	}
+	list := listed.(*moltnetapi.TaskListResponse)
+	if len(list.Items) != 0 {
+		t.Errorf("rejected create reached the server: %d row(s)", len(list.Items))
+	}
+}

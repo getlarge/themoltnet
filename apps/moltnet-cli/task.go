@@ -44,6 +44,8 @@ type taskListOpts struct {
 	statusSet            bool
 	diaryID              string
 	diaryIDSet           bool
+	projectID            string
+	projectIDSet         bool
 	correlationID        string
 	correlationIDSet     bool
 	proposedByAgentID    string
@@ -122,6 +124,14 @@ func buildListTasksParams(opts taskListOpts) (moltnetapi.ListTasksParams, error)
 		if params.DiaryId, err = parseOptUUIDFlag("diary-id", opts.diaryID); err != nil {
 			return moltnetapi.ListTasksParams{}, err
 		}
+	}
+	if opts.projectIDSet {
+		if opts.projectID != "none" {
+			if _, err := uuid.Parse(opts.projectID); err != nil {
+				return moltnetapi.ListTasksParams{}, fmt.Errorf("invalid --project-id %q: want a UUID or \"none\": %w", opts.projectID, err)
+			}
+		}
+		params.ProjectId = moltnetapi.NewOptString(opts.projectID)
 	}
 	if opts.correlationIDSet {
 		if params.CorrelationId, err = parseOptUUIDFlag("correlation-id", opts.correlationID); err != nil {

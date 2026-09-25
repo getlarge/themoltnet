@@ -543,6 +543,41 @@ func TestRunTaskList_HasAttemptsFalsePreserved(t *testing.T) {
 	}
 }
 
+func TestRunTaskList_ProjectIDFilter(t *testing.T) {
+	for _, tc := range []struct{ in, want string }{
+		{"99999999-9999-4999-8999-999999999999", "99999999-9999-4999-8999-999999999999"},
+		{"none", "none"},
+	} {
+		t.Run(tc.in, func(t *testing.T) {
+			h := &stubTasksHandler{}
+			_, _, client := newTestServer(t, h)
+			err := runTaskListWithClient(context.Background(), client, taskListOpts{
+				teamID:       "22222222-2222-4222-8222-222222222222",
+				projectID:    tc.in,
+				projectIDSet: true,
+			})
+			if err != nil {
+				t.Fatalf("run: %v", err)
+			}
+			got, ok := h.listParams.ProjectId.Get()
+			if !ok || got != tc.want {
+				t.Errorf("ProjectId set=%v value=%q want %q", ok, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestRunTaskList_ProjectIDInvalid(t *testing.T) {
+	_, err := buildListTasksParams(taskListOpts{
+		teamID:       "22222222-2222-4222-8222-222222222222",
+		projectID:    "garbage",
+		projectIDSet: true,
+	})
+	if err == nil || !strings.Contains(err.Error(), "--project-id") {
+		t.Fatalf("expected --project-id error, got %v", err)
+	}
+}
+
 func TestRunTaskGet_PassesID(t *testing.T) {
 	h := &stubTasksHandler{}
 	_, _, client := newTestServer(t, h)
