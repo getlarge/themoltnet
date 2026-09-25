@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.10.1](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.10.0...agent-desktop-v0.10.1) (2026-09-25)
+
+
+### Bug Fixes
+
+* **agent-desktop:** make explicit catalogue refreshes bypass the shared read ([9267873](https://github.com/getlarge/themoltnet/commit/92678733d28d9a1c23ff276d2ec7712e93901d8e))
+* **agent-desktop:** resilient catalogue reads and fast recovery after renewal ([7d83ffa](https://github.com/getlarge/themoltnet/commit/7d83ffac596328e59dbb19bfeed11f8b5906d6b9))
+* **agent-desktop:** restart a pending first catalogue read on explicit refresh ([ca68e8b](https://github.com/getlarge/themoltnet/commit/ca68e8bdeeef42ebf5b5780fdabf7e8b16d40fd3))
+* **agent-desktop:** retry and recover the catalogue instead of failing loudly ([eb0fc08](https://github.com/getlarge/themoltnet/commit/eb0fc08ca0b96a62f32ebe4040a36b778f5835fe))
+* **agent-desktop:** type recovery polling by query state and rebuild action bundle ([7ed4d8d](https://github.com/getlarge/themoltnet/commit/7ed4d8db681f43eb6110b7ce21b81e129ea42f42))
+* **credential-recovery:** add native discard and typed restore failures ([5571f85](https://github.com/getlarge/themoltnet/commit/5571f859eba73c84565c26991488ac1af614bdb5))
+* **oauth2:** constrain team credential scopes and handle server version skew ([3a9fe14](https://github.com/getlarge/themoltnet/commit/3a9fe14d65eab307b495803c5acd3c8277bfc210))
+* **oauth2:** isolate approval limits and recover team credentials ([2610d62](https://github.com/getlarge/themoltnet/commit/2610d62dd6f7d917502ce64d538d96c43a62e088))
+
 ## [0.10.0](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.9.1...agent-desktop-v0.10.0) (2026-09-24)
 
 

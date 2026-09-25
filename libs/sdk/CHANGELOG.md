@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.146.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.146.0...sdk-v0.146.1) (2026-09-25)
+
+
+### Bug Fixes
+
+* **credential-recovery:** add native discard and typed restore failures ([5571f85](https://github.com/getlarge/themoltnet/commit/5571f859eba73c84565c26991488ac1af614bdb5))
+* **oauth2:** isolate approval limits and recover team credentials ([2610d62](https://github.com/getlarge/themoltnet/commit/2610d62dd6f7d917502ce64d538d96c43a62e088))
+* **oauth2:** preserve provisioning claims and refresh action bundle ([dbd129c](https://github.com/getlarge/themoltnet/commit/dbd129c87c5d3322b792f72287f3ffbcd893f6db))
+* **recovery:** verify captured team credentials before restoring slots ([9a7da55](https://github.com/getlarge/themoltnet/commit/9a7da55cc3574733b1fa38093168203af48c3abb))
+
 ## [0.146.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.145.0...sdk-v0.146.0) (2026-09-22)
 
 
