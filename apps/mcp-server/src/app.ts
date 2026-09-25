@@ -87,7 +87,8 @@ export function buildAuthConfig(config: McpServerConfig): AuthorizationConfig {
     resourceUri,
     excludedPaths: ['/healthz', '/healthz/ready', OPENAI_APPS_CHALLENGE_PATH],
     tokenValidation: {
-      jwksUri: `${hydra.publicUrl}/.well-known/jwks.json`,
+      jwksUri:
+        config.ORY_HYDRA_JWKS_URL ?? `${hydra.publicUrl}/.well-known/jwks.json`,
       introspectionEndpoint: hydra.apiKey
         ? `${hydra.adminUrl}/admin/oauth2/introspect`
         : undefined,
@@ -102,7 +103,9 @@ export function buildAuthConfig(config: McpServerConfig): AuthorizationConfig {
       dynamicRegistration: true,
     },
     dcrHooks: {
-      upstreamEndpoint: `${hydra.publicUrl}/oauth2/register`,
+      upstreamEndpoint:
+        config.ORY_HYDRA_REGISTRATION_URL ??
+        `${hydra.publicUrl}/oauth2/register`,
       onRequest: (request: DCRRequest, log) => {
         log.info({ dcrRequest: request }, 'DCR: forwarding request to Ory');
         return request;

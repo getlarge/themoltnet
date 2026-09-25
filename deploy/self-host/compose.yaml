@@ -11,6 +11,7 @@ services:
   caddy:
     <<: *restart
     image: caddy:2.10.2-alpine
+    networks: [ingress]
     environment:
       ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL}
       CONSOLE_DOMAIN: ${CONSOLE_DOMAIN:?set CONSOLE_DOMAIN}
@@ -37,24 +38,29 @@ services:
   postgres:
     <<: *restart
     image: pgvector/pgvector:pg16
+    networks: [database]
     shm_size: 256m
     environment:
-      POSTGRES_USER: moltnet
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
-      POSTGRES_DB: moltnet
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?set APP_DB_PASSWORD}
+      KRATOS_DB_PASSWORD: ${KRATOS_DB_PASSWORD:?set KRATOS_DB_PASSWORD}
+      HYDRA_DB_PASSWORD: ${HYDRA_DB_PASSWORD:?set HYDRA_DB_PASSWORD}
+      KETO_DB_PASSWORD: ${KETO_DB_PASSWORD:?set KETO_DB_PASSWORD}
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./config/postgres-init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+      - ./config/postgres-init.sh:/docker-entrypoint-initdb.d/00-init.sh:ro
     healthcheck:
-      test: [CMD-SHELL, 'pg_isready -U moltnet -d moltnet']
+      test: [CMD-SHELL, 'pg_isready -U postgres -d postgres']
       interval: 5s
       timeout: 5s
       retries: 20
 
   db-migrate:
     image: ${DB_MIGRATE_IMAGE:?set DB_MIGRATE_IMAGE}
+    networks: [database]
     environment:
-      DATABASE_URL: postgresql://moltnet:${POSTGRES_PASSWORD}@postgres:5432/moltnet
+      DATABASE_URL: postgresql://moltnet:${APP_DB_PASSWORD}@postgres:5432/moltnet
     depends_on:
       postgres:
         condition: service_healthy
@@ -62,9 +68,10 @@ services:
 
   kratos-migrate:
     image: oryd/kratos:v25.4.0
+    networks: [database]
     command: migrate sql -e --yes
     environment:
-      DSN: postgres://moltnet:${POSTGRES_PASSWORD}@postgres:5432/kratos?sslmode=disable
+      DSN: postgres://kratos:${KRATOS_DB_PASSWORD}@postgres:5432/kratos?sslmode=disable
     depends_on:
       postgres:
         condition: service_healthy
@@ -73,9 +80,10 @@ services:
   kratos:
     <<: *restart
     image: oryd/kratos:v25.4.0
+    networks: [ingress, database, services, identity]
     command: serve --config /etc/config/kratos/kratos.yaml --watch-courier
     environment:
-      DSN: postgres://moltnet:${POSTGRES_PASSWORD}@postgres:5432/kratos?sslmode=disable
+      DSN: postgres://kratos:${KRATOS_DB_PASSWORD}@postgres:5432/kratos?sslmode=disable
       SECRETS_COOKIE: ${KRATOS_COOKIE_SECRET:?set KRATOS_COOKIE_SECRET}
       SECRETS_CIPHER: ${KRATOS_CIPHER_SECRET:?set KRATOS_CIPHER_SECRET}
       SERVE_PUBLIC_BASE_URL: https://${IDENTITY_DOMAIN}/
@@ -88,7 +96,10 @@ services:
       SELFSERVICE_ALLOWED_RETURN_URLS_1: https://${IDENTITY_DOMAIN}/
       SELFSERVICE_ALLOWED_RETURN_URLS_2: https://${API_DOMAIN}/
       SELFSERVICE_ALLOWED_RETURN_URLS_3: https://${MCP_DOMAIN}/
+      SELFSERVICE_ALLOWED_RETURN_URLS_4: https://${OAUTH_DOMAIN}/
       SELFSERVICE_FLOWS_REGISTRATION_UI_URL: https://${IDENTITY_DOMAIN}/registration
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_OIDC_DEFAULT_BROWSER_RETURN_URL: https://${CONSOLE_DOMAIN}/
+      SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_DEFAULT_BROWSER_RETURN_URL: https://${CONSOLE_DOMAIN}/
       SELFSERVICE_FLOWS_LOGIN_UI_URL: https://${IDENTITY_DOMAIN}/login
       SELFSERVICE_FLOWS_RECOVERY_UI_URL: https://${IDENTITY_DOMAIN}/recovery
       SELFSERVICE_FLOWS_VERIFICATION_UI_URL: https://${IDENTITY_DOMAIN}/verification
@@ -137,6 +148,7 @@ services:
   kratos-ui:
     <<: *restart
     image: oryd/kratos-selfservice-ui-node:v25.4.0
+    networks: [ingress, identity]
     environment:
       PORT: '4455'
       SECURITY_MODE: standalone
@@ -153,9 +165,10 @@ services:
 
   hydra-migrate:
     image: oryd/hydra:v25.4.0
+    networks: [database]
     command: migrate sql up -e --yes
     environment:
-      DSN: postgres://moltnet:${POSTGRES_PASSWORD}@postgres:5432/hydra?sslmode=disable
+      DSN: postgres://hydra:${HYDRA_DB_PASSWORD}@postgres:5432/hydra?sslmode=disable
     depends_on:
       postgres:
         condition: service_healthy
@@ -164,9 +177,10 @@ services:
   hydra:
     <<: *restart
     image: oryd/hydra:v25.4.0
+    networks: [ingress, database, services, identity]
     command: serve all --config /etc/config/hydra/hydra.yaml
     environment:
-      DSN: postgres://moltnet:${POSTGRES_PASSWORD}@postgres:5432/hydra?sslmode=disable
+      DSN: postgres://hydra:${HYDRA_DB_PASSWORD}@postgres:5432/hydra?sslmode=disable
       SECRETS_SYSTEM: ${HYDRA_SYSTEM_SECRET:?set HYDRA_SYSTEM_SECRET}
       OIDC_SUBJECT_IDENTIFIERS_PAIRWISE_SALT: ${OIDC_PAIRWISE_SALT:?set OIDC_PAIRWISE_SALT}
       CONSOLE_DOMAIN: ${CONSOLE_DOMAIN}
@@ -200,6 +214,7 @@ services:
 
   hydra-native-client:
     image: ${DB_MIGRATE_IMAGE:?set DB_MIGRATE_IMAGE}
+    networks: [services]
     command: [node, /etc/config/hydra/provision-native-client.mjs]
     volumes:
       - ./config/provision-native-client.mjs:/etc/config/hydra/provision-native-client.mjs:ro
@@ -211,9 +226,10 @@ services:
 
   keto-migrate:
     image: oryd/keto:v25.4.0
+    networks: [database]
     command: migrate up --yes --config /etc/config/keto/keto.yaml
     environment:
-      DSN: postgres://moltnet:${POSTGRES_PASSWORD}@postgres:5432/keto?sslmode=disable
+      DSN: postgres://keto:${KETO_DB_PASSWORD}@postgres:5432/keto?sslmode=disable
     volumes:
       - ../../infra/ory/keto/keto.yaml:/etc/config/keto/keto.yaml:ro
       - ../../infra/ory/permissions.ts:/etc/config/keto/permissions.ts:ro
@@ -225,9 +241,10 @@ services:
   keto:
     <<: *restart
     image: oryd/keto:v25.4.0
+    networks: [database, services]
     command: serve --config /etc/config/keto/keto.yaml
     environment:
-      DSN: postgres://moltnet:${POSTGRES_PASSWORD}@postgres:5432/keto?sslmode=disable
+      DSN: postgres://keto:${KETO_DB_PASSWORD}@postgres:5432/keto?sslmode=disable
     volumes:
       - ../../infra/ory/keto/keto.yaml:/etc/config/keto/keto.yaml:ro
       - ../../infra/ory/permissions.ts:/etc/config/keto/permissions.ts:ro
@@ -243,6 +260,7 @@ services:
   talos:
     <<: *restart
     image: oryd/talos:v26.2.0
+    networks: [credentials]
     entrypoint: [/bin/sh, -ec]
     command:
       - |
@@ -257,7 +275,7 @@ services:
       DB_DSN: sqlite3:///var/lib/talos/talos.db?_journal_mode=WAL
       CREDENTIALS_ISSUER: https://${API_DOMAIN}
     volumes:
-      - ../../infra/ory/talos/talos.yaml:/etc/config/talos/talos.yaml:ro
+      - ./config/talos.yaml:/etc/config/talos/talos.yaml:ro
       - talos-data:/var/lib/talos
     healthcheck:
       test: [CMD, wget, --spider, -q, 'http://localhost:4422/health/alive']
@@ -268,6 +286,7 @@ services:
   valkey:
     <<: *restart
     image: valkey/valkey:8-alpine
+    networks: [cache]
     command: valkey-server --save '' --appendonly no --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - valkey-data:/data
@@ -280,6 +299,7 @@ services:
   object-store:
     <<: *restart
     image: chrislusf/seaweedfs:4.36
+    networks: [objects]
     command: server -s3 -s3.port=8333 -dir=/data -master.volumeSizeLimitMB=1024
     environment:
       AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?set S3_ACCESS_KEY_ID}
@@ -290,14 +310,17 @@ services:
   rest-api:
     <<: *restart
     image: ${REST_API_IMAGE:?set REST_API_IMAGE}
+    networks: [ingress, database, services, credentials, cache, objects]
     environment:
       NODE_ENV: production
       PORT: '8080'
-      DATABASE_URL: postgresql://moltnet:${POSTGRES_PASSWORD}@postgres:5432/moltnet
-      DBOS_SYSTEM_DATABASE_URL: postgresql://moltnet:${POSTGRES_PASSWORD}@postgres:5432/moltnet?schema=dbos
+      DATABASE_URL: postgresql://moltnet:${APP_DB_PASSWORD}@postgres:5432/moltnet
+      DBOS_SYSTEM_DATABASE_URL: postgresql://moltnet:${APP_DB_PASSWORD}@postgres:5432/moltnet?schema=dbos
       ORY_KRATOS_PUBLIC_URL: http://kratos:4433
       ORY_KRATOS_ADMIN_URL: http://kratos:4434
       ORY_HYDRA_PUBLIC_URL: http://hydra:4444
+      ORY_HYDRA_JWKS_URL: http://hydra:4444/.well-known/jwks.json
+      ORY_HYDRA_ISSUER_URL: https://${OAUTH_DOMAIN}/
       ORY_HYDRA_ADMIN_URL: http://hydra:4445
       ORY_KETO_PUBLIC_URL: http://keto:4466
       ORY_KETO_ADMIN_URL: http://keto:4467
@@ -306,6 +329,8 @@ services:
       RECOVERY_CHALLENGE_SECRET: ${RECOVERY_CHALLENGE_SECRET:?set RECOVERY_CHALLENGE_SECRET}
       RELEASE_SIGNER_PUBKEY: ${RELEASE_SIGNER_PUBKEY:?set RELEASE_SIGNER_PUBKEY}
       CORS_ORIGINS: https://${CONSOLE_DOMAIN},https://${IDENTITY_DOMAIN}
+      API_BASE_URL: https://${API_DOMAIN}
+      TRUST_PROXY: '1'
       AUTH_SCOPE_ENFORCEMENT: enforce
       REDIS_HOST: valkey
       REDIS_PORT: '6379'
@@ -353,6 +378,7 @@ services:
   console:
     <<: *restart
     image: ${CONSOLE_IMAGE:?set CONSOLE_IMAGE}
+    networks: [ingress]
     environment:
       KRATOS_PUBLIC_URL: https://${IDENTITY_DOMAIN}
       API_BASE_URL: https://${API_DOMAIN}
@@ -365,6 +391,7 @@ services:
   mcp-server:
     <<: *restart
     image: ${MCP_SERVER_IMAGE:?set MCP_SERVER_IMAGE}
+    networks: [ingress, services, cache]
     environment:
       NODE_ENV: production
       PORT: '8001'
@@ -372,7 +399,9 @@ services:
       CONSOLE_BASE_URL: https://${CONSOLE_DOMAIN}
       AUTH_ENABLED: 'true'
       ORY_PROJECT_URL: http://hydra:4444
-      ORY_HYDRA_PUBLIC_URL: http://hydra:4444
+      ORY_HYDRA_PUBLIC_URL: https://${OAUTH_DOMAIN}
+      ORY_HYDRA_JWKS_URL: http://hydra:4444/.well-known/jwks.json
+      ORY_HYDRA_REGISTRATION_URL: http://hydra:4444/oauth2/register
       ORY_HYDRA_ADMIN_URL: http://hydra:4445
       CLIENT_CREDENTIALS_PROXY: 'true'
       MCP_RESOURCE_URI: https://${MCP_DOMAIN}
@@ -399,6 +428,21 @@ services:
       interval: 10s
       timeout: 5s
       retries: 15
+
+networks:
+  ingress:
+  database:
+    internal: true
+  services:
+    internal: true
+  identity:
+    internal: true
+  credentials:
+    internal: true
+  cache:
+    internal: true
+  objects:
+    internal: true
 
 volumes:
   caddy-data:

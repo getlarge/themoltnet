@@ -129,6 +129,13 @@ function imageWithoutTag(image) {
 }
 
 function currentImages() {
+  const workspace = JSON.parse(
+    readFileSync(path.join(repoRoot, 'nx.json'), 'utf8'),
+  );
+  const registry = workspace.release?.docker?.registryUrl;
+  if (!registry) {
+    throw new Error('Missing Docker release registry URL in nx.json');
+  }
   const versions = JSON.parse(
     readFileSync(path.join(repoRoot, '.release-please-manifest.json'), 'utf8'),
   );
@@ -142,7 +149,7 @@ function currentImages() {
       if (!repository || !version) {
         throw new Error(`Missing Docker release metadata for ${project}`);
       }
-      return [name, `ghcr.io/${repository}:${version}`];
+      return [name, `${registry}/${repository}:${version}`];
     }),
   );
 }

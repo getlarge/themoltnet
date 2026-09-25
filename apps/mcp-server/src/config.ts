@@ -44,6 +44,8 @@ export const McpServerConfigSchema = Type.Object({
       description: 'Ory Hydra public URL (JWKS, DCR, authorization server)',
     }),
   ),
+  ORY_HYDRA_JWKS_URL: Type.Optional(Type.String({ minLength: 1 })),
+  ORY_HYDRA_REGISTRATION_URL: Type.Optional(Type.String({ minLength: 1 })),
   ORY_HYDRA_ADMIN_URL: Type.Optional(
     Type.String({
       minLength: 1,

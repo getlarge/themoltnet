@@ -6,27 +6,34 @@ on:
       - '.github/workflows/release-self-host.yml'
       - '.github/workflows/self-host-validate.yml'
       - '.release-please-manifest.json'
+      - 'nx.json'
       - 'deploy/self-host/**'
       - 'infra/ory/**'
       - 'tools/release/self-host-bundle*'
       - 'apps/console/package.json'
       - 'apps/mcp-server/package.json'
+      - 'apps/mcp-server/src/**'
       - 'apps/rest-api/package.json'
+      - 'apps/rest-api/src/**'
       - 'libs/database/package.json'
   push:
     branches: [main]
     paths:
       - '.release-please-manifest.json'
+      - 'nx.json'
       - 'deploy/self-host/**'
       - 'infra/ory/**'
       - 'tools/release/self-host-bundle*'
       - 'apps/console/package.json'
       - 'apps/mcp-server/package.json'
+      - 'apps/mcp-server/src/**'
       - 'apps/rest-api/package.json'
+      - 'apps/rest-api/src/**'
       - 'libs/database/package.json'
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   validate:
@@ -37,14 +44,24 @@ jobs:
         with:
           node-version: 22
       - run: node --test tools/release/self-host-bundle.test.mjs
+      - name: Authenticate to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
       - name: Verify archive checksum manifest
         run: |
           set -euo pipefail
-          node tools/release/self-host-bundle.mjs --version ci --skip-digests --output "$RUNNER_TEMP/moltnet-self-host-ci"
+          node tools/release/self-host-bundle.mjs --version ci --output "$RUNNER_TEMP/moltnet-self-host-ci"
           cd "$RUNNER_TEMP/moltnet-self-host-ci"
           find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
           sha256sum -c SHA256SUMS
-      - name: Boot identity services from the archive
+          if [ "$(grep -Ec '^[A-Z_]+_IMAGE=.+@sha256:[a-f0-9]{64}$' deploy/self-host/.env.release)" -ne 4 ]; then
+            echo 'Image lock must contain four digest-pinned images' >&2
+            exit 1
+          fi
+      - name: Boot and smoke-test the archived stack
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP/moltnet-self-host-ci/deploy/self-host"
@@ -64,5 +81,37 @@ jobs:
           NODE
           compose=(docker compose -p self-host-ci --env-file "$RUNNER_TEMP/self-host-ci.env" --env-file .env.release)
           trap '"${compose[@]}" down -v' EXIT
-          "${compose[@]}" up -d --wait --wait-timeout 120 postgres kratos hydra keto talos
-          "${compose[@]}" run --rm --no-deps hydra-native-client
+          "${compose[@]}" up -d --wait --wait-timeout 300
+          "${compose[@]}" exec -T rest-api node --input-type=module <<'NODE'
+          const check = async (url, expected) => {
+            const response = await fetch(url, { redirect: 'manual' });
+            if (response.status !== expected) {
+              throw new Error(`${url}: expected ${expected}, got ${response.status}`);
+            }
+            return response;
+          };
+          await check('http://localhost:8080/health', 200);
+          await check('http://localhost:8080/agents/whoami', 401);
+          const discovery = await (await check('http://hydra:4444/.well-known/openid-configuration', 200)).json();
+          if (discovery.issuer !== 'https://oauth.example.com/') {
+            throw new Error(`Unexpected public issuer: ${discovery.issuer}`);
+          }
+          const metadata = await (await check('http://mcp-server:8001/.well-known/oauth-protected-resource', 200)).json();
+          if (!metadata.authorization_servers?.includes('https://oauth.example.com')) {
+            throw new Error('MCP did not advertise the public authorization server');
+          }
+          const auth = new URL('http://hydra:4444/oauth2/auth');
+          auth.search = new URLSearchParams({
+            client_id: 'moltnet-native',
+            response_type: 'code',
+            redirect_uri: 'http://127.0.0.1:17375/oauth/callback',
+            scope: 'moltnet:provision',
+            state: 'self-host-ci',
+            code_challenge: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+            code_challenge_method: 'S256',
+          }).toString();
+          const response = await check(auth, 302);
+          if (!response.headers.get('location')?.startsWith('https://identity.example.com/login')) {
+            throw new Error('OAuth authorization did not reach the login flow');
+          }
+          NODE

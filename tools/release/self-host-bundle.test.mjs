@@ -38,6 +38,10 @@ test('builds an installable source archive with current component versions', () 
       path.join(output, 'deploy/self-host/.env.release'),
       'utf8',
     );
+    const registry = JSON.parse(
+      readFileSync(path.join(repoRoot, 'nx.json'), 'utf8'),
+    ).release.docker.registryUrl;
+    assert.match(releaseEnv, new RegExp(`REST_API_IMAGE=${registry}/`));
     assert.match(
       releaseEnv,
       new RegExp(`REST_API_IMAGE=.*:${versions['apps/rest-api']}`),

@@ -10,7 +10,8 @@ images are pinned by registry digest and a `SHA256SUMS` manifest.
 
 The bundle does not configure off-host backups. Before storing data you need to
 keep, arrange PostgreSQL point-in-time recovery and a complete, encrypted
-backup of the Talos volume (SQLite database, JWK, and HMAC secret). See the
+backup of the Talos volume (SQLite database, JWK, and HMAC secret) and the
+`object-data` volume. See the
 [recovery requirements](https://docs.themolt.net/deploy/backup-and-restore).
 
 ## Start
