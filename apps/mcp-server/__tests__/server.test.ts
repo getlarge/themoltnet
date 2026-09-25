@@ -120,7 +120,7 @@ describe('buildApp', () => {
       REST_API_URL: 'http://rest-api:8080',
       AUTH_ENABLED: true,
       ORY_PROJECT_URL: 'http://hydra:4444',
-      ORY_HYDRA_PUBLIC_URL: 'https://oauth.example.com',
+      ORY_HYDRA_PUBLIC_URL: 'https://oauth.example.com/',
       ORY_HYDRA_JWKS_URL: 'http://hydra:4444/.well-known/jwks.json',
       ORY_HYDRA_REGISTRATION_URL: 'http://hydra:4444/oauth2/register',
     });
@@ -130,7 +130,7 @@ describe('buildApp', () => {
       throw new Error('Expected OAuth authorization to be enabled');
     }
     expect(authorization.authorizationServers).toEqual([
-      'https://oauth.example.com',
+      'https://oauth.example.com/',
     ]);
     expect(authorization.tokenValidation?.jwksUri).toBe(
       'http://hydra:4444/.well-known/jwks.json',

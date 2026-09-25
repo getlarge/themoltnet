@@ -40,6 +40,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
+      - name: Require compatible component releases
+        run: node tools/release/assert-self-host-ready.mjs
+
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
       - name: Build digest-pinned archive
         env:
           VERSION: ${{ steps.version.outputs.value }}
@@ -48,6 +58,20 @@ jobs:
           root="moltnet-self-host-$VERSION"
           node tools/release/self-host-bundle.mjs --version "$VERSION" --output "$root"
           (cd "$root" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+          (cd "$root" && sha256sum -c SHA256SUMS)
+
+      - name: Smoke-test released images through Caddy
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: tools/release/self-host-smoke.sh "moltnet-self-host-$VERSION" published
+
+      - name: Package verified archive
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          root="moltnet-self-host-$VERSION"
+          (cd "$root" && sha256sum -c SHA256SUMS)
           tar -czf "$root.tar.gz" "$root"
           sha256sum "$root.tar.gz" > "$root.tar.gz.sha256"
 

@@ -399,7 +399,7 @@ services:
       CONSOLE_BASE_URL: https://${CONSOLE_DOMAIN}
       AUTH_ENABLED: 'true'
       ORY_PROJECT_URL: http://hydra:4444
-      ORY_HYDRA_PUBLIC_URL: https://${OAUTH_DOMAIN}
+      ORY_HYDRA_PUBLIC_URL: https://${OAUTH_DOMAIN}/
       ORY_HYDRA_JWKS_URL: http://hydra:4444/.well-known/jwks.json
       ORY_HYDRA_REGISTRATION_URL: http://hydra:4444/oauth2/register
       ORY_HYDRA_ADMIN_URL: http://hydra:4445
