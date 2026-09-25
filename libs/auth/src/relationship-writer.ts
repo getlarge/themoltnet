@@ -162,10 +162,35 @@ export interface RelationshipWriter {
 }
 
 export function createRelationshipWriter(
-  relationshipApi: RelationshipApi,
-  relationshipReadApi: RelationshipApi = relationshipApi,
+  rawRelationshipApi: RelationshipApi,
+  relationshipReadApi: RelationshipApi = rawRelationshipApi,
   permissionCache?: PermissionCheckCache,
 ): RelationshipWriter {
+  const relationshipApi = permissionCache
+    ? new Proxy(rawRelationshipApi, {
+        get(target, property, receiver) {
+          const value: unknown = Reflect.get(target, property, receiver);
+          if (
+            property !== 'createRelationship' &&
+            property !== 'deleteRelationships' &&
+            property !== 'patchRelationships'
+          ) {
+            return value;
+          }
+          return async (...args: unknown[]) => {
+            try {
+              return await (
+                value as (...args: unknown[]) => Promise<unknown>
+              ).apply(target, args);
+            } finally {
+              // Keto may apply a mutation before reporting an error. Each
+              // attempted API call is a boundary, including batch loops.
+              permissionCache.invalidate();
+            }
+          };
+        },
+      })
+    : rawRelationshipApi;
   const taskPatchBatchSize = 100;
   const teamRoleRelations = [
     TeamRelation.Owners,
@@ -872,20 +897,7 @@ export function createRelationshipWriter(
     },
   };
 
-  // A removed team/group/diary edge can change permissions on descendants.
-  // Clear the local derived cache after any successful tuple write. In-flight
-  // checks from the old generation cannot repopulate it.
-  if (!permissionCache) return writer;
-  return new Proxy(writer, {
-    get(target, property, receiver) {
-      const value: unknown = Reflect.get(target, property, receiver);
-      if (typeof value !== 'function') return value;
-      return async (...args: unknown[]) => {
-        await (value as (...args: unknown[]) => Promise<void>)(...args);
-        permissionCache.invalidate();
-      };
-    },
-  });
+  return writer;
 }
 
 function toolTuple(policyId: string, toolName: string) {

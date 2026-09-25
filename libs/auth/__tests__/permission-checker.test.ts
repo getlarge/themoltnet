@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { KetoNamespace } from '../src/keto-constants.js';
+import { PermissionCheckCache } from '../src/permission-check-cache.js';
 import {
   createPermissionChecker,
   type PermissionChecker,
@@ -330,6 +331,25 @@ describe('PermissionChecker', () => {
         }),
         'keto.permission_check_failed',
       );
+    });
+
+    it('uses an HTTP-date Retry-After from Keto', async () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date('Wed, 21 Oct 2015 07:27:59 GMT'));
+        mockPermissionApi.checkPermission.mockRejectedValue({
+          response: {
+            status: 429,
+            headers: { 'Retry-After': 'Wed, 21 Oct 2015 07:28:03 GMT' },
+          },
+        });
+
+        await expect(
+          checker.canViewTask(TASK_ID, AGENT_ID, KetoNamespace.Agent),
+        ).rejects.toMatchObject({ retryAfter: 4 });
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it.each([500, 503, 429])(
@@ -716,6 +736,43 @@ describe('PermissionChecker', () => {
         }),
         'keto.batch_permission_result_failed',
       );
+    });
+  });
+
+  describe('Keto call metrics', () => {
+    it('marks per-item errors and count mismatches as partial failures', async () => {
+      const cache = new PermissionCheckCache({ ttlMs: 0 });
+      const recordCall = vi.spyOn(cache, 'recordCall');
+      const trackedChecker = createPermissionChecker(
+        mockPermissionApi as any,
+        logger,
+        cache,
+      );
+      mockPermissionApi.batchCheckPermission
+        .mockResolvedValueOnce({
+          results: [
+            { allowed: true },
+            { allowed: false, error: 'resolution failed' },
+          ],
+        })
+        .mockResolvedValueOnce({ results: [{ allowed: true }] });
+
+      await trackedChecker.canReadPacks(
+        [DIARY_ID, ENTRY_ID],
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
+      await expect(
+        trackedChecker.checkTaskCreatePermissions(
+          TEAM_ID,
+          DIARY_ID,
+          AGENT_ID,
+          KetoNamespace.Agent,
+        ),
+      ).rejects.toBeInstanceOf(PermissionCheckUnavailableError);
+
+      expect(recordCall).toHaveBeenNthCalledWith(1, 'batch', 'partial_error');
+      expect(recordCall).toHaveBeenNthCalledWith(2, 'batch', 'partial_error');
     });
   });
 

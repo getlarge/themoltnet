@@ -65,7 +65,10 @@ export class PermissionCheckCache {
     this.flights.clear();
   }
 
-  recordCall(kind: 'single' | 'batch', outcome: 'ok' | 'error'): void {
+  recordCall(
+    kind: 'single' | 'batch',
+    outcome: 'ok' | 'partial_error' | 'error',
+  ): void {
     calls.add(1, { kind, outcome });
   }
 

@@ -22,6 +22,7 @@ import {
   PermissionCheckCache,
   type PermissionTuple,
 } from './permission-check-cache.js';
+import { parseRetryAfter, remoteErrorStatus } from './remote-auth-error.js';
 
 /**
  * Minimal logger surface this module needs. Structurally compatible
@@ -60,23 +61,11 @@ interface KetoFailure {
  * hid that production "denials" were Keto 429s.
  */
 function describeKetoFailure(err: unknown): KetoFailure {
-  const response = (
-    err as {
-      response?: {
-        status?: unknown;
-        headers?: { get?(name: string): unknown };
-      };
-    } | null
-  )?.response;
-  const status =
-    typeof response?.status === 'number' ? response.status : undefined;
-  const header = response?.headers?.get?.('retry-after');
-  const seconds = typeof header === 'string' ? Number(header) : NaN;
+  const status = remoteErrorStatus(err);
+  const retryAfter = parseRetryAfter(err);
   return {
     ...(status !== undefined ? { status } : {}),
-    ...(Number.isInteger(seconds) && seconds >= 0
-      ? { retryAfter: seconds }
-      : {}),
+    ...(retryAfter !== undefined ? { retryAfter } : {}),
   };
 }
 
@@ -321,25 +310,6 @@ async function rawCheckPermission(
   }
 }
 
-async function rawBatchCheckPermissions(
-  permissionApi: PermissionApi,
-  logger: PermissionCheckerLogger,
-  tuples: Array<{
-    namespace: string;
-    object: string;
-    relation: string;
-    subject_set: {
-      namespace: string;
-      object: string;
-      relation: string;
-    };
-  }>,
-): Promise<boolean[]> {
-  return (
-    await rawBatchCheckPermissionsWithStatus(permissionApi, logger, tuples)
-  ).permissions;
-}
-
 async function rawBatchCheckPermissionsWithStatus(
   permissionApi: PermissionApi,
   logger: PermissionCheckerLogger,
@@ -428,7 +398,10 @@ async function rawBatchCheckPermissionsWithStatus(
 export function createPermissionChecker(
   permissionApi: PermissionApi,
   logger: PermissionCheckerLogger = pino({ name: 'permission-checker' }),
-  cache: PermissionCheckCache = new PermissionCheckCache(),
+  // Callers must share a cache with their writer to retain positive decisions.
+  // The legacy two-argument form still coalesces concurrent checks, but stores
+  // no result and therefore cannot serve a stale allow after a local write.
+  cache: PermissionCheckCache = new PermissionCheckCache({ ttlMs: 0 }),
 ): PermissionChecker {
   const log = logger.child({ component: 'permission-checker' });
   const checkPermissionCached = (
@@ -473,9 +446,13 @@ export function createPermissionChecker(
   ): Promise<boolean[]> =>
     cache.batch(tuples, async (misses) => {
       try {
-        const result = await rawBatchCheckPermissions(api, logger, misses);
-        cache.recordCall('batch', 'ok');
-        return result;
+        const result = await rawBatchCheckPermissionsWithStatus(
+          api,
+          logger,
+          misses,
+        );
+        cache.recordCall('batch', result.hadErrors ? 'partial_error' : 'ok');
+        return result.permissions;
       } catch (error) {
         cache.recordCall('batch', 'error');
         throw error;
@@ -492,7 +469,8 @@ export function createPermissionChecker(
         logger,
         tuples,
       );
-      if (tuples.length > 0) cache.recordCall('batch', 'ok');
+      if (tuples.length > 0)
+        cache.recordCall('batch', result.hadErrors ? 'partial_error' : 'ok');
       return result;
     } catch (error) {
       cache.recordCall('batch', 'error');

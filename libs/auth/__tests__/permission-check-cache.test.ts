@@ -52,7 +52,9 @@ describe('PermissionCheckCache', () => {
     cache.invalidate();
     resolve(true);
     expect(await Promise.all([first, second])).toEqual([true, true]);
-    await cache.check(tuple('a'), vi.fn().mockResolvedValue(false));
+    const replacement = vi.fn().mockResolvedValue(false);
+    expect(await cache.check(tuple('a'), replacement)).toBe(false);
+    expect(replacement).toHaveBeenCalledOnce();
     expect(load).toHaveBeenCalledTimes(1);
   });
 
@@ -164,5 +166,127 @@ describe('PermissionCheckCache', () => {
     await writer.removeTaskClaimant('task-1', 'agent-1');
     await checker.canViewTask('task-1', 'agent-1', KetoNamespace.Agent);
     expect(permissionApi.checkPermission).toHaveBeenCalledTimes(2);
+  });
+
+  it('checks live with the legacy checker factory signature', async () => {
+    const permissionApi = {
+      checkPermission: vi
+        .fn()
+        .mockResolvedValueOnce({ allowed: true })
+        .mockResolvedValueOnce({ allowed: false }),
+    } as unknown as PermissionApi;
+    const checker = createPermissionChecker(permissionApi);
+
+    expect(
+      await checker.canViewTask('task-1', 'agent-1', KetoNamespace.Agent),
+    ).toBe(true);
+    expect(
+      await checker.canViewTask('task-1', 'agent-1', KetoNamespace.Agent),
+    ).toBe(false);
+    expect(permissionApi.checkPermission).toHaveBeenCalledTimes(2);
+  });
+
+  it('invalidates after a partial batch write fails', async () => {
+    const cache = new PermissionCheckCache();
+    const permissionApi = {
+      checkPermission: vi
+        .fn()
+        .mockResolvedValueOnce({ allowed: true })
+        .mockResolvedValueOnce({ allowed: false }),
+    } as unknown as PermissionApi;
+    const taskIds = Array.from({ length: 101 }, (_, i) => `task-${i}`);
+    const relationshipApi = {
+      getRelationships: vi.fn().mockResolvedValue({
+        relation_tuples: taskIds.map((id) => ({
+          namespace: KetoNamespace.Task,
+          object: id,
+          relation: 'team',
+          subject_set: {
+            namespace: KetoNamespace.Team,
+            object: 'team-1',
+            relation: '',
+          },
+        })),
+      }),
+      patchRelationships: vi
+        .fn()
+        .mockResolvedValueOnce({})
+        .mockRejectedValueOnce(new Error('second patch failed')),
+    } as unknown as RelationshipApi;
+    const checker = createPermissionChecker(permissionApi, undefined, cache);
+    const writer = createRelationshipWriter(
+      relationshipApi,
+      relationshipApi,
+      cache,
+    );
+
+    expect(
+      await checker.canViewTask('task-0', 'agent-1', KetoNamespace.Agent),
+    ).toBe(true);
+    await expect(
+      writer.removeTaskRelationsBatch(taskIds.map((id) => ({ id }))),
+    ).rejects.toThrow('second patch failed');
+    expect(
+      await checker.canViewTask('task-0', 'agent-1', KetoNamespace.Agent),
+    ).toBe(false);
+    expect(permissionApi.checkPermission).toHaveBeenCalledTimes(2);
+    expect(relationshipApi.patchRelationships).toHaveBeenCalledTimes(2);
+  });
+
+  it('invalidates after a failed Keto write whose outcome is uncertain', async () => {
+    const cache = new PermissionCheckCache();
+    const permissionApi = {
+      checkPermission: vi
+        .fn()
+        .mockResolvedValueOnce({ allowed: true })
+        .mockResolvedValueOnce({ allowed: false }),
+    } as unknown as PermissionApi;
+    const relationshipApi = {
+      deleteRelationships: vi
+        .fn()
+        .mockRejectedValue(new Error('connection reset')),
+    } as unknown as RelationshipApi;
+    const checker = createPermissionChecker(permissionApi, undefined, cache);
+    const writer = createRelationshipWriter(
+      relationshipApi,
+      relationshipApi,
+      cache,
+    );
+
+    expect(
+      await checker.canViewTask('task-1', 'agent-1', KetoNamespace.Agent),
+    ).toBe(true);
+    await expect(
+      writer.removeTaskClaimant('task-1', 'agent-1'),
+    ).rejects.toThrow('connection reset');
+    expect(
+      await checker.canViewTask('task-1', 'agent-1', KetoNamespace.Agent),
+    ).toBe(false);
+    expect(permissionApi.checkPermission).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps unrelated cache entries after a writer no-op', async () => {
+    const cache = new PermissionCheckCache();
+    const permissionApi = {
+      checkPermission: vi.fn().mockResolvedValue({ allowed: true }),
+    } as unknown as PermissionApi;
+    const relationshipApi = {
+      patchRelationships: vi.fn(),
+    } as unknown as RelationshipApi;
+    const checker = createPermissionChecker(permissionApi, undefined, cache);
+    const writer = createRelationshipWriter(
+      relationshipApi,
+      relationshipApi,
+      cache,
+    );
+
+    await checker.canViewTask('task-1', 'agent-1', KetoNamespace.Agent);
+    await writer.removeTaskRelationsBatch([]);
+    await writer.writeRuntimePolicyEdges('policy-1', {});
+    expect(
+      await checker.canViewTask('task-1', 'agent-1', KetoNamespace.Agent),
+    ).toBe(true);
+    expect(permissionApi.checkPermission).toHaveBeenCalledTimes(1);
+    expect(relationshipApi.patchRelationships).not.toHaveBeenCalled();
   });
 });
