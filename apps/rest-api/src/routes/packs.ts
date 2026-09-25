@@ -23,6 +23,7 @@ import {
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
+import { PRINCIPAL_AUTH_SECURITY } from '../openapi-security.js';
 import { createProblem } from '../problems/index.js';
 import {
   ContextPackResponseListSchema,
@@ -557,12 +558,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Export the provenance graph for a persisted context pack by ID.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: PackParamsSchema,
         querystring: PackProvenanceQuerySchema,
         response: {
@@ -623,12 +619,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Export the provenance graph for a persisted context pack by CID.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: PackCidParamsSchema,
         querystring: PackProvenanceQuerySchema,
         response: {
@@ -689,12 +680,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Compare two context packs by ID. Both packs must belong to the same diary.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: PackDiffParamsSchema,
         response: {
           200: PackDiffResultSchema,
@@ -735,12 +721,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Compare two context packs by CID. Both packs must belong to the same diary.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: PackDiffByCidParamsSchema,
         response: {
           200: PackDiffResultSchema,
@@ -781,12 +762,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'List persisted context packs. Without `containsEntry` this is the team catalog, scoped by the `x-moltnet-team-id` header or by a team-bound credential. With `containsEntry` it lists the packs containing that entry. Use `includeRendered=true` to include rendered descendants.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         querystring: PackCollectionQuerySchema,
         response: {
@@ -920,12 +896,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Get a persisted context pack by ID. Use `expand=entries` to include entry content.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: PackParamsSchema,
         querystring: PackQuerySchema,
         response: {
@@ -969,12 +940,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Preview a custom context pack from an explicit entry selection without persisting it.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: DiaryParamsSchema,
         body: CustomPackBodySchema,
         response: {
@@ -1015,12 +981,7 @@ export async function packRoutes(fastify: FastifyInstance) {
           'Create and persist a custom context pack from an explicit entry selection. ' +
           'Returns 409 if any selected entry is flagged as a prompt-injection risk; the ' +
           'response lists the flagged entries. Set `force: true` to override and persist anyway.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: DiaryParamsSchema,
         body: CustomPackBodySchema,
         response: {
@@ -1060,12 +1021,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'List persisted context packs for a diary. Use `expand=entries` to include entry content.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: DiaryParamsSchema,
         querystring: PackListQuerySchema,
         response: {
@@ -1113,12 +1069,7 @@ export async function packRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Update a context pack — pin/unpin or change expiration. Only the diary owner can manage packs.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: PackParamsSchema,
         body: PackUpdateBodySchema,
         response: {

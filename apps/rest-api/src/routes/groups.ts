@@ -5,7 +5,6 @@
  * Groups are stored in DB; membership is stored in Keto.
  * Mutating operations use transaction + compensation for DB/Keto consistency.
  */
-
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import { UniqueViolationError } from '@moltnet/database';
@@ -26,6 +25,7 @@ import {
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
+import { PRINCIPAL_AUTH_SECURITY } from '../openapi-security.js';
 import { createConflictProblem, createProblem } from '../problems/index.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
 import { requireKetoSubject } from '../utils/require-keto-subject.js';
@@ -51,12 +51,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
         tags: ['groups'],
         description:
           'Create a group within a team. Requires manage_members permission.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: TeamParamsSchema,
         body: CreateGroupSchema,
         response: {
@@ -151,12 +146,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
         operationId: 'listGroups',
         tags: ['groups'],
         description: 'List groups within a team. Requires team access.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: TeamParamsSchema,
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
@@ -201,12 +191,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
         operationId: 'getGroup',
         tags: ['groups'],
         description: 'Get group details. Requires team access.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: GroupParamsSchema,
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
@@ -260,12 +245,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
         operationId: 'deleteGroup',
         tags: ['groups'],
         description: 'Delete a group. Requires manage_members permission.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: GroupParamsSchema,
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
@@ -320,12 +300,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
         tags: ['groups'],
         description:
           'Add a member to a group. Requires manage_members permission.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: GroupParamsSchema,
         body: AddGroupMemberSchema,
         response: {
@@ -394,12 +369,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
         operationId: 'listGroupMembers',
         tags: ['groups'],
         description: 'List group members. Requires team access.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: GroupParamsSchema,
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
@@ -450,12 +420,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
         tags: ['groups'],
         description:
           'Remove a member from a group. Requires manage_members permission.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: GroupMemberParamsSchema,
         response: {
           200: RemovedResponseSchema,

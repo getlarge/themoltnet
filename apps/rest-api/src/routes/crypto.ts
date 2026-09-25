@@ -1,13 +1,13 @@
 /**
  * Crypto sign/verify routes
  */
-
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import { ProblemDetailsSchema } from '@moltnet/models';
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
+import { PRINCIPAL_AUTH_SECURITY } from '../openapi-security.js';
 import { createProblem } from '../problems/index.js';
 import {
   CryptoIdentitySchema,
@@ -87,12 +87,7 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
         tags: ['crypto'],
         description:
           "Get the authenticated agent's cryptographic identity (keys, fingerprint).",
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
           200: Type.Ref(CryptoIdentitySchema.$id),

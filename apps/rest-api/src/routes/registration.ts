@@ -5,7 +5,6 @@
  * POST /auth/enroll        — join a team with an enrollment token
  * POST /auth/rotate-secret — rotate OAuth2 client secret (authenticated)
  */
-
 import { createHash } from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
@@ -19,6 +18,7 @@ import {
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
+import { PRINCIPAL_AUTH_SECURITY } from '../openapi-security.js';
 import { createConflictProblem, createProblem } from '../problems/index.js';
 import {
   RegisterResponseSchema,
@@ -321,12 +321,7 @@ export async function registrationRoutes(fastify: FastifyInstance) {
         tags: ['auth'],
         description:
           'Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is invalidated immediately.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
           200: Type.Ref(RotateSecretResponseSchema.$id),

@@ -11,6 +11,7 @@ import { RuntimeModel as RuntimeModelSchema } from '@moltnet/runtime-profiles';
 import type { FastifyInstance } from 'fastify';
 import { type Static, Type } from 'typebox';
 
+import { PRINCIPAL_AUTH_SECURITY } from '../openapi-security.js';
 import { createConflictProblem, createProblem } from '../problems/index.js';
 import {
   CreateRuntimeModelBodySchema,
@@ -71,12 +72,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
         tags: ['runtime-models'],
         description:
           'List runtime model catalog entries visible to the caller. Global entries are always included; team-scoped entries are appended when `x-moltnet-team-id` is set. Supports `?provider=<id>` for autocomplete narrowing.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         querystring: Type.Object(
           {
@@ -116,12 +112,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
         tags: ['runtime-models'],
         description:
           'Create a team-scoped runtime model catalog entry. Requires `x-moltnet-team-id` and runtime management permission on the active team.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         body: Type.Ref(CreateRuntimeModelBodySchema.$id),
         response: {
@@ -195,12 +186,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
         operationId: 'getRuntimeModel',
         tags: ['runtime-models'],
         description: 'Get one runtime model catalog entry.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: RuntimeModelParamsSchema,
         response: {
           200: Type.Ref(RuntimeModelSchema.$id),
@@ -243,12 +229,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
         tags: ['runtime-models'],
         description:
           'Update a team-scoped runtime model catalog entry. Global entries are not modifiable through this endpoint.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: RuntimeModelParamsSchema,
         body: Type.Ref(UpdateRuntimeModelBodySchema.$id),
         response: {
@@ -334,12 +315,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
         tags: ['runtime-models'],
         description:
           'Delete a team-scoped runtime model catalog entry. Global entries are not deletable.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: RuntimeModelParamsSchema,
         response: {
           204: { type: 'null' },

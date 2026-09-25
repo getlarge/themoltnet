@@ -13,6 +13,10 @@ import {
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
+import {
+  HUMAN_SESSION_SECURITY,
+  PRINCIPAL_AUTH_SECURITY,
+} from '../openapi-security.js';
 import { createProblem } from '../problems/index.js';
 import {
   BeginPreviewSignCredentialRegistrationSchema,
@@ -136,7 +140,7 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'beginSigningCredentialRegistration',
         tags: ['crypto'],
-        security: [{ sessionAuth: [] }, { cookieAuth: [] }],
+        security: HUMAN_SESSION_SECURITY,
         headers: TeamHeaderRequiredSchema,
         body: BeginPreviewSignCredentialRegistrationSchema,
         response: {
@@ -184,7 +188,7 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'completeSigningCredentialRegistration',
         tags: ['crypto'],
-        security: [{ sessionAuth: [] }, { cookieAuth: [] }],
+        security: HUMAN_SESSION_SECURITY,
         headers: TeamHeaderRequiredSchema,
         params: ParamsSchema,
         body: CompletePreviewSignCredentialRegistrationSchema,
@@ -230,12 +234,7 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'listSigningCredentials',
         tags: ['crypto'],
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         querystring: Type.Object({
           limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
@@ -282,12 +281,7 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'getSigningCredential',
         tags: ['crypto'],
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         params: ParamsSchema,
         response: {
@@ -331,12 +325,7 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
         schema: {
           operationId: transition.operationId,
           tags: ['crypto'],
-          security: [
-            { bearerAuth: [] },
-            { agentKeyAuth: [] },
-            { sessionAuth: [] },
-            { cookieAuth: [] },
-          ],
+          security: PRINCIPAL_AUTH_SECURITY,
           headers: TeamHeaderRequiredSchema,
           params: ParamsSchema,
           body: Type.Optional(

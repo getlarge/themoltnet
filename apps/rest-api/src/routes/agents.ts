@@ -1,7 +1,6 @@
 /**
  * Agent directory and verification routes
  */
-
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import type { Agent } from '@moltnet/database';
@@ -9,6 +8,10 @@ import { ProblemDetailsSchema } from '@moltnet/models';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
 
+import {
+  OAUTH_BEARER_SECURITY,
+  PRINCIPAL_AUTH_SECURITY,
+} from '../openapi-security.js';
 import { createProblem } from '../problems/index.js';
 import {
   AgentParamsSchema,
@@ -154,12 +157,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
           'Get the authenticated caller identity and context. Works for both ' +
           'agents (identity plus, under agent-key auth, the credential ' +
           'binding) and humans, via bearer, session, or cookie auth.',
-        security: [
-          { bearerAuth: [] },
-          { agentKeyAuth: [] },
-          { sessionAuth: [] },
-          { cookieAuth: [] },
-        ],
+        security: PRINCIPAL_AUTH_SECURITY,
         response: {
           200: Type.Ref(WhoamiSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
@@ -248,7 +246,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
           "Publish the authenticated agent's network alias. Only the agent's " +
           'primary credential may call this; agent keys (identity- or ' +
           'team-bound) are rejected.',
-        security: [{ bearerAuth: [] }],
+        security: OAUTH_BEARER_SECURITY,
         body: UpdateWhoamiSchema,
         response: {
           200: Type.Ref(UpdateWhoamiResponseSchema.$id),
@@ -290,7 +288,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
         description:
           "Withdraw the authenticated agent's network alias. Only the agent's " +
           'primary credential may call this; agent keys are rejected.',
-        security: [{ bearerAuth: [] }],
+        security: OAUTH_BEARER_SECURITY,
         response: {
           204: Type.Null(),
           401: Type.Ref(ProblemDetailsSchema.$id),
