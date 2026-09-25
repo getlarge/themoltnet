@@ -31,6 +31,25 @@ function setup(def: Record<string, unknown>) {
   return { red, node };
 }
 
+/**
+ * Deliver a message and capture both the `send(...)` calls and the `done(err)`
+ * error, so error-path tests can assert that nothing was emitted.
+ */
+function inputCapturing(
+  node: FakeNode,
+  msg: Record<string, unknown>,
+): Promise<{ sent: unknown[]; error: Error | undefined }> {
+  const sent: unknown[] = [];
+  return new Promise((resolve) => {
+    node.emit(
+      'input',
+      msg,
+      (m: unknown) => sent.push(m),
+      (err?: Error) => resolve({ sent, error: err }),
+    );
+  });
+}
+
 describe('moltnet-task-builder', () => {
   it('builds a freeform body with brief + agent team/diary', async () => {
     const { red, node } = setup({
@@ -104,6 +123,73 @@ describe('moltnet-task-builder project override', () => {
     const { red, node } = setup({ taskType: 'freeform', brief: 'b' });
     const { outputs } = await red.input(node, { payload: {} });
     expect('projectId' in (outputs[0].payload as object)).toBe(false);
+  });
+
+  it('errors (no output) when a configured msg-path override resolves to nothing', async () => {
+    const { node } = setup({
+      taskType: 'freeform',
+      brief: 'b',
+      projectId: 'ctx.project',
+      projectIdType: 'msg',
+    });
+    const { sent, error } = await inputCapturing(node, { payload: {} });
+    expect(error?.message).toMatch(/project override/i);
+    expect(sent).toHaveLength(0);
+    expect(node.statuses.at(-1)).toMatchObject({ fill: 'red', shape: 'ring' });
+  });
+
+  it('errors (no output) when msg.payload.projectId is an empty string', async () => {
+    const { node } = setup({ taskType: 'freeform', brief: 'b' });
+    const { sent, error } = await inputCapturing(node, {
+      payload: { projectId: '' },
+    });
+    expect(error?.message).toMatch(/msg\.payload\.projectId/);
+    expect(sent).toHaveLength(0);
+    expect(node.statuses.at(-1)).toMatchObject({ fill: 'red', shape: 'ring' });
+  });
+
+  it('errors (no output) when msg.payload.projectId is not a string', async () => {
+    const { node } = setup({ taskType: 'freeform', brief: 'b' });
+    const { sent, error } = await inputCapturing(node, {
+      payload: { projectId: 42 },
+    });
+    expect(error?.message).toMatch(/msg\.payload\.projectId/);
+    expect(sent).toHaveLength(0);
+  });
+
+  it('uses msg.payload.projectId when no node override is configured', async () => {
+    const { red, node } = setup({ taskType: 'freeform', brief: 'b' });
+    const { outputs } = await red.input(node, {
+      payload: { projectId: 'project-from-payload' },
+    });
+    expect((outputs[0].payload as Record<string, unknown>).projectId).toBe(
+      'project-from-payload',
+    );
+  });
+
+  it('lets the node override win over msg.payload.projectId', async () => {
+    const { red, node } = setup({
+      taskType: 'freeform',
+      brief: 'b',
+      projectId: 'project-override',
+      projectIdType: 'str',
+    });
+    const { outputs } = await red.input(node, {
+      payload: { projectId: 'project-from-payload' },
+    });
+    expect((outputs[0].payload as Record<string, unknown>).projectId).toBe(
+      'project-override',
+    );
+  });
+
+  it('surfaces the SDK error when msg.payload.projectId is "none"', async () => {
+    const { node } = setup({ taskType: 'freeform', brief: 'b' });
+    const { sent, error } = await inputCapturing(node, {
+      payload: { projectId: 'none' },
+    });
+    expect(error?.message).toMatch(/projectId must be a project UUID/);
+    expect(sent).toHaveLength(0);
+    expect(node.statuses.at(-1)).toMatchObject({ fill: 'red', shape: 'ring' });
   });
 });
 

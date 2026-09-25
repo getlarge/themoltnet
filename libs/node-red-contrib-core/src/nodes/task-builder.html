@@ -189,7 +189,10 @@
     <code>msg</code>/<code>flow</code>/<code>global</code> path); leave blank
     for General work. Unlike team/diary, there is <i>no</i> agent fallback —
     project scope is never inferred, so <code>msg.payload.projectId</code> is
-    the only other source.
+    the only other source (the node field wins when both are set). A configured
+    field that resolves to an empty value (for example a missing
+    <code>msg</code> property), or a <code>msg.payload.projectId</code> that is
+    empty or not a string, fails the node instead of creating General work.
   </p>
   <p>
     <b>Context</b> rows map a slug to a value source (msg/flow/global/str/json);

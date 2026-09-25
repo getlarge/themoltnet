@@ -186,7 +186,9 @@ attempts, error, task }`. `state` is the accepted attempt's output artifact
   typedInput overrides), maps **context rows** (slug ← msg/flow/global/str/json),
   optionally scopes the task to a **project** via a typedInput override or
   `msg.payload.projectId` (unlike team/diary, project has no agent-config
-  fallback; blank means General work),
+  fallback; a blank node field with no payload key means General work, while a
+  configured override that resolves empty or an empty/non-string
+  `msg.payload.projectId` fails the node),
   binds a prior task's output or staged input artifact via **References from**
   (a `msg`-path to an `outputRef` from `task: read` or metadata from
   `task artifact: stage`), and toggles the **submit-output** / schema gates.
