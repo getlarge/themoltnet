@@ -218,6 +218,20 @@
   border-radius: 4px;
 }
 
+.run-claim-diaries {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: 0.625rem;
+}
+
+.run-claim-diaries legend {
+  margin-bottom: 0.5rem;
+  color: var(--molt-text);
+  font-weight: 600;
+}
+
 .fallback-list {
   display: grid;
   margin: 0;

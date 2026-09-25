@@ -82,6 +82,13 @@ export interface RunPreset {
   /** Ordered: primary first, then fallbacks. */
   profileIds: string[];
   taskTypes: string[];
+  mode?: RunMode;
+  correlationId?: string;
+  diaryIds?: string[];
+  pollIntervalMs?: number;
+  maxPollIntervalMs?: number;
+  waitForFirstTaskSec?: number;
+  waitAfterTaskSec?: number;
   createdAt: string;
   lastUsedAt: string | null;
 }

@@ -166,6 +166,20 @@ export const runCenterActions: RunCenterActions = {
         profiles: input.profiles,
         taskTypes: input.taskTypes,
         mode: input.mode,
+        ...(input.correlationId ? { correlationId: input.correlationId } : {}),
+        ...(input.diaryIds?.length ? { diaryIds: input.diaryIds } : {}),
+        ...(input.pollIntervalMs !== undefined
+          ? { pollIntervalMs: input.pollIntervalMs }
+          : {}),
+        ...(input.maxPollIntervalMs !== undefined
+          ? { maxPollIntervalMs: input.maxPollIntervalMs }
+          : {}),
+        ...(input.mode === 'drain' && input.waitForFirstTaskSec !== undefined
+          ? { waitForFirstTaskSec: input.waitForFirstTaskSec }
+          : {}),
+        ...(input.mode === 'drain' && input.waitAfterTaskSec !== undefined
+          ? { waitAfterTaskSec: input.waitAfterTaskSec }
+          : {}),
       },
     }),
 
@@ -192,6 +206,21 @@ export const runCenterActions: RunCenterActions = {
       ...(input.strategy ? { strategy: input.strategy } : {}),
       profileIds: input.profileIds,
       taskTypes: input.taskTypes,
+      ...(input.mode ? { mode: input.mode } : {}),
+      ...(input.correlationId ? { correlationId: input.correlationId } : {}),
+      ...(input.diaryIds?.length ? { diaryIds: input.diaryIds } : {}),
+      ...(input.pollIntervalMs !== undefined
+        ? { pollIntervalMs: input.pollIntervalMs }
+        : {}),
+      ...(input.maxPollIntervalMs !== undefined
+        ? { maxPollIntervalMs: input.maxPollIntervalMs }
+        : {}),
+      ...(input.waitForFirstTaskSec !== undefined
+        ? { waitForFirstTaskSec: input.waitForFirstTaskSec }
+        : {}),
+      ...(input.waitAfterTaskSec !== undefined
+        ? { waitAfterTaskSec: input.waitAfterTaskSec }
+        : {}),
       createdAt: existing?.createdAt ?? new Date().toISOString(),
       lastUsedAt: existing?.lastUsedAt ?? null,
     };

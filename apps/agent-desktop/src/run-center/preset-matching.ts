@@ -20,6 +20,15 @@ export function findRunPreset(
       (preset.location ?? null) === (run.location ?? null) &&
       (preset.source ?? null) === (run.source ?? null) &&
       (preset.strategy ?? null) === (run.strategy ?? null) &&
+      (preset.mode ?? 'poll') === run.mode &&
+      (preset.correlationId ?? null) === (run.correlationId ?? null) &&
+      JSON.stringify([...(preset.diaryIds ?? [])].sort()) ===
+        JSON.stringify([...(run.diaryIds ?? [])].sort()) &&
+      (preset.pollIntervalMs ?? null) === (run.pollIntervalMs ?? null) &&
+      (preset.maxPollIntervalMs ?? null) === (run.maxPollIntervalMs ?? null) &&
+      (preset.waitForFirstTaskSec ?? null) ===
+        (run.waitForFirstTaskSec ?? null) &&
+      (preset.waitAfterTaskSec ?? null) === (run.waitAfterTaskSec ?? null) &&
       JSON.stringify(preset.profileIds) === JSON.stringify(run.profiles) &&
       JSON.stringify([...preset.taskTypes].sort()) ===
         JSON.stringify([...run.taskTypes].sort()),

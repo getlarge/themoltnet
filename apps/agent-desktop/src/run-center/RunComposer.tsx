@@ -34,6 +34,12 @@ import { useComposerCatalogue } from './useComposerCatalogue.js';
 
 /** The daemon's own task-type registry; no server round trip needed. */
 const TASK_TYPE_OPTIONS = Object.keys(BUILT_IN_TASK_TYPES).sort();
+const UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function optionalInteger(value: string): number | undefined {
+  return value.trim() === '' ? undefined : Number(value);
+}
 
 export interface RunComposerProps {
   active?: boolean;
@@ -177,8 +183,48 @@ export function RunComposer({
   const [taskTypes, setTaskTypes] = useState<string[]>(
     previousRun?.taskTypes ?? preset?.taskTypes ?? ['freeform'],
   );
+  const [runMode, setRunMode] = useState<StartRunInput['mode']>(
+    previousRun?.mode ?? preset?.mode ?? 'poll',
+  );
+  const [correlationId, setCorrelationId] = useState(
+    previousRun?.correlationId ?? preset?.correlationId ?? '',
+  );
+  const [diaryIds, setDiaryIds] = useState<string[]>(
+    previousRun?.diaryIds ?? preset?.diaryIds ?? [],
+  );
+  const [pollIntervalMs, setPollIntervalMs] = useState(
+    String(previousRun?.pollIntervalMs ?? preset?.pollIntervalMs ?? ''),
+  );
+  const [maxPollIntervalMs, setMaxPollIntervalMs] = useState(
+    String(previousRun?.maxPollIntervalMs ?? preset?.maxPollIntervalMs ?? ''),
+  );
+  const [waitForFirstTaskSec, setWaitForFirstTaskSec] = useState(
+    String(
+      previousRun?.waitForFirstTaskSec ?? preset?.waitForFirstTaskSec ?? '',
+    ),
+  );
+  const [waitAfterTaskSec, setWaitAfterTaskSec] = useState(
+    String(previousRun?.waitAfterTaskSec ?? preset?.waitAfterTaskSec ?? ''),
+  );
+  const clearClaimOptions = () => {
+    setRunMode('poll');
+    setCorrelationId('');
+    setDiaryIds([]);
+    setPollIntervalMs('');
+    setMaxPollIntervalMs('');
+    setWaitForFirstTaskSec('');
+    setWaitAfterTaskSec('');
+  };
   const [advancedOpen, setAdvancedOpen] = useState(
-    (previousRun?.profiles.length ?? preset?.profileIds.length ?? 0) > 1,
+    (previousRun?.profiles.length ?? preset?.profileIds.length ?? 0) > 1 ||
+      Boolean(previousRun?.correlationId ?? preset?.correlationId) ||
+      Boolean(previousRun?.diaryIds?.length ?? preset?.diaryIds?.length) ||
+      previousRun?.pollIntervalMs !== undefined ||
+      preset?.pollIntervalMs !== undefined ||
+      previousRun?.maxPollIntervalMs !== undefined ||
+      preset?.maxPollIntervalMs !== undefined ||
+      previousRun?.mode === 'drain' ||
+      preset?.mode === 'drain',
   );
   const [presetName, setPresetName] = useState(preset?.name ?? '');
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -238,18 +284,22 @@ export function RunComposer({
     ...(source && strategy !== 'none' ? { source } : {}),
     ...(strategy ? { strategy } : {}),
   };
-  const replaySource = previousRun?.teamId === teamId ? previousRun : undefined;
-  const runMode = replaySource?.mode ?? 'poll';
-  const replayOptions = replaySource
-    ? {
-        correlationId: replaySource.correlationId,
-        diaryIds: replaySource.diaryIds,
-        pollIntervalMs: replaySource.pollIntervalMs,
-        maxPollIntervalMs: replaySource.maxPollIntervalMs,
-        waitForFirstTaskSec: replaySource.waitForFirstTaskSec,
-        waitAfterTaskSec: replaySource.waitAfterTaskSec,
-      }
-    : {};
+  const floor = optionalInteger(pollIntervalMs);
+  const ceiling = optionalInteger(maxPollIntervalMs);
+  const firstWait = optionalInteger(waitForFirstTaskSec);
+  const afterWait = optionalInteger(waitAfterTaskSec);
+  const runOptions = {
+    ...(correlationId.trim() ? { correlationId: correlationId.trim() } : {}),
+    ...(diaryIds.length ? { diaryIds } : {}),
+    ...(floor !== undefined ? { pollIntervalMs: floor } : {}),
+    ...(ceiling !== undefined ? { maxPollIntervalMs: ceiling } : {}),
+    ...(runMode === 'drain' && firstWait !== undefined
+      ? { waitForFirstTaskSec: firstWait }
+      : {}),
+    ...(runMode === 'drain' && afterWait !== undefined
+      ? { waitAfterTaskSec: afterWait }
+      : {}),
+  };
 
   const boundElsewhere = Boolean(team && !team.available);
   const verificationFailed = verificationUnavailable(team ? [team] : teams);
@@ -282,6 +332,30 @@ export function RunComposer({
       'A fallback profile is no longer available. Remove or replace it in Advanced.',
     );
   if (taskTypes.length === 0) problems.push('Choose at least one task type.');
+  if (correlationId.trim() && !UUID.test(correlationId.trim()))
+    problems.push('Enter a valid correlation ID (UUID).');
+  if (diaryIds.some((id) => !team?.diaries.some((entry) => entry.id === id)))
+    problems.push('A claim diary is unavailable. Update the claim filter.');
+  for (const [label, value, minimum, maximum] of [
+    ['Poll interval', floor, 250, 3_600_000],
+    ['Maximum poll interval', ceiling, 250, 3_600_000],
+    ...(runMode === 'drain'
+      ? ([
+          ['First task wait', firstWait, 0, 86_400],
+          ['After task wait', afterWait, 0, 86_400],
+        ] as const)
+      : []),
+  ] as const) {
+    if (
+      value !== undefined &&
+      (!Number.isInteger(value) || value < minimum || value > maximum)
+    )
+      problems.push(
+        `${label} must be a whole number from ${minimum} to ${maximum}.`,
+      );
+  }
+  if ((floor ?? 2_000) > (ceiling ?? 30_000))
+    problems.push('Maximum poll interval must be at least the poll interval.');
   if (boundElsewhere)
     problems.push(
       team?.blockers[0]?.message ?? 'Team access needs verification.',
@@ -348,7 +422,7 @@ export function RunComposer({
         taskTypes,
         mode: runMode,
         ...projectSelection,
-        ...replayOptions,
+        ...runOptions,
         ...(requestedDiary ? { diaryId: requestedDiary } : {}),
       });
       onDone();
@@ -377,6 +451,8 @@ export function RunComposer({
         ...projectSelection,
         profileIds: [primaryId, ...fallbackIds],
         taskTypes,
+        mode: runMode,
+        ...runOptions,
       });
       setSavedPresetId(saved.id);
       setSaveMessage('Preset saved.');
@@ -425,6 +501,7 @@ export function RunComposer({
                 clearProject();
                 setPrimaryId('');
                 setFallbackIds([]);
+                clearClaimOptions();
               }}
               hint={
                 selectedAgent?.fingerprint
@@ -452,6 +529,7 @@ export function RunComposer({
                 clearProject();
                 setPrimaryId('');
                 setFallbackIds([]);
+                clearClaimOptions();
               }}
               error={
                 boundElsewhere
@@ -701,19 +779,21 @@ export function RunComposer({
 
           <Divider style={{ margin: 0 }} />
 
-          <Stack gap={2}>
-            <Text variant="caption" color="muted">
-              Mode
-            </Text>
-            <Stack direction="row" gap={2} align="center" wrap>
-              <Badge variant="primary">{runMode}</Badge>
-              <Text variant="caption" color="secondary">
-                {runMode === 'drain'
-                  ? 'Claims matching tasks until the queue stays empty, using the previous run settings.'
-                  : 'Keeps claiming matching tasks until you stop it.'}
-              </Text>
-            </Stack>
-          </Stack>
+          <Select
+            label="Run mode"
+            value={runMode}
+            onChange={(event) =>
+              setRunMode(event.target.value as StartRunInput['mode'])
+            }
+            hint={
+              runMode === 'drain'
+                ? 'Stops after matching work is drained. Set optional wait times in Advanced.'
+                : 'Keeps claiming matching tasks until you stop it.'
+            }
+          >
+            <option value="poll">Poll continuously</option>
+            <option value="drain">Drain matching tasks</option>
+          </Select>
         </Stack>
       </ControlSurface>
 
@@ -738,6 +818,105 @@ export function RunComposer({
             </span>
           </summary>
           <Stack className="detail-content" gap={4}>
+            <Text weight="semibold">Task claims and timing</Text>
+            <Input
+              label="Correlation ID"
+              value={correlationId}
+              onChange={(event) => setCorrelationId(event.target.value)}
+              placeholder="Optional UUID"
+              hint="Claim only tasks in this correlation."
+            />
+            <fieldset className="run-claim-diaries">
+              <legend>Claim diaries</legend>
+              <Text variant="caption" color="secondary">
+                Leave all unchecked to claim across the selected team.
+              </Text>
+              {team?.diaries.map((entry) => (
+                <label className="checkbox-row" key={entry.id}>
+                  <input
+                    type="checkbox"
+                    checked={diaryIds.includes(entry.id)}
+                    onChange={(event) =>
+                      setDiaryIds((current) =>
+                        event.target.checked
+                          ? [...current, entry.id]
+                          : current.filter((id) => id !== entry.id),
+                      )
+                    }
+                  />
+                  <Text as="span" variant="caption">
+                    {entry.name}
+                  </Text>
+                </label>
+              ))}
+              {diaryIds
+                .filter((id) => !team?.diaries.some((entry) => entry.id === id))
+                .map((id) => (
+                  <label className="checkbox-row" key={id}>
+                    <input
+                      type="checkbox"
+                      checked
+                      onChange={() =>
+                        setDiaryIds((current) =>
+                          current.filter((candidate) => candidate !== id),
+                        )
+                      }
+                    />
+                    <Text as="span" variant="caption">
+                      Unavailable diary — {id}
+                    </Text>
+                  </label>
+                ))}
+            </fieldset>
+            <div className="field-grid">
+              <Input
+                label="Poll interval (ms)"
+                type="number"
+                min={250}
+                max={3_600_000}
+                step={1}
+                value={pollIntervalMs}
+                onChange={(event) => setPollIntervalMs(event.target.value)}
+                placeholder="2000"
+              />
+              <Input
+                label="Maximum poll interval (ms)"
+                type="number"
+                min={250}
+                max={3_600_000}
+                step={1}
+                value={maxPollIntervalMs}
+                onChange={(event) => setMaxPollIntervalMs(event.target.value)}
+                placeholder="30000"
+              />
+            </div>
+            {runMode === 'drain' ? (
+              <div className="field-grid">
+                <Input
+                  label="Wait for first task (sec)"
+                  type="number"
+                  min={0}
+                  max={86_400}
+                  step={1}
+                  value={waitForFirstTaskSec}
+                  onChange={(event) =>
+                    setWaitForFirstTaskSec(event.target.value)
+                  }
+                  placeholder="0"
+                />
+                <Input
+                  label="Wait after task (sec)"
+                  type="number"
+                  min={0}
+                  max={86_400}
+                  step={1}
+                  value={waitAfterTaskSec}
+                  onChange={(event) => setWaitAfterTaskSec(event.target.value)}
+                  placeholder="0"
+                />
+              </div>
+            ) : null}
+            <Divider style={{ margin: 0 }} />
             <Text weight="semibold">Workspace for this run</Text>
             <Text variant="caption" color="secondary">
               These overrides change this run only. Use Save preset or Update
@@ -831,6 +1010,36 @@ export function RunComposer({
           <DescriptionList
             ariaLabel="Effective run settings"
             items={[
+              { label: 'Mode', value: runMode === 'drain' ? 'Drain' : 'Poll' },
+              {
+                label: 'Claim scope',
+                value: correlationId.trim() || 'Any correlation',
+                mono: Boolean(correlationId.trim()),
+              },
+              {
+                label: 'Claim diaries',
+                value: diaryIds.length
+                  ? diaryIds
+                      .map(
+                        (id) =>
+                          team?.diaries.find((entry) => entry.id === id)
+                            ?.name ?? id,
+                      )
+                      .join(', ')
+                  : 'All team diaries',
+              },
+              {
+                label: 'Polling',
+                value: `${floor ?? 2_000}–${ceiling ?? 30_000} ms`,
+              },
+              ...(runMode === 'drain'
+                ? [
+                    {
+                      label: 'Drain waits',
+                      value: `${firstWait ?? 0} sec first task; ${afterWait ?? 0} sec after task`,
+                    },
+                  ]
+                : []),
               {
                 label: 'Project',
                 value: projectId
