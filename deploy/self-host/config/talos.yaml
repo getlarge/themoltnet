@@ -41,6 +41,7 @@ log:
   format: json
 
 tracing:
+  # The pinned Talos OSS image ignores tracing; OTLP requires Talos Commercial.
   enabled: false
 
 cache:

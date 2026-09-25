@@ -38,7 +38,9 @@ authorization-code client before the REST API starts. Its loopback redirect,
 scopes, and audiences match the Desktop provisioning flow. Other OAuth clients
 can use Hydra dynamic registration; the REST API serves the shared consent page
 at `/oauth2/consent`. Keto loads the bundled permission model from
-`infra/ory/permissions.ts`.
+`infra/ory/permissions.ts`. The identity hostname sends browser pages such as
+`/login`, `/registration`, and `/recovery` to the Kratos self-service UI;
+`/self-service/*` requests go to Kratos itself.
 
 ## Collect logs and telemetry
 
@@ -46,7 +48,20 @@ The base bundle keeps bounded Docker logs and leaves `OTLP_ENDPOINT` empty. To
 export telemetry, add a deployment-local OpenTelemetry Collector Contrib to the
 Compose network and set `OTLP_ENDPOINT=http://otel-collector:4318` for the REST
 API and MCP server. Configure its OTLP receiver and an exporter for your
-telemetry backend. Keep its OTLP ports private to the Compose network.
+telemetry backend. Attach the Collector to the `services` network and keep its
+OTLP ports private. To trace Kratos, Hydra, and Keto too, include the bundled
+`compose.tracing.yaml` override when starting or updating the stack:
+
+```bash
+docker compose --env-file .env -f compose.yaml -f compose.tracing.yaml up -d
+```
+
+The override sends sampled traces to `otel-collector:4318`. Set
+`ORY_OTLP_SERVER_URL` to another collector's `host:port` if needed and
+`ORY_TRACE_SAMPLING_RATIO` to tune the sampling ratio (default `0.1`). The
+pinned Talos OSS image does not emit traces;
+[Talos tracing requires its commercial edition](https://github.com/ory/talos/blob/v26.2.0/docs/operate/monitoring/tracing.md).
+Its structured logs and metrics endpoint remain available.
 
 Docker stdout is a separate source. The pattern used by MoltNet operations is to
 bind the Collector's Fluent Forward receiver to the Docker host's loopback
@@ -58,6 +73,7 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:<pinned-version-or-digest>
     command: [--config=/etc/otelcol/config.yaml]
+    networks: [services]
     ports: ['127.0.0.1:24224:24224']
     volumes: ['./config/otel-collector.yaml:/etc/otelcol/config.yaml:ro']
 

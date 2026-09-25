@@ -40,6 +40,13 @@ Hydra provisions the tracked `moltnet-native` public PKCE client before the REST
 API starts. The same client definition is reapplied on subsequent starts; review
 it when upgrading if you manage additional OAuth clients.
 
+The identity hostname routes browser pages to the Kratos self-service UI and
+Kratos API paths to Kratos. To export traces, attach an OTLP HTTP Collector to
+the `services` network, set `OTLP_ENDPOINT=http://otel-collector:4318`, and
+start with `-f compose.yaml -f compose.tracing.yaml`. This enables tracing for
+Kratos, Hydra, and Keto alongside REST and MCP. The pinned Talos OSS image does
+not emit traces; see the [telemetry guide](https://docs.themolt.net/deploy/docker-compose#collect-logs-and-telemetry).
+
 ## Single-host limitations
 
 This baseline does not turn one Docker host into a highly available platform.

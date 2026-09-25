@@ -211,24 +211,28 @@ function writeImageLock(destination, skipDigests, imageTag) {
 }
 
 function validateBundle(bundleRoot) {
-  run(
-    'docker',
-    [
-      'compose',
-      '--env-file',
-      '.env.example',
-      '--env-file',
-      '.env.release',
-      '-f',
-      'compose.yaml',
-      'config',
-      '--quiet',
-    ],
-    {
-      cwd: path.join(bundleRoot, 'deploy/self-host'),
-      env: validationEnvironment(),
-    },
-  );
+  for (const files of [
+    ['compose.yaml'],
+    ['compose.yaml', 'compose.tracing.yaml'],
+  ]) {
+    run(
+      'docker',
+      [
+        'compose',
+        '--env-file',
+        '.env.example',
+        '--env-file',
+        '.env.release',
+        ...files.flatMap((file) => ['-f', file]),
+        'config',
+        '--quiet',
+      ],
+      {
+        cwd: path.join(bundleRoot, 'deploy/self-host'),
+        env: validationEnvironment(),
+      },
+    );
+  }
 }
 
 function main() {
@@ -243,7 +247,12 @@ function main() {
 
   const bundleSource = path.join(bundleRoot, 'deploy/self-host');
   mkdirSync(bundleSource, { recursive: true });
-  for (const name of ['.env.example', 'README.md', 'compose.yaml']) {
+  for (const name of [
+    '.env.example',
+    'README.md',
+    'compose.yaml',
+    'compose.tracing.yaml',
+  ]) {
     cpSync(path.join(sourceDir, name), path.join(bundleSource, name));
   }
   for (const source of discoverBindSources()) {

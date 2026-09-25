@@ -74,6 +74,10 @@ test('builds an installable source archive with current component versions', () 
       true,
     );
     assert.equal(
+      existsSync(path.join(composeDir, 'compose.tracing.yaml')),
+      true,
+    );
+    assert.equal(
       existsSync(
         path.join(output, 'infra/ory/oauth2-clients/moltnet-native.json'),
       ),
@@ -107,6 +111,47 @@ test('builds an installable source archive with current component versions', () 
       },
     );
     assert.equal(config.status, 0, config.stderr);
+    const tracingConfig = spawnSync(
+      'docker',
+      [
+        'compose',
+        '--env-file',
+        '.env.example',
+        '--env-file',
+        '.env.release',
+        '-f',
+        'compose.yaml',
+        '-f',
+        'compose.tracing.yaml',
+        'config',
+        '--format',
+        'json',
+      ],
+      {
+        cwd: composeDir,
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          ...Object.fromEntries(
+            [
+              ...readFileSync(
+                path.join(composeDir, 'compose.yaml'),
+                'utf8',
+              ).matchAll(/\$\{([A-Z][A-Z0-9_]*):\?/g),
+            ].map(([, name]) => [name, 'test-secret']),
+          ),
+        },
+      },
+    );
+    assert.equal(tracingConfig.status, 0, tracingConfig.stderr);
+    const tracingServices = JSON.parse(tracingConfig.stdout).services;
+    for (const name of ['kratos', 'hydra', 'keto']) {
+      assert.equal(tracingServices[name].environment.TRACING_PROVIDER, 'otel');
+      assert.equal(
+        tracingServices[name].environment.TRACING_PROVIDERS_OTLP_SERVER_URL,
+        'otel-collector:4318',
+      );
+    }
 
     const unconfigured = spawnSync(
       'docker',

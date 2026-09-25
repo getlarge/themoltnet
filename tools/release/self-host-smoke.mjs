@@ -82,6 +82,20 @@ if (
 ) {
   throw new Error('Identity login did not route through Kratos');
 }
+for (const flow of ['registration', 'recovery']) {
+  const response = await expectStatus(
+    settings.IDENTITY_DOMAIN,
+    `/${flow}`,
+    303,
+  );
+  if (
+    !response.headers.location?.startsWith(
+      `https://${settings.IDENTITY_DOMAIN}/self-service/${flow}/browser`,
+    )
+  ) {
+    throw new Error(`Identity ${flow} did not route through Kratos`);
+  }
+}
 
 const discovery = JSON.parse(
   (await expectStatus(oauth, '/.well-known/openid-configuration', 200)).body,
