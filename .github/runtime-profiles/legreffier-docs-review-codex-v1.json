@@ -10,7 +10,6 @@
   "defaultWorkspaceMode": "none",
   "description": "Read-only openai-codex gpt-5.6-terra runtime (low thinking) for comparing latency and precision of the experimental docs-impact review stages.",
   "maxBashTimeouts": 1,
-  "maxOutputTokens": 4096,
   "maxTurns": 6,
   "model": "gpt-5.6-terra",
   "name": "legreffier-docs-review-codex-v1",
