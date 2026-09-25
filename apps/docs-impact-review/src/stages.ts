@@ -18,15 +18,15 @@ export const MAX_CONTRACT_CHANGES = 8;
 export const MAX_FINDINGS = 3;
 
 /**
- * Field length limits. The briefs quote these, so the model is told the same
- * bounds trusted validation enforces; an unstated limit rejected a correct
- * finding in the first end-to-end run.
+ * Sanity bounds only, against runaway output. Conciseness is requested in
+ * the briefs and enforced when rendering: rejecting a whole review because a
+ * correct finding ran long discarded real results.
  */
 export const TEXT_LIMITS = {
-  evidenceDetail: 500,
-  changeSummary: 400,
-  findingSection: 200,
-  findingUpdate: 600,
+  evidenceDetail: 4000,
+  changeSummary: 4000,
+  findingSection: 400,
+  findingUpdate: 4000,
   searchTerm: 80,
 } as const;
 const TASK_EXPIRES_IN_SEC = 60 * 60;
@@ -289,7 +289,7 @@ export function buildExtractTask(
     'Task: list the changes that alter public, documented behavior: CLI commands or flags, REST/MCP API contracts, SDK exports, configuration keys, environment variables or defaults, installation, database migrations operators must run, deployment, or contributor workflow (build, test, release, repository conventions).',
     'Do not list internal refactors whose observable behavior is unchanged, test-only changes, or dependency bumps without a user-facing effect. Returning zero changes is a valid, common answer.',
     'Every change must cite 1–3 evidence entries whose `path` is a changed source file in the manifest. `searchTerms` are exact identifiers a doc would contain (flag names, env vars, routes, command names, config keys); use at most 5.',
-    `Length limits (characters): summary ≤ ${TEXT_LIMITS.changeSummary}, evidence detail ≤ ${TEXT_LIMITS.evidenceDetail}, each search term ≤ ${TEXT_LIMITS.searchTerm}. Output exceeding a limit is rejected.`,
+    `Keep each summary and evidence detail to one or two sentences. Search terms are exact identifiers of at most ${TEXT_LIMITS.searchTerm} characters.`,
     `Return ONLY: {"version":1,"changes":[{"id":"kebab-case","kind":"${CONTRACT_KINDS.join('|')}","summary":"one sentence","evidence":[{"path":"exact/path","detail":"what changed"}],"searchTerms":["--flag"]}]}. At most ${MAX_CONTRACT_CHANGES} changes.`,
     `PR title (untrusted): ${fence('title', ctx.prTitle)}`,
     `Changed-file manifest (untrusted; tests, generated, and binary files are listed but not included in the diff):\n${fence('manifest', payload.manifest)}`,
@@ -335,7 +335,8 @@ export function buildCoverageTask(
     'Outcomes: `covered` — every change is correctly documented; `updates-needed` — at least one change is missing or wrongly documented, or a changed doc contradicts the code; `not-needed` — none of the changes needs documentation.',
     'A Markdown edit that does not describe the change, or a changelog entry, is NOT coverage.',
     `Report at most ${MAX_FINDINGS} high-confidence findings. Each cites the change id (or \`docs:<changed doc path>\` for a contradiction in a doc changed by the PR), changed-file evidence, the affected doc path and section (or a concrete new Markdown path when no page exists), and the needed update in one or two sentences.`,
-    `Length limits (characters): evidence detail ≤ ${TEXT_LIMITS.evidenceDetail}, section ≤ ${TEXT_LIMITS.findingSection}, update ≤ ${TEXT_LIMITS.findingUpdate}. Output exceeding a limit is rejected.`,
+    'Keep each evidence detail and update to one or two sentences.',
+    'When the contract-change list is empty, this is a documentation-only change: return `covered` when the changed instructions match the code at head, or `updates-needed` with one finding per concrete contradiction.',
     'Return ONLY: {"version":1,"outcome":"covered|updates-needed|not-needed","findings":[{"changeId":"id","evidence":{"path":"changed/file","detail":"..."},"docsPath":"docs/x.md","section":"## Heading","update":"..."}]}.',
     `Contract changes (derived from untrusted input):\n${fence('changes', JSON.stringify(payload.changes, null, 2))}`,
     payload.docsDiff

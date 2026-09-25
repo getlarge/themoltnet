@@ -2,6 +2,14 @@ import type { DocsImpactReport } from './types.js';
 
 export const DOCS_IMPACT_COMMENT_MARKER = '<!-- moltnet:docs-impact-review -->';
 
+/** Comment-side cap for free text; validation only guards runaway output. */
+export const COMMENT_TEXT_MAX = 280;
+
+export function shorten(text: string, max = COMMENT_TEXT_MAX): string {
+  const flat = text.replace(/\s+/g, ' ').trim();
+  return flat.length <= max ? flat : `${flat.slice(0, max - 1).trimEnd()}…`;
+}
+
 /**
  * One concise PR comment body. Clean results stay on one line; a failed run
  * says so explicitly instead of looking like an empty clean result.
@@ -25,7 +33,7 @@ export function renderComment(report: DocsImpactReport): string {
     for (const finding of report.findings) {
       const section = finding.section ? ` › ${finding.section}` : '';
       lines.push(
-        `- \`${finding.docsPath}\`${section} — ${finding.update} (evidence: \`${finding.evidence.path}\`: ${finding.evidence.detail})`,
+        `- \`${finding.docsPath}\`${section} — ${shorten(finding.update)} (evidence: \`${finding.evidence.path}\`: ${shorten(finding.evidence.detail)})`,
       );
     }
   }

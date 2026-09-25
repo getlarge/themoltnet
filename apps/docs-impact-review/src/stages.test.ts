@@ -302,11 +302,8 @@ describe('buildCoverageTask', () => {
       revision: HEAD,
     });
     expect(input.brief).toContain('dry-run-flag');
-    // The model must be told every bound that validation enforces.
-    expect(input.brief).toContain(
-      `evidence detail ≤ ${TEXT_LIMITS.evidenceDetail}`,
-    );
-    expect(input.brief).toContain(`update ≤ ${TEXT_LIMITS.findingUpdate}`);
+    expect(input.brief).toContain('one or two sentences');
+    expect(input.brief).toContain('documentation-only change');
     expect(input.brief).toContain('apps/cli/README.md');
   });
 });

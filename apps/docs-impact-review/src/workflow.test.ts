@@ -14,7 +14,7 @@ import {
   runDocsImpactReview,
 } from './workflow.js';
 
-type StageOutput = { summary: string } | Error;
+type StageOutput = { summary: string } | Error | 'timeout';
 
 /** Scripted task client: each created task completes with the next output. */
 function fakeTasks(
@@ -29,7 +29,8 @@ function fakeTasks(
       const id = `task-${created.length + 1}`;
       const output = outputs[created.length];
       created.push(body);
-      const failed = output instanceof Error;
+      const timedOut = output === 'timeout';
+      const failed = output instanceof Error || timedOut;
       tasks.set(id, {
         task: {
           id,
@@ -44,6 +45,12 @@ function fakeTasks(
           startedAt: '2026-09-24T10:00:11.000Z',
           completedAt: '2026-09-24T10:00:31.000Z',
           output: failed ? null : output,
+          error: timedOut
+            ? {
+                code: 'running_total_exceeded',
+                message: 'running_total_exceeded',
+              }
+            : null,
           outputCid: null,
           usage: { inputTokens: 1_000, outputTokens: 200, model: 'glm' },
         } as unknown as SdkTaskAttempt,
@@ -219,6 +226,43 @@ describe('runDocsImpactReview', () => {
     expect((created[1].input as { brief: string }).brief).toContain(
       '# CLI reference',
     );
+  });
+
+  it('reads not-needed on a docs-only change as covered', async () => {
+    // Arrange
+    const head = repo.commit({
+      'docs/reference/cli.md':
+        '# CLI reference\n\n## Commands\n\n`run --fast`\n',
+    });
+
+    // Act
+    const { report } = run(head, [
+      json({ version: 1, outcome: 'not-needed', findings: [] }),
+    ]);
+
+    // Assert
+    await expect(report).resolves.toMatchObject({ outcome: 'covered' });
+  });
+
+  it('reports incomplete, not failed, when a stage exceeds its budget', async () => {
+    // Arrange
+    const head = repo.commit({
+      'apps/cli/src/flags.ts': "export const flags = ['--dry-run'];\n",
+    });
+
+    // Act
+    const { report } = run(head, ['timeout']);
+
+    // Assert
+    const result = await report;
+    expect(result).toMatchObject({
+      status: 'completed',
+      outcome: 'incomplete',
+    });
+    expect(result.gaps).toHaveLength(1);
+    expect(result.gaps[0].scope).toBe('extract stage');
+    expect(result.gaps[0].reason).toContain('running budget');
+    expect(result.error).toBeUndefined();
   });
 
   it('checks a docs-only change without running extraction', async () => {
