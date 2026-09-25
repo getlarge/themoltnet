@@ -38,6 +38,7 @@ import {
   type LoadSkillsResult,
   type ModelRuntime,
   SessionManager,
+  SettingsManager,
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import type { Context } from '@opentelemetry/api';
@@ -145,10 +146,18 @@ export async function buildAgentSession(
     ...(args.extraExtensionFactories ?? []),
   ];
 
+  const settingsManager = SettingsManager.create(args.cwdPath, args.piAuthDir, {
+    projectTrusted: false,
+  });
   const resourceLoader = new DefaultResourceLoader({
     cwd: args.cwdPath,
     agentDir: args.piAuthDir,
+    settingsManager,
     extensionFactories,
+    noExtensions: true,
+    noPromptTemplates: true,
+    noThemes: true,
+    // Keep AGENTS.md and CLAUDE.md as task context, treated as untrusted text.
     appendSystemPrompt: args.appendSystemPrompt,
     skillsOverride: args.skillsOverride ?? NO_SKILLS,
   });
@@ -165,6 +174,7 @@ export async function buildAgentSession(
   const created = await createAgentSession({
     agentDir: args.piAuthDir,
     cwd: args.cwdPath,
+    settingsManager,
     model: args.modelHandle,
     ...(args.modelRuntime ? { modelRuntime: args.modelRuntime } : {}),
     thinkingLevel: args.thinkingLevel ?? undefined,

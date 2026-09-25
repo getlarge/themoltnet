@@ -6,6 +6,7 @@ const {
   list,
   inMemory,
   createAgentSession,
+  settingsManagerCreate,
   reload,
   resourceLoaderArgs,
 } = vi.hoisted(() => ({
@@ -14,11 +15,19 @@ const {
   list: vi.fn(),
   inMemory: vi.fn(),
   createAgentSession: vi.fn(),
+  settingsManagerCreate: vi.fn(),
   reload: vi.fn(),
-  resourceLoaderArgs: [] as Array<{ extensionFactories?: unknown[] }>,
+  resourceLoaderArgs: [] as Array<{
+    extensionFactories?: unknown[];
+    settingsManager?: unknown;
+    noExtensions?: boolean;
+    noPromptTemplates?: boolean;
+    noThemes?: boolean;
+  }>,
 }));
 
 vi.mock('@earendil-works/pi-coding-agent', () => ({
+  SettingsManager: { create: settingsManagerCreate },
   SessionManager: {
     continueRecent,
     forkFrom,
@@ -26,7 +35,7 @@ vi.mock('@earendil-works/pi-coding-agent', () => ({
     inMemory,
   },
   DefaultResourceLoader: class {
-    constructor(args: { extensionFactories?: unknown[] }) {
+    constructor(args: (typeof resourceLoaderArgs)[number]) {
       resourceLoaderArgs.push(args);
     }
 
@@ -50,6 +59,7 @@ describe('buildAgentSession', () => {
     list.mockReset();
     inMemory.mockReset();
     createAgentSession.mockReset();
+    settingsManagerCreate.mockReset();
     reload.mockReset();
     resourceLoaderArgs.length = 0;
 
@@ -58,6 +68,7 @@ describe('buildAgentSession', () => {
     inMemory.mockReturnValue({ kind: 'memory' });
     list.mockResolvedValue([]);
     createAgentSession.mockResolvedValue({ session: { id: 'session' } });
+    settingsManagerCreate.mockReturnValue({ kind: 'run-settings' });
     reload.mockResolvedValue(undefined);
   });
 
@@ -87,6 +98,20 @@ describe('buildAgentSession', () => {
       expect.objectContaining({
         thinkingLevel: 'high',
         modelRuntime,
+        settingsManager: { kind: 'run-settings' },
+      }),
+    );
+    expect(settingsManagerCreate).toHaveBeenCalledWith(
+      '/guest/workspace',
+      '/agent',
+      { projectTrusted: false },
+    );
+    expect(resourceLoaderArgs[0]).toEqual(
+      expect.objectContaining({
+        settingsManager: { kind: 'run-settings' },
+        noExtensions: true,
+        noPromptTemplates: true,
+        noThemes: true,
       }),
     );
   });
