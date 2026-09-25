@@ -20,7 +20,6 @@ import {
   TaskRelation,
   TeamRelation,
 } from './keto-constants.js';
-import type { PermissionCheckCache } from './permission-check-cache.js';
 
 export interface RelationshipWriter {
   // Diary relations
@@ -162,35 +161,9 @@ export interface RelationshipWriter {
 }
 
 export function createRelationshipWriter(
-  rawRelationshipApi: RelationshipApi,
-  relationshipReadApi: RelationshipApi = rawRelationshipApi,
-  permissionCache?: PermissionCheckCache,
+  relationshipApi: RelationshipApi,
+  relationshipReadApi: RelationshipApi = relationshipApi,
 ): RelationshipWriter {
-  const relationshipApi = permissionCache
-    ? new Proxy(rawRelationshipApi, {
-        get(target, property, receiver) {
-          const value: unknown = Reflect.get(target, property, receiver);
-          if (
-            property !== 'createRelationship' &&
-            property !== 'deleteRelationships' &&
-            property !== 'patchRelationships'
-          ) {
-            return value;
-          }
-          return async (...args: unknown[]) => {
-            try {
-              return await (
-                value as (...args: unknown[]) => Promise<unknown>
-              ).apply(target, args);
-            } finally {
-              // Keto may apply a mutation before reporting an error. Each
-              // attempted API call is a boundary, including batch loops.
-              permissionCache.invalidate();
-            }
-          };
-        },
-      })
-    : rawRelationshipApi;
   const taskPatchBatchSize = 100;
   const teamRoleRelations = [
     TeamRelation.Owners,
@@ -286,7 +259,7 @@ export function createRelationshipWriter(
     return matches;
   }
 
-  const writer: RelationshipWriter = {
+  return {
     async removeDiaryRelations(diaryId: string): Promise<void> {
       await relationshipApi.deleteRelationships({
         namespace: KetoNamespace.Diary,
@@ -896,8 +869,6 @@ export function createRelationshipWriter(
       await relationshipApi.patchRelationships({ relationshipPatch });
     },
   };
-
-  return writer;
 }
 
 function toolTuple(policyId: string, toolName: string) {

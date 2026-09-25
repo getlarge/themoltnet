@@ -402,7 +402,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const relationshipWriter = createRelationshipWriter(
     oryClients.relationship,
     oryClients.relationshipRead,
-    permissionCache,
   );
   const registrationAgentKeyService = createAgentKeyService({
     agentRepository,

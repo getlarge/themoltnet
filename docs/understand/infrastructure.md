@@ -169,10 +169,11 @@ Kratos request (5 seconds by default); it does not change cache lifetime.
 Keto permission checks for `read`, `view`, and `access` use a separate
 process-local positive-result cache. `ORY_KETO_PERMISSION_CACHE_TTL_MS` defaults
 to 30 seconds, and `ORY_KETO_PERMISSION_CACHE_MAX_ENTRIES` defaults to 10,000.
-Set the TTL to zero to disable retained results. Denials and errors are never
-cached, and management and deletion permissions always go to Keto. Local
-relationship writes clear the cache; a revocation on another instance may remain
-effective here until the TTL expires. Metrics `auth.keto.cache.accesses` and
+Set the TTL to zero to disable retained results while keeping in-flight request
+coalescing. Denials and errors are never cached, and management and deletion
+permissions always go to Keto. Relationship writes on any instance do not evict
+cached decisions: a positive permission can remain effective until its TTL
+expires, including after revocation. Metrics `auth.keto.cache.accesses` and
 `auth.keto.calls` track cache use and outbound checks.
 
 Revocation and rotation evict an affected Talos key on the current REST API

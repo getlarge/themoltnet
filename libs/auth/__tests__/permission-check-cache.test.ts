@@ -1,4 +1,4 @@
-import type { PermissionApi, RelationshipApi } from '@ory/client-fetch';
+import type { PermissionApi } from '@ory/client-fetch';
 import { describe, expect, it, vi } from 'vitest';
 
 import { KetoNamespace } from '../src/keto-constants.js';
@@ -7,7 +7,6 @@ import {
   type PermissionTuple,
 } from '../src/permission-check-cache.js';
 import { createPermissionChecker } from '../src/permission-checker.js';
-import { createRelationshipWriter } from '../src/relationship-writer.js';
 
 const tuple = (object: string, relation = 'view'): PermissionTuple => ({
   namespace: 'Task',
@@ -37,25 +36,16 @@ describe('PermissionCheckCache', () => {
     expect(load).toHaveBeenCalledTimes(4);
   });
 
-  it('shares in-flight checks and does not restore a pre-revocation result', async () => {
-    const cache = new PermissionCheckCache();
-    let resolve!: (allowed: boolean) => void;
-    const load = vi.fn(
-      () =>
-        new Promise<boolean>((r) => {
-          resolve = r;
-        }),
-    );
-    const first = cache.check(tuple('a'), load);
-    const second = cache.check(tuple('a'), load);
-    expect(load).toHaveBeenCalledTimes(1);
-    cache.invalidate();
-    resolve(true);
-    expect(await Promise.all([first, second])).toEqual([true, true]);
-    const replacement = vi.fn().mockResolvedValue(false);
-    expect(await cache.check(tuple('a'), replacement)).toBe(false);
-    expect(replacement).toHaveBeenCalledOnce();
-    expect(load).toHaveBeenCalledTimes(1);
+  it('treats zero TTL as no retained result', async () => {
+    const cache = new PermissionCheckCache({ ttlMs: 0 });
+    const load = vi
+      .fn()
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+
+    expect(await cache.check(tuple('a'), load)).toBe(true);
+    expect(await cache.check(tuple('a'), load)).toBe(false);
+    expect(load).toHaveBeenCalledTimes(2);
   });
 
   it('bounds LRU size and bypasses sensitive relations', async () => {
@@ -145,29 +135,6 @@ describe('PermissionCheckCache', () => {
     await cache.check(tuple('a', 'manage'), vi.fn().mockResolvedValue(false));
   });
 
-  it('invalidates cached permissions after a successful local relationship write', async () => {
-    const cache = new PermissionCheckCache();
-    const permissionApi = {
-      checkPermission: vi.fn().mockResolvedValue({ allowed: true }),
-    } as unknown as PermissionApi;
-    const relationshipApi = {
-      deleteRelationships: vi.fn().mockResolvedValue({}),
-    } as unknown as RelationshipApi;
-    const checker = createPermissionChecker(permissionApi, undefined, cache);
-    const writer = createRelationshipWriter(
-      relationshipApi,
-      relationshipApi,
-      cache,
-    );
-
-    await checker.canViewTask('task-1', 'agent-1', KetoNamespace.Agent);
-    await checker.canViewTask('task-1', 'agent-1', KetoNamespace.Agent);
-    expect(permissionApi.checkPermission).toHaveBeenCalledTimes(1);
-    await writer.removeTaskClaimant('task-1', 'agent-1');
-    await checker.canViewTask('task-1', 'agent-1', KetoNamespace.Agent);
-    expect(permissionApi.checkPermission).toHaveBeenCalledTimes(2);
-  });
-
   it('checks live with the legacy checker factory signature', async () => {
     const permissionApi = {
       checkPermission: vi
@@ -184,109 +151,5 @@ describe('PermissionCheckCache', () => {
       await checker.canViewTask('task-1', 'agent-1', KetoNamespace.Agent),
     ).toBe(false);
     expect(permissionApi.checkPermission).toHaveBeenCalledTimes(2);
-  });
-
-  it('invalidates after a partial batch write fails', async () => {
-    const cache = new PermissionCheckCache();
-    const permissionApi = {
-      checkPermission: vi
-        .fn()
-        .mockResolvedValueOnce({ allowed: true })
-        .mockResolvedValueOnce({ allowed: false }),
-    } as unknown as PermissionApi;
-    const taskIds = Array.from({ length: 101 }, (_, i) => `task-${i}`);
-    const relationshipApi = {
-      getRelationships: vi.fn().mockResolvedValue({
-        relation_tuples: taskIds.map((id) => ({
-          namespace: KetoNamespace.Task,
-          object: id,
-          relation: 'team',
-          subject_set: {
-            namespace: KetoNamespace.Team,
-            object: 'team-1',
-            relation: '',
-          },
-        })),
-      }),
-      patchRelationships: vi
-        .fn()
-        .mockResolvedValueOnce({})
-        .mockRejectedValueOnce(new Error('second patch failed')),
-    } as unknown as RelationshipApi;
-    const checker = createPermissionChecker(permissionApi, undefined, cache);
-    const writer = createRelationshipWriter(
-      relationshipApi,
-      relationshipApi,
-      cache,
-    );
-
-    expect(
-      await checker.canViewTask('task-0', 'agent-1', KetoNamespace.Agent),
-    ).toBe(true);
-    await expect(
-      writer.removeTaskRelationsBatch(taskIds.map((id) => ({ id }))),
-    ).rejects.toThrow('second patch failed');
-    expect(
-      await checker.canViewTask('task-0', 'agent-1', KetoNamespace.Agent),
-    ).toBe(false);
-    expect(permissionApi.checkPermission).toHaveBeenCalledTimes(2);
-    expect(relationshipApi.patchRelationships).toHaveBeenCalledTimes(2);
-  });
-
-  it('invalidates after a failed Keto write whose outcome is uncertain', async () => {
-    const cache = new PermissionCheckCache();
-    const permissionApi = {
-      checkPermission: vi
-        .fn()
-        .mockResolvedValueOnce({ allowed: true })
-        .mockResolvedValueOnce({ allowed: false }),
-    } as unknown as PermissionApi;
-    const relationshipApi = {
-      deleteRelationships: vi
-        .fn()
-        .mockRejectedValue(new Error('connection reset')),
-    } as unknown as RelationshipApi;
-    const checker = createPermissionChecker(permissionApi, undefined, cache);
-    const writer = createRelationshipWriter(
-      relationshipApi,
-      relationshipApi,
-      cache,
-    );
-
-    expect(
-      await checker.canViewTask('task-1', 'agent-1', KetoNamespace.Agent),
-    ).toBe(true);
-    await expect(
-      writer.removeTaskClaimant('task-1', 'agent-1'),
-    ).rejects.toThrow('connection reset');
-    expect(
-      await checker.canViewTask('task-1', 'agent-1', KetoNamespace.Agent),
-    ).toBe(false);
-    expect(permissionApi.checkPermission).toHaveBeenCalledTimes(2);
-  });
-
-  it('keeps unrelated cache entries after a writer no-op', async () => {
-    const cache = new PermissionCheckCache();
-    const permissionApi = {
-      checkPermission: vi.fn().mockResolvedValue({ allowed: true }),
-    } as unknown as PermissionApi;
-    const relationshipApi = {
-      patchRelationships: vi.fn(),
-    } as unknown as RelationshipApi;
-    const checker = createPermissionChecker(permissionApi, undefined, cache);
-    const writer = createRelationshipWriter(
-      relationshipApi,
-      relationshipApi,
-      cache,
-    );
-
-    await checker.canViewTask('task-1', 'agent-1', KetoNamespace.Agent);
-    await writer.removeTaskRelationsBatch([]);
-    await writer.writeRuntimePolicyEdges('policy-1', {});
-    expect(
-      await checker.canViewTask('task-1', 'agent-1', KetoNamespace.Agent),
-    ).toBe(true);
-    expect(permissionApi.checkPermission).toHaveBeenCalledTimes(1);
-    expect(relationshipApi.patchRelationships).not.toHaveBeenCalled();
   });
 });

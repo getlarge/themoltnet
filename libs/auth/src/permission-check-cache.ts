@@ -8,6 +8,7 @@ export interface PermissionTuple {
 }
 
 export interface PermissionCheckCacheOptions {
+  /** Zero disables retained results; in-flight checks can still coalesce. */
   ttlMs?: number;
   maxEntries?: number;
   now?: () => number;
@@ -30,7 +31,6 @@ const calls = createMetricCounter(
 export class PermissionCheckCache {
   private readonly entries = new Map<string, number>();
   private readonly flights = new Map<string, Promise<boolean>>();
-  private generation = 0;
   private readonly ttlMs: number;
   private readonly maxEntries: number;
   private readonly now: () => number;
@@ -56,13 +56,6 @@ export class PermissionCheckCache {
         tuple.relation === 'access'
           ? this.ttlMs
           : 0);
-  }
-
-  /** Clear derived permissions too: a team or diary edge affects other objects. */
-  invalidate(): void {
-    this.generation++;
-    this.entries.clear();
-    this.flights.clear();
   }
 
   recordCall(
@@ -92,8 +85,8 @@ export class PermissionCheckCache {
     return true;
   }
 
-  private save(key: string, ttl: number, generation: number): void {
-    if (generation !== this.generation || ttl <= 0) return;
+  private save(key: string, ttl: number): void {
+    if (ttl <= 0) return;
     this.entries.delete(key);
     this.entries.set(key, this.now() + ttl);
     if (this.entries.size > this.maxEntries) {
@@ -118,9 +111,8 @@ export class PermissionCheckCache {
       return existing;
     }
     accesses.add(1, { result: ttl > 0 ? 'miss' : 'bypass' });
-    const generation = this.generation;
     const promise = load().then((allowed) => {
-      if (allowed) this.save(key, ttl, generation);
+      if (allowed) this.save(key, ttl);
       return allowed;
     });
     this.flights.set(key, promise);
@@ -143,7 +135,6 @@ export class PermissionCheckCache {
       resolve: (allowed: boolean) => void;
       reject: (error: unknown) => void;
       promise: Promise<boolean>;
-      generation: number;
       missIndex: number;
     }> = [];
     const results = tuples.map((tuple) => {
@@ -173,7 +164,6 @@ export class PermissionCheckCache {
         resolve,
         reject,
         promise,
-        generation: this.generation,
         missIndex: misses.length,
       };
       pending.push(item);
@@ -187,8 +177,7 @@ export class PermissionCheckCache {
         const loaded = await load(misses);
         for (const item of pending) {
           const allowed = loaded[item.missIndex] ?? false;
-          if (allowed)
-            this.save(item.key, this.ttlFor(item.tuple), item.generation);
+          if (allowed) this.save(item.key, this.ttlFor(item.tuple));
           item.resolve(allowed);
         }
       } catch (error) {

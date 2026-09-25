@@ -18,9 +18,9 @@ import {
   TaskPermission,
   TeamPermission,
 } from './keto-constants.js';
-import {
+import type {
   PermissionCheckCache,
-  type PermissionTuple,
+  PermissionTuple,
 } from './permission-check-cache.js';
 import { parseRetryAfter, remoteErrorStatus } from './remote-auth-error.js';
 
@@ -398,10 +398,7 @@ async function rawBatchCheckPermissionsWithStatus(
 export function createPermissionChecker(
   permissionApi: PermissionApi,
   logger: PermissionCheckerLogger = pino({ name: 'permission-checker' }),
-  // Callers must share a cache with their writer to retain positive decisions.
-  // The legacy two-argument form still coalesces concurrent checks, but stores
-  // no result and therefore cannot serve a stale allow after a local write.
-  cache: PermissionCheckCache = new PermissionCheckCache({ ttlMs: 0 }),
+  cache?: PermissionCheckCache,
 ): PermissionChecker {
   const log = logger.child({ component: 'permission-checker' });
   const checkPermissionCached = (
@@ -412,52 +409,62 @@ export function createPermissionChecker(
     subjectNs: string,
     subjectId: string,
     logger: PermissionCheckerLogger,
-  ): Promise<boolean> =>
-    cache.check(
-      {
-        namespace,
-        object,
-        relation,
-        subject_set: { namespace: subjectNs, object: subjectId, relation: '' },
-      },
-      async () => {
-        try {
-          const allowed = await rawCheckPermission(
-            api,
+  ): Promise<boolean> => {
+    const load = async () => {
+      try {
+        const allowed = await rawCheckPermission(
+          api,
+          namespace,
+          object,
+          relation,
+          subjectNs,
+          subjectId,
+          logger,
+        );
+        cache?.recordCall('single', 'ok');
+        return allowed;
+      } catch (error) {
+        cache?.recordCall('single', 'error');
+        throw error;
+      }
+    };
+    return cache
+      ? cache.check(
+          {
             namespace,
             object,
             relation,
-            subjectNs,
-            subjectId,
-            logger,
-          );
-          cache.recordCall('single', 'ok');
-          return allowed;
-        } catch (error) {
-          cache.recordCall('single', 'error');
-          throw error;
-        }
-      },
-    );
+            subject_set: {
+              namespace: subjectNs,
+              object: subjectId,
+              relation: '',
+            },
+          },
+          load,
+        )
+      : load();
+  };
   const batchCheckPermissionsCached = (
     api: PermissionApi,
     logger: PermissionCheckerLogger,
     tuples: PermissionTuple[],
-  ): Promise<boolean[]> =>
-    cache.batch(tuples, async (misses) => {
+  ): Promise<boolean[]> => {
+    const load = async (misses: PermissionTuple[]) => {
       try {
         const result = await rawBatchCheckPermissionsWithStatus(
           api,
           logger,
           misses,
         );
-        cache.recordCall('batch', result.hadErrors ? 'partial_error' : 'ok');
+        cache?.recordCall('batch', result.hadErrors ? 'partial_error' : 'ok');
         return result.permissions;
       } catch (error) {
-        cache.recordCall('batch', 'error');
+        cache?.recordCall('batch', 'error');
         throw error;
       }
-    });
+    };
+    return cache ? cache.batch(tuples, load) : load(tuples);
+  };
   const batchCheckPermissionsWithStatusTracked = async (
     api: PermissionApi,
     logger: PermissionCheckerLogger,
@@ -470,10 +477,10 @@ export function createPermissionChecker(
         tuples,
       );
       if (tuples.length > 0)
-        cache.recordCall('batch', result.hadErrors ? 'partial_error' : 'ok');
+        cache?.recordCall('batch', result.hadErrors ? 'partial_error' : 'ok');
       return result;
     } catch (error) {
-      cache.recordCall('batch', 'error');
+      cache?.recordCall('batch', 'error');
       throw error;
     }
   };
