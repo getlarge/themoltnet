@@ -34,6 +34,7 @@ cleanup() {
 trap cleanup EXIT
 
 "${compose[@]}" up -d --wait --wait-timeout 300
+"${compose[@]}" cp caddy:/data/caddy/pki/authorities/local/root.crt "$temporary/local-ca.crt"
 "${compose[@]}" exec -T postgres sh -ec '
   PGPASSWORD="$KETO_DB_PASSWORD" psql -h localhost -U keto -d keto -Atqc "select 1" | grep -qx 1
   if PGPASSWORD="$KETO_DB_PASSWORD" psql -h localhost -U keto -d kratos -Atqc "select 1" >/dev/null 2>&1; then
@@ -41,4 +42,4 @@ trap cleanup EXIT
     exit 1
   fi
 '
-(cd "$repo_root" && pnpm exec tsx tools/release/self-host-smoke.mjs "$temporary/self-host-smoke.env")
+(cd "$repo_root" && pnpm exec tsx tools/release/self-host-smoke.mjs "$temporary/self-host-smoke.env" "$temporary/local-ca.crt")

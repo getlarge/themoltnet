@@ -11,9 +11,13 @@ import { URLSearchParams } from 'node:url';
 import { createE2EAgentHarness } from '../../libs/bootstrap/src/e2e-harness.ts';
 import { createS3CompatibleObjectStorage } from '../../libs/blob-storage/src/index.ts';
 
-const envFile = process.argv[2];
-if (!envFile)
-  throw new Error('Usage: self-host-smoke.mjs <generated-env-file>');
+const [envFile, caFile] = process.argv.slice(2);
+if (!envFile || !caFile) {
+  throw new Error(
+    'Usage: self-host-smoke.mjs <generated-env-file> <local-ca-file>',
+  );
+}
+const localCa = readFileSync(caFile);
 const settings = Object.fromEntries(
   readFileSync(envFile, 'utf8')
     .split('\n')
@@ -34,7 +38,7 @@ function request(host, route, { method = 'GET', body, headers = {} } = {}) {
         path: route,
         method,
         headers: { host, ...headers },
-        rejectUnauthorized: false, // CI's Caddy uses a throwaway local CA.
+        ca: localCa,
       },
       (response) => {
         const chunks = [];
