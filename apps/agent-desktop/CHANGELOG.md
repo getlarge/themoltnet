@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.11.0](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.10.1...agent-desktop-v0.11.0) (2026-09-25)
+
+
+### Features
+
+* **agent-desktop:** configure daemon run options ([feea61d](https://github.com/getlarge/themoltnet/commit/feea61d9bb401bb544847ff9399ff0163339d7a1))
+* **agent-desktop:** expose run claim and timing options ([ab575cd](https://github.com/getlarge/themoltnet/commit/ab575cd561311a45d0a633d6cc3c7ea7e63e7c9f))
+
+
+### Bug Fixes
+
+* **agent-desktop:** resolve login shell PATH for server ([9c13d64](https://github.com/getlarge/themoltnet/commit/9c13d645d1e25582589becc6dd60116dd7430ab3))
+* **agent-desktop:** resolve login shell PATH for server ([6b914e4](https://github.com/getlarge/themoltnet/commit/6b914e43f6c0f342e103731f95bd65e3fc30d61a))
+
 ## [0.10.1](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.10.0...agent-desktop-v0.10.1) (2026-09-25)
 
 

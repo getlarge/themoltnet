@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.18.7](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.18.6...pi-runtime-v0.18.7) (2026-09-25)
+
+
+### Bug Fixes
+
+* **pi-runtime:** isolate task session resources ([47f1f46](https://github.com/getlarge/themoltnet/commit/47f1f46439822cca771a17b6b23e64423d0ff042))
+* **pi-runtime:** isolate task session resources ([c3c8608](https://github.com/getlarge/themoltnet/commit/c3c86088f75876982995362736c21173a360c51a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.7.0
+    * @themoltnet/sdk bumped to 0.147.0
+
 ## [0.18.6](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.18.5...pi-runtime-v0.18.6) (2026-09-25)
 
 

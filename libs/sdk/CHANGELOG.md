@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.147.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.146.1...sdk-v0.147.0) (2026-09-25)
+
+
+### Features
+
+* **n8n:** project ID option on task create and getMany filter ([e26ce8e](https://github.com/getlarge/themoltnet/commit/e26ce8e9a5588377e0434cc88ca4b93acc8e0d60))
+* **sdk:** add TaskBuilder.project() for project-scoped tasks ([c16faac](https://github.com/getlarge/themoltnet/commit/c16faacd0b63a626d0f7dbba1fde541e87d077c6))
+
 ## [0.146.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.146.0...sdk-v0.146.1) (2026-09-25)
 
 
