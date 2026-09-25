@@ -74,13 +74,24 @@ jobs:
           const filled = input.replace(/^([A-Z][A-Z0-9_]*)=$/gm, (_, name) => {
             if (name === 'SMTP_CONNECTION_URI') return `${name}=smtp://localhost:1025/`;
             if (name === 'ACME_EMAIL') return `${name}=ci@example.com`;
+            if (name === 'OTLP_ENDPOINT') return `${name}=`;
             if (name.endsWith('_IMAGE')) return `${name}=ci-placeholder`;
             return `${name}=${randomBytes(name === 'KRATOS_CIPHER_SECRET' ? 16 : 32).toString('hex')}`;
           });
           writeFileSync(path.join(process.env.RUNNER_TEMP, 'self-host-ci.env'), filled, { mode: 0o600 });
           NODE
           compose=(docker compose -p self-host-ci --env-file "$RUNNER_TEMP/self-host-ci.env" --env-file .env.release)
-          trap '"${compose[@]}" down -v' EXIT
+          cleanup() {
+            status=$?
+            if [ "$status" -ne 0 ]; then
+              "${compose[@]}" ps || true
+              "${compose[@]}" logs --tail=80 rest-api mcp-server postgres || true
+            fi
+            "${compose[@]}" down -v
+            trap - EXIT
+            exit "$status"
+          }
+          trap cleanup EXIT
           "${compose[@]}" up -d --wait --wait-timeout 300
           "${compose[@]}" exec -T postgres sh -ec '
             if PGPASSWORD="$KETO_DB_PASSWORD" psql -h localhost -U keto -d kratos -Atqc "select 1" >/dev/null 2>&1; then
