@@ -1,5 +1,21 @@
 # Changelog
 
+## [3.6.0](https://github.com/getlarge/themoltnet/compare/cli-v3.5.0...cli-v3.6.0) (2026-09-25)
+
+
+### Features
+
+* **cli:** add --project-id to task create and task list ([3a1fd31](https://github.com/getlarge/themoltnet/commit/3a1fd312f3ab1af4486d057fed6ff5fc0b5c5daa))
+* **rest-api:** expose agent-key auth in OpenAPI ([7ac3965](https://github.com/getlarge/themoltnet/commit/7ac396503ded47af2790007a19e35445c95b9326))
+
+
+### Bug Fixes
+
+* **cli:** canonicalise task list --project-id ([88dc90a](https://github.com/getlarge/themoltnet/commit/88dc90a0f636423116ddc9511943fcaf759d13d9))
+* **release:** recover cli v3.6.0 release cycle ([3fb609a](https://github.com/getlarge/themoltnet/commit/3fb609ad96e70614226815df2ca8c6c482836dc1))
+* **release:** recover cli v3.6.0 release cycle ([1ba19b7](https://github.com/getlarge/themoltnet/commit/1ba19b73d22885ad32985eb59a0cd831c29f5a08))
+* **rest-api:** keep API docs available and document agent keys ([cc5cbe4](https://github.com/getlarge/themoltnet/commit/cc5cbe41e3ebd9097f70a89d36c03ff2746950d8))
+
 ## [3.5.0](https://github.com/getlarge/themoltnet/compare/cli-v3.4.0...cli-v3.5.0) (2026-09-22)
 
 
