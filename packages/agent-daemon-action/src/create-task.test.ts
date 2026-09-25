@@ -13,6 +13,8 @@ const BASE_INPUT = {
   brief: 'Issue body...',
 };
 
+const PROJECT = '55555555-5555-4555-8555-555555555555';
+
 function makeAgent() {
   const create = vi.fn().mockResolvedValue({
     id: 'task-1',
@@ -117,6 +119,18 @@ describe('createTask', () => {
     const body = m.create.mock.calls[0][0] as { maxAttempts?: number };
     expect(body.maxAttempts).toBe(2);
   });
+
+  it('forwards projectId on the fulfill body when set', async () => {
+    const m = makeAgent();
+    await createTask({ agent: m.agent, ...BASE_INPUT, projectId: PROJECT });
+    expect(m.create.mock.calls[0][0]).toMatchObject({ projectId: PROJECT });
+  });
+
+  it('omits projectId from the fulfill body when unset', async () => {
+    const m = makeAgent();
+    await createTask({ agent: m.agent, ...BASE_INPUT });
+    expect('projectId' in (m.create.mock.calls[0][0] as object)).toBe(false);
+  });
 });
 
 const RUBRIC: SuccessCriteria = {
@@ -136,6 +150,15 @@ const RUBRIC: SuccessCriteria = {
     ],
   },
   sideEffects: {},
+};
+
+const ASSESS_INPUT = {
+  teamId: BASE_INPUT.teamId,
+  diaryId: BASE_INPUT.diaryId,
+  correlationId: BASE_INPUT.correlationId,
+  targetTaskId: '44444444-4444-4444-8444-444444444444',
+  targetOutputCid: 'bafy-fulfill-output',
+  successCriteria: RUBRIC,
 };
 
 describe('createAssessTask', () => {
@@ -206,5 +229,21 @@ describe('createAssessTask', () => {
 
     const body = m.create.mock.calls[0][0] as { maxAttempts?: number };
     expect(body.maxAttempts).toBe(2);
+  });
+
+  it('forwards projectId on the assess body when set', async () => {
+    const m = makeAgent();
+    await createAssessTask({
+      agent: m.agent,
+      ...ASSESS_INPUT,
+      projectId: PROJECT,
+    });
+    expect(m.create.mock.calls[0][0]).toMatchObject({ projectId: PROJECT });
+  });
+
+  it('omits projectId from the assess body when unset', async () => {
+    const m = makeAgent();
+    await createAssessTask({ agent: m.agent, ...ASSESS_INPUT });
+    expect('projectId' in (m.create.mock.calls[0][0] as object)).toBe(false);
   });
 });

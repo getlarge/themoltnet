@@ -91,6 +91,9 @@ export async function dispatch(ctx: DispatchContext): Promise<void> {
   // them up.
   const teamId = required(env, 'MOLTNET_TEAM_ID');
   const diaryId = required(env, 'MOLTNET_DIARY_ID');
+  // Validate before connecting: a malformed project must fail the run, never
+  // degrade into General work.
+  const projectId = parseProjectId(env);
   const moltnet = await connect();
   const runningTimeoutSec = parseRunningTimeout(env);
   const maxAttempts = parseMaxAttempts(env);
@@ -108,6 +111,7 @@ export async function dispatch(ctx: DispatchContext): Promise<void> {
       runningTimeoutSec,
       maxAttempts,
       tags,
+      projectId,
     });
     return;
   }
@@ -125,6 +129,7 @@ export async function dispatch(ctx: DispatchContext): Promise<void> {
     runningTimeoutSec,
     maxAttempts,
     tags,
+    projectId,
   });
 }
 
@@ -166,6 +171,28 @@ function parseMaxAttempts(env: NodeJS.ProcessEnv): number | undefined {
   return n;
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Resolve the project scope from `MOLTNET_ACTION_PROJECT_ID`, which the
+ * action sets from its `project-id` input. Deliberately a dedicated name: the
+ * caller's ambient `MOLTNET_PROJECT_ID` must never scope work implicitly.
+ * Unset or empty means General work; anything else must be a UUID or the run
+ * fails (`none` is a list filter, not a create scope).
+ */
+function parseProjectId(env: NodeJS.ProcessEnv): string | undefined {
+  const raw = env.MOLTNET_ACTION_PROJECT_ID;
+  if (raw === undefined || raw === '') return undefined;
+  const value = raw.trim();
+  if (!UUID_PATTERN.test(value)) {
+    throw new Error(
+      `project-id must be a project UUID, got ${JSON.stringify(raw)}; leave it empty for General work`,
+    );
+  }
+  return value;
+}
+
 function parseTaskTags(env: NodeJS.ProcessEnv): string[] | undefined {
   const raw = env.MOLTNET_TASK_TAGS;
   if (!raw) return undefined;
@@ -203,6 +230,7 @@ async function dispatchFulfill(args: {
   runningTimeoutSec?: number;
   maxAttempts?: number;
   tags?: string[];
+  projectId?: string;
 }): Promise<void> {
   const correlationId = await resolveCorrelation(
     { contextType: 'issue', referenceUrl: args.referenceUrl },
@@ -224,6 +252,7 @@ async function dispatchFulfill(args: {
     runningTimeoutSec: args.runningTimeoutSec,
     maxAttempts: args.maxAttempts,
     tags: args.tags,
+    projectId: args.projectId,
   });
 
   core.setOutput('task-id', created.id);
@@ -245,6 +274,7 @@ async function dispatchAssess(args: {
   runningTimeoutSec?: number;
   maxAttempts?: number;
   tags?: string[];
+  projectId?: string;
 }): Promise<void> {
   const pr = { owner: args.owner, repo: args.repo, number: args.prNumber };
 
@@ -318,6 +348,7 @@ async function dispatchAssess(args: {
     runningTimeoutSec: args.runningTimeoutSec,
     maxAttempts: args.maxAttempts,
     tags: args.tags,
+    projectId: args.projectId,
   });
 
   core.setOutput('task-id', created.id);

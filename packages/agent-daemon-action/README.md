@@ -39,6 +39,7 @@ Four invocation shapes:
     supersession-tags: review:pr,pr:${{ github.event.pull_request.number }}
     skip-validation: 'false' # only applies with task-spec-path
     max-attempts: '2' # optional task-level retry budget
+    project-id: ${{ vars.MOLTNET_PROJECT_UUID }} # optional; empty = General work
     mode: once # once | drain (poll disallowed in CI)
     task-types: freeform # drain only
     correlation-id: ${{ needs.prepare.outputs.correlation-id }} # drain only
@@ -89,6 +90,27 @@ The full provisioning walkthrough (`moltnet agents init` → `moltnet config
 export-env` → upload → `moltnet config init-from-env` on the runner)
 is documented in
 [`docs/operate/running-agents.md` § GitHub Actions](https://github.com/getlarge/themoltnet/blob/main/docs/operate/running-agents.md#github-actions).
+
+### Project-scoped runs
+
+Set `project-id` to a project UUID to scope the work to that project. Tasks the
+action creates, from `task-spec-path` or from a `@moltnet-*` mention, carry that
+`projectId`. The daemon then runs bound to the project: the action writes a
+one-binding project config to `$RUNNER_TEMP` that registers the runner checkout
+(`$GITHUB_WORKSPACE`, strategy `existing`) for `MOLTNET_TEAM_ID` and
+`MOLTNET_API_URL`, and passes `--config-file` and `--binding` in place of
+`--team`. `once` and `drain` then claim only that project's work.
+
+- Leave it empty for General work. The action never takes the project from the
+  environment. An ambient `MOLTNET_PROJECT_ID` is ignored when the action
+  creates tasks.
+- `project-id` requires `MOLTNET_TEAM_ID`. The value must be a UUID. `none` is
+  a list filter, not a scope for creating tasks.
+- The step fails, and nothing is created as General work, if the resolved
+  `@themoltnet/cli` lacks `task create --project-id` (pin a newer one with
+  `MOLTNET_CLI_VERSION`) or the installed daemon lacks `--binding`.
+- The runtime profile must allow the `shared_mount` workspace mode, because
+  strategy `existing` maps to it.
 
 ## Runner requirements
 

@@ -37327,6 +37327,18 @@ var TaskBuilder = class {
 		return this;
 	}
 	/**
+	* Scope the task to a shared project. Only runs bound to this project can
+	* claim it; omit the call for General work. The project is never inferred
+	* from a local binding.
+	*
+	* @param projectId - Project UUID in the task's team.
+	* @returns This builder, for chaining.
+	*/
+	project(projectId) {
+		this.body.projectId = projectId;
+		return this;
+	}
+	/**
 	* Set the correlation id. Auto-generated server-side if omitted.
 	*
 	* @param id - Correlation UUID grouping related tasks.
@@ -37441,6 +37453,10 @@ var TaskBuilder = class {
 		if (!this.body.diaryId) missing.push({
 			field: "diaryId",
 			message: "diaryId is required"
+		});
+		if (this.body.projectId !== void 0 && (this.body.projectId === "" || this.body.projectId === "none")) missing.push({
+			field: "projectId",
+			message: "projectId must be a project UUID; omit .project() for General work"
 		});
 		const normalizedInput = PRODUCER_TASK_TYPES.has(this.taskType) ? normalizeTaskInputForCreate(this.taskType, this.inputData) : this.inputData;
 		const references = this.refs.length > 0 ? this.refs : null;
@@ -41089,7 +41105,8 @@ async function createTask(input) {
 		correlationId: input.correlationId,
 		...input.runningTimeoutSec !== void 0 ? { runningTimeoutSec: input.runningTimeoutSec } : {},
 		...input.maxAttempts !== void 0 ? { maxAttempts: input.maxAttempts } : {},
-		...input.tags?.length ? { tags: input.tags } : {}
+		...input.tags?.length ? { tags: input.tags } : {},
+		...input.projectId ? { projectId: input.projectId } : {}
 	}, { teamId: input.teamId });
 }
 async function createAssessTask(input) {
@@ -41110,7 +41127,8 @@ async function createAssessTask(input) {
 		correlationId: input.correlationId,
 		...input.runningTimeoutSec !== void 0 ? { runningTimeoutSec: input.runningTimeoutSec } : {},
 		...input.maxAttempts !== void 0 ? { maxAttempts: input.maxAttempts } : {},
-		...input.tags?.length ? { tags: input.tags } : {}
+		...input.tags?.length ? { tags: input.tags } : {},
+		...input.projectId ? { projectId: input.projectId } : {}
 	}, { teamId: input.teamId });
 }
 //#endregion
@@ -41239,6 +41257,7 @@ async function dispatch(ctx) {
 	}
 	const teamId = required(env, "MOLTNET_TEAM_ID");
 	const diaryId = required(env, "MOLTNET_DIARY_ID");
+	const projectId = parseProjectId(env);
 	const moltnet = await connect();
 	const runningTimeoutSec = parseRunningTimeout(env);
 	const maxAttempts = parseMaxAttempts(env);
@@ -41254,7 +41273,8 @@ async function dispatch(ctx) {
 			issueBody: extracted.issueBody,
 			runningTimeoutSec,
 			maxAttempts,
-			tags
+			tags,
+			projectId
 		});
 		return;
 	}
@@ -41269,7 +41289,8 @@ async function dispatch(ctx) {
 		referenceUrl: extracted.referenceUrl,
 		runningTimeoutSec,
 		maxAttempts,
-		tags
+		tags,
+		projectId
 	});
 }
 /**
@@ -41304,6 +41325,21 @@ function parseMaxAttempts(env) {
 	}
 	return n;
 }
+var UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/**
+* Resolve the project scope from `MOLTNET_ACTION_PROJECT_ID`, which the
+* action sets from its `project-id` input. Deliberately a dedicated name: the
+* caller's ambient `MOLTNET_PROJECT_ID` must never scope work implicitly.
+* Unset or empty means General work; anything else must be a UUID or the run
+* fails (`none` is a list filter, not a create scope).
+*/
+function parseProjectId(env) {
+	const raw = env.MOLTNET_ACTION_PROJECT_ID;
+	if (raw === void 0 || raw === "") return void 0;
+	const value = raw.trim();
+	if (!UUID_PATTERN.test(value)) throw new Error(`project-id must be a project UUID, got ${JSON.stringify(raw)}; leave it empty for General work`);
+	return value;
+}
 function parseTaskTags(env) {
 	const raw = env.MOLTNET_TASK_TAGS;
 	if (!raw) return void 0;
@@ -41333,7 +41369,8 @@ async function dispatchFulfill(args) {
 		brief: args.issueBody ?? "",
 		runningTimeoutSec: args.runningTimeoutSec,
 		maxAttempts: args.maxAttempts,
-		tags: args.tags
+		tags: args.tags,
+		projectId: args.projectId
 	});
 	setOutput("task-id", created.id);
 	setOutput("correlation-id", correlationId);
@@ -41386,7 +41423,8 @@ async function dispatchAssess(args) {
 		successCriteria,
 		runningTimeoutSec: args.runningTimeoutSec,
 		maxAttempts: args.maxAttempts,
-		tags: args.tags
+		tags: args.tags,
+		projectId: args.projectId
 	});
 	setOutput("task-id", created.id);
 	setOutput("correlation-id", correlationId);

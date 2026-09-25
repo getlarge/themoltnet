@@ -60,6 +60,11 @@ export interface FulfillTaskInput {
   maxAttempts?: number;
   /** Optional task tags for queue filtering/reporting. */
   tags?: string[];
+  /**
+   * Optional project UUID the task is scoped to. Omitted = General work.
+   * Only ever set from the action's explicit `project-id` input.
+   */
+  projectId?: string;
 }
 
 export async function createTask(input: FulfillTaskInput): Promise<Task> {
@@ -86,6 +91,7 @@ export async function createTask(input: FulfillTaskInput): Promise<Task> {
         ? { maxAttempts: input.maxAttempts }
         : {}),
       ...(input.tags?.length ? { tags: input.tags } : {}),
+      ...(input.projectId ? { projectId: input.projectId } : {}),
     },
     { teamId: input.teamId },
   );
@@ -116,6 +122,11 @@ export interface AssessTaskInput {
   maxAttempts?: number;
   /** Optional task tags for queue filtering/reporting. */
   tags?: string[];
+  /**
+   * Optional project UUID the task is scoped to. Omitted = General work.
+   * Only ever set from the action's explicit `project-id` input.
+   */
+  projectId?: string;
 }
 
 export async function createAssessTask(input: AssessTaskInput): Promise<Task> {
@@ -143,6 +154,7 @@ export async function createAssessTask(input: AssessTaskInput): Promise<Task> {
         ? { maxAttempts: input.maxAttempts }
         : {}),
       ...(input.tags?.length ? { tags: input.tags } : {}),
+      ...(input.projectId ? { projectId: input.projectId } : {}),
     },
     { teamId: input.teamId },
   );
