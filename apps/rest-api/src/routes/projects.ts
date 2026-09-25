@@ -13,6 +13,7 @@ import {
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
 
+import { PRINCIPAL_AUTH_SECURITY } from '../openapi-security.js';
 import {
   createConflictProblem,
   createProblem,
@@ -43,11 +44,6 @@ export async function projectRoutes(fastify: FastifyInstance) {
     404: Type.Ref(ProblemDetailsSchema.$id),
     409: Type.Ref(ConflictProblemDetailsSchema.$id),
   };
-  const security: Record<string, string[]>[] = [
-    { bearerAuth: [] },
-    { sessionAuth: [] },
-    { cookieAuth: [] },
-  ];
   async function authorize(
     request: FastifyRequest,
     teamId: string,
@@ -135,7 +131,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'createProject',
         tags: ['projects'],
-        security,
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         body: CreateProjectSchema,
         response: { 201: ProjectResponseSchema, ...errors },
@@ -171,7 +167,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'listProjects',
         tags: ['projects'],
-        security,
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         querystring: Type.Object({
           includeArchived: Type.Optional(Type.Boolean()),
@@ -219,7 +215,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'getProject',
         tags: ['projects'],
-        security,
+        security: PRINCIPAL_AUTH_SECURITY,
         params,
         headers: TeamHeaderOptionalSchema,
         response: { 200: ProjectResponseSchema, ...errors },
@@ -245,7 +241,7 @@ export async function projectRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'updateProject',
         tags: ['projects'],
-        security,
+        security: PRINCIPAL_AUTH_SECURITY,
         params,
         headers: TeamHeaderOptionalSchema,
         body: UpdateProjectSchema,

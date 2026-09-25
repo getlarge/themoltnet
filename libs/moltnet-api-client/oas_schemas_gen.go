@@ -410,6 +410,31 @@ func NewIdentityAgentKeyAgentKey(v IdentityAgentKey) AgentKey {
 	return s
 }
 
+type AgentKeyAuth struct {
+	Token string
+	Roles []string
+}
+
+// GetToken returns the value of Token.
+func (s *AgentKeyAuth) GetToken() string {
+	return s.Token
+}
+
+// GetRoles returns the value of Roles.
+func (s *AgentKeyAuth) GetRoles() []string {
+	return s.Roles
+}
+
+// SetToken sets the value of Token.
+func (s *AgentKeyAuth) SetToken(val string) {
+	s.Token = val
+}
+
+// SetRoles sets the value of Roles.
+func (s *AgentKeyAuth) SetRoles(val []string) {
+	s.Roles = val
+}
+
 // Ref: #/components/schemas/AgentKeyBindingScope
 type AgentKeyBindingScope string
 

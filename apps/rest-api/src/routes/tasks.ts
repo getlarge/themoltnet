@@ -31,6 +31,10 @@ import { sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { type Static, Type } from 'typebox';
 
+import {
+  OAUTH_OR_AGENT_KEY_SECURITY,
+  PRINCIPAL_AUTH_SECURITY,
+} from '../openapi-security.js';
 import { createProblem, createValidationProblem } from '../problems/index.js';
 import {
   AbortTaskBodySchema,
@@ -282,7 +286,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           'List built-in task types with their input schemas and CIDs. ' +
           'Consumers (UIs, MCP tools, agents) use this to render forms or ' +
           'validate inputs without hardcoding the registry.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         response: {
           200: Type.Ref(ListTaskSchemasResponseSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
@@ -317,7 +321,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         operationId: 'createTask',
         tags: ['tasks'],
         description: 'Create and enqueue a new task.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: CreateTaskHeadersSchema,
         body: CreateTaskBodySchema,
         response: {
@@ -388,7 +392,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         operationId: 'listTasks',
         tags: ['tasks'],
         description: 'List tasks for a team with optional filters.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         querystring: ListTasksQuerySchema,
         response: {
@@ -452,7 +456,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         tags: ['tasks'],
         description:
           'Queue asynchronous deletion of waiting, queued, and terminal tasks in bulk. By default, dispatched, running, unauthorized, missing, and protected tasks are skipped. Set force: true with a reason to delete protected terminal tasks.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         body: BatchDeleteTasksBodySchema,
         response: {
@@ -614,7 +618,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         tags: ['tasks'],
         description:
           'Return bounded product analytics for task attempts: success, productivity, hurdles, knowledge leverage, and token-efficiency ROI proxies.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         querystring: TaskActivityAnalyticsQuerySchema,
         response: {
@@ -674,7 +678,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         operationId: 'getTask',
         tags: ['tasks'],
         description: 'Get a task by ID.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         params: TaskParamsSchema,
         response: {
@@ -718,7 +722,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         tags: ['tasks'],
         description:
           'Update mutable task metadata used for cohorting and search.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         params: TaskParamsSchema,
         body: UpdateTaskMetadataBodySchema,
@@ -764,7 +768,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         operationId: 'listTaskGrants',
         tags: ['tasks'],
         description: 'List explicit writer and manager grants for a task.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         params: TaskParamsSchema,
         response: {
@@ -829,7 +833,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         tags: ['tasks'],
         description:
           'Grant writer or manager access to a task for an agent, human, or group.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         params: TaskParamsSchema,
         body: CreateTaskGrantSchema,
@@ -922,7 +926,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         operationId: 'revokeTaskGrant',
         tags: ['tasks'],
         description: 'Revoke an explicit writer or manager task grant.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         params: TaskParamsSchema,
         body: RevokeTaskGrantSchema,
@@ -996,7 +1000,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         tags: ['tasks'],
         description:
           'Register an agent-signed executor manifest for fingerprint-only task claims.',
-        security: [{ bearerAuth: [] }],
+        security: OAUTH_OR_AGENT_KEY_SECURITY,
         body: RegisterExecutorManifestBodySchema,
         response: {
           200: RegisterExecutorManifestResponseSchema,
@@ -1037,7 +1041,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         operationId: 'claimTask',
         tags: ['tasks'],
         description: 'Claim a queued task and start an attempt.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         params: TaskParamsSchema,
         body: ClaimTaskBodySchema,
@@ -1115,7 +1119,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         operationId: 'taskHeartbeat',
         tags: ['tasks'],
         description: 'Send a heartbeat to keep the attempt lease alive.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         params: TaskAttemptParamsSchema,
         body: HeartbeatBodySchema,
@@ -1161,7 +1165,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         operationId: 'completeTask',
         tags: ['tasks'],
         description: 'Mark an attempt as completed with output.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         params: TaskAttemptParamsSchema,
         body: CompleteTaskBodySchema,
@@ -1217,7 +1221,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         operationId: 'failTaskAttempt',
         tags: ['tasks'],
         description: 'Mark an attempt as failed with error details.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         params: TaskAttemptParamsSchema,
         body: FailTaskBodySchema,
@@ -1268,7 +1272,7 @@ export function taskRoutes(fastify: FastifyInstance) {
           'Claimant intentionally abandons this attempt (e.g. daemon shutdown). ' +
           'The attempt becomes aborted and the task requeues for another claim ' +
           '(or fails when retries are exhausted). Does NOT cancel the task.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         params: TaskAttemptParamsSchema,
         body: AbortTaskBodySchema,
@@ -1316,7 +1320,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         operationId: 'cancelTask',
         tags: ['tasks'],
         description: 'Cancel a task.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         params: TaskParamsSchema,
         body: CancelTaskBodySchema,
@@ -1369,7 +1373,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         operationId: 'listTaskAttempts',
         tags: ['tasks'],
         description: 'List all attempts for a task.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         params: TaskParamsSchema,
         response: {
@@ -1413,7 +1417,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         operationId: 'listTaskMessages',
         tags: ['tasks'],
         description: 'List messages for a task attempt.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         params: TaskAttemptParamsSchema,
         querystring: ListMessagesQuerySchema,
@@ -1463,7 +1467,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         operationId: 'appendTaskMessages',
         tags: ['tasks'],
         description: 'Append messages to a task attempt.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         params: TaskAttemptParamsSchema,
         body: AppendMessagesBodySchema,

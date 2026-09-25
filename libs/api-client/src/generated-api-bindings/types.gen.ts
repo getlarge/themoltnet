@@ -6930,6 +6930,17 @@ export type GetOAuth2TokenErrors = {
   /**
    * Default Response
    */
+  502: {
+    error: string;
+    error_debug?: string;
+    error_description?: string;
+    error_hint?: string;
+    status_code?: number;
+    [key: string]: unknown | string | number | undefined;
+  };
+  /**
+   * Default Response
+   */
   503: {
     error: string;
     error_debug?: string;

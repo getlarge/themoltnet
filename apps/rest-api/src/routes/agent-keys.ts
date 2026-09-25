@@ -15,6 +15,7 @@ import type { ApiKeysApi } from '@ory/client-fetch';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
 
+import { PRINCIPAL_AUTH_SECURITY } from '../openapi-security.js';
 import { createProblem, createValidationProblem } from '../problems/index.js';
 import {
   AgentKeyBindingQuerySchema,
@@ -136,7 +137,7 @@ export async function agentKeyRoutes(
         tags: ['agent-keys'],
         description:
           'Issue a secret API key bound to one agent identity or, by default, the active team.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: AgentKeyIssueHeadersSchema,
         body: CreateAgentKeyBodySchema,
         response: {
@@ -181,7 +182,7 @@ export async function agentKeyRoutes(
         tags: ['agent-keys'],
         description:
           'List agent API keys for the selected binding. Team scope is the default; identity scope is agent self-service.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         querystring: Type.Intersect([
           AgentKeyBindingQuerySchema,
@@ -234,7 +235,7 @@ export async function agentKeyRoutes(
         tags: ['agent-keys'],
         description:
           'Rotate an agent API key immediately. The previous secret is revoked and expiry is unchanged.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         params: AgentKeyParamsSchema,
         querystring: AgentKeyBindingQuerySchema,
@@ -282,7 +283,7 @@ export async function agentKeyRoutes(
         operationId: 'revokeAgentKey',
         tags: ['agent-keys'],
         description: 'Permanently revoke an agent API key.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderOptionalSchema,
         params: AgentKeyParamsSchema,
         querystring: AgentKeyBindingQuerySchema,

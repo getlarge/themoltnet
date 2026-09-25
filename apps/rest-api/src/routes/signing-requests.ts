@@ -11,7 +11,6 @@
  * and group membership, while the persisted signer constraint selects which
  * eligible human may claim and complete the request.
  */
-
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import { buildSigningBytes } from '@moltnet/crypto-service';
@@ -27,6 +26,10 @@ import {
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
+import {
+  HUMAN_SESSION_SECURITY,
+  PRINCIPAL_AUTH_SECURITY,
+} from '../openapi-security.js';
 import {
   CompletePreviewSignRequestSchema,
   MAX_ED25519_SIGNATURE_LENGTH,
@@ -92,7 +95,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         tags: ['crypto'],
         description:
           'Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for the agent to submit a signature.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         body: Type.Object({
           message: Type.String({ minLength: 1, maxLength: 100000 }),
           verificationMethod: Type.Optional(VerificationMethodSchema),
@@ -158,7 +161,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         operationId: 'listSigningRequests',
         tags: ['crypto'],
         description: 'List signing requests for the authenticated agent.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         querystring: Type.Object({
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
           offset: Type.Optional(Type.Number({ minimum: 0 })),
@@ -230,7 +233,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         operationId: 'getSigningRequest',
         tags: ['crypto'],
         description: 'Get a specific signing request by ID.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: SigningRequestParamsSchema,
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
@@ -269,7 +272,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'claimSigningRequest',
         tags: ['crypto'],
-        security: [{ sessionAuth: [] }, { cookieAuth: [] }],
+        security: HUMAN_SESSION_SECURITY,
         headers: TeamHeaderRequiredSchema,
         params: SigningRequestParamsSchema,
         body: Type.Object({
@@ -329,7 +332,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'completeSigningRequest',
         tags: ['crypto'],
-        security: [{ sessionAuth: [] }, { cookieAuth: [] }],
+        security: HUMAN_SESSION_SECURITY,
         headers: TeamHeaderRequiredSchema,
         params: SigningRequestParamsSchema,
         body: CompletePreviewSignRequestSchema,
@@ -386,7 +389,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       schema: {
         operationId: 'rejectSigningRequest',
         tags: ['crypto'],
-        security: [{ sessionAuth: [] }, { cookieAuth: [] }],
+        security: HUMAN_SESSION_SECURITY,
         headers: TeamHeaderRequiredSchema,
         params: SigningRequestParamsSchema,
         body: Type.Object({
@@ -444,7 +447,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         tags: ['crypto'],
         description:
           'Submit a signature for a signing request. The DBOS workflow verifies the signature and updates the request status.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: SigningRequestParamsSchema,
         body: Type.Object({
           signature: Type.String({

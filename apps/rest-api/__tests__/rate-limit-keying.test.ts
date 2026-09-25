@@ -199,6 +199,86 @@ describe('Rate limiter keys by verified identity (#1336)', () => {
     await app.close();
   });
 
+  it('keeps Scalar assets available after credential spray exhausts the IP bucket', async () => {
+    const app = await createTestApp(mocks, null, {
+      rateLimitPreResolveIp: 1,
+      rateLimitGlobalAnon: 1,
+    });
+    try {
+      const invalid = () =>
+        app.inject({
+          url: '/tasks',
+          headers: { authorization: 'Bearer invalid' },
+        });
+      await invalid();
+      expect((await invalid()).statusCode).toBe(429);
+
+      for (const path of [
+        '/docs',
+        '/docs/',
+        '/docs/openapi.json',
+        '/docs/openapi.yaml',
+        '/docs/js/scalar.js',
+      ]) {
+        const response = await app.inject({
+          url: `${path}?preview=1`,
+          headers: { cookie: 'ory_kratos_session=invalid' },
+        });
+        expect(response.statusCode, path).not.toBe(429);
+        expect(response.statusCode, path).toBeLessThan(400);
+      }
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('only counts credentials that may need resolution in the general pre-resolution bucket', async () => {
+    const app = await createTestApp(mocks, null, {
+      rateLimitPreResolveIp: 2,
+      rateLimitGlobalAnon: 100,
+    });
+    try {
+      for (let i = 0; i < 4; i++) {
+        expect((await app.inject({ url: '/tasks' })).statusCode).not.toBe(429);
+        expect(
+          (
+            await app.inject({
+              url: '/tasks',
+              headers: { cookie: 'analytics=unrelated' },
+            })
+          ).statusCode,
+        ).not.toBe(429);
+      }
+
+      expect(
+        (
+          await app.inject({
+            url: '/tasks',
+            headers: { authorization: 'Bearer invalid' },
+          })
+        ).statusCode,
+      ).not.toBe(429);
+      expect(
+        (
+          await app.inject({
+            url: '/tasks',
+            headers: { 'x-moltnet-session-token': 'invalid' },
+          })
+        ).statusCode,
+      ).not.toBe(429);
+      expect(
+        (
+          await app.inject({
+            url: '/tasks',
+            headers: { cookie: 'analytics=x; ory_kratos_session=invalid' },
+          })
+        ).statusCode,
+      ).toBe(429);
+    } finally {
+      await app.close();
+    }
+  });
+
   it('reserves separate pre-resolution budgets for consent and provisioning', async () => {
     const app = await createTestApp(mocks, null, {
       rateLimitPreResolveIp: 1,
@@ -208,9 +288,19 @@ describe('Rate limiter keys by verified identity (#1336)', () => {
       rateLimitOauthProvision: 2,
     });
     try {
-      await app.inject({ method: 'GET', url: '/tasks' });
+      await app.inject({
+        method: 'GET',
+        url: '/tasks',
+        headers: { authorization: 'Bearer invalid' },
+      });
       expect(
-        (await app.inject({ method: 'GET', url: '/tasks' })).statusCode,
+        (
+          await app.inject({
+            method: 'GET',
+            url: '/tasks',
+            headers: { authorization: 'Bearer invalid' },
+          })
+        ).statusCode,
       ).toBe(429);
 
       const consent = () =>

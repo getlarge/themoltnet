@@ -19,6 +19,7 @@ import {
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
 
+import { OAUTH_BEARER_SECURITY } from '../openapi-security.js';
 import { consentCspHeader } from '../plugins/security-headers.js';
 import { createProblem } from '../problems/index.js';
 import { AgentKeyWithSecretSchema } from '../schemas/agent-keys.js';
@@ -498,7 +499,7 @@ export async function oauth2ApprovalRoutes(
       schema: {
         operationId: 'provisionAgentCredential',
         tags: ['agent-keys'],
-        security: [{ bearerAuth: [] }],
+        security: OAUTH_BEARER_SECURITY,
         body: Type.Object(
           {
             agentProof: Type.Optional(

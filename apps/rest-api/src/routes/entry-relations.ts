@@ -6,7 +6,6 @@
  * PATCH /relations/:id               — update relation status
  * DELETE /relations/:id              — delete a relation
  */
-
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import type { EntryRelation } from '@moltnet/database';
@@ -14,6 +13,7 @@ import { EntryParamsSchema, ProblemDetailsSchema } from '@moltnet/models';
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
+import { PRINCIPAL_AUTH_SECURITY } from '../openapi-security.js';
 import { createProblem } from '../problems/index.js';
 import {
   EntryRelationListSchema,
@@ -110,7 +110,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'Create a relation between two diary entries. Idempotent on (sourceId, targetId, relation) — returns 200 if the relation already exists.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: EntryParamsSchema,
         body: CreateRelationBodySchema,
         response: {
@@ -202,7 +202,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         tags: ['diary'],
         description:
           'List relations for a diary entry. When depth > 1, returns a BFS traversal (undirected — follows edges in both directions). Note: depth/parentRelationId annotations are not included in the list response schema.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: EntryParamsSchema,
         querystring: ListRelationsQuerySchema,
         response: {
@@ -289,7 +289,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         operationId: 'updateEntryRelationStatus',
         tags: ['diary'],
         description: 'Update the status of an entry relation.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: RelationIdParamsSchema,
         body: UpdateRelationStatusBodySchema,
         response: {
@@ -350,7 +350,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
         operationId: 'deleteEntryRelation',
         tags: ['diary'],
         description: 'Delete an entry relation.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         params: RelationIdParamsSchema,
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),

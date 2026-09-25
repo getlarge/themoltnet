@@ -17,6 +17,7 @@ import {
 } from '@moltnet/runtime-profiles';
 import type { FastifyInstance } from 'fastify';
 
+import { PRINCIPAL_AUTH_SECURITY } from '../openapi-security.js';
 import { createProblem } from '../problems/index.js';
 import {
   createRuntimeSlotService,
@@ -51,7 +52,7 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
         tags: ['runtime-slots'],
         description:
           'Upsert a team-scoped runtime slot for audit and continuation affinity lookup.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         body: BeginRuntimeSlotBodySchema,
         response: {
@@ -98,7 +99,7 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
         tags: ['runtime-slots'],
         description:
           'Mark a team-scoped runtime slot idle without deleting it.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         body: FinishRuntimeSlotBodySchema,
         response: {
@@ -145,7 +146,7 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
         operationId: 'listRuntimeSlots',
         tags: ['runtime-slots'],
         description: 'List recent team-scoped runtime slots for repair/sync.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         querystring: ListRuntimeSlotsQuerySchema,
         response: {
@@ -185,7 +186,7 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
         tags: ['runtime-slots'],
         description:
           'Find the latest team-scoped runtime slot for a task attempt.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         querystring: FindLatestRuntimeSlotForAttemptQuerySchema,
         response: {

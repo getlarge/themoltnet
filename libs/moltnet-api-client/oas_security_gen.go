@@ -13,6 +13,9 @@ import (
 
 // SecurityHandler is handler for security parameters.
 type SecurityHandler interface {
+	// HandleAgentKeyAuth handles agentKeyAuth security.
+	// Agent key sent as Authorization: Bearer <agent-key>. Use on operations that accept agent keys.
+	HandleAgentKeyAuth(ctx context.Context, operationName OperationName, t AgentKeyAuth) (context.Context, error)
 	// HandleBearerAuth handles bearerAuth security.
 	// OAuth2 access token from Ory Hydra (agent auth via client_credentials flow).
 	HandleBearerAuth(ctx context.Context, operationName OperationName, t BearerAuth) (context.Context, error)
@@ -44,6 +47,161 @@ func findAuthorization(h http.Header, prefix string) (string, bool) {
 		return value, true
 	}
 	return "", false
+}
+
+// operationRolesAgentKeyAuth is a private map storing roles per operation.
+var operationRolesAgentKeyAuth = map[string][]string{
+	AbortTaskAttemptOperation:                []string{},
+	AcceptTeamFoundingOperation:              []string{},
+	AcceptTransferOperation:                  []string{},
+	AddGroupMemberOperation:                  []string{},
+	AppendTaskMessagesOperation:              []string{},
+	ApproveSigningCredentialOperation:        []string{},
+	BatchDeleteDiaryEntriesOperation:         []string{},
+	BatchDeleteTasksOperation:                []string{},
+	BeginRuntimeSlotOperation:                []string{},
+	CancelTaskOperation:                      []string{},
+	ClaimTaskOperation:                       []string{},
+	CompleteTaskOperation:                    []string{},
+	CreateAgentKeyOperation:                  []string{},
+	CreateDiaryOperation:                     []string{},
+	CreateDiaryCustomPackOperation:           []string{},
+	CreateDiaryEntryOperation:                []string{},
+	CreateDiaryGrantOperation:                []string{},
+	CreateEntryRelationOperation:             []string{},
+	CreateGroupOperation:                     []string{},
+	CreateProjectOperation:                   []string{},
+	CreateRuntimeModelOperation:              []string{},
+	CreateRuntimePolicyOperation:             []string{},
+	CreateRuntimeProfileOperation:            []string{},
+	CreateSigningRequestOperation:            []string{},
+	CreateTaskOperation:                      []string{},
+	CreateTaskGrantOperation:                 []string{},
+	CreateTeamOperation:                      []string{},
+	CreateTeamInviteOperation:                []string{},
+	DeleteDiaryOperation:                     []string{},
+	DeleteDiaryEntryByIdOperation:            []string{},
+	DeleteEntryRelationOperation:             []string{},
+	DeleteGroupOperation:                     []string{},
+	DeleteRuntimeModelOperation:              []string{},
+	DeleteRuntimePolicyOperation:             []string{},
+	DeleteRuntimeProfileOperation:            []string{},
+	DeleteTeamOperation:                      []string{},
+	DeleteTeamInviteOperation:                []string{},
+	DiffContextPacksByCidOperation:           []string{},
+	DiffContextPacksByIdOperation:            []string{},
+	DownloadRuntimeSessionOperation:          []string{},
+	DownloadTaskArtifactOperation:            []string{},
+	DownloadTaskArtifactByCidOperation:       []string{},
+	FailTaskAttemptOperation:                 []string{},
+	FindLatestRuntimeSlotForAttemptOperation: []string{},
+	FinishRuntimeSlotOperation:               []string{},
+	GetContextPackByIdOperation:              []string{},
+	GetContextPackProvenanceByCidOperation:   []string{},
+	GetContextPackProvenanceByIdOperation:    []string{},
+	GetCryptoIdentityOperation:               []string{},
+	GetDiaryOperation:                        []string{},
+	GetDiaryEntryByIdOperation:               []string{},
+	GetGroupOperation:                        []string{},
+	GetLatestRenderedPackOperation:           []string{},
+	GetProjectOperation:                      []string{},
+	GetRenderedPackByIdOperation:             []string{},
+	GetRuntimeModelOperation:                 []string{},
+	GetRuntimePolicyOperation:                []string{},
+	GetRuntimeProfileOperation:               []string{},
+	GetRuntimeProfileAllowedToolsOperation:   []string{},
+	GetRuntimeProfilePoliciesOperation:       []string{},
+	GetRuntimeSessionOperation:               []string{},
+	GetSigningCredentialOperation:            []string{},
+	GetSigningRequestOperation:               []string{},
+	GetTaskOperation:                         []string{},
+	GetTaskActivityAnalyticsOperation:        []string{},
+	GetTeamOperation:                         []string{},
+	GetWhoamiOperation:                       []string{},
+	InitiateTransferOperation:                []string{},
+	JoinTeamOperation:                        []string{},
+	ListAgentKeysOperation:                   []string{},
+	ListContextPacksOperation:                []string{},
+	ListDiariesOperation:                     []string{},
+	ListDiaryEntriesOperation:                []string{},
+	ListDiaryGrantsOperation:                 []string{},
+	ListDiaryPacksOperation:                  []string{},
+	ListDiaryRenderedPacksOperation:          []string{},
+	ListDiaryTagsOperation:                   []string{},
+	ListEntryRelationsOperation:              []string{},
+	ListGroupMembersOperation:                []string{},
+	ListGroupsOperation:                      []string{},
+	ListPendingTransfersOperation:            []string{},
+	ListProjectsOperation:                    []string{},
+	ListRuntimeModelsOperation:               []string{},
+	ListRuntimePoliciesOperation:             []string{},
+	ListRuntimeProfilesOperation:             []string{},
+	ListRuntimeSlotsOperation:                []string{},
+	ListSigningCredentialsOperation:          []string{},
+	ListSigningRequestsOperation:             []string{},
+	ListTaskArtifactsOperation:               []string{},
+	ListTaskAttemptsOperation:                []string{},
+	ListTaskGrantsOperation:                  []string{},
+	ListTaskMessagesOperation:                []string{},
+	ListTaskSchemasOperation:                 []string{},
+	ListTasksOperation:                       []string{},
+	ListTeamInvitesOperation:                 []string{},
+	ListTeamMembersOperation:                 []string{},
+	ListTeamsOperation:                       []string{},
+	PreviewDiaryCustomPackOperation:          []string{},
+	PreviewRenderedPackOperation:             []string{},
+	RegisterExecutorManifestOperation:        []string{},
+	RejectTransferOperation:                  []string{},
+	RemoveGroupMemberOperation:               []string{},
+	RemoveTeamMemberOperation:                []string{},
+	RenderContextPackOperation:               []string{},
+	RevokeAgentKeyOperation:                  []string{},
+	RevokeDiaryGrantOperation:                []string{},
+	RevokeSigningCredentialOperation:         []string{},
+	RevokeTaskGrantOperation:                 []string{},
+	RotateAgentKeyOperation:                  []string{},
+	RotateClientSecretOperation:              []string{},
+	SearchDiaryOperation:                     []string{},
+	SetRuntimeProfilePoliciesOperation:       []string{},
+	StageTaskArtifactOperation:               []string{},
+	SubmitSignatureOperation:                 []string{},
+	SuspendSigningCredentialOperation:        []string{},
+	TaskHeartbeatOperation:                   []string{},
+	UpdateContextPackOperation:               []string{},
+	UpdateDiaryOperation:                     []string{},
+	UpdateDiaryEntryByIdOperation:            []string{},
+	UpdateEntryRelationStatusOperation:       []string{},
+	UpdateProjectOperation:                   []string{},
+	UpdateRenderedPackOperation:              []string{},
+	UpdateRuntimeModelOperation:              []string{},
+	UpdateRuntimePolicyOperation:             []string{},
+	UpdateRuntimeProfileOperation:            []string{},
+	UpdateTaskMetadataOperation:              []string{},
+	UpdateTeamMemberRoleOperation:            []string{},
+	UploadRuntimeSessionOperation:            []string{},
+	UploadTaskArtifactOperation:              []string{},
+	VerifyDiaryEntryByIdOperation:            []string{},
+}
+
+// GetRolesForAgentKeyAuth returns the required roles for the given operation.
+//
+// This is useful for authorization scenarios where you need to know which roles
+// are required for an operation.
+//
+// Example:
+//
+//	requiredRoles := GetRolesForAgentKeyAuth(AddPetOperation)
+//
+// Returns nil if the operation has no role requirements or if the operation is unknown.
+func GetRolesForAgentKeyAuth(operation string) []string {
+	roles, ok := operationRolesAgentKeyAuth[operation]
+	if !ok {
+		return nil
+	}
+	// Return a copy to prevent external modification
+	result := make([]string, len(roles))
+	copy(result, roles)
+	return result
 }
 
 // operationRolesBearerAuth is a private map storing roles per operation.
@@ -522,6 +680,23 @@ func GetRolesForSessionAuth(operation string) []string {
 	return result
 }
 
+func (s *Server) securityAgentKeyAuth(ctx context.Context, operationName OperationName, req *http.Request) (context.Context, bool, error) {
+	var t AgentKeyAuth
+	token, ok := findAuthorization(req.Header, "Bearer")
+	if !ok {
+		return ctx, false, nil
+	}
+	t.Token = token
+	t.Roles = operationRolesAgentKeyAuth[operationName]
+	rctx, err := s.sec.HandleAgentKeyAuth(ctx, operationName, t)
+	if errors.Is(err, ogenerrors.ErrSkipServerSecurity) {
+		return nil, false, nil
+	} else if err != nil {
+		return nil, false, err
+	}
+	return rctx, true, err
+}
+
 func (s *Server) securityBearerAuth(ctx context.Context, operationName OperationName, req *http.Request) (context.Context, bool, error) {
 	var t BearerAuth
 	token, ok := findAuthorization(req.Header, "Bearer")
@@ -582,6 +757,9 @@ func (s *Server) securitySessionAuth(ctx context.Context, operationName Operatio
 
 // SecuritySource is provider of security values (tokens, passwords, etc.).
 type SecuritySource interface {
+	// AgentKeyAuth provides agentKeyAuth security value.
+	// Agent key sent as Authorization: Bearer <agent-key>. Use on operations that accept agent keys.
+	AgentKeyAuth(ctx context.Context, operationName OperationName) (AgentKeyAuth, error)
 	// BearerAuth provides bearerAuth security value.
 	// OAuth2 access token from Ory Hydra (agent auth via client_credentials flow).
 	BearerAuth(ctx context.Context, operationName OperationName) (BearerAuth, error)
@@ -600,6 +778,14 @@ type SecuritySource interface {
 	SessionAuth(ctx context.Context, operationName OperationName) (SessionAuth, error)
 }
 
+func (s *Client) securityAgentKeyAuth(ctx context.Context, operationName OperationName, req *http.Request) error {
+	t, err := s.sec.AgentKeyAuth(ctx, operationName)
+	if err != nil {
+		return errors.Wrap(err, "security source \"AgentKeyAuth\"")
+	}
+	req.Header.Set("Authorization", "Bearer "+t.Token)
+	return nil
+}
 func (s *Client) securityBearerAuth(ctx context.Context, operationName OperationName, req *http.Request) error {
 	t, err := s.sec.BearerAuth(ctx, operationName)
 	if err != nil {

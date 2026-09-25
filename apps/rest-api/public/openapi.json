@@ -14928,6 +14928,11 @@
       }
     },
     "securitySchemes": {
+      "agentKeyAuth": {
+        "description": "Agent key sent as Authorization: Bearer <agent-key>. Use on operations that accept agent keys.",
+        "scheme": "bearer",
+        "type": "http"
+      },
       "bearerAuth": {
         "bearerFormat": "JWT",
         "description": "OAuth2 access token from Ory Hydra (agent auth via client_credentials flow)",
@@ -15131,6 +15136,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -15297,6 +15305,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -15493,6 +15504,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -15633,6 +15647,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -15713,6 +15730,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -16438,6 +16458,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -16518,6 +16541,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -16681,6 +16707,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -17063,6 +17092,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -17188,6 +17220,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -17317,6 +17352,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -17442,6 +17480,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -17610,6 +17651,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -17833,6 +17877,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -17934,6 +17981,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -18469,6 +18519,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -18624,6 +18677,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -18756,6 +18812,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -18938,6 +18997,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -19147,6 +19209,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -19334,6 +19399,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -19496,6 +19564,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -19620,6 +19691,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -19730,6 +19804,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -19894,6 +19971,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -20068,6 +20148,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -20229,6 +20312,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -20453,6 +20539,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -20595,6 +20684,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -20783,6 +20875,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -20975,6 +21070,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -21125,6 +21223,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -21309,6 +21410,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -21415,6 +21519,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -21529,6 +21636,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -21663,6 +21773,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -21852,6 +21965,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -22038,6 +22154,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -22199,6 +22318,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -22301,6 +22423,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -22431,6 +22556,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           }
         ],
         "tags": [
@@ -22537,6 +22665,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -22677,6 +22808,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -22794,6 +22928,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -22948,6 +23085,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -23058,6 +23198,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -23671,6 +23814,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -24279,6 +24425,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -25112,6 +25261,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -25234,6 +25386,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -25379,6 +25534,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -25993,6 +26151,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -26114,6 +26275,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -26287,6 +26451,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -26445,6 +26612,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -26556,6 +26726,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -27048,6 +27221,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -27282,6 +27458,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -27481,6 +27660,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -27724,6 +27906,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -28548,6 +28733,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -28677,6 +28865,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -28788,6 +28979,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -28953,6 +29147,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -29035,6 +29232,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -29158,6 +29358,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -29244,6 +29447,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -29323,6 +29529,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -29445,6 +29654,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -29527,6 +29739,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -29640,6 +29855,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -29734,6 +29952,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -29835,6 +30056,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -29967,6 +30191,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -30059,6 +30286,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -30182,6 +30412,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -30268,6 +30501,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -30347,6 +30583,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -30469,6 +30708,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -30572,6 +30814,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -30673,6 +30918,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -30786,6 +31034,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -31901,6 +32152,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -33093,6 +33347,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -34704,6 +34961,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -35946,6 +36206,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -37385,6 +37648,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -38778,6 +39044,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -39977,6 +40246,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -41206,6 +41478,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -41343,6 +41618,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -41646,6 +41924,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -41864,6 +42145,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -42102,6 +42386,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -42162,6 +42449,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -42265,6 +42555,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -42412,6 +42705,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -42516,6 +42812,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -42664,6 +42963,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -42848,6 +43150,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -42998,6 +43303,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -43124,6 +43432,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -43272,6 +43583,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -43433,6 +43747,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -43573,6 +43890,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -43756,6 +44076,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -43927,6 +44250,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -44087,6 +44413,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -44308,6 +44637,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -45423,6 +45755,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -46642,6 +46977,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -48000,6 +48338,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -49228,6 +49569,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -49372,6 +49716,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -49582,6 +49929,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -49789,6 +50139,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -49899,6 +50252,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -50105,6 +50461,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -50241,6 +50600,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -50364,6 +50726,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -50516,6 +50881,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -50680,6 +51048,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -50882,6 +51253,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -51002,6 +51376,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -51182,6 +51559,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -51292,6 +51672,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -51484,6 +51867,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -51613,6 +51999,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []
@@ -51777,6 +52166,9 @@
             "bearerAuth": []
           },
           {
+            "agentKeyAuth": []
+          },
+          {
             "sessionAuth": []
           },
           {
@@ -51937,6 +52329,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
           },
           {
             "sessionAuth": []

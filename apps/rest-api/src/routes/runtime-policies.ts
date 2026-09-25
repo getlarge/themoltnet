@@ -14,6 +14,7 @@ import {
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { type Static, Type } from 'typebox';
 
+import { PRINCIPAL_AUTH_SECURITY } from '../openapi-security.js';
 import { createConflictProblem } from '../problems/index.js';
 import {
   AllowedToolsResponseSchema,
@@ -37,12 +38,6 @@ const ProfileParamsSchema = Type.Object(
   { profileId: Type.String({ format: 'uuid' }) },
   { $id: 'RuntimePolicyProfileParams' },
 );
-
-const SECURITY: Array<Record<string, string[]>> = [
-  { bearerAuth: [] },
-  { sessionAuth: [] },
-  { cookieAuth: [] },
-];
 
 function runtimePolicySubject(request: FastifyRequest): RuntimePolicySubject {
   const { subjectId, ...subject } = requireKetoSubject(request);
@@ -82,7 +77,7 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
         tags: ['runtime-policies'],
         description:
           'Create a team-scoped tool policy granting a set of tools.',
-        security: SECURITY,
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         body: Type.Ref(CreateRuntimePolicyBodySchema.$id),
         response: {
@@ -133,7 +128,7 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
         operationId: 'listRuntimePolicies',
         tags: ['runtime-policies'],
         description: 'List tool policies for the active team.',
-        security: SECURITY,
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         response: {
           200: Type.Ref(RuntimePolicyListSchema.$id),
@@ -166,7 +161,7 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
         operationId: 'getRuntimePolicy',
         tags: ['runtime-policies'],
         description: 'Get one tool policy with its granted tools.',
-        security: SECURITY,
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         params: PolicyParamsSchema,
         response: {
@@ -199,7 +194,7 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
         operationId: 'updateRuntimePolicy',
         tags: ['runtime-policies'],
         description: 'Rename a policy and/or add/remove granted tools.',
-        security: SECURITY,
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         params: PolicyParamsSchema,
         body: Type.Ref(UpdateRuntimePolicyBodySchema.$id),
@@ -258,7 +253,7 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
         operationId: 'deleteRuntimePolicy',
         tags: ['runtime-policies'],
         description: 'Delete a tool policy and its tool grants.',
-        security: SECURITY,
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         params: PolicyParamsSchema,
         response: {
@@ -293,7 +288,7 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
         operationId: 'getRuntimeProfilePolicies',
         tags: ['runtime-policies'],
         description: 'List the tool-policy IDs bound to a runtime profile.',
-        security: SECURITY,
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         params: ProfileParamsSchema,
         response: {
@@ -327,7 +322,7 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
         tags: ['runtime-policies'],
         description:
           'Replace the set of tool policies bound to a runtime profile.',
-        security: SECURITY,
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         params: ProfileParamsSchema,
         body: Type.Ref(SetProfilePoliciesBodySchema.$id),
@@ -367,7 +362,7 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
         tags: ['runtime-policies'],
         description:
           'Resolve a runtime profile enforcement mode and its allowed-tool set (union of bound policies).',
-        security: SECURITY,
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         params: ProfileParamsSchema,
         response: {

@@ -132,6 +132,23 @@ func (s *Server) handleAbortTaskAttemptRequest(args [2]string, argsEscaped bool,
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, AbortTaskAttemptOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, AbortTaskAttemptOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -144,7 +161,7 @@ func (s *Server) handleAbortTaskAttemptRequest(args [2]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -161,7 +178,7 @@ func (s *Server) handleAbortTaskAttemptRequest(args [2]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -172,6 +189,7 @@ func (s *Server) handleAbortTaskAttemptRequest(args [2]string, argsEscaped bool,
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -378,6 +396,23 @@ func (s *Server) handleAcceptTeamFoundingRequest(args [1]string, argsEscaped boo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, AcceptTeamFoundingOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, AcceptTeamFoundingOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -390,7 +425,7 @@ func (s *Server) handleAcceptTeamFoundingRequest(args [1]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -407,7 +442,7 @@ func (s *Server) handleAcceptTeamFoundingRequest(args [1]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -418,6 +453,7 @@ func (s *Server) handleAcceptTeamFoundingRequest(args [1]string, argsEscaped boo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -616,6 +652,23 @@ func (s *Server) handleAcceptTransferRequest(args [1]string, argsEscaped bool, w
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, AcceptTransferOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, AcceptTransferOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -628,7 +681,7 @@ func (s *Server) handleAcceptTransferRequest(args [1]string, argsEscaped bool, w
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -645,7 +698,7 @@ func (s *Server) handleAcceptTransferRequest(args [1]string, argsEscaped bool, w
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -656,6 +709,7 @@ func (s *Server) handleAcceptTransferRequest(args [1]string, argsEscaped bool, w
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -839,6 +893,23 @@ func (s *Server) handleAddGroupMemberRequest(args [1]string, argsEscaped bool, w
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, AddGroupMemberOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, AddGroupMemberOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -851,7 +922,7 @@ func (s *Server) handleAddGroupMemberRequest(args [1]string, argsEscaped bool, w
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -868,7 +939,7 @@ func (s *Server) handleAddGroupMemberRequest(args [1]string, argsEscaped bool, w
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -879,6 +950,7 @@ func (s *Server) handleAddGroupMemberRequest(args [1]string, argsEscaped bool, w
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -1077,6 +1149,23 @@ func (s *Server) handleAppendTaskMessagesRequest(args [2]string, argsEscaped boo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, AppendTaskMessagesOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, AppendTaskMessagesOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -1089,7 +1178,7 @@ func (s *Server) handleAppendTaskMessagesRequest(args [2]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -1106,7 +1195,7 @@ func (s *Server) handleAppendTaskMessagesRequest(args [2]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -1117,6 +1206,7 @@ func (s *Server) handleAppendTaskMessagesRequest(args [2]string, argsEscaped boo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -1321,6 +1411,23 @@ func (s *Server) handleApproveSigningCredentialRequest(args [1]string, argsEscap
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ApproveSigningCredentialOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ApproveSigningCredentialOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -1333,7 +1440,7 @@ func (s *Server) handleApproveSigningCredentialRequest(args [1]string, argsEscap
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -1350,7 +1457,7 @@ func (s *Server) handleApproveSigningCredentialRequest(args [1]string, argsEscap
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -1361,6 +1468,7 @@ func (s *Server) handleApproveSigningCredentialRequest(args [1]string, argsEscap
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -1563,6 +1671,23 @@ func (s *Server) handleBatchDeleteDiaryEntriesRequest(args [0]string, argsEscape
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, BatchDeleteDiaryEntriesOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, BatchDeleteDiaryEntriesOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -1575,7 +1700,7 @@ func (s *Server) handleBatchDeleteDiaryEntriesRequest(args [0]string, argsEscape
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -1592,7 +1717,7 @@ func (s *Server) handleBatchDeleteDiaryEntriesRequest(args [0]string, argsEscape
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -1603,6 +1728,7 @@ func (s *Server) handleBatchDeleteDiaryEntriesRequest(args [0]string, argsEscape
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -1790,6 +1916,23 @@ func (s *Server) handleBatchDeleteTasksRequest(args [0]string, argsEscaped bool,
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, BatchDeleteTasksOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, BatchDeleteTasksOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -1802,7 +1945,7 @@ func (s *Server) handleBatchDeleteTasksRequest(args [0]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -1819,7 +1962,7 @@ func (s *Server) handleBatchDeleteTasksRequest(args [0]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -1830,6 +1973,7 @@ func (s *Server) handleBatchDeleteTasksRequest(args [0]string, argsEscaped bool,
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -2028,6 +2172,23 @@ func (s *Server) handleBeginRuntimeSlotRequest(args [0]string, argsEscaped bool,
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, BeginRuntimeSlotOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, BeginRuntimeSlotOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -2040,7 +2201,7 @@ func (s *Server) handleBeginRuntimeSlotRequest(args [0]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -2057,7 +2218,7 @@ func (s *Server) handleBeginRuntimeSlotRequest(args [0]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -2068,6 +2229,7 @@ func (s *Server) handleBeginRuntimeSlotRequest(args [0]string, argsEscaped bool,
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -2484,6 +2646,23 @@ func (s *Server) handleCancelTaskRequest(args [1]string, argsEscaped bool, w htt
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, CancelTaskOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, CancelTaskOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -2496,7 +2675,7 @@ func (s *Server) handleCancelTaskRequest(args [1]string, argsEscaped bool, w htt
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -2513,7 +2692,7 @@ func (s *Server) handleCancelTaskRequest(args [1]string, argsEscaped bool, w htt
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -2524,6 +2703,7 @@ func (s *Server) handleCancelTaskRequest(args [1]string, argsEscaped bool, w htt
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -2948,6 +3128,23 @@ func (s *Server) handleClaimTaskRequest(args [1]string, argsEscaped bool, w http
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ClaimTaskOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ClaimTaskOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -2960,7 +3157,7 @@ func (s *Server) handleClaimTaskRequest(args [1]string, argsEscaped bool, w http
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -2977,7 +3174,7 @@ func (s *Server) handleClaimTaskRequest(args [1]string, argsEscaped bool, w http
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -2988,6 +3185,7 @@ func (s *Server) handleClaimTaskRequest(args [1]string, argsEscaped bool, w http
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -3634,6 +3832,23 @@ func (s *Server) handleCompleteTaskRequest(args [2]string, argsEscaped bool, w h
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, CompleteTaskOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, CompleteTaskOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -3646,7 +3861,7 @@ func (s *Server) handleCompleteTaskRequest(args [2]string, argsEscaped bool, w h
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -3663,7 +3878,7 @@ func (s *Server) handleCompleteTaskRequest(args [2]string, argsEscaped bool, w h
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -3674,6 +3889,7 @@ func (s *Server) handleCompleteTaskRequest(args [2]string, argsEscaped bool, w h
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -3880,6 +4096,23 @@ func (s *Server) handleCreateAgentKeyRequest(args [0]string, argsEscaped bool, w
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, CreateAgentKeyOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, CreateAgentKeyOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -3892,7 +4125,7 @@ func (s *Server) handleCreateAgentKeyRequest(args [0]string, argsEscaped bool, w
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -3909,7 +4142,7 @@ func (s *Server) handleCreateAgentKeyRequest(args [0]string, argsEscaped bool, w
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -3920,6 +4153,7 @@ func (s *Server) handleCreateAgentKeyRequest(args [0]string, argsEscaped bool, w
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -4122,6 +4356,23 @@ func (s *Server) handleCreateDiaryRequest(args [0]string, argsEscaped bool, w ht
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, CreateDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, CreateDiaryOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -4134,7 +4385,7 @@ func (s *Server) handleCreateDiaryRequest(args [0]string, argsEscaped bool, w ht
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -4151,7 +4402,7 @@ func (s *Server) handleCreateDiaryRequest(args [0]string, argsEscaped bool, w ht
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -4162,6 +4413,7 @@ func (s *Server) handleCreateDiaryRequest(args [0]string, argsEscaped bool, w ht
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -4362,6 +4614,23 @@ func (s *Server) handleCreateDiaryCustomPackRequest(args [1]string, argsEscaped 
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, CreateDiaryCustomPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, CreateDiaryCustomPackOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -4374,7 +4643,7 @@ func (s *Server) handleCreateDiaryCustomPackRequest(args [1]string, argsEscaped 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -4391,7 +4660,7 @@ func (s *Server) handleCreateDiaryCustomPackRequest(args [1]string, argsEscaped 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -4402,6 +4671,7 @@ func (s *Server) handleCreateDiaryCustomPackRequest(args [1]string, argsEscaped 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -4600,6 +4870,23 @@ func (s *Server) handleCreateDiaryEntryRequest(args [1]string, argsEscaped bool,
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, CreateDiaryEntryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, CreateDiaryEntryOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -4612,7 +4899,7 @@ func (s *Server) handleCreateDiaryEntryRequest(args [1]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -4629,7 +4916,7 @@ func (s *Server) handleCreateDiaryEntryRequest(args [1]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -4640,6 +4927,7 @@ func (s *Server) handleCreateDiaryEntryRequest(args [1]string, argsEscaped bool,
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -4838,6 +5126,23 @@ func (s *Server) handleCreateDiaryGrantRequest(args [1]string, argsEscaped bool,
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, CreateDiaryGrantOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, CreateDiaryGrantOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -4850,7 +5155,7 @@ func (s *Server) handleCreateDiaryGrantRequest(args [1]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -4867,7 +5172,7 @@ func (s *Server) handleCreateDiaryGrantRequest(args [1]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -4878,6 +5183,7 @@ func (s *Server) handleCreateDiaryGrantRequest(args [1]string, argsEscaped bool,
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -5077,6 +5383,23 @@ func (s *Server) handleCreateEntryRelationRequest(args [1]string, argsEscaped bo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, CreateEntryRelationOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, CreateEntryRelationOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -5089,7 +5412,7 @@ func (s *Server) handleCreateEntryRelationRequest(args [1]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -5106,7 +5429,7 @@ func (s *Server) handleCreateEntryRelationRequest(args [1]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -5117,6 +5440,7 @@ func (s *Server) handleCreateEntryRelationRequest(args [1]string, argsEscaped bo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -5315,6 +5639,23 @@ func (s *Server) handleCreateGroupRequest(args [1]string, argsEscaped bool, w ht
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, CreateGroupOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, CreateGroupOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -5327,7 +5668,7 @@ func (s *Server) handleCreateGroupRequest(args [1]string, argsEscaped bool, w ht
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -5344,7 +5685,7 @@ func (s *Server) handleCreateGroupRequest(args [1]string, argsEscaped bool, w ht
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -5355,6 +5696,7 @@ func (s *Server) handleCreateGroupRequest(args [1]string, argsEscaped bool, w ht
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -5551,6 +5893,23 @@ func (s *Server) handleCreateProjectRequest(args [0]string, argsEscaped bool, w 
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, CreateProjectOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, CreateProjectOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -5563,7 +5922,7 @@ func (s *Server) handleCreateProjectRequest(args [0]string, argsEscaped bool, w 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -5580,7 +5939,7 @@ func (s *Server) handleCreateProjectRequest(args [0]string, argsEscaped bool, w 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -5591,6 +5950,7 @@ func (s *Server) handleCreateProjectRequest(args [0]string, argsEscaped bool, w 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -5790,6 +6150,23 @@ func (s *Server) handleCreateRuntimeModelRequest(args [0]string, argsEscaped boo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, CreateRuntimeModelOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, CreateRuntimeModelOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -5802,7 +6179,7 @@ func (s *Server) handleCreateRuntimeModelRequest(args [0]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -5819,7 +6196,7 @@ func (s *Server) handleCreateRuntimeModelRequest(args [0]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -5830,6 +6207,7 @@ func (s *Server) handleCreateRuntimeModelRequest(args [0]string, argsEscaped boo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -6028,6 +6406,23 @@ func (s *Server) handleCreateRuntimePolicyRequest(args [0]string, argsEscaped bo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, CreateRuntimePolicyOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, CreateRuntimePolicyOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -6040,7 +6435,7 @@ func (s *Server) handleCreateRuntimePolicyRequest(args [0]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -6057,7 +6452,7 @@ func (s *Server) handleCreateRuntimePolicyRequest(args [0]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -6068,6 +6463,7 @@ func (s *Server) handleCreateRuntimePolicyRequest(args [0]string, argsEscaped bo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -6266,6 +6662,23 @@ func (s *Server) handleCreateRuntimeProfileRequest(args [0]string, argsEscaped b
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, CreateRuntimeProfileOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, CreateRuntimeProfileOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -6278,7 +6691,7 @@ func (s *Server) handleCreateRuntimeProfileRequest(args [0]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -6295,7 +6708,7 @@ func (s *Server) handleCreateRuntimeProfileRequest(args [0]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -6306,6 +6719,7 @@ func (s *Server) handleCreateRuntimeProfileRequest(args [0]string, argsEscaped b
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -6505,6 +6919,23 @@ func (s *Server) handleCreateSigningRequestRequest(args [0]string, argsEscaped b
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, CreateSigningRequestOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, CreateSigningRequestOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -6517,7 +6948,7 @@ func (s *Server) handleCreateSigningRequestRequest(args [0]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -6534,7 +6965,7 @@ func (s *Server) handleCreateSigningRequestRequest(args [0]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -6545,6 +6976,7 @@ func (s *Server) handleCreateSigningRequestRequest(args [0]string, argsEscaped b
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -6728,6 +7160,23 @@ func (s *Server) handleCreateTaskRequest(args [0]string, argsEscaped bool, w htt
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, CreateTaskOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, CreateTaskOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -6740,7 +7189,7 @@ func (s *Server) handleCreateTaskRequest(args [0]string, argsEscaped bool, w htt
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -6757,7 +7206,7 @@ func (s *Server) handleCreateTaskRequest(args [0]string, argsEscaped bool, w htt
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -6768,6 +7217,7 @@ func (s *Server) handleCreateTaskRequest(args [0]string, argsEscaped bool, w htt
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -6970,6 +7420,23 @@ func (s *Server) handleCreateTaskGrantRequest(args [1]string, argsEscaped bool, 
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, CreateTaskGrantOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, CreateTaskGrantOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -6982,7 +7449,7 @@ func (s *Server) handleCreateTaskGrantRequest(args [1]string, argsEscaped bool, 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -6999,7 +7466,7 @@ func (s *Server) handleCreateTaskGrantRequest(args [1]string, argsEscaped bool, 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -7010,6 +7477,7 @@ func (s *Server) handleCreateTaskGrantRequest(args [1]string, argsEscaped bool, 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -7213,6 +7681,23 @@ func (s *Server) handleCreateTeamRequest(args [0]string, argsEscaped bool, w htt
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, CreateTeamOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, CreateTeamOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -7225,7 +7710,7 @@ func (s *Server) handleCreateTeamRequest(args [0]string, argsEscaped bool, w htt
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -7242,7 +7727,7 @@ func (s *Server) handleCreateTeamRequest(args [0]string, argsEscaped bool, w htt
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -7253,6 +7738,7 @@ func (s *Server) handleCreateTeamRequest(args [0]string, argsEscaped bool, w htt
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -7436,6 +7922,23 @@ func (s *Server) handleCreateTeamInviteRequest(args [1]string, argsEscaped bool,
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, CreateTeamInviteOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, CreateTeamInviteOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -7448,7 +7951,7 @@ func (s *Server) handleCreateTeamInviteRequest(args [1]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -7465,7 +7968,7 @@ func (s *Server) handleCreateTeamInviteRequest(args [1]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -7476,6 +7979,7 @@ func (s *Server) handleCreateTeamInviteRequest(args [1]string, argsEscaped bool,
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -7674,6 +8178,23 @@ func (s *Server) handleDeleteDiaryRequest(args [1]string, argsEscaped bool, w ht
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, DeleteDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, DeleteDiaryOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -7686,7 +8207,7 @@ func (s *Server) handleDeleteDiaryRequest(args [1]string, argsEscaped bool, w ht
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -7703,7 +8224,7 @@ func (s *Server) handleDeleteDiaryRequest(args [1]string, argsEscaped bool, w ht
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -7714,6 +8235,7 @@ func (s *Server) handleDeleteDiaryRequest(args [1]string, argsEscaped bool, w ht
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -7901,6 +8423,23 @@ func (s *Server) handleDeleteDiaryEntryByIdRequest(args [1]string, argsEscaped b
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, DeleteDiaryEntryByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, DeleteDiaryEntryByIdOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -7913,7 +8452,7 @@ func (s *Server) handleDeleteDiaryEntryByIdRequest(args [1]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -7930,7 +8469,7 @@ func (s *Server) handleDeleteDiaryEntryByIdRequest(args [1]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -7941,6 +8480,7 @@ func (s *Server) handleDeleteDiaryEntryByIdRequest(args [1]string, argsEscaped b
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -8124,6 +8664,23 @@ func (s *Server) handleDeleteEntryRelationRequest(args [1]string, argsEscaped bo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, DeleteEntryRelationOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, DeleteEntryRelationOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -8136,7 +8693,7 @@ func (s *Server) handleDeleteEntryRelationRequest(args [1]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -8153,7 +8710,7 @@ func (s *Server) handleDeleteEntryRelationRequest(args [1]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -8164,6 +8721,7 @@ func (s *Server) handleDeleteEntryRelationRequest(args [1]string, argsEscaped bo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -8347,6 +8905,23 @@ func (s *Server) handleDeleteGroupRequest(args [1]string, argsEscaped bool, w ht
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, DeleteGroupOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, DeleteGroupOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -8359,7 +8934,7 @@ func (s *Server) handleDeleteGroupRequest(args [1]string, argsEscaped bool, w ht
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -8376,7 +8951,7 @@ func (s *Server) handleDeleteGroupRequest(args [1]string, argsEscaped bool, w ht
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -8387,6 +8962,7 @@ func (s *Server) handleDeleteGroupRequest(args [1]string, argsEscaped bool, w ht
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -8570,6 +9146,23 @@ func (s *Server) handleDeleteRuntimeModelRequest(args [1]string, argsEscaped boo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, DeleteRuntimeModelOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, DeleteRuntimeModelOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -8582,7 +9175,7 @@ func (s *Server) handleDeleteRuntimeModelRequest(args [1]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -8599,7 +9192,7 @@ func (s *Server) handleDeleteRuntimeModelRequest(args [1]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -8610,6 +9203,7 @@ func (s *Server) handleDeleteRuntimeModelRequest(args [1]string, argsEscaped boo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -8793,6 +9387,23 @@ func (s *Server) handleDeleteRuntimePolicyRequest(args [1]string, argsEscaped bo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, DeleteRuntimePolicyOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, DeleteRuntimePolicyOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -8805,7 +9416,7 @@ func (s *Server) handleDeleteRuntimePolicyRequest(args [1]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -8822,7 +9433,7 @@ func (s *Server) handleDeleteRuntimePolicyRequest(args [1]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -8833,6 +9444,7 @@ func (s *Server) handleDeleteRuntimePolicyRequest(args [1]string, argsEscaped bo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -9020,6 +9632,23 @@ func (s *Server) handleDeleteRuntimeProfileRequest(args [1]string, argsEscaped b
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, DeleteRuntimeProfileOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, DeleteRuntimeProfileOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -9032,7 +9661,7 @@ func (s *Server) handleDeleteRuntimeProfileRequest(args [1]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -9049,7 +9678,7 @@ func (s *Server) handleDeleteRuntimeProfileRequest(args [1]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -9060,6 +9689,7 @@ func (s *Server) handleDeleteRuntimeProfileRequest(args [1]string, argsEscaped b
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -9243,6 +9873,23 @@ func (s *Server) handleDeleteTeamRequest(args [1]string, argsEscaped bool, w htt
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, DeleteTeamOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, DeleteTeamOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -9255,7 +9902,7 @@ func (s *Server) handleDeleteTeamRequest(args [1]string, argsEscaped bool, w htt
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -9272,7 +9919,7 @@ func (s *Server) handleDeleteTeamRequest(args [1]string, argsEscaped bool, w htt
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -9283,6 +9930,7 @@ func (s *Server) handleDeleteTeamRequest(args [1]string, argsEscaped bool, w htt
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -9466,6 +10114,23 @@ func (s *Server) handleDeleteTeamInviteRequest(args [2]string, argsEscaped bool,
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, DeleteTeamInviteOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, DeleteTeamInviteOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -9478,7 +10143,7 @@ func (s *Server) handleDeleteTeamInviteRequest(args [2]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -9495,7 +10160,7 @@ func (s *Server) handleDeleteTeamInviteRequest(args [2]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -9506,6 +10171,7 @@ func (s *Server) handleDeleteTeamInviteRequest(args [2]string, argsEscaped bool,
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -9866,6 +10532,23 @@ func (s *Server) handleDiffContextPacksByCidRequest(args [2]string, argsEscaped 
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, DiffContextPacksByCidOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, DiffContextPacksByCidOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -9878,7 +10561,7 @@ func (s *Server) handleDiffContextPacksByCidRequest(args [2]string, argsEscaped 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -9895,7 +10578,7 @@ func (s *Server) handleDiffContextPacksByCidRequest(args [2]string, argsEscaped 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -9906,6 +10589,7 @@ func (s *Server) handleDiffContextPacksByCidRequest(args [2]string, argsEscaped 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -10093,6 +10777,23 @@ func (s *Server) handleDiffContextPacksByIdRequest(args [2]string, argsEscaped b
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, DiffContextPacksByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, DiffContextPacksByIdOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -10105,7 +10806,7 @@ func (s *Server) handleDiffContextPacksByIdRequest(args [2]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -10122,7 +10823,7 @@ func (s *Server) handleDiffContextPacksByIdRequest(args [2]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -10133,6 +10834,7 @@ func (s *Server) handleDiffContextPacksByIdRequest(args [2]string, argsEscaped b
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -10320,6 +11022,23 @@ func (s *Server) handleDownloadRuntimeSessionRequest(args [2]string, argsEscaped
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, DownloadRuntimeSessionOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, DownloadRuntimeSessionOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -10332,7 +11051,7 @@ func (s *Server) handleDownloadRuntimeSessionRequest(args [2]string, argsEscaped
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -10349,7 +11068,7 @@ func (s *Server) handleDownloadRuntimeSessionRequest(args [2]string, argsEscaped
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -10360,6 +11079,7 @@ func (s *Server) handleDownloadRuntimeSessionRequest(args [2]string, argsEscaped
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -10551,6 +11271,23 @@ func (s *Server) handleDownloadTaskArtifactRequest(args [3]string, argsEscaped b
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, DownloadTaskArtifactOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, DownloadTaskArtifactOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -10563,7 +11300,7 @@ func (s *Server) handleDownloadTaskArtifactRequest(args [3]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -10580,7 +11317,7 @@ func (s *Server) handleDownloadTaskArtifactRequest(args [3]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -10591,6 +11328,7 @@ func (s *Server) handleDownloadTaskArtifactRequest(args [3]string, argsEscaped b
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -10787,6 +11525,23 @@ func (s *Server) handleDownloadTaskArtifactByCidRequest(args [2]string, argsEsca
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, DownloadTaskArtifactByCidOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, DownloadTaskArtifactByCidOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -10799,7 +11554,7 @@ func (s *Server) handleDownloadTaskArtifactByCidRequest(args [2]string, argsEsca
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -10816,7 +11571,7 @@ func (s *Server) handleDownloadTaskArtifactByCidRequest(args [2]string, argsEsca
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -10827,6 +11582,7 @@ func (s *Server) handleDownloadTaskArtifactByCidRequest(args [2]string, argsEsca
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -11177,6 +11933,23 @@ func (s *Server) handleFailTaskAttemptRequest(args [2]string, argsEscaped bool, 
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, FailTaskAttemptOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, FailTaskAttemptOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -11189,7 +11962,7 @@ func (s *Server) handleFailTaskAttemptRequest(args [2]string, argsEscaped bool, 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -11206,7 +11979,7 @@ func (s *Server) handleFailTaskAttemptRequest(args [2]string, argsEscaped bool, 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -11217,6 +11990,7 @@ func (s *Server) handleFailTaskAttemptRequest(args [2]string, argsEscaped bool, 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -11423,6 +12197,23 @@ func (s *Server) handleFindLatestRuntimeSlotForAttemptRequest(args [0]string, ar
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, FindLatestRuntimeSlotForAttemptOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, FindLatestRuntimeSlotForAttemptOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -11435,7 +12226,7 @@ func (s *Server) handleFindLatestRuntimeSlotForAttemptRequest(args [0]string, ar
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -11452,7 +12243,7 @@ func (s *Server) handleFindLatestRuntimeSlotForAttemptRequest(args [0]string, ar
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -11463,6 +12254,7 @@ func (s *Server) handleFindLatestRuntimeSlotForAttemptRequest(args [0]string, ar
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -11654,6 +12446,23 @@ func (s *Server) handleFinishRuntimeSlotRequest(args [0]string, argsEscaped bool
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, FinishRuntimeSlotOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, FinishRuntimeSlotOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -11666,7 +12475,7 @@ func (s *Server) handleFinishRuntimeSlotRequest(args [0]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -11683,7 +12492,7 @@ func (s *Server) handleFinishRuntimeSlotRequest(args [0]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -11694,6 +12503,7 @@ func (s *Server) handleFinishRuntimeSlotRequest(args [0]string, argsEscaped bool
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -12035,6 +12845,23 @@ func (s *Server) handleGetContextPackByIdRequest(args [1]string, argsEscaped boo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetContextPackByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetContextPackByIdOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -12047,7 +12874,7 @@ func (s *Server) handleGetContextPackByIdRequest(args [1]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -12064,7 +12891,7 @@ func (s *Server) handleGetContextPackByIdRequest(args [1]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -12075,6 +12902,7 @@ func (s *Server) handleGetContextPackByIdRequest(args [1]string, argsEscaped boo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -12262,6 +13090,23 @@ func (s *Server) handleGetContextPackProvenanceByCidRequest(args [1]string, args
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetContextPackProvenanceByCidOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetContextPackProvenanceByCidOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -12274,7 +13119,7 @@ func (s *Server) handleGetContextPackProvenanceByCidRequest(args [1]string, args
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -12291,7 +13136,7 @@ func (s *Server) handleGetContextPackProvenanceByCidRequest(args [1]string, args
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -12302,6 +13147,7 @@ func (s *Server) handleGetContextPackProvenanceByCidRequest(args [1]string, args
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -12489,6 +13335,23 @@ func (s *Server) handleGetContextPackProvenanceByIdRequest(args [1]string, argsE
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetContextPackProvenanceByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetContextPackProvenanceByIdOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -12501,7 +13364,7 @@ func (s *Server) handleGetContextPackProvenanceByIdRequest(args [1]string, argsE
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -12518,7 +13381,7 @@ func (s *Server) handleGetContextPackProvenanceByIdRequest(args [1]string, argsE
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -12529,6 +13392,7 @@ func (s *Server) handleGetContextPackProvenanceByIdRequest(args [1]string, argsE
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -12716,6 +13580,23 @@ func (s *Server) handleGetCryptoIdentityRequest(args [0]string, argsEscaped bool
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetCryptoIdentityOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetCryptoIdentityOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -12728,7 +13609,7 @@ func (s *Server) handleGetCryptoIdentityRequest(args [0]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -12745,7 +13626,7 @@ func (s *Server) handleGetCryptoIdentityRequest(args [0]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -12756,6 +13637,7 @@ func (s *Server) handleGetCryptoIdentityRequest(args [0]string, argsEscaped bool
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -12924,6 +13806,23 @@ func (s *Server) handleGetDiaryRequest(args [1]string, argsEscaped bool, w http.
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetDiaryOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -12936,7 +13835,7 @@ func (s *Server) handleGetDiaryRequest(args [1]string, argsEscaped bool, w http.
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -12953,7 +13852,7 @@ func (s *Server) handleGetDiaryRequest(args [1]string, argsEscaped bool, w http.
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -12964,6 +13863,7 @@ func (s *Server) handleGetDiaryRequest(args [1]string, argsEscaped bool, w http.
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -13152,6 +14052,23 @@ func (s *Server) handleGetDiaryEntryByIdRequest(args [1]string, argsEscaped bool
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetDiaryEntryByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetDiaryEntryByIdOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -13164,7 +14081,7 @@ func (s *Server) handleGetDiaryEntryByIdRequest(args [1]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -13181,7 +14098,7 @@ func (s *Server) handleGetDiaryEntryByIdRequest(args [1]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -13192,6 +14109,7 @@ func (s *Server) handleGetDiaryEntryByIdRequest(args [1]string, argsEscaped bool
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -13383,6 +14301,23 @@ func (s *Server) handleGetGroupRequest(args [1]string, argsEscaped bool, w http.
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetGroupOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetGroupOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -13395,7 +14330,7 @@ func (s *Server) handleGetGroupRequest(args [1]string, argsEscaped bool, w http.
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -13412,7 +14347,7 @@ func (s *Server) handleGetGroupRequest(args [1]string, argsEscaped bool, w http.
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -13423,6 +14358,7 @@ func (s *Server) handleGetGroupRequest(args [1]string, argsEscaped bool, w http.
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -13730,6 +14666,23 @@ func (s *Server) handleGetLatestRenderedPackRequest(args [1]string, argsEscaped 
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetLatestRenderedPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetLatestRenderedPackOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -13742,7 +14695,7 @@ func (s *Server) handleGetLatestRenderedPackRequest(args [1]string, argsEscaped 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -13759,7 +14712,7 @@ func (s *Server) handleGetLatestRenderedPackRequest(args [1]string, argsEscaped 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -13770,6 +14723,7 @@ func (s *Server) handleGetLatestRenderedPackRequest(args [1]string, argsEscaped 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -14613,6 +15567,23 @@ func (s *Server) handleGetProjectRequest(args [1]string, argsEscaped bool, w htt
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetProjectOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetProjectOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -14625,7 +15596,7 @@ func (s *Server) handleGetProjectRequest(args [1]string, argsEscaped bool, w htt
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -14642,7 +15613,7 @@ func (s *Server) handleGetProjectRequest(args [1]string, argsEscaped bool, w htt
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -14653,6 +15624,7 @@ func (s *Server) handleGetProjectRequest(args [1]string, argsEscaped bool, w htt
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -15262,6 +16234,23 @@ func (s *Server) handleGetRenderedPackByIdRequest(args [1]string, argsEscaped bo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetRenderedPackByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetRenderedPackByIdOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -15274,7 +16263,7 @@ func (s *Server) handleGetRenderedPackByIdRequest(args [1]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -15291,7 +16280,7 @@ func (s *Server) handleGetRenderedPackByIdRequest(args [1]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -15302,6 +16291,7 @@ func (s *Server) handleGetRenderedPackByIdRequest(args [1]string, argsEscaped bo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -15485,6 +16475,23 @@ func (s *Server) handleGetRuntimeModelRequest(args [1]string, argsEscaped bool, 
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetRuntimeModelOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetRuntimeModelOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -15497,7 +16504,7 @@ func (s *Server) handleGetRuntimeModelRequest(args [1]string, argsEscaped bool, 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -15514,7 +16521,7 @@ func (s *Server) handleGetRuntimeModelRequest(args [1]string, argsEscaped bool, 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -15525,6 +16532,7 @@ func (s *Server) handleGetRuntimeModelRequest(args [1]string, argsEscaped bool, 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -15708,6 +16716,23 @@ func (s *Server) handleGetRuntimePolicyRequest(args [1]string, argsEscaped bool,
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetRuntimePolicyOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetRuntimePolicyOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -15720,7 +16745,7 @@ func (s *Server) handleGetRuntimePolicyRequest(args [1]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -15737,7 +16762,7 @@ func (s *Server) handleGetRuntimePolicyRequest(args [1]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -15748,6 +16773,7 @@ func (s *Server) handleGetRuntimePolicyRequest(args [1]string, argsEscaped bool,
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -15935,6 +16961,23 @@ func (s *Server) handleGetRuntimeProfileRequest(args [1]string, argsEscaped bool
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetRuntimeProfileOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetRuntimeProfileOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -15947,7 +16990,7 @@ func (s *Server) handleGetRuntimeProfileRequest(args [1]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -15964,7 +17007,7 @@ func (s *Server) handleGetRuntimeProfileRequest(args [1]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -15975,6 +17018,7 @@ func (s *Server) handleGetRuntimeProfileRequest(args [1]string, argsEscaped bool
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -16158,6 +17202,23 @@ func (s *Server) handleGetRuntimeProfileAllowedToolsRequest(args [1]string, args
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetRuntimeProfileAllowedToolsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetRuntimeProfileAllowedToolsOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -16170,7 +17231,7 @@ func (s *Server) handleGetRuntimeProfileAllowedToolsRequest(args [1]string, args
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -16187,7 +17248,7 @@ func (s *Server) handleGetRuntimeProfileAllowedToolsRequest(args [1]string, args
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -16198,6 +17259,7 @@ func (s *Server) handleGetRuntimeProfileAllowedToolsRequest(args [1]string, args
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -16385,6 +17447,23 @@ func (s *Server) handleGetRuntimeProfilePoliciesRequest(args [1]string, argsEsca
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetRuntimeProfilePoliciesOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetRuntimeProfilePoliciesOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -16397,7 +17476,7 @@ func (s *Server) handleGetRuntimeProfilePoliciesRequest(args [1]string, argsEsca
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -16414,7 +17493,7 @@ func (s *Server) handleGetRuntimeProfilePoliciesRequest(args [1]string, argsEsca
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -16425,6 +17504,7 @@ func (s *Server) handleGetRuntimeProfilePoliciesRequest(args [1]string, argsEsca
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -16612,6 +17692,23 @@ func (s *Server) handleGetRuntimeSessionRequest(args [2]string, argsEscaped bool
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetRuntimeSessionOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetRuntimeSessionOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -16624,7 +17721,7 @@ func (s *Server) handleGetRuntimeSessionRequest(args [2]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -16641,7 +17738,7 @@ func (s *Server) handleGetRuntimeSessionRequest(args [2]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -16652,6 +17749,7 @@ func (s *Server) handleGetRuntimeSessionRequest(args [2]string, argsEscaped bool
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -16841,6 +17939,23 @@ func (s *Server) handleGetSigningCredentialRequest(args [1]string, argsEscaped b
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetSigningCredentialOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetSigningCredentialOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -16853,7 +17968,7 @@ func (s *Server) handleGetSigningCredentialRequest(args [1]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -16870,7 +17985,7 @@ func (s *Server) handleGetSigningCredentialRequest(args [1]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -16881,6 +17996,7 @@ func (s *Server) handleGetSigningCredentialRequest(args [1]string, argsEscaped b
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -17068,6 +18184,23 @@ func (s *Server) handleGetSigningRequestRequest(args [1]string, argsEscaped bool
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetSigningRequestOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetSigningRequestOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -17080,7 +18213,7 @@ func (s *Server) handleGetSigningRequestRequest(args [1]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -17097,7 +18230,7 @@ func (s *Server) handleGetSigningRequestRequest(args [1]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -17108,6 +18241,7 @@ func (s *Server) handleGetSigningRequestRequest(args [1]string, argsEscaped bool
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -17291,6 +18425,23 @@ func (s *Server) handleGetTaskRequest(args [1]string, argsEscaped bool, w http.R
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetTaskOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetTaskOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -17303,7 +18454,7 @@ func (s *Server) handleGetTaskRequest(args [1]string, argsEscaped bool, w http.R
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -17320,7 +18471,7 @@ func (s *Server) handleGetTaskRequest(args [1]string, argsEscaped bool, w http.R
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -17331,6 +18482,7 @@ func (s *Server) handleGetTaskRequest(args [1]string, argsEscaped bool, w http.R
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -17519,6 +18671,23 @@ func (s *Server) handleGetTaskActivityAnalyticsRequest(args [0]string, argsEscap
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetTaskActivityAnalyticsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetTaskActivityAnalyticsOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -17531,7 +18700,7 @@ func (s *Server) handleGetTaskActivityAnalyticsRequest(args [0]string, argsEscap
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -17548,7 +18717,7 @@ func (s *Server) handleGetTaskActivityAnalyticsRequest(args [0]string, argsEscap
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -17559,6 +18728,7 @@ func (s *Server) handleGetTaskActivityAnalyticsRequest(args [0]string, argsEscap
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -17774,6 +18944,23 @@ func (s *Server) handleGetTeamRequest(args [1]string, argsEscaped bool, w http.R
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetTeamOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetTeamOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -17786,7 +18973,7 @@ func (s *Server) handleGetTeamRequest(args [1]string, argsEscaped bool, w http.R
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -17803,7 +18990,7 @@ func (s *Server) handleGetTeamRequest(args [1]string, argsEscaped bool, w http.R
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -17814,6 +19001,7 @@ func (s *Server) handleGetTeamRequest(args [1]string, argsEscaped bool, w http.R
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -17998,6 +19186,23 @@ func (s *Server) handleGetWhoamiRequest(args [0]string, argsEscaped bool, w http
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, GetWhoamiOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, GetWhoamiOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -18010,7 +19215,7 @@ func (s *Server) handleGetWhoamiRequest(args [0]string, argsEscaped bool, w http
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -18027,7 +19232,7 @@ func (s *Server) handleGetWhoamiRequest(args [0]string, argsEscaped bool, w http
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -18038,6 +19243,7 @@ func (s *Server) handleGetWhoamiRequest(args [0]string, argsEscaped bool, w http
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -18206,6 +19412,23 @@ func (s *Server) handleInitiateTransferRequest(args [1]string, argsEscaped bool,
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, InitiateTransferOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, InitiateTransferOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -18218,7 +19441,7 @@ func (s *Server) handleInitiateTransferRequest(args [1]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -18235,7 +19458,7 @@ func (s *Server) handleInitiateTransferRequest(args [1]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -18246,6 +19469,7 @@ func (s *Server) handleInitiateTransferRequest(args [1]string, argsEscaped bool,
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -18445,6 +19669,23 @@ func (s *Server) handleJoinTeamRequest(args [0]string, argsEscaped bool, w http.
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, JoinTeamOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, JoinTeamOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -18457,7 +19698,7 @@ func (s *Server) handleJoinTeamRequest(args [0]string, argsEscaped bool, w http.
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -18474,7 +19715,7 @@ func (s *Server) handleJoinTeamRequest(args [0]string, argsEscaped bool, w http.
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -18485,6 +19726,7 @@ func (s *Server) handleJoinTeamRequest(args [0]string, argsEscaped bool, w http.
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -18684,6 +19926,23 @@ func (s *Server) handleListAgentKeysRequest(args [0]string, argsEscaped bool, w 
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListAgentKeysOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListAgentKeysOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -18696,7 +19955,7 @@ func (s *Server) handleListAgentKeysRequest(args [0]string, argsEscaped bool, w 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -18713,7 +19972,7 @@ func (s *Server) handleListAgentKeysRequest(args [0]string, argsEscaped bool, w 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -18724,6 +19983,7 @@ func (s *Server) handleListAgentKeysRequest(args [0]string, argsEscaped bool, w 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -18929,6 +20189,23 @@ func (s *Server) handleListContextPacksRequest(args [0]string, argsEscaped bool,
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListContextPacksOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListContextPacksOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -18941,7 +20218,7 @@ func (s *Server) handleListContextPacksRequest(args [0]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -18958,7 +20235,7 @@ func (s *Server) handleListContextPacksRequest(args [0]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -18969,6 +20246,7 @@ func (s *Server) handleListContextPacksRequest(args [0]string, argsEscaped bool,
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -19176,6 +20454,23 @@ func (s *Server) handleListDiariesRequest(args [0]string, argsEscaped bool, w ht
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListDiariesOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListDiariesOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -19188,7 +20483,7 @@ func (s *Server) handleListDiariesRequest(args [0]string, argsEscaped bool, w ht
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -19205,7 +20500,7 @@ func (s *Server) handleListDiariesRequest(args [0]string, argsEscaped bool, w ht
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -19216,6 +20511,7 @@ func (s *Server) handleListDiariesRequest(args [0]string, argsEscaped bool, w ht
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -19399,6 +20695,23 @@ func (s *Server) handleListDiaryEntriesRequest(args [1]string, argsEscaped bool,
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListDiaryEntriesOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListDiaryEntriesOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -19411,7 +20724,7 @@ func (s *Server) handleListDiaryEntriesRequest(args [1]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -19428,7 +20741,7 @@ func (s *Server) handleListDiaryEntriesRequest(args [1]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -19439,6 +20752,7 @@ func (s *Server) handleListDiaryEntriesRequest(args [1]string, argsEscaped bool,
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -19646,6 +20960,23 @@ func (s *Server) handleListDiaryGrantsRequest(args [1]string, argsEscaped bool, 
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListDiaryGrantsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListDiaryGrantsOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -19658,7 +20989,7 @@ func (s *Server) handleListDiaryGrantsRequest(args [1]string, argsEscaped bool, 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -19675,7 +21006,7 @@ func (s *Server) handleListDiaryGrantsRequest(args [1]string, argsEscaped bool, 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -19686,6 +21017,7 @@ func (s *Server) handleListDiaryGrantsRequest(args [1]string, argsEscaped bool, 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -19869,6 +21201,23 @@ func (s *Server) handleListDiaryPacksRequest(args [1]string, argsEscaped bool, w
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListDiaryPacksOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListDiaryPacksOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -19881,7 +21230,7 @@ func (s *Server) handleListDiaryPacksRequest(args [1]string, argsEscaped bool, w
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -19898,7 +21247,7 @@ func (s *Server) handleListDiaryPacksRequest(args [1]string, argsEscaped bool, w
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -19909,6 +21258,7 @@ func (s *Server) handleListDiaryPacksRequest(args [1]string, argsEscaped bool, w
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -20104,6 +21454,23 @@ func (s *Server) handleListDiaryRenderedPacksRequest(args [1]string, argsEscaped
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListDiaryRenderedPacksOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListDiaryRenderedPacksOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -20116,7 +21483,7 @@ func (s *Server) handleListDiaryRenderedPacksRequest(args [1]string, argsEscaped
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -20133,7 +21500,7 @@ func (s *Server) handleListDiaryRenderedPacksRequest(args [1]string, argsEscaped
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -20144,6 +21511,7 @@ func (s *Server) handleListDiaryRenderedPacksRequest(args [1]string, argsEscaped
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -20343,6 +21711,23 @@ func (s *Server) handleListDiaryTagsRequest(args [1]string, argsEscaped bool, w 
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListDiaryTagsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListDiaryTagsOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -20355,7 +21740,7 @@ func (s *Server) handleListDiaryTagsRequest(args [1]string, argsEscaped bool, w 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -20372,7 +21757,7 @@ func (s *Server) handleListDiaryTagsRequest(args [1]string, argsEscaped bool, w 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -20383,6 +21768,7 @@ func (s *Server) handleListDiaryTagsRequest(args [1]string, argsEscaped bool, w 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -20580,6 +21966,23 @@ func (s *Server) handleListEntryRelationsRequest(args [1]string, argsEscaped boo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListEntryRelationsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListEntryRelationsOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -20592,7 +21995,7 @@ func (s *Server) handleListEntryRelationsRequest(args [1]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -20609,7 +22012,7 @@ func (s *Server) handleListEntryRelationsRequest(args [1]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -20620,6 +22023,7 @@ func (s *Server) handleListEntryRelationsRequest(args [1]string, argsEscaped boo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -20827,6 +22231,23 @@ func (s *Server) handleListGroupMembersRequest(args [1]string, argsEscaped bool,
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListGroupMembersOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListGroupMembersOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -20839,7 +22260,7 @@ func (s *Server) handleListGroupMembersRequest(args [1]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -20856,7 +22277,7 @@ func (s *Server) handleListGroupMembersRequest(args [1]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -20867,6 +22288,7 @@ func (s *Server) handleListGroupMembersRequest(args [1]string, argsEscaped bool,
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -21050,6 +22472,23 @@ func (s *Server) handleListGroupsRequest(args [1]string, argsEscaped bool, w htt
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListGroupsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListGroupsOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -21062,7 +22501,7 @@ func (s *Server) handleListGroupsRequest(args [1]string, argsEscaped bool, w htt
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -21079,7 +22518,7 @@ func (s *Server) handleListGroupsRequest(args [1]string, argsEscaped bool, w htt
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -21090,6 +22529,7 @@ func (s *Server) handleListGroupsRequest(args [1]string, argsEscaped bool, w htt
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -21273,6 +22713,23 @@ func (s *Server) handleListPendingTransfersRequest(args [0]string, argsEscaped b
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListPendingTransfersOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListPendingTransfersOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -21285,7 +22742,7 @@ func (s *Server) handleListPendingTransfersRequest(args [0]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -21302,7 +22759,7 @@ func (s *Server) handleListPendingTransfersRequest(args [0]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -21313,6 +22770,7 @@ func (s *Server) handleListPendingTransfersRequest(args [0]string, argsEscaped b
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -21603,6 +23061,23 @@ func (s *Server) handleListProjectsRequest(args [0]string, argsEscaped bool, w h
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListProjectsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListProjectsOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -21615,7 +23090,7 @@ func (s *Server) handleListProjectsRequest(args [0]string, argsEscaped bool, w h
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -21632,7 +23107,7 @@ func (s *Server) handleListProjectsRequest(args [0]string, argsEscaped bool, w h
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -21643,6 +23118,7 @@ func (s *Server) handleListProjectsRequest(args [0]string, argsEscaped bool, w h
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -21840,6 +23316,23 @@ func (s *Server) handleListRuntimeModelsRequest(args [0]string, argsEscaped bool
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListRuntimeModelsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListRuntimeModelsOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -21852,7 +23345,7 @@ func (s *Server) handleListRuntimeModelsRequest(args [0]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -21869,7 +23362,7 @@ func (s *Server) handleListRuntimeModelsRequest(args [0]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -21880,6 +23373,7 @@ func (s *Server) handleListRuntimeModelsRequest(args [0]string, argsEscaped bool
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -22067,6 +23561,23 @@ func (s *Server) handleListRuntimePoliciesRequest(args [0]string, argsEscaped bo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListRuntimePoliciesOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListRuntimePoliciesOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -22079,7 +23590,7 @@ func (s *Server) handleListRuntimePoliciesRequest(args [0]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -22096,7 +23607,7 @@ func (s *Server) handleListRuntimePoliciesRequest(args [0]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -22107,6 +23618,7 @@ func (s *Server) handleListRuntimePoliciesRequest(args [0]string, argsEscaped bo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -22290,6 +23802,23 @@ func (s *Server) handleListRuntimeProfilesRequest(args [0]string, argsEscaped bo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListRuntimeProfilesOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListRuntimeProfilesOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -22302,7 +23831,7 @@ func (s *Server) handleListRuntimeProfilesRequest(args [0]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -22319,7 +23848,7 @@ func (s *Server) handleListRuntimeProfilesRequest(args [0]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -22330,6 +23859,7 @@ func (s *Server) handleListRuntimeProfilesRequest(args [0]string, argsEscaped bo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -22513,6 +24043,23 @@ func (s *Server) handleListRuntimeSlotsRequest(args [0]string, argsEscaped bool,
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListRuntimeSlotsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListRuntimeSlotsOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -22525,7 +24072,7 @@ func (s *Server) handleListRuntimeSlotsRequest(args [0]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -22542,7 +24089,7 @@ func (s *Server) handleListRuntimeSlotsRequest(args [0]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -22553,6 +24100,7 @@ func (s *Server) handleListRuntimeSlotsRequest(args [0]string, argsEscaped bool,
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -22750,6 +24298,23 @@ func (s *Server) handleListSigningCredentialsRequest(args [0]string, argsEscaped
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListSigningCredentialsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListSigningCredentialsOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -22762,7 +24327,7 @@ func (s *Server) handleListSigningCredentialsRequest(args [0]string, argsEscaped
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -22779,7 +24344,7 @@ func (s *Server) handleListSigningCredentialsRequest(args [0]string, argsEscaped
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -22790,6 +24355,7 @@ func (s *Server) handleListSigningCredentialsRequest(args [0]string, argsEscaped
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -22981,6 +24547,23 @@ func (s *Server) handleListSigningRequestsRequest(args [0]string, argsEscaped bo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListSigningRequestsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListSigningRequestsOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -22993,7 +24576,7 @@ func (s *Server) handleListSigningRequestsRequest(args [0]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -23010,7 +24593,7 @@ func (s *Server) handleListSigningRequestsRequest(args [0]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -23021,6 +24604,7 @@ func (s *Server) handleListSigningRequestsRequest(args [0]string, argsEscaped bo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -23216,6 +24800,23 @@ func (s *Server) handleListTaskArtifactsRequest(args [1]string, argsEscaped bool
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListTaskArtifactsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListTaskArtifactsOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -23228,7 +24829,7 @@ func (s *Server) handleListTaskArtifactsRequest(args [1]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -23245,7 +24846,7 @@ func (s *Server) handleListTaskArtifactsRequest(args [1]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -23256,6 +24857,7 @@ func (s *Server) handleListTaskArtifactsRequest(args [1]string, argsEscaped bool
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -23451,6 +25053,23 @@ func (s *Server) handleListTaskAttemptsRequest(args [1]string, argsEscaped bool,
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListTaskAttemptsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListTaskAttemptsOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -23463,7 +25082,7 @@ func (s *Server) handleListTaskAttemptsRequest(args [1]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -23480,7 +25099,7 @@ func (s *Server) handleListTaskAttemptsRequest(args [1]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -23491,6 +25110,7 @@ func (s *Server) handleListTaskAttemptsRequest(args [1]string, argsEscaped bool,
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -23678,6 +25298,23 @@ func (s *Server) handleListTaskGrantsRequest(args [1]string, argsEscaped bool, w
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListTaskGrantsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListTaskGrantsOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -23690,7 +25327,7 @@ func (s *Server) handleListTaskGrantsRequest(args [1]string, argsEscaped bool, w
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -23707,7 +25344,7 @@ func (s *Server) handleListTaskGrantsRequest(args [1]string, argsEscaped bool, w
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -23718,6 +25355,7 @@ func (s *Server) handleListTaskGrantsRequest(args [1]string, argsEscaped bool, w
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -23905,6 +25543,23 @@ func (s *Server) handleListTaskMessagesRequest(args [2]string, argsEscaped bool,
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListTaskMessagesOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListTaskMessagesOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -23917,7 +25572,7 @@ func (s *Server) handleListTaskMessagesRequest(args [2]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -23934,7 +25589,7 @@ func (s *Server) handleListTaskMessagesRequest(args [2]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -23945,6 +25600,7 @@ func (s *Server) handleListTaskMessagesRequest(args [2]string, argsEscaped bool,
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -24149,6 +25805,23 @@ func (s *Server) handleListTaskSchemasRequest(args [0]string, argsEscaped bool, 
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListTaskSchemasOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListTaskSchemasOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -24161,7 +25834,7 @@ func (s *Server) handleListTaskSchemasRequest(args [0]string, argsEscaped bool, 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -24178,7 +25851,7 @@ func (s *Server) handleListTaskSchemasRequest(args [0]string, argsEscaped bool, 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -24189,6 +25862,7 @@ func (s *Server) handleListTaskSchemasRequest(args [0]string, argsEscaped bool, 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -24357,6 +26031,23 @@ func (s *Server) handleListTasksRequest(args [0]string, argsEscaped bool, w http
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListTasksOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListTasksOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -24369,7 +26060,7 @@ func (s *Server) handleListTasksRequest(args [0]string, argsEscaped bool, w http
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -24386,7 +26077,7 @@ func (s *Server) handleListTasksRequest(args [0]string, argsEscaped bool, w http
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -24397,6 +26088,7 @@ func (s *Server) handleListTasksRequest(args [0]string, argsEscaped bool, w http
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -24656,6 +26348,23 @@ func (s *Server) handleListTeamInvitesRequest(args [1]string, argsEscaped bool, 
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListTeamInvitesOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListTeamInvitesOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -24668,7 +26377,7 @@ func (s *Server) handleListTeamInvitesRequest(args [1]string, argsEscaped bool, 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -24685,7 +26394,7 @@ func (s *Server) handleListTeamInvitesRequest(args [1]string, argsEscaped bool, 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -24696,6 +26405,7 @@ func (s *Server) handleListTeamInvitesRequest(args [1]string, argsEscaped bool, 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -24879,6 +26589,23 @@ func (s *Server) handleListTeamMembersRequest(args [1]string, argsEscaped bool, 
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListTeamMembersOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListTeamMembersOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -24891,7 +26618,7 @@ func (s *Server) handleListTeamMembersRequest(args [1]string, argsEscaped bool, 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -24908,7 +26635,7 @@ func (s *Server) handleListTeamMembersRequest(args [1]string, argsEscaped bool, 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -24919,6 +26646,7 @@ func (s *Server) handleListTeamMembersRequest(args [1]string, argsEscaped bool, 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -25102,6 +26830,23 @@ func (s *Server) handleListTeamsRequest(args [0]string, argsEscaped bool, w http
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, ListTeamsOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, ListTeamsOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -25114,7 +26859,7 @@ func (s *Server) handleListTeamsRequest(args [0]string, argsEscaped bool, w http
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -25131,7 +26876,7 @@ func (s *Server) handleListTeamsRequest(args [0]string, argsEscaped bool, w http
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -25142,6 +26887,7 @@ func (s *Server) handleListTeamsRequest(args [0]string, argsEscaped bool, w http
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -25325,6 +27071,23 @@ func (s *Server) handlePreviewDiaryCustomPackRequest(args [1]string, argsEscaped
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, PreviewDiaryCustomPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, PreviewDiaryCustomPackOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -25337,7 +27100,7 @@ func (s *Server) handlePreviewDiaryCustomPackRequest(args [1]string, argsEscaped
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -25354,7 +27117,7 @@ func (s *Server) handlePreviewDiaryCustomPackRequest(args [1]string, argsEscaped
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -25365,6 +27128,7 @@ func (s *Server) handlePreviewDiaryCustomPackRequest(args [1]string, argsEscaped
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -25563,6 +27327,23 @@ func (s *Server) handlePreviewRenderedPackRequest(args [1]string, argsEscaped bo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, PreviewRenderedPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, PreviewRenderedPackOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -25575,7 +27356,7 @@ func (s *Server) handlePreviewRenderedPackRequest(args [1]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -25592,7 +27373,7 @@ func (s *Server) handlePreviewRenderedPackRequest(args [1]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -25603,6 +27384,7 @@ func (s *Server) handlePreviewRenderedPackRequest(args [1]string, argsEscaped bo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -26291,11 +28073,29 @@ func (s *Server) handleRegisterExecutorManifestRequest(args [0]string, argsEscap
 				ctx = sctx
 			}
 		}
+		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, RegisterExecutorManifestOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -26701,6 +28501,23 @@ func (s *Server) handleRejectTransferRequest(args [1]string, argsEscaped bool, w
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, RejectTransferOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, RejectTransferOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -26713,7 +28530,7 @@ func (s *Server) handleRejectTransferRequest(args [1]string, argsEscaped bool, w
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -26730,7 +28547,7 @@ func (s *Server) handleRejectTransferRequest(args [1]string, argsEscaped bool, w
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -26741,6 +28558,7 @@ func (s *Server) handleRejectTransferRequest(args [1]string, argsEscaped bool, w
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -26924,6 +28742,23 @@ func (s *Server) handleRemoveGroupMemberRequest(args [2]string, argsEscaped bool
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, RemoveGroupMemberOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, RemoveGroupMemberOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -26936,7 +28771,7 @@ func (s *Server) handleRemoveGroupMemberRequest(args [2]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -26953,7 +28788,7 @@ func (s *Server) handleRemoveGroupMemberRequest(args [2]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -26964,6 +28799,7 @@ func (s *Server) handleRemoveGroupMemberRequest(args [2]string, argsEscaped bool
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -27151,6 +28987,23 @@ func (s *Server) handleRemoveTeamMemberRequest(args [2]string, argsEscaped bool,
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, RemoveTeamMemberOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, RemoveTeamMemberOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -27163,7 +29016,7 @@ func (s *Server) handleRemoveTeamMemberRequest(args [2]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -27180,7 +29033,7 @@ func (s *Server) handleRemoveTeamMemberRequest(args [2]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -27191,6 +29044,7 @@ func (s *Server) handleRemoveTeamMemberRequest(args [2]string, argsEscaped bool,
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -27379,6 +29233,23 @@ func (s *Server) handleRenderContextPackRequest(args [1]string, argsEscaped bool
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, RenderContextPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, RenderContextPackOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -27391,7 +29262,7 @@ func (s *Server) handleRenderContextPackRequest(args [1]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -27408,7 +29279,7 @@ func (s *Server) handleRenderContextPackRequest(args [1]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -27419,6 +29290,7 @@ func (s *Server) handleRenderContextPackRequest(args [1]string, argsEscaped bool
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -27760,6 +29632,23 @@ func (s *Server) handleRevokeAgentKeyRequest(args [1]string, argsEscaped bool, w
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, RevokeAgentKeyOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, RevokeAgentKeyOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -27772,7 +29661,7 @@ func (s *Server) handleRevokeAgentKeyRequest(args [1]string, argsEscaped bool, w
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -27789,7 +29678,7 @@ func (s *Server) handleRevokeAgentKeyRequest(args [1]string, argsEscaped bool, w
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -27800,6 +29689,7 @@ func (s *Server) handleRevokeAgentKeyRequest(args [1]string, argsEscaped bool, w
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -28006,6 +29896,23 @@ func (s *Server) handleRevokeDiaryGrantRequest(args [1]string, argsEscaped bool,
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, RevokeDiaryGrantOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, RevokeDiaryGrantOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -28018,7 +29925,7 @@ func (s *Server) handleRevokeDiaryGrantRequest(args [1]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -28035,7 +29942,7 @@ func (s *Server) handleRevokeDiaryGrantRequest(args [1]string, argsEscaped bool,
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -28046,6 +29953,7 @@ func (s *Server) handleRevokeDiaryGrantRequest(args [1]string, argsEscaped bool,
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -28242,6 +30150,23 @@ func (s *Server) handleRevokeSigningCredentialRequest(args [1]string, argsEscape
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, RevokeSigningCredentialOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, RevokeSigningCredentialOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -28254,7 +30179,7 @@ func (s *Server) handleRevokeSigningCredentialRequest(args [1]string, argsEscape
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -28271,7 +30196,7 @@ func (s *Server) handleRevokeSigningCredentialRequest(args [1]string, argsEscape
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -28282,6 +30207,7 @@ func (s *Server) handleRevokeSigningCredentialRequest(args [1]string, argsEscape
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -28484,6 +30410,23 @@ func (s *Server) handleRevokeTaskGrantRequest(args [1]string, argsEscaped bool, 
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, RevokeTaskGrantOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, RevokeTaskGrantOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -28496,7 +30439,7 @@ func (s *Server) handleRevokeTaskGrantRequest(args [1]string, argsEscaped bool, 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -28513,7 +30456,7 @@ func (s *Server) handleRevokeTaskGrantRequest(args [1]string, argsEscaped bool, 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -28524,6 +30467,7 @@ func (s *Server) handleRevokeTaskGrantRequest(args [1]string, argsEscaped bool, 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -28726,6 +30670,23 @@ func (s *Server) handleRotateAgentKeyRequest(args [1]string, argsEscaped bool, w
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, RotateAgentKeyOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, RotateAgentKeyOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -28738,7 +30699,7 @@ func (s *Server) handleRotateAgentKeyRequest(args [1]string, argsEscaped bool, w
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -28755,7 +30716,7 @@ func (s *Server) handleRotateAgentKeyRequest(args [1]string, argsEscaped bool, w
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -28766,6 +30727,7 @@ func (s *Server) handleRotateAgentKeyRequest(args [1]string, argsEscaped bool, w
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -28958,6 +30920,23 @@ func (s *Server) handleRotateClientSecretRequest(args [0]string, argsEscaped boo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, RotateClientSecretOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, RotateClientSecretOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -28970,7 +30949,7 @@ func (s *Server) handleRotateClientSecretRequest(args [0]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -28987,7 +30966,7 @@ func (s *Server) handleRotateClientSecretRequest(args [0]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -28998,6 +30977,7 @@ func (s *Server) handleRotateClientSecretRequest(args [0]string, argsEscaped boo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -29166,6 +31146,23 @@ func (s *Server) handleSearchDiaryRequest(args [0]string, argsEscaped bool, w ht
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, SearchDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, SearchDiaryOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -29178,7 +31175,7 @@ func (s *Server) handleSearchDiaryRequest(args [0]string, argsEscaped bool, w ht
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -29195,7 +31192,7 @@ func (s *Server) handleSearchDiaryRequest(args [0]string, argsEscaped bool, w ht
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -29206,6 +31203,7 @@ func (s *Server) handleSearchDiaryRequest(args [0]string, argsEscaped bool, w ht
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -29552,6 +31550,23 @@ func (s *Server) handleSetRuntimeProfilePoliciesRequest(args [1]string, argsEsca
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, SetRuntimeProfilePoliciesOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, SetRuntimeProfilePoliciesOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -29564,7 +31579,7 @@ func (s *Server) handleSetRuntimeProfilePoliciesRequest(args [1]string, argsEsca
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -29581,7 +31596,7 @@ func (s *Server) handleSetRuntimeProfilePoliciesRequest(args [1]string, argsEsca
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -29592,6 +31607,7 @@ func (s *Server) handleSetRuntimeProfilePoliciesRequest(args [1]string, argsEsca
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -29796,6 +31812,23 @@ func (s *Server) handleStageTaskArtifactRequest(args [0]string, argsEscaped bool
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, StageTaskArtifactOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, StageTaskArtifactOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -29808,7 +31841,7 @@ func (s *Server) handleStageTaskArtifactRequest(args [0]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -29825,7 +31858,7 @@ func (s *Server) handleStageTaskArtifactRequest(args [0]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -29836,6 +31869,7 @@ func (s *Server) handleStageTaskArtifactRequest(args [0]string, argsEscaped bool
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -30202,6 +32236,23 @@ func (s *Server) handleSubmitSignatureRequest(args [1]string, argsEscaped bool, 
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, SubmitSignatureOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, SubmitSignatureOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -30214,7 +32265,7 @@ func (s *Server) handleSubmitSignatureRequest(args [1]string, argsEscaped bool, 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -30231,7 +32282,7 @@ func (s *Server) handleSubmitSignatureRequest(args [1]string, argsEscaped bool, 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -30242,6 +32293,7 @@ func (s *Server) handleSubmitSignatureRequest(args [1]string, argsEscaped bool, 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -30438,6 +32490,23 @@ func (s *Server) handleSuspendSigningCredentialRequest(args [1]string, argsEscap
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, SuspendSigningCredentialOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, SuspendSigningCredentialOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -30450,7 +32519,7 @@ func (s *Server) handleSuspendSigningCredentialRequest(args [1]string, argsEscap
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -30467,7 +32536,7 @@ func (s *Server) handleSuspendSigningCredentialRequest(args [1]string, argsEscap
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -30478,6 +32547,7 @@ func (s *Server) handleSuspendSigningCredentialRequest(args [1]string, argsEscap
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -30680,6 +32750,23 @@ func (s *Server) handleTaskHeartbeatRequest(args [2]string, argsEscaped bool, w 
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, TaskHeartbeatOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, TaskHeartbeatOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -30692,7 +32779,7 @@ func (s *Server) handleTaskHeartbeatRequest(args [2]string, argsEscaped bool, w 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -30709,7 +32796,7 @@ func (s *Server) handleTaskHeartbeatRequest(args [2]string, argsEscaped bool, w 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -30720,6 +32807,7 @@ func (s *Server) handleTaskHeartbeatRequest(args [2]string, argsEscaped bool, w 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -30926,6 +33014,23 @@ func (s *Server) handleUpdateContextPackRequest(args [1]string, argsEscaped bool
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, UpdateContextPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, UpdateContextPackOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -30938,7 +33043,7 @@ func (s *Server) handleUpdateContextPackRequest(args [1]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -30955,7 +33060,7 @@ func (s *Server) handleUpdateContextPackRequest(args [1]string, argsEscaped bool
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -30966,6 +33071,7 @@ func (s *Server) handleUpdateContextPackRequest(args [1]string, argsEscaped bool
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -31164,6 +33270,23 @@ func (s *Server) handleUpdateDiaryRequest(args [1]string, argsEscaped bool, w ht
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, UpdateDiaryOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, UpdateDiaryOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -31176,7 +33299,7 @@ func (s *Server) handleUpdateDiaryRequest(args [1]string, argsEscaped bool, w ht
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -31193,7 +33316,7 @@ func (s *Server) handleUpdateDiaryRequest(args [1]string, argsEscaped bool, w ht
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -31204,6 +33327,7 @@ func (s *Server) handleUpdateDiaryRequest(args [1]string, argsEscaped bool, w ht
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -31406,6 +33530,23 @@ func (s *Server) handleUpdateDiaryEntryByIdRequest(args [1]string, argsEscaped b
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, UpdateDiaryEntryByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, UpdateDiaryEntryByIdOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -31418,7 +33559,7 @@ func (s *Server) handleUpdateDiaryEntryByIdRequest(args [1]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -31435,7 +33576,7 @@ func (s *Server) handleUpdateDiaryEntryByIdRequest(args [1]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -31446,6 +33587,7 @@ func (s *Server) handleUpdateDiaryEntryByIdRequest(args [1]string, argsEscaped b
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -31644,6 +33786,23 @@ func (s *Server) handleUpdateEntryRelationStatusRequest(args [1]string, argsEsca
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, UpdateEntryRelationStatusOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, UpdateEntryRelationStatusOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -31656,7 +33815,7 @@ func (s *Server) handleUpdateEntryRelationStatusRequest(args [1]string, argsEsca
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -31673,7 +33832,7 @@ func (s *Server) handleUpdateEntryRelationStatusRequest(args [1]string, argsEsca
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -31684,6 +33843,7 @@ func (s *Server) handleUpdateEntryRelationStatusRequest(args [1]string, argsEsca
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -31880,6 +34040,23 @@ func (s *Server) handleUpdateProjectRequest(args [1]string, argsEscaped bool, w 
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, UpdateProjectOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, UpdateProjectOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -31892,7 +34069,7 @@ func (s *Server) handleUpdateProjectRequest(args [1]string, argsEscaped bool, w 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -31909,7 +34086,7 @@ func (s *Server) handleUpdateProjectRequest(args [1]string, argsEscaped bool, w 
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -31920,6 +34097,7 @@ func (s *Server) handleUpdateProjectRequest(args [1]string, argsEscaped bool, w 
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -32122,6 +34300,23 @@ func (s *Server) handleUpdateRenderedPackRequest(args [1]string, argsEscaped boo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, UpdateRenderedPackOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, UpdateRenderedPackOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -32134,7 +34329,7 @@ func (s *Server) handleUpdateRenderedPackRequest(args [1]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -32151,7 +34346,7 @@ func (s *Server) handleUpdateRenderedPackRequest(args [1]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -32162,6 +34357,7 @@ func (s *Server) handleUpdateRenderedPackRequest(args [1]string, argsEscaped boo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -32361,6 +34557,23 @@ func (s *Server) handleUpdateRuntimeModelRequest(args [1]string, argsEscaped boo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, UpdateRuntimeModelOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, UpdateRuntimeModelOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -32373,7 +34586,7 @@ func (s *Server) handleUpdateRuntimeModelRequest(args [1]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -32390,7 +34603,7 @@ func (s *Server) handleUpdateRuntimeModelRequest(args [1]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -32401,6 +34614,7 @@ func (s *Server) handleUpdateRuntimeModelRequest(args [1]string, argsEscaped boo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -32599,6 +34813,23 @@ func (s *Server) handleUpdateRuntimePolicyRequest(args [1]string, argsEscaped bo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, UpdateRuntimePolicyOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, UpdateRuntimePolicyOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -32611,7 +34842,7 @@ func (s *Server) handleUpdateRuntimePolicyRequest(args [1]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -32628,7 +34859,7 @@ func (s *Server) handleUpdateRuntimePolicyRequest(args [1]string, argsEscaped bo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -32639,6 +34870,7 @@ func (s *Server) handleUpdateRuntimePolicyRequest(args [1]string, argsEscaped bo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -32841,6 +35073,23 @@ func (s *Server) handleUpdateRuntimeProfileRequest(args [1]string, argsEscaped b
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, UpdateRuntimeProfileOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, UpdateRuntimeProfileOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -32853,7 +35102,7 @@ func (s *Server) handleUpdateRuntimeProfileRequest(args [1]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -32870,7 +35119,7 @@ func (s *Server) handleUpdateRuntimeProfileRequest(args [1]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -32881,6 +35130,7 @@ func (s *Server) handleUpdateRuntimeProfileRequest(args [1]string, argsEscaped b
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -33079,6 +35329,23 @@ func (s *Server) handleUpdateTaskMetadataRequest(args [1]string, argsEscaped boo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, UpdateTaskMetadataOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, UpdateTaskMetadataOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -33091,7 +35358,7 @@ func (s *Server) handleUpdateTaskMetadataRequest(args [1]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -33108,7 +35375,7 @@ func (s *Server) handleUpdateTaskMetadataRequest(args [1]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -33119,6 +35386,7 @@ func (s *Server) handleUpdateTaskMetadataRequest(args [1]string, argsEscaped boo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -33322,6 +35590,23 @@ func (s *Server) handleUpdateTeamMemberRoleRequest(args [2]string, argsEscaped b
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, UpdateTeamMemberRoleOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, UpdateTeamMemberRoleOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -33334,7 +35619,7 @@ func (s *Server) handleUpdateTeamMemberRoleRequest(args [2]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -33351,7 +35636,7 @@ func (s *Server) handleUpdateTeamMemberRoleRequest(args [2]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -33362,6 +35647,7 @@ func (s *Server) handleUpdateTeamMemberRoleRequest(args [2]string, argsEscaped b
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -33753,6 +36039,23 @@ func (s *Server) handleUploadRuntimeSessionRequest(args [2]string, argsEscaped b
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, UploadRuntimeSessionOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, UploadRuntimeSessionOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -33765,7 +36068,7 @@ func (s *Server) handleUploadRuntimeSessionRequest(args [2]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -33782,7 +36085,7 @@ func (s *Server) handleUploadRuntimeSessionRequest(args [2]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -33793,6 +36096,7 @@ func (s *Server) handleUploadRuntimeSessionRequest(args [2]string, argsEscaped b
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -34015,6 +36319,23 @@ func (s *Server) handleUploadTaskArtifactRequest(args [2]string, argsEscaped boo
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, UploadTaskArtifactOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, UploadTaskArtifactOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -34027,7 +36348,7 @@ func (s *Server) handleUploadTaskArtifactRequest(args [2]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -34044,7 +36365,7 @@ func (s *Server) handleUploadTaskArtifactRequest(args [2]string, argsEscaped boo
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -34055,6 +36376,7 @@ func (s *Server) handleUploadTaskArtifactRequest(args [2]string, argsEscaped boo
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -34723,6 +37045,23 @@ func (s *Server) handleVerifyDiaryEntryByIdRequest(args [1]string, argsEscaped b
 			}
 		}
 		{
+			sctx, ok, err := s.securityAgentKeyAuth(ctx, VerifyDiaryEntryByIdOperation, r)
+			if err != nil {
+				err = &ogenerrors.SecurityError{
+					OperationContext: opErrContext,
+					Security:         "AgentKeyAuth",
+					Err:              err,
+				}
+				defer recordError("Security:AgentKeyAuth", err)
+				s.cfg.ErrorHandler(ctx, w, r, err)
+				return
+			}
+			if ok {
+				satisfied[0] |= 1 << 1
+				ctx = sctx
+			}
+		}
+		{
 			sctx, ok, err := s.securitySessionAuth(ctx, VerifyDiaryEntryByIdOperation, r)
 			if err != nil {
 				err = &ogenerrors.SecurityError{
@@ -34735,7 +37074,7 @@ func (s *Server) handleVerifyDiaryEntryByIdRequest(args [1]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 1
+				satisfied[0] |= 1 << 2
 				ctx = sctx
 			}
 		}
@@ -34752,7 +37091,7 @@ func (s *Server) handleVerifyDiaryEntryByIdRequest(args [1]string, argsEscaped b
 				return
 			}
 			if ok {
-				satisfied[0] |= 1 << 2
+				satisfied[0] |= 1 << 3
 				ctx = sctx
 			}
 		}
@@ -34763,6 +37102,7 @@ func (s *Server) handleVerifyDiaryEntryByIdRequest(args [1]string, argsEscaped b
 				{0b00000001},
 				{0b00000010},
 				{0b00000100},
+				{0b00001000},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {

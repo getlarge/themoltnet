@@ -21196,6 +21196,10 @@ var listAgentKeys = (options) => (options?.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -21213,6 +21217,10 @@ var listAgentKeys = (options) => (options?.client ?? client).get({
 */
 var createAgentKey = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -21244,6 +21252,10 @@ var revokeAgentKey = (options) => (options.client ?? client).post({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -21270,6 +21282,10 @@ var rotateAgentKey = (options) => (options.client ?? client).post({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -21287,6 +21303,10 @@ var rotateAgentKey = (options) => (options.client ?? client).post({
 */
 var getWhoami = (options) => (options?.client ?? client).get({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -21347,6 +21367,10 @@ var rotateClientSecret = (options) => (options?.client ?? client).post({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -21369,6 +21393,10 @@ var getCryptoIdentity = (options) => (options?.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -21383,6 +21411,10 @@ var getCryptoIdentity = (options) => (options?.client ?? client).get({
 });
 var listSigningCredentials = (options) => (options.client ?? client).get({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -21439,6 +21471,10 @@ var getSigningCredential = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -21453,6 +21489,10 @@ var getSigningCredential = (options) => (options.client ?? client).get({
 });
 var approveSigningCredential = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -21481,6 +21521,10 @@ var revokeSigningCredential = (options) => (options.client ?? client).post({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -21499,6 +21543,10 @@ var revokeSigningCredential = (options) => (options.client ?? client).post({
 });
 var suspendSigningCredential = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -21530,6 +21578,10 @@ var listSigningRequests = (options) => (options?.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -21547,6 +21599,10 @@ var listSigningRequests = (options) => (options?.client ?? client).get({
 */
 var createSigningRequest = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -21573,6 +21629,10 @@ var createSigningRequest = (options) => (options.client ?? client).post({
 */
 var getSigningRequest = (options) => (options.client ?? client).get({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -21648,6 +21708,10 @@ var submitSignature = (options) => (options.client ?? client).post({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -21685,6 +21749,10 @@ var listDiaries = (options) => (options?.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -21702,6 +21770,10 @@ var listDiaries = (options) => (options?.client ?? client).get({
 */
 var createDiary = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -21733,6 +21805,10 @@ var searchDiary = (options) => (options?.client ?? client).post({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -21759,6 +21835,10 @@ var listDiaryEntries = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -21776,6 +21856,10 @@ var listDiaryEntries = (options) => (options.client ?? client).get({
 */
 var createDiaryEntry = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -21807,6 +21891,10 @@ var listDiaryTags = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -21824,6 +21912,10 @@ var listDiaryTags = (options) => (options.client ?? client).get({
 */
 var deleteDiary = (options) => (options.client ?? client).delete({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -21851,6 +21943,10 @@ var getDiary = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -21868,6 +21964,10 @@ var getDiary = (options) => (options.client ?? client).get({
 */
 var updateDiary = (options) => (options.client ?? client).patch({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -21899,6 +21999,10 @@ var revokeDiaryGrant = (options) => (options.client ?? client).delete({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -21925,6 +22029,10 @@ var listDiaryGrants = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -21942,6 +22050,10 @@ var listDiaryGrants = (options) => (options.client ?? client).get({
 */
 var createDiaryGrant = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -21973,6 +22085,10 @@ var listDiaryPacks = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -21990,6 +22106,10 @@ var listDiaryPacks = (options) => (options.client ?? client).get({
 */
 var createDiaryCustomPack = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -22021,6 +22141,10 @@ var previewDiaryCustomPack = (options) => (options.client ?? client).post({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22047,6 +22171,10 @@ var listDiaryRenderedPacks = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22064,6 +22192,10 @@ var listDiaryRenderedPacks = (options) => (options.client ?? client).get({
 */
 var initiateTransfer = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -22095,6 +22227,10 @@ var batchDeleteDiaryEntries = (options) => (options.client ?? client).delete({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22116,6 +22252,10 @@ var batchDeleteDiaryEntries = (options) => (options.client ?? client).delete({
 */
 var deleteDiaryEntryById = (options) => (options.client ?? client).delete({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -22143,6 +22283,10 @@ var getDiaryEntryById = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22160,6 +22304,10 @@ var getDiaryEntryById = (options) => (options.client ?? client).get({
 */
 var updateDiaryEntryById = (options) => (options.client ?? client).patch({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -22191,6 +22339,10 @@ var verifyDiaryEntryById = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22208,6 +22360,9 @@ var verifyDiaryEntryById = (options) => (options.client ?? client).get({
 */
 var registerExecutorManifest = (options) => (options.client ?? client).post({
 	security: [{
+		scheme: "bearer",
+		type: "http"
+	}, {
 		scheme: "bearer",
 		type: "http"
 	}],
@@ -22242,6 +22397,10 @@ var listContextPacks = (options) => (options?.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22259,6 +22418,10 @@ var listContextPacks = (options) => (options?.client ?? client).get({
 */
 var getContextPackProvenanceByCid = (options) => (options.client ?? client).get({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -22286,6 +22449,10 @@ var getContextPackById = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22303,6 +22470,10 @@ var getContextPackById = (options) => (options.client ?? client).get({
 */
 var updateContextPack = (options) => (options.client ?? client).patch({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -22334,6 +22505,10 @@ var getContextPackProvenanceById = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22351,6 +22526,10 @@ var getContextPackProvenanceById = (options) => (options.client ?? client).get({
 */
 var renderContextPack = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -22382,6 +22561,10 @@ var previewRenderedPack = (options) => (options.client ?? client).post({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22403,6 +22586,10 @@ var previewRenderedPack = (options) => (options.client ?? client).post({
 */
 var getLatestRenderedPack = (options) => (options.client ?? client).get({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -22441,6 +22628,10 @@ var listProjects = (options) => (options?.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22455,6 +22646,10 @@ var listProjects = (options) => (options?.client ?? client).get({
 });
 var createProject = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -22483,6 +22678,10 @@ var getProject = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22497,6 +22696,10 @@ var getProject = (options) => (options.client ?? client).get({
 });
 var updateProject = (options) => (options.client ?? client).patch({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -22600,6 +22803,10 @@ var getRenderedPackById = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22617,6 +22824,10 @@ var getRenderedPackById = (options) => (options.client ?? client).get({
 */
 var updateRenderedPack = (options) => (options.client ?? client).patch({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -22648,6 +22859,10 @@ var listRuntimePolicies = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22665,6 +22880,10 @@ var listRuntimePolicies = (options) => (options.client ?? client).get({
 */
 var createRuntimePolicy = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -22696,6 +22915,10 @@ var deleteRuntimePolicy = (options) => (options.client ?? client).delete({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22718,6 +22941,10 @@ var getRuntimePolicy = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22735,6 +22962,10 @@ var getRuntimePolicy = (options) => (options.client ?? client).get({
 */
 var updateRuntimePolicy = (options) => (options.client ?? client).patch({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -22766,6 +22997,10 @@ var listRuntimeProfiles = (options) => (options?.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22783,6 +23018,10 @@ var listRuntimeProfiles = (options) => (options?.client ?? client).get({
 */
 var createRuntimeProfile = (options) => (options?.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -22814,6 +23053,10 @@ var deleteRuntimeProfile = (options) => (options.client ?? client).delete({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22836,6 +23079,10 @@ var getRuntimeProfile = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22853,6 +23100,10 @@ var getRuntimeProfile = (options) => (options.client ?? client).get({
 */
 var updateRuntimeProfile = (options) => (options.client ?? client).patch({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -22884,6 +23135,10 @@ var getRuntimeProfileAllowedTools = (options) => (options.client ?? client).get(
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22906,6 +23161,10 @@ var getRuntimeProfilePolicies = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22923,6 +23182,10 @@ var getRuntimeProfilePolicies = (options) => (options.client ?? client).get({
 */
 var setRuntimeProfilePolicies = (options) => (options.client ?? client).put({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -22954,6 +23217,10 @@ var getRuntimeSession = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -22972,6 +23239,10 @@ var getRuntimeSession = (options) => (options.client ?? client).get({
 var uploadRuntimeSession = (options) => (options.client ?? client).put({
 	bodySerializer: null,
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -23003,6 +23274,10 @@ var listRuntimeSlots = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23020,6 +23295,10 @@ var listRuntimeSlots = (options) => (options.client ?? client).get({
 */
 var beginRuntimeSlot = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -23051,6 +23330,10 @@ var finishRuntimeSlot = (options) => (options.client ?? client).post({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23077,6 +23360,10 @@ var findLatestRuntimeSlotForAttempt = (options) => (options.client ?? client).ge
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23095,6 +23382,10 @@ var findLatestRuntimeSlotForAttempt = (options) => (options.client ?? client).ge
 var stageTaskArtifact = (options) => (options.client ?? client).put({
 	bodySerializer: null,
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -23126,6 +23417,10 @@ var batchDeleteTasks = (options) => (options.client ?? client).delete({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23152,6 +23447,10 @@ var listTasks = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23169,6 +23468,10 @@ var listTasks = (options) => (options.client ?? client).get({
 */
 var createTask$1 = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -23200,6 +23503,10 @@ var listTaskSchemas = (options) => (options?.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23217,6 +23524,10 @@ var listTaskSchemas = (options) => (options?.client ?? client).get({
 */
 var getTask = (options) => (options.client ?? client).get({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -23244,6 +23555,10 @@ var listTaskAttempts = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23261,6 +23576,10 @@ var listTaskAttempts = (options) => (options.client ?? client).get({
 */
 var abortTaskAttempt = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -23292,6 +23611,10 @@ var completeTask = (options) => (options.client ?? client).post({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23313,6 +23636,10 @@ var completeTask = (options) => (options.client ?? client).post({
 */
 var failTaskAttempt = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -23344,6 +23671,10 @@ var taskHeartbeat = (options) => (options.client ?? client).post({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23370,6 +23701,10 @@ var listTaskMessages = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23387,6 +23722,10 @@ var listTaskMessages = (options) => (options.client ?? client).get({
 */
 var appendTaskMessages = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -23418,6 +23757,10 @@ var cancelTask = (options) => (options.client ?? client).post({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23439,6 +23782,10 @@ var cancelTask = (options) => (options.client ?? client).post({
 */
 var claimTask = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -23470,6 +23817,10 @@ var revokeTaskGrant = (options) => (options.client ?? client).delete({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23496,6 +23847,10 @@ var listTaskGrants = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23513,6 +23868,10 @@ var listTaskGrants = (options) => (options.client ?? client).get({
 */
 var createTaskGrant = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -23544,6 +23903,10 @@ var listTaskArtifacts = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23562,6 +23925,10 @@ var listTaskArtifacts = (options) => (options.client ?? client).get({
 var uploadTaskArtifact = (options) => (options.client ?? client).put({
 	bodySerializer: null,
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -23593,6 +23960,10 @@ var listTeams = (options) => (options?.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23610,6 +23981,10 @@ var listTeams = (options) => (options?.client ?? client).get({
 */
 var createTeam = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -23641,6 +24016,10 @@ var joinTeam = (options) => (options.client ?? client).post({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23662,6 +24041,10 @@ var joinTeam = (options) => (options.client ?? client).post({
 */
 var deleteTeam = (options) => (options.client ?? client).delete({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -23689,6 +24072,10 @@ var getTeam = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23711,6 +24098,10 @@ var listTeamInvites = (options) => (options.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23728,6 +24119,10 @@ var listTeamInvites = (options) => (options.client ?? client).get({
 */
 var createTeamInvite = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -23759,6 +24154,10 @@ var deleteTeamInvite = (options) => (options.client ?? client).delete({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23776,6 +24175,10 @@ var deleteTeamInvite = (options) => (options.client ?? client).delete({
 */
 var listTeamMembers = (options) => (options.client ?? client).get({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -23803,6 +24206,10 @@ var removeTeamMember = (options) => (options.client ?? client).delete({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23820,6 +24227,10 @@ var removeTeamMember = (options) => (options.client ?? client).delete({
 */
 var updateTeamMemberRole = (options) => (options.client ?? client).patch({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"
@@ -23851,6 +24262,10 @@ var listPendingTransfers = (options) => (options?.client ?? client).get({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23873,6 +24288,10 @@ var acceptTransfer = (options) => (options.client ?? client).post({
 			type: "http"
 		},
 		{
+			scheme: "bearer",
+			type: "http"
+		},
+		{
 			name: "X-Moltnet-Session-Token",
 			type: "apiKey"
 		},
@@ -23890,6 +24309,10 @@ var acceptTransfer = (options) => (options.client ?? client).post({
 */
 var rejectTransfer = (options) => (options.client ?? client).post({
 	security: [
+		{
+			scheme: "bearer",
+			type: "http"
+		},
 		{
 			scheme: "bearer",
 			type: "http"

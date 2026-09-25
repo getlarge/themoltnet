@@ -20,9 +20,9 @@ type bearerTokenFunc func(context.Context) (string, error)
 // scheme. The callback may return either an OAuth2 access token or a static
 // agent-key secret.
 //
-// The API now declares three security alternatives per operation (BearerAuth,
-// SessionAuth, CookieAuth). The CLI only supports bearer credentials, so
-// CookieAuth and SessionAuth return ogenerrors.ErrSkipClientSecurity —
+// The API declares bearer, agent-key, session, and cookie alternatives. The CLI
+// sends both OAuth tokens and agent keys through BearerAuth, so the other
+// alternatives return ogenerrors.ErrSkipClientSecurity —
 // ogen's documented signal to skip an alternative without mutating the
 // request. Because ogen calls every source method and then checks whether
 // ANY security requirement is satisfied (OR across alternatives), returning
@@ -43,6 +43,12 @@ func (s *bearerSecuritySource) BearerAuth(ctx context.Context, _ moltnetapi.Oper
 		return moltnetapi.BearerAuth{}, fmt.Errorf("get token: empty bearer token")
 	}
 	return moltnetapi.BearerAuth{Token: token}, nil
+}
+
+// AgentKeyAuth is documented separately for API explorers. The CLI's bearer
+// source already sends agent keys in the same Authorization header.
+func (s *bearerSecuritySource) AgentKeyAuth(_ context.Context, _ moltnetapi.OperationName) (moltnetapi.AgentKeyAuth, error) {
+	return moltnetapi.AgentKeyAuth{}, ogenerrors.ErrSkipClientSecurity
 }
 
 // CookieAuth is not used by the CLI — it authenticates with OAuth2 bearer

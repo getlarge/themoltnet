@@ -17,6 +17,7 @@ import {
 } from '@moltnet/runtime-session-service';
 import type { FastifyInstance } from 'fastify';
 
+import { PRINCIPAL_AUTH_SECURITY } from '../openapi-security.js';
 import { createProblem } from '../problems/index.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 import { requireKetoSubject } from '../utils/require-keto-subject.js';
@@ -64,7 +65,7 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
         description:
           'Stream or replace the durable team-scoped runtime session content for a task attempt.',
         consumes: ['application/octet-stream'],
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         params: RuntimeSessionAttemptParamsSchema,
         querystring: UploadRuntimeSessionQuerySchema,
@@ -116,7 +117,7 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
         tags: ['runtime-sessions'],
         description:
           'Get metadata for the durable team-scoped runtime session for a task attempt.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         params: RuntimeSessionAttemptParamsSchema,
         response: {
@@ -156,7 +157,7 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
         tags: ['runtime-sessions'],
         description:
           'Download the durable team-scoped runtime session content for a task attempt.',
-        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        security: PRINCIPAL_AUTH_SECURITY,
         headers: TeamHeaderRequiredSchema,
         params: RuntimeSessionAttemptParamsSchema,
         response: {
