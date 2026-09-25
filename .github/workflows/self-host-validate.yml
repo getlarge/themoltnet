@@ -82,6 +82,12 @@ jobs:
           compose=(docker compose -p self-host-ci --env-file "$RUNNER_TEMP/self-host-ci.env" --env-file .env.release)
           trap '"${compose[@]}" down -v' EXIT
           "${compose[@]}" up -d --wait --wait-timeout 300
+          "${compose[@]}" exec -T postgres sh -ec '
+            if PGPASSWORD="$KETO_DB_PASSWORD" psql -h localhost -U keto -d kratos -Atqc "select 1" >/dev/null 2>&1; then
+              echo "A service role reached another service database" >&2
+              exit 1
+            fi
+          '
           "${compose[@]}" exec -T rest-api node --input-type=module <<'NODE'
           const check = async (url, expected) => {
             const response = await fetch(url, { redirect: 'manual' });

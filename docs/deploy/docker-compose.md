@@ -10,7 +10,7 @@ cache, object-storage, and ingress dependencies.
 - a Linux host with persistent storage
 - five DNS names resolving to the host
 - outbound SMTP for account recovery and verification
-- a separate off-host backup destination for PostgreSQL and Talos state
+- a separate off-host backup destination for PostgreSQL, Talos, and object data
 
 Download a `self-host-vX.Y.Z` archive from GitHub Releases, verify its checksum,
 and follow the included `deploy/self-host/README.md`. The release's

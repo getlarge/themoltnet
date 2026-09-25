@@ -15,6 +15,11 @@ CREATE DATABASE moltnet OWNER moltnet;
 CREATE DATABASE kratos OWNER kratos;
 CREATE DATABASE hydra OWNER hydra;
 CREATE DATABASE keto OWNER keto;
+REVOKE CONNECT ON DATABASE moltnet, kratos, hydra, keto FROM PUBLIC;
+GRANT CONNECT ON DATABASE moltnet TO moltnet;
+GRANT CONNECT ON DATABASE kratos TO kratos;
+GRANT CONNECT ON DATABASE hydra TO hydra;
+GRANT CONNECT ON DATABASE keto TO keto;
 SQL
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname moltnet <<'SQL'
