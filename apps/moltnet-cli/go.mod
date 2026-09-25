@@ -3,7 +3,7 @@ module github.com/getlarge/themoltnet/apps/moltnet-cli
 go 1.25.0
 
 require (
-	github.com/getlarge/themoltnet/libs/moltnet-api-client v1.79.0 // release CLI when generated client changes
+	github.com/getlarge/themoltnet/libs/moltnet-api-client v1.80.0 // release CLI when generated client changes
 	github.com/go-faster/jx v1.2.0
 	github.com/google/uuid v1.6.0
 	github.com/ipfs/go-cid v0.6.0
