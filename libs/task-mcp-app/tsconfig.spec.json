@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "composite": true,
-    "lib": [],
+    "lib": ["ES2022", "DOM"],
     "outDir": "./out-tsc/spec",
     "rootDir": ".",
     "tsBuildInfoFile": "./out-tsc/tsconfig.spec.tsbuildinfo",
