@@ -606,6 +606,18 @@ runs:
         PROJECT_ID: ${{ inputs.project-id }}
       run: |
         set -euo pipefail
+        # Normalise project-id once, exactly like dispatch.ts: empty means
+        # General work, surrounding whitespace (incl. newlines) is trimmed,
+        # and a whitespace-only value is rejected rather than read as General.
+        PROJECT_ID="${PROJECT_ID:-}"
+        if [ -n "$PROJECT_ID" ]; then
+          PROJECT_ID="${PROJECT_ID#"${PROJECT_ID%%[![:space:]]*}"}"
+          PROJECT_ID="${PROJECT_ID%"${PROJECT_ID##*[![:space:]]}"}"
+          if [ -z "$PROJECT_ID" ]; then
+            echo "::error::project-id is blank; leave it empty for General work" >&2
+            exit 1
+          fi
+        fi
         if [ ! -f "$TASK_SPEC_PATH" ]; then
           echo "::error::task-spec-path '$TASK_SPEC_PATH' does not exist"
           exit 1
@@ -785,6 +797,18 @@ runs:
         PROJECT_ID: ${{ inputs.project-id }}
       run: |
         set -euo pipefail
+        # Normalise project-id once, exactly like dispatch.ts: empty means
+        # General work, surrounding whitespace (incl. newlines) is trimmed,
+        # and a whitespace-only value is rejected rather than read as General.
+        PROJECT_ID="${PROJECT_ID:-}"
+        if [ -n "$PROJECT_ID" ]; then
+          PROJECT_ID="${PROJECT_ID#"${PROJECT_ID%%[![:space:]]*}"}"
+          PROJECT_ID="${PROJECT_ID%"${PROJECT_ID##*[![:space:]]}"}"
+          if [ -z "$PROJECT_ID" ]; then
+            echo "::error::project-id is blank; leave it empty for General work" >&2
+            exit 1
+          fi
+        fi
         if [ "$DAEMON_MODE" != "once" ] && [ "$DAEMON_MODE" != "drain" ]; then
           echo "::error::mode must be once or drain, got '$DAEMON_MODE'" >&2
           exit 1

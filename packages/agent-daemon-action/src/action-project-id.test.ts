@@ -191,6 +191,38 @@ describe('create-task step with project-id', () => {
     expect(readFileSync(callLog, 'utf8')).toContain(`--project-id ${PROJECT}`);
   });
 
+  it('trims surrounding whitespace (incl. newlines) before forwarding --project-id', () => {
+    installFakeNpx();
+
+    const result = runStep('create-task', {
+      ...specEnv(),
+      PROJECT_ID: `  ${PROJECT}\n`,
+      FAKE_CREATE_HELP: '--task-type\n--project-id string',
+    });
+
+    expect(result.status).toBe(0);
+    // The fake npx logs "$*": an untrimmed value would leave extra spaces
+    // between the flag and the UUID, and a trailing newline after it.
+    expect(readFileSync(callLog, 'utf8')).toMatch(
+      new RegExp(`--project-id ${PROJECT}(?: |\n)`),
+    );
+    expect(readFileSync(callLog, 'utf8')).not.toContain(`${PROJECT}\n\n`);
+  });
+
+  it('rejects a whitespace-only project-id before creating anything (matches dispatch)', () => {
+    installFakeNpx();
+
+    const result = runStep('create-task', {
+      ...specEnv(),
+      PROJECT_ID: ' \n ',
+      FAKE_CREATE_HELP: '--task-type\n--project-id string',
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('project-id is blank');
+    expect(existsSync(callLog)).toBe(false);
+  });
+
   it('creates General work without probing the CLI when project-id is empty', () => {
     installFakeNpx();
 
@@ -259,6 +291,33 @@ describe('run step with project-id', () => {
       expect(statSync(bindingsPath).mode & 0o077).toBe(0);
     },
   );
+
+  it('trims surrounding whitespace (incl. newlines) before validating and binding', () => {
+    const bin = installFakeDaemon();
+
+    const result = runStep('run', {
+      ...runEnv(bin),
+      PROJECT_ID: `  ${PROJECT}\n`,
+    });
+
+    expect(result.status).toBe(0);
+    const args = daemonArgs();
+    const bindingsPath = args[args.indexOf('--config-file') + 1];
+    const bindings = JSON.parse(readFileSync(bindingsPath, 'utf8')) as {
+      bindings: { projectId: string }[];
+    };
+    expect(bindings.bindings[0].projectId).toBe(PROJECT);
+  });
+
+  it('rejects a whitespace-only project-id (matches dispatch)', () => {
+    const bin = installFakeDaemon();
+
+    const result = runStep('run', { ...runEnv(bin), PROJECT_ID: ' \n ' });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('project-id is blank');
+    expect(existsSync(callLog)).toBe(false);
+  });
 
   it('keeps the team-only General invocation when project-id is empty', () => {
     const bin = installFakeDaemon();
