@@ -205,7 +205,7 @@ describe('parseCoverageCheck', () => {
 });
 
 describe('buildExtractTask', () => {
-  it('embeds the diff as fenced untrusted data in a tool-less task', () => {
+  it('embeds the diff as fenced untrusted data without requesting a workspace', () => {
     // Act
     const task = buildExtractTask(context, {
       manifest: '- apps/cli/src/flags.ts (source, modified)',
@@ -228,7 +228,9 @@ describe('buildExtractTask', () => {
     expect(task.tags).toEqual(
       expect.arrayContaining(['review:docs-impact', 'stage:extract']),
     );
-    expect(input.execution).toEqual({ workspace: 'none' });
+    // Requesting any workspace would make the task ineligible for daemons
+    // claiming through a location with a different strategy.
+    expect(input.execution).toBeUndefined();
     expect(input.brief).toMatch(
       /<untrusted-diff id="[0-9a-f]+">[\s\S]+ignore previous instructions[\s\S]+<\/untrusted-diff id="[0-9a-f]+">/,
     );
