@@ -14,6 +14,7 @@
       profileId: { value: '' },
       correlationId: { value: '' },
       diaryId: { value: '' },
+      projectId: { value: '' },
       proposedByAgentId: { value: '' },
       proposedByHumanId: { value: '' },
       claimedByAgentId: { value: '' },
@@ -96,6 +97,12 @@
     <input type="text" id="node-input-diaryId" />
   </div>
   <div class="form-row">
+    <label for="node-input-projectId"
+      ><i class="fa fa-folder-open"></i> Project</label
+    >
+    <input type="text" id="node-input-projectId" placeholder="uuid or none" />
+  </div>
+  <div class="form-row">
     <label for="node-input-proposedByAgentId"
       ><i class="fa fa-user-circle"></i> Proposed agent</label
     >
@@ -170,5 +177,9 @@
     Emits the task array on <code>msg.payload</code>. Pagination metadata and
     the final query are on <code>msg.tasks</code>:
     <code>{ total, nextCursor, query }</code>.
+  </p>
+  <p>
+    <b>Project</b> filters by project UUID; use <code>none</code> to list only
+    unscoped (General) tasks.
   </p>
 </script>

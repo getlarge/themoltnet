@@ -535,6 +535,19 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
   }
 
   /**
+   * Scope the task to a shared project. Only runs bound to this project can
+   * claim it; omit the call for General work. The project is never inferred
+   * from a local binding.
+   *
+   * @param projectId - Project UUID in the task's team.
+   * @returns This builder, for chaining.
+   */
+  project(projectId: string): this {
+    this.body.projectId = projectId;
+    return this;
+  }
+
+  /**
    * Set the correlation id. Auto-generated server-side if omitted.
    *
    * @param id - Correlation UUID grouping related tasks.
@@ -660,6 +673,16 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
     }
     if (!this.body.diaryId) {
       missing.push({ field: 'diaryId', message: 'diaryId is required' });
+    }
+    if (
+      this.body.projectId !== undefined &&
+      (this.body.projectId === '' || this.body.projectId === 'none')
+    ) {
+      missing.push({
+        field: 'projectId',
+        message:
+          'projectId must be a project UUID; omit .project() for General work',
+      });
     }
 
     const normalizedInput = PRODUCER_TASK_TYPES.has(this.taskType)

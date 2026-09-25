@@ -143,6 +143,22 @@ export async function handleTasksCreate(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
+  // Defense in depth: the fastify-mcp dispatcher validates tool arguments
+  // against TaskCreateSchema's `project_id` (format: 'uuid') before this
+  // handler runs when a call comes through the MCP `tools/call` transport,
+  // so a bare "" is already rejected upstream on that path. This handler is
+  // also directly callable (every other case in this file does exactly
+  // that), so it must not rely on that upstream guarantee alone. An
+  // explicitly empty project_id is a caller error, never a silent "General".
+  if (args.project_id === '') {
+    return structuredErrorResult({
+      code: 'task_project_id_empty',
+      message:
+        'project_id must be a valid UUID or omitted entirely for General work; an empty string is rejected rather than treated as General.',
+      retryable: false,
+    });
+  }
+
   const validationErrors = validateTaskCreateRequest({
     taskType: args.task_type,
     input: args.input,
@@ -159,6 +175,7 @@ export async function handleTasksCreate(
     body: {
       taskType: args.task_type,
       diaryId: args.diary_id,
+      ...(args.project_id ? { projectId: args.project_id } : {}),
       input: args.input,
       references: args.references,
       allowedProfiles: args.allowed_profiles,
@@ -328,6 +345,7 @@ export async function handleTasksList(
       taskTypes: args.task_type ? [args.task_type] : undefined,
       correlationId: args.correlation_id,
       diaryId: args.diary_id,
+      projectId: args.project_id,
       proposedByAgentId: args.proposed_by_agent_id,
       proposedByHumanId: args.proposed_by_human_id,
       claimedByAgentId: args.claimed_by_agent_id,
@@ -637,7 +655,7 @@ export function registerTaskTools(
     {
       name: 'tasks_list',
       description:
-        'List tasks for a team with optional status, task_type, correlation_id, diary_id, requester, worker, attempts, date-window, limit, and cursor filters.',
+        'List tasks for a team with optional status, task_type, correlation_id, diary_id, project_id, requester, worker, attempts, date-window, limit, and cursor filters.',
       inputSchema: TaskListSchema,
       outputSchema: TaskListOutputSchema,
     },

@@ -19,6 +19,7 @@ const state = {
   agentId: '',
   taskType: '',
   diaryId: '',
+  projectId: '',
   correlationId: '',
   requestedAgentId: '',
   requestedHumanId: '',
@@ -80,6 +81,7 @@ const agentInput = byId('agent') as HTMLSelectElement | null;
 const statusInput = byId('status') as HTMLSelectElement | null;
 const taskTypeInput = byId('task-type') as HTMLInputElement | null;
 const diaryIdInput = byId('diary-id') as HTMLInputElement | null;
+const projectIdInput = byId('project-id') as HTMLInputElement | null;
 const correlationIdInput = byId('correlation-id') as HTMLInputElement | null;
 const requestedAgentIdInput = byId(
   'requested-agent-id',
@@ -173,6 +175,7 @@ function readFiltersFromInputs() {
   state.status = statusInput?.value ?? '';
   state.taskType = taskTypeInput?.value.trim() ?? '';
   state.diaryId = diaryIdInput?.value.trim() ?? '';
+  state.projectId = projectIdInput?.value.trim() ?? '';
   state.correlationId = correlationIdInput?.value.trim() ?? '';
   state.requestedAgentId = requestedAgentIdInput?.value.trim() ?? '';
   state.requestedHumanId = requestedHumanIdInput?.value.trim() ?? '';
@@ -187,6 +190,7 @@ function hasAdvancedFilters() {
   return Boolean(
     state.taskType ||
     state.diaryId ||
+    state.projectId ||
     state.correlationId ||
     state.requestedAgentId ||
     state.requestedHumanId ||
@@ -204,6 +208,7 @@ function syncFilterInputs() {
   if (statusInput) statusInput.value = state.status;
   if (taskTypeInput) taskTypeInput.value = state.taskType;
   if (diaryIdInput) diaryIdInput.value = state.diaryId;
+  if (projectIdInput) projectIdInput.value = state.projectId;
   if (correlationIdInput) correlationIdInput.value = state.correlationId;
   if (requestedAgentIdInput)
     requestedAgentIdInput.value = state.requestedAgentId;
@@ -217,13 +222,14 @@ function syncFilterInputs() {
   if (advancedFilters) advancedFilters.open = hasAdvancedFilters();
 }
 
-function buildTaskListArguments(append: boolean) {
+export function buildTaskListArguments(append: boolean) {
   return {
     team_id: state.teamId,
     status: optionalValue(state.status),
     task_type: optionalValue(state.taskType),
     correlation_id: optionalValue(state.correlationId),
     diary_id: optionalValue(state.diaryId),
+    project_id: optionalValue(state.projectId),
     proposed_by_agent_id: optionalValue(state.requestedAgentId),
     proposed_by_human_id: optionalValue(state.requestedHumanId),
     claimed_by_agent_id: optionalValue(state.agentId),
@@ -337,6 +343,8 @@ function renderTask(task: Record<string, unknown>) {
     escapeHtml(task.teamId ?? '—') +
     '</span></div><div class="fact"><strong>Diary</strong><span class="mono">' +
     escapeHtml(task.diaryId ?? '—') +
+    '</span></div><div class="fact"><strong>Project</strong><span class="mono">' +
+    escapeHtml(task.projectId ?? '—') +
     '</span></div><div class="fact"><strong>Correlation ID</strong><span class="mono">' +
     escapeHtml(task.correlationId ?? '—') +
     '</span></div><div class="fact"><strong>Queued</strong><span>' +
@@ -467,7 +475,7 @@ async function loadMessages(taskId: string, attemptN: number, row: Element) {
   row.after(messages);
 }
 
-function applyOpenState(data: Record<string, unknown>) {
+export function applyOpenState(data: Record<string, unknown>) {
   const filters = asRecord(data.filters);
 
   state.teamId = stringValue(data.team_id ?? data.teamId);
@@ -475,6 +483,7 @@ function applyOpenState(data: Record<string, unknown>) {
   state.status = stringValue(data.status);
   state.taskType = stringValue(data.task_type ?? filters.task_type);
   state.diaryId = stringValue(data.diary_id ?? filters.diary_id);
+  state.projectId = stringValue(data.project_id ?? filters.project_id);
   state.correlationId = stringValue(
     data.correlation_id ?? filters.correlation_id,
   );

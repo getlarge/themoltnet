@@ -78,6 +78,13 @@ export const TaskCreateSchema = Type.Object({
     format: 'uuid',
     description: 'Diary ID the task is proposed against.',
   }),
+  project_id: Type.Optional(
+    Type.String({
+      format: 'uuid',
+      description:
+        'Scope the task to a project: only runs bound to it can claim the task. Omit for General work.',
+    }),
+  ),
   input: Type.Record(Type.String(), Type.Unknown(), {
     description: 'Task-type-specific input payload.',
   }),
@@ -132,6 +139,7 @@ export type TaskCreateInput = {
   task_type: CreateTaskBody['taskType'];
   team_id: TeamIdHeaderOf<CreateTaskData>;
   diary_id: CreateTaskBody['diaryId'];
+  project_id?: string;
   input: CreateTaskBody['input'];
   references?: CreateTaskBody['references'];
   allowed_profiles?: CreateTaskBody['allowedProfiles'];
@@ -237,6 +245,12 @@ export const TaskListSchema = Type.Object({
     Type.String({
       format: 'uuid',
       description: 'Optional diary ID filter.',
+    }),
+  ),
+  project_id: Type.Optional(
+    Type.Union([Type.String({ format: 'uuid' }), Type.Literal('none')], {
+      description:
+        'Project filter: a project UUID, or "none" for General tasks.',
     }),
   ),
   proposed_by_agent_id: Type.Optional(
@@ -602,6 +616,7 @@ const TaskAppOpenFiltersOutputSchema = Type.Object({
   task_type: Type.Optional(Type.String()),
   correlation_id: Type.Optional(Type.String()),
   diary_id: Type.Optional(Type.String()),
+  project_id: Type.Optional(Type.String()),
   proposed_by_agent_id: Type.Optional(Type.String()),
   proposed_by_human_id: Type.Optional(Type.String()),
   claimed_by_agent_id: Type.Optional(Type.String()),
@@ -642,6 +657,12 @@ export const TaskAppOpenSchema = Type.Object({
     Type.String({
       format: 'uuid',
       description: 'Optional diary ID filter used to pre-load the queue.',
+    }),
+  ),
+  project_id: Type.Optional(
+    Type.Union([Type.String({ format: 'uuid' }), Type.Literal('none')], {
+      description:
+        'Optional project filter used to pre-load the queue: a project UUID, or "none" for General tasks.',
     }),
   ),
   proposed_by_agent_id: Type.Optional(

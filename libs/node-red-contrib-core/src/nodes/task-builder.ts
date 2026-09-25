@@ -54,6 +54,13 @@ interface TaskBuilderDef extends NodeDef {
   /** Optional diary override; falls back to the agent's diary when blank. */
   diaryId?: string;
   diaryIdType?: ValueType;
+  /**
+   * Optional project override. No agent-config fallback exists by design —
+   * project scope is never inferred; blank means General work. When set, it
+   * must resolve to a non-empty value or the build fails.
+   */
+  projectId?: string;
+  projectIdType?: ValueType;
   contexts?: ContextMapping[];
   /** msg path to an output, attempt-artifact, or staged input-artifact ref. */
   referencesFrom?: string;
@@ -144,6 +151,54 @@ export function resolveOverride(
   }
 }
 
+/**
+ * Resolve the task's project. Returns `undefined` (General work) only when
+ * neither the node override nor a `msg.payload.projectId` key was supplied.
+ * The node override wins over the payload. Either source, when present, must
+ * yield a non-empty string, otherwise the build fails instead of silently
+ * creating unscoped work. Value validation (UUID vs `none`) stays with the SDK
+ * builder.
+ */
+function resolveProjectId(
+  RED: Parameters<NodeInitializer>[0],
+  node: Node,
+  msg: NodeMessageInFlow,
+  def: TaskBuilderDef,
+  payloadInput: Record<string, unknown>,
+): string | undefined {
+  const payloadHasProject = Object.prototype.hasOwnProperty.call(
+    payloadInput,
+    'projectId',
+  );
+  const payloadProject = payloadInput.projectId;
+  if (
+    payloadHasProject &&
+    (typeof payloadProject !== 'string' || !payloadProject.trim())
+  ) {
+    throw new Error(
+      'msg.payload.projectId must be a non-empty project UUID; remove the key for General work',
+    );
+  }
+
+  if (def.projectId) {
+    const resolved = resolveOverride(
+      RED,
+      node,
+      msg,
+      def.projectId,
+      def.projectIdType,
+    );
+    if (!resolved?.trim()) {
+      throw new Error(
+        `Project override (${def.projectIdType ?? 'str'}: ${def.projectId}) resolved to an empty value; clear the field for General work`,
+      );
+    }
+    return resolved;
+  }
+
+  return payloadHasProject ? (payloadProject as string) : undefined;
+}
+
 const init: NodeInitializer = (RED): void => {
   function TaskBuilderNode(this: Node, def: TaskBuilderDef): void {
     RED.nodes.createNode(this, def);
@@ -197,6 +252,13 @@ const init: NodeInitializer = (RED): void => {
           agentNode?.diaryId;
         if (teamId) builder.team(teamId);
         if (diaryId) builder.diary(diaryId);
+
+        // Project: explicit override (node typedInput, or msg.payload) only.
+        // No agent fallback — project scope is never inferred. A blank node
+        // field means General work, but a value that was asked for must
+        // resolve (see resolveProjectId).
+        const projectId = resolveProjectId(RED, this, msg, def, payloadInput);
+        if (projectId !== undefined) builder.project(projectId);
 
         // Context rows: resolve each value, then bind it. context_inline /
         // user_inline JSON-stringify objects automatically; other bindings

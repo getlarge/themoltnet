@@ -14,6 +14,8 @@
       teamIdType: { value: 'str' },
       diaryId: { value: '' },
       diaryIdType: { value: 'str' },
+      projectId: { value: '' },
+      projectIdType: { value: 'str' },
       contexts: { value: [] },
       referencesFrom: { value: '' },
       referencesRole: { value: 'context' },
@@ -40,6 +42,13 @@
       $('#node-input-diaryId').typedInput({
         default: 'str',
         typeField: '#node-input-diaryIdType',
+        types: ['str', 'msg', 'flow', 'global'],
+      });
+      // Project override: no agent fallback exists — blank means General
+      // work, by design.
+      $('#node-input-projectId').typedInput({
+        default: 'str',
+        typeField: '#node-input-projectIdType',
         types: ['str', 'msg', 'flow', 'global'],
       });
     },
@@ -98,6 +107,13 @@
     >
     <input type="text" id="node-input-diaryId" style="width:70%" />
     <input type="hidden" id="node-input-diaryIdType" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-projectId"
+      ><i class="fa fa-folder-open"></i> Project (override)</label
+    >
+    <input type="text" id="node-input-projectId" style="width:70%" />
+    <input type="hidden" id="node-input-projectIdType" />
   </div>
   <div class="form-row node-builder-group" id="group-references">
     <label for="node-input-referencesFrom"
@@ -167,6 +183,16 @@
     context. Set either field (literal, or a
     <code>msg</code>/<code>flow</code>/<code>global</code> path) only to
     <i>override</i> the agent for this task; leave blank to inherit.
+  </p>
+  <p>
+    <b>Project (override)</b> scopes the task to a shared project (literal, or a
+    <code>msg</code>/<code>flow</code>/<code>global</code> path); leave blank
+    for General work. Unlike team/diary, there is <i>no</i> agent fallback —
+    project scope is never inferred, so <code>msg.payload.projectId</code> is
+    the only other source (the node field wins when both are set). A configured
+    field that resolves to an empty value (for example a missing
+    <code>msg</code> property), or a <code>msg.payload.projectId</code> that is
+    empty or not a string, fails the node instead of creating General work.
   </p>
   <p>
     <b>Context</b> rows map a slug to a value source (msg/flow/global/str/json);

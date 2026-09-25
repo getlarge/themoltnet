@@ -386,4 +386,35 @@ describe('buildTask (generic core)', () => {
       }),
     ).toEqual([]);
   });
+
+  describe('project()', () => {
+    const PROJECT = '99999999-9999-4999-8999-999999999999';
+
+    it('sets the top-level projectId on the create body', () => {
+      const { body } = buildTask('freeform', { brief: 'x' })
+        .team(TEAM)
+        .diary(DIARY)
+        .project(PROJECT)
+        .build();
+      expect(body.projectId).toBe(PROJECT);
+    });
+
+    it('omits projectId entirely when not called (General work)', () => {
+      const { body } = buildTask('freeform', { brief: 'x' })
+        .team(TEAM)
+        .diary(DIARY)
+        .build();
+      expect('projectId' in body).toBe(false);
+    });
+
+    it.each(['', 'none'])('rejects %j at build with a field error', (bad) => {
+      expect(() =>
+        buildTask('freeform', { brief: 'x' })
+          .team(TEAM)
+          .diary(DIARY)
+          .project(bad)
+          .build(),
+      ).toThrow(TaskBuildError);
+    });
+  });
 });
