@@ -271,7 +271,10 @@ export function buildExtractTask(
     ...baseTask(ctx, 'extract', 'Extract documented contract changes'),
     input: {
       brief,
-      execution: { workspace: 'none' },
+      // No workspace request: extraction is tool-less, and a daemon claiming
+      // through an explicit project location skips any task whose requested
+      // workspace differs from that location's mode (e.g. `none` under a
+      // git-worktree location). Unrequested, it runs wherever it lands.
       expectedOutput: 'Strict ContractExtraction JSON in summary.',
       constraints: [
         'Do not use tools other than submit_freeform_output.',
