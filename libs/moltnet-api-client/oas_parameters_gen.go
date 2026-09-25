@@ -13568,6 +13568,7 @@ type ListTasksParams struct {
 	ProfileId         OptUUID     `json:",omitempty,omitzero"`
 	CorrelationId     OptUUID     `json:",omitempty,omitzero"`
 	DiaryId           OptUUID     `json:",omitempty,omitzero"`
+	ProjectId         OptString   `json:",omitempty,omitzero"`
 	ProposedByAgentId OptUUID     `json:",omitempty,omitzero"`
 	ProposedByHumanId OptUUID     `json:",omitempty,omitzero"`
 	ClaimedByAgentId  OptUUID     `json:",omitempty,omitzero"`
@@ -13662,6 +13663,15 @@ func unpackListTasksParams(packed middleware.Parameters) (params ListTasksParams
 		}
 		if v, ok := packed[key]; ok {
 			params.DiaryId = v.(OptUUID)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "projectId",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.ProjectId = v.(OptString)
 		}
 	}
 	{
@@ -14350,6 +14360,47 @@ func decodeListTasksParams(args [0]string, argsEscaped bool, r *http.Request) (p
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "diaryId",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: projectId.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "projectId",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotProjectIdVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotProjectIdVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.ProjectId.SetTo(paramsDotProjectIdVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "projectId",
 			In:   "query",
 			Err:  err,
 		}

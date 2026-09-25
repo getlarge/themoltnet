@@ -325,6 +325,52 @@ func TestTryConvertMultiTypeAdditionalProps(t *testing.T) {
 	}
 }
 
+func TestTryConvertFormattedStringUnion_UUIDOrSentinel(t *testing.T) {
+	input := map[string]any{
+		"description": "Project filter",
+		"anyOf": []any{
+			map[string]any{"type": "string", "format": "uuid"},
+			map[string]any{"type": "string", "enum": []any{"none"}},
+		},
+	}
+	result, ok := tryConvertFormattedStringUnion(input)
+	if !ok {
+		t.Fatal("expected conversion")
+	}
+	if result["type"] != "string" {
+		t.Errorf("type = %v, want string", result["type"])
+	}
+	if _, has := result["format"]; has {
+		t.Error("format must be dropped: the sentinel is not a uuid")
+	}
+	if _, has := result["anyOf"]; has {
+		t.Error("anyOf should be removed")
+	}
+	if result["description"] != "Project filter" {
+		t.Error("sibling keys must be preserved")
+	}
+}
+
+func TestTryConvertFormattedStringUnion_IgnoresPureEnums(t *testing.T) {
+	input := map[string]any{"anyOf": []any{
+		map[string]any{"type": "string", "enum": []any{"a"}},
+		map[string]any{"type": "string", "enum": []any{"b"}},
+	}}
+	if _, ok := tryConvertFormattedStringUnion(input); ok {
+		t.Fatal("pure enum unions belong to tryConvertEnum")
+	}
+}
+
+func TestTryConvertFormattedStringUnion_IgnoresNonString(t *testing.T) {
+	input := map[string]any{"anyOf": []any{
+		map[string]any{"type": "string", "format": "uuid"},
+		map[string]any{"type": "integer"},
+	}}
+	if _, ok := tryConvertFormattedStringUnion(input); ok {
+		t.Fatal("must not collapse mixed-type unions")
+	}
+}
+
 func TestNormalize_FullProvenanceGraph(t *testing.T) {
 	// Simplified provenance graph schema matching the real pattern.
 	input := `{

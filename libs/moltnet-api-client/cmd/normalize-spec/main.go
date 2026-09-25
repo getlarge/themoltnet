@@ -447,6 +447,9 @@ func normalize(v any) any {
 		if converted, ok := tryConvertEnum(val); ok {
 			return converted
 		}
+		if converted, ok := tryConvertFormattedStringUnion(val); ok {
+			return converted
+		}
 		if converted, ok := tryConvertDiscriminatedUnion(val); ok {
 			return converted
 		}
@@ -742,5 +745,49 @@ func tryConvertEnum(obj map[string]any) (map[string]any, bool) {
 	if nullable {
 		out["nullable"] = true
 	}
+	return out, true
+}
+
+// tryConvertFormattedStringUnion collapses an anyOf whose variants are all
+// plain strings, where at least one carries a format and not an enum, e.g.
+//
+//	{anyOf: [{type: string, format: uuid}, {type: string, enum: ["none"]}]}
+//
+// into {type: string}. ogen cannot represent the union and, with
+// `ignore_not_implemented: complex anyOf`, silently drops the parameter.
+// The format is dropped because the sentinel does not satisfy it; the server
+// still validates the union.
+func tryConvertFormattedStringUnion(obj map[string]any) (map[string]any, bool) {
+	members, ok := obj["anyOf"].([]any)
+	if !ok || len(members) < 2 {
+		return nil, false
+	}
+	hasFormatted := false
+	for _, m := range members {
+		member, ok := m.(map[string]any)
+		if !ok || member["type"] != "string" {
+			return nil, false
+		}
+		for k := range member {
+			if k != "type" && k != "format" && k != "enum" {
+				return nil, false
+			}
+		}
+		if _, isEnum := member["enum"]; !isEnum {
+			if _, hasFormat := member["format"]; hasFormat {
+				hasFormatted = true
+			}
+		}
+	}
+	if !hasFormatted {
+		return nil, false
+	}
+	out := make(map[string]any, len(obj))
+	for k, v := range obj {
+		if k != "anyOf" {
+			out[k] = v
+		}
+	}
+	out["type"] = "string"
 	return out, true
 }
