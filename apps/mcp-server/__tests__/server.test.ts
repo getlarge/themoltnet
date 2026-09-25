@@ -953,7 +953,7 @@ describe('buildApp', () => {
           "name": "tasks_continue",
         },
         {
-          "inputSchema": "d2e6ab34343f1360",
+          "inputSchema": "610dd73d8614a7ef",
           "name": "tasks_create",
         },
         {
@@ -961,7 +961,7 @@ describe('buildApp', () => {
           "name": "tasks_get",
         },
         {
-          "inputSchema": "c49685b21e0efabe",
+          "inputSchema": "769bf9e1bf823a12",
           "name": "tasks_list",
         },
         {

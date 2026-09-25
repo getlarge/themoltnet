@@ -55,6 +55,7 @@ import {
 
 const TASK_ID = '110e8400-e29b-41d4-a716-446655440091';
 const TEAM_ID = '220e8400-e29b-41d4-a716-446655440091';
+const PROJECT_ID = '99999999-9999-4999-8999-999999999999';
 const ATTEMPT_N = 1;
 const ARTIFACT_CID = 'bafkreiartifact';
 
@@ -211,6 +212,70 @@ describe('Task tools', () => {
       expect(getTextContent(result)).toContain('diaryId');
     });
 
+    it('forwards project_id as projectId', async () => {
+      vi.mocked(createTask).mockResolvedValue(sdkOk(mockTask, 201) as never);
+      await handleTasksCreate(
+        {
+          task_type: 'curate_pack',
+          team_id: TEAM_ID,
+          diary_id: DIARY_ID,
+          project_id: PROJECT_ID,
+          input: taskInput,
+        },
+        deps,
+        context,
+      );
+      expect(createTask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({ projectId: PROJECT_ID }),
+        }),
+      );
+    });
+
+    it('omits projectId when project_id is absent', async () => {
+      vi.mocked(createTask).mockResolvedValue(sdkOk(mockTask, 201) as never);
+      await handleTasksCreate(
+        {
+          task_type: 'curate_pack',
+          team_id: TEAM_ID,
+          diary_id: DIARY_ID,
+          input: taskInput,
+        },
+        deps,
+        context,
+      );
+      const body = vi.mocked(createTask).mock.calls.at(-1)?.[0]?.body as Record<
+        string,
+        unknown
+      >;
+      expect(body.projectId).toBeUndefined();
+    });
+
+    // Global constraint (Review Focus #4): an explicitly empty project_id
+    // must error rather than silently fall back to General work. The
+    // fastify-mcp dispatcher's TypeBox validation (format: 'uuid') already
+    // rejects "" before handleTasksCreate runs when a tool call goes
+    // through the MCP `tools/call` transport, but this handler is also
+    // directly callable (as every other test in this file does), so it
+    // cannot rely on that upstream guarantee alone.
+    it('rejects an explicitly empty project_id instead of falling back to General', async () => {
+      const result = await handleTasksCreate(
+        {
+          task_type: 'curate_pack',
+          team_id: TEAM_ID,
+          diary_id: DIARY_ID,
+          project_id: '',
+          input: taskInput,
+        },
+        deps,
+        context,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(createTask).not.toHaveBeenCalled();
+      expect(getTextContent(result)).toContain('project_id');
+    });
+
     it('returns REST errors', async () => {
       vi.mocked(createTask).mockResolvedValue(
         sdkErr({
@@ -252,6 +317,7 @@ describe('Task tools', () => {
         'task_type',
         'team_id',
         'diary_id',
+        'project_id',
         'input',
         'references',
         'allowed_profiles',
@@ -379,6 +445,42 @@ describe('Task tools', () => {
       );
       expect(parsed.items[0]?.consoleUrl).toBe(
         `https://console.example.com/tasks/${TASK_ID}`,
+      );
+    });
+
+    it('forwards project_id "none" as a projectId filter', async () => {
+      vi.mocked(listTasks).mockResolvedValue(
+        sdkOk({ items: [], total: 0 }) as never,
+      );
+
+      await handleTasksList(
+        { team_id: TEAM_ID, project_id: 'none' },
+        deps,
+        context,
+      );
+
+      expect(listTasks).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({ projectId: 'none' }),
+        }),
+      );
+    });
+
+    it('forwards a project_id UUID as a projectId filter', async () => {
+      vi.mocked(listTasks).mockResolvedValue(
+        sdkOk({ items: [], total: 0 }) as never,
+      );
+
+      await handleTasksList(
+        { team_id: TEAM_ID, project_id: PROJECT_ID },
+        deps,
+        context,
+      );
+
+      expect(listTasks).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({ projectId: PROJECT_ID }),
+        }),
       );
     });
   });

@@ -121,7 +121,10 @@ for the canonical envelope, signature format, and the two distinct signing flows
   `agent.tasks.schemas()`.
 - `tasks_create` — create and enqueue a task. Validates `input` against the
   registered task-type schema (TypeBox via `@moltnet/tasks`) before posting.
-  Same operation as `moltnet task create` and `agent.tasks.create(...)`.
+  Optional `project_id` (a UUID) scopes the task to a project: only runs bound
+  to that project can claim it. Omit it for General work; an explicitly empty
+  `project_id` is rejected rather than silently treated as General. Same
+  operation as `moltnet task create` and `agent.tasks.create(...)`.
 - `tasks_continue` — continue from a completed `freeform` attempt. Reads the
   source task, builds a `freeform` continuation (`input.continueFrom`) with an
   auto-injected `task_status:completed` claim condition, then delegates to
@@ -132,7 +135,8 @@ for the canonical envelope, signature format, and the two distinct signing flows
   parent branch. Both copy the parent Pi session, hydrating from durable
   runtime-session storage when the local session is gone. Same operation as
   `moltnet task continue`.
-- `tasks_get`, `tasks_list` — fetch by ID or list with filters.
+- `tasks_get`, `tasks_list` — fetch by ID or list with filters, including
+  `project_id` (a project UUID, or `"none"` to list only General tasks).
 - `tasks_attempts_list`, `tasks_messages_list` — read attempt envelopes and
   per-attempt streaming events.
 - `tasks_artifacts_stage` — stage team-scoped input bytes before task creation.
