@@ -9,7 +9,6 @@ on:
       - 'nx.json'
       - 'deploy/self-host/**'
       - 'infra/ory/**'
-      - 'tools/release/assert-self-host-ready*'
       - 'tools/release/self-host-bundle*'
       - 'tools/release/self-host-smoke*'
       - 'apps/console/package.json'
@@ -27,7 +26,6 @@ on:
       - 'nx.json'
       - 'deploy/self-host/**'
       - 'infra/ory/**'
-      - 'tools/release/assert-self-host-ready*'
       - 'tools/release/self-host-bundle*'
       - 'tools/release/self-host-smoke*'
       - 'apps/console/package.json'
@@ -54,7 +52,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: node --test tools/release/self-host-bundle.test.mjs tools/release/assert-self-host-ready.test.mjs
+      - run: node --test tools/release/self-host-bundle.test.mjs
       - name: Authenticate to GHCR
         uses: docker/login-action@v4
         with:

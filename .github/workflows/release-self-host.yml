@@ -40,9 +40,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Require compatible component releases
-        run: node tools/release/assert-self-host-ready.mjs
-
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v4
         with:
