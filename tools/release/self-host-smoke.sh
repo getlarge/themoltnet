@@ -1,23 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ "$#" -ne 2 ] || { [ "$2" != candidate ] && [ "$2" != published ]; }; then
-  echo 'Usage: self-host-smoke.sh <bundle-root> <candidate|published>' >&2
+if [ "$#" -ne 1 ]; then
+  echo 'Usage: self-host-smoke.sh <bundle-root>' >&2
   exit 2
 fi
 
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 bundle_root="$(cd "$1" && pwd)"
-mode="$2"
 temporary="$(mktemp -d)"
-node "$repo_root/tools/release/self-host-smoke-prepare.mjs" "$bundle_root" "$temporary" "$mode"
+node "$repo_root/tools/release/self-host-smoke-prepare.mjs" "$bundle_root" "$temporary"
 
 cd "$bundle_root/deploy/self-host"
-compose=(docker compose -p self-host-smoke --env-file "$temporary/self-host-smoke.env" --env-file .env.release)
-if [ "$mode" = candidate ]; then
-  compose+=(--env-file "$temporary/self-host-candidate.env")
-fi
-compose+=(-f compose.yaml -f "$repo_root/tools/release/self-host-smoke.compose.yaml")
+compose=(docker compose -p self-host-smoke --env-file "$temporary/self-host-smoke.env" --env-file .env.release -f compose.yaml -f "$repo_root/tools/release/self-host-smoke.compose.yaml")
 
 cleanup() {
   status=$?

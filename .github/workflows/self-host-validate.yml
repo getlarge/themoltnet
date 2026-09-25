@@ -59,10 +59,10 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
-      - name: Build candidate application images
+      - name: Build source images
         env:
           NX_LOAD_DOT_ENV_FILES: 'false'
-        run: pnpm exec nx run-many -t docker:build --projects=@moltnet/rest-api,@moltnet/mcp-server
+        run: pnpm exec nx run-many -t docker:build --projects=@moltnet/rest-api,@moltnet/mcp-server,@moltnet/console,@moltnet/database --parallel=1
       - name: Verify digest-pinned archive
         run: |
           set -euo pipefail
@@ -74,5 +74,7 @@ jobs:
             echo 'Image lock must contain four digest-pinned images' >&2
             exit 1
           fi
-      - name: Smoke-test candidate images through Caddy
-        run: tools/release/self-host-smoke.sh "$RUNNER_TEMP/moltnet-self-host-ci" candidate
+      - name: Build source image archive
+        run: node tools/release/self-host-bundle.mjs --version ci-source --image-tag dev --skip-digests --output "$RUNNER_TEMP/moltnet-self-host-ci-source"
+      - name: Smoke-test archive images through Caddy
+        run: tools/release/self-host-smoke.sh "$RUNNER_TEMP/moltnet-self-host-ci-source"

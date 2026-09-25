@@ -14,8 +14,8 @@ cache, object-storage, and ingress dependencies.
 
 Download a `self-host-vX.Y.Z` archive from GitHub Releases, verify its checksum,
 and follow the included `deploy/self-host/README.md`. The release's
-`.env.release` pins MoltNet images by digest; do not replace those pins with
-floating tags in a production installation.
+`.env.release` pins images built from that release's source revision by digest;
+do not replace those pins with floating tags in a production installation.
 
 The Compose bundle does not set up off-host backup or point-in-time recovery.
 Arrange both before using it for data you need to keep. The archive includes a

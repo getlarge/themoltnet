@@ -25,11 +25,21 @@ const imageProjects = {
 };
 
 function parseArgs(argv) {
-  const result = { output: undefined, skipDigests: false, version: undefined };
+  const result = {
+    imageTag: undefined,
+    output: undefined,
+    skipDigests: false,
+    version: undefined,
+  };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === '--skip-digests') {
       result.skipDigests = true;
+    } else if (argument === '--image-tag') {
+      result.imageTag = argv[++index];
+      if (!result.imageTag || result.imageTag.startsWith('--')) {
+        throw new Error('--image-tag requires a value');
+      }
     } else if (argument === '--output') {
       result.output = argv[++index];
       if (!result.output || result.output.startsWith('--')) {
@@ -49,6 +59,12 @@ function parseArgs(argv) {
   }
   if (!/^[0-9A-Za-z][0-9A-Za-z._-]*$/.test(result.version)) {
     throw new Error(`Invalid bundle version: ${result.version}`);
+  }
+  if (
+    result.imageTag &&
+    !/^[0-9A-Za-z_][0-9A-Za-z_.-]{0,127}$/.test(result.imageTag)
+  ) {
+    throw new Error(`Invalid Docker image tag: ${result.imageTag}`);
   }
   return result;
 }
@@ -128,7 +144,7 @@ function imageWithoutTag(image) {
   return colon > slash ? image.slice(0, colon) : image;
 }
 
-function currentImages() {
+function currentImages(imageTag) {
   const workspace = JSON.parse(
     readFileSync(path.join(repoRoot, 'nx.json'), 'utf8'),
   );
@@ -145,7 +161,7 @@ function currentImages() {
         readFileSync(path.join(repoRoot, project, 'package.json'), 'utf8'),
       );
       const repository = projectJson.nx?.release?.docker?.repositoryName;
-      const version = versions[project];
+      const version = imageTag ?? versions[project];
       if (!repository || !version) {
         throw new Error(`Missing Docker release metadata for ${project}`);
       }
@@ -154,8 +170,8 @@ function currentImages() {
   );
 }
 
-function writeImageLock(destination, skipDigests) {
-  const images = currentImages();
+function writeImageLock(destination, skipDigests, imageTag) {
+  const images = currentImages(imageTag);
   const lines = [];
   for (const [name, image] of Object.entries(images)) {
     const variable = `${name.replaceAll('-', '_').toUpperCase()}_IMAGE`;
@@ -240,6 +256,7 @@ function main() {
   writeImageLock(
     path.join(bundleRoot, 'deploy/self-host/.env.release'),
     args.skipDigests,
+    args.imageTag,
   );
   validateBundle(bundleRoot);
   process.stdout.write(`${bundleRoot}\n`);

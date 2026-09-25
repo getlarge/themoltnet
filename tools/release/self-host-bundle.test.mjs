@@ -127,3 +127,41 @@ test('rejects malformed bundle versions', () => {
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /Invalid bundle version/);
 });
+
+test('locks all component images to the source revision tag', () => {
+  const temporary = mkdtempSync(
+    path.join(os.tmpdir(), 'moltnet-self-host-source-test-'),
+  );
+  const output = path.join(temporary, 'bundle');
+  const tag = 'self-host-1.0.0-abc123def456';
+  try {
+    execFileSync(
+      'node',
+      [
+        script,
+        '--version',
+        '1.0.0',
+        '--image-tag',
+        tag,
+        '--skip-digests',
+        '--output',
+        output,
+      ],
+      { cwd: repoRoot, stdio: 'pipe' },
+    );
+    const releaseEnv = readFileSync(
+      path.join(output, 'deploy/self-host/.env.release'),
+      'utf8',
+    );
+    for (const name of [
+      'REST_API_IMAGE',
+      'MCP_SERVER_IMAGE',
+      'CONSOLE_IMAGE',
+      'DB_MIGRATE_IMAGE',
+    ]) {
+      assert.match(releaseEnv, new RegExp(`^${name}=.+:${tag}$`, 'm'));
+    }
+  } finally {
+    rmSync(temporary, { recursive: true, force: true });
+  }
+});

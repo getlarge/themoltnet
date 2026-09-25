@@ -120,6 +120,12 @@ try {
   });
   const { access_token: accessToken } = JSON.parse(tokenResponse.body);
   if (!accessToken) throw new Error('Hydra did not issue an access token');
+  const tokenClaims = JSON.parse(
+    Buffer.from(accessToken.split('.')[1], 'base64url').toString('utf8'),
+  );
+  if (tokenClaims.iss !== issuer) {
+    throw new Error('Issued token did not use Hydra’s public issuer');
+  }
   const profile = JSON.parse(
     (
       await expectStatus(api, '/agents/whoami', 200, {
