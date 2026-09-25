@@ -126,12 +126,17 @@ func buildListTasksParams(opts taskListOpts) (moltnetapi.ListTasksParams, error)
 		}
 	}
 	if opts.projectIDSet {
-		if opts.projectID != "none" {
-			if _, err := uuid.Parse(opts.projectID); err != nil {
+		projectID := opts.projectID
+		if projectID != "none" {
+			id, err := uuid.Parse(projectID)
+			if err != nil {
 				return moltnetapi.ListTasksParams{}, fmt.Errorf("invalid --project-id %q: want a UUID or \"none\": %w", opts.projectID, err)
 			}
+			// uuid.Parse also accepts urn:uuid:, braced and unhyphenated
+			// forms that the server rejects; send the canonical form.
+			projectID = id.String()
 		}
-		params.ProjectId = moltnetapi.NewOptString(opts.projectID)
+		params.ProjectId = moltnetapi.NewOptString(projectID)
 	}
 	if opts.correlationIDSet {
 		if params.CorrelationId, err = parseOptUUIDFlag("correlation-id", opts.correlationID); err != nil {

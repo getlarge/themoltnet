@@ -547,6 +547,12 @@ func TestRunTaskList_ProjectIDFilter(t *testing.T) {
 	for _, tc := range []struct{ in, want string }{
 		{"99999999-9999-4999-8999-999999999999", "99999999-9999-4999-8999-999999999999"},
 		{"none", "none"},
+		// uuid.Parse accepts non-canonical forms the server rejects; the
+		// filter must be sent in canonical lowercase hyphenated form.
+		{"urn:uuid:99999999-9999-4999-8999-999999999999", "99999999-9999-4999-8999-999999999999"},
+		{"{99999999-9999-4999-8999-999999999999}", "99999999-9999-4999-8999-999999999999"},
+		{"99999999999949998999999999999999", "99999999-9999-4999-8999-999999999999"},
+		{"AAAAAAAA-9999-4999-8999-999999999999", "aaaaaaaa-9999-4999-8999-999999999999"},
 	} {
 		t.Run(tc.in, func(t *testing.T) {
 			h := &stubTasksHandler{}
