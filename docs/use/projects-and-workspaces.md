@@ -226,10 +226,11 @@ work permanently — there is no in-place "attach to project" operation. To move
 the work, recreate the task with `--project-id`; the new task carries the
 project from creation.
 
-**A continuation inherits its parent's project.** `moltnet task continue` copies
-the project from the source task rather than accepting a new one: passing a
-`--project-id` that doesn't match the parent's is rejected before the
-continuation is created.
+**A continuation inherits its parent's project.** The server copies the project
+from the source task: `moltnet task continue` and the MCP `tasks_continue` tool
+take no project argument, and an API create request for a continuation that
+names a different project (including an explicit General override of a project
+task) is rejected before the continuation is created.
 
 The MCP tool arguments and Node-RED/n8n node options for the same flow are
 documented in the [MCP server reference](../reference/mcp-server.md) and each
