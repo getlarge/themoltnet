@@ -117,9 +117,13 @@ export function useCatalogue(
     // quick checks.
     degradedMarks(client).delete(identity);
     requestCatalogueRefresh(client, identity);
-    void client.invalidateQueries({
-      queryKey: runCenterKeys.catalogue(identity),
-    });
+    const queryKey = runCenterKeys.catalogue(identity);
+    // Invalidation joins a read already in flight when nothing is cached yet,
+    // so a refresh during the first load would return that older read.
+    // Cancel it first; its late answer is discarded.
+    void client
+      .cancelQueries({ queryKey })
+      .then(() => client.invalidateQueries({ queryKey }));
   }, [client, identity]);
   const hasData = query.data !== undefined;
   return {

@@ -135,6 +135,30 @@ describe('useCatalogue', () => {
     ]);
   });
 
+  it('starts a fresh read when asked to refresh during the first load', async () => {
+    // Arrange: the first read is still running with the old credential.
+    const fresh = { ...catalogue, defaultTeamId: 'team-b' };
+    vi.mocked(runCenterActions.catalogue)
+      .mockReturnValueOnce(new Promise(() => {}))
+      .mockResolvedValueOnce(fresh);
+    const { result } = renderHook(() => useCatalogue('agent-a'), {
+      wrapper: createTestWrapper(),
+    });
+    await waitFor(() =>
+      expect(runCenterActions.catalogue).toHaveBeenCalledTimes(1),
+    );
+
+    // Act
+    result.current.retry();
+
+    // Assert
+    await waitFor(() => expect(result.current.catalogue).toEqual(fresh));
+    expect(vi.mocked(runCenterActions.catalogue).mock.calls[1]).toEqual([
+      'agent-a',
+      { refresh: true },
+    ]);
+  });
+
   it('does not report loading without an identity', () => {
     const { result } = renderHook(() => useCatalogue(''), {
       wrapper: createTestWrapper(),
