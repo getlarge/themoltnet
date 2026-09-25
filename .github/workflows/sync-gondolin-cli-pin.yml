@@ -1,0 +1,78 @@
+name: Sync Gondolin CLI pin
+
+on:
+  workflow_call:
+    inputs:
+      cli_version:
+        type: string
+        required: false
+  workflow_dispatch:
+    inputs:
+      cli_version:
+        description: Optional released CLI version; blank reads the release manifest.
+        type: string
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-gondolin-cli-pin
+  cancel-in-progress: false
+
+jobs:
+  propose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          app-id: ${{ secrets.MOLTNET_RELEASE_APP_ID }}
+          private-key: ${{ secrets.MOLTNET_RELEASE_APP_KEY }}
+          owner: getlarge
+          repositories: themoltnet
+      - name: Verify packages and advance pin
+        id: pin
+        env:
+          CLI_VERSION: ${{ inputs.cli_version }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch origin '+refs/heads/automation/gondolin-cli-pin:refs/remotes/origin/automation/gondolin-cli-pin' || true
+          node tools/release/sync-gondolin-cli-pin.mjs
+          if git diff --quiet -- libs/sandbox-gondolin/src/snapshot.ts; then
+            echo changed=false >> "$GITHUB_OUTPUT"
+          else
+            echo changed=true >> "$GITHUB_OUTPUT"
+          fi
+      - name: Open or refresh pin PR
+        if: steps.pin.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          title='chore(sandbox): pin released guest CLI'
+          branch=automation/gondolin-cli-pin
+          git config user.name 'MoltNet Release[bot]'
+          git config user.email '261968324+moltnet-release[bot]@users.noreply.github.com'
+          git switch -c "$branch"
+          git add libs/sandbox-gondolin/src/snapshot.ts
+          git commit -m "$title"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          remote_branch_sha=$(git ls-remote --heads origin "refs/heads/${branch}" | awk '{print $1}')
+          if [ -n "$remote_branch_sha" ]; then
+            git push --force-with-lease="refs/heads/${branch}:${remote_branch_sha}" origin "HEAD:${branch}"
+          else
+            git push --set-upstream origin "HEAD:${branch}"
+          fi
+          pr_url=$(gh pr list --repo "$GITHUB_REPOSITORY" --base main --head "$branch" --state open --json url --jq '.[0].url // empty')
+          if [ -z "$pr_url" ]; then
+            gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" --title "$title" --body 'Advances the Gondolin guest CLI pin after the wrapper and both Linux packages are available on npm.'
+          fi
