@@ -26,8 +26,6 @@ const DEMO_IDS = {
   outputCid: 'bafyreiz7daw4wx5i5nokrifw6nsof4ngizs3qxm3sht6lhw7bn3xsrn5dr',
   policySnapshot:
     'sha256:e7b13bd66f325555d5ec58a920247062609f099ff4b05f1aa24f7fb25b248e49',
-  signature:
-    'C3fZUKku8vAIUpmII1S8E6LS88P1BfmrgsqHhXDia6pfWA9OQ8sDgk0FyEkEBXTcLtAYkixPqdE//qpkzeFxOA==',
   executorFingerprint: '5136-F393-5F44-7695',
 } as const;
 
@@ -43,9 +41,16 @@ const REQUIREMENTS_BODY = [
   '   The brief names both as fixed; the footprint has to work around them.',
   '2. Separate the quiet workspace from shared family areas.',
   '   One occupant works from home and asks for acoustic separation from the kitchen and living room.',
-  '3. Resolve the conflict between west-facing glazing and summer heat.',
+  '3. Flag the conflict between west-facing glazing and summer heat.',
   '   Unresolved: the brief wants large west windows for evening light and a house that stays cool in summer.',
 ].join('\n');
+
+/** The fictional client material the agent is asked to read. */
+const SOURCE_BRIEF = [
+  'We are renovating our family house. Keep the mature trees and the existing stone wall; the new footprint must work around both.',
+  'One of us works from home. Please give the workspace acoustic separation from the kitchen and living room so calls do not interrupt family life.',
+  'We love the evening light and would like large west-facing windows. We also need the house to stay cool in summer. We have not chosen between that glazing and additional solar shading; please flag the trade-off for us to decide.',
+].join('\n\n');
 
 const successCriteria = {
   version: 1,
@@ -80,6 +85,7 @@ export const projectBriefTask: TaskSummary = {
   input: {
     brief:
       'Read the client brief for a family house renovation and extract the design requirements a later stage can act on. Flag any requirement that conflicts with another.',
+    sourceBrief: SOURCE_BRIEF,
     expectedOutput:
       'A short summary and one requirements artifact that states each requirement in plain language.',
     constraints: [
@@ -112,13 +118,13 @@ export const projectBriefTask: TaskSummary = {
 
 export const projectBriefOutput = {
   summary:
-    'The agent converted an unstructured project brief into a verified set of design requirements. It identified the principal constraints, highlighted one unresolved trade-off, and retained the resulting decisions for later workflow stages.',
+    'The agent extracted three design requirements from the supplied brief and flagged the west-facing glazing and summer-heat trade-off for the client. The task checks confirmed the required output shape and diary side effect; the design itself awaits review.',
   artifacts: [
     {
       kind: 'requirements',
       title: 'Extracted requirements',
       description:
-        'Requirements stated or implied by the brief, in the order the brief ranks them.',
+        'Requirements from the fictional client brief, in source order.',
       contentType: 'text/markdown',
       body: REQUIREMENTS_BODY,
     },
@@ -182,8 +188,8 @@ export const projectBriefAttempt: TaskAttemptSummary = {
     cacheReadTokens: 9_870,
     toolCalls: 7,
   },
-  contentSignature: DEMO_IDS.signature,
-  signedAt: '2026-09-14T09:09:26.000Z',
+  contentSignature: null,
+  signedAt: null,
 };
 
 /** Provenance tags the executor sets on task-scoped entries (docs/use/entries.md). */
@@ -198,13 +204,13 @@ function attemptTags(attemptN: number): string[] {
 export const projectBriefKnowledge: TaskKnowledgeEntry[] = [
   {
     id: DEMO_IDS.decisionsEntry,
-    title: 'Decisions carried to the concept stage',
+    title: 'Brief observations for the concept stage',
     tags: attemptTags(1),
     entryType: 'semantic',
     createdAt: '2026-09-14T09:07:51.000Z',
     signed: true,
     content:
-      'The trees and the stone wall are fixed site constraints. The workspace is zoned away from shared rooms. The glazing and summer-heat trade-off stays open until the client chooses between evening light and solar shading.',
+      'The brief treats trees and the stone wall as fixed site constraints and asks for an acoustically separate workspace. The west-facing glazing and summer-heat trade-off remains open for the client; no design choice was approved.',
   },
   {
     id: DEMO_IDS.methodEntry,
