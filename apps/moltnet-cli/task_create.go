@@ -21,13 +21,17 @@ type taskCreateOpts struct {
 	apiURL   string
 	credPath string
 
-	taskType  string
-	title     string
-	titleSet  bool
-	tags      string
-	tagsSet   bool
-	teamID    string
-	diaryID   string
+	taskType string
+	title    string
+	titleSet bool
+	tags     string
+	tagsSet  bool
+	teamID   string
+	diaryID  string
+
+	projectID    string
+	projectIDSet bool
+
 	inputFile string // "-" or path; empty defaults to stdin
 
 	correlationID    string
@@ -177,6 +181,17 @@ func buildCreateTaskReq(opts taskCreateOpts) (*moltnetapi.CreateTaskReq, error) 
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if opts.projectIDSet {
+		if strings.TrimSpace(opts.projectID) == "none" {
+			return nil, fmt.Errorf("--project-id: \"none\" is a list filter; omit --project-id to create General work")
+		}
+		id, err := uuid.Parse(opts.projectID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid --project-id %q: %w", opts.projectID, err)
+		}
+		req.ProjectId = moltnetapi.NewOptNilUUID(id)
 	}
 
 	for i, raw := range opts.references {

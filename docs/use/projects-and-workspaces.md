@@ -174,6 +174,69 @@ overrides the behaviour, and `--config-file <path>` uses an explicit
 registrations file instead of the machine's own. Only use configuration files
 you trust: they choose which folder an agent works in.
 
+## Create project work
+
+A project ID and a binding answer different questions, and only one of them
+travels. A project ID is portable: it lives on the task, is set once at
+creation, and means the same thing wherever the task is read — another machine,
+CI, or Console. A binding is machine-local: it lives in `projects.json` on one
+worker and only says which folder that worker should use. Scoping work to a
+project and pointing a worker at a folder are separate steps.
+
+**Create** with an explicit project. It is never inferred from a binding,
+`MOLTNET_PROJECT_ID`, or any other local setting — omitting it always creates
+General work:
+
+```bash
+moltnet task create \
+  --team-id <team-id> --diary-id <diary-id> --project-id <project-id> \
+  --task-type freeform < input.json
+```
+
+```ts
+const built = agent.tasks
+  .buildFreeform({ brief: 'Render the onboarding walkthrough' })
+  .team(teamId)
+  .diary(diaryId)
+  .project(projectId)
+  .build();
+```
+
+**Claim** by running the worker bound to that project. A General run
+(`--general`, or a worker with no project selection) never claims project-scoped
+work, and a project-bound run never claims General work — see
+[Which work a run claims](#which-work-a-run-claims):
+
+```bash
+moltnet-agent drain --agent <alias> --profile <profile> \
+  --config-file <path> --binding <name>
+```
+
+**Read** by project, or by `none` for General work:
+
+```bash
+moltnet task list --team-id <team-id> --project-id <project-id>
+moltnet task list --team-id <team-id> --project-id none
+```
+
+**Binding a worker never retroactively scopes an existing task.** Registering or
+rebinding a location changes what that worker claims next; it has no effect on
+tasks that already exist. A task created without `--project-id` stays General
+work permanently — there is no in-place "attach to project" operation. To move
+the work, recreate the task with `--project-id`; the new task carries the
+project from creation.
+
+**A continuation inherits its parent's project.** The server copies the project
+from the source task: `moltnet task continue` and the MCP `tasks_continue` tool
+take no project argument, and an API create request for a continuation that
+names a different project (including an explicit General override of a project
+task) is rejected before the continuation is created.
+
+The MCP tool arguments and Node-RED/n8n node options for the same flow are
+documented in the [MCP server reference](../reference/mcp-server.md) and each
+package's own README; this section is the canonical description of the flow
+itself.
+
 ## Continuous integration
 
 CI has a checkout already, and it should not depend on interactive setup. Write
@@ -201,14 +264,33 @@ moltnet-agent drain --agent "$MOLTNET_AGENT" --profile "$MOLTNET_PROFILE" \
 ```
 
 `drain` claims this project's queued tasks and exits when none are left, which
-suits a job that should finish. The
+suits a job that should finish. `existing` is the right behaviour here: the
+runner's checkout is already disposable, so an isolated copy would only cost
+time. For a single known task, use `once --task-id <task-id>`. For unscoped
+work, skip the file and pass `--general --source "$PWD"`.
+
+The
 [`agent-daemon-action`](https://github.com/getlarge/themoltnet/tree/main/packages/agent-daemon-action)
-has no project inputs yet, so runs started through it claim General work. Call
-the daemon directly, as above, when a CI job must work on a project. `existing`
-is the right behaviour here: the runner's checkout is already disposable, so an
-isolated copy would only cost time. For a single known task, use
-`once --task-id <task-id>`. For unscoped work, skip the file and pass
-`--general --source "$PWD"`.
+takes a `project-id` input instead of a hand-written registrations file:
+
+```yaml
+- uses: getlarge/themoltnet/packages/agent-daemon-action@v0
+  with:
+    project-id: ${{ vars.MOLTNET_PROJECT_UUID }} # optional; empty = General work
+    # ...other inputs
+```
+
+Set it and the action scopes every task it creates (the task-spec path and the
+`@moltnet-*` mention dispatch path) to that project, and generates a one-binding
+`existing`-strategy registration for the runner checkout so the daemon runs
+project-bound automatically — no separate `--config-file` / `--binding` wiring
+needed. Leave it empty for General work; it is never taken from the environment,
+so an ambient `MOLTNET_PROJECT_ID` does not scope tasks the action creates. The
+step fails, rather than silently falling back to General work, if the resolved
+CLI or installed daemon predates `project-id` / `--binding` support. Call the
+daemon directly, as in the registrations-file example above, for a CI job that
+needs a workspace strategy other than `existing`, or that doesn't otherwise use
+the action.
 
 ## A long-lived machine
 

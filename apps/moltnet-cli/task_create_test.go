@@ -602,3 +602,77 @@ func TestRunTaskCreate_UnknownOutputMode(t *testing.T) {
 		t.Errorf("error should echo the bad mode: %s", err.Error())
 	}
 }
+
+func TestRunTaskCreate_ProjectIDRoundTrip(t *testing.T) {
+	h := &stubCreateHandler{descriptors: []moltnetapi.TaskTypeDescriptor{fulfillBriefSchema()}}
+	_, _, client := newTestServer(t, h)
+	project := "99999999-9999-4999-8999-999999999999"
+	opts := newCreateOpts(`{"brief":"x"}`)
+	opts.out = io.Discard
+	opts.projectID = project
+	opts.projectIDSet = true
+
+	if err := runTaskCreateWithClient(context.Background(), client, opts); err != nil {
+		t.Fatalf("runTaskCreateWithClient: %v", err)
+	}
+	got, ok := h.lastCreate.ProjectId.Get()
+	if !ok || got.String() != project {
+		t.Errorf("ProjectId set=%v value=%v want=%s", ok, got, project)
+	}
+}
+
+func TestRunTaskCreate_DryRunProjectIDPresentAndOmitted(t *testing.T) {
+	h := &stubCreateHandler{descriptors: []moltnetapi.TaskTypeDescriptor{fulfillBriefSchema()}}
+	_, _, client := newTestServer(t, h)
+	project := "99999999-9999-4999-8999-999999999999"
+
+	for _, tc := range []struct {
+		name string
+		set  bool
+	}{{"with project", true}, {"general", false}} {
+		t.Run(tc.name, func(t *testing.T) {
+			var out bytes.Buffer
+			opts := newCreateOpts(`{"brief":"x"}`)
+			opts.out = &out
+			opts.dryRun = true
+			if tc.set {
+				opts.projectID = project
+				opts.projectIDSet = true
+			}
+			if err := runTaskCreateWithClient(context.Background(), client, opts); err != nil {
+				t.Fatalf("run: %v", err)
+			}
+			var body map[string]any
+			if err := json.Unmarshal(out.Bytes(), &body); err != nil {
+				t.Fatalf("dry-run not JSON: %v", err)
+			}
+			v, present := body["projectId"]
+			if tc.set && v != project {
+				t.Errorf("projectId = %v, want %s", v, project)
+			}
+			if !tc.set && present {
+				t.Errorf("General dry-run must omit projectId, got %v", v)
+			}
+		})
+	}
+}
+
+func TestRunTaskCreate_ProjectIDRejectedClientSide(t *testing.T) {
+	for _, bad := range []string{"", "none", "not-a-uuid"} {
+		t.Run(bad, func(t *testing.T) {
+			h := &stubCreateHandler{descriptors: []moltnetapi.TaskTypeDescriptor{fulfillBriefSchema()}}
+			_, _, client := newTestServer(t, h)
+			opts := newCreateOpts(`{"brief":"x"}`)
+			opts.out = io.Discard
+			opts.projectID = bad
+			opts.projectIDSet = true
+			err := runTaskCreateWithClient(context.Background(), client, opts)
+			if err == nil || !strings.Contains(err.Error(), "--project-id") {
+				t.Fatalf("expected --project-id error, got %v", err)
+			}
+			if _, n := h.counts(); n != 0 {
+				t.Errorf("expected no CreateTask call, got %d", n)
+			}
+		})
+	}
+}

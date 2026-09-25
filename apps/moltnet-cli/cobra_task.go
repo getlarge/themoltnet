@@ -494,7 +494,12 @@ reference on RuntimeProfileRef.`,
   # Capture just the task id in a shell variable
   TASK=$(moltnet task create --task-type fulfill_brief \
     --team-id <uuid> --diary-id <uuid> \
-    --input-file ./brief.json --output id)`,
+    --input-file ./brief.json --output id)
+
+  # Project-scoped work (claimable only by runs bound to that project)
+  moltnet task create --task-type fulfill_brief \
+    --team-id <uuid> --diary-id <uuid> --project-id <uuid> \
+    --input-file ./brief.json`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath := flagString(cmd, "credentials")
@@ -508,6 +513,8 @@ reference on RuntimeProfileRef.`,
 				tagsSet:                       cmd.Flags().Changed("tags"),
 				teamID:                        flagString(cmd, "team-id"),
 				diaryID:                       flagString(cmd, "diary-id"),
+				projectID:                     flagString(cmd, "project-id"),
+				projectIDSet:                  cmd.Flags().Changed("project-id"),
 				inputFile:                     flagString(cmd, "input-file"),
 				correlationID:                 flagString(cmd, "correlation-id"),
 				correlationIDSet:              cmd.Flags().Changed("correlation-id"),
@@ -536,6 +543,7 @@ reference on RuntimeProfileRef.`,
 	cmd.Flags().String("tags", "", "Comma-separated task tags")
 	cmd.Flags().String("team-id", "", "Team UUID (required)")
 	cmd.Flags().String("diary-id", "", "Diary UUID (required)")
+	cmd.Flags().String("project-id", "", "Project UUID — only runs bound to this project can claim the task; omit for General work")
 	cmd.Flags().String("input-file", "-", `Path to the input JSON blob; "-" reads stdin (default)`)
 	cmd.Flags().String("correlation-id", "", "Correlation UUID — link this task to an existing chain")
 	cmd.Flags().StringArray("reference", nil, "TaskRef JSON object; repeatable")
@@ -640,7 +648,9 @@ func newTaskListCmd() *cobra.Command {
 		Example: `  moltnet task list --team-id <uuid>
   moltnet task list --team-id <uuid> --task-types curate_pack,fulfill_brief
   moltnet task list --team-id <uuid> --task-type curate_pack --task-type fulfill_brief
-  moltnet task list --team-id <uuid> --has-attempts=false`,
+  moltnet task list --team-id <uuid> --has-attempts=false
+  moltnet task list --team-id <uuid> --project-id <uuid>
+  moltnet task list --team-id <uuid> --project-id none`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath := flagString(cmd, "credentials")
@@ -652,6 +662,8 @@ func newTaskListCmd() *cobra.Command {
 				taskTypeAliases:      flagStringArray(cmd, "task-type"),
 				status:               flagString(cmd, "status"),
 				diaryID:              flagString(cmd, "diary-id"),
+				projectID:            flagString(cmd, "project-id"),
+				projectIDSet:         cmd.Flags().Changed("project-id"),
 				correlationID:        flagString(cmd, "correlation-id"),
 				proposedByAgentID:    flagString(cmd, "proposed-by-agent-id"),
 				proposedByHumanID:    flagString(cmd, "proposed-by-human-id"),
@@ -687,6 +699,7 @@ func newTaskListCmd() *cobra.Command {
 	cmd.Flags().StringArray("task-type", nil, "Task type filter; may be repeated")
 	cmd.Flags().String("status", "", "Filter by task status")
 	cmd.Flags().String("diary-id", "", "Filter by diary UUID")
+	cmd.Flags().String("project-id", "", `Filter by project UUID, or "none" for General (unscoped) tasks`)
 	cmd.Flags().String("correlation-id", "", "Filter by correlation UUID")
 	cmd.Flags().String("proposed-by-agent-id", "", "Filter by proposing agent UUID")
 	cmd.Flags().String("proposed-by-human-id", "", "Filter by proposing human UUID")
