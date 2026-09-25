@@ -23,6 +23,7 @@ import {
   type CreateBody,
   parseContractExtraction,
   parseCoverageCheck,
+  STAGE_RUNNING_TIMEOUT_SEC,
   type StageContext,
 } from './stages.js';
 import { truncateAtLine } from './text.js';
@@ -145,6 +146,18 @@ function withReadRetries(
   };
 }
 
+/**
+ * A stage ran out of its running budget. That is a coverage limit, not an
+ * infrastructure failure: the review reports `incomplete` with the stage as
+ * the uncovered scope instead of `failed`.
+ */
+class StageBudgetExceeded extends Error {
+  constructor(readonly stage: 'extract' | 'coverage') {
+    super(`${stage} stage exceeded its running budget`);
+    this.name = 'StageBudgetExceeded';
+  }
+}
+
 async function transcriptHead(
   tasks: TaskClient,
   taskId: string,
@@ -196,6 +209,9 @@ async function runStage<T>(
     observedMs,
   });
   if (outcome.kind === 'accepted') return outcome.result.state;
+  if (attempt?.error?.code === 'running_total_exceeded') {
+    throw new StageBudgetExceeded(stage);
+  }
   throw new Error(`${stage} stage: ${outcome.reason}`);
 }
 
@@ -436,10 +452,23 @@ export async function runDocsImpactReview(
         }),
       timings.stages,
     );
-    report.outcome = coverage.outcome;
+    // With no contract changes this was a documentation-only review: "nothing
+    // needs documenting" there means the changed instructions held up.
+    report.outcome =
+      report.contractChanges.length === 0 && coverage.outcome === 'not-needed'
+        ? 'covered'
+        : coverage.outcome;
     report.findings = coverage.findings;
     return finish();
   } catch (error) {
+    if (error instanceof StageBudgetExceeded) {
+      report.outcome = 'incomplete';
+      report.gaps.push({
+        scope: `${error.stage} stage`,
+        reason: `exceeded the ${STAGE_RUNNING_TIMEOUT_SEC}s running budget before producing output`,
+      });
+      return finish();
+    }
     report.status = 'failed';
     delete report.outcome;
     report.error = error instanceof Error ? error.message : String(error);

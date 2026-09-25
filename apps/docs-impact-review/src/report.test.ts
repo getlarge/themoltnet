@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  COMMENT_TEXT_MAX,
   DOCS_IMPACT_COMMENT_MARKER,
   percentile,
   renderComment,
@@ -68,6 +69,30 @@ describe('renderComment', () => {
     expect(body).toContain(
       '- `docs/reference/cli.md` › ## Flags — Document --dry-run. (evidence: `apps/cli/src/flags.ts`: adds --dry-run)',
     );
+  });
+
+  it('shortens long finding text for the comment without dropping it', () => {
+    // Act
+    const body = renderComment(
+      report({
+        outcome: 'updates-needed',
+        findings: [
+          {
+            changeId: 'c',
+            evidence: { path: 'src/a.ts', detail: 'd '.repeat(400) },
+            docsPath: 'docs/a.md',
+            update: 'u '.repeat(400),
+          },
+        ],
+      }),
+    );
+
+    // Assert
+    const line = body
+      .split('\n')
+      .find((entry) => entry.startsWith('- `docs/a.md`'));
+    expect(line?.length).toBeLessThan(2 * COMMENT_TEXT_MAX + 80);
+    expect(line).toContain('…');
   });
 
   it('names uncovered scope for an incomplete result', () => {
