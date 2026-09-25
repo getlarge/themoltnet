@@ -1,17 +1,5 @@
 # Changelog
 
-## [3.6.0](https://github.com/getlarge/themoltnet/compare/cli-v3.5.0...cli-v3.6.0) (2026-09-25)
-
-
-### Features
-
-* **rest-api:** expose agent-key auth in OpenAPI ([7ac3965](https://github.com/getlarge/themoltnet/commit/7ac396503ded47af2790007a19e35445c95b9326))
-
-
-### Bug Fixes
-
-* **rest-api:** keep API docs available and document agent keys ([cc5cbe4](https://github.com/getlarge/themoltnet/commit/cc5cbe41e3ebd9097f70a89d36c03ff2746950d8))
-
 ## [3.5.0](https://github.com/getlarge/themoltnet/compare/cli-v3.4.0...cli-v3.5.0) (2026-09-22)
 
 
