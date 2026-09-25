@@ -1555,6 +1555,11 @@ jobs:
         env:
           MOLTNET_PI_VM_INTEGRATION: '1'
         run: pnpm exec nx run @moltnet/execution-integrations:test-ci--src/gondolin.integration.test.ts
+      - name: Run guest signing integration test
+        if: needs.affected.outputs.e2e-agent-daemon == 'true' && matrix.lane.vm_integration
+        env:
+          MOLTNET_PI_VM_INTEGRATION: '1'
+        run: pnpm exec nx run @themoltnet/pi-runtime:test-ci--src/host-capabilities/agent-signing.integration.test.ts
       - name: Run agent-daemon ${{ matrix.lane.name }} E2E tests
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
         run: pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e --configuration=${{ matrix.lane.configuration }}
