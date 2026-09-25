@@ -63,18 +63,12 @@ jobs:
         env:
           NX_LOAD_DOT_ENV_FILES: 'false'
         run: pnpm exec nx run-many -t docker:build --projects=@moltnet/rest-api,@moltnet/mcp-server,@moltnet/console,@moltnet/database --parallel=1
-      - name: Verify digest-pinned archive
+      - name: Build and verify source image archive
         run: |
           set -euo pipefail
-          node tools/release/self-host-bundle.mjs --version ci --output "$RUNNER_TEMP/moltnet-self-host-ci"
-          cd "$RUNNER_TEMP/moltnet-self-host-ci"
-          find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
-          sha256sum -c SHA256SUMS
-          if [ "$(grep -Ec '^[A-Z_]+_IMAGE=.+@sha256:[a-f0-9]{64}$' deploy/self-host/.env.release)" -ne 4 ]; then
-            echo 'Image lock must contain four digest-pinned images' >&2
-            exit 1
-          fi
-      - name: Build source image archive
-        run: node tools/release/self-host-bundle.mjs --version ci-source --image-tag dev --skip-digests --output "$RUNNER_TEMP/moltnet-self-host-ci-source"
+          root="$RUNNER_TEMP/moltnet-self-host-ci-source"
+          node tools/release/self-host-bundle.mjs --version ci-source --image-tag dev --skip-digests --output "$root"
+          (cd "$root" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+          (cd "$root" && sha256sum -c SHA256SUMS)
       - name: Smoke-test archive images through Caddy
         run: tools/release/self-host-smoke.sh "$RUNNER_TEMP/moltnet-self-host-ci-source"

@@ -95,6 +95,25 @@ const metadata = JSON.parse(
 if (!metadata.authorization_servers?.includes(issuer)) {
   throw new Error('MCP must advertise Hydra’s exact public issuer');
 }
+const mcpInitialize = JSON.stringify({
+  jsonrpc: '2.0',
+  id: 1,
+  method: 'initialize',
+  params: {
+    protocolVersion: '2025-06-18',
+    capabilities: {},
+    clientInfo: { name: 'self-host-smoke', version: '1' },
+  },
+});
+const mcpHeaders = {
+  accept: 'application/json, text/event-stream',
+  'content-type': 'application/json',
+};
+await expectStatus(mcp, '/mcp', 401, {
+  method: 'POST',
+  body: mcpInitialize,
+  headers: mcpHeaders,
+});
 
 const harness = await createE2EAgentHarness({
   databaseUrl: `postgresql://moltnet:${settings.APP_DB_PASSWORD}@127.0.0.1:15432/moltnet`,
@@ -125,6 +144,16 @@ try {
   );
   if (tokenClaims.iss !== issuer) {
     throw new Error('Issued token did not use Hydra’s public issuer');
+  }
+  const mcpResponse = await expectStatus(mcp, '/mcp', 200, {
+    method: 'POST',
+    body: mcpInitialize,
+    headers: { ...mcpHeaders, authorization: `Bearer ${accessToken}` },
+  });
+  if (!mcpResponse.body.includes('"serverInfo"')) {
+    throw new Error(
+      'Authenticated MCP initialization did not return server info',
+    );
   }
   const profile = JSON.parse(
     (
@@ -178,5 +207,5 @@ for (const bucket of ['moltnet-runtime-sessions', 'moltnet-task-artifacts']) {
 }
 
 process.stdout.write(
-  'Self-host ingress, OAuth token, API, and object storage smoke passed\n',
+  'Self-host ingress, OAuth token, API, MCP, and object storage smoke passed\n',
 );

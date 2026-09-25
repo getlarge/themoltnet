@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -160,6 +168,55 @@ test('locks all component images to the source revision tag', () => {
       'DB_MIGRATE_IMAGE',
     ]) {
       assert.match(releaseEnv, new RegExp(`^${name}=.+:${tag}$`, 'm'));
+    }
+  } finally {
+    rmSync(temporary, { recursive: true, force: true });
+  }
+});
+
+test('resolves digest pins for source-tagged images', () => {
+  const temporary = mkdtempSync(
+    path.join(os.tmpdir(), 'moltnet-self-host-digest-test-'),
+  );
+  const output = path.join(temporary, 'bundle');
+  const mockBin = path.join(temporary, 'bin');
+  const tag = 'self-host-1.0.0-abc123def456';
+  const digest = `sha256:${'a'.repeat(64)}`;
+  try {
+    const docker = execFileSync('which', ['docker'], {
+      encoding: 'utf8',
+    }).trim();
+    mkdirSync(mockBin);
+    const mockDocker = path.join(mockBin, 'docker');
+    writeFileSync(
+      mockDocker,
+      `#!/bin/sh\nif [ "$1" = buildx ] && [ "$2" = imagetools ] && [ "$3" = inspect ]; then\n  printf '%s\\n' '${digest}'\nelse\n  exec "$REAL_DOCKER" "$@"\nfi\n`,
+    );
+    chmodSync(mockDocker, 0o755);
+    execFileSync(
+      'node',
+      [script, '--version', '1.0.0', '--image-tag', tag, '--output', output],
+      {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          PATH: `${mockBin}${path.delimiter}${process.env.PATH}`,
+          REAL_DOCKER: docker,
+        },
+        stdio: 'pipe',
+      },
+    );
+    const releaseEnv = readFileSync(
+      path.join(output, 'deploy/self-host/.env.release'),
+      'utf8',
+    );
+    for (const name of [
+      'REST_API_IMAGE',
+      'MCP_SERVER_IMAGE',
+      'CONSOLE_IMAGE',
+      'DB_MIGRATE_IMAGE',
+    ]) {
+      assert.match(releaseEnv, new RegExp(`^${name}=.+@${digest}$`, 'm'));
     }
   } finally {
     rmSync(temporary, { recursive: true, force: true });
