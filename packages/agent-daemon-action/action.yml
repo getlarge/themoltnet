@@ -60,6 +60,19 @@ inputs:
       the deployed API.
     required: false
     default: 'false'
+  project-id:
+    description: >
+      Optional project UUID. Tasks this action creates (from task-spec-path
+      or a @moltnet-* mention) are scoped to it, and the daemon runs bound to
+      it through a generated project binding for the runner checkout
+      ($GITHUB_WORKSPACE, strategy "existing"), so it claims that project's
+      work only. Requires MOLTNET_TEAM_ID. Empty = General work. Never
+      inferred from the environment: an ambient MOLTNET_PROJECT_ID never
+      scopes the tasks this action creates. The run fails, rather than creating General work, when the
+      resolved @themoltnet/cli lacks `task create --project-id` or the
+      installed daemon lacks `--binding`.
+    required: false
+    default: ''
   mode:
     description: 'Daemon mode: once | drain. poll is disallowed in CI for cost reasons.'
     required: false
@@ -590,6 +603,7 @@ runs:
         SKIP_VALIDATION: ${{ inputs.skip-validation }}
         MOLTNET_RUNNING_TIMEOUT_SEC: ${{ inputs.running-timeout-sec }}
         MOLTNET_MAX_ATTEMPTS: ${{ inputs.max-attempts }}
+        PROJECT_ID: ${{ inputs.project-id }}
       run: |
         set -euo pipefail
         if [ ! -f "$TASK_SPEC_PATH" ]; then
@@ -669,6 +683,19 @@ runs:
         if [ -n "${MOLTNET_MAX_ATTEMPTS:-}" ]; then
           flags+=(--max-attempts "$MOLTNET_MAX_ATTEMPTS")
         fi
+        if [ -n "${PROJECT_ID:-}" ]; then
+          # Fail closed. A CLI without the flag would drop the scope and queue
+          # General work, which the project-bound daemon below never claims.
+          # Capture help first: `| grep -q` under pipefail can SIGPIPE the
+          # writer and turn a supported CLI into a false failure.
+          create_help=$(npx -y "$MOLTNET_CLI_PACKAGE" task create --help 2>&1 || true)
+          if ! grep -q -- '--project-id' <<<"$create_help"; then
+            echo "::error::project-id is set but $MOLTNET_CLI_PACKAGE does not support task create --project-id; refusing to create General work. Pin a newer CLI with MOLTNET_CLI_VERSION." >&2
+            exit 1
+          fi
+          # The CLI validates the value (UUID only; '' and 'none' rejected).
+          flags+=(--project-id "$PROJECT_ID")
+        fi
         if [ -n "$TAGS" ]; then
           if npx -y "$MOLTNET_CLI_PACKAGE" task create --help | grep -q -- '--tags'; then
             flags+=(--tags "$TAGS")
@@ -702,6 +729,9 @@ runs:
         MOLTNET_RUNNING_TIMEOUT_SEC: ${{ inputs.running-timeout-sec }}
         MOLTNET_MAX_ATTEMPTS: ${{ inputs.max-attempts }}
         MOLTNET_TASK_TAGS: ${{ inputs.tags }}
+        # Dedicated name so the caller's ambient MOLTNET_PROJECT_ID can never
+        # scope mention-created tasks implicitly.
+        MOLTNET_ACTION_PROJECT_ID: ${{ inputs.project-id }}
       run: |
         set -euo pipefail
         # MOLTNET_CLIENT_ID / MOLTNET_CLIENT_SECRET / MOLTNET_API_URL /
@@ -752,6 +782,7 @@ runs:
         WAIT_AFTER_TASK_SEC: ${{ inputs.wait-after-task-sec }}
         DAEMON_VERSION: ${{ inputs.daemon-version }}
         DAEMON_MODE: ${{ inputs.mode }}
+        PROJECT_ID: ${{ inputs.project-id }}
       run: |
         set -euo pipefail
         if [ "$DAEMON_MODE" != "once" ] && [ "$DAEMON_MODE" != "drain" ]; then
@@ -789,26 +820,62 @@ runs:
           daemon_args+=(--wait-for-first-task-sec "$WAIT_FOR_FIRST_TASK_SEC")
           daemon_args+=(--wait-after-task-sec "$WAIT_AFTER_TASK_SEC")
         fi
-        if [ -n "${MOLTNET_TEAM_ID:-}" ]; then
-          daemon_args+=(--team "$MOLTNET_TEAM_ID")
-        fi
 
         if [ "$DAEMON_VERSION" = "workspace" ]; then
           # Workspace package exports intentionally resolve to TypeScript
           # source. Running the Vite output directly would leave public
           # workspace dependencies external, then plain Node would follow
           # those source exports without a TypeScript-aware resolver.
-          node --import tsx \
-            "$GITHUB_WORKSPACE/apps/agent-daemon/src/main.ts" \
-            "${daemon_args[@]}"
+          daemon_cmd=(node --import tsx
+            "$GITHUB_WORKSPACE/apps/agent-daemon/src/main.ts")
         else
           # The signed release bundle, not the npm package. The bundle ships
           # its own Node runtime and gondolin natives, so the daemon does not
           # depend on the runner's Node resolution at task time, and the
           # archive's checksum is signature-verified by the installer before
           # anything is unpacked.
-          "$MOLTNET_AGENT_BIN" "${daemon_args[@]}"
+          daemon_cmd=("$MOLTNET_AGENT_BIN")
         fi
+
+        if [ -n "${PROJECT_ID:-}" ]; then
+          uuid_re='^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+          if [[ ! "$PROJECT_ID" =~ $uuid_re ]]; then
+            echo "::error::project-id must be a project UUID; leave it empty for General work" >&2
+            exit 1
+          fi
+          if [ -z "${MOLTNET_TEAM_ID:-}" ]; then
+            echo "::error::project-id requires MOLTNET_TEAM_ID (the project's team)" >&2
+            exit 1
+          fi
+          # A daemon without project bindings would claim as General work and
+          # never pick up the project-scoped task. Fail with the cause instead.
+          daemon_help=$("${daemon_cmd[@]}" "$DAEMON_MODE" --help 2>&1 || true)
+          if ! grep -q -- '--binding' <<<"$daemon_help"; then
+            echo "::error::project-id is set but the installed agent daemon does not support --binding; use a newer daemon-version" >&2
+            exit 1
+          fi
+          # Register the runner checkout as this project's location. The
+          # binding carries team, endpoint and source, so --team and --source
+          # are redundant; its apiUrl must equal the daemon's endpoint.
+          # Owner-only mode: the daemon rejects group/world-writable configs.
+          BINDINGS="$RUNNER_TEMP/moltnet-action-projects.json"
+          (
+            umask 077
+            jq -n \
+              --arg api "${MOLTNET_API_URL:-https://api.themolt.net}" \
+              --arg team "$MOLTNET_TEAM_ID" \
+              --arg project "$PROJECT_ID" \
+              --arg source "$GITHUB_WORKSPACE" \
+              '{version: 1, bindings: [{name: "moltnet-action", apiUrl: $api, teamId: $team, projectId: $project, source: $source, strategy: "existing"}]}' \
+              > "$BINDINGS"
+          )
+          chmod 600 "$BINDINGS"
+          daemon_args+=(--config-file "$BINDINGS" --binding moltnet-action)
+        elif [ -n "${MOLTNET_TEAM_ID:-}" ]; then
+          daemon_args+=(--team "$MOLTNET_TEAM_ID")
+        fi
+
+        "${daemon_cmd[@]}" "${daemon_args[@]}"
 
     # Save the gondolin snapshot built by the daemon. `if: always()`
     # so we still upload the snapshot when the LLM call fails post-

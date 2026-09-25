@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   connect: vi.fn(),
   createTask: vi.fn(),
   createAssessTask: vi.fn(),
+  resolveCorrelation: vi.fn(),
   info: vi.fn(),
   setOutput: vi.fn(),
   warning: vi.fn(),
@@ -26,6 +27,12 @@ vi.mock('./create-task.js', () => ({
   createTask: mocks.createTask,
   createAssessTask: mocks.createAssessTask,
 }));
+
+vi.mock('./resolve-correlation.js', () => ({
+  resolveCorrelation: mocks.resolveCorrelation,
+}));
+
+const PROJECT = '55555555-5555-4555-8555-555555555555';
 
 const BASE_ENV = {
   MOLTNET_TEAM_ID: '11111111-1111-4111-8111-111111111111',
@@ -66,6 +73,7 @@ describe('dispatch', () => {
       id: 'task-1',
       correlationId: 'correlation-1',
     });
+    mocks.resolveCorrelation.mockResolvedValue('correlation-1');
   });
 
   it('passes action tags to mention-created fulfill tasks', async () => {
@@ -91,6 +99,88 @@ describe('dispatch', () => {
     );
     expect(mocks.createTask).toHaveBeenCalledWith(
       expect.not.objectContaining({ maxAttempts: expect.anything() }),
+    );
+  });
+
+  it('passes MOLTNET_ACTION_PROJECT_ID to mention-created fulfill tasks', async () => {
+    const ctx = issueCommentContext('@moltnet-fulfill please handle this');
+    ctx.env.MOLTNET_ACTION_PROJECT_ID = ` ${PROJECT} `;
+
+    await dispatch(ctx);
+
+    expect(mocks.createTask).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: PROJECT }),
+    );
+  });
+
+  it('never infers the project from the ambient MOLTNET_PROJECT_ID', async () => {
+    const ctx = issueCommentContext('@moltnet-fulfill please handle this');
+    ctx.env.MOLTNET_PROJECT_ID = PROJECT;
+
+    await dispatch(ctx);
+
+    const [args] = mocks.createTask.mock.calls[0] as [Record<string, unknown>];
+    expect(args.projectId).toBeUndefined();
+  });
+
+  it('treats an empty MOLTNET_ACTION_PROJECT_ID as General work', async () => {
+    const ctx = issueCommentContext('@moltnet-fulfill please handle this');
+    ctx.env.MOLTNET_ACTION_PROJECT_ID = '';
+
+    await dispatch(ctx);
+
+    const [args] = mocks.createTask.mock.calls[0] as [Record<string, unknown>];
+    expect(args.projectId).toBeUndefined();
+  });
+
+  it.each(['   ', 'none', 'not-a-uuid'])(
+    'rejects MOLTNET_ACTION_PROJECT_ID=%j instead of creating General work',
+    async (value) => {
+      const ctx = issueCommentContext('@moltnet-fulfill please handle this');
+      ctx.env.MOLTNET_ACTION_PROJECT_ID = value;
+
+      await expect(dispatch(ctx)).rejects.toThrow(/project-id/);
+      expect(mocks.connect).not.toHaveBeenCalled();
+      expect(mocks.createTask).not.toHaveBeenCalled();
+    },
+  );
+
+  it('passes MOLTNET_ACTION_PROJECT_ID to mention-created assess tasks', async () => {
+    const rubric = {
+      version: 1,
+      gates: [],
+      assertions: [],
+      rubric: { rubricId: 'r', version: 'v1', criteria: [] },
+      sideEffects: {},
+    };
+    mocks.connect.mockResolvedValue({
+      tasks: {
+        list: vi.fn().mockResolvedValue({
+          items: [
+            {
+              id: 'fulfill-1',
+              acceptedAttemptN: 1,
+              input: { successCriteria: rubric },
+            },
+          ],
+        }),
+        listAttempts: vi
+          .fn()
+          .mockResolvedValue([{ attemptN: 1, outputCid: 'bafy-out' }]),
+      },
+    } as unknown as Agent);
+    mocks.createAssessTask.mockResolvedValue({ id: 'assess-1' });
+    const ctx = issueCommentContext('@moltnet-assess');
+    ctx.context.payload.issue.pull_request = {};
+    ctx.env.MOLTNET_ACTION_PROJECT_ID = PROJECT;
+
+    await dispatch(ctx);
+
+    expect(mocks.createAssessTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: PROJECT,
+        targetTaskId: 'fulfill-1',
+      }),
     );
   });
 });
