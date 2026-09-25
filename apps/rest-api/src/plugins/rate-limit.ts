@@ -185,7 +185,9 @@ export function clientAddressBucket(address: string): string {
  * pre-resolve throttle and the main limiter so both honor the same public
  * exemptions configured via RATE_LIMIT_ALLOWLIST.
  */
-function makeAllowList(paths: readonly string[]): (url: string) => boolean {
+function makeAllowList(
+  paths: readonly string[] = [],
+): (url: string) => boolean {
   const set = new Set([
     ...paths,
     '/docs',
