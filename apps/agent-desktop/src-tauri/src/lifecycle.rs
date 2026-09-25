@@ -3,6 +3,8 @@ use crate::build_support::{valid_version, version_at_least};
 use crate::control::{NativeConnection, NativeToken, NATIVE_TOKEN_ENV};
 use serde::{Deserialize, Serialize};
 use std::ffi::{OsStr, OsString};
+#[cfg(any(target_os = "macos", test))]
+use std::io::{Read, Seek};
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 #[cfg(unix)]
 use std::os::unix::process::ExitStatusExt;
@@ -25,6 +27,8 @@ const MAX_PERSISTED_LOG_BYTES: u64 = 1024 * 1024;
 const MAX_START_ATTEMPTS: usize = 2;
 const START_TIMEOUT: Duration = Duration::from_secs(12);
 const STOP_TIMEOUT: Duration = Duration::from_secs(17);
+#[cfg(target_os = "macos")]
+const SHELL_PATH_TIMEOUT: Duration = Duration::from_secs(3);
 // Keep aligned with LOCK_HELD_EXIT_CODE in agent-daemon/src/cli/server.ts.
 const AGENT_SERVER_LOCK_HELD_EXIT_CODE: i32 = 75;
 const EMBEDDED_AGENT_VERSION: &str = env!("MOLTNET_EMBEDDED_AGENT_CLI_VERSION");
@@ -184,6 +188,7 @@ pub struct LifecycleManager {
     home: PathBuf,
     store_root: PathBuf,
     installation: Option<PathBuf>,
+    server_path: Option<OsString>,
     /// Grant for the server process currently running, if any. Regenerated on
     /// every spawn and dropped when the child stops, so it is scoped to one
     /// process exactly as the server's own grant map is.
@@ -254,6 +259,7 @@ impl LifecycleManager {
             control_connection: None,
             store_root,
             installation,
+            server_path: None,
         }
     }
 
@@ -493,6 +499,21 @@ impl LifecycleManager {
             return Ok(self.snapshot());
         }
         self.set_state(LifecycleState::Starting, "Starting the Agent Server…");
+        if self.server_path.is_none() {
+            let inherited = env::var_os("PATH").unwrap_or_default();
+            #[cfg(target_os = "macos")]
+            let (path, warning) = resolve_shell_path(
+                env::var_os("SHELL").unwrap_or_else(|| OsString::from("/bin/zsh")),
+                inherited,
+                SHELL_PATH_TIMEOUT,
+            );
+            #[cfg(not(target_os = "macos"))]
+            let (path, warning): (OsString, Option<String>) = (inherited, None);
+            if let Some(reason) = warning {
+                self.push_log(&format!("Using inherited PATH: {reason}"));
+            }
+            self.server_path = Some(path);
+        }
 
         let mut last_failure = "Agent Server failed to start".to_string();
         for attempt in 0..MAX_START_ATTEMPTS {
@@ -526,6 +547,15 @@ impl LifecycleManager {
             let mut command = agent_server_command(
                 &self.executable(),
                 &directory.path().join(crate::native_socket::SOCKET_NAME),
+            );
+            command.env(
+                "PATH",
+                server_child_path(
+                    self.executable()
+                        .parent()
+                        .expect("Agent Server has a bin directory"),
+                    self.server_path.as_deref().unwrap_or_default(),
+                ),
             );
             // The child consumes and unsets this, so its own run children
             // cannot inherit the desktop's control grant. Process environments
@@ -1017,6 +1047,71 @@ fn agent_server_command(executable: &Path, socket: &Path) -> Command {
     command
 }
 
+fn server_child_path(vendor_bin: &Path, path: &OsStr) -> OsString {
+    env::join_paths(
+        std::iter::once(vendor_bin.to_path_buf())
+            .chain(env::split_paths(path).filter(|entry| entry != vendor_bin)),
+    )
+    .unwrap_or_else(|_| path.to_os_string())
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn resolve_shell_path(
+    shell: OsString,
+    inherited: OsString,
+    timeout: Duration,
+) -> (OsString, Option<String>) {
+    match probe_login_shell_path(&shell, timeout) {
+        Ok(path) => (path, None),
+        Err(reason) => (inherited, Some(reason)),
+    }
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn probe_login_shell_path(shell: &OsStr, timeout: Duration) -> Result<OsString, String> {
+    // A file avoids a full stdout pipe blocking the shell before the deadline.
+    let mut output = tempfile::tempfile().map_err(|error| format!("shell output: {error}"))?;
+    let mut child = Command::new(shell)
+        .args(["-l", "-c", "printf '\\nMOLTNET_SHELL_PATH=%s\\n' \"$PATH\""])
+        .stdin(Stdio::null())
+        .stdout(output.try_clone().map_err(|error| error.to_string())?)
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|error| format!("login shell could not start: {error}"))?;
+    let deadline = Instant::now() + timeout;
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) if Instant::now() < deadline => thread::sleep(Duration::from_millis(20)),
+            Ok(None) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err("login shell PATH probe timed out".into());
+            }
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!("login shell could not be observed: {error}"));
+            }
+        }
+    };
+    if !status.success() {
+        return Err(format!("login shell exited with {status}"));
+    }
+    output.rewind().map_err(|error| error.to_string())?;
+    let mut text = String::new();
+    output
+        .read_to_string(&mut text)
+        .map_err(|error| error.to_string())?;
+    let path = text
+        .lines()
+        .rev()
+        .find_map(|line| line.strip_prefix("MOLTNET_SHELL_PATH="))
+        .filter(|path| !path.is_empty())
+        .ok_or_else(|| "login shell returned no PATH".to_string())?;
+    Ok(OsString::from(path))
+}
+
 /// Strip AppImage loader/module overrides before starting host programs. They
 /// point inside the mounted image and can make an otherwise valid system
 /// binary load incompatible libraries. PATH and product configuration remain
@@ -1204,6 +1299,55 @@ mod tests {
         assert_eq!(
             path_without_directory(path, Path::new("/tmp/App")),
             Some(OsString::from("/opt/homebrew/bin:/usr/bin"))
+        );
+    }
+
+    #[test]
+    fn login_shell_path_ignores_startup_output() {
+        let directory = tempfile::tempdir().unwrap();
+        let shell = directory.path().join("shell");
+        fs::write(
+            &shell,
+            "#!/bin/sh\nprintf 'startup message\\nMOLTNET_SHELL_PATH=/opt/homebrew/bin:/usr/bin\\n'\n",
+        )
+        .unwrap();
+        fs::set_permissions(&shell, fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(
+            probe_login_shell_path(shell.as_os_str(), Duration::from_secs(1)).unwrap(),
+            OsStr::new("/opt/homebrew/bin:/usr/bin")
+        );
+    }
+
+    #[test]
+    fn shell_probe_falls_back_on_empty_output_failure_and_timeout() {
+        let directory = tempfile::tempdir().unwrap();
+        let shell = directory.path().join("shell");
+        let inherited = OsString::from("/usr/bin:/bin");
+        for script in [
+            "#!/bin/sh\nprintf 'startup only\\n'\n",
+            "#!/bin/sh\nexit 1\n",
+            "#!/bin/sh\nexec sleep 10\n",
+        ] {
+            fs::write(&shell, script).unwrap();
+            fs::set_permissions(&shell, fs::Permissions::from_mode(0o700)).unwrap();
+            let (path, warning) = resolve_shell_path(
+                shell.as_os_str().to_os_string(),
+                inherited.clone(),
+                Duration::from_millis(100),
+            );
+            assert_eq!(path, inherited);
+            assert!(warning.is_some());
+        }
+    }
+
+    #[test]
+    fn server_path_keeps_vendor_tools_first() {
+        assert_eq!(
+            server_child_path(
+                Path::new("/moltnet/current/bin"),
+                OsStr::new("/opt/homebrew/bin:/moltnet/current/bin:/usr/bin"),
+            ),
+            OsStr::new("/moltnet/current/bin:/opt/homebrew/bin:/usr/bin")
         );
     }
 
