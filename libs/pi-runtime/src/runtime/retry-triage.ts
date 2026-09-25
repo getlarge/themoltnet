@@ -5,6 +5,7 @@ import {
   defineTool,
   type ModelRuntime,
   SessionManager,
+  SettingsManager,
 } from '@earendil-works/pi-coding-agent';
 
 import { REDACTED, redactKnownSecretShapes } from '../redact.js';
@@ -67,9 +68,17 @@ export function createPiRetryTriage(options: {
   return async (input) => {
     const cwd = options.cwd ?? process.cwd();
     const capture = createRetryTriageTool();
+    const settingsManager = SettingsManager.create(cwd, options.piAgentDir, {
+      projectTrusted: false,
+    });
     const resourceLoader = new DefaultResourceLoader({
       cwd,
       agentDir: options.piAgentDir,
+      settingsManager,
+      noExtensions: true,
+      noPromptTemplates: true,
+      noThemes: true,
+      // Keep AGENTS.md and CLAUDE.md as task context, treated as untrusted text.
       appendSystemPrompt: [TRIAGE_SYSTEM_PROMPT],
       skillsOverride: () => ({ skills: [], diagnostics: [] }),
     });
@@ -78,6 +87,7 @@ export function createPiRetryTriage(options: {
     const created = await createAgentSession({
       agentDir: options.piAgentDir,
       cwd,
+      settingsManager,
       model: options.model,
       ...(options.modelRuntime ? { modelRuntime: options.modelRuntime } : {}),
       thinkingLevel: (options.thinkingLevel ?? undefined) as
