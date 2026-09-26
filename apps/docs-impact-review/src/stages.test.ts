@@ -303,6 +303,10 @@ describe('buildCoverageTask', () => {
     });
     expect(input.brief).toContain('dry-run-flag');
     expect(input.brief).toContain('one or two sentences');
+    // Missing-docs findings must not rest only on the pre-selected excerpts.
+    expect(input.brief).toContain(
+      'Search existing documentation before judging',
+    );
     expect(input.brief).toContain('documentation-only change');
     expect(input.brief).toContain('apps/cli/README.md');
   });
