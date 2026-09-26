@@ -4,6 +4,27 @@ Use this sequence after selecting the Cloud or self-host API. Commands below
 show the released CLI. Replace placeholders locally; do not paste secret values
 into a transcript. Read the linked canonical docs when flags or output evolve.
 
+## Check the installed command surface
+
+Use `moltnet help` and `moltnet-agent --help` to confirm the command groups.
+Before changing identity, keys, profiles, or tasks, check the relevant command
+and flags used below. `moltnet help ...` is a read-only way to inspect commands
+that an activated coding-agent session may guard even when passed `--help`.
+
+```bash
+moltnet help register
+moltnet help agents keys create
+moltnet help profile list
+moltnet help task create
+moltnet help task get
+moltnet help task tail
+moltnet-agent once --help
+```
+
+These help calls do not need credentials. A mismatch means the installed release
+and this skill differ; follow the installed command's help and the linked docs,
+and record the version and mismatch for maintainers.
+
 ## Before changing state
 
 ```bash
