@@ -11,6 +11,7 @@ import { createGit, requireFullOid } from './git.js';
 import { boundDiff, collectChangeSet } from './ingest.js';
 import { renderComment, summarizeCorpus } from './report.js';
 import { parseRoutingMap, routeDocs } from './routing.js';
+import { parseLabels, scoreReports } from './score.js';
 import type { DocsImpactReport } from './types.js';
 import {
   createSleepingContext,
@@ -22,10 +23,14 @@ import {
 const USAGE = `Usage: moltnet-docs-impact-review --repo owner/repo --pr N [--pr N ...]
   --team <uuid> --diary <uuid> --profile <name-or-id> --project <uuid>
   [--out <dir>] [--poll-interval <sec>] [--routing <path>] [--dry-run]
+  [--labels <path>]
+       moltnet-docs-impact-review --rescore <summary.json> --labels <path>
 
 Runs the experimental docs-impact review against existing pull requests from a
 local checkout. PR metadata is read with \`gh\`; base/head are fetched as inert
-git objects. --dry-run performs ingestion and routing only (no tasks).`;
+git objects. --dry-run performs ingestion and routing only (no tasks).
+--labels scores the run against expected/forbidden findings; --rescore scores
+a saved run's summary.json without creating tasks.`;
 
 interface PullRequest {
   title: string;
@@ -71,11 +76,29 @@ async function main(): Promise<number> {
       'poll-interval': { type: 'string' },
       routing: { type: 'string' },
       'dry-run': { type: 'boolean', default: false },
+      labels: { type: 'string' },
+      rescore: { type: 'string' },
       help: { type: 'boolean', default: false },
     },
   });
   if (values.help) {
     process.stdout.write(`${USAGE}\n`);
+    return 0;
+  }
+  const labels = values.labels
+    ? parseLabels(JSON.parse(readFileSync(values.labels, 'utf8')) as unknown)
+    : undefined;
+  if (values.rescore) {
+    if (!labels) {
+      process.stderr.write('--rescore requires --labels\n');
+      return 2;
+    }
+    const saved = JSON.parse(readFileSync(values.rescore, 'utf8')) as {
+      reports: DocsImpactReport[];
+    };
+    process.stdout.write(
+      `${JSON.stringify(scoreReports(saved.reports, labels), null, 2)}\n`,
+    );
     return 0;
   }
   const dryRun = values['dry-run'];
@@ -195,7 +218,11 @@ async function main(): Promise<number> {
   if (reports.length > 0) {
     process.stdout.write(
       `${JSON.stringify(
-        { summary: summarizeCorpus(reports), reports },
+        {
+          summary: summarizeCorpus(reports),
+          ...(labels ? { score: scoreReports(reports, labels) } : {}),
+          reports,
+        },
         null,
         2,
       )}\n`,
