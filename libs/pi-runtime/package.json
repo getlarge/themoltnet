@@ -75,6 +75,7 @@
     "@earendil-works/pi-coding-agent": "catalog:",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/models": "workspace:*",
+    "@moltnet/provider-catalog": "workspace:*",
     "@moltnet/runtime-profiles": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "@opentelemetry/sdk-metrics": "catalog:",

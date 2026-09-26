@@ -2818,6 +2818,9 @@ importers:
       '@moltnet/models':
         specifier: workspace:*
         version: link:../models
+      '@moltnet/provider-catalog':
+        specifier: workspace:*
+        version: link:../provider-catalog
       '@moltnet/runtime-profiles':
         specifier: workspace:*
         version: link:../runtime-profiles

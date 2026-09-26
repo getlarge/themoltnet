@@ -71,6 +71,10 @@ export interface BuildAgentSessionArgs {
   topK?: number | null;
   /** Optional runtime-profile generated output token cap. */
   maxOutputTokens?: number | null;
+  /** Session logger for unsupported provider request options. */
+  modelOptionsLogger?: {
+    warn(details: Record<string, unknown>, message: string): void;
+  };
   /** Pre-built customTools array. Caller composes Gondolin + MoltNet + submit tools. */
   customTools: ToolDefinition[];
   /**
@@ -141,7 +145,14 @@ export async function buildAgentSession(
   const extensionFactories = [
     piOtelExtension,
     ...(hasPiModelOptions(modelOptions)
-      ? [createPiModelOptionsExtension(modelOptions)]
+      ? [
+          createPiModelOptionsExtension(
+            modelOptions,
+            args.modelHandle.provider,
+            args.modelHandle.id,
+            args.modelOptionsLogger?.warn.bind(args.modelOptionsLogger),
+          ),
+        ]
       : []),
     ...(args.extraExtensionFactories ?? []),
   ];

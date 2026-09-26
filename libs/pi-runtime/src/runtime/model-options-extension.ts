@@ -1,4 +1,5 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
+import { getUnsupportedRequestOptions } from '@moltnet/provider-catalog';
 
 export interface PiModelOptions {
   temperature?: number | null;
@@ -16,10 +17,32 @@ export function hasPiModelOptions(options: PiModelOptions): boolean {
   );
 }
 
-export function createPiModelOptionsExtension(options: PiModelOptions) {
+export function createPiModelOptionsExtension(
+  options: PiModelOptions,
+  provider: string,
+  model: string,
+  warn: (details: Record<string, unknown>, message: string) => void = (
+    details,
+    message,
+  ) =>
+    console.error(JSON.stringify({ level: 'warn', msg: message, ...details })),
+) {
+  const unsupported = getUnsupportedRequestOptions(provider, model, options);
+  const filtered = { ...options };
+  for (const option of unsupported) delete filtered[option];
+  let warned = false;
   return function piModelOptionsExtension(pi: ExtensionAPI): void {
     pi.on('before_provider_request', (event) => {
-      return applyPiModelOptions(event.payload, options);
+      if (!warned) {
+        for (const option of unsupported) {
+          warn(
+            { option, provider, model },
+            'Runtime profile model option is unsupported by the selected provider/model; omitting it',
+          );
+        }
+        warned = true;
+      }
+      return applyPiModelOptions(event.payload, filtered);
     });
   };
 }
