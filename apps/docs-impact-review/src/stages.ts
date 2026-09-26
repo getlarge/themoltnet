@@ -259,20 +259,34 @@ export function parseContractExtraction(
     trimSearchTerms,
   );
   const ids = new Set<string>();
+  const changes: ContractChange[] = [];
   for (const change of parsed.changes) {
     if (ids.has(change.id)) {
       throw new Error(`contract extraction has duplicate id ${change.id}`);
     }
     ids.add(change.id);
-    for (const evidence of change.evidence) {
-      if (!changedSourcePaths.has(evidence.path)) {
-        throw new Error(
-          `contract change ${change.id} cites ${evidence.path}, which is not a changed source file`,
+    // Evidence must come from changed source files. An unsupported citation
+    // is dropped rather than trusted; a change left without evidence is
+    // dropped entirely. Both are recorded, never silent.
+    const evidence = change.evidence.filter((item) =>
+      changedSourcePaths.has(item.path),
+    );
+    for (const item of change.evidence) {
+      if (!changedSourcePaths.has(item.path)) {
+        repairs.push(
+          `dropped evidence ${item.path} from change ${change.id}: not a changed source file`,
         );
       }
     }
+    if (evidence.length === 0) {
+      repairs.push(
+        `dropped change ${change.id}: no evidence from changed source files`,
+      );
+      continue;
+    }
+    changes.push({ ...change, evidence });
   }
-  return parsed;
+  return { ...parsed, changes };
 }
 
 export interface CoverageAllowlist {
