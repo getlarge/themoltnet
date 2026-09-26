@@ -11,7 +11,7 @@
   "description": "Read-only Ollama Cloud gpt-oss:120b runtime (low thinking) for the experimental docs-impact review stages.",
   "maxBashTimeouts": 1,
   "maxOutputTokens": 4096,
-  "maxTurns": 6,
+  "maxTurns": 10,
   "model": "gpt-oss:120b",
   "name": "legreffier-docs-review-gptoss-v1",
   "provider": "ollama-cloud",

@@ -11,7 +11,7 @@
   "description": "Read-only Ollama Cloud gemma4:31b runtime (low thinking) for the experimental docs-impact review stages.",
   "maxBashTimeouts": 1,
   "maxOutputTokens": 4096,
-  "maxTurns": 6,
+  "maxTurns": 10,
   "model": "gemma4:31b",
   "name": "legreffier-docs-review-gemma-v1",
   "provider": "ollama-cloud",
