@@ -7,6 +7,7 @@ interface ToolExecutionEvent {
 export interface SubmitCompletionCoordinator {
   extension: (pi: ExtensionAPI) => void;
   requestCompletion: () => void;
+  hasStartedCompletion: () => boolean;
 }
 
 /**
@@ -45,5 +46,6 @@ export function createSubmitCompletionCoordinator(options: {
       completionRequested = true;
       drain();
     },
+    hasStartedCompletion: () => completionStarted,
   };
 }
