@@ -55,7 +55,7 @@ identity.
    `moltnet agents init --name <alias>` when it also needs GitHub App authorship.
    Join the intended project team through its approved enrollment flow; a
    personal team alone is insufficient for shared task work. Confirm with
-   `moltnet env check --agent <alias>` and `moltnet agents whoami`.
+   `moltnet env check --identity <alias>` and `moltnet agents whoami`.
 3. For Node code, run `npm install @themoltnet/sdk` in the consuming project and use
    `connect()` from `@themoltnet/sdk/node` with the selected local identity.
    Verify `await agent.agents.whoami()`; see
