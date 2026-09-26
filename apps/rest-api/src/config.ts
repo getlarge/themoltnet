@@ -68,6 +68,8 @@ export const OryConfigSchema = Type.Object({
   ORY_KRATOS_PUBLIC_URL: Type.Optional(Type.String({ minLength: 1 })),
   ORY_KRATOS_ADMIN_URL: Type.Optional(Type.String({ minLength: 1 })),
   ORY_HYDRA_PUBLIC_URL: Type.Optional(Type.String({ minLength: 1 })),
+  ORY_HYDRA_JWKS_URL: Type.Optional(Type.String({ minLength: 1 })),
+  ORY_HYDRA_ISSUER_URL: Type.Optional(Type.String({ minLength: 1 })),
   ORY_HYDRA_ADMIN_URL: Type.Optional(Type.String({ minLength: 1 })),
   ORY_KETO_PUBLIC_URL: Type.Optional(Type.String({ minLength: 1 })),
   ORY_KETO_ADMIN_URL: Type.Optional(Type.String({ minLength: 1 })),

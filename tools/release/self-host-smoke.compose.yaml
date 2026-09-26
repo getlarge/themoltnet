@@ -1,0 +1,27 @@
+services:
+  caddy:
+    volumes:
+      - ./Caddyfile.smoke:/etc/caddy/Caddyfile:ro
+  postgres:
+    networks: [database, smoke]
+    ports: ['127.0.0.1:15432:5432']
+  kratos:
+    networks: [ingress, database, services, identity, smoke]
+    ports: ['127.0.0.1:14434:4434']
+  hydra:
+    networks: [ingress, database, services, identity, smoke]
+    ports:
+      - '127.0.0.1:14444:4444'
+      - '127.0.0.1:14445:4445'
+  keto:
+    networks: [database, services, smoke]
+    ports:
+      - '127.0.0.1:14466:4466'
+      - '127.0.0.1:14467:4467'
+  object-store:
+    networks: [objects, smoke]
+    command: server -s3 -s3.port=8333 -s3.ip.bind=0.0.0.0 -dir=/data -master.volumeSizeLimitMB=1024
+    ports: ['127.0.0.1:18333:8333']
+
+networks:
+  smoke:

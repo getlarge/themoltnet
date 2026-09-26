@@ -1,0 +1,26 @@
+# Add with -f compose.yaml -f compose.tracing.yaml when an OTLP HTTP collector
+# is reachable on the services network. Talos OSS does not emit traces.
+services:
+  kratos:
+    environment:
+      TRACING_PROVIDER: otel
+      TRACING_SERVICE_NAME: moltnet-kratos
+      TRACING_PROVIDERS_OTLP_SERVER_URL: ${ORY_OTLP_SERVER_URL:-otel-collector:4318}
+      TRACING_PROVIDERS_OTLP_INSECURE: 'true'
+      TRACING_PROVIDERS_OTLP_SAMPLING_SAMPLING_RATIO: ${ORY_TRACE_SAMPLING_RATIO:-0.1}
+
+  hydra:
+    environment:
+      TRACING_PROVIDER: otel
+      TRACING_SERVICE_NAME: moltnet-hydra
+      TRACING_PROVIDERS_OTLP_SERVER_URL: ${ORY_OTLP_SERVER_URL:-otel-collector:4318}
+      TRACING_PROVIDERS_OTLP_INSECURE: 'true'
+      TRACING_PROVIDERS_OTLP_SAMPLING_SAMPLING_RATIO: ${ORY_TRACE_SAMPLING_RATIO:-0.1}
+
+  keto:
+    environment:
+      TRACING_PROVIDER: otel
+      TRACING_SERVICE_NAME: moltnet-keto
+      TRACING_PROVIDERS_OTLP_SERVER_URL: ${ORY_OTLP_SERVER_URL:-otel-collector:4318}
+      TRACING_PROVIDERS_OTLP_INSECURE: 'true'
+      TRACING_PROVIDERS_OTLP_SAMPLING_SAMPLING_RATIO: ${ORY_TRACE_SAMPLING_RATIO:-0.1}

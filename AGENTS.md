@@ -25,7 +25,8 @@ to an issue, create an equivalent dedicated worktree manually before editing.
 **Domain-specific docs** (read when needed):
 
 - **[docs/understand/architecture.md](docs/understand/architecture.md)** — ER diagrams, system architecture, sequence diagrams, Keto model, auth reference, DBOS workflows
-- **[docs/understand/infrastructure.md](docs/understand/infrastructure.md)** — Ory, database, env vars, deployment, observability
+- **[docs/understand/infrastructure.md](docs/understand/infrastructure.md)** — portable platform components and trust boundaries
+- **[docs/deploy/index.md](docs/deploy/index.md)** — self-hosting, production, and recovery requirements
 - **[docs/contribute/design-system.md](docs/contribute/design-system.md)** — Design system usage, brand identity, component library
 - **[docs/contribute/accessibility.md](docs/contribute/accessibility.md)** — Accessibility baseline, page/form/data-surface checklists, docs authoring rules, and validation expectations
 - **[apps/agent-daemon/README.md](apps/agent-daemon/README.md)** — Agent daemon install/config reference + local development & smoke testing walkthrough (provision a throwaway agent against the e2e Docker stack, run the daemon, create a task)

@@ -728,8 +728,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     metrics: createRemoteAuthMetrics(),
   });
   const tokenValidator = createTokenValidator(oryClients.oauth2, {
-    jwksUri: `${oryUrls.hydraPublicUrl}/.well-known/jwks.json`,
-    allowedIssuers: [new URL(oryUrls.hydraPublicUrl).origin],
+    jwksUri:
+      config.ory.ORY_HYDRA_JWKS_URL ??
+      `${oryUrls.hydraPublicUrl}/.well-known/jwks.json`,
+    allowedIssuers: [
+      config.ory.ORY_HYDRA_ISSUER_URL ?? new URL(oryUrls.hydraPublicUrl).origin,
+    ],
     // Existing Ory token acquisition paths do not consistently include `aud`.
     // Enable allowedAudiences only after issuance is uniformly resource-bound.
     remoteAuthCache,

@@ -1,0 +1,126 @@
+name: Release self-host bundle
+
+on:
+  push:
+    tags:
+      - self-host-v*
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Bundle version (for example 1.0.0-rc.1)
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Resolve version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then
+            version="$INPUT_VERSION"
+          else
+            version="${REF_NAME#self-host-v}"
+          fi
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve source image tag
+        id: image-tag
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          tag="self-host-$VERSION-${GITHUB_SHA:0:12}"
+          if [[ ! "$tag" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+            echo 'Invalid source image tag' >&2
+            exit 1
+          fi
+          echo "value=$tag" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Authenticate to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Publish bundle images from this source revision
+        env:
+          NX_DOCKER_RELEASE_TAG: ${{ steps.image-tag.outputs.value }}
+          NX_LOAD_DOT_ENV_FILES: 'false'
+        run: >-
+          pnpm exec nx run-many -t docker:build
+          --projects=@moltnet/rest-api,@moltnet/mcp-server,@moltnet/console,@moltnet/database
+          --configuration=release --parallel=1
+
+      - name: Verify multi-platform image manifests
+        env:
+          IMAGE_TAG: ${{ steps.image-tag.outputs.value }}
+        run: |
+          for project in @moltnet/rest-api @moltnet/mcp-server @moltnet/console @moltnet/database; do
+            node tools/verify-docker-manifest.mjs --project "$project" --tag "$IMAGE_TAG"
+          done
+
+      - name: Build digest-pinned archive
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+          IMAGE_TAG: ${{ steps.image-tag.outputs.value }}
+        run: |
+          set -euo pipefail
+          root="moltnet-self-host-$VERSION"
+          node tools/release/self-host-bundle.mjs --version "$VERSION" --image-tag "$IMAGE_TAG" --output "$root"
+          (cd "$root" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+          (cd "$root" && sha256sum -c SHA256SUMS)
+
+      - name: Smoke-test released images through Caddy
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: tools/release/self-host-smoke.sh "moltnet-self-host-$VERSION"
+
+      - name: Package verified archive
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          set -euo pipefail
+          root="moltnet-self-host-$VERSION"
+          (cd "$root" && sha256sum -c SHA256SUMS)
+          tar -czf "$root.tar.gz" "$root"
+          sha256sum "$root.tar.gz" > "$root.tar.gz.sha256"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: moltnet-self-host-${{ steps.version.outputs.value }}
+          path: |
+            moltnet-self-host-${{ steps.version.outputs.value }}.tar.gz
+            moltnet-self-host-${{ steps.version.outputs.value }}.tar.gz.sha256
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/self-host-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          gh release create "self-host-v$VERSION" \
+            "moltnet-self-host-$VERSION.tar.gz" \
+            "moltnet-self-host-$VERSION.tar.gz.sha256" \
+            --verify-tag \
+            --generate-notes
