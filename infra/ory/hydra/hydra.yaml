@@ -88,19 +88,20 @@ webfinger:
     # it exists so a well-behaved one can discover what to ask for instead of
     # inheriting whatever dynamic_client_registration.default_scope handed it.
     #
-    # Mirrors MCP_CLIENT_SCOPES. `offline`, `offline_access` and `openid` are
-    # always included by Hydra and must not be repeated. Privileged scopes stay
-    # out deliberately: advertising key:manage would invite a request the token
-    # hook then refuses.
+    # Mirrors MCP_CLIENT_SCOPES plus the dedicated OIDC identity scopes.
+    # `offline`, `offline_access` and `openid` are always included by Hydra.
+    # Privileged scopes stay out; the DCR registration default is unchanged.
     supported_scope:
       - agent:profile
       - crypto:sign
       - diary:manage
       - diary:read
       - diary:write
+      - email
       - human:profile
       - pack:read
       - pack:write
+      - profile
       - task:execute
       - task:manage
       - task:read

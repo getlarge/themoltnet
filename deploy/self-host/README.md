@@ -40,6 +40,16 @@ Hydra provisions the tracked `moltnet-native` public PKCE client before the REST
 API starts. The same client definition is reapplied on subsequent starts; review
 it when upgrading if you manage additional OAuth clients.
 
+To enable Tailscale custom OIDC login, set
+`TAILSCALE_LOGIN_CLIENT_SECRET` in `.env` to a generated secret and enter the
+same value in Tailscale. Compose then registers the confidential
+`tailscale-login` client with authorization code, `client_secret_basic`, the
+`openid profile email` scopes, and
+`https://login.tailscale.com/a/oauth_response` as its only redirect URI. Set
+Tailscale's issuer to `https://$OAUTH_DOMAIN/` and its client ID to
+`tailscale-login`. If the client already exists, startup verifies its public
+policy; changing its secret requires an administrator update in Hydra.
+
 The identity hostname routes browser pages to the Kratos self-service UI and
 Kratos API paths to Kratos. To export traces, attach an OTLP HTTP Collector to
 the `services` network, set `OTLP_ENDPOINT=http://otel-collector:4318`, and

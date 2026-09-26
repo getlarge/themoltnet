@@ -436,6 +436,106 @@ describe('Hook routes', () => {
       });
     });
 
+    it('accepts the dedicated identity-only OIDC grant without MoltNet access-token claims', async () => {
+      vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
+        client_id: 'tailscale-login',
+        metadata: {},
+        token_endpoint_auth_method: 'client_secret_basic',
+        grant_types: ['authorization_code'],
+        response_types: ['code'],
+        redirect_uris: ['https://login.tailscale.com/a/oauth_response'],
+        scope: 'openid profile email',
+        audience: [],
+      });
+      mocks.humanRepository.findByIdentityId.mockResolvedValue({
+        id: HUMAN_ID,
+        identityId: HUMAN_IDENTITY_ID,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/hydra/token-exchange',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          session: {
+            id_token: { subject: HUMAN_IDENTITY_ID },
+            extra: { 'moltnet:identity_only_consent': true },
+          },
+          request: {
+            client_id: 'tailscale-login',
+            grant_types: ['authorization_code'],
+            granted_scopes: ['openid', 'profile', 'email'],
+            granted_audience: [],
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().session.access_token).toEqual({});
+    });
+
+    it('rejects an API scope on the identity-only OIDC client', async () => {
+      vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
+        client_id: 'tailscale-login',
+        metadata: {},
+        token_endpoint_auth_method: 'client_secret_basic',
+        grant_types: ['authorization_code'],
+        response_types: ['code'],
+        redirect_uris: ['https://login.tailscale.com/a/oauth_response'],
+        scope: 'openid profile email',
+        audience: [],
+      });
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/hydra/token-exchange',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          session: {
+            id_token: { subject: HUMAN_IDENTITY_ID },
+            extra: { 'moltnet:identity_only_consent': true },
+          },
+          request: {
+            client_id: 'tailscale-login',
+            grant_types: ['authorization_code'],
+            granted_scopes: ['openid', 'profile', 'email', 'diary:read'],
+            granted_audience: [],
+          },
+        },
+      });
+      expect(response.statusCode).toBe(403);
+      expect(mocks.humanRepository.findByIdentityId).not.toHaveBeenCalled();
+    });
+
+    it('rejects an identity-only token without consent binding', async () => {
+      vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
+        client_id: 'tailscale-login',
+        metadata: {},
+        token_endpoint_auth_method: 'client_secret_basic',
+        grant_types: ['authorization_code'],
+        response_types: ['code'],
+        redirect_uris: ['https://login.tailscale.com/a/oauth_response'],
+        scope: 'openid profile email',
+        audience: [],
+      });
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/hydra/token-exchange',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          session: { id_token: { subject: HUMAN_IDENTITY_ID } },
+          request: {
+            client_id: 'tailscale-login',
+            grant_types: ['authorization_code'],
+            granted_scopes: ['openid', 'profile', 'email'],
+            granted_audience: [],
+          },
+        },
+      });
+      expect(response.statusCode).toBe(403);
+    });
+
     it.each(
       ['moltnet:local-control', 'moltnet:provision'].flatMap((scope) => [
         { scope, granted: [scope] },

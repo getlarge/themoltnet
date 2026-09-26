@@ -28,3 +28,35 @@ if (client.client_id !== desired.client_id) {
   throw new Error('Hydra returned an unexpected native client ID');
 }
 process.stdout.write(`Provisioned ${client.client_id}\n`);
+
+const tailscaleSecret = process.env.TAILSCALE_LOGIN_CLIENT_SECRET;
+if (tailscaleSecret) {
+  const oidcClient = JSON.parse(
+    readFileSync('/etc/config/hydra/tailscale-login.json', 'utf8'),
+  );
+  const oidcUrl = `${endpoint}/${encodeURIComponent(oidcClient.client_id)}`;
+  const registered = await fetch(oidcUrl);
+  if (registered.status !== 404 && !registered.ok) {
+    throw new Error(`Hydra client lookup failed: ${registered.status}`);
+  }
+  if (registered.status === 404) {
+    await request(endpoint, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ...oidcClient, client_secret: tailscaleSecret }),
+    });
+  } else {
+    const current = await registered.json();
+    for (const [key, value] of Object.entries(oidcClient)) {
+      const actual = Array.isArray(value) ? (current[key] ?? []) : current[key];
+      const matches =
+        key === 'authorization_code_grant_access_token_lifespan'
+          ? /^5m(?:0s)?$/.test(actual)
+          : JSON.stringify(actual) === JSON.stringify(value);
+      if (!matches) {
+        throw new Error(`Hydra ${oidcClient.client_id} client policy differs`);
+      }
+    }
+  }
+  process.stdout.write(`Provisioned ${oidcClient.client_id}\n`);
+}

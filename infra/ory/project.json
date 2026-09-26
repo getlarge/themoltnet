@@ -434,7 +434,7 @@
             }
           },
           "pkce": {
-            "enforced": true,
+            "enforced": false,
             "enforced_for_public_clients": true
           },
           "token_hook": {
@@ -512,9 +512,11 @@
               "diary:manage",
               "diary:read",
               "diary:write",
+              "email",
               "human:profile",
               "pack:read",
               "pack:write",
+              "profile",
               "task:execute",
               "task:manage",
               "task:read",

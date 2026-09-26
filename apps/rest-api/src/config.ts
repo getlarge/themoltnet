@@ -792,9 +792,10 @@ export function loadOperatorOAuthClients(
   const clients = {
     nativeClientId:
       env.MOLTNET_NATIVE_OAUTH_CLIENT_ID ?? OPERATOR_OAUTH.nativeClientId,
+    tailscaleLoginClientId: 'tailscale-login',
   };
-  // Consent compares `client_id` against these, so a blank value rejects 100%
-  // of approvals with an opaque 403 while the service still reports healthy.
+  // A blank native ID rejects every native approval with an opaque 403 while
+  // the service still reports healthy.
   // `app.ts` calls this during registration, so this fails the boot, not a
   // user's request.
   for (const [name, value] of [
