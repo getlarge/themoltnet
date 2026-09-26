@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.7.0](https://github.com/getlarge/themoltnet/compare/cli-v3.6.0...cli-v3.7.0) (2026-09-26)
+
+
+### Bug Fixes
+
+* **cli:** allow pure help through secret guard ([ecd297e](https://github.com/getlarge/themoltnet/commit/ecd297e5d61eabb76952d57c69c524458ff14950))
+* **cli:** allow pure help through secret guard ([71587d2](https://github.com/getlarge/themoltnet/commit/71587d22e6a9a09865d8c7d6061ba001ed58345a))
+
 ## [3.6.0](https://github.com/getlarge/themoltnet/compare/cli-v3.5.0...cli-v3.6.0) (2026-09-25)
 
 

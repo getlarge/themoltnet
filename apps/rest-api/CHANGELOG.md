@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.63.2](https://github.com/getlarge/themoltnet/compare/rest-api-v0.63.1...rest-api-v0.63.2) (2026-09-26)
+
+
+### Bug Fixes
+
+* **pi-runtime:** omit unsupported provider model options ([eb1df5a](https://github.com/getlarge/themoltnet/commit/eb1df5a7fc99d69c0666faef4b10396b31c933c7))
+* **pi-runtime:** omit unsupported provider request options ([6b0a86b](https://github.com/getlarge/themoltnet/commit/6b0a86b101ad640dad829c5338ddce4d6908826e))
+* **provider-catalog:** describe Ollama request options ([922d7d7](https://github.com/getlarge/themoltnet/commit/922d7d75d3e55a802405b890aa330fd96575dc44))
+
 ## [0.63.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.63.0...rest-api-v0.63.1) (2026-09-25)
 
 
