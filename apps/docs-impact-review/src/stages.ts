@@ -121,27 +121,55 @@ const CoverageCheckSchema = Type.Object(
   { additionalProperties: false },
 );
 
-/** Extracts and schema-checks the strict JSON a stage puts in `summary`. */
-function parseSummaryJson<T>(output: unknown, schema: TSchema, label: string) {
+const FENCED_JSON = /^```(?:json)?\s*([\s\S]*?)\s*```$/;
+const MAX_SEARCH_TERMS = 5;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * Extracts and schema-checks the strict JSON a stage puts in `summary`.
+ *
+ * Only mechanical, meaning-preserving repairs are applied, and each one is
+ * appended to `repairs` so reports show what was fixed: a Markdown fence
+ * around the JSON, a missing `version`, and fields the schema does not
+ * define. Anything else (prose, wrong types, invalid references) is rejected.
+ */
+function parseSummaryJson<T>(
+  output: unknown,
+  schema: TSchema,
+  label: string,
+  repairs: string[],
+  preprocess?: (value: unknown, repairs: string[]) => unknown,
+) {
   const summary = (output as { summary?: unknown } | null)?.summary;
   if (typeof summary !== 'string') {
     throw new Error(`${label} output is missing a string summary`);
   }
+  let text = summary.trim();
+  const fenced = FENCED_JSON.exec(text);
+  if (fenced) {
+    text = fenced[1];
+    repairs.push('stripped a Markdown code fence around the JSON');
+  }
   let value: unknown;
   try {
-    value = JSON.parse(summary);
+    value = JSON.parse(text);
   } catch {
     throw new Error(`${label} summary must be strict JSON`);
   }
   // `version` carries no information yet; a model that omits it should not
   // void an otherwise valid review.
-  if (
-    value &&
-    typeof value === 'object' &&
-    !Array.isArray(value) &&
-    !('version' in value)
-  ) {
+  if (isRecord(value) && !('version' in value)) {
     value = { version: 1, ...value };
+    repairs.push('defaulted a missing version to 1');
+  }
+  if (preprocess) value = preprocess(value, repairs);
+  const before = JSON.stringify(value);
+  value = Value.Clean(schema, structuredClone(value));
+  if (JSON.stringify(value) !== before) {
+    repairs.push('dropped fields the schema does not define');
   }
   if (!Value.Check(schema, value)) {
     const [first] = Value.Errors(schema, value);
@@ -152,14 +180,39 @@ function parseSummaryJson<T>(output: unknown, schema: TSchema, label: string) {
   return value as T;
 }
 
+/** Search terms are only grep hints: keep the first few usable ones. */
+function trimSearchTerms(value: unknown, repairs: string[]): unknown {
+  if (!isRecord(value) || !Array.isArray(value.changes)) return value;
+  for (const change of value.changes) {
+    if (!isRecord(change) || !Array.isArray(change.searchTerms)) continue;
+    const terms = change.searchTerms.filter(
+      (term): term is string =>
+        typeof term === 'string' &&
+        term.length > 0 &&
+        term.length <= TEXT_LIMITS.searchTerm,
+    );
+    const kept = terms.slice(0, MAX_SEARCH_TERMS);
+    if (kept.length !== change.searchTerms.length) {
+      repairs.push(
+        `trimmed search terms of change ${String(change.id)} from ${change.searchTerms.length} to ${kept.length}`,
+      );
+      change.searchTerms = kept;
+    }
+  }
+  return value;
+}
+
 export function parseContractExtraction(
   output: unknown,
   changedSourcePaths: ReadonlySet<string>,
+  repairs: string[] = [],
 ): ContractExtraction {
   const parsed = parseSummaryJson<ContractExtraction>(
     output,
     ContractExtractionSchema,
     'contract extraction',
+    repairs,
+    trimSearchTerms,
   );
   const ids = new Set<string>();
   for (const change of parsed.changes) {
@@ -188,11 +241,13 @@ export interface CoverageAllowlist {
 export function parseCoverageCheck(
   output: unknown,
   allowed: CoverageAllowlist,
+  repairs: string[] = [],
 ): CoverageCheck {
   const parsed = parseSummaryJson<CoverageCheck>(
     output,
     CoverageCheckSchema,
     'coverage check',
+    repairs,
   );
   if (parsed.findings.length > MAX_FINDINGS) {
     throw new Error(
