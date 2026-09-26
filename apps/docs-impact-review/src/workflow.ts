@@ -11,6 +11,8 @@ import {
 import type { Git } from './git.js';
 import { boundDiff, collectChangeSet } from './ingest.js';
 import {
+  dropGenericTerms,
+  isRequiredCandidate,
   routeDocs,
   type RoutingMap,
   searchDocsForTerms,
@@ -267,6 +269,7 @@ function retrieveDocs(
   changes: ContractChange[],
   budgets: Budgets,
   gaps: CoverageGap[],
+  searchTermsDropped: string[],
 ): SelectedDoc[] {
   const { git } = deps;
   const head = changeSet.headRevision;
@@ -287,13 +290,18 @@ function retrieveDocs(
     return exists;
   });
   const terms = changes.flatMap((change) => change.searchTerms);
-  for (const path of searchDocsForTerms(git, head, terms).keys()) {
+  const search = dropGenericTerms(searchDocsForTerms(git, head, terms));
+  searchTermsDropped.push(...search.generic);
+  for (const path of search.hits.keys()) {
     const reasons = routed.candidates.get(path) ?? [];
     if (!reasons.includes('symbol-search')) reasons.push('symbol-search');
     routed.candidates.set(path, reasons);
   }
   const selection = selectDocs(routed.candidates, budgets.maxDocs);
-  for (const path of selection.overflow) {
+  // Heuristic matches (symbol search, nearest README) that do not fit are
+  // not coverage gaps; docs the PR changed or the routing map owns are.
+  for (const { path, reasons } of selection.overflow) {
+    if (!isRequiredCandidate(reasons)) continue;
     gaps.push({
       scope: path,
       reason: `candidate doc not reviewed: more than ${budgets.maxDocs} docs matched`,
@@ -334,6 +342,7 @@ export async function runDocsImpactReview(
     status: 'completed',
     findings: [],
     gaps: [],
+    searchTermsDropped: [],
     repairs: [],
     manifest: {
       files: 0,
@@ -440,6 +449,7 @@ export async function runDocsImpactReview(
       report.contractChanges,
       budgets,
       report.gaps,
+      report.searchTermsDropped,
     );
     report.selectedDocs = docs.map(({ path, reasons, missing }) => ({
       path,

@@ -153,6 +153,45 @@ export function searchDocsForTerms(
   return hits;
 }
 
+/** A search term matching more Markdown files than this is too generic. */
+export const MAX_FILES_PER_TERM = 8;
+
+/**
+ * Drops search terms that match too many files (e.g. `--help`): they flood
+ * selection with unrelated pages and push relevant ones out.
+ */
+export function dropGenericTerms(
+  hits: ReadonlyMap<string, string[]>,
+  maxFilesPerTerm = MAX_FILES_PER_TERM,
+): { hits: Map<string, string[]>; generic: string[] } {
+  const filesPerTerm = new Map<string, number>();
+  for (const terms of hits.values()) {
+    for (const term of terms) {
+      filesPerTerm.set(term, (filesPerTerm.get(term) ?? 0) + 1);
+    }
+  }
+  const generic = [...filesPerTerm.entries()]
+    .filter(([, count]) => count > maxFilesPerTerm)
+    .map(([term]) => term)
+    .sort();
+  const kept = new Map<string, string[]>();
+  for (const [path, terms] of hits) {
+    const specific = terms.filter((term) => !generic.includes(term));
+    if (specific.length > 0) kept.set(path, specific);
+  }
+  return { hits: kept, generic };
+}
+
+/** Agent-facing instructions (skills, evals), not user or operator docs. */
+const AGENT_FACING =
+  /^(\.agents|\.claude|\.codex|\.pi|skills|evals|evals-v2)\/|\/skills\//;
+const AGENT_FACING_PENALTY = 3;
+
+/** Candidates that must be reviewed; overflowing them is a coverage gap. */
+export function isRequiredCandidate(reasons: DocsSelectionReason[]): boolean {
+  return reasons.includes('changed-in-pr') || reasons.includes('routing-map');
+}
+
 const REASON_WEIGHT: Record<DocsSelectionReason, number> = {
   'changed-in-pr': 8,
   'routing-map': 4,
@@ -162,7 +201,7 @@ const REASON_WEIGHT: Record<DocsSelectionReason, number> = {
 
 export interface DocsSelection {
   selected: Array<{ path: string; reasons: DocsSelectionReason[] }>;
-  overflow: string[];
+  overflow: Array<{ path: string; reasons: DocsSelectionReason[] }>;
 }
 
 export function selectDocs(
@@ -173,13 +212,19 @@ export function selectDocs(
     .map(([path, reasons]) => ({
       path,
       reasons,
-      score: reasons.reduce((sum, reason) => sum + REASON_WEIGHT[reason], 0),
+      score:
+        reasons.reduce((sum, reason) => sum + REASON_WEIGHT[reason], 0) -
+        (AGENT_FACING.test(path) && !isRequiredCandidate(reasons)
+          ? AGENT_FACING_PENALTY
+          : 0),
     }))
     .sort((a, b) => b.score - a.score || a.path.localeCompare(b.path));
   return {
     selected: ranked
       .slice(0, maxDocs)
       .map(({ path, reasons }) => ({ path, reasons })),
-    overflow: ranked.slice(maxDocs).map(({ path }) => path),
+    overflow: ranked
+      .slice(maxDocs)
+      .map(({ path, reasons }) => ({ path, reasons })),
   };
 }

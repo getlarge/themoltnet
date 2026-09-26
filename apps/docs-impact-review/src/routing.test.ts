@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  dropGenericTerms,
   parseRoutingMap,
   routeDocs,
   searchDocsForTerms,
@@ -91,7 +92,61 @@ describe('selectDocs', () => {
       'docs/mapped.md',
       'docs/found.md',
     ]);
-    expect(selection.overflow).toEqual(['a/README.md']);
+    expect(selection.overflow).toEqual([
+      { path: 'a/README.md', reasons: ['nearest-readme'] },
+    ]);
+  });
+});
+
+describe('selectDocs agent-facing ranking', () => {
+  it('ranks user docs above agent skills with the same match', () => {
+    // Arrange
+    const candidates = new Map([
+      ['.agents/skills/x/SKILL.md', ['symbol-search' as const]],
+      ['docs/use/x.md', ['symbol-search' as const]],
+      ['apps/x/README.md', ['nearest-readme' as const]],
+    ]);
+
+    // Act
+    const selection = selectDocs(candidates, 2);
+
+    // Assert
+    expect(selection.selected.map((doc) => doc.path)).toEqual([
+      'docs/use/x.md',
+      'apps/x/README.md',
+    ]);
+  });
+
+  it('keeps an agent skill the PR itself changed', () => {
+    // Act
+    const selection = selectDocs(
+      new Map([
+        ['.agents/skills/x/SKILL.md', ['changed-in-pr' as const]],
+        ['docs/use/x.md', ['symbol-search' as const]],
+      ]),
+      1,
+    );
+
+    // Assert
+    expect(selection.selected[0].path).toBe('.agents/skills/x/SKILL.md');
+  });
+});
+
+describe('dropGenericTerms', () => {
+  it('drops terms matching too many files and keeps specific ones', () => {
+    // Arrange
+    const hits = new Map<string, string[]>();
+    for (let i = 0; i < 10; i += 1) hits.set(`docs/p${i}.md`, ['--help']);
+    hits.set('docs/p0.md', ['--help', 'MOLTNET_SECRET_GUARD']);
+
+    // Act
+    const result = dropGenericTerms(hits, 8);
+
+    // Assert
+    expect(result.generic).toEqual(['--help']);
+    expect(Object.fromEntries(result.hits)).toEqual({
+      'docs/p0.md': ['MOLTNET_SECRET_GUARD'],
+    });
   });
 });
 
