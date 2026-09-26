@@ -23,17 +23,17 @@ var environmentSecretKeyPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
 const identitySeedEnvKey = "MOLTNET_PRIVATE_KEY"
 
-// credentialKind names a credential. MoltNet-owned kinds have their provider
-// key shape fixed by the binding table below (the same table exists in the
-// Node SDK); consumers that own other credentials (github.go for GitHub App
-// private keys) describe theirs with secretReferenceBinding and check it
-// through validateSecretReferenceBoundTo instead of extending the table.
+// credentialKind names a credential. Every kind has its provider key shape
+// fixed by the binding table below, so resolution and provider-to-provider
+// copies share one definition of which keys may hold it. The MoltNet-owned
+// kinds mirror the table in the Node SDK.
 type credentialKind string
 
 const (
-	credentialOAuth2ClientSecret credentialKind = "oauth2-client-secret"
-	credentialIdentitySeed       credentialKind = "identity-seed"
-	credentialAgentKey           credentialKind = "agent-key"
+	credentialOAuth2ClientSecret  credentialKind = "oauth2-client-secret"
+	credentialIdentitySeed        credentialKind = "identity-seed"
+	credentialAgentKey            credentialKind = "agent-key"
+	credentialGitHubAppPrivateKey credentialKind = "github-app-private-key"
 )
 
 type credentialBindingIDs struct {
@@ -42,6 +42,7 @@ type credentialBindingIDs struct {
 	ClientID         string
 	Fingerprint      string
 	TeamID           string
+	AppID            string
 }
 
 // secretReferenceBinding describes which reference keys may resolve one
@@ -106,6 +107,8 @@ func credentialEnvKey(kind credentialKind) string {
 		return identitySeedEnvKey
 	case credentialAgentKey:
 		return agentKeyEnv
+	case credentialGitHubAppPrivateKey:
+		return githubAppPrivateKeyEnvKey
 	}
 	return ""
 }
@@ -136,6 +139,11 @@ func expectedSecretKey(kind credentialKind, ids credentialBindingIDs) (string, e
 			return TeamAgentKeyKey(subjectID, ids.TeamID), nil
 		}
 		return AgentKeyKey(subjectID), nil
+	case credentialGitHubAppPrivateKey:
+		if strings.TrimSpace(ids.AppID) == "" {
+			return "", fmt.Errorf("credential binding requires github.app_id")
+		}
+		return GitHubAppPrivateKeyKey(ids.AppID), nil
 	}
 	return "", fmt.Errorf("unknown credential kind %q", kind)
 }
@@ -152,10 +160,14 @@ func validateSecretReferenceBinding(kind credentialKind, ref SecretReference, id
 		// so a config-bound env reference could never reach this path.
 		return fmt.Errorf("agent_key_ref cannot use the env provider; set %s directly or reference a keyring/file secret", agentKeyEnv)
 	}
+	description := fmt.Sprintf("%s reference is not bound to this MoltNet identity", kind)
+	if kind == credentialGitHubAppPrivateKey {
+		description = "GitHub App private key reference is not bound to this GitHub App"
+	}
 	return validateSecretReferenceBoundTo(ref, secretReferenceBinding{
 		canonicalKey: canonical,
 		envKey:       credentialEnvKey(kind),
-		description:  fmt.Sprintf("%s reference is not bound to this MoltNet identity", kind),
+		description:  description,
 	})
 }
 
