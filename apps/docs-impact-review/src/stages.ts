@@ -124,6 +124,40 @@ const CoverageCheckSchema = Type.Object(
 const FENCED_JSON = /^```(?:json)?\s*([\s\S]*?)\s*```$/;
 const MAX_SEARCH_TERMS = 5;
 
+/**
+ * Removes commas directly before a closing `}` or `]`, outside string
+ * literals. Models commonly emit them; they carry no meaning.
+ */
+export function stripTrailingCommas(text: string): string {
+  let out = '';
+  let inString = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    if (inString) {
+      out += char;
+      if (char === '\\') {
+        out += text[i + 1] ?? '';
+        i += 1;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (char === '"') {
+      inString = true;
+      out += char;
+      continue;
+    }
+    if (char === ',') {
+      let next = i + 1;
+      while (next < text.length && /\s/.test(text[next])) next += 1;
+      if (text[next] === '}' || text[next] === ']') continue;
+    }
+    out += char;
+  }
+  return out;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
@@ -157,7 +191,13 @@ function parseSummaryJson<T>(
   try {
     value = JSON.parse(text);
   } catch {
-    throw new Error(`${label} summary must be strict JSON`);
+    const withoutTrailingCommas = stripTrailingCommas(text);
+    try {
+      value = JSON.parse(withoutTrailingCommas);
+    } catch {
+      throw new Error(`${label} summary must be strict JSON`);
+    }
+    repairs.push('removed trailing commas');
   }
   // `version` carries no information yet; a model that omits it should not
   // void an otherwise valid review.

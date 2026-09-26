@@ -125,6 +125,19 @@ describe('parseContractExtraction', () => {
     expect(repairs).toEqual(['stripped a Markdown code fence around the JSON']);
   });
 
+  it('removes trailing commas outside strings', () => {
+    // Arrange: gemma closed the changes array with `}],}`.
+    const repairs: string[] = [];
+    const summary = `{"version":1,"changes":[{"id":"x-y","kind":"config","summary":"keeps ,} and ,] in text","evidence":[{"path":"apps/cli/src/flags.ts","detail":"d"}],"searchTerms":["T"]}],}`;
+
+    // Act
+    const parsed = parseContractExtraction({ summary }, sourcePaths, repairs);
+
+    // Assert
+    expect(parsed.changes[0].summary).toBe('keeps ,} and ,] in text');
+    expect(repairs).toEqual(['removed trailing commas']);
+  });
+
   it('still rejects prose instead of JSON', () => {
     // Act / Assert: the unrepairable gpt-oss case.
     expect(() =>
