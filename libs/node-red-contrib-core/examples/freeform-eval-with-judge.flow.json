@@ -1,0 +1,302 @@
+[
+  {
+    "disabled": false,
+    "id": "freeform_eval_demo",
+    "info": "Create a freeform task, wait for its accepted attempt, then judge it against a rubric hidden from the producer.",
+    "label": "Freeform eval with judge",
+    "type": "tab"
+  },
+  {
+    "apiUrl": "https://api.themolt.net",
+    "authType": "agentKey",
+    "diaryId": "",
+    "id": "freeform_eval_agent",
+    "name": "eval-agent",
+    "teamId": "",
+    "type": "moltnet-agent"
+  },
+  {
+    "agent": "freeform_eval_agent",
+    "id": "freeform_eval_profile",
+    "name": "eval profile",
+    "profileId": "",
+    "profileName": "",
+    "type": "moltnet-runtime-profile"
+  },
+  {
+    "id": "freeform_eval_note",
+    "info": "The agent config creates and reads tasks using a scoped Task workflow key. The running daemon uses its own Agent daemon key. Start a Desktop run or daemon lane that claims both freeform and judge_eval_attempt. Select the same profile here as the run.",
+    "name": "Configure agent key, team, diary, and the shared runtime profile; run a daemon for freeform + judge_eval_attempt.",
+    "type": "comment",
+    "wires": [],
+    "x": 340,
+    "y": 60,
+    "z": "freeform_eval_demo"
+  },
+  {
+    "crontab": "",
+    "id": "freeform_eval_inject",
+    "name": "Run eval",
+    "once": false,
+    "onceDelay": 0.1,
+    "payload": "",
+    "payloadType": "date",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "topic": "",
+    "type": "inject",
+    "wires": [["freeform_eval_producer_input"]],
+    "x": 120,
+    "y": 160,
+    "z": "freeform_eval_demo"
+  },
+  {
+    "func": "msg.payload = {\n  taskType: 'freeform',\n  title: 'Triage a CSV import report',\n  tags: ['eval', 'freeform-demo'],\n  maxAttempts: 1,\n  input: {\n    brief: 'Write a support triage note from these observations: a CSV import rejects 12 of 20 rows that contain quoted commas; rows without quoted commas import; no server error is logged. Include a reproduction, a likely cause, and the next diagnostic check. Label any unverified cause as a hypothesis.',\n    expectedOutput: 'A concise triage note grounded in the observations.',\n    execution: { workspace: 'none' }\n  }\n};\nreturn msg;",
+    "id": "freeform_eval_producer_input",
+    "name": "build freeform input",
+    "outputs": 1,
+    "type": "function",
+    "wires": [["freeform_eval_producer_builder"]],
+    "x": 340,
+    "y": 160,
+    "z": "freeform_eval_demo"
+  },
+  {
+    "agent": "freeform_eval_agent",
+    "brief": "",
+    "constraints": [],
+    "contexts": [],
+    "diaryId": "",
+    "diaryIdType": "str",
+    "expectedOutput": "",
+    "id": "freeform_eval_producer_builder",
+    "name": "validate freeform task",
+    "referencesFrom": "",
+    "referencesRole": "context",
+    "schemaCid": "",
+    "submitOutputGate": false,
+    "tags": "",
+    "taskType": "freeform",
+    "teamId": "",
+    "teamIdType": "str",
+    "title": "",
+    "type": "moltnet-task-builder",
+    "wires": [["freeform_eval_producer_create"]],
+    "workspace": "",
+    "x": 570,
+    "y": 160,
+    "z": "freeform_eval_demo"
+  },
+  {
+    "agent": "freeform_eval_agent",
+    "generateCorrelationId": true,
+    "id": "freeform_eval_producer_create",
+    "maxAttempts": 1,
+    "name": "create freeform",
+    "runtimeProfile": "freeform_eval_profile",
+    "type": "moltnet-tasks-create",
+    "wires": [["freeform_eval_producer_wait"]],
+    "x": 790,
+    "y": 160,
+    "z": "freeform_eval_demo"
+  },
+  {
+    "agent": "freeform_eval_agent",
+    "id": "freeform_eval_producer_wait",
+    "kinds": "",
+    "name": "wait for producer",
+    "pollIntervalSec": 5,
+    "tail": false,
+    "taskId": "",
+    "timeoutSec": 1800,
+    "type": "moltnet-task-wait",
+    "wires": [[], ["freeform_eval_producer_gate"]],
+    "x": 1010,
+    "y": 160,
+    "z": "freeform_eval_demo"
+  },
+  {
+    "checkall": "true",
+    "id": "freeform_eval_producer_gate",
+    "name": "accepted producer?",
+    "outputs": 2,
+    "property": "payload.accepted",
+    "propertyType": "msg",
+    "repair": false,
+    "rules": [
+      {
+        "t": "true"
+      },
+      {
+        "t": "else"
+      }
+    ],
+    "type": "switch",
+    "wires": [["freeform_eval_judge_input"], ["freeform_eval_failure"]],
+    "x": 1230,
+    "y": 160,
+    "z": "freeform_eval_demo"
+  },
+  {
+    "func": "const snapshot = msg.payload;\nconst targetTaskId = snapshot?.taskId || snapshot?.task?.id || msg.taskId;\nconst targetAttemptN = snapshot?.acceptedAttemptN;\nif (!snapshot?.accepted || !targetTaskId || !Number.isInteger(targetAttemptN)) {\n  node.error('Producer has no accepted attempt to judge', msg);\n  return null;\n}\nmsg.producerTaskId = targetTaskId;\nmsg.producerAttemptN = targetAttemptN;\nmsg.payload = {\n  taskType: 'judge_eval_attempt',\n  title: 'Judge CSV import triage',\n  tags: ['eval', 'freeform-demo', 'judge'],\n  correlationId: msg.correlationId,\n  maxAttempts: 1,\n  input: { targetTaskId, targetAttemptN },\n  judgeRubric: {\n    rubricId: 'csv-triage',\n    version: 'v1',\n    scope: 'task-eval',\n    preamble: 'Grade the accepted triage note against the supplied observations.',\n    criteria: [\n      { id: 'evidence', description: 'Accurately reports the observed import pattern without inventing symptoms.', weight: 0.4 },\n      { id: 'hypothesis', description: 'Identifies quoted-comma handling as a possible cause and marks it as unverified.', weight: 0.3 },\n      { id: 'next-check', description: 'Proposes a concrete check using a minimal quoted-comma row or parser inspection.', weight: 0.3 }\n    ]\n  }\n};\nreturn msg;",
+    "id": "freeform_eval_judge_input",
+    "name": "build hidden judge rubric",
+    "outputs": 1,
+    "type": "function",
+    "wires": [["freeform_eval_judge_builder"]],
+    "x": 1450,
+    "y": 120,
+    "z": "freeform_eval_demo"
+  },
+  {
+    "agent": "freeform_eval_agent",
+    "brief": "",
+    "constraints": [],
+    "contexts": [],
+    "diaryId": "",
+    "diaryIdType": "str",
+    "expectedOutput": "",
+    "id": "freeform_eval_judge_builder",
+    "name": "validate judge task",
+    "referencesFrom": "",
+    "referencesRole": "context",
+    "schemaCid": "",
+    "submitOutputGate": false,
+    "tags": "",
+    "taskType": "judge_eval_attempt",
+    "teamId": "",
+    "teamIdType": "str",
+    "title": "",
+    "type": "moltnet-task-builder",
+    "wires": [["freeform_eval_judge_create"]],
+    "workspace": "",
+    "x": 1700,
+    "y": 120,
+    "z": "freeform_eval_demo"
+  },
+  {
+    "agent": "freeform_eval_agent",
+    "generateCorrelationId": false,
+    "id": "freeform_eval_judge_create",
+    "maxAttempts": 1,
+    "name": "create judge",
+    "runtimeProfile": "freeform_eval_profile",
+    "type": "moltnet-tasks-create",
+    "wires": [["freeform_eval_judge_wait"]],
+    "x": 1930,
+    "y": 120,
+    "z": "freeform_eval_demo"
+  },
+  {
+    "agent": "freeform_eval_agent",
+    "id": "freeform_eval_judge_wait",
+    "kinds": "",
+    "name": "wait for judge",
+    "pollIntervalSec": 5,
+    "tail": false,
+    "taskId": "",
+    "timeoutSec": 1800,
+    "type": "moltnet-task-wait",
+    "wires": [[], ["freeform_eval_judge_gate"]],
+    "x": 2150,
+    "y": 120,
+    "z": "freeform_eval_demo"
+  },
+  {
+    "checkall": "true",
+    "id": "freeform_eval_judge_gate",
+    "name": "accepted judge?",
+    "outputs": 2,
+    "property": "payload.accepted",
+    "propertyType": "msg",
+    "repair": false,
+    "rules": [
+      {
+        "t": "true"
+      },
+      {
+        "t": "else"
+      }
+    ],
+    "type": "switch",
+    "wires": [["freeform_eval_judge_reader"], ["freeform_eval_failure"]],
+    "x": 2370,
+    "y": 120,
+    "z": "freeform_eval_demo"
+  },
+  {
+    "artifactKind": "",
+    "artifactTitle": "",
+    "id": "freeform_eval_judge_reader",
+    "name": "read judgment",
+    "role": "context",
+    "source": "payload",
+    "type": "moltnet-task-reader",
+    "wires": [["freeform_eval_result"]],
+    "x": 2590,
+    "y": 80,
+    "z": "freeform_eval_demo"
+  },
+  {
+    "func": "const judgment = msg.payload || {};\nmsg.payload = {\n  producerTaskId: msg.producerTaskId,\n  producerAttemptN: msg.producerAttemptN,\n  judgeTaskId: msg.taskId,\n  composite: judgment.composite,\n  scores: judgment.scores,\n  verdict: judgment.verdict\n};\nreturn msg;",
+    "id": "freeform_eval_result",
+    "name": "show score and verdict",
+    "outputs": 1,
+    "type": "function",
+    "wires": [["freeform_eval_debug"]],
+    "x": 2810,
+    "y": 80,
+    "z": "freeform_eval_demo"
+  },
+  {
+    "func": "const snapshot = msg.payload || {};\nmsg.payload = {\n  status: 'failed',\n  taskId: msg.taskId,\n  producerTaskId: msg.producerTaskId || null,\n  taskStatus: snapshot.status || snapshot.task?.status || null,\n  error: snapshot.error || snapshot.attempt?.error || 'No accepted attempt'\n};\nreturn msg;",
+    "id": "freeform_eval_failure",
+    "name": "show task failure",
+    "outputs": 1,
+    "type": "function",
+    "wires": [["freeform_eval_debug"]],
+    "x": 1460,
+    "y": 240,
+    "z": "freeform_eval_demo"
+  },
+  {
+    "id": "freeform_eval_catch",
+    "name": "show node error",
+    "scope": null,
+    "type": "catch",
+    "uncaught": false,
+    "wires": [["freeform_eval_debug"]],
+    "x": 1010,
+    "y": 300,
+    "z": "freeform_eval_demo"
+  },
+  {
+    "active": true,
+    "complete": "payload",
+    "console": false,
+    "id": "freeform_eval_debug",
+    "name": "eval result",
+    "statusType": "auto",
+    "statusVal": "",
+    "targetType": "msg",
+    "tosidebar": true,
+    "tostatus": false,
+    "type": "debug",
+    "wires": [],
+    "x": 3040,
+    "y": 160,
+    "z": "freeform_eval_demo"
+  },
+  {
+    "env": [],
+    "id": "freeform_eval_modules",
+    "modules": {
+      "@themoltnet/node-red-contrib-core": "0.15.4"
+    },
+    "type": "global-config"
+  }
+]

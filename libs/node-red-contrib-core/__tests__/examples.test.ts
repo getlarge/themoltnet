@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { runInNewContext } from 'node:vm';
 
 import { describe, expect, it } from 'vitest';
 
@@ -11,6 +12,7 @@ type FlowNode = {
   type?: string;
   name?: string;
   func?: string;
+  generateCorrelationId?: boolean;
   info?: string;
   links?: unknown;
   maxAttempts?: number;
@@ -45,6 +47,7 @@ describe('example flows', () => {
       'axiom-alert-triage.flow.json',
       'cockpit.flow.json',
       'deep-review-freeform.flow.json',
+      'freeform-eval-with-judge.flow.json',
       'issue-lifecycle.flow.json',
       'weather-advisor.flow.json',
     ];
@@ -395,6 +398,60 @@ describe('example flows', () => {
       (ids) => ids.length > 1,
     );
     expect(overlappingPositions).toEqual([]);
+  });
+
+  it('judges only an accepted freeform attempt and hides the rubric from its producer', () => {
+    const nodes = byId(loadExample('freeform-eval-with-judge.flow.json'));
+    const producer = nodes.get('freeform_eval_producer_input');
+    const judge = nodes.get('freeform_eval_judge_input');
+    const gate = nodes.get('freeform_eval_producer_gate');
+
+    expect(producer?.wires).toEqual([['freeform_eval_producer_builder']]);
+    expect(gate?.wires).toEqual([
+      ['freeform_eval_judge_input'],
+      ['freeform_eval_failure'],
+    ]);
+    expect(
+      nodes.get('freeform_eval_producer_create')?.generateCorrelationId,
+    ).toBe(true);
+    expect(nodes.get('freeform_eval_judge_create')?.generateCorrelationId).toBe(
+      false,
+    );
+
+    const runFunction = (source: string, msg: Record<string, unknown>) =>
+      (
+        runInNewContext(`(function(msg, node) { ${source} })`) as (
+          msg: Record<string, unknown>,
+          node: { error: (message: string) => void },
+        ) => Record<string, unknown> | null
+      )(msg, { error: () => {} });
+    const produced = runFunction(producer?.func ?? '', {});
+    expect(produced?.payload).toMatchObject({
+      taskType: 'freeform',
+      input: { execution: { workspace: 'none' } },
+    });
+    expect(JSON.stringify(produced?.payload)).not.toContain('judgeRubric');
+
+    const accepted = runFunction(judge?.func ?? '', {
+      taskId: 'producer-task-id',
+      correlationId: 'correlation-id',
+      payload: {
+        accepted: true,
+        acceptedAttemptN: 2,
+        taskId: 'producer-task-id',
+      },
+    });
+    expect(accepted?.payload).toMatchObject({
+      taskType: 'judge_eval_attempt',
+      correlationId: 'correlation-id',
+      input: { targetTaskId: 'producer-task-id', targetAttemptN: 2 },
+      judgeRubric: { rubricId: 'csv-triage' },
+    });
+    expect(
+      runFunction(judge?.func ?? '', {
+        payload: { accepted: false, taskId: 'producer-task-id' },
+      }),
+    ).toBeNull();
   });
 
   it('keeps the A/B eval flow as a fan-out/fan-in workflow runner', () => {

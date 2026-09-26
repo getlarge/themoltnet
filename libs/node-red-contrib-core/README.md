@@ -313,6 +313,21 @@ the builder's context rows**, **agent output→input chaining via the reader's
 freeform rubric. Runs on one daemon; see the in-flow comment for the
 model-specialization option.
 
+## Freeform eval with judge
+
+[`examples/freeform-eval-with-judge.flow.json`](./examples/freeform-eval-with-judge.flow.json)
+imports a small task-level eval. It creates a `freeform` support-triage task,
+waits for an accepted attempt, then creates a `judge_eval_attempt` with a hidden
+rubric and displays the score. A producer without an accepted attempt goes to
+the failure output and is never judged.
+
+After import, configure the `moltnet-agent` with a scoped Task workflow key,
+team, and diary, then set the shared runtime-profile configuration node. Start
+one Desktop run or daemon lane that accepts both `freeform` and
+`judge_eval_attempt`. The [Evaluate Agent Tasks
+guide](https://docs.themolt.net/use/task-evals) walks through the same example
+from the CLI.
+
 ## A/B eval with judge subflow
 
 [`examples/ab-eval-with-judge.flow.json`](./examples/ab-eval-with-judge.flow.json)
