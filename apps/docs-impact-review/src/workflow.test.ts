@@ -14,7 +14,7 @@ import {
   runDocsImpactReview,
 } from './workflow.js';
 
-type StageOutput = { summary: string } | Error | 'timeout';
+type StageOutput = { summary: string } | Error | 'timeout' | 'max-turns';
 
 /** Scripted task client: each created task completes with the next output. */
 function fakeTasks(
@@ -30,7 +30,8 @@ function fakeTasks(
       const output = outputs[created.length];
       created.push(body);
       const timedOut = output === 'timeout';
-      const failed = output instanceof Error || timedOut;
+      const outOfTurns = output === 'max-turns';
+      const failed = output instanceof Error || timedOut || outOfTurns;
       tasks.set(id, {
         task: {
           id,
@@ -50,7 +51,12 @@ function fakeTasks(
                 code: 'running_total_exceeded',
                 message: 'running_total_exceeded',
               }
-            : null,
+            : outOfTurns
+              ? {
+                  code: 'max_turns_exceeded',
+                  message: 'Aborted after 6 tool-use turns',
+                }
+              : null,
           outputCid: null,
           usage: { inputTokens: 1_000, outputTokens: 200, model: 'glm' },
         } as unknown as SdkTaskAttempt,
@@ -263,6 +269,24 @@ describe('runDocsImpactReview', () => {
     expect(result.gaps[0].scope).toBe('extract stage');
     expect(result.gaps[0].reason).toContain('running budget');
     expect(result.error).toBeUndefined();
+  });
+
+  it('reports incomplete when a stage runs out of tool turns', async () => {
+    // Arrange
+    const head = repo.commit({
+      'apps/cli/src/flags.ts': "export const flags = ['--dry-run'];\n",
+    });
+
+    // Act
+    const { report } = run(head, ['max-turns']);
+
+    // Assert
+    const result = await report;
+    expect(result).toMatchObject({
+      status: 'completed',
+      outcome: 'incomplete',
+    });
+    expect(result.gaps[0].reason).toContain('tool-turn budget');
   });
 
   it('checks a docs-only change without running extraction', async () => {

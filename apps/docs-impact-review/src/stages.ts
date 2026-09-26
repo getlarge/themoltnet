@@ -133,6 +133,16 @@ function parseSummaryJson<T>(output: unknown, schema: TSchema, label: string) {
   } catch {
     throw new Error(`${label} summary must be strict JSON`);
   }
+  // `version` carries no information yet; a model that omits it should not
+  // void an otherwise valid review.
+  if (
+    value &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    !('version' in value)
+  ) {
+    value = { version: 1, ...value };
+  }
   if (!Value.Check(schema, value)) {
     const [first] = Value.Errors(schema, value);
     throw new Error(
