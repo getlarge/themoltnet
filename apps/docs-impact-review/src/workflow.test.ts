@@ -271,6 +271,25 @@ describe('runDocsImpactReview', () => {
     expect(result.error).toBeUndefined();
   });
 
+  it('records repairs applied to accepted stage output', async () => {
+    // Arrange
+    const head = repo.commit({
+      'apps/cli/src/flags.ts': 'export const flags: string[] = [];\n',
+    });
+
+    // Act
+    const { report } = run(head, [
+      json({ version: 1, changes: [], verification: { passed: true } }),
+    ]);
+
+    // Assert
+    const result = await report;
+    expect(result.outcome).toBe('not-needed');
+    expect(result.repairs).toEqual([
+      { stage: 'extract', repair: 'dropped fields the schema does not define' },
+    ]);
+  });
+
   it('reports incomplete when a stage runs out of tool turns', async () => {
     // Arrange
     const head = repo.commit({

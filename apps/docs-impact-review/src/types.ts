@@ -157,6 +157,8 @@ export interface DocsImpactReport {
   outcome?: Outcome;
   findings: DocsFinding[];
   gaps: CoverageGap[];
+  /** Mechanical fixes applied to model output before validation. */
+  repairs: Array<{ stage: 'extract' | 'coverage'; repair: string }>;
   error?: string;
   manifest: {
     files: number;

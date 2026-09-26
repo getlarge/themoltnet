@@ -334,6 +334,7 @@ export async function runDocsImpactReview(
     status: 'completed',
     findings: [],
     gaps: [],
+    repairs: [],
     manifest: {
       files: 0,
       byCategory: countByCategory([]),
@@ -343,6 +344,18 @@ export async function runDocsImpactReview(
     contractChanges: [],
     timings,
   };
+  /** Runs a parser and records its repairs only once the output is accepted. */
+  const withRepairs =
+    <T>(
+      stage: 'extract' | 'coverage',
+      parse: (output: unknown, repairs: string[]) => T,
+    ) =>
+    (output: unknown): T => {
+      const repairs: string[] = [];
+      const parsed = parse(output, repairs);
+      for (const repair of repairs) report.repairs.push({ stage, repair });
+      return parsed;
+    };
   const finish = (): DocsImpactReport => {
     timings.totalMs = now() - started;
     if (
@@ -408,7 +421,9 @@ export async function runDocsImpactReview(
           diff: diff.text,
         }),
         'extract',
-        (output) => parseContractExtraction(output, sourcePaths),
+        withRepairs('extract', (output, repairs) =>
+          parseContractExtraction(output, sourcePaths, repairs),
+        ),
         timings.stages,
       );
       report.contractChanges = extraction.changes;
@@ -453,13 +468,20 @@ export async function runDocsImpactReview(
         docsDiff,
       }),
       'coverage',
-      (output) =>
-        parseCoverageCheck(output, {
-          changeIds: new Set(report.contractChanges.map((change) => change.id)),
-          changedPaths: new Set(changeSet.files.map((file) => file.path)),
-          changedDocs,
-          selectedDocs: new Set(docs.map((doc) => doc.path)),
-        }),
+      withRepairs('coverage', (output, repairs) =>
+        parseCoverageCheck(
+          output,
+          {
+            changeIds: new Set(
+              report.contractChanges.map((change) => change.id),
+            ),
+            changedPaths: new Set(changeSet.files.map((file) => file.path)),
+            changedDocs,
+            selectedDocs: new Set(docs.map((doc) => doc.path)),
+          },
+          repairs,
+        ),
+      ),
       timings.stages,
     );
     // With no contract changes this was a documentation-only review: "nothing

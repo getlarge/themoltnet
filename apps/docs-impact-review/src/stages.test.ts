@@ -64,6 +64,77 @@ describe('parseContractExtraction', () => {
     expect(parsed).toEqual({ version: 1, changes: [change] });
   });
 
+  it('drops fields the schema does not define and records the repair', () => {
+    // Arrange: gpt-oss copied the submit-gate verification into the JSON.
+    const repairs: string[] = [];
+
+    // Act
+    const parsed = parseContractExtraction(
+      freeform({
+        version: 1,
+        changes: [{ ...change, confidence: 'high' }],
+        verification: { passed: true },
+      }),
+      sourcePaths,
+      repairs,
+    );
+
+    // Assert
+    expect(parsed).toEqual({ version: 1, changes: [change] });
+    expect(repairs).toEqual(['dropped fields the schema does not define']);
+  });
+
+  it('keeps the first five usable search terms', () => {
+    // Arrange: gpt-oss returned seven terms, one over the length bound.
+    const repairs: string[] = [];
+    const terms = ['a1', 'b2', 'c3', 'd4', 'x'.repeat(200), 'e5', 'f6'];
+
+    // Act
+    const parsed = parseContractExtraction(
+      freeform({ version: 1, changes: [{ ...change, searchTerms: terms }] }),
+      sourcePaths,
+      repairs,
+    );
+
+    // Assert
+    expect(parsed.changes[0].searchTerms).toEqual([
+      'a1',
+      'b2',
+      'c3',
+      'd4',
+      'e5',
+    ]);
+    expect(repairs[0]).toMatch(/trimmed search terms .* from 7 to 5/);
+  });
+
+  it('strips a Markdown code fence around the JSON', () => {
+    // Arrange
+    const repairs: string[] = [];
+
+    // Act
+    const parsed = parseContractExtraction(
+      {
+        summary: `\`\`\`json\n${JSON.stringify({ version: 1, changes: [] })}\n\`\`\``,
+      },
+      sourcePaths,
+      repairs,
+    );
+
+    // Assert
+    expect(parsed.changes).toEqual([]);
+    expect(repairs).toEqual(['stripped a Markdown code fence around the JSON']);
+  });
+
+  it('still rejects prose instead of JSON', () => {
+    // Act / Assert: the unrepairable gpt-oss case.
+    expect(() =>
+      parseContractExtraction(
+        { summary: 'Documentation impact review: removed the eval command.' },
+        sourcePaths,
+      ),
+    ).toThrow(/strict JSON/);
+  });
+
   it('rejects a summary that is not strict JSON', () => {
     // Act / Assert
     expect(() =>
