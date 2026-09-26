@@ -1607,6 +1607,51 @@ describe('buildAttemptResult (result-construction characterization)', () => {
     ).toBe('failed');
   });
 
+  it('keeps a valid submit when Pi records its tool result but omits tool_execution_end', async () => {
+    const rawState = {
+      llmAbort: false,
+      llmErrorMessage: null as string | null,
+    };
+    let captured = false;
+    let completionRequested = false;
+    const prompt = vi.fn(() => {
+      captured = true;
+      completionRequested = true;
+      rawState.llmAbort = true;
+      rawState.llmErrorMessage = 'This operation was aborted';
+      return Promise.resolve();
+    });
+    const onRetry = vi.fn();
+    const result = await promptWithProviderErrorRetries({
+      session: { prompt },
+      initialPrompt: 'extract',
+      cancelSignal: new AbortController().signal,
+      getProviderErrorState: () =>
+        resolveProviderStateAfterSubmit(
+          rawState,
+          captured,
+          completionRequested,
+        ),
+      maxRetries: 4,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+      retryPrompt: 'Go on',
+      onRetry,
+    });
+    expect(result).toEqual({ runError: null, retryCount: 0 });
+    expect(prompt).toHaveBeenCalledTimes(1);
+    expect(onRetry).not.toHaveBeenCalled();
+    expect(
+      resolveProviderStateAfterSubmit(rawState, captured, completionRequested),
+    ).toEqual({
+      llmAbort: false,
+      llmErrorMessage: null,
+    });
+    expect(
+      resolveProviderStateAfterSubmit(rawState, captured, false).llmAbort,
+    ).toBe(true);
+  });
+
   it('fails with the runError, which wins over parse/llm errors', () => {
     const out = buildAttemptResult({
       ...base,

@@ -32,6 +32,7 @@ describe('createSubmitCompletionCoordinator', () => {
     handlers.get('tool_execution_end')?.({ toolCallId: 'submit' });
 
     expect(onDrained).not.toHaveBeenCalled();
+    expect(coordinator.hasRequestedCompletion()).toBe(true);
     expect(coordinator.hasStartedCompletion()).toBe(false);
 
     handlers.get('tool_execution_end')?.({ toolCallId: 'artifact-write' });
@@ -52,5 +53,15 @@ describe('createSubmitCompletionCoordinator', () => {
 
     coordinator.requestCompletion();
     await vi.waitFor(() => expect(onError).toHaveBeenCalledWith(error));
+  });
+
+  it('retains a completion request when Pi omits a tool end event', () => {
+    const onDrained = vi.fn();
+    const { coordinator, handlers } = installCoordinator({ onDrained });
+    handlers.get('tool_execution_start')?.({ toolCallId: 'submit' });
+    coordinator.requestCompletion();
+    expect(coordinator.hasRequestedCompletion()).toBe(true);
+    expect(coordinator.hasStartedCompletion()).toBe(false);
+    expect(onDrained).not.toHaveBeenCalled();
   });
 });

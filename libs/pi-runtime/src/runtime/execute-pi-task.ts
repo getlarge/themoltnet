@@ -1900,7 +1900,7 @@ export async function executePiTask(
       resolveProviderStateAfterSubmit(
         turnState,
         submitToolHandle?.getCaptured() !== null,
-        submitCompletion.hasStartedCompletion(),
+        submitCompletion.hasRequestedCompletion(),
       );
     // One provider-error-tolerant prompt pass. Reused for both the initial
     // task prompt and each submit-missing re-prompt so every pass inherits
@@ -2195,18 +2195,20 @@ export function createSessionTurnState(): SessionTurnState {
   };
 }
 
-/** A valid final submit is authoritative once its tool batch has drained.
- * Pi can report the runtime's intentional session.abort() as an error turn;
- * that post-submit error must not trigger a provider retry or discard output.
- * An earlier provider error, an unfinished tool batch, cancellation, and caps
- * keep their existing failure paths.
+/** A valid final submit is authoritative after the submit tool requests
+ * completion. Pi can report the runtime's intentional session.abort() as an
+ * error turn before the coordinator observes the final tool_execution_end,
+ * even after recording the successful tool result. The coordinator still delays
+ * abort until observed tools drain, while this state check preserves the
+ * captured output and avoids a spurious provider retry. Cancellation and caps
+ * keep their separate failure paths.
  */
 export function resolveProviderStateAfterSubmit(
   state: Pick<SessionTurnState, 'llmAbort' | 'llmErrorMessage'>,
   validOutputCaptured: boolean,
-  completionStarted: boolean,
+  completionRequested: boolean,
 ): Pick<SessionTurnState, 'llmAbort' | 'llmErrorMessage'> {
-  if (validOutputCaptured && completionStarted) {
+  if (validOutputCaptured && completionRequested) {
     return { llmAbort: false, llmErrorMessage: null };
   }
   return {
