@@ -356,17 +356,26 @@ export function parseCoverageCheck(
  * Wraps untrusted content in tags whose id is derived from the content, so
  * the content cannot contain (and therefore cannot forge) the closing tag.
  */
-function fence(kind: string, content: string): string {
+export function fenceNonce(content: string): string {
   let salt = 0;
-  let id: string;
+  let nonce: string;
   do {
-    id = createHash('sha256')
+    nonce = createHash('sha256')
       .update(`${salt}\0${content}`)
       .digest('hex')
       .slice(0, 12);
     salt += 1;
-  } while (content.includes(id));
-  return `<untrusted-${kind} id="${id}">\n${content}\n</untrusted-${kind} id="${id}">`;
+  } while (content.includes(nonce));
+  return nonce;
+}
+
+/**
+ * The attribute is named `nonce`, not `id`: when it was `id`, two models
+ * answered docs-check hunks with the fence value instead of the hunk id.
+ */
+function fence(kind: string, content: string): string {
+  const nonce = fenceNonce(content);
+  return `<untrusted-${kind} nonce="${nonce}">\n${content}\n</untrusted-${kind} nonce="${nonce}">`;
 }
 
 function baseTask(
@@ -574,9 +583,15 @@ export function buildDocsCheckTask(
 
 export function parseDocsCheck(
   output: unknown,
-  hunkIds: ReadonlySet<string>,
+  hunks: readonly Pick<DocsHunk, 'id' | 'added'>[],
   repairs: string[] = [],
 ): DocsCheckAnswer[] {
+  const hunkIds = new Set(hunks.map((hunk) => hunk.id));
+  // Nonces are derived from the hunk text, so an answer keyed by the fence
+  // nonce maps back to exactly one hunk.
+  const byNonce = new Map(
+    hunks.map((hunk) => [fenceNonce(hunk.added), hunk.id]),
+  );
   const parsed = parseSummaryJson<{ version: 1; hunks: DocsCheckAnswer[] }>(
     output,
     DocsCheckSchema,
@@ -585,7 +600,13 @@ export function parseDocsCheck(
   );
   const seen = new Set<string>();
   const answers: DocsCheckAnswer[] = [];
-  for (const answer of parsed.hunks) {
+  for (const raw of parsed.hunks) {
+    let answer = raw;
+    const mapped = byNonce.get(raw.id);
+    if (!hunkIds.has(raw.id) && mapped) {
+      repairs.push(`mapped fence nonce ${raw.id} to hunk ${mapped}`);
+      answer = { ...raw, id: mapped };
+    }
     if (!hunkIds.has(answer.id)) {
       repairs.push(`dropped docs-check answer for unknown hunk ${answer.id}`);
       continue;
