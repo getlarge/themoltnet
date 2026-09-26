@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.64.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.63.2...rest-api-v0.64.0) (2026-09-26)
+
+
+### Features
+
+* **deploy:** add layered self-hosting model ([5cdad51](https://github.com/getlarge/themoltnet/commit/5cdad51133c80c202aa01f58d4ea50a617683053))
+
 ## [0.63.2](https://github.com/getlarge/themoltnet/compare/rest-api-v0.63.1...rest-api-v0.63.2) (2026-09-26)
 
 
