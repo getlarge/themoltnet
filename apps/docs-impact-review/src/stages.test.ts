@@ -442,6 +442,30 @@ describe('project scoping', () => {
 });
 
 describe('buildCoverageTask', () => {
+  it('asks the per-hunk usefulness question only when docs changed', () => {
+    // Act
+    const withDocs = buildCoverageTask(context, {
+      changes: [change],
+      docs: [],
+      docsDiff: '### docs/a.md (modified)\n+Plain --help calls are allowed.\n',
+    });
+    const withoutDocs = buildCoverageTask(context, {
+      changes: [change],
+      docs: [],
+      docsDiff: '',
+    });
+
+    // Assert
+    const brief = (task: typeof withDocs) =>
+      (task.input as { brief: string }).brief;
+    expect(brief(withDocs)).toContain(
+      'Would a user, operator, or contributor do anything differently',
+    );
+    expect(brief(withoutDocs)).not.toContain(
+      'Would a user, operator, or contributor do anything differently',
+    );
+  });
+
   it('pins a dedicated worktree to the reviewed head', () => {
     // Arrange
     const docs: SelectedDoc[] = [
@@ -472,6 +496,7 @@ describe('buildCoverageTask', () => {
     expect(input.brief).toContain('one or two sentences');
     // Additions are judged for usefulness, not only for presence.
     expect(input.brief).toContain('issue `unnecessary`');
+    expect(input.brief).toContain('is never `missing`');
     // Missing-docs findings must not rest only on the pre-selected excerpts.
     expect(input.brief).toContain(
       'Search existing documentation before judging',
