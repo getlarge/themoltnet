@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.27.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.26.0...mcp-server-v0.27.0) (2026-09-26)
+
+
+### Features
+
+* **deploy:** add layered self-hosting model ([5cdad51](https://github.com/getlarge/themoltnet/commit/5cdad51133c80c202aa01f58d4ea50a617683053))
+
 ## [0.26.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.25.4...mcp-server-v0.26.0) (2026-09-25)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.16.0...node-red-contrib-core-v0.17.0) (2026-09-26)
+
+
+### Features
+
+* **node-red:** add freeform task evaluation example ([249b966](https://github.com/getlarge/themoltnet/commit/249b966a820dbf4e1457bbc8470dbe89a0dc5ee4))
+
 ## [0.16.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.15.5...node-red-contrib-core-v0.16.0) (2026-09-25)
 
 
