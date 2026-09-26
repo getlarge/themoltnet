@@ -103,6 +103,7 @@ describe('OAuth consent target validation', () => {
       response_type: 'code',
       code_challenge_method: 'S256',
       code_challenge: 'A'.repeat(43),
+      redirect_uri: 'http://127.0.0.1:17375/oauth/callback',
       instance: 'eeeeeeee-0000-4000-8000-000000000005',
     }))
       url.searchParams.set(key, value);
@@ -112,6 +113,8 @@ describe('OAuth consent target validation', () => {
         client_id: 'native',
         token_endpoint_auth_method: 'none',
         grant_types: ['authorization_code'],
+        response_types: ['code'],
+        redirect_uris: ['http://127.0.0.1:17375/oauth/callback'],
         authorization_code_grant_access_token_lifespan: '5m',
       },
       requested_scope: [LOCAL_CONTROL_SCOPE],
@@ -144,6 +147,35 @@ describe('OAuth consent target validation', () => {
           },
         }),
       }),
+    );
+    const original = await app.oauth2Client.getOAuth2ConsentRequest({
+      consentChallenge: 'challenge',
+    });
+    vi.mocked(app.oauth2Client.getOAuth2ConsentRequest).mockResolvedValue({
+      ...original,
+      client: {
+        ...original.client!,
+        redirect_uris: [
+          'http://127.0.0.1:17375/oauth/callback',
+          'https://other.example/callback',
+        ],
+      },
+    });
+    const rejected = await app.inject({
+      method: 'POST',
+      url: '/oauth2/consent',
+      headers: {
+        cookie: 'ory_kratos_session=session',
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      payload: new URLSearchParams({
+        consent_challenge: 'challenge',
+        decision: 'allow',
+      }).toString(),
+    });
+    expect(rejected.statusCode).toBe(403);
+    expect(app.oauth2Client.acceptOAuth2ConsentRequest).toHaveBeenCalledTimes(
+      1,
     );
   });
   it('builds approval claims from the Ory request and repeats team permission checks on approval', async () => {
@@ -188,6 +220,7 @@ describe('OAuth consent target validation', () => {
       response_type: 'code',
       code_challenge_method: 'S256',
       code_challenge: 'A'.repeat(43),
+      redirect_uri: 'http://127.0.0.1:17375/oauth/callback',
       instance: 'eeeeeeee-0000-4000-8000-000000000005',
       provisioning: JSON.stringify(grant),
     }))
@@ -199,6 +232,8 @@ describe('OAuth consent target validation', () => {
         client_id: 'native',
         token_endpoint_auth_method: 'none',
         grant_types: ['authorization_code'],
+        response_types: ['code'],
+        redirect_uris: ['http://127.0.0.1:17375/oauth/callback'],
         authorization_code_grant_access_token_lifespan: '5m',
       },
       requested_scope: [PROVISIONING_SCOPE],

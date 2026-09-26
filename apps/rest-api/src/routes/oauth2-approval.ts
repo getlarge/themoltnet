@@ -28,11 +28,15 @@ import { renderConsentPage } from './oauth2-consent-page.js';
 
 export interface ApprovalClients {
   nativeClientId?: string;
+  tailscaleLoginClientId?: string;
 }
+const TAILSCALE_OIDC_SCOPES = ['openid', 'profile', 'email'] as const;
+const TAILSCALE_REDIRECT_URI = 'https://login.tailscale.com/a/oauth_response';
+const NATIVE_REDIRECT_URI = `http://127.0.0.1:${OPERATOR_OAUTH.callbackPort}/oauth/callback`;
 const PROVISION_AUDIENCE = OPERATOR_OAUTH.provisioningAudience;
 const LOCAL_AUDIENCE = OPERATOR_OAUTH.localControlAudience;
 
-/** Only administratively configured client IDs can enter these flows. */
+/** Special paths require configured IDs and matching Ory client metadata. */
 export async function oauth2ApprovalRoutes(
   app: FastifyInstance,
   options: {
@@ -203,11 +207,17 @@ export async function oauth2ApprovalRoutes(
   async function consent(request: FastifyRequest, value: string) {
     const { human, consent } = await consentSession(request, value);
     const params = new URL(consent.request_url!).searchParams;
-    if (
-      params.get('response_type') !== 'code' ||
-      params.get('code_challenge_method') !== 'S256' ||
-      !/^[A-Za-z0-9_-]{43}$/.test(params.get('code_challenge') ?? '')
-    )
+    const tailscaleLogin =
+      !!options.clients.tailscaleLoginClientId &&
+      consent.client?.client_id === options.clients.tailscaleLoginClientId;
+    if (params.get('response_type') !== 'code')
+      throw createProblem('forbidden', 'Authorization code is required');
+    const hasS256Pkce =
+      params.get('code_challenge_method') === 'S256' &&
+      /^[A-Za-z0-9_-]{43}$/.test(params.get('code_challenge') ?? '');
+    const hasNoPkce =
+      !params.has('code_challenge_method') && !params.has('code_challenge');
+    if (tailscaleLogin ? !hasNoPkce && !hasS256Pkce : !hasS256Pkce)
       throw createProblem(
         'forbidden',
         'Authorization code with S256 PKCE is required',
@@ -218,10 +228,45 @@ export async function oauth2ApprovalRoutes(
       consent.client?.client_id === options.clients.nativeClientId;
     const lifetime =
       consent.client?.authorization_code_grant_access_token_lifespan;
+    if (tailscaleLogin) {
+      if (
+        consent.client?.token_endpoint_auth_method !== 'client_secret_basic' ||
+        consent.client.grant_types?.join(' ') !== 'authorization_code' ||
+        consent.client.response_types?.join(' ') !== 'code' ||
+        consent.client.redirect_uris?.join(' ') !== TAILSCALE_REDIRECT_URI ||
+        params.get('redirect_uri') !== TAILSCALE_REDIRECT_URI ||
+        scopes.length !== TAILSCALE_OIDC_SCOPES.length ||
+        !TAILSCALE_OIDC_SCOPES.every((scope) => scopes.includes(scope)) ||
+        (consent.requested_access_token_audience ?? []).length !== 0 ||
+        consent.skip === true ||
+        !human.email ||
+        !human.preferredUsername
+      )
+        throw createProblem(
+          'forbidden',
+          'The requested client, scope, and audience combination is not allowed',
+        );
+      return {
+        human,
+        consent,
+        kind: 'tailscale-login' as const,
+        email: human.email,
+        preferredUsername: human.preferredUsername,
+        instance: undefined,
+        audience: [],
+        grant: undefined,
+        agent: undefined,
+        team: undefined,
+      };
+    }
     if (
       native &&
       (consent.client?.token_endpoint_auth_method !== 'none' ||
         consent.client.grant_types?.join(' ') !== 'authorization_code' ||
+        consent.client.response_types?.join(' ') !== 'code' ||
+        consent.client.redirect_uris?.join(' ') !== NATIVE_REDIRECT_URI ||
+        params.get('redirect_uri') !== NATIVE_REDIRECT_URI ||
+        consent.skip === true ||
         ![
           `${OPERATOR_OAUTH.nativeLifetimeSeconds / 60}m`,
           `${OPERATOR_OAUTH.nativeLifetimeSeconds / 60}m0s`,
@@ -372,7 +417,21 @@ export async function oauth2ApprovalRoutes(
                   },
                 },
               }
-            : {}),
+            : result.kind === 'tailscale-login'
+              ? {
+                  session: {
+                    access_token: {
+                      'moltnet:identity_only_consent': true,
+                    },
+                    id_token: {
+                      email: result.email,
+                      email_verified: result.human.emailVerified === true,
+                      name: result.preferredUsername,
+                      preferred_username: result.preferredUsername,
+                    },
+                  },
+                }
+              : {}),
         },
       }),
     );

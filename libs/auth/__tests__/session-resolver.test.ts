@@ -30,6 +30,7 @@ function createValidSessionResponse() {
         email: 'test@example.com',
         username: 'testuser',
       },
+      verifiable_addresses: [{ value: 'test@example.com', verified: true }],
       metadata_public: {
         human_id: VALID_HUMAN_ID,
       },
@@ -58,6 +59,8 @@ describe('createSessionResolver', () => {
       identityId: VALID_IDENTITY_ID,
       humanId: VALID_HUMAN_ID,
       email: 'test@example.com',
+      emailVerified: true,
+      preferredUsername: 'testuser',
       clientId: null,
       scopes: [...HUMAN_SESSION_SCOPES],
       currentTeamId: null,
@@ -67,6 +70,23 @@ describe('createSessionResolver', () => {
       { xSessionToken: VALID_SESSION_TOKEN },
       { signal: expect.any(AbortSignal) },
     );
+  });
+
+  it('does not mark the session email verified from a different address', async () => {
+    const session = createValidSessionResponse();
+    session.identity.verifiable_addresses = [
+      { value: 'other@example.com', verified: true },
+    ];
+    mockFrontendApi.toSession.mockResolvedValue(session);
+
+    const result = await resolver.resolveSession({
+      sessionToken: VALID_SESSION_TOKEN,
+    });
+
+    expect(result).toMatchObject({
+      email: 'test@example.com',
+      emailVerified: false,
+    });
   });
 
   it('returns HumanAuthContext for a valid browser cookie', async () => {

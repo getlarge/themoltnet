@@ -624,6 +624,7 @@ describe('loadOperatorOAuthClients', () => {
   it('falls back to the registered production clients when unset', () => {
     expect(loadOperatorOAuthClients({})).toEqual({
       nativeClientId: 'moltnet-native',
+      tailscaleLoginClientId: 'tailscale-login',
     });
   });
 
@@ -634,6 +635,7 @@ describe('loadOperatorOAuthClients', () => {
       }),
     ).toEqual({
       nativeClientId: 'native-e2e',
+      tailscaleLoginClientId: 'tailscale-login',
     });
   });
 

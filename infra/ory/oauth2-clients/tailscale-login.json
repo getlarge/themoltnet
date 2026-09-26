@@ -1,0 +1,14 @@
+{
+  "access_token_strategy": "opaque",
+  "allowed_cors_origins": [],
+  "audience": [],
+  "authorization_code_grant_access_token_lifespan": "5m",
+  "client_id": "tailscale-login",
+  "client_name": "Tailscale",
+  "grant_types": ["authorization_code"],
+  "redirect_uris": ["https://login.tailscale.com/a/oauth_response"],
+  "response_types": ["code"],
+  "scope": "openid profile email",
+  "skip_consent": false,
+  "token_endpoint_auth_method": "client_secret_basic"
+}

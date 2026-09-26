@@ -608,6 +608,8 @@ export async function hookRoutes(fastify: FastifyInstance) {
         const nativeClient =
           !!clients.nativeClientId &&
           tokenRequest.client_id === clients.nativeClientId;
+        const tailscaleLogin =
+          tokenRequest.client_id === clients.tailscaleLoginClientId;
         let approvedExtra: Record<string, unknown> = {};
         if (nativeClient) {
           const granted = tokenRequest.granted_scopes;
@@ -682,6 +684,39 @@ export async function hookRoutes(fastify: FastifyInstance) {
                 }
               : {}),
           };
+        } else if (tailscaleLogin) {
+          const scopes = tokenRequest.granted_scopes;
+          const audience = tokenRequest.granted_audience ?? [];
+          if (
+            clientData.token_endpoint_auth_method !== 'client_secret_basic' ||
+            clientData.grant_types?.join(' ') !== 'authorization_code' ||
+            clientData.response_types?.join(' ') !== 'code' ||
+            clientData.redirect_uris?.join(' ') !==
+              'https://login.tailscale.com/a/oauth_response' ||
+            clientData.scope !== 'openid profile email' ||
+            (clientData.audience ?? []).length !== 0 ||
+            tokenRequest.grant_types?.join(' ') !== 'authorization_code' ||
+            session.extra?.['moltnet:identity_only_consent'] !== true ||
+            (scopes !== undefined &&
+              (scopes.length !== 3 ||
+                !['openid', 'profile', 'email'].every((scope) =>
+                  scopes.includes(scope),
+                ))) ||
+            audience.length !== 0 ||
+            !session.id_token?.subject ||
+            !(await fastify.humanRepository.findByIdentityId(
+              session.id_token.subject,
+            ))
+          ) {
+            return await reply.status(403).send({
+              error: 'scope_not_allowed',
+              error_description: 'Invalid identity-only consent grant',
+            });
+          }
+          // This OIDC client has no MoltNet API authority or token claims.
+          return await reply
+            .status(200)
+            .send({ session: { access_token: {} } });
         } else {
           // ── Self-registered (DCR) client cap ─────────────────────
           // Other clients reaching this point registered through open Dynamic
