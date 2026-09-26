@@ -82,6 +82,29 @@ describe('scoreReports', () => {
     });
   });
 
+  it('accepts any of several acceptable doc locations', () => {
+    // Arrange
+    const alternatives = parseLabels({
+      version: 1,
+      prs: {
+        '3': {
+          expected: [
+            { docsPaths: ['docs/run.md', 'apps/x/README.md'], note: 'n' },
+          ],
+        },
+      },
+    });
+
+    // Act
+    const score = scoreReports(
+      [report(3, [finding({ docsPath: 'apps/x/README.md' })])],
+      alternatives,
+    );
+
+    // Assert
+    expect(score.recall).toBe(1);
+  });
+
   it('counts expected findings of a failed review as missed', () => {
     // Act
     const score = scoreReports([report(1, [], undefined)], labels);
