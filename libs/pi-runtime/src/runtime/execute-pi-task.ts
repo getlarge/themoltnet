@@ -1896,6 +1896,12 @@ export async function executePiTask(
     );
 
     let runError: { code: string; message: string } | null = null;
+    const terminalProviderState = () =>
+      resolveProviderStateAfterSubmit(
+        turnState,
+        submitToolHandle?.getCaptured() !== null,
+        submitCompletion.hasStartedCompletion(),
+      );
     // One provider-error-tolerant prompt pass. Reused for both the initial
     // task prompt and each submit-missing re-prompt so every pass inherits
     // the same provider-retry / cancel / cap handling.
@@ -1905,10 +1911,7 @@ export async function executePiTask(
         initialPrompt: promptText,
         cancelSignal: reporter.cancelSignal,
         isCapAborted: () => capAbort !== null,
-        getProviderErrorState: () => ({
-          llmAbort: turnState.llmAbort,
-          llmErrorMessage: turnState.llmErrorMessage,
-        }),
+        getProviderErrorState: terminalProviderState,
         maxRetries:
           opts.maxProviderErrorRetries ?? DEFAULT_PROVIDER_ERROR_RETRIES,
         baseDelayMs: opts.providerErrorRetryBaseDelayMs ?? 2_000,
@@ -1942,7 +1945,7 @@ export async function executePiTask(
         submitRepromptStopped({
           cancelled: reporter.cancelSignal.aborted,
           capAborted: capAbort !== null,
-          llmAbort: turnState.llmAbort,
+          llmAbort: terminalProviderState().llmAbort,
         }),
       onSubmitReprompt: async (event) => {
         await emit('info', event);
@@ -1988,11 +1991,15 @@ export async function executePiTask(
     // mid-flight before the signal had a chance to abort the session —
     // usage tokens accumulated up to that point are preserved.
     const cancelled = reporter.cancelSignal.aborted;
+    const providerState = terminalProviderState();
+    if (turnState.llmAbort && !providerState.llmAbort) {
+      await emit('info', { event: 'post_submit_abort_normalized' });
+    }
 
     let parsedOutput: Record<string, unknown> | null = null;
     let parsedOutputCid: string | null = null;
     let parseError: { code: string; message: string } | null = null;
-    if (!runError && !turnState.llmAbort && !cancelled && !capAbort) {
+    if (!runError && !providerState.llmAbort && !cancelled && !capAbort) {
       const captured = await captureAttemptOutput({
         taskType: task.taskType,
         model: opts.model,
@@ -2080,8 +2087,8 @@ export async function executePiTask(
       runError,
       parseError,
       reporterError,
-      llmAbort: turnState.llmAbort,
-      llmErrorMessage: turnState.llmErrorMessage,
+      llmAbort: providerState.llmAbort,
+      llmErrorMessage: providerState.llmErrorMessage,
       providerFailureContext: opts.providerFailureContext
         ? {
             ...opts.providerFailureContext,
@@ -2185,6 +2192,26 @@ export function createSessionTurnState(): SessionTurnState {
     llmErrorMessage: null,
     toolUseTurnCount: 0,
     bashTimeoutCount: 0,
+  };
+}
+
+/** A valid final submit is authoritative once its tool batch has drained.
+ * Pi can report the runtime's intentional session.abort() as an error turn;
+ * that post-submit error must not trigger a provider retry or discard output.
+ * An earlier provider error, an unfinished tool batch, cancellation, and caps
+ * keep their existing failure paths.
+ */
+export function resolveProviderStateAfterSubmit(
+  state: Pick<SessionTurnState, 'llmAbort' | 'llmErrorMessage'>,
+  validOutputCaptured: boolean,
+  completionStarted: boolean,
+): Pick<SessionTurnState, 'llmAbort' | 'llmErrorMessage'> {
+  if (validOutputCaptured && completionStarted) {
+    return { llmAbort: false, llmErrorMessage: null };
+  }
+  return {
+    llmAbort: state.llmAbort,
+    llmErrorMessage: state.llmErrorMessage,
   };
 }
 

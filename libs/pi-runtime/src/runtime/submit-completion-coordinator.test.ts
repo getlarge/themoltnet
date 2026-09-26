@@ -32,9 +32,11 @@ describe('createSubmitCompletionCoordinator', () => {
     handlers.get('tool_execution_end')?.({ toolCallId: 'submit' });
 
     expect(onDrained).not.toHaveBeenCalled();
+    expect(coordinator.hasStartedCompletion()).toBe(false);
 
     handlers.get('tool_execution_end')?.({ toolCallId: 'artifact-write' });
     expect(onDrained).toHaveBeenCalledOnce();
+    expect(coordinator.hasStartedCompletion()).toBe(true);
 
     coordinator.requestCompletion();
     expect(onDrained).toHaveBeenCalledOnce();

@@ -57,6 +57,7 @@ import {
   promptWithProviderErrorRetries,
   resolveAttemptBrokeredHttpSecrets,
   resolveHostExecBaseEnv,
+  resolveProviderStateAfterSubmit,
   resolveSubmitMissingConfig,
   retireManagedGondolinVm,
   sanitizeProviderDiagnostic,
@@ -1533,6 +1534,77 @@ describe('buildAttemptResult (result-construction characterization)', () => {
     expect(out.output).toEqual({ ok: true });
     expect(out.outputCid).toBe('cid:abc');
     expect(out.error).toBeUndefined();
+  });
+
+  it('keeps a valid submit after its intentional abort without retrying the provider', async () => {
+    const rawState = {
+      llmAbort: false,
+      llmErrorMessage: null as string | null,
+    };
+    let captured = false;
+    let completionStarted = false;
+    const prompt = vi.fn(() => {
+      captured = true;
+      completionStarted = true;
+      rawState.llmAbort = true;
+      rawState.llmErrorMessage = 'This operation was aborted';
+      return Promise.resolve();
+    });
+    const onRetry = vi.fn();
+    const result = await promptWithProviderErrorRetries({
+      session: { prompt },
+      initialPrompt: 'extract',
+      cancelSignal: new AbortController().signal,
+      getProviderErrorState: () =>
+        resolveProviderStateAfterSubmit(rawState, captured, completionStarted),
+      maxRetries: 4,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+      retryPrompt: 'Go on',
+      onRetry,
+    });
+
+    expect(result).toEqual({ runError: null, retryCount: 0 });
+    expect(prompt).toHaveBeenCalledTimes(1);
+    expect(onRetry).not.toHaveBeenCalled();
+    const terminal = resolveProviderStateAfterSubmit(
+      rawState,
+      captured,
+      completionStarted,
+    );
+    const capturedOutput = await captureAttemptOutput({
+      taskType: 'freeform',
+      input: {},
+      assistantText: '',
+      submitToolHandle: {
+        getCaptured: () => ({ summary: 'done', artifacts: [] }),
+        getLastValidationFailure: () => null,
+      },
+      emit: () => Promise.resolve(),
+    });
+    expect(
+      buildAttemptResult({
+        ...base,
+        ...terminal,
+        output: capturedOutput.output,
+        outputCid: capturedOutput.outputCid,
+      }),
+    ).toMatchObject({
+      status: 'completed',
+      output: { summary: 'done' },
+    });
+    expect(
+      buildAttemptResult({
+        ...base,
+        ...resolveProviderStateAfterSubmit(rawState, true, false),
+      }).status,
+    ).toBe('failed');
+    expect(
+      buildAttemptResult({
+        ...base,
+        ...resolveProviderStateAfterSubmit(rawState, false, true),
+      }).status,
+    ).toBe('failed');
   });
 
   it('fails with the runError, which wins over parse/llm errors', () => {
