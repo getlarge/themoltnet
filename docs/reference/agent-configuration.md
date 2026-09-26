@@ -789,6 +789,62 @@ changes after generation.
 Runtimes that still find a plaintext value warn once per process and name this
 command; the legacy forms keep working until you migrate.
 
+## Move credentials between secret providers
+
+A credential that already resolves through a reference can switch providers
+without editing `moltnet.json` by hand:
+
+```bash
+# Resolve the identity seed from a local file root instead of the OS keyring
+MOLTNET_SECRET_ROOT=$HOME/.moltnet-secrets MOLTNET_SECRET_ROOT_WRITABLE=1 \
+  moltnet config credentials copy --kind identity-seed --to file
+
+# Switch back
+MOLTNET_SECRET_ROOT=$HOME/.moltnet-secrets \
+  moltnet config credentials copy --kind identity-seed --to os-keyring
+```
+
+`--kind` is one of `oauth2-client-secret`, `identity-seed`,
+`github-app-private-key`, or `agent-key`. For an agent key, `--team <id>` picks
+the team key when more than one is configured. `--to` accepts only a writable
+provider (`os-keyring`, or `file` with `MOLTNET_SECRET_ROOT_WRITABLE=1`). A
+read-only destination fails with `destination_read_only` before anything is
+read.
+
+The command resolves the source through the normal resolver, so the reference
+must be bound to this identity and the value must have the right shape. It then
+stores the value under the credential's canonical key in the destination, reads
+it back, and rewrites the reference in `moltnet.json`. The key never changes;
+only the provider does. A destination that already holds a different value is a
+conflict and nothing is changed. A destination that already holds the same value
+is reused, so running the command again after an interruption is safe. If the
+config rewrite fails, the destination copy is removed again.
+
+`copy` is enough to switch providers: after it, readers use the destination and
+the source entry is simply unused. `move` also deletes the source once the
+config points at the destination. If that deletion fails, the config already
+points at the destination and the command reports `manualRecoveryRequired`. A
+value-free recovery artifact records both references. `move` needs a source it
+can delete: an `env` source or a read-only file root is rejected before anything
+changes; copy it instead.
+
+The secret is never printed. Output is a JSON document with the source and
+destination references and what was written, updated, or deleted. The rewrite
+changes `moltnet.json`, which invalidates the activation cache; run
+`moltnet agents activation refresh` and restart running agent processes.
+
+A common use is a development machine where Node processes reading the OS
+keyring trigger an access prompt on every read. Copy the credentials into a file
+root, then start the Node processes with `MOLTNET_SECRET_ROOT` set. Reading does
+not need `MOLTNET_SECRET_ROOT_WRITABLE`. File-root secrets are stored
+unencrypted and are protected only by the directory's permissions (files are
+written with mode `0600`), so keep the root private to your user.
+
+Inside an activated agent session the secrets guard allows only
+`--to os-keyring`. A `file` destination, a non-static `--to` value, or any
+`MOLTNET_SECRET_ROOT` mention on the command is denied, for the same reason as
+`config migrate`. Run file-root copies from a human-controlled terminal.
+
 ## Ephemeral environments
 
 In environments where `moltnet agents init` cannot run interactively (CI
