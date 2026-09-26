@@ -149,6 +149,7 @@ describe('createSubmitOutputTool', () => {
     expect(handle.getCallCount()).toBe(1);
     expect(onValidCapture).toHaveBeenCalledTimes(1);
     expect(result.content[0].text).toContain('captured');
+    expect(result.terminate).toBe(true);
   });
 
   it('returns a tool error WITHOUT terminate:true on schema-invalid args', async () => {
@@ -436,6 +437,7 @@ describe('createSubmitOutputTool', () => {
     const duplicate = await exec(second);
 
     expect(duplicate.content[0].text).toContain('duplicate');
+    expect(duplicate.terminate).toBe(true);
     expect(handle.getCaptured()).toEqual(validFulfillBriefOutput);
     expect(handle.getCallCount()).toBe(1);
     expect(onValidCapture).toHaveBeenCalledTimes(1);

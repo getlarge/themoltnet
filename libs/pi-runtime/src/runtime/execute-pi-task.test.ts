@@ -1607,6 +1607,55 @@ describe('buildAttemptResult (result-construction characterization)', () => {
     ).toBe('failed');
   });
 
+  it('materializes a validated submit when Pi throws while settling the prompt', async () => {
+    const onPromptError = vi.fn();
+    const prompt = vi.fn(async () => {
+      throw new Error('This operation was aborted');
+    });
+    const result = await promptWithProviderErrorRetries({
+      session: { prompt },
+      initialPrompt: 'extract',
+      cancelSignal: new AbortController().signal,
+      hasValidatedSubmit: () => true,
+      getProviderErrorState: () => ({
+        llmAbort: true,
+        llmErrorMessage: 'This operation was aborted',
+      }),
+      maxRetries: 4,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+      retryPrompt: 'Go on',
+      onPromptError,
+    });
+    expect(result).toEqual({ runError: null, retryCount: 0 });
+    expect(prompt).toHaveBeenCalledOnce();
+    expect(onPromptError).not.toHaveBeenCalled();
+  });
+
+  it('does not normalize a prompt failure after cancellation', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const result = await promptWithProviderErrorRetries({
+      session: {
+        prompt: async () => {
+          throw new Error('cancelled');
+        },
+      },
+      initialPrompt: 'extract',
+      cancelSignal: controller.signal,
+      hasValidatedSubmit: () => true,
+      getProviderErrorState: () => ({
+        llmAbort: true,
+        llmErrorMessage: 'cancelled',
+      }),
+      maxRetries: 0,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+      retryPrompt: 'Go on',
+    });
+    expect(result.runError?.code).toBe('session_prompt_failed');
+  });
+
   it('keeps a valid submit when Pi records its tool result but omits tool_execution_end', async () => {
     const rawState = {
       llmAbort: false,

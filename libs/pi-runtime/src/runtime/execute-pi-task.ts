@@ -1345,7 +1345,11 @@ export async function executePiTask(
     // parser fallback is only consulted when the task type has no
     // registered output schema (resolveSubmitTools returns null).
     const submitCompletion = createSubmitCompletionCoordinator({
-      onDrained: () => session?.abort(),
+      // Pi's native terminate result ends a lone successful submit without
+      // manufacturing an aborted provider turn. A mixed tool batch does not
+      // terminate natively, so keep the drained-batch abort for that case.
+      onDrained: (toolCallCount) =>
+        toolCallCount === 1 ? undefined : session?.abort(),
       onError: async (err) => {
         const message = err instanceof Error ? err.message : String(err);
         await emitError('submit_output_abort', message, {
@@ -1911,6 +1915,9 @@ export async function executePiTask(
         initialPrompt: promptText,
         cancelSignal: reporter.cancelSignal,
         isCapAborted: () => capAbort !== null,
+        hasValidatedSubmit: () =>
+          submitToolHandle?.getCaptured() !== null &&
+          submitCompletion.hasRequestedCompletion(),
         getProviderErrorState: terminalProviderState,
         maxRetries:
           opts.maxProviderErrorRetries ?? DEFAULT_PROVIDER_ERROR_RETRIES,
@@ -2908,6 +2915,8 @@ export interface PromptWithProviderErrorRetriesArgs {
   initialPrompt: string;
   cancelSignal: AbortSignal;
   isCapAborted?: () => boolean;
+  /** A validated submit already owns the result even if Pi throws while settling. */
+  hasValidatedSubmit?: () => boolean;
   getProviderErrorState: () => {
     llmAbort: boolean;
     llmErrorMessage: string | null;
@@ -2960,6 +2969,13 @@ export async function promptWithProviderErrorRetries(
         args.parentContext,
       );
     } catch (err) {
+      if (
+        args.hasValidatedSubmit?.() &&
+        !args.cancelSignal.aborted &&
+        !args.isCapAborted?.()
+      ) {
+        return { runError: null, retryCount };
+      }
       const message = err instanceof Error ? err.message : String(err);
       await args.onPromptError?.(message);
       return {

@@ -5,7 +5,7 @@ import { createSubmitCompletionCoordinator } from './submit-completion-coordinat
 type Handler = (event: { toolCallId: string }) => void;
 
 function installCoordinator(options: {
-  onDrained: () => void | Promise<void>;
+  onDrained: (toolCallCount: number) => void | Promise<void>;
   onError?: (error: unknown) => void | Promise<void>;
 }) {
   const handlers = new Map<string, Handler>();
@@ -36,7 +36,7 @@ describe('createSubmitCompletionCoordinator', () => {
     expect(coordinator.hasStartedCompletion()).toBe(false);
 
     handlers.get('tool_execution_end')?.({ toolCallId: 'artifact-write' });
-    expect(onDrained).toHaveBeenCalledOnce();
+    expect(onDrained).toHaveBeenCalledExactlyOnceWith(2);
     expect(coordinator.hasStartedCompletion()).toBe(true);
 
     coordinator.requestCompletion();
@@ -63,5 +63,15 @@ describe('createSubmitCompletionCoordinator', () => {
     expect(coordinator.hasRequestedCompletion()).toBe(true);
     expect(coordinator.hasStartedCompletion()).toBe(false);
     expect(onDrained).not.toHaveBeenCalled();
+  });
+
+  it('identifies a lone submit so Pi can terminate without an abort', () => {
+    const onDrained = vi.fn();
+    const { coordinator, handlers } = installCoordinator({ onDrained });
+    handlers.get('turn_start')?.({ toolCallId: '' });
+    handlers.get('tool_execution_start')?.({ toolCallId: 'submit' });
+    coordinator.requestCompletion();
+    handlers.get('tool_execution_end')?.({ toolCallId: 'submit' });
+    expect(onDrained).toHaveBeenCalledExactlyOnceWith(1);
   });
 });

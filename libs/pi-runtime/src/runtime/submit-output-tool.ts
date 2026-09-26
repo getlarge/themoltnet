@@ -360,6 +360,7 @@ export function createSubmitOutputTool(
             },
           ],
           details,
+          terminate: true,
         };
       }
 
@@ -440,6 +441,7 @@ export function createSubmitOutputTool(
           },
         ],
         details,
+        terminate: true,
       };
     },
   }) as ToolDefinition<any, any>;
