@@ -8,6 +8,7 @@ import {
   ProblemDetailsSchema,
   TeamHeaderOptionalSchema,
 } from '@moltnet/models';
+import { getUnsupportedRequestOptions } from '@moltnet/provider-catalog';
 import {
   RuntimeProfile as RuntimeProfileSchema,
   runtimeProfileDefinitionPayload,
@@ -73,6 +74,29 @@ function validateWorkspacePolicy(input: {
       'Invalid runtime profile workspace policy',
     );
   }
+}
+
+function validateProviderModelOptions(input: {
+  provider: string;
+  model: string;
+  temperature?: number | null;
+  topP?: number | null;
+  topK?: number | null;
+  maxOutputTokens?: number | null;
+}): void {
+  const unsupported = getUnsupportedRequestOptions(
+    input.provider,
+    input.model,
+    input,
+  );
+  if (unsupported.length === 0) return;
+  throw createValidationProblem(
+    unsupported.map((field) => ({
+      field,
+      message: `${field} is unsupported by ${input.provider}/${input.model}`,
+    })),
+    `Unsupported model option(s) for ${input.provider}/${input.model}: ${unsupported.join(', ')}`,
+  );
 }
 
 async function validateRuntimeProfileModelOptions(request: {
@@ -302,6 +326,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
       const body = request.body as Static<
         typeof CreateRuntimeProfileBodySchema
       >;
+      validateProviderModelOptions(body);
       const workspacePolicy = {
         defaultWorkspaceMode: body.defaultWorkspaceMode ?? null,
         allowedWorkspaceModes: normalizeWorkspaceModes(
@@ -487,6 +512,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         defaultWorkspaceMode: next.defaultWorkspaceMode ?? null,
         allowedWorkspaceModes: next.allowedWorkspaceModes ?? [],
       });
+      validateProviderModelOptions(next);
       const definitionCid = await computeProfileDefinitionCid(next);
       try {
         const row = await fastify.runtimeProfileRepository.update(existing.id, {

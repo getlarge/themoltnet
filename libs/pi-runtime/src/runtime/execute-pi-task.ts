@@ -1764,6 +1764,7 @@ export async function executePiTask(
             topP: opts.topP,
             topK: opts.topK,
             maxOutputTokens: opts.maxOutputTokens,
+            modelOptionsLogger: toolPolicyLogger,
             agentName: opts.agentName,
             customTools: parentTools,
             tools: enabledPiToolNames({

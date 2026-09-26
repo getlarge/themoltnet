@@ -40,6 +40,9 @@
       "path": "../runtime-profiles/tsconfig.lib.json"
     },
     {
+      "path": "../provider-catalog"
+    },
+    {
       "path": "../models/tsconfig.lib.json"
     },
     {

@@ -133,7 +133,7 @@ describe('buildAgentSession', () => {
       mountPath: '/guest/workspace',
       cwdPath: '/guest/workspace',
       piAuthDir: '/agent',
-      modelHandle: {} as never,
+      modelHandle: { provider: 'anthropic', id: 'claude-sonnet-4-5' } as never,
       modelRuntime: {} as never,
       temperature: 0.2,
       topP: 0.9,

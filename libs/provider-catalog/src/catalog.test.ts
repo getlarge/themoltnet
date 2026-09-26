@@ -4,10 +4,12 @@ import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
 import {
+  getUnsupportedRequestOptions,
   globalRuntimeModelCatalog,
   ollamaCloudModels,
   ollamaModels,
   piRuntimeModels,
+  requestOptionCapabilities,
 } from './index.js';
 
 const execFileAsync = promisify(execFile);
@@ -43,6 +45,49 @@ describe('provider catalog', () => {
         ),
       ).size,
     ).toBe(globalRuntimeModelCatalog.length);
+  });
+
+  it('records request option support and leaves unknown providers undecided', () => {
+    for (const entry of piRuntimeModels) {
+      for (const option of [
+        'supportsMaxOutputTokens',
+        'supportsTemperature',
+        'supportsTopP',
+        'supportsTopK',
+      ]) {
+        expect(entry.capabilities[option]).toEqual(expect.any(Boolean));
+      }
+    }
+    expect(
+      getUnsupportedRequestOptions('openai-codex', 'gpt-5.6-terra', {
+        maxOutputTokens: 4000,
+        temperature: 0.2,
+      }),
+    ).toEqual(['temperature', 'maxOutputTokens']);
+    expect(
+      getUnsupportedRequestOptions('custom', 'new-model', {
+        maxOutputTokens: 4000,
+      }),
+    ).toEqual([]);
+  });
+
+  it('describes options for both Ollama catalogs through Pi OpenAI compatibility', () => {
+    for (const entry of [...ollamaModels, ...ollamaCloudModels]) {
+      expect(requestOptionCapabilities(entry.provider, entry.model)).toEqual({
+        temperature: true,
+        topP: true,
+        topK: false,
+        maxOutputTokens: true,
+      });
+      expect(
+        getUnsupportedRequestOptions(entry.provider, entry.model, {
+          temperature: 0.2,
+          topP: 0.9,
+          topK: 40,
+          maxOutputTokens: 4000,
+        }),
+      ).toEqual(['topK']);
+    }
   });
 
   it('matches the installed, version-pinned Pi static catalog', async () => {

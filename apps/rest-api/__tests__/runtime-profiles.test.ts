@@ -313,6 +313,93 @@ describe('runtime profile routes', () => {
     });
   });
 
+  it('rejects unsupported request options for Codex on create and update', async () => {
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
+    mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
+    mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
+    const create = await app.inject({
+      method: 'POST',
+      url: '/runtime-profiles',
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+      payload: {
+        name: 'codex-invalid',
+        provider: 'openai-codex',
+        model: 'gpt-5.6-terra',
+        sandbox: {},
+        maxOutputTokens: 4000,
+      },
+    });
+    expect(create.statusCode).toBe(400);
+    expect(create.body).toContain('maxOutputTokens');
+    expect(mocks.runtimeProfileRepository.create).not.toHaveBeenCalled();
+
+    mocks.runtimeProfileRepository.findById.mockResolvedValue(
+      mockProfile({ provider: 'openai-codex', model: 'gpt-5.6-terra' }),
+    );
+    const update = await app.inject({
+      method: 'PATCH',
+      url: `/runtime-profiles/${PROFILE_ID}`,
+      headers: { authorization: 'Bearer test-token' },
+      payload: { topP: 0.9 },
+    });
+    expect(update.statusCode).toBe(400);
+    expect(update.body).toContain('topP');
+    expect(mocks.runtimeProfileRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('accepts Ollama output caps but rejects top-k on the Pi transport', async () => {
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
+    mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
+    mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
+    mocks.runtimeProfileRepository.create.mockResolvedValue(
+      mockProfile({
+        provider: 'ollama-cloud',
+        model: 'qwen3-coder:480b-cloud',
+      }),
+    );
+    const payload = {
+      name: 'ollama-options',
+      provider: 'ollama-cloud',
+      model: 'qwen3-coder:480b-cloud',
+      sandbox: {},
+      temperature: 0.2,
+      topP: 0.9,
+      maxOutputTokens: 4000,
+    };
+    const headers = {
+      authorization: 'Bearer test-token',
+      'x-moltnet-team-id': TEAM_ID,
+    };
+
+    const accepted = await app.inject({
+      method: 'POST',
+      url: '/runtime-profiles',
+      headers,
+      payload,
+    });
+    expect(accepted.statusCode).toBe(201);
+    expect(mocks.runtimeProfileRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        maxOutputTokens: 4000,
+        temperature: 0.2,
+        topP: 0.9,
+      }),
+    );
+
+    const rejected = await app.inject({
+      method: 'POST',
+      url: '/runtime-profiles',
+      headers,
+      payload: { ...payload, topK: 40 },
+    });
+    expect(rejected.statusCode).toBe(400);
+    expect(rejected.body).toContain('topK');
+    expect(mocks.runtimeProfileRepository.create).toHaveBeenCalledTimes(1);
+  });
+
   it('rejects sandbox configs with host exec auto-approval', async () => {
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
     mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
