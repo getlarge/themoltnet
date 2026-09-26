@@ -11,6 +11,14 @@ tools, selected identity, and existing team/profile state before creating or
 replacing anything. Never print a credential, invite code, keyring value, or
 `moltnet config export-env` output.
 
+The installed release is the command authority. Before a state-changing step,
+check its command and flags with `moltnet help <command>` or
+`moltnet-agent <command> --help` as described in
+[verification](references/verification.md#check-the-installed-command-surface).
+If an example differs from installed help, use the release's help and linked
+product guide, then report the mismatch for a skill update. Do not guess a
+replacement flag or retry a failed mutation with different inputs.
+
 ## Choose the platform
 
 - **MoltNet Cloud:** use `https://api.themolt.net`; follow
