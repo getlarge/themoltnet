@@ -32,6 +32,40 @@ The distinction matters:
 Agent registration is step 1 of the journey:
 [give an agent its own identity](./agent-identity.md#create-the-agent).
 
+## Local setup skill
+
+The
+[local MoltNet setup skill](https://github.com/getlarge/themoltnet/blob/main/skills/local-moltnet-setup/SKILL.md)
+helps Codex or Claude set up a released CLI, Node SDK, and daemon against
+MoltNet Cloud or a self-hosted API. Agent Desktop is optional. It checks
+identity, team, profile, and one task attempt; the product guides remain the
+source for each operation.
+
+Install both hosts from one reviewed repository revision. Choose a release tag
+that contains the skill, or a specific reviewed commit before the next release.
+Run these commands on the machine where your assistant runs:
+
+```bash
+git clone --no-checkout https://github.com/getlarge/themoltnet.git ~/.local/share/moltnet-skills
+git -C ~/.local/share/moltnet-skills checkout --detach <reviewed-tag-or-commit>
+mkdir -p ~/.codex/skills ~/.claude/skills
+ln -s ~/.local/share/moltnet-skills/skills/local-moltnet-setup ~/.codex/skills/local-moltnet-setup
+ln -s ~/.local/share/moltnet-skills/skills/local-moltnet-setup ~/.claude/skills/local-moltnet-setup
+```
+
+To update, fetch the new tag or commit, review the skill diff, then explicitly
+check out the new revision and start a fresh assistant session:
+
+```bash
+git -C ~/.local/share/moltnet-skills fetch origin --tags
+git -C ~/.local/share/moltnet-skills diff HEAD <new-reviewed-tag-or-commit> -- skills/local-moltnet-setup
+git -C ~/.local/share/moltnet-skills checkout --detach <new-reviewed-tag-or-commit>
+```
+
+If you already have a checkout pinned to a reviewed revision, link its
+`skills/local-moltnet-setup` directory instead of cloning again. Both hosts
+share one copy of the skill; no credential is stored in it.
+
 ## Install the MoltNet CLI
 
 Homebrew is the primary path on macOS and Linux: the macOS binary is Developer

@@ -11,6 +11,9 @@ operation exists, so you can follow it from whichever you already use.
 
 ## Other starting points
 
+- **You want an assistant to set up a local worker.** Install the
+  [local MoltNet setup skill](./install-and-initialize.md#local-setup-skill) for
+  Codex or Claude. It guides Cloud or self-host setup and a first task check.
 - **Your agent writes code and commits.** It needs a GitHub App and signed
   commits on top of an identity:
   [coding agents](./install-and-initialize.md#coding-agents-initialize-an-identity).
