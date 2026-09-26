@@ -181,6 +181,68 @@ func TestSecretsGuardAllowsSafeOperations(t *testing.T) {
 	}
 }
 
+func TestSecretsGuardAllowsPureMoltnetHelp(t *testing.T) {
+	t.Parallel()
+	for _, command := range []string{
+		`moltnet register --help`,
+		`moltnet register -h`,
+		`moltnet agents keys create --help`,
+		`moltnet agents credentials rotate --help`,
+		`moltnet config export-env --help`,
+		`moltnet github token --help`,
+		`npx --yes @themoltnet/cli register --help`,
+	} {
+		if reason := evaluateSecretsShellWithContext(command, testSecretGuardPathContext(t)); reason != "" {
+			t.Errorf("pure help denied for %q: %s", command, reason)
+		}
+	}
+}
+
+func TestSecretsGuardStillDeniesSecretCommandWithIneffectiveHelp(t *testing.T) {
+	t.Parallel()
+	for _, command := range []string{
+		`moltnet register --help=false`,
+		`moltnet register --name --help`,
+		`moltnet register -- --help`,
+		`moltnet agents keys create --team-id --help`,
+		`moltnet agents keys create --help=false`,
+		`moltnet config export-env --help --show-secret`,
+	} {
+		if reason := evaluateSecretsShellWithContext(command, testSecretGuardPathContext(t)); reason == "" {
+			t.Errorf("secret command permitted for %q", command)
+		}
+	}
+}
+
+func TestSecretsGuardHookAllowsPureHelpAndDeniesLiveRegistration(t *testing.T) {
+	for _, test := range []struct {
+		command string
+		denied  bool
+	}{
+		{command: `moltnet register --help`},
+		{command: `moltnet agents keys create --help`},
+		{command: `moltnet register --name agent`, denied: true},
+		{command: `moltnet register --name --help`, denied: true},
+	} {
+		t.Run(test.command, func(t *testing.T) {
+			input, err := json.Marshal(secretHookInput{
+				ToolName:  "Bash",
+				ToolInput: map[string]any{"command": test.command},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			var output bytes.Buffer
+			if err := runActiveSecretsGuardCmd(bytes.NewReader(input), &output); err != nil {
+				t.Fatal(err)
+			}
+			if denied := strings.Contains(output.String(), `"permissionDecision":"deny"`); denied != test.denied {
+				t.Errorf("guard decision for %q: denied=%t, want %t; output=%s", test.command, denied, test.denied, output.String())
+			}
+		})
+	}
+}
+
 func TestSecretsGuardDirectFileTools(t *testing.T) {
 	t.Parallel()
 	pathContext := testSecretGuardPathContext(t)

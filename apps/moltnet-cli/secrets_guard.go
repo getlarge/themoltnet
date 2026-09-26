@@ -1078,6 +1078,9 @@ func isMoltnetRevealCommand(executable string, args []string, allowGitHubToken b
 }
 
 func isMoltnetRevealArgs(args []string, allowGitHubToken bool) bool {
+	if isPureMoltnetHelpArgs(args) {
+		return false
+	}
 	if len(args) > 0 && args[0] == "register" {
 		return true
 	}
@@ -1113,6 +1116,25 @@ func isMoltnetRevealArgs(args []string, allowGitHubToken bool) bool {
 		}
 	}
 	return false
+}
+
+// A command path followed by only Cobra's help flag cannot execute the
+// command. Keep this narrow: in `register --name --help`, pflag may consume
+// --help as the value of --name and still run registration.
+func isPureMoltnetHelpArgs(args []string) bool {
+	if len(args) < 2 {
+		return false
+	}
+	last := args[len(args)-1]
+	if last != "--help" && last != "-h" {
+		return false
+	}
+	for _, arg := range args[:len(args)-1] {
+		if arg == "--" || strings.HasPrefix(arg, "-") {
+			return false
+		}
+	}
+	return true
 }
 
 // collectScopedGitHubTokenCalls returns only token subprocess AST nodes that
