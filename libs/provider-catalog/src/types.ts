@@ -5,3 +5,12 @@ export type RuntimeModelCatalogEntry = {
   description?: string;
   capabilities: Record<string, boolean | number | string>;
 };
+
+export const requestOptionNames = [
+  'temperature',
+  'topP',
+  'topK',
+  'maxOutputTokens',
+] as const;
+
+export type RequestOptionName = (typeof requestOptionNames)[number];

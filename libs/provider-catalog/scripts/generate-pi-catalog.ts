@@ -39,6 +39,10 @@ async function readProvider(provider: 'anthropic' | 'openai-codex') {
       capabilities: {
         supportsReasoning: model.reasoning,
         supportsVision: model.input.includes('image'),
+        supportsTemperature: provider === 'anthropic',
+        supportsTopP: provider === 'anthropic',
+        supportsTopK: provider === 'anthropic',
+        supportsMaxOutputTokens: provider === 'anthropic',
         contextWindow: model.contextWindow,
         maxOutputTokens: model.maxTokens,
       },

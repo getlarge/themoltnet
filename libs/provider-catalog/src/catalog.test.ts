@@ -4,6 +4,7 @@ import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
 import {
+  getUnsupportedRequestOptions,
   globalRuntimeModelCatalog,
   ollamaCloudModels,
   ollamaModels,
@@ -43,6 +44,30 @@ describe('provider catalog', () => {
         ),
       ).size,
     ).toBe(globalRuntimeModelCatalog.length);
+  });
+
+  it('records request option support and leaves unknown providers undecided', () => {
+    for (const entry of piRuntimeModels) {
+      for (const option of [
+        'supportsMaxOutputTokens',
+        'supportsTemperature',
+        'supportsTopP',
+        'supportsTopK',
+      ]) {
+        expect(entry.capabilities[option]).toEqual(expect.any(Boolean));
+      }
+    }
+    expect(
+      getUnsupportedRequestOptions('openai-codex', 'gpt-5.6-terra', {
+        maxOutputTokens: 4000,
+        temperature: 0.2,
+      }),
+    ).toEqual(['temperature', 'maxOutputTokens']);
+    expect(
+      getUnsupportedRequestOptions('custom', 'new-model', {
+        maxOutputTokens: 4000,
+      }),
+    ).toEqual([]);
   });
 
   it('matches the installed, version-pinned Pi static catalog', async () => {
