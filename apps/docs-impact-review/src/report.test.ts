@@ -20,6 +20,7 @@ function report(overrides: Partial<DocsImpactReport> = {}): DocsImpactReport {
     outcome: 'not-needed',
     findings: [],
     gaps: [],
+    searchTermsDropped: [],
     repairs: [],
     manifest: {
       files: 1,
