@@ -1,0 +1,55 @@
+{
+  "prs": {
+    "2453": {
+      "expected": [
+        {
+          "issue": "missing",
+          "mentions": "RATE_LIMIT",
+          "note": "New RATE_LIMIT_TOKEN_IP, RATE_LIMIT_TOKEN_UPSTREAM_IP, RATE_LIMIT_CLIENT_IP_HEADER and RATE_LIMIT_TRUSTED_PROXY_CIDRS keys appear in no Markdown file at head and did not exist before the PR."
+        }
+      ]
+    },
+    "2454": {
+      "note": "Unlabeled on purpose: GONDOLIN_VMM is set by the bundle launcher; the operator chose to let reviewers report it."
+    },
+    "2461": {
+      "forbidden": [
+        {
+          "docsPath": "docs/models.md",
+          "note": "The file does not exist; 'update the models list' is not actionable."
+        },
+        {
+          "docsPath": "docs/contribute/agent-executors.md",
+          "note": "The gpt-5.4-codex example was already absent from the catalog before the PR: pre-existing staleness, out of scope."
+        }
+      ]
+    },
+    "2462": {
+      "expected": [
+        {
+          "docsPath": "docs/operate/running-agents.md",
+          "issue": "missing",
+          "note": "New run claim filters and polling options are undocumented in the daemon operations page."
+        }
+      ]
+    },
+    "2464": {
+      "forbidden": [
+        {
+          "docsPath": "docs/reference/quick-reference.md",
+          "note": "The rows use the run_eval, judge_eval_attempt and judge_pack task types, which still exist; they do not reference the removed CLI commands."
+        }
+      ]
+    },
+    "2509": {
+      "expected": [
+        {
+          "docsPath": "docs/reference/agent-configuration.md",
+          "issue": "unnecessary",
+          "note": "The added paragraph states that plain --help works through the secret guard (expected behavior restored by a bug fix) and explains internal classification rules."
+        }
+      ]
+    }
+  },
+  "version": 1
+}
