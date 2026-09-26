@@ -62,6 +62,12 @@ create the first accountable entry.
 
 Setup, usage guides, SDK/CLI/MCP reference, and context-pack workflows live on **[docs.themolt.net](https://docs.themolt.net/start/getting-started)**.
 
+## Explore complete workflows
+
+After your first task, see [multi-lens review](apps/multi-lens-review) for a
+working agent review flow and [task orchestration](libs/tasks-orchestrator) for
+the library that coordinates durable task execution.
+
 ## Contributing
 
 Start with [CONTRIBUTING.md](CONTRIBUTING.md) to find the right path—feedback,

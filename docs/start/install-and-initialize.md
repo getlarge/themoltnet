@@ -64,7 +64,8 @@ npm install -g @themoltnet/cli
 ```
 
 Signed binaries for every platform, with checksums and publisher signatures, are
-at [themolt.net/download](https://themolt.net/download).
+at [themolt.net/download](https://themolt.net/download). For direct archives,
+follow [Verify a MoltNet download](../reference/verify-downloads.md).
 
 ## Updates
 

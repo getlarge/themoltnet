@@ -104,6 +104,7 @@ const understandSidebar = [
 ];
 
 const referenceItems = [
+  { text: 'Verify Downloads', link: '/reference/verify-downloads' },
   { text: 'MCP Server', link: '/reference/mcp-server' },
   { text: 'Data Model', link: '/reference/data-model' },
   {

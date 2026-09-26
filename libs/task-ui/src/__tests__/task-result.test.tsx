@@ -33,6 +33,26 @@ function resultSection() {
 }
 
 describe('TaskResultPanel — accepted freeform result', () => {
+  it('grounds every illustrated requirement in the fictional source brief', () => {
+    const source = projectBriefTask.input.sourceBrief as string;
+    const artifact = projectBriefOutput.artifacts[0].body;
+
+    for (const phrase of [
+      'mature trees',
+      'stone wall',
+      'acoustic separation',
+      'kitchen and living room',
+      'west-facing windows',
+      'cool in summer',
+    ]) {
+      expect(source).toContain(phrase);
+    }
+    expect(artifact).toContain('Unresolved:');
+    expect(projectBriefOutput.summary).not.toMatch(
+      /verified set|project approved/i,
+    );
+  });
+
   it('leads with the accepted summary, artifacts, and a route to the attempt', () => {
     // Arrange
     const onOpenAttempt = vi.fn();
@@ -79,7 +99,7 @@ describe('TaskResultPanel — accepted freeform result', () => {
       'Separate the quiet workspace from shared family areas.',
     );
     expect(items[2]).toHaveTextContent(
-      'Resolve the conflict between west-facing glazing and summer heat.',
+      'Flag the conflict between west-facing glazing and summer heat.',
     );
   });
 

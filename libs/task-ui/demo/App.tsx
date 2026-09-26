@@ -8,10 +8,12 @@ import {
 } from '@themoltnet/design-system';
 import { useMemo, useState } from 'react';
 
+import { projectBriefTask } from '../src/fixtures/task-detail';
 import {
   AnalyticsBoard,
   type AnalyticsFiltersValue,
   type AnalyticsStatus,
+  CreateTaskDialog,
   makeMetrics,
   makeResponse,
   type TaskActivityAnalyticsResponse,
@@ -143,8 +145,23 @@ function DemoContent() {
 export function App() {
   const view = new URLSearchParams(window.location.search).get('view');
   return (
-    <MoltThemeProvider mode="dark">
-      {view === 'task-detail' ? <TaskDetailDemo /> : <DemoContent />}
+    <MoltThemeProvider mode={view === 'task-create' ? 'light' : 'dark'}>
+      {view === 'task-detail' ? (
+        <TaskDetailDemo />
+      ) : view === 'task-create' ? (
+        <CreateTaskDialog
+          open
+          teamId={projectBriefTask.teamId}
+          diaries={[{ id: projectBriefTask.diaryId, name: 'Project diary' }]}
+          candidateTasks={[]}
+          availableTypes={['freeform']}
+          onClose={() => undefined}
+          onSubmit={async () => projectBriefTask.id}
+          onCreated={() => undefined}
+        />
+      ) : (
+        <DemoContent />
+      )}
     </MoltThemeProvider>
   );
 }
