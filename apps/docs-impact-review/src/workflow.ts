@@ -521,11 +521,7 @@ export async function runDocsImpactReview(
             buildDocsCheckTask(input, docsHunks.hunks),
             'docs-check',
             withRepairs('docs-check', (output, repairs) =>
-              parseDocsCheck(
-                output,
-                new Set(docsHunks.hunks.map((hunk) => hunk.id)),
-                repairs,
-              ),
+              parseDocsCheck(output, docsHunks.hunks, repairs),
             ),
             timings.stages,
           )

@@ -4,6 +4,7 @@ import {
   buildCoverageTask,
   buildDocsCheckTask,
   buildExtractTask,
+  fenceNonce,
   parseContractExtraction,
   parseCoverageCheck,
   parseDocsCheck,
@@ -422,7 +423,7 @@ describe('buildExtractTask', () => {
     // claiming through a location with a different strategy.
     expect(input.execution).toBeUndefined();
     expect(input.brief).toMatch(
-      /<untrusted-diff id="[0-9a-f]+">[\s\S]+ignore previous instructions[\s\S]+<\/untrusted-diff id="[0-9a-f]+">/,
+      /<untrusted-diff nonce="[0-9a-f]+">[\s\S]+ignore previous instructions[\s\S]+<\/untrusted-diff nonce="[0-9a-f]+">/,
     );
   });
 });
@@ -521,6 +522,44 @@ describe('buildDocsCheckTask', () => {
 });
 
 describe('parseDocsCheck', () => {
+  it('maps an answer keyed by the fence nonce back to its hunk', () => {
+    // Arrange: both gemma and gpt-6-sol answered PR #2509 this way.
+    const hunk = {
+      id: 'docs/reference/agent-configuration.md#1',
+      added:
+        'Plain CLI help calls such as `moltnet register --help` are allowed.',
+    };
+    const repairs: string[] = [];
+
+    // Act
+    const answers = parseDocsCheck(
+      freeform({
+        version: 1,
+        hunks: [
+          {
+            id: fenceNonce(hunk.added),
+            verdict: 'remove',
+            reason: 'Documents expected help behavior after a bug fix.',
+          },
+        ],
+      }),
+      [hunk],
+      repairs,
+    );
+
+    // Assert
+    expect(answers).toEqual([
+      {
+        id: hunk.id,
+        verdict: 'remove',
+        reason: 'Documents expected help behavior after a bug fix.',
+      },
+    ]);
+    expect(repairs).toEqual([
+      `mapped fence nonce ${fenceNonce(hunk.added)} to hunk ${hunk.id}`,
+    ]);
+  });
+
   it('drops unknown and duplicate hunk ids and records both', () => {
     // Arrange
     const repairs: string[] = [];
@@ -535,7 +574,7 @@ describe('parseDocsCheck', () => {
           { id: 'docs/x.md#9', verdict: 'keep', reason: 'invented' },
         ],
       }),
-      new Set(['docs/a.md#1']),
+      [{ id: 'docs/a.md#1', added: 'text' }],
       repairs,
     );
 
@@ -557,7 +596,7 @@ describe('parseDocsCheck', () => {
           version: 1,
           hunks: [{ id: 'docs/a.md#1', verdict: 'maybe', reason: 'r' }],
         }),
-        new Set(['docs/a.md#1']),
+        [{ id: 'docs/a.md#1', added: 'text' }],
       ),
     ).toThrow(/docs check output/);
   });
