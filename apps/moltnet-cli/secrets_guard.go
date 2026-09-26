@@ -1025,6 +1025,8 @@ func isReviewedMoltnetConsumer(executable string, args []string, allowGitHubToke
 		[]string{"git", "setup"},
 		[]string{"config", "repair"},
 		[]string{"config", "migrate"},
+		[]string{"config", "credentials", "copy"},
+		[]string{"config", "credentials", "move"},
 		[]string{"agents", "credentials", "recover"},
 		[]string{"secrets", "guard"},
 	) {
@@ -1212,10 +1214,14 @@ func isKeyringRevealCommand(executable string, args []string) bool {
 }
 
 // isSecretMovingMoltnetArgs reports whether a moltnet invocation copies a
-// credential into a secret provider: config migrate, credential recovery, and
-// agents keys create/rotate with --store.
+// credential into a secret provider: config migrate, config credentials
+// copy/move, credential recovery, and agents keys create/rotate with --store.
 func isSecretMovingMoltnetArgs(args []string) bool {
-	if matchesMoltnetOperation(args, []string{"config", "migrate"}) {
+	if matchesMoltnetOperation(args,
+		[]string{"config", "migrate"},
+		[]string{"config", "credentials", "copy"},
+		[]string{"config", "credentials", "move"},
+	) {
 		return true
 	}
 	if matchesMoltnetOperation(args, []string{"agents", "credentials", "recover"}) {
@@ -1232,7 +1238,7 @@ func isSecretMovingMoltnetArgs(args []string) bool {
 
 // callSelectsUntrustedSecretDestination denies secret-moving commands that
 // could route protected material to an agent-selected location: a
-// --destination other than the OS keyring (the file provider's root comes
+// --destination (or --to) other than the OS keyring (the file provider's root comes
 // from the environment, which the same command line can set), or any
 // MOLTNET_SECRET_ROOT* assignment or mention on the call. The guard
 // classifies protected roots from its own environment, so material copied
@@ -1269,17 +1275,22 @@ func callSelectsUntrustedSecretDestination(executable string, args []string, cal
 		}
 		return true
 	}
+	// config credentials copy/move name their destination with --to; every
+	// other secret-moving command uses --destination.
 	for index, arg := range normalized {
-		switch {
-		case arg == "--destination":
-			if index+1 >= len(normalized) || normalized[index+1] != osKeyringProviderName {
-				return true
+		for _, flag := range []string{"--destination", "--to"} {
+			switch {
+			case arg == flag:
+				if index+1 >= len(normalized) || normalized[index+1] != osKeyringProviderName {
+					return true
+				}
+			case strings.HasPrefix(arg, flag+"="):
+				if strings.TrimPrefix(arg, flag+"=") != osKeyringProviderName {
+					return true
+				}
 			}
-		case strings.HasPrefix(arg, "--destination="):
-			if strings.TrimPrefix(arg, "--destination=") != osKeyringProviderName {
-				return true
-			}
-		case strings.Contains(arg, secretRootEnv):
+		}
+		if strings.Contains(arg, secretRootEnv) {
 			return true
 		}
 	}

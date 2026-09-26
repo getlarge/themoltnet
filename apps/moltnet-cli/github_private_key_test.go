@@ -85,16 +85,13 @@ func TestResolveGitHubAppPrivateKeyRejectsInvalidUnboundAndMissing(t *testing.T)
 }
 
 func TestGitHubAppPrivateKeyBindingAcceptsEnvAndFlattenedForms(t *testing.T) {
-	binding, err := githubAppPrivateKeyBinding("123")
-	if err != nil {
-		t.Fatal(err)
-	}
+	ids := credentialBindingIDs{AppID: "123"}
 	for _, ref := range []SecretReference{
 		{Provider: osKeyringProviderName, Key: "github-app/123/private-key"},
 		{Provider: environmentProviderName, Key: githubAppPrivateKeyEnvKey},
 		{Provider: fileProviderName, Key: "github-app.123.private-key"},
 	} {
-		if err := validateSecretReferenceBoundTo(ref, binding); err != nil {
+		if err := validateSecretReferenceBinding(credentialGitHubAppPrivateKey, ref, ids); err != nil {
 			t.Errorf("%+v: %v", ref, err)
 		}
 	}
@@ -103,11 +100,11 @@ func TestGitHubAppPrivateKeyBindingAcceptsEnvAndFlattenedForms(t *testing.T) {
 		{Provider: environmentProviderName, Key: "OTHER"},
 		{Provider: fileProviderName, Key: "github-app/999/private-key"},
 	} {
-		if err := validateSecretReferenceBoundTo(ref, binding); err == nil || !strings.Contains(err.Error(), "not bound") {
+		if err := validateSecretReferenceBinding(credentialGitHubAppPrivateKey, ref, ids); err == nil || !strings.Contains(err.Error(), "not bound to this GitHub App") {
 			t.Errorf("%+v: expected not-bound error, got %v", ref, err)
 		}
 	}
-	if _, err := githubAppPrivateKeyBinding(" "); err == nil {
+	if _, err := expectedSecretKey(credentialGitHubAppPrivateKey, credentialBindingIDs{AppID: " "}); err == nil {
 		t.Fatal("empty app id must be rejected")
 	}
 }

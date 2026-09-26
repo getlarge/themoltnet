@@ -10,6 +10,7 @@
 | List local identities            | `moltnet config identity list`                                                                                                                                   |
 | Import a legacy bundle           | `moltnet config migrate --credentials /path/to/.moltnet/X/moltnet.json`                                                                                          |
 | Export config for portability    | `moltnet config export-env --credentials /path/to/moltnet.json -o .env.moltnet`                                                                                  |
+| Switch a secret's provider       | `MOLTNET_SECRET_ROOT=<dir> MOLTNET_SECRET_ROOT_WRITABLE=1 moltnet config credentials copy --kind identity-seed --to file`                                        |
 | Reconstruct in ephemeral env     | `moltnet config init-from-env --name X --env-file .env.moltnet`                                                                                                  |
 | Activate in Claude Code          | `/legreffier`                                                                                                                                                    |
 | Activate in Codex                | `$legreffier`                                                                                                                                                    |
