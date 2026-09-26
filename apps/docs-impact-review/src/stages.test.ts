@@ -155,20 +155,51 @@ describe('parseContractExtraction', () => {
     ).toThrow(/strict JSON/);
   });
 
-  it('rejects evidence outside the changed source files', () => {
+  it('drops evidence outside the changed source files and records it', () => {
+    // Arrange: gemma cited the changed docs page as evidence (PR #2509).
+    const repairs: string[] = [];
+    const mixed = {
+      ...change,
+      evidence: [
+        ...change.evidence,
+        { path: 'docs/reference/cli.md', detail: 'documents the flag' },
+      ],
+    };
+
+    // Act
+    const parsed = parseContractExtraction(
+      freeform({ version: 1, changes: [mixed] }),
+      sourcePaths,
+      repairs,
+    );
+
+    // Assert
+    expect(parsed.changes).toEqual([change]);
+    expect(repairs).toEqual([
+      'dropped evidence docs/reference/cli.md from change dry-run-flag: not a changed source file',
+    ]);
+  });
+
+  it('drops a change left without any valid evidence', () => {
     // Arrange
+    const repairs: string[] = [];
     const invented = {
       ...change,
       evidence: [{ path: 'apps/cli/src/other.ts', detail: 'x' }],
     };
 
-    // Act / Assert
-    expect(() =>
-      parseContractExtraction(
-        freeform({ version: 1, changes: [invented] }),
-        sourcePaths,
-      ),
-    ).toThrow(/not a changed source file/);
+    // Act
+    const parsed = parseContractExtraction(
+      freeform({ version: 1, changes: [invented] }),
+      sourcePaths,
+      repairs,
+    );
+
+    // Assert
+    expect(parsed.changes).toEqual([]);
+    expect(repairs).toContain(
+      'dropped change dry-run-flag: no evidence from changed source files',
+    );
   });
 
   it('rejects duplicate change ids', () => {
