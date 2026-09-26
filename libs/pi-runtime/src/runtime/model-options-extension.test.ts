@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { applyPiModelOptions } from './model-options-extension.js';
+import {
+  applyPiModelOptions,
+  createPiModelOptionsExtension,
+} from './model-options-extension.js';
 
 describe('applyPiModelOptions', () => {
   it('applies OpenAI-compatible sampling and output caps without top-k', () => {
@@ -113,5 +116,32 @@ describe('applyPiModelOptions', () => {
     expect(
       applyPiModelOptions({ model: 'gpt-5.2', messages: [] }, {}),
     ).toBeUndefined();
+  });
+
+  it('omits unsupported Codex options and warns once per session', () => {
+    let beforeRequest: (event: { payload: unknown }) => unknown;
+    const warn = vi.fn();
+    createPiModelOptionsExtension(
+      { maxOutputTokens: 4000, temperature: 0.2 },
+      'openai-codex',
+      'gpt-5.6-terra',
+      warn,
+    )({
+      on: (_event: string, handler: (event: { payload: unknown }) => unknown) =>
+        (beforeRequest = handler),
+    } as never);
+
+    const payload = { model: 'gpt-5.6-terra', input: [] };
+    expect(beforeRequest!({ payload })).toBeUndefined();
+    expect(beforeRequest!({ payload })).toBeUndefined();
+    expect(warn).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        option: 'maxOutputTokens',
+        provider: 'openai-codex',
+        model: 'gpt-5.6-terra',
+      }),
+      expect.any(String),
+    );
   });
 });
