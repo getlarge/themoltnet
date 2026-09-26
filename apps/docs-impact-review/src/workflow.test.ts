@@ -244,6 +244,16 @@ describe('runDocsImpactReview', () => {
     // Act
     const { report } = run(head, [
       json({ version: 1, outcome: 'not-needed', findings: [] }),
+      json({
+        version: 1,
+        hunks: [
+          {
+            id: 'docs/reference/cli.md#1',
+            verdict: 'keep',
+            reason: 'Describes a command.',
+          },
+        ],
+      }),
     ]);
 
     // Assert
@@ -308,6 +318,65 @@ describe('runDocsImpactReview', () => {
     expect(result.gaps[0].reason).toContain('tool-turn budget');
   });
 
+  it('reports a pointless docs addition found by the docs check', async () => {
+    // Arrange: the PR #2509 shape, a code fix plus a paragraph about it.
+    const head = repo.commit({
+      'apps/cli/src/flags.ts': "export const flags = ['--help'];\n",
+      'docs/reference/cli.md':
+        '# CLI reference\n\n## Commands\n\n`run`\n\nPlain --help calls are now allowed.\n',
+    });
+
+    // Act
+    const { report } = run(head, [
+      json({ version: 1, changes: [cliChange] }),
+      json({ version: 1, outcome: 'covered', findings: [] }),
+      json({
+        version: 1,
+        hunks: [
+          {
+            id: 'docs/reference/cli.md#1',
+            verdict: 'remove',
+            reason:
+              'Help working is expected; the text only exists because of a fix.',
+          },
+        ],
+      }),
+    ]);
+
+    // Assert
+    const result = await report;
+    expect(result.outcome).toBe('updates-needed');
+    expect(result.findings).toEqual([
+      expect.objectContaining({
+        changeId: 'docs:docs/reference/cli.md',
+        issue: 'unnecessary',
+        docsPath: 'docs/reference/cli.md',
+      }),
+    ]);
+  });
+
+  it('keeps the coverage result when the docs check fails', async () => {
+    // Arrange
+    const head = repo.commit({
+      'docs/reference/cli.md':
+        '# CLI reference\n\n## Commands\n\n`run --fast`\n',
+    });
+
+    // Act
+    const { report } = run(head, [
+      json({ version: 1, outcome: 'covered', findings: [] }),
+      'timeout',
+    ]);
+
+    // Assert
+    const result = await report;
+    expect(result.status).toBe('completed');
+    expect(result.outcome).toBe('incomplete');
+    expect(result.gaps).toEqual([
+      expect.objectContaining({ scope: 'docs-check stage' }),
+    ]);
+  });
+
   it('checks a docs-only change without running extraction', async () => {
     // Arrange
     const head = repo.commit({
@@ -318,12 +387,23 @@ describe('runDocsImpactReview', () => {
     // Act
     const { report, created } = run(head, [
       json({ version: 1, outcome: 'covered', findings: [] }),
+      json({
+        version: 1,
+        hunks: [
+          {
+            id: 'docs/reference/cli.md#1',
+            verdict: 'keep',
+            reason: 'Describes a command.',
+          },
+        ],
+      }),
     ]);
 
     // Assert
     await expect(report).resolves.toMatchObject({ outcome: 'covered' });
-    expect(created).toHaveLength(1);
+    expect(created).toHaveLength(2);
     expect(created[0].tags).toContain('stage:coverage');
+    expect(created[1].tags).toContain('stage:docs-check');
   });
 
   it('fails without an outcome when a stage returns invalid output', async () => {

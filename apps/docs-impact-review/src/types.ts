@@ -1,3 +1,6 @@
+/** A MoltNet task stage in the review pipeline. */
+export type StageName = 'extract' | 'coverage' | 'docs-check';
+
 export type FileStatus = 'added' | 'modified' | 'deleted' | 'renamed';
 
 /**
@@ -165,7 +168,7 @@ export interface DocsImpactReport {
   /** Search terms dropped because they matched too many docs. */
   searchTermsDropped: string[];
   /** Mechanical fixes applied to model output before validation. */
-  repairs: Array<{ stage: 'extract' | 'coverage'; repair: string }>;
+  repairs: Array<{ stage: StageName; repair: string }>;
   error?: string;
   manifest: {
     files: number;
@@ -177,7 +180,7 @@ export interface DocsImpactReport {
   timings: {
     ingestMs: number;
     retrievalMs: number;
-    stages: Partial<Record<'extract' | 'coverage', StageTiming>>;
+    stages: Partial<Record<StageName, StageTiming>>;
     totalMs: number;
   };
 }
