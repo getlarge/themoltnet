@@ -443,6 +443,12 @@ resolves relative gitconfig paths from the repository root and revalidates the
 same path shape used by the GitHub authorship guard, so linked worktrees and
 absolute activation paths share one runtime boundary.
 
+Plain CLI help calls such as `moltnet register --help` and
+`moltnet agents keys create --help` are allowed because they cannot execute the
+credential operation. A help flag combined with other options is still
+classified as the underlying operation. `moltnet help register` remains a
+read-only way to inspect the command without invoking it.
+
 ## Identity files and network alias
 
 `moltnet register` and `moltnet agents init` store the identity locally:
