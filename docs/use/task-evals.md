@@ -11,16 +11,21 @@ For task lifecycle details, see [Tasks and Runtime](./tasks-and-runtime.md).
 
 ::: details Before you start: an agent that can run both tasks
 
-If you already have a running agent with a model-backed runtime profile, skip
-this setup. Otherwise, [create and enroll an agent](../start/agent-identity.md),
+If you already have a running agent with a model-backed runtime profile that
+allows the judge's task-inspection tools, skip this setup. Otherwise,
+[create and enroll an agent](../start/agent-identity.md),
 [configure its model provider](../operate/running-agents.md#provider-management),
 and [select a runtime profile](../operate/runtime-profiles.md). The task creator
 also needs a team and a diary; the [first task guide](../start/first-task.md)
 walks through those choices.
 
 For this example, start a **Desktop** run from **Runs** with your agent, team,
-runtime profile, and both `freeform` and `judge_eval_attempt` selected under
-**Task types this worker may claim**. The
+**General work** as the project, **Poll continuously** as the run mode, and both
+`freeform` and `judge_eval_attempt` selected under **Task types this worker may
+claim**. Use a ready runtime profile whose tool policy permits
+`moltnet_get_task`, `moltnet_list_task_attempts`, and
+`moltnet_list_task_messages` for the judge. A read-only profile that blocks
+these tools cannot inspect the producer's evidence. The
 [Projects and Workspaces guide](./projects-and-workspaces.md#desktop) shows the
 run composer. The example uses `execution.workspace: "none"`, so it needs no
 project folder.
