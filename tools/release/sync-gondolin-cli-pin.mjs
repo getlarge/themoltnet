@@ -31,13 +31,41 @@ export async function verifyPackages(version, get = globalThis.fetch) {
       `https://registry.npmjs.org/@themoltnet%2f${name}/${version}`,
     );
     if (!response.ok) {
-      throw new Error(
+      const error = new Error(
         `@themoltnet/${name}@${version} unavailable (${response.status})`,
       );
+      error.status = response.status;
+      throw error;
     }
     const metadata = await response.json();
     if (metadata.version !== version) {
       throw new Error(`@themoltnet/${name} resolved ${metadata.version}`);
+    }
+  }
+}
+
+export async function waitForPackages(
+  version,
+  get = globalThis.fetch,
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  maxAttempts = 20,
+) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await verifyPackages(version, get);
+      return;
+    } catch (error) {
+      const status = error.status;
+      const retryable =
+        error instanceof TypeError ||
+        status === 404 ||
+        status === 429 ||
+        status >= 500;
+      if (!retryable || attempt === maxAttempts) throw error;
+      console.warn(
+        `npm package verification attempt ${attempt}/${maxAttempts}: ${error.message}; retrying in 15 seconds`,
+      );
+      await sleep(15_000);
     }
   }
 }
@@ -70,7 +98,7 @@ export async function main() {
   }
   const updated = advancePin(source, version);
   if (updated === source) return;
-  await verifyPackages(version);
+  await waitForPackages(version);
   await writeFile(pinFile, updated);
 }
 
