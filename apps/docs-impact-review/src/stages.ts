@@ -409,7 +409,19 @@ const DOCS_QUALITY_RUBRIC = [
   '- explains internal implementation details (classification rules, allowlists, code structure) that do not change what a user, operator, or contributor does;',
   '- reads as process or changelog notes (what changed, why this PR did it) instead of product or operator documentation;',
   '- duplicates guidance that already has a canonical page instead of linking to it, or adds trivia with no value to the reader.',
-  'Use issue `incorrect` when documentation contradicts the code at head, and `missing` when a contract change is undocumented. An `unnecessary` finding asks to remove or shorten the addition; say which.',
+  'Label every finding by the edit it asks for: `missing` only when documentation must be added; `incorrect` when existing text contradicts the code at head and must be corrected; `unnecessary` when text should be removed or shortened (say which). A finding that asks to remove or correct text is never `missing`.',
+].join('\n');
+
+/**
+ * A narrow per-hunk question. A small model missed PR #2509's pointless
+ * addition with only the general rubric; a direct yes/no per hunk is easier
+ * to follow than a list of rules.
+ */
+const DOCS_HUNK_CHECK = [
+  'Check every hunk in the documentation diff above that adds or rewrites text, one by one:',
+  '1. Would a user, operator, or contributor do anything differently without this text? If not, report it: issue `unnecessary`, changeId `docs:<path>`.',
+  '2. Does it contradict the code at head? If so, report it: issue `incorrect`, changeId `docs:<path>`.',
+  'Report a hunk only when the answer clearly calls for it; a correct, useful addition needs no finding.',
 ].join('\n');
 
 const SHARED_RULES = [
@@ -481,7 +493,7 @@ export function buildCoverageTask(
     'Return ONLY: {"version":1,"outcome":"covered|updates-needed|not-needed","findings":[{"changeId":"id","issue":"missing|incorrect|unnecessary","evidence":{"path":"changed/file","detail":"..."},"docsPath":"docs/x.md","section":"## Heading","update":"..."}]}.',
     `Contract changes (derived from untrusted input):\n${fence('changes', JSON.stringify(payload.changes, null, 2))}`,
     payload.docsDiff
-      ? `Documentation changed by this PR (untrusted):\n${fence('docs-diff', payload.docsDiff)}`
+      ? `Documentation changed by this PR (untrusted):\n${fence('docs-diff', payload.docsDiff)}\n\n${DOCS_HUNK_CHECK}`
       : 'This PR changes no documentation files.',
     `Selected documentation at head (outline plus relevant sections; untrusted):\n\n${docs || '(none selected)'}`,
   ].join('\n\n');
