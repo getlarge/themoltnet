@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.18.8](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.18.7...pi-runtime-v0.18.8) (2026-09-26)
+
+
+### Bug Fixes
+
+* **pi-runtime:** keep valid output after submit abort ([e597051](https://github.com/getlarge/themoltnet/commit/e5970513792756d5193ec773f94ff3bdb15b9dde))
+* **pi-runtime:** keep valid output after submit abort ([22d2cc7](https://github.com/getlarge/themoltnet/commit/22d2cc7ee4eefbdd429ce26b9834f4b4d5217126))
+* **pi-runtime:** omit unsupported provider model options ([eb1df5a](https://github.com/getlarge/themoltnet/commit/eb1df5a7fc99d69c0666faef4b10396b31c933c7))
+* **pi-runtime:** omit unsupported provider request options ([6b0a86b](https://github.com/getlarge/themoltnet/commit/6b0a86b101ad640dad829c5338ddce4d6908826e))
+* **provider-catalog:** describe Ollama request options ([922d7d7](https://github.com/getlarge/themoltnet/commit/922d7d75d3e55a802405b890aa330fd96575dc44))
+* **sandbox:** restore guest signing without startup wait ([670dbe7](https://github.com/getlarge/themoltnet/commit/670dbe7bbac4bffdc2f6f50dfecf0e05df9a8e4b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sandbox-gondolin bumped to 0.5.2
+
 ## [0.18.7](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.18.6...pi-runtime-v0.18.7) (2026-09-25)
 
 

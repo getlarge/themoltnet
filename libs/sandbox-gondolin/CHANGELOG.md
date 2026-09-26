@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.2](https://github.com/getlarge/themoltnet/compare/sandbox-gondolin-v0.5.1...sandbox-gondolin-v0.5.2) (2026-09-26)
+
+
+### Bug Fixes
+
+* **sandbox:** restore guest signing without startup wait ([670dbe7](https://github.com/getlarge/themoltnet/commit/670dbe7bbac4bffdc2f6f50dfecf0e05df9a8e4b))
+* **sandbox:** start optional guest services without blocking ([20eb2e3](https://github.com/getlarge/themoltnet/commit/20eb2e373dbbe6c359f2244cf4f88f86a8282a5a))
+
 ## [0.5.1](https://github.com/getlarge/themoltnet/compare/sandbox-gondolin-v0.5.0...sandbox-gondolin-v0.5.1) (2026-09-02)
 
 
