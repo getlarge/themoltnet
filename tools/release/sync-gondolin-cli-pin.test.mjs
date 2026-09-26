@@ -5,6 +5,7 @@ import {
   advancePin,
   compareVersions,
   verifyPackages,
+  waitForPackages,
 } from './sync-gondolin-cli-pin.mjs';
 
 test('compares numeric versions and rejects malformed versions', () => {
@@ -12,6 +13,43 @@ test('compares numeric versions and rejects malformed versions', () => {
   assert.equal(compareVersions('3.5.0', '3.5.0'), 0);
   assert.equal(compareVersions('3.4.9', '3.5.0'), -1);
   assert.throws(() => compareVersions('3.5.0-beta', '3.5.0'));
+});
+
+test('waits for npm to expose the released version', async () => {
+  let attempts = 0;
+  const delays = [];
+  await waitForPackages(
+    '3.7.0',
+    async () => {
+      attempts++;
+      return {
+        ok: attempts > 1,
+        status: attempts > 1 ? 200 : 404,
+        json: async () => ({ version: '3.7.0' }),
+      };
+    },
+    async (ms) => delays.push(ms),
+    3,
+  );
+  assert.equal(attempts, 4);
+  assert.deepEqual(delays, [15_000]);
+});
+
+test('stops after the visibility window expires', async () => {
+  let attempts = 0;
+  await assert.rejects(
+    waitForPackages(
+      '3.7.0',
+      async () => {
+        attempts++;
+        return { ok: false, status: 404 };
+      },
+      async () => {},
+      3,
+    ),
+    /cli@3.7.0 unavailable \(404\)/,
+  );
+  assert.equal(attempts, 3);
 });
 
 test('advances only newer pins and is idempotent', () => {
