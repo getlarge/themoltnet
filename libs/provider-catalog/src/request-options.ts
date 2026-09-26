@@ -1,3 +1,4 @@
+import { ollamaCloudModels, ollamaModels } from './ollama-models.js';
 import { piRuntimeModels } from './pi-runtime-models.generated.js';
 import { type RequestOptionName, requestOptionNames } from './types.js';
 
@@ -7,6 +8,11 @@ const capabilityNames: Record<RequestOptionName, string> = {
   topK: 'supportsTopK',
   maxOutputTokens: 'supportsMaxOutputTokens',
 };
+const catalogEntries = [
+  ...piRuntimeModels,
+  ...ollamaModels,
+  ...ollamaCloudModels,
+];
 
 /** Undefined means the catalog cannot decide; the provider error classifier remains the backstop. */
 export function requestOptionCapabilities(
@@ -20,7 +26,7 @@ export function requestOptionCapabilities(
     return Object.fromEntries(requestOptionNames.map((name) => [name, false]));
   }
 
-  const entry = piRuntimeModels.find(
+  const entry = catalogEntries.find(
     (candidate) =>
       candidate.provider === normalizedProvider &&
       candidate.model === model.toLowerCase(),

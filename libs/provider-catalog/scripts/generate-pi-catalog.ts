@@ -16,11 +16,41 @@ const packageRoot = dirname(
 type PiModel = {
   id: string;
   name: string;
+  api: string;
   reasoning: boolean;
   input: string[];
   contextWindow: number;
   maxTokens: number;
 };
+
+// Request fields supported by the Pi transport used for each static provider.
+// Keep this explicit when adding a provider: model metadata alone does not
+// describe which profile options its request endpoint accepts.
+const requestOptionCapabilitiesByApi = {
+  'anthropic-messages': {
+    supportsTemperature: true,
+    supportsTopP: true,
+    supportsTopK: true,
+    supportsMaxOutputTokens: true,
+  },
+  'openai-codex-responses': {
+    supportsTemperature: false,
+    supportsTopP: false,
+    supportsTopK: false,
+    supportsMaxOutputTokens: false,
+  },
+} as const;
+
+function requestOptionsForApi(api: string) {
+  const capabilities =
+    requestOptionCapabilitiesByApi[
+      api as keyof typeof requestOptionCapabilitiesByApi
+    ];
+  if (!capabilities) {
+    throw new Error(`Request option capabilities are not reviewed for ${api}`);
+  }
+  return capabilities;
+}
 
 async function readProvider(provider: 'anthropic' | 'openai-codex') {
   const source = join(packageRoot, 'providers', 'data', `${provider}.json`);
@@ -39,10 +69,7 @@ async function readProvider(provider: 'anthropic' | 'openai-codex') {
       capabilities: {
         supportsReasoning: model.reasoning,
         supportsVision: model.input.includes('image'),
-        supportsTemperature: provider === 'anthropic',
-        supportsTopP: provider === 'anthropic',
-        supportsTopK: provider === 'anthropic',
-        supportsMaxOutputTokens: provider === 'anthropic',
+        ...requestOptionsForApi(model.api),
         contextWindow: model.contextWindow,
         maxOutputTokens: model.maxTokens,
       },

@@ -144,4 +144,35 @@ describe('applyPiModelOptions', () => {
       expect.any(String),
     );
   });
+
+  it('keeps supported Ollama sampling and output caps while warning about top-k', () => {
+    let beforeRequest: (event: { payload: unknown }) => unknown;
+    const warn = vi.fn();
+    createPiModelOptionsExtension(
+      { temperature: 0.2, topP: 0.9, topK: 40, maxOutputTokens: 4000 },
+      'ollama-cloud',
+      'qwen3-coder:480b-cloud',
+      warn,
+    )({
+      on: (_event: string, handler: (event: { payload: unknown }) => unknown) =>
+        (beforeRequest = handler),
+    } as never);
+
+    expect(
+      beforeRequest!({
+        payload: { model: 'qwen3-coder:480b-cloud', messages: [] },
+      }),
+    ).toEqual({
+      model: 'qwen3-coder:480b-cloud',
+      messages: [],
+      temperature: 0.2,
+      top_p: 0.9,
+      max_tokens: 4000,
+    });
+    expect(warn).toHaveBeenCalledOnce();
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({ option: 'topK', provider: 'ollama-cloud' }),
+      expect.any(String),
+    );
+  });
 });

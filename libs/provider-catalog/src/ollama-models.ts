@@ -1,5 +1,16 @@
 import type { RuntimeModelCatalogEntry } from './types.js';
 
+// MoltNet's Pi integration uses Ollama's OpenAI-compatible endpoint. That
+// route accepts temperature, top_p, and output caps, but does not expose the
+// native Ollama top_k option through Pi's openai-completions request shape.
+// https://docs.ollama.com/api/openai-compatibility
+const openAiCompatibleRequestCapabilities = {
+  supportsTemperature: true,
+  supportsTopP: true,
+  supportsTopK: false,
+  supportsMaxOutputTokens: true,
+} as const;
+
 /**
  * Reviewed suggestions from Ollama's public Model Library (2026-09-04).
  * These describe model names that a user may choose; they do not assert that
@@ -21,7 +32,7 @@ export const ollamaModels: readonly RuntimeModelCatalogEntry[] = [
   model,
   displayName: `Ollama · ${model}`,
   description: 'Local Ollama model suggestion; installation is not implied.',
-  capabilities: {},
+  capabilities: { ...openAiCompatibleRequestCapabilities },
 }));
 
 /** Reviewed Ollama Cloud entries from the public Model Library (2026-09-04). */
@@ -43,5 +54,5 @@ export const ollamaCloudModels: readonly RuntimeModelCatalogEntry[] = [
   model,
   displayName: `Ollama Cloud · ${model}`,
   description: 'Ollama Cloud model suggestion.',
-  capabilities: {},
+  capabilities: { ...openAiCompatibleRequestCapabilities },
 }));
