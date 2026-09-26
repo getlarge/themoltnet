@@ -35,6 +35,15 @@ function readHydraClientCredentialsFlag(
   return line[1] === 'true';
 }
 
+function readHydraPkceFlag(relativePath: string, key: string): boolean {
+  const yaml = readFileSync(new URL(relativePath, import.meta.url), 'utf8');
+  const block = yaml.match(/^ {2}pkce:\n((?: {4}[^\n]+\n)+)/mu)?.[1];
+  if (!block) throw new Error('Hydra oauth2.pkce block not found');
+  const line = block.match(new RegExp(`^ {4}${key}: (\\S+)$`, 'mu'));
+  if (!line) throw new Error(`Hydra ${key} not found under pkce`);
+  return line[1] === 'true';
+}
+
 function readHydraSupportedScopes(relativePath: string): string[] {
   const yaml = readFileSync(new URL(relativePath, import.meta.url), 'utf8');
   const block = yaml.match(
@@ -97,6 +106,33 @@ describe('credential scope configuration', () => {
 });
 
 describe('Ory environment parity', () => {
+  it('requires PKCE for public clients in both configurations', () => {
+    const project = readJson('../../infra/ory/project.json') as {
+      services: {
+        oauth2: {
+          config: {
+            oauth2: {
+              pkce: { enforced: boolean; enforced_for_public_clients: boolean };
+            };
+          };
+        };
+      };
+    };
+    const configured = project.services.oauth2.config.oauth2.pkce;
+    expect(configured).toEqual({
+      enforced: false,
+      enforced_for_public_clients: true,
+    });
+    expect(
+      readHydraPkceFlag('../../infra/ory/hydra/hydra.yaml', 'enforced'),
+    ).toBe(false);
+    expect(
+      readHydraPkceFlag(
+        '../../infra/ory/hydra/hydra.yaml',
+        'enforced_for_public_clients',
+      ),
+    ).toBe(true);
+  });
   it('routes operator OAuth through the Console approval UI', () => {
     const project = readJson('../../infra/ory/project.json') as {
       services: {
@@ -174,7 +210,7 @@ describe('advertised scopes', () => {
   // enforcement. A client registered for a scope outside it still reaches
   // login; `invalid_scope` is raised only for scopes the client's own
   // registration lacks.
-  it('advertises exactly the MCP tool surface in both environments', () => {
+  it('advertises the MCP tool surface and OIDC identity scopes in both environments', () => {
     const project = readJson('../../infra/ory/project.json') as {
       services: {
         oauth2: {
@@ -190,8 +226,9 @@ describe('advertised scopes', () => {
       '../../infra/ory/hydra/hydra.yaml',
     );
 
-    expect(configured).toEqual([...MCP_CLIENT_SCOPES]);
-    expect(localConfigured).toEqual([...MCP_CLIENT_SCOPES]);
+    const expected = [...MCP_CLIENT_SCOPES, 'email', 'profile'].sort();
+    expect(configured.sort()).toEqual(expected);
+    expect(localConfigured.sort()).toEqual(expected);
   });
 
   it('never advertises a scope the token hook would then refuse', () => {
@@ -199,10 +236,9 @@ describe('advertised scopes', () => {
       '../../infra/ory/hydra/hydra.yaml',
     );
 
-    // Hydra always adds openid/offline/offline_access, so what a client sees is
-    // those plus this list — which must land exactly on the enforced cap.
+    // Discovery is descriptive; the DCR default and grant cap remain separate.
     expect([...OIDC_PROTOCOL_SCOPES, ...localConfigured].sort()).toEqual(
-      [...DCR_MAX_SCOPES].sort(),
+      [...DCR_MAX_SCOPES, 'email', 'profile'].sort(),
     );
     for (const privileged of [
       'key:manage',

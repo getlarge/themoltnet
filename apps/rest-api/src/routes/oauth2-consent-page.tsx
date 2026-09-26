@@ -27,6 +27,8 @@ export interface ConsentPageModel {
 
 const SCOPE_DESCRIPTIONS: Readonly<Record<string, string>> = {
   openid: 'Confirm your signed-in identity',
+  profile: 'Share your username',
+  email: 'Share your email address and verification status',
   offline: 'Keep access after this browser session ends',
   offline_access: 'Keep access after this browser session ends',
   'agent:profile': 'Read the authenticated agent profile',

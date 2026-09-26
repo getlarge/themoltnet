@@ -83,6 +83,12 @@ test('builds an installable source archive with current component versions', () 
       ),
       true,
     );
+    assert.equal(
+      existsSync(
+        path.join(output, 'infra/ory/oauth2-clients/tailscale-login.json'),
+      ),
+      true,
+    );
     const config = spawnSync(
       'docker',
       [
