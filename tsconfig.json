@@ -36,6 +36,9 @@
       "path": "apps/multi-lens-review"
     },
     {
+      "path": "apps/docs-impact-review"
+    },
+    {
       "path": "apps/orchestration-e2e"
     },
     {

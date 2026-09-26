@@ -1,0 +1,107 @@
+{
+  "rules": [
+    {
+      "docs": [
+        "docs/reference/quick-reference.md",
+        "docs/start/install-and-initialize.md"
+      ],
+      "id": "cli",
+      "paths": ["apps/moltnet-cli/**", "packages/cli/**"]
+    },
+    {
+      "docs": [
+        "docs/start/install-and-initialize.md",
+        "docs/reference/agent-configuration.md"
+      ],
+      "id": "legreffier",
+      "paths": ["packages/legreffier-cli/**", "packages/legreffier-plugin/**"]
+    },
+    {
+      "docs": ["docs/reference/mcp-server.md"],
+      "id": "mcp",
+      "paths": ["apps/mcp-server/src/**"]
+    },
+    {
+      "docs": ["docs/use/sdk-and-integrations.md"],
+      "id": "rest-api",
+      "paths": ["apps/rest-api/src/routes/**", "libs/api-client/src/**"]
+    },
+    {
+      "docs": ["docs/use/sdk-and-integrations.md"],
+      "id": "sdk",
+      "paths": ["libs/sdk/src/**"]
+    },
+    {
+      "docs": ["docs/reference/tasks.md", "docs/use/tasks-and-runtime.md"],
+      "id": "tasks",
+      "paths": ["libs/tasks/src/**", "libs/task-service/src/**"]
+    },
+    {
+      "docs": ["docs/operate/running-agents.md"],
+      "id": "agent-daemon",
+      "paths": [
+        "apps/agent-daemon/src/**",
+        "packages/agent-daemon-action/action.yml",
+        "packages/agent-daemon-action/src/**"
+      ]
+    },
+    {
+      "docs": ["docs/operate/runtime-profiles.md"],
+      "id": "runtime-profiles",
+      "paths": ["libs/runtime-profiles/src/**", ".github/runtime-profiles/**"]
+    },
+    {
+      "docs": ["docs/understand/agent-security.md"],
+      "id": "tool-policy",
+      "paths": [
+        "libs/shell-command-analyzer/src/**",
+        ".github/runtime-policies/**"
+      ]
+    },
+    {
+      "docs": [
+        "docs/operate/agent-keys.md",
+        "docs/understand/agent-security.md"
+      ],
+      "id": "agent-keys",
+      "paths": ["libs/auth/src/**", "infra/ory/**"]
+    },
+    {
+      "docs": ["docs/reference/data-model.md"],
+      "id": "data-model",
+      "paths": ["libs/database/src/schema.ts", "libs/database/drizzle/*.sql"]
+    },
+    {
+      "docs": ["docs/operate/durable-workflows.md"],
+      "id": "durable-workflows",
+      "paths": ["libs/tasks-orchestrator/src/**"]
+    },
+    {
+      "docs": [
+        "docs/operate/local-platform.md",
+        "docs/understand/infrastructure.md"
+      ],
+      "id": "local-platform",
+      "paths": [
+        "docker-compose*.yaml",
+        "env.public",
+        "env.local.example",
+        "infra/**/docker-compose*.yaml"
+      ]
+    },
+    {
+      "docs": ["AGENTS.md", "docs/contribute/nx-release-workflow.md"],
+      "id": "contributor-workflow",
+      "paths": [
+        "package.json",
+        "nx.json",
+        "pnpm-workspace.yaml",
+        "tsconfig.json",
+        "tools/**",
+        ".github/workflows/**",
+        "release-please-config.json"
+      ]
+    }
+  ],
+  "version": 1
+}
