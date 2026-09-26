@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildCoverageTask,
+  buildDocsCheckTask,
   buildExtractTask,
   parseContractExtraction,
   parseCoverageCheck,
+  parseDocsCheck,
   type StageContext,
   TEXT_LIMITS,
 } from './stages.js';
@@ -442,28 +444,18 @@ describe('project scoping', () => {
 });
 
 describe('buildCoverageTask', () => {
-  it('asks the per-hunk usefulness question only when docs changed', () => {
+  it('leaves the usefulness question to the docs check', () => {
     // Act
-    const withDocs = buildCoverageTask(context, {
+    const task = buildCoverageTask(context, {
       changes: [change],
       docs: [],
       docsDiff: '### docs/a.md (modified)\n+Plain --help calls are allowed.\n',
     });
-    const withoutDocs = buildCoverageTask(context, {
-      changes: [change],
-      docs: [],
-      docsDiff: '',
-    });
 
     // Assert
-    const brief = (task: typeof withDocs) =>
-      (task.input as { brief: string }).brief;
-    expect(brief(withDocs)).toContain(
-      'Would a user, operator, or contributor do anything differently',
-    );
-    expect(brief(withoutDocs)).not.toContain(
-      'Would a user, operator, or contributor do anything differently',
-    );
+    const brief = (task.input as { brief: string }).brief;
+    expect(brief).toContain('a separate check does that');
+    expect(brief).not.toContain('`unnecessary`');
   });
 
   it('pins a dedicated worktree to the reviewed head', () => {
@@ -494,8 +486,6 @@ describe('buildCoverageTask', () => {
     });
     expect(input.brief).toContain('dry-run-flag');
     expect(input.brief).toContain('one or two sentences');
-    // Additions are judged for usefulness, not only for presence.
-    expect(input.brief).toContain('issue `unnecessary`');
     expect(input.brief).toContain('is never `missing`');
     // Missing-docs findings must not rest only on the pre-selected excerpts.
     expect(input.brief).toContain(
@@ -503,5 +493,72 @@ describe('buildCoverageTask', () => {
     );
     expect(input.brief).toContain('documentation-only change');
     expect(input.brief).toContain('apps/cli/README.md');
+  });
+});
+
+describe('buildDocsCheckTask', () => {
+  it('asks the timeless question per hunk without a workspace', () => {
+    // Act
+    const task = buildDocsCheckTask(context, [
+      {
+        id: 'docs/a.md#1',
+        path: 'docs/a.md',
+        section: '## Guard',
+        added: 'Plain --help calls are now allowed.',
+      },
+    ]);
+
+    // Assert
+    const input = task.input as { brief: string; execution?: unknown };
+    expect(input.execution).toBeUndefined();
+    expect(task.tags).toEqual(expect.arrayContaining(['stage:docs-check']));
+    expect(input.brief).toContain(
+      'would this text have been written this way if the behavior had always been like this?',
+    );
+    expect(input.brief).toContain('Worked example, `remove`');
+    expect(input.brief).toMatch(/#### docs\/a\.md#1 \(under ## Guard\)/);
+  });
+});
+
+describe('parseDocsCheck', () => {
+  it('drops unknown and duplicate hunk ids and records both', () => {
+    // Arrange
+    const repairs: string[] = [];
+
+    // Act
+    const answers = parseDocsCheck(
+      freeform({
+        version: 1,
+        hunks: [
+          { id: 'docs/a.md#1', verdict: 'remove', reason: 'Only a bug fix.' },
+          { id: 'docs/a.md#1', verdict: 'keep', reason: 'dup' },
+          { id: 'docs/x.md#9', verdict: 'keep', reason: 'invented' },
+        ],
+      }),
+      new Set(['docs/a.md#1']),
+      repairs,
+    );
+
+    // Assert
+    expect(answers).toEqual([
+      { id: 'docs/a.md#1', verdict: 'remove', reason: 'Only a bug fix.' },
+    ]);
+    expect(repairs).toEqual([
+      'dropped duplicate docs-check answer for docs/a.md#1',
+      'dropped docs-check answer for unknown hunk docs/x.md#9',
+    ]);
+  });
+
+  it('rejects an unknown verdict', () => {
+    // Act / Assert
+    expect(() =>
+      parseDocsCheck(
+        freeform({
+          version: 1,
+          hunks: [{ id: 'docs/a.md#1', verdict: 'maybe', reason: 'r' }],
+        }),
+        new Set(['docs/a.md#1']),
+      ),
+    ).toThrow(/docs check output/);
   });
 });

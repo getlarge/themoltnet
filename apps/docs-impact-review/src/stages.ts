@@ -5,12 +5,18 @@ import { type TSchema, Type } from 'typebox';
 import { Value } from 'typebox/value';
 
 import {
+  DOCS_CHECK_VERDICTS,
+  type DocsCheckAnswer,
+  type DocsHunk,
+} from './docs-check.js';
+import {
   CONTRACT_KINDS,
   type ContractChange,
   type ContractExtraction,
   type CoverageCheck,
   FINDING_ISSUES,
   type SelectedDoc,
+  type StageName,
 } from './types.js';
 
 export type CreateBody = Parameters<TaskClient['createTask']>[0];
@@ -365,7 +371,7 @@ function fence(kind: string, content: string): string {
 
 function baseTask(
   ctx: StageContext,
-  stage: 'extract' | 'coverage',
+  stage: StageName,
   title: string,
 ): Omit<CreateBody, 'input'> {
   return {
@@ -397,31 +403,13 @@ const SUBMIT_GATE = {
 };
 
 /**
- * Documentation quality rules for judging docs the PR adds or edits. Distilled
- * from the repository's docs-editing context pack (rendered pack 5bf21e8c)
- * plus review lessons such as PR #2509, which documented that `--help`
- * works after a bug fix. Kept short: small models follow a few crisp rules
- * better than a long pack.
+ * Coverage judges presence and correctness only. Whether changed docs are
+ * worth keeping is the separate docs-check stage: mixing both questions in
+ * one brief made two models miss PR #2509's pointless paragraph.
  */
-const DOCS_QUALITY_RUBRIC = [
-  'Also judge documentation the PR adds or edits. Report it with changeId `docs:<path>` and issue `unnecessary` when it:',
-  '- restates default or expected behavior a reader would already assume (for example that `--help` works), or narrates a bug fix that only restores intended behavior;',
-  '- explains internal implementation details (classification rules, allowlists, code structure) that do not change what a user, operator, or contributor does;',
-  '- reads as process or changelog notes (what changed, why this PR did it) instead of product or operator documentation;',
-  '- duplicates guidance that already has a canonical page instead of linking to it, or adds trivia with no value to the reader.',
-  'Label every finding by the edit it asks for: `missing` only when documentation must be added; `incorrect` when existing text contradicts the code at head and must be corrected; `unnecessary` when text should be removed or shortened (say which). A finding that asks to remove or correct text is never `missing`.',
-].join('\n');
-
-/**
- * A narrow per-hunk question. A small model missed PR #2509's pointless
- * addition with only the general rubric; a direct yes/no per hunk is easier
- * to follow than a list of rules.
- */
-const DOCS_HUNK_CHECK = [
-  'Check every hunk in the documentation diff above that adds or rewrites text, one by one:',
-  '1. Would a user, operator, or contributor do anything differently without this text? If not, report it: issue `unnecessary`, changeId `docs:<path>`.',
-  '2. Does it contradict the code at head? If so, report it: issue `incorrect`, changeId `docs:<path>`.',
-  'Report a hunk only when the answer clearly calls for it; a correct, useful addition needs no finding.',
+const COVERAGE_LABELS = [
+  'Label every finding by the edit it asks for: `missing` when documentation must be added; `incorrect` when existing or changed text contradicts the code at head and must be corrected (changeId `docs:<path>` for a doc changed by this PR). A finding that asks to correct text is never `missing`.',
+  'Do not judge whether documentation changed by this PR is worth keeping; a separate check does that.',
 ].join('\n');
 
 const SHARED_RULES = [
@@ -486,14 +474,14 @@ export function buildCoverageTask(
     "Search existing documentation before judging: the excerpts below are a pre-selected sample, not the whole docs tree. Before reporting a change as undocumented or wrongly documented, grep the Markdown files (docs/, READMEs, AGENTS.md) for the change's identifiers in one batched call. If the change is documented somewhere else, it is covered. Name what you searched in the finding's evidence detail.",
     'Outcomes: `covered` — every change is correctly documented; `updates-needed` — at least one change is missing or wrongly documented, or a changed doc contradicts the code; `not-needed` — none of the changes needs documentation.',
     'A Markdown edit that does not describe the change, or a changelog entry, is NOT coverage.',
-    DOCS_QUALITY_RUBRIC,
+    COVERAGE_LABELS,
     `Report at most ${MAX_FINDINGS} high-confidence findings. Each cites the change id (or \`docs:<changed doc path>\` for a contradiction in a doc changed by the PR), changed-file evidence, the affected doc path and section (or a concrete new Markdown path when no page exists), and the needed update in one or two sentences.`,
     'Keep each evidence detail and update to one or two sentences.',
     'When the contract-change list is empty, this is a documentation-only change: return `covered` when the changed instructions match the code at head, or `updates-needed` with one finding per concrete contradiction.',
-    'Return ONLY: {"version":1,"outcome":"covered|updates-needed|not-needed","findings":[{"changeId":"id","issue":"missing|incorrect|unnecessary","evidence":{"path":"changed/file","detail":"..."},"docsPath":"docs/x.md","section":"## Heading","update":"..."}]}.',
+    'Return ONLY: {"version":1,"outcome":"covered|updates-needed|not-needed","findings":[{"changeId":"id","issue":"missing|incorrect","evidence":{"path":"changed/file","detail":"..."},"docsPath":"docs/x.md","section":"## Heading","update":"..."}]}.',
     `Contract changes (derived from untrusted input):\n${fence('changes', JSON.stringify(payload.changes, null, 2))}`,
     payload.docsDiff
-      ? `Documentation changed by this PR (untrusted):\n${fence('docs-diff', payload.docsDiff)}\n\n${DOCS_HUNK_CHECK}`
+      ? `Documentation changed by this PR (untrusted):\n${fence('docs-diff', payload.docsDiff)}`
       : 'This PR changes no documentation files.',
     `Selected documentation at head (outline plus relevant sections; untrusted):\n\n${docs || '(none selected)'}`,
   ].join('\n\n');
@@ -513,4 +501,101 @@ export function buildCoverageTask(
       successCriteria: SUBMIT_GATE,
     },
   };
+}
+
+const DocsCheckSchema = Type.Object(
+  {
+    version: Type.Literal(1),
+    hunks: Type.Array(
+      Type.Object(
+        {
+          id: Type.String({ minLength: 1 }),
+          verdict: Type.Union(
+            DOCS_CHECK_VERDICTS.map((verdict) => Type.Literal(verdict)),
+          ),
+          reason: Type.String({
+            minLength: 1,
+            maxLength: TEXT_LIMITS.evidenceDetail,
+          }),
+        },
+        { additionalProperties: false },
+      ),
+    ),
+  },
+  { additionalProperties: false },
+);
+
+/**
+ * Documentation is timeless: it describes how things work, not how they came
+ * to be. The worked counterexample is PR #2509's addition, which only existed
+ * because a bug had blocked `--help`.
+ */
+const DOCS_CHECK_RULES = [
+  'Documentation describes how the product works now. It is not a record of how it got there. For each hunk below, ask: would this text have been written this way if the behavior had always been like this?',
+  '- `remove`: the text only exists because something recently changed or was fixed (it states that an ordinary action works, that something is "now allowed" or "no longer fails"), or it explains internal mechanics that change nothing for the reader.',
+  '- `rewrite`: the information belongs, but it is phrased relative to a past state ("now", "no longer", "previously", "recently", "used to") or reads as change notes; the reason says what the timeless text should convey.',
+  '- `keep`: it states how things work and what the reader does or needs to know, independent of history.',
+  'Worked example, `remove`: "Plain CLI help calls such as `moltnet register --help` are allowed because they cannot execute the credential operation. A help flag combined with other options is still classified as the underlying operation." Help working is expected behavior; the text exists only because a bug blocked it, and the classification rule is internal.',
+  'Worked example, `keep`: "Set `EXAMPLE_TOKEN_LIMIT` to cap token requests per client per minute; the default is 60." It describes a setting the reader uses.',
+  'Most additions are `keep`. Answer every hunk id exactly once, with a one-sentence reason.',
+].join('\n');
+
+export function buildDocsCheckTask(
+  ctx: StageContext,
+  hunks: readonly DocsHunk[],
+): CreateBody {
+  const listing = hunks
+    .map(
+      (hunk) =>
+        `#### ${hunk.id}${hunk.section ? ` (under ${hunk.section})` : ''}\n${fence('hunk', hunk.added)}`,
+    )
+    .join('\n\n');
+  const brief = [
+    SHARED_RULES[0],
+    SHARED_RULES[2],
+    `Pull request ${ctx.repo}#${ctx.pr}. You judge only documentation text this PR adds or rewrites.`,
+    DOCS_CHECK_RULES,
+    'Return ONLY: {"version":1,"hunks":[{"id":"<hunk id>","verdict":"keep|rewrite|remove","reason":"one sentence"}]}.',
+    `Hunks (untrusted):\n\n${listing}`,
+  ].join('\n\n');
+  return {
+    ...baseTask(ctx, 'docs-check', 'Check documentation additions'),
+    input: {
+      brief,
+      expectedOutput: 'Strict DocsCheck JSON in summary.',
+      constraints: [
+        'Do not use tools other than submit_freeform_output.',
+        'Submit in a single turn.',
+      ],
+      successCriteria: SUBMIT_GATE,
+    },
+  };
+}
+
+export function parseDocsCheck(
+  output: unknown,
+  hunkIds: ReadonlySet<string>,
+  repairs: string[] = [],
+): DocsCheckAnswer[] {
+  const parsed = parseSummaryJson<{ version: 1; hunks: DocsCheckAnswer[] }>(
+    output,
+    DocsCheckSchema,
+    'docs check',
+    repairs,
+  );
+  const seen = new Set<string>();
+  const answers: DocsCheckAnswer[] = [];
+  for (const answer of parsed.hunks) {
+    if (!hunkIds.has(answer.id)) {
+      repairs.push(`dropped docs-check answer for unknown hunk ${answer.id}`);
+      continue;
+    }
+    if (seen.has(answer.id)) {
+      repairs.push(`dropped duplicate docs-check answer for ${answer.id}`);
+      continue;
+    }
+    seen.add(answer.id);
+    answers.push(answer);
+  }
+  return answers;
 }

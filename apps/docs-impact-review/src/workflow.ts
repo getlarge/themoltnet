@@ -8,6 +8,7 @@ import {
   type WorkflowContext,
 } from '@themoltnet/tasks-orchestrator';
 
+import { docsCheckFindings, extractDocsHunks } from './docs-check.js';
 import type { Git } from './git.js';
 import { boundDiff, collectChangeSet } from './ingest.js';
 import {
@@ -21,10 +22,13 @@ import {
 import { extractExcerpt } from './sections.js';
 import {
   buildCoverageTask,
+  buildDocsCheckTask,
   buildExtractTask,
   type CreateBody,
+  MAX_FINDINGS,
   parseContractExtraction,
   parseCoverageCheck,
+  parseDocsCheck,
   STAGE_RUNNING_TIMEOUT_SEC,
   type StageContext,
 } from './stages.js';
@@ -35,9 +39,11 @@ import type {
   ChangeSet,
   ContractChange,
   CoverageGap,
+  DocsFinding,
   DocsImpactReport,
   FileCategory,
   SelectedDoc,
+  StageName,
 } from './types.js';
 
 export interface Budgets {
@@ -47,6 +53,8 @@ export interface Budgets {
   docExcerptBytes: number;
   maxDocs: number;
   manifestLines: number;
+  maxDocsHunks: number;
+  docsHunkBytes: number;
 }
 
 /**
@@ -60,6 +68,8 @@ export const DEFAULT_BUDGETS: Budgets = {
   docExcerptBytes: 8_000,
   maxDocs: 6,
   manifestLines: 150,
+  maxDocsHunks: 12,
+  docsHunkBytes: 1_500,
 };
 
 export interface DocsImpactInput extends StageContext {
@@ -161,7 +171,7 @@ const BUDGET_ERROR_REASONS: Record<string, string> = {
 
 class StageBudgetExceeded extends Error {
   constructor(
-    readonly stage: 'extract' | 'coverage',
+    readonly stage: StageName,
     readonly reason: string,
   ) {
     super(`${stage} stage ${reason}`);
@@ -187,7 +197,7 @@ async function runStage<T>(
   deps: DocsImpactDeps,
   input: DocsImpactInput,
   body: CreateBody,
-  stage: 'extract' | 'coverage',
+  stage: StageName,
   parse: (output: unknown) => T,
   timings: DocsImpactReport['timings']['stages'],
 ): Promise<T> {
@@ -355,10 +365,7 @@ export async function runDocsImpactReview(
   };
   /** Runs a parser and records its repairs only once the output is accepted. */
   const withRepairs =
-    <T>(
-      stage: 'extract' | 'coverage',
-      parse: (output: unknown, repairs: string[]) => T,
-    ) =>
+    <T>(stage: StageName, parse: (output: unknown, repairs: string[]) => T) =>
     (output: unknown): T => {
       const repairs: string[] = [];
       const parsed = parse(output, repairs);
@@ -469,38 +476,94 @@ export async function runDocsImpactReview(
     }
     timings.retrievalMs = now() - retrievalStarted;
 
-    const coverage = await runStage(
-      deps,
-      input,
-      buildCoverageTask(input, {
-        changes: report.contractChanges,
-        docs,
-        docsDiff,
-      }),
-      'coverage',
-      withRepairs('coverage', (output, repairs) =>
-        parseCoverageCheck(
-          output,
-          {
-            changeIds: new Set(
-              report.contractChanges.map((change) => change.id),
-            ),
-            changedPaths: new Set(changeSet.files.map((file) => file.path)),
-            changedDocs,
-            selectedDocs: new Set(docs.map((doc) => doc.path)),
-          },
-          repairs,
+    const docsHunks = extractDocsHunks(diff.blocks, {
+      maxHunks: budgets.maxDocsHunks,
+      maxBytesPerHunk: budgets.docsHunkBytes,
+    });
+    for (const id of docsHunks.overflow) {
+      report.gaps.push({
+        scope: id,
+        reason: `docs hunk not checked: more than ${budgets.maxDocsHunks} hunks`,
+      });
+    }
+    // Coverage and the docs check are independent: run them in parallel so
+    // the extra stage costs no wall-clock beyond the slower of the two.
+    const [coverageResult, docsCheckResult] = await Promise.allSettled([
+      runStage(
+        deps,
+        input,
+        buildCoverageTask(input, {
+          changes: report.contractChanges,
+          docs,
+          docsDiff,
+        }),
+        'coverage',
+        withRepairs('coverage', (output, repairs) =>
+          parseCoverageCheck(
+            output,
+            {
+              changeIds: new Set(
+                report.contractChanges.map((change) => change.id),
+              ),
+              changedPaths: new Set(changeSet.files.map((file) => file.path)),
+              changedDocs,
+              selectedDocs: new Set(docs.map((doc) => doc.path)),
+            },
+            repairs,
+          ),
         ),
+        timings.stages,
       ),
-      timings.stages,
-    );
+      docsHunks.hunks.length > 0
+        ? runStage(
+            deps,
+            input,
+            buildDocsCheckTask(input, docsHunks.hunks),
+            'docs-check',
+            withRepairs('docs-check', (output, repairs) =>
+              parseDocsCheck(
+                output,
+                new Set(docsHunks.hunks.map((hunk) => hunk.id)),
+                repairs,
+              ),
+            ),
+            timings.stages,
+          )
+        : Promise.resolve([]),
+    ]);
+    if (coverageResult.status === 'rejected') throw coverageResult.reason;
+    const coverage = coverageResult.value;
+    let docsFindings: DocsFinding[] = [];
+    if (docsCheckResult.status === 'fulfilled') {
+      const checked = docsCheckFindings(docsHunks.hunks, docsCheckResult.value);
+      docsFindings = checked.findings.slice(0, MAX_FINDINGS);
+      for (const id of checked.unanswered) {
+        report.gaps.push({
+          scope: id,
+          reason: 'docs check did not judge this hunk',
+        });
+      }
+    } else {
+      // The docs check is additive: its failure leaves the coverage result
+      // standing and records the unchecked scope instead of failing the review.
+      const reason = docsCheckResult.reason as unknown;
+      report.gaps.push({
+        scope: 'docs-check stage',
+        reason:
+          reason instanceof StageBudgetExceeded
+            ? reason.reason
+            : `failed: ${reason instanceof Error ? reason.message : String(reason)}`,
+      });
+    }
     // With no contract changes this was a documentation-only review: "nothing
     // needs documenting" there means the changed instructions held up.
-    report.outcome =
+    const coverageOutcome =
       report.contractChanges.length === 0 && coverage.outcome === 'not-needed'
         ? 'covered'
         : coverage.outcome;
-    report.findings = coverage.findings;
+    report.findings = [...coverage.findings, ...docsFindings];
+    report.outcome =
+      docsFindings.length > 0 ? 'updates-needed' : coverageOutcome;
     return finish();
   } catch (error) {
     if (error instanceof StageBudgetExceeded) {
