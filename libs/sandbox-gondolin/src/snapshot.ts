@@ -165,7 +165,7 @@ export const GONDOLIN_BASE_EXECUTABLES: readonly string[] = Object.freeze(
 const GH_VERSION = '2.74.0';
 
 /** MoltNet CLI version — downloaded as a binary, no Node needed. */
-const MOLTNET_CLI_VERSION = '3.5.0';
+const MOLTNET_CLI_VERSION = '3.7.0';
 
 /**
  * Resolve guest architecture from host (Gondolin VMs match host arch).
