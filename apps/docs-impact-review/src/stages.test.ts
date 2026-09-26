@@ -232,6 +232,47 @@ describe('parseCoverageCheck', () => {
     );
   });
 
+  it('accepts an unnecessary-addition finding on a doc changed by the PR', () => {
+    // Arrange: the PR #2509 pattern, documenting that --help works.
+    const unnecessary = {
+      changeId: 'docs:docs/reference/cli.md',
+      issue: 'unnecessary',
+      evidence: {
+        path: 'docs/reference/cli.md',
+        detail: 'Adds a paragraph stating that plain --help calls are allowed.',
+      },
+      docsPath: 'docs/reference/cli.md',
+      update: 'Remove the paragraph; help working is expected behavior.',
+    };
+
+    // Act
+    const parsed = parseCoverageCheck(
+      freeform({
+        version: 1,
+        outcome: 'updates-needed',
+        findings: [unnecessary],
+      }),
+      allowed,
+    );
+
+    // Assert
+    expect(parsed.findings[0].issue).toBe('unnecessary');
+  });
+
+  it('rejects an unknown finding issue', () => {
+    // Act / Assert
+    expect(() =>
+      parseCoverageCheck(
+        freeform({
+          version: 1,
+          outcome: 'updates-needed',
+          findings: [{ ...finding, issue: 'cosmetic' }],
+        }),
+        allowed,
+      ),
+    ).toThrow(/issue/);
+  });
+
   it('accepts a proposed new markdown location', () => {
     // Act
     const parsed = parseCoverageCheck(
@@ -398,6 +439,8 @@ describe('buildCoverageTask', () => {
     });
     expect(input.brief).toContain('dry-run-flag');
     expect(input.brief).toContain('one or two sentences');
+    // Additions are judged for usefulness, not only for presence.
+    expect(input.brief).toContain('issue `unnecessary`');
     // Missing-docs findings must not rest only on the pre-selected excerpts.
     expect(input.brief).toContain(
       'Search existing documentation before judging',

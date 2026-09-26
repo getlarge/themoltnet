@@ -67,6 +67,7 @@ describe('renderComment', () => {
 
     // Assert
     expect(body).toContain('**Docs impact: updates-needed**');
+    expect(body).not.toContain('****');
     expect(body).toContain(
       '- `docs/reference/cli.md` › ## Flags — Document --dry-run. (evidence: `apps/cli/src/flags.ts`: adds --dry-run)',
     );

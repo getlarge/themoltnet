@@ -80,8 +80,13 @@ export const OUTCOMES = [
 ] as const;
 export type Outcome = (typeof OUTCOMES)[number];
 
+export const FINDING_ISSUES = ['missing', 'incorrect', 'unnecessary'] as const;
+export type FindingIssue = (typeof FINDING_ISSUES)[number];
+
 export interface DocsFinding {
   changeId: string;
+  /** What is wrong with the documentation; absent means unclassified. */
+  issue?: FindingIssue;
   evidence: Evidence;
   docsPath: string;
   section?: string;

@@ -32,8 +32,9 @@ export function renderComment(report: DocsImpactReport): string {
     lines.push('');
     for (const finding of report.findings) {
       const section = finding.section ? ` › ${finding.section}` : '';
+      const label = finding.issue ? `**${finding.issue}** ` : '';
       lines.push(
-        `- \`${finding.docsPath}\`${section} — ${shorten(finding.update)} (evidence: \`${finding.evidence.path}\`: ${shorten(finding.evidence.detail)})`,
+        `- ${label}\`${finding.docsPath}\`${section} — ${shorten(finding.update)} (evidence: \`${finding.evidence.path}\`: ${shorten(finding.evidence.detail)})`,
       );
     }
   }
