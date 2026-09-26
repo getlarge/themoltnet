@@ -151,9 +151,18 @@ function withReadRetries(
  * infrastructure failure: the review reports `incomplete` with the stage as
  * the uncovered scope instead of `failed`.
  */
+/** Runtime error codes that mean a stage ran out of an enforced budget. */
+const BUDGET_ERROR_REASONS: Record<string, string> = {
+  running_total_exceeded: `exceeded the ${STAGE_RUNNING_TIMEOUT_SEC}s running budget before producing output`,
+  max_turns_exceeded: 'used its tool-turn budget without submitting output',
+};
+
 class StageBudgetExceeded extends Error {
-  constructor(readonly stage: 'extract' | 'coverage') {
-    super(`${stage} stage exceeded its running budget`);
+  constructor(
+    readonly stage: 'extract' | 'coverage',
+    readonly reason: string,
+  ) {
+    super(`${stage} stage ${reason}`);
     this.name = 'StageBudgetExceeded';
   }
 }
@@ -209,9 +218,10 @@ async function runStage<T>(
     observedMs,
   });
   if (outcome.kind === 'accepted') return outcome.result.state;
-  if (attempt?.error?.code === 'running_total_exceeded') {
-    throw new StageBudgetExceeded(stage);
-  }
+  const budgetReason = attempt?.error?.code
+    ? BUDGET_ERROR_REASONS[attempt.error.code]
+    : undefined;
+  if (budgetReason) throw new StageBudgetExceeded(stage, budgetReason);
   throw new Error(`${stage} stage: ${outcome.reason}`);
 }
 
@@ -465,7 +475,7 @@ export async function runDocsImpactReview(
       report.outcome = 'incomplete';
       report.gaps.push({
         scope: `${error.stage} stage`,
-        reason: `exceeded the ${STAGE_RUNNING_TIMEOUT_SEC}s running budget before producing output`,
+        reason: error.reason,
       });
       return finish();
     }

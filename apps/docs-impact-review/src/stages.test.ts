@@ -53,6 +53,17 @@ describe('parseContractExtraction', () => {
     expect(parsed.changes).toEqual([change]);
   });
 
+  it('defaults a missing version instead of voiding the review', () => {
+    // Act
+    const parsed = parseContractExtraction(
+      freeform({ changes: [change] }),
+      sourcePaths,
+    );
+
+    // Assert
+    expect(parsed).toEqual({ version: 1, changes: [change] });
+  });
+
   it('rejects a summary that is not strict JSON', () => {
     // Act / Assert
     expect(() =>
