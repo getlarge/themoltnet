@@ -27,9 +27,12 @@
     "2462": {
       "expected": [
         {
-          "docsPath": "docs/operate/running-agents.md",
+          "docsPaths": [
+            "docs/operate/running-agents.md",
+            "apps/agent-daemon/README.md"
+          ],
           "issue": "missing",
-          "note": "New run claim filters and polling options are undocumented in the daemon operations page."
+          "note": "New run claim filters and polling options are undocumented; they belong in the daemon operations page or the Agent Server README."
         }
       ]
     },

@@ -10,6 +10,10 @@ import {
 const Label = Type.Object(
   {
     docsPath: Type.Optional(Type.String({ minLength: 1 })),
+    /** Any of several acceptable locations, when more than one is right. */
+    docsPaths: Type.Optional(
+      Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
+    ),
     mentions: Type.Optional(Type.String({ minLength: 1 })),
     issue: Type.Optional(
       Type.Union(FINDING_ISSUES.map((issue) => Type.Literal(issue))),
@@ -52,12 +56,15 @@ export function parseLabels(value: unknown): Labels {
 /** A label matches on location and/or content; the issue is scored apart. */
 function matches(label: Label, finding: DocsFinding): boolean {
   if (label.docsPath && label.docsPath !== finding.docsPath) return false;
+  if (label.docsPaths && !label.docsPaths.includes(finding.docsPath)) {
+    return false;
+  }
   if (label.mentions) {
     const needle = label.mentions.toLowerCase();
     const text = `${finding.update} ${finding.evidence.detail}`.toLowerCase();
     if (!text.includes(needle)) return false;
   }
-  return Boolean(label.docsPath || label.mentions);
+  return Boolean(label.docsPath || label.docsPaths || label.mentions);
 }
 
 export interface PrScore {
