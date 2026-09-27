@@ -34,6 +34,8 @@ type githubKeyReplaceOutput struct {
 	TokenCacheReset bool            `json:"tokenCacheReset"`
 }
 
+var errGitHubKeyReferenceChanged = errors.New("github.private_key_ref changed")
+
 // runGitHubKeyReplaceCmd overwrites the stored App key after proving the new
 // one belongs to the configured App. The reference in moltnet.json is left
 // unchanged, so every config that points at the same provider entry (all
@@ -67,6 +69,11 @@ func runGitHubKeyReplaceCmd(ctx context.Context, out, errOut io.Writer, opts git
 	}
 	appID := strings.TrimSpace(creds.GitHub.AppID)
 	ref := creds.GitHub.PrivateKeyRef
+	// Resolution rejects a config that sets both, so replacing the key would
+	// report success while `moltnet github token` still fails.
+	if ref != nil && strings.TrimSpace(creds.GitHub.PrivateKeyPath) != "" {
+		return fmt.Errorf("github config must set exactly one of private_key_path or private_key_ref; nothing was changed")
+	}
 	if ref == nil {
 		if strings.TrimSpace(creds.GitHub.PrivateKeyPath) != "" {
 			return fmt.Errorf("github.private_key_path is a legacy file reference; run 'moltnet config migrate' first, or replace that file directly")
@@ -104,12 +111,36 @@ func runGitHubKeyReplaceCmd(ctx context.Context, out, errOut io.Writer, opts git
 		Reference:       *ref,
 		KeyVerified:     true,
 	}
-	// Same normalization config migrate applies to a PEM file; the key
-	// parser ignores the trailing newline the file provider would strip.
-	written, err := providers.ReplaceWithResult(*ref, stripOneNewline(string(pemData)))
+	// Replace under the credentials lock, after checking that the config
+	// still names the reference read above: a concurrent credential copy may
+	// have moved it, and replacing a no-longer-active entry would report
+	// success while the active key stayed unchanged. The document itself is
+	// rewritten unchanged.
+	var written bool
+	err = updateLockedCredentialsBytes(credentialsPath, func(current []byte) ([]byte, error) {
+		fresh, _, err := parseCredentialsDocument(current)
+		if err != nil {
+			return nil, err
+		}
+		if fresh.GitHub == nil || strings.TrimSpace(fresh.GitHub.AppID) != appID ||
+			fresh.GitHub.PrivateKeyRef == nil || *fresh.GitHub.PrivateKeyRef != *ref ||
+			strings.TrimSpace(fresh.GitHub.PrivateKeyPath) != "" {
+			return nil, errGitHubKeyReferenceChanged
+		}
+		return current, nil
+	}, func() error {
+		// Same normalization config migrate applies to a PEM file; the key
+		// parser ignores the trailing newline the file provider would strip.
+		var err error
+		written, err = providers.ReplaceWithResult(*ref, stripOneNewline(string(pemData)))
+		return err
+	})
 	output.SecretReplaced = written && err == nil
 	if err != nil {
-		if written {
+		switch {
+		case errors.Is(err, errGitHubKeyReferenceChanged):
+			return fmt.Errorf("github.private_key_ref in %s changed while the key was being verified; nothing was changed, run the command again", credentialsPath)
+		case written:
 			return fmt.Errorf("stored the new GitHub App key at %s:%s but could not verify it: %w; re-run the command before deleting the old key on GitHub", ref.Provider, ref.Key, err)
 		}
 		return fmt.Errorf("store the new GitHub App key: %w; the old key is unchanged", err)

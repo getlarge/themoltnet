@@ -101,7 +101,11 @@ moltnet github exec -- gh pr create --title "Fix" --body "Description"
 `github exec` resolves the active identity, mints a repository-scoped
 installation token, and runs exactly one `gh` child process with it. If minting
 fails, the command fails; `gh` never falls back to the human's login. The token
-is never printed or persisted.
+is never printed, and it reaches only that `gh` process, through its
+environment. Like every command that mints App tokens, `github exec` reuses
+installation tokens from an owner-only cache, `gh-token-cache/` beside
+`moltnet.json`, where they stay until shortly before they expire (see the
+[authorship guard](#authorship-guard) for the cache layout).
 
 ### Authorship guard
 

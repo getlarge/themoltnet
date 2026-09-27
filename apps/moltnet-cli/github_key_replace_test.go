@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -27,6 +28,8 @@ type githubKeyReplaceFixture struct {
 	keyring         *memorySecretProvider
 	registry        *SecretProviderRegistry
 	appCalls        *atomic.Int32
+	// onVerify runs while GitHub is checking the new key.
+	onVerify func()
 }
 
 // newGitHubKeyReplaceFixture serves GET /app, accepting only JWTs signed by
@@ -90,6 +93,9 @@ func newGitHubKeyReplaceFixture(t *testing.T, appIDFromServer int64) *githubKeyR
 		if !jwtSignedBy(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "), &newKey.PublicKey) {
 			http.Error(w, `{"message":"A JSON web token could not be decoded"}`, http.StatusUnauthorized)
 			return
+		}
+		if fixture.onVerify != nil {
+			fixture.onVerify()
 		}
 		_ = json.NewEncoder(w).Encode(map[string]any{"id": appIDFromServer, "slug": "fixture-app"})
 	}))
@@ -248,5 +254,147 @@ func TestGitHubKeyReplaceFailsBeforeContactingGitHub(t *testing.T) {
 				t.Fatal("the stored key changed")
 			}
 		})
+	}
+}
+
+func (f *githubKeyReplaceFixture) editGitHubSection(t *testing.T, edit func(github map[string]any)) {
+	t.Helper()
+	data, err := os.ReadFile(f.credentialsPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var document map[string]any
+	if err := json.Unmarshal(data, &document); err != nil {
+		t.Fatal(err)
+	}
+	edit(document["github"].(map[string]any))
+	data, err = json.MarshalIndent(document, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(f.credentialsPath, data, privateFileMode); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestGitHubKeyReplaceRejectsAnAmbiguousConfig(t *testing.T) {
+	fixture := newGitHubKeyReplaceFixture(t, 4242)
+	fixture.editGitHubSection(t, func(github map[string]any) {
+		github["private_key_path"] = "/tmp/app.pem"
+	})
+
+	err := runGitHubKeyReplaceCmd(context.Background(), &bytes.Buffer{}, nil, fixture.opts())
+
+	if err == nil || !strings.Contains(err.Error(), "exactly one of private_key_path or private_key_ref") {
+		t.Fatalf("expected an ambiguity error, got %v", err)
+	}
+	if fixture.appCalls.Load() != 0 || fixture.storedKey() != fixture.oldPEM {
+		t.Fatal("an ambiguous config must be rejected before anything happens")
+	}
+}
+
+func TestGitHubKeyReplaceRechecksTheReferenceBeforeStoring(t *testing.T) {
+	fixture := newGitHubKeyReplaceFixture(t, 4242)
+	// A concurrent credential copy moves the reference while GitHub verifies.
+	fixture.onVerify = func() {
+		fixture.editGitHubSection(t, func(github map[string]any) {
+			github["private_key_ref"] = map[string]string{"provider": fileProviderName, "key": GitHubAppPrivateKeyKey(replaceFixtureAppID)}
+		})
+	}
+
+	err := runGitHubKeyReplaceCmd(context.Background(), &bytes.Buffer{}, nil, fixture.opts())
+
+	if err == nil || !strings.Contains(err.Error(), "changed while the key was being verified") {
+		t.Fatalf("expected a changed-reference error, got %v", err)
+	}
+	if fixture.storedKey() != fixture.oldPEM {
+		t.Fatal("a no-longer-active entry was replaced")
+	}
+}
+
+// replaceFailingProvider is a writable provider whose write or read-back fails.
+type replaceFailingProvider struct {
+	memorySecretProvider
+	failSet     bool
+	corruptRead bool
+}
+
+func (p *replaceFailingProvider) Set(key, value string) error {
+	if p.failSet {
+		return errors.New("keychain locked")
+	}
+	return p.memorySecretProvider.Set(key, value)
+}
+
+func (p *replaceFailingProvider) Get(key string) (string, error) {
+	value, err := p.memorySecretProvider.Get(key)
+	if p.corruptRead && err == nil && value != "" {
+		return value + "-corrupted", nil
+	}
+	return value, err
+}
+
+func TestGitHubKeyReplaceReportsProviderFailures(t *testing.T) {
+	t.Run("the write fails", func(t *testing.T) {
+		fixture := newGitHubKeyReplaceFixture(t, 4242)
+		provider := &replaceFailingProvider{memorySecretProvider: *fixture.keyring, failSet: true}
+		fixture.registry.Register(osKeyringProviderName, provider)
+
+		err := runGitHubKeyReplaceCmd(context.Background(), &bytes.Buffer{}, nil, fixture.opts())
+
+		if err == nil || !strings.Contains(err.Error(), "the old key is unchanged") {
+			t.Fatalf("expected an unchanged-key failure, got %v", err)
+		}
+		if provider.values[GitHubAppPrivateKeyKey(replaceFixtureAppID)] != fixture.oldPEM {
+			t.Fatal("a failed write changed the stored key")
+		}
+	})
+	t.Run("the read-back does not match", func(t *testing.T) {
+		fixture := newGitHubKeyReplaceFixture(t, 4242)
+		provider := &replaceFailingProvider{memorySecretProvider: *fixture.keyring, corruptRead: true}
+		fixture.registry.Register(osKeyringProviderName, provider)
+
+		err := runGitHubKeyReplaceCmd(context.Background(), &bytes.Buffer{}, nil, fixture.opts())
+
+		if err == nil || !strings.Contains(err.Error(), "could not verify it") || !strings.Contains(err.Error(), "before deleting the old key on GitHub") {
+			t.Fatalf("expected an unverified-write failure, got %v", err)
+		}
+		if provider.values[GitHubAppPrivateKeyKey(replaceFixtureAppID)] != stripOneNewline(string(fixture.newPEM)) {
+			t.Fatal("the write happened, so the stored value must be the new key")
+		}
+	})
+}
+
+// TestGitHubKeyReplaceCommand runs the user-facing command against a
+// file-backed reference, with --credentials and the required --private-key.
+func TestGitHubKeyReplaceCommand(t *testing.T) {
+	fixture := newGitHubKeyReplaceFixture(t, 4242)
+	root := t.TempDir()
+	t.Setenv(secretRootEnv, root)
+	t.Setenv(secretRootWritableEnv, "1")
+	ref := SecretReference{Provider: fileProviderName, Key: GitHubAppPrivateKeyKey(replaceFixtureAppID)}
+	if err := (FileSecretProvider{Root: root, Writable: true}).Set(ref.Key, fixture.oldPEM); err != nil {
+		t.Fatal(err)
+	}
+	fixture.editGitHubSection(t, func(github map[string]any) {
+		github["private_key_ref"] = ref
+	})
+
+	if _, _, err := executeCommand(NewRootCmd("test", ""), "--credentials", fixture.credentialsPath, "github", "key", "replace"); err == nil {
+		t.Fatal("--private-key must be required")
+	}
+	stdout, stderr, err := executeCommand(NewRootCmd("test", ""),
+		"--credentials", fixture.credentialsPath,
+		"github", "key", "replace", "--private-key", fixture.newKeyPath)
+	if err != nil {
+		t.Fatalf("github key replace: %v\n%s", err, stderr)
+	}
+
+	stored, err := FileSecretProvider{Root: root}.Get(ref.Key)
+	if err != nil || stored != stripOneNewline(string(fixture.newPEM)) {
+		t.Fatalf("the file-backed key was not replaced: %v", err)
+	}
+	if strings.Contains(stdout+stderr, "PRIVATE KEY") {
+		t.Fatal("the PEM leaked into command output")
 	}
 }
