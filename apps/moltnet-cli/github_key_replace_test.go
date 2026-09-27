@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 const replaceFixtureAppID = "4242"
@@ -135,6 +136,11 @@ func (f *githubKeyReplaceFixture) storedKey() string {
 func TestGitHubKeyReplaceStoresVerifiedKeyInPlace(t *testing.T) {
 	fixture := newGitHubKeyReplaceFixture(t, 4242)
 	before, _ := os.ReadFile(fixture.credentialsPath)
+	// Backdate the file so a rewrite, even with identical bytes, is visible.
+	past := time.Now().Add(-time.Hour).Truncate(time.Second)
+	if err := os.Chtimes(fixture.credentialsPath, past, past); err != nil {
+		t.Fatal(err)
+	}
 	var out, errOut bytes.Buffer
 
 	if err := runGitHubKeyReplaceCmd(context.Background(), &out, &errOut, fixture.opts()); err != nil {
@@ -146,6 +152,9 @@ func TestGitHubKeyReplaceStoresVerifiedKeyInPlace(t *testing.T) {
 	}
 	if after, _ := os.ReadFile(fixture.credentialsPath); !bytes.Equal(before, after) {
 		t.Fatal("replace must not rewrite moltnet.json")
+	}
+	if info, err := os.Stat(fixture.credentialsPath); err != nil || !info.ModTime().Equal(past) {
+		t.Fatal("replace must not write moltnet.json at all")
 	}
 	var result githubKeyReplaceOutput
 	if err := json.Unmarshal(out.Bytes(), &result); err != nil {
@@ -317,11 +326,17 @@ type replaceFailingProvider struct {
 	memorySecretProvider
 	failSet     bool
 	corruptRead bool
+	// writeThenFail stores the value and still returns an error.
+	writeThenFail bool
 }
 
 func (p *replaceFailingProvider) Set(key, value string) error {
 	if p.failSet {
 		return errors.New("keychain locked")
+	}
+	if p.writeThenFail {
+		_ = p.memorySecretProvider.Set(key, value)
+		return errors.New("keychain timed out after writing")
 	}
 	return p.memorySecretProvider.Set(key, value)
 }
@@ -342,11 +357,25 @@ func TestGitHubKeyReplaceReportsProviderFailures(t *testing.T) {
 
 		err := runGitHubKeyReplaceCmd(context.Background(), &bytes.Buffer{}, nil, fixture.opts())
 
-		if err == nil || !strings.Contains(err.Error(), "the old key is unchanged") {
-			t.Fatalf("expected an unchanged-key failure, got %v", err)
+		if err == nil || !strings.Contains(err.Error(), "still holds the previous key") {
+			t.Fatalf("expected a previous-key report, got %v", err)
 		}
 		if provider.values[GitHubAppPrivateKeyKey(replaceFixtureAppID)] != fixture.oldPEM {
 			t.Fatal("a failed write changed the stored key")
+		}
+	})
+	t.Run("the write fails after storing", func(t *testing.T) {
+		fixture := newGitHubKeyReplaceFixture(t, 4242)
+		provider := &replaceFailingProvider{memorySecretProvider: *fixture.keyring, writeThenFail: true}
+		fixture.registry.Register(osKeyringProviderName, provider)
+
+		err := runGitHubKeyReplaceCmd(context.Background(), &bytes.Buffer{}, nil, fixture.opts())
+
+		if err == nil || !strings.Contains(err.Error(), "nevertheless holds the new key") {
+			t.Fatalf("expected the error to report the new key, got %v", err)
+		}
+		if provider.values[GitHubAppPrivateKeyKey(replaceFixtureAppID)] != stripOneNewline(string(fixture.newPEM)) {
+			t.Fatal("the provider wrote the new key before failing")
 		}
 	})
 	t.Run("the read-back does not match", func(t *testing.T) {

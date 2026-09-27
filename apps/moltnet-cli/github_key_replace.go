@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/configmigrate"
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/safefile"
 )
 
 // githubKeyReplaceOpts drives `moltnet github key replace`: store a new GitHub
@@ -111,30 +112,8 @@ func runGitHubKeyReplaceCmd(ctx context.Context, out, errOut io.Writer, opts git
 		Reference:       *ref,
 		KeyVerified:     true,
 	}
-	// Replace under the credentials lock, after checking that the config
-	// still names the reference read above: a concurrent credential copy may
-	// have moved it, and replacing a no-longer-active entry would report
-	// success while the active key stayed unchanged. The document itself is
-	// rewritten unchanged.
-	var written bool
-	err = updateLockedCredentialsBytes(credentialsPath, func(current []byte) ([]byte, error) {
-		fresh, _, err := parseCredentialsDocument(current)
-		if err != nil {
-			return nil, err
-		}
-		if fresh.GitHub == nil || strings.TrimSpace(fresh.GitHub.AppID) != appID ||
-			fresh.GitHub.PrivateKeyRef == nil || *fresh.GitHub.PrivateKeyRef != *ref ||
-			strings.TrimSpace(fresh.GitHub.PrivateKeyPath) != "" {
-			return nil, errGitHubKeyReferenceChanged
-		}
-		return current, nil
-	}, func() error {
-		// Same normalization config migrate applies to a PEM file; the key
-		// parser ignores the trailing newline the file provider would strip.
-		var err error
-		written, err = providers.ReplaceWithResult(*ref, stripOneNewline(string(pemData)))
-		return err
-	})
+	newPEM := stripOneNewline(string(pemData))
+	written, err := replaceGitHubKeyUnderLock(credentialsPath, appID, *ref, providers, newPEM)
 	output.SecretReplaced = written && err == nil
 	if err != nil {
 		switch {
@@ -143,7 +122,16 @@ func runGitHubKeyReplaceCmd(ctx context.Context, out, errOut io.Writer, opts git
 		case written:
 			return fmt.Errorf("stored the new GitHub App key at %s:%s but could not verify it: %w; re-run the command before deleting the old key on GitHub", ref.Provider, ref.Key, err)
 		}
-		return fmt.Errorf("store the new GitHub App key: %w; the old key is unchanged", err)
+		// A provider can fail after writing, so report what it holds now
+		// instead of assuming the old key survived.
+		stored, readErr := providers.Resolve(*ref)
+		switch {
+		case readErr != nil:
+			return fmt.Errorf("store the new GitHub App key: %w; the entry at %s:%s could not be read back, so check it before deleting the old key on GitHub", err, ref.Provider, ref.Key)
+		case stored == newPEM:
+			return fmt.Errorf("store the new GitHub App key: %w; the entry at %s:%s nevertheless holds the new key, so confirm 'moltnet github token' works before deleting the old key on GitHub", err, ref.Provider, ref.Key)
+		}
+		return fmt.Errorf("store the new GitHub App key: %w; the entry at %s:%s still holds the previous key", err, ref.Provider, ref.Key)
 	}
 
 	cacheDir, cacheErr := credentialsDir(credentialsPath)
@@ -209,4 +197,31 @@ func resetGitHubTokenCache(cacheDir string) error {
 		}
 	}
 	return errors.Join(errs...)
+}
+
+// replaceGitHubKeyUnderLock replaces the key while holding the credentials
+// lock that config writers (including credential copies) take, after checking
+// that the config still names ref: replacing a no-longer-active entry would
+// report success while the active key stayed unchanged. The document is only
+// read, never rewritten.
+func replaceGitHubKeyUnderLock(credentialsPath, appID string, ref SecretReference, providers *SecretProviderRegistry, value string) (bool, error) {
+	lock, err := safefile.Acquire(credentialsPath)
+	if err != nil {
+		return false, err
+	}
+	defer lock.Close()
+	current, err := safefile.ReadBoundedRegularFile(credentialsPath, maxMigrationConfigBytes)
+	if err != nil {
+		return false, err
+	}
+	fresh, _, err := parseCredentialsDocument(current)
+	if err != nil {
+		return false, err
+	}
+	if fresh.GitHub == nil || strings.TrimSpace(fresh.GitHub.AppID) != appID ||
+		fresh.GitHub.PrivateKeyRef == nil || *fresh.GitHub.PrivateKeyRef != ref ||
+		strings.TrimSpace(fresh.GitHub.PrivateKeyPath) != "" {
+		return false, errGitHubKeyReferenceChanged
+	}
+	return providers.ReplaceWithResult(ref, value)
 }
