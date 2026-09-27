@@ -206,7 +206,61 @@ does not install or configure agent-host plugins.`,
 	// command" gives a user following any of them nowhere to go.
 	configCmd.AddCommand(portCmd)
 	configCmd.AddCommand(newConfigIdentityCmd())
+	configCmd.AddCommand(newConfigCredentialsCmd())
 	return configCmd
+}
+
+func newConfigCredentialsCmd() *cobra.Command {
+	credentialsCmd := &cobra.Command{
+		Use:   "credentials",
+		Short: "Manage where reference-backed credentials are stored",
+	}
+	var kind, to, team string
+	copyCmd := &cobra.Command{
+		Use:   "copy",
+		Short: "Copy a credential to another secret provider and switch to it",
+		Long: `Store a reference-backed credential in another secret provider and point
+moltnet.json at it. The destination uses the credential's canonical key,
+whatever form the source reference used (an env variable, a flattened file
+key). The source entry is left in place and this config stops referencing it;
+other configs may still use it, and a later rotation does not update it.
+
+The source is never deleted: other configs may still reference it. To
+invalidate the old copy, rotate or revoke the credential itself.
+
+The destination must accept writes: os-keyring, or file with
+MOLTNET_SECRET_ROOT and MOLTNET_SECRET_ROOT_WRITABLE=1. A destination that
+already holds a different value is never overwritten. The secret is never
+printed. Inside activated agent sessions only --to os-keyring is allowed.`,
+		Example: `  # Resolve the identity seed from a local file root instead of the keyring
+  MOLTNET_SECRET_ROOT=$HOME/.moltnet-secrets MOLTNET_SECRET_ROOT_WRITABLE=1 \
+    moltnet config credentials copy --kind identity-seed --to file
+
+  # Back to the OS keyring
+  MOLTNET_SECRET_ROOT=$HOME/.moltnet-secrets \
+    moltnet config credentials copy --kind identity-seed --to os-keyring`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credentialKind, err := parseCredentialCopyKind(kind)
+			if err != nil {
+				return err
+			}
+			credPath, _ := cmd.Flags().GetString("credentials")
+			return runConfigCredentialsCopyCmd(cmd.OutOrStdout(), cmd.ErrOrStderr(), credentialCopyOpts{
+				credentialsPath: credPath,
+				kind:            credentialKind,
+				destination:     to,
+				team:            team,
+			})
+		},
+	}
+	copyCmd.Flags().StringVar(&kind, "kind", "", "Credential kind: oauth2-client-secret, identity-seed, github-app-private-key, agent-key")
+	copyCmd.Flags().StringVar(&to, "to", "", "Destination secret provider (os-keyring or file)")
+	copyCmd.Flags().StringVar(&team, "team", "", "Team whose agent key to copy (agent-key only; required when several team keys are configured)")
+	_ = copyCmd.MarkFlagRequired("kind")
+	_ = copyCmd.MarkFlagRequired("to")
+	credentialsCmd.AddCommand(copyCmd)
+	return credentialsCmd
 }
 
 func newConfigIdentityCmd() *cobra.Command {

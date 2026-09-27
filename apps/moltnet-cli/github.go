@@ -26,29 +26,14 @@ import (
 	"time"
 )
 
-// runGitHubSetupCmd is the flag-free business logic for github setup.
-// GitHub App private keys are a github.go-owned credential: the binding
-// table in secret_provider.go knows nothing about them.
-const (
-	credentialGitHubAppPrivateKey credentialKind = "github-app-private-key"
-	githubAppPrivateKeyEnvKey                    = "MOLTNET_GITHUB_APP_PRIVATE_KEY"
-)
+// githubAppPrivateKeyEnvKey is the env provider key a GitHub App private key
+// reference may use; the binding table in secret_provider.go owns the rest.
+const githubAppPrivateKeyEnvKey = "MOLTNET_GITHUB_APP_PRIVATE_KEY"
 
 // GitHubAppPrivateKeyKey returns the stable provider key for a GitHub App's
 // RSA private key.
 func GitHubAppPrivateKeyKey(appID string) string {
 	return "github-app/" + appID + "/private-key"
-}
-
-func githubAppPrivateKeyBinding(appID string) (secretReferenceBinding, error) {
-	if strings.TrimSpace(appID) == "" {
-		return secretReferenceBinding{}, fmt.Errorf("credential binding requires github.app_id")
-	}
-	return secretReferenceBinding{
-		canonicalKey: GitHubAppPrivateKeyKey(appID),
-		envKey:       githubAppPrivateKeyEnvKey,
-		description:  "GitHub App private key reference is not bound to this GitHub App",
-	}, nil
 }
 
 // resolveGitHubAppPrivateKey returns the GitHub App PEM from
@@ -68,10 +53,7 @@ func resolveGitHubAppPrivateKey(creds *CredentialsFile, registry *SecretProvider
 	var pemData []byte
 	switch {
 	case ref != nil:
-		binding, err := githubAppPrivateKeyBinding(creds.GitHub.AppID)
-		if err == nil {
-			err = validateSecretReferenceBoundTo(*ref, binding)
-		}
+		err := validateSecretReferenceBinding(kind, *ref, credentialBindingIDs{AppID: creds.GitHub.AppID})
 		if err != nil {
 			return nil, &CredentialResolutionError{Kind: kind, Code: "unbound", Detail: err.Error()}
 		}
@@ -96,6 +78,7 @@ func resolveGitHubAppPrivateKey(creds *CredentialsFile, registry *SecretProvider
 	return pemData, nil
 }
 
+// runGitHubSetupCmd is the flag-free business logic for github setup.
 func runGitHubSetupCmd(credPath, name, appSlug string) error {
 	creds, credPath, err := loadCredentialsWithPath(credPath)
 	if err != nil {

@@ -64,6 +64,16 @@ const useSidebar = [
   },
 ];
 
+const integrationsSidebar = [
+  {
+    text: 'Integrations',
+    items: [
+      { text: 'Overview', link: '/integrations/' },
+      { text: 'GitHub and Git', link: '/integrations/github' },
+    ],
+  },
+];
+
 const operateSidebar = [
   {
     text: 'Operate',
@@ -207,6 +217,7 @@ export default defineConfig({
       { text: 'Start', link: '/start/getting-started' },
       { text: 'Use', link: '/use/tasks-and-runtime' },
       { text: 'Operate', link: '/operate/running-agents' },
+      { text: 'Integrations', link: '/integrations/' },
       { text: 'Deploy', link: '/deploy/' },
       { text: 'Understand', link: '/understand/knowledge-factory' },
       { text: 'Reference', link: '/reference/mcp-server' },
@@ -216,6 +227,7 @@ export default defineConfig({
       '/use/recipes/': operateSidebar,
       '/use/': useSidebar,
       '/operate/': operateSidebar,
+      '/integrations/': integrationsSidebar,
       '/deploy/': deploySidebar,
       '/understand/infrastructure': understandSidebar,
       '/understand/': understandSidebar,

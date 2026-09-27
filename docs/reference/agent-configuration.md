@@ -241,6 +241,37 @@ fallback during migration rollout. Older credentials do not acquire new scopes
 automatically: refresh OAuth authorization or reissue a key with `team:join`
 before enrolling another team.
 
+The file provider keeps logical team references as
+`agent-key/<subjectId>/<teamId>`, but stores their values at
+`<secret-root>/agent-key-teams/<subjectId>/<teamId>`. The sibling directory lets
+team slots coexist with an existing fallback file at
+`<secret-root>/agent-key/<subjectId>`. Go and Node use this same layout;
+projected team credentials must follow it. Existing fallback paths stay valid.
+
+### Selecting and migrating team credentials
+
+CLI commands with a team argument use that team's map entry. Commands without
+one use `MOLTNET_TEAM_ID`, then the selected project binding or identity
+default. A single map entry can be selected automatically; multiple entries
+without a fallback require an explicit team or project binding. A selected entry
+that cannot be resolved fails immediately. Explicit agent-key environment
+overrides and interactive OAuth2 precedence remain unchanged.
+
+`moltnet config migrate --destination <provider>` authenticates the exact legacy
+`agent_key_ref` to discover its subject and binding. It copies and reads back a
+team-bound credential before updating `agent_key_refs`, retaining the original
+fallback during rollout. Existing destination values must match; conflicts stop
+the migration. Identity-scoped credentials stay fallbacks and require enrollment
+to obtain a narrower team grant.
+
+The non-secret `agent_key_ref_verified` migration checkpoint records the source
+reference, subject, key ID, and binding. It makes repeated migration a no-op,
+including for identity-scoped fallbacks. Changing the source reference or
+removing the indexed slot causes migration to verify it again. Plans are bound
+to the original document; regenerate a plan after another writer changes it.
+Activation refresh verifies the selected key's subject and team binding, and
+older activation caches require refresh after upgrading these readers.
+
 ## Rotate the OAuth2 client secret
 
 Use the CLI for routine rotation because it preflights and atomically updates
@@ -281,6 +312,12 @@ Both examples authenticate with the OAuth2 client being rotated, even when
 `MOLTNET_AGENT_KEY` is set, against the credentials file selected by the order
 in
 [Which credentials file a command uses](#which-credentials-file-a-command-uses).
+
+When `oauth2.client_secret_ref` is set, the new secret is written through that
+reference, to the provider it already uses, and `moltnet.json` is left
+unchanged. Before contacting the server the CLI checks that this provider
+accepts writes: an `env` reference or a read-only file root stops the command
+before rotation (use `--no-update --show-secret` to receive the secret instead).
 
 Before contacting the server, the CLI verifies that it can create a replacement
 file in the same directory. After the server invalidates the old secret, the CLI
@@ -381,53 +418,14 @@ token, but access tokens issued before rotation remain valid until their normal
 expiry. Stop existing processes as part of incident response when the old
 credential may have been compromised.
 
-## GitHub CLI authorship guard
+## GitHub and Git settings
 
-The LeGreffier plugin installs `moltnet github guard` as a `PreToolUse` command
-hook in Claude Code and Codex. The hook is part of the plugin version rather
-than generated repository configuration. It is a clean no-op outside an
-activated MoltNet Git context and emits output only when it must deny a command.
+<a id="github-cli-authorship-guard"></a> <a id="commit-authorship-modes"></a>
 
-Within an active identity gitconfig context, the guard evaluates each `gh`
-process independently:
-
-- read-only commands are allowed;
-- writes with a command-scoped MoltNet-issued `GH_TOKEN` are allowed;
-- bare writes are denied when the GitHub App installation has the necessary
-  write permission;
-- bare writes may use the user's logged-in `gh` token when the installation
-  permission response proves that the App lacks the required capability;
-- unknown commands are denied, while GraphQL mutations require a scoped token;
-- visible `gh pr` and `gh issue` writes remain bare in `human` authorship mode.
-
-The CLI resolves the installation for the target repository through GitHub, then
-mints a token restricted to that repository. The token inherits the
-installation's permissions rather than being narrowed to the classified write:
-`gh` writes such as `pr create` read the default branch and the head ref first,
-and a single-permission token fails those reads. Tokens and permission evidence
-are written atomically under
-`~/.config/moltnet/identities/<alias>/gh-token-cache/`, keyed by App and
-repository; the repository's installation is resolved on a cache miss and cached
-separately. A configured installation ID is only a compatibility hint for legacy
-calls made outside a repository. Refresh failures are cached for 30 seconds to
-avoid retry storms. Unavailable optional state and malformed hook input fail
-open with no output by default so editor hooks remain non-blocking. Set
-`MOLTNET_GITHUB_GUARD_STRICT=1` to deny writes when permission state is
-unavailable. Set `MOLTNET_GITHUB_GUARD=off` as an emergency editor-session kill
-switch.
-
-For writes supported by the App, scope its token to the single command:
-
-```bash
-CFG="$GIT_CONFIG_GLOBAL"
-case "$CFG" in /*) ;; *) CFG="$(git rev-parse --show-toplevel)/$CFG" ;; esac
-CREDS="$(dirname "$CFG")/moltnet.json"
-[ -f "$CREDS" ] || { echo "FATAL: moltnet.json not found at $CREDS" >&2; exit 1; }
-GH_TOKEN=$(moltnet github token --credentials "$CREDS" -R owner/repo) gh <command>
-```
-
-Do not export the token across a shell command chain: authorization for one `gh`
-process must never authorize a later one.
+Commit authorship modes, the GitHub App token commands and the GitHub CLI
+authorship guard belong to the GitHub and Git integration. See
+[Commit authorship modes](../integrations/github.md#commit-authorship-modes) and
+[Authorship guard](../integrations/github.md#authorship-guard).
 
 ## Secret guard activation boundary
 
@@ -789,6 +787,92 @@ changes after generation.
 Runtimes that still find a plaintext value warn once per process and name this
 command; the legacy forms keep working until you migrate.
 
+## Copy credentials between secret providers
+
+A credential that already resolves through a reference can switch providers
+without editing `moltnet.json` by hand:
+
+```bash
+# Resolve the identity seed from a local file root instead of the OS keyring
+MOLTNET_SECRET_ROOT=$HOME/.moltnet-secrets MOLTNET_SECRET_ROOT_WRITABLE=1 \
+  moltnet config credentials copy --kind identity-seed --to file
+
+# Switch back
+MOLTNET_SECRET_ROOT=$HOME/.moltnet-secrets \
+  moltnet config credentials copy --kind identity-seed --to os-keyring
+```
+
+`--kind` is one of `oauth2-client-secret`, `identity-seed`,
+`github-app-private-key`, or `agent-key`. For an agent key, `--team <id>` picks
+the team key when more than one is configured. `--to` accepts only a writable
+provider (`os-keyring`, or `file` with `MOLTNET_SECRET_ROOT_WRITABLE=1`). A
+read-only destination fails with `destination_read_only` before anything is
+read.
+
+The command resolves the source through the normal resolver, so the reference
+must be bound to this identity and the value must have the right shape. It then
+stores the value in the destination, reads it back, and rewrites the reference
+in `moltnet.json`. The destination always uses the credential's canonical key,
+so copying from an `env` reference or a flattened file key also changes the key.
+
+Values are stored exactly as their readers consume them. The OAuth2 secret is
+used byte for byte and is copied unchanged; the file provider strips one
+trailing newline on read, so an OAuth2 secret ending in a newline cannot go to
+`file` and fails with `destination_unrepresentable`. The identity seed and agent
+key are trimmed and the GitHub App PEM loses one trailing newline, because their
+readers ignore that whitespace.
+
+A destination that already holds a different value is a conflict and nothing is
+changed. A destination that already holds the same credential is reused, so
+running the command again after an interruption is safe. If a later step fails,
+`moltnet.json` keeps pointing at the source. Whatever was written to the
+destination is left in place, because another config copying the same credential
+may have adopted it. The error reads the destination back and says whether it
+holds a verified copy, a different value, or could not be read; inspect it in
+the last two cases, and remove it only if no other config references it.
+
+The secret is never printed. Output is a JSON document with the source and
+destination references and what was written and updated. The rewrite changes
+`moltnet.json`, which invalidates the activation cache; run
+`moltnet agents activation refresh` and restart running agent processes.
+
+### The source is never deleted
+
+After a copy, this config no longer references the source entry, but the entry
+still holds the value and other configs may use it. A later rotation does not
+update it, so copying back after a rotation conflicts with the new value. The
+command does not delete it, because it cannot know that nothing else references
+it: identities using the same GitHub App share one keyring entry, and a
+repository bundle or another host may point at the same key. To invalidate old
+copies, change the credential itself:
+
+| Kind                     | Invalidate old copies                                                                                                                                                                                                                                    |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `oauth2-client-secret`   | `moltnet agents credentials rotate --yes`. The server invalidates the old secret, and the new one is written through the current reference.                                                                                                              |
+| `agent-key`              | `moltnet agents keys rotate <key-id> --team-id <team> --store` or `moltnet agents keys revoke`. `--store` writes to the provider the reference already uses.                                                                                             |
+| `github-app-private-key` | Generate a new key in the GitHub App settings, store it with `moltnet github key replace --private-key <pem>` (see [Rotate the GitHub App private key](../integrations/github.md#rotate-the-github-app-private-key)), then delete the old key on GitHub. |
+| `identity-seed`          | Not possible yet: the identity key cannot be rotated ([#34](https://github.com/getlarge/themoltnet/issues/34)). Delete stale copies with your keychain tool or `rm`.                                                                                     |
+
+Because a seed copy cannot be revoked, copy the identity seed only to roots you
+control and remove copies you no longer use.
+
+### Use on a development machine
+
+A common use is a development machine where Node processes reading the OS
+keyring trigger an access prompt on every read. Copy the credentials into a file
+root, then start the Node processes with `MOLTNET_SECRET_ROOT` set. Reading does
+not need `MOLTNET_SECRET_ROOT_WRITABLE`. File-root secrets are stored
+unencrypted and are protected only by the directory's permissions (files are
+written with mode `0600`), so keep the root private to your user. Rotation
+writes into the provider the reference points at, so rotating a credential
+stored in a file root needs `MOLTNET_SECRET_ROOT_WRITABLE=1`; without it the
+command stops before the server invalidates anything.
+
+Inside an activated agent session the secrets guard allows only
+`--to os-keyring`. A `file` destination, a non-static `--to` value, or any
+`MOLTNET_SECRET_ROOT` mention on the command is denied, for the same reason as
+`config migrate`. Run file-root copies from a human-controlled terminal.
+
 ## Ephemeral environments
 
 In environments where `moltnet agents init` cannot run interactively (CI
@@ -911,85 +995,6 @@ environment:
 
 Set the `MOLTNET_*` credential variables in your Claude Code project settings.
 The hook only activates when `CLAUDE_CODE_REMOTE=true`.
-
-## Commit authorship modes
-
-By default, LeGreffier agents are the sole git author on commits. You can change
-this to share authorship credit with the human operator.
-
-Use the atomic configuration command; do not edit the protected env file:
-
-```bash
-# Who is the git commit author?
-# agent    — agent is sole author (default)
-# human    — human is author, agent is Co-Authored-By
-# coauthor — agent is author, human is Co-Authored-By
-moltnet env configure --identity <alias> --authorship coauthor \
-  --human-git-identity 'Jane Doe <jane@example.com>'
-```
-
-| Mode       | Git author | Trailer                           | Use case                                                                         |
-| ---------- | ---------- | --------------------------------- | -------------------------------------------------------------------------------- |
-| `agent`    | Agent      | none                              | Pure agent work, no human attribution                                            |
-| `human`    | Human      | `Co-Authored-By: Agent <bot@...>` | Human wants GitHub contribution credit + billing tools count them as contributor |
-| `coauthor` | Agent      | `Co-Authored-By: Human <email>`   | Agent is primary, human gets GitHub contribution credit                          |
-
-`MOLTNET_HUMAN_GIT_IDENTITY` can be populated from your global git config or set
-with `moltnet env configure`. You can override it with `--human-git-identity`.
-
-Run `moltnet env check` or `moltnet config repair` to validate the
-configuration. `moltnet config repair` also heals the agent gitconfig and the
-repo's local git config: it strips any embedded `ghs_`/`ghp_` GitHub token left
-in a `url.<...>.insteadOf` rule, adds the `helper = ""` reset to a github.com
-credential block that lacks it (so the agent's token helper isn't shadowed by
-the OS keychain), and enables `credential.https://github.com.useHttpPath` where
-the MoltNet helper is configured, so Git passes the repository path and each
-token is scoped to the repository being pushed. It inspects both the gitconfig
-named in `moltnet.json` and the gitconfig beside it, which covers identities
-whose `moltnet.json` still names a location from before the central identity
-store. When the identity's `env` points `GIT_CONFIG_GLOBAL` at that sibling
-gitconfig, repair also rewrites `git.config_path` to match it. Without
-`--credentials`, repair acts on the selected identity. When the current
-repository's own config binds the MoltNet helper to another copy of the same
-identity (the same public key), such as a bundle the checkout used before the
-central identity store, repair rebinds it to the identity; a helper bound to
-another agent is reported and left unchanged. See
-[#1396](https://github.com/getlarge/themoltnet/issues/1396) for background.
-
-Commit signing always uses the agent's SSH key regardless of authorship mode. In
-`human` mode, `git commit --author` overrides the author field while the agent's
-gitconfig still signs the commit.
-
-The file provider keeps logical team references as
-`agent-key/<subjectId>/<teamId>`, but stores their values at
-`<secret-root>/agent-key-teams/<subjectId>/<teamId>`. The sibling directory lets
-team slots coexist with an existing fallback file at
-`<secret-root>/agent-key/<subjectId>`. Go and Node use this same layout;
-projected team credentials must follow it. Existing fallback paths stay valid.
-
-### Selecting and migrating team credentials
-
-CLI commands with a team argument use that team's map entry. Commands without
-one use `MOLTNET_TEAM_ID`, then the selected project binding or identity
-default. A single map entry can be selected automatically; multiple entries
-without a fallback require an explicit team or project binding. A selected entry
-that cannot be resolved fails immediately. Explicit agent-key environment
-overrides and interactive OAuth2 precedence remain unchanged.
-
-`moltnet config migrate --destination <provider>` authenticates the exact legacy
-`agent_key_ref` to discover its subject and binding. It copies and reads back a
-team-bound credential before updating `agent_key_refs`, retaining the original
-fallback during rollout. Existing destination values must match; conflicts stop
-the migration. Identity-scoped credentials stay fallbacks and require enrollment
-to obtain a narrower team grant.
-
-The non-secret `agent_key_ref_verified` migration checkpoint records the source
-reference, subject, key ID, and binding. It makes repeated migration a no-op,
-including for identity-scoped fallbacks. Changing the source reference or
-removing the indexed slot causes migration to verify it again. Plans are bound
-to the original document; regenerate a plan after another writer changes it.
-Activation refresh verifies the selected key's subject and team binding, and
-older activation caches require refresh after upgrading these readers.
 
 ## Project binding format compatibility
 

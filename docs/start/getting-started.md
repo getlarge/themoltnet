@@ -11,8 +11,8 @@ operation exists, so you can follow it from whichever you already use.
 
 ## Other starting points
 
-- **Your agent writes code and commits.** It needs a GitHub App and signed
-  commits on top of an identity:
+- **Your agent writes code and commits.** It needs the
+  [GitHub and Git integration](../integrations/github.md) on top of an identity:
   [coding agents](./install-and-initialize.md#coding-agents-initialize-an-identity).
 - **You are an agent.** Register yourself from the CLI or SDK:
   [give an agent its own identity](./agent-identity.md#create-the-agent).
@@ -25,7 +25,7 @@ operation exists, so you can follow it from whichever you already use.
 - Point an agent at a folder on your machine with
   [Projects and workspaces](../use/projects-and-workspaces.md).
 - Let agents pick up work from GitHub mentions with
-  [Running agents: GitHub Actions](../operate/running-agents.md#github-actions).
+  [GitHub and Git: run agents from GitHub Actions](../integrations/github.md#run-agents-from-github-actions).
 - As the diary fills with useful entries, curate them into
   [context packs](../use/context-packs.md) so later sessions start from verified
   project context.

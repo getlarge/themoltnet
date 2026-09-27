@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/safefile"
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 )
 
@@ -486,6 +487,14 @@ func runAgentsCredentialsRotateWithClient(
 	expectedClientID string,
 	opts agentsCredentialsRotateOpts,
 ) error {
+	// The server invalidates the old secret immediately, so a reference whose
+	// provider cannot take the replacement must fail before rotating.
+	if !opts.noUpdate && opts.secretReference != nil && !opts.secretProviders.CanWrite(opts.secretReference.Provider) {
+		return fmt.Errorf(
+			"agents credentials rotate: the %q provider holding the OAuth2 secret is not writable; rotation was not attempted (make it writable, or use --no-update --show-secret)",
+			opts.secretReference.Provider,
+		)
+	}
 	res, err := client.RotateClientSecret(ctx)
 	if err != nil {
 		return fmt.Errorf(
@@ -519,7 +528,14 @@ func runAgentsCredentialsRotateWithClient(
 		return nil
 	}
 	if opts.secretReference != nil {
-		if err := opts.secretProviders.Store(*opts.secretReference, rotated.ClientSecret); err != nil {
+		// Store under the credentials lock, into the reference the config
+		// names now: a concurrent `config credentials copy` may have moved it
+		// since it was read before rotating, and writing the old entry would
+		// leave the active reference holding the invalidated secret. Copy
+		// takes the same lock, so either order ends with the new secret
+		// behind the active reference.
+		err := storeRotatedSecretUnderLock(credentialsPath, expectedClientID, opts, rotated.ClientSecret)
+		if err != nil {
 			return emitCredentialsRecovery(opts, output, rotated.ClientSecret)
 		}
 		output.CredentialsUpdated = true
@@ -817,4 +833,33 @@ func persistRotatedInlineCredentials(path string, original map[string]json.RawMe
 		current.OAuth2.ClientSecretRef = nil
 		return nil
 	})
+}
+
+// storeRotatedSecretUnderLock writes the rotated secret into the reference the
+// config names now, while holding the credentials lock that config writers
+// (including credential copies) take. The document is only read: a rewrite
+// could fail after the secret was stored and report a failure that did not
+// happen.
+func storeRotatedSecretUnderLock(credentialsPath, expectedClientID string, opts agentsCredentialsRotateOpts, secret string) error {
+	lock, err := safefile.Acquire(credentialsPath)
+	if err != nil {
+		return err
+	}
+	defer lock.Close()
+	current, err := safefile.ReadBoundedRegularFile(credentialsPath, maxMigrationConfigBytes)
+	if err != nil {
+		return err
+	}
+	creds, _, err := parseCredentialsDocument(current)
+	if err != nil {
+		return err
+	}
+	ref := creds.OAuth2.ClientSecretRef
+	if ref == nil || creds.OAuth2.ClientID != expectedClientID {
+		return fmt.Errorf("the OAuth2 secret reference changed during rotation")
+	}
+	if !opts.secretProviders.CanWrite(ref.Provider) {
+		return fmt.Errorf("the OAuth2 secret moved to the unwritable %q provider during rotation", ref.Provider)
+	}
+	return opts.secretProviders.Store(*ref, secret)
 }

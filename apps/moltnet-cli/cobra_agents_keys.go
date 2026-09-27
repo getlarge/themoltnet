@@ -146,13 +146,18 @@ rotate itself — so authenticate with OAuth2, another key, or as a team manager
 		PreRunE: validateAgentKeyBindingFlags,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath := flagString(cmd, "credentials")
+			store := agentKeyStoreFlags(cmd)
+			if !cmd.Flags().Changed("destination") {
+				store.destination = ""
+				store.inheritSlot = &agentKeySlot{teamID: flagString(cmd, "team-id"), identityScoped: flagBool(cmd, "identity-scoped")}
+			}
 			return runAgentsKeysRotateCmd(agentsKeysRotateOpts{
 				apiURL:         resolveAPIURL(cmd, credPath),
 				credPath:       credPath,
 				teamID:         flagString(cmd, "team-id"),
 				identityScoped: flagBool(cmd, "identity-scoped"),
 				keyID:          args[0],
-				store:          agentKeyStoreFlags(cmd),
+				store:          store,
 				out:            cmd.OutOrStdout(),
 				errOut:         cmd.ErrOrStderr(),
 			})
@@ -161,6 +166,7 @@ rotate itself — so authenticate with OAuth2, another key, or as a team manager
 	cmd.Flags().String("team-id", "", "Team UUID (mutually exclusive with --identity-scoped)")
 	cmd.Flags().Bool("identity-scoped", false, "Rotate an identity-scoped key")
 	addAgentKeyStoreFlags(cmd)
+	cmd.Flags().Lookup("destination").Usage = "Secret provider used by --store (default: the provider the rotated key's reference already uses, else os-keyring)"
 	return cmd
 }
 

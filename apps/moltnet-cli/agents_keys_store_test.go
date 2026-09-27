@@ -389,6 +389,145 @@ func TestAgentsKeysRotateStoreReplacesSecretAndChecksAgent(t *testing.T) {
 	}
 }
 
+// writeTeamSlotFixture writes an agent config whose team slot references the
+// given provider under the canonical team key.
+func writeTeamSlotFixture(t *testing.T, provider string) string {
+	t.Helper()
+	path := writeAgentKeyStoreFixture(t, testAgentID)
+	setTeamSlotProvider(t, path, provider)
+	return path
+}
+
+func setTeamSlotProvider(t *testing.T, path, provider string) {
+	t.Helper()
+	ref := SecretReference{Provider: provider, Key: TeamAgentKeyKey(testAgentID, testTeamID)}
+	if err := updateLockedCredentialsBytes(path, func(current []byte) ([]byte, error) {
+		_, document, err := parseCredentialsDocument(current)
+		if err != nil {
+			return nil, err
+		}
+		return rewriteCredentialsDocument(document, func(top map[string]json.RawMessage) error {
+			encoded, err := json.Marshal(map[string]SecretReference{testTeamID: ref})
+			top["agent_key_refs"] = encoded
+			return err
+		})
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAgentsKeysRotateStoreKeepsTheSlotsProvider(t *testing.T) {
+	const secret = "sk_live_rotated_in_file"
+	fileRoot := t.TempDir()
+	withFileSlot := func(t *testing.T) string { return writeTeamSlotFixture(t, fileProviderName) }
+	inherit := func(registry *SecretProviderRegistry, capture *recoveryCapture) agentKeyStoreOpts {
+		opts := storeOpts(registry, capture)
+		opts.inheritSlot = &agentKeySlot{teamID: testTeamID}
+		return opts
+	}
+
+	t.Run("writable file slot stays in the file provider", func(t *testing.T) {
+		credentialsPath := withFileSlot(t)
+		registry, keyring := newMemorySecretProviderRegistry()
+		registry.Register(fileProviderName, FileSecretProvider{Root: fileRoot, Writable: true})
+		_, _, client := newTestServer(t, agentKeyStubSecret(secret))
+		var out, errOut bytes.Buffer
+		err := runAgentsKeysRotateWithClient(context.Background(), client, agentsKeysRotateOpts{
+			credPath: credentialsPath, teamID: testTeamID, keyID: "key-1",
+			store: inherit(registry, newRecoveryCapture(t)), out: &out, errOut: &errOut,
+		})
+		if err != nil {
+			t.Fatalf("rotate: %v", err)
+		}
+		ref := SecretReference{Provider: fileProviderName, Key: TeamAgentKeyKey(testAgentID, testTeamID)}
+		if got, err := registry.Resolve(ref); err != nil || got != secret {
+			t.Fatalf("rotated secret not in the file provider: %q %v", got, err)
+		}
+		if len(keyring.values) != 0 {
+			t.Fatal("rotation moved the key into the keyring")
+		}
+		if creds, _ := ReadConfigFrom(credentialsPath); creds.AgentKeyRefs[testTeamID] != ref {
+			t.Fatalf("reference changed: %+v", creds.AgentKeyRefs)
+		}
+		assertNoSecret(t, secret, &out, &errOut)
+	})
+
+	t.Run("read-only file slot fails before rotating", func(t *testing.T) {
+		credentialsPath := withFileSlot(t)
+		registry, _ := newMemorySecretProviderRegistry()
+		registry.Register(fileProviderName, FileSecretProvider{Root: fileRoot})
+		rotated := false
+		handler := agentKeyStubSecret(secret)
+		handler.rotate = func(_ moltnetapi.RotateAgentKeyParams) moltnetapi.RotateAgentKeyRes {
+			rotated = true
+			return &moltnetapi.AgentKeyWithSecret{Key: validAgentKey("key-1"), Secret: secret}
+		}
+		_, _, client := newTestServer(t, handler)
+		err := runAgentsKeysRotateWithClient(context.Background(), client, agentsKeysRotateOpts{
+			credPath: credentialsPath, teamID: testTeamID, keyID: "key-1",
+			store: inherit(registry, newRecoveryCapture(t)), out: &bytes.Buffer{}, errOut: &bytes.Buffer{},
+		})
+		if err == nil || !strings.Contains(err.Error(), secretRootWritableEnv) {
+			t.Fatalf("expected a writable-root error, got %v", err)
+		}
+		if rotated {
+			t.Fatal("the key was rotated although the new secret could not be stored")
+		}
+	})
+
+	t.Run("follows a slot that moved while the key was rotating", func(t *testing.T) {
+		credentialsPath := withFileSlot(t)
+		registry, keyring := newMemorySecretProviderRegistry()
+		registry.Register(fileProviderName, FileSecretProvider{Root: fileRoot, Writable: true})
+		handler := agentKeyStubSecret(secret)
+		handler.rotate = func(_ moltnetapi.RotateAgentKeyParams) moltnetapi.RotateAgentKeyRes {
+			// A concurrent credential copy moves the slot to the keyring.
+			setTeamSlotProvider(t, credentialsPath, osKeyringProviderName)
+			return &moltnetapi.AgentKeyWithSecret{Key: validAgentKey("key-1"), Secret: secret}
+		}
+		_, _, client := newTestServer(t, handler)
+
+		var out bytes.Buffer
+		err := runAgentsKeysRotateWithClient(context.Background(), client, agentsKeysRotateOpts{
+			credPath: credentialsPath, teamID: testTeamID, keyID: "key-1",
+			store: inherit(registry, newRecoveryCapture(t)), out: &out, errOut: &bytes.Buffer{},
+		})
+		if err != nil {
+			t.Fatalf("rotate: %v", err)
+		}
+		key := TeamAgentKeyKey(testAgentID, testTeamID)
+		if keyring.values[key] != secret {
+			t.Fatal("the rotated key did not follow the slot to the keyring")
+		}
+		if creds, _ := ReadConfigFrom(credentialsPath); creds.AgentKeyRefs[testTeamID].Provider != osKeyringProviderName {
+			t.Fatalf("rotation switched the slot back: %+v", creds.AgentKeyRefs)
+		}
+		var result storedAgentKeyOutput
+		if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+			t.Fatalf("parse output: %v\n%s", err, out.String())
+		}
+		if result.AgentKeyRef.Provider != osKeyringProviderName {
+			t.Fatalf("output names the old provider: %+v", result.AgentKeyRef)
+		}
+	})
+
+	t.Run("no existing reference falls back to the keyring", func(t *testing.T) {
+		credentialsPath := writeAgentKeyStoreFixture(t, testAgentID)
+		registry, keyring := newMemorySecretProviderRegistry()
+		_, _, client := newTestServer(t, agentKeyStubSecret(secret))
+		err := runAgentsKeysRotateWithClient(context.Background(), client, agentsKeysRotateOpts{
+			credPath: credentialsPath, teamID: testTeamID, keyID: "key-1",
+			store: inherit(registry, newRecoveryCapture(t)), out: &bytes.Buffer{}, errOut: &bytes.Buffer{},
+		})
+		if err != nil {
+			t.Fatalf("rotate: %v", err)
+		}
+		if keyring.values[TeamAgentKeyKey(testAgentID, testTeamID)] != secret {
+			t.Fatal("rotation without a reference should use the keyring")
+		}
+	})
+}
+
 func validIdentityAgentKey(id string) moltnetapi.AgentKey {
 	k := moltnetapi.IdentityAgentKey{
 		ID:           id,
@@ -800,5 +939,36 @@ func TestLifecycleStoreReportsUnverifiedReplacement(t *testing.T) {
 			}
 			assertNoSecret(t, "replacement-secret", &out)
 		})
+	}
+}
+
+// TestAgentsKeysRotateCommandKeepsAFileBackedSlot runs the user-facing command:
+// with --destination omitted, --store must keep the slot's file provider.
+func TestAgentsKeysRotateCommandKeepsAFileBackedSlot(t *testing.T) {
+	const secret = "sk_live_rotated_through_cli"
+	credentialsPath := writeTeamSlotFixture(t, fileProviderName)
+	root := t.TempDir()
+	t.Setenv(secretRootEnv, root)
+	t.Setenv(secretRootWritableEnv, "1")
+	t.Setenv(agentKeyEnv, "caller-agent-key")
+	_, apiSrv, _ := newTestServer(t, agentKeyStubSecret(secret))
+
+	stdout, stderr, err := executeCommand(NewRootCmd("test", ""),
+		"--api-url", apiSrv.URL, "--credentials", credentialsPath,
+		"agents", "keys", "rotate", "key-1", "--team-id", testTeamID, "--store")
+	if err != nil {
+		t.Fatalf("rotate --store: %v\n%s", err, stderr)
+	}
+
+	ref := SecretReference{Provider: fileProviderName, Key: TeamAgentKeyKey(testAgentID, testTeamID)}
+	stored, err := FileSecretProvider{Root: root}.Get(ref.Key)
+	if err != nil || stored != secret {
+		t.Fatalf("rotated key not stored in the file provider: %q %v", stored, err)
+	}
+	if creds, _ := ReadConfigFrom(credentialsPath); creds.AgentKeyRefs[testTeamID] != ref {
+		t.Fatalf("slot left the file provider: %+v", creds.AgentKeyRefs)
+	}
+	if strings.Contains(stdout+stderr, secret) {
+		t.Fatal("the rotated key leaked into command output")
 	}
 }

@@ -89,7 +89,7 @@ A copy-paste workflow template lives at
 The full provisioning walkthrough (`moltnet agents init` → `moltnet config
 export-env` → upload → `moltnet config init-from-env` on the runner)
 is documented in
-[`docs/operate/running-agents.md` § GitHub Actions](https://github.com/getlarge/themoltnet/blob/main/docs/operate/running-agents.md#github-actions).
+[`docs/integrations/github.md` § Run agents from GitHub Actions](https://github.com/getlarge/themoltnet/blob/main/docs/integrations/github.md#run-agents-from-github-actions).
 
 ### Project-scoped runs
 
