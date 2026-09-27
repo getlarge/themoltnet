@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.66.4](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.66.3...agent-daemon-v0.66.4) (2026-09-27)
+
+
+### Bug Fixes
+
+* **desktop:** clarify and manage local team access ([#2520](https://github.com/getlarge/themoltnet/issues/2520)) ([2add98a](https://github.com/getlarge/themoltnet/commit/2add98a2aa0f92c82ad6ae732beb5f462c86f4be))
+
 ## [0.66.3](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.66.2...agent-daemon-v0.66.3) (2026-09-26)
 
 

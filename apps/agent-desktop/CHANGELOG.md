@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.1](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.11.0...agent-desktop-v0.11.1) (2026-09-27)
+
+
+### Bug Fixes
+
+* **desktop:** clarify and manage local team access ([#2520](https://github.com/getlarge/themoltnet/issues/2520)) ([2add98a](https://github.com/getlarge/themoltnet/commit/2add98a2aa0f92c82ad6ae732beb5f462c86f4be))
+
 ## [0.11.0](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.10.1...agent-desktop-v0.11.0) (2026-09-25)
 
 
