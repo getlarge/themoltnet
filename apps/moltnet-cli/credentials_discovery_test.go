@@ -100,7 +100,7 @@ func newDiscoveryFixtures(t *testing.T) *discoveryFixtures {
 		default_: newIdentityFixture(t, "default", "https://default.example.com"),
 	}
 
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	writeIdentityConfig(t, f.explicitPath, f.explicit)
 	writeIdentityConfig(t, f.envPath, f.env)
 	writeIdentityConfig(t, f.activePath, f.active)

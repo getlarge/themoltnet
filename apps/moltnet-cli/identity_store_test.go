@@ -43,7 +43,7 @@ func TestRedactedIdentityDocumentOmitsPlaintextSecrets(t *testing.T) {
 
 func TestCentralIdentityStoreSelectsWithoutRepositoryOrLegacyFallback(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "")
 	t.Setenv("MOLTNET_CREDENTIALS_PATH", "")
 	t.Setenv("GIT_CONFIG_GLOBAL", filepath.Join(home, "repo", ".moltnet", "old", "gitconfig"))
@@ -83,7 +83,7 @@ func TestCentralIdentityStoreSelectsWithoutRepositoryOrLegacyFallback(t *testing
 }
 
 func TestCentralIdentityStorePreservesExistingDefault(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	if _, err := writeCentralIdentityConfig("first", centralIdentityFixture("first")); err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +100,7 @@ func TestCentralIdentityStorePreservesExistingDefault(t *testing.T) {
 }
 
 func TestCentralIdentityStoreRejectsInvalidAliases(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	for _, alias := range []string{"", "../escape", "contains space"} {
 		if _, err := identityCredentialsPath(alias); err == nil {
 			t.Errorf("identityCredentialsPath(%q) succeeded", alias)
@@ -115,7 +115,7 @@ func TestCentralIdentityStoreRejectsInvalidAliases(t *testing.T) {
 func TestNoActiveIdentityErrorBranchesOnStoreContents(t *testing.T) {
 	isolateIdentityEnv(t)
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 
 	empty := noActiveIdentityError().Error()
 	for _, want := range []string{
@@ -197,7 +197,7 @@ func TestRedactedIdentityDocumentEmitsOnlyPublicFields(t *testing.T) {
 func TestMigrateLegacyIdentityStoreRejectsAliasCollisionAndIsIdempotent(t *testing.T) {
 	isolateIdentityEnv(t)
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 
 	writeLegacy := func(dir string, identity identityFixture, subjectID string) string {
 		bundle := filepath.Join(dir, ".moltnet", "shared")
@@ -271,7 +271,7 @@ func TestMigrateLegacyIdentityStoreRejectsAliasCollisionAndIsIdempotent(t *testi
 func TestMigrateLegacyIdentityStoreDryRunReportsCollision(t *testing.T) {
 	isolateIdentityEnv(t)
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 
 	seed := func(alias, identityID, subjectID string) string {
 		bundle := filepath.Join(t.TempDir(), ".moltnet", "shared")
@@ -313,7 +313,7 @@ func TestMigrateLegacyIdentityStoreDryRunReportsCollision(t *testing.T) {
 func TestConfigIdentityCommandsThroughCobra(t *testing.T) {
 	isolateIdentityEnv(t)
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 
 	for _, alias := range []string{"zeta", "alpha"} {
 		id := newIdentityFixture(t, alias, "https://"+alias+".example.test")
@@ -387,7 +387,7 @@ func TestConfigIdentityCommandsThroughCobra(t *testing.T) {
 func TestExportImportRoundTripTargetsTheExportedIdentity(t *testing.T) {
 	isolateIdentityEnv(t)
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 
 	exported := newIdentityFixture(t, "exported", "https://exported.example.test")
 	for _, alias := range []string{"competing-default", "exported"} {
@@ -433,7 +433,7 @@ func TestExportImportRoundTripTargetsTheExportedIdentity(t *testing.T) {
 
 	// Re-import into a clean HOME with no --name: the bundle must be
 	// self-describing.
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	// An env-file-sourced secret is PERSISTED to a provider, unlike one passed
 	// through the process environment, which is only referenced. Point that at
 	// the file provider: a headless CI runner has no OS keyring, and the round

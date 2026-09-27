@@ -379,7 +379,7 @@ func TestConfigExportEnvRoundTrip(t *testing.T) {
 
 	// Step 2: init-from-env WITHOUT --agent — should derive from MOLTNET_AGENT_NAME
 	targetDir := filepath.Join(tmpDir, "target")
-	t.Setenv("HOME", targetDir)
+	setTestHome(t, targetDir)
 	registry, _ := newMemorySecretProviderRegistry()
 	err = runConfigInitFromEnvCmdWithRegistry(io.Discard,
 		targetDir,

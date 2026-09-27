@@ -36,6 +36,8 @@ async function fixture() {
   const dir = await mkdtemp(join(tmpdir(), 'team-config-'));
   directories.push(dir);
   vi.stubEnv('HOME', dir);
+  // Resolve the store from this temp HOME, not the setup's MOLTNET_HOME.
+  vi.stubEnv('MOLTNET_HOME', undefined);
   const config: MoltNetConfig = {
     subject_id: 'subject',
     subject_type: 'agent',

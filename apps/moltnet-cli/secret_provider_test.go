@@ -148,14 +148,9 @@ func TestEnvironmentSecretProviderIsReadOnly(t *testing.T) {
 	}
 }
 
-// realHome is the HOME this process started with, recorded by TestMain before
-// it relocates HOME for the package.
-//
-// It is declared here rather than beside TestMain because that file is built
-// with `!e2e` while this one is untagged: putting the variable there made the
-// e2e build fail to compile. Under the e2e tag nothing assigns it, which is
-// correct — that build has its own TestMain and does not relocate HOME, so the
-// empty-string guard below simply skips the restore.
+// realHome is the HOME this process started with, recorded by
+// isolateTestEnvironment before it relocates HOME. Both the unit and the e2e
+// TestMain call it, so it is declared in an untagged file.
 var realHome string
 
 // requireOSKeyringTestable gates the tests that write to the real credential
@@ -480,10 +475,15 @@ func TestKeyringRegistryRetainsSelectionProvenance(t *testing.T) {
 
 func TestKeyringRegistrySnapshotsDefaultWithoutFilesystem(t *testing.T) {
 	home := t.TempDir()
+	// Plain HOME: this test makes the default path unusable and asserts the
+	// default namespace, so neither the store nor the default hint may be
+	// redirected.
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("MOLTNET_HOME", "")
 	os.Unsetenv("MOLTNET_HOME")
+	t.Setenv("MOLTNET_DEFAULT_STORE_ROOT", "")
+	os.Unsetenv("MOLTNET_DEFAULT_STORE_ROOT")
 	if err := os.WriteFile(filepath.Join(home, ".config"), []byte("fixture"), 0600); err != nil {
 		t.Fatal(err)
 	}

@@ -574,7 +574,7 @@ func TestResolveCredentialsPathPrecedence(t *testing.T) {
 		}
 	}
 
-	t.Setenv("HOME", tempDir)
+	setTestHome(t, tempDir)
 	t.Setenv("MOLTNET_CREDENTIALS_PATH", envPath)
 	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "active")
 	t.Setenv("GIT_CONFIG_GLOBAL", filepath.Join(tempDir, "repo", ".moltnet", "legacy", "gitconfig"))
@@ -616,7 +616,7 @@ func TestResolveCredentialsPathPrecedence(t *testing.T) {
 func TestResolveCredentialsPathDoesNotDiscoverRepositoryGitConfig(t *testing.T) {
 	isolateIdentityEnv(t)
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	repoDir := t.TempDir()
 	credentialsPath := filepath.Join(home, ".config", "moltnet", "identities", "agent", "moltnet.json")
 	if err := os.MkdirAll(filepath.Dir(credentialsPath), 0o700); err != nil {
@@ -718,7 +718,7 @@ func TestAgentsCredentialsRotateUsesEndpointFromResolvedCredentials(
 	defer server.Close()
 
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	credentialsPath := filepath.Join(home, ".config", "moltnet", "identities", "agent", "moltnet.json")
 	if err := os.MkdirAll(filepath.Dir(credentialsPath), 0o700); err != nil {
 		t.Fatalf("create central identity directory: %v", err)

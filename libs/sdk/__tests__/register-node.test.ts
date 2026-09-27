@@ -708,6 +708,8 @@ describe('register (node)', () => {
     vi.mocked(registerAgent).mockResolvedValue(success(oauthResponse));
     const root = await freshRoot();
     vi.stubEnv('HOME', root);
+    // Resolve the store from this temp HOME, not the setup's MOLTNET_HOME.
+    vi.stubEnv('MOLTNET_HOME', undefined);
     // A directory where the selector file belongs makes seeding it fail.
     await mkdir(join(root, '.config', 'moltnet', 'identity-selector.json'), {
       recursive: true,

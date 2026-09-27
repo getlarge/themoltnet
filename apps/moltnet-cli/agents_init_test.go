@@ -375,7 +375,7 @@ func stubAgentsInitLocalSteps(
 }
 
 func TestAgentsInitStoresSeedBeforeOnboardingAndKeepsItOnFailure(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	var seedStored, seedStoredBeforeRequest atomic.Bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		seedStoredBeforeRequest.Store(seedStored.Load())
@@ -424,7 +424,7 @@ func TestAgentsInitStoresSeedBeforeOnboardingAndKeepsItOnFailure(t *testing.T) {
 }
 
 func TestAgentsInitRefusesAnIdentityItDidNotStart(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	var requests atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		requests.Add(1)
@@ -524,7 +524,7 @@ func TestAgentsInitStopsBeforeTheNetworkWhenSecretsCannotBeStored(t *testing.T) 
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv("HOME", t.TempDir())
+			setTestHome(t, t.TempDir())
 			server, requests := newAgentsInitStartServer(t, nil)
 			memory := stubAgentsInitLocalSteps(t, func(agentsInitOpts, string, string, *CredentialsFile) error {
 				t.Error("local setup must not run when secrets cannot be stored")
@@ -584,7 +584,7 @@ func TestAgentsInitNamesTheWorkflowAndSeedWhenTheStartCannotBeRecorded(t *testin
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv("HOME", t.TempDir())
+			setTestHome(t, t.TempDir())
 			configPath, err := identityCredentialsPath("init-unrecorded")
 			if err != nil {
 				t.Fatal(err)

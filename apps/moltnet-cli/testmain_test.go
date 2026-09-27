@@ -5,7 +5,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 )
 
@@ -22,46 +21,17 @@ import (
 // persisted, so the test takes a different path locally than it does on a
 // clean CI runner and only fails after the push.
 //
-// Redirecting HOME here makes isolation the default rather than something each
-// test has to remember, and clearing the credential variables makes a local run
-// match CI by construction. Tests needing their own HOME still call t.Setenv.
-// preservedTestEnv lists MOLTNET_* variables that select which tests run, as
-// opposed to variables that feed them credentials.
-//
-// Scrubbing the whole prefix took this one with it, which silently disabled the
-// Go half of the native-keyring job: TestOSKeyringSecretProviderRoundTrip
-// skipped on all three platforms while the job still reported success. A gate
-// that is cleared before it is read fails open and is invisible, so anything
-// added here must be a switch, never a secret.
-var preservedTestEnv = map[string]bool{
-	"MOLTNET_RUN_NATIVE_KEYRING_TESTS": true,
-}
-
+// isolateTestEnvironment (testenv_test.go) makes isolation the default rather
+// than something each test has to remember, and the e2e TestMain calls it too.
+// Tests needing their own HOME call setTestHome, which moves the store with it.
 func TestMain(m *testing.M) {
 	os.Exit(func() int {
-		realHome = os.Getenv("HOME")
-		home, err := os.MkdirTemp("", "moltnet-unit-home-")
+		scratch, err := isolateTestEnvironment()
+		if scratch != "" {
+			defer func() { _ = os.RemoveAll(scratch) }()
+		}
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "test setup: create isolated HOME: %v\n", err)
-			return 1
-		}
-		defer func() { _ = os.RemoveAll(home) }()
-		if err := os.Setenv("HOME", home); err != nil {
-			fmt.Fprintf(os.Stderr, "test setup: set HOME: %v\n", err)
-			return 1
-		}
-		for _, entry := range os.Environ() {
-			key, _, found := strings.Cut(entry, "=")
-			if !found || !strings.HasPrefix(key, "MOLTNET_") || preservedTestEnv[key] {
-				continue
-			}
-			if err := os.Unsetenv(key); err != nil {
-				fmt.Fprintf(os.Stderr, "test setup: unset %s: %v\n", key, err)
-				return 1
-			}
-		}
-		if err := os.Unsetenv("GIT_CONFIG_GLOBAL"); err != nil {
-			fmt.Fprintf(os.Stderr, "test setup: unset GIT_CONFIG_GLOBAL: %v\n", err)
+			fmt.Fprintf(os.Stderr, "test setup: %v\n", err)
 			return 1
 		}
 		return m.Run()

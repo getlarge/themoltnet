@@ -536,7 +536,7 @@ func setupActivationCacheFixtureWithIdentity(
 ) (string, *httptest.Server, *activationIdentityResponse) {
 	t.Helper()
 	dir := t.TempDir()
-	t.Setenv("HOME", dir)
+	setTestHome(t, dir)
 	t.Setenv("USERPROFILE", dir)
 	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	sshDir := filepath.Join(agentDir, "ssh")
@@ -788,7 +788,7 @@ func TestAgentsActivationValidateReportsCredentialProviders(t *testing.T) {
 func TestAgentsActivationValidateJSONWhenNoIdentityResolves(t *testing.T) {
 	// Arrange: an empty store, so identity resolution fails outright.
 	isolateIdentityEnv(t)
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	var out bytes.Buffer
 
 	// Act.
@@ -816,7 +816,7 @@ func TestAgentsActivationValidateWithoutJSONStaysQuietOnStdout(t *testing.T) {
 	// Arrange: the text form must not gain a half-rendered result line; the
 	// error message alone is the answer there.
 	isolateIdentityEnv(t)
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	var out bytes.Buffer
 
 	// Act.

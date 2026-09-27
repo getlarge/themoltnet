@@ -631,7 +631,7 @@ func TestPendingConfigMigrationNoticeIsSilentWithoutUsableCredentials(t *testing
 	t.Setenv("MOLTNET_CREDENTIALS_PATH", "")
 	t.Setenv("GIT_CONFIG_GLOBAL", "")
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, "config"))
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	dir := t.TempDir()
 
 	garbage := filepath.Join(dir, "garbage.json")

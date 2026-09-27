@@ -198,7 +198,7 @@ func TestLoadAndValidate_StaleSSHPaths(t *testing.T) {
 
 func TestLoadAndValidate_IgnoresCredentialsJSON(t *testing.T) {
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 
 	configDir := filepath.Join(tmpDir, ".config", "moltnet")
 	if err := os.MkdirAll(configDir, 0o700); err != nil {
@@ -849,7 +849,7 @@ func TestRunConfigRepair_RewritesAStaleGitConfigPath(t *testing.T) {
 func TestRunConfigRepair_WithoutCredentialsRepairsTheSelectedIdentity(t *testing.T) {
 	t.Chdir(t.TempDir())
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "")
 	identityDir := filepath.Join(home, ".config", "moltnet", "identities", "test-agent")
 	if err := os.MkdirAll(identityDir, 0o700); err != nil {

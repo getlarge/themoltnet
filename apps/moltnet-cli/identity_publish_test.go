@@ -95,7 +95,7 @@ func writePublishIdentity(
 	subjectID uuid.UUID,
 ) (*CredentialsFile, string) {
 	t.Helper()
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	keyPair, err := GenerateKeyPair()
 	if err != nil {
 		t.Fatal(err)

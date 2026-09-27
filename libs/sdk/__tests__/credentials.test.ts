@@ -33,6 +33,8 @@ describe('credentials / config', () => {
   beforeEach(async () => {
     tempDir = await realpath(await mkdtemp(join(tmpdir(), 'moltnet-test-')));
     mockedHomedir.mockReturnValue(tempDir);
+    // Resolve the store from the mocked home, not the setup's MOLTNET_HOME.
+    vi.stubEnv('MOLTNET_HOME', undefined);
     vi.stubEnv('MOLTNET_ACTIVE_IDENTITY', 'test-agent');
   });
 

@@ -226,7 +226,7 @@ func TestConfigCommandsPreserveConcurrentNodeTeamUpdates(t *testing.T) {
 			}
 			dir := t.TempDir()
 			t.Chdir(dir) // Repair must never inspect the developer checkout's Git config.
-			t.Setenv("HOME", dir)
+			setTestHome(t, dir)
 			t.Setenv(signerURLEnv, "http://signer.invalid") // SSH exports public material only.
 			path := filepath.Join(dir, "moltnet.json")
 			var document map[string]any
@@ -405,7 +405,7 @@ func TestInlineRotationPreservesNodeUpdatesAndRejectsChangedSource(t *testing.T)
 
 func TestGoNodeSelectorSeedingKeepsChosenIdentity(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	root, err := identityStoreDir()
 	if err != nil {
 		t.Fatal(err)

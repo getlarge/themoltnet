@@ -112,7 +112,7 @@ func TestRunGitHubSetup_FullFlow(t *testing.T) {
 	defer func() { githubAPIBaseURL = old }()
 
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 
 	// Write SSH public key file
 	sshDir := filepath.Join(tmpDir, "ssh")
@@ -197,7 +197,7 @@ func TestRunGitHubSetup_WritesInsteadOfIdempotent(t *testing.T) {
 	defer func() { githubAPIBaseURL = old }()
 
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 
 	sshDir := filepath.Join(tmpDir, "ssh")
 	os.MkdirAll(sshDir, 0o700)

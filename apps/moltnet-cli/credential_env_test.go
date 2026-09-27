@@ -14,7 +14,7 @@ import "testing"
 func isolateCredentialDiscovery(t *testing.T) string {
 	t.Helper()
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("MOLTNET_CREDENTIALS_PATH", "")
 	t.Setenv("GIT_CONFIG_GLOBAL", "")

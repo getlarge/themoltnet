@@ -46,6 +46,9 @@ describe('MoltNet store selection', () => {
     vi.stubEnv('HOME', home);
     vi.stubEnv('USERPROFILE', home);
     vi.stubEnv('MOLTNET_HOME', undefined);
+    // These tests define the default store themselves and only compute
+    // namespaces, so the setup's unused default-store hint must not apply.
+    vi.stubEnv('MOLTNET_DEFAULT_STORE_ROOT', undefined);
     vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', undefined);
   });
   afterEach(() => {

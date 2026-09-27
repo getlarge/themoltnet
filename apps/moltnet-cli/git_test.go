@@ -14,7 +14,7 @@ func TestRunGitSetup(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Override HOME so GetConfigDir() returns tmpDir/.config/moltnet
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 
 	configDir := filepath.Join(tmpDir, ".config", "moltnet")
 	if err := os.MkdirAll(configDir, 0o700); err != nil {
@@ -182,7 +182,7 @@ func TestRunGitSetupRejectsIdentityControlCharacters(t *testing.T) {
 
 func TestRunGitSetup_CustomNameEmail(t *testing.T) {
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 
 	configDir := filepath.Join(tmpDir, ".config", "moltnet")
 	if err := os.MkdirAll(configDir, 0o700); err != nil {
@@ -273,7 +273,7 @@ func TestRunGitSetup_CustomNameEmail(t *testing.T) {
 func selectTestIdentity(t *testing.T, creds CredentialsFile) string {
 	t.Helper()
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	t.Setenv(activeIdentityEnv, "")
 	t.Setenv("MOLTNET_CREDENTIALS_PATH", "")
 	identityDir := filepath.Join(home, ".config", "moltnet", "identities", "test-agent")

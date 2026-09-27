@@ -82,7 +82,7 @@ func TestAgentsWhoamiUsesActivatedCredentialsAndEndpoint(t *testing.T) {
 	writeIdentityConfig(t, filepath.Join(home, ".config", "moltnet", "moltnet.json"), global)
 	writeIdentityConfig(t, filepath.Join(home, ".config", "moltnet", "identities", "activated", "moltnet.json"), activated)
 
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	t.Setenv("MOLTNET_CREDENTIALS_PATH", "")
 	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "activated")
 	t.Setenv("GIT_CONFIG_GLOBAL", "")
@@ -224,7 +224,7 @@ func TestSignRequestIDUsesActivatedSigner(t *testing.T) {
 	writeIdentityConfig(t, filepath.Join(home, ".config", "moltnet", "moltnet.json"), global)
 	writeIdentityConfig(t, filepath.Join(home, ".config", "moltnet", "identities", "activated", "moltnet.json"), activated)
 
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	t.Setenv("MOLTNET_CREDENTIALS_PATH", "")
 	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "activated")
 	t.Setenv("GIT_CONFIG_GLOBAL", "")
@@ -268,7 +268,7 @@ func TestEnvironmentAgentKeyGoesToActivatedEndpoint(t *testing.T) {
 		filepath.Join(home, ".config", "moltnet", "identities", "activated", "moltnet.json"),
 		newIdentityFixture(t, "activated", activatedAPI.server.URL),
 	)
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	t.Setenv("MOLTNET_CREDENTIALS_PATH", "")
 	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "activated")
 	t.Setenv("GIT_CONFIG_GLOBAL", "")
@@ -318,7 +318,7 @@ func TestSignRequestIDRefusesSeedFromAnotherIdentity(t *testing.T) {
 	// seed is about to sign.
 	api.authenticateAs(somebodyElse)
 
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	t.Setenv("MOLTNET_CREDENTIALS_PATH", "")
 	t.Setenv("MOLTNET_ACTIVE_IDENTITY", "selected")
 	t.Setenv("GIT_CONFIG_GLOBAL", "")
