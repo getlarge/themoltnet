@@ -282,6 +282,12 @@ Both examples authenticate with the OAuth2 client being rotated, even when
 in
 [Which credentials file a command uses](#which-credentials-file-a-command-uses).
 
+When `oauth2.client_secret_ref` is set, the new secret is written through that
+reference, to the provider it already uses, and `moltnet.json` is left
+unchanged. Before contacting the server the CLI checks that this provider
+accepts writes: an `env` reference or a read-only file root stops the command
+before rotation (use `--no-update --show-secret` to receive the secret instead).
+
 Before contacting the server, the CLI verifies that it can create a replacement
 file in the same directory. After the server invalidates the old secret, the CLI
 atomically replaces the resolved file at mode `0600`, preserving its other
@@ -789,7 +795,7 @@ changes after generation.
 Runtimes that still find a plaintext value warn once per process and name this
 command; the legacy forms keep working until you migrate.
 
-## Move credentials between secret providers
+## Copy credentials between secret providers
 
 A credential that already resolves through a reference can switch providers
 without editing `moltnet.json` by hand:
@@ -813,32 +819,58 @@ read.
 
 The command resolves the source through the normal resolver, so the reference
 must be bound to this identity and the value must have the right shape. It then
-stores the value under the credential's canonical key in the destination, reads
-it back, and rewrites the reference in `moltnet.json`. The key never changes;
-only the provider does. A destination that already holds a different value is a
-conflict and nothing is changed. A destination that already holds the same value
-is reused, so running the command again after an interruption is safe. If the
-config rewrite fails, the destination copy is removed again.
+stores the value in the destination, reads it back, and rewrites the reference
+in `moltnet.json`. The destination always uses the credential's canonical key,
+so copying from an `env` reference or a flattened file key also changes the key.
 
-`copy` is enough to switch providers: after it, readers use the destination and
-the source entry is simply unused. `move` also deletes the source once the
-config points at the destination. If that deletion fails, the config already
-points at the destination and the command reports `manualRecoveryRequired`. A
-value-free recovery artifact records both references. `move` needs a source it
-can delete: an `env` source or a read-only file root is rejected before anything
-changes; copy it instead.
+Values are stored exactly as their readers consume them. The OAuth2 secret is
+used byte for byte and is copied unchanged; the file provider strips one
+trailing newline on read, so an OAuth2 secret ending in a newline cannot go to
+`file` and fails with `destination_unrepresentable`. The identity seed and agent
+key are trimmed and the GitHub App PEM loses one trailing newline, because their
+readers ignore that whitespace.
+
+A destination that already holds a different value is a conflict and nothing is
+changed. A destination that already holds the same credential is reused, so
+running the command again after an interruption is safe. If the config rewrite
+fails, the destination copy is removed again; if that removal also fails, the
+command reports `manualRecoveryRequired` and writes a value-free recovery
+artifact naming the destination to clean up.
 
 The secret is never printed. Output is a JSON document with the source and
-destination references and what was written, updated, or deleted. The rewrite
-changes `moltnet.json`, which invalidates the activation cache; run
+destination references and what was written and updated. The rewrite changes
+`moltnet.json`, which invalidates the activation cache; run
 `moltnet agents activation refresh` and restart running agent processes.
+
+### The source is never deleted
+
+After a copy the source entry is unused, but it still holds the value. The
+command does not delete it, because it cannot know that nothing else references
+it: identities using the same GitHub App share one keyring entry, and a
+repository bundle or another host may point at the same key. To invalidate old
+copies, change the credential itself:
+
+| Kind                     | Invalidate old copies                                                                                                                                                |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `oauth2-client-secret`   | `moltnet agents credentials rotate --yes`. The server invalidates the old secret, and the new one is written through the current reference.                          |
+| `agent-key`              | `moltnet agents keys rotate <key-id> --team-id <team> --store` or `moltnet agents keys revoke`. `--store` writes to the provider the reference already uses.         |
+| `github-app-private-key` | Generate a new private key in the GitHub App settings and delete the old one there. Storing the replacement locally still means editing the provider entry yourself. |
+| `identity-seed`          | Not possible yet: the identity key cannot be rotated ([#34](https://github.com/getlarge/themoltnet/issues/34)). Delete stale copies with your keychain tool or `rm`. |
+
+Because a seed copy cannot be revoked, copy the identity seed only to roots you
+control and remove copies you no longer use.
+
+### Use on a development machine
 
 A common use is a development machine where Node processes reading the OS
 keyring trigger an access prompt on every read. Copy the credentials into a file
 root, then start the Node processes with `MOLTNET_SECRET_ROOT` set. Reading does
 not need `MOLTNET_SECRET_ROOT_WRITABLE`. File-root secrets are stored
 unencrypted and are protected only by the directory's permissions (files are
-written with mode `0600`), so keep the root private to your user.
+written with mode `0600`), so keep the root private to your user. Rotation
+writes into the provider the reference points at, so rotating a credential
+stored in a file root needs `MOLTNET_SECRET_ROOT_WRITABLE=1`; without it the
+command stops before the server invalidates anything.
 
 Inside an activated agent session the secrets guard allows only
 `--to os-keyring`. A `file` destination, a non-static `--to` value, or any

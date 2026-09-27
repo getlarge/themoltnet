@@ -10,7 +10,7 @@ import (
 	"github.com/getlarge/themoltnet/apps/moltnet-cli/internal/configmigrate"
 )
 
-// credentialCopyKinds lists the kinds `config credentials copy|move` accepts,
+// credentialCopyKinds lists the kinds `config credentials copy` accepts,
 // in the order help output shows them.
 var credentialCopyKinds = []credentialKind{
 	credentialOAuth2ClientSecret,
@@ -19,15 +19,19 @@ var credentialCopyKinds = []credentialKind{
 	credentialAgentKey,
 }
 
-// credentialCopyOpts drives a provider-to-provider copy or move of one
+// credentialCopyOpts drives a provider-to-provider copy of one
 // reference-backed credential. The destination key is always the canonical
-// bound key for the kind: only the provider changes.
+// bound key for the kind, whatever form the source reference used.
+//
+// The source is never deleted: other configs (identities sharing a GitHub
+// App, repository bundles, other hosts) may still reference it, and no local
+// check can prove otherwise. Revocation belongs to the credential's own
+// lifecycle (rotate or revoke), not to a copy.
 type credentialCopyOpts struct {
 	credentialsPath string
 	kind            credentialKind
 	destination     string
 	team            string
-	move            bool
 	providers       *SecretProviderRegistry
 	// writeRecovery persists the state diagnostics of a run that needs manual
 	// recovery and returns the artifact path. Tests point it at a temp dir.
@@ -38,23 +42,20 @@ type credentialCopyOpts struct {
 // and state, never the secret value.
 type credentialCopyOutput struct {
 	Kind                   credentialKind  `json:"kind"`
-	Operation              string          `json:"operation"`
 	CredentialsPath        string          `json:"credentialsPath"`
 	TeamID                 string          `json:"teamId,omitempty"`
 	Source                 SecretReference `json:"source"`
 	Destination            SecretReference `json:"destination"`
 	SecretWritten          bool            `json:"secretWritten"`
 	CredentialsUpdated     bool            `json:"credentialsUpdated"`
-	SourceDeleted          bool            `json:"sourceDeleted"`
 	ManualRecoveryRequired bool            `json:"manualRecoveryRequired,omitempty"`
 	Stage                  string          `json:"stage,omitempty"`
 	RecoveryPath           string          `json:"recoveryPath,omitempty"`
 }
 
-// credentialCopyRecovery is the protected artifact written when a copy or
-// move leaves state an operator must reconcile. The source keeps the secret
-// until the config points at a verified destination, so the artifact never
-// needs to carry the value.
+// credentialCopyRecovery is the protected artifact written when a failed copy
+// could not remove the destination it wrote. The source is never modified, so
+// the artifact never needs to carry the value.
 type credentialCopyRecovery struct {
 	Stage           string          `json:"stage"`
 	Reason          string          `json:"reason"`
@@ -73,8 +74,10 @@ type credentialSlot struct {
 	teamID  string
 	current func(*CredentialsFile) *SecretReference
 	rewrite func(document map[string]json.RawMessage, creds *CredentialsFile, ref SecretReference) ([]byte, error)
-	// normalize returns the canonical stored form after checking the value's
-	// shape, so a corrupt source is never propagated.
+	// normalize checks the value's shape, so a corrupt source is never
+	// propagated, and returns the form the kind's reader consumes. Two values
+	// with the same normalized form are the same credential to every reader,
+	// so it may only drop bytes the reader ignores.
 	normalize func(creds *CredentialsFile, value string) (string, error)
 }
 
@@ -92,10 +95,6 @@ func parseCredentialCopyKind(value string) (credentialKind, error) {
 }
 
 func runConfigCredentialsCopyCmd(out, errOut io.Writer, opts credentialCopyOpts) error {
-	operation := "copy"
-	if opts.move {
-		operation = "move"
-	}
 	providers := opts.providers
 	if providers == nil {
 		providers = NewSecretProviderRegistry()
@@ -149,14 +148,6 @@ func runConfigCredentialsCopyCmd(out, errOut io.Writer, opts credentialCopyOpts)
 	if source.Provider == destination {
 		return fmt.Errorf("%s is already stored in the %q provider", opts.kind, destination)
 	}
-	if opts.move && source.Provider == environmentProviderName {
-		return fmt.Errorf("move cannot delete an %q source; use copy", environmentProviderName)
-	}
-	if opts.move && !providers.CanWrite(source.Provider) {
-		// Checked up front: discovering this after the rewrite would leave a
-		// completed copy reported as a failed move.
-		return fmt.Errorf("move cannot delete from the read-only %q source; use copy, or enable writes for it", source.Provider)
-	}
 	canonical, err := expectedSecretKey(opts.kind, slot.ids)
 	if err != nil {
 		return err
@@ -165,16 +156,11 @@ func runConfigCredentialsCopyCmd(out, errOut io.Writer, opts credentialCopyOpts)
 
 	output := credentialCopyOutput{
 		Kind:            opts.kind,
-		Operation:       operation,
 		CredentialsPath: credentialsPath,
 		TeamID:          slot.teamID,
 		Source:          source,
 		Destination:     target,
 	}
-	fail := func(stage string, active SecretReference, cause error) error {
-		return failCredentialCopy(out, output, stage, active, cause, writeRecovery)
-	}
-
 	stage := "update_credentials"
 	var locked *CredentialsFile
 	err = updateLockedCredentialsBytes(credentialsPath, func(current []byte) ([]byte, error) {
@@ -204,9 +190,14 @@ func runConfigCredentialsCopyCmd(out, errOut io.Writer, opts credentialCopyOpts)
 			return err
 		}
 		stage = "store_destination"
-		// A destination holding the same credential in another stored form
-		// (a PEM with its trailing newline) already satisfies the copy;
-		// Ensure would report it as a different secret.
+		if target.Provider == fileProviderName && strings.HasSuffix(value, "\n") {
+			// The file provider strips one trailing newline on read, so it
+			// would hand readers different bytes than the source holds.
+			return fmt.Errorf("destination_unrepresentable: the %q provider cannot store a value ending in a newline", fileProviderName)
+		}
+		// A destination holding the same credential in a form its reader
+		// treats identically (a PEM with its trailing newline) already
+		// satisfies the copy; Ensure would report it as a different secret.
 		if existing, err := providers.Resolve(target); err == nil {
 			if normalized, err := slot.normalize(locked, existing); err == nil && normalized == value {
 				stage = "update_credentials"
@@ -224,36 +215,30 @@ func runConfigCredentialsCopyCmd(out, errOut io.Writer, opts credentialCopyOpts)
 	if err != nil {
 		if output.SecretWritten {
 			if rollbackErr := providers.Delete(target); rollbackErr != nil {
-				return fail(stage, source, errors.Join(err, fmt.Errorf("roll back destination: %w", rollbackErr)))
+				return failCredentialCopy(out, output, stage, errors.Join(err, fmt.Errorf("roll back destination: %w", rollbackErr)), writeRecovery)
 			}
 			output.SecretWritten = false
 		}
-		return fmt.Errorf("credential %s failed during %s: %w; %s is unchanged", operation, stage, err, credentialsPath)
+		return fmt.Errorf("credential copy failed during %s: %w; %s is unchanged", stage, err, credentialsPath)
 	}
 	output.CredentialsUpdated = true
 
-	if opts.move {
-		if err := providers.Delete(source); err != nil {
-			return fail("delete_source", target, err)
-		}
-		output.SourceDeleted = true
-	}
 	if err := printJSONTo(out, output); err != nil {
 		return err
 	}
 	if errOut != nil {
-		fmt.Fprintf(errOut, "%s now resolves from %q in %s. Run 'moltnet agents activation refresh' and restart active agent processes.\n", opts.kind, destination, credentialsPath)
+		fmt.Fprintf(errOut, "%s now resolves from %s:%s in %s. The source %s:%s is unused but still holds the value; rotate or revoke the credential to invalidate that copy. Run 'moltnet agents activation refresh' and restart active agent processes.\n", opts.kind, target.Provider, target.Key, credentialsPath, source.Provider, source.Key)
 	}
 	return nil
 }
 
-// failCredentialCopy reports a state that needs an operator: the result JSON
-// on stdout and a protected recovery artifact, both value-free.
+// failCredentialCopy reports a destination write that could not be rolled
+// back: the result JSON on stdout and a protected recovery artifact, both
+// value-free. The config still references the untouched source.
 func failCredentialCopy(
 	out io.Writer,
 	output credentialCopyOutput,
 	stage string,
-	active SecretReference,
 	cause error,
 	writeRecovery func(credentialCopyRecovery) (string, error),
 ) error {
@@ -266,22 +251,17 @@ func failCredentialCopy(
 		CredentialsPath: output.CredentialsPath,
 		Source:          output.Source,
 		Destination:     output.Destination,
-		ActiveReference: active,
+		ActiveReference: output.Source,
 		SecretWritten:   output.SecretWritten,
 	})
 	if recoveryErr == nil {
 		output.RecoveryPath = recoveryPath
 	}
 	printErr := printJSONTo(out, output)
-
-	var next string
-	switch stage {
-	case "delete_source":
-		next = fmt.Sprintf("%s now references %s:%s; delete the unused source %s:%s manually", output.CredentialsPath, active.Provider, active.Key, output.Source.Provider, output.Source.Key)
-	default:
-		next = fmt.Sprintf("%s still references %s:%s; remove the unverified destination %s:%s manually before retrying", output.CredentialsPath, active.Provider, active.Key, output.Destination.Provider, output.Destination.Key)
-	}
-	err := fmt.Errorf("credential %s requires manual recovery after %s: %w; %s", output.Operation, stage, cause, next)
+	err := fmt.Errorf(
+		"credential copy requires manual recovery after %s: %w; %s still references %s:%s; remove the unverified destination %s:%s manually before retrying",
+		stage, cause, output.CredentialsPath, output.Source.Provider, output.Source.Key, output.Destination.Provider, output.Destination.Key,
+	)
 	if recoveryErr != nil {
 		err = fmt.Errorf("%w (recovery artifact failed: %v)", err, recoveryErr)
 	}
@@ -315,9 +295,7 @@ func locateCredentialSlot(creds *CredentialsFile, kind credentialKind, team stri
 				return rewriteSectionReference(document, "oauth2", "client_secret_ref", ref)
 			},
 			normalize: func(_ *CredentialsFile, value string) (string, error) {
-				// The file provider strips one trailing newline on read; store
-				// the form every provider returns identically.
-				value = stripOneNewline(value)
+				// The OAuth2 secret is used byte for byte: keep it exact.
 				if value == "" {
 					return "", &CredentialResolutionError{Kind: kind, Code: "invalid_value", Detail: "client secret is empty"}
 				}

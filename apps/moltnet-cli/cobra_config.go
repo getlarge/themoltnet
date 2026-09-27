@@ -213,60 +213,52 @@ does not install or configure agent-host plugins.`,
 func newConfigCredentialsCmd() *cobra.Command {
 	credentialsCmd := &cobra.Command{
 		Use:   "credentials",
-		Short: "Move reference-backed credentials between secret providers",
+		Short: "Manage where reference-backed credentials are stored",
 	}
-	newTransfer := func(move bool) *cobra.Command {
-		use, short, long := "copy", "Copy a credential to another secret provider", `Store a reference-backed credential in another secret provider and point
-moltnet.json at it. The source secret is left in place, unused, so copying
-back is always possible. The destination key is the credential's canonical
-bound key; only the provider changes.`
-		if move {
-			use, short, long = "move", "Move a credential to another secret provider", `Copy a reference-backed credential to another secret provider, point
-moltnet.json at it, then delete the source secret. An env source cannot be
-moved; copy it instead.`
-		}
-		long += `
+	var kind, to, team string
+	copyCmd := &cobra.Command{
+		Use:   "copy",
+		Short: "Copy a credential to another secret provider and switch to it",
+		Long: `Store a reference-backed credential in another secret provider and point
+moltnet.json at it. The destination uses the credential's canonical key,
+whatever form the source reference used (an env variable, a flattened file
+key). The source is left in place, unused, so copying back is always possible.
+
+The source is never deleted: other configs may still reference it. To
+invalidate the old copy, rotate or revoke the credential itself.
 
 The destination must accept writes: os-keyring, or file with
 MOLTNET_SECRET_ROOT and MOLTNET_SECRET_ROOT_WRITABLE=1. A destination that
 already holds a different value is never overwritten. The secret is never
-printed. Inside activated agent sessions only --to os-keyring is allowed.`
-		var kind, to, team string
-		cmd := &cobra.Command{
-			Use:   use,
-			Short: short,
-			Long:  long,
-			Example: fmt.Sprintf(`  # Resolve the identity seed from a local file root instead of the keyring
+printed. Inside activated agent sessions only --to os-keyring is allowed.`,
+		Example: `  # Resolve the identity seed from a local file root instead of the keyring
   MOLTNET_SECRET_ROOT=$HOME/.moltnet-secrets MOLTNET_SECRET_ROOT_WRITABLE=1 \
-    moltnet config credentials %[1]s --kind identity-seed --to file
+    moltnet config credentials copy --kind identity-seed --to file
 
   # Back to the OS keyring
   MOLTNET_SECRET_ROOT=$HOME/.moltnet-secrets \
-    moltnet config credentials %[1]s --kind identity-seed --to os-keyring`, use),
-			Args: cobra.NoArgs,
-			RunE: func(cmd *cobra.Command, args []string) error {
-				credentialKind, err := parseCredentialCopyKind(kind)
-				if err != nil {
-					return err
-				}
-				credPath, _ := cmd.Flags().GetString("credentials")
-				return runConfigCredentialsCopyCmd(cmd.OutOrStdout(), cmd.ErrOrStderr(), credentialCopyOpts{
-					credentialsPath: credPath,
-					kind:            credentialKind,
-					destination:     to,
-					team:            team,
-					move:            move,
-				})
-			},
-		}
-		cmd.Flags().StringVar(&kind, "kind", "", "Credential kind: oauth2-client-secret, identity-seed, github-app-private-key, agent-key")
-		cmd.Flags().StringVar(&to, "to", "", "Destination secret provider (os-keyring or file)")
-		cmd.Flags().StringVar(&team, "team", "", "Team whose agent key to transfer (agent-key only; required when several team keys are configured)")
-		_ = cmd.MarkFlagRequired("kind")
-		_ = cmd.MarkFlagRequired("to")
-		return cmd
+    moltnet config credentials copy --kind identity-seed --to os-keyring`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credentialKind, err := parseCredentialCopyKind(kind)
+			if err != nil {
+				return err
+			}
+			credPath, _ := cmd.Flags().GetString("credentials")
+			return runConfigCredentialsCopyCmd(cmd.OutOrStdout(), cmd.ErrOrStderr(), credentialCopyOpts{
+				credentialsPath: credPath,
+				kind:            credentialKind,
+				destination:     to,
+				team:            team,
+			})
+		},
 	}
-	credentialsCmd.AddCommand(newTransfer(false), newTransfer(true))
+	copyCmd.Flags().StringVar(&kind, "kind", "", "Credential kind: oauth2-client-secret, identity-seed, github-app-private-key, agent-key")
+	copyCmd.Flags().StringVar(&to, "to", "", "Destination secret provider (os-keyring or file)")
+	copyCmd.Flags().StringVar(&team, "team", "", "Team whose agent key to copy (agent-key only; required when several team keys are configured)")
+	_ = copyCmd.MarkFlagRequired("kind")
+	_ = copyCmd.MarkFlagRequired("to")
+	credentialsCmd.AddCommand(copyCmd)
 	return credentialsCmd
 }
 

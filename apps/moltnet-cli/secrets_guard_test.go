@@ -81,7 +81,7 @@ func TestSecretsGuardDeniesAlternateShellConstructs(t *testing.T) {
 		`moltnet config migrate --credentials .moltnet/agent/moltnet.json --destination $(printf file)`,
 		`moltnet config credentials copy --kind identity-seed --to file`,
 		`moltnet config credentials copy --kind identity-seed --to=file`,
-		`moltnet config credentials move --kind oauth2-client-secret --to file --credentials .moltnet/agent/moltnet.json`,
+		`moltnet config credentials copy --kind oauth2-client-secret --to file --credentials .moltnet/agent/moltnet.json`,
 		`moltnet config credentials copy --kind agent-key --to os-keyring --to file`,
 		`moltnet config credentials copy --kind identity-seed --to env`,
 		`moltnet config credentials copy --kind identity-seed --to "$DEST"`,
@@ -183,7 +183,7 @@ func TestSecretsGuardAllowsSafeOperations(t *testing.T) {
 		`moltnet agents keys create --team-id team --agent-id agent --name daemon --store --credentials .moltnet/agent/moltnet.json`,
 		`moltnet agents keys rotate key --team-id team --store --destination os-keyring`,
 		`moltnet config credentials copy --kind identity-seed --to os-keyring`,
-		`moltnet config credentials move --kind agent-key --team team --to=os-keyring --credentials .moltnet/agent/moltnet.json`,
+		`moltnet config credentials copy --kind agent-key --team team --to=os-keyring --credentials .moltnet/agent/moltnet.json`,
 		`GH_TOKEN=$(moltnet github token --credentials .moltnet/agent/moltnet.json) gh pr view 1`,
 	}
 	for _, command := range commands {

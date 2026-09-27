@@ -118,12 +118,11 @@ func (f *copyFixture) editDocument(t *testing.T, edit func(document map[string]a
 	f.writeDocument(t, document)
 }
 
-func (f *copyFixture) opts(kind credentialKind, destination string, move bool) credentialCopyOpts {
+func (f *copyFixture) opts(kind credentialKind, destination string) credentialCopyOpts {
 	return credentialCopyOpts{
 		credentialsPath: f.credentialsPath,
 		kind:            kind,
 		destination:     destination,
-		move:            move,
 		providers:       f.registry,
 		writeRecovery: func(recovery credentialCopyRecovery) (string, error) {
 			return writeRecoveryArtifact(f.recoveryDir, "credential-copy-recovery-*.json", recovery)
@@ -223,13 +222,18 @@ func TestConfigCredentialsCopyRoundTripsEveryKindThroughFileProvider(t *testing.
 			var out, errOut bytes.Buffer
 
 			// keyring -> file (copy): config switches, source stays.
-			if err := runConfigCredentialsCopyCmd(&out, &errOut, fixture.opts(kind, fileProviderName, false)); err != nil {
+			if err := runConfigCredentialsCopyCmd(&out, &errOut, fixture.opts(kind, fileProviderName)); err != nil {
 				t.Fatalf("copy to file: %v", err)
 			}
 			if ref := activeReference(fixture.readCredentials(t), kind); ref == nil || *ref != (SecretReference{Provider: fileProviderName, Key: key}) {
 				t.Fatalf("config reference after copy = %+v", ref)
 			}
-			want := stripOneNewline(fixture.values[kind])
+			want := fixture.values[kind]
+			if kind == credentialGitHubAppPrivateKey {
+				// The PEM reader parses the key, so the trailing newline the
+				// file provider strips is not part of the credential.
+				want = stripOneNewline(want)
+			}
 			stored, err := fixture.registry.Resolve(SecretReference{Provider: fileProviderName, Key: key})
 			if err != nil || stored != want {
 				t.Fatalf("file provider holds %q (%v), want the source value", stored, err)
@@ -241,27 +245,27 @@ func TestConfigCredentialsCopyRoundTripsEveryKindThroughFileProvider(t *testing.
 			if err := json.Unmarshal(out.Bytes(), &result); err != nil {
 				t.Fatalf("parse output: %v\n%s", err, out.String())
 			}
-			if !result.SecretWritten || !result.CredentialsUpdated || result.SourceDeleted || result.Operation != "copy" {
+			if !result.SecretWritten || !result.CredentialsUpdated {
 				t.Fatalf("unexpected copy result: %+v", result)
 			}
 
-			// file -> keyring (move): the keyring still holds the identical
-			// value, so Ensure is a no-op; the file source is deleted.
+			// file -> keyring: the keyring still holds a value its reader
+			// treats identically, so nothing is written; the file copy stays.
 			out.Reset()
-			if err := runConfigCredentialsCopyCmd(&out, &errOut, fixture.opts(kind, osKeyringProviderName, true)); err != nil {
-				t.Fatalf("move to keyring: %v", err)
+			if err := runConfigCredentialsCopyCmd(&out, &errOut, fixture.opts(kind, osKeyringProviderName)); err != nil {
+				t.Fatalf("copy back to keyring: %v", err)
 			}
 			if ref := activeReference(fixture.readCredentials(t), kind); ref == nil || *ref != (SecretReference{Provider: osKeyringProviderName, Key: key}) {
-				t.Fatalf("config reference after move = %+v", ref)
+				t.Fatalf("config reference after copy back = %+v", ref)
 			}
-			if _, err := fixture.registry.Resolve(SecretReference{Provider: fileProviderName, Key: key}); !errors.Is(err, ErrSecretNotFound) {
-				t.Fatalf("move left the file source behind: %v", err)
+			if got, err := fixture.registry.Resolve(SecretReference{Provider: fileProviderName, Key: key}); err != nil || got != want {
+				t.Fatalf("copy back must not delete the file copy: %q %v", got, err)
 			}
 			if err := json.Unmarshal(out.Bytes(), &result); err != nil {
 				t.Fatal(err)
 			}
-			if result.SecretWritten || !result.CredentialsUpdated || !result.SourceDeleted || result.Operation != "move" {
-				t.Fatalf("unexpected move result: %+v", result)
+			if result.SecretWritten || !result.CredentialsUpdated {
+				t.Fatalf("unexpected copy-back result: %+v", result)
 			}
 			assertNoSecretLeak(t, fixture, out.String(), errOut.String())
 		})
@@ -270,7 +274,7 @@ func TestConfigCredentialsCopyRoundTripsEveryKindThroughFileProvider(t *testing.
 
 func TestConfigCredentialsCopyPreservesUnrelatedFields(t *testing.T) {
 	fixture := newCopyFixture(t)
-	if err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialIdentitySeed, fileProviderName, false)); err != nil {
+	if err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialIdentitySeed, fileProviderName)); err != nil {
 		t.Fatal(err)
 	}
 	var document struct {
@@ -340,7 +344,7 @@ func TestConfigCredentialsCopyConflictLeavesBothSidesIntact(t *testing.T) {
 	}
 	before := fixture.credentialsBytes(t)
 	var out bytes.Buffer
-	err := runConfigCredentialsCopyCmd(&out, nil, fixture.opts(credentialOAuth2ClientSecret, fileProviderName, true))
+	err := runConfigCredentialsCopyCmd(&out, nil, fixture.opts(credentialOAuth2ClientSecret, fileProviderName))
 	if err == nil || !strings.Contains(err.Error(), "different secret") {
 		t.Fatalf("expected a conflict, got %v", err)
 	}
@@ -366,7 +370,7 @@ func TestConfigCredentialsCopyRerunAfterInterruptedCopyIsIdempotent(t *testing.T
 		t.Fatal(err)
 	}
 	var out bytes.Buffer
-	if err := runConfigCredentialsCopyCmd(&out, nil, fixture.opts(credentialIdentitySeed, fileProviderName, false)); err != nil {
+	if err := runConfigCredentialsCopyCmd(&out, nil, fixture.opts(credentialIdentitySeed, fileProviderName)); err != nil {
 		t.Fatalf("rerun: %v", err)
 	}
 	var result credentialCopyOutput
@@ -481,7 +485,7 @@ func TestConfigCredentialsCopyRollsBackEachFailureStage(t *testing.T) {
 			before := fixture.credentialsBytes(t)
 
 			var out bytes.Buffer
-			err := runConfigCredentialsCopyCmd(&out, nil, fixture.opts(credentialAgentKey, "staging", true))
+			err := runConfigCredentialsCopyCmd(&out, nil, fixture.opts(credentialAgentKey, "staging"))
 			if err == nil || !strings.Contains(err.Error(), tc.wantStage) {
 				t.Fatalf("expected failure during %s, got %v", tc.wantStage, err)
 			}
@@ -495,7 +499,7 @@ func TestConfigCredentialsCopyRollsBackEachFailureStage(t *testing.T) {
 				t.Fatalf("failed copy switched the active reference: %+v", ref)
 			}
 			if fixture.keyring.values[key] != fixture.values[credentialAgentKey] {
-				t.Fatal("failed move deleted the source")
+				t.Fatal("failed copy changed the source")
 			}
 			if !tc.wantRecovery {
 				if _, ok := destination.values[key]; ok {
@@ -522,65 +526,69 @@ func TestConfigCredentialsCopyRollsBackEachFailureStage(t *testing.T) {
 	}
 }
 
-// undeletableSecretProvider serves the source but refuses to delete it.
-type undeletableSecretProvider struct{ memorySecretProvider }
-
-func (p *undeletableSecretProvider) Delete(string) error { return errors.New("keyring locked") }
-
-func TestConfigCredentialsMoveReportsSourceDeletionFailure(t *testing.T) {
-	fixture := newCopyFixture(t)
-	source := &undeletableSecretProvider{memorySecretProvider: *fixture.keyring}
-	fixture.registry.Register(osKeyringProviderName, source)
-	key := canonicalCopyKey(t, credentialOAuth2ClientSecret)
-
-	var out bytes.Buffer
-	err := runConfigCredentialsCopyCmd(&out, nil, fixture.opts(credentialOAuth2ClientSecret, fileProviderName, true))
-	if err == nil || !strings.Contains(err.Error(), "delete_source") {
-		t.Fatalf("expected a source deletion failure, got %v", err)
-	}
-	var result credentialCopyOutput
-	if err := json.Unmarshal(out.Bytes(), &result); err != nil {
-		t.Fatalf("parse output: %v\n%s", err, out.String())
-	}
-	if !result.ManualRecoveryRequired || !result.CredentialsUpdated || result.SourceDeleted || result.Stage != "delete_source" {
-		t.Fatalf("unexpected result: %+v", result)
-	}
-	// Both references stay usable: the config points at the verified copy and
-	// the source still holds the value.
-	if ref := fixture.readCredentials(t).OAuth2.ClientSecretRef; ref.Provider != fileProviderName {
-		t.Fatalf("config should reference the destination: %+v", ref)
-	}
-	if source.values[key] != fixture.values[credentialOAuth2ClientSecret] {
-		t.Fatal("source secret changed")
-	}
-	artifacts := fixture.recoveryArtifacts(t)
-	if len(artifacts) != 1 || artifacts[0].Stage != "delete_source" || artifacts[0].ActiveReference.Provider != fileProviderName {
-		t.Fatalf("unexpected recovery artifact: %+v", artifacts)
-	}
-	assertNoSecretLeak(t, fixture, out.String(), err.Error())
-}
-
-func TestConfigCredentialsMoveRejectsEnvSource(t *testing.T) {
+func TestConfigCredentialsCopyFromEnvUsesCanonicalKey(t *testing.T) {
 	fixture := newCopyFixture(t)
 	t.Setenv(environmentSecretKey, fixture.values[credentialOAuth2ClientSecret])
 	fixture.editDocument(t, func(document map[string]any) {
 		oauth := document["oauth2"].(map[string]any)
 		oauth["client_secret_ref"] = map[string]string{"provider": environmentProviderName, "key": environmentSecretKey}
 	})
-	before := fixture.credentialsBytes(t)
-	err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialOAuth2ClientSecret, fileProviderName, true))
-	if err == nil || !strings.Contains(err.Error(), "use copy") {
-		t.Fatalf("expected env move rejection, got %v", err)
-	}
-	if !bytes.Equal(before, fixture.credentialsBytes(t)) {
-		t.Fatal("rejected move rewrote the credentials file")
-	}
-	if err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialOAuth2ClientSecret, fileProviderName, false)); err != nil {
+	if err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialOAuth2ClientSecret, fileProviderName)); err != nil {
 		t.Fatalf("copy from env: %v", err)
 	}
-	if ref := fixture.readCredentials(t).OAuth2.ClientSecretRef; ref.Provider != fileProviderName {
-		t.Fatalf("copy from env did not switch the reference: %+v", ref)
+	want := SecretReference{Provider: fileProviderName, Key: canonicalCopyKey(t, credentialOAuth2ClientSecret)}
+	if ref := fixture.readCredentials(t).OAuth2.ClientSecretRef; *ref != want {
+		t.Fatalf("copy from env should switch to the canonical key: %+v", ref)
 	}
+}
+
+func TestConfigCredentialsCopyKeepsOAuth2SecretBytesExact(t *testing.T) {
+	const secret = "canary-oauth-secret\n"
+	t.Run("file destination cannot represent a trailing newline", func(t *testing.T) {
+		fixture := newCopyFixture(t)
+		fixture.keyring.values[OAuth2SecretKey(copyFixtureSubject, copyFixtureClient)] = secret
+		before := fixture.credentialsBytes(t)
+		err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialOAuth2ClientSecret, fileProviderName))
+		if err == nil || !strings.Contains(err.Error(), "destination_unrepresentable") {
+			t.Fatalf("expected destination_unrepresentable, got %v", err)
+		}
+		if !bytes.Equal(before, fixture.credentialsBytes(t)) {
+			t.Fatal("rejected copy rewrote the credentials file")
+		}
+		if _, err := fixture.registry.Resolve(SecretReference{Provider: fileProviderName, Key: canonicalCopyKey(t, credentialOAuth2ClientSecret)}); !errors.Is(err, ErrSecretNotFound) {
+			t.Fatalf("rejected copy stored a value: %v", err)
+		}
+	})
+	t.Run("keyring destination stores the exact bytes", func(t *testing.T) {
+		fixture := newCopyFixture(t)
+		t.Setenv(environmentSecretKey, secret)
+		fixture.editDocument(t, func(document map[string]any) {
+			oauth := document["oauth2"].(map[string]any)
+			oauth["client_secret_ref"] = map[string]string{"provider": environmentProviderName, "key": environmentSecretKey}
+		})
+		delete(fixture.keyring.values, OAuth2SecretKey(copyFixtureSubject, copyFixtureClient))
+		if err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialOAuth2ClientSecret, osKeyringProviderName)); err != nil {
+			t.Fatalf("copy: %v", err)
+		}
+		if got := fixture.keyring.values[OAuth2SecretKey(copyFixtureSubject, copyFixtureClient)]; got != secret {
+			t.Fatalf("stored %q, want the exact source bytes", got)
+		}
+	})
+	t.Run("a destination differing only by a newline is a conflict", func(t *testing.T) {
+		fixture := newCopyFixture(t)
+		key := OAuth2SecretKey(copyFixtureSubject, copyFixtureClient)
+		if err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialOAuth2ClientSecret, fileProviderName)); err != nil {
+			t.Fatal(err)
+		}
+		fixture.keyring.values[key] = fixture.values[credentialOAuth2ClientSecret] + "\n"
+		err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialOAuth2ClientSecret, osKeyringProviderName))
+		if err == nil || !strings.Contains(err.Error(), "different secret") {
+			t.Fatalf("expected a conflict, got %v", err)
+		}
+		if ref := fixture.readCredentials(t).OAuth2.ClientSecretRef; ref.Provider != fileProviderName {
+			t.Fatalf("conflict switched the reference: %+v", ref)
+		}
+	})
 }
 
 func TestConfigCredentialsCopySelectsAgentKeyTeam(t *testing.T) {
@@ -591,7 +599,7 @@ func TestConfigCredentialsCopySelectsAgentKeyTeam(t *testing.T) {
 		refs[copyFixtureTeamB] = map[string]string{"provider": osKeyringProviderName, "key": TeamAgentKeyKey(copyFixtureSubject, copyFixtureTeamB)}
 	})
 
-	opts := fixture.opts(credentialAgentKey, fileProviderName, false)
+	opts := fixture.opts(credentialAgentKey, fileProviderName)
 	if err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, opts); err == nil || !strings.Contains(err.Error(), "--team") {
 		t.Fatalf("expected an explicit team requirement, got %v", err)
 	}
@@ -605,7 +613,7 @@ func TestConfigCredentialsCopySelectsAgentKeyTeam(t *testing.T) {
 	}
 	refs := fixture.readCredentials(t).AgentKeyRefs
 	if refs[copyFixtureTeamB].Provider != fileProviderName || refs[copyFixtureTeamA].Provider != osKeyringProviderName {
-		t.Fatalf("only team B should move: %+v", refs)
+		t.Fatalf("only team B should switch: %+v", refs)
 	}
 }
 
@@ -617,14 +625,14 @@ func TestConfigCredentialsCopyRejectsUnsupportedSources(t *testing.T) {
 			delete(keys, "private_key_ref")
 			keys["private_key"] = fixture.values[credentialIdentitySeed]
 		})
-		err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialIdentitySeed, fileProviderName, false))
+		err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialIdentitySeed, fileProviderName))
 		if err == nil || !strings.Contains(err.Error(), "config migrate") {
 			t.Fatalf("expected a migrate hint, got %v", err)
 		}
 	})
 	t.Run("same provider", func(t *testing.T) {
 		fixture := newCopyFixture(t)
-		err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialIdentitySeed, osKeyringProviderName, false))
+		err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialIdentitySeed, osKeyringProviderName))
 		if err == nil || !strings.Contains(err.Error(), "already stored") {
 			t.Fatalf("expected same-provider rejection, got %v", err)
 		}
@@ -635,7 +643,7 @@ func TestConfigCredentialsCopyRejectsUnsupportedSources(t *testing.T) {
 			github := document["github"].(map[string]any)
 			github["private_key_ref"] = map[string]string{"provider": osKeyringProviderName, "key": GitHubAppPrivateKeyKey("999")}
 		})
-		err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialGitHubAppPrivateKey, fileProviderName, false))
+		err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialGitHubAppPrivateKey, fileProviderName))
 		if err == nil || !strings.Contains(err.Error(), "not bound") {
 			t.Fatalf("expected a binding error, got %v", err)
 		}
@@ -644,7 +652,7 @@ func TestConfigCredentialsCopyRejectsUnsupportedSources(t *testing.T) {
 		fixture := newCopyFixture(t)
 		fixture.keyring.values[IdentitySeedKey(copyFixtureFinger)] = "bm90IGEgc2VlZA=="
 		before := fixture.credentialsBytes(t)
-		err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialIdentitySeed, fileProviderName, false))
+		err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialIdentitySeed, fileProviderName))
 		if err == nil || !strings.Contains(err.Error(), "resolve_source") {
 			t.Fatalf("expected a source validation failure, got %v", err)
 		}
@@ -652,24 +660,9 @@ func TestConfigCredentialsCopyRejectsUnsupportedSources(t *testing.T) {
 			t.Fatal("corrupt source was propagated")
 		}
 	})
-	t.Run("move from read-only file root", func(t *testing.T) {
-		fixture := newCopyFixture(t)
-		if err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialIdentitySeed, fileProviderName, false)); err != nil {
-			t.Fatal(err)
-		}
-		fixture.registry.Register(fileProviderName, FileSecretProvider{Root: fixture.fileRoot})
-		before := fixture.credentialsBytes(t)
-		err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialIdentitySeed, osKeyringProviderName, true))
-		if err == nil || !strings.Contains(err.Error(), "read-only") {
-			t.Fatalf("expected a read-only source rejection, got %v", err)
-		}
-		if !bytes.Equal(before, fixture.credentialsBytes(t)) {
-			t.Fatal("rejected move rewrote the credentials file")
-		}
-	})
 	t.Run("team flag on another kind", func(t *testing.T) {
 		fixture := newCopyFixture(t)
-		opts := fixture.opts(credentialIdentitySeed, fileProviderName, false)
+		opts := fixture.opts(credentialIdentitySeed, fileProviderName)
 		opts.team = copyFixtureTeamA
 		if err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, opts); err == nil || !strings.Contains(err.Error(), "--team applies only") {
 			t.Fatalf("expected --team rejection, got %v", err)
