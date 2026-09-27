@@ -33,7 +33,7 @@ import {
   SUBMIT_OUTPUT_GATE_ID,
   validateTaskSubmission,
 } from '@themoltnet/agent-runtime';
-import type { TObject, TSchema } from 'typebox';
+import { type TObject, type TSchema, Type } from 'typebox';
 
 import { recordTaskOutputParseResult } from './task-output.js';
 
@@ -112,10 +112,11 @@ export class UnknownTaskTypeForSubmitToolError extends Error {
 }
 
 /**
- * Pi validates tool arguments before execute() runs. Preserve the task's real
- * property schemas so providers can see the contract, but relax top-level
- * required/additional-property checks so malformed calls reach our strict
- * registry-aware validator and become recoverable tool errors in-session.
+ * Pi validates tool arguments before execute() runs. Keep the top-level field
+ * names visible to providers, but let malformed field values reach the strict
+ * registry-aware validator in execute(). The full contract remains in the
+ * tool prompt; otherwise a bad nested value is rejected before the runtime
+ * can repair it or explain the error to the model.
  */
 function requireObjectSchema(schema: TSchema): TObject {
   if (
@@ -130,11 +131,15 @@ function requireObjectSchema(schema: TSchema): TObject {
 
 function recoverableSubmitToolParameters(schema: TSchema): TObject {
   const objectSchema = requireObjectSchema(schema);
-  const { required: _required, ...rest } = objectSchema;
-  return {
-    ...rest,
-    additionalProperties: true,
-  } as unknown as TObject;
+  return Type.Object(
+    Object.fromEntries(
+      Object.keys(objectSchema.properties).map((name) => [
+        name,
+        Type.Optional(Type.Any()),
+      ]),
+    ),
+    { additionalProperties: true },
+  );
 }
 
 function formatValidationErrors(
@@ -326,6 +331,8 @@ export function createSubmitOutputTool(
   let invalidCallCount = 0;
   let lastValidationFailure: { code: string; message: string } | null = null;
 
+  const schema = recoverableSubmitToolParameters(contract.parametersSchema);
+
   const tool = defineTool({
     name: contract.toolName,
     label: `Submit ${taskType} output`,
@@ -341,7 +348,7 @@ export function createSubmitOutputTool(
       'If the submit tool returns a validation error, fix every listed field and call the same tool again.',
       'The first valid submission is final and immediately ends the session.',
     ],
-    parameters: recoverableSubmitToolParameters(contract.parametersSchema),
+    parameters: schema,
     async execute(_id, params) {
       if (captured) {
         const details: SubmitOutputDetails = {

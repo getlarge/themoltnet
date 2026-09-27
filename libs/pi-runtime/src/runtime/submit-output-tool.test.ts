@@ -6,6 +6,7 @@ import {
   MetricReader,
 } from '@opentelemetry/sdk-metrics';
 import { BUILT_IN_TASK_TYPES } from '@themoltnet/agent-runtime';
+import { Value } from 'typebox/value';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -134,6 +135,37 @@ describe('createSubmitOutputTool', () => {
     expect(tool.promptSnippet).toContain('"verdict"');
     expect(tool.promptSnippet).not.toContain('"traceparent"');
     expect(tool.promptGuidelines?.join('\n')).not.toContain('task prompt');
+  });
+
+  it('lets malformed nested verification reach the executor for repair', async () => {
+    const handle = createSubmitOutputTool('freeform', {
+      input: submitOutputOnlyFreeformInput,
+      inputCid: 'bafy-input',
+    });
+    const malformed = {
+      summary: 'done',
+      artifacts: [],
+      verification: {
+        inputCid: 'wrong',
+        results: [{ id: 'submit-output', kind: 'wrong', status: 'pass' }],
+        passed: true,
+      },
+    };
+    expect(Value.Check(handle.tool.parameters, malformed)).toBe(true);
+    const result = await callExecute(handle)(malformed);
+    expect(result.isError).toBeFalsy();
+    expect(handle.getCaptured()?.verification).toEqual({
+      inputCid: 'bafy-input',
+      results: [
+        {
+          id: 'submit-output',
+          kind: 'gate',
+          status: 'pass',
+          detail: 'submit_freeform_output accepted valid args',
+        },
+      ],
+      passed: true,
+    });
   });
 
   it('captures a valid payload and invokes the completion boundary', async () => {
