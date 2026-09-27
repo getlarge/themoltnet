@@ -89,6 +89,23 @@ describe('createSessionResolver', () => {
     });
   });
 
+  it('does not mark a matching unverified address as verified', async () => {
+    const session = createValidSessionResponse();
+    session.identity.verifiable_addresses = [
+      { value: 'test@example.com', verified: false },
+    ];
+    mockFrontendApi.toSession.mockResolvedValue(session);
+
+    const result = await resolver.resolveSession({
+      sessionToken: VALID_SESSION_TOKEN,
+    });
+
+    expect(result).toMatchObject({
+      email: 'test@example.com',
+      emailVerified: false,
+    });
+  });
+
   it('matches a verified address regardless of email case', async () => {
     const session = createValidSessionResponse();
     session.identity.traits = {

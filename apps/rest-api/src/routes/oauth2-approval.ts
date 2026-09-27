@@ -264,7 +264,9 @@ export async function oauth2ApprovalRoutes(
           'forbidden',
           rejectionReasons.includes('email_unverified') && human.email
             ? 'Verify your email address before signing in with Tailscale'
-            : 'The requested client, scope, and audience combination is not allowed',
+            : rejectionReasons.includes('username_missing')
+              ? 'Set a username on your MoltNet account before signing in with Tailscale'
+              : 'The requested client, scope, and audience combination is not allowed',
         );
       }
       return {

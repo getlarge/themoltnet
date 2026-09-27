@@ -195,6 +195,17 @@ describe('Tailscale OIDC consent', () => {
     expect(app.oauth2Client.acceptOAuth2ConsentRequest).not.toHaveBeenCalled();
   });
 
+  it('explains how to fix a missing username', async () => {
+    const app = await setup({
+      identity: { ...human, preferredUsername: undefined },
+    });
+
+    const response = await decide(app, 'allow');
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().detail).toContain('Set a username');
+  });
+
   it('keeps S256 PKCE required for other clients', async () => {
     const app = await setup({
       clientId: 'other-client',
