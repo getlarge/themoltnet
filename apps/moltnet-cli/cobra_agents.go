@@ -97,5 +97,6 @@ func newAgentsCmd() *cobra.Command {
 	agentsCmd.AddCommand(activationCmd)
 	agentsCmd.AddCommand(newAgentsKeysCmd())
 	agentsCmd.AddCommand(newAgentsCredentialsCmd())
+	agentsCmd.AddCommand(newAgentsIdentityKeyCmd())
 	return agentsCmd
 }
