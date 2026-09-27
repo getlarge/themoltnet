@@ -10,8 +10,10 @@
  *    and the proof is attached to it — one transaction.
  * 2. Kratos: replace `traits.public_key` on the bound identity.
  * 3. Hydra: patch each agent client's `public_key`/`fingerprint` metadata and
- *    display name, then revoke its access tokens, which carry the old key in
- *    their claims.
+ *    display name, then revoke its tokens. Revocation reaches opaque tokens;
+ *    JWT access tokens are verified locally and expire on their own. Their
+ *    stale key claims are harmless because the API reads the key from the
+ *    agents row.
  * 4. Evict this process's auth caches for the identity and clients.
  *
  * Steps 2–4 are idempotent and retried. They reconcile Ory with the committed
@@ -152,8 +154,8 @@ export function initIdentityKeyRotationWorkflow(): void {
         if (upstreamStatus(err) === 404) return;
         throw err;
       }
-      // Issued tokens carry the old key in their claims; they must not
-      // outlive the rotation.
+      // Issued tokens carry the old key in their claims. This revokes the
+      // opaque ones; JWTs are verified locally and run to expiry.
       await oauth2Api.deleteOAuth2Token({ clientId });
     },
     {

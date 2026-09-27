@@ -112,10 +112,13 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
           'This operation requires an agent identity',
         );
       }
+      // Token claims keep the key the token was minted with; after an
+      // identity key rotation only the agents row is current.
+      const agent = await fastify.agentRepository.findById(authContext.agentId);
       return {
         identityId: authContext.identityId,
-        publicKey: authContext.publicKey,
-        fingerprint: authContext.fingerprint,
+        publicKey: agent?.publicKey ?? authContext.publicKey,
+        fingerprint: agent?.fingerprint ?? authContext.fingerprint,
       };
     },
   );

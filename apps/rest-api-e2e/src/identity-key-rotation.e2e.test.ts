@@ -13,6 +13,7 @@ import {
   createDiaryEntry,
   createSigningRequest,
   getAgentProfile,
+  getCryptoIdentity,
   getWhoami,
   rotateIdentityKey,
   submitSignature,
@@ -160,12 +161,16 @@ describe('Identity key rotation', () => {
       previousFingerprint: oldFingerprint,
     });
 
-    // Tokens issued before the rotation carry the old key and are revoked.
-    const { response: staleWhoami } = await getWhoami({
+    // A token issued before the rotation still authenticates the agent (JWTs
+    // run to expiry), but the API reports the current key, never its claims.
+    const { data: staleIdentity } = await getCryptoIdentity({
       client,
       auth: () => oldToken,
     });
-    expect(staleWhoami.status).toBe(401);
+    expect(staleIdentity).toMatchObject({
+      publicKey: next.publicKey,
+      fingerprint: next.fingerprint,
+    });
 
     // The client secret is unchanged; a fresh token names the new key.
     const freshToken = await requestToken(

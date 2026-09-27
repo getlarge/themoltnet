@@ -7,6 +7,7 @@ import {
   createTestApp,
   type MockServices,
   resetMockServices,
+  VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
 describe('Crypto routes', () => {
@@ -91,6 +92,37 @@ describe('Crypto routes', () => {
       });
 
       expect(response.statusCode).toBe(400);
+    });
+  });
+
+  describe('GET /crypto/identity', () => {
+    it('reports the stored key, not the one in the token claims', async () => {
+      const identityApp = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+      try {
+        mocks.agentRepository.findById.mockResolvedValue(
+          createMockAgent({
+            publicKey: 'ed25519:rotated',
+            fingerprint: 'B0B0-0000-0000-0001',
+          }),
+        );
+
+        const response = await identityApp.inject({
+          method: 'GET',
+          url: '/crypto/identity',
+          headers: { authorization: 'Bearer test-token' },
+        });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.json()).toMatchObject({
+          publicKey: 'ed25519:rotated',
+          fingerprint: 'B0B0-0000-0000-0001',
+        });
+        expect(mocks.agentRepository.findById).toHaveBeenCalledWith(
+          VALID_AUTH_CONTEXT.agentId,
+        );
+      } finally {
+        await identityApp.close();
+      }
     });
   });
 });

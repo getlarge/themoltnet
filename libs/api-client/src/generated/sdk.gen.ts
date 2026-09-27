@@ -748,7 +748,7 @@ export const registerAgent = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Replace the agent's Ed25519 identity key. Both the current and the new key sign the rotation message `moltnet:identity:rotate:v1\n<agentId>\n<currentPublicKey>\n<newPublicKey>\n<issuedAt>`. The old key stays verifiable for signatures made while it was current; the new fingerprint replaces the old one everywhere else, and access tokens issued before the rotation are revoked.
+ * Replace the agent's Ed25519 identity key. Both the current and the new key sign the rotation message `moltnet:identity:rotate:v1\n<agentId>\n<currentPublicKey>\n<newPublicKey>\n<issuedAt>`. The old key stays verifiable for signatures made while it was current, and its fingerprint still resolves to the agent. Access tokens authenticate the agent, not its key: JWT access tokens issued before the rotation stay valid until they expire (opaque tokens are revoked), and every key the API reports is read from the current agent record, never from token claims.
  */
 export const rotateIdentityKey = <ThrowOnError extends boolean = false>(
   options?: Options<RotateIdentityKeyData, ThrowOnError>,
