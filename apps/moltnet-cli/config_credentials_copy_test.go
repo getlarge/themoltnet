@@ -368,14 +368,21 @@ type rollbackTrackingProvider struct {
 	failSet bool
 	// writeThenFail stores the value and still returns an error.
 	writeThenFail bool
-	corruptRead   bool
-	touchPath     string
-	deletes       int
+	// failReadAfterWrite makes reads fail once a value was written, as a
+	// provider that became unreachable mid-operation would.
+	failReadAfterWrite bool
+	wroteOnce          bool
+	corruptRead        bool
+	touchPath          string
+	deletes            int
 }
 
 func (p *rollbackTrackingProvider) CanWrite() bool { return true }
 
 func (p *rollbackTrackingProvider) Get(key string) (string, error) {
+	if p.failReadAfterWrite && p.wroteOnce {
+		return "", errors.New("destination unreachable")
+	}
 	value, ok := p.values[key]
 	if !ok {
 		return "", ErrSecretNotFound
@@ -392,6 +399,7 @@ func (p *rollbackTrackingProvider) Set(key, value string) error {
 	}
 	if p.writeThenFail {
 		p.values[key] = value
+		p.wroteOnce = true
 		return errors.New("destination timed out after writing")
 	}
 	if p.touchPath != "" {
@@ -419,6 +427,9 @@ func TestConfigCredentialsCopyKeepsTheSourceActiveAtEachFailureStage(t *testing.
 		provider     func(credentialsPath string) *rollbackTrackingProvider
 		wantStage    string
 		wantRetained bool
+		// wantState is how the error describes the destination; empty when
+		// nothing may have been written there.
+		wantState string
 	}{
 		{
 			name:      "destination write",
@@ -430,12 +441,23 @@ func TestConfigCredentialsCopyKeepsTheSourceActiveAtEachFailureStage(t *testing.
 			provider:     func(string) *rollbackTrackingProvider { return &rollbackTrackingProvider{writeThenFail: true} },
 			wantStage:    "store_destination",
 			wantRetained: true,
+			wantState:    "holds a verified copy",
+		},
+		{
+			name: "destination write that failed after storing, unreadable",
+			provider: func(string) *rollbackTrackingProvider {
+				return &rollbackTrackingProvider{writeThenFail: true, failReadAfterWrite: true}
+			},
+			wantStage:    "store_destination",
+			wantRetained: true,
+			wantState:    "may hold an unverified copy",
 		},
 		{
 			name:         "read-back verification",
 			provider:     func(string) *rollbackTrackingProvider { return &rollbackTrackingProvider{corruptRead: true} },
 			wantStage:    "store_destination",
 			wantRetained: true,
+			wantState:    "now holds a different value",
 		},
 		{
 			name: "config rewrite",
@@ -444,6 +466,7 @@ func TestConfigCredentialsCopyKeepsTheSourceActiveAtEachFailureStage(t *testing.
 			},
 			wantStage:    "update_credentials",
 			wantRetained: true,
+			wantState:    "holds a verified copy",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -466,8 +489,11 @@ func TestConfigCredentialsCopyKeepsTheSourceActiveAtEachFailureStage(t *testing.
 			if _, stored := destination.values[key]; stored != tc.wantRetained {
 				t.Fatalf("destination stored = %v, want %v", stored, tc.wantRetained)
 			}
-			if strings.Contains(err.Error(), "is left in place") != tc.wantRetained {
-				t.Fatalf("error must name a retained destination exactly when one exists: %v", err)
+			if tc.wantState == "" && strings.Contains(err.Error(), "staging:") {
+				t.Fatalf("error describes a destination nothing was written to: %v", err)
+			}
+			if tc.wantState != "" && !strings.Contains(err.Error(), tc.wantState) {
+				t.Fatalf("error must say the destination %q: %v", tc.wantState, err)
 			}
 			if ref := fixture.readCredentials(t).AgentKeyRefs[copyFixtureTeamA]; ref.Provider != osKeyringProviderName {
 				t.Fatalf("failed copy switched the active reference: %+v", ref)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -198,21 +199,13 @@ func runConfigCredentialsCopyCmd(out, errOut io.Writer, opts credentialCopyOpts)
 	if err != nil {
 		// A destination this run wrote is never deleted: once Ensure released
 		// its lock, another copy of the same credential may have adopted the
-		// entry, and no local check can prove otherwise. It holds the same
-		// value as the source, so leaving it unused is harmless.
-		if output.SecretWritten {
-			return fmt.Errorf("credential copy failed during %s: %w; %s is unchanged, and the copy stored at %s:%s is left in place (remove it only if no other config references it)",
-				stage, err, credentialsPath, target.Provider, target.Key)
-		}
-		// A provider can fail after writing, so check what the destination
-		// holds before saying nothing was copied.
+		// entry, and no local check can prove otherwise. Report only what a
+		// read-back establishes about it.
+		detail := ""
 		if copied != "" {
-			if stored, readErr := providers.Resolve(target); readErr == nil && stored == copied {
-				return fmt.Errorf("credential copy failed during %s: %w; %s is unchanged, but %s:%s already holds a copy of the value and is left in place (remove it only if no other config references it)",
-					stage, err, credentialsPath, target.Provider, target.Key)
-			}
+			detail = destinationStateAfterFailure(providers, target, copied, output.SecretWritten)
 		}
-		return fmt.Errorf("credential copy failed during %s: %w; %s is unchanged", stage, err, credentialsPath)
+		return fmt.Errorf("credential copy failed during %s: %w; %s is unchanged%s", stage, err, credentialsPath, detail)
 	}
 	output.CredentialsUpdated = true
 
@@ -380,4 +373,24 @@ func presentField(value, name string) string {
 		return ""
 	}
 	return name
+}
+
+// destinationStateAfterFailure reads the destination back after a failed copy
+// and describes only what that establishes: a verified copy, a written but
+// different value, an unreadable entry, or nothing to report.
+func destinationStateAfterFailure(providers *SecretProviderRegistry, target SecretReference, copied string, written bool) string {
+	entry := target.Provider + ":" + target.Key
+	stored, readErr := providers.Resolve(target)
+	switch {
+	case readErr == nil && stored == copied:
+		return ", and " + entry + " holds a verified copy of the value, left in place (remove it only if no other config references it)"
+	case readErr == nil && !written:
+		// A value that was already there, such as a conflicting secret.
+		return ""
+	case readErr == nil:
+		return "; " + entry + " was written but now holds a different value, so inspect it before retrying"
+	case errors.Is(readErr, ErrSecretNotFound) && !written:
+		return ""
+	}
+	return "; " + entry + " could not be read back, so it may hold an unverified copy of the secret: inspect it before retrying"
 }

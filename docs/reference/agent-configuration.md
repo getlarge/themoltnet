@@ -833,10 +833,11 @@ readers ignore that whitespace.
 A destination that already holds a different value is a conflict and nothing is
 changed. A destination that already holds the same credential is reused, so
 running the command again after an interruption is safe. If a later step fails,
-`moltnet.json` keeps pointing at the source. A destination copy already written
-is left in place, because another config copying the same credential may have
-adopted it; the error names it, and it holds the same value as the source.
-Remove it only if no other config references it.
+`moltnet.json` keeps pointing at the source. Whatever was written to the
+destination is left in place, because another config copying the same credential
+may have adopted it. The error reads the destination back and says whether it
+holds a verified copy, a different value, or could not be read; inspect it in
+the last two cases, and remove it only if no other config references it.
 
 The secret is never printed. Output is a JSON document with the source and
 destination references and what was written and updated. The rewrite changes
