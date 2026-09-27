@@ -1,6 +1,8 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import process from 'node:process';
 import { execFileSync } from 'node:child_process';
+import console from 'node:console';
+import { setTimeout } from 'node:timers';
 import { pathToFileURL } from 'node:url';
 
 const pinFile = 'libs/sandbox-gondolin/src/snapshot.ts';
