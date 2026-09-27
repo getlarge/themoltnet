@@ -350,13 +350,6 @@
       "when": 1790498835529,
       "tag": "0049_agent_identity_keys",
       "breakpoints": true
-    },
-    {
-      "idx": 50,
-      "version": "7",
-      "when": 1790498848522,
-      "tag": "0050_agent_identity_key_history",
-      "breakpoints": true
     }
   ],
   "version": "7"
