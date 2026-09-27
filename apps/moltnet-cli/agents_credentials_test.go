@@ -953,12 +953,13 @@ func TestAgentsCredentialsRotateUpdatesReferencedSecret(t *testing.T) {
 			`{"client_id":"client-id","client_secret_ref":{"provider":"os-keyring","key":"oauth2/subject-id/client-id"}}`,
 		),
 	}
+	credentialsPath := writeReferencedRotationConfig(t, ref)
 	var stdout bytes.Buffer
 
 	err = runAgentsCredentialsRotateWithClient(
 		context.Background(),
 		client,
-		"/safe/path/moltnet.json",
+		credentialsPath,
 		document,
 		"client-id",
 		agentsCredentialsRotateOpts{
@@ -1011,6 +1012,85 @@ func TestAgentsCredentialsRotateRejectsReadOnlyReferenceBeforeNetwork(t *testing
 	}
 	if rotateCalls.Load() != 0 {
 		t.Fatalf("rotate calls = %d, want 0", rotateCalls.Load())
+	}
+}
+
+// writeReferencedRotationConfig writes a credentials file whose OAuth2 secret
+// is referenced, not inline, so rotation persists through the provider.
+func writeReferencedRotationConfig(t *testing.T, ref SecretReference) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "moltnet.json")
+	document, err := json.Marshal(map[string]any{
+		"subject_id":   "subject-id",
+		"subject_type": "agent",
+		"oauth2":       map[string]any{"client_id": "client-id", "client_secret_ref": ref},
+		"keys":         map[string]any{},
+		"endpoints":    map[string]any{},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, document, privateFileMode); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func TestAgentsCredentialsRotateFollowsAReferenceCopiedDuringRotation(t *testing.T) {
+	key := OAuth2SecretKey("subject-id", "client-id")
+	keyringRef := SecretReference{Provider: osKeyringProviderName, Key: key}
+	fileRef := SecretReference{Provider: fileProviderName, Key: key}
+	registry, keyring := newMemorySecretProviderRegistry()
+	keyring.values[key] = testOldClientSecret
+	fileRoot := t.TempDir()
+	registry.Register(fileProviderName, FileSecretProvider{Root: fileRoot, Writable: true})
+	credentialsPath := writeReferencedRotationConfig(t, keyringRef)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/auth/rotate-secret" {
+			http.NotFound(w, r)
+			return
+		}
+		// A concurrent `config credentials copy` switches the reference to
+		// the file provider while the server rotates.
+		if err := registry.Store(fileRef, testOldClientSecret); err != nil {
+			t.Errorf("seed copy: %v", err)
+		}
+		creds, err := ReadConfigFrom(credentialsPath)
+		if err != nil {
+			t.Errorf("read config: %v", err)
+		}
+		creds.OAuth2.ClientSecretRef = &fileRef
+		if _, err := WriteConfigTo(creds, credentialsPath); err != nil {
+			t.Errorf("switch reference: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"clientId":"client-id","clientSecret":%q}`, testNewClientSecret)
+	}))
+	defer server.Close()
+	client, err := newBearerClient(
+		server.URL,
+		func(_ context.Context) (string, error) { return "access-token", nil },
+		server.Client(),
+	)
+	if err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+
+	err = runAgentsCredentialsRotateWithClient(
+		context.Background(), client, credentialsPath, nil, "client-id",
+		agentsCredentialsRotateOpts{out: &bytes.Buffer{}, secretReference: &keyringRef, secretProviders: registry},
+	)
+	if err != nil {
+		t.Fatalf("rotate: %v", err)
+	}
+
+	active, err := registry.Resolve(fileRef)
+	if err != nil || active != testNewClientSecret {
+		t.Fatalf("the active reference holds %q (%v), want the rotated secret", active, err)
+	}
+	if creds, _ := ReadConfigFrom(credentialsPath); *creds.OAuth2.ClientSecretRef != fileRef {
+		t.Fatalf("rotation changed the reference: %+v", creds.OAuth2.ClientSecretRef)
 	}
 }
 

@@ -359,9 +359,10 @@ func TestConfigCredentialsCopyRerunAfterInterruptedCopyIsIdempotent(t *testing.T
 	}
 }
 
-// rollbackTrackingProvider is a writable destination whose Set, read-back,
-// and Delete can each fail, and whose Set can touch the credentials file so
-// the compare-and-replace rewrite fails after the secret was stored.
+// rollbackTrackingProvider is a writable destination whose Set or read-back
+// can fail, and whose Set can touch the credentials file so the
+// compare-and-replace rewrite fails after the secret was stored. It counts
+// Delete calls so tests can assert a failed copy never deletes.
 type rollbackTrackingProvider struct {
 	values      map[string]string
 	failSet     bool
@@ -574,6 +575,34 @@ func TestConfigCredentialsCopyRejectsUnsupportedSources(t *testing.T) {
 			t.Fatalf("expected a migrate hint, got %v", err)
 		}
 	})
+	for _, tc := range []struct {
+		kind  credentialKind
+		field string
+		edit  func(document map[string]any)
+	}{
+		{credentialOAuth2ClientSecret, "oauth2.client_secret", func(d map[string]any) {
+			d["oauth2"].(map[string]any)["client_secret"] = "inline-secret"
+		}},
+		{credentialIdentitySeed, "keys.private_key", func(d map[string]any) {
+			d["keys"].(map[string]any)["private_key"] = "inline-seed"
+		}},
+		{credentialGitHubAppPrivateKey, "github.private_key_path", func(d map[string]any) {
+			d["github"].(map[string]any)["private_key_path"] = "/tmp/app.pem"
+		}},
+	} {
+		t.Run("reference beside "+tc.field, func(t *testing.T) {
+			fixture := newCopyFixture(t)
+			fixture.editDocument(t, tc.edit)
+			before := fixture.credentialsBytes(t)
+			err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(tc.kind, fileProviderName))
+			if err == nil || !strings.Contains(err.Error(), tc.field) {
+				t.Fatalf("expected an ambiguity error naming %s, got %v", tc.field, err)
+			}
+			if !bytes.Equal(before, fixture.credentialsBytes(t)) {
+				t.Fatal("an ambiguous config was rewritten")
+			}
+		})
+	}
 	t.Run("same provider", func(t *testing.T) {
 		fixture := newCopyFixture(t)
 		err := runConfigCredentialsCopyCmd(&bytes.Buffer{}, nil, fixture.opts(credentialIdentitySeed, osKeyringProviderName))
@@ -662,4 +691,44 @@ func TestConfigCredentialsCopyInvalidatesActivationCache(t *testing.T) {
 	if got := activationCredentialProviders(creds)[activationCredentialOAuth2]; got != osKeyringProviderName {
 		t.Fatalf("next refresh would record oauth2 provider %q", got)
 	}
+}
+
+// TestConfigCredentialsCopyCommand runs the user-facing command: its required
+// flags, --kind parsing and --credentials wiring. The source is an env
+// reference so no real keyring is involved.
+func TestConfigCredentialsCopyCommand(t *testing.T) {
+	fixture := newCopyFixture(t)
+	t.Setenv(environmentSecretKey, fixture.values[credentialOAuth2ClientSecret])
+	fixture.editDocument(t, func(document map[string]any) {
+		document["oauth2"].(map[string]any)["client_secret_ref"] = map[string]string{"provider": environmentProviderName, "key": environmentSecretKey}
+	})
+	root := t.TempDir()
+	t.Setenv(secretRootEnv, root)
+	t.Setenv(secretRootWritableEnv, "1")
+
+	for _, args := range [][]string{
+		{"config", "credentials", "copy", "--to", "file"},
+		{"config", "credentials", "copy", "--kind", "oauth2-client-secret"},
+		{"config", "credentials", "copy", "--kind", "password", "--to", "file"},
+		{"config", "credentials", "copy", "--kind", "identity-seed", "--team", copyFixtureTeamA, "--to", "file"},
+	} {
+		if _, _, err := executeCommand(NewRootCmd("test", ""), append([]string{"--credentials", fixture.credentialsPath}, args...)...); err == nil {
+			t.Fatalf("%v must be rejected", args)
+		}
+	}
+
+	stdout, stderr, err := executeCommand(NewRootCmd("test", ""),
+		"--credentials", fixture.credentialsPath,
+		"config", "credentials", "copy", "--kind", "oauth2-client-secret", "--to", "file")
+	if err != nil {
+		t.Fatalf("copy: %v\n%s", err, stderr)
+	}
+	key := canonicalCopyKey(t, credentialOAuth2ClientSecret)
+	if stored, err := (FileSecretProvider{Root: root}).Get(key); err != nil || stored != fixture.values[credentialOAuth2ClientSecret] {
+		t.Fatalf("the file root does not hold the copied secret: %v", err)
+	}
+	if ref := fixture.readCredentials(t).OAuth2.ClientSecretRef; *ref != (SecretReference{Provider: fileProviderName, Key: key}) {
+		t.Fatalf("the reference was not switched: %+v", ref)
+	}
+	assertNoSecretLeak(t, fixture, stdout, stderr)
 }

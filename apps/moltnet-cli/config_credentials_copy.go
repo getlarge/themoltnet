@@ -52,7 +52,10 @@ type credentialSlot struct {
 	ids     credentialBindingIDs
 	teamID  string
 	current func(*CredentialsFile) *SecretReference
-	rewrite func(document map[string]json.RawMessage, creds *CredentialsFile, ref SecretReference) ([]byte, error)
+	// legacyField names the plaintext field set alongside the reference, if
+	// any. Readers reject that combination, so copy must too.
+	legacyField func(*CredentialsFile) string
+	rewrite     func(document map[string]json.RawMessage, creds *CredentialsFile, ref SecretReference) ([]byte, error)
 	// normalize checks the value's shape, so a corrupt source is never
 	// propagated, and returns the form the kind's reader consumes. Two values
 	// with the same normalized form are the same credential to every reader,
@@ -116,6 +119,9 @@ func runConfigCredentialsCopyCmd(out, errOut io.Writer, opts credentialCopyOpts)
 	if sourcePtr == nil {
 		return fmt.Errorf("%s is not stored in a secret provider; run 'moltnet config migrate' first", opts.kind)
 	}
+	if field := slot.legacyField(creds); field != "" {
+		return fmt.Errorf("%s sets both %s and its reference; readers reject that, so remove one before copying", credentialsPath, field)
+	}
 	source := *sourcePtr
 	if err := validateSecretReferenceBinding(opts.kind, source, slot.ids); err != nil {
 		return err
@@ -147,7 +153,7 @@ func runConfigCredentialsCopyCmd(out, errOut io.Writer, opts credentialCopyOpts)
 		if err != nil {
 			return nil, err
 		}
-		if ref := freshSlot.current(fresh); ref == nil || *ref != source || freshSlot.ids != slot.ids {
+		if ref := freshSlot.current(fresh); ref == nil || *ref != source || freshSlot.ids != slot.ids || freshSlot.legacyField(fresh) != "" {
 			return nil, fmt.Errorf("credentials changed since the copy started")
 		}
 		locked = fresh
@@ -221,6 +227,9 @@ func locateCredentialSlot(creds *CredentialsFile, kind credentialKind, team stri
 		return &credentialSlot{
 			ids:     ids,
 			current: func(c *CredentialsFile) *SecretReference { return c.OAuth2.ClientSecretRef },
+			legacyField: func(c *CredentialsFile) string {
+				return presentField(c.OAuth2.ClientSecret, "oauth2.client_secret")
+			},
 			rewrite: func(document map[string]json.RawMessage, _ *CredentialsFile, ref SecretReference) ([]byte, error) {
 				return rewriteSectionReference(document, "oauth2", "client_secret_ref", ref)
 			},
@@ -236,6 +245,9 @@ func locateCredentialSlot(creds *CredentialsFile, kind credentialKind, team stri
 		return &credentialSlot{
 			ids:     credentialBindingIDs{Fingerprint: creds.Keys.Fingerprint},
 			current: func(c *CredentialsFile) *SecretReference { return c.Keys.PrivateKeyRef },
+			legacyField: func(c *CredentialsFile) string {
+				return presentField(c.Keys.PrivateKey, "keys.private_key")
+			},
 			rewrite: func(document map[string]json.RawMessage, _ *CredentialsFile, ref SecretReference) ([]byte, error) {
 				return rewriteSectionReference(document, "keys", "private_key_ref", ref)
 			},
@@ -259,6 +271,12 @@ func locateCredentialSlot(creds *CredentialsFile, kind credentialKind, team stri
 					return nil
 				}
 				return c.GitHub.PrivateKeyRef
+			},
+			legacyField: func(c *CredentialsFile) string {
+				if c.GitHub == nil {
+					return ""
+				}
+				return presentField(c.GitHub.PrivateKeyPath, "github.private_key_path")
 			},
 			rewrite: func(document map[string]json.RawMessage, _ *CredentialsFile, ref SecretReference) ([]byte, error) {
 				return rewriteSectionReference(document, "github", "private_key_ref", ref)
@@ -287,8 +305,9 @@ func locateCredentialSlot(creds *CredentialsFile, kind credentialKind, team stri
 		ids := subjectIDs
 		ids.TeamID = teamID
 		return &credentialSlot{
-			ids:    ids,
-			teamID: teamID,
+			ids:         ids,
+			teamID:      teamID,
+			legacyField: func(*CredentialsFile) string { return "" },
 			current: func(c *CredentialsFile) *SecretReference {
 				if teamID == "" {
 					return c.AgentKeyRef
@@ -340,4 +359,11 @@ func rewriteSectionReference(document map[string]json.RawMessage, section, field
 		values[field] = encoded
 		return nil
 	})
+}
+
+func presentField(value, name string) string {
+	if strings.TrimSpace(value) == "" {
+		return ""
+	}
+	return name
 }

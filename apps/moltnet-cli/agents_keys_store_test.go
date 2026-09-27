@@ -487,9 +487,10 @@ func TestAgentsKeysRotateStoreKeepsTheSlotsProvider(t *testing.T) {
 		}
 		_, _, client := newTestServer(t, handler)
 
+		var out bytes.Buffer
 		err := runAgentsKeysRotateWithClient(context.Background(), client, agentsKeysRotateOpts{
 			credPath: credentialsPath, teamID: testTeamID, keyID: "key-1",
-			store: inherit(registry, newRecoveryCapture(t)), out: &bytes.Buffer{}, errOut: &bytes.Buffer{},
+			store: inherit(registry, newRecoveryCapture(t)), out: &out, errOut: &bytes.Buffer{},
 		})
 		if err != nil {
 			t.Fatalf("rotate: %v", err)
@@ -500,6 +501,13 @@ func TestAgentsKeysRotateStoreKeepsTheSlotsProvider(t *testing.T) {
 		}
 		if creds, _ := ReadConfigFrom(credentialsPath); creds.AgentKeyRefs[testTeamID].Provider != osKeyringProviderName {
 			t.Fatalf("rotation switched the slot back: %+v", creds.AgentKeyRefs)
+		}
+		var result storedAgentKeyOutput
+		if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+			t.Fatalf("parse output: %v\n%s", err, out.String())
+		}
+		if result.AgentKeyRef.Provider != osKeyringProviderName {
+			t.Fatalf("output names the old provider: %+v", result.AgentKeyRef)
 		}
 	})
 

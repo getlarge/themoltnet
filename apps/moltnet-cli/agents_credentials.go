@@ -527,7 +527,31 @@ func runAgentsCredentialsRotateWithClient(
 		return nil
 	}
 	if opts.secretReference != nil {
-		if err := opts.secretProviders.Store(*opts.secretReference, rotated.ClientSecret); err != nil {
+		// Store under the credentials lock, into the reference the config
+		// names now: a concurrent `config credentials copy` may have moved it
+		// since it was read before rotating, and writing the old entry would
+		// leave the active reference holding the invalidated secret. Copy
+		// takes the same lock, so either order ends with the new secret
+		// behind the active reference.
+		err := updateLockedCredentialsBytes(credentialsPath, func(current []byte) ([]byte, error) {
+			creds, _, err := parseCredentialsDocument(current)
+			if err != nil {
+				return nil, err
+			}
+			ref := creds.OAuth2.ClientSecretRef
+			if ref == nil || creds.OAuth2.ClientID != expectedClientID {
+				return nil, fmt.Errorf("the OAuth2 secret reference changed during rotation")
+			}
+			if !opts.secretProviders.CanWrite(ref.Provider) {
+				return nil, fmt.Errorf("the OAuth2 secret moved to the unwritable %q provider during rotation", ref.Provider)
+			}
+			active := *ref
+			opts.secretReference = &active
+			return current, nil
+		}, func() error {
+			return opts.secretProviders.Store(*opts.secretReference, rotated.ClientSecret)
+		})
+		if err != nil {
 			return emitCredentialsRecovery(opts, output, rotated.ClientSecret)
 		}
 		output.CredentialsUpdated = true

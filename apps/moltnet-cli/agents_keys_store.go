@@ -293,6 +293,8 @@ func (t *agentKeyStoreTarget) persist(out io.Writer, errOut io.Writer, output st
 		return t.fail(out, output, stage, preserved, err)
 	}
 	output.CredentialsUpdated = true
+	// The locked update may have followed the slot to another provider.
+	output.AgentKeyRef = t.ref
 	if err := t.removeRecovery(t.recoveryPath); err != nil {
 		output.CleanupRequired = true
 		output.RecoveryPath = t.recoveryPath
@@ -341,6 +343,10 @@ func (t *agentKeyStoreTarget) updateCredentials(store func() error) error {
 					return nil, fmt.Errorf("the key's reference moved to the %q provider, which is not writable", provider)
 				}
 				t.ref.Provider = provider
+				// Reports and recovery artifacts name the issued reference.
+				if t.issuedRef != nil {
+					t.issuedRef.Provider = provider
+				}
 			}
 		}
 		updated, err := rewriteCredentialsDocument(document, func(top map[string]json.RawMessage) error {
