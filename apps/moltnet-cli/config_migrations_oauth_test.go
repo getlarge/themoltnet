@@ -16,7 +16,7 @@ import (
 func TestMigrateAdvisoryIsTerminalGatedAndOnErrOut(t *testing.T) {
 	isolateIdentityEnv(t)
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 
 	identity := newIdentityFixture(t, "advisory", "https://advisory.example.test")
 	bundle := filepath.Join(t.TempDir(), ".moltnet", "advisory")

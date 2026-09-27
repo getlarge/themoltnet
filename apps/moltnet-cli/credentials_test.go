@@ -9,7 +9,7 @@ import (
 
 func TestReadConfig_MoltnetJson(t *testing.T) {
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 
 	config := CredentialsFile{
 		SubjectID:    "uuid-from-moltnet",
@@ -37,7 +37,7 @@ func TestReadConfig_MoltnetJson(t *testing.T) {
 func TestReadConfigDoesNotDiscoverLegacyGlobalDocument(t *testing.T) {
 	isolateIdentityEnv(t)
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 
 	dir := filepath.Join(tmpDir, ".config", "moltnet")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
@@ -63,7 +63,7 @@ func TestReadConfigDoesNotDiscoverLegacyGlobalDocument(t *testing.T) {
 
 func TestReadConfig_PrefersMoltnetJson(t *testing.T) {
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 
 	dir := filepath.Join(tmpDir, ".config", "moltnet")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
@@ -106,7 +106,7 @@ func TestReadConfig_PrefersMoltnetJson(t *testing.T) {
 func TestWriteConfig(t *testing.T) {
 	isolateIdentityEnv(t)
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 
 	config := &CredentialsFile{
 		SubjectID:    "uuid-write-test",
@@ -156,7 +156,7 @@ func TestWriteConfig(t *testing.T) {
 func TestOptionalSections(t *testing.T) {
 	isolateIdentityEnv(t)
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 	// WriteConfig writes to the SELECTED identity and now refuses to invent
 	// one, so the test must name it rather than relying on an ambient
 	// MOLTNET_AGENT_NAME leaking in from the developer's shell.
@@ -228,7 +228,7 @@ func TestOptionalSections(t *testing.T) {
 func TestOptionalSections_OmitEmpty(t *testing.T) {
 	isolateIdentityEnv(t)
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 	// WriteConfig writes to the SELECTED identity and now refuses to invent
 	// one, so the test must name it rather than relying on an ambient
 	// MOLTNET_AGENT_NAME leaking in from the developer's shell.

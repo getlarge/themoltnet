@@ -116,6 +116,10 @@ describe('Node secret providers', () => {
   });
 
   it('registers both env and a lazy OS-keyring provider for Node consumers', async () => {
+    // Asserts the default store's namespace. The keyring module is mocked, so
+    // opting out of the setup's isolated store touches no real keychain.
+    vi.stubEnv('MOLTNET_HOME', undefined);
+    vi.stubEnv('MOLTNET_DEFAULT_STORE_ROOT', undefined);
     const registry = createNodeSecretProviderRegistry('linux');
 
     expect(registry.get('env')).toBeDefined();

@@ -74,6 +74,10 @@ async function writeIdentity(alias: string, id: string): Promise<void> {
 
 beforeEach(() => {
   delete process.env.MOLTNET_ACTIVE_IDENTITY;
+  // These tests exercise default-store resolution through the mocked
+  // homedir, which freshHome() pins to a temp dir and checks; the setup's
+  // MOLTNET_HOME would otherwise take precedence.
+  delete process.env.MOLTNET_HOME;
 });
 
 afterEach(() => {

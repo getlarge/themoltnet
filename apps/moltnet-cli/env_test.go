@@ -278,7 +278,7 @@ func TestResolveAgentName_FlagNotFound(t *testing.T) {
 
 func TestUseCommand(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("HOME", dir)
+	setTestHome(t, dir)
 	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
@@ -315,7 +315,7 @@ func TestUseCommandMissingAgent(t *testing.T) {
 
 func TestEnvCheckPass(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("HOME", dir)
+	setTestHome(t, dir)
 	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	_, _ = WriteConfigTo(&CredentialsFile{
@@ -348,7 +348,7 @@ func TestEnvCheckPass(t *testing.T) {
 
 func TestEnvCheckAcceptsDeprecatedAgentAlias(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("HOME", dir)
+	setTestHome(t, dir)
 	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	if err := os.MkdirAll(agentDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -397,7 +397,7 @@ func TestEnvCheckAcceptsDeprecatedAgentAlias(t *testing.T) {
 
 func TestEnvCheckMissingVars(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("HOME", dir)
+	setTestHome(t, dir)
 	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
@@ -440,7 +440,7 @@ func writeProjectTestBinding(t *testing.T, directory, diary string) {
 
 func TestStartDryRun(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("HOME", dir)
+	setTestHome(t, dir)
 	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	writeStartTestContext(t, agentDir)
@@ -476,7 +476,7 @@ func TestStartDryRun(t *testing.T) {
 
 func TestStartDryRunForwardsTargetArgs(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("HOME", dir)
+	setTestHome(t, dir)
 	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	writeStartTestContext(t, agentDir)
@@ -518,7 +518,7 @@ func TestStartInjectsKeyringSecretOnlyIntoChildEnvironment(t *testing.T) {
 	if resolveErr != nil {
 		t.Fatal(resolveErr)
 	}
-	t.Setenv("HOME", dir)
+	setTestHome(t, dir)
 	t.Setenv("MOLTNET_AGENT_SERVER_ROOT", filepath.Join(dir, ".config", "moltnet"))
 	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	if err := os.MkdirAll(agentDir, 0o755); err != nil {
@@ -641,7 +641,7 @@ func TestStartMissingAgent(t *testing.T) {
 
 func TestStartMissingEnvFile(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("HOME", dir)
+	setTestHome(t, dir)
 	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	os.MkdirAll(agentDir, 0o755)
 	os.WriteFile(filepath.Join(agentDir, "moltnet.json"), []byte("{}"), 0o644)
@@ -661,7 +661,7 @@ func TestStartMissingEnvFile(t *testing.T) {
 func setupStartUnboundFixture(t *testing.T, envExtra string) string {
 	t.Helper()
 	dir := t.TempDir()
-	t.Setenv("HOME", dir)
+	setTestHome(t, dir)
 	agentDir := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent")
 	if err := os.MkdirAll(agentDir, 0o755); err != nil {
 		t.Fatal(err)

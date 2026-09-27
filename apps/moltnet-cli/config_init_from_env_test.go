@@ -114,7 +114,7 @@ func TestConfigInitFromEnvRequiresAgent(t *testing.T) {
 func TestConfigInitFromEnvMissingEnvVars(t *testing.T) {
 	clearMoltnetEnv(t) // prevent ambient vars from satisfying the check
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "config", "init-from-env", "--name", "test-agent")
 	if err == nil {
@@ -127,7 +127,7 @@ func TestConfigInitFromEnvMissingEnvVars(t *testing.T) {
 
 func TestConfigInitFromEnvRejectsMalformedSubjectID(t *testing.T) {
 	clearMoltnetEnv(t)
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	t.Setenv("MOLTNET_SUBJECT_ID", "not-a-uuid")
 	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
 
@@ -140,7 +140,7 @@ func TestConfigInitFromEnvRejectsMalformedSubjectID(t *testing.T) {
 
 func TestConfigInitFromEnvAcceptsDeprecatedAgentAlias(t *testing.T) {
 	clearMoltnetEnv(t)
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	root := NewRootCmd("test", "")
 	// --agent still maps onto --identity; reaching the MOLTNET_SUBJECT_ID
 	// requirement proves the alias resolved.
@@ -163,7 +163,7 @@ func TestConfigInitFromEnvAcceptsDeprecatedAgentAlias(t *testing.T) {
 
 func TestConfigInitFromEnvCreatesFiles(t *testing.T) {
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 
 	t.Setenv("MOLTNET_SUBJECT_ID", testSubjectID)
 	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
@@ -229,7 +229,7 @@ func TestConfigInitFromEnvCreatesFiles(t *testing.T) {
 
 func TestConfigInitFromEnvAuthenticatesLegacyIdentityAndWritesSubject(t *testing.T) {
 	clearMoltnetEnv(t)
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	identityID := "00000000-0000-4000-8000-000000000011"
 	subjectID := "00000000-0000-4000-8000-000000000022"
 	server := newInitFromEnvWhoamiServer(t, identityID, subjectID, "agent")
@@ -281,7 +281,7 @@ func TestConfigInitFromEnvAuthenticatesLegacyIdentityAndWritesSubject(t *testing
 func TestConfigInitFromEnvLegacyMismatchLeavesConfigAndSecretsUntouched(t *testing.T) {
 	clearMoltnetEnv(t)
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	server := newInitFromEnvWhoamiServer(
 		t,
 		"00000000-0000-4000-8000-000000000011",
@@ -330,7 +330,7 @@ func TestConfigInitFromEnvLegacyMismatchLeavesConfigAndSecretsUntouched(t *testi
 
 func TestConfigInitFromEnvRejectsLegacyHumanSubjectWithoutWriting(t *testing.T) {
 	clearMoltnetEnv(t)
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	identityID := "00000000-0000-4000-8000-000000000011"
 	server := newInitFromEnvWhoamiServer(
 		t,
@@ -370,7 +370,7 @@ func TestConfigInitFromEnvRejectsLegacyHumanSubjectWithoutWriting(t *testing.T) 
 
 func TestConfigInitFromEnvRekeysLegacyAgentCredentialAfterAuthentication(t *testing.T) {
 	clearMoltnetEnv(t)
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	identityID := "00000000-0000-4000-8000-000000000011"
 	subjectID := "00000000-0000-4000-8000-000000000022"
 	server := newInitFromEnvWhoamiServer(t, identityID, subjectID, "agent")
@@ -419,7 +419,7 @@ func TestConfigInitFromEnvRekeysLegacyAgentCredentialAfterAuthentication(t *test
 
 func TestConfigInitFromEnvSkipsExisting(t *testing.T) {
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 
 	// Pre-create the config file
 	agentDir := filepath.Join(tmpDir, ".config", "moltnet", "identities", "existing-agent")
@@ -441,7 +441,7 @@ func TestConfigInitFromEnvSkipsExisting(t *testing.T) {
 func TestConfigInitFromEnvWithEnvFile(t *testing.T) {
 	clearMoltnetEnv(t) // prevent ambient vars from overriding file values
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 
 	// Write a dotenv file with all required vars
 	envContent := strings.Join([]string{
@@ -510,7 +510,7 @@ func TestConfigInitFromEnvWithEnvFile(t *testing.T) {
 
 func TestConfigInitFromEnvFileDoesNotOverrideByDefault(t *testing.T) {
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 
 	// Set a process env var that should win over the file
 	t.Setenv("MOLTNET_SUBJECT_ID", testSubjectID)
@@ -568,7 +568,7 @@ func TestConfigInitFromEnvFileDoesNotOverrideByDefault(t *testing.T) {
 
 func TestConfigInitFromEnvFileOverride(t *testing.T) {
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 
 	// Set process env vars
 	t.Setenv("MOLTNET_SUBJECT_ID", testSubjectID)
@@ -634,7 +634,7 @@ func TestConfigInitFromEnvFileOverride(t *testing.T) {
 
 func TestConfigInitFromEnvFileMissing(t *testing.T) {
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "config", "init-from-env",
@@ -652,7 +652,7 @@ func TestConfigInitFromEnvFileMissing(t *testing.T) {
 func TestConfigInitFromEnvFilePartialWithProcessEnv(t *testing.T) {
 	clearMoltnetEnv(t) // prevent ambient vars from overriding file/test values
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 
 	// File provides some vars
 	envContent := strings.Join([]string{
@@ -882,7 +882,7 @@ func TestWriteAgentEnvFilePreservesNonManagedKeysOutsideUserSection(t *testing.T
 
 func TestConfigInitFromEnvWithGitHubApp(t *testing.T) {
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 
 	t.Setenv("MOLTNET_SUBJECT_ID", testSubjectID)
 	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
@@ -932,7 +932,7 @@ func TestConfigInitFromEnvWithGitHubApp(t *testing.T) {
 
 func TestConfigInitFromEnvNormalizesGitHubAppPEM(t *testing.T) {
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 	const escapedPEM = "\"-----BEGIN RSA PRIVATE KEY-----\\r\\nline-one\\nline-two\\r\\n-----END RSA PRIVATE KEY-----\""
 
 	t.Setenv("MOLTNET_SUBJECT_ID", testSubjectID)
@@ -1060,7 +1060,7 @@ func TestWriteAgentEnvFileKeepsCentralAppKeyPathAbsolute(t *testing.T) {
 func TestConfigInitFromEnvAcceptsAgentKeyRefWithoutOAuth(t *testing.T) {
 	// Arrange
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 	clearMoltnetEnv(t)
 	t.Setenv("MOLTNET_SUBJECT_ID", testSubjectID)
 	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
@@ -1106,7 +1106,7 @@ func TestConfigInitFromEnvAcceptsAgentKeyRefWithoutOAuth(t *testing.T) {
 func TestConfigInitFromEnvRejectsForeignAgentKeyRef(t *testing.T) {
 	// Arrange: a reference bound to a different identity must not be written.
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 	clearMoltnetEnv(t)
 	t.Setenv("MOLTNET_SUBJECT_ID", testSubjectID)
 	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
@@ -1135,7 +1135,7 @@ func TestConfigInitFromEnvRejectsForeignAgentKeyRef(t *testing.T) {
 func TestConfigInitFromEnvStillRequiresOAuthWithoutAgentKeyRef(t *testing.T) {
 	// Arrange
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 	clearMoltnetEnv(t)
 	t.Setenv("MOLTNET_SUBJECT_ID", testSubjectID)
 	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
@@ -1164,7 +1164,7 @@ func TestConfigInitFromEnvStillRequiresOAuthWithoutAgentKeyRef(t *testing.T) {
 func TestConfigInitFromEnvAcceptsPrivateKeyRef(t *testing.T) {
 	// Arrange: a reference-only deployment — neither secret is a literal.
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 	clearMoltnetEnv(t)
 	t.Setenv("MOLTNET_SUBJECT_ID", testSubjectID)
 	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
@@ -1215,7 +1215,7 @@ func TestConfigInitFromEnvAcceptsPrivateKeyRef(t *testing.T) {
 func TestConfigInitFromEnvRejectsSeedValueAndReferenceTogether(t *testing.T) {
 	// Arrange
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 	clearMoltnetEnv(t)
 	t.Setenv("MOLTNET_SUBJECT_ID", testSubjectID)
 	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
@@ -1241,7 +1241,7 @@ func TestConfigInitFromEnvRejectsPartialOAuthPairWithAgentKeyRef(t *testing.T) {
 	// Arrange: with a key ref the OAuth pair is optional, but half of it would
 	// write a client_id pointing at an unset secret.
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 	clearMoltnetEnv(t)
 	t.Setenv("MOLTNET_SUBJECT_ID", testSubjectID)
 	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
@@ -1269,7 +1269,7 @@ func TestConfigInitFromEnvRemovesPartialConfigOnFailure(t *testing.T) {
 	// the identity stays half-built. An unresolvable seed reference is the
 	// realistic trigger (a provider that cannot read the secret).
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 	clearMoltnetEnv(t)
 	t.Setenv("MOLTNET_SUBJECT_ID", testSubjectID)
 	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
@@ -1299,7 +1299,7 @@ func TestConfigInitFromEnvRejectsSecretWithoutClientIDWithAgentKeyRef(t *testing
 	// in both directions, so neither half can silently produce a config with a
 	// dangling OAuth2 section.
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 	clearMoltnetEnv(t)
 	t.Setenv("MOLTNET_SUBJECT_ID", testSubjectID)
 	t.Setenv("MOLTNET_SUBJECT_TYPE", "agent")
@@ -1325,7 +1325,7 @@ func TestConfigInitFromEnvReportsThroughTheCommandStream(t *testing.T) {
 	// capture it, and no test could see it at all.
 	clearMoltnetEnv(t)
 	tmpDir := t.TempDir()
-	t.Setenv("HOME", tmpDir)
+	setTestHome(t, tmpDir)
 	envContent := strings.Join([]string{
 		`MOLTNET_SUBJECT_ID=` + testSubjectID,
 		`MOLTNET_SUBJECT_TYPE=agent`,

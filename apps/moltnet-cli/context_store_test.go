@@ -26,7 +26,7 @@ func initContextTestRepository(t *testing.T, remote string) string {
 }
 
 func TestResolveContextDoesNotBindOtherClones(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	agentDir := t.TempDir()
 	first := initContextTestRepository(t, "git@github.com:getlarge/themoltnet.git")
 	second := initContextTestRepository(t, "https://github.com/getlarge/themoltnet.git")
@@ -41,7 +41,7 @@ func TestResolveContextDoesNotBindOtherClones(t *testing.T) {
 }
 
 func TestResolveContextSubdirectoryUsesRegisteredAncestor(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	agentDir := t.TempDir()
 	repository := initContextTestRepository(t, "ssh://git@gitlab.example.test/team/project.git")
 	child := filepath.Join(repository, "packages", "worker")
@@ -59,7 +59,7 @@ func TestResolveContextSubdirectoryUsesRegisteredAncestor(t *testing.T) {
 }
 
 func TestResolveContextRegisteredFolderIncludesNestedRepository(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	agentDir := t.TempDir()
 	workspace := t.TempDir()
 	writeProjectTestBinding(t, workspace, contextTestDiary)
@@ -87,7 +87,7 @@ func writeContextTestEnv(t *testing.T, agentDir, content string) {
 }
 
 func TestResolveContextFallsBackToIdentityDefault(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	agentDir := t.TempDir()
 	location := t.TempDir()
 	writeContextTestEnv(t, agentDir, fmt.Sprintf("MOLTNET_TEAM_ID='%s'\nMOLTNET_DIARY_ID='%s'\n", contextTestTeam, contextTestDiary))
@@ -128,7 +128,7 @@ func TestResolveContextPartialIdentityDefaultIsNotABinding(t *testing.T) {
 // A binding made through a symlinked path must resolve through the real path
 // (and vice versa). On macOS /var and /tmp are themselves symlinks.
 func TestResolveContextThroughSymlinkedDirectory(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	agentDir := t.TempDir()
 	real := t.TempDir()
 	link := filepath.Join(t.TempDir(), "link")

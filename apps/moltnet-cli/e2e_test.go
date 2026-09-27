@@ -43,6 +43,15 @@ type bootstrapAgent struct {
 }
 
 func TestMain(m *testing.M) {
+	// This TestMain replaces the unit one under the e2e tag, and the unit tests
+	// compiled into this build write stores too: isolate before anything runs.
+	// os.Exit skips defers, so the scratch directory is removed explicitly.
+	scratch, err := isolateTestEnvironment()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "E2E setup: %v\n", err)
+		os.Exit(1)
+	}
+
 	e2eAPIURL = os.Getenv("API_URL")
 	if e2eAPIURL == "" {
 		e2eAPIURL = "http://localhost:8080"
@@ -135,6 +144,7 @@ func TestMain(m *testing.M) {
 	fmt.Fprintf(os.Stderr, "E2E: test diary created: %s\n", e2eDiaryID)
 
 	code := m.Run()
+	_ = os.RemoveAll(scratch)
 	os.Exit(code)
 }
 
@@ -154,7 +164,9 @@ func bootstrapGenesisAgent() (*bootstrapAgent, error) {
 	// Set required env vars for split Ory deployment (docker-compose e2e).
 	// Use env vars if already set (CI), otherwise default to docker-compose port mappings.
 	dbURL := envOrDefault("DATABASE_URL", "postgresql://moltnet:moltnet_secret@localhost:5433/moltnet")
+	// pnpm needs the real HOME for its store; MOLTNET_* stay scrubbed.
 	env := append(os.Environ(),
+		"HOME="+realHome,
 		"DATABASE_URL="+dbURL,
 		"ORY_KRATOS_ADMIN_URL="+envOrDefault("ORY_KRATOS_ADMIN_URL", "http://localhost:4434"),
 		"ORY_HYDRA_ADMIN_URL="+envOrDefault("ORY_HYDRA_ADMIN_URL", "http://localhost:4445"),

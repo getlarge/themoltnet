@@ -10,7 +10,7 @@ import (
 func setupCentralEnvFixture(t *testing.T) (string, string) {
 	t.Helper()
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	agentDir := filepath.Join(home, ".config", "moltnet", "identities", "test-agent")
 	if err := os.MkdirAll(agentDir, 0o700); err != nil {
 		t.Fatal(err)

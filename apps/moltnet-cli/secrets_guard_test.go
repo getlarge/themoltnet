@@ -354,7 +354,7 @@ func TestSecretsGuardInactiveContextNoOpsBeforeParsing(t *testing.T) {
 		"/tmp/.moltnet/team/agent/gitconfig",
 	} {
 		t.Run(configured, func(t *testing.T) {
-			t.Setenv("HOME", t.TempDir())
+			setTestHome(t, t.TempDir())
 			t.Setenv("GIT_CONFIG_GLOBAL", configured)
 			var output bytes.Buffer
 			if err := runSecretsGuardCmd(strings.NewReader("{"), &output); err != nil {

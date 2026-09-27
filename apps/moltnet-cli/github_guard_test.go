@@ -526,7 +526,7 @@ func TestCurrentGitHubGuardContext_RelativeConfigReadsAgentEnv(t *testing.T) {
 
 func TestCurrentGitHubGuardContext_RelativeConfigOutsideRepositoryIsInactive(t *testing.T) {
 	isolateIdentityEnv(t)
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 
 	if guardCtx, ok := currentGitHubGuardContext(); ok {
 		t.Fatalf("expected inactive context outside a repository, got %#v", guardCtx)
@@ -552,7 +552,7 @@ func TestCurrentGitHubGuardContextPersistedSelectorAloneIsNotActivation(t *testi
 func TestCurrentGitHubGuardContextLegacyGitConfigGlobalActivates(t *testing.T) {
 	isolateIdentityEnv(t)
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	agentDir := filepath.Join(home, "repo", ".moltnet", "legacy")
 	if err := os.MkdirAll(agentDir, 0o700); err != nil {
 		t.Fatal(err)
@@ -580,7 +580,7 @@ func TestCurrentGitHubGuardContextLegacyGitConfigGlobalActivates(t *testing.T) {
 func TestGitHubGuardActivatedSessionWithoutGitConfigFailsClosed(t *testing.T) {
 	isolateIdentityEnv(t)
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	agentDir := filepath.Join(home, ".config", "moltnet", "identities", "agent")
 	if err := os.MkdirAll(agentDir, 0o700); err != nil {
 		t.Fatal(err)
@@ -692,7 +692,7 @@ func setupGitHubGuardIdentity(t *testing.T) string {
 	t.Helper()
 	isolateIdentityEnv(t)
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	agentDir := filepath.Join(home, ".config", "moltnet", "identities", "agent")
 	if err := os.MkdirAll(agentDir, 0o700); err != nil {
 		t.Fatal(err)

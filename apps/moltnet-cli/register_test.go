@@ -347,7 +347,7 @@ func TestReportRegistrationStoredPublishesAliasBestEffort(t *testing.T) {
 }
 
 func TestRegisterStoresSeedAndSecretAsReferences(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	t.Setenv(secretRootEnv, t.TempDir())
 	t.Setenv(secretRootWritableEnv, "1")
 	server, calls := newRegisterTestServer(t, registerServerConfig{})
@@ -404,7 +404,7 @@ func TestRegisterStoresSeedAndSecretAsReferences(t *testing.T) {
 
 func TestRegisterPointsAtTheNextOnboardingStep(t *testing.T) {
 	// Arrange
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	registry, _ := newMemorySecretProviderRegistry()
 	server, _ := newRegisterTestServer(t, registerServerConfig{})
 	var stdout, stderr bytes.Buffer
@@ -437,7 +437,7 @@ func TestRegisterPointsAtTheNextOnboardingStep(t *testing.T) {
 }
 
 func TestRegisterStoresSeedBeforeRegisteringInTheDefaultProvider(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	registry, memory, seedStored := registerMemoryRegistry()
 	var seedStoredBeforeRequest atomic.Bool
 	server, _ := newRegisterTestServer(t, registerServerConfig{
@@ -492,7 +492,7 @@ func TestRegisterKeepsTheSeedWhenRegistrationDoesNotComplete(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv("HOME", t.TempDir())
+			setTestHome(t, t.TempDir())
 			registry, memory, _ := registerMemoryRegistry()
 			server, _ := newRegisterTestServer(t, tt.cfg)
 
@@ -544,7 +544,7 @@ func TestRegisterStopsBeforeTheNetworkWhenSecretsCannotBeStored(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv("HOME", t.TempDir())
+			setTestHome(t, t.TempDir())
 			registry, memory := newMemorySecretProviderRegistry()
 			memory.failSet = failSetFor(tt.fails)
 			server, calls := newRegisterTestServer(t, registerServerConfig{})
@@ -565,7 +565,7 @@ func TestRegisterStopsBeforeTheNetworkWhenSecretsCannotBeStored(t *testing.T) {
 }
 
 func TestRegisterNamesTheKeptSeedWhenAnotherIdentityClaimedTheAlias(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	registry, memory, _ := registerMemoryRegistry()
 	path, err := identityCredentialsPath("reg-race")
 	if err != nil {
@@ -604,7 +604,7 @@ func TestRegisterNamesTheKeptSeedWhenAnotherIdentityClaimedTheAlias(t *testing.T
 }
 
 func TestRegisterKeepsIdentityRecoverableWhenSecretStoreFails(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	registry, memory := newMemorySecretProviderRegistry()
 	oauth2Key := OAuth2SecretKey(registerTestAgentID, registerTestClientID)
 	memory.failSet = func(key string) error {
@@ -640,7 +640,7 @@ func TestRegisterKeepsIdentityRecoverableWhenSecretStoreFails(t *testing.T) {
 }
 
 func TestRegisterWarnsWhenTheDefaultIdentityCannotBeSelected(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	selectorPath, err := identitySelectorPath()
 	if err != nil {
 		t.Fatal(err)
@@ -671,7 +671,7 @@ func TestRegisterWarnsWhenTheDefaultIdentityCannotBeSelected(t *testing.T) {
 }
 
 func TestRegisterRefusesExistingAlias(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	registry, memory := newMemorySecretProviderRegistry()
 	server, calls := newRegisterTestServer(t, registerServerConfig{})
 	path, err := identityCredentialsPath("reg-dup")
@@ -696,7 +696,7 @@ func TestRegisterRefusesExistingAlias(t *testing.T) {
 }
 
 func TestRegisterJSONPrintsCredentialsAndWritesNothing(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	registry, memory := newMemorySecretProviderRegistry()
 	server, _ := newRegisterTestServer(t, registerServerConfig{})
 	var stdout bytes.Buffer

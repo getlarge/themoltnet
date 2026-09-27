@@ -11,7 +11,7 @@ import (
 
 func TestMigrateLegacyIdentityStoreInfersAliasAndPreservesDefault(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	if _, err := writeCentralIdentityConfig("current", centralIdentityFixture("current")); err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestMigrateLegacyIdentityStoreInfersAliasAndPreservesDefault(t *testing.T) 
 }
 
 func TestMigrateLegacyIdentityStoreRequiresNameOutsideLegacyLayout(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	path := filepath.Join(t.TempDir(), "credentials.json")
 	if _, err := WriteConfigTo(centralIdentityFixture("external"), path); err != nil {
 		t.Fatal(err)
@@ -75,7 +75,7 @@ func TestMigrateLegacyIdentityStoreRequiresNameOutsideLegacyLayout(t *testing.T)
 }
 
 func TestMigrateLegacyIdentityStoreRejectsIncompleteOnboarding(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
+	setTestHome(t, t.TempDir())
 	legacyDir := filepath.Join(t.TempDir(), ".moltnet", "pending")
 	path := filepath.Join(legacyDir, "moltnet.json")
 	if _, err := WriteConfigTo(centralIdentityFixture("pending"), path); err != nil {
@@ -91,7 +91,7 @@ func TestMigrateLegacyIdentityStoreRejectsIncompleteOnboarding(t *testing.T) {
 
 func TestMigrateLegacyIdentityStoreLeavesNoPartialIdentityOnRegenerationFailure(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	legacyDir := filepath.Join(home, "repo", ".moltnet", "broken")
 	legacyPath := filepath.Join(legacyDir, "moltnet.json")
 	broken := centralIdentityFixture("broken")
@@ -118,7 +118,7 @@ func TestMigrateIdentityStoreKeepsStagingPathsOutOfOutput(t *testing.T) {
 	// operator-facing summary, presenting a path that stops existing moments
 	// later as though it were their identity.
 	dir := t.TempDir()
-	t.Setenv("HOME", dir)
+	setTestHome(t, dir)
 	bundle := filepath.Join(dir, "repo", ".moltnet", "legreffier")
 	if err := os.MkdirAll(bundle, 0o700); err != nil {
 		t.Fatal(err)
