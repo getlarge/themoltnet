@@ -348,6 +348,28 @@ export async function hookRoutes(fastify: FastifyInstance) {
           );
       }
 
+      // The agent's identity key is bound at registration and changes only
+      // through a proof-carrying rotation. Settings may resubmit the current
+      // key unchanged (password changes carry every trait) but never set a
+      // different one, nor bind a key to an identity without an agent.
+      const agent = await fastify.agentRepository.findByIdentityId(
+        request.body.identity.id,
+      );
+      if (
+        !agent ||
+        !samePublicKey(fastify, agent.publicKey, settingsKeyBytes)
+      ) {
+        return reply
+          .status(400)
+          .send(
+            oryValidationError(
+              '#/traits/public_key',
+              4000001,
+              'public_key cannot be changed through settings.',
+            ),
+          );
+      }
+
       return reply.status(200).send({ success: true });
     },
   );
@@ -365,34 +387,13 @@ export async function hookRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { identity } = request.body;
-      const { public_key } = identity.traits;
 
       try {
         // This hook is configured as non-interrupting and non-parsing, so
         // Kratos invokes it only after the identity change is authoritative.
+        // The pre-persist hook rejects public_key changes, so there is no
+        // agent key to project here.
         fastify.sessionResolver?.evictIdentity(identity.id);
-
-        if (public_key !== undefined) {
-          // The pre-persist hook already validated this key. Re-parse it here
-          // to keep this idempotent projection independent from request-local
-          // state.
-          const settingsKeyBytes =
-            fastify.cryptoService.parsePublicKey(public_key);
-          if (settingsKeyBytes.length !== 32) {
-            throw new Error(
-              `Validated public key has ${settingsKeyBytes.length} bytes`,
-            );
-          }
-
-          const settingsFingerprint =
-            fastify.cryptoService.generateFingerprint(settingsKeyBytes);
-
-          await fastify.agentRepository.upsert({
-            identityId: identity.id,
-            publicKey: public_key,
-            fingerprint: settingsFingerprint,
-          });
-        }
 
         return await reply.status(200).send({ success: true });
       } catch (err) {
@@ -856,4 +857,20 @@ export async function hookRoutes(fastify: FastifyInstance) {
       }
     },
   );
+}
+
+function samePublicKey(
+  fastify: FastifyInstance,
+  stored: string,
+  submitted: Uint8Array,
+): boolean {
+  try {
+    const current = fastify.cryptoService.parsePublicKey(stored);
+    return (
+      current.length === submitted.length &&
+      crypto.timingSafeEqual(current, submitted)
+    );
+  } catch {
+    return false;
+  }
 }

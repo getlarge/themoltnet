@@ -210,46 +210,28 @@ describe('Hook routes', () => {
   });
 
   describe('POST /hooks/kratos/validate-settings', () => {
-    it('validates an agent public key without mutating dependent state', async () => {
-      const response = await app.inject({
+    const CURRENT_KEY = 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=';
+    const OTHER_KEY = 'ed25519:bW9sdG5ldC10ZXN0LWtleS0yLWZvci11bml0LXRlc3Q=';
+
+    // Decode real key bytes so the stored and submitted keys compare by value.
+    const decodeKeys = () =>
+      mocks.cryptoService.parsePublicKey.mockImplementation((key: string) =>
+        Uint8Array.from(Buffer.from(key.replace(/^ed25519:/, ''), 'base64')),
+      );
+
+    const submit = (publicKey: string, identityId = OWNER_IDENTITY_ID) =>
+      app.inject({
         method: 'POST',
         url: '/hooks/kratos/validate-settings',
         headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
         payload: {
-          identity: {
-            id: OWNER_ID,
-            traits: {
-              public_key:
-                'ed25519:bW9sdG5ldC10ZXN0LWtleS0yLWZvci11bml0LXRlc3Q=',
-            },
-          },
+          identity: { id: identityId, traits: { public_key: publicKey } },
         },
       });
 
-      expect(response.statusCode).toBe(200);
-      expect(response.json().success).toBe(true);
-      expect(mocks.cryptoService.parsePublicKey).toHaveBeenCalledOnce();
-      expect(mocks.agentRepository.upsert).not.toHaveBeenCalled();
-      expect(app.sessionResolver?.evictIdentity).not.toHaveBeenCalled();
-    });
-
-    it('returns an Ory validation error for an invalid public key', async () => {
-      mocks.cryptoService.parsePublicKey.mockImplementation(() => {
-        throw new Error('invalid key');
-      });
-
-      const response = await app.inject({
-        method: 'POST',
-        url: '/hooks/kratos/validate-settings',
-        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
-        payload: {
-          identity: {
-            id: OWNER_ID,
-            traits: { public_key: 'invalid' },
-          },
-        },
-      });
-
+    const expectKeyChangeRejected = (
+      response: Awaited<ReturnType<typeof submit>>,
+    ) => {
       expect(response.statusCode).toBe(400);
       expect(response.json()).toEqual(
         expect.objectContaining({
@@ -260,19 +242,58 @@ describe('Hook routes', () => {
           ],
         }),
       );
+    };
+
+    it('accepts the unchanged public key a password change resubmits', async () => {
+      decodeKeys();
+      mocks.agentRepository.findByIdentityId.mockResolvedValue(
+        createMockAgent({ publicKey: CURRENT_KEY }),
+      );
+
+      const response = await submit(CURRENT_KEY);
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().success).toBe(true);
+      expect(mocks.agentRepository.findByIdentityId).toHaveBeenCalledWith(
+        OWNER_IDENTITY_ID,
+      );
       expect(mocks.agentRepository.upsert).not.toHaveBeenCalled();
+      expect(app.sessionResolver?.evictIdentity).not.toHaveBeenCalled();
+    });
+
+    it('rejects a different public key', async () => {
+      decodeKeys();
+      mocks.agentRepository.findByIdentityId.mockResolvedValue(
+        createMockAgent({ publicKey: CURRENT_KEY }),
+      );
+
+      expectKeyChangeRejected(await submit(OTHER_KEY));
+      expect(mocks.agentRepository.upsert).not.toHaveBeenCalled();
+    });
+
+    it('rejects a public key for an identity without an agent', async () => {
+      decodeKeys();
+      mocks.agentRepository.findByIdentityId.mockResolvedValue(null);
+
+      expectKeyChangeRejected(await submit(CURRENT_KEY));
+      expect(mocks.agentRepository.upsert).not.toHaveBeenCalled();
+    });
+
+    it('returns an Ory validation error for an invalid public key', async () => {
+      mocks.cryptoService.parsePublicKey.mockImplementation(() => {
+        throw new Error('invalid key');
+      });
+
+      const response = await submit('invalid', OWNER_ID);
+
+      expectKeyChangeRejected(response);
+      expect(mocks.agentRepository.findByIdentityId).not.toHaveBeenCalled();
       expect(app.sessionResolver?.evictIdentity).not.toHaveBeenCalled();
     });
   });
 
   describe('POST /hooks/kratos/after-settings', () => {
-    it('updates agent entry', async () => {
-      mocks.agentRepository.upsert.mockResolvedValue(
-        createMockAgent({
-          publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0yLWZvci11bml0LXRlc3Q=',
-        }),
-      );
-
+    it('evicts the identity without projecting an agent key', async () => {
       const response = await app.inject({
         method: 'POST',
         url: '/hooks/kratos/after-settings',
@@ -291,10 +312,7 @@ describe('Hook routes', () => {
       expect(response.statusCode).toBe(200);
       expect(response.json().success).toBe(true);
       expect(app.sessionResolver?.evictIdentity).toHaveBeenCalledWith(OWNER_ID);
-      expect(
-        vi.mocked(app.sessionResolver!.evictIdentity).mock
-          .invocationCallOrder[0],
-      ).toBeLessThan(mocks.agentRepository.upsert.mock.invocationCallOrder[0]);
+      expect(mocks.agentRepository.upsert).not.toHaveBeenCalled();
     });
 
     it('evicts human sessions after password settings without an agent key', async () => {
@@ -315,45 +333,6 @@ describe('Hook routes', () => {
       expect(app.sessionResolver?.evictIdentity).toHaveBeenCalledWith(
         HUMAN_IDENTITY_ID,
       );
-    });
-
-    it('returns an Ory error and keeps the committed identity evicted when projection fails', async () => {
-      mocks.agentRepository.upsert.mockRejectedValue(
-        new Error('database unavailable'),
-      );
-
-      const response = await app.inject({
-        method: 'POST',
-        url: '/hooks/kratos/after-settings',
-        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
-        payload: {
-          identity: {
-            id: OWNER_ID,
-            traits: {
-              public_key:
-                'ed25519:bW9sdG5ldC10ZXN0LWtleS0yLWZvci11bml0LXRlc3Q=',
-            },
-          },
-        },
-      });
-
-      expect(response.statusCode).toBe(500);
-      expect(response.json()).toEqual(
-        expect.objectContaining({
-          messages: [
-            expect.objectContaining({
-              instance_ptr: '#/',
-              messages: [
-                expect.objectContaining({
-                  id: 5000002,
-                  type: 'error',
-                }),
-              ],
-            }),
-          ],
-        }),
-      );
-      expect(app.sessionResolver?.evictIdentity).toHaveBeenCalledWith(OWNER_ID);
     });
   });
 

@@ -40,33 +40,41 @@ describe('Webhook Handlers (Agent)', () => {
   // ── Settings Validation (Pre-Persist) ───────────────────────
 
   describe('POST /hooks/kratos/validate-settings', () => {
-    it('accepts a valid key without updating the agent projection', async () => {
-      const before = await agentRepository.findByIdentityId(agent.identityId);
-      const newKeyPair = await cryptoService.generateKeyPair();
-
-      const resp = await fetch(
-        `${harness.baseUrl}/hooks/kratos/validate-settings`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-ory-api-key': WEBHOOK_API_KEY,
-          },
-          body: JSON.stringify({
-            identity: {
-              id: agent.identityId,
-              traits: {
-                public_key: newKeyPair.publicKey,
-              },
-            },
-          }),
+    const validateSettings = (publicKey: string) =>
+      fetch(`${harness.baseUrl}/hooks/kratos/validate-settings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-ory-api-key': WEBHOOK_API_KEY,
         },
-      );
+        body: JSON.stringify({
+          identity: { id: agent.identityId, traits: { public_key: publicKey } },
+        }),
+      });
+
+    it('accepts the unchanged key a password change resubmits', async () => {
+      const before = await agentRepository.findByIdentityId(agent.identityId);
+
+      const resp = await validateSettings(agent.keyPair.publicKey);
 
       expect(resp.status).toBe(200);
       const body = (await resp.json()) as { success: boolean };
       expect(body.success).toBe(true);
+      const after = await agentRepository.findByIdentityId(agent.identityId);
+      expect(after).toEqual(before);
+    });
 
+    it('rejects a different key without updating the agent projection', async () => {
+      const before = await agentRepository.findByIdentityId(agent.identityId);
+      const newKeyPair = await cryptoService.generateKeyPair();
+
+      const resp = await validateSettings(newKeyPair.publicKey);
+
+      expect(resp.status).toBe(400);
+      const body = (await resp.json()) as {
+        messages: Array<{ instance_ptr: string }>;
+      };
+      expect(body.messages[0].instance_ptr).toBe('#/traits/public_key');
       const after = await agentRepository.findByIdentityId(agent.identityId);
       expect(after).toEqual(before);
     });
@@ -149,8 +157,14 @@ describe('Webhook Handlers (Agent)', () => {
   // ── After Settings (Post-Persist Key Projection) ────────────
 
   describe('POST /hooks/kratos/after-settings', () => {
-    it('updates the persisted agent key and fingerprint', async () => {
-      const newKeyPair = await cryptoService.generateKeyPair();
+    it.each([
+      [
+        'a different key',
+        async () => (await cryptoService.generateKeyPair()).publicKey,
+      ],
+      ['a malformed key', async () => 'invalid-format'],
+    ])('never changes the persisted agent key for %s', async (_case, key) => {
+      const before = await agentRepository.findByIdentityId(agent.identityId);
 
       const resp = await fetch(
         `${harness.baseUrl}/hooks/kratos/after-settings`,
@@ -163,46 +177,16 @@ describe('Webhook Handlers (Agent)', () => {
           body: JSON.stringify({
             identity: {
               id: agent.identityId,
-              traits: {
-                public_key: newKeyPair.publicKey,
-              },
+              traits: { public_key: await key() },
             },
           }),
         },
       );
 
       expect(resp.status).toBe(200);
-      const body = (await resp.json()) as { success: boolean };
-      expect(body.success).toBe(true);
-
-      const updated = await agentRepository.findByIdentityId(agent.identityId);
-      expect(updated?.publicKey).toBe(newKeyPair.publicKey);
-      expect(updated?.fingerprint).toBe(newKeyPair.fingerprint);
-    });
-
-    it('returns an Ory error envelope for invalid post-persist state', async () => {
-      const resp = await fetch(
-        `${harness.baseUrl}/hooks/kratos/after-settings`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-ory-api-key': WEBHOOK_API_KEY,
-          },
-          body: JSON.stringify({
-            identity: {
-              id: agent.identityId,
-              traits: { public_key: 'invalid-format' },
-            },
-          }),
-        },
-      );
-
-      expect(resp.status).toBe(500);
-      const body = (await resp.json()) as {
-        messages: Array<{ messages: Array<{ id: number }> }>;
-      };
-      expect(body.messages[0].messages[0].id).toBe(5000002);
+      const after = await agentRepository.findByIdentityId(agent.identityId);
+      expect(after?.publicKey).toBe(before?.publicKey);
+      expect(after?.fingerprint).toBe(before?.fingerprint);
     });
 
     it('rejects missing webhook API key', async () => {
