@@ -1,6 +1,10 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
-import { DAEMON_MINIMUM_SCOPES, OPERATOR_OAUTH } from '@moltnet/models';
+import {
+  DAEMON_MINIMUM_SCOPES,
+  OPERATOR_OAUTH,
+  TAILSCALE_OIDC,
+} from '@moltnet/models';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createHuman, type TestHuman } from './helpers.js';
@@ -14,6 +18,7 @@ import {
 
 const CLIENT_ID = 'moltnet-native-e2e';
 const REDIRECT_URI = 'http://127.0.0.1:17375/oauth/callback';
+const tailscaleSecret = randomBytes(32).toString('base64url');
 
 function rewriteToHost(url: string): string {
   return url
@@ -124,6 +129,9 @@ async function codeFromRedirects(
 describe('operator OAuth authorization code E2E', { timeout: 120_000 }, () => {
   let harness: TestHarness;
   let human: TestHuman;
+  let tailscaleClientConfigured = false;
+  let verifiedAddressIndex: number | undefined;
+  let originalEmailVerified: boolean | undefined;
 
   beforeAll(async () => {
     harness = await createTestHarness();
@@ -159,10 +167,64 @@ describe('operator OAuth authorization code E2E', { timeout: 120_000 }, () => {
         oAuth2Client: client,
       });
     }
+    const tailscaleClient = {
+      client_id: TAILSCALE_OIDC.clientId,
+      client_name: 'Tailscale',
+      client_secret: tailscaleSecret,
+      access_token_strategy: 'opaque',
+      grant_types: ['authorization_code'],
+      response_types: ['code'],
+      token_endpoint_auth_method: 'client_secret_basic',
+      scope: TAILSCALE_OIDC.scope,
+      audience: [],
+      redirect_uris: [TAILSCALE_OIDC.redirectUri],
+      authorization_code_grant_access_token_lifespan: '5m',
+      skip_consent: false,
+    };
+    try {
+      await harness.hydraAdminOAuth2.getOAuth2Client({
+        id: TAILSCALE_OIDC.clientId,
+      });
+      await harness.hydraAdminOAuth2.setOAuth2Client({
+        id: TAILSCALE_OIDC.clientId,
+        oAuth2Client: tailscaleClient,
+      });
+    } catch (error) {
+      if ((error as { response?: Response }).response?.status !== 404)
+        throw error;
+      await harness.hydraAdminOAuth2.createOAuth2Client({
+        oAuth2Client: tailscaleClient,
+      });
+    }
+    tailscaleClientConfigured = true;
   });
 
   afterAll(async () => {
-    await harness?.teardown();
+    try {
+      if (
+        verifiedAddressIndex !== undefined &&
+        originalEmailVerified !== undefined
+      )
+        await harness.identityApi.patchIdentity({
+          id: human.identityId,
+          jsonPatch: [
+            {
+              op: 'replace',
+              path: `/verifiable_addresses/${verifiedAddressIndex}/verified`,
+              value: originalEmailVerified,
+            },
+          ],
+        });
+    } finally {
+      try {
+        if (tailscaleClientConfigured)
+          await harness.hydraAdminOAuth2.deleteOAuth2Client({
+            id: TAILSCALE_OIDC.clientId,
+          });
+      } finally {
+        await harness?.teardown();
+      }
+    }
   });
 
   async function exchangeDirect(
@@ -319,6 +381,87 @@ describe('operator OAuth authorization code E2E', { timeout: 120_000 }, () => {
       'moltnet:identity_id': human.identityId,
       'moltnet:subject_type': 'human',
       'moltnet:instance': instance,
+    });
+  });
+
+  it('keeps verified human claims in the issued OIDC ID token', async () => {
+    const identity = await harness.identityApi.getIdentity({
+      id: human.identityId,
+    });
+    const address = identity.verifiable_addresses?.find(
+      (item) => item.value.toLowerCase() === human.email.toLowerCase(),
+    );
+    expect(address).toBeDefined();
+    verifiedAddressIndex = identity.verifiable_addresses!.indexOf(address!);
+    originalEmailVerified = address!.verified;
+    await harness.identityApi.patchIdentity({
+      id: human.identityId,
+      jsonPatch: [
+        {
+          op: 'replace',
+          path: `/verifiable_addresses/${verifiedAddressIndex}/verified`,
+          value: true,
+        },
+      ],
+    });
+
+    const jar = new CookieJar();
+    await loginBrowser(jar, human);
+    const auth = new URL(`${HYDRA_PUBLIC_URL}/oauth2/auth`);
+    for (const [key, value] of Object.entries({
+      client_id: TAILSCALE_OIDC.clientId,
+      response_type: 'code',
+      redirect_uri: TAILSCALE_OIDC.redirectUri,
+      scope: TAILSCALE_OIDC.scope,
+      state: randomUUID(),
+    }))
+      auth.searchParams.set(key, value);
+    const loginChallenge = await challengeFromRedirects(
+      jar,
+      auth.href,
+      'login_challenge',
+    );
+    const login = await harness.hydraAdminOAuth2.acceptOAuth2LoginRequest({
+      loginChallenge,
+      acceptOAuth2LoginRequest: { subject: human.identityId, remember: false },
+    });
+    const consentChallenge = await challengeFromRedirects(
+      jar,
+      login.redirect_to,
+      'consent_challenge',
+    );
+    const consent = await jar.fetch(`${SERVER_BASE_URL}/oauth2/consent`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        consent_challenge: consentChallenge,
+        decision: 'allow',
+      }),
+    });
+    expect(consent.status, await consent.clone().text()).toBe(303);
+    const code = await codeFromRedirects(jar, consent.headers.get('location')!);
+    const tokenResponse = await fetch(`${HYDRA_PUBLIC_URL}/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        authorization: `Basic ${Buffer.from(`${TAILSCALE_OIDC.clientId}:${tailscaleSecret}`).toString('base64')}`,
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        redirect_uri: TAILSCALE_OIDC.redirectUri,
+        code,
+      }),
+    });
+    expect(tokenResponse.status, await tokenResponse.clone().text()).toBe(200);
+    const token = (await tokenResponse.json()) as { id_token?: string };
+    expect(token.id_token).toBeTruthy();
+    const payload = JSON.parse(
+      Buffer.from(token.id_token!.split('.')[1], 'base64url').toString('utf8'),
+    ) as Record<string, unknown>;
+    expect(payload).toMatchObject({
+      email: human.email,
+      email_verified: true,
+      preferred_username: human.username,
     });
   });
 

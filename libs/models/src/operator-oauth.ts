@@ -15,3 +15,11 @@ export const OPERATOR_OAUTH = Object.freeze({
   nativeClientId: 'moltnet-native',
   ...parameters,
 });
+
+/** Administratively registered identity-only OIDC client. */
+export const TAILSCALE_OIDC = Object.freeze({
+  clientId: 'tailscale-login',
+  redirectUri: 'https://login.tailscale.com/a/oauth_response',
+  scopes: ['openid', 'profile', 'email'] as const,
+  scope: 'openid profile email',
+});
