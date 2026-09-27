@@ -31085,6 +31085,16 @@ Object.freeze({
 	nativeLifetimeSeconds: 300,
 	serverPort: 17374
 });
+Object.freeze({
+	clientId: "tailscale-login",
+	redirectUri: "https://login.tailscale.com/a/oauth_response",
+	scopes: [
+		"openid",
+		"profile",
+		"email"
+	],
+	scope: "openid profile email"
+});
 //#endregion
 //#region ../../libs/models/src/preview-sign.ts
 function schemaRef$1(schema, id) {
