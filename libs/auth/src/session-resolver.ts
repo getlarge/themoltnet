@@ -222,7 +222,8 @@ export function createSessionResolver(
           const emailVerified = email
             ? (identity.verifiable_addresses ?? []).some(
                 (address) =>
-                  address.value === email && address.verified === true,
+                  address.value?.toLowerCase() === email.toLowerCase() &&
+                  address.verified === true,
               )
             : undefined;
           return {

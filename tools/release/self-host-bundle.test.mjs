@@ -15,11 +15,139 @@ import process from 'node:process';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { provisionClients } from '../../deploy/self-host/config/provision-native-client.mjs';
+
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../..',
 );
 const script = path.join(repoRoot, 'tools/release/self-host-bundle.mjs');
+
+const nativeClient = JSON.parse(
+  readFileSync(
+    path.join(repoRoot, 'infra/ory/oauth2-clients/moltnet-native.json'),
+    'utf8',
+  ),
+);
+const tailscaleClient = JSON.parse(
+  readFileSync(
+    path.join(repoRoot, 'infra/ory/oauth2-clients/tailscale-login.json'),
+    'utf8',
+  ),
+);
+const response = (status, body) => ({
+  status,
+  ok: status >= 200 && status < 300,
+  json: async () => body,
+});
+const readClient = (file) =>
+  JSON.stringify(
+    file.includes('tailscale-login') ? tailscaleClient : nativeClient,
+  );
+
+test('self-host provisioning creates the confidential client without printing its secret', async () => {
+  const calls = [];
+  const output = [];
+  let tailscaleCreated = false;
+  await provisionClients({
+    secret: 'test-only-confidential-secret',
+    readFile: readClient,
+    output: (line) => output.push(line),
+    fetchClient: async (url, options) => {
+      calls.push({ url, options });
+      if (url.endsWith('/moltnet-native')) return response(404);
+      if (url.endsWith('/tailscale-login'))
+        return tailscaleCreated
+          ? response(200, tailscaleClient)
+          : response(404);
+      const body = JSON.parse(options.body);
+      if (body.client_id === tailscaleClient.client_id) {
+        tailscaleCreated = true;
+        return response(201, tailscaleClient);
+      }
+      return response(201, nativeClient);
+    },
+  });
+  const creation = calls.find(
+    ({ options }) =>
+      options.method === 'POST' &&
+      JSON.parse(options.body).client_id === tailscaleClient.client_id,
+  );
+  assert.equal(
+    JSON.parse(creation.options.body).client_secret,
+    'test-only-confidential-secret',
+  );
+  assert.match(output.join(''), /Created tailscale-login/);
+  assert.doesNotMatch(output.join(''), /test-only-confidential-secret/);
+  assert.ok(calls.every(({ options }) => options.signal));
+});
+
+test('self-host provisioning verifies an existing client without replacing its secret', async () => {
+  const calls = [];
+  const output = [];
+  await provisionClients({
+    secret: 'test-only-confidential-secret',
+    readFile: readClient,
+    output: (line) => output.push(line),
+    fetchClient: async (url, options) => {
+      calls.push({ url, options });
+      if (url.endsWith('/moltnet-native')) return response(404);
+      if (url.endsWith('/tailscale-login'))
+        return response(200, {
+          ...tailscaleClient,
+          authorization_code_grant_access_token_lifespan: '300s',
+          grant_types: [...tailscaleClient.grant_types].reverse(),
+        });
+      return response(201, nativeClient);
+    },
+  });
+  assert.equal(
+    calls.filter(({ options }) => options.method === 'POST').length,
+    1,
+  );
+  assert.match(
+    output.join(''),
+    /Verified existing tailscale-login \(secret unchanged\)/,
+  );
+});
+
+test('self-host provisioning fails with the drifted field name', async () => {
+  await assert.rejects(
+    provisionClients({
+      secret: 'test-only-confidential-secret',
+      readFile: readClient,
+      output: () => {},
+      fetchClient: async (url) => {
+        if (url.endsWith('/moltnet-native')) return response(404);
+        if (url.endsWith('/tailscale-login'))
+          return response(200, { ...tailscaleClient, scope: 'openid' });
+        return response(201, nativeClient);
+      },
+    }),
+    /client policy differs: scope/,
+  );
+});
+
+test('self-host provisioning tolerates a concurrent client create', async () => {
+  let lookups = 0;
+  const output = [];
+  await provisionClients({
+    secret: 'test-only-confidential-secret',
+    readFile: readClient,
+    output: (line) => output.push(line),
+    fetchClient: async (url, options) => {
+      if (url.endsWith('/moltnet-native')) return response(404);
+      if (url.endsWith('/tailscale-login'))
+        return ++lookups === 1 ? response(404) : response(200, tailscaleClient);
+      const body = JSON.parse(options.body);
+      return body.client_id === tailscaleClient.client_id
+        ? response(409)
+        : response(201, nativeClient);
+    },
+  });
+  assert.equal(lookups, 2);
+  assert.match(output.join(''), /Verified existing tailscale-login/);
+});
 
 test('builds an installable source archive with current component versions', () => {
   const temporary = mkdtempSync(

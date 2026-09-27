@@ -4,6 +4,7 @@ import {
   DCR_MAX_SCOPES,
   MCP_CLIENT_SCOPES,
   OIDC_PROTOCOL_SCOPES,
+  TAILSCALE_OIDC,
 } from '@moltnet/models';
 import { describe, expect, it } from 'vitest';
 
@@ -61,6 +62,24 @@ function readHydraDefaultScopes(relativePath: string): string[] {
 }
 
 describe('credential scope configuration', () => {
+  it('keeps the dedicated OIDC client manifest aligned with consent policy', () => {
+    const client = readJson(
+      '../../infra/ory/oauth2-clients/tailscale-login.json',
+    ) as {
+      client_id: string;
+      redirect_uris: string[];
+      scope: string;
+      audience: string[];
+      grant_types: string[];
+      token_endpoint_auth_method: string;
+    };
+    expect(client.client_id).toBe(TAILSCALE_OIDC.clientId);
+    expect(client.redirect_uris).toEqual([TAILSCALE_OIDC.redirectUri]);
+    expect(client.scope).toBe(TAILSCALE_OIDC.scope);
+    expect(client.audience).toEqual([]);
+    expect(client.grant_types).toEqual(['authorization_code']);
+    expect(client.token_endpoint_auth_method).toBe('client_secret_basic');
+  });
   it('caps Ory dynamic-client defaults at the MCP tool surface', () => {
     const project = readJson('../../infra/ory/project.json') as {
       services: {

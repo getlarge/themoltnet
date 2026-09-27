@@ -18,7 +18,7 @@ import {
   readProvisioningGrant,
 } from '@moltnet/auth';
 import { DBOS, DBOSErrors, type HumanRepository } from '@moltnet/database';
-import { DCR_MAX_SCOPES } from '@moltnet/models';
+import { DCR_MAX_SCOPES, TAILSCALE_OIDC } from '@moltnet/models';
 import type { IdentityApi } from '@ory/client-fetch';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
@@ -687,36 +687,60 @@ export async function hookRoutes(fastify: FastifyInstance) {
         } else if (tailscaleLogin) {
           const scopes = tokenRequest.granted_scopes;
           const audience = tokenRequest.granted_audience ?? [];
-          if (
-            clientData.token_endpoint_auth_method !== 'client_secret_basic' ||
-            clientData.grant_types?.join(' ') !== 'authorization_code' ||
-            clientData.response_types?.join(' ') !== 'code' ||
-            clientData.redirect_uris?.join(' ') !==
-              'https://login.tailscale.com/a/oauth_response' ||
-            clientData.scope !== 'openid profile email' ||
-            (clientData.audience ?? []).length !== 0 ||
-            tokenRequest.grant_types?.join(' ') !== 'authorization_code' ||
-            session.extra?.['moltnet:identity_only_consent'] !== true ||
-            (scopes !== undefined &&
-              (scopes.length !== 3 ||
-                !['openid', 'profile', 'email'].every((scope) =>
-                  scopes.includes(scope),
-                ))) ||
-            audience.length !== 0 ||
-            !session.id_token?.subject ||
-            !(await fastify.humanRepository.findByIdentityId(
-              session.id_token.subject,
-            ))
-          ) {
+          const subject = session.id_token?.subject;
+          // Hydra may send [] or omit granted_scopes for code exchange. The
+          // server-owned consent marker is authoritative in those cases.
+          const rejectionReasons = [
+            clientData.token_endpoint_auth_method !== 'client_secret_basic'
+              ? 'client_auth'
+              : undefined,
+            clientData.grant_types?.join(' ') !== 'authorization_code'
+              ? 'client_grant_type'
+              : undefined,
+            clientData.response_types?.join(' ') !== 'code'
+              ? 'response_type'
+              : undefined,
+            clientData.redirect_uris?.join(' ') !== TAILSCALE_OIDC.redirectUri
+              ? 'redirect_uri'
+              : undefined,
+            clientData.scope !== TAILSCALE_OIDC.scope
+              ? 'client_scope'
+              : undefined,
+            (clientData.audience ?? []).length !== 0
+              ? 'client_audience'
+              : undefined,
+            tokenRequest.grant_types?.join(' ') !== 'authorization_code'
+              ? 'grant_type'
+              : undefined,
+            session.extra?.['moltnet:identity_only_consent'] !== true
+              ? 'consent_marker'
+              : undefined,
+            scopes !== undefined &&
+            scopes.length !== 0 &&
+            (scopes.length !== TAILSCALE_OIDC.scopes.length ||
+              !TAILSCALE_OIDC.scopes.every((scope) => scopes.includes(scope)))
+              ? 'granted_scope'
+              : undefined,
+            audience.length !== 0 ? 'audience' : undefined,
+            !subject ? 'human_subject' : undefined,
+          ].filter((reason): reason is string => !!reason);
+          if (rejectionReasons.length === 0 && subject) {
+            const human =
+              await fastify.humanRepository.findByIdentityId(subject);
+            if (!human) rejectionReasons.push('human_subject');
+          }
+          if (rejectionReasons.length > 0) {
+            request.log.warn(
+              { clientKind: 'tailscale-login', rejectionReasons },
+              'Identity-only token grant rejected',
+            );
             return await reply.status(403).send({
               error: 'scope_not_allowed',
               error_description: 'Invalid identity-only consent grant',
             });
           }
-          // This OIDC client has no MoltNet API authority or token claims.
-          return await reply
-            .status(200)
-            .send({ session: { access_token: {} } });
+          // Keep Hydra's consent-bound ID-token claims and access-token session.
+          return await reply.status(204).send();
         } else {
           // ── Self-registered (DCR) client cap ─────────────────────
           // Other clients reaching this point registered through open Dynamic

@@ -181,6 +181,10 @@ describe('Tailscale OIDC consent', () => {
     { name: 'plain PKCE', pkce: true, pkceMethod: 'plain' },
     { name: 'missing email', identity: { ...human, email: undefined } },
     {
+      name: 'unverified email',
+      identity: { ...human, emailVerified: false },
+    },
+    {
       name: 'missing username',
       identity: { ...human, preferredUsername: undefined },
     },
@@ -198,5 +202,23 @@ describe('Tailscale OIDC consent', () => {
     });
     expect((await decide(app, 'allow')).statusCode).toBe(403);
     expect(app.oauth2Client.acceptOAuth2ConsentRequest).not.toHaveBeenCalled();
+  });
+
+  it('routes a different client ID through the DCR policy', async () => {
+    const app = await setup({
+      clientId: 'tailscale-login-copy',
+      scopes: ['openid'],
+      pkce: true,
+    });
+    const response = await decide(app, 'allow');
+    expect(response.statusCode).toBe(303);
+    expect(app.oauth2Client.acceptOAuth2ConsentRequest).toHaveBeenCalledWith({
+      consentChallenge: 'challenge',
+      acceptOAuth2ConsentRequest: {
+        remember: false,
+        grant_scope: ['openid'],
+        grant_access_token_audience: [],
+      },
+    });
   });
 });

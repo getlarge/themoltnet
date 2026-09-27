@@ -7,7 +7,7 @@
  * This is the ONLY file allowed to read process.env directly.
  */
 
-import { OPERATOR_OAUTH } from '@moltnet/models';
+import { OPERATOR_OAUTH, TAILSCALE_OIDC } from '@moltnet/models';
 import type { Static, TObject } from 'typebox';
 import { Type } from 'typebox';
 import * as Format from 'typebox/format';
@@ -792,7 +792,7 @@ export function loadOperatorOAuthClients(
   const clients = {
     nativeClientId:
       env.MOLTNET_NATIVE_OAUTH_CLIENT_ID ?? OPERATOR_OAUTH.nativeClientId,
-    tailscaleLoginClientId: 'tailscale-login',
+    tailscaleLoginClientId: TAILSCALE_OIDC.clientId,
   };
   // A blank native ID rejects every native approval with an opaque 403 while
   // the service still reports healthy.

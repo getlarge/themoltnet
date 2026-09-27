@@ -49,6 +49,9 @@ same value in Tailscale. Compose then registers the confidential
 Tailscale's issuer to `https://$OAUTH_DOMAIN/` and its client ID to
 `tailscale-login`. If the client already exists, startup verifies its public
 policy; changing its secret requires an administrator update in Hydra.
+Removing `TAILSCALE_LOGIN_CLIENT_SECRET` from `.env` stops provisioning but does
+not delete an existing client. Disable or remove it through Hydra administration
+if this login method is no longer wanted.
 
 The identity hostname routes browser pages to the Kratos self-service UI and
 Kratos API paths to Kratos. To export traces, attach an OTLP HTTP Collector to

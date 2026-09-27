@@ -15,6 +15,7 @@ import {
   DCR_MAX_SCOPES,
   OPERATOR_OAUTH,
   ProblemDetailsSchema,
+  TAILSCALE_OIDC,
 } from '@moltnet/models';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
@@ -30,8 +31,6 @@ export interface ApprovalClients {
   nativeClientId?: string;
   tailscaleLoginClientId?: string;
 }
-const TAILSCALE_OIDC_SCOPES = ['openid', 'profile', 'email'] as const;
-const TAILSCALE_REDIRECT_URI = 'https://login.tailscale.com/a/oauth_response';
 const NATIVE_REDIRECT_URI = `http://127.0.0.1:${OPERATOR_OAUTH.callbackPort}/oauth/callback`;
 const PROVISION_AUDIENCE = OPERATOR_OAUTH.provisioningAudience;
 const LOCAL_AUDIENCE = OPERATOR_OAUTH.localControlAudience;
@@ -229,23 +228,45 @@ export async function oauth2ApprovalRoutes(
     const lifetime =
       consent.client?.authorization_code_grant_access_token_lifespan;
     if (tailscaleLogin) {
-      if (
-        consent.client?.token_endpoint_auth_method !== 'client_secret_basic' ||
-        consent.client.grant_types?.join(' ') !== 'authorization_code' ||
-        consent.client.response_types?.join(' ') !== 'code' ||
-        consent.client.redirect_uris?.join(' ') !== TAILSCALE_REDIRECT_URI ||
-        params.get('redirect_uri') !== TAILSCALE_REDIRECT_URI ||
-        scopes.length !== TAILSCALE_OIDC_SCOPES.length ||
-        !TAILSCALE_OIDC_SCOPES.every((scope) => scopes.includes(scope)) ||
-        (consent.requested_access_token_audience ?? []).length !== 0 ||
-        consent.skip === true ||
-        !human.email ||
-        !human.preferredUsername
-      )
+      const rejectionReasons = [
+        consent.client?.token_endpoint_auth_method !== 'client_secret_basic'
+          ? 'client_auth'
+          : undefined,
+        consent.client?.grant_types?.join(' ') !== 'authorization_code'
+          ? 'grant_type'
+          : undefined,
+        consent.client?.response_types?.join(' ') !== 'code'
+          ? 'response_type'
+          : undefined,
+        consent.client?.redirect_uris?.join(' ') !==
+          TAILSCALE_OIDC.redirectUri ||
+        params.get('redirect_uri') !== TAILSCALE_OIDC.redirectUri
+          ? 'redirect_uri'
+          : undefined,
+        scopes.length !== TAILSCALE_OIDC.scopes.length ||
+        !TAILSCALE_OIDC.scopes.every((scope) => scopes.includes(scope))
+          ? 'scope'
+          : undefined,
+        (consent.requested_access_token_audience ?? []).length !== 0
+          ? 'audience'
+          : undefined,
+        consent.skip === true ? 'skip_consent' : undefined,
+        !human.email ? 'email_missing' : undefined,
+        human.emailVerified !== true ? 'email_unverified' : undefined,
+        !human.preferredUsername ? 'username_missing' : undefined,
+      ].filter((reason): reason is string => !!reason);
+      if (rejectionReasons.length > 0) {
+        app.log.warn(
+          { clientId: consent.client?.client_id, rejectionReasons },
+          'Identity-only consent rejected',
+        );
         throw createProblem(
           'forbidden',
-          'The requested client, scope, and audience combination is not allowed',
+          rejectionReasons.includes('email_unverified') && human.email
+            ? 'Verify your email address before signing in with Tailscale'
+            : 'The requested client, scope, and audience combination is not allowed',
         );
+      }
       return {
         human,
         consent,

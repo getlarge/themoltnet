@@ -89,6 +89,24 @@ describe('createSessionResolver', () => {
     });
   });
 
+  it('matches a verified address regardless of email case', async () => {
+    const session = createValidSessionResponse();
+    session.identity.traits = {
+      email: 'Test@Example.com',
+      username: 'testuser',
+    };
+    mockFrontendApi.toSession.mockResolvedValue(session);
+
+    const result = await resolver.resolveSession({
+      sessionToken: VALID_SESSION_TOKEN,
+    });
+
+    expect(result).toMatchObject({
+      email: 'Test@Example.com',
+      emailVerified: true,
+    });
+  });
+
   it('returns HumanAuthContext for a valid browser cookie', async () => {
     mockFrontendApi.toSession.mockResolvedValue(createValidSessionResponse());
 
