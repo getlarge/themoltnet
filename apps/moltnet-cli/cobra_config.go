@@ -222,7 +222,8 @@ func newConfigCredentialsCmd() *cobra.Command {
 		Long: `Store a reference-backed credential in another secret provider and point
 moltnet.json at it. The destination uses the credential's canonical key,
 whatever form the source reference used (an env variable, a flattened file
-key). The source is left in place, unused, so copying back is always possible.
+key). The source entry is left in place and this config stops referencing it;
+other configs may still use it, and a later rotation does not update it.
 
 The source is never deleted: other configs may still reference it. To
 invalidate the old copy, rotate or revoke the credential itself.

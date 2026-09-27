@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 const (
@@ -954,6 +955,11 @@ func TestAgentsCredentialsRotateUpdatesReferencedSecret(t *testing.T) {
 		),
 	}
 	credentialsPath := writeReferencedRotationConfig(t, ref)
+	// Backdate the file so any rewrite, even with identical bytes, is visible.
+	past := time.Now().Add(-time.Hour).Truncate(time.Second)
+	if err := os.Chtimes(credentialsPath, past, past); err != nil {
+		t.Fatal(err)
+	}
 	var stdout bytes.Buffer
 
 	err = runAgentsCredentialsRotateWithClient(
@@ -978,6 +984,9 @@ func TestAgentsCredentialsRotateUpdatesReferencedSecret(t *testing.T) {
 	}
 	if provider.values[key] != testNewClientSecret {
 		t.Fatalf("stored secret = %q, want rotated secret", provider.values[key])
+	}
+	if info, err := os.Stat(credentialsPath); err != nil || !info.ModTime().Equal(past) {
+		t.Fatal("referenced rotation must not write moltnet.json")
 	}
 	if strings.Contains(stdout.String(), testNewClientSecret) {
 		t.Fatal("rotated secret leaked to stdout")

@@ -364,11 +364,13 @@ func TestConfigCredentialsCopyRerunAfterInterruptedCopyIsIdempotent(t *testing.T
 // compare-and-replace rewrite fails after the secret was stored. It counts
 // Delete calls so tests can assert a failed copy never deletes.
 type rollbackTrackingProvider struct {
-	values      map[string]string
-	failSet     bool
-	corruptRead bool
-	touchPath   string
-	deletes     int
+	values  map[string]string
+	failSet bool
+	// writeThenFail stores the value and still returns an error.
+	writeThenFail bool
+	corruptRead   bool
+	touchPath     string
+	deletes       int
 }
 
 func (p *rollbackTrackingProvider) CanWrite() bool { return true }
@@ -387,6 +389,10 @@ func (p *rollbackTrackingProvider) Get(key string) (string, error) {
 func (p *rollbackTrackingProvider) Set(key, value string) error {
 	if p.failSet {
 		return errors.New("destination unavailable")
+	}
+	if p.writeThenFail {
+		p.values[key] = value
+		return errors.New("destination timed out after writing")
 	}
 	if p.touchPath != "" {
 		data, err := os.ReadFile(p.touchPath)
@@ -418,6 +424,12 @@ func TestConfigCredentialsCopyKeepsTheSourceActiveAtEachFailureStage(t *testing.
 			name:      "destination write",
 			provider:  func(string) *rollbackTrackingProvider { return &rollbackTrackingProvider{failSet: true} },
 			wantStage: "store_destination",
+		},
+		{
+			name:         "destination write that failed after storing",
+			provider:     func(string) *rollbackTrackingProvider { return &rollbackTrackingProvider{writeThenFail: true} },
+			wantStage:    "store_destination",
+			wantRetained: true,
 		},
 		{
 			name:         "read-back verification",
@@ -454,7 +466,7 @@ func TestConfigCredentialsCopyKeepsTheSourceActiveAtEachFailureStage(t *testing.
 			if _, stored := destination.values[key]; stored != tc.wantRetained {
 				t.Fatalf("destination stored = %v, want %v", stored, tc.wantRetained)
 			}
-			if strings.Contains(err.Error(), "left in place") != tc.wantRetained {
+			if strings.Contains(err.Error(), "is left in place") != tc.wantRetained {
 				t.Fatalf("error must name a retained destination exactly when one exists: %v", err)
 			}
 			if ref := fixture.readCredentials(t).AgentKeyRefs[copyFixtureTeamA]; ref.Provider != osKeyringProviderName {
@@ -582,6 +594,10 @@ func TestConfigCredentialsCopyRejectsUnsupportedSources(t *testing.T) {
 	}{
 		{credentialOAuth2ClientSecret, "oauth2.client_secret", func(d map[string]any) {
 			d["oauth2"].(map[string]any)["client_secret"] = "inline-secret"
+		}},
+		// The OAuth2 reader rejects any non-empty value, whitespace included.
+		{credentialOAuth2ClientSecret, "oauth2.client_secret", func(d map[string]any) {
+			d["oauth2"].(map[string]any)["client_secret"] = "   "
 		}},
 		{credentialIdentitySeed, "keys.private_key", func(d map[string]any) {
 			d["keys"].(map[string]any)["private_key"] = "inline-seed"

@@ -845,7 +845,9 @@ destination references and what was written and updated. The rewrite changes
 
 ### The source is never deleted
 
-After a copy the source entry is unused, but it still holds the value. The
+After a copy, this config no longer references the source entry, but the entry
+still holds the value and other configs may use it. A later rotation does not
+update it, so copying back after a rotation conflicts with the new value. The
 command does not delete it, because it cannot know that nothing else references
 it: identities using the same GitHub App share one keyring entry, and a
 repository bundle or another host may point at the same key. To invalidate old

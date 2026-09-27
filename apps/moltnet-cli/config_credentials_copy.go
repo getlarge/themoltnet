@@ -144,6 +144,7 @@ func runConfigCredentialsCopyCmd(out, errOut io.Writer, opts credentialCopyOpts)
 	}
 	stage := "update_credentials"
 	var locked *CredentialsFile
+	var copied string
 	err = updateLockedCredentialsBytes(credentialsPath, func(current []byte) ([]byte, error) {
 		fresh, document, err := parseCredentialsDocument(current)
 		if err != nil {
@@ -185,6 +186,7 @@ func runConfigCredentialsCopyCmd(out, errOut io.Writer, opts credentialCopyOpts)
 				return nil
 			}
 		}
+		copied = value
 		written, err := providers.Ensure(target, value)
 		output.SecretWritten = written
 		if err != nil {
@@ -202,6 +204,14 @@ func runConfigCredentialsCopyCmd(out, errOut io.Writer, opts credentialCopyOpts)
 			return fmt.Errorf("credential copy failed during %s: %w; %s is unchanged, and the copy stored at %s:%s is left in place (remove it only if no other config references it)",
 				stage, err, credentialsPath, target.Provider, target.Key)
 		}
+		// A provider can fail after writing, so check what the destination
+		// holds before saying nothing was copied.
+		if copied != "" {
+			if stored, readErr := providers.Resolve(target); readErr == nil && stored == copied {
+				return fmt.Errorf("credential copy failed during %s: %w; %s is unchanged, but %s:%s already holds a copy of the value and is left in place (remove it only if no other config references it)",
+					stage, err, credentialsPath, target.Provider, target.Key)
+			}
+		}
 		return fmt.Errorf("credential copy failed during %s: %w; %s is unchanged", stage, err, credentialsPath)
 	}
 	output.CredentialsUpdated = true
@@ -210,7 +220,7 @@ func runConfigCredentialsCopyCmd(out, errOut io.Writer, opts credentialCopyOpts)
 		return err
 	}
 	if errOut != nil {
-		fmt.Fprintf(errOut, "%s now resolves from %s:%s in %s. The source %s:%s is unused but still holds the value; rotate or revoke the credential to invalidate that copy. Run 'moltnet agents activation refresh' and restart active agent processes.\n", opts.kind, target.Provider, target.Key, credentialsPath, source.Provider, source.Key)
+		fmt.Fprintf(errOut, "%s now resolves from %s:%s in %s. The source %s:%s is no longer referenced by this config but still holds the value; other configs may use it. Rotate or revoke the credential to invalidate every copy. Run 'moltnet agents activation refresh' and restart active agent processes.\n", opts.kind, target.Provider, target.Key, credentialsPath, source.Provider, source.Key)
 	}
 	return nil
 }
@@ -228,7 +238,11 @@ func locateCredentialSlot(creds *CredentialsFile, kind credentialKind, team stri
 			ids:     ids,
 			current: func(c *CredentialsFile) *SecretReference { return c.OAuth2.ClientSecretRef },
 			legacyField: func(c *CredentialsFile) string {
-				return presentField(c.OAuth2.ClientSecret, "oauth2.client_secret")
+				// The OAuth2 reader treats any non-empty value as set.
+				if c.OAuth2.ClientSecret == "" {
+					return ""
+				}
+				return "oauth2.client_secret"
 			},
 			rewrite: func(document map[string]json.RawMessage, _ *CredentialsFile, ref SecretReference) ([]byte, error) {
 				return rewriteSectionReference(document, "oauth2", "client_secret_ref", ref)
