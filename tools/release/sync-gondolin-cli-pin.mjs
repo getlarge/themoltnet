@@ -1,5 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import process from 'node:process';
+import { setTimeout as delay } from 'node:timers/promises';
 import { execFileSync } from 'node:child_process';
 import console from 'node:console';
 import { setTimeout } from 'node:timers';
@@ -49,7 +50,7 @@ export async function verifyPackages(version, get = globalThis.fetch) {
 export async function waitForPackages(
   version,
   get = globalThis.fetch,
-  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  sleep = delay,
   maxAttempts = 20,
 ) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -64,8 +65,8 @@ export async function waitForPackages(
         status === 429 ||
         status >= 500;
       if (!retryable || attempt === maxAttempts) throw error;
-      console.warn(
-        `npm package verification attempt ${attempt}/${maxAttempts}: ${error.message}; retrying in 15 seconds`,
+      process.stderr.write(
+        `npm package verification attempt ${attempt}/${maxAttempts}: ${error.message}; retrying in 15 seconds\n`,
       );
       await sleep(15_000);
     }
