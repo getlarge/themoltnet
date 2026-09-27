@@ -497,6 +497,8 @@ cancelling the user's task. The task only requeues when the proposer set
 `maxAttempts >= 2`; otherwise the single allowed attempt is exhausted and the
 task fails.
 
+<a id="github-actions"></a>
+
 To run the daemon inside a GitHub Actions workflow, see
 [GitHub and Git: run agents from GitHub Actions](../integrations/github.md#run-agents-from-github-actions).
 

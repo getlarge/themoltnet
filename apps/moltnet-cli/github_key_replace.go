@@ -129,9 +129,14 @@ func runGitHubKeyReplaceCmd(ctx context.Context, out, errOut io.Writer, opts git
 		case readErr != nil:
 			return fmt.Errorf("store the new GitHub App key: %w; the entry at %s:%s could not be read back, so check it before deleting the old key on GitHub", err, ref.Provider, ref.Key)
 		case stored == newPEM:
+			// The key did change: drop cached tokens so the check below
+			// mints with it rather than reusing one from the old key.
+			if cacheDir, dirErr := credentialsDir(credentialsPath); dirErr == nil {
+				_ = resetGitHubTokenCache(cacheDir)
+			}
 			return fmt.Errorf("store the new GitHub App key: %w; the entry at %s:%s nevertheless holds the new key, so confirm 'moltnet github token' works before deleting the old key on GitHub", err, ref.Provider, ref.Key)
 		}
-		return fmt.Errorf("store the new GitHub App key: %w; the entry at %s:%s still holds the previous key", err, ref.Provider, ref.Key)
+		return fmt.Errorf("store the new GitHub App key: %w; the entry at %s:%s does not hold the new key", err, ref.Provider, ref.Key)
 	}
 
 	cacheDir, cacheErr := credentialsDir(credentialsPath)

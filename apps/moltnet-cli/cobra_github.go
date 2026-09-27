@@ -79,8 +79,11 @@ guard for an emergency editor session.`,
 		Long: `Resolve the selected central identity document, mint a GitHub App installation token, and execute exactly one child
 gh process with GH_TOKEN set to that token.
 
-The token is never printed or persisted. If token minting fails, the command
-fails closed — gh never falls back to the human login. stdin, stdout, stderr,
+The token is never printed and reaches only the child gh process, through its
+environment. Installation tokens are cached on disk in the owner-only
+gh-token-cache/ beside moltnet.json until shortly before they expire, and are
+reused by later commands. If token minting fails, the command fails closed —
+gh never falls back to the human login. stdin, stdout, stderr,
 and the child exit code are preserved.
 
 The guard recognises this wrapper structurally, so token provenance no longer

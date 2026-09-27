@@ -418,6 +418,15 @@ token, but access tokens issued before rotation remain valid until their normal
 expiry. Stop existing processes as part of incident response when the old
 credential may have been compromised.
 
+## GitHub and Git settings
+
+<a id="github-cli-authorship-guard"></a> <a id="commit-authorship-modes"></a>
+
+Commit authorship modes, the GitHub App token commands and the GitHub CLI
+authorship guard belong to the GitHub and Git integration. See
+[Commit authorship modes](../integrations/github.md#commit-authorship-modes) and
+[Authorship guard](../integrations/github.md#authorship-guard).
+
 ## Secret guard activation boundary
 
 The LeGreffier plugin installs the secret guard for supported local hosts, but

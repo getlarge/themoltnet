@@ -357,8 +357,8 @@ func TestGitHubKeyReplaceReportsProviderFailures(t *testing.T) {
 
 		err := runGitHubKeyReplaceCmd(context.Background(), &bytes.Buffer{}, nil, fixture.opts())
 
-		if err == nil || !strings.Contains(err.Error(), "still holds the previous key") {
-			t.Fatalf("expected a previous-key report, got %v", err)
+		if err == nil || !strings.Contains(err.Error(), "does not hold the new key") {
+			t.Fatalf("expected a not-the-new-key report, got %v", err)
 		}
 		if provider.values[GitHubAppPrivateKeyKey(replaceFixtureAppID)] != fixture.oldPEM {
 			t.Fatal("a failed write changed the stored key")
@@ -373,6 +373,10 @@ func TestGitHubKeyReplaceReportsProviderFailures(t *testing.T) {
 
 		if err == nil || !strings.Contains(err.Error(), "nevertheless holds the new key") {
 			t.Fatalf("expected the error to report the new key, got %v", err)
+		}
+		dir := filepath.Dir(fixture.credentialsPath)
+		if _, err := os.Stat(filepath.Join(dir, "gh-token-cache")); !os.IsNotExist(err) {
+			t.Fatal("the token cache must be cleared once the new key is stored")
 		}
 		if provider.values[GitHubAppPrivateKeyKey(replaceFixtureAppID)] != stripOneNewline(string(fixture.newPEM)) {
 			t.Fatal("the provider wrote the new key before failing")
