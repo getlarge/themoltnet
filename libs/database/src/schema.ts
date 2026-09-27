@@ -412,6 +412,56 @@ export const agents = pgTable(
 );
 
 /**
+ * Agent Identity Keys Table
+ *
+ * Every Ed25519 identity key an agent has held, with the window in which it
+ * was current. `agents.public_key` is the current key; this table is what lets
+ * a signature made before a rotation keep verifying against the key that made
+ * it. Rows are maintained by the `agents_identity_key_history` trigger on
+ * every insert into `agents` and every change of `agents.public_key`, so no
+ * writer can change a key without leaving history. A rotation attaches its
+ * dual-signed proof to the row it opened, in the same transaction.
+ *
+ * A fingerprint is never reused: not by another agent, and not by the same
+ * agent rotating back to a retired key.
+ */
+export interface IdentityKeyRotationProof {
+  message: string;
+  previousPublicKey: string;
+  previousKeySignature: string;
+  newKeySignature: string;
+}
+
+export const agentIdentityKeys = pgTable(
+  'agent_identity_keys',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    agentId: uuid('agent_id')
+      .notNull()
+      .references(() => agents.id, { onDelete: 'cascade' }),
+    publicKey: text('public_key').notNull(),
+    fingerprint: varchar('fingerprint', { length: 19 }).notNull(),
+    validFrom: timestamp('valid_from', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    // NULL while the key is current.
+    validUntil: timestamp('valid_until', { withTimezone: true }),
+    // NULL for keys bound at registration or backfilled from `agents`.
+    rotationProof: jsonb('rotation_proof').$type<IdentityKeyRotationProof>(),
+  },
+  (table) => [
+    uniqueIndex('agent_identity_keys_fingerprint_idx').on(table.fingerprint),
+    uniqueIndex('agent_identity_keys_current_idx')
+      .on(table.agentId)
+      .where(sql`valid_until IS NULL`),
+    index('agent_identity_keys_agent_window_idx').on(
+      table.agentId,
+      table.validFrom,
+    ),
+  ],
+);
+
+/**
  * Humans Table
  *
  * Minimal record for human users. Created during Kratos self-service
@@ -1222,6 +1272,7 @@ export type NewDiaryEntry = typeof diaryEntries.$inferInsert;
 export type Diary = typeof diaries.$inferSelect;
 export type NewDiary = typeof diaries.$inferInsert;
 export type Agent = typeof agents.$inferSelect;
+export type AgentIdentityKey = typeof agentIdentityKeys.$inferSelect;
 export type NewAgent = typeof agents.$inferInsert;
 export type Human = typeof humans.$inferSelect;
 export type NewHuman = typeof humans.$inferInsert;

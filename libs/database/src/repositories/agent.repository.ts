@@ -4,11 +4,27 @@
  * Database operations for agents and identity lookups
  */
 
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import { type Agent, agents, type NewAgent } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
+import { getUniqueViolationConstraint } from '../unique-violation.js';
+
+/**
+ * Unique indexes a fingerprint can collide on: a current key of another agent,
+ * or any key in the identity history (another agent's, or one this agent
+ * retired). The history index is hit through the agents trigger.
+ */
+const FINGERPRINT_CONSTRAINTS: ReadonlySet<string> = new Set([
+  'agents_fingerprint_idx',
+  'agent_identity_keys_fingerprint_idx',
+]);
+
+function isFingerprintConflict(err: unknown): boolean {
+  const constraint = getUniqueViolationConstraint(err);
+  return constraint !== null && FINGERPRINT_CONSTRAINTS.has(constraint);
+}
 
 /**
  * A different public key already holds this fingerprint.
@@ -24,6 +40,17 @@ export class AgentFingerprintConflictError extends Error {
       `Fingerprint ${fingerprint} is already registered to a different public key`,
     );
     this.name = 'AgentFingerprintConflictError';
+  }
+}
+
+/**
+ * The agent's current key is no longer the one the rotation proof retires:
+ * another rotation won, or the proof was built against a stale key.
+ */
+export class AgentIdentityKeyStaleError extends Error {
+  constructor(readonly agentId: string) {
+    super(`Agent ${agentId} no longer holds the key being rotated`);
+    this.name = 'AgentIdentityKeyStaleError';
   }
 }
 
@@ -87,11 +114,23 @@ export function createAgentRepository(db: Database) {
       publicKey: string;
       fingerprint: string;
     }): Promise<{ agent: Agent; created: boolean }> {
-      const [inserted] = await getExecutor(db)
-        .insert(agents)
-        .values({ publicKey: agent.publicKey, fingerprint: agent.fingerprint })
-        .onConflictDoNothing({ target: agents.fingerprint })
-        .returning();
+      let inserted: Agent | undefined;
+      try {
+        [inserted] = await getExecutor(db)
+          .insert(agents)
+          .values({
+            publicKey: agent.publicKey,
+            fingerprint: agent.fingerprint,
+          })
+          .onConflictDoNothing({ target: agents.fingerprint })
+          .returning();
+      } catch (err) {
+        // A retired key is in the history only; reusing it is a collision too.
+        if (isFingerprintConflict(err)) {
+          throw new AgentFingerprintConflictError(agent.fingerprint);
+        }
+        throw err;
+      }
 
       if (inserted) return { agent: inserted, created: true };
 
@@ -112,6 +151,47 @@ export function createAgentRepository(db: Database) {
       }
 
       return { agent: existing, created: false };
+    },
+
+    /**
+     * Replace the agent's identity key, but only while `currentPublicKey` is
+     * still the current one (compare-and-swap). The agents trigger closes the
+     * old key's history row and opens the new one in the same statement.
+     *
+     * Throws AgentIdentityKeyStaleError when the current key has moved on, and
+     * AgentFingerprintConflictError when the new fingerprint belongs to any
+     * current or historical key.
+     */
+    async rotateIdentityKey(input: {
+      agentId: string;
+      currentPublicKey: string;
+      publicKey: string;
+      fingerprint: string;
+    }): Promise<Agent> {
+      let rotated: Agent | undefined;
+      try {
+        [rotated] = await getExecutor(db)
+          .update(agents)
+          .set({
+            publicKey: input.publicKey,
+            fingerprint: input.fingerprint,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(agents.id, input.agentId),
+              eq(agents.publicKey, input.currentPublicKey),
+            ),
+          )
+          .returning();
+      } catch (err) {
+        if (isFingerprintConflict(err)) {
+          throw new AgentFingerprintConflictError(input.fingerprint);
+        }
+        throw err;
+      }
+      if (!rotated) throw new AgentIdentityKeyStaleError(input.agentId);
+      return rotated;
     },
 
     /**
