@@ -14,6 +14,7 @@ import {
   CryptoVerifyResultSchema,
   MAX_ED25519_SIGNATURE_LENGTH,
 } from '../schemas.js';
+import { verifyWithSigningKeys } from '../utils/signing-keys.js';
 
 export async function cryptoRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
@@ -59,14 +60,20 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
         return { valid: false };
       }
 
-      const valid = await fastify.cryptoService.verifyWithNonce(
-        signingRequest.message,
-        signingRequest.nonce,
-        signature,
-        agent.publicKey,
+      const signedBy = await verifyWithSigningKeys(
+        fastify,
+        agent,
+        signingRequest,
+        (publicKey) =>
+          fastify.cryptoService.verifyWithNonce(
+            signingRequest.message,
+            signingRequest.nonce,
+            signature,
+            publicKey,
+          ),
       );
 
-      return { valid };
+      return { valid: signedBy !== null };
     },
   );
 

@@ -43,6 +43,7 @@ import {
   rowToResponseWithCreator,
 } from '../utils/auth-principal.js';
 import { requireKetoSubject } from '../utils/require-keto-subject.js';
+import { verifyWithSigningKeys } from '../utils/signing-keys.js';
 
 const queryTagSchema = Type.String({
   minLength: 1,
@@ -518,17 +519,26 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
     const nonce = entry.signingNonce ?? signingRequest?.nonce ?? null;
     const signerIdentityId = signingRequest?.agentId ?? null;
 
-    if (nonce && signerIdentityId) {
-      const signerKey =
+    if (nonce && signerIdentityId && signingRequest) {
+      const signer =
         await fastify.agentRepository.findByIdentityId(signerIdentityId);
-      if (signerKey) {
-        agentFingerprint = signerKey.fingerprint;
-        signatureValid = await fastify.cryptoService.verifyWithNonce(
-          entry.contentHash,
-          nonce,
-          entry.contentSignature,
-          signerKey.publicKey,
+      if (signer) {
+        // The entry keeps verifying after a rotation: check it against the
+        // key the agent held when it signed, and report that key.
+        const signedBy = await verifyWithSigningKeys(
+          fastify,
+          signer,
+          signingRequest,
+          (publicKey) =>
+            fastify.cryptoService.verifyWithNonce(
+              entry.contentHash!,
+              nonce,
+              entry.contentSignature!,
+              publicKey,
+            ),
         );
+        signatureValid = signedBy !== null;
+        agentFingerprint = signedBy ?? signer.fingerprint;
       }
     }
 

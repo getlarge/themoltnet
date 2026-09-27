@@ -22,6 +22,10 @@ import {
   VerifyResultSchema,
   WhoamiSchema,
 } from '../schemas.js';
+import {
+  findAgentByAnyFingerprint,
+  verifyWithSigningKeys,
+} from '../utils/signing-keys.js';
 
 export async function agentRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
@@ -47,7 +51,10 @@ export async function agentRoutes(fastify: FastifyInstance) {
     async (request) => {
       const normalizedFingerprint = request.params.fingerprint.toUpperCase();
 
-      const agent = await fastify.agentRepository.findByFingerprint(
+      // A retired fingerprint still names the agent; the profile reports its
+      // current key.
+      const agent = await findAgentByAnyFingerprint(
+        fastify,
         normalizedFingerprint,
       );
       if (!agent) {
@@ -93,7 +100,8 @@ export async function agentRoutes(fastify: FastifyInstance) {
       const normalizedFingerprint = request.params.fingerprint.toUpperCase();
       const { signature } = request.body;
 
-      const agent = await fastify.agentRepository.findByFingerprint(
+      const agent = await findAgentByAnyFingerprint(
+        fastify,
         normalizedFingerprint,
       );
       if (!agent) {
@@ -121,20 +129,22 @@ export async function agentRoutes(fastify: FastifyInstance) {
         return { valid: false };
       }
 
-      const valid = await fastify.cryptoService.verifyWithNonce(
-        signingRequest.message,
-        signingRequest.nonce,
-        signature,
-        agent.publicKey,
+      const signedBy = await verifyWithSigningKeys(
+        fastify,
+        agent,
+        signingRequest,
+        (publicKey) =>
+          fastify.cryptoService.verifyWithNonce(
+            signingRequest.message,
+            signingRequest.nonce,
+            signature,
+            publicKey,
+          ),
       );
 
       return {
-        valid,
-        signer: valid
-          ? {
-              fingerprint: agent.fingerprint,
-            }
-          : undefined,
+        valid: signedBy !== null,
+        signer: signedBy !== null ? { fingerprint: signedBy } : undefined,
       };
     },
   );

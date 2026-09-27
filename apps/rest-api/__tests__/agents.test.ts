@@ -104,6 +104,70 @@ describe('Agent routes', () => {
       ).toHaveBeenCalledWith('valid_sig');
     });
 
+    it('verifies a signature made with a key the agent has since rotated away from', async () => {
+      const createdAt = new Date('2026-09-01T10:00:00Z');
+      const completedAt = new Date('2026-09-01T10:00:05Z');
+      mocks.agentRepository.findByFingerprint.mockResolvedValue(
+        createMockAgent(),
+      );
+      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+        id: 'sr-1',
+        agentId: OWNER_IDENTITY_ID,
+        message: 'test message',
+        nonce: 'nonce-1',
+        createdAt,
+        completedAt,
+      } as any);
+      mocks.agentIdentityKeyRepository.findKeysValidBetween.mockResolvedValue([
+        { publicKey: 'ed25519:retired', fingerprint: 'A0A0-0000-0000-0001' },
+      ]);
+      mocks.cryptoService.verifyWithNonce.mockImplementation(
+        async (_message: string, _nonce: string, _sig: string, key: string) =>
+          key === 'ed25519:retired',
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/agents/C212-DAFA-27C5-6C57/verify',
+        payload: { signature: 'old_sig' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({
+        valid: true,
+        signer: { fingerprint: 'A0A0-0000-0000-0001' },
+      });
+      expect(
+        mocks.agentIdentityKeyRepository.findKeysValidBetween,
+      ).toHaveBeenCalledWith(OWNER_ID, createdAt, completedAt);
+    });
+
+    it('resolves a retired fingerprint to its agent', async () => {
+      mocks.agentRepository.findByFingerprint.mockResolvedValue(null);
+      mocks.agentIdentityKeyRepository.findByFingerprint.mockResolvedValue({
+        agentId: OWNER_ID,
+        fingerprint: 'A0A0-0000-0000-0001',
+      });
+      mocks.agentRepository.findById.mockResolvedValue(createMockAgent());
+      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+        id: 'sr-1',
+        agentId: OWNER_IDENTITY_ID,
+        message: 'test message',
+        nonce: 'nonce-1',
+      } as any);
+      mocks.cryptoService.verifyWithNonce.mockResolvedValue(true);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/agents/A0A0-0000-0000-0001/verify',
+        payload: { signature: 'sig' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().valid).toBe(true);
+      expect(mocks.agentRepository.findById).toHaveBeenCalledWith(OWNER_ID);
+    });
+
     it('returns invalid for bad signature', async () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent(),

@@ -43,6 +43,7 @@ import { entryRelationRoutes } from './routes/entry-relations.js';
 import { groupRoutes } from './routes/groups.js';
 import { type HealthRouteOptions, healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
+import { identityRotationRoutes } from './routes/identity-rotation.js';
 import { oauth2GrantCachePlugin, oauth2Routes } from './routes/oauth2.js';
 import { oauth2ApprovalRoutes } from './routes/oauth2-approval.js';
 import { packRoutes } from './routes/packs.js';
@@ -65,6 +66,7 @@ import { taskRoutes } from './routes/tasks.js';
 import { teamRoutes } from './routes/teams.js';
 import { sharedSchemas } from './schemas.js';
 import type {
+  AgentIdentityKeyRepository,
   AgentRepository,
   ContextPackRepository,
   ContextPackService,
@@ -175,6 +177,7 @@ export interface AppOptions {
   entryRelationRepository: EntryRelationRepository;
   embeddingService: EmbeddingService;
   agentRepository: AgentRepository;
+  agentIdentityKeyRepository: AgentIdentityKeyRepository;
   humanRepository: HumanRepository;
   cryptoService: CryptoService;
   groupRepository: GroupRepository;
@@ -445,6 +448,10 @@ export async function registerApiRoutes(
   decorateSafe('entryRelationRepository', options.entryRelationRepository);
   decorateSafe('embeddingService', options.embeddingService);
   decorateSafe('agentRepository', options.agentRepository);
+  decorateSafe(
+    'agentIdentityKeyRepository',
+    options.agentIdentityKeyRepository,
+  );
   decorateSafe('humanRepository', options.humanRepository);
   decorateSafe('cryptoService', options.cryptoService);
   decorateSafe('groupRepository', options.groupRepository);
@@ -542,6 +549,7 @@ export async function registerApiRoutes(
     nonceRepository: options.nonceRepository,
   });
   await app.register(registrationRoutes);
+  await app.register(identityRotationRoutes);
   await app.register(teamRoutes, { talosApi: options.oryClients.apiKeys });
   await app.register(groupRoutes);
   await app.register(projectRoutes);
