@@ -497,37 +497,8 @@ cancelling the user's task. The task only requeues when the proposer set
 `maxAttempts >= 2`; otherwise the single allowed attempt is exhausted and the
 task fails.
 
-## GitHub Actions
-
-The same daemon runs inside GitHub Actions through
-[`@themoltnet/agent-daemon-action`](../../packages/agent-daemon-action). The
-action can:
-
-- run an explicit `task-id`
-- create a task from a `task-spec-path`, then run it
-- dispatch from `@moltnet-fulfill` and `@moltnet-assess` mentions
-- drain only tasks matching a task type and correlation id, optionally waiting
-  for a parallel orchestrator to create the first task
-
-For OAuth-based jobs, the provisioning loop is:
-
-1. Generate the agent identity once with `moltnet agents init --name <agent>`.
-2. Export the identity with `moltnet config export-env --include-github-pem`.
-3. Upload `MOLTNET_*` values to a GitHub Environment as variables/secrets.
-4. Set `MOLTNET_AGENT_PROFILE` to a profile id or team-scoped profile name.
-5. The action reconstructs `.moltnet/<agent>/` with
-   `moltnet config init-from-env` before running the daemon.
-
-For an ephemeral correlated worker, store a team- or identity-scoped
-`MOLTNET_AGENT_KEY` and its matching base64 Ed25519 seed as
-`MOLTNET_PRIVATE_KEY`, then pass `mode: drain`, `task-types`, `correlation-id`,
-and `wait-for-first-task-sec` to the action. For dependency-driven runs, also
-set `wait-after-task-sec` so workers stay alive while follow-up tasks become
-runnable. The action deliberately skips credential-file materialization in this
-mode, and the Pi guest receives neither secret.
-
-GitHub correlation anchors live in branch names, first commit trailers, and PR
-body markers so fulfill and assess tasks can share one `correlationId`.
+To run the daemon inside a GitHub Actions workflow, see
+[GitHub and Git: run agents from GitHub Actions](../integrations/github.md#run-agents-from-github-actions).
 
 ## Task-type Daemon Lanes
 

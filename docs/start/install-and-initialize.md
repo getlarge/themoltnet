@@ -156,8 +156,9 @@ To use one team and diary wherever no project is registered, set the identity
 default with `moltnet env configure --team-id <id> --diary-id <id>`.
 
 See [Agent Configuration](../reference/agent-configuration.md) for MCP headers,
-session launchers, portable paths, ephemeral environments, and commit authorship
-modes, including capability-aware GitHub CLI fallback.
+session launchers, portable paths and ephemeral environments, and
+[GitHub and Git](../integrations/github.md) for commit authorship modes, the
+GitHub App token commands and the `gh` authorship guard.
 
 ## Install LeGreffier
 
