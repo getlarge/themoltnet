@@ -25,6 +25,7 @@ export interface CatalogueState {
   /** The last refresh failed and `catalogue` is the previous good one. */
   stale: boolean;
   retry: () => void;
+  checkNow: () => Promise<void>;
 }
 
 export const CATALOGUE_POLL_MS = 60_000;
@@ -112,7 +113,7 @@ export function useCatalogue(
           }
         : false,
   });
-  const retry = useCallback(() => {
+  const checkNow = useCallback(() => {
     // An explicit refresh (Retry, a renewal) reads fresh and restarts the
     // quick checks.
     degradedMarks(client).delete(identity);
@@ -121,10 +122,13 @@ export function useCatalogue(
     // Invalidation joins a read already in flight when nothing is cached yet,
     // so a refresh during the first load would return that older read.
     // Cancel it first; its late answer is discarded.
-    void client
+    return client
       .cancelQueries({ queryKey })
       .then(() => client.invalidateQueries({ queryKey }));
   }, [client, identity]);
+  const retry = useCallback(() => {
+    void checkNow().catch(() => undefined);
+  }, [checkNow]);
   const hasData = query.data !== undefined;
   return {
     catalogue: query.data ?? null,
@@ -134,5 +138,6 @@ export function useCatalogue(
     error: query.isError && !hasData ? CATALOGUE_ERROR : null,
     stale: query.isError && hasData,
     retry,
+    checkNow,
   };
 }

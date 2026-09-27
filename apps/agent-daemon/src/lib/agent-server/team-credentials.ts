@@ -1,5 +1,9 @@
 import { DAEMON_MINIMUM_SCOPES } from '@moltnet/models';
-import { resolveAgentKey, type SecretProviderRegistry } from '@themoltnet/sdk';
+import {
+  AuthenticationError,
+  resolveAgentKey,
+  type SecretProviderRegistry,
+} from '@themoltnet/sdk';
 import { connect } from '@themoltnet/sdk/node';
 
 import {
@@ -23,6 +27,8 @@ export interface CredentialBlocker {
     | 'agent_key_missing'
     | 'agent_key_binding_invalid'
     | 'agent_key_scopes_insufficient'
+    | 'agent_key_rejected'
+    | 'agent_key_hidden'
     | 'agent_key_unavailable';
   message: string;
   remedy: string;
@@ -33,15 +39,20 @@ export class TeamCredentialError extends Error {
   }
 }
 export function credentialBlocker(error: unknown): CredentialBlocker {
-  return error instanceof TeamCredentialError
-    ? error.blocker
-    : {
-        code: 'agent_key_unavailable',
-        message:
-          'This team credential could not be verified or read its team resources.',
-        remedy:
-          'Check connectivity and team access, or renew this team credential.',
-      };
+  if (error instanceof TeamCredentialError) return error.blocker;
+  if (error instanceof AuthenticationError && error.statusCode === 401)
+    return {
+      code: 'agent_key_rejected',
+      message: 'The API rejected this team credential.',
+      remedy: 'Renew this team credential in Identity and teams.',
+    };
+  return {
+    code: 'agent_key_unavailable',
+    message:
+      'This team credential could not be verified or read its team resources.',
+    remedy:
+      'Check connectivity and team access, or renew this team credential.',
+  };
 }
 const snapshots = new WeakMap<
   ActivatedAgent,
@@ -155,6 +166,12 @@ export async function verifyTeamActivation(
   const activated = await loadAgentActivation(store, alias);
   const { config, activation } = activated;
   const reference = teamId ? config.agent_key_refs?.[teamId] : undefined;
+  if (teamId && activation.hiddenTeamIds?.includes(teamId))
+    throw new TeamCredentialError({
+      code: 'agent_key_hidden',
+      message: 'This team was removed from this Agent Server.',
+      remedy: 'Restore it in Identity and teams before starting a new run.',
+    });
   if (!teamId || !reference)
     throw new TeamCredentialError({
       code: 'agent_key_missing',

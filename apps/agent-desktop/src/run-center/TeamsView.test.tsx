@@ -2,7 +2,7 @@ import {
   AGENT_CREDENTIAL_SCOPES,
   DAEMON_MINIMUM_SCOPES,
 } from '@moltnet/models';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { INITIAL_STATUS } from '../bridge.js';
@@ -70,6 +70,7 @@ function fixture() {
   const actions: RunCenterActions = {
     catalogue: vi.fn().mockResolvedValue({
       teams: [team],
+      hiddenTeamIds: [],
       profiles: [],
       projects: [],
       projectErrors: [],
@@ -103,6 +104,71 @@ function show(data: RunCenterData, actions: RunCenterActions) {
 }
 
 describe('desktop team enrollment', () => {
+  it('removes a team locally and offers a way to restore it', async () => {
+    const { data, actions } = fixture();
+    actions.setTeamVisibility = vi.fn().mockResolvedValue(undefined);
+    show(data, actions);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Remove from Desktop' }),
+    );
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Remove from Desktop' }).at(-1)!,
+    );
+    await waitFor(() =>
+      expect(actions.setTeamVisibility).toHaveBeenCalledWith(
+        'agent',
+        'team-a',
+        true,
+      ),
+    );
+  });
+
+  it('restores a previously removed team', async () => {
+    const { data, actions } = fixture();
+    actions.setTeamVisibility = vi.fn().mockResolvedValue(undefined);
+    actions.catalogue = vi.fn().mockResolvedValue({
+      teams: [],
+      hiddenTeamIds: ['team-a'],
+      profiles: [],
+      projects: [],
+      projectErrors: [],
+      defaultTeamId: null,
+    });
+    show(data, actions);
+    fireEvent.click(await screen.findByRole('button', { name: 'Restore' }));
+    await waitFor(() =>
+      expect(actions.setTeamVisibility).toHaveBeenCalledWith(
+        'agent',
+        'team-a',
+        false,
+      ),
+    );
+  });
+  it('offers renewal for a hidden indexed team', async () => {
+    const { data, actions } = fixture();
+    actions.catalogue = vi.fn().mockResolvedValue({
+      teams: [],
+      hiddenTeamIds: ['team-a'],
+      profiles: [],
+      projects: [],
+      projectErrors: [],
+      defaultTeamId: null,
+    });
+    show(data, actions);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Renew access' }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Replace team credential' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Replace credential' }));
+    await waitFor(() =>
+      expect(actions.enrollTeam).toHaveBeenCalledWith(
+        'agent',
+        expect.objectContaining({ teamId: 'team-a', mode: 'replace' }),
+      ),
+    );
+  });
   it('shows the signed-in operator email', () => {
     const { data, actions } = fixture();
     show(
@@ -202,6 +268,17 @@ describe('desktop team enrollment', () => {
     expect(await screen.findByText('Signed in')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Refresh operator teams' }),
+    ).toBeInTheDocument();
+  });
+  it('explains when the signed-in operator cannot manage an indexed team', async () => {
+    const { data, actions } = fixture();
+    actions.operatorTeams = vi.fn().mockResolvedValue({ items: [] });
+    show({ ...data, operatorConfigured: true }, actions);
+    expect(
+      await screen.findByText('Operator access not confirmed'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/invite your human account as a manager/),
     ).toBeInTheDocument();
   });
   it('selects a signed-in operator team by name for enrollment', async () => {

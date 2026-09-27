@@ -19,6 +19,7 @@ export type AgentServerAgent = {
 
 export type AgentServerCatalogue = {
   defaultTeamId: string | null;
+  hiddenTeamIds: Array<string>;
   profiles: Array<AgentServerCatalogueProfile>;
   projectErrors: Array<{
     code: 'forbidden' | 'unreachable' | 'invalid_response' | 'truncated';
@@ -540,6 +541,40 @@ export type EnrollAgentServerTeamResponses = {
 
 export type EnrollAgentServerTeamResponse =
   EnrollAgentServerTeamResponses[keyof EnrollAgentServerTeamResponses];
+
+export type SetAgentServerLocalTeamVisibilityData = {
+  body: {
+    hidden: boolean;
+  };
+  path: {
+    agentName: string;
+    teamId: string;
+  };
+  query?: never;
+  url: '/v1/agents/{agentName}/teams/{teamId}/local-visibility';
+};
+
+export type SetAgentServerLocalTeamVisibilityErrors = {
+  /**
+   * Default Response
+   */
+  default: AgentServerProblem;
+};
+
+export type SetAgentServerLocalTeamVisibilityError =
+  SetAgentServerLocalTeamVisibilityErrors[keyof SetAgentServerLocalTeamVisibilityErrors];
+
+export type SetAgentServerLocalTeamVisibilityResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    hidden: boolean;
+  };
+};
+
+export type SetAgentServerLocalTeamVisibilityResponse =
+  SetAgentServerLocalTeamVisibilityResponses[keyof SetAgentServerLocalTeamVisibilityResponses];
 
 export type GetAgentServerCatalogueData = {
   body?: never;

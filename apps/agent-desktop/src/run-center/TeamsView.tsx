@@ -82,11 +82,14 @@ export function TeamsView({
     { id: string; name: string }[]
   >([]);
   const [operatorTeamsLoading, setOperatorTeamsLoading] = useState(false);
+  const [operatorTeamsLoaded, setOperatorTeamsLoaded] = useState(false);
   const [operatorTeamsError, setOperatorTeamsError] = useState(false);
   const [manualTeamId, setManualTeamId] = useState(false);
   const [busy, setBusy] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [confirm, setConfirm] = useState(false);
+  const [removeTarget, setRemoveTarget] =
+    useState<AgentServerCatalogueTeam | null>(null);
   const [discardTarget, setDiscardTarget] = useState<{
     identity: string;
     recoveryId: string;
@@ -163,15 +166,20 @@ export function TeamsView({
     let current = true;
     if (!data.operatorConfigured || !actions.operatorTeams) {
       setOperatorTeams([]);
+      setOperatorTeamsLoaded(false);
       return;
     }
     setOperatorTeamsLoading(true);
+    setOperatorTeamsLoaded(false);
     setOperatorTeamsError(false);
     void actions
       .operatorTeams()
       .then(
         ({ items }) => {
-          if (current) setOperatorTeams(items);
+          if (current) {
+            setOperatorTeams(items);
+            setOperatorTeamsLoaded(true);
+          }
         },
         () => {
           if (current) setOperatorTeamsError(true);
@@ -251,6 +259,33 @@ export function TeamsView({
       inFlight.current = false;
       setBusy(false);
       setCancelling(false);
+    }
+  };
+  const setTeamVisibility = async (teamId: string, hidden: boolean) => {
+    if (busy || !actions.setTeamVisibility) return;
+    setBusy(true);
+    try {
+      await actions.setTeamVisibility(identity, teamId, hidden);
+      retryCatalogue();
+      await actions.refresh?.();
+      setFeedback({
+        title: hidden
+          ? 'Team removed from Desktop'
+          : 'Team restored to Desktop',
+        message: hidden
+          ? 'New runs cannot use this team here. Existing runs and the shared CLI credential are unchanged.'
+          : 'This team is available for new runs again.',
+        error: false,
+      });
+    } catch {
+      setFeedback({
+        title: 'Team setting could not be saved',
+        message: 'Check the local server and try again.',
+        error: true,
+      });
+    } finally {
+      setBusy(false);
+      setRemoveTarget(null);
     }
   };
   const createIdentity = async () => {
@@ -552,6 +587,17 @@ export function TeamsView({
                 {blocker.remedy}
               </InlineNotice>
             ))}
+            {operatorTeamsLoaded &&
+            !operatorTeams.some(({ id }) => id === entry.teamId) ? (
+              <InlineNotice
+                tone="warning"
+                title="Operator access not confirmed"
+              >
+                This team is absent from the signed-in operator’s team choices.
+                Approval may fail. Ask a team owner or manager to invite your
+                human account as a manager, then refresh operator teams.
+              </InlineNotice>
+            ) : null}
             <Stack direction="row" gap={2} wrap>
               <Button
                 variant="secondary"
@@ -565,11 +611,87 @@ export function TeamsView({
               >
                 Renew
               </Button>
+              {actions.setTeamVisibility ? (
+                <Button
+                  variant="ghost"
+                  disabled={busy}
+                  onClick={() => setRemoveTarget(entry)}
+                >
+                  Remove from Desktop
+                </Button>
+              ) : null}
             </Stack>
           </Stack>
         </ControlSurface>
       ))}
-      {catalogue && !catalogue.teams.length ? (
+      {catalogue?.hiddenTeamIds?.length ? (
+        <ControlSurface>
+          <Stack gap={3}>
+            <Text weight="semibold">Removed from Desktop</Text>
+            <Text variant="caption" color="secondary">
+              These teams remain in the shared identity. Restore one to show its
+              current credential, or renew access when you have team approval.
+            </Text>
+            {operatorTeamsLoaded &&
+            catalogue.hiddenTeamIds.some(
+              (teamId) => !operatorTeams.some(({ id }) => id === teamId),
+            ) ? (
+              <InlineNotice
+                tone="warning"
+                title="Operator access needed for renewal"
+              >
+                Some removed teams are absent from the signed-in operator’s team
+                choices. Approval may fail. Ask a team owner or manager to
+                invite your human account as a manager, then refresh operator
+                teams.
+              </InlineNotice>
+            ) : null}
+            {catalogue.hiddenTeamIds.map((teamId) => (
+              <Stack
+                key={teamId}
+                direction="row"
+                justify="space-between"
+                align="center"
+                wrap
+                gap={2}
+              >
+                <Text>{teamId}</Text>
+                <Stack direction="row" gap={2} wrap>
+                  <Button
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => void setTeamVisibility(teamId, false)}
+                  >
+                    Restore
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => {
+                      setTeam({
+                        teamId,
+                        teamName: teamId,
+                        available: false,
+                        blockers: [],
+                        diaries: [],
+                        defaultDiaryId: null,
+                      });
+                      setMode('replace');
+                      setScopes([...AGENT_CREDENTIAL_SCOPES]);
+                      setDestinationTeamId('');
+                    }}
+                  >
+                    Renew access
+                  </Button>
+                </Stack>
+              </Stack>
+            ))}
+          </Stack>
+        </ControlSurface>
+      ) : null}
+      {catalogue &&
+      !catalogue.teams.length &&
+      !catalogue.hiddenTeamIds?.length ? (
         <InlineNotice tone="info" title="No indexed team credentials">
           Enroll below, or preview indexing an existing team-bound key with{' '}
           <code>moltnet --identity {identity} config migrate --dry-run</code>.
@@ -825,6 +947,16 @@ export function TeamsView({
           </Button>
         </aside>
       ) : null}
+      <ConfirmDialog
+        open={removeTarget !== null}
+        title={`Remove ${removeTarget?.teamName ?? 'this team'} from Desktop?`}
+        message="This hides the team here and prevents new runs from using it. Existing runs continue. The shared CLI credential and remote team membership remain available; you can restore the team here later."
+        confirmLabel="Remove from Desktop"
+        onCancel={() => setRemoveTarget(null)}
+        onConfirm={() => {
+          if (removeTarget) void setTeamVisibility(removeTarget.teamId, true);
+        }}
+      />
       <ConfirmDialog
         open={confirm}
         title={`Replace the credential for ${team?.teamName ?? 'this team'}?`}

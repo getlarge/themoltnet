@@ -127,6 +127,8 @@ interface ActivationIdentity {
   boundTeamId?: string;
   createdAt: string;
   credentialHealth?: Record<string, CredentialMetadata>;
+  /** Indexed teams excluded from this Agent Server without editing the shared identity. */
+  hiddenTeamIds?: string[];
 }
 
 export interface ManagedAgentActivation extends ActivationIdentity {
@@ -845,6 +847,14 @@ function validateActivation(alias: string, value: unknown): void {
   ) {
     invalid();
   }
+  if (
+    activation.hiddenTeamIds !== undefined &&
+    (!Array.isArray(activation.hiddenTeamIds) ||
+      !activation.hiddenTeamIds.every(
+        (teamId: unknown) => typeof teamId === 'string' && teamId.length > 0,
+      ))
+  )
+    invalid();
   if (activation.source === 'managed') {
     if (
       typeof activation.apiUrl !== 'string' ||

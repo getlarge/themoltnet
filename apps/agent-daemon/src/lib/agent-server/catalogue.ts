@@ -151,6 +151,7 @@ export interface CatalogueProfile extends CatalogueProfileRecord {
 
 export interface Catalogue {
   teams: CatalogueTeam[];
+  hiddenTeamIds: string[];
   defaultTeamId: string | null;
   profiles: CatalogueProfile[];
   projects: CatalogueProject[];
@@ -418,6 +419,7 @@ export function assembleCatalogue(
 
   return {
     teams,
+    hiddenTeamIds: [],
     defaultTeamId,
     profiles: entries.flatMap((entry) => entry.profiles),
     projects: entries.flatMap((entry) => entry.projects),

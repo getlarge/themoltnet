@@ -13,6 +13,7 @@ export const running: DesktopStatus = {
   logs: [],
 };
 export const catalogue: AgentServerCatalogue = {
+  hiddenTeamIds: [],
   defaultTeamId: 'team',
   projects: [],
   projectErrors: [],

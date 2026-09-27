@@ -142,6 +142,10 @@ describe('local team enrollment boundary', () => {
   });
   it('requests human approval without resolving an API key and returns only metadata', async () => {
     const f = await fixture();
+    f.store.writeActivation({
+      ...f.store.readActivation('agent')!,
+      hiddenTeamIds: ['team'],
+    });
     f.authorize.mockResolvedValue('human-approval');
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(
@@ -184,6 +188,7 @@ describe('local team enrollment boundary', () => {
       keyId: 'new-key',
       scopes: [],
     });
+    expect(f.store.readActivation('agent')?.hiddenTeamIds).toEqual([]);
     expect(JSON.stringify(result)).not.toContain(f.keys.privateKey);
   });
 

@@ -36,6 +36,69 @@ afterEach(cleanupAll);
 const BROWSER_ORIGIN = 'https://console.themolt.net';
 
 describe('native desktop client', () => {
+  it('hides and restores an indexed team only in the local activation', async () => {
+    const nativeGrant = new NativeGrantService();
+    nativeGrant.grantNative('supervisor-token');
+    const { app, store } = await fixture({ nativeGrant });
+    activateManaged(store);
+    const config = store.readAgentConfig('course-bot')!;
+    config.agent_key_refs = {
+      'team-a': { provider: 'file', key: 'agent-key/agent-1/team-a' },
+    };
+    store.writeAgentConfig('course-bot', config);
+    const url = '/v1/agents/course-bot/teams/team-a/local-visibility';
+    const headers = {
+      host: HOST,
+      origin: NATIVE_CLIENT_ORIGIN,
+      [AGENT_SERVER_TOKEN_HEADER]: 'supervisor-token',
+    };
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url,
+          headers: { ...headers, origin: BROWSER_ORIGIN },
+          payload: { hidden: true },
+        })
+      ).statusCode,
+    ).toBe(403);
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url,
+          headers,
+          payload: { hidden: true },
+        })
+      ).statusCode,
+    ).toBe(200);
+    expect(store.readActivation('course-bot')?.hiddenTeamIds).toEqual([
+      'team-a',
+    ]);
+    expect(store.readAgentConfig('course-bot')?.agent_key_refs).toEqual(
+      config.agent_key_refs,
+    );
+    const hidden = await app.inject({
+      method: 'GET',
+      url: '/v1/catalogue?identity=course-bot',
+      headers,
+    });
+    expect(hidden.json()).toMatchObject({
+      teams: [],
+      hiddenTeamIds: ['team-a'],
+    });
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url,
+          headers,
+          payload: { hidden: false },
+        })
+      ).statusCode,
+    ).toBe(200);
+    expect(store.readActivation('course-bot')?.hiddenTeamIds).toEqual([]);
+  });
   it('limits recovery to the native grant and restores a verified capture', async () => {
     const nativeGrant = new NativeGrantService();
     nativeGrant.grantNative('supervisor-token');

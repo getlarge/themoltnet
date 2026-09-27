@@ -183,7 +183,7 @@ describe('catalogue state in the Runs overview', () => {
 
 it('reports unverified team access as a recoverable check, not a missing catalogue', async () => {
   const { data, actions } = fixture(vi.fn());
-  actions.catalogue = vi.fn().mockResolvedValue({
+  const unavailable = {
     ...EMPTY_CATALOGUE,
     teams: [
       {
@@ -200,12 +200,68 @@ it('reports unverified team access as a recoverable check, not a missing catalog
         ],
       },
     ],
-  });
+  };
+  let finishCheck: (value: typeof unavailable) => void = () => {};
+  actions.catalogue = vi
+    .fn()
+    .mockResolvedValueOnce(unavailable)
+    .mockImplementationOnce(
+      () =>
+        new Promise<typeof unavailable>((resolve) => {
+          finishCheck = resolve;
+        }),
+    );
   renderRuns(actions, data);
   await screen.findByText('Checking team access');
   expect(screen.queryByText('Catalogue unavailable')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Check now' }));
   await waitFor(() => expect(actions.catalogue).toHaveBeenCalledTimes(2));
+  expect(screen.getByRole('button', { name: 'Checking…' })).toBeDisabled();
+  finishCheck(unavailable);
+  await screen.findByText(
+    /Checked now; some team credentials are still unavailable/,
+  );
+});
+
+it('directs an API-rejected team credential to renewal', async () => {
+  const { data, actions } = fixture(vi.fn());
+  const onTeams = vi.fn();
+  actions.catalogue = vi.fn().mockResolvedValue({
+    ...EMPTY_CATALOGUE,
+    teams: [
+      {
+        teamId: 'team',
+        teamName: 'team',
+        available: false,
+        diaries: [],
+        defaultDiaryId: null,
+        blockers: [
+          {
+            code: 'agent_key_rejected',
+            message: 'The API rejected this team credential.',
+            remedy: 'Renew this team credential in Identity and teams.',
+          },
+        ],
+      },
+    ],
+  });
+  render(
+    <Wrapper>
+      <RunsView
+        data={data}
+        actions={actions}
+        now={0}
+        route={{ kind: 'list' }}
+        onRoute={() => {}}
+        onTeams={onTeams}
+      />
+    </Wrapper>,
+  );
+
+  await screen.findByText('Team credential rejected');
+  expect(screen.queryByRole('button', { name: 'Check now' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Identity and teams' }));
+  expect(onTeams).toHaveBeenCalledOnce();
 });
 
 it('keeps a matching preset selected when repeating an attributed run', () => {

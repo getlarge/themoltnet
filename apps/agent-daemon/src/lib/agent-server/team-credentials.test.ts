@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import { DAEMON_MINIMUM_SCOPES } from '@moltnet/models';
 import {
+  AuthenticationError,
   READ_ONLY_CAPABILITIES,
   SecretProviderRegistry,
   type Whoami,
@@ -100,6 +101,18 @@ function fixture() {
 }
 
 describe('strict supervised credentials', () => {
+  it('refuses a locally hidden team before reading its key', async () => {
+    const f = fixture();
+    f.store.writeActivation({
+      ...f.store.readActivation('agent')!,
+      hiddenTeamIds: ['a'],
+    });
+    await expect(f.verify('a')).rejects.toMatchObject({
+      blocker: { code: 'agent_key_hidden' },
+    });
+    expect(f.read).not.toHaveBeenCalled();
+    await expect(f.verify('b')).resolves.toBeDefined();
+  });
   it('captures independent team credentials once and retains predecessor after replacement', async () => {
     const f = fixture();
     const [a, b] = await Promise.all([f.verify('a'), f.verify('b')]);
@@ -127,6 +140,23 @@ describe('strict supervised credentials', () => {
     expect(f.connectImpl).not.toHaveBeenCalled();
     expect(f.read.mock.calls.flat()).not.toContain('agent-key/subject');
     await expect(f.verify('b')).resolves.toBeDefined();
+  });
+
+  it('identifies an API rejection after reading the selected team key', async () => {
+    const f = fixture();
+    f.whoami.mockRejectedValue(
+      new AuthenticationError('Rejected', { statusCode: 401 }),
+    );
+
+    await expect(f.verify('a')).rejects.toMatchObject({
+      code: 'AUTH_FAILED',
+    });
+    expect(f.read).toHaveBeenCalledWith('agent-key/subject/a');
+    expect(
+      credentialBlocker(
+        new AuthenticationError('Rejected', { statusCode: 401 }),
+      ),
+    ).toMatchObject({ code: 'agent_key_rejected' });
   });
 
   it.each(['identity', 'wrong-team', 'wrong-subject', 'wrong-signing-key'])(

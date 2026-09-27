@@ -135,6 +135,8 @@ export const runCenterActions: RunCenterActions = {
   cancelOperatorApproval: () => invoke('desktop_cancel_operator_approval'),
   enrollTeam: (identity, request) =>
     invoke('desktop_enroll_team', { identity, request }),
+  setTeamVisibility: (identity, teamId, hidden) =>
+    invoke('desktop_set_team_visibility', { identity, teamId, hidden }),
   listEnrollmentRecoveries: (identity) =>
     invoke('desktop_list_enrollment_recoveries', { identity }),
   restoreEnrollment: (identity, recoveryId) =>
