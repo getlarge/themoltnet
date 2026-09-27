@@ -27,7 +27,6 @@ type copyFixture struct {
 	fileRoot        string
 	registry        *SecretProviderRegistry
 	values          map[credentialKind]string
-	recoveryDir     string
 }
 
 func newCopyFixture(t *testing.T) *copyFixture {
@@ -42,7 +41,6 @@ func newCopyFixture(t *testing.T) *copyFixture {
 		credentialsPath: filepath.Join(dir, "moltnet.json"),
 		keyring:         &memorySecretProvider{values: map[string]string{}},
 		fileRoot:        t.TempDir(),
-		recoveryDir:     t.TempDir(),
 		values: map[credentialKind]string{
 			credentialOAuth2ClientSecret: "canary-oauth-secret",
 			credentialIdentitySeed:       seed,
@@ -124,9 +122,6 @@ func (f *copyFixture) opts(kind credentialKind, destination string) credentialCo
 		kind:            kind,
 		destination:     destination,
 		providers:       f.registry,
-		writeRecovery: func(recovery credentialCopyRecovery) (string, error) {
-			return writeRecoveryArtifact(f.recoveryDir, "credential-copy-recovery-*.json", recovery)
-		},
 	}
 }
 
@@ -146,27 +141,6 @@ func (f *copyFixture) credentialsBytes(t *testing.T) []byte {
 		t.Fatal(err)
 	}
 	return data
-}
-
-func (f *copyFixture) recoveryArtifacts(t *testing.T) []credentialCopyRecovery {
-	t.Helper()
-	entries, err := os.ReadDir(f.recoveryDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var artifacts []credentialCopyRecovery
-	for _, entry := range entries {
-		data, err := os.ReadFile(filepath.Join(f.recoveryDir, entry.Name()))
-		if err != nil {
-			t.Fatal(err)
-		}
-		var artifact credentialCopyRecovery
-		if err := json.Unmarshal(data, &artifact); err != nil {
-			t.Fatal(err)
-		}
-		artifacts = append(artifacts, artifact)
-	}
-	return artifacts
 }
 
 func activeReference(creds *CredentialsFile, kind credentialKind) *SecretReference {
@@ -357,7 +331,7 @@ func TestConfigCredentialsCopyConflictLeavesBothSidesIntact(t *testing.T) {
 	if fixture.keyring.values[key] != fixture.values[credentialOAuth2ClientSecret] {
 		t.Fatal("conflict touched the source")
 	}
-	if out.Len() != 0 || len(fixture.recoveryArtifacts(t)) != 0 {
+	if out.Len() != 0 {
 		t.Fatalf("a clean failure must not report manual recovery: %s", out.String())
 	}
 }
@@ -392,7 +366,6 @@ type rollbackTrackingProvider struct {
 	values      map[string]string
 	failSet     bool
 	corruptRead bool
-	failDelete  bool
 	touchPath   string
 	deletes     int
 }
@@ -429,51 +402,35 @@ func (p *rollbackTrackingProvider) Set(key, value string) error {
 
 func (p *rollbackTrackingProvider) Delete(key string) error {
 	p.deletes++
-	if p.failDelete {
-		return errors.New("delete refused")
-	}
 	delete(p.values, key)
 	return nil
 }
 
-func TestConfigCredentialsCopyRollsBackEachFailureStage(t *testing.T) {
+func TestConfigCredentialsCopyKeepsTheSourceActiveAtEachFailureStage(t *testing.T) {
 	for _, tc := range []struct {
-		name          string
-		provider      func(credentialsPath string) *rollbackTrackingProvider
-		wantStage     string
-		wantDeletes   int
-		wantRecovery  bool
-		wantUnchanged bool
+		name         string
+		provider     func(credentialsPath string) *rollbackTrackingProvider
+		wantStage    string
+		wantRetained bool
 	}{
 		{
-			name:          "destination write",
-			provider:      func(string) *rollbackTrackingProvider { return &rollbackTrackingProvider{failSet: true} },
-			wantStage:     "store_destination",
-			wantUnchanged: true,
+			name:      "destination write",
+			provider:  func(string) *rollbackTrackingProvider { return &rollbackTrackingProvider{failSet: true} },
+			wantStage: "store_destination",
 		},
 		{
-			name:          "read-back verification",
-			provider:      func(string) *rollbackTrackingProvider { return &rollbackTrackingProvider{corruptRead: true} },
-			wantStage:     "store_destination",
-			wantDeletes:   1,
-			wantUnchanged: true,
+			name:         "read-back verification",
+			provider:     func(string) *rollbackTrackingProvider { return &rollbackTrackingProvider{corruptRead: true} },
+			wantStage:    "store_destination",
+			wantRetained: true,
 		},
 		{
 			name: "config rewrite",
 			provider: func(path string) *rollbackTrackingProvider {
 				return &rollbackTrackingProvider{touchPath: path}
 			},
-			wantStage:   "update_credentials",
-			wantDeletes: 1,
-		},
-		{
-			name: "config rewrite with failed rollback",
-			provider: func(path string) *rollbackTrackingProvider {
-				return &rollbackTrackingProvider{touchPath: path, failDelete: true}
-			},
 			wantStage:    "update_credentials",
-			wantDeletes:  1,
-			wantRecovery: true,
+			wantRetained: true,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -482,18 +439,22 @@ func TestConfigCredentialsCopyRollsBackEachFailureStage(t *testing.T) {
 			destination.values = map[string]string{}
 			fixture.registry.Register("staging", destination)
 			key := canonicalCopyKey(t, credentialAgentKey)
-			before := fixture.credentialsBytes(t)
 
 			var out bytes.Buffer
 			err := runConfigCredentialsCopyCmd(&out, nil, fixture.opts(credentialAgentKey, "staging"))
 			if err == nil || !strings.Contains(err.Error(), tc.wantStage) {
 				t.Fatalf("expected failure during %s, got %v", tc.wantStage, err)
 			}
-			if destination.deletes != tc.wantDeletes {
-				t.Fatalf("destination deletes = %d, want %d", destination.deletes, tc.wantDeletes)
+			// Another copy may have adopted the destination entry, so a failed
+			// copy never deletes it.
+			if destination.deletes != 0 {
+				t.Fatalf("a failed copy deleted the destination %d times", destination.deletes)
 			}
-			if tc.wantUnchanged && !bytes.Equal(before, fixture.credentialsBytes(t)) {
-				t.Fatal("failed copy rewrote the credentials file")
+			if _, stored := destination.values[key]; stored != tc.wantRetained {
+				t.Fatalf("destination stored = %v, want %v", stored, tc.wantRetained)
+			}
+			if strings.Contains(err.Error(), "left in place") != tc.wantRetained {
+				t.Fatalf("error must name a retained destination exactly when one exists: %v", err)
 			}
 			if ref := fixture.readCredentials(t).AgentKeyRefs[copyFixtureTeamA]; ref.Provider != osKeyringProviderName {
 				t.Fatalf("failed copy switched the active reference: %+v", ref)
@@ -501,27 +462,10 @@ func TestConfigCredentialsCopyRollsBackEachFailureStage(t *testing.T) {
 			if fixture.keyring.values[key] != fixture.values[credentialAgentKey] {
 				t.Fatal("failed copy changed the source")
 			}
-			if !tc.wantRecovery {
-				if _, ok := destination.values[key]; ok {
-					t.Fatal("destination secret was not rolled back")
-				}
-				if out.Len() != 0 || len(fixture.recoveryArtifacts(t)) != 0 {
-					t.Fatalf("rolled-back failure must not require manual recovery: %s", out.String())
-				}
-				return
+			if out.Len() != 0 {
+				t.Fatalf("a failed copy printed a result: %s", out.String())
 			}
-			var result credentialCopyOutput
-			if err := json.Unmarshal(out.Bytes(), &result); err != nil {
-				t.Fatalf("parse output: %v\n%s", err, out.String())
-			}
-			if !result.ManualRecoveryRequired || result.Stage != tc.wantStage || result.RecoveryPath == "" {
-				t.Fatalf("unexpected recovery result: %+v", result)
-			}
-			artifacts := fixture.recoveryArtifacts(t)
-			if len(artifacts) != 1 || artifacts[0].ActiveReference.Provider != osKeyringProviderName || !artifacts[0].SecretWritten {
-				t.Fatalf("unexpected recovery artifact: %+v", artifacts)
-			}
-			assertNoSecretLeak(t, fixture, out.String(), err.Error())
+			assertNoSecretLeak(t, fixture, err.Error())
 		})
 	}
 }

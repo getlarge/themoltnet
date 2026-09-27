@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -33,38 +32,18 @@ type credentialCopyOpts struct {
 	destination     string
 	team            string
 	providers       *SecretProviderRegistry
-	// writeRecovery persists the state diagnostics of a run that needs manual
-	// recovery and returns the artifact path. Tests point it at a temp dir.
-	writeRecovery func(credentialCopyRecovery) (string, error)
 }
 
 // credentialCopyOutput is the machine-readable result. It carries references
 // and state, never the secret value.
 type credentialCopyOutput struct {
-	Kind                   credentialKind  `json:"kind"`
-	CredentialsPath        string          `json:"credentialsPath"`
-	TeamID                 string          `json:"teamId,omitempty"`
-	Source                 SecretReference `json:"source"`
-	Destination            SecretReference `json:"destination"`
-	SecretWritten          bool            `json:"secretWritten"`
-	CredentialsUpdated     bool            `json:"credentialsUpdated"`
-	ManualRecoveryRequired bool            `json:"manualRecoveryRequired,omitempty"`
-	Stage                  string          `json:"stage,omitempty"`
-	RecoveryPath           string          `json:"recoveryPath,omitempty"`
-}
-
-// credentialCopyRecovery is the protected artifact written when a failed copy
-// could not remove the destination it wrote. The source is never modified, so
-// the artifact never needs to carry the value.
-type credentialCopyRecovery struct {
-	Stage           string          `json:"stage"`
-	Reason          string          `json:"reason"`
-	Kind            credentialKind  `json:"kind"`
-	CredentialsPath string          `json:"credentialsPath"`
-	Source          SecretReference `json:"source"`
-	Destination     SecretReference `json:"destination"`
-	ActiveReference SecretReference `json:"activeReference"`
-	SecretWritten   bool            `json:"secretWritten"`
+	Kind               credentialKind  `json:"kind"`
+	CredentialsPath    string          `json:"credentialsPath"`
+	TeamID             string          `json:"teamId,omitempty"`
+	Source             SecretReference `json:"source"`
+	Destination        SecretReference `json:"destination"`
+	SecretWritten      bool            `json:"secretWritten"`
+	CredentialsUpdated bool            `json:"credentialsUpdated"`
 }
 
 // credentialSlot locates one credential reference inside a credentials
@@ -98,10 +77,6 @@ func runConfigCredentialsCopyCmd(out, errOut io.Writer, opts credentialCopyOpts)
 	providers := opts.providers
 	if providers == nil {
 		providers = NewSecretProviderRegistry()
-	}
-	writeRecovery := opts.writeRecovery
-	if writeRecovery == nil {
-		writeRecovery = writeCredentialCopyRecoveryFile
 	}
 
 	// Write support is checked before the credentials file or any secret is
@@ -213,11 +188,13 @@ func runConfigCredentialsCopyCmd(out, errOut io.Writer, opts credentialCopyOpts)
 		return nil
 	})
 	if err != nil {
+		// A destination this run wrote is never deleted: once Ensure released
+		// its lock, another copy of the same credential may have adopted the
+		// entry, and no local check can prove otherwise. It holds the same
+		// value as the source, so leaving it unused is harmless.
 		if output.SecretWritten {
-			if rollbackErr := providers.Delete(target); rollbackErr != nil {
-				return failCredentialCopy(out, output, stage, errors.Join(err, fmt.Errorf("roll back destination: %w", rollbackErr)), writeRecovery)
-			}
-			output.SecretWritten = false
+			return fmt.Errorf("credential copy failed during %s: %w; %s is unchanged, and the copy stored at %s:%s is left in place (remove it only if no other config references it)",
+				stage, err, credentialsPath, target.Provider, target.Key)
 		}
 		return fmt.Errorf("credential copy failed during %s: %w; %s is unchanged", stage, err, credentialsPath)
 	}
@@ -230,53 +207,6 @@ func runConfigCredentialsCopyCmd(out, errOut io.Writer, opts credentialCopyOpts)
 		fmt.Fprintf(errOut, "%s now resolves from %s:%s in %s. The source %s:%s is unused but still holds the value; rotate or revoke the credential to invalidate that copy. Run 'moltnet agents activation refresh' and restart active agent processes.\n", opts.kind, target.Provider, target.Key, credentialsPath, source.Provider, source.Key)
 	}
 	return nil
-}
-
-// failCredentialCopy reports a destination write that could not be rolled
-// back: the result JSON on stdout and a protected recovery artifact, both
-// value-free. The config still references the untouched source.
-func failCredentialCopy(
-	out io.Writer,
-	output credentialCopyOutput,
-	stage string,
-	cause error,
-	writeRecovery func(credentialCopyRecovery) (string, error),
-) error {
-	output.ManualRecoveryRequired = true
-	output.Stage = stage
-	recoveryPath, recoveryErr := writeRecovery(credentialCopyRecovery{
-		Stage:           stage,
-		Reason:          cause.Error(),
-		Kind:            output.Kind,
-		CredentialsPath: output.CredentialsPath,
-		Source:          output.Source,
-		Destination:     output.Destination,
-		ActiveReference: output.Source,
-		SecretWritten:   output.SecretWritten,
-	})
-	if recoveryErr == nil {
-		output.RecoveryPath = recoveryPath
-	}
-	printErr := printJSONTo(out, output)
-	err := fmt.Errorf(
-		"credential copy requires manual recovery after %s: %w; %s still references %s:%s; remove the unverified destination %s:%s manually before retrying",
-		stage, cause, output.CredentialsPath, output.Source.Provider, output.Source.Key, output.Destination.Provider, output.Destination.Key,
-	)
-	if recoveryErr != nil {
-		err = fmt.Errorf("%w (recovery artifact failed: %v)", err, recoveryErr)
-	}
-	if printErr != nil {
-		err = fmt.Errorf("%w (result output failed: %v)", err, printErr)
-	}
-	return err
-}
-
-func writeCredentialCopyRecoveryFile(recovery credentialCopyRecovery) (string, error) {
-	dir, err := defaultRecoveryDir()
-	if err != nil {
-		return "", err
-	}
-	return writeRecoveryArtifact(dir, "credential-copy-recovery-*.json", recovery)
 }
 
 // locateCredentialSlot returns the reference slot for kind. An agent key is

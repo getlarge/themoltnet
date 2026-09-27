@@ -72,6 +72,9 @@ type agentKeyStoreTarget struct {
 	issuedRef              *SecretReference
 	removeRecovery         func(string) error
 	replaceRecovery        func(string, []byte) error
+	// inheritSlot is set when the destination follows the slot's current
+	// provider; it is resolved again under the credentials lock.
+	inheritSlot *agentKeySlot
 }
 
 // storedAgentKeyOutput is printed instead of the secret-bearing result when
@@ -163,6 +166,10 @@ func prepareAgentKeyStore(opts agentKeyStoreOpts, credPath string) (*agentKeySto
 	if replaceRecovery == nil {
 		replaceRecovery = safefile.Write
 	}
+	var inheritSlot *agentKeySlot
+	if inherit {
+		inheritSlot = opts.inheritSlot
+	}
 	return &agentKeyStoreTarget{
 		credentialsPath: credentialsPath,
 		subjectID:       subjectID,
@@ -171,6 +178,7 @@ func prepareAgentKeyStore(opts agentKeyStoreOpts, credPath string) (*agentKeySto
 		writeRecovery:   writeRecovery,
 		removeRecovery:  removeRecovery,
 		replaceRecovery: replaceRecovery,
+		inheritSlot:     inheritSlot,
 	}, nil
 }
 
@@ -318,6 +326,21 @@ func (t *agentKeyStoreTarget) updateCredentials(store func() error) error {
 		if t.enrollment && t.teamID != "" {
 			if previous, ok := creds.AgentKeyRefs[t.teamID]; ok && previous != t.ref {
 				return nil, fmt.Errorf("team already has a different stored credential reference")
+			}
+		}
+		if t.inheritSlot != nil {
+			// The provider was chosen from an unlocked read; a concurrent
+			// credential copy may have switched the slot since. Follow the
+			// slot as it is now, before the store below writes anything.
+			provider := defaultMigrationDestination
+			if ref := t.inheritSlot.reference(creds); ref != nil {
+				provider = ref.Provider
+			}
+			if provider != t.ref.Provider {
+				if !t.providers.CanWrite(provider) {
+					return nil, fmt.Errorf("the key's reference moved to the %q provider, which is not writable", provider)
+				}
+				t.ref.Provider = provider
 			}
 		}
 		updated, err := rewriteCredentialsDocument(document, func(top map[string]json.RawMessage) error {
