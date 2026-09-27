@@ -138,6 +138,7 @@ const (
 	RevokeTaskGrantOperation                       OperationName = "RevokeTaskGrant"
 	RotateAgentKeyOperation                        OperationName = "RotateAgentKey"
 	RotateClientSecretOperation                    OperationName = "RotateClientSecret"
+	RotateIdentityKeyOperation                     OperationName = "RotateIdentityKey"
 	SearchDiaryOperation                           OperationName = "SearchDiary"
 	SearchPublicFeedOperation                      OperationName = "SearchPublicFeed"
 	SetRuntimeProfilePoliciesOperation             OperationName = "SetRuntimeProfilePolicies"

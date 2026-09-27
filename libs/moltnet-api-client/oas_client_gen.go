@@ -831,6 +831,15 @@ type Invoker interface {
 	//
 	// POST /auth/rotate-secret
 	RotateClientSecret(ctx context.Context) (RotateClientSecretRes, error)
+	// RotateIdentityKey invokes rotateIdentityKey operation.
+	//
+	// Replace the agent's Ed25519 identity key. Both the current and the new key sign the rotation
+	// message `moltnet:identity:rotate:v1\n<agentId>\n<currentPublicKey>\n<newPublicKey>\n<issuedAt>`.
+	// The old key stays verifiable for signatures made while it was current; the new fingerprint
+	// replaces the old one everywhere else, and access tokens issued before the rotation are revoked.
+	//
+	// POST /auth/rotate-identity-key
+	RotateIdentityKey(ctx context.Context, request OptRotateIdentityKeyRequest) (RotateIdentityKeyRes, error)
 	// SearchDiary invokes searchDiary operation.
 	//
 	// Search diary entries using hybrid search.
@@ -24221,6 +24230,161 @@ func (c *Client) sendRotateClientSecret(ctx context.Context) (res RotateClientSe
 
 	stage = "DecodeResponse"
 	result, err := decodeRotateClientSecretResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// RotateIdentityKey invokes rotateIdentityKey operation.
+//
+// Replace the agent's Ed25519 identity key. Both the current and the new key sign the rotation
+// message `moltnet:identity:rotate:v1\n<agentId>\n<currentPublicKey>\n<newPublicKey>\n<issuedAt>`.
+// The old key stays verifiable for signatures made while it was current; the new fingerprint
+// replaces the old one everywhere else, and access tokens issued before the rotation are revoked.
+//
+// POST /auth/rotate-identity-key
+func (c *Client) RotateIdentityKey(ctx context.Context, request OptRotateIdentityKeyRequest) (RotateIdentityKeyRes, error) {
+	res, err := c.sendRotateIdentityKey(ctx, request)
+	return res, err
+}
+
+func (c *Client) sendRotateIdentityKey(ctx context.Context, request OptRotateIdentityKeyRequest) (res RotateIdentityKeyRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("rotateIdentityKey"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/auth/rotate-identity-key"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, RotateIdentityKeyOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/auth/rotate-identity-key"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeRotateIdentityKeyRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, RotateIdentityKeyOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+		{
+			stage = "Security:AgentKeyAuth"
+			switch err := c.securityAgentKeyAuth(ctx, RotateIdentityKeyOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"AgentKeyAuth\"")
+			}
+		}
+		{
+			stage = "Security:SessionAuth"
+			switch err := c.securitySessionAuth(ctx, RotateIdentityKeyOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 2
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"SessionAuth\"")
+			}
+		}
+		{
+			stage = "Security:CookieAuth"
+			switch err := c.securityCookieAuth(ctx, RotateIdentityKeyOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 3
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"CookieAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+				{0b00000010},
+				{0b00000100},
+				{0b00001000},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeRotateIdentityKeyResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

@@ -394,6 +394,9 @@ import type {
   RotateClientSecretData,
   RotateClientSecretErrors,
   RotateClientSecretResponses,
+  RotateIdentityKeyData,
+  RotateIdentityKeyErrors,
+  RotateIdentityKeyResponses,
   SearchDiaryData,
   SearchDiaryErrors,
   SearchDiaryResponses,
@@ -741,6 +744,35 @@ export const registerAgent = <ThrowOnError extends boolean = false>(
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
+    },
+  });
+
+/**
+ * Replace the agent's Ed25519 identity key. Both the current and the new key sign the rotation message `moltnet:identity:rotate:v1\n<agentId>\n<currentPublicKey>\n<newPublicKey>\n<issuedAt>`. The old key stays verifiable for signatures made while it was current; the new fingerprint replaces the old one everywhere else, and access tokens issued before the rotation are revoked.
+ */
+export const rotateIdentityKey = <ThrowOnError extends boolean = false>(
+  options?: Options<RotateIdentityKeyData, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    RotateIdentityKeyResponses,
+    RotateIdentityKeyErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/auth/rotate-identity-key',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
     },
   });
 

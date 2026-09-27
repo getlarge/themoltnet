@@ -509,6 +509,10 @@ type RotateClientSecretRes interface {
 	rotateClientSecretRes()
 }
 
+type RotateIdentityKeyRes interface {
+	rotateIdentityKeyRes()
+}
+
 type SearchDiaryRes interface {
 	searchDiaryRes()
 }

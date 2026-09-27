@@ -8354,6 +8354,65 @@
           }
         ]
       },
+      "RotateIdentityKeyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "issuedAt": {
+            "description": "When the proof was signed; must be within 10 minutes of server time.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "newKeySignature": {
+            "description": "Signature of the rotation message by the new key.",
+            "maxLength": 88,
+            "minLength": 1,
+            "type": "string"
+          },
+          "newPublicKey": {
+            "description": "Replacement Ed25519 public key, \"ed25519:<base64>\".",
+            "maxLength": 60,
+            "minLength": 1,
+            "type": "string"
+          },
+          "previousKeySignature": {
+            "description": "Signature of the rotation message by the current identity key.",
+            "maxLength": 88,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "newPublicKey",
+          "issuedAt",
+          "previousKeySignature",
+          "newKeySignature"
+        ],
+        "type": "object"
+      },
+      "RotateIdentityKeyResponse": {
+        "properties": {
+          "agentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "previousFingerprint": {
+            "type": "string"
+          },
+          "publicKey": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "agentId",
+          "publicKey",
+          "fingerprint",
+          "previousFingerprint"
+        ],
+        "type": "object"
+      },
       "RotateSecretResponse": {
         "properties": {
           "clientId": {
@@ -16372,6 +16431,130 @@
             "description": "Default Response"
           }
         },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/auth/rotate-identity-key": {
+      "post": {
+        "description": "Replace the agent's Ed25519 identity key. Both the current and the new key sign the rotation message `moltnet:identity:rotate:v1\\n<agentId>\\n<currentPublicKey>\\n<newPublicKey>\\n<issuedAt>`. The old key stays verifiable for signatures made while it was current; the new fingerprint replaces the old one everywhere else, and access tokens issued before the rotation are revoked.",
+        "operationId": "rotateIdentityKey",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RotateIdentityKeyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RotateIdentityKeyResponse"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "agentKeyAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
         "tags": [
           "auth"
         ]
