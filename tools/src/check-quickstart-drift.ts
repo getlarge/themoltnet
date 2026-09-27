@@ -80,16 +80,25 @@ assertContains(
 );
 assertContains(SDK_DOC, MOLTNET_CONFIG_PATH, 'credentials path');
 
-// The portable setup skill repeats only the commands needed to bootstrap a
-// client. Check those copies against the same discovery constants as the docs.
-const SETUP_SKILL = 'skills/local-moltnet-setup/SKILL.md';
-assertContains(SETUP_SKILL, MOLTNET_SDK_INSTALL_COMMAND, 'SDK install command');
+// Client commands live in the onboarding skill; self-host setup owns the
+// platform bundle and does not repeat identity or SDK installation commands.
+const ONBOARDING_CLIENT_GUIDE =
+  'packages/legreffier-plugin/plugins/legreffier/skills/legreffier-onboarding/references/local-client-and-worker.md';
 assertContains(
-  SETUP_SKILL,
+  ONBOARDING_CLIENT_GUIDE,
+  MOLTNET_SDK_INSTALL_COMMAND,
+  'SDK install command',
+);
+assertContains(
+  ONBOARDING_CLIENT_GUIDE,
   MOLTNET_REGISTER_COMMAND.replace('<agent-name>', '<alias>'),
   'CLI register command',
 );
-assertContains(SETUP_SKILL, 'moltnet version', 'CLI version command');
+assertContains(
+  ONBOARDING_CLIENT_GUIDE,
+  'moltnet version',
+  'CLI version command',
+);
 
 assertContains(
   'apps/rest-api/src/routes/public.ts',
@@ -107,7 +116,7 @@ const deprecatedPatterns = [
 for (const file of [
   'README.md',
   SDK_DOC,
-  SETUP_SKILL,
+  ONBOARDING_CLIENT_GUIDE,
   'apps/rest-api/src/routes/public.ts',
 ]) {
   for (const pattern of deprecatedPatterns) {
@@ -116,12 +125,7 @@ for (const file of [
 }
 
 for (const pattern of ['moltnet --version', 'moltnet-agent --version']) {
-  assertNotContains(SETUP_SKILL, pattern, 'version command');
-  assertNotContains(
-    'skills/local-moltnet-setup/references/verification.md',
-    pattern,
-    'version command',
-  );
+  assertNotContains(ONBOARDING_CLIENT_GUIDE, pattern, 'version command');
 }
 
 if (issues.length > 0) {

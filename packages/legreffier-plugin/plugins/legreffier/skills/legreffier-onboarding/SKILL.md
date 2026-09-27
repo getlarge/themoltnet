@@ -1,6 +1,6 @@
 ---
 name: legreffier-onboarding
-description: 'Stateful adoption coach for LeGreffier: inspects local and remote state, classifies the current adoption stage, and suggests the next best action. Use when getting started with LeGreffier, after installing the plugin or running moltnet agents init, when asked "what should I do next", "how do I use legreffier", "set up diary", "connect team diary", or "onboarding".'
+description: 'Guide a local MoltNet agent through identity, CLI and SDK access, diary adoption, and an optional first worker task. Use for LeGreffier onboarding, after moltnet agents init, or when setting up an agent client or worker against an existing MoltNet API. Platform self-host deployment belongs to local-moltnet-setup.'
 ---
 
 # LeGreffier Onboarding Skill
@@ -22,6 +22,18 @@ human mode and the plugin MCP with browser OAuth. Never fall back between them.
 - When asked "what should I do next", "how do I use legreffier",
   "getting started", "set up diary", "connect team diary", "onboarding"
 - When the main `legreffier` skill detects no `MOLTNET_DIARY_ID`
+- When an operator asks to verify a local agent through the released CLI, Node
+  SDK, daemon, or Agent Desktop against an already running MoltNet API
+
+## Client and worker branch
+
+When the request is to connect a local agent or run its first task, read
+`references/local-client-and-worker.md`. Start with the selected identity and
+API origin, then follow only the requested client and worker paths. This branch
+does not deploy the MoltNet platform. In human mode, guide the operator with
+the linked product docs and Console; do not switch to local agent credentials
+or run agent-mode CLI commands. Keep the normal diary-stage flow for requests
+about LeGreffier adoption.
 
 ## Transport invariant
 
@@ -56,16 +68,18 @@ ADOPTION_LAG_DAYS = 7    // registered but still not connected
 Before proposing the action for a stage, print a single-line `**Signals:**`
 block summarizing the relevant ages. **Stage 4 has no Signals line.**
 
-## Execution flow
+## LeGreffier diary adoption flow
 
-On every invocation:
+For diary adoption requests:
 
 1. **Select principal and transport** (same as main legreffier skill).
-2. **Stage 1 checks** — agent mode only; metadata checks never open credential files.
-   If not initialized → read `references/stage-1-not-initialized.md`, follow it, stop.
-   Human mode starts at Stage 2 using remote MCP evidence.
-3. **Stage 2 checks** — read activation JSON, then remote calls if needed.
-   If diary not connected → read `references/stage-2-diary-connection.md`, follow it.
+2. **Stage 1 checks** — agent mode only; list central identity aliases without
+   opening credential files. If no identity is selected, read
+   `references/stage-1-not-initialized.md`, follow it, then re-detect local
+   state. Human mode starts at Stage 2 using remote MCP evidence.
+3. **Stage 2 checks** — in agent mode validate or refresh activation metadata;
+   in human mode use remote MCP evidence. If the diary is not connected, read
+   `references/stage-2-diary-connection.md` and follow it.
 4. **Stage 3-4 checks** — fetch entry mix, classify (see below).
    - Stage 3 → read `references/stage-3-auto-harvesting.md`, follow it.
    - Stage 4 → read `references/stage-4-manual-capture.md`, follow it.

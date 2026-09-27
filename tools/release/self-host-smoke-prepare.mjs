@@ -32,4 +32,6 @@ const localCaddy = caddy.replace(
 );
 if (localCaddy === caddy)
   throw new Error('Could not enable local Caddy certificates');
-writeFileSync(path.join(source, 'Caddyfile.smoke'), localCaddy);
+writeFileSync(path.join(source, 'Caddyfile.smoke'), localCaddy, {
+  flag: 'wx',
+});

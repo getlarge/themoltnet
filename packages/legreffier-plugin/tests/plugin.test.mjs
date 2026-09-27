@@ -97,13 +97,19 @@ test('bundles all LeGreffier skills and companion references', async () => {
     ).length,
     2,
   );
-  assert.equal(
+  assert.deepEqual(
     (
       await readdir(
         join(pluginRoot, 'skills', 'legreffier-onboarding', 'references'),
       )
-    ).length,
-    4,
+    ).sort(),
+    [
+      'local-client-and-worker.md',
+      'stage-1-not-initialized.md',
+      'stage-2-diary-connection.md',
+      'stage-3-auto-harvesting.md',
+      'stage-4-manual-capture.md',
+    ],
   );
 });
 

@@ -1,88 +1,80 @@
 ---
 name: local-moltnet-setup
-description: Set up a local MoltNet agent against Cloud or a self-hosted MoltNet API, configure the released CLI and Node SDK, optionally use Agent Desktop, and verify a daemon can claim and complete a first task. Use for first-time installation, migration to a local deployment, or diagnosing an incomplete agent setup.
+description: Deploy and verify a self-hosted MoltNet Docker Compose stack from a release archive or source checkout. Use for local self-host installation, an isolated deployment rehearsal, upgrades, or diagnosing stack startup. Agent identity, CLI, SDK, and worker onboarding belong to legreffier-onboarding.
 ---
 
-# Local MoltNet setup
+# Local MoltNet self-host setup
 
-Help the user reach a working **agent identity, authenticated client, and task
-worker**. Ask which API to use if the endpoint is unclear. Inspect installed
-tools, selected identity, and existing team/profile state before creating or
-replacing anything. Never print a credential, invite code, keyring value, or
-`moltnet config export-env` output.
+Bring up a **self-hosted MoltNet platform** and prove that its public ingress,
+identity service, API, MCP server, and storage are ready. Do not route this task
+to MoltNet Cloud. First inspect the host, existing Compose project and volumes,
+selected bundle/source revision, and operator-provided domains. Preserve any
+existing deployment data and configuration. Never print secrets or the complete
+`.env` file.
 
-The installed release is the command authority. Before a state-changing step,
-check its command and flags with `moltnet help <command>` or
-`moltnet-agent <command> --help` as described in
-[verification](references/verification.md#check-the-installed-command-surface).
-If an example differs from installed help, use the release's help and linked
-product guide, then report the mismatch for a skill update. Do not guess a
-replacement flag or retry a failed mutation with different inputs.
+Read [Self-host with Docker Compose](https://docs.themolt.net/deploy/docker-compose)
+and the selected bundle's `deploy/self-host/README.md`. Treat those files and
+the bundle's `.env.example` as the source for current service names, settings,
+and commands; do not carry forward image versions from this skill.
 
-## Choose the platform
+## Select the installation path
 
-- **MoltNet Cloud:** use `https://api.themolt.net`; follow
-  [Install and Initialize](https://docs.themolt.net/start/install-and-initialize) and
-  [Agent Identity](https://docs.themolt.net/start/agent-identity).
-- **Released self-host bundle:** follow
-  [Self-host with Docker Compose](https://docs.themolt.net/deploy/docker-compose) and the
-  archive's `deploy/self-host/README.md`. Use its externally reachable API
-  hostname for clients, never the Compose-only Hydra or REST address. Verify
-  the archive checksum and `docker compose --env-file .env config --quiet`
-  before startup. Configure DNS, TLS, SMTP, and secrets from the release's
-  `.env.example`; keep the release image digest pins. Check `docker compose ps`
-  and the API `/health` endpoint before registering an agent.
-- **Source checkout for development:** use
-  [Local Platform](https://docs.themolt.net/operate/local-platform). Its e2e Compose stack
-  and bootstrap identity are throwaway development fixtures, not a release
-  installation.
+- **Release installation:** use a `self-host-vX.Y.Z` archive from
+  [GitHub Releases](https://github.com/getlarge/themoltnet/releases). Verify
+  its published checksum and internal `SHA256SUMS` before extracting settings
+  or starting containers. The archive's `.env.release` pins images built from
+  that source revision by digest. Keep those pins.
+- **Source checkout rehearsal:** use the exact revision under test. Follow the
+  source path in [verification](references/verification.md#source-checkout-rehearsal)
+  to build its four application images and generate a bundle with `:dev` tags.
+  This is a local test artifact, not a published release.
 
-For a self-hosted API, pass `--api-url https://<api-host>` to initial
-`moltnet register` or `moltnet agents init`. The saved identity then retains
-that endpoint. Set `MOLTNET_API_URL=https://<api-host>` for an agent-key daemon
-run. Keep the endpoint explicit when checking an untrusted or newly installed
-identity.
+For an installation intended to keep data, use a Linux Docker host with
+persistent storage. Confirm five hostnames for Console, API, MCP, identity, and
+OAuth resolve to its ingress; TCP 80/443 and UDP 443 must reach Caddy. Confirm
+SMTP and an off-host backup destination before accepting real users. If the
+operator only wants a disposable local rehearsal, use the source checkout
+smoke path; do not present it as a production-ready installation.
 
-## Set up the client and worker
+## Configure and start
 
-1. Install or update the **released** `moltnet` CLI using the platform channel
-   in [Install and Initialize](https://docs.themolt.net/start/install-and-initialize#install-the-moltnet-cli).
-   Check `moltnet version` and `moltnet update check`; do not substitute a
-   binary built from this repository for an operational check.
-2. If the agent already exists, select its alias with
-   `moltnet config identity select <alias>`. Otherwise register it with
-   `moltnet register --name <alias>` (plus `--api-url` for self-hosting), or use
-   `moltnet agents init --name <alias>` when it also needs GitHub App authorship.
-   Join the intended project team through its approved enrollment flow; a
-   personal team alone is insufficient for shared task work. Confirm with
-   `moltnet env check --identity <alias>` and `moltnet agents whoami`.
-3. For Node code, run `npm install @themoltnet/sdk` in the consuming project and use
-   `connect()` from `@themoltnet/sdk/node` with the selected local identity.
-   Verify `await agent.agents.whoami()`; see
-   [SDK and Integrations](https://docs.themolt.net/use/sdk-and-integrations#agent-authentication-modes).
-   For explicit credentials in another runtime, use the root package's
-   `connect({ apiUrl, ... })` and its credential store; do not copy keyring
-   secrets into examples or logs.
-4. Install the released agent daemon from
-   [Running Agents](https://docs.themolt.net/operate/running-agents#daemon). Supported
-   paths are macOS Apple Silicon, Linux x64, and Windows via WSL2 Ubuntu.
-   `moltnet-agent --help` checks the install. Configure a local model provider
-   with `moltnet-agent providers`, select or create a team runtime profile, and
-   ensure the agent has a stored daemon agent key. To create one for the
-   selected identity, use `moltnet agents keys create --team-id <team-id>
---name <alias>-daemon --store`. A CLI-registered OAuth2
-   identity does not automatically provide that daemon key. Follow
-   [Agent Keys](https://docs.themolt.net/operate/agent-keys) and
-   [Runtime Profiles](https://docs.themolt.net/operate/runtime-profiles).
-5. **Optional Desktop:** on a supported macOS or Linux desktop, install
-   [MoltNet Agent](https://themolt.net/download), create or attach the same
-   identity, approve team enrollment, configure a provider, and use Runs to
-   start the worker. Desktop stores the daemon key. If Desktop created the
-   identity and the CLI also needs it, follow
-   [Running Agents](https://docs.themolt.net/operate/running-agents#daemon) to recover
-   OAuth2 credentials through the stored key. Windows uses the WSL2 daemon.
+In the selected bundle's `deploy/self-host` directory, copy `.env.example` to
+`.env` and fill the required domains, email, SMTP, and independent secrets.
+Use the exact constraints in the bundled README, including the Kratos cipher
+secret length. Append `.env.release` so image references override the empty
+example fields. Keep `.env`, overrides, and backup credentials out of Git.
 
-Run the appropriate checks in [verification](references/verification.md), then
-report the API URL, identity alias/fingerprint, team, profile, worker mode, task
-ID, and terminal task result. Do not include raw credentials or secret-bearing
-config files. Stop after one task unless the user asks for a broader test.
+Before startup, check Compose configuration and the selected image references.
+Use `docker compose --env-file .env config --quiet`, then start with the bundled
+README's Compose command. Do not run `down -v` on a deployment with data. If
+startup fails, inspect only the affected service's status and bounded logs;
+redact secret-bearing output before reporting it.
+
+Follow [verification](references/verification.md) through public ingress,
+identity and OAuth discovery, API and MCP access, and object-store readiness.
+An internal process being `running` is insufficient evidence of a usable
+installation. For a source checkout, use the repository's full self-host smoke
+test when available. For a release archive, connect an agent and exercise an
+authenticated task using the `legreffier-onboarding` skill or the
+[first task guide](https://docs.themolt.net/start/first-task); client and worker
+setup lives there.
+
+## Optional operations
+
+- For telemetry, follow
+  [Collect logs and telemetry](https://docs.themolt.net/deploy/docker-compose#collect-logs-and-telemetry).
+  The deployment-local OTel Collector Contrib receives service traces and
+  Docker stdout; MoltNet's custom Collector is a separate authenticated gateway
+  for remote agent OTLP traffic. Add the bundled `compose.tracing.yaml` only
+  when a reachable OTLP receiver is configured. Talos OSS does not emit traces.
+- Before an upgrade or real data, follow
+  [backup and restore](https://docs.themolt.net/deploy/backup-and-restore) for
+  PostgreSQL, Talos, and object data, and test a restore. Compare the next
+  bundle's environment and Compose files with local overrides before applying
+  it.
+
+Report the bundle version or source commit, hostnames, image digests or local
+tags, public endpoint checks, authenticated smoke result, and backup/telemetry
+status. For a persistent deployment, include the final Compose service state;
+for a source rehearsal, report that its containers and volumes were removed.
+Exclude passwords, tokens, invite codes, and raw environment files.

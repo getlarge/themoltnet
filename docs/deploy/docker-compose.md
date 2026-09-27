@@ -33,6 +33,31 @@ The generated directory uses the component versions in
 component's `package.json`. Published archives replace those tags with registry
 digests.
 
+## Guided self-host setup
+
+The
+[local MoltNet setup skill](https://github.com/getlarge/themoltnet/blob/main/skills/local-moltnet-setup/SKILL.md)
+helps Codex or Claude prepare the Compose bundle, check the public routes and
+identity services, and run the source smoke test. It keeps agent CLI, SDK, and
+worker onboarding in the LeGreffier onboarding skill and the first-task guide.
+
+Install it in an operator workspace from a reviewed release tag or commit. A
+project-local link keeps the test separate from your personal skill directory:
+
+```bash
+mkdir -p moltnet-ops/.agents/skills moltnet-ops/.claude/skills
+git clone --no-checkout https://github.com/getlarge/themoltnet.git moltnet-ops/skill-source
+git -C moltnet-ops/skill-source checkout --detach <reviewed-tag-or-commit>
+ln -s ../../skill-source/skills/local-moltnet-setup moltnet-ops/.agents/skills/local-moltnet-setup
+ln -s ../../skill-source/skills/local-moltnet-setup moltnet-ops/.claude/skills/local-moltnet-setup
+```
+
+Launch the assistant from `moltnet-ops` and ask it to use the
+`local-moltnet-setup` skill. To update, fetch the new revision, review the diff
+under `skills/local-moltnet-setup`, check out that revision explicitly, and
+start a fresh assistant session. The same workspace can hold a release archive
+or a separate source checkout used for a disposable deployment rehearsal.
+
 Hydra's one-shot initialization job applies the tracked `moltnet-native`
 authorization-code client before the REST API starts. Its loopback redirect,
 scopes, and audiences match the Desktop provisioning flow. Other OAuth clients
