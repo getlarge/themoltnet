@@ -266,6 +266,17 @@ export function TeamsView({
     setBusy(true);
     try {
       await actions.setTeamVisibility(identity, teamId, hidden);
+    } catch {
+      setFeedback({
+        title: 'Team setting could not be saved',
+        message: 'Check the local server and try again.',
+        error: true,
+      });
+      setBusy(false);
+      setRemoveTarget(null);
+      return;
+    }
+    try {
       retryCatalogue();
       await actions.refresh?.();
       setFeedback({
@@ -279,8 +290,9 @@ export function TeamsView({
       });
     } catch {
       setFeedback({
-        title: 'Team setting could not be saved',
-        message: 'Check the local server and try again.',
+        title: 'Team setting saved; refresh failed',
+        message:
+          'The local change took effect. Refresh the server status to see the latest team access.',
         error: true,
       });
     } finally {

@@ -12,6 +12,7 @@ import {
 import type { connect } from '@themoltnet/sdk/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { type CatalogueAgentPort, readCatalogueSources } from './catalogue.js';
 import { AgentServerStore } from './store.js';
 import {
   credentialBlocker,
@@ -148,15 +149,25 @@ describe('strict supervised credentials', () => {
       new AuthenticationError('Rejected', { statusCode: 401 }),
     );
 
-    await expect(f.verify('a')).rejects.toMatchObject({
-      code: 'AUTH_FAILED',
-    });
+    const port: CatalogueAgentPort = {
+      teamIds: ['a'],
+      lastVerified: () => undefined,
+      readTeam: async () => {
+        await f.verify('a');
+        throw new Error('Unexpected successful verification');
+      },
+      readProjects: async () => ({ items: [], truncated: false }),
+      readProject: async () => null,
+    };
+    const sources = await readCatalogueSources(port);
     expect(f.read).toHaveBeenCalledWith('agent-key/subject/a');
-    expect(
-      credentialBlocker(
-        new AuthenticationError('Rejected', { statusCode: 401 }),
-      ),
-    ).toMatchObject({ code: 'agent_key_rejected' });
+    expect(sources).toMatchObject([
+      {
+        teamId: 'a',
+        available: false,
+        blocker: { code: 'agent_key_rejected' },
+      },
+    ]);
   });
 
   it.each(['identity', 'wrong-team', 'wrong-subject', 'wrong-signing-key'])(

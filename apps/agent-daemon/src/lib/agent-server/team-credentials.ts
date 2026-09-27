@@ -11,7 +11,7 @@ import {
   loadAgentActivation,
   loadEnrollmentIdentity,
 } from './identity.js';
-import type { AgentServerStore } from './store.js';
+import type { AgentActivation, AgentServerStore } from './store.js';
 
 export const AGENT_SERVER_REQUIRED_SCOPES = [...DAEMON_MINIMUM_SCOPES];
 
@@ -37,6 +37,17 @@ export class TeamCredentialError extends Error {
   constructor(readonly blocker: CredentialBlocker) {
     super(blocker.message);
   }
+}
+export function assertTeamVisible(
+  activation: AgentActivation,
+  teamId: string,
+): void {
+  if (activation.hiddenTeamIds?.includes(teamId))
+    throw new TeamCredentialError({
+      code: 'agent_key_hidden',
+      message: 'This team was removed from this Agent Server.',
+      remedy: 'Restore it in Identity and teams before starting a new run.',
+    });
 }
 export function credentialBlocker(error: unknown): CredentialBlocker {
   if (error instanceof TeamCredentialError) return error.blocker;
@@ -166,12 +177,7 @@ export async function verifyTeamActivation(
   const activated = await loadAgentActivation(store, alias);
   const { config, activation } = activated;
   const reference = teamId ? config.agent_key_refs?.[teamId] : undefined;
-  if (teamId && activation.hiddenTeamIds?.includes(teamId))
-    throw new TeamCredentialError({
-      code: 'agent_key_hidden',
-      message: 'This team was removed from this Agent Server.',
-      remedy: 'Restore it in Identity and teams before starting a new run.',
-    });
+  if (teamId) assertTeamVisible(activation, teamId);
   if (!teamId || !reference)
     throw new TeamCredentialError({
       code: 'agent_key_missing',

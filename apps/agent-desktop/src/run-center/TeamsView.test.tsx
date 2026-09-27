@@ -123,6 +123,30 @@ describe('desktop team enrollment', () => {
     );
   });
 
+  it('reports a refresh failure after saving local team removal', async () => {
+    const { data, actions } = fixture();
+    actions.setTeamVisibility = vi.fn().mockResolvedValue(undefined);
+    actions.refresh = vi.fn().mockRejectedValue(new Error('Refresh failed'));
+    show(data, actions);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Remove from Desktop' }),
+    );
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Remove from Desktop' }).at(-1)!,
+    );
+    expect(
+      await screen.findByText('Team setting saved; refresh failed'),
+    ).toBeInTheDocument();
+    expect(actions.setTeamVisibility).toHaveBeenCalledWith(
+      'agent',
+      'team-a',
+      true,
+    );
+    expect(
+      screen.queryByText('Team setting could not be saved'),
+    ).not.toBeInTheDocument();
+  });
+
   it('restores a previously removed team', async () => {
     const { data, actions } = fixture();
     actions.setTeamVisibility = vi.fn().mockResolvedValue(undefined);
