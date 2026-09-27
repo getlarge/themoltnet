@@ -89,6 +89,7 @@ func TestSecretsGuardDeniesAlternateShellConstructs(t *testing.T) {
 		`MOLTNET_SECRET_ROOT=/tmp/exfil MOLTNET_SECRET_ROOT_WRITABLE=1 moltnet config credentials copy --kind identity-seed --to file`,
 		`env MOLTNET_SECRET_ROOT=/tmp/exfil moltnet config credentials copy --kind identity-seed --to os-keyring`,
 		`npx --yes @themoltnet/cli config credentials copy --kind github-app-private-key --to file`,
+		`MOLTNET_SECRET_ROOT=/tmp/exfil moltnet github key replace --private-key new.pem`,
 	}
 	for _, command := range commands {
 		if reason := evaluateSecretsShellWithContext(command, testSecretGuardPathContext(t)); reason == "" {
@@ -183,6 +184,7 @@ func TestSecretsGuardAllowsSafeOperations(t *testing.T) {
 		`moltnet agents keys create --team-id team --agent-id agent --name daemon --store --credentials .moltnet/agent/moltnet.json`,
 		`moltnet agents keys rotate key --team-id team --store --destination os-keyring`,
 		`moltnet config credentials copy --kind identity-seed --to os-keyring`,
+		`moltnet github key replace --private-key new.pem`,
 		`moltnet config credentials copy --kind agent-key --team team --to=os-keyring --credentials .moltnet/agent/moltnet.json`,
 		`GH_TOKEN=$(moltnet github token --credentials .moltnet/agent/moltnet.json) gh pr view 1`,
 	}

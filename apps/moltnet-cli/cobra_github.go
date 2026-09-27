@@ -93,6 +93,38 @@ requires proving shell variables, dirname, or conditionals.`,
 		},
 	}
 
-	githubCmd.AddCommand(setupCmd, credHelperCmd, tokenCmd, guardCmd, execCmd)
+	keyCmd := &cobra.Command{
+		Use:   "key",
+		Short: "Manage the stored GitHub App private key",
+	}
+	var replacePrivateKey string
+	replaceCmd := &cobra.Command{
+		Use:   "replace",
+		Short: "Store a new GitHub App private key in place of the current one",
+		Long: `Replace the GitHub App private key that github.private_key_ref resolves to.
+
+The new key is first checked against GitHub: it must sign a JWT that GitHub
+accepts for the configured App. Only then is it written, in place, to the
+provider entry the reference already names; moltnet.json is not changed.
+Cached installation tokens are cleared so the next command uses the new key.
+
+Rotate a key by generating a new one in the GitHub App settings, running this
+command, confirming 'moltnet github token' works, and then deleting the old
+key on GitHub. Deleting it there is what invalidates every other copy.`,
+		Example: `  moltnet github key replace --private-key ~/Downloads/my-app.2026-09-27.private-key.pem`,
+		Args:    cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath, _ := cmd.Flags().GetString("credentials")
+			return runGitHubKeyReplaceCmd(cmd.Context(), cmd.OutOrStdout(), cmd.ErrOrStderr(), githubKeyReplaceOpts{
+				credentialsPath: credPath,
+				privateKeyPath:  replacePrivateKey,
+			})
+		},
+	}
+	replaceCmd.Flags().StringVar(&replacePrivateKey, "private-key", "", "Path to the new PEM private key downloaded from the GitHub App settings")
+	_ = replaceCmd.MarkFlagRequired("private-key")
+	keyCmd.AddCommand(replaceCmd)
+
+	githubCmd.AddCommand(setupCmd, credHelperCmd, tokenCmd, guardCmd, execCmd, keyCmd)
 	return githubCmd
 }

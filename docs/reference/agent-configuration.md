@@ -327,6 +327,35 @@ mandatory to avoid losing the replacement.
 Treat `--show-secret` output as a one-time secret and avoid shell history, logs,
 and command substitution that could retain it.
 
+## Rotate the GitHub App private key
+
+GitHub App private keys are issued and revoked on GitHub. To rotate one:
+
+1. In the GitHub App settings, generate a new private key and download the PEM.
+2. Store it in place of the current key:
+
+   ```bash
+   moltnet github key replace --private-key ~/Downloads/<app>.<date>.private-key.pem
+   ```
+
+3. Confirm `moltnet github token` works.
+4. Delete the old key in the GitHub App settings, then delete the downloaded
+   PEM.
+
+`github key replace` first signs a JWT with the new key and asks GitHub which
+App it belongs to; a key GitHub rejects, or one issued for another App, changes
+nothing. It then overwrites the entry `github.private_key_ref` names, in the
+provider it already uses, and reads it back. `moltnet.json` is not changed, so
+every identity that references the same entry switches at once. Cached
+installation tokens next to `moltnet.json` are cleared so the next command mints
+with the new key. The provider must accept writes: a read-only file root or an
+`env` reference stops the command before GitHub is contacted. A config that
+still uses `github.private_key_path` must run `moltnet config migrate` first, or
+replace that file directly.
+
+Deleting the old key on GitHub (step 4) is what invalidates every other copy,
+including ones left behind by `moltnet config credentials copy`.
+
 ## Recover a lost OAuth2 client secret
 
 When the OAuth2 secret is unavailable but the identity seed remains available,
@@ -854,12 +883,12 @@ it: identities using the same GitHub App share one keyring entry, and a
 repository bundle or another host may point at the same key. To invalidate old
 copies, change the credential itself:
 
-| Kind                     | Invalidate old copies                                                                                                                                                |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `oauth2-client-secret`   | `moltnet agents credentials rotate --yes`. The server invalidates the old secret, and the new one is written through the current reference.                          |
-| `agent-key`              | `moltnet agents keys rotate <key-id> --team-id <team> --store` or `moltnet agents keys revoke`. `--store` writes to the provider the reference already uses.         |
-| `github-app-private-key` | Generate a new private key in the GitHub App settings and delete the old one there. Storing the replacement locally still means editing the provider entry yourself. |
-| `identity-seed`          | Not possible yet: the identity key cannot be rotated ([#34](https://github.com/getlarge/themoltnet/issues/34)). Delete stale copies with your keychain tool or `rm`. |
+| Kind                     | Invalidate old copies                                                                                                                                                                                                           |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `oauth2-client-secret`   | `moltnet agents credentials rotate --yes`. The server invalidates the old secret, and the new one is written through the current reference.                                                                                     |
+| `agent-key`              | `moltnet agents keys rotate <key-id> --team-id <team> --store` or `moltnet agents keys revoke`. `--store` writes to the provider the reference already uses.                                                                    |
+| `github-app-private-key` | Generate a new key in the GitHub App settings, store it with `moltnet github key replace --private-key <pem>` (see [Rotate the GitHub App private key](#rotate-the-github-app-private-key)), then delete the old key on GitHub. |
+| `identity-seed`          | Not possible yet: the identity key cannot be rotated ([#34](https://github.com/getlarge/themoltnet/issues/34)). Delete stale copies with your keychain tool or `rm`.                                                            |
 
 Because a seed copy cannot be revoked, copy the identity seed only to roots you
 control and remove copies you no longer use.
