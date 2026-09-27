@@ -20,14 +20,38 @@ import (
 // secrets guard can treat the invocation as non-revealing. Failures leave a
 // protected recovery artifact instead.
 type agentKeyStoreOpts struct {
-	enabled         bool
-	destination     string
+	enabled     bool
+	destination string
+	// inheritSlot, set when no destination was requested, stores into the
+	// provider the slot already references so a rotation never silently moves
+	// a credential between providers. Without a reference it falls back to
+	// the default destination.
+	inheritSlot     *agentKeySlot
 	secretProviders *SecretProviderRegistry
 	// writeRecovery persists a recovery artifact and returns its path. Tests
 	// point it at a temp dir; the default is the user cache recovery dir.
 	writeRecovery   func(agentKeyRecovery) (string, error)
 	removeRecovery  func(string) error
 	replaceRecovery func(string, []byte) error
+}
+
+// agentKeySlot names the agent_key_ref (identity-scoped) or agent_key_refs
+// entry (team-bound) a key lifecycle command writes.
+type agentKeySlot struct {
+	teamID         string
+	identityScoped bool
+}
+
+func (s agentKeySlot) reference(creds *CredentialsFile) *SecretReference {
+	switch {
+	case s.teamID != "":
+		if ref, ok := creds.AgentKeyRefs[s.teamID]; ok {
+			return &ref
+		}
+	case s.identityScoped:
+		return creds.AgentKeyRef
+	}
+	return nil
 }
 
 // agentKeyStoreTarget is resolved before any network call so a misconfigured
@@ -94,9 +118,13 @@ func prepareAgentKeyStore(opts agentKeyStoreOpts, credPath string) (*agentKeySto
 	if providers == nil {
 		providers = NewSecretProviderRegistry()
 	}
-	destination, err := resolveSecretDestination(providers, opts.destination)
-	if err != nil {
-		return nil, err
+	inherit := strings.TrimSpace(opts.destination) == "" && opts.inheritSlot != nil
+	var destination string
+	if !inherit {
+		var err error
+		if destination, err = resolveSecretDestination(providers, opts.destination); err != nil {
+			return nil, err
+		}
 	}
 	credentialsPath, err := resolveCredentialsPath(credPath)
 	if err != nil {
@@ -109,6 +137,15 @@ func prepareAgentKeyStore(opts agentKeyStoreOpts, credPath string) (*agentKeySto
 	creds, _, err := parseCredentialsDocument(data)
 	if err != nil {
 		return nil, err
+	}
+	if inherit {
+		requested := ""
+		if ref := opts.inheritSlot.reference(creds); ref != nil {
+			requested = ref.Provider
+		}
+		if destination, err = resolveSecretDestination(providers, requested); err != nil {
+			return nil, err
+		}
 	}
 	subjectID, ok := creds.CanonicalSubject()
 	if !ok {

@@ -983,6 +983,37 @@ func TestAgentsCredentialsRotateUpdatesReferencedSecret(t *testing.T) {
 	}
 }
 
+func TestAgentsCredentialsRotateRejectsReadOnlyReferenceBeforeNetwork(t *testing.T) {
+	var rotateCalls atomic.Int32
+	server := newCredentialsRotationServer(t, &rotateCalls, "client-id")
+	defer server.Close()
+	client, err := newBearerClient(
+		server.URL,
+		func(_ context.Context) (string, error) { return "access-token", nil },
+		server.Client(),
+	)
+	if err != nil {
+		t.Fatalf("create client: %v", err)
+	}
+	registry := NewSecretProviderRegistry()
+	registry.Register(fileProviderName, FileSecretProvider{Root: t.TempDir()})
+	for _, ref := range []SecretReference{
+		{Provider: fileProviderName, Key: OAuth2SecretKey("subject-id", "client-id")},
+		{Provider: environmentProviderName, Key: environmentSecretKey},
+	} {
+		err := runAgentsCredentialsRotateWithClient(
+			context.Background(), client, "/safe/path/moltnet.json", nil, "client-id",
+			agentsCredentialsRotateOpts{out: &bytes.Buffer{}, secretReference: &ref, secretProviders: registry},
+		)
+		if err == nil || !strings.Contains(err.Error(), "rotation was not attempted") {
+			t.Fatalf("%s: error = %v, want a pre-rotation failure", ref.Provider, err)
+		}
+	}
+	if rotateCalls.Load() != 0 {
+		t.Fatalf("rotate calls = %d, want 0", rotateCalls.Load())
+	}
+}
+
 func TestAgentsCredentialsRotateStdoutFailureWritesProtectedRecoveryFile(
 	t *testing.T,
 ) {

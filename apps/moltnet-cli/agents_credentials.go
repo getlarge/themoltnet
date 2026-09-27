@@ -486,6 +486,14 @@ func runAgentsCredentialsRotateWithClient(
 	expectedClientID string,
 	opts agentsCredentialsRotateOpts,
 ) error {
+	// The server invalidates the old secret immediately, so a reference whose
+	// provider cannot take the replacement must fail before rotating.
+	if !opts.noUpdate && opts.secretReference != nil && !opts.secretProviders.CanWrite(opts.secretReference.Provider) {
+		return fmt.Errorf(
+			"agents credentials rotate: the %q provider holding the OAuth2 secret is not writable; rotation was not attempted (make it writable, or use --no-update --show-secret)",
+			opts.secretReference.Provider,
+		)
+	}
 	res, err := client.RotateClientSecret(ctx)
 	if err != nil {
 		return fmt.Errorf(

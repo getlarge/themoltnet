@@ -268,8 +268,10 @@ moltnet agents keys rotate <key-id> --team-id <team-uuid> | jq -r '.secret'
 # Create or rotate without ever printing the secret: --store writes it to a
 # secret provider under agent-key/<subject_id>/<team_id> and sets that team's
 # agent_key_refs entry in the
-# resolved moltnet.json. --destination picks the provider (default os-keyring;
-# file needs MOLTNET_SECRET_ROOT and MOLTNET_SECRET_ROOT_WRITABLE=1).
+# resolved moltnet.json. --destination picks the provider (create defaults to
+# os-keyring; rotate defaults to the provider the key's reference already uses,
+# else os-keyring; file needs MOLTNET_SECRET_ROOT and
+# MOLTNET_SECRET_ROOT_WRITABLE=1).
 moltnet agents keys create \
   --team-id <team-uuid> --agent-id <agent-uuid> --name production-daemon --store
 moltnet agents keys rotate <key-id> --team-id <team-uuid> --store --destination file
