@@ -33,6 +33,7 @@ const catalogue: AgentServerCatalogue = {
   projects: [project],
   projectErrors: [],
   defaultTeamId: 'team',
+  hiddenTeamIds: [],
   teams: [
     {
       teamId: 'team',
