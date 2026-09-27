@@ -513,6 +513,7 @@ describe('Hook routes', () => {
     });
 
     it('rejects an API audience on the identity-only OIDC client', async () => {
+      const warn = vi.spyOn(app.log, 'warn');
       vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
         client_id: 'tailscale-login',
         metadata: {},
@@ -541,6 +542,17 @@ describe('Hook routes', () => {
         },
       });
       expect(response.statusCode).toBe(403);
+      expect(warn).toHaveBeenCalledWith(
+        {
+          clientKind: 'tailscale-login',
+          rejectionReasons: expect.arrayContaining(['audience']),
+        },
+        'Identity-only token grant rejected',
+      );
+      expect(JSON.stringify(warn.mock.calls)).not.toContain(
+        'person@example.com',
+      );
+      warn.mockRestore();
     });
 
     it('rejects an identity-only token without consent binding', async () => {

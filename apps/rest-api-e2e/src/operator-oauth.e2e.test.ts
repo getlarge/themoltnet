@@ -129,6 +129,9 @@ async function codeFromRedirects(
 describe('operator OAuth authorization code E2E', { timeout: 120_000 }, () => {
   let harness: TestHarness;
   let human: TestHuman;
+  let tailscaleClientConfigured = false;
+  let verifiedAddressIndex: number | undefined;
+  let originalEmailVerified: boolean | undefined;
 
   beforeAll(async () => {
     harness = await createTestHarness();
@@ -193,10 +196,35 @@ describe('operator OAuth authorization code E2E', { timeout: 120_000 }, () => {
         oAuth2Client: tailscaleClient,
       });
     }
+    tailscaleClientConfigured = true;
   });
 
   afterAll(async () => {
-    await harness?.teardown();
+    try {
+      if (
+        verifiedAddressIndex !== undefined &&
+        originalEmailVerified !== undefined
+      )
+        await harness.identityApi.patchIdentity({
+          id: human.identityId,
+          jsonPatch: [
+            {
+              op: 'replace',
+              path: `/verifiable_addresses/${verifiedAddressIndex}/verified`,
+              value: originalEmailVerified,
+            },
+          ],
+        });
+    } finally {
+      try {
+        if (tailscaleClientConfigured)
+          await harness.hydraAdminOAuth2.deleteOAuth2Client({
+            id: TAILSCALE_OIDC.clientId,
+          });
+      } finally {
+        await harness?.teardown();
+      }
+    }
   });
 
   async function exchangeDirect(
@@ -364,12 +392,14 @@ describe('operator OAuth authorization code E2E', { timeout: 120_000 }, () => {
       (item) => item.value.toLowerCase() === human.email.toLowerCase(),
     );
     expect(address).toBeDefined();
+    verifiedAddressIndex = identity.verifiable_addresses!.indexOf(address!);
+    originalEmailVerified = address!.verified;
     await harness.identityApi.patchIdentity({
       id: human.identityId,
       jsonPatch: [
         {
           op: 'replace',
-          path: `/verifiable_addresses/${identity.verifiable_addresses!.indexOf(address!)}/verified`,
+          path: `/verifiable_addresses/${verifiedAddressIndex}/verified`,
           value: true,
         },
       ],

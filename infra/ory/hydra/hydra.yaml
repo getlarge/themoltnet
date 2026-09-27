@@ -89,6 +89,7 @@ webfinger:
     # inheriting whatever dynamic_client_registration.default_scope handed it.
     #
     # Mirrors MCP_CLIENT_SCOPES plus the dedicated OIDC identity scopes.
+    # Discovery is provider-wide; DCR consent still refuses profile and email.
     # `offline`, `offline_access` and `openid` are always included by Hydra.
     # Privileged scopes stay out; the DCR registration default is unchanged.
     supported_scope:

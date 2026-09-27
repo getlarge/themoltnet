@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { isDeepStrictEqual } from 'node:util';
 
 const endpoint = 'http://hydra:4445/admin/clients';
 const timeoutMs = 10_000;
@@ -24,11 +25,11 @@ function verifyClient(actual, expected) {
   for (const [key, value] of Object.entries(expected)) {
     const current = actual[key];
     const matches = Array.isArray(value)
-      ? JSON.stringify([...(current ?? [])].sort()) ===
-        JSON.stringify([...value].sort())
+      ? Array.isArray(current) &&
+        isDeepStrictEqual([...current].sort(), [...value].sort())
       : key === 'authorization_code_grant_access_token_lifespan'
         ? ['5m', '5m0s', '300s'].includes(current)
-        : current === value;
+        : isDeepStrictEqual(current, value);
     if (!matches)
       throw new Error(
         `Hydra ${expected.client_id} client policy differs: ${key}`,

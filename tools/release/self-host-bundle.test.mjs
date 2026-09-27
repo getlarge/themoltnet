@@ -15,7 +15,7 @@ import process from 'node:process';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { provisionClients } from '../../deploy/self-host/config/provision-native-client.mjs';
+import { provisionClients } from '../../deploy/self-host/config/provision-oauth-clients.mjs';
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -44,6 +44,28 @@ const readClient = (file) =>
   JSON.stringify(
     file.includes('tailscale-login') ? tailscaleClient : nativeClient,
   );
+
+test('self-host provisioning updates an existing native client on restart', async () => {
+  const calls = [];
+  await provisionClients({
+    secret: '',
+    readFile: readClient,
+    output: () => {},
+    fetchClient: async (url, options) => {
+      calls.push({ url, options });
+      if (url.endsWith('/moltnet-native') && !options.method)
+        return response(200, nativeClient);
+      if (url.endsWith('/moltnet-native') && options.method === 'PUT')
+        return response(200, nativeClient);
+      throw new Error(`Unexpected Hydra request: ${url}`);
+    },
+  });
+  assert.deepEqual(
+    calls.map(({ options }) => options.method ?? 'GET'),
+    ['GET', 'PUT'],
+  );
+  assert.deepEqual(JSON.parse(calls[1].options.body), nativeClient);
+});
 
 test('self-host provisioning creates the confidential client without printing its secret', async () => {
   const calls = [];
@@ -109,6 +131,25 @@ test('self-host provisioning verifies an existing client without replacing its s
     output.join(''),
     /Verified existing tailscale-login \(secret unchanged\)/,
   );
+});
+
+test('self-host provisioning compares object policy fields structurally', async () => {
+  const expected = { ...tailscaleClient, metadata: { owner: 'test' } };
+  await provisionClients({
+    secret: 'test-only-confidential-secret',
+    readFile: (file) =>
+      JSON.stringify(
+        file.includes('tailscale-login') ? expected : nativeClient,
+      ),
+    output: () => {},
+    fetchClient: async (url, options) => {
+      if (url.endsWith('/moltnet-native')) return response(404);
+      if (url.endsWith('/tailscale-login'))
+        return response(200, { ...expected, metadata: { owner: 'test' } });
+      if (options.method === 'POST') return response(201, nativeClient);
+      throw new Error(`Unexpected Hydra request: ${url}`);
+    },
+  });
 });
 
 test('self-host provisioning fails with the drifted field name', async () => {
@@ -198,7 +239,7 @@ test('builds an installable source archive with current component versions', () 
     const composeDir = path.join(output, 'deploy/self-host');
     assert.equal(existsSync(path.join(composeDir, '.env')), false);
     assert.equal(
-      existsSync(path.join(composeDir, 'config/provision-native-client.mjs')),
+      existsSync(path.join(composeDir, 'config/provision-oauth-clients.mjs')),
       true,
     );
     assert.equal(

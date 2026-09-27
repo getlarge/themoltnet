@@ -216,6 +216,8 @@ export async function oauth2ApprovalRoutes(
       /^[A-Za-z0-9_-]{43}$/.test(params.get('code_challenge') ?? '');
     const hasNoPkce =
       !params.has('code_challenge_method') && !params.has('code_challenge');
+    // Tailscale custom OIDC does not support PKCE. Keep S256 mandatory for
+    // every other authorization-code client despite the Hydra project setting.
     if (tailscaleLogin ? !hasNoPkce && !hasS256Pkce : !hasS256Pkce)
       throw createProblem(
         'forbidden',
@@ -262,11 +264,13 @@ export async function oauth2ApprovalRoutes(
         );
         throw createProblem(
           'forbidden',
-          rejectionReasons.includes('email_unverified') && human.email
-            ? 'Verify your email address before signing in with Tailscale'
-            : rejectionReasons.includes('username_missing')
-              ? 'Set a username on your MoltNet account before signing in with Tailscale'
-              : 'The requested client, scope, and audience combination is not allowed',
+          rejectionReasons.includes('email_missing')
+            ? 'Add an email address to your MoltNet account before signing in with Tailscale'
+            : rejectionReasons.includes('email_unverified')
+              ? 'Verify your email address before signing in with Tailscale'
+              : rejectionReasons.includes('username_missing')
+                ? 'Set a username on your MoltNet account before signing in with Tailscale'
+                : 'The requested client, scope, and audience combination is not allowed',
         );
       }
       return {
@@ -449,7 +453,6 @@ export async function oauth2ApprovalRoutes(
                     id_token: {
                       email: result.email,
                       email_verified: result.human.emailVerified === true,
-                      name: result.preferredUsername,
                       preferred_username: result.preferredUsername,
                     },
                   },

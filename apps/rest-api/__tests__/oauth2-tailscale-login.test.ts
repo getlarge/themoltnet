@@ -126,7 +126,6 @@ describe('Tailscale OIDC consent', () => {
           id_token: {
             email: 'person@example.com',
             email_verified: true,
-            name: 'person',
             preferred_username: 'person',
           },
         },
@@ -204,6 +203,24 @@ describe('Tailscale OIDC consent', () => {
 
     expect(response.statusCode).toBe(403);
     expect(response.json().detail).toContain('Set a username');
+  });
+
+  it('explains a missing email and logs rejection codes without identity claims', async () => {
+    const app = await setup({ identity: { ...human, email: undefined } });
+    const warn = vi.spyOn(app.log, 'warn');
+
+    const response = await decide(app, 'allow');
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().detail).toContain('Add an email address');
+    expect(warn).toHaveBeenCalledWith(
+      {
+        clientId: 'tailscale-login',
+        rejectionReasons: expect.arrayContaining(['email_missing']),
+      },
+      'Identity-only consent rejected',
+    );
+    expect(JSON.stringify(warn.mock.calls)).not.toContain('person@example.com');
   });
 
   it('keeps S256 PKCE required for other clients', async () => {
