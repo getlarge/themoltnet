@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.64.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.63.2...rest-api-v0.64.0) (2026-09-27)
+
+
+### Features
+
+* **auth:** support dedicated Tailscale OIDC consent ([e140cb6](https://github.com/getlarge/themoltnet/commit/e140cb6c6638a6cbdf83377ff68ce5fd3e2587c3))
+* **auth:** support dedicated Tailscale OIDC consent ([ea43557](https://github.com/getlarge/themoltnet/commit/ea43557f7f7f4216bdfcb9b766a320ede34a8356))
+* **deploy:** add layered self-hosting model ([5cdad51](https://github.com/getlarge/themoltnet/commit/5cdad51133c80c202aa01f58d4ea50a617683053))
+
+
+### Bug Fixes
+
+* **auth:** address OIDC second-round review ([38bafec](https://github.com/getlarge/themoltnet/commit/38bafec4fb11a91fa24adc849e41d81452fbfe0a))
+* **auth:** finish OIDC consent review coverage ([c3cb37b](https://github.com/getlarge/themoltnet/commit/c3cb37bc5d3457126503f1c44176e4412f3fc7f4))
+* **auth:** preserve verified OIDC claims through token exchange ([6cf97d7](https://github.com/getlarge/themoltnet/commit/6cf97d7c53fc4c469b1f01fc430414a00ba9a6f9))
+* **rest-api:** keep agent identity keys immutable in Kratos settings ([3dd62d8](https://github.com/getlarge/themoltnet/commit/3dd62d8926f14c197621876e0f6f5964e30d10df))
+* **rest-api:** keep agent identity keys immutable in Kratos settings ([40cd114](https://github.com/getlarge/themoltnet/commit/40cd11415debc865d4fbf7e8f39dda0b50934928))
+
 ## [0.63.2](https://github.com/getlarge/themoltnet/compare/rest-api-v0.63.1...rest-api-v0.63.2) (2026-09-26)
 
 

@@ -1,5 +1,29 @@
 # Changelog
 
+## [3.8.0](https://github.com/getlarge/themoltnet/compare/cli-v3.7.0...cli-v3.8.0) (2026-09-27)
+
+
+### Features
+
+* **cli:** add config credentials copy and move ([0ba67f7](https://github.com/getlarge/themoltnet/commit/0ba67f7be7f3e2a88fd1c62b6b247e5127f98257)), closes [#2050](https://github.com/getlarge/themoltnet/issues/2050)
+* **cli:** add github key replace for App key rotation ([f5a1aa7](https://github.com/getlarge/themoltnet/commit/f5a1aa7e1d901095a6eaf6aef865c9160dd56861))
+* **cli:** github key replace, and a GitHub and Git integrations page ([f83bfc8](https://github.com/getlarge/themoltnet/commit/f83bfc8b554c6fdbab627a9c44d6262505f1a3ee))
+* **cli:** guard config credentials copy/move destinations ([fd13c81](https://github.com/getlarge/themoltnet/commit/fd13c812d30140d765e37522820fd2fb04cca348))
+
+
+### Bug Fixes
+
+* **cli:** correct github exec token wording and keep docs anchors ([2ddb3ce](https://github.com/getlarge/themoltnet/commit/2ddb3cea01efd148c3e67911bf632d9a94010668))
+* **cli:** describe the destination only as far as a read-back proves ([25058eb](https://github.com/getlarge/themoltnet/commit/25058ebcea1091b23112629ff1376535c6301d50))
+* **cli:** keep adopted copies and follow moved slots on rotation ([fc9a794](https://github.com/getlarge/themoltnet/commit/fc9a7946dfc42f03cd0bf05d287f3c0aa80202e3))
+* **cli:** make credential transfer copy-only with exact values ([80ab59b](https://github.com/getlarge/themoltnet/commit/80ab59b9d770adce4a507eda1d5b3053b8e79b0d))
+* **cli:** recheck the GitHub key reference before replacing it ([21fb757](https://github.com/getlarge/themoltnet/commit/21fb757539fe52407209f60e7cef3e9898a3267b))
+* **cli:** reject replacing the GitHub key with itself ([6224e07](https://github.com/getlarge/themoltnet/commit/6224e07da97305cb73cab3fd48c7f83a3c456535))
+* **cli:** replace the GitHub key without rewriting moltnet.json ([4b902ea](https://github.com/getlarge/themoltnet/commit/4b902ea0092a450a65d34123f366bfad2c439dfd))
+* **cli:** rotate credentials into the provider their reference uses ([a9453c0](https://github.com/getlarge/themoltnet/commit/a9453c0dfe1f07fe8dc0b025d2c424d0def887bf))
+* **cli:** serialize OAuth2 rotation with credential copies ([24362b9](https://github.com/getlarge/themoltnet/commit/24362b94634b65200e42ea0ac3f0b89cfa4fb536))
+* **cli:** store rotations without rewriting and report partial copies ([0f62f82](https://github.com/getlarge/themoltnet/commit/0f62f822eaa57dfd644f25970b63f960613ee4d3))
+
 ## [3.7.0](https://github.com/getlarge/themoltnet/compare/cli-v3.6.0...cli-v3.7.0) (2026-09-26)
 
 
