@@ -16,7 +16,7 @@ import {
   ProblemDetailsSchema,
 } from '@moltnet/models';
 import type { FastifyInstance } from 'fastify';
-import { Type } from 'typebox';
+import { type Static, Type } from 'typebox';
 
 import { PRINCIPAL_AUTH_SECURITY } from '../openapi-security.js';
 import { createProblem } from '../problems/index.js';
@@ -34,9 +34,12 @@ export async function identityRotationRoutes(fastify: FastifyInstance) {
     '/auth/rotate-identity-key',
     {
       config: {
+        // No scope is required: the dual-signed proof already demands the
+        // current private key. A team-bound credential still cannot change
+        // the agent's identity.
         auth: {
           credentialBindingScope: 'identity',
-          requiredScopes: ['key:manage'],
+          requiredScopes: [],
         },
       },
       schema: {
@@ -45,7 +48,9 @@ export async function identityRotationRoutes(fastify: FastifyInstance) {
         description:
           "Replace the agent's Ed25519 identity key. Both the current and the new key sign the rotation message `moltnet:identity:rotate:v1\\n<agentId>\\n<currentPublicKey>\\n<newPublicKey>\\n<issuedAt>`. The old key stays verifiable for signatures made while it was current, and its fingerprint still resolves to the agent. Access tokens authenticate the agent, not its key: JWT access tokens issued before the rotation stay valid until they expire (opaque tokens are revoked), and every key the API reports is read from the current agent record, never from token claims.",
         security: PRINCIPAL_AUTH_SECURITY,
-        body: Type.Ref(RotateIdentityKeyRequestSchema.$id),
+        body: Type.Unsafe<Static<typeof RotateIdentityKeyRequestSchema>>(
+          Type.Ref(RotateIdentityKeyRequestSchema.$id),
+        ),
         response: {
           200: Type.Ref(RotateIdentityKeyResponseSchema.$id),
           400: Type.Ref(ProblemDetailsSchema.$id),
@@ -66,12 +71,7 @@ export async function identityRotationRoutes(fastify: FastifyInstance) {
           'Only agents can rotate identity keys',
         );
       }
-      const body = request.body as {
-        newPublicKey: string;
-        issuedAt: string;
-        previousKeySignature: string;
-        newKeySignature: string;
-      };
+      const body = request.body;
 
       // Token claims can lag a rotation; the database holds the current key.
       const agent = await fastify.agentRepository.findById(authContext.agentId);
@@ -79,28 +79,17 @@ export async function identityRotationRoutes(fastify: FastifyInstance) {
         throw createProblem('forbidden', 'Agent not found');
       }
 
-      let newKeyBytes: Uint8Array;
-      try {
-        newKeyBytes = fastify.cryptoService.parsePublicKey(body.newPublicKey);
-      } catch {
-        throw createProblem(
-          'validation-failed',
-          'newPublicKey must use format "ed25519:<base64>"',
-        );
-      }
-      if (newKeyBytes.length !== 32) {
-        throw createProblem(
-          'validation-failed',
-          `newPublicKey must be exactly 32 bytes (got ${newKeyBytes.length}).`,
-        );
-      }
+      // The request schema guarantees a 32-byte key and date-time issuedAt;
+      // only the clock window depends on the server and is checked here.
+      const newKeyBytes = fastify.cryptoService.parsePublicKey(
+        body.newPublicKey,
+      );
       const newFingerprint =
         fastify.cryptoService.generateFingerprint(newKeyBytes);
 
-      const issuedAt = Date.parse(body.issuedAt);
       if (
-        Number.isNaN(issuedAt) ||
-        Math.abs(Date.now() - issuedAt) > IDENTITY_KEY_ROTATION_MAX_SKEW_MS
+        Math.abs(Date.now() - Date.parse(body.issuedAt)) >
+        IDENTITY_KEY_ROTATION_MAX_SKEW_MS
       ) {
         throw createProblem(
           'validation-failed',

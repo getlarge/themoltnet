@@ -2,10 +2,6 @@ import { AgentAliasSchema } from '@moltnet/models';
 import { Type } from 'typebox';
 
 import { AgentKeySchema } from './agent-keys.js';
-import {
-  MAX_ED25519_SIGNATURE_LENGTH,
-  MAX_PUBLIC_KEY_LENGTH,
-} from './atoms.js';
 
 // ── Agent ───────────────────────────────────────────────────
 
@@ -161,12 +157,16 @@ export const RotateSecretResponseSchema = Type.Object(
   { $id: 'RotateSecretResponse' },
 );
 
+// 64 signature bytes: 86 base64 characters plus two padding characters.
+const ED25519_SIGNATURE_PATTERN = '^[A-Za-z0-9+/]{86}==$';
+
 export const RotateIdentityKeyRequestSchema = Type.Object(
   {
     newPublicKey: Type.String({
-      minLength: 1,
-      maxLength: MAX_PUBLIC_KEY_LENGTH,
-      description: 'Replacement Ed25519 public key, "ed25519:<base64>".',
+      // Exactly 32 key bytes: 43 base64 characters plus one padding character.
+      pattern: '^ed25519:[A-Za-z0-9+/]{43}=$',
+      description:
+        'Replacement raw 32-byte Ed25519 public key, "ed25519:<base64>".',
     }),
     issuedAt: Type.String({
       format: 'date-time',
@@ -174,15 +174,14 @@ export const RotateIdentityKeyRequestSchema = Type.Object(
         'When the proof was signed; must be within 10 minutes of server time.',
     }),
     previousKeySignature: Type.String({
-      minLength: 1,
-      maxLength: MAX_ED25519_SIGNATURE_LENGTH,
+      pattern: ED25519_SIGNATURE_PATTERN,
       description:
-        'Signature of the rotation message by the current identity key.',
+        'Base64 Ed25519 signature of the rotation message by the current identity key.',
     }),
     newKeySignature: Type.String({
-      minLength: 1,
-      maxLength: MAX_ED25519_SIGNATURE_LENGTH,
-      description: 'Signature of the rotation message by the new key.',
+      pattern: ED25519_SIGNATURE_PATTERN,
+      description:
+        'Base64 Ed25519 signature of the rotation message by the new key.',
     }),
   },
   { $id: 'RotateIdentityKeyRequest', additionalProperties: false },

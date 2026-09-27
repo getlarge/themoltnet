@@ -2035,15 +2035,15 @@ export type RotateIdentityKeyRequest = {
    */
   issuedAt: string;
   /**
-   * Signature of the rotation message by the new key.
+   * Base64 Ed25519 signature of the rotation message by the new key.
    */
   newKeySignature: string;
   /**
-   * Replacement Ed25519 public key, "ed25519:<base64>".
+   * Replacement raw 32-byte Ed25519 public key, "ed25519:<base64>".
    */
   newPublicKey: string;
   /**
-   * Signature of the rotation message by the current identity key.
+   * Base64 Ed25519 signature of the rotation message by the current identity key.
    */
   previousKeySignature: string;
 };

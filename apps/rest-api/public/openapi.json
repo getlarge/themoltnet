@@ -8363,21 +8363,18 @@
             "type": "string"
           },
           "newKeySignature": {
-            "description": "Signature of the rotation message by the new key.",
-            "maxLength": 88,
-            "minLength": 1,
+            "description": "Base64 Ed25519 signature of the rotation message by the new key.",
+            "pattern": "^[A-Za-z0-9+/]{86}==$",
             "type": "string"
           },
           "newPublicKey": {
-            "description": "Replacement Ed25519 public key, \"ed25519:<base64>\".",
-            "maxLength": 60,
-            "minLength": 1,
+            "description": "Replacement raw 32-byte Ed25519 public key, \"ed25519:<base64>\".",
+            "pattern": "^ed25519:[A-Za-z0-9+/]{43}=$",
             "type": "string"
           },
           "previousKeySignature": {
-            "description": "Signature of the rotation message by the current identity key.",
-            "maxLength": 88,
-            "minLength": 1,
+            "description": "Base64 Ed25519 signature of the rotation message by the current identity key.",
+            "pattern": "^[A-Za-z0-9+/]{86}==$",
             "type": "string"
           }
         },

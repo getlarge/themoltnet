@@ -26915,13 +26915,13 @@ func (s *RotateIdentityKeyRequest) Validate() error {
 	var failures []validate.FieldError
 	if err := func() error {
 		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     88,
-			MaxLengthSet:  true,
+			MinLength:     0,
+			MinLengthSet:  false,
+			MaxLength:     0,
+			MaxLengthSet:  false,
 			Email:         false,
 			Hostname:      false,
-			Regex:         nil,
+			Regex:         regexMap["^[A-Za-z0-9+/]{86}==$"],
 			MinNumeric:    0,
 			MinNumericSet: false,
 			MaxNumeric:    0,
@@ -26938,13 +26938,13 @@ func (s *RotateIdentityKeyRequest) Validate() error {
 	}
 	if err := func() error {
 		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     60,
-			MaxLengthSet:  true,
+			MinLength:     0,
+			MinLengthSet:  false,
+			MaxLength:     0,
+			MaxLengthSet:  false,
 			Email:         false,
 			Hostname:      false,
-			Regex:         nil,
+			Regex:         regexMap["^ed25519:[A-Za-z0-9+/]{43}=$"],
 			MinNumeric:    0,
 			MinNumericSet: false,
 			MaxNumeric:    0,
@@ -26961,13 +26961,13 @@ func (s *RotateIdentityKeyRequest) Validate() error {
 	}
 	if err := func() error {
 		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     88,
-			MaxLengthSet:  true,
+			MinLength:     0,
+			MinLengthSet:  false,
+			MaxLength:     0,
+			MaxLengthSet:  false,
 			Email:         false,
 			Hostname:      false,
-			Regex:         nil,
+			Regex:         regexMap["^[A-Za-z0-9+/]{86}==$"],
 			MinNumeric:    0,
 			MinNumericSet: false,
 			MaxNumeric:    0,

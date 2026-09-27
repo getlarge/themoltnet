@@ -220,6 +220,20 @@ describe('POST /auth/rotate-identity-key', () => {
     expect(mockStartWorkflow).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['a short signature', { previousKeySignature: 'c2hvcnQ=' }],
+    ['a non-base64 signature', { newKeySignature: '!'.repeat(88) }],
+    ['a non-date issuedAt', { issuedAt: 'yesterday' }],
+  ])('rejects %s at the request schema', async (_case, change) => {
+    const { body } = await proofFor();
+
+    const response = await rotate({ ...body, ...change });
+
+    expect(response.statusCode).toBe(400);
+    expect(mocks.agentRepository.findById).not.toHaveBeenCalled();
+    expect(mockStartWorkflow).not.toHaveBeenCalled();
+  });
+
   it('rejects a new key that is already or was previously registered', async () => {
     const { body } = await proofFor();
     mocks.agentIdentityKeyRepository.findByFingerprint.mockResolvedValue({

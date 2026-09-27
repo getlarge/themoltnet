@@ -48650,11 +48650,11 @@ func (*RotateIdentityKeyInternalServerError) rotateIdentityKeyRes() {}
 type RotateIdentityKeyRequest struct {
 	// When the proof was signed; must be within 10 minutes of server time.
 	IssuedAt time.Time `json:"issuedAt"`
-	// Signature of the rotation message by the new key.
+	// Base64 Ed25519 signature of the rotation message by the new key.
 	NewKeySignature string `json:"newKeySignature"`
-	// Replacement Ed25519 public key, "ed25519:<base64>".
+	// Replacement raw 32-byte Ed25519 public key, "ed25519:<base64>".
 	NewPublicKey string `json:"newPublicKey"`
-	// Signature of the rotation message by the current identity key.
+	// Base64 Ed25519 signature of the rotation message by the current identity key.
 	PreviousKeySignature string `json:"previousKeySignature"`
 }
 
