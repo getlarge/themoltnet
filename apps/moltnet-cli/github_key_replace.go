@@ -98,6 +98,14 @@ func runGitHubKeyReplaceCmd(ctx context.Context, out, errOut io.Writer, opts git
 	if err != nil {
 		return fmt.Errorf("--private-key is not an RSA private key PEM")
 	}
+	// Replacing the key with itself would "succeed" and then tell the operator
+	// to delete the old key on GitHub, revoking the key still in use. Compare
+	// the RSA keys, not the PEM text, so a re-encoded copy is caught too.
+	if current, err := providers.Resolve(*ref); err == nil {
+		if currentKey, err := parseRSAPrivateKey([]byte(current)); err == nil && currentKey.PublicKey.Equal(&privKey.PublicKey) {
+			return fmt.Errorf("--private-key is the key already stored at %s:%s; generate a new private key in the GitHub App settings first. Nothing was changed", ref.Provider, ref.Key)
+		}
+	}
 	jwt, err := createAppJWT(appID, privKey)
 	if err != nil {
 		return err
@@ -130,9 +138,14 @@ func runGitHubKeyReplaceCmd(ctx context.Context, out, errOut io.Writer, opts git
 			return fmt.Errorf("store the new GitHub App key: %w; the entry at %s:%s could not be read back, so check it before deleting the old key on GitHub", err, ref.Provider, ref.Key)
 		case stored == newPEM:
 			// The key did change: drop cached tokens so the check below
-			// mints with it rather than reusing one from the old key.
-			if cacheDir, dirErr := credentialsDir(credentialsPath); dirErr == nil {
-				_ = resetGitHubTokenCache(cacheDir)
+			// mints with it rather than reusing one from the old key. If
+			// that fails, a cached token could pass the check, so say so.
+			cacheDir, cacheErr := credentialsDir(credentialsPath)
+			if cacheErr == nil {
+				cacheErr = resetGitHubTokenCache(cacheDir)
+			}
+			if cacheErr != nil {
+				return fmt.Errorf("store the new GitHub App key: %w; the entry at %s:%s nevertheless holds the new key, but the GitHub token cache could not be cleared (%v): remove %s before checking 'moltnet github token', then delete the old key on GitHub", err, ref.Provider, ref.Key, cacheErr, filepath.Join(cacheDir, "gh-token-cache"))
 			}
 			return fmt.Errorf("store the new GitHub App key: %w; the entry at %s:%s nevertheless holds the new key, so confirm 'moltnet github token' works before deleting the old key on GitHub", err, ref.Provider, ref.Key)
 		}
@@ -148,10 +161,13 @@ func runGitHubKeyReplaceCmd(ctx context.Context, out, errOut io.Writer, opts git
 		return err
 	}
 	if errOut != nil {
+		check := "Confirm 'moltnet github token' works"
 		if cacheErr != nil {
-			fmt.Fprintf(errOut, "Warning: could not clear the GitHub token cache in %s: %v. Cached tokens stay valid until they expire.\n", cacheDir, cacheErr)
+			// A cached token from the old key would pass that check.
+			fmt.Fprintf(errOut, "Warning: could not clear the GitHub token cache in %s: %v.\n", cacheDir, cacheErr)
+			check = fmt.Sprintf("Remove %s, then confirm 'moltnet github token' works", filepath.Join(cacheDir, "gh-token-cache"))
 		}
-		fmt.Fprintf(errOut, "Stored the new GitHub App key at %s:%s. Confirm 'moltnet github token' works, then delete the old key in the GitHub App settings: copies of it in other providers stop working at that point.\n", ref.Provider, ref.Key)
+		fmt.Fprintf(errOut, "Stored the new GitHub App key at %s:%s. %s, then delete the old key in the GitHub App settings: copies of it in other providers stop working at that point.\n", ref.Provider, ref.Key, check)
 	}
 	return nil
 }

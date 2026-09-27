@@ -431,3 +431,71 @@ func TestGitHubKeyReplaceCommand(t *testing.T) {
 		t.Fatal("the PEM leaked into command output")
 	}
 }
+
+func TestGitHubKeyReplaceRejectsTheKeyAlreadyStored(t *testing.T) {
+	fixture := newGitHubKeyReplaceFixture(t, 4242)
+	// The stored key is the new PEM re-encoded (trailing newline stripped):
+	// the same RSA key under different text.
+	fixture.keyring.values[GitHubAppPrivateKeyKey(replaceFixtureAppID)] = strings.TrimSuffix(string(fixture.newPEM), "\n")
+
+	err := runGitHubKeyReplaceCmd(context.Background(), &bytes.Buffer{}, nil, fixture.opts())
+
+	if err == nil || !strings.Contains(err.Error(), "the key already stored") {
+		t.Fatalf("expected a same-key rejection, got %v", err)
+	}
+	if fixture.appCalls.Load() != 0 {
+		t.Fatal("GitHub must not be contacted for the key already in use")
+	}
+}
+
+func TestGitHubKeyReplaceNamesAStuckTokenCache(t *testing.T) {
+	fixture := newGitHubKeyReplaceFixture(t, 4242)
+	provider := &replaceFailingProvider{memorySecretProvider: *fixture.keyring, writeThenFail: true}
+	fixture.registry.Register(osKeyringProviderName, provider)
+	// A read-only subdirectory makes the cache impossible to remove.
+	locked := filepath.Join(filepath.Dir(fixture.credentialsPath), "gh-token-cache", "locked")
+	if err := os.MkdirAll(locked, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(locked, "token.json"), []byte("{}"), privateFileMode); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(locked, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(locked, 0o700) })
+
+	err := runGitHubKeyReplaceCmd(context.Background(), &bytes.Buffer{}, nil, fixture.opts())
+
+	if err == nil || !strings.Contains(err.Error(), "token cache could not be cleared") || !strings.Contains(err.Error(), "gh-token-cache") {
+		t.Fatalf("expected the error to name the stuck cache, got %v", err)
+	}
+}
+
+func TestGitHubKeyReplaceSuccessNamesAStuckTokenCache(t *testing.T) {
+	fixture := newGitHubKeyReplaceFixture(t, 4242)
+	locked := filepath.Join(filepath.Dir(fixture.credentialsPath), "gh-token-cache", "locked")
+	if err := os.MkdirAll(locked, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(locked, "token.json"), []byte("{}"), privateFileMode); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(locked, 0o500); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(locked, 0o700) })
+	var out, errOut bytes.Buffer
+
+	if err := runGitHubKeyReplaceCmd(context.Background(), &out, &errOut, fixture.opts()); err != nil {
+		t.Fatalf("replace: %v", err)
+	}
+
+	var result githubKeyReplaceOutput
+	if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.TokenCacheReset || !strings.Contains(errOut.String(), "Remove ") || !strings.Contains(errOut.String(), "gh-token-cache, then confirm") {
+		t.Fatalf("a stuck cache must be reported before the token check: %+v\n%s", result, errOut.String())
+	}
+}

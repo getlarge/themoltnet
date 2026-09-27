@@ -170,11 +170,11 @@ GitHub App private keys are issued and revoked on GitHub. To rotate one:
 4. Delete the old key in the GitHub App settings, then delete the downloaded
    PEM.
 
-`github key replace` first signs a JWT with the new key and asks GitHub which
-App it belongs to; a key GitHub rejects, or one issued for another App, changes
-nothing. It then overwrites the entry `github.private_key_ref` names, in the
-provider it already uses, and reads it back. `moltnet.json` is not changed, so
-every identity that references the same entry switches at once. Cached
+`github key replace` first signs a JWT with the new key and asks GitHub which a
+key GitHub rejects, one issued for another App, or the key already stored
+changes nothing. It then overwrites the entry `github.private_key_ref` names, in
+the provider it already uses, and reads it back. `moltnet.json` is not changed,
+so every identity that references the same entry switches at once. Cached
 installation tokens next to `moltnet.json` are cleared so the next command mints
 with the new key. The provider must accept writes: a read-only file root or an
 `env` reference stops the command before GitHub is contacted. A config that
