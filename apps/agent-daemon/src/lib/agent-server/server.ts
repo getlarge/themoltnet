@@ -948,13 +948,21 @@ async function readIdentityCatalogue(
     logger,
     share: (teamId, load) => sources.read(identityKey + teamId, load),
   });
-  return assembleCatalogue(teams, {
+  const catalogue = assembleCatalogue(teams, {
     machine: machineCapabilities(options),
     identityDefault: readIdentityDefaultBinding(
       options.store.identityDir(alias),
     ),
     lastVerified: (teamId) => agent.lastVerified(teamId),
   });
+  const activation = requireActivation(options.store, alias);
+  const { config } = await loadAgentActivation(options.store, alias);
+  return {
+    ...catalogue,
+    hiddenTeamIds: (activation.hiddenTeamIds ?? []).filter(
+      (teamId) => config.agent_key_refs?.[teamId] !== undefined,
+    ),
+  };
 }
 
 /**
@@ -1016,7 +1024,10 @@ async function defaultCatalogueAgent(
   options: BuildAgentServerOptions,
   alias: string,
 ): Promise<CatalogueAgentPort> {
-  const { config } = await loadAgentActivation(options.store, alias);
+  const { config, activation } = await loadAgentActivation(
+    options.store,
+    alias,
+  );
   const clients = new Map<
     string,
     ReturnType<typeof requireCredentialSnapshot>['client']
@@ -1028,7 +1039,9 @@ async function defaultCatalogueAgent(
     return client;
   };
   return {
-    teamIds: Object.keys(config.agent_key_refs ?? {}),
+    teamIds: Object.keys(config.agent_key_refs ?? {}).filter(
+      (teamId) => !activation.hiddenTeamIds?.includes(teamId),
+    ),
     lastVerified: (teamId) =>
       requireActivation(options.store, alias).credentialHealth?.[teamId],
     readTeam: async (teamId, signal) => {
@@ -1143,6 +1156,34 @@ function registerAgentRoutes(
   requireAuthorizedOrigin: AuthorizedOriginGuard,
 ): void {
   const { store } = options;
+  app.post(
+    '/v1/agents/:agentName/teams/:teamId/local-visibility',
+    { schema: AgentServerRouteSchemas.setLocalTeamVisibility },
+    async (request) => {
+      await requireNativeOrigin(requireAuthorizedOrigin, request);
+      const { agentName, teamId } = request.params as {
+        agentName: string;
+        teamId: string;
+      };
+      const { hidden } = requireBody<{ hidden: boolean }>(request);
+      const { config } = await loadAgentActivation(store, agentName);
+      if (!config.agent_key_refs?.[teamId])
+        throw new AgentServerHttpError(
+          404,
+          'not_found',
+          'No credential is indexed for this team.',
+        );
+      const activation = requireActivation(store, agentName);
+      const hiddenTeamIds = new Set(activation.hiddenTeamIds ?? []);
+      if (hidden) hiddenTeamIds.add(teamId);
+      else hiddenTeamIds.delete(teamId);
+      store.writeActivation({
+        ...activation,
+        hiddenTeamIds: [...hiddenTeamIds],
+      });
+      return { hidden };
+    },
+  );
   app.get(
     '/v1/agents',
     { schema: AgentServerRouteSchemas.listAgents },

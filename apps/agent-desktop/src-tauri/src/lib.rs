@@ -426,6 +426,26 @@ async fn desktop_enroll_team(
 }
 
 #[tauri::command]
+async fn desktop_set_team_visibility(
+    state: State<'_, AppState>,
+    identity: String,
+    team_id: String,
+    hidden: bool,
+) -> Result<(), String> {
+    let path = format!(
+        "/v1/agents/{}/teams/{}/local-visibility",
+        urlencode(&identity),
+        urlencode(&team_id)
+    );
+    let payload = serde_json::json!({ "hidden": hidden }).to_string();
+    with_control_connection(&state, move |connection| {
+        control::post(connection, &path, &payload)
+    })
+    .await?;
+    Ok(())
+}
+
+#[tauri::command]
 async fn desktop_list_enrollment_recoveries(
     state: State<'_, AppState>,
     identity: String,
@@ -1065,6 +1085,7 @@ pub fn run() {
             desktop_choose_project_folder,
             desktop_control_status,
             desktop_enroll_team,
+            desktop_set_team_visibility,
             desktop_list_enrollment_recoveries,
             desktop_restore_enrollment,
             desktop_discard_enrollment_recovery,

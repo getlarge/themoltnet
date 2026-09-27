@@ -8,6 +8,7 @@ import {
   Text,
   useTheme,
 } from '@themoltnet/design-system';
+import { useState } from 'react';
 
 import { verificationUnavailable } from './credential-health.js';
 import { duration, relativeTime } from './format.js';
@@ -104,6 +105,9 @@ function RunsList({
   stopControl,
 }: Omit<RunsViewProps, 'route'> & { stopControl: RunStopControl }) {
   const theme = useTheme();
+  const [manualCheck, setManualCheck] = useState<'checking' | 'done' | null>(
+    null,
+  );
   const active = data.runs.filter((run) => run.status === 'running');
   const recent = data.runs.filter((run) => run.status !== 'running');
   const serverReady = ['running', 'update_available'].includes(
@@ -115,6 +119,7 @@ function RunsList({
     error: catalogueError,
     stale: catalogueStale,
     retry: retryCatalogue,
+    checkNow: refreshCatalogue,
   } = useCatalogue(
     serverReady
       ? (data.status?.selectedIdentity ??
@@ -124,6 +129,16 @@ function RunsList({
     { read: actions.catalogue },
   );
   const verificationFailed = verificationUnavailable(catalogue?.teams ?? []);
+  const credentialRejected = catalogue?.teams.some((team) =>
+    team.blockers.some((blocker) => blocker.code === 'agent_key_rejected'),
+  );
+  const checkNow = () => {
+    setManualCheck('checking');
+    void refreshCatalogue().then(
+      () => setManualCheck('done'),
+      () => setManualCheck('done'),
+    );
+  };
 
   return (
     <Stack gap={6}>
@@ -180,14 +195,29 @@ function RunsList({
       {serverReady &&
       !catalogueError &&
       (verificationFailed || catalogueStale) ? (
-        // Usually transient — a renewal the API has not settled, a throttled
-        // read — and the catalogue is already re-checking on its own.
         <InlineNotice tone="warning" title="Checking team access">
           {verificationFailed
-            ? 'Some team credentials could not be verified yet. Checking again automatically.'
-            : 'Showing the last loaded teams and profiles. Checking again automatically.'}
-          <Button variant="secondary" onClick={retryCatalogue}>
-            Check now
+            ? manualCheck === 'done'
+              ? 'Checked now; some team credentials are still unavailable. Checking again automatically.'
+              : 'Some team credentials could not be verified yet. Checking again automatically.'
+            : manualCheck === 'done'
+              ? 'Checked now; teams and profiles still could not be refreshed. Checking again automatically.'
+              : 'Showing the last loaded teams and profiles. Checking again automatically.'}
+          <Button
+            variant="secondary"
+            disabled={manualCheck === 'checking'}
+            onClick={checkNow}
+          >
+            {manualCheck === 'checking' ? 'Checking…' : 'Check now'}
+          </Button>
+        </InlineNotice>
+      ) : null}
+      {serverReady && credentialRejected ? (
+        <InlineNotice tone="warning" title="Team credential rejected">
+          The API rejected a team credential. Renew the affected team’s access
+          in Identity and teams.
+          <Button variant="secondary" onClick={onTeams}>
+            Identity and teams
           </Button>
         </InlineNotice>
       ) : null}
@@ -201,6 +231,7 @@ function RunsList({
       ) : null}
       {serverReady &&
       !verificationFailed &&
+      !credentialRejected &&
       catalogue &&
       catalogue.teams.length > 0 &&
       !catalogue.teams.some((team) => team.available) ? (

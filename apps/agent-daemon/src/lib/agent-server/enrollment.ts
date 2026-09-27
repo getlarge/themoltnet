@@ -290,6 +290,14 @@ export async function enrollIdentityTeam(options: {
     // Future catalogue/run access still performs live, exact-slot verification.
     if (!options.store.readActivation(options.alias))
       options.store.writeActivation(activation);
+    const current = options.store.readActivation(options.alias);
+    if (current && current.hiddenTeamIds?.includes(result.teamId))
+      options.store.writeActivation({
+        ...current,
+        hiddenTeamIds: current.hiddenTeamIds.filter(
+          (teamId) => teamId !== result.teamId,
+        ),
+      });
     return {
       state: 'persisted' as const,
       teamId: result.teamId,

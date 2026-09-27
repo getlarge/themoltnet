@@ -73,6 +73,9 @@ import type {
   SaveNativeProjectLocationData,
   SaveNativeProjectLocationErrors,
   SaveNativeProjectLocationResponses,
+  SetAgentServerLocalTeamVisibilityData,
+  SetAgentServerLocalTeamVisibilityErrors,
+  SetAgentServerLocalTeamVisibilityResponses,
   SignInAgentServerOperatorData,
   SignInAgentServerOperatorResponses,
   StartAgentServerRunData,
@@ -221,6 +224,25 @@ export const enrollAgentServerTeam = <ThrowOnError extends boolean = false>(
   >({
     security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
     url: '/v1/agents/{agentName}/teams',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+export const setAgentServerLocalTeamVisibility = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<SetAgentServerLocalTeamVisibilityData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    SetAgentServerLocalTeamVisibilityResponses,
+    SetAgentServerLocalTeamVisibilityErrors,
+    ThrowOnError
+  >({
+    security: [{ name: 'x-moltnet-agent-server-token', type: 'apiKey' }],
+    url: '/v1/agents/{agentName}/teams/{teamId}/local-visibility',
     ...options,
     headers: {
       'Content-Type': 'application/json',

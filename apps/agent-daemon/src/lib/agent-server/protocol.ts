@@ -154,6 +154,7 @@ export const AgentServerCatalogueProfileSchema = Type.Intersect(
 export const AgentServerCatalogueSchema = Type.Object(
   {
     teams: Type.Array(schemaRef(AgentServerCatalogueTeamSchema)),
+    hiddenTeamIds: Type.Array(Type.String()),
     defaultTeamId: Type.Union([Type.String(), Type.Null()]),
     profiles: Type.Array(schemaRef(AgentServerCatalogueProfileSchema)),
     projects: Type.Array(
@@ -737,6 +738,17 @@ export const AgentServerRouteSchemas = {
     querystring: CatalogueQuerySchema,
     response: {
       200: schemaRef(AgentServerCatalogueSchema),
+      ...problemResponse,
+    },
+  },
+  setLocalTeamVisibility: {
+    operationId: 'setAgentServerLocalTeamVisibility',
+    tags: ['agents'],
+    security: localControlSecurity,
+    params: Type.Object({ agentName: Type.String(), teamId: Type.String() }),
+    body: Type.Object({ hidden: Type.Boolean() }),
+    response: {
+      200: Type.Object({ hidden: Type.Boolean() }),
       ...problemResponse,
     },
   },

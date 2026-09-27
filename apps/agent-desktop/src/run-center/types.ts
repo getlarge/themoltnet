@@ -127,6 +127,11 @@ export interface RunCenterActions {
     identity: string,
     request: EnrollAgentServerTeamData['body'],
   ) => Promise<EnrollAgentServerTeamResponses[200]>;
+  setTeamVisibility?: (
+    identity: string,
+    teamId: string,
+    hidden: boolean,
+  ) => Promise<void>;
   listEnrollmentRecoveries?: (identity: string) => Promise<{
     items: {
       recoveryId: string;

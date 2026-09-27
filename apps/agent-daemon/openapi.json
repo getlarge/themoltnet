@@ -68,6 +68,12 @@
               }
             ]
           },
+          "hiddenTeamIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "profiles": {
             "items": {
               "$ref": "#/components/schemas/AgentServerCatalogueProfile"
@@ -181,6 +187,7 @@
         },
         "required": [
           "teams",
+          "hiddenTeamIds",
           "defaultTeamId",
           "profiles",
           "projects",
@@ -1944,6 +1951,85 @@
                       "type": "object"
                     }
                   ]
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentServerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "agentServerToken": []
+          }
+        ],
+        "tags": [
+          "agents"
+        ]
+      }
+    },
+    "/v1/agents/{agentName}/teams/{teamId}/local-visibility": {
+      "post": {
+        "operationId": "setAgentServerLocalTeamVisibility",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "agentName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "hidden": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "hidden"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "hidden": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "hidden"
+                  ],
+                  "type": "object"
                 }
               }
             },

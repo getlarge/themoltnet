@@ -18,6 +18,7 @@ export const catalogue: AgentServerCatalogue = {
   projects: [],
   projectErrors: [],
   defaultTeamId: 'team',
+  hiddenTeamIds: [],
   teams: [
     {
       teamId: 'team',

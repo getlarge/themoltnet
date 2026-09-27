@@ -111,6 +111,7 @@ describe('run catalogue', () => {
     // exact comparison is what notices.
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
+      hiddenTeamIds: [],
       teams: [
         {
           teamId: TEAM,

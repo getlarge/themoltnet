@@ -52,6 +52,7 @@ import {
   type ActivatedAgent,
   AgentServerIdentityError,
   externalAgentLocation,
+  requireActivation,
 } from './identity.js';
 import { readIdentityDefaultBinding } from './identity-binding.js';
 import {
@@ -75,6 +76,7 @@ import type {
 } from './store.js';
 import { AgentServerStoreError, PROFILE_DEFAULT_STRATEGY } from './store.js';
 import {
+  assertTeamVisible,
   requireCredentialSnapshot,
   TeamCredentialError,
   verifyTeamActivation,
@@ -620,6 +622,9 @@ export class RunManager {
       });
       const spawnImpl = this.options.spawnImpl ?? nodeSpawn;
       this.assertStartOpen(signal, deadline);
+      // Preparation can outlive a local removal. Read the current activation
+      // at the synchronous spawn boundary so a removed team cannot start.
+      assertTeamVisible(requireActivation(this.store, spec.agent), spec.teamId);
       child = spawnImpl(
         entry.execPath,
         [...entry.execArgv, entry.scriptPath, ...args],

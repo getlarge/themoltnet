@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import { DAEMON_MINIMUM_SCOPES } from '@moltnet/models';
 import {
+  AuthenticationError,
   READ_ONLY_CAPABILITIES,
   SecretProviderRegistry,
   type Whoami,
@@ -11,6 +12,7 @@ import {
 import type { connect } from '@themoltnet/sdk/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { type CatalogueAgentPort, readCatalogueSources } from './catalogue.js';
 import { AgentServerStore } from './store.js';
 import {
   credentialBlocker,
@@ -100,6 +102,18 @@ function fixture() {
 }
 
 describe('strict supervised credentials', () => {
+  it('refuses a locally hidden team before reading its key', async () => {
+    const f = fixture();
+    f.store.writeActivation({
+      ...f.store.readActivation('agent')!,
+      hiddenTeamIds: ['a'],
+    });
+    await expect(f.verify('a')).rejects.toMatchObject({
+      blocker: { code: 'agent_key_hidden' },
+    });
+    expect(f.read).not.toHaveBeenCalled();
+    await expect(f.verify('b')).resolves.toBeDefined();
+  });
   it('captures independent team credentials once and retains predecessor after replacement', async () => {
     const f = fixture();
     const [a, b] = await Promise.all([f.verify('a'), f.verify('b')]);
@@ -127,6 +141,33 @@ describe('strict supervised credentials', () => {
     expect(f.connectImpl).not.toHaveBeenCalled();
     expect(f.read.mock.calls.flat()).not.toContain('agent-key/subject');
     await expect(f.verify('b')).resolves.toBeDefined();
+  });
+
+  it('identifies an API rejection after reading the selected team key', async () => {
+    const f = fixture();
+    f.whoami.mockRejectedValue(
+      new AuthenticationError('Rejected', { statusCode: 401 }),
+    );
+
+    const port: CatalogueAgentPort = {
+      teamIds: ['a'],
+      lastVerified: () => undefined,
+      readTeam: async () => {
+        await f.verify('a');
+        throw new Error('Unexpected successful verification');
+      },
+      readProjects: async () => ({ items: [], truncated: false }),
+      readProject: async () => null,
+    };
+    const sources = await readCatalogueSources(port);
+    expect(f.read).toHaveBeenCalledWith('agent-key/subject/a');
+    expect(sources).toMatchObject([
+      {
+        teamId: 'a',
+        available: false,
+        blocker: { code: 'agent_key_rejected' },
+      },
+    ]);
   });
 
   it.each(['identity', 'wrong-team', 'wrong-subject', 'wrong-signing-key'])(

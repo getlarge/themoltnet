@@ -36,6 +36,144 @@ afterEach(cleanupAll);
 const BROWSER_ORIGIN = 'https://console.themolt.net';
 
 describe('native desktop client', () => {
+  it('hides and restores an indexed team only in the local activation', async () => {
+    const nativeGrant = new NativeGrantService();
+    nativeGrant.grantNative('supervisor-token');
+    const { app, store, spawned } = await fixture({ nativeGrant });
+    activateManaged(store);
+    const config = store.readAgentConfig('course-bot')!;
+    config.agent_key_refs = {
+      'team-a': { provider: 'file', key: 'agent-key/agent-1/team-a' },
+    };
+    store.writeAgentConfig('course-bot', config);
+    const url = '/v1/agents/course-bot/teams/team-a/local-visibility';
+    const headers = {
+      host: HOST,
+      origin: NATIVE_CLIENT_ORIGIN,
+      [AGENT_SERVER_TOKEN_HEADER]: 'supervisor-token',
+    };
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url,
+          headers: { ...headers, origin: BROWSER_ORIGIN },
+          payload: { hidden: true },
+        })
+      ).statusCode,
+    ).toBe(403);
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url,
+          headers,
+          payload: { hidden: true },
+        })
+      ).statusCode,
+    ).toBe(200);
+    expect(store.readActivation('course-bot')?.hiddenTeamIds).toEqual([
+      'team-a',
+    ]);
+    expect(store.readAgentConfig('course-bot')?.agent_key_refs).toEqual(
+      config.agent_key_refs,
+    );
+    const hidden = await app.inject({
+      method: 'GET',
+      url: '/v1/catalogue?identity=course-bot',
+      headers,
+    });
+    expect(hidden.json()).toMatchObject({
+      teams: [],
+      hiddenTeamIds: ['team-a'],
+    });
+    const runRequest = {
+      method: 'POST' as const,
+      url: '/v1/runs',
+      headers,
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-a',
+        profiles: ['course-profile'],
+        taskTypes: ['freeform'],
+        mode: 'drain',
+      },
+    };
+    const refused = await app.inject(runRequest);
+    expect(refused.statusCode).toBe(400);
+    expect(refused.json()).toMatchObject({ code: 'agent_key_hidden' });
+    expect(spawned).toHaveLength(0);
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url,
+          headers,
+          payload: { hidden: false },
+        })
+      ).statusCode,
+    ).toBe(200);
+    expect(store.readActivation('course-bot')?.hiddenTeamIds).toEqual([]);
+    const restored = await app.inject(runRequest);
+    expect(restored.statusCode, restored.body).toBe(201);
+    expect(spawned).toHaveLength(1);
+  });
+  it('refuses a run when the team is removed during asynchronous startup', async () => {
+    const nativeGrant = new NativeGrantService();
+    nativeGrant.grantNative('supervisor-token');
+    let reachedPreparation!: () => void;
+    let finishPreparation!: () => void;
+    const preparing = new Promise<void>((resolve) => {
+      reachedPreparation = resolve;
+    });
+    const holdPreparation = new Promise<void>((resolve) => {
+      finishPreparation = resolve;
+    });
+    const { app, store, spawned } = await fixture({
+      nativeGrant,
+      resolveRuntimeModule: async () => {
+        reachedPreparation();
+        await holdPreparation;
+        return undefined;
+      },
+    });
+    activateManaged(store);
+    const config = store.readAgentConfig('course-bot')!;
+    config.agent_key_refs = {
+      'team-a': { provider: 'file', key: 'agent-key/agent-1/team-a' },
+    };
+    store.writeAgentConfig('course-bot', config);
+    const headers = {
+      host: HOST,
+      origin: NATIVE_CLIENT_ORIGIN,
+      [AGENT_SERVER_TOKEN_HEADER]: 'supervisor-token',
+    };
+    const starting = app.inject({
+      method: 'POST',
+      url: '/v1/runs',
+      headers,
+      payload: {
+        agent: 'course-bot',
+        teamId: 'team-a',
+        profiles: ['course-profile'],
+        taskTypes: ['freeform'],
+        mode: 'drain',
+      },
+    });
+    await preparing;
+    const removed = await app.inject({
+      method: 'POST',
+      url: '/v1/agents/course-bot/teams/team-a/local-visibility',
+      headers,
+      payload: { hidden: true },
+    });
+    expect(removed.statusCode).toBe(200);
+    finishPreparation();
+    const refused = await starting;
+    expect(refused.statusCode).toBe(400);
+    expect(refused.json()).toMatchObject({ code: 'agent_key_hidden' });
+    expect(spawned).toHaveLength(0);
+  });
   it('limits recovery to the native grant and restores a verified capture', async () => {
     const nativeGrant = new NativeGrantService();
     nativeGrant.grantNative('supervisor-token');
