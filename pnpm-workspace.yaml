@@ -13,6 +13,8 @@ minimumReleaseAgeExclude:
   # Release jobs consume repository-owned packages published earlier in the
   # same run, before the external-package quarantine has elapsed.
   - '@themoltnet/*'
+  # Renovate security update: nx@22.7.7
+  - nx@22.7.7
 allowBuilds:
   '@github/keytar': true
   cpu-features: false
@@ -135,7 +137,7 @@ catalog:
   multiformats: '^13.3.0'
   n8n-workflow: '2.16.0'
   node-hid: '^3.2.0'
-  nx: '22.7.0'
+  nx: '22.7.7'
   open: '^10.1.2'
   pg: '^8.13.0'
   pino: '^10.3.1'
