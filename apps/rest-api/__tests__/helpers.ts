@@ -23,6 +23,7 @@ import { vi } from 'vitest';
 import { type AppOptions, buildApp } from '../src/app.js';
 import { createAssertDiaryReadable } from '../src/services/diary-readable.js';
 import type {
+  AgentIdentityKeyRepository,
   AgentRepository,
   CryptoService,
   DataSource,
@@ -184,6 +185,9 @@ export interface MockServices {
     [K in keyof DiaryService]: ReturnType<typeof vi.fn>;
   };
   agentRepository: { [K in keyof AgentRepository]: ReturnType<typeof vi.fn> };
+  agentIdentityKeyRepository: {
+    [K in keyof AgentIdentityKeyRepository]: ReturnType<typeof vi.fn>;
+  };
   humanRepository: { [K in keyof HumanRepository]: ReturnType<typeof vi.fn> };
   cryptoService: { [K in keyof CryptoService]: ReturnType<typeof vi.fn> };
   embeddingService: {
@@ -438,8 +442,17 @@ export function createMockServices(): MockServices {
       setIdentityId: vi.fn(),
       clearIdentityId: vi.fn(),
     },
+    // No recorded history by default: verification falls back to the
+    // agent's current key, as it does for an agent without history rows.
+    agentIdentityKeyRepository: {
+      findKeysValidBetween: vi.fn().mockResolvedValue([]),
+      findByFingerprint: vi.fn().mockResolvedValue(null),
+      listForAgent: vi.fn().mockResolvedValue([]),
+      attachRotationProof: vi.fn().mockResolvedValue(true),
+    },
     agentRepository: {
       findByFingerprint: vi.fn(),
+      rotateIdentityKey: vi.fn(),
       // Registration creates the agent row before the Kratos identity, keyed
       // on fingerprint since identity_id is still NULL at that point.
       upsertByFingerprint: vi.fn().mockResolvedValue({
@@ -968,6 +981,8 @@ export async function createTestApp(
     contextPackService: serviceProxy as never,
     embeddingService: mocks.embeddingService as unknown as EmbeddingService,
     agentRepository: mocks.agentRepository as unknown as AgentRepository,
+    agentIdentityKeyRepository:
+      mocks.agentIdentityKeyRepository as unknown as AgentIdentityKeyRepository,
     humanRepository: mocks.humanRepository as unknown as HumanRepository,
     cryptoService: mocks.cryptoService as unknown as CryptoService,
     signingRequestRepository:

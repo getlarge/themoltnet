@@ -52,9 +52,14 @@ export {
 export {
   AgentFingerprintConflictError,
   AgentFingerprintRaceError,
+  AgentIdentityKeyStaleError,
   type AgentRepository,
   createAgentRepository,
 } from './repositories/agent.repository.js';
+export {
+  type AgentIdentityKeyRepository,
+  createAgentIdentityKeyRepository,
+} from './repositories/agent-identity-key.repository.js';
 export {
   type ContextPackRepository,
   type ContextPackWithCreator,

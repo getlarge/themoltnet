@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -118,18 +119,39 @@ func allowedSignersPathFor(configDir string) string {
 	return filepath.Join(configDir, "ssh", "allowed_signers")
 }
 
-// writeAllowedSignersFile writes the single-signer allowed_signers document for
-// an identity and returns its path. `git setup` and `config repair` share it so
-// the two cannot drift in format: git verifies signatures against this exact
-// content, and a mismatch fails verification rather than erroring loudly.
+// writeAllowedSignersFile makes the current key the first signer in an
+// identity's allowed_signers document and returns its path. `git setup`,
+// `config repair` and identity key rotation share it so they cannot drift in
+// format: git verifies signatures against this exact content, and a mismatch
+// fails verification rather than erroring loudly. Lines already present are
+// kept, so keys retired by a rotation still verify earlier commits.
 func writeAllowedSignersFile(configDir, gitEmail string, pubKeyContent []byte) (string, error) {
-	sshDir := filepath.Join(configDir, "ssh")
-	if err := os.MkdirAll(sshDir, 0o700); err != nil {
+	line := fmt.Sprintf("%s %s", gitEmail, strings.TrimSpace(string(pubKeyContent)))
+	return writeAllowedSignerLines(configDir, []string{line})
+}
+
+// writeAllowedSignerLines writes leading, then every line the document
+// already holds that is not among them.
+func writeAllowedSignerLines(configDir string, leading []string) (string, error) {
+	path := allowedSignersPathFor(configDir)
+	existing, err := os.ReadFile(path)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return "", fmt.Errorf("read allowed_signers: %w", err)
+	}
+	var lines []string
+	seen := map[string]bool{}
+	for _, line := range append(leading, strings.Split(string(existing), "\n")...) {
+		line = strings.TrimSpace(line)
+		if line == "" || seen[line] {
+			continue
+		}
+		seen[line] = true
+		lines = append(lines, line)
+	}
+	if err := os.MkdirAll(filepath.Join(configDir, "ssh"), 0o700); err != nil {
 		return "", fmt.Errorf("create ssh dir: %w", err)
 	}
-	path := allowedSignersPathFor(configDir)
-	document := fmt.Sprintf("%s %s\n", gitEmail, strings.TrimSpace(string(pubKeyContent)))
-	if err := os.WriteFile(path, []byte(document), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
 		return "", fmt.Errorf("write allowed_signers: %w", err)
 	}
 	return path, nil

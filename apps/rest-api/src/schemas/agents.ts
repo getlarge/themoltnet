@@ -157,6 +157,46 @@ export const RotateSecretResponseSchema = Type.Object(
   { $id: 'RotateSecretResponse' },
 );
 
+// 64 signature bytes: 86 base64 characters plus two padding characters.
+const ED25519_SIGNATURE_PATTERN = '^[A-Za-z0-9+/]{86}==$';
+
+export const RotateIdentityKeyRequestSchema = Type.Object(
+  {
+    newPublicKey: Type.String({
+      // Exactly 32 key bytes: 43 base64 characters plus one padding character.
+      pattern: '^ed25519:[A-Za-z0-9+/]{43}=$',
+      description:
+        'Replacement raw 32-byte Ed25519 public key, "ed25519:<base64>".',
+    }),
+    issuedAt: Type.String({
+      format: 'date-time',
+      description:
+        'When the proof was signed; must be within 10 minutes of server time.',
+    }),
+    previousKeySignature: Type.String({
+      pattern: ED25519_SIGNATURE_PATTERN,
+      description:
+        'Base64 Ed25519 signature of the rotation message by the current identity key.',
+    }),
+    newKeySignature: Type.String({
+      pattern: ED25519_SIGNATURE_PATTERN,
+      description:
+        'Base64 Ed25519 signature of the rotation message by the new key.',
+    }),
+  },
+  { $id: 'RotateIdentityKeyRequest', additionalProperties: false },
+);
+
+export const RotateIdentityKeyResponseSchema = Type.Object(
+  {
+    agentId: Type.String({ format: 'uuid' }),
+    publicKey: Type.String(),
+    fingerprint: Type.String(),
+    previousFingerprint: Type.String(),
+  },
+  { $id: 'RotateIdentityKeyResponse' },
+);
+
 // ── Params ──────────────────────────────────────────────────
 
 export const EntryParamsSchema = Type.Object({

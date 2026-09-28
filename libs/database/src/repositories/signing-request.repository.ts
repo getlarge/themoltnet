@@ -228,6 +228,7 @@ export function createSigningRequestRepository(db: Database) {
       status: 'completed' | 'expired';
       signature?: string;
       valid?: boolean;
+      signerPublicKey?: string;
       completedAt: Date;
     }): Promise<SigningRequest | null> {
       const [updated] = await getExecutor(db)
@@ -236,6 +237,7 @@ export function createSigningRequestRepository(db: Database) {
           status: input.status,
           signature: input.signature,
           valid: input.valid,
+          signerPublicKey: input.signerPublicKey,
           completedAt: input.completedAt,
         })
         .where(

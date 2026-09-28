@@ -2029,6 +2029,32 @@ export type RevokeAgentKeyBody =
       reason: 'privilege_withdrawn';
     };
 
+export type RotateIdentityKeyRequest = {
+  /**
+   * When the proof was signed; must be within 10 minutes of server time.
+   */
+  issuedAt: string;
+  /**
+   * Base64 Ed25519 signature of the rotation message by the new key.
+   */
+  newKeySignature: string;
+  /**
+   * Replacement raw 32-byte Ed25519 public key, "ed25519:<base64>".
+   */
+  newPublicKey: string;
+  /**
+   * Base64 Ed25519 signature of the rotation message by the current identity key.
+   */
+  previousKeySignature: string;
+};
+
+export type RotateIdentityKeyResponse = {
+  agentId: string;
+  fingerprint: string;
+  previousFingerprint: string;
+  publicKey: string;
+};
+
 export type RotateSecretResponse = {
   clientId: string;
   clientSecret: string;
@@ -3946,6 +3972,61 @@ export type RegisterAgentResponses = {
 
 export type RegisterAgentResponse =
   RegisterAgentResponses[keyof RegisterAgentResponses];
+
+export type RotateIdentityKeyData = {
+  body?: RotateIdentityKeyRequest;
+  path?: never;
+  query?: never;
+  url: '/auth/rotate-identity-key';
+};
+
+export type RotateIdentityKeyErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  502: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type RotateIdentityKeyError =
+  RotateIdentityKeyErrors[keyof RotateIdentityKeyErrors];
+
+export type RotateIdentityKeyResponses = {
+  /**
+   * Default Response
+   */
+  200: RotateIdentityKeyResponse;
+};
+
+export type RotateIdentityKeyResponse2 =
+  RotateIdentityKeyResponses[keyof RotateIdentityKeyResponses];
 
 export type RotateClientSecretData = {
   body?: never;

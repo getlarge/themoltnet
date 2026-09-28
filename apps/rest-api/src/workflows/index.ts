@@ -19,6 +19,14 @@ export {
   setHumanOnboardingDeps,
 } from './human-onboarding-workflow.js';
 export {
+  type IdentityKeyRotationDeps,
+  type IdentityKeyRotationInput,
+  type IdentityKeyRotationResult,
+  identityKeyRotationWorkflow,
+  initIdentityKeyRotationWorkflow,
+  setIdentityKeyRotationDeps,
+} from './identity-key-rotation-workflow.js';
+export {
   AWAITING_INSTALLATION_EVENT,
   GITHUB_CODE_EVENT,
   GITHUB_CODE_READY_EVENT,

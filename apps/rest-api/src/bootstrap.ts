@@ -26,6 +26,7 @@ import {
 import { ContextPackService } from '@moltnet/context-pack-service';
 import { cryptoService } from '@moltnet/crypto-service';
 import {
+  createAgentIdentityKeyRepository,
   createAgentRepository,
   createContextPackRepository,
   createCorrelationSealRepository,
@@ -116,6 +117,7 @@ import {
 import {
   initDiaryTransferWorkflow,
   initHumanOnboardingWorkflow,
+  initIdentityKeyRotationWorkflow,
   initLegreffierOnboardingWorkflow,
   initMaintenanceWorkflows,
   initRegistrationWorkflow,
@@ -126,6 +128,7 @@ import {
   registerRegistrationQueue,
   setDiaryTransferDeps,
   setHumanOnboardingDeps,
+  setIdentityKeyRotationDeps,
   setLegreffierOnboardingDeps,
   setMaintenanceDeps,
   setRegistrationDeps,
@@ -335,6 +338,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
 
   // ── Repositories ───────────────────────────────────────────────
   const agentRepository = createAgentRepository(dbConnection.db);
+  const agentIdentityKeyRepository = createAgentIdentityKeyRepository(
+    dbConnection.db,
+  );
   const humanRepository = createHumanRepository(dbConnection.db);
   const diaryRepository = createDiaryRepository(dbConnection.db);
   const diaryEntryRepository = createDiaryEntryRepository(dbConnection.db);
@@ -538,6 +544,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       () => initTeamFoundingWorkflow(),
       () => initTeamInviteWorkflow(),
       () => initDiaryTransferWorkflow(),
+      () => initIdentityKeyRotationWorkflow(),
     ],
     wireDependencies: [
       () => {
@@ -567,6 +574,23 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           relationshipWriter,
           issueAgentKey: (input) => registrationAgentKeyService.issue(input),
           transactionRunner: workflowTransactionRunner,
+          logger: app.log,
+        });
+      },
+      (workflowTransactionRunner) => {
+        setIdentityKeyRotationDeps({
+          identityApi: oryClients.identity,
+          oauth2Api: oryClients.oauth2,
+          agentRepository,
+          agentIdentityKeyRepository,
+          transactionRunner: workflowTransactionRunner,
+          evictAuthCaches: async ({ identityId, clientIds }) => {
+            if (identityId) app.sessionResolver?.evictIdentity(identityId);
+            for (const clientId of clientIds) {
+              app.tokenValidator.evictOAuthClient(clientId);
+              await app.invalidateOAuth2ClientCache(clientId);
+            }
+          },
           logger: app.log,
         });
       },
@@ -802,6 +826,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     entryRelationRepository,
     embeddingService,
     agentRepository,
+    agentIdentityKeyRepository,
     humanRepository,
     cryptoService,
     groupRepository,

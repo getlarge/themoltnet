@@ -1213,6 +1213,20 @@ func (UnimplementedHandler) RotateClientSecret(ctx context.Context) (r RotateCli
 	return r, ht.ErrNotImplemented
 }
 
+// RotateIdentityKey implements rotateIdentityKey operation.
+//
+// Replace the agent's Ed25519 identity key. Both the current and the new key sign the rotation
+// message `moltnet:identity:rotate:v1\n<agentId>\n<currentPublicKey>\n<newPublicKey>\n<issuedAt>`.
+// The old key stays verifiable for signatures made while it was current, and its fingerprint still
+// resolves to the agent. Access tokens authenticate the agent, not its key: JWT access tokens issued
+// before the rotation stay valid until they expire (opaque tokens are revoked), and every key the
+// API reports is read from the current agent record, never from token claims.
+//
+// POST /auth/rotate-identity-key
+func (UnimplementedHandler) RotateIdentityKey(ctx context.Context, req OptRotateIdentityKeyRequest) (r RotateIdentityKeyRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // SearchDiary implements searchDiary operation.
 //
 // Search diary entries using hybrid search.

@@ -271,6 +271,8 @@ export interface SigningRequestPersistence {
     status: 'completed' | 'expired';
     signature?: string;
     valid?: boolean;
+    /** The identity key the signature was verified against. */
+    signerPublicKey?: string;
     completedAt: Date;
   }): Promise<void>;
 }
@@ -608,12 +610,16 @@ export function initSigningWorkflows(): void {
       status: 'completed' | 'expired',
       signature: string | null,
       valid: boolean | null,
+      // Added after release: a workflow recorded before this argument
+      // existed replays without it and leaves the column null.
+      signerPublicKey?: string,
     ): Promise<void> => {
       await getSigningRequestPersistence().completeAgentRequest({
         id: requestId,
         status,
         signature: signature ?? undefined,
         valid: valid ?? undefined,
+        signerPublicKey,
         completedAt: new Date(),
       });
     },
@@ -687,12 +693,14 @@ export function initSigningWorkflows(): void {
           valid = false;
         }
 
-        // 5. Persist the final status
+        // 5. Persist the final status with the key it was checked against,
+        // so later verification does not depend on which key is current.
         await persistStatusStep(
           requestId,
           'completed',
           submission.signature,
           valid,
+          publicKey,
         );
 
         const result: SigningResult = {

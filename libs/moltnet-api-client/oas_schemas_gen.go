@@ -39428,6 +39428,52 @@ func (o OptRevokeSigningCredentialReq) Or(d RevokeSigningCredentialReq) RevokeSi
 	return d
 }
 
+// NewOptRotateIdentityKeyRequest returns new OptRotateIdentityKeyRequest with value set to v.
+func NewOptRotateIdentityKeyRequest(v RotateIdentityKeyRequest) OptRotateIdentityKeyRequest {
+	return OptRotateIdentityKeyRequest{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRotateIdentityKeyRequest is optional RotateIdentityKeyRequest.
+type OptRotateIdentityKeyRequest struct {
+	Value RotateIdentityKeyRequest
+	Set   bool
+}
+
+// IsSet returns true if OptRotateIdentityKeyRequest was set.
+func (o OptRotateIdentityKeyRequest) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRotateIdentityKeyRequest) Reset() {
+	var v RotateIdentityKeyRequest
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRotateIdentityKeyRequest) SetTo(v RotateIdentityKeyRequest) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRotateIdentityKeyRequest) Get() (v RotateIdentityKeyRequest, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRotateIdentityKeyRequest) Or(d RotateIdentityKeyRequest) RotateIdentityKeyRequest {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptRuntimeProfileListResponseItemsItemSandboxEnv returns new OptRuntimeProfileListResponseItemsItemSandboxEnv with value set to v.
 func NewOptRuntimeProfileListResponseItemsItemSandboxEnv(v RuntimeProfileListResponseItemsItemSandboxEnv) OptRuntimeProfileListResponseItemsItemSandboxEnv {
 	return OptRuntimeProfileListResponseItemsItemSandboxEnv{
@@ -48579,6 +48625,140 @@ func (*RotateClientSecretTooManyRequests) rotateClientSecretRes() {}
 type RotateClientSecretUnauthorized ProblemDetails
 
 func (*RotateClientSecretUnauthorized) rotateClientSecretRes() {}
+
+type RotateIdentityKeyBadGateway ProblemDetails
+
+func (*RotateIdentityKeyBadGateway) rotateIdentityKeyRes() {}
+
+type RotateIdentityKeyBadRequest ProblemDetails
+
+func (*RotateIdentityKeyBadRequest) rotateIdentityKeyRes() {}
+
+type RotateIdentityKeyConflict ProblemDetails
+
+func (*RotateIdentityKeyConflict) rotateIdentityKeyRes() {}
+
+type RotateIdentityKeyForbidden ProblemDetails
+
+func (*RotateIdentityKeyForbidden) rotateIdentityKeyRes() {}
+
+type RotateIdentityKeyInternalServerError ProblemDetails
+
+func (*RotateIdentityKeyInternalServerError) rotateIdentityKeyRes() {}
+
+// Ref: #/components/schemas/RotateIdentityKeyRequest
+type RotateIdentityKeyRequest struct {
+	// When the proof was signed; must be within 10 minutes of server time.
+	IssuedAt time.Time `json:"issuedAt"`
+	// Base64 Ed25519 signature of the rotation message by the new key.
+	NewKeySignature string `json:"newKeySignature"`
+	// Replacement raw 32-byte Ed25519 public key, "ed25519:<base64>".
+	NewPublicKey string `json:"newPublicKey"`
+	// Base64 Ed25519 signature of the rotation message by the current identity key.
+	PreviousKeySignature string `json:"previousKeySignature"`
+}
+
+// GetIssuedAt returns the value of IssuedAt.
+func (s *RotateIdentityKeyRequest) GetIssuedAt() time.Time {
+	return s.IssuedAt
+}
+
+// GetNewKeySignature returns the value of NewKeySignature.
+func (s *RotateIdentityKeyRequest) GetNewKeySignature() string {
+	return s.NewKeySignature
+}
+
+// GetNewPublicKey returns the value of NewPublicKey.
+func (s *RotateIdentityKeyRequest) GetNewPublicKey() string {
+	return s.NewPublicKey
+}
+
+// GetPreviousKeySignature returns the value of PreviousKeySignature.
+func (s *RotateIdentityKeyRequest) GetPreviousKeySignature() string {
+	return s.PreviousKeySignature
+}
+
+// SetIssuedAt sets the value of IssuedAt.
+func (s *RotateIdentityKeyRequest) SetIssuedAt(val time.Time) {
+	s.IssuedAt = val
+}
+
+// SetNewKeySignature sets the value of NewKeySignature.
+func (s *RotateIdentityKeyRequest) SetNewKeySignature(val string) {
+	s.NewKeySignature = val
+}
+
+// SetNewPublicKey sets the value of NewPublicKey.
+func (s *RotateIdentityKeyRequest) SetNewPublicKey(val string) {
+	s.NewPublicKey = val
+}
+
+// SetPreviousKeySignature sets the value of PreviousKeySignature.
+func (s *RotateIdentityKeyRequest) SetPreviousKeySignature(val string) {
+	s.PreviousKeySignature = val
+}
+
+// Ref: #/components/schemas/RotateIdentityKeyResponse
+type RotateIdentityKeyResponse struct {
+	AgentId             uuid.UUID `json:"agentId"`
+	Fingerprint         string    `json:"fingerprint"`
+	PreviousFingerprint string    `json:"previousFingerprint"`
+	PublicKey           string    `json:"publicKey"`
+}
+
+// GetAgentId returns the value of AgentId.
+func (s *RotateIdentityKeyResponse) GetAgentId() uuid.UUID {
+	return s.AgentId
+}
+
+// GetFingerprint returns the value of Fingerprint.
+func (s *RotateIdentityKeyResponse) GetFingerprint() string {
+	return s.Fingerprint
+}
+
+// GetPreviousFingerprint returns the value of PreviousFingerprint.
+func (s *RotateIdentityKeyResponse) GetPreviousFingerprint() string {
+	return s.PreviousFingerprint
+}
+
+// GetPublicKey returns the value of PublicKey.
+func (s *RotateIdentityKeyResponse) GetPublicKey() string {
+	return s.PublicKey
+}
+
+// SetAgentId sets the value of AgentId.
+func (s *RotateIdentityKeyResponse) SetAgentId(val uuid.UUID) {
+	s.AgentId = val
+}
+
+// SetFingerprint sets the value of Fingerprint.
+func (s *RotateIdentityKeyResponse) SetFingerprint(val string) {
+	s.Fingerprint = val
+}
+
+// SetPreviousFingerprint sets the value of PreviousFingerprint.
+func (s *RotateIdentityKeyResponse) SetPreviousFingerprint(val string) {
+	s.PreviousFingerprint = val
+}
+
+// SetPublicKey sets the value of PublicKey.
+func (s *RotateIdentityKeyResponse) SetPublicKey(val string) {
+	s.PublicKey = val
+}
+
+func (*RotateIdentityKeyResponse) rotateIdentityKeyRes() {}
+
+type RotateIdentityKeyServiceUnavailable ProblemDetails
+
+func (*RotateIdentityKeyServiceUnavailable) rotateIdentityKeyRes() {}
+
+type RotateIdentityKeyTooManyRequests ProblemDetails
+
+func (*RotateIdentityKeyTooManyRequests) rotateIdentityKeyRes() {}
+
+type RotateIdentityKeyUnauthorized ProblemDetails
+
+func (*RotateIdentityKeyUnauthorized) rotateIdentityKeyRes() {}
 
 // Ref: #/components/schemas/RotateSecretResponse
 type RotateSecretResponse struct {

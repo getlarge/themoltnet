@@ -1027,6 +1027,7 @@ func isReviewedMoltnetConsumer(executable string, args []string, allowGitHubToke
 		[]string{"config", "migrate"},
 		[]string{"config", "credentials", "copy"},
 		[]string{"github", "key", "replace"},
+		[]string{"agents", "identity-key", "rotate"},
 		[]string{"agents", "credentials", "recover"},
 		[]string{"secrets", "guard"},
 	) {
@@ -1215,13 +1216,14 @@ func isKeyringRevealCommand(executable string, args []string) bool {
 
 // isSecretMovingMoltnetArgs reports whether a moltnet invocation copies a
 // credential into a secret provider: config migrate, config credentials
-// copy, github key replace, credential recovery, and agents keys
-// create/rotate with --store.
+// copy, github key replace, identity key rotation, credential recovery, and
+// agents keys create/rotate with --store.
 func isSecretMovingMoltnetArgs(args []string) bool {
 	if matchesMoltnetOperation(args,
 		[]string{"config", "migrate"},
 		[]string{"config", "credentials", "copy"},
 		[]string{"github", "key", "replace"},
+		[]string{"agents", "identity-key", "rotate"},
 	) {
 		return true
 	}

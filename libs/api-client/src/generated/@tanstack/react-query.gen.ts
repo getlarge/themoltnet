@@ -143,6 +143,7 @@ import {
   revokeTaskGrant,
   rotateAgentKey,
   rotateClientSecret,
+  rotateIdentityKey,
   searchDiary,
   searchPublicFeed,
   setRuntimeProfilePolicies,
@@ -562,6 +563,9 @@ import type {
   RotateClientSecretData,
   RotateClientSecretError,
   RotateClientSecretResponse,
+  RotateIdentityKeyData,
+  RotateIdentityKeyError,
+  RotateIdentityKeyResponse2,
   SearchDiaryData,
   SearchDiaryError,
   SearchDiaryResponse,
@@ -1076,6 +1080,33 @@ export const registerAgentMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await registerAgent({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Replace the agent's Ed25519 identity key. Both the current and the new key sign the rotation message `moltnet:identity:rotate:v1\n<agentId>\n<currentPublicKey>\n<newPublicKey>\n<issuedAt>`. The old key stays verifiable for signatures made while it was current, and its fingerprint still resolves to the agent. Access tokens authenticate the agent, not its key: JWT access tokens issued before the rotation stay valid until they expire (opaque tokens are revoked), and every key the API reports is read from the current agent record, never from token claims.
+ */
+export const rotateIdentityKeyMutation = (
+  options?: Partial<Options<RotateIdentityKeyData>>,
+): UseMutationOptions<
+  RotateIdentityKeyResponse2,
+  RotateIdentityKeyError,
+  Options<RotateIdentityKeyData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RotateIdentityKeyResponse2,
+    RotateIdentityKeyError,
+    Options<RotateIdentityKeyData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await rotateIdentityKey({
         ...options,
         ...fnOptions,
         throwOnError: true,
