@@ -119,36 +119,38 @@ export function searchDocsForTerms(
   ];
   const hits = new Map<string, string[]>();
   if (usable.length === 0) return hits;
-  let output: string;
-  try {
-    output = git([
-      'grep',
-      '-I',
-      '-F',
-      '-o',
-      ...usable.flatMap((term) => ['-e', term]),
-      headRevision,
-      '--',
-      '*.md',
-      '*.mdx',
-      ':(exclude,glob)**/CHANGELOG.md',
-    ]);
-  } catch (error) {
-    // `git grep` exits 1 when nothing matches.
-    if ((error as { status?: number }).status === 1) return hits;
-    throw error;
-  }
+  // One `-l` search per term: output is one path per matching file, so it
+  // stays small however often a term occurs, and per-term file counts (used
+  // to drop generic terms) are exact.
   const prefix = `${headRevision}:`;
-  for (const line of output.split('\n')) {
-    if (!line.startsWith(prefix)) continue;
-    const rest = line.slice(prefix.length);
-    const separator = rest.indexOf(':');
-    if (separator < 0) continue;
-    const path = rest.slice(0, separator);
-    const term = rest.slice(separator + 1);
-    const terms = hits.get(path) ?? [];
-    if (!terms.includes(term)) terms.push(term);
-    hits.set(path, terms);
+  for (const term of usable) {
+    let output: string;
+    try {
+      output = git([
+        'grep',
+        '-I',
+        '-F',
+        '-l',
+        '-e',
+        term,
+        headRevision,
+        '--',
+        '*.md',
+        '*.mdx',
+        ':(exclude,glob)**/CHANGELOG.md',
+      ]);
+    } catch (error) {
+      // `git grep` exits 1 when nothing matches.
+      if ((error as { status?: number }).status === 1) continue;
+      throw error;
+    }
+    for (const line of output.split('\n')) {
+      if (!line.startsWith(prefix)) continue;
+      const path = line.slice(prefix.length);
+      const terms = hits.get(path) ?? [];
+      if (!terms.includes(term)) terms.push(term);
+      hits.set(path, terms);
+    }
   }
   return hits;
 }

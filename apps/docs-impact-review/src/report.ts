@@ -2,6 +2,9 @@ import type { DocsImpactReport } from './types.js';
 
 export const DOCS_IMPACT_COMMENT_MARKER = '<!-- moltnet:docs-impact-review -->';
 
+/** The comment shows at most this many findings; the report keeps all. */
+export const COMMENT_MAX_FINDINGS = 3;
+
 /** Comment-side cap for free text; validation only guards runaway output. */
 export const COMMENT_TEXT_MAX = 280;
 
@@ -30,13 +33,19 @@ export function renderComment(report: DocsImpactReport): string {
   ];
   if (report.findings.length > 0) {
     lines.push('');
-    for (const finding of report.findings) {
+    for (const finding of report.findings.slice(0, COMMENT_MAX_FINDINGS)) {
       const section = finding.section ? ` › ${finding.section}` : '';
       const label = finding.issue ? `**${finding.issue}** ` : '';
       lines.push(
         `- ${label}\`${finding.docsPath}\`${section} — ${shorten(finding.update)} (evidence: \`${finding.evidence.path}\`: ${shorten(finding.evidence.detail)})`,
       );
     }
+  }
+  const hidden = report.findings.length - COMMENT_MAX_FINDINGS;
+  if (hidden > 0) {
+    lines.push(
+      `- …and ${hidden} more finding${hidden === 1 ? '' : 's'} in the workflow run report.`,
+    );
   }
   if (report.gaps.length > 0) {
     lines.push('', 'Not covered by this review:');

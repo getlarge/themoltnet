@@ -179,6 +179,16 @@ export async function updateDocsImpactComment(args: {
     return 'missing';
   }
   await github.upsert(args.prNumber, renderPublished(report, args.runUrl));
+  // Narrow the check-then-write race: if the head moved while publishing,
+  // replace the result with the stale notice.
+  const after = await github.headSha(args.prNumber);
+  if (after !== args.reviewedRevision) {
+    await github.upsert(
+      args.prNumber,
+      renderStale(args.reviewedRevision, after, args.runUrl),
+    );
+    return 'stale';
+  }
   return 'published';
 }
 

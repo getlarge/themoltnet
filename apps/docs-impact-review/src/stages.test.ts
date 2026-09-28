@@ -64,7 +64,7 @@ describe('parseContractExtraction', () => {
     );
 
     // Assert
-    expect(parsed).toEqual({ version: 1, changes: [change] });
+    expect(parsed).toEqual({ version: 1, changes: [change], dropped: [] });
   });
 
   it('drops fields the schema does not define and records the repair', () => {
@@ -83,7 +83,7 @@ describe('parseContractExtraction', () => {
     );
 
     // Assert
-    expect(parsed).toEqual({ version: 1, changes: [change] });
+    expect(parsed).toEqual({ version: 1, changes: [change], dropped: [] });
     expect(repairs).toEqual(['dropped fields the schema does not define']);
   });
 
@@ -414,6 +414,8 @@ describe('buildExtractTask', () => {
       diaryId: context.diaryId,
       correlationId: context.correlationId,
       maxAttempts: 1,
+      dispatchTimeoutSec: 300,
+      runningTimeoutSec: 120,
       allowedProfiles: [{ profileId: context.profileId }],
     });
     expect(task.tags).toEqual(

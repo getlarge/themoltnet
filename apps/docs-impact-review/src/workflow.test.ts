@@ -355,6 +355,70 @@ describe('runDocsImpactReview', () => {
     ]);
   });
 
+  it('reports incomplete when every extracted change lacked valid evidence', async () => {
+    // Arrange: the model cites a file the PR did not change.
+    const head = repo.commit({
+      'apps/cli/src/flags.ts': "export const flags = ['--dry-run'];\n",
+    });
+    const unsupported = {
+      ...cliChange,
+      evidence: [{ path: 'apps/cli/src/other.ts', detail: 'invented' }],
+    };
+
+    // Act
+    const { report } = run(head, [
+      json({ version: 1, changes: [unsupported] }),
+    ]);
+
+    // Assert
+    const result = await report;
+    expect(result.outcome).toBe('incomplete');
+    expect(result.gaps).toEqual([
+      {
+        scope: 'contract change dry-run-flag',
+        reason: 'not reviewed: its evidence did not cite changed source files',
+      },
+    ]);
+  });
+
+  it('keeps every docs-check finding in the report', async () => {
+    // Arrange: five separate edits far apart in an existing 60-line doc.
+    const lines = Array.from({ length: 60 }, (_, i) => `Existing line ${i}.`);
+    const reviewBase = repo.commit({
+      'docs/guide.md': `${lines.join('\n')}\n`,
+    });
+    const edited = lines.map((line, i) =>
+      i % 12 === 0 ? `${line} This is now allowed.` : line,
+    );
+    const head = repo.commit({ 'docs/guide.md': `${edited.join('\n')}\n` });
+    const hunkIds = Array.from(
+      { length: 5 },
+      (_, i) => `docs/guide.md#${i + 1}`,
+    );
+
+    // Act
+    const { report } = run(
+      head,
+      [
+        json({ version: 1, outcome: 'covered', findings: [] }),
+        json({
+          version: 1,
+          hunks: hunkIds.map((id) => ({
+            id,
+            verdict: 'remove',
+            reason: 'History only.',
+          })),
+        }),
+      ],
+      { baseRevision: reviewBase },
+    );
+
+    // Assert
+    const result = await report;
+    expect(result.findings).toHaveLength(5);
+    expect(result.outcome).toBe('updates-needed');
+  });
+
   it('keeps the coverage result when the docs check fails', async () => {
     // Arrange
     const head = repo.commit({

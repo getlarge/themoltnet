@@ -20,10 +20,12 @@ interface Call {
 
 /** Minimal GitHub API double recording writes. */
 function github(opts: {
-  head: string;
+  /** One value, or the sequence returned by successive head reads. */
+  head: string | string[];
   comments?: Array<{ id: number; body: string; type: string }>;
 }) {
   const calls: Call[] = [];
+  let headReads = 0;
   const fetchImpl = ((url: string, init?: RequestInit) => {
     const path = new URL(url).pathname + new URL(url).search;
     const method = init?.method ?? 'GET';
@@ -33,7 +35,9 @@ function github(opts: {
     calls.push({ method, path, body });
     let payload: unknown = {};
     if (method === 'GET' && path.endsWith('/pulls/7')) {
-      payload = { head: { sha: opts.head } };
+      const heads = Array.isArray(opts.head) ? opts.head : [opts.head];
+      payload = { head: { sha: heads[Math.min(headReads, heads.length - 1)] } };
+      headReads += 1;
     } else if (method === 'GET' && path.includes('/comments')) {
       payload = (opts.comments ?? []).map((c) => ({
         id: c.id,
@@ -156,6 +160,24 @@ describe('updateDocsImpactComment', () => {
     const [write] = writes(api.calls);
     expect(write.body?.body).toContain('Docs impact: stale');
     expect(write.body?.body).not.toContain('updates-needed');
+  });
+
+  it('replaces a result published while the head moved', async () => {
+    // Arrange: the head changes between the check and the write.
+    const api = github({ head: [HEAD, NEWER] });
+
+    // Act
+    const status = await updateDocsImpactComment({
+      ...base,
+      mode: 'publish',
+      reportPath: reportFile({ outcome: 'updates-needed' }),
+      fetchImpl: api.fetchImpl,
+    });
+
+    // Assert
+    expect(status).toBe('stale');
+    const last = writes(api.calls).at(-1);
+    expect(last?.body?.body).toContain('Docs impact: stale');
   });
 
   it('reports not reviewed when the run produced no usable report', async () => {

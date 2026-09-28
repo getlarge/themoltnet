@@ -98,6 +98,28 @@ describe('renderComment', () => {
     expect(line).toContain('…');
   });
 
+  it('shows three findings and says how many more the report holds', () => {
+    // Arrange
+    const finding = {
+      changeId: 'c',
+      evidence: { path: 'src/a.ts', detail: 'd' },
+      docsPath: 'docs/a.md',
+      update: 'u',
+    };
+
+    // Act
+    const body = renderComment(
+      report({
+        outcome: 'updates-needed',
+        findings: Array.from({ length: 5 }, () => finding),
+      }),
+    );
+
+    // Assert
+    expect(body.match(/^- `docs\/a\.md`/gm)).toHaveLength(3);
+    expect(body).toContain('…and 2 more findings in the workflow run report.');
+  });
+
   it('names uncovered scope for an incomplete result', () => {
     // Act
     const body = renderComment(

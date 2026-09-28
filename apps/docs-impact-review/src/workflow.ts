@@ -25,7 +25,6 @@ import {
   buildDocsCheckTask,
   buildExtractTask,
   type CreateBody,
-  MAX_FINDINGS,
   parseContractExtraction,
   parseCoverageCheck,
   parseDocsCheck,
@@ -429,6 +428,7 @@ export async function runDocsImpactReview(
     }
 
     if (sourcePaths.size > 0) {
+      let droppedChanges: string[] = [];
       const extraction = await runStage(
         deps,
         input,
@@ -437,12 +437,23 @@ export async function runDocsImpactReview(
           diff: diff.text,
         }),
         'extract',
-        withRepairs('extract', (output, repairs) =>
-          parseContractExtraction(output, sourcePaths, repairs),
-        ),
+        withRepairs('extract', (output, repairs) => {
+          const parsed = parseContractExtraction(output, sourcePaths, repairs);
+          droppedChanges = parsed.dropped;
+          return parsed;
+        }),
         timings.stages,
       );
       report.contractChanges = extraction.changes;
+      // A change the model reported but could not support was not reviewed:
+      // it must not let the review read as clean.
+      for (const id of droppedChanges) {
+        report.gaps.push({
+          scope: `contract change ${id}`,
+          reason:
+            'not reviewed: its evidence did not cite changed source files',
+        });
+      }
     }
     if (report.contractChanges.length === 0 && changedDocs.size === 0) {
       report.outcome = 'not-needed';
@@ -532,7 +543,8 @@ export async function runDocsImpactReview(
     let docsFindings: DocsFinding[] = [];
     if (docsCheckResult.status === 'fulfilled') {
       const checked = docsCheckFindings(docsHunks.hunks, docsCheckResult.value);
-      docsFindings = checked.findings.slice(0, MAX_FINDINGS);
+      // Keep every finding in the report; only the PR comment caps display.
+      docsFindings = checked.findings;
       for (const id of checked.unanswered) {
         report.gaps.push({
           scope: id,

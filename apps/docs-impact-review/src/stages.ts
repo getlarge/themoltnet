@@ -41,6 +41,11 @@ const TASK_EXPIRES_IN_SEC = 60 * 60;
 // Sized for a 2–3 minute review: coverage on a larger PR can need more than
 // 90 s, and running out yields an honest `incomplete`, never a clean result.
 export const STAGE_RUNNING_TIMEOUT_SEC = 120;
+/**
+ * An unclaimed stage fails on the server after this long instead of waiting
+ * for the review job's timeout, so a missing worker reads as unavailable.
+ */
+export const STAGE_DISPATCH_TIMEOUT_SEC = 300;
 
 export interface StageContext {
   repo: string;
@@ -263,7 +268,10 @@ export function parseContractExtraction(
   output: unknown,
   changedSourcePaths: ReadonlySet<string>,
   repairs: string[] = [],
-): ContractExtraction {
+): ContractExtraction & {
+  /** Changes removed for lack of valid evidence; callers record them as gaps. */
+  dropped: string[];
+} {
   const parsed = parseSummaryJson<ContractExtraction>(
     output,
     ContractExtractionSchema,
@@ -273,6 +281,7 @@ export function parseContractExtraction(
   );
   const ids = new Set<string>();
   const changes: ContractChange[] = [];
+  const dropped: string[] = [];
   for (const change of parsed.changes) {
     if (ids.has(change.id)) {
       throw new Error(`contract extraction has duplicate id ${change.id}`);
@@ -295,11 +304,12 @@ export function parseContractExtraction(
       repairs.push(
         `dropped change ${change.id}: no evidence from changed source files`,
       );
+      dropped.push(change.id);
       continue;
     }
     changes.push({ ...change, evidence });
   }
-  return { ...parsed, changes };
+  return { ...parsed, changes, dropped };
 }
 
 export interface CoverageAllowlist {
@@ -398,6 +408,7 @@ function baseTask(
     correlationId: ctx.correlationId,
     expiresInSec: TASK_EXPIRES_IN_SEC,
     runningTimeoutSec: STAGE_RUNNING_TIMEOUT_SEC,
+    dispatchTimeoutSec: STAGE_DISPATCH_TIMEOUT_SEC,
     maxAttempts: 1,
     allowedProfiles: [
       { profileId: ctx.stageProfileIds?.[stage] ?? ctx.profileId },
