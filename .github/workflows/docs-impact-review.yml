@@ -36,18 +36,29 @@ jobs:
       contents: read
       pull-requests: read
     outputs:
-      skip: ${{ steps.prepare.outputs.skip }}
-      pr-number: ${{ steps.prepare.outputs.pr-number }}
-      base-sha: ${{ steps.prepare.outputs.base-sha }}
-      head-sha: ${{ steps.prepare.outputs.head-sha }}
-      correlation-id: ${{ steps.prepare.outputs.correlation-id }}
-      profile: ${{ steps.prepare.outputs.profile }}
-      coverage-profile: ${{ steps.prepare.outputs.coverage-profile }}
-      docs-check-profile: ${{ steps.prepare.outputs.docs-check-profile }}
-      worker-profiles: ${{ steps.prepare.outputs.worker-profiles }}
+      skip: ${{ steps.gate.outputs.skip }}
+      pr-number: ${{ steps.facts.outputs.pr-number }}
+      base-sha: ${{ steps.facts.outputs.base-sha }}
+      head-sha: ${{ steps.facts.outputs.head-sha }}
+      correlation-id: ${{ steps.facts.outputs.correlation-id }}
+      profile: ${{ steps.facts.outputs.profile }}
+      coverage-profile: ${{ steps.facts.outputs.coverage-profile }}
+      docs-check-profile: ${{ steps.facts.outputs.docs-check-profile }}
+      worker-profiles: ${{ steps.facts.outputs.worker-profiles }}
     steps:
-      - name: Validate the pull request and pin revisions
-        id: prepare
+      # Trusted gate code from the default branch; the PR is never checked out.
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          sparse-checkout: apps/docs-impact-review/src/eligibility.ts
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Collect pull request facts and pin revisions
+        id: facts
         uses: actions/github-script@v8
         env:
           REVIEW_PROFILE: ${{ vars.MOLTNET_DOCS_IMPACT_PROFILE }}
@@ -56,14 +67,8 @@ jobs:
         with:
           script: |
             const crypto = require('node:crypto');
-            const skip = async (reason) => {
-              core.notice(`Docs impact review skipped: ${reason}`);
-              await core.summary
-                .addHeading('Docs impact review skipped', 3)
-                .addRaw(reason)
-                .write();
-              core.setOutput('skip', 'true');
-            };
+            const fs = require('node:fs');
+            const path = require('node:path');
             const pullNumber =
               context.eventName === 'pull_request'
                 ? context.payload.pull_request.number
@@ -73,36 +78,27 @@ jobs:
               repo: context.repo.repo,
               pull_number: pullNumber,
             });
-            // Fork PRs run without secrets and cannot publish; the trust
-            // model matches the existing review workflows.
-            if (pr.head.repo?.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
-              return skip('fork pull requests are not reviewed');
-            }
-            if (pr.user.login === 'dependabot[bot]') {
-              return skip('Dependabot pull requests are not reviewed');
-            }
             const files = await github.paginate(github.rest.pulls.listFiles, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: pullNumber,
               per_page: 100,
             });
-            // Changes to the trusted review runtime must not be reviewed by
-            // the runtime they modify.
-            const runtimePaths = [
-              '.github/workflows/docs-impact-review.yml',
-              '.github/runtime-profiles/legreffier-docs-review-',
-              'apps/docs-impact-review/',
-              'packages/agent-daemon-action/',
-            ];
-            const runtimeChanges = files
-              .map((file) => file.filename)
-              .filter((path) => runtimePaths.some((prefix) => path.startsWith(prefix)));
-            if (runtimeChanges.length > 0) {
-              return skip(
-                `the PR changes the trusted review runtime (${runtimeChanges.join(', ')})`,
-              );
-            }
+            const factsPath = path.join(process.env.RUNNER_TEMP, 'pr-facts.json');
+            fs.writeFileSync(
+              factsPath,
+              JSON.stringify({
+                headRepo: pr.head.repo?.full_name ?? null,
+                baseRepo: `${context.repo.owner}/${context.repo.repo}`,
+                author: pr.user.login,
+                files: files.map((file) => ({
+                  filename: file.filename,
+                  ...(file.previous_filename
+                    ? { previous_filename: file.previous_filename }
+                    : {}),
+                })),
+              }),
+            );
             const profile = process.env.REVIEW_PROFILE;
             if (!profile) {
               core.setFailed('MOLTNET_DOCS_IMPACT_PROFILE is not configured');
@@ -124,7 +120,7 @@ jobs:
             bytes[8] = (bytes[8] & 0x3f) | 0x80;
             const hex = bytes.toString('hex');
             const correlationId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-            core.setOutput('skip', 'false');
+            core.setOutput('facts-path', factsPath);
             core.setOutput('pr-number', String(pr.number));
             core.setOutput('base-sha', pr.base.sha);
             core.setOutput('head-sha', pr.head.sha);
@@ -138,6 +134,19 @@ jobs:
               'worker-profiles',
               JSON.stringify([...new Set([profile, coverageProfile, docsCheckProfile])]),
             );
+
+      - name: Check eligibility (fork, Dependabot, review-runtime changes)
+        id: gate
+        env:
+          FACTS: ${{ steps.facts.outputs.facts-path }}
+        run: |
+          set -euo pipefail
+          node apps/docs-impact-review/src/eligibility.ts "$FACTS" | tee -a "$GITHUB_OUTPUT"
+          if grep -q '^skip=true' "$GITHUB_OUTPUT"; then
+            reason="$(grep '^reason=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
+            echo "::notice::Docs impact review skipped: $reason"
+            printf '### Docs impact review skipped\n\n%s\n' "$reason" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
   review:
     needs: prepare
@@ -215,6 +224,23 @@ jobs:
             --revision "$HEAD_SHA" --run-url "$RUN_URL" \
             --report "${SUMMARY:-$RUNNER_TEMP/docs-impact-summary.json}"
 
+      # Advisory, not required for merge: publish first, then make a review
+      # that did not complete visible as a failed run instead of a green one.
+      - name: Fail when the review did not complete
+        if: always() && !cancelled()
+        env:
+          REVIEW_OUTCOME: ${{ steps.review.outcome }}
+          SUMMARY: ${{ steps.review.outputs.summary }}
+        run: |
+          if [ "$REVIEW_OUTCOME" != "success" ]; then
+            echo "::error::docs impact review step ended with $REVIEW_OUTCOME" >&2
+            exit 1
+          fi
+          if [ -f "${SUMMARY:-}" ] && jq -e '.reports[0].status == "failed"' "$SUMMARY" >/dev/null; then
+            echo "::error::docs impact review failed: $(jq -r '.reports[0].error' "$SUMMARY")" >&2
+            exit 1
+          fi
+
       - name: Record the timing breakdown
         if: always() && !cancelled()
         env:
@@ -240,7 +266,7 @@ jobs:
       matrix:
         profile: ${{ fromJSON(needs.prepare.outputs.worker-profiles) }}
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     environment: legreffier
     permissions:
       contents: read
@@ -273,9 +299,11 @@ jobs:
           mode: drain
           task-types: freeform
           correlation-id: ${{ needs.prepare.outputs.correlation-id }}
-          # Extraction is created as soon as the review job has installed;
-          # coverage and docs check follow within seconds of it.
-          wait-for-first-task-sec: '180'
-          wait-after-task-sec: '90'
+          # A coverage or docs-check worker's first task only exists after the
+          # review job has installed and extraction has finished, which on a
+          # cold runner can take several minutes. Tasks carry a dispatch
+          # timeout, so an unclaimed stage fails rather than hanging.
+          wait-for-first-task-sec: '420'
+          wait-after-task-sec: '120'
           profile: ${{ matrix.profile }}
           daemon-version: workspace

@@ -142,7 +142,9 @@ a notice in the run summary, for:
 The comment is published only if the pull request still points at the
 reviewed head. Otherwise it says the result is stale.
 
-**Configuration** (repository or `legreffier` environment variables):
+**Configuration** (repository variables; the `prepare` job computes the
+worker list outside the `legreffier` environment, so environment-scoped
+variables are not visible to it):
 
 | Variable                                 | Purpose                                         |
 | ---------------------------------------- | ----------------------------------------------- |
