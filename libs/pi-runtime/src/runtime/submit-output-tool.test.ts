@@ -6,6 +6,7 @@ import {
   MetricReader,
 } from '@opentelemetry/sdk-metrics';
 import { BUILT_IN_TASK_TYPES } from '@themoltnet/agent-runtime';
+import { Value } from 'typebox/value';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -136,6 +137,37 @@ describe('createSubmitOutputTool', () => {
     expect(tool.promptGuidelines?.join('\n')).not.toContain('task prompt');
   });
 
+  it('lets malformed nested verification reach the executor for repair', async () => {
+    const handle = createSubmitOutputTool('freeform', {
+      input: submitOutputOnlyFreeformInput,
+      inputCid: 'bafy-input',
+    });
+    const malformed = {
+      summary: 'done',
+      artifacts: [],
+      verification: {
+        inputCid: 'wrong',
+        results: [{ id: 'submit-output', kind: 'wrong', status: 'pass' }],
+        passed: true,
+      },
+    };
+    expect(Value.Check(handle.tool.parameters, malformed)).toBe(true);
+    const result = await callExecute(handle)(malformed);
+    expect(result.isError).toBeFalsy();
+    expect(handle.getCaptured()?.verification).toEqual({
+      inputCid: 'bafy-input',
+      results: [
+        {
+          id: 'submit-output',
+          kind: 'gate',
+          status: 'pass',
+          detail: 'submit_freeform_output accepted valid args',
+        },
+      ],
+      passed: true,
+    });
+  });
+
   it('captures a valid payload and invokes the completion boundary', async () => {
     const onValidCapture = vi.fn();
     const handle = createSubmitOutputTool('fulfill_brief', { onValidCapture });
@@ -149,6 +181,7 @@ describe('createSubmitOutputTool', () => {
     expect(handle.getCallCount()).toBe(1);
     expect(onValidCapture).toHaveBeenCalledTimes(1);
     expect(result.content[0].text).toContain('captured');
+    expect(result.terminate).toBe(true);
   });
 
   it('returns a tool error WITHOUT terminate:true on schema-invalid args', async () => {
@@ -436,6 +469,7 @@ describe('createSubmitOutputTool', () => {
     const duplicate = await exec(second);
 
     expect(duplicate.content[0].text).toContain('duplicate');
+    expect(duplicate.terminate).toBe(true);
     expect(handle.getCaptured()).toEqual(validFulfillBriefOutput);
     expect(handle.getCallCount()).toBe(1);
     expect(onValidCapture).toHaveBeenCalledTimes(1);

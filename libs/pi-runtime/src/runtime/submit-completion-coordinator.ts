@@ -7,6 +7,7 @@ interface ToolExecutionEvent {
 export interface SubmitCompletionCoordinator {
   extension: (pi: ExtensionAPI) => void;
   requestCompletion: () => void;
+  hasRequestedCompletion: () => boolean;
   hasStartedCompletion: () => boolean;
 }
 
@@ -17,10 +18,11 @@ export interface SubmitCompletionCoordinator {
  * cancel that sibling after the runtime had already accepted the output.
  */
 export function createSubmitCompletionCoordinator(options: {
-  onDrained: () => void | Promise<void>;
+  onDrained: (toolCallCount: number) => void | Promise<void>;
   onError: (error: unknown) => void | Promise<void>;
 }): SubmitCompletionCoordinator {
   const activeToolCalls = new Set<string>();
+  let turnToolCallCount = 0;
   let completionRequested = false;
   let completionStarted = false;
 
@@ -29,13 +31,19 @@ export function createSubmitCompletionCoordinator(options: {
       return;
     }
     completionStarted = true;
-    void Promise.resolve(options.onDrained()).catch(options.onError);
+    void Promise.resolve(options.onDrained(turnToolCallCount)).catch(
+      options.onError,
+    );
   };
 
   return {
     extension: (pi) => {
+      pi.on('turn_start', () => {
+        turnToolCallCount = 0;
+      });
       pi.on('tool_execution_start', (event: ToolExecutionEvent) => {
         activeToolCalls.add(event.toolCallId);
+        turnToolCallCount += 1;
       });
       pi.on('tool_execution_end', (event: ToolExecutionEvent) => {
         activeToolCalls.delete(event.toolCallId);
@@ -46,6 +54,7 @@ export function createSubmitCompletionCoordinator(options: {
       completionRequested = true;
       drain();
     },
+    hasRequestedCompletion: () => completionRequested,
     hasStartedCompletion: () => completionStarted,
   };
 }
