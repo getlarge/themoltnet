@@ -52,6 +52,13 @@ function nextKey(): { publicKey: string; fingerprint: string } {
   };
 }
 
+// History windows are stamped with the database clock, so reference
+// instants come from it too; the test runner's clock may drift from it.
+async function databaseNow(): Promise<Date> {
+  const result = await db.execute(sql`SELECT clock_timestamp() AS now`);
+  return new Date((result.rows[0] as { now: string | Date }).now);
+}
+
 const PROOF = {
   message: 'moltnet:identity:rotate:v1\n...',
   previousPublicKey: 'ed25519:previous',
@@ -114,7 +121,7 @@ describe('Agent identity key history (integration)', () => {
     const oldKey = nextKey();
     const newKey = nextKey();
     const { agent } = await agents.upsertByFingerprint(oldKey);
-    const beforeRotation = new Date();
+    const beforeRotation = await databaseNow();
     await new Promise((resolve) => {
       setTimeout(resolve, 20);
     });
@@ -126,7 +133,7 @@ describe('Agent identity key history (integration)', () => {
     await new Promise((resolve) => {
       setTimeout(resolve, 20);
     });
-    const afterRotation = new Date();
+    const afterRotation = await databaseNow();
 
     const before = await history.findKeysValidBetween(
       agent.id,
