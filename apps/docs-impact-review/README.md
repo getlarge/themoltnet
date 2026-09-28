@@ -47,7 +47,7 @@ trusted code, never by the model.
 | Docs-diff bytes (stage 2)   | 16 000   | `DEFAULT_BUDGETS`           |
 | Excerpt bytes per doc       | 8 000    | `DEFAULT_BUDGETS`           |
 | Docs per review             | 6        | `DEFAULT_BUDGETS`           |
-| Running timeout per stage   | 90 s     | `STAGE_RUNNING_TIMEOUT_SEC` |
+| Running timeout per stage   | 120 s    | `STAGE_RUNNING_TIMEOUT_SEC` |
 | Model turns / output tokens | 6 / 4096 | runtime profile             |
 
 Byte budgets target ~24k input tokens per stage. Output tokens start above the
@@ -151,7 +151,8 @@ reviewed head. Otherwise it says the result is stale.
 | `MOLTNET_DOCS_IMPACT_COVERAGE_PROFILE`   | optional profile for the coverage stage         |
 | `MOLTNET_DOCS_IMPACT_DOCS_CHECK_PROFILE` | optional profile for the docs check             |
 
-Stage budgets (a 90 s running timeout and the profile's turn limit) and input
+The target is a review in about 2–3 minutes, a little more when the runner
+starts cold. Stage budgets (a 120 s running timeout and the profile's turn limit) and input
 budgets (`DEFAULT_BUDGETS`) are described above. The run summary records the
 per-stage timing breakdown and token counts.
 

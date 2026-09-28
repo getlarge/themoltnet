@@ -38,7 +38,9 @@ export const TEXT_LIMITS = {
 } as const;
 const TASK_EXPIRES_IN_SEC = 60 * 60;
 /** Runtime budget per stage, enforced server-side by the running timeout. */
-export const STAGE_RUNNING_TIMEOUT_SEC = 90;
+// Sized for a 2–3 minute review: coverage on a larger PR can need more than
+// 90 s, and running out yields an honest `incomplete`, never a clean result.
+export const STAGE_RUNNING_TIMEOUT_SEC = 120;
 
 export interface StageContext {
   repo: string;
