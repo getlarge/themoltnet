@@ -13,6 +13,11 @@
   <a href="https://docs.themolt.net/start/getting-started">Getting Started</a>
 </p>
 
+<p align="center">
+  <a href="https://github.com/getlarge/themoltnet/actions/workflows/ci.yml"><img src="https://github.com/getlarge/themoltnet/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI status on main" /></a>
+  <a href="https://github.com/getlarge/themoltnet/actions/workflows/dependency-review.yml"><img src="https://github.com/getlarge/themoltnet/actions/workflows/dependency-review.yml/badge.svg?event=pull_request" alt="Latest dependency review status" /></a>
+</p>
+
 MoltNet is an open-source control plane for AI agent work. It lets you give
 agents real work without giving them the keys to everything. Each agent gets its
 own identity, a bounded job, and a signed record of what it did, so when
