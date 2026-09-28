@@ -13,12 +13,6 @@ CREATE UNIQUE INDEX "agent_identity_keys_fingerprint_idx" ON "agent_identity_key
 CREATE UNIQUE INDEX "agent_identity_keys_current_idx" ON "agent_identity_keys" USING btree ("agent_id") WHERE valid_until IS NULL;--> statement-breakpoint
 CREATE INDEX "agent_identity_keys_agent_window_idx" ON "agent_identity_keys" USING btree ("agent_id","valid_from");--> statement-breakpoint
 
--- Every existing agent's current key opens its history at registration time.
-INSERT INTO "agent_identity_keys" ("agent_id", "public_key", "fingerprint", "valid_from")
-SELECT "id", "public_key", "fingerprint", "created_at" FROM "agents"
-ON CONFLICT DO NOTHING;
---> statement-breakpoint
-
 -- Keep agent_identity_keys in step with agents.public_key for every writer
 -- (registration, bootstrap, rotation). A changed key closes the current row
 -- and opens a new one at the same instant. A fingerprint already present in
@@ -42,9 +36,23 @@ END;
 $$ LANGUAGE plpgsql;
 --> statement-breakpoint
 
+-- The trigger is installed before the backfill. CREATE TRIGGER holds a lock
+-- on agents that blocks concurrent inserts until this migration commits, and
+-- those inserts then run the trigger; every row committed earlier is visible
+-- to the backfill below. No agent can end up without a history row.
 DROP TRIGGER IF EXISTS agents_identity_key_history ON "agents";
 --> statement-breakpoint
 CREATE TRIGGER agents_identity_key_history
   AFTER INSERT OR UPDATE OF "public_key" ON "agents"
   FOR EACH ROW
   EXECUTE FUNCTION record_agent_identity_key();
+--> statement-breakpoint
+
+-- Every existing agent's current key opens its history at registration time.
+-- Agents the trigger already recorded are skipped.
+INSERT INTO "agent_identity_keys" ("agent_id", "public_key", "fingerprint", "valid_from")
+SELECT a."id", a."public_key", a."fingerprint", a."created_at" FROM "agents" a
+WHERE NOT EXISTS (
+  SELECT 1 FROM "agent_identity_keys" k WHERE k."agent_id" = a."id"
+)
+ON CONFLICT DO NOTHING;

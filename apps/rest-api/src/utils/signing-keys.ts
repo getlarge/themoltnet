@@ -22,23 +22,27 @@ export async function findAgentByAnyFingerprint(
 }
 
 /**
- * Verify a signing request's signature against the identity key(s) the agent
- * held while the request was open. Almost always one key; two when the agent
- * rotated between the request's creation and its completion. The agent's
- * current key is the fallback for an agent with no recorded history.
+ * Verify a signing request's signature against the identity key the agent
+ * held when the request completed. That is the key the signing workflow
+ * checked the submission against, so a recorded result and a later
+ * verification always agree. A request left open across a rotation therefore
+ * cannot be completed with the retired key: rotating away from a compromised
+ * key must not leave it able to finish pending requests. The agent's current
+ * key is the fallback for an agent with no recorded history.
  *
  * Returns the fingerprint of the key that verified, or null.
  */
 export async function verifyWithSigningKeys(
   deps: KeyDeps,
   agent: Agent,
-  signingRequest: Pick<SigningRequest, 'createdAt' | 'completedAt'>,
+  signingRequest: Pick<SigningRequest, 'completedAt'>,
   verify: (publicKey: string) => Promise<boolean>,
 ): Promise<string | null> {
+  const completedAt = signingRequest.completedAt ?? new Date();
   const keys = await deps.agentIdentityKeyRepository.findKeysValidBetween(
     agent.id,
-    signingRequest.createdAt,
-    signingRequest.completedAt ?? new Date(),
+    completedAt,
+    completedAt,
   );
   const candidates =
     keys.length > 0

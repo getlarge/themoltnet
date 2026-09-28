@@ -72,11 +72,19 @@ describe('identity key rotation workflow', () => {
     deps.transactionRunner.runInTransaction.mockImplementation(
       (fn: () => Promise<unknown>) => fn(),
     );
-    deps.agentRepository.findById.mockResolvedValue({
-      id: AGENT_ID,
-      publicKey: OLD_KEY,
-      fingerprint: 'OLD0-0000-0000-0000',
-    });
+    // The rotation transaction reads the old key; reconciliation reads
+    // what Postgres holds after the commit.
+    deps.agentRepository.findById
+      .mockResolvedValueOnce({
+        id: AGENT_ID,
+        publicKey: OLD_KEY,
+        fingerprint: 'OLD0-0000-0000-0000',
+      })
+      .mockResolvedValue({
+        id: AGENT_ID,
+        publicKey: NEW_KEY,
+        fingerprint: INPUT.newFingerprint,
+      });
     deps.agentIdentityKeyRepository.attachRotationProof.mockResolvedValue(true);
     deps.oauth2Api.patchOAuth2Client.mockResolvedValue({});
     setIdentityKeyRotationDeps(deps as never);
@@ -129,6 +137,45 @@ describe('identity key rotation workflow', () => {
     });
   });
 
+  it('reconciles Ory to a newer rotation that committed meanwhile', async () => {
+    const NEWER_KEY = 'ed25519:newer';
+    deps.agentRepository.findById.mockReset();
+    deps.agentRepository.findById
+      // rotation transaction
+      .mockResolvedValueOnce({
+        id: AGENT_ID,
+        publicKey: OLD_KEY,
+        fingerprint: 'OLD0-0000-0000-0000',
+      })
+      // first reconciliation read: this rotation's key
+      .mockResolvedValueOnce({
+        id: AGENT_ID,
+        publicKey: NEW_KEY,
+        fingerprint: INPUT.newFingerprint,
+      })
+      // a newer rotation commits before the verification read
+      .mockResolvedValue({
+        id: AGENT_ID,
+        publicKey: NEWER_KEY,
+        fingerprint: 'NEWR-0000-0000-0000',
+      });
+
+    const result = await identityKeyRotationWorkflow.rotateIdentityKey(INPUT);
+
+    expect(result.status).toBe('rotated');
+    const kratosWrites = deps.identityApi.patchIdentity.mock.calls.map(
+      ([request]) => request.jsonPatch[0].value,
+    );
+    expect(kratosWrites).toEqual([NEW_KEY, NEWER_KEY]);
+    const lastHydraPatch =
+      deps.oauth2Api.patchOAuth2Client.mock.calls.at(-1)?.[0];
+    expect(lastHydraPatch.jsonPatch).toEqual(
+      expect.arrayContaining([
+        { op: 'add', path: '/metadata/public_key', value: NEWER_KEY },
+      ]),
+    );
+  });
+
   it.each([
     ['stale', new AgentIdentityKeyStaleError(AGENT_ID)],
     ['conflict', new AgentFingerprintConflictError(INPUT.newFingerprint)],
@@ -146,6 +193,7 @@ describe('identity key rotation workflow', () => {
   });
 
   it('treats a replay of its own committed rotation as success', async () => {
+    deps.agentRepository.findById.mockReset();
     deps.agentRepository.findById.mockResolvedValue({
       id: AGENT_ID,
       publicKey: NEW_KEY,
@@ -170,6 +218,7 @@ describe('identity key rotation workflow', () => {
   });
 
   it('does not claim a key moved by a different proof', async () => {
+    deps.agentRepository.findById.mockReset();
     deps.agentRepository.findById.mockResolvedValue({
       id: AGENT_ID,
       publicKey: NEW_KEY,

@@ -35,8 +35,8 @@ export async function identityRotationRoutes(fastify: FastifyInstance) {
     {
       config: {
         // No scope is required: the dual-signed proof already demands the
-        // current private key. A team-bound credential still cannot change
-        // the agent's identity.
+        // current private key. `identity` only makes the route team-agnostic;
+        // the handler itself rejects team-bound credentials.
         auth: {
           credentialBindingScope: 'identity',
           requiredScopes: [],
@@ -69,6 +69,15 @@ export async function identityRotationRoutes(fastify: FastifyInstance) {
         throw createProblem(
           'forbidden',
           'Only agents can rotate identity keys',
+        );
+      }
+      // The identity key is agent-wide. A credential bound to one team must
+      // not change it, and the auth plugin permits team-bound credentials on
+      // identity-scoped routes, so the check is explicit here.
+      if (authContext.credentialBinding?.bindingScope === 'team') {
+        throw createProblem(
+          'forbidden',
+          'A team-bound credential cannot rotate the identity key; use an identity-scoped credential',
         );
       }
       const body = request.body;

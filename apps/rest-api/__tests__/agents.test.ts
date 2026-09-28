@@ -137,9 +137,10 @@ describe('Agent routes', () => {
         valid: true,
         signer: { fingerprint: 'A0A0-0000-0000-0001' },
       });
+      // The key current when the request completed, as submission used.
       expect(
         mocks.agentIdentityKeyRepository.findKeysValidBetween,
-      ).toHaveBeenCalledWith(OWNER_ID, createdAt, completedAt);
+      ).toHaveBeenCalledWith(OWNER_ID, completedAt, completedAt);
     });
 
     it('resolves a retired fingerprint to its agent', async () => {

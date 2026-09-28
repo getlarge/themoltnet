@@ -8,7 +8,8 @@
  * 1. Postgres (authoritative): compare-and-swap `agents.public_key`; the
  *    agents trigger closes the old key's history row and opens the new one,
  *    and the proof is attached to it — one transaction.
- * 2. Kratos: replace `traits.public_key` on the bound identity.
+ * 2. Kratos: replace `traits.public_key` on the bound identity with the key
+ *    Postgres holds when the step runs (see the reconciliation loop).
  * 3. Hydra: patch each agent client's `public_key`/`fingerprint` metadata and
  *    display name, then revoke its tokens. Revocation reaches opaque tokens;
  *    JWT access tokens are verified locally and expire on their own. Their
@@ -103,6 +104,9 @@ type RotateIdentityKeyFn = (
 ) => Promise<IdentityKeyRotationResult>;
 
 let _workflow: RotateIdentityKeyFn | null = null;
+
+// Rounds of read-write-verify before leaving convergence to a newer rotation.
+const MAX_RECONCILIATION_ROUNDS = 5;
 
 const reconcileStepConfig = {
   retriesAllowed: true,
@@ -235,16 +239,44 @@ export function initIdentityKeyRotationWorkflow(): void {
       );
       if (committed.status !== 'rotated') return committed;
 
+      // Reconcile Ory from Postgres, not from this workflow's input: when
+      // rotations overlap, an older workflow's retries could otherwise write
+      // its key after a newer one did. Each round writes the key Postgres
+      // holds now and re-reads it; a key that moved meanwhile is written in
+      // the next round, so whichever workflow writes last ends on the latest
+      // committed key.
+      const readCurrentKey = () =>
+        getDeps().transactionRunner.runInTransaction(
+          async () => {
+            const agent = await agentRepository.findById(input.agentId);
+            return agent
+              ? { publicKey: agent.publicKey, fingerprint: agent.fingerprint }
+              : null;
+          },
+          { name: 'identity.rotation.tx.readCurrentKey' },
+        );
       try {
-        if (input.identityId) {
-          await updateKratosIdentityStep(input.identityId, input.newPublicKey);
-        }
-        for (const clientId of input.clientIds) {
-          await updateHydraClientStep(
-            clientId,
-            input.newPublicKey,
-            input.newFingerprint,
-          );
+        let current = await readCurrentKey();
+        for (
+          let round = 0;
+          current && round < MAX_RECONCILIATION_ROUNDS;
+          round += 1
+        ) {
+          if (input.identityId) {
+            await updateKratosIdentityStep(input.identityId, current.publicKey);
+          }
+          for (const clientId of input.clientIds) {
+            await updateHydraClientStep(
+              clientId,
+              current.publicKey,
+              current.fingerprint,
+            );
+          }
+          const after = await readCurrentKey();
+          if (after?.publicKey === current.publicKey) break;
+          // Still moving after the last round: the newer rotation's own
+          // workflow reconciles to its key.
+          current = after;
         }
         await evictAuthCachesStep(input.identityId, input.clientIds);
       } catch (err) {

@@ -270,6 +270,34 @@ describe('POST /auth/rotate-identity-key', () => {
     expect(response.json().detail).toContain('/agents/whoami');
   });
 
+  it.each([
+    ['a team-bound agent key', 'team', 403],
+    ['an identity-scoped agent key', 'identity', 200],
+  ] as const)('with %s answers %i', async (_name, bindingScope, status) => {
+    const keyApp = await createTestApp(mocks, {
+      ...VALID_AUTH_CONTEXT,
+      credentialBinding:
+        bindingScope === 'team'
+          ? {
+              bindingScope: 'team',
+              keyId: 'key-1',
+              expiresAt: null,
+              boundTeamId: '990e8400-e29b-41d4-a716-446655440009',
+            }
+          : { bindingScope: 'identity', keyId: 'key-1', expiresAt: null },
+    });
+    try {
+      const { body } = await proofFor();
+      const response = await rotate(body, keyApp);
+      expect(response.statusCode).toBe(status);
+      if (status === 403) {
+        expect(mockStartWorkflow).not.toHaveBeenCalled();
+      }
+    } finally {
+      await keyApp.close();
+    }
+  });
+
   it('refuses humans', async () => {
     const humanApp = await createTestApp(mocks, HUMAN_AUTH_CONTEXT);
     try {
