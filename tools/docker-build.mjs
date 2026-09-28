@@ -191,6 +191,12 @@ async function main() {
       args.push('--cache-to', `type=registry,ref=${cacheRef},mode=max`);
     }
   }
+  // Registry pushes preserve BuildKit attestations; local --load builds use
+  // Docker's default image store, which does not preserve them. Cache-only
+  // refreshes have no image to attest.
+  if (opts.push) {
+    args.push('--sbom=true', '--provenance=mode=max');
+  }
   // buildx requires exactly one output mode. --push uploads to the registry;
   // --load materializes the image in the local daemon (single-platform only),
   // which both the e2e Compose stack and `nx release`'s `docker tag` need.
