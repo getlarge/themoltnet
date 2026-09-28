@@ -6,6 +6,7 @@ import { createOrchestrationAbsurdApp } from '@themoltnet/tasks-orchestrator';
 import { Client } from 'pg';
 import { describe, expect, it } from 'vitest';
 
+// eslint-disable-next-line no-restricted-syntax -- set by E2E global setup
 const ABSURD_URL = process.env.ORCHESTRATION_ABSURD_URL as string;
 const WORKER_FIXTURE = resolve(
   import.meta.dirname,
@@ -17,11 +18,16 @@ function startWorkerProcess(args: {
   taskId: string;
   runKey: string;
   mode: 'initial' | 'recovery';
-  scenario: 'checkpoint' | 'validated-repair';
+  scenario:
+    | 'checkpoint'
+    | 'validated-repair'
+    | 'recoverable-decision'
+    | 'recoverable-create';
 }): ChildProcessWithoutNullStreams {
   return spawn(process.execPath, ['--import', 'tsx', WORKER_FIXTURE], {
     cwd: resolve(import.meta.dirname, '..'),
     env: {
+      // eslint-disable-next-line no-restricted-syntax -- worker inherits test environment
       ...process.env,
       ORCHESTRATION_ABSURD_URL: ABSURD_URL,
       ORCHESTRATION_RECOVERY_QUEUE: args.queueName,
@@ -223,6 +229,122 @@ describe('orchestration process recovery (real Absurd)', () => {
       await database.end();
     }
   }, 60_000);
+
+  it.each(['recoverable-decision', 'recoverable-create'] as const)(
+    'replays recovery after worker death at %s',
+    async (scenario) => {
+      const suffix = `${process.pid}-${Date.now()}`;
+      const queueName = `recovery-gate-${suffix}`;
+      const runKey = randomUUID();
+      const database = new Client({ connectionString: ABSURD_URL });
+      await database.connect();
+      await database.query(`CREATE TABLE IF NOT EXISTS orchestration_recovery_effects (
+        run_key text PRIMARY KEY, calls integer NOT NULL)`);
+      await database.query(`CREATE TABLE IF NOT EXISTS orchestration_recovery_decisions (
+        run_key text NOT NULL, idempotency_key text NOT NULL, calls integer NOT NULL,
+        PRIMARY KEY (run_key, idempotency_key))`);
+      await database.query(`CREATE TABLE IF NOT EXISTS orchestration_recovery_replacements (
+        run_key text NOT NULL, idempotency_key text NOT NULL, task_id text NOT NULL,
+        create_requests integer NOT NULL, PRIMARY KEY (run_key, idempotency_key))`);
+      const client = createOrchestrationAbsurdApp<{ runKey: string }>({
+        databaseUrl: ABSURD_URL,
+        queueName,
+        taskName: 'process_recovery',
+        run: () => Promise.resolve({ clientOnly: true }),
+      });
+      let initialWorker: ChildProcessWithoutNullStreams | null = null;
+      let recoveryWorker: ChildProcessWithoutNullStreams | null = null;
+      try {
+        await client.createQueue(queueName);
+        const spawned = await client.spawn(
+          'process_recovery',
+          { runKey },
+          {
+            queue: queueName,
+            idempotencyKey: `recovery-gate:${runKey}`,
+          },
+        );
+        initialWorker = startWorkerProcess({
+          queueName,
+          taskId: spawned.taskID,
+          runKey,
+          mode: 'initial',
+          scenario,
+        });
+        await waitForOutput(
+          initialWorker,
+          scenario === 'recoverable-decision'
+            ? 'DECISION_CHECKPOINTED'
+            : 'REPLACEMENT_CREATED',
+        );
+        initialWorker.kill('SIGKILL');
+        await waitForExit(initialWorker);
+        recoveryWorker = startWorkerProcess({
+          queueName,
+          taskId: spawned.taskID,
+          runKey,
+          mode: 'recovery',
+          scenario,
+        });
+        const resultLine = await waitForOutput(recoveryWorker, 'RESULT ');
+        await waitForExit(recoveryWorker);
+        const result = JSON.parse(resultLine.slice('RESULT '.length)) as {
+          state: string;
+          result?: {
+            kind?: string;
+            chain?: unknown[];
+            decisions?: Array<{ replacementTaskId?: string }>;
+          };
+        };
+        const decisions = await database.query<{ calls: number }>(
+          'SELECT calls FROM orchestration_recovery_decisions WHERE run_key = $1',
+          [runKey],
+        );
+        const replacements = await database.query<{
+          task_id: string;
+          create_requests: number;
+        }>(
+          'SELECT task_id, create_requests FROM orchestration_recovery_replacements WHERE run_key = $1',
+          [runKey],
+        );
+        expect(result.state).toBe('completed');
+        expect(result.result?.kind).toBe('accepted');
+        expect(result.result?.chain).toHaveLength(2);
+        expect(result.result?.decisions?.[0]?.replacementTaskId).toBe(
+          replacements.rows[0]?.task_id,
+        );
+        const upstream = await database.query<{ calls: number }>(
+          'SELECT calls FROM orchestration_recovery_effects WHERE run_key = $1',
+          [runKey],
+        );
+        expect(upstream.rows).toEqual([{ calls: 1 }]);
+        expect(decisions.rows).toEqual([{ calls: 1 }]);
+        expect(replacements.rows).toHaveLength(1);
+        expect(replacements.rows[0]?.create_requests).toBe(
+          scenario === 'recoverable-create' ? 2 : 1,
+        );
+      } finally {
+        initialWorker?.kill('SIGKILL');
+        recoveryWorker?.kill('SIGKILL');
+        await database.query(
+          'DELETE FROM orchestration_recovery_effects WHERE run_key = $1',
+          [runKey],
+        );
+        await database.query(
+          'DELETE FROM orchestration_recovery_decisions WHERE run_key = $1',
+          [runKey],
+        );
+        await database.query(
+          'DELETE FROM orchestration_recovery_replacements WHERE run_key = $1',
+          [runKey],
+        );
+        await client.dropQueue(queueName).catch(() => undefined);
+        await client.close();
+        await database.end();
+      }
+    },
+    60_000,
+  );
 
   it('reconciles idempotent repair creation across the pre-checkpoint crash gap', async () => {
     const suffix = `${process.pid}-${Date.now()}`;
