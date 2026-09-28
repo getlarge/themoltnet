@@ -427,7 +427,7 @@ describe('project-wide OAuth consent', () => {
         token_endpoint_auth_method: 'none',
         grant_types: ['authorization_code', 'refresh_token'],
       },
-      requested_scope: ['openid', 'diary:read'],
+      requested_scope: ['openid', 'email', 'profile', 'diary:read'],
       requested_access_token_audience: ['https://mcp.example/mcp'],
       request_url: requestUrl.href,
     };
@@ -454,6 +454,8 @@ describe('project-wide OAuth consent', () => {
     expect(displayed.body).toContain('Allow application access?');
     expect(displayed.body).toContain('MCP client');
     expect(displayed.body).toContain('Read diary entries and metadata');
+    expect(displayed.body).toContain('Share your email address');
+    expect(displayed.body).toContain('Share your username');
     expect(displayed.body).toContain('https://mcp.example/mcp');
     expect(displayed.body).toContain(
       'name="consent_challenge" value="dcr-challenge"',
@@ -477,7 +479,7 @@ describe('project-wide OAuth consent', () => {
       consentChallenge: 'dcr-challenge',
       acceptOAuth2ConsentRequest: {
         remember: false,
-        grant_scope: ['openid', 'diary:read'],
+        grant_scope: ['openid', 'email', 'profile', 'diary:read'],
         grant_access_token_audience: ['https://mcp.example/mcp'],
       },
     });

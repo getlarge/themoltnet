@@ -8,9 +8,12 @@ import {
   credentialScopeSetsEqual,
   DAEMON_MINIMUM_SCOPES,
   DAEMON_OPTIONAL_SCOPES,
+  DCR_DEFAULT_SCOPES,
+  DCR_MAX_SCOPES,
   HUMAN_SESSION_SCOPES,
   MCP_CLIENT_SCOPES,
   MCP_M2M_SCOPES,
+  OIDC_IDENTITY_SCOPES,
   READ_ONLY_CREDENTIAL_SCOPES,
   TASK_WORKFLOW_CREDENTIAL_SCOPES,
   validTeamAgentKeyScopes,
@@ -69,6 +72,17 @@ describe('credential scopes', () => {
     expect(MCP_M2M_SCOPES).toEqual(
       MCP_CLIENT_SCOPES.filter((scope) => scope !== 'human:profile'),
     );
+  });
+
+  it('accepts explicitly requested OIDC identity scopes without defaulting them', () => {
+    expect(OIDC_IDENTITY_SCOPES).toEqual(['email', 'profile']);
+    expect(DCR_DEFAULT_SCOPES).not.toContain('email');
+    expect(DCR_DEFAULT_SCOPES).not.toContain('profile');
+    expect(DCR_MAX_SCOPES).toEqual([
+      ...DCR_DEFAULT_SCOPES,
+      ...OIDC_IDENTITY_SCOPES,
+    ]);
+    expect(DCR_MAX_SCOPES).not.toContain('key:manage');
   });
 
   it('exports exact job-oriented credential presets', () => {

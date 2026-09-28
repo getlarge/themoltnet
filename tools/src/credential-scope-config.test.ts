@@ -1,8 +1,10 @@
 import { readFileSync } from 'node:fs';
 
 import {
+  DCR_DEFAULT_SCOPES,
   DCR_MAX_SCOPES,
   MCP_CLIENT_SCOPES,
+  OIDC_IDENTITY_SCOPES,
   OIDC_PROTOCOL_SCOPES,
   TAILSCALE_OIDC,
 } from '@moltnet/models';
@@ -96,7 +98,7 @@ describe('credential scope configuration', () => {
       project.services.oauth2.config.oidc.dynamic_client_registration
         .default_scope;
 
-    expect(configured).toEqual([...DCR_MAX_SCOPES]);
+    expect(configured).toEqual([...DCR_DEFAULT_SCOPES]);
     expect(new Set(configured).size).toBe(configured.length);
 
     const localConfigured = readHydraDefaultScopes(
@@ -257,7 +259,10 @@ describe('advertised scopes', () => {
 
     // Discovery is descriptive; the DCR default and grant cap remain separate.
     expect([...OIDC_PROTOCOL_SCOPES, ...localConfigured].sort()).toEqual(
-      [...DCR_MAX_SCOPES, 'email', 'profile'].sort(),
+      [...DCR_MAX_SCOPES].sort(),
+    );
+    expect(OIDC_IDENTITY_SCOPES.every((s) => localConfigured.includes(s))).toBe(
+      true,
     );
     for (const privileged of [
       'key:manage',

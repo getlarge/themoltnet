@@ -29,8 +29,16 @@ import {
   type TestHarness,
 } from './setup.js';
 
-const HUMAN_ACCESS_SCOPES = ['openid', ...MCP_CLIENT_SCOPES];
-const HUMAN_DCR_SCOPES = ['offline_access', ...HUMAN_ACCESS_SCOPES];
+// Mirrors the scope shape an interactive Codex MCP client requests, including
+// optional OIDC identity claims alongside MCP capabilities.
+const HUMAN_ACCESS_SCOPES = [
+  'offline_access',
+  'offline',
+  'openid',
+  ...MCP_CLIENT_SCOPES,
+  'email',
+  'profile',
+];
 
 // PKCE helpers — RFC 7636. We use S256.
 function generatePkce(): { verifier: string; challenge: string } {
@@ -192,7 +200,7 @@ describe('Hydra Token Hook E2E', { timeout: 120_000 }, () => {
 
   // ── Human: DCR + authorization_code ──────────────────────────
 
-  it('enriches human authorization_code tokens via DCR public client', async () => {
+  it('authorizes Codex-style OIDC and MCP scopes via a DCR public client', async () => {
     const human = await createHuman({
       kratosPublicFrontend: harness.kratosPublicFrontend,
     });
@@ -209,7 +217,7 @@ describe('Hydra Token Hook E2E', { timeout: 120_000 }, () => {
         grant_types: ['authorization_code', 'refresh_token'],
         response_types: ['code'],
         token_endpoint_auth_method: 'none',
-        scope: HUMAN_DCR_SCOPES.join(' '),
+        scope: HUMAN_ACCESS_SCOPES.join(' '),
       }),
     });
     expect(dcrRes.status).toBe(201);
@@ -316,6 +324,8 @@ describe('Hydra Token Hook E2E', { timeout: 120_000 }, () => {
     expect(approvalHtml).toContain('Allow application access?');
     expect(approvalHtml).toContain('E2E DCR Human Client');
     expect(approvalHtml).toContain('Read diary entries and metadata');
+    expect(approvalHtml).toContain('Share your email address');
+    expect(approvalHtml).toContain('Share your username');
     expect(approvalHtml).toContain('Access target');
     const consentAcceptResponse = await jarFetch(
       jar,
@@ -397,6 +407,30 @@ describe('Hydra Token Hook E2E', { timeout: 120_000 }, () => {
       headers: { Authorization: `Bearer ${tokenBody.access_token}` },
     });
     expect(diariesRes.status).toBe(200);
+
+    // The interactive client ultimately presents the same token to MCP.
+    const mcpRes = await fetch(
+      `${process.env.MCP_SERVER_URL ?? 'http://127.0.0.1:8001'}/mcp`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${tokenBody.access_token}`,
+          Accept: 'application/json, text/event-stream',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: {
+            protocolVersion: '2025-06-18',
+            capabilities: {},
+            clientInfo: { name: 'codex-scope-e2e', version: '1' },
+          },
+        }),
+      },
+    );
+    expect(mcpRes.status, await mcpRes.clone().text()).toBe(200);
   });
 
   // ── Human: token_hook returns 403 for unknown identity ───────

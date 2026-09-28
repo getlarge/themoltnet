@@ -149,7 +149,6 @@ describe('Tailscale OIDC consent', () => {
   });
 
   it.each([
-    { name: 'another client', clientId: 'tailscale-login-copy', pkce: true },
     {
       name: 'an API scope',
       scopes: ['openid', 'profile', 'email', 'diary:read'],
@@ -235,7 +234,6 @@ describe('Tailscale OIDC consent', () => {
   it('routes a different client ID through the DCR policy', async () => {
     const app = await setup({
       clientId: 'tailscale-login-copy',
-      scopes: ['openid'],
       pkce: true,
     });
     const response = await decide(app, 'allow');
@@ -244,7 +242,7 @@ describe('Tailscale OIDC consent', () => {
       consentChallenge: 'challenge',
       acceptOAuth2ConsentRequest: {
         remember: false,
-        grant_scope: ['openid'],
+        grant_scope: ['openid', 'profile', 'email'],
         grant_access_token_audience: [],
       },
     });

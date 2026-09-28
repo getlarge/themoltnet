@@ -4,11 +4,9 @@ import type { FastifyInstance } from 'fastify';
 /**
  * Scopes advertised to MCP clients as the ones this resource server accepts.
  *
- * `DCR_MAX_SCOPES` is deliberate: it is exactly the set a self-registered
- * client is granted at registration (Ory's
- * `dynamic_client_registration.default_scope`), so a client that mirrors this
- * list into its authorization request always asks for something its own
- * registration already covers.
+ * `DCR_MAX_SCOPES` includes optional OIDC identity scopes that clients may
+ * explicitly request at registration. The MCP capabilities in this list match
+ * Ory's dynamic-registration defaults.
  */
 export const RESOURCE_SCOPES_SUPPORTED: readonly string[] = DCR_MAX_SCOPES;
 

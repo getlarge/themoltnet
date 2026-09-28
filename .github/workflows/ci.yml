@@ -1289,6 +1289,7 @@ jobs:
       ORY_KRATOS_ADMIN_URL: http://localhost:4434
       ORY_KRATOS_PUBLIC_URL: http://localhost:4433
       SERVER_BASE_URL: http://localhost:8080
+      MCP_SERVER_URL: http://localhost:8001
       # Must match the value injected into the rest-api container in
       # docker-compose.e2e.yaml. The test reads it from process.env to sign
       # webhook calls; if the encrypted .env gets loaded first, the test
@@ -1321,7 +1322,7 @@ jobs:
         if: needs.affected.outputs.e2e-node == 'true'
         env:
           COMPOSE_DISABLE_ENV_FILE: true
-        run: docker compose -f docker-compose.e2e.yaml up -d rest-api
+        run: docker compose -f docker-compose.e2e.yaml up -d rest-api mcp-server
       # Each shard owns an isolated runner and Compose stack. The rest-api e2e
       # setup restarts its container for the sponsor flow, so shards must not
       # share a stack or run concurrently on the same runner.
