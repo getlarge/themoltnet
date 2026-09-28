@@ -62,20 +62,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SHA: ${{ inputs.head-sha }}
+          REPO: ${{ github.repository }}
+          CI_IMAGE_NAME: ${{ inputs.ci-image-name }}
         run: |
           if [ -z "$SHA" ]; then
             # Empty SHA → caller wants :latest fallback. Promote handles it.
             echo "exists=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          IMAGE="${REGISTRY}/${{ github.repository }}/${{ inputs.ci-image-name }}:ci-${SHA}"
+          IMAGE="${REGISTRY}/${REPO}/${CI_IMAGE_NAME}:ci-${SHA}"
           echo "Probing $IMAGE"
           echo "$GH_TOKEN" | docker login "$REGISTRY" -u "${{ github.actor }}" --password-stdin
           if docker buildx imagetools inspect "$IMAGE" > /dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No ci-<sha> image for ${{ inputs.ci-image-name }} at $SHA. CI's nx affected gating skipped the build because the project wasn't affected. Skipping deploy."
+            echo "::notice::No ci-<sha> image for $CI_IMAGE_NAME at $SHA. CI's nx affected gating skipped the build because the project wasn't affected. Skipping deploy."
           fi
 
   promote:
@@ -88,15 +90,89 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
+      attestations: write
+      security-events: write
     outputs:
       image_ref: ${{ steps.promote.outputs.image_ref }}
     steps:
+      - name: Checkout for scan attribution
+        if: ${{ inputs.head-sha != '' }}
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.head-sha }}
+
       - name: Log in to GHCR
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve source image
+        id: source
+        env:
+          SHA: ${{ inputs.head-sha }}
+          REPO: ${{ github.repository }}
+          IMAGE_NAME: ${{ inputs.image-name }}
+          CI_IMAGE_NAME: ${{ inputs.ci-image-name }}
+        run: |
+          IMAGE="${REGISTRY}/${REPO}"
+          if [ -n "$SHA" ]; then
+            SOURCE="${IMAGE}/${CI_IMAGE_NAME}:ci-${SHA}"
+          else
+            SOURCE="${IMAGE}/${IMAGE_NAME}:latest"
+          fi
+          if ! MANIFEST="$(docker buildx imagetools inspect "$SOURCE" --format '{{json .Manifest}}')"; then
+            echo "::error::Source image not found: $SOURCE"
+            exit 1
+          fi
+          DIGEST="$(jq -r '.digest // empty' <<< "$MANIFEST")"
+          if [[ ! "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "::error::Invalid source image digest"
+            exit 1
+          fi
+          echo "source_ref=${SOURCE%:*}@${DIGEST}" >> "$GITHUB_OUTPUT"
+
+      # CI pushes carry a BuildKit SBOM. Read it from the exact source digest.
+      - name: Prepare SBOM
+        if: ${{ inputs.head-sha != '' }}
+        env:
+          SOURCE: ${{ steps.source.outputs.source_ref }}
+        run: |
+          if ! docker buildx imagetools inspect "$SOURCE" --format '{{json .SBOM}}' \
+            | jq -e '(.SPDX // empty) | select(type == "object")' > image.spdx.json; then
+            echo '::error::CI image has no BuildKit SPDX SBOM'
+            exit 1
+          fi
+          if [ "$(wc -c < image.spdx.json)" -gt 16777216 ]; then
+            echo '::error::Image SBOM exceeds the attestation size limit'
+            exit 1
+          fi
+
+      - name: Scan image (advisory)
+        if: ${{ inputs.head-sha != '' }}
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ steps.source.outputs.source_ref }}
+          version: v0.74.0
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy.sarif
+          exit-code: '0'
+
+      - name: Publish scan findings
+        if: ${{ inputs.head-sha != '' && !cancelled() && hashFiles('trivy.sarif') != '' }}
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@b1bff81932f5cdfc8695c7752dcee935dcd061c8 # v4.33.0
+        with:
+          sarif_file: trivy.sarif
+          category: trivy-${{ inputs.image-name }}
+          ref: refs/heads/main
+          sha: ${{ inputs.head-sha }}
 
       - name: Resolve Fly.io token
         uses: actions/github-script@v8
@@ -122,36 +198,56 @@ jobs:
 
       - name: Promote image
         id: promote
+        env:
+          SHA: ${{ inputs.head-sha }}
+          REPO: ${{ github.repository }}
+          IMAGE_NAME: ${{ inputs.image-name }}
+          FLY_APP: ${{ inputs.fly-app }}
+          SOURCE: ${{ steps.source.outputs.source_ref }}
         run: |
-          REGISTRY="${{ env.REGISTRY }}"
-          REPO="${{ github.repository }}"
-          SHA="${{ inputs.head-sha }}"
-          GHCR_IMAGE="${REGISTRY}/${REPO}/${{ inputs.image-name }}"
-          FLY_IMAGE="registry.fly.io/${{ inputs.fly-app }}"
+          GHCR_IMAGE="${REGISTRY}/${REPO}/${IMAGE_NAME}"
+          FLY_IMAGE="registry.fly.io/${FLY_APP}"
 
           if [ -n "$SHA" ]; then
-            SOURCE="${REGISTRY}/${REPO}/${{ inputs.ci-image-name }}:ci-${SHA}"
             echo "Promoting CI image: $SOURCE"
             docker buildx imagetools create \
+              --metadata-file promoted-image.json \
               --tag "${GHCR_IMAGE}:latest" \
               --tag "${GHCR_IMAGE}:${SHA}" \
               --tag "${FLY_IMAGE}:latest" \
               --tag "${FLY_IMAGE}:${SHA}" \
               "$SOURCE"
             echo "image_ref=${FLY_IMAGE}:${SHA}" >> "$GITHUB_OUTPUT"
-          else
-            SOURCE="${GHCR_IMAGE}:latest"
-            echo "No SHA provided, falling back to: $SOURCE"
-            if ! docker buildx imagetools inspect "$SOURCE" > /dev/null 2>&1; then
-              echo "::error::Latest image not found: $SOURCE"
-              echo "No prior successful deploy exists. Provide an explicit SHA or trigger via workflow_run."
+            DIGEST="$(jq -r '."containerimage.descriptor".digest // empty' promoted-image.json)"
+            if [[ ! "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+              echo '::error::Promotion did not return an image digest'
               exit 1
             fi
+            echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+          else
+            echo "No SHA provided, falling back to: $SOURCE"
             docker buildx imagetools create \
               --tag "${FLY_IMAGE}:latest" \
               "$SOURCE"
             echo "image_ref=${FLY_IMAGE}:latest" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Attest promoted image
+        if: ${{ inputs.head-sha != '' }}
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-name: ghcr.io/${{ github.repository }}/${{ inputs.image-name }}
+          subject-digest: ${{ steps.promote.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest image SBOM
+        if: ${{ inputs.head-sha != '' }}
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-name: ghcr.io/${{ github.repository }}/${{ inputs.image-name }}
+          subject-digest: ${{ steps.promote.outputs.digest }}
+          sbom-path: image.spdx.json
+          push-to-registry: true
 
   deploy:
     name: Deploy to Fly.io
@@ -187,8 +283,9 @@ jobs:
 
       - name: Deploy
         working-directory: ${{ inputs.working-directory }}
+        env:
+          IMAGE_REF: ${{ needs.promote.outputs.image_ref }}
         run: |
-          IMAGE_REF="${{ needs.promote.outputs.image_ref }}"
           if [ -z "$IMAGE_REF" ]; then
             echo "::error::image_ref output from promote job is empty"
             exit 1
