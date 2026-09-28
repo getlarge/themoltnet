@@ -47,6 +47,46 @@ afterEach(async () => {
 });
 
 describe('agent server providers and runs', () => {
+  it('preserves Desktop model reasoning metadata through the provider API', async () => {
+    const { app, store } = await fixture();
+    const token = await authorize(app);
+    const headers = {
+      host: HOST,
+      origin: TEST_CLIENT_ORIGIN,
+      [AGENT_SERVER_TOKEN_HEADER]: token,
+      'content-type': 'application/json',
+    };
+    const model = {
+      id: 'gpt-oss:120b-cloud',
+      reasoning: true,
+      thinkingLevelMap: { off: 'low', low: 'low', high: 'high' },
+    };
+
+    const put = await app.inject({
+      method: 'PUT',
+      url: '/v1/providers/ollama-cloud',
+      headers,
+      payload: {
+        api: 'openai-completions',
+        baseUrl: 'https://ollama.com/v1',
+        envName: 'MOLTNET_PROVIDER_OLLAMA_CLOUD_API_KEY',
+        models: [model],
+      },
+    });
+    const list = await app.inject({
+      method: 'GET',
+      url: '/v1/providers',
+      headers,
+    });
+
+    expect(put.statusCode).toBe(200);
+    expect(put.json<{ models: unknown[] }>().models).toEqual([model]);
+    expect(list.statusCode).toBe(200);
+    expect(
+      list.json<Record<string, { models: unknown[] }>>()['ollama-cloud'].models,
+    ).toEqual([model]);
+    expect(store.readProviders()['ollama-cloud'].models).toEqual([model]);
+  });
   it('persists and forwards scoped drain and polling options', async () => {
     const info = vi.fn();
     const { app, store, spawned } = await fixture({

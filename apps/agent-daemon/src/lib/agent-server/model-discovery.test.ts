@@ -4,6 +4,7 @@ import {
   AgentServerModelDiscoveryError,
   MAX_DISCOVERED_MODELS,
   ModelDiscoveryCollector,
+  OLLAMA_THINKING_LEVEL_MAP,
   parseProviderBaseUrl,
 } from './model-discovery.js';
 
@@ -20,6 +21,48 @@ function expectDiscoveryCode(run: () => unknown, code: string): void {
 }
 
 describe('provider model discovery protocol', () => {
+  it('derives thinking levels from Ollama model metadata', () => {
+    const collector = new ModelDiscoveryCollector();
+    collector.addOllamaResponse({
+      models: [
+        {
+          name: 'deepseek:cloud',
+          capabilities: ['completion', 'thinking'],
+          thinking: {
+            values: [false, 'low', 'medium', 'high', 'max'],
+            default: 'medium',
+          },
+        },
+        {
+          name: 'gpt-oss:120b-cloud',
+          capabilities: ['thinking'],
+          thinking: { values: ['low', 'medium', 'high'], default: 'medium' },
+        },
+        { name: 'plain', capabilities: ['completion'] },
+      ],
+    });
+
+    expect(collector.result('ollama', []).models).toEqual([
+      {
+        id: 'deepseek:cloud',
+        reasoning: true,
+        thinkingLevelMap: OLLAMA_THINKING_LEVEL_MAP,
+      },
+      {
+        id: 'gpt-oss:120b-cloud',
+        reasoning: true,
+        thinkingLevelMap: {
+          off: 'low',
+          minimal: 'low',
+          low: 'low',
+          medium: 'medium',
+          high: 'high',
+          xhigh: 'high',
+        },
+      },
+      { id: 'plain', reasoning: false },
+    ]);
+  });
   it('parses OpenAI and Ollama payloads, deduplicates, sorts, and bounds models', () => {
     const collector = new ModelDiscoveryCollector();
     collector.addOpenAiResponse({
@@ -42,20 +85,25 @@ describe('provider model discovery protocol', () => {
     );
   });
 
-  it('lets a later probe overwrite a modality an earlier response recorded', () => {
+  it('lets a later probe overwrite capabilities an earlier response recorded', () => {
     const collector = new ModelDiscoveryCollector();
     collector.addOllamaResponse({
       models: [{ name: 'x', capabilities: ['completion'] }],
     });
 
-    expect(collector.result('ollama', []).models).toEqual([{ id: 'x' }]);
+    expect(collector.result('ollama', []).models).toEqual([
+      { id: 'x', reasoning: false },
+    ]);
 
     // A probe answering later must win: "first write wins" would strip the
     // capability and silently leave a vision model text-only.
-    collector.setModalities('x', ['text', 'image']);
+    collector.setCapabilities('x', {
+      input: ['text', 'image'],
+      reasoning: true,
+    });
 
     expect(collector.result('ollama', []).models).toEqual([
-      { id: 'x', input: ['text', 'image'] },
+      { id: 'x', input: ['text', 'image'], reasoning: true },
     ]);
   });
 
@@ -69,7 +117,9 @@ describe('provider model discovery protocol', () => {
     collector.addOpenAiResponse({ data: [{ id: 'shared' }] });
 
     const result = collector.result('ollama', []);
-    expect(result.models).toEqual([{ id: 'shared', input: ['text', 'image'] }]);
+    expect(result.models).toEqual([
+      { id: 'shared', input: ['text', 'image'], reasoning: false },
+    ]);
     expect(result.unresolved).toEqual([]);
   });
 

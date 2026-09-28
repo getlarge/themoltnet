@@ -178,6 +178,13 @@ moltnet-agent providers discover ollama --save
 `--api` defaults to `openai-completions`. Repeating `--model` replaces the model
 list explicitly; `--clear-models` empties it. When updating an existing
 provider, omitted URL, API kind, models, and credentials remain unchanged.
+Adding a model probes Ollama's `/api/show` for vision and thinking support.
+Discovery does the same for listed models and reads the supported thinking
+values to map a profile's `thinkingLevel` to `reasoning_effort`. Run
+`providers discover ollama --save` again to refresh models saved before these
+capabilities were recorded. If `/api/show` is unavailable, the model remains
+usable; configure its reasoning support explicitly with `--model-reasoning` and
+`--model-thinking-map` when needed.
 
 ### Ollama Cloud
 
@@ -192,7 +199,8 @@ moltnet-agent providers discover ollama-cloud --save
 ```
 
 Discovery merges the OpenAI-compatible model response with Ollama's tag
-response, so cloud-only tags such as `gemma4:31b-cloud` are retained.
+response, so cloud-only tags such as `gemma4:31b-cloud` are retained. Run
+`providers discover ollama-cloud --save` to refresh existing cloud models too.
 
 ### Claude and Codex subscriptions
 
