@@ -1,0 +1,73 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "automerge": false,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github\\/workflows\\/renovate\\.yml$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+renovate-version:\\s*(?<currentValue>\\S+)"
+      ]
+    }
+  ],
+  "dependencyDashboard": true,
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    "helpers:pinGitHubActionDigests",
+    "docker:pinDigests"
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["* 0-6 * * 1"]
+  },
+  "osvVulnerabilityAlerts": true,
+  "packageRules": [
+    {
+      "dependencyDashboardApproval": true,
+      "description": "Major updates require an explicit dashboard decision",
+      "matchUpdateTypes": ["major"]
+    },
+    {
+      "description": "One reviewed minor-update PR per manager",
+      "groupName": "{{manager}} minor updates",
+      "matchUpdateTypes": ["minor"]
+    },
+    {
+      "description": "Keep routine patches and initial pins together by manager",
+      "groupName": "{{manager}} patch and pin updates",
+      "matchUpdateTypes": ["patch", "pin", "digest", "pinDigest"]
+    },
+    {
+      "description": "Let new patch releases settle before proposing them",
+      "matchUpdateTypes": ["patch"],
+      "minimumReleaseAge": "3 days"
+    },
+    {
+      "automerge": false,
+      "description": "Review workflow changes as one PR",
+      "groupName": "GitHub Actions",
+      "matchManagers": ["github-actions"]
+    },
+    {
+      "description": "Keep Node.js tool-version files in one update",
+      "groupName": "Node.js toolchain",
+      "matchDepNames": ["node", "nodejs"],
+      "matchManagers": ["nvm", "asdf"]
+    },
+    {
+      "automerge": false,
+      "description": "Require review for authentication and cryptography dependencies",
+      "matchPackageNames": ["@ory/**", "@noble/**", "*sodium*", "jose"]
+    }
+  ],
+  "postUpdateOptions": ["gomodTidy", "pnpmDedupe"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "schedule": ["* 0-6 * * 1"],
+  "timezone": "Europe/Paris",
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "prConcurrentLimit": 2
+  }
+}
