@@ -216,6 +216,15 @@ export const OIDC_PROTOCOL_SCOPES = [
   'offline_access',
 ] as const;
 
+/** Optional OIDC identity claims requested by some interactive MCP clients. */
+export const OIDC_IDENTITY_SCOPES = ['email', 'profile'] as const;
+
+/** Registration defaults do not grant identity claims unless requested. */
+export const DCR_DEFAULT_SCOPES: readonly string[] = Object.freeze([
+  ...OIDC_PROTOCOL_SCOPES,
+  ...MCP_CLIENT_SCOPES,
+]);
+
 /**
  * Ceiling for a self-registered (Dynamic Client Registration) OAuth2 client.
  *
@@ -232,15 +241,14 @@ export const OIDC_PROTOCOL_SCOPES = [
  * which routes them down the agent path in the Hydra token hook, and the
  * Console authenticates with Kratos sessions rather than OAuth2 at all.
  *
- * Two layers, and this constant is used for both — they are not the same
- * thing:
+ * Registration defaults and the enforced ceiling are separate:
  *
- * - In Ory's `dynamic_client_registration.default_scope` it is only the
- *   **default** applied to a registration that names no scopes. A registrant
- *   that asks for something else is not stopped there.
- * - In the Hydra token hook it is the **enforced** ceiling: a token whose
- *   granted scopes exceed it is refused. That is what actually makes a
- *   privileged scope unreachable by self-registration.
+ * - Ory's `dynamic_client_registration.default_scope` uses
+ *   `DCR_DEFAULT_SCOPES`. A registrant can explicitly request the optional
+ *   OIDC identity scopes without granting them to every client by default.
+ * - The Hydra token hook enforces `DCR_MAX_SCOPES`: a token whose granted
+ *   scopes exceed it is refused. That makes privileged MoltNet capabilities
+ *   unreachable by self-registration.
  *
  * Derived on purpose: when MCP grows a tool that needs a new capability, adding
  * it to `MCP_CLIENT_SCOPES` moves this cap with it, and
@@ -251,6 +259,6 @@ export const OIDC_PROTOCOL_SCOPES = [
  * that list a security decision rather than a routine one.
  */
 export const DCR_MAX_SCOPES: readonly string[] = Object.freeze([
-  ...OIDC_PROTOCOL_SCOPES,
-  ...MCP_CLIENT_SCOPES,
+  ...DCR_DEFAULT_SCOPES,
+  ...OIDC_IDENTITY_SCOPES,
 ]);

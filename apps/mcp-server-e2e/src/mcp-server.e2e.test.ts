@@ -69,6 +69,9 @@ describe('MCP Server E2E', () => {
       expect(body.authorization_servers).toBeInstanceOf(Array);
       expect(body.scopes_supported).toEqual([...DCR_MAX_SCOPES]);
       expect(body.scopes_supported).toContain('team:read');
+      expect(body.scopes_supported).toContain('email');
+      expect(body.scopes_supported).toContain('profile');
+      expect(body.scopes_supported).not.toContain('key:manage');
     });
 
     it('points the 401 challenge at a document naming the scopes', async () => {
@@ -102,7 +105,10 @@ describe('MCP Server E2E', () => {
       );
 
       expect(followed.status).toBe(200);
-      expect((await followed.json()).scopes_supported).toContain('team:read');
+      const scopes = (await followed.json()).scopes_supported as string[];
+      expect(scopes).toContain('team:read');
+      expect(scopes).toContain('email');
+      expect(scopes).toContain('profile');
     });
   });
 
