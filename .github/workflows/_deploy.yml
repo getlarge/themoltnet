@@ -62,20 +62,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SHA: ${{ inputs.head-sha }}
+          REPO: ${{ github.repository }}
+          CI_IMAGE_NAME: ${{ inputs.ci-image-name }}
         run: |
           if [ -z "$SHA" ]; then
             # Empty SHA → caller wants :latest fallback. Promote handles it.
             echo "exists=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          IMAGE="${REGISTRY}/${{ github.repository }}/${{ inputs.ci-image-name }}:ci-${SHA}"
+          IMAGE="${REGISTRY}/${REPO}/${CI_IMAGE_NAME}:ci-${SHA}"
           echo "Probing $IMAGE"
           echo "$GH_TOKEN" | docker login "$REGISTRY" -u "${{ github.actor }}" --password-stdin
           if docker buildx imagetools inspect "$IMAGE" > /dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No ci-<sha> image for ${{ inputs.ci-image-name }} at $SHA. CI's nx affected gating skipped the build because the project wasn't affected. Skipping deploy."
+            echo "::notice::No ci-<sha> image for $CI_IMAGE_NAME at $SHA. CI's nx affected gating skipped the build because the project wasn't affected. Skipping deploy."
           fi
 
   promote:
@@ -111,12 +113,15 @@ jobs:
         id: source
         env:
           SHA: ${{ inputs.head-sha }}
+          REPO: ${{ github.repository }}
+          IMAGE_NAME: ${{ inputs.image-name }}
+          CI_IMAGE_NAME: ${{ inputs.ci-image-name }}
         run: |
-          IMAGE="${REGISTRY}/${{ github.repository }}"
+          IMAGE="${REGISTRY}/${REPO}"
           if [ -n "$SHA" ]; then
-            SOURCE="${IMAGE}/${{ inputs.ci-image-name }}:ci-${SHA}"
+            SOURCE="${IMAGE}/${CI_IMAGE_NAME}:ci-${SHA}"
           else
-            SOURCE="${IMAGE}/${{ inputs.image-name }}:latest"
+            SOURCE="${IMAGE}/${IMAGE_NAME}:latest"
           fi
           if ! MANIFEST="$(docker buildx imagetools inspect "$SOURCE" --format '{{json .Manifest}}')"; then
             echo "::error::Source image not found: $SOURCE"
@@ -193,13 +198,15 @@ jobs:
 
       - name: Promote image
         id: promote
+        env:
+          SHA: ${{ inputs.head-sha }}
+          REPO: ${{ github.repository }}
+          IMAGE_NAME: ${{ inputs.image-name }}
+          FLY_APP: ${{ inputs.fly-app }}
+          SOURCE: ${{ steps.source.outputs.source_ref }}
         run: |
-          REGISTRY="${{ env.REGISTRY }}"
-          REPO="${{ github.repository }}"
-          SHA="${{ inputs.head-sha }}"
-          GHCR_IMAGE="${REGISTRY}/${REPO}/${{ inputs.image-name }}"
-          FLY_IMAGE="registry.fly.io/${{ inputs.fly-app }}"
-          SOURCE="${{ steps.source.outputs.source_ref }}"
+          GHCR_IMAGE="${REGISTRY}/${REPO}/${IMAGE_NAME}"
+          FLY_IMAGE="registry.fly.io/${FLY_APP}"
 
           if [ -n "$SHA" ]; then
             echo "Promoting CI image: $SOURCE"
@@ -276,8 +283,9 @@ jobs:
 
       - name: Deploy
         working-directory: ${{ inputs.working-directory }}
+        env:
+          IMAGE_REF: ${{ needs.promote.outputs.image_ref }}
         run: |
-          IMAGE_REF="${{ needs.promote.outputs.image_ref }}"
           if [ -z "$IMAGE_REF" ]; then
             echo "::error::image_ref output from promote job is empty"
             exit 1
