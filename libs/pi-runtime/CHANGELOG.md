@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.19.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.18.9...pi-runtime-v0.19.0) (2026-09-28)
+
+
+### Features
+
+* **pi-runtime:** project model reasoning controls into sessions ([0b58d7d](https://github.com/getlarge/themoltnet/commit/0b58d7d1a66518be71fe29e14320469538323c00))
+
+
+### Bug Fixes
+
+* **agent-daemon:** infer Ollama thinking controls from model API ([30b8f59](https://github.com/getlarge/themoltnet/commit/30b8f59756b2c2d375f2048c629a2565eccd6c64))
+
 ## [0.18.9](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.18.8...pi-runtime-v0.18.9) (2026-09-28)
 
 

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.66.6](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.66.5...agent-daemon-v0.66.6) (2026-09-28)
+
+
+### Bug Fixes
+
+* **agent-daemon:** infer Ollama thinking controls from model API ([30b8f59](https://github.com/getlarge/themoltnet/commit/30b8f59756b2c2d375f2048c629a2565eccd6c64))
+* **agent-daemon:** infer Ollama thinking controls from model API ([7d8628a](https://github.com/getlarge/themoltnet/commit/7d8628a8225e3e0cc09bc20331303a18ccd9c0f0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-runtime bumped to 0.19.0
+
 ## [0.66.5](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.66.4...agent-daemon-v0.66.5) (2026-09-28)
 
 
