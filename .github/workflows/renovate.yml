@@ -3,8 +3,14 @@ name: Renovate
 on:
   # Routine updates are limited by renovate.json to Monday. Run daily so
   # vulnerability fixes can be proposed without waiting for that window.
+  # Runs after merges rebase conflicted update PRs; dashboard edits process
+  # maintainer decisions without waiting for the next scheduled run.
   schedule:
     - cron: '0 3 * * *'
+  push:
+    branches: [main]
+  issues:
+    types: [edited]
   workflow_dispatch:
     inputs:
       dry-run:
@@ -21,7 +27,12 @@ concurrency:
 
 jobs:
   renovate:
-    if: github.ref == 'refs/heads/main'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name != 'issues' ||
+      (github.event.sender.type != 'Bot' &&
+      github.event.issue.user.login == vars.RENOVATE_APP_BOT_LOGIN &&
+      github.event.issue.title == 'Dependency Dashboard'))
     runs-on: ubuntu-latest
     timeout-minutes: 60
     environment: renovate

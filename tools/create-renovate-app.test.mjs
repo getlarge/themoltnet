@@ -49,7 +49,7 @@ test('does not store credentials without a verified main-only Environment', () =
   const calls = [];
   const lines = [];
   const stored = storeCredentials(
-    { client_id: 'client-id', pem: 'PRIVATE KEY' },
+    { slug: 'themoltnet-renovate', client_id: 'client-id', pem: 'PRIVATE KEY' },
     (args, input) => {
       calls.push({ args, input });
       return { ok: true, output: 'false' };
@@ -73,7 +73,7 @@ test('stores the private key only through secret stdin after policy verification
   const calls = [];
   const lines = [];
   const stored = storeCredentials(
-    { client_id: 'client-id', pem: 'PRIVATE KEY' },
+    { slug: 'themoltnet-renovate', client_id: 'client-id', pem: 'PRIVATE KEY' },
     (args, input) => {
       calls.push({ args, input });
       return { ok: true, output: args.includes('--jq') ? 'true' : '' };
@@ -83,9 +83,36 @@ test('stores the private key only through secret stdin after policy verification
   assert.equal(stored, true);
   assert.deepEqual(
     calls.map(({ args }) => args[0]),
-    ['api', 'api', 'api', 'variable', 'secret'],
+    ['api', 'api', 'api', 'variable', 'variable', 'secret'],
   );
+  assert.equal(calls[3].args.includes('RENOVATE_APP_BOT_LOGIN'), true);
+  assert.equal(calls[3].args.includes('themoltnet-renovate[bot]'), true);
+  assert.equal(calls[3].args.includes('--env'), false);
   assert.equal(calls.at(-1).input, 'PRIVATE KEY');
   assert.equal(calls.at(-1).args.includes('PRIVATE KEY'), false);
   assert.equal(lines.join('').includes('PRIVATE KEY'), false);
+});
+
+test('does not store the key if the bot login cannot be configured', () => {
+  const calls = [];
+  const stored = storeCredentials(
+    { slug: 'themoltnet-renovate', client_id: 'client-id', pem: 'PRIVATE KEY' },
+    (args) => {
+      calls.push(args);
+      if (args.includes('RENOVATE_APP_BOT_LOGIN')) {
+        return { ok: false, output: '' };
+      }
+      return { ok: true, output: args.includes('--jq') ? 'true' : '' };
+    },
+    () => {},
+  );
+  assert.equal(stored, false);
+  assert.equal(
+    calls.some((args) => args[0] === 'secret'),
+    false,
+  );
+  assert.equal(
+    calls.some((args) => args.includes('RENOVATE_APP_CLIENT_ID')),
+    false,
+  );
 });

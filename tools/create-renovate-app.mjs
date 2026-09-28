@@ -112,6 +112,20 @@ export function storeCredentials(
   if (!policy) return false;
 
   const repo = ['--repo', REPOSITORY, '--env', ENVIRONMENT];
+  // The job-level issue guard needs a repository variable before a runner
+  // starts; Environment variables are only available inside the job.
+  const botVariable = runGh([
+    'variable',
+    'set',
+    'RENOVATE_APP_BOT_LOGIN',
+    '--repo',
+    REPOSITORY,
+    '--body',
+    `${app.slug}[bot]`,
+  ]).ok;
+  write(`${botVariable ? 'stored' : 'FAILED'}: bot login variable\n`);
+  if (!botVariable) return false;
+
   const variable = runGh([
     'variable',
     'set',
@@ -148,6 +162,7 @@ async function convert(code) {
   const app = await response.json();
   if (
     typeof app?.slug !== 'string' ||
+    !/^[a-z0-9-]+$/u.test(app.slug) ||
     typeof app?.client_id !== 'string' ||
     typeof app?.pem !== 'string' ||
     !app.pem.includes('PRIVATE KEY')
