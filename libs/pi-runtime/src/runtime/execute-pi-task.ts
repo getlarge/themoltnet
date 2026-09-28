@@ -1435,6 +1435,32 @@ export async function executePiTask(
         opts.model,
         opts.runtimeProfileId,
       );
+      if (
+        opts.thinkingLevel !== null &&
+        opts.thinkingLevel !== undefined &&
+        (!modelHandle.reasoning ||
+          (opts.thinkingLevel === 'off' &&
+            typeof modelHandle.thinkingLevelMap?.off !== 'string'))
+      ) {
+        const context = {
+          code: 'runtime_profile_thinking_unsupported',
+          runtimeProfileId: opts.runtimeProfileId,
+          runtimeProfileName: opts.providerFailureContext?.runtimeProfileName,
+          provider: opts.provider,
+          model: opts.model,
+          thinkingLevel: opts.thinkingLevel,
+        };
+        (
+          opts.toolPolicyLogger?.warn ??
+          ((obj, message) =>
+            console.error(JSON.stringify({ level: 'warn', message, ...obj })))
+        )(
+          context,
+          !modelHandle.reasoning
+            ? 'Runtime profile thinking level is ignored because the model is not declared as a reasoning model'
+            : 'Runtime profile thinking off cannot be applied because the model has no declared off mapping',
+        );
+      }
 
       // Daemon-controlled runtime isolation (issue #979 + #943 slice 1.5):
       //  - Runtime-profile prompt context is operator-selected guidance.

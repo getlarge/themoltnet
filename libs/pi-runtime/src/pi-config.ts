@@ -21,6 +21,8 @@ export type PiModelModality = (typeof PI_MODEL_MODALITIES)[number];
 export interface PiModelSpec {
   id: string;
   input?: readonly PiModelModality[];
+  reasoning?: boolean;
+  thinkingLevelMap?: Readonly<Record<string, string>>;
 }
 
 export interface WritePiProviderInput {
@@ -78,11 +80,15 @@ export type WritePiConfigInput =
  * Normalise a model entry to Pi's on-disk shape. `input` is emitted only when
  * declared, so a text-only model serializes as a bare `{ id }`.
  */
-function toPiModel(entry: PiModelSpec): { id: string; input?: string[] } {
+function toPiModel(entry: PiModelSpec): PiModelSpec {
   return {
     id: entry.id,
     ...(entry.input && entry.input.length > 0
       ? { input: [...entry.input] }
+      : {}),
+    ...(entry.reasoning !== undefined ? { reasoning: entry.reasoning } : {}),
+    ...(entry.thinkingLevelMap
+      ? { thinkingLevelMap: { ...entry.thinkingLevelMap } }
       : {}),
   };
 }
