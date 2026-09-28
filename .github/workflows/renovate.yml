@@ -36,11 +36,11 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: themoltnet
           permission-administration: read
-          permission-checks: read
+          permission-checks: write
           permission-contents: write
           permission-issues: write
           permission-pull-requests: write
-          permission-statuses: read
+          permission-statuses: write
           permission-vulnerability-alerts: read
           permission-workflows: write
       - name: Enable preview mode
