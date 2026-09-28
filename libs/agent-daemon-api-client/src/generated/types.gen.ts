@@ -129,6 +129,10 @@ export type AgentServerProvider = {
   models: Array<{
     id: string;
     input?: Array<'text' | 'image'>;
+    reasoning?: boolean;
+    thinkingLevelMap?: {
+      [key: string]: string;
+    };
   }>;
 };
 
@@ -257,6 +261,10 @@ export type DiscoveredModels = {
   models: Array<{
     id: string;
     input?: Array<'text' | 'image'>;
+    reasoning?: boolean;
+    thinkingLevelMap?: {
+      [key: string]: string;
+    };
   }>;
 };
 
@@ -846,6 +854,10 @@ export type PutAgentServerProviderData = {
     models: Array<{
       id: string;
       input?: Array<'text' | 'image'>;
+      reasoning?: boolean;
+      thinkingLevelMap?: {
+        [key: string]: string;
+      };
     }>;
   };
   path: {
