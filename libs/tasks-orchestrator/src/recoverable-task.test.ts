@@ -1,0 +1,465 @@
+import { describe, expect, it, vi } from 'vitest';
+
+import { inlineContext } from './context.js';
+import {
+  type RecoveryGateDecision,
+  type RecoveryGateInput,
+  waitForRecoverableTask,
+} from './recoverable-task.js';
+import { FakeTasks, replayContext } from './testing.js';
+import type { TaskClient } from './types.js';
+
+const body: Parameters<TaskClient['createTask']>[0] = {
+  taskType: 'freeform',
+  teamId: 'team',
+  diaryId: 'diary',
+  correlationId: '00000000-0000-4000-8000-000000000001',
+  input: { brief: 'extract the fixed document' },
+  maxAttempts: 1,
+};
+
+const parse = (output: unknown) => output as { done: boolean };
+
+function setup(tasks: TaskClient, overrides: Record<string, unknown> = {}) {
+  return {
+    tasks,
+    ctx: inlineContext,
+    pollIntervalSec: 0,
+    parse,
+    frozenRequest: body,
+    maxReplacements: 1,
+    gateTimeoutMs: 100,
+    checkpointPrefix: 'extract.2',
+    recoveryGate: {
+      identity: { name: 'test-rule', version: '1' },
+      decide: vi.fn(
+        (): Promise<RecoveryGateDecision> =>
+          Promise.resolve({ verdict: 'approve', reasonCode: 'retryable' }),
+      ),
+    },
+    ...overrides,
+  };
+}
+
+describe('waitForRecoverableTask', () => {
+  it('replaces one failed stage and reuses the gate and created task on replay', async () => {
+    const tasks = new FakeTasks([{ __taskStatus: 'failed' }, { done: true }]);
+    const initial = await tasks.createTask(body);
+    const ctx = replayContext('workflow-1');
+    const gate = vi.fn(() =>
+      Promise.resolve({
+        verdict: 'approve' as const,
+        reasonCode: 'retryable',
+        engine: { name: 'rules', version: '1' },
+      }),
+    );
+    const options = setup(tasks, {
+      ctx,
+      recoveryGate: {
+        identity: { name: 'test-rule', version: '1' },
+        decide: gate,
+      },
+    });
+
+    const first = await waitForRecoverableTask(initial, options);
+    ctx.resetForReplay();
+    const replayed = await waitForRecoverableTask(initial, options);
+
+    expect(first.kind).toBe('accepted');
+    expect(replayed.kind).toBe('accepted');
+    expect(first.chain.map(({ outcome }) => outcome.kind)).toEqual([
+      'failed',
+      'accepted',
+    ]);
+    expect(first.decisions[0]).toMatchObject({
+      verdict: 'approve',
+      gateIdentity: { name: 'test-rule', version: '1' },
+      reasonCode: 'retryable',
+      replacementTaskId: '00000000-0000-4000-8000-000000000002',
+    });
+    expect(first.decisions[0]?.decisionInputDigest).toMatch(/^[a-f0-9]{64}$/);
+    expect(gate).toHaveBeenCalledTimes(1);
+    expect(tasks.created).toEqual([body, body]);
+    expect(tasks.creationOptions[1]?.idempotencyKey).toMatch(/^absurd:/);
+    expect(ctx.checkpointNames).toEqual([
+      'extract.2.recovery.1.decision',
+      'extract.2.recovery.1.create',
+    ]);
+  });
+
+  it.each(['deny', 'abstain'] as const)(
+    'blocks %s without creating a task',
+    async (verdict) => {
+      const tasks = new FakeTasks([{ __taskStatus: 'failed' }]);
+      const initial = await tasks.createTask(body);
+      const result = await waitForRecoverableTask(
+        initial,
+        setup(tasks, {
+          recoveryGate: {
+            identity: { name: 'test-rule', version: '1' },
+            decide: () => Promise.resolve({ verdict, reasonCode: 'policy' }),
+          },
+        }),
+      );
+      expect(result).toMatchObject({
+        kind: 'blocked',
+        decision: { verdict, reasonCode: 'policy' },
+      });
+      expect(tasks.created).toHaveLength(1);
+    },
+  );
+
+  it.each([
+    {
+      name: 'malformed',
+      decide: () => Promise.resolve({ verdict: 'maybe', reasonCode: 'x' }),
+      reasonCode: 'gate_invalid',
+    },
+    {
+      name: 'error',
+      decide: () => Promise.reject(new Error('offline')),
+      reasonCode: 'gate_error',
+    },
+    {
+      name: 'timeout',
+      decide: () => new Promise<never>(() => {}),
+      reasonCode: 'gate_timeout',
+    },
+  ])('fails closed on $name gate result', async ({ decide, reasonCode }) => {
+    const tasks = new FakeTasks([{ __taskStatus: 'failed' }]);
+    const initial = await tasks.createTask(body);
+    const result = await waitForRecoverableTask(
+      initial,
+      setup(tasks, {
+        recoveryGate: { identity: { name: 'test-rule', version: '1' }, decide },
+        gateTimeoutMs: 5,
+      }),
+    );
+    expect(result).toMatchObject({
+      kind: 'blocked',
+      decision: { verdict: 'invalid', reasonCode },
+    });
+    expect(tasks.created).toHaveLength(1);
+  });
+
+  it('does not ask the gate after the independent replacement budget is spent', async () => {
+    const tasks = new FakeTasks([
+      { __taskStatus: 'failed' },
+      { __taskStatus: 'failed' },
+    ]);
+    const initial = await tasks.createTask(body);
+    const gate = vi.fn(() =>
+      Promise.resolve({ verdict: 'approve' as const, reasonCode: 'retryable' }),
+    );
+    const result = await waitForRecoverableTask(
+      initial,
+      setup(tasks, {
+        recoveryGate: {
+          identity: { name: 'test-rule', version: '1' },
+          decide: gate,
+        },
+      }),
+    );
+    expect(result).toMatchObject({
+      kind: 'failed',
+      reasonCode: 'budget_exhausted',
+    });
+    expect(result.chain).toHaveLength(2);
+    expect(gate).toHaveBeenCalledTimes(1);
+  });
+
+  it('retains failed attempts and sums usage across both task identities', async () => {
+    const tasks = new FakeTasks([{ __taskStatus: 'failed' }, { done: true }]);
+    const initial = await tasks.createTask(body);
+    const listAttempts = tasks.listAttempts.bind(tasks);
+    tasks.listAttempts = async (id) =>
+      (await listAttempts(id)).map((attempt) => ({
+        ...attempt,
+        usage:
+          id === initial.id
+            ? {
+                inputTokens: 5,
+                outputTokens: 2,
+                cacheReadTokens: 3,
+                model: 'failed-model',
+              }
+            : {
+                inputTokens: 7,
+                outputTokens: 4,
+                toolCalls: 1,
+                model: 'success-model',
+              },
+      }));
+
+    const result = await waitForRecoverableTask(initial, setup(tasks));
+
+    expect(result.kind).toBe('accepted');
+    expect(result.cumulativeUsage).toEqual({
+      inputTokens: 12,
+      outputTokens: 6,
+      cacheReadTokens: 3,
+      cacheWriteTokens: 0,
+      toolCalls: 1,
+    });
+    expect(
+      result.chain[0]?.outcome.kind === 'failed'
+        ? result.chain[0].outcome.attempts[0]?.usage?.model
+        : null,
+    ).toBe('failed-model');
+  });
+
+  it('does not restart cancellation by default', async () => {
+    const tasks = new FakeTasks([{ __taskStatus: 'cancelled' }]);
+    const initial = await tasks.createTask(body);
+    const gate = vi.fn();
+    const result = await waitForRecoverableTask(
+      initial,
+      setup(tasks, {
+        recoveryGate: {
+          identity: { name: 'test-rule', version: '1' },
+          decide: gate,
+        },
+      }),
+    );
+    expect(result).toMatchObject({ kind: 'failed', reasonCode: 'cancelled' });
+    expect(gate).not.toHaveBeenCalled();
+  });
+
+  it('can recover cancellation only when the caller opts in', async () => {
+    const tasks = new FakeTasks([
+      { __taskStatus: 'cancelled' },
+      { done: true },
+    ]);
+    const initial = await tasks.createTask(body);
+    const result = await waitForRecoverableTask(
+      initial,
+      setup(tasks, {
+        recoverCancelled: true,
+      }),
+    );
+    expect(result.kind).toBe('accepted');
+    expect(tasks.created).toHaveLength(2);
+  });
+
+  it.each([-1, 1.5, Number.MAX_SAFE_INTEGER + 1])(
+    'rejects invalid replacement budget %s before awaiting',
+    async (maxReplacements) => {
+      const tasks = new FakeTasks([{ __taskStatus: 'failed' }]);
+      const initial = await tasks.createTask(body);
+      const getTask = vi.spyOn(tasks, 'getTask');
+      await expect(
+        waitForRecoverableTask(initial, setup(tasks, { maxReplacements })),
+      ).rejects.toThrow('maxReplacements must be a non-negative safe integer');
+      expect(getTask).not.toHaveBeenCalled();
+    },
+  );
+
+  it('returns an inspectable create error without starting another task', async () => {
+    const tasks = new FakeTasks([{ __taskStatus: 'failed' }]);
+    const initial = await tasks.createTask(body);
+    tasks.createTask = vi.fn().mockRejectedValue(new Error('unavailable'));
+    const result = await waitForRecoverableTask(initial, setup(tasks));
+    expect(result).toMatchObject({
+      kind: 'replacement_create_failed',
+      reasonCode: 'replacement_create_error',
+    });
+  });
+
+  it('fails closed when a gate tries to change its candidate', async () => {
+    const tasks = new FakeTasks([{ __taskStatus: 'failed' }]);
+    const initial = await tasks.createTask(body);
+    const gate = {
+      identity: { name: 'mutating-rule', version: '1' },
+      decide: (input: RecoveryGateInput) => {
+        (input.candidate as { replacementN: number }).replacementN = 99;
+        return Promise.resolve({
+          verdict: 'approve' as const,
+          reasonCode: 'attempted_change',
+        });
+      },
+    };
+    const result = await waitForRecoverableTask(
+      initial,
+      setup(tasks, { recoveryGate: gate }),
+    );
+    expect(result).toMatchObject({
+      kind: 'blocked',
+      decision: { verdict: 'invalid', reasonCode: 'gate_error' },
+    });
+    expect(tasks.created).toHaveLength(1);
+  });
+
+  it('creates from the original request if a gate mutates the caller-owned object', async () => {
+    const tasks = new FakeTasks([{ __taskStatus: 'failed' }, { done: true }]);
+    const request = structuredClone(body);
+    const initial = await tasks.createTask(request);
+    const gate = {
+      identity: { name: 'mutating-rule', version: '1' },
+      decide: () => {
+        request.input = { brief: 'changed after the gate started' };
+        return Promise.resolve({
+          verdict: 'approve' as const,
+          reasonCode: 'approved',
+        });
+      },
+    };
+    const result = await waitForRecoverableTask(
+      initial,
+      setup(tasks, {
+        frozenRequest: request,
+        recoveryGate: gate,
+      }),
+    );
+    expect(result.kind).toBe('accepted');
+    expect(tasks.created[1]?.input).toEqual(body.input);
+  });
+
+  it('reuses a checkpointed gate decision when creation fails then workflow replays', async () => {
+    const tasks = new FakeTasks([{ __taskStatus: 'failed' }, { done: true }]);
+    const initial = await tasks.createTask(body);
+    const realCreate = tasks.createTask.bind(tasks);
+    let fail = true;
+    tasks.createTask = vi.fn(
+      (
+        request: Parameters<TaskClient['createTask']>[0],
+        options?: Parameters<TaskClient['createTask']>[1],
+      ) => {
+        if (fail) return Promise.reject(new Error('temporary create failure'));
+        return realCreate(request, options);
+      },
+    );
+    const ctx = replayContext('decision-replay');
+    const gate = vi.fn(() =>
+      Promise.resolve({ verdict: 'approve' as const, reasonCode: 'retryable' }),
+    );
+    const options = setup(tasks, {
+      ctx,
+      recoveryGate: {
+        identity: { name: 'test-rule', version: '1' },
+        decide: gate,
+      },
+    });
+
+    const first = await waitForRecoverableTask(initial, options);
+    fail = false;
+    ctx.resetForReplay();
+    const second = await waitForRecoverableTask(initial, options);
+
+    expect(first.kind).toBe('replacement_create_failed');
+    expect(second.kind).toBe('accepted');
+    expect(gate).toHaveBeenCalledTimes(1);
+    expect(tasks.created).toHaveLength(2);
+  });
+
+  it('reconciles a create that succeeded before checkpoint completion', async () => {
+    const tasks = new FakeTasks([{ __taskStatus: 'failed' }, { done: true }]);
+    const initial = await tasks.createTask(body);
+    const realCreate = tasks.createTask.bind(tasks);
+    const byKey = new Map<
+      string,
+      Awaited<ReturnType<TaskClient['createTask']>>
+    >();
+    const createMock = vi.fn(
+      async (
+        request: Parameters<TaskClient['createTask']>[0],
+        options?: Parameters<TaskClient['createTask']>[1],
+      ) => {
+        const key = options?.idempotencyKey;
+        if (!key) throw new Error('missing idempotency key');
+        const existing = byKey.get(key);
+        if (existing) return existing;
+        const created = await realCreate(request, options);
+        byKey.set(key, created);
+        return created;
+      },
+    );
+    tasks.createTask = createMock;
+    const ctx = replayContext('create-gap');
+    const complete = ctx.completeStep.bind(ctx);
+    let crash = true;
+    ctx.completeStep = (handle, value) => {
+      if (handle.name.endsWith('.create') && crash) {
+        crash = false;
+        throw new Error('worker stopped after external create');
+      }
+      return complete(handle, value);
+    };
+    const gate = vi.fn(() =>
+      Promise.resolve({ verdict: 'approve' as const, reasonCode: 'retryable' }),
+    );
+    const options = setup(tasks, {
+      ctx,
+      recoveryGate: {
+        identity: { name: 'test-rule', version: '1' },
+        decide: gate,
+      },
+    });
+
+    const first = await waitForRecoverableTask(initial, options);
+    ctx.resetForReplay();
+    const second = await waitForRecoverableTask(initial, options);
+
+    expect(first.kind).toBe('replacement_create_failed');
+    expect(second.kind).toBe('accepted');
+    expect(gate).toHaveBeenCalledTimes(1);
+    expect(createMock).toHaveBeenCalledTimes(2);
+    expect(tasks.created).toHaveLength(2);
+    expect(byKey.size).toBe(1);
+  });
+
+  it('replaces a failed semantic repair without changing its completed parent or feedback', async () => {
+    const repairBody = {
+      ...body,
+      input: {
+        continueFrom: {
+          taskId: 'completed-source',
+          attemptN: 2,
+          mode: 'extend',
+        },
+        feedback: 'missing required phase',
+      },
+    };
+    const tasks = new FakeTasks([{ __taskStatus: 'failed' }, { done: true }]);
+    const failedRepair = await tasks.createTask(repairBody);
+    const gate = vi.fn((_input: RecoveryGateInput) =>
+      Promise.resolve({ verdict: 'approve' as const, reasonCode: 'retryable' }),
+    );
+
+    const result = await waitForRecoverableTask(
+      failedRepair,
+      setup(tasks, {
+        frozenRequest: repairBody,
+        parentTaskId: 'completed-source',
+        recoveryGate: {
+          identity: { name: 'test-rule', version: '1' },
+          decide: gate,
+        },
+      }),
+    );
+
+    expect(result.kind).toBe('accepted');
+    expect(gate.mock.calls[0]?.[0].candidate.parentTaskId).toBe(
+      'completed-source',
+    );
+    expect(tasks.created[1]?.input).toEqual(repairBody.input);
+  });
+
+  it('rejects an initial task whose frozen request has changed', async () => {
+    const tasks = new FakeTasks([{ __taskStatus: 'failed' }]);
+    const initial = await tasks.createTask(body);
+    const gate = vi.fn();
+    await expect(
+      waitForRecoverableTask(
+        initial,
+        setup(tasks, {
+          frozenRequest: { ...body, input: { brief: 'changed' } },
+          recoveryGate: {
+            identity: { name: 'test-rule', version: '1' },
+            decide: gate,
+          },
+        }),
+      ),
+    ).rejects.toThrow('frozenRequest does not match');
+    expect(gate).not.toHaveBeenCalled();
+  });
+});
