@@ -145,10 +145,13 @@ jobs:
     # success() check on the skipped transitive dependency.
     if: ${{ always() && needs.resolve-publish.outputs.docker-has-releases == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     permissions:
       contents: write
       packages: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.resolve-publish.outputs.docker-matrix) }}
@@ -192,6 +195,7 @@ jobs:
           --configuration=release
 
       - name: Verify published multi-platform manifest
+        id: image
         env:
           NX_DOCKER_RELEASE_PROJECT: ${{ matrix.project }}
           NX_DOCKER_RELEASE_TAG: ${{ matrix.version }}
@@ -199,6 +203,63 @@ jobs:
           node tools/verify-docker-manifest.mjs
           --project "$NX_DOCKER_RELEASE_PROJECT"
           --tag "$NX_DOCKER_RELEASE_TAG"
+
+      - name: Generate linux/amd64 release SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          image: ${{ steps.image.outputs.amd64_ref }}
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ github.token }}
+          format: spdx-json
+          output-file: ${{ runner.temp }}/release-amd64.spdx.json
+          syft-version: v1.42.3
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Generate linux/arm64 release SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          image: ${{ steps.image.outputs.arm64_ref }}
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ github.token }}
+          format: spdx-json
+          output-file: ${{ runner.temp }}/release-arm64.spdx.json
+          syft-version: v1.42.3
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Validate release SBOMs
+        run: |
+          for file in "$RUNNER_TEMP/release-amd64.spdx.json" "$RUNNER_TEMP/release-arm64.spdx.json"; do
+            jq -e '.spdxVersion | startswith("SPDX-")' "$file" > /dev/null
+            if [ "$(wc -c < "$file")" -gt 16777216 ]; then
+              echo "::error::Release SBOM exceeds the attestation size limit: $file"
+              exit 1
+            fi
+          done
+
+      - name: Attest release provenance
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+        with:
+          subject-name: ${{ steps.image.outputs.image_name }}
+          subject-digest: ${{ steps.image.outputs.image_digest }}
+          push-to-registry: true
+
+      - name: Attest linux/amd64 release SBOM
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+        with:
+          subject-name: ${{ steps.image.outputs.image_name }}
+          subject-digest: ${{ steps.image.outputs.image_digest }}
+          sbom-path: ${{ runner.temp }}/release-amd64.spdx.json
+          push-to-registry: true
+
+      - name: Attest linux/arm64 release SBOM
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+        with:
+          subject-name: ${{ steps.image.outputs.image_name }}
+          subject-digest: ${{ steps.image.outputs.image_digest }}
+          sbom-path: ${{ runner.temp }}/release-arm64.spdx.json
+          push-to-registry: true
 
       - name: Publish GitHub release
         env:
