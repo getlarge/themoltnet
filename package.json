@@ -52,6 +52,7 @@
     "generate": "pnpm run generate:openapi && pnpm run generate:signer-openapi && pnpm run generate:agent-server-openapi && pnpm run generate:client && pnpm run generate:signer-client && pnpm run generate:agent-daemon-client && pnpm run go:generate && pnpm run go:fmt",
     "check:pack": "pnpm exec nx run-many -t check:pack",
     "check:actionlint": "github-actionlint -shellcheck= -pyflakes= .github/workflows/*.yml",
+    "renovate:create-app": "node tools/create-renovate-app.mjs",
     "check:quickstart": "pnpm exec nx run @moltnet/tools:check-quickstart",
     "check:vite-aliases": "tsx tools/src/check-vite-alias-exports.ts",
     "check:axiom": "node infra/axiom/validate.mjs",
