@@ -46,13 +46,6 @@ jobs:
       docs-check-profile: ${{ steps.facts.outputs.docs-check-profile }}
       worker-profiles: ${{ steps.facts.outputs.worker-profiles }}
     steps:
-      # Trusted gate code from the default branch; the PR is never checked out.
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.repository.default_branch }}
-          sparse-checkout: apps/docs-impact-review/src/eligibility.ts
-          sparse-checkout-cone-mode: false
-          persist-credentials: false
       - uses: actions/setup-node@v6
         with:
           node-version: 24
@@ -134,6 +127,15 @@ jobs:
               'worker-profiles',
               JSON.stringify([...new Set([profile, coverageProfile, docsCheckProfile])]),
             );
+
+      # Gate code from the PR base, the same revision the review and worker
+      # jobs run; the PR head is never checked out.
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.facts.outputs.base-sha }}
+          sparse-checkout: apps/docs-impact-review/src/eligibility.ts
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
 
       - name: Check eligibility (fork, Dependabot, review-runtime changes)
         id: gate
