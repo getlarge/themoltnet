@@ -172,15 +172,28 @@ async function convert(code) {
   return { slug: app.slug, client_id: app.client_id, pem: app.pem };
 }
 
-function main() {
-  const name = process.argv[2] ?? 'themoltnet-renovate';
-  const state = randomBytes(16).toString('hex');
+export function createRequestHandler({
+  name,
+  state,
+  getPort,
+  close,
+  convertApp = convert,
+  storeApp = storeCredentials,
+  write = (line) => process.stdout.write(line),
+  setExitCode = (code) => {
+    process.exitCode = code;
+  },
+}) {
   let done = false;
 
-  const server = createServer(async (req, res) => {
+  const handler = async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
-    const { port } = server.address();
     if (url.pathname === '/' && !done) {
+      const port = getPort();
+      if (!port) {
+        res.writeHead(503).end();
+        return;
+      }
       const manifest = buildManifest({
         name,
         redirectUrl: `http://127.0.0.1:${port}/callback`,
@@ -196,30 +209,45 @@ function main() {
     done = true;
     if (url.searchParams.get('state') !== state) {
       res.writeHead(400).end('State mismatch; nothing was stored.');
-      process.stdout.write('FAILED: state mismatch; nothing stored\n');
-      server.close();
-      process.exitCode = 1;
+      write('FAILED: state mismatch; nothing stored\n');
+      close();
+      setExitCode(1);
       return;
     }
     try {
-      const app = await convert(url.searchParams.get('code') ?? '');
-      process.stdout.write(`created app: ${app.slug}\n`);
-      const stored = storeCredentials(app);
+      const app = await convertApp(url.searchParams.get('code') ?? '');
+      write(`created app: ${app.slug}\n`);
+      const stored = storeApp(app);
       const install = `https://github.com/apps/${app.slug}/installations/new`;
-      process.stdout.write(`install on ${REPOSITORY} only: ${install}\n`);
+      write(`install on ${REPOSITORY} only: ${install}\n`);
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       res.end(
         `<p>App created${stored ? ' and credentials stored' : '; storing credentials FAILED, see terminal'}.</p>` +
           `<p><a href="${install}">Install it on ${REPOSITORY} only</a>.</p>`,
       );
-      process.exitCode = stored ? 0 : 1;
+      setExitCode(stored ? 0 : 1);
     } catch {
-      process.stdout.write('FAILED: app conversion (details suppressed)\n');
+      write('FAILED: app conversion (details suppressed)\n');
       res.writeHead(500).end('Conversion failed; see terminal.');
-      process.exitCode = 1;
+      setExitCode(1);
     }
-    server.close();
+    close();
+  };
+
+  return { handler, isDone: () => done };
+}
+
+function main() {
+  const name = process.argv[2] ?? 'themoltnet-renovate';
+  const state = randomBytes(16).toString('hex');
+  let server;
+  const { handler, isDone } = createRequestHandler({
+    name,
+    state,
+    getPort: () => server.address()?.port,
+    close: () => server.close(),
   });
+  server = createServer(handler);
 
   server.listen(0, '127.0.0.1', () => {
     const { port } = server.address();
@@ -227,7 +255,7 @@ function main() {
   });
   globalThis
     .setTimeout(() => {
-      if (!done) {
+      if (!isDone()) {
         process.stdout.write('FAILED: timed out waiting for GitHub\n');
         process.exitCode = 1;
         server.close();
