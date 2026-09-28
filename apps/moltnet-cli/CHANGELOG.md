@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.9.0](https://github.com/getlarge/themoltnet/compare/cli-v3.8.0...cli-v3.9.0) (2026-09-28)
+
+
+### Features
+
+* **cli:** add agents identity-key rotate ([0748f22](https://github.com/getlarge/themoltnet/commit/0748f22ac77497caab25f7e2ee13cec90cb118ca))
+* **cli:** agents identity-key rotate ([3ae7bec](https://github.com/getlarge/themoltnet/commit/3ae7beccfa5273a08818e55e93038d604e7b9a8f))
+
+
+### Bug Fixes
+
+* **cli:** keep the staged identity seed until the server switches keys ([4965890](https://github.com/getlarge/themoltnet/commit/4965890de94763e833d56e75ce58d2d1f52cc6d3))
+* **release:** recover cli v3.9.0 release cycle ([87ead00](https://github.com/getlarge/themoltnet/commit/87ead001458b36f10211e99d2320bc7e7ee53bdb))
+* **release:** recover cli v3.9.0 release cycle ([8945785](https://github.com/getlarge/themoltnet/commit/89457858f17a70fa3ad2ce7db27b6c932e1b43df))
+
 ## [3.8.0](https://github.com/getlarge/themoltnet/compare/cli-v3.7.0...cli-v3.8.0) (2026-09-27)
 
 
