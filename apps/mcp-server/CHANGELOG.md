@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.27.1](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.27.0...mcp-server-v0.27.1) (2026-09-28)
+
+
+### Bug Fixes
+
+* **oauth:** accept optional OIDC scopes for MCP clients ([8b5ae2d](https://github.com/getlarge/themoltnet/commit/8b5ae2db46ca12e6a8743241e6bf861b9bb26eec))
+* **oauth:** allow explicit OIDC identity scopes for MCP ([62b12c6](https://github.com/getlarge/themoltnet/commit/62b12c622b5175f5f68c9e1fb346ab99142ab6bb))
+
 ## [0.27.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.26.0...mcp-server-v0.27.0) (2026-09-27)
 
 

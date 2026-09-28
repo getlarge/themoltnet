@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.18.9](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.18.8...pi-runtime-v0.18.9) (2026-09-28)
+
+
+### Bug Fixes
+
+* **pi-runtime:** let malformed submit fields reach recovery validator ([acf15b9](https://github.com/getlarge/themoltnet/commit/acf15b97bb79b0f255515eb135e849b9404955af))
+* **pi-runtime:** preserve captured submit before drain signal ([ce88be0](https://github.com/getlarge/themoltnet/commit/ce88be0e7825b76e6d58fe56f1aa91cc8d0820ba))
+* **pi-runtime:** preserve captured submit before drain signal ([2e41be7](https://github.com/getlarge/themoltnet/commit/2e41be76ed8c95b20ce168cee430df91fad13ef2))
+* **pi-runtime:** terminate validated submit without abort ([a9d524c](https://github.com/getlarge/themoltnet/commit/a9d524c18eddc053ada3f055699dcb38ea0a8c9d))
+
 ## [0.18.8](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.18.7...pi-runtime-v0.18.8) (2026-09-26)
 
 
