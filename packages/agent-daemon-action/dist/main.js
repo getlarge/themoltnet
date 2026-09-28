@@ -31068,11 +31068,21 @@ var MCP_CLIENT_SCOPES = [
 	CREDENTIAL_SCOPES.TeamRead
 ];
 MCP_CLIENT_SCOPES.filter((scope) => scope !== CREDENTIAL_SCOPES.HumanProfile);
-Object.freeze([...[
+/**
+* OIDC protocol scopes. Not MoltNet capabilities — they carry no REST
+* authorization — so every capability cap has to allow them through
+* explicitly rather than treating them as over-grants.
+*/
+var OIDC_PROTOCOL_SCOPES = [
 	"openid",
 	"offline",
 	"offline_access"
-], ...MCP_CLIENT_SCOPES]);
+];
+/** Optional OIDC identity claims requested by some interactive MCP clients. */
+var OIDC_IDENTITY_SCOPES = ["email", "profile"];
+/** Registration defaults do not grant identity claims unless requested. */
+var DCR_DEFAULT_SCOPES = Object.freeze([...OIDC_PROTOCOL_SCOPES, ...MCP_CLIENT_SCOPES]);
+Object.freeze([...DCR_DEFAULT_SCOPES, ...OIDC_IDENTITY_SCOPES]);
 Object.freeze({
 	protocolVersion: 2,
 	provisioningScope: "moltnet:provision",
