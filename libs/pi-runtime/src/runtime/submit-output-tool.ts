@@ -129,17 +129,97 @@ function requireObjectSchema(schema: TSchema): TObject {
   return schema as unknown as TObject;
 }
 
+const JSON_TYPES = new Set([
+  'array',
+  'boolean',
+  'integer',
+  'null',
+  'number',
+  'object',
+  'string',
+]);
+
+/** JSON types a property schema admits, from `type` and `anyOf`/`oneOf`. */
+function schemaJsonTypes(schema: unknown): Set<string> {
+  const types = new Set<string>();
+  if (!isRecord(schema)) return types;
+  const declared = Array.isArray(schema.type) ? schema.type : [schema.type];
+  for (const type of declared) {
+    if (typeof type === 'string' && JSON_TYPES.has(type)) types.add(type);
+  }
+  for (const key of ['anyOf', 'oneOf'] as const) {
+    const members = schema[key];
+    if (!Array.isArray(members)) continue;
+    for (const member of members) {
+      for (const type of schemaJsonTypes(member)) types.add(type);
+    }
+  }
+  return types;
+}
+
+function jsonTypeOf(value: unknown): string {
+  if (value === null) return 'null';
+  if (Array.isArray(value)) return 'array';
+  if (typeof value === 'number') {
+    return Number.isInteger(value) ? 'integer' : 'number';
+  }
+  return typeof value;
+}
+
+function admitsJsonType(types: Set<string>, type: string): boolean {
+  return types.has(type) || (type === 'integer' && types.has('number'));
+}
+
 function recoverableSubmitToolParameters(schema: TSchema): TObject {
   const objectSchema = requireObjectSchema(schema);
   return Type.Object(
     Object.fromEntries(
-      Object.keys(objectSchema.properties).map((name) => [
-        name,
-        Type.Optional(Type.Any()),
-      ]),
+      Object.entries(objectSchema.properties).map(([name, property]) => {
+        // The value stays unconstrained so malformed calls reach execute(),
+        // but the expected type stays visible: with a bare `{}` some models
+        // send every array, object, and number as a JSON string.
+        const types = [...schemaJsonTypes(property)].sort();
+        const hint =
+          types.length > 0 && !types.includes('string')
+            ? {
+                description: `JSON ${types.join(' | ')}. Send a native JSON value, not a string.`,
+              }
+            : {};
+        return [name, Type.Optional(Type.Any(hint))];
+      }),
     ),
     { additionalProperties: true },
   );
+}
+
+/**
+ * Decodes top-level fields that arrive as JSON-encoded strings when the
+ * schema does not admit a string there, e.g. `"scores": "[{...}]"` or
+ * `"composite": "0.8"`. Only a parse whose result has an admitted type is
+ * kept; everything else is left for strict validation to report.
+ */
+function decodeStringifiedFields(params: unknown, schema: TSchema): unknown {
+  if (!isRecord(params)) return params;
+  const properties = requireObjectSchema(schema).properties as Record<
+    string,
+    unknown
+  >;
+  let decoded: Record<string, unknown> | null = null;
+  for (const [name, value] of Object.entries(params)) {
+    if (typeof value !== 'string' || !(name in properties)) continue;
+    const types = schemaJsonTypes(properties[name]);
+    if (types.size === 0 || types.has('string')) continue;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      continue;
+    }
+    if (!admitsJsonType(types, jsonTypeOf(parsed))) continue;
+    decoded ??= { ...params };
+    decoded[name] = parsed;
+  }
+  return decoded ?? params;
 }
 
 function formatValidationErrors(
@@ -379,8 +459,8 @@ export function createSubmitOutputTool(
       // pollutes attestations. Returning isError:true lets the agent
       // re-call with a corrected payload mid-session — same recovery
       // affordance as a plain schema miss.
-      const unwrappedParams = unwrapSoleOutputEnvelope(
-        params,
+      const unwrappedParams = decodeStringifiedFields(
+        unwrapSoleOutputEnvelope(params, contract.parametersSchema),
         contract.parametersSchema,
       );
       const repairedParams = maybeRepairSubmitOutput(
