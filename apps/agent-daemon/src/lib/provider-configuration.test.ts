@@ -41,6 +41,7 @@ function fixture(
       secrets,
       secretProviders,
       ...options,
+      fetchImpl: options.fetchImpl ?? discoveryFetch({}),
     }),
   };
 }
@@ -76,6 +77,86 @@ function discoveryFetch(routes: {
 }
 
 describe('ProviderConfigurationService', () => {
+  it.each([
+    { providerId: 'ollama', baseUrl: 'http://localhost:11434/v1' },
+    { providerId: 'ollama-cloud', baseUrl: 'https://ollama.com/v1' },
+  ])(
+    'infers $providerId thinking controls from /api/show on set',
+    async ({ providerId, baseUrl }) => {
+      const fetchImpl = discoveryFetch({
+        show: {
+          capabilities: ['completion', 'thinking', 'vision'],
+          thinking: { values: [false, 'low', 'high', 'max'], default: 'high' },
+        },
+      });
+      const { service } = fixture({ fetchImpl });
+
+      await service.set(providerId, {
+        baseUrl,
+        models: [{ id: 'deepseek-v4.1-flash' }],
+      });
+
+      expect(service.list()[providerId]?.models).toEqual([
+        {
+          id: 'deepseek-v4.1-flash',
+          input: ['text', 'image'],
+          reasoning: true,
+          thinkingLevelMap: {
+            off: 'none',
+            minimal: 'low',
+            low: 'low',
+            medium: 'low',
+            high: 'high',
+            xhigh: 'max',
+          },
+        },
+      ]);
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+      expect(String(fetchImpl.mock.calls[0]?.[0])).toBe(
+        `${new URL(baseUrl).origin}/api/show`,
+      );
+    },
+  );
+  it('refreshes thinking values from /api/show when /api/tags only reports the capability', async () => {
+    const fetchImpl = discoveryFetch({
+      models: { data: [{ id: 'gpt-oss:120b-cloud' }] },
+      tags: {
+        models: [
+          {
+            name: 'gpt-oss:120b-cloud',
+            capabilities: ['completion', 'thinking'],
+          },
+        ],
+      },
+      show: {
+        capabilities: ['completion', 'thinking'],
+        thinking: { values: ['low', 'medium', 'high'], default: 'medium' },
+      },
+    });
+    const { service } = fixture({ fetchImpl });
+    await service.set('ollama-cloud', { baseUrl: 'https://ollama.com/v1' });
+
+    const result = await service.discover('ollama-cloud', { save: true });
+
+    expect(result.models).toEqual([
+      {
+        id: 'gpt-oss:120b-cloud',
+        reasoning: true,
+        thinkingLevelMap: {
+          off: 'low',
+          minimal: 'low',
+          low: 'low',
+          medium: 'medium',
+          high: 'high',
+          xhigh: 'high',
+        },
+      },
+    ]);
+    expect(
+      fetchImpl.mock.calls.some(([url]) => String(url).endsWith('/api/show')),
+    ).toBe(true);
+    expect(service.list()['ollama-cloud']?.models).toEqual(result.models);
+  });
   it('preserves omitted fields and can remove only the stored API key', async () => {
     const { service, store } = fixture();
     await service.set('ollama-cloud', {
@@ -262,7 +343,7 @@ describe('ProviderConfigurationService', () => {
     await service.discover('ollama-cloud', { save: true });
 
     expect(service.list()['ollama-cloud']?.models).toEqual([
-      { id: 'qwen3.5:397b', input: ['text', 'image'] },
+      { id: 'qwen3.5:397b', input: ['text', 'image'], reasoning: false },
     ]);
   });
 
@@ -276,7 +357,9 @@ describe('ProviderConfigurationService', () => {
 
     await service.discover('ollama-cloud', { save: true });
 
-    expect(service.list()['ollama-cloud']?.models).toEqual([{ id: 'glm-5.2' }]);
+    expect(service.list()['ollama-cloud']?.models).toEqual([
+      { id: 'glm-5.2', reasoning: false },
+    ]);
   });
 
   it('still succeeds when a capability probe fails, leaving the model text-only', async () => {
@@ -319,7 +402,7 @@ describe('ProviderConfigurationService', () => {
     await service.discover('ollama-cloud', { save: true });
 
     expect(service.list()['ollama-cloud']?.models).toEqual([
-      { id: 'qwen3.5:397b', input: ['text'] },
+      { id: 'qwen3.5:397b', input: ['text'], reasoning: false },
     ]);
   });
 
@@ -400,22 +483,22 @@ describe('ProviderConfigurationService', () => {
       service.discover('ollama-cloud', { save: true }),
     ).resolves.toEqual({
       models: [
-        { id: 'gemma4:31b-cloud', input: ['text', 'image'] },
-        { id: 'local' },
-        { id: 'shared' },
+        { id: 'gemma4:31b-cloud', input: ['text', 'image'], reasoning: false },
+        { id: 'local', reasoning: false },
+        { id: 'shared', reasoning: false },
       ],
     });
-    // /v1/models + /api/tags + one /api/show for `local`, the only id the tags
-    // response did not describe. The two it did describe are not re-fetched.
-    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    // Configuration probes `stale`; discovery then calls /v1/models,
+    // /api/tags and /api/show for `local`.
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
     expect(service.list()['ollama-cloud']).toMatchObject({
       api: 'openai-responses',
       baseUrl: 'https://ollama.com/v1',
       hasApiKey: true,
       models: [
-        { id: 'gemma4:31b-cloud', input: ['text', 'image'] },
-        { id: 'local' },
-        { id: 'shared' },
+        { id: 'gemma4:31b-cloud', input: ['text', 'image'], reasoning: false },
+        { id: 'local', reasoning: false },
+        { id: 'shared', reasoning: false },
       ],
     });
   });

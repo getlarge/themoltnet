@@ -519,7 +519,9 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     });
     expect(ollama.response.status).toBe(200);
     expect(ollama.data).toEqual({
-      models: [{ id: 'tags-only-model', input: ['text', 'image'] }],
+      models: [
+        { id: 'tags-only-model', input: ['text', 'image'], reasoning: false },
+      ],
     });
 
     const deadProvider = 'e2e-discovery-dead';
@@ -725,7 +727,9 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     ]);
     expect(discovered.code, discovered.stderr).toBe(0);
     expect(JSON.parse(discovered.stdout)).toEqual({
-      models: [{ id: 'tags-only-model', input: ['text', 'image'] }],
+      models: [
+        { id: 'tags-only-model', input: ['text', 'image'], reasoning: false },
+      ],
     });
 
     const listedAfterDiscovery = await listAgentServerProviders({
@@ -734,7 +738,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     // `discover --save` persists the detected capability, so the operator
     // never has to declare it by hand.
     expect(listedAfterDiscovery.data?.[CLI_PROVIDER_ID]?.models).toEqual([
-      { id: 'tags-only-model', input: ['text', 'image'] },
+      { id: 'tags-only-model', input: ['text', 'image'], reasoning: false },
     ]);
 
     const updatedOverHttp = await putAgentServerProvider({

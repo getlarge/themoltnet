@@ -32,7 +32,11 @@ describe('writeStorePiConfig', () => {
         apiKeyRef: 'file:providers/ollama-cloud/api-key',
         models: [
           { id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
-          { id: 'glm-5.2:cloud' },
+          {
+            id: 'glm-5.2:cloud',
+            reasoning: true,
+            thinkingLevelMap: { off: 'none', low: 'low' },
+          },
         ],
       },
     };
@@ -49,7 +53,11 @@ describe('writeStorePiConfig', () => {
       models: [
         // Pi reads `input` to decide whether image content parts may be sent.
         { id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
-        { id: 'glm-5.2:cloud' },
+        {
+          id: 'glm-5.2:cloud',
+          reasoning: true,
+          thinkingLevelMap: { off: 'none', low: 'low' },
+        },
       ],
     });
   });

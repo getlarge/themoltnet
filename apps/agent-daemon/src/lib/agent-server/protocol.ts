@@ -18,6 +18,8 @@ const ProviderModelSchema = Type.Object({
       { minItems: 1 },
     ),
   ),
+  reasoning: Type.Optional(Type.Boolean()),
+  thinkingLevelMap: Type.Optional(Type.Record(Type.String(), Type.String())),
 });
 
 /** One shape on the wire, for both requests and responses. */

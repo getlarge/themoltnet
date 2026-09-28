@@ -685,6 +685,15 @@
                   },
                   "minItems": 1,
                   "type": "array"
+                },
+                "reasoning": {
+                  "type": "boolean"
+                },
+                "thinkingLevelMap": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
                 }
               },
               "required": [
@@ -1272,6 +1281,15 @@
                   },
                   "minItems": 1,
                   "type": "array"
+                },
+                "reasoning": {
+                  "type": "boolean"
+                },
+                "thinkingLevelMap": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
                 }
               },
               "required": [
@@ -2602,6 +2620,15 @@
                           },
                           "minItems": 1,
                           "type": "array"
+                        },
+                        "reasoning": {
+                          "type": "boolean"
+                        },
+                        "thinkingLevelMap": {
+                          "additionalProperties": {
+                            "type": "string"
+                          },
+                          "type": "object"
                         }
                       },
                       "required": [

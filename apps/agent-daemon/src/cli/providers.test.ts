@@ -35,7 +35,8 @@ async function fixture(
     store,
     secrets,
     secretProviders: new SecretProviderRegistry().register(secrets),
-    fetchImpl: options.fetchImpl,
+    fetchImpl:
+      options.fetchImpl ?? (async () => new Response(null, { status: 404 })),
   });
   const modelRuntime = {
     getProviders: () => [
@@ -69,6 +70,38 @@ async function fixture(
 }
 
 describe('moltnet-agent providers', () => {
+  it('stores explicit reasoning metadata and shows it in JSON output', async () => {
+    const test = await fixture();
+    expect(
+      await runProviders(
+        [
+          'set',
+          'ollama-cloud',
+          '--base-url',
+          'https://ollama.com/v1',
+          '--model',
+          'deepseek:cloud',
+          '--model-reasoning',
+          'deepseek:cloud',
+          '--model-thinking-map',
+          'deepseek:cloud=off:none,low:low,high:high',
+        ],
+        { ...test.dependencies, interactive: false },
+      ),
+    ).toBe(0);
+
+    expect(await runProviders(['list', '--json'], test.dependencies)).toBe(0);
+    const listed = JSON.parse(test.stdout.at(-1) ?? '{}') as {
+      configuredProviders: Record<string, { models: unknown }>;
+    };
+    expect(listed.configuredProviders['ollama-cloud'].models).toEqual([
+      {
+        id: 'deepseek:cloud',
+        reasoning: true,
+        thinkingLevelMap: { off: 'none', low: 'low', high: 'high' },
+      },
+    ]);
+  });
   it.each([
     { stdinIsTTY: true, stdoutIsTTY: true, accepted: false },
     { stdinIsTTY: true, stdoutIsTTY: false, accepted: false },
@@ -292,12 +325,12 @@ describe('moltnet-agent providers', () => {
     ).toBe(0);
     expect(JSON.parse(test.stdout.at(-1) ?? '{}')).toEqual({
       models: [
-        { id: 'gemma4:31b-cloud', input: ['text', 'image'] },
-        { id: 'local-model' },
+        { id: 'gemma4:31b-cloud', input: ['text', 'image'], reasoning: false },
+        { id: 'local-model', reasoning: false },
       ],
     });
     expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
-      { id: 'existing' },
+      { id: 'existing', reasoning: false },
     ]);
 
     expect(
@@ -307,8 +340,8 @@ describe('moltnet-agent providers', () => {
       }),
     ).toBe(0);
     expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
-      { id: 'gemma4:31b-cloud', input: ['text', 'image'] },
-      { id: 'local-model' },
+      { id: 'gemma4:31b-cloud', input: ['text', 'image'], reasoning: false },
+      { id: 'local-model', reasoning: false },
     ]);
   });
 

@@ -2,6 +2,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { type Model, normalizeContext } from '@earendil-works/pi-ai';
+import {
+  stream,
+  streamSimple,
+} from '@earendil-works/pi-ai/api/openai-completions';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
@@ -39,6 +44,7 @@ function writeCustomModels(piDir: string): void {
                 high: 'high',
               },
             },
+            { id: 'plain' },
           ],
         },
       },
@@ -53,6 +59,48 @@ afterEach(() => {
 });
 
 describe('resolveRuntimeProfileModel', () => {
+  it('sends the mapped effort for reasoning models and omits it for plain models', async () => {
+    const piDir = createPiDir();
+    writeCustomModels(piDir);
+    const bodyFor = async (modelId: string, reasoning: 'low' | 'off') => {
+      const { modelHandle } = await resolveRuntimeProfileModel(
+        piDir,
+        'custom-cloud',
+        modelId,
+      );
+      let captured: Record<string, unknown> | undefined;
+      const request = (reasoning === 'off' ? stream : streamSimple)(
+        modelHandle as Model<'openai-completions'>,
+        normalizeContext({
+          messages: [{ role: 'user', content: 'hello', timestamp: 1 }],
+        }),
+        {
+          apiKey: 'test',
+          ...(reasoning === 'low' ? { reasoning } : {}),
+          fetch: async (_input, init) => {
+            captured = JSON.parse(String(init?.body)) as Record<
+              string,
+              unknown
+            >;
+            return new Response(
+              JSON.stringify({ error: { message: 'captured' } }),
+              { status: 400, headers: { 'content-type': 'application/json' } },
+            );
+          },
+        },
+      );
+      await request.result();
+      return captured;
+    };
+
+    expect((await bodyFor('planner-fast', 'low'))?.reasoning_effort).toBe(
+      'low',
+    );
+    expect((await bodyFor('planner-fast', 'off'))?.reasoning_effort).toBe(
+      'none',
+    );
+    expect((await bodyFor('plain', 'low'))?.reasoning_effort).toBeUndefined();
+  });
   it('resolves the Codex subscription model selected by Agent Server', async () => {
     const selection = await resolveRuntimeProfileModel(
       createPiDir(),

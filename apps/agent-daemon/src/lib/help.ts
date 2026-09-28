@@ -248,6 +248,8 @@ Usage:
   moltnet-agent providers set <id> [--base-url <url>] [--api <pi-api-kind>]
     [--model <id> ... | --clear-models]
     [--model-input <id>=text,image ...]
+    [--model-reasoning <id> ...]
+    [--model-thinking-map <id>=off:none,low:low,... ...]
     [--api-key-stdin | --clear-api-key] [--root <path>]
   moltnet-agent providers discover <id> [--save] [--json] [--root <path>]
   moltnet-agent providers remove <id> [--yes] [--root <path>]
@@ -263,4 +265,8 @@ are stored separately and providers.json contains only a secret reference.
 with the input modalities it accepts, and is what makes a vision model usable:
 a model with no declared modalities is text-only to Pi, which drops image
 content parts before the request leaves the runtime.
+--model-reasoning marks a model as supporting reasoning. --model-thinking-map
+sets its Pi thinking-level to provider effort mapping and implies reasoning.
+For existing Ollama providers, run providers discover <id> --save to detect
+thinking support from Ollama capabilities and refresh saved model metadata.
 `;

@@ -330,20 +330,45 @@ function modelArray(
     if (typeof id !== 'string' || id.length === 0) {
       return invalid(`"${field}" entries must carry a non-empty "id"`);
     }
-    if (entry.input === undefined) return { id };
+    if (entry.reasoning !== undefined && typeof entry.reasoning !== 'boolean') {
+      return invalid(
+        `"${field}" entry "${id}" must declare "reasoning" as a boolean`,
+      );
+    }
     if (
-      !Array.isArray(entry.input) ||
-      entry.input.length === 0 ||
-      entry.input.some(
-        (modality) =>
-          typeof modality !== 'string' || !MODEL_MODALITIES.has(modality),
-      )
+      entry.thinkingLevelMap !== undefined &&
+      (typeof entry.thinkingLevelMap !== 'object' ||
+        entry.thinkingLevelMap === null ||
+        Array.isArray(entry.thinkingLevelMap) ||
+        Object.values(entry.thinkingLevelMap).some(
+          (level) => typeof level !== 'string',
+        ))
+    ) {
+      return invalid(
+        `"${field}" entry "${id}" has an invalid "thinkingLevelMap"`,
+      );
+    }
+    if (
+      entry.input !== undefined &&
+      (!Array.isArray(entry.input) ||
+        entry.input.length === 0 ||
+        entry.input.some(
+          (modality) =>
+            typeof modality !== 'string' || !MODEL_MODALITIES.has(modality),
+        ))
     ) {
       return invalid(
         `"${field}" entry "${id}" must declare "input" as a non-empty array of "text" or "image"`,
       );
     }
-    return { id, input: entry.input as ProviderModelModality[] };
+    return {
+      id,
+      ...(entry.input ? { input: entry.input as ProviderModelModality[] } : {}),
+      ...(entry.reasoning !== undefined ? { reasoning: entry.reasoning } : {}),
+      ...(entry.thinkingLevelMap
+        ? { thinkingLevelMap: entry.thinkingLevelMap as Record<string, string> }
+        : {}),
+    };
   });
 }
 
