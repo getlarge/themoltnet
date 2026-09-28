@@ -84,7 +84,10 @@ pnpm exec nx run @moltnet/docs-impact-review:cli -- \
   --repo getlarge/themoltnet --pr 2462 --pr 2464 --dry-run
 ```
 
-Full review, which needs the runtime profile and a daemon claiming it:
+Full review, which needs the runtime profile and a daemon claiming it.
+`--project` scopes the tasks to a project location. Use it for a daemon started
+from a project binding, such as the Desktop; a CI worker whose workspace is the
+checkout itself doesn't need it.
 
 ```bash
 # once per team (operator action)
