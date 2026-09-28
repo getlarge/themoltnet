@@ -12,7 +12,7 @@ import { boundDiff, collectChangeSet } from './ingest.js';
 import { renderComment, summarizeCorpus } from './report.js';
 import { parseRoutingMap, routeDocs } from './routing.js';
 import { parseLabels, scoreReports } from './score.js';
-import type { DocsImpactReport } from './types.js';
+import type { DocsImpactReport, StageName } from './types.js';
 import {
   createSleepingContext,
   DEFAULT_BUDGETS,
@@ -22,6 +22,7 @@ import {
 
 const USAGE = `Usage: moltnet-docs-impact-review --repo owner/repo --pr N [--pr N ...]
   --team <uuid> --diary <uuid> --profile <name-or-id> --project <uuid>
+  [--profile-extract|--profile-coverage|--profile-docs-check <name-or-id>]
   [--out <dir>] [--poll-interval <sec>] [--routing <path>] [--dry-run]
   [--labels <path>]
        moltnet-docs-impact-review --rescore <summary.json> --labels <path>
@@ -71,6 +72,9 @@ async function main(): Promise<number> {
       team: { type: 'string' },
       diary: { type: 'string' },
       profile: { type: 'string' },
+      'profile-extract': { type: 'string' },
+      'profile-coverage': { type: 'string' },
+      'profile-docs-check': { type: 'string' },
       project: { type: 'string' },
       out: { type: 'string' },
       'poll-interval': { type: 'string' },
@@ -127,15 +131,21 @@ async function main(): Promise<number> {
 
   const agent = dryRun ? undefined : await connect();
   let profileId = values.profile ?? '';
+  const stageProfileIds: Partial<Record<StageName, string>> = {};
   if (agent && values.team) {
     const { items } = await agent.runtimeProfiles.list({ teamId: values.team });
-    const match =
-      items.find((profile) => profile.id === profileId) ??
-      items.find((profile) => profile.name === profileId);
-    if (!match) {
-      throw new Error(`runtime profile "${profileId}" not found in team`);
+    const resolve = (ref: string): string => {
+      const match =
+        items.find((profile) => profile.id === ref) ??
+        items.find((profile) => profile.name === ref);
+      if (!match) throw new Error(`runtime profile "${ref}" not found in team`);
+      return match.id;
+    };
+    profileId = resolve(profileId);
+    for (const stage of ['extract', 'coverage', 'docs-check'] as const) {
+      const ref = values[`profile-${stage}`];
+      if (ref) stageProfileIds[stage] = resolve(ref);
     }
-    profileId = match.id;
   }
   const tasks = agent ? createSdkTaskClient(agent) : undefined;
 
@@ -193,6 +203,7 @@ async function main(): Promise<number> {
         diaryId,
         correlationId: randomUUID(),
         profileId,
+        stageProfileIds,
         projectId: values.project,
         tags: [
           'review:docs-impact',

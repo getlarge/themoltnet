@@ -428,6 +428,27 @@ describe('buildExtractTask', () => {
   });
 });
 
+describe('per-stage profiles', () => {
+  it('pins each stage to its override and falls back to the default', () => {
+    // Arrange
+    const coverageProfile = '00000000-0000-4000-8000-00000000000c';
+    const ctx = { ...context, stageProfileIds: { coverage: coverageProfile } };
+    const docs: SelectedDoc[] = [];
+
+    // Act
+    const extract = buildExtractTask(ctx, { manifest: '', diff: '' });
+    const coverage = buildCoverageTask(ctx, {
+      changes: [change],
+      docs,
+      docsDiff: '',
+    });
+
+    // Assert
+    expect(extract.allowedProfiles).toEqual([{ profileId: context.profileId }]);
+    expect(coverage.allowedProfiles).toEqual([{ profileId: coverageProfile }]);
+  });
+});
+
 describe('project scoping', () => {
   it('scopes stage tasks to the project whose binding owns the repository', () => {
     // Arrange

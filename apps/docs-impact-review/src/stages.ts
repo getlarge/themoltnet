@@ -51,6 +51,11 @@ export interface StageContext {
   correlationId: string;
   profileId: string;
   /**
+   * Per-stage profile overrides, so each stage can run on the model that
+   * suits it (e.g. a fast model for extraction, a stronger one for coverage).
+   */
+  stageProfileIds?: Partial<Record<StageName, string>>;
+  /**
    * Project whose local binding supplies the repository. Required for the
    * coverage stage's dedicated worktree: an unscoped daemon runs tasks in a
    * scratch directory that is not a git repository.
@@ -392,7 +397,9 @@ function baseTask(
     expiresInSec: TASK_EXPIRES_IN_SEC,
     runningTimeoutSec: STAGE_RUNNING_TIMEOUT_SEC,
     maxAttempts: 1,
-    allowedProfiles: [{ profileId: ctx.profileId }],
+    allowedProfiles: [
+      { profileId: ctx.stageProfileIds?.[stage] ?? ctx.profileId },
+    ],
     ...(ctx.projectId ? { projectId: ctx.projectId } : {}),
     tags: [...ctx.tags, `stage:${stage}`],
   };
