@@ -111,6 +111,50 @@ pnpm exec nx run @moltnet/docs-impact-review:cli -- \
 Each stage task is tagged `review:docs-impact`, `stage:<extract|coverage>`,
 `pr:<n>`, and `revision:<head>`, and shares one correlation id per PR.
 
+## In CI
+
+[`docs-impact-review.yml`](../../.github/workflows/docs-impact-review.yml)
+runs the review as an advisory check. It never blocks merges.
+
+**Triggers.** Non-draft pull requests on `opened`, `ready_for_review`,
+`synchronize` and `reopened`. An owner, member or collaborator can rerun it on
+any pull request, drafts included, by commenting `@legreffier /docs-review`. A
+new push cancels the run for the previous head.
+
+**Trust.** The workflow runs code from the base branch only. The reviewed head
+is fetched as inert git objects and never checked out. The run is skipped, with
+a notice in the run summary, for:
+
+- pull requests from forks;
+- Dependabot pull requests;
+- pull requests that change the review runtime itself: this workflow, the
+  `legreffier-docs-review-*` profiles, this app or `agent-daemon-action`.
+
+**Jobs.**
+
+- `prepare` pins the base and head revisions and derives a correlation id per
+  run.
+- `review` posts a "reviewing" comment, runs the review against the pinned
+  revisions and publishes the result.
+- `workers` starts one drain worker per distinct profile, claiming only this
+  run's tasks.
+
+The comment is published only if the pull request still points at the
+reviewed head. Otherwise it says the result is stale.
+
+**Configuration** (repository or `legreffier` environment variables):
+
+| Variable                                 | Purpose                                         |
+| ---------------------------------------- | ----------------------------------------------- |
+| `MOLTNET_DOCS_IMPACT_REVIEW_ENABLED`     | `true` to enable the workflow                   |
+| `MOLTNET_DOCS_IMPACT_PROFILE`            | default profile, used by every stage (required) |
+| `MOLTNET_DOCS_IMPACT_COVERAGE_PROFILE`   | optional profile for the coverage stage         |
+| `MOLTNET_DOCS_IMPACT_DOCS_CHECK_PROFILE` | optional profile for the docs check             |
+
+Stage budgets (a 90 s running timeout and the profile's turn limit) and input
+budgets (`DEFAULT_BUDGETS`) are described above. The run summary records the
+per-stage timing breakdown and token counts.
+
 ## Routing map
 
 [`docs-routing.json`](./docs-routing.json) maps cross-cutting code paths to

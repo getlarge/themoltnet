@@ -23,6 +23,7 @@ import {
 const USAGE = `Usage: moltnet-docs-impact-review --repo owner/repo --pr N [--pr N ...]
   --team <uuid> --diary <uuid> --profile <name-or-id>
   [--project <uuid>] [--correlation-id <uuid>]
+  [--base-sha <oid> --head-sha <oid>]
   [--profile-extract|--profile-coverage|--profile-docs-check <name-or-id>]
   [--out <dir>] [--poll-interval <sec>] [--routing <path>] [--dry-run]
   [--labels <path>]
@@ -78,6 +79,8 @@ async function main(): Promise<number> {
       'profile-docs-check': { type: 'string' },
       project: { type: 'string' },
       'correlation-id': { type: 'string' },
+      'base-sha': { type: 'string' },
+      'head-sha': { type: 'string' },
       out: { type: 'string' },
       'poll-interval': { type: 'string' },
       routing: { type: 'string' },
@@ -119,8 +122,15 @@ async function main(): Promise<number> {
   // Drain workers claim by correlation, so CI passes the id it gave them.
   // One id cannot span several PRs without mixing their tasks.
   const correlationArg = values['correlation-id'];
-  if (correlationArg && values.pr.length !== 1) {
-    process.stderr.write('--correlation-id requires exactly one --pr\n');
+  const pinned = values['base-sha'] || values['head-sha'];
+  if ((correlationArg || pinned) && values.pr.length !== 1) {
+    process.stderr.write(
+      '--correlation-id, --base-sha and --head-sha require exactly one --pr\n',
+    );
+    return 2;
+  }
+  if (pinned && !(values['base-sha'] && values['head-sha'])) {
+    process.stderr.write('--base-sha and --head-sha must be given together\n');
     return 2;
   }
   if (
@@ -169,8 +179,16 @@ async function main(): Promise<number> {
   const reports: DocsImpactReport[] = [];
   for (const pr of prs) {
     const meta = readPullRequest(repo, pr);
-    const base = requireFullOid(meta.baseRefOid, 'baseRefOid');
-    const head = requireFullOid(meta.headRefOid, 'headRefOid');
+    // CI pins the revisions it validated, so a push between preparation and
+    // review cannot change what gets reviewed.
+    const base = requireFullOid(
+      values['base-sha'] ?? meta.baseRefOid,
+      'base revision',
+    );
+    const head = requireFullOid(
+      values['head-sha'] ?? meta.headRefOid,
+      'head revision',
+    );
     git(['fetch', '--no-tags', '--quiet', 'origin', base, head]);
 
     if (dryRun || !tasks) {

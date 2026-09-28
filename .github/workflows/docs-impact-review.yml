@@ -1,0 +1,281 @@
+name: Docs impact review
+
+# Advisory documentation-impact review (#2373): does this PR leave users,
+# operators, or contributors with missing, incorrect, or unnecessary
+# instructions? Runs trusted base-branch code only; the reviewed head is
+# fetched as inert git data and never checked out or executed.
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, synchronize, reopened]
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+concurrency:
+  group: docs-impact-review-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    if: |
+      vars.MOLTNET_DOCS_IMPACT_REVIEW_ENABLED == 'true' &&
+      ((github.event_name == 'pull_request' &&
+          github.event.pull_request.draft == false) ||
+        (github.event_name == 'issue_comment' &&
+          github.event.issue.pull_request != null &&
+          contains(github.event.comment.body, '@legreffier /docs-review') &&
+          !endsWith(github.event.comment.user.login, '[bot]') &&
+          (github.event.comment.author_association == 'OWNER' ||
+            github.event.comment.author_association == 'MEMBER' ||
+            github.event.comment.author_association == 'COLLABORATOR')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      skip: ${{ steps.prepare.outputs.skip }}
+      pr-number: ${{ steps.prepare.outputs.pr-number }}
+      base-sha: ${{ steps.prepare.outputs.base-sha }}
+      head-sha: ${{ steps.prepare.outputs.head-sha }}
+      correlation-id: ${{ steps.prepare.outputs.correlation-id }}
+      profile: ${{ steps.prepare.outputs.profile }}
+      coverage-profile: ${{ steps.prepare.outputs.coverage-profile }}
+      docs-check-profile: ${{ steps.prepare.outputs.docs-check-profile }}
+      worker-profiles: ${{ steps.prepare.outputs.worker-profiles }}
+    steps:
+      - name: Validate the pull request and pin revisions
+        id: prepare
+        uses: actions/github-script@v8
+        env:
+          REVIEW_PROFILE: ${{ vars.MOLTNET_DOCS_IMPACT_PROFILE }}
+          COVERAGE_PROFILE: ${{ vars.MOLTNET_DOCS_IMPACT_COVERAGE_PROFILE }}
+          DOCS_CHECK_PROFILE: ${{ vars.MOLTNET_DOCS_IMPACT_DOCS_CHECK_PROFILE }}
+        with:
+          script: |
+            const crypto = require('node:crypto');
+            const skip = async (reason) => {
+              core.notice(`Docs impact review skipped: ${reason}`);
+              await core.summary
+                .addHeading('Docs impact review skipped', 3)
+                .addRaw(reason)
+                .write();
+              core.setOutput('skip', 'true');
+            };
+            const pullNumber =
+              context.eventName === 'pull_request'
+                ? context.payload.pull_request.number
+                : context.payload.issue.number;
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pullNumber,
+            });
+            // Fork PRs run without secrets and cannot publish; the trust
+            // model matches the existing review workflows.
+            if (pr.head.repo?.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
+              return skip('fork pull requests are not reviewed');
+            }
+            if (pr.user.login === 'dependabot[bot]') {
+              return skip('Dependabot pull requests are not reviewed');
+            }
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pullNumber,
+              per_page: 100,
+            });
+            // Changes to the trusted review runtime must not be reviewed by
+            // the runtime they modify.
+            const runtimePaths = [
+              '.github/workflows/docs-impact-review.yml',
+              '.github/runtime-profiles/legreffier-docs-review-',
+              'apps/docs-impact-review/',
+              'packages/agent-daemon-action/',
+            ];
+            const runtimeChanges = files
+              .map((file) => file.filename)
+              .filter((path) => runtimePaths.some((prefix) => path.startsWith(prefix)));
+            if (runtimeChanges.length > 0) {
+              return skip(
+                `the PR changes the trusted review runtime (${runtimeChanges.join(', ')})`,
+              );
+            }
+            const profile = process.env.REVIEW_PROFILE;
+            if (!profile) {
+              core.setFailed('MOLTNET_DOCS_IMPACT_PROFILE is not configured');
+              return;
+            }
+            const coverageProfile = process.env.COVERAGE_PROFILE || profile;
+            const docsCheckProfile = process.env.DOCS_CHECK_PROFILE || profile;
+            // One correlation per run: drain workers claim only this review's
+            // tasks, and a rerun never collides with a cancelled one.
+            const seed = [
+              `${context.repo.owner}/${context.repo.repo}`,
+              pr.number,
+              pr.head.sha,
+              context.runId,
+              context.runAttempt,
+            ].join(':');
+            const bytes = crypto.createHash('sha256').update(seed).digest().subarray(0, 16);
+            bytes[6] = (bytes[6] & 0x0f) | 0x50;
+            bytes[8] = (bytes[8] & 0x3f) | 0x80;
+            const hex = bytes.toString('hex');
+            const correlationId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+            core.setOutput('skip', 'false');
+            core.setOutput('pr-number', String(pr.number));
+            core.setOutput('base-sha', pr.base.sha);
+            core.setOutput('head-sha', pr.head.sha);
+            core.setOutput('correlation-id', correlationId);
+            core.setOutput('profile', profile);
+            core.setOutput('coverage-profile', coverageProfile);
+            core.setOutput('docs-check-profile', docsCheckProfile);
+            // One drain worker per distinct profile, so stages on different
+            // models (e.g. coverage and docs check) run in parallel.
+            core.setOutput(
+              'worker-profiles',
+              JSON.stringify([...new Set([profile, coverageProfile, docsCheckProfile])]),
+            );
+
+  review:
+    needs: prepare
+    if: needs.prepare.outputs.skip == 'false'
+    runs-on: ubuntu-latest
+    # Generous until p95 is measured in CI; the target is under two minutes.
+    timeout-minutes: 10
+    environment: legreffier
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+      MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
+      MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
+      MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
+      MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
+      PR_NUMBER: ${{ needs.prepare.outputs.pr-number }}
+      BASE_SHA: ${{ needs.prepare.outputs.base-sha }}
+      HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.base-sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Fetch the reviewed revisions as inert git data
+        run: git fetch --no-tags origin "$BASE_SHA" "$HEAD_SHA"
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Mark the review in progress
+        run: |
+          node --import tsx apps/docs-impact-review/src/comment.ts \
+            --mode start --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" \
+            --revision "$HEAD_SHA" --run-url "$RUN_URL"
+
+      - name: Review documentation impact
+        id: review
+        continue-on-error: true
+        env:
+          CORRELATION_ID: ${{ needs.prepare.outputs.correlation-id }}
+          PROFILE: ${{ needs.prepare.outputs.profile }}
+          COVERAGE_PROFILE: ${{ needs.prepare.outputs.coverage-profile }}
+          DOCS_CHECK_PROFILE: ${{ needs.prepare.outputs.docs-check-profile }}
+        run: |
+          set -euo pipefail
+          summary="$RUNNER_TEMP/docs-impact-summary.json"
+          echo "summary=$summary" >> "$GITHUB_OUTPUT"
+          node --import tsx apps/docs-impact-review/src/main.ts \
+            --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" \
+            --base-sha "$BASE_SHA" --head-sha "$HEAD_SHA" \
+            --team "$MOLTNET_TEAM_ID" --diary "$MOLTNET_DIARY_ID" \
+            --profile "$PROFILE" \
+            --profile-coverage "$COVERAGE_PROFILE" \
+            --profile-docs-check "$DOCS_CHECK_PROFILE" \
+            --correlation-id "$CORRELATION_ID" \
+            > "$summary"
+
+      - name: Publish the review comment
+        if: always() && !cancelled()
+        env:
+          SUMMARY: ${{ steps.review.outputs.summary }}
+        run: |
+          node --import tsx apps/docs-impact-review/src/comment.ts \
+            --mode publish --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" \
+            --revision "$HEAD_SHA" --run-url "$RUN_URL" \
+            --report "${SUMMARY:-$RUNNER_TEMP/docs-impact-summary.json}"
+
+      - name: Record the timing breakdown
+        if: always() && !cancelled()
+        env:
+          SUMMARY: ${{ steps.review.outputs.summary }}
+        run: |
+          if [ -f "${SUMMARY:-}" ]; then
+            {
+              echo '### Docs impact review timings'
+              echo '```json'
+              jq '{latencyMs: .summary.latencyMs, tokens: .summary.tokens}' "$SUMMARY"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  workers:
+    needs: prepare
+    if: needs.prepare.outputs.skip == 'false'
+    # The review job is authoritative: a worker failure surfaces there as a
+    # failed or unclaimed stage, never as a false clean result.
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: ${{ fromJSON(needs.prepare.outputs.worker-profiles) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    environment: legreffier
+    permissions:
+      contents: read
+    env:
+      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+      MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
+      MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
+      MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
+      MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.base-sha }}
+          persist-credentials: false
+      - name: Fetch the reviewed commit as inert git data
+        env:
+          HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
+        run: git fetch --no-tags --depth=1 origin "$HEAD_SHA"
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Drain this review's tasks
+        uses: ./packages/agent-daemon-action
+        with:
+          agent-name: ${{ vars.MOLTNET_AGENT_NAME }}
+          mode: drain
+          task-types: freeform
+          correlation-id: ${{ needs.prepare.outputs.correlation-id }}
+          # Extraction is created as soon as the review job has installed;
+          # coverage and docs check follow within seconds of it.
+          wait-for-first-task-sec: '180'
+          wait-after-task-sec: '90'
+          profile: ${{ matrix.profile }}
+          daemon-version: workspace
