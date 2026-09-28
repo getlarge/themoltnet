@@ -50,6 +50,12 @@
       "matchManagers": ["github-actions"]
     },
     {
+      "description": "Pin existing workflow refs promptly, then review future updates weekly",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["pinDigest"],
+      "schedule": ["at any time"]
+    },
+    {
       "description": "Keep Node.js tool-version files in one update",
       "groupName": "Node.js toolchain",
       "matchDepNames": ["node", "nodejs"],
