@@ -14,11 +14,12 @@ After filling `.env` and appending `.env.release`, run these commands from
 ```bash
 docker compose --env-file .env config --quiet
 docker compose --env-file .env up -d
-docker compose --env-file .env ps
+docker compose --env-file .env ps --all
 ```
 
-The one-shot migration and native-client provisioning jobs should complete
-successfully; long-running services should be healthy. In particular, inspect
+Re-run `docker compose --env-file .env ps --all` until the one-shot migration and
+native-client provisioning jobs exit successfully and long-running services
+report healthy. In particular, inspect
 `object-store`, `rest-api`, `mcp-server`, `hydra`, `kratos`, and `caddy`. A
 healthy object-store process confirms readiness, while the source smoke test
 checks actual reads and writes.

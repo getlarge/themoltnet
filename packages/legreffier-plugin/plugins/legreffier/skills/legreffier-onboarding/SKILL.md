@@ -43,8 +43,9 @@ about LeGreffier adoption.
   mode; explain that an activated agent or the MoltNet Console must perform
   them. Do not switch the human session to CLI.
 
-CLI credentials resolve from the selected central identity. Use `--credentials`
-only as an explicit migration or advanced override; it never selects identity.
+CLI credentials resolve from the selected central identity. Select an alias
+with `moltnet config identity select <alias>` or use `--identity <alias>` for
+one command.
 
 ## Temporal thresholds
 

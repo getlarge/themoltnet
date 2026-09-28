@@ -23,17 +23,10 @@ The Compose bundle does not set up off-host backup or point-in-time recovery.
 Arrange both before using it for data you need to keep. The archive includes a
 `SHA256SUMS` file; run `sha256sum -c SHA256SUMS` from its root after extraction.
 
-To reproduce the archive from a source checkout without resolving registry
-digests, run this command with Docker Compose installed:
-
-```bash
-node tools/release/self-host-bundle.mjs --version dev --skip-digests
-```
-
-The generated directory uses the component versions in
-`.release-please-manifest.json` and the Docker repository names in each
-component's `package.json`. Published archives replace those tags with registry
-digests.
+For a source checkout rehearsal, follow the build and bundle commands in the
+[self-host setup skill](https://github.com/getlarge/themoltnet/blob/main/skills/local-moltnet-setup/references/verification.md#source-checkout-rehearsal).
+They build local `:dev` images from the checkout and pass `--image-tag dev` to
+the bundle generator. Published archives instead pin released images by digest.
 
 ## Guided self-host setup
 

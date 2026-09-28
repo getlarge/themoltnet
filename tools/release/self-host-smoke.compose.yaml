@@ -1,7 +1,7 @@
 services:
   caddy:
     volumes:
-      - ./Caddyfile.smoke:/etc/caddy/Caddyfile:ro
+      - ${MOLTNET_SMOKE_CADDYFILE:?set MOLTNET_SMOKE_CADDYFILE}:/etc/caddy/Caddyfile:ro
   postgres:
     networks: [database, smoke]
     ports: ['127.0.0.1:15432:5432']

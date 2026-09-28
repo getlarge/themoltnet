@@ -3,9 +3,7 @@
 ## Detect local state without opening credentials
 
 Run `moltnet config identity list` and inspect the alias list and active
-selection. An absent repository `.moltnet/` directory is **not** evidence of
-missing setup: current identities live in the central store. Do not read a
-`moltnet.json` file or print keyring values.
+selection. Do not read identity files or print keyring values.
 
 - **No central alias:** report that no identity is configured on this machine.
   For LeGreffier coding-agent setup, check `moltnet help agents init`, then
@@ -23,11 +21,4 @@ missing setup: current identities live in the central store. Do not read a
   verify `moltnet env check --identity <alias>` and continue to the client and
   worker branch without requiring LeGreffier activation.
 
-If the user explicitly has a legacy repository bundle, check
-`moltnet help config migrate` and offer
-`moltnet config migrate --credentials <absolute-path-to-moltnet.json>` once.
-Resolve the exact path from the user's input; do not guess or scan for secret
-files. The imported alias then appears in the central identity list.
-
-When initialization or selection succeeds, re-run stage detection and
-continue. Do not stop merely because the repository has no `.moltnet/` folder.
+When initialization or selection succeeds, re-run stage detection and continue.

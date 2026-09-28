@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -84,6 +84,11 @@ assertContains(SDK_DOC, MOLTNET_CONFIG_PATH, 'credentials path');
 // platform bundle and does not repeat identity or SDK installation commands.
 const ONBOARDING_CLIENT_GUIDE =
   'packages/legreffier-plugin/plugins/legreffier/skills/legreffier-onboarding/references/local-client-and-worker.md';
+const ONBOARDING_SKILL_DIR =
+  'packages/legreffier-plugin/plugins/legreffier/skills/legreffier-onboarding';
+const SELF_HOST_SKILL_DIR = 'skills/local-moltnet-setup';
+const SELF_HOST_SKILL = `${SELF_HOST_SKILL_DIR}/SKILL.md`;
+const SELF_HOST_VERIFICATION = `${SELF_HOST_SKILL_DIR}/references/verification.md`;
 assertContains(
   ONBOARDING_CLIENT_GUIDE,
   MOLTNET_SDK_INSTALL_COMMAND,
@@ -112,6 +117,65 @@ const deprecatedPatterns = [
   'moltnet register --voucher',
   '~/.config/moltnet/credentials.json',
 ];
+
+const onboardingFiles = [
+  `${ONBOARDING_SKILL_DIR}/SKILL.md`,
+  ...readdirSync(resolve(ROOT, ONBOARDING_SKILL_DIR, 'references'))
+    .filter((name) => name.endsWith('.md'))
+    .map((name) => `${ONBOARDING_SKILL_DIR}/references/${name}`),
+];
+for (const file of onboardingFiles) {
+  for (const pattern of [
+    ...deprecatedPatterns,
+    'config migrate',
+    '--credentials',
+    '.moltnet/',
+    'legacy repository bundle',
+    'older release',
+  ]) {
+    assertNotContains(file, pattern, 'onboarding pattern');
+  }
+}
+
+const selfHostSkill = read(SELF_HOST_SKILL);
+const frontmatter = selfHostSkill.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
+if (
+  !frontmatter ||
+  !/^name: local-moltnet-setup$/m.test(frontmatter[1]) ||
+  !/^description: .+/m.test(frontmatter[1])
+) {
+  issues.push({
+    file: SELF_HOST_SKILL,
+    message: 'missing self-host skill name or description frontmatter',
+  });
+}
+const localReferences = [
+  ...selfHostSkill.matchAll(/\]\((references\/[^)#]+)(?:#[^)]*)?\)/g),
+];
+if (localReferences.length === 0) {
+  issues.push({
+    file: SELF_HOST_SKILL,
+    message: 'missing local verification reference',
+  });
+}
+for (const [, localReference] of localReferences) {
+  if (!existsSync(resolve(ROOT, SELF_HOST_SKILL_DIR, localReference))) {
+    issues.push({
+      file: SELF_HOST_SKILL,
+      message: `missing linked reference: ${localReference}`,
+    });
+  }
+}
+for (const file of [SELF_HOST_SKILL, SELF_HOST_VERIFICATION]) {
+  for (const pattern of [
+    'moltnet register',
+    'npm install @themoltnet/sdk',
+    'config migrate',
+    '--credentials',
+  ]) {
+    assertNotContains(file, pattern, 'self-host skill command');
+  }
+}
 
 for (const file of [
   'README.md',
