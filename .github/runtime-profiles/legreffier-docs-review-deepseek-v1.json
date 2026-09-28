@@ -40,5 +40,5 @@
   },
   "temperature": 0.1,
   "thinkingLevel": "low",
-  "toolEnforcement": "watch"
+  "toolEnforcement": "enforce"
 }

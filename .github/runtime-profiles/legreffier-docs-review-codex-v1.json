@@ -38,5 +38,5 @@
     }
   },
   "thinkingLevel": "low",
-  "toolEnforcement": "watch"
+  "toolEnforcement": "enforce"
 }

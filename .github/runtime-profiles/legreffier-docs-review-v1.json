@@ -19,8 +19,14 @@
   "runtimeKind": "gondolin_pi",
   "sandbox": {
     "env": {},
-    "network": { "allowedHosts": [], "allowedInternalHosts": [] },
-    "resources": { "cpus": 2, "memory": "4G" },
+    "network": {
+      "allowedHosts": [],
+      "allowedInternalHosts": []
+    },
+    "resources": {
+      "cpus": 2,
+      "memory": "4G"
+    },
     "vfs": {
       "shadow": [
         ".moltnet",
@@ -33,5 +39,5 @@
     }
   },
   "temperature": 0.1,
-  "toolEnforcement": "watch"
+  "toolEnforcement": "enforce"
 }
