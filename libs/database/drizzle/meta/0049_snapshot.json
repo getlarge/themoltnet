@@ -1,5 +1,5 @@
 {
-  "id": "2d8c54e1-f98c-4d8b-92ea-601a17bae6fb",
+  "id": "3cbd96a4-048d-4873-b731-6fbbceaa1896",
   "prevId": "bf84a35c-315b-4104-89ee-15d45d43b75d",
   "version": "7",
   "dialect": "postgresql",
@@ -4885,6 +4885,12 @@
         "valid": {
           "name": "valid",
           "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "signer_public_key": {
+          "name": "signer_public_key",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },

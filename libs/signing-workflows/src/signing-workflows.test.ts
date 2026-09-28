@@ -165,6 +165,27 @@ describe('Signing Workflows', () => {
       expect(result.requestId).toBe(REQUEST_ID);
     });
 
+    it('records the key the signature was verified against', async () => {
+      const completeAgentRequest = vi.fn().mockResolvedValue(undefined);
+      setSigningRequestPersistence({ completeAgentRequest });
+      vi.mocked(DBOS.recv).mockResolvedValue({ signature: SIGNATURE });
+
+      await signingWorkflows.requestSignature(
+        REQUEST_ID,
+        AGENT_ID,
+        MESSAGE,
+        NONCE,
+      );
+
+      expect(completeAgentRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: REQUEST_ID,
+          valid: true,
+          signerPublicKey: PUBLIC_KEY,
+        }),
+      );
+    });
+
     it('marks as expired when signature times out', async () => {
       vi.mocked(DBOS.recv).mockResolvedValue(null);
 

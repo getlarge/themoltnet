@@ -225,11 +225,19 @@ export function initIdentityKeyRotationWorkflow(): void {
             }
             throw err;
           }
-          await agentIdentityKeyRepository.attachRotationProof(
+          const attached = await agentIdentityKeyRepository.attachRotationProof(
             input.agentId,
             input.newPublicKey,
             input.proof,
           );
+          if (!attached) {
+            // The trigger opens the new key's history row inside this
+            // transaction; a missing row means history is inconsistent, so
+            // roll the rotation back rather than commit an unproven key.
+            throw new Error(
+              'identity key history has no open row for the rotated key',
+            );
+          }
           return {
             status: 'rotated',
             previousFingerprint: agent.fingerprint,
@@ -257,6 +265,7 @@ export function initIdentityKeyRotationWorkflow(): void {
         );
       try {
         let current = await readCurrentKey();
+        let converged = current === null;
         for (
           let round = 0;
           current && round < MAX_RECONCILIATION_ROUNDS;
@@ -273,10 +282,19 @@ export function initIdentityKeyRotationWorkflow(): void {
             );
           }
           const after = await readCurrentKey();
-          if (after?.publicKey === current.publicKey) break;
-          // Still moving after the last round: the newer rotation's own
-          // workflow reconciles to its key.
+          if (after?.publicKey === current.publicKey) {
+            converged = true;
+            break;
+          }
           current = after;
+          converged = current === null;
+        }
+        if (!converged) {
+          // The last round may have written a key that is no longer
+          // current, after the newer rotation's workflow already finished.
+          throw new Error(
+            `identity key still changing after ${MAX_RECONCILIATION_ROUNDS} reconciliation rounds`,
+          );
         }
         await evictAuthCachesStep(input.identityId, input.clientIds);
       } catch (err) {

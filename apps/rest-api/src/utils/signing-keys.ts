@@ -22,34 +22,53 @@ export async function findAgentByAnyFingerprint(
 }
 
 /**
- * Verify a signing request's signature against the identity key the agent
- * held when the request completed. That is the key the signing workflow
- * checked the submission against, so a recorded result and a later
- * verification always agree. A request left open across a rotation therefore
- * cannot be completed with the retired key: rotating away from a compromised
- * key must not leave it able to finish pending requests. The agent's current
- * key is the fallback for an agent with no recorded history.
+ * Verify a signing request's signature against the identity key the signing
+ * workflow checked it with. The workflow records that key on the request, so
+ * a recorded result and a later verification always agree, even when a
+ * rotation commits between the check and completion. Requests completed
+ * before the key was recorded fall back to the key valid at `completedAt`,
+ * then to the agent's current key when it has no recorded history.
  *
  * Returns the fingerprint of the key that verified, or null.
  */
 export async function verifyWithSigningKeys(
   deps: KeyDeps,
   agent: Agent,
-  signingRequest: Pick<SigningRequest, 'completedAt'>,
+  signingRequest: Pick<SigningRequest, 'completedAt' | 'signerPublicKey'>,
   verify: (publicKey: string) => Promise<boolean>,
 ): Promise<string | null> {
+  const candidates = await signingKeyCandidates(deps, agent, signingRequest);
+  for (const key of candidates) {
+    if (await verify(key.publicKey)) return key.fingerprint;
+  }
+  return null;
+}
+
+type KeyCandidate = { publicKey: string; fingerprint: string };
+
+async function signingKeyCandidates(
+  deps: KeyDeps,
+  agent: Agent,
+  signingRequest: Pick<SigningRequest, 'completedAt' | 'signerPublicKey'>,
+): Promise<KeyCandidate[]> {
+  const current = {
+    publicKey: agent.publicKey,
+    fingerprint: agent.fingerprint,
+  };
+  const { signerPublicKey } = signingRequest;
+  if (signerPublicKey) {
+    // Only a key this agent has held can vouch for its request.
+    if (signerPublicKey === agent.publicKey) return [current];
+    const history = await deps.agentIdentityKeyRepository.listForAgent(
+      agent.id,
+    );
+    return history.filter((key) => key.publicKey === signerPublicKey);
+  }
   const completedAt = signingRequest.completedAt ?? new Date();
   const keys = await deps.agentIdentityKeyRepository.findKeysValidBetween(
     agent.id,
     completedAt,
     completedAt,
   );
-  const candidates =
-    keys.length > 0
-      ? keys
-      : [{ publicKey: agent.publicKey, fingerprint: agent.fingerprint }];
-  for (const key of candidates) {
-    if (await verify(key.publicKey)) return key.fingerprint;
-  }
-  return null;
+  return keys.length > 0 ? keys : [current];
 }

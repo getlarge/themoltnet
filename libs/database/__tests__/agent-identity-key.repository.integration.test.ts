@@ -200,6 +200,48 @@ describe('Agent identity key history (integration)', () => {
     expect(await history.findByFingerprint(newKey.fingerprint)).toBeNull();
   });
 
+  it('rolls back the rotation when attaching the proof fails in the database', async () => {
+    const agents = createAgentRepository(db);
+    const history = createAgentIdentityKeyRepository(db);
+    const runner = createDrizzleTransactionRunner(db);
+    const oldKey = nextKey();
+    const newKey = nextKey();
+    const { agent } = await agents.upsertByFingerprint(oldKey);
+    // jsonb rejects the NUL escape, so the UPDATE itself fails.
+    const unstorableProof = { ...PROOF, message: 'moltnet:identity\u0000' };
+
+    await expect(
+      runner.runInTransaction(async () => {
+        await agents.rotateIdentityKey({
+          agentId: agent.id,
+          currentPublicKey: oldKey.publicKey,
+          ...newKey,
+        });
+        await history.attachRotationProof(
+          agent.id,
+          newKey.publicKey,
+          unstorableProof,
+        );
+      }),
+    ).rejects.toThrow();
+
+    expect(await agents.findById(agent.id)).toMatchObject(oldKey);
+    const rows = await history.listForAgent(agent.id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ ...oldKey, validUntil: null });
+  });
+
+  it('reports no attachment for a key without an open history row', async () => {
+    const agents = createAgentRepository(db);
+    const history = createAgentIdentityKeyRepository(db);
+    const key = nextKey();
+    const { agent } = await agents.upsertByFingerprint(key);
+
+    expect(
+      await history.attachRotationProof(agent.id, 'ed25519:never-held', PROOF),
+    ).toBe(false);
+  });
+
   it('lets exactly one of two concurrent rotations win', async () => {
     const agents = createAgentRepository(db);
     const history = createAgentIdentityKeyRepository(db);

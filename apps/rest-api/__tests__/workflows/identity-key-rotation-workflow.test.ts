@@ -192,6 +192,41 @@ describe('identity key rotation workflow', () => {
     expect(deps.oauth2Api.patchOAuth2Client).not.toHaveBeenCalled();
   });
 
+  it('fails when the key is still changing after the last round', async () => {
+    let reads = 0;
+    deps.agentRepository.findById.mockReset();
+    // Every read after the rotation sees a different, newer key.
+    deps.agentRepository.findById.mockImplementation(async () => {
+      reads += 1;
+      return {
+        id: AGENT_ID,
+        publicKey: reads === 1 ? OLD_KEY : `ed25519:key-${reads}`,
+        fingerprint: `KEY${reads}-0000-0000-0000`,
+      };
+    });
+
+    await expect(
+      identityKeyRotationWorkflow.rotateIdentityKey(INPUT),
+    ).rejects.toThrow('still changing');
+    expect(deps.evictAuthCaches).not.toHaveBeenCalled();
+    expect(deps.logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ agentId: AGENT_ID }),
+      'identity.rotation.ory_reconciliation_exhausted',
+    );
+  });
+
+  it('rolls back when the rotated key has no history row for the proof', async () => {
+    deps.agentIdentityKeyRepository.attachRotationProof.mockResolvedValue(
+      false,
+    );
+
+    await expect(
+      identityKeyRotationWorkflow.rotateIdentityKey(INPUT),
+    ).rejects.toThrow('no open row');
+    expect(deps.identityApi.patchIdentity).not.toHaveBeenCalled();
+    expect(deps.oauth2Api.patchOAuth2Client).not.toHaveBeenCalled();
+  });
+
   it('treats a replay of its own committed rotation as success', async () => {
     deps.agentRepository.findById.mockReset();
     deps.agentRepository.findById.mockResolvedValue({

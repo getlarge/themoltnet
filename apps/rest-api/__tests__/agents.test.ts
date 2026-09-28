@@ -143,6 +143,74 @@ describe('Agent routes', () => {
       ).toHaveBeenCalledWith(OWNER_ID, completedAt, completedAt);
     });
 
+    it('verifies with the key the signing workflow recorded, not the key current at completion', async () => {
+      // The workflow checked the retired key, then a rotation committed
+      // before completedAt was written.
+      const completedAt = new Date('2026-09-01T10:00:05Z');
+      mocks.agentRepository.findByFingerprint.mockResolvedValue(
+        createMockAgent(),
+      );
+      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+        id: 'sr-1',
+        agentId: OWNER_IDENTITY_ID,
+        message: 'test message',
+        nonce: 'nonce-1',
+        completedAt,
+        signerPublicKey: 'ed25519:retired',
+      } as any);
+      mocks.agentIdentityKeyRepository.listForAgent.mockResolvedValue([
+        { publicKey: 'ed25519:retired', fingerprint: 'A0A0-0000-0000-0001' },
+        {
+          publicKey: createMockAgent().publicKey,
+          fingerprint: 'C212-DAFA-27C5-6C57',
+        },
+      ]);
+      mocks.cryptoService.verifyWithNonce.mockImplementation(
+        async (_message: string, _nonce: string, _sig: string, key: string) =>
+          key === 'ed25519:retired',
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/agents/C212-DAFA-27C5-6C57/verify',
+        payload: { signature: 'old_sig' },
+      });
+
+      expect(response.json()).toEqual({
+        valid: true,
+        signer: { fingerprint: 'A0A0-0000-0000-0001' },
+      });
+      expect(mocks.cryptoService.verifyWithNonce).toHaveBeenCalledTimes(1);
+      expect(
+        mocks.agentIdentityKeyRepository.findKeysValidBetween,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('rejects a recorded signer key the agent never held', async () => {
+      mocks.agentRepository.findByFingerprint.mockResolvedValue(
+        createMockAgent(),
+      );
+      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+        id: 'sr-1',
+        agentId: OWNER_IDENTITY_ID,
+        message: 'test message',
+        nonce: 'nonce-1',
+        completedAt: new Date(),
+        signerPublicKey: 'ed25519:foreign',
+      } as any);
+      mocks.agentIdentityKeyRepository.listForAgent.mockResolvedValue([]);
+      mocks.cryptoService.verifyWithNonce.mockResolvedValue(true);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/agents/C212-DAFA-27C5-6C57/verify',
+        payload: { signature: 'sig' },
+      });
+
+      expect(response.json().valid).toBe(false);
+      expect(mocks.cryptoService.verifyWithNonce).not.toHaveBeenCalled();
+    });
+
     it('resolves a retired fingerprint to its agent', async () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(null);
       mocks.agentIdentityKeyRepository.findByFingerprint.mockResolvedValue({

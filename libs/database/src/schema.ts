@@ -717,6 +717,11 @@ export const signingRequests = pgTable(
     // Whether the signature was verified as valid (null until verified)
     valid: boolean('valid'),
 
+    // The agent identity key the signing workflow verified the signature
+    // against. Later verification uses this key, so a rotation between
+    // verification and completion cannot change the outcome.
+    signerPublicKey: text('signer_public_key'),
+
     // DBOS workflow ID for durable execution
     workflowId: text('workflow_id'),
 
