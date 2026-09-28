@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   buildManifest,
+  createRequestHandler,
   ENVIRONMENT,
   PERMISSIONS,
   renderForm,
@@ -115,4 +116,57 @@ test('does not store the key if the bot login cannot be configured', () => {
     calls.some((args) => args.includes('RENOVATE_APP_CLIENT_ID')),
     false,
   );
+});
+
+test('ignores queued requests after closing the callback server', async () => {
+  let closed = false;
+  let exitCode;
+  let conversions = 0;
+  const { handler } = createRequestHandler({
+    name: 'themoltnet-renovate',
+    state: 'expected-state',
+    getPort: () => {
+      if (closed) throw new Error('address unavailable after close');
+      return 1234;
+    },
+    close: () => {
+      closed = true;
+    },
+    convertApp: async () => {
+      conversions += 1;
+      return { slug: 'themoltnet-renovate' };
+    },
+    storeApp: () => true,
+    write: () => {},
+    setExitCode: (code) => {
+      exitCode = code;
+    },
+  });
+  const response = () => ({
+    status: undefined,
+    writeHead(status) {
+      this.status = status;
+      return this;
+    },
+    end() {
+      return this;
+    },
+  });
+
+  const callback = response();
+  await handler(
+    { url: '/callback?state=expected-state&code=abcdefgh' },
+    callback,
+  );
+  assert.equal(callback.status, 200);
+  assert.equal(closed, true);
+  assert.equal(exitCode, 0);
+
+  const queuedRequest = response();
+  await handler({ url: '/favicon.ico' }, queuedRequest);
+  assert.equal(queuedRequest.status, 404);
+  const repeatedPage = response();
+  await handler({ url: '/' }, repeatedPage);
+  assert.equal(repeatedPage.status, 404);
+  assert.equal(conversions, 1);
 });
