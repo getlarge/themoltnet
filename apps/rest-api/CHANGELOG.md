@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.65.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.64.1...rest-api-v0.65.0) (2026-09-28)
+
+
+### Features
+
+* **cli:** agents identity-key rotate ([3ae7bec](https://github.com/getlarge/themoltnet/commit/3ae7beccfa5273a08818e55e93038d604e7b9a8f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.16.0
+
 ## [0.64.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.64.0...rest-api-v0.64.1) (2026-09-28)
 
 

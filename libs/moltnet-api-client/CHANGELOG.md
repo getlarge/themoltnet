@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.81.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.80.0...moltnet-api-client-v1.81.0) (2026-09-28)
+
+
+### Features
+
+* **cli:** agents identity-key rotate ([3ae7bec](https://github.com/getlarge/themoltnet/commit/3ae7beccfa5273a08818e55e93038d604e7b9a8f))
+
+
+### Bug Fixes
+
+* **rest-api:** report the stored identity key after rotation ([2d428a7](https://github.com/getlarge/themoltnet/commit/2d428a73bf117eda49d9c69e9115d89d6d07b142))
+* **rest-api:** validate identity rotation input in its schema ([d0bccb5](https://github.com/getlarge/themoltnet/commit/d0bccb50b2cd1e46f597cac59fffb459cb294864))
+
+
+### Codegen
+
+* **api-client:** regenerate clients for identity key rotation ([a462cd2](https://github.com/getlarge/themoltnet/commit/a462cd227dbfa150b5590be57f57372aaa624992))
+
 ## [1.80.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.79.0...moltnet-api-client-v1.80.0) (2026-09-25)
 
 

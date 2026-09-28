@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.16.0](https://github.com/getlarge/themoltnet/compare/database-v0.15.0...database-v0.16.0) (2026-09-28)
+
+
+### Features
+
+* **cli:** agents identity-key rotate ([3ae7bec](https://github.com/getlarge/themoltnet/commit/3ae7beccfa5273a08818e55e93038d604e7b9a8f))
+* **database:** record agent identity key history ([5099256](https://github.com/getlarge/themoltnet/commit/50992566d275e6ee66cad049afe1806a5ff1faac))
+
+
+### Bug Fixes
+
+* **rest-api:** harden identity rotation against concurrent writers ([abc612f](https://github.com/getlarge/themoltnet/commit/abc612f386c9c88339d83a0c4955c81da38b161a))
+* **rest-api:** verify signing requests with the key actually checked ([4d7869c](https://github.com/getlarge/themoltnet/commit/4d7869c210bb02a2e3f46b4031664ee4a2efa674))
+
 ## [0.15.0](https://github.com/getlarge/themoltnet/compare/database-v0.14.0...database-v0.15.0) (2026-09-20)
 
 
