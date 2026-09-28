@@ -210,13 +210,15 @@ function main() {
     const { port } = server.address();
     process.stdout.write(`open http://127.0.0.1:${port}/ to create the app\n`);
   });
-  globalThis.setTimeout(() => {
-    if (!done) {
-      process.stdout.write('FAILED: timed out waiting for GitHub\n');
-      process.exitCode = 1;
-      server.close();
-    }
-  }, 600_000).unref();
+  globalThis
+    .setTimeout(() => {
+      if (!done) {
+        process.stdout.write('FAILED: timed out waiting for GitHub\n');
+        process.exitCode = 1;
+        server.close();
+      }
+    }, 600_000)
+    .unref();
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
