@@ -98,7 +98,7 @@ func (f *identityRotateFixture) serve(t *testing.T) func(http.ResponseWriter, *h
 		case "/agents/whoami":
 			if f.whoamiFails {
 				w.WriteHeader(http.StatusServiceUnavailable)
-				_, _ = w.Write([]byte(`{"type":"about:blank","title":"Unavailable","status":503}`))
+				_, _ = w.Write([]byte(`{"type":"about:blank","title":"Unavailable","status":503,"code":"UPSTREAM_ERROR"}`))
 				return
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{
@@ -123,7 +123,7 @@ func (f *identityRotateFixture) serve(t *testing.T) func(http.ResponseWriter, *h
 			if !verifyBase64Signature(f.serverKey.Load().(string), message, body["previousKeySignature"]) ||
 				!verifyBase64Signature(body["newPublicKey"], message, body["newKeySignature"]) {
 				w.WriteHeader(http.StatusBadRequest)
-				_, _ = w.Write([]byte(`{"type":"about:blank","title":"Invalid signature","status":400}`))
+				_, _ = w.Write([]byte(`{"type":"about:blank","title":"Invalid signature","status":400,"code":"INVALID_SIGNATURE"}`))
 				return
 			}
 			newKey := body["newPublicKey"]
@@ -259,7 +259,7 @@ func TestIdentityKeyRotateDiscardsTheStagedSeedOnRejection(t *testing.T) {
 	f := newIdentityRotateFixture(t)
 	f.respond = func(w http.ResponseWriter, _ map[string]string) {
 		w.WriteHeader(http.StatusConflict)
-		_, _ = w.Write([]byte(`{"type":"about:blank","title":"Conflict","status":409}`))
+		_, _ = w.Write([]byte(`{"type":"about:blank","title":"Conflict","status":409,"code":"CONFLICT"}`))
 	}
 	before := f.credentialsBytes(t)
 
@@ -283,7 +283,7 @@ func TestIdentityKeyRotateResolvesAnUnknownOutcomeWithWhoami(t *testing.T) {
 				f.serverKey.Store(body["newPublicKey"])
 			}
 			w.WriteHeader(http.StatusBadGateway)
-			_, _ = w.Write([]byte(`{"type":"about:blank","title":"Upstream","status":502}`))
+			_, _ = w.Write([]byte(`{"type":"about:blank","title":"Upstream","status":502,"code":"UPSTREAM_ERROR"}`))
 		}
 	}
 
@@ -303,18 +303,26 @@ func TestIdentityKeyRotateResolvesAnUnknownOutcomeWithWhoami(t *testing.T) {
 		}
 	})
 
-	t.Run("the server kept the old key", func(t *testing.T) {
+	t.Run("the server still reports the old key", func(t *testing.T) {
 		f := newIdentityRotateFixture(t)
 		f.respond = serverError(false, f)
 		before := f.credentialsBytes(t)
 
 		err := runAgentsIdentityKeyRotateCmd(context.Background(), &bytes.Buffer{}, nil, f.opts())
 
-		if err == nil || !strings.Contains(err.Error(), "still uses the current key") {
-			t.Fatalf("expected a clean failure, got %v", err)
+		// The server's workflow may still commit, so the new seed must
+		// survive and the operator gets a recovery path.
+		if err == nil || !strings.Contains(err.Error(), "identity-key recover --from") {
+			t.Fatalf("expected a recovery path, got %v", err)
 		}
-		if !bytes.Equal(before, f.credentialsBytes(t)) || len(f.stagedSeeds()) != 0 {
-			t.Fatal("a failed rotation left local changes")
+		if !bytes.Equal(before, f.credentialsBytes(t)) {
+			t.Fatal("moltnet.json changed before the server switched keys")
+		}
+		if len(f.stagedSeeds()) != 1 {
+			t.Fatalf("the staged seed must be kept: %v", f.stagedSeeds())
+		}
+		if entries, _ := os.ReadDir(f.recoveryDir); len(entries) != 1 {
+			t.Fatalf("expected one recovery artifact, got %d", len(entries))
 		}
 	})
 
@@ -326,7 +334,7 @@ func TestIdentityKeyRotateResolvesAnUnknownOutcomeWithWhoami(t *testing.T) {
 
 		err := runAgentsIdentityKeyRotateCmd(context.Background(), &out, nil, f.opts())
 
-		if err == nil || !strings.Contains(err.Error(), "manual recovery") {
+		if err == nil || !strings.Contains(err.Error(), "needs recovery") {
 			t.Fatalf("expected manual recovery, got %v", err)
 		}
 		staged := f.stagedSeeds()
@@ -370,6 +378,158 @@ func TestIdentityKeyRotateRecoversWhenTheConfigChangedMeanwhile(t *testing.T) {
 	}
 	if len(f.stagedSeeds()) != 1 {
 		t.Fatal("the new seed must stay stored for recovery")
+	}
+}
+
+func TestIdentityKeyRotateFailsWhenKeyDerivedFilesCannotBeRegenerated(t *testing.T) {
+	f := newIdentityRotateFixture(t)
+	opts := f.opts()
+	opts.refreshArtifacts = func(string, string) error { return errors.New("ssh export failed") }
+	var out bytes.Buffer
+
+	err := runAgentsIdentityKeyRotateCmd(context.Background(), &out, nil, opts)
+
+	if err == nil || !strings.Contains(err.Error(), "identity-key recover") {
+		t.Fatalf("expected a failure naming the repair command, got %v", err)
+	}
+	var result identityKeyRotateOutput
+	if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+		t.Fatalf("parse output: %v", err)
+	}
+	if !result.CredentialsUpdated || result.ArtifactsRefreshed {
+		t.Fatalf("unexpected result: %+v", result)
+	}
+	if f.credentials(t).Keys.PublicKey != f.serverKey.Load().(string) {
+		t.Fatal("moltnet.json must follow the server even when the files fail")
+	}
+}
+
+// rotateUntilRecovery leaves the fixture as an interrupted rotation does:
+// the server has not switched, the new seed is staged and the recovery
+// artifact written.
+func rotateUntilRecovery(t *testing.T, f *identityRotateFixture) (string, identityKeyRotationRecovery) {
+	t.Helper()
+	var staged string
+	f.respond = func(w http.ResponseWriter, body map[string]string) {
+		staged = body["newPublicKey"]
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = w.Write([]byte(`{"type":"about:blank","title":"Upstream","status":502,"code":"UPSTREAM_ERROR"}`))
+	}
+	if err := runAgentsIdentityKeyRotateCmd(context.Background(), &bytes.Buffer{}, nil, f.opts()); err == nil {
+		t.Fatal("expected the rotation to need recovery")
+	}
+	f.respond = nil
+	entries, err := os.ReadDir(f.recoveryDir)
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("expected one recovery artifact: %v", err)
+	}
+	path := filepath.Join(f.recoveryDir, entries[0].Name())
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var recovery identityKeyRotationRecovery
+	if err := json.Unmarshal(data, &recovery); err != nil {
+		t.Fatal(err)
+	}
+	if recovery.PublicKey != staged {
+		t.Fatalf("artifact names %s, rotation sent %s", recovery.PublicKey, staged)
+	}
+	return path, recovery
+}
+
+func (f *identityRotateFixture) recoverOpts(from string) identityKeyRecoverOpts {
+	return identityKeyRecoverOpts{
+		credentialsPath: f.credentialsPath,
+		recoveryPath:    from,
+		providers:       f.registry,
+		client:          f.client,
+		refreshArtifacts: func(_ string, retired string) error {
+			f.refreshed = append(f.refreshed, retired)
+			return nil
+		},
+	}
+}
+
+func TestIdentityKeyRecoverFinishesOnceTheServerSwitches(t *testing.T) {
+	f := newIdentityRotateFixture(t)
+	path, recovery := rotateUntilRecovery(t, f)
+	// The server's workflow commits after the request failed.
+	f.serverKey.Store(recovery.PublicKey)
+	var out bytes.Buffer
+
+	if err := runAgentsIdentityKeyRecoverCmd(context.Background(), &out, nil, f.recoverOpts(path)); err != nil {
+		t.Fatalf("recover: %v", err)
+	}
+
+	creds := f.credentials(t)
+	if creds.Keys.PublicKey != recovery.PublicKey || creds.Keys.Fingerprint != recovery.Fingerprint || *creds.Keys.PrivateKeyRef != recovery.SeedReference {
+		t.Fatalf("keys not switched: %+v", creds.Keys)
+	}
+	if len(f.refreshed) != 1 || f.refreshed[0] != f.oldPublicKey {
+		t.Fatalf("artifacts not refreshed with the retired key: %v", f.refreshed)
+	}
+	var result identityKeyRecoverOutput
+	if err := json.Unmarshal(out.Bytes(), &result); err != nil || !result.CredentialsUpdated || !result.ArtifactsRefreshed {
+		t.Fatalf("unexpected output %s (%v)", out.String(), err)
+	}
+}
+
+func TestIdentityKeyRecoverChangesNothingWhileTheServerHoldsTheOldKey(t *testing.T) {
+	f := newIdentityRotateFixture(t)
+	path, _ := rotateUntilRecovery(t, f)
+	before := f.credentialsBytes(t)
+
+	err := runAgentsIdentityKeyRecoverCmd(context.Background(), &bytes.Buffer{}, nil, f.recoverOpts(path))
+
+	if err == nil || !strings.Contains(err.Error(), "has not committed") {
+		t.Fatalf("expected a pending rotation, got %v", err)
+	}
+	if !bytes.Equal(before, f.credentialsBytes(t)) || len(f.stagedSeeds()) != 1 || len(f.refreshed) != 0 {
+		t.Fatal("recover must not change anything, nor delete the staged seed")
+	}
+}
+
+func TestIdentityKeyRecoverRejectsAStagedSeedThatDoesNotMatch(t *testing.T) {
+	f := newIdentityRotateFixture(t)
+	path, recovery := rotateUntilRecovery(t, f)
+	f.serverKey.Store(recovery.PublicKey)
+	f.keyring.values[recovery.SeedReference.Key] = f.oldSeed
+	before := f.credentialsBytes(t)
+
+	err := runAgentsIdentityKeyRecoverCmd(context.Background(), &bytes.Buffer{}, nil, f.recoverOpts(path))
+
+	if err == nil || !strings.Contains(err.Error(), "does not derive") {
+		t.Fatalf("expected a seed mismatch, got %v", err)
+	}
+	if !bytes.Equal(before, f.credentialsBytes(t)) {
+		t.Fatal("moltnet.json changed")
+	}
+}
+
+func TestIdentityKeyRecoverRegeneratesFilesWithoutAnArtifact(t *testing.T) {
+	f := newIdentityRotateFixture(t)
+
+	if err := runAgentsIdentityKeyRecoverCmd(context.Background(), &bytes.Buffer{}, nil, f.recoverOpts("")); err != nil {
+		t.Fatalf("recover: %v", err)
+	}
+
+	if len(f.refreshed) != 1 || f.refreshed[0] != "" {
+		t.Fatalf("expected one refresh without a retired key: %v", f.refreshed)
+	}
+}
+
+func TestIdentityKeyRecoverRefusesAKeyMismatchWithoutAnArtifact(t *testing.T) {
+	f := newIdentityRotateFixture(t)
+	f.serverKey.Store("ed25519:elsewhere")
+
+	err := runAgentsIdentityKeyRecoverCmd(context.Background(), &bytes.Buffer{}, nil, f.recoverOpts(""))
+
+	if err == nil || !strings.Contains(err.Error(), "pass --from") {
+		t.Fatalf("expected a mismatch error, got %v", err)
+	}
+	if len(f.refreshed) != 0 {
+		t.Fatal("files regenerated for a key the server does not hold")
 	}
 }
 

@@ -408,10 +408,33 @@ After a rotation:
 
 The credentials file must use `keys.private_key_ref` (run
 `moltnet config migrate` first if the seed is still plaintext), and the seed's
-provider must accept writes. If the server's answer is lost, the command asks
-`GET /agents/whoami` which key the server holds and completes or abandons the
-local update accordingly. When it cannot tell, it leaves a value-free recovery
-artifact naming the new seed's location and stops.
+provider must accept writes.
+
+A rejected rotation (bad signature, conflict, missing permission) deletes the
+staged seed and changes nothing. If the server's answer is lost, the command
+asks `GET /agents/whoami` which key the server holds. When the server already
+uses the new key, the command completes the local update. Otherwise the rotation
+may still commit on the server, so the command keeps the new seed, leaves
+`moltnet.json` untouched, writes a recovery artifact that names the seed's
+location but not its value, and exits with an error that prints the artifact's
+path. Finish with:
+
+```bash
+moltnet agents identity-key recover --from <recovery artifact>
+```
+
+Once the server reports the new key, `recover` checks that the staged seed
+derives it, then points `moltnet.json` at it and regenerates the key-derived
+files. While the server still reports the current key, it changes nothing and
+keeps the staged seed. If the server never switches, that seed is unused; delete
+it with your keychain tool.
+
+If the rotation succeeds but regenerating the SSH key, `allowed_signers` or the
+env file fails, the command exits with an error, because git would otherwise
+keep signing with the retired key. `moltnet agents identity-key recover` without
+`--from` regenerates them from `moltnet.json`. `moltnet git setup` and
+`moltnet config repair` also keep earlier `allowed_signers` lines, so they don't
+drop retired keys either.
 
 Rotation needs the current key. Rotating after the current key is lost or
 compromised is not supported yet.

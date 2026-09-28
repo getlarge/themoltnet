@@ -88,7 +88,9 @@ func TestE2E_AgentsIdentityKeyRotate(t *testing.T) {
 		t.Fatalf("whoami does not report the new fingerprint:\n%s", whoamiOut)
 	}
 
-	// The retired key cannot come back.
+	// The rotated credentials can rotate again: the second rotation starts
+	// from the first new key. (Reusing a retired key is rejected server-side
+	// and covered by the REST API e2e suite.)
 	stdout, stderr, err = runE2ECLI(binPath, credentialsPath, "agents", "identity-key", "rotate", "--yes")
 	if err != nil {
 		t.Fatalf("a second rotation should succeed with a fresh key: %v\nstderr: %s", err, stderr)

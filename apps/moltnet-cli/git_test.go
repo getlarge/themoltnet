@@ -338,3 +338,28 @@ func TestRunGitSetup_WithoutCredentialsConfiguresTheSelectedIdentity(t *testing.
 		t.Fatalf("credential helpers = %q (%v), want the reset and the MoltNet helper", helpers, err)
 	}
 }
+
+func TestWriteAllowedSignersFileKeepsEarlierSigners(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "ssh"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	retired := "bot@example.com ssh-ed25519 AAAAretired"
+	if err := os.WriteFile(filepath.Join(dir, "ssh", "allowed_signers"), []byte("bot@example.com ssh-ed25519 AAAAcurrent\n"+retired+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	path, err := writeAllowedSignersFile(dir, "bot@example.com", []byte("ssh-ed25519 AAAAcurrent\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "bot@example.com ssh-ed25519 AAAAcurrent\n" + retired + "\n"
+	if string(data) != want {
+		t.Fatalf("allowed_signers =\n%s\nwant\n%s", data, want)
+	}
+}

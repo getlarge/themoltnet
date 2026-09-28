@@ -6,10 +6,8 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -199,12 +197,12 @@ func runAgentsIdentityKeyRotateCmd(ctx context.Context, out, errOut io.Writer, o
 			output.RecoveryPath = path
 		}
 		_ = printJSONTo(out, output)
-		err := fmt.Errorf("identity key rotation needs manual recovery after %s: %w; the new seed is stored at %s:%s and the server may already use %s. Check 'moltnet agents whoami', then set keys.public_key, keys.fingerprint and keys.private_key_ref in %s to match",
-			stage, cause, newRef.Provider, newRef.Key, newFingerprint, credentialsPath)
 		if recoveryErr != nil {
-			err = fmt.Errorf("%w (recovery artifact failed: %v)", err, recoveryErr)
+			return fmt.Errorf("identity key rotation needs manual recovery after %s: %w; the new seed is stored at %s:%s and the server may already use %s. Writing the recovery artifact failed (%v): once 'moltnet agents whoami' reports %s, set keys.public_key, keys.fingerprint and keys.private_key_ref in %s to match",
+				stage, cause, newRef.Provider, newRef.Key, newFingerprint, recoveryErr, newFingerprint, credentialsPath)
 		}
-		return err
+		return fmt.Errorf("identity key rotation needs recovery after %s: %w; the new seed is stored at %s:%s and the server may already use %s. Run 'moltnet agents identity-key recover --from %s' to finish once the server reports the new key",
+			stage, cause, newRef.Provider, newRef.Key, newFingerprint, path)
 	}
 
 	res, callErr := client.RotateIdentityKey(ctx, moltnetapi.NewOptRotateIdentityKeyRequest(request))
@@ -227,8 +225,9 @@ func runAgentsIdentityKeyRotateCmd(ctx context.Context, out, errOut io.Writer, o
 		serverKey, whoamiErr := currentServerPublicKey(ctx, client)
 		switch {
 		case whoamiErr == nil && serverKey == currentPublicKey:
-			discardStaged()
-			return fmt.Errorf("identity key rotation failed: %w; the server still uses the current key and nothing was changed", cause)
+			// Not proof of failure: the server's workflow may still commit
+			// the rotation after the request failed, so the new seed stays.
+			return needRecovery("rotate_identity_key", fmt.Errorf("%w; the server still reported the current key, but the rotation may yet commit", cause))
 		case whoamiErr == nil && serverKey == newPublicKey:
 			if errOut != nil {
 				fmt.Fprintf(errOut, "Warning: the rotation response failed (%v) but the server now uses the new key; completing the local update.\n", cause)
@@ -248,10 +247,12 @@ func runAgentsIdentityKeyRotateCmd(ctx context.Context, out, errOut io.Writer, o
 	if err := printJSONTo(out, output); err != nil {
 		return err
 	}
+	if artifactsErr != nil {
+		// Git would keep signing with the retired key: not a success.
+		return fmt.Errorf("rotated the identity key to %s and updated %s, but regenerating the SSH key, allowed_signers and env file failed: %w. Run 'moltnet agents identity-key recover' to regenerate them",
+			newFingerprint, credentialsPath, artifactsErr)
+	}
 	if errOut != nil {
-		if artifactsErr != nil {
-			fmt.Fprintf(errOut, "Warning: could not regenerate SSH, allowed_signers and env files: %v. Run 'moltnet config repair' to regenerate them.\n", artifactsErr)
-		}
 		fmt.Fprintf(errOut, "Rotated the identity key to %s. The retired seed is still stored at %s:%s; delete it once no other config references it. Run 'moltnet agents activation refresh' and restart active agent processes.\n",
 			newFingerprint, currentRef.Provider, currentRef.Key)
 	}
@@ -318,8 +319,9 @@ func rewriteIdentityKeySection(path, currentPublicKey string, currentRef SecretR
 
 // refreshIdentityKeyArtifacts regenerates everything derived from the
 // identity key: the SSH key pair git signs with, allowed_signers (new key
-// first, retired key kept so earlier commits still verify locally), and the
-// env file's MOLTNET_FINGERPRINT.
+// first, retired keys kept so earlier commits still verify locally), and the
+// env file's MOLTNET_FINGERPRINT. An empty retiredPublicKey adds no retired
+// line; keys already listed are kept either way.
 func refreshIdentityKeyArtifacts(credentialsPath, retiredPublicKey string) error {
 	if err := runSSHKeyExportCmd(io.Discard, credentialsPath, ""); err != nil {
 		return fmt.Errorf("regenerate SSH keys: %w", err)
@@ -340,38 +342,23 @@ func refreshIdentityKeyArtifacts(credentialsPath, retiredPublicKey string) error
 	return writeAgentEnvFile(io.Discard, configDir, filepath.Base(configDir), creds)
 }
 
-// writeRotatedAllowedSigners writes the new key's signer line, then keeps
-// every earlier line, adding the retired key if it is not there yet.
+// writeRotatedAllowedSigners writes the new key's signer line first, keeps
+// every earlier line, and adds the retired key if it is not listed yet.
 func writeRotatedAllowedSigners(configDir, gitEmail, publicKey, retiredPublicKey string) error {
 	newLine, err := allowedSignerLine(gitEmail, publicKey)
 	if err != nil {
 		return err
 	}
-	retiredLine, err := allowedSignerLine(gitEmail, retiredPublicKey)
-	if err != nil {
-		return err
-	}
 	lines := []string{newLine}
-	existing, err := os.ReadFile(allowedSignersPathFor(configDir))
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("read allowed_signers: %w", err)
-	}
-	seen := map[string]bool{newLine: true}
-	for _, line := range append(strings.Split(string(existing), "\n"), retiredLine) {
-		line = strings.TrimSpace(line)
-		if line == "" || seen[line] {
-			continue
+	if retiredPublicKey != "" {
+		retiredLine, err := allowedSignerLine(gitEmail, retiredPublicKey)
+		if err != nil {
+			return err
 		}
-		seen[line] = true
-		lines = append(lines, line)
+		lines = append(lines, retiredLine)
 	}
-	if err := os.MkdirAll(filepath.Join(configDir, "ssh"), 0o700); err != nil {
-		return fmt.Errorf("create ssh dir: %w", err)
-	}
-	if err := os.WriteFile(allowedSignersPathFor(configDir), []byte(strings.Join(lines, "\n")+"\n"), 0o644); err != nil {
-		return fmt.Errorf("write allowed_signers: %w", err)
-	}
-	return nil
+	_, err = writeAllowedSignerLines(configDir, lines)
+	return err
 }
 
 func allowedSignerLine(gitEmail, publicKey string) (string, error) {
