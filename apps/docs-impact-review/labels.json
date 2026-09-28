@@ -39,9 +39,12 @@
     "2464": {
       "expected": [
         {
-          "docsPath": ".agents/skills/eval-engineering/references/scenario-format.md",
+          "docsPaths": [
+            ".agents/skills/eval-engineering/references/scenario-format.md",
+            ".agents/skills/eval-engineering/SKILL.md"
+          ],
           "issue": "incorrect",
-          "note": "Lines 68 and 73 still instruct 'moltnet eval run --scenario', a command this PR removes."
+          "note": "scenario-format.md lines 68 and 73 and SKILL.md line 40 still instruct 'moltnet eval run', a command this PR removes."
         }
       ],
       "forbidden": [
