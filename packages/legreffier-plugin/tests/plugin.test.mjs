@@ -111,6 +111,8 @@ test('bundles all LeGreffier skills and companion references', async () => {
       'stage-4-manual-capture.md',
     ],
   );
+  const onboardingSkill = await read('skills/legreffier-onboarding/SKILL.md');
+  assert.match(onboardingSkill, /references\/local-client-and-worker\.md/);
 });
 
 test('selects transport from the principal and forbids fallback', async () => {

@@ -21,9 +21,10 @@ and commands; do not carry forward image versions from this skill.
 
 - **Release installation:** use a `self-host-vX.Y.Z` archive from
   [GitHub Releases](https://github.com/getlarge/themoltnet/releases). Verify
-  its published checksum and internal `SHA256SUMS` before extracting settings
-  or starting containers. The archive's `.env.release` pins images built from
-  that source revision by digest. Keep those pins.
+  its published checksum and internal `SHA256SUMS` before using its settings
+  or starting containers. These checks detect corruption; a checksum from the
+  same release does not authenticate its publisher. The archive's `.env.release`
+  pins that revision's images by digest. Keep those pins.
 - **Source checkout rehearsal:** use the exact revision under test. Follow the
   source path in [verification](references/verification.md#source-checkout-rehearsal)
   to build its four application images and generate a bundle with `:dev` tags.
