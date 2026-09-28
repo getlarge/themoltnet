@@ -165,6 +165,8 @@ export type ProviderModelModality = PiModelModality;
 export interface ProviderModelEntry {
   id: string;
   input?: ProviderModelModality[];
+  reasoning?: boolean;
+  thinkingLevelMap?: Record<string, string>;
 }
 
 export interface ProviderEntry {
@@ -193,6 +195,10 @@ export function copyProviderModel(
     id: entry.id,
     ...(entry.input && entry.input.length > 0
       ? { input: [...entry.input] }
+      : {}),
+    ...(entry.reasoning !== undefined ? { reasoning: entry.reasoning } : {}),
+    ...(entry.thinkingLevelMap
+      ? { thinkingLevelMap: { ...entry.thinkingLevelMap } }
       : {}),
   };
 }

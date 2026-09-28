@@ -39,8 +39,11 @@ const MODEL_MODALITIES: readonly ProviderModelModality[] = PI_MODEL_MODALITIES;
 function parseModelArgs(
   models: string[] | undefined,
   modelInputs: string[] | undefined,
+  modelReasoning: string[] | undefined,
+  modelThinkingMaps: string[] | undefined,
 ): ProviderModelEntry[] | undefined {
-  if (!models && !modelInputs) return undefined;
+  if (!models && !modelInputs && !modelReasoning && !modelThinkingMaps)
+    return undefined;
   const entries = new Map<string, ProviderModelEntry>();
   for (const id of models ?? []) entries.set(id, { id });
   for (const raw of modelInputs ?? []) {
@@ -71,7 +74,47 @@ function parseModelArgs(
         );
       }
     }
-    entries.set(id, { id, input: input as ProviderModelModality[] });
+    entries.set(id, {
+      ...entries.get(id),
+      id,
+      input: input as ProviderModelModality[],
+    });
+  }
+  for (const id of modelReasoning ?? []) {
+    entries.set(id, { ...entries.get(id), id, reasoning: true });
+  }
+  for (const raw of modelThinkingMaps ?? []) {
+    const separator = raw.indexOf('=');
+    if (separator <= 0) {
+      throw new ProviderCliError(
+        'invalid_arguments',
+        `--model-thinking-map expects <model-id>=<level>:<effort>[,...], received "${raw}"`,
+      );
+    }
+    const id = raw.slice(0, separator);
+    const map: Record<string, string> = {};
+    for (const pair of raw.slice(separator + 1).split(',')) {
+      const colon = pair.indexOf(':');
+      const level = pair.slice(0, colon).trim();
+      const effort = pair.slice(colon + 1).trim();
+      if (
+        colon <= 0 ||
+        !['off', 'minimal', 'low', 'medium', 'high', 'xhigh'].includes(level) ||
+        !effort
+      ) {
+        throw new ProviderCliError(
+          'invalid_arguments',
+          `--model-thinking-map for "${id}" requires off, minimal, low, medium, high or xhigh keys with non-empty efforts`,
+        );
+      }
+      map[level] = effort;
+    }
+    entries.set(id, {
+      ...entries.get(id),
+      id,
+      reasoning: true,
+      thinkingLevelMap: map,
+    });
   }
   return [...entries.values()];
 }
@@ -204,6 +247,8 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
           api: { type: 'string' },
           model: { type: 'string', multiple: true },
           'model-input': { type: 'string', multiple: true },
+          'model-reasoning': { type: 'string', multiple: true },
+          'model-thinking-map': { type: 'string', multiple: true },
           'clear-models': { type: 'boolean' },
           'api-key-stdin': { type: 'boolean' },
           'clear-api-key': { type: 'boolean' },
@@ -224,6 +269,15 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
           '--model-input and --clear-models cannot be used together',
         );
       }
+      if (
+        (values['model-reasoning'] || values['model-thinking-map']) &&
+        values['clear-models']
+      ) {
+        throw new ProviderCliError(
+          'invalid_arguments',
+          '--model-reasoning and --model-thinking-map cannot be used with --clear-models',
+        );
+      }
       if (values['api-key-stdin'] && values['clear-api-key']) {
         throw new ProviderCliError(
           'invalid_arguments',
@@ -238,7 +292,12 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
         api: values.api,
         models: values['clear-models']
           ? []
-          : parseModelArgs(values.model, values['model-input']),
+          : parseModelArgs(
+              values.model,
+              values['model-input'],
+              values['model-reasoning'],
+              values['model-thinking-map'],
+            ),
         apiKeyStdin: values['api-key-stdin'] ?? false,
         clearApiKey: values['clear-api-key'] ?? false,
       };

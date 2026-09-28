@@ -14,7 +14,7 @@ import {
   MAX_DISCOVERED_MODELS,
   ModelDiscoveryCollector,
   parseProviderBaseUrl,
-  readOllamaModalities,
+  readOllamaCapabilities,
 } from './agent-server/model-discovery.js';
 import {
   type AgentServerStore,
@@ -141,7 +141,48 @@ export class ProviderConfigurationService {
             400,
           );
         }
-        parseProviderBaseUrl(baseUrl, providerId);
+        const parsedBaseUrl = parseProviderBaseUrl(baseUrl, providerId);
+        let models = (input.models ?? previous?.models ?? []).map(
+          copyProviderModel,
+        );
+        if (input.models && isOllamaProvider(providerId, parsedBaseUrl)) {
+          const ids = models
+            .filter(
+              (model) =>
+                model.reasoning === undefined ||
+                (model.reasoning && !model.thinkingLevelMap),
+            )
+            .map((model) => model.id);
+          if (ids.length > 0) {
+            let apiKey = input.apiKey;
+            if (!apiKey && previous) {
+              try {
+                apiKey = await this.resolveApiKey(providerId, previous);
+              } catch {
+                /* A missing old key must not prevent configuration. */
+              }
+            }
+            const collector = new ModelDiscoveryCollector();
+            collector.addOpenAiResponse({ data: ids.map((id) => ({ id })) });
+            await this.resolveOllamaCapabilities({
+              collector,
+              headers: apiKey ? { authorization: `Bearer ${apiKey}` } : {},
+              ids,
+              origin: parsedBaseUrl.origin,
+              providerId,
+              signal: options.signal,
+            });
+            const detected = new Map(
+              collector
+                .result(providerId, [])
+                .models.map((model) => [model.id, model]),
+            );
+            models = models.map((model) => ({
+              ...detected.get(model.id),
+              ...model,
+            }));
+          }
+        }
         const entry: ProviderEntry = {
           api: input.api ?? previous?.api ?? DEFAULT_PROVIDER_API,
           baseUrl,
@@ -149,9 +190,7 @@ export class ProviderConfigurationService {
             providerId,
             input.envName ?? previous?.envName ?? providerEnvName(providerId),
           ),
-          models: (input.models ?? previous?.models ?? []).map(
-            copyProviderModel,
-          ),
+          models,
           ...(!input.clearApiKey && previous?.apiKeyRef
             ? { apiKeyRef: previous.apiKeyRef }
             : {}),
@@ -338,37 +377,47 @@ export class ProviderConfigurationService {
         'Provider model discovery result was truncated',
       );
     }
-    // Probe only what is still unknown, and only after truncation, so a
-    // provider listing thousands of models cannot turn discovery into
-    // thousands of requests.
-    if (isOllamaProvider(providerId, parsed) && result.unresolved.length > 0) {
-      await this.resolveOllamaModalities({
+    // Probe models without capabilities and thinking-capable models without
+    // supported-level metadata. Truncate first so a large listing cannot
+    // trigger unbounded requests.
+    if (isOllamaProvider(providerId, parsed)) {
+      const ids = result.models
+        .filter(
+          (model) => result.unresolved.includes(model.id) || model.reasoning,
+        )
+        .map((model) => model.id);
+      await this.resolveOllamaCapabilities({
         collector,
         headers,
-        ids: result.unresolved,
+        ids,
         origin: parsed.origin,
         providerId,
         signal: options.signal,
       });
     }
-    // Re-read after the probes so newly learned modalities are included.
+    // Re-read after the probes so newly learned capabilities are included.
     const resolved = collector.result(providerId, failures);
     // An operator's explicit declaration outranks anything detected: marking a
     // model text-only on purpose (`--model-input <id>=text`) must survive a
     // refresh that would otherwise re-detect it as image-capable.
-    const declared = new Map(
-      provider.models.map((model) => [model.id, model.input]),
-    );
+    const declared = new Map(provider.models.map((model) => [model.id, model]));
     const models = resolved.models.map((model) => {
       const override = declared.get(model.id);
-      return override && override.length > 0
-        ? { id: model.id, input: [...override] }
-        : model;
+      return {
+        ...model,
+        ...(override?.input?.length ? { input: [...override.input] } : {}),
+        ...(model.reasoning === undefined && override?.reasoning !== undefined
+          ? { reasoning: override.reasoning }
+          : {}),
+        ...(!model.thinkingLevelMap && override?.thinkingLevelMap
+          ? { thinkingLevelMap: { ...override.thinkingLevelMap } }
+          : {}),
+      };
     });
     const detected = models.filter(
       (model) =>
         model.input?.includes('image') &&
-        !declared.get(model.id)?.includes('image'),
+        !declared.get(model.id)?.input?.includes('image'),
     );
     if (detected.length > 0) {
       // Declaring a model image-capable is what allows image bytes to leave the
@@ -397,15 +446,14 @@ export class ProviderConfigurationService {
   }
 
   /**
-   * Fill in modalities Ollama Cloud's `/api/tags` omits, one `/api/show` per
-   * still-unknown model.
+   * Fill in capabilities and supported thinking levels from `/api/show`.
    *
    * Failures here are deliberately not pushed into the discovery `failures`
    * array: that array decides the error code of a *failed* discovery, so a
    * probe rejection must not relabel an otherwise-successful one. A model whose
-   * probe fails simply stays text-only.
+   * probe fails retains any capabilities already reported by `/api/tags`.
    */
-  private async resolveOllamaModalities(input: {
+  private async resolveOllamaCapabilities(input: {
     collector: ModelDiscoveryCollector;
     headers: Record<string, string>;
     ids: readonly string[];
@@ -450,8 +498,8 @@ export class ProviderConfigurationService {
             signal: input.signal,
             url,
           });
-          const modalities = readOllamaModalities(body);
-          if (modalities) input.collector.setModalities(id, modalities);
+          const capabilities = readOllamaCapabilities(body);
+          if (capabilities) input.collector.setCapabilities(id, capabilities);
         }),
       );
     }

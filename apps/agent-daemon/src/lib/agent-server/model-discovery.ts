@@ -27,47 +27,104 @@ export type DiscoveryFailure =
   | { kind: 'network'; errorType: string }
   | { kind: 'invalid_response' };
 
-/**
- * The Ollama capability that means a model accepts image input. Ollama also
- * reports `completion`, `tools`, `thinking` and `embedding`; none of those map
- * onto a Pi input modality, so only this one is read.
- */
+/** Ollama exposes vision and thinking independently for each model. */
 const OLLAMA_VISION_CAPABILITY = 'vision';
+const OLLAMA_THINKING_CAPABILITY = 'thinking';
 
-/**
- * Read Ollama's `capabilities` array, when the endpoint supplies one.
- *
- * Returns `undefined` when the field is absent — which is meaningfully
- * different from "present and without vision". A local Ollama returns
- * capabilities from `/api/tags`; Ollama Cloud does not, and needs a per-model
- * `/api/show` probe. Only an explicit absence should trigger that probe.
- */
-export function readOllamaModalities(
+export const OLLAMA_THINKING_LEVEL_MAP: Record<string, string> = {
+  off: 'none',
+  minimal: 'low',
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  xhigh: 'max',
+};
+
+const LEVELS = ['low', 'medium', 'high', 'max'] as const;
+
+function thinkingMap(value: unknown): Record<string, string> | undefined {
+  if (!isRecord(value) || !Array.isArray(value['values'])) return undefined;
+  const values = value['values'];
+  const names = LEVELS.filter((level) => values.includes(level));
+  const falseSupported = values.includes(false) || values.includes('none');
+  if (names.length === 0) {
+    const named = values.find(
+      (item): item is string => typeof item === 'string' && item !== 'none',
+    );
+    if (named) {
+      return Object.fromEntries(
+        ['off', 'minimal', 'low', 'medium', 'high', 'xhigh'].map((level) => [
+          level,
+          level === 'off' && falseSupported ? 'none' : named,
+        ]),
+      );
+    }
+    return values.includes(true)
+      ? {
+          ...OLLAMA_THINKING_LEVEL_MAP,
+          ...(!falseSupported ? { off: 'low' } : {}),
+        }
+      : undefined;
+  }
+  const nearest = (level: number) =>
+    [...names].reverse().find((name) => LEVELS.indexOf(name) <= level) ??
+    names[0];
+  return {
+    off: falseSupported ? 'none' : names[0],
+    minimal: names[0],
+    low: nearest(0),
+    medium: nearest(1),
+    high: nearest(2),
+    xhigh: names.at(-1) ?? names[0],
+  };
+}
+
+export function readOllamaCapabilities(
   value: unknown,
-): ProviderModelModality[] | undefined {
-  if (!isRecord(value) || !Array.isArray(value['capabilities']))
-    return undefined;
-  return value['capabilities'].includes(OLLAMA_VISION_CAPABILITY)
-    ? ['text', 'image']
-    : [];
+): Omit<ProviderModelEntry, 'id'> | undefined {
+  if (!isRecord(value)) return undefined;
+  const capabilities = Array.isArray(value['capabilities'])
+    ? value['capabilities']
+    : undefined;
+  const declaredThinking =
+    isRecord(value['thinking']) && Array.isArray(value['thinking']['values']);
+  const map = thinkingMap(value['thinking']);
+  if (!capabilities && !declaredThinking) return undefined;
+  const input = capabilities
+    ? {
+        input: capabilities.includes(OLLAMA_VISION_CAPABILITY)
+          ? (['text', 'image'] as ProviderModelModality[])
+          : ([] as ProviderModelModality[]),
+      }
+    : {};
+  return map ||
+    (!declaredThinking && capabilities?.includes(OLLAMA_THINKING_CAPABILITY))
+    ? {
+        ...input,
+        reasoning: true,
+        ...(map ? { thinkingLevelMap: map } : {}),
+      }
+    : { ...input, reasoning: false };
 }
 
 export class ModelDiscoveryCollector {
   /**
-   * Model id → declared input modalities. `undefined` means the id is known but
-   * its capabilities are not, so it is still a probe candidate; `[]` means the
-   * source answered and the model is text-only.
+   * Model id → detected capabilities. `undefined` means the id is known but
+   * its capabilities are not, so it is still a probe candidate.
    */
   private readonly models = new Map<
     string,
-    ProviderModelModality[] | undefined
+    Omit<ProviderModelEntry, 'id'> | undefined
   >();
 
-  private record(id: string, input: ProviderModelModality[] | undefined): void {
+  private record(
+    id: string,
+    metadata: Omit<ProviderModelEntry, 'id'> | undefined,
+  ): void {
     // Never let a later id-only sighting erase modalities an earlier response
     // supplied: /v1/models and /api/tags overlap, and only one carries them.
-    if (input === undefined && this.models.has(id)) return;
-    this.models.set(id, input);
+    if (metadata === undefined && this.models.has(id)) return;
+    this.models.set(id, metadata);
   }
 
   addOpenAiResponse(value: unknown): void {
@@ -85,14 +142,14 @@ export class ModelDiscoveryCollector {
       if (!isRecord(candidate)) continue;
       const name = candidate['name'];
       if (typeof name === 'string' && name.length > 0) {
-        this.record(name, readOllamaModalities(candidate));
+        this.record(name, readOllamaCapabilities(candidate));
       }
     }
   }
 
-  /** Attach modalities learned after collection, e.g. from an `/api/show` probe. */
-  setModalities(id: string, input: ProviderModelModality[]): void {
-    if (this.models.has(id)) this.models.set(id, input);
+  setCapabilities(id: string, metadata: Omit<ProviderModelEntry, 'id'>): void {
+    if (this.models.has(id))
+      this.models.set(id, { ...this.models.get(id), ...metadata });
   }
 
   get size(): number {
@@ -112,8 +169,17 @@ export class ModelDiscoveryCollector {
     const ids = [...this.models.keys()].sort().slice(0, MAX_DISCOVERED_MODELS);
     return {
       models: ids.map((id) => {
-        const input = this.models.get(id);
-        return input && input.length > 0 ? { id, input: [...input] } : { id };
+        const metadata = this.models.get(id);
+        return {
+          id,
+          ...(metadata?.input?.length ? { input: [...metadata.input] } : {}),
+          ...(metadata?.reasoning !== undefined
+            ? { reasoning: metadata.reasoning }
+            : {}),
+          ...(metadata?.thinkingLevelMap
+            ? { thinkingLevelMap: { ...metadata.thinkingLevelMap } }
+            : {}),
+        };
       }),
       unresolved: ids.filter((id) => this.models.get(id) === undefined),
       discoveredCount: this.models.size,
