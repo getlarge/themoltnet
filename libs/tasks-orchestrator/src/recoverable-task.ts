@@ -129,31 +129,139 @@ export type RecoverableTaskOutcome<TState> = RecoveryBase<TState> &
         kind: 'replacement_create_failed';
         outcome: Extract<TaskOutcome<TState>, { kind: 'failed' }>;
         reasonCode: string;
+        /** Present when creation succeeded but the returned task was rejected. */
+        replacementTaskId?: string;
+        /** Names only; task contents and mismatched values are excluded. */
+        mismatchedFields?: string[];
       }
   );
 
-function matchesFrozenRequest(task: SdkTask, body: FrozenTaskRequest): boolean {
+function observedLifetimeSeconds(task: SdkTask): number | null {
+  if (task.expiresAt === null) return null;
+  const queuedAt = Date.parse(task.queuedAt);
+  const expiresAt = Date.parse(task.expiresAt);
+  if (!Number.isFinite(queuedAt) || !Number.isFinite(expiresAt)) return null;
+  // Expiry is computed before queuedAt is set by the database. A delay of
+  // at least one second fails the explicit lifetime comparison closed.
+  return Math.ceil((expiresAt - queuedAt) / 1_000);
+}
+
+function frozenRequestMismatches(
+  task: SdkTask,
+  body: FrozenTaskRequest,
+): string[] {
+  const mismatches: string[] = [];
+  const check = (field: string, matches: boolean) => {
+    if (!matches) mismatches.push(field);
+  };
   const tags = [...new Set((body.tags ?? []).map((tag) => tag.trim()))].filter(
     Boolean,
   );
-  return (
-    task.taskType === body.taskType &&
-    task.title === (body.title?.trim() || null) &&
-    isDeepStrictEqual(task.tags, tags) &&
-    task.teamId === body.teamId &&
-    task.diaryId === body.diaryId &&
-    task.projectId === (body.projectId ?? null) &&
-    task.correlationId === (body.correlationId ?? null) &&
-    task.maxAttempts === (body.maxAttempts ?? 1) &&
-    task.dispatchTimeoutSec === (body.dispatchTimeoutSec ?? null) &&
-    task.runningTimeoutSec === (body.runningTimeoutSec ?? null) &&
-    isDeepStrictEqual(task.input, body.input) &&
-    isDeepStrictEqual(task.references, body.references ?? []) &&
-    isDeepStrictEqual(task.claimCondition, body.claimCondition ?? null) &&
-    isDeepStrictEqual(task.allowedProfiles, body.allowedProfiles ?? []) &&
-    task.requiredExecutorTrustLevel ===
-      (body.requiredExecutorTrustLevel ?? 'selfDeclared')
+  check('taskType', task.taskType === body.taskType);
+  check('title', task.title === (body.title?.trim() || null));
+  check('tags', isDeepStrictEqual(task.tags, tags));
+  check('teamId', task.teamId === body.teamId);
+  check('diaryId', task.diaryId === body.diaryId);
+  check('projectId', task.projectId === (body.projectId ?? null));
+  check('correlationId', task.correlationId === (body.correlationId ?? null));
+  check('maxAttempts', task.maxAttempts === (body.maxAttempts ?? 1));
+  check(
+    'dispatchTimeoutSec',
+    task.dispatchTimeoutSec === (body.dispatchTimeoutSec ?? null),
   );
+  check(
+    'runningTimeoutSec',
+    task.runningTimeoutSec === (body.runningTimeoutSec ?? null),
+  );
+  if (body.expiresInSec !== undefined) {
+    check('expiresInSec', observedLifetimeSeconds(task) === body.expiresInSec);
+  }
+  check('input', isDeepStrictEqual(task.input, body.input));
+  check(
+    'references',
+    isDeepStrictEqual(task.references, body.references ?? []),
+  );
+  check(
+    'claimCondition',
+    isDeepStrictEqual(task.claimCondition, body.claimCondition ?? null),
+  );
+  check(
+    'allowedProfiles',
+    isDeepStrictEqual(task.allowedProfiles, body.allowedProfiles ?? []),
+  );
+  check(
+    'requiredExecutorTrustLevel',
+    task.requiredExecutorTrustLevel ===
+      (body.requiredExecutorTrustLevel ?? 'selfDeclared'),
+  );
+  return mismatches;
+}
+
+type ErrorDiagnostic = {
+  category:
+    | 'timeout'
+    | 'authorization'
+    | 'rate_limited'
+    | 'upstream'
+    | 'client'
+    | 'transport'
+    | 'adapter'
+    | 'unknown';
+  statusCode?: number;
+  transportCode?: string;
+};
+
+/** Never pass adapter-owned error messages, stacks, causes, or response bodies to logs. */
+function safeErrorDiagnostic(
+  error: unknown,
+  timedOut = false,
+): ErrorDiagnostic {
+  if (timedOut) return { category: 'timeout' };
+  if (!error || typeof error !== 'object') return { category: 'unknown' };
+  // Access only allowlisted fields. A hostile adapter may throw from getters.
+  const read = (source: unknown, field: string): unknown => {
+    if (!source || typeof source !== 'object') return undefined;
+    try {
+      return (source as Record<string, unknown>)[field];
+    } catch {
+      return undefined;
+    }
+  };
+  const directStatus = read(error, 'status');
+  const status =
+    typeof directStatus === 'number'
+      ? directStatus
+      : (read(error, 'statusCode') ?? read(read(error, 'response'), 'status'));
+  if (
+    typeof status === 'number' &&
+    Number.isInteger(status) &&
+    status >= 400 &&
+    status <= 599
+  ) {
+    const category =
+      status === 401 || status === 403
+        ? 'authorization'
+        : status === 408
+          ? 'timeout'
+          : status === 429
+            ? 'rate_limited'
+            : status >= 500
+              ? 'upstream'
+              : 'client';
+    return { category, statusCode: status };
+  }
+  const transportCodes = [
+    'ECONNREFUSED',
+    'ECONNRESET',
+    'ETIMEDOUT',
+    'ENOTFOUND',
+    'EAI_AGAIN',
+  ];
+  const code = read(error, 'code');
+  if (typeof code === 'string' && transportCodes.includes(code))
+    return { category: 'transport', transportCode: code };
+  if (error instanceof TypeError) return { category: 'adapter' };
+  return { category: 'unknown' };
 }
 
 function continuationParent(input: unknown): string | null {
@@ -220,6 +328,10 @@ async function decideWithTimeout(
 ): Promise<RecoveryGateDecision | { verdict: 'invalid'; reasonCode: string }> {
   const controller = new AbortController();
   const timeoutError = new Error('recovery gate timed out');
+  const gateIdentity = {
+    name: gate.identity.name,
+    version: gate.identity.version,
+  };
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const result = await Promise.race([
@@ -228,8 +340,18 @@ async function decideWithTimeout(
         timer = setTimeout(() => reject(timeoutError), timeoutMs);
       }),
     ]);
-    if (!validDecision(result))
+    if (!validDecision(result)) {
+      logger?.warn(
+        {
+          gateIdentity,
+          failedTaskId: input.candidate.failedTaskId,
+          replacementN: input.candidate.replacementN,
+          reasonCode: 'gate_invalid',
+        },
+        `${logPrefix}.recovery.gate.invalid`,
+      );
       return { verdict: 'invalid', reasonCode: 'gate_invalid' };
+    }
     return {
       verdict: result.verdict,
       reasonCode: result.reasonCode,
@@ -249,8 +371,8 @@ async function decideWithTimeout(
     if (isWorkflowInterruption(error)) throw error;
     logger?.error(
       {
-        err: error,
-        gateIdentity: gate.identity,
+        diagnostic: safeErrorDiagnostic(error, error === timeoutError),
+        gateIdentity,
         failedTaskId: input.candidate.failedTaskId,
         replacementN: input.candidate.replacementN,
       },
@@ -297,7 +419,17 @@ export async function waitForRecoverableTask<TState>(
   )
     throw new TypeError('recoveryGate identity requires a name and version');
   const frozenRequest = structuredClone(options.frozenRequest);
-  if (!matchesFrozenRequest(initialTask, frozenRequest))
+  if (
+    frozenRequest.expiresInSec === undefined &&
+    initialTask.expiresAt !== null
+  ) {
+    const observedLifetime = observedLifetimeSeconds(initialTask);
+    if (observedLifetime === null || observedLifetime <= 0)
+      throw new TypeError('initial task lifetime cannot be reconciled');
+    // Preserve the initial effective lifetime even if the server default changes.
+    frozenRequest.expiresInSec = observedLifetime;
+  }
+  if (frozenRequestMismatches(initialTask, frozenRequest).length > 0)
     throw new TypeError('frozenRequest does not match the initial task');
   const frozenParent = continuationParent(frozenRequest.input);
   const stableGateIdentity = Object.freeze({
@@ -324,7 +456,7 @@ export async function waitForRecoverableTask<TState>(
 
   for (;;) {
     const outcome = await waitForTaskOutcome(currentTask.id, options);
-    const attempts = await attemptsForOutcome(outcome, options.tasks);
+    const attempts = attemptsForOutcome(outcome);
     chain.push({ replacementN, outcome, attempts });
     addAttemptUsage(cumulativeUsage, attempts);
     const base = { chain, decisions, cumulativeUsage };
@@ -408,29 +540,43 @@ export async function waitForRecoverableTask<TState>(
         ({ idempotencyKey }) =>
           options.tasks.createTask(frozenRequest, { idempotencyKey }),
       );
-      if (
-        replacement.id === currentTask.id ||
-        replacement.maxAttempts !== initialTask.maxAttempts ||
-        !matchesFrozenRequest(replacement, frozenRequest) ||
-        replacement.inputCid !== initialTask.inputCid
-      )
+      const mismatchedFields = frozenRequestMismatches(
+        replacement,
+        frozenRequest,
+      );
+      if (replacement.id === currentTask.id) mismatchedFields.push('id');
+      if (replacement.inputCid !== initialTask.inputCid)
+        mismatchedFields.push('inputCid');
+      decisions[decisions.length - 1] = {
+        ...decision,
+        replacementTaskId: replacement.id,
+      };
+      if (mismatchedFields.length > 0) {
+        options.logger?.error(
+          {
+            failedTaskId: currentTask.id,
+            replacementTaskId: replacement.id,
+            replacementN: candidate.replacementN,
+            mismatchedFields,
+          },
+          `${options.logPrefix ?? 'orchestration'}.recovery.create.identity_mismatch`,
+        );
         return {
           ...base,
           kind: 'replacement_create_failed',
           outcome,
           reasonCode: 'replacement_identity_mismatch',
+          replacementTaskId: replacement.id,
+          mismatchedFields,
         };
-      decisions[decisions.length - 1] = {
-        ...decision,
-        replacementTaskId: replacement.id,
-      };
+      }
       currentTask = replacement;
       replacementN += 1;
     } catch (error) {
       if (isWorkflowInterruption(error)) throw error;
       options.logger?.error(
         {
-          err: error,
+          diagnostic: safeErrorDiagnostic(error),
           failedTaskId: currentTask.id,
           replacementN: candidate.replacementN,
         },

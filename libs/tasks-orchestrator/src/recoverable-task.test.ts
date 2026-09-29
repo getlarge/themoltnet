@@ -212,7 +212,12 @@ describe('waitForRecoverableTask', () => {
   it.each([
     {
       name: 'malformed',
-      decide: () => Promise.resolve({ verdict: 'maybe', reasonCode: 'x' }),
+      decide: () =>
+        Promise.resolve({
+          verdict: 'maybe',
+          reasonCode: 'x',
+          payload: 'SECRET gate output',
+        }),
       reasonCode: 'gate_invalid',
     },
     {
@@ -248,10 +253,29 @@ describe('waitForRecoverableTask', () => {
     expect(tasks.created).toHaveLength(1);
     if (reasonCode === 'gate_error') {
       expect(logger.error.mock.calls.at(-1)?.[0]).toMatchObject({
-        err: { message: 'offline' },
+        diagnostic: { category: 'unknown' },
+        gateIdentity: { name: 'test-rule', version: '1' },
+        failedTaskId: initial.id,
       });
       expect(logger.error.mock.calls.at(-1)?.[1]).toBe(
         'orchestration.recovery.gate.error',
+      );
+      expect(JSON.stringify(logger.error.mock.calls.at(-1)?.[0])).not.toContain(
+        'offline',
+      );
+    }
+    if (reasonCode === 'gate_invalid') {
+      expect(logger.warn.mock.calls.at(-1)?.[0]).toMatchObject({
+        gateIdentity: { name: 'test-rule', version: '1' },
+        failedTaskId: initial.id,
+        replacementN: 1,
+        reasonCode: 'gate_invalid',
+      });
+      expect(logger.warn.mock.calls.at(-1)?.[1]).toBe(
+        'orchestration.recovery.gate.invalid',
+      );
+      expect(JSON.stringify(logger.warn.mock.calls.at(-1)?.[0])).not.toContain(
+        'SECRET',
       );
     }
   });
@@ -371,7 +395,10 @@ describe('waitForRecoverableTask', () => {
   it('returns an inspectable create error without starting another task', async () => {
     const tasks = new FakeTasks([{ __taskStatus: 'failed' }]);
     const initial = await tasks.createTask(body);
-    tasks.createTask = vi.fn().mockRejectedValue(new Error('unavailable'));
+    const error = Object.assign(new Error('SECRET request context'), {
+      response: { status: 403, body: 'SECRET response body' },
+    });
+    tasks.createTask = vi.fn().mockRejectedValue(error);
     const logger = {
       error: vi.fn(),
       info: vi.fn(),
@@ -386,11 +413,48 @@ describe('waitForRecoverableTask', () => {
       reasonCode: 'replacement_create_error',
     });
     expect(logger.error.mock.calls.at(-1)?.[0]).toMatchObject({
-      err: { message: 'unavailable' },
+      diagnostic: { category: 'authorization', statusCode: 403 },
     });
     expect(logger.error.mock.calls.at(-1)?.[1]).toBe(
       'orchestration.recovery.create.error',
     );
+    expect(JSON.stringify(logger.error.mock.calls.at(-1)?.[0])).not.toContain(
+      'SECRET',
+    );
+  });
+
+  it('records an already-created replacement and its mismatched fields', async () => {
+    const tasks = new FakeTasks([{ __taskStatus: 'failed' }, { done: true }]);
+    const initial = await tasks.createTask(body);
+    const realCreate = tasks.createTask.bind(tasks);
+    tasks.createTask = async (request, options) => ({
+      ...(await realCreate(request, options)),
+      title: 'unexpected title',
+    });
+    const logger = {
+      error: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+    } satisfies Logger;
+
+    const result = await waitForRecoverableTask(
+      initial,
+      setup(tasks, { logger }),
+    );
+
+    expect(result).toMatchObject({
+      kind: 'replacement_create_failed',
+      reasonCode: 'replacement_identity_mismatch',
+      replacementTaskId: '00000000-0000-4000-8000-000000000002',
+      mismatchedFields: ['title'],
+      decisions: [
+        { replacementTaskId: '00000000-0000-4000-8000-000000000002' },
+      ],
+    });
+    expect(logger.error.mock.calls.at(-1)?.[0]).toMatchObject({
+      replacementTaskId: '00000000-0000-4000-8000-000000000002',
+      mismatchedFields: ['title'],
+    });
   });
 
   it('fails closed when a gate tries to change its candidate', async () => {
@@ -589,6 +653,68 @@ describe('waitForRecoverableTask', () => {
       ),
     ).rejects.toThrow('frozenRequest does not match');
     expect(gate).not.toHaveBeenCalled();
+  });
+
+  it('rejects a changed relative lifetime and accepts the original lifetime', async () => {
+    const expiringBody = { ...body, expiresInSec: 60 };
+    const tasks = new FakeTasks([{ __taskStatus: 'failed' }, { done: true }]);
+    const initial = await tasks.createTask(expiringBody);
+    await expect(
+      waitForRecoverableTask(
+        initial,
+        setup(tasks, {
+          frozenRequest: { ...expiringBody, expiresInSec: 120 },
+        }),
+      ),
+    ).rejects.toThrow('frozenRequest does not match');
+
+    const result = await waitForRecoverableTask(
+      initial,
+      setup(tasks, {
+        frozenRequest: expiringBody,
+      }),
+    );
+    expect(result.kind).toBe('accepted');
+    expect(tasks.created[1]?.expiresInSec).toBe(60);
+  });
+
+  it('preserves the initial effective lifetime when the caller omits it', async () => {
+    const tasks = new FakeTasks([{ __taskStatus: 'failed' }, { done: true }]);
+    const initial = await tasks.createTask({ ...body, expiresInSec: 60 });
+
+    const result = await waitForRecoverableTask(initial, setup(tasks));
+
+    expect(result.kind).toBe('accepted');
+    expect(tasks.created[1]?.expiresInSec).toBe(60);
+  });
+
+  it('records a replacement whose returned lifetime differs', async () => {
+    const expiringBody = { ...body, expiresInSec: 60 };
+    const tasks = new FakeTasks([{ __taskStatus: 'failed' }, { done: true }]);
+    const initial = await tasks.createTask(expiringBody);
+    const realCreate = tasks.createTask.bind(tasks);
+    tasks.createTask = async (request, options) => {
+      const created = await realCreate(request, options);
+      return {
+        ...created,
+        expiresAt: new Date(
+          Date.parse(created.expiresAt ?? '') + 60_000,
+        ).toISOString(),
+      };
+    };
+
+    const result = await waitForRecoverableTask(
+      initial,
+      setup(tasks, {
+        frozenRequest: expiringBody,
+      }),
+    );
+
+    expect(result).toMatchObject({
+      kind: 'replacement_create_failed',
+      replacementTaskId: '00000000-0000-4000-8000-000000000002',
+      mismatchedFields: ['expiresInSec'],
+    });
   });
 
   it.each([

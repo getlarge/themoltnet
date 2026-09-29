@@ -114,7 +114,12 @@ export interface WaitForTaskOptions<TState> {
 
 /** The three terminal outcomes of awaiting a task. */
 export type TaskOutcome<TState = unknown> =
-  | { kind: 'accepted'; result: AcceptedTaskResult<TState> }
+  | {
+      kind: 'accepted';
+      result: AcceptedTaskResult<TState>;
+      /** Full await snapshot; optional for callers constructing legacy outcomes. */
+      attempts?: SdkTaskAttempt[];
+    }
   | {
       kind: 'failed';
       task: SdkTask;
@@ -125,6 +130,8 @@ export type TaskOutcome<TState = unknown> =
       kind: 'invalid_output';
       task: SdkTask;
       attempt: SdkTaskAttempt;
+      /** Full await snapshot; optional for callers constructing legacy outcomes. */
+      attempts?: SdkTaskAttempt[];
       reason: string;
     };
 

@@ -61,11 +61,13 @@ describe('waitForValidatedTask', () => {
   it('returns direct success as repair zero', async () => {
     const tasks = new FakeTasks([{ phase: 'done' }]);
     const initial = await tasks.createTask(baseBody);
+    const listAttempts = vi.spyOn(tasks, 'listAttempts');
 
     const result = await waitForValidatedTask(initial, options(tasks));
 
     expect(result.kind).toBe('accepted');
     expect(result.chain.map((element) => element.repairN)).toEqual([0]);
+    expect(listAttempts).toHaveBeenCalledTimes(1);
     expect(result.cumulativeUsage).toEqual({
       inputTokens: 0,
       outputTokens: 0,

@@ -32,10 +32,7 @@ export async function waitForValidatedTask<TState>(
   for (;;) {
     const outcome = await waitForTaskOutcome(currentTask.id, options);
     chain.push({ repairN, outcome });
-    addAttemptUsage(
-      cumulativeUsage,
-      await attemptsForOutcome(outcome, options.tasks),
-    );
+    addAttemptUsage(cumulativeUsage, attemptsForOutcome(outcome));
 
     if (outcome.kind === 'accepted') {
       return {

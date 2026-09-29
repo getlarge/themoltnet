@@ -181,7 +181,10 @@ export class FakeTasks implements TaskClient {
       status: failedStatus ?? 'completed',
       queuedAt: now,
       completedAt: now,
-      expiresAt: null,
+      expiresAt:
+        body.expiresInSec === undefined
+          ? null
+          : new Date(Date.parse(now) + body.expiresInSec * 1_000).toISOString(),
       cancelledByAgentId: null,
       cancelledByHumanId: null,
       cancelReason: null,

@@ -1,7 +1,6 @@
 import type {
   CumulativeTaskUsage,
   SdkTaskAttempt,
-  TaskClient,
   TaskOutcome,
 } from './types.js';
 
@@ -13,15 +12,15 @@ export const emptyUsage = (): CumulativeTaskUsage => ({
   toolCalls: 0,
 });
 
-/** Failed outcomes include all attempts; completed outcomes expose only the accepted one. */
-export async function attemptsForOutcome<TState>(
+/** Await outcomes carry the full attempt snapshot; accept legacy constructed outcomes too. */
+export function attemptsForOutcome<TState>(
   outcome: TaskOutcome<TState>,
-  tasks: TaskClient,
-): Promise<SdkTaskAttempt[]> {
+): SdkTaskAttempt[] {
   if (outcome.kind === 'failed') return outcome.attempts;
-  const taskId =
-    outcome.kind === 'accepted' ? outcome.result.task.id : outcome.task.id;
-  return tasks.listAttempts(taskId);
+  if (outcome.attempts) return outcome.attempts;
+  return outcome.kind === 'accepted'
+    ? [outcome.result.attempt]
+    : [outcome.attempt];
 }
 
 export function addAttemptUsage(

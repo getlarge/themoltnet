@@ -232,8 +232,16 @@ separate service or process. Only a validated `approve` verdict creates a replac
 timeout, or hook failure returns `blocked` with a reason code; a creation error
 returns `replacement_create_failed`. The result retains each task outcome,
 all attempts, decision metadata, replacement task ID, and cumulative usage.
-With a logger, gate and creation errors retain their original causes in
-structured logs; durable results contain only reason codes.
+With a logger, gate and creation errors emit bounded diagnostic categories
+and allowlisted status or transport codes; raw adapter errors and response
+details are excluded. Durable results contain only reason codes. If creation
+returns a mismatched task, the result includes its ID and mismatched field names.
+For an explicit `expiresInSec`, the returned expiry and queue timestamp must
+reconcile to that whole-second lifetime. If the request omits it but the initial
+task has an expiry, the replacement uses the initial effective lifetime instead
+of a possibly changed server default. A long delay between expiry calculation
+and database insertion can fail closed because the API does not expose the
+original relative lifetime directly.
 
 Decision and task creation have separate stable checkpoints. Replay after a
 completed decision checkpoint reuses the verdict; replay after a completed
