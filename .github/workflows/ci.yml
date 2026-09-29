@@ -445,7 +445,15 @@ jobs:
             echo "e2e-mcp=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if contains "moltnet-cli" "moltnet-api-client"; then
+          # A workflow-only Go version update does not affect an Nx project.
+          # Exercise the Go CLI lane when its CI, release, or sync toolchain
+          # changes so its required check cannot pass through the early exit.
+          if contains "moltnet-cli" "moltnet-api-client" ||
+            git diff --unified=0 "$NX_BASE" "$NX_HEAD" -- \
+              .github/workflows/ci.yml \
+              .github/workflows/release.yml \
+              .github/workflows/sync-cli-go-mod.yml |
+              grep -Eq '^\+[^+].*go-version:'; then
             echo "e2e-go-cli=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-go-cli=false" >> "$GITHUB_OUTPUT"
