@@ -13,6 +13,8 @@ minimumReleaseAgeExclude:
   # Release jobs consume repository-owned packages published earlier in the
   # same run, before the external-package quarantine has elapsed.
   - '@themoltnet/*'
+  # Renovate security update: vite@8.0.16
+  - vite@8.0.16
 allowBuilds:
   '@github/keytar': true
   cpu-features: false
