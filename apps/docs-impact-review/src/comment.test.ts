@@ -99,6 +99,24 @@ describe('updateDocsImpactComment', () => {
     author: 'legreffier[bot]',
   };
 
+  it('includes the GitHub error message when a request is refused', async () => {
+    // Arrange
+    const fetchImpl = (() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({ message: 'Resource not accessible by integration' }),
+          { status: 403 },
+        ),
+      )) as typeof fetch;
+
+    // Act / Assert
+    await expect(
+      updateDocsImpactComment({ ...base, mode: 'start', fetchImpl }),
+    ).rejects.toThrow(
+      'GitHub API GET /repos/o/r/pulls/7 failed with 403: Resource not accessible by integration',
+    );
+  });
+
   it('posts a progress comment when the review starts', async () => {
     // Arrange
     const api = github({ head: HEAD });

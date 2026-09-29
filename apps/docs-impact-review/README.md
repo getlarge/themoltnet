@@ -144,7 +144,7 @@ The comment is published only if the pull request still points at the
 reviewed head. Otherwise it says the result is stale.
 
 The comment is written by the LeGreffier GitHub App, with an installation token
-scoped to this repository (issues write, pull requests read). The token is
+scoped to this repository with pull requests write only. The token is
 minted from the `legreffier` environment's `MOLTNET_GITHUB_APP_ID` variable and
 `MOLTNET_GITHUB_APP_PRIVATE_KEY` secret. The review only updates a marker
 comment written by that App.

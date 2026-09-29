@@ -198,10 +198,13 @@ jobs:
           app-id: ${{ vars.MOLTNET_GITHUB_APP_ID }}
           private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
           repositories: ${{ github.event.repository.name }}
-          permission-issues: write
-          permission-pull-requests: read
+          # PR conversation comments need pull-requests write; issues write
+          # alone is refused on a pull request.
+          permission-pull-requests: write
 
+      # The placeholder is cosmetic: a failure here must not skip the review.
       - name: Mark the review in progress
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           COMMENT_AUTHOR: ${{ steps.app-token.outputs.app-slug }}[bot]

@@ -91,8 +91,14 @@ class GitHubApi {
       },
     });
     if (!response.ok) {
+      const detail = await response
+        .json()
+        .then((body: { message?: unknown }) =>
+          typeof body.message === 'string' ? `: ${body.message}` : '',
+        )
+        .catch(() => '');
       throw new Error(
-        `GitHub API ${init?.method ?? 'GET'} ${path} failed with ${response.status}`,
+        `GitHub API ${init?.method ?? 'GET'} ${path} failed with ${response.status}${detail}`,
       );
     }
     return (await response.json()) as T;
