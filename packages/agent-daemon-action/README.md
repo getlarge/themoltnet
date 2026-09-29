@@ -48,6 +48,7 @@ Four invocation shapes:
     wait-for-first-task-sec: '300' # drain only
     wait-after-task-sec: '300' # drain only
     max-poll-interval-ms: '3000' # drain only; empty = daemon default
+    providers: ollama-cloud https://ollama.com/v1 OLLAMA_API_KEY # optional
     daemon-version: latest
     # Required — runtime profile UUID or team-scoped name.
     # Equivalently set MOLTNET_AGENT_PROFILE on `env:` below.
@@ -266,16 +267,38 @@ with an error explaining what to set. The workflow fails closed.
 Pi-headless inside the daemon needs to authenticate against an LLM
 provider. Two mutually-compatible options:
 
-The action always sets `PI_CODING_AGENT_DIR` before starting the
-daemon. By default it points to `$RUNNER_TEMP/.pi/agent`, keeping
-GitHub runs isolated from both repo-local `.pi` config and the runner
-user's home directory. Set `PI_CODING_AGENT_DIR` explicitly only if
-you want the action to use a different runner-local Pi directory.
+### Custom providers (`providers` input)
+
+Providers Pi does not know natively, such as Ollama Cloud, need model
+definitions. Configure them in the daemon's provider store with the
+`providers` input, one per line — `<id> <base-url> <key-env> [<api>]`:
+
+```yaml
+providers: |
+  ollama-cloud https://ollama.com/v1 OLLAMA_API_KEY
+```
+
+For each line the action runs `moltnet-agent providers set`, piping the API key
+from the named environment variable (`-` for a keyless provider), then
+`moltnet-agent providers discover --save` to record the provider's models and
+their capabilities. The discovered `providers.json` is cached for a week, keyed
+by the input and the daemon version; API keys are never cached and are
+re-supplied on every run. With `providers` set, the daemon builds Pi's model
+configuration from this store, layering a repository `.pi/` on top when one
+exists. `providers` cannot yet be combined with `PI_AUTH_JSON`.
+
+### Repository `.pi/` configuration
+
+Without `providers`, the action sets `PI_CODING_AGENT_DIR` before starting
+the daemon. By default it points to `$RUNNER_TEMP/.pi/agent`, keeping GitHub
+runs isolated from both repo-local `.pi` config and the runner user's home
+directory. Set `PI_CODING_AGENT_DIR` explicitly only if you want the action to
+use a different runner-local Pi directory.
 
 When repo-local `.pi/settings.json` or `.pi/models.json` exist, the action
-copies them into the runner-local Pi directory before starting the daemon. Keep
-provider/model registry data in those committed files and reference secrets by
-environment variable name, for example `"apiKey": "$OLLAMA_API_KEY"`.
+copies them into the runner-local Pi directory before starting the daemon, and
+they must reference secrets by environment variable name, for example
+`"apiKey": "$OLLAMA_API_KEY"`.
 
 ### Option A — Env-var API key (default, stateless)
 
@@ -293,9 +316,8 @@ Pi picks it up via `process.env`. Charges go to the API account that
 owns the key. No rotation needed — the key just keeps working until
 you revoke it.
 
-If the selected runtime profile uses Ollama, set `OLLAMA_API_KEY` and make sure
-the runner's Pi model registry includes the matching provider/model. The action
-does not derive or materialize model config from provider/model env vars.
+If the selected runtime profile uses Ollama, set `OLLAMA_API_KEY` and configure
+the provider with the `providers` input (or a repository `.pi/models.json`).
 
 ### Option B — Subscription OAuth via `PI_AUTH_JSON` (covers ChatGPT Codex, Claude Pro/Max, Copilot)
 

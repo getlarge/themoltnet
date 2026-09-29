@@ -104,6 +104,17 @@ inputs:
       should be claimed promptly. Empty keeps the daemon default.
     required: false
     default: ''
+  providers:
+    description: >
+      Model providers to configure in the daemon's provider store, one per
+      line: `<id> <base-url> <key-env> [<api>]`. `<key-env>` names the
+      environment variable holding the provider's API key (`-` for a keyless
+      provider); `<api>` defaults to `openai-completions`. Models are
+      discovered from the provider and cached for a week. When set, the
+      daemon builds Pi's model configuration from this store instead of the
+      repository's `.pi/models.json`.
+    required: false
+    default: ''
   profile:
     description: >
       Runtime profile UUID or name. Forwarded to `agent-daemon --profile`.
@@ -497,7 +508,10 @@ runs:
         fi
         echo "::notice::GitHub App PEM at $PEM parses cleanly."
 
+    # With `providers`, the daemon composes Pi's configuration from its own
+    # provider store (configured below), so no agent dir is forced here.
     - name: Configure Pi agent dir
+      if: inputs.providers == ''
       shell: bash
       run: |
         set -euo pipefail
@@ -520,6 +534,8 @@ runs:
 
     - name: Materialize Pi auth.json (when PI_AUTH_JSON is set)
       shell: bash
+      env:
+        PROVIDERS: ${{ inputs.providers }}
       run: |
         set -euo pipefail
         # When the caller exports PI_AUTH_JSON (the contents of an
@@ -539,6 +555,10 @@ runs:
         # When that happens, re-run `pi /login` locally and re-upload
         # the secret. See:
         # https://developers.openai.com/codex/auth/ci-cd-auth#what-to-do-when-refresh-stops-working
+        if [ -n "${PI_AUTH_JSON:-}" ] && [ -n "$PROVIDERS" ]; then
+          echo "::error::PI_AUTH_JSON cannot be combined with the providers input yet; configure API-key providers or use PI_AUTH_JSON alone" >&2
+          exit 1
+        fi
         if [ -n "${PI_AUTH_JSON:-}" ]; then
           # Pi looks for auth at $PI_CODING_AGENT_DIR/auth.json or,
           # when that env is unset, $HOME/.pi/agent/auth.json (see
@@ -812,6 +832,83 @@ runs:
         echo "MOLTNET_AGENT_BIN=$bin" >> "$GITHUB_ENV"
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
         echo "::notice::$("$bin" --version 2>/dev/null || echo 'moltnet-agent installed')"
+
+    # Discovered provider models are cached so most runs skip discovery. The
+    # cache holds only providers.json: API keys stay in the store's secrets
+    # directory, which is never cached, and are re-supplied on every run.
+    - name: Compute provider cache key
+      id: providers-cache-key
+      if: inputs.providers != ''
+      shell: bash
+      env:
+        PROVIDERS: ${{ inputs.providers }}
+        DAEMON_VERSION: ${{ inputs.daemon-version }}
+      run: |
+        set -euo pipefail
+        digest="$(printf '%s' "$PROVIDERS" | sha256sum | cut -c1-16)"
+        echo "value=${{ runner.os }}-agent-daemon-providers-v1-${DAEMON_VERSION}-${digest}-$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+
+    - name: Restore provider cache
+      id: restore-providers
+      if: inputs.providers != ''
+      uses: actions/cache/restore@v6
+      with:
+        path: ~/.config/moltnet/providers.json
+        key: ${{ steps.providers-cache-key.outputs.value }}
+
+    - name: Configure model providers
+      id: providers
+      if: inputs.providers != ''
+      shell: bash
+      env:
+        PROVIDERS: ${{ inputs.providers }}
+        DAEMON_VERSION: ${{ inputs.daemon-version }}
+        CACHE_HIT: ${{ steps.restore-providers.outputs.cache-hit }}
+      run: |
+        set -euo pipefail
+        if [ "$DAEMON_VERSION" = "workspace" ]; then
+          agent=(node --import tsx "$GITHUB_WORKSPACE/apps/agent-daemon/src/main.ts")
+        else
+          agent=("$MOLTNET_AGENT_BIN")
+        fi
+        while read -r id base_url key_env api extra; do
+          [ -z "${id:-}" ] && continue
+          case "$id" in '#'*) continue ;; esac
+          if [ -z "${base_url:-}" ] || [ -z "${key_env:-}" ] || [ -n "${extra:-}" ]; then
+            echo "::error::providers line for '$id' must be: <id> <base-url> <key-env|-> [<api>]" >&2
+            exit 1
+          fi
+          args=(providers set "$id" --base-url "$base_url" --api "${api:-openai-completions}")
+          if [ "$key_env" = "-" ]; then
+            "${agent[@]}" "${args[@]}"
+          else
+            if [[ ! "$key_env" =~ ^[A-Z_][A-Z0-9_]*$ ]]; then
+              echo "::error::'$key_env' is not an environment variable name" >&2
+              exit 1
+            fi
+            if [ -z "${!key_env:-}" ]; then
+              echo "::error::provider '$id' needs its API key in \$$key_env" >&2
+              exit 1
+            fi
+            printf '%s' "${!key_env}" | "${agent[@]}" "${args[@]}" --api-key-stdin
+          fi
+          if [ "$CACHE_HIT" != "true" ]; then
+            count="$("${agent[@]}" providers discover "$id" --save --json | jq '.models | length')"
+            # An empty discovery would otherwise be cached for a week.
+            if [ "${count:-0}" -eq 0 ]; then
+              echo "::error::provider '$id' discovery found no models at $base_url" >&2
+              exit 1
+            fi
+          fi
+          echo "::notice::provider $id configured ($([ "$CACHE_HIT" = true ] && echo 'cached models' || echo 'models discovered'))"
+        done <<< "$PROVIDERS"
+
+    - name: Save provider cache
+      if: inputs.providers != '' && steps.restore-providers.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: ~/.config/moltnet/providers.json
+        key: ${{ steps.providers-cache-key.outputs.value }}
 
     - id: run
       shell: bash
