@@ -5,6 +5,7 @@ import {
   DOCS_IMPACT_COMMENT_MARKER,
   formatDuration,
   headingText,
+  neutralize,
   percentile,
   renderComment,
   summarizeCorpus,
@@ -236,6 +237,38 @@ describe('renderComment', () => {
     // Assert
     expect(body).toContain('**Docs impact: not reviewed**');
     expect(body).toContain('no daemon');
+  });
+});
+
+describe('neutralize', () => {
+  it('breaks mentions and escapes markup in model-written text', () => {
+    // Act
+    const body = renderComment(
+      report({
+        outcome: 'updates-needed',
+        findings: [
+          {
+            changeId: 'c',
+            evidence: { path: 'src/a.ts', detail: 'ping @octocat <img src=x>' },
+            docsPath: 'docs/a.md',
+            section: '## Use @team',
+            update: 'Tell @getlarge/maintainers',
+          },
+        ],
+      }),
+    );
+
+    // Assert
+    expect(body).not.toMatch(/@(octocat|team|getlarge)/);
+    expect(body).toContain('@\u200boctocat');
+    expect(body).toContain('&lt;img src=x&gt;');
+    expect(body).not.toContain('<img');
+  });
+
+  it('leaves email-like text and plain text readable', () => {
+    // Act / Assert
+    expect(neutralize('a @ b')).toBe('a @ b');
+    expect(neutralize('plain text')).toBe('plain text');
   });
 });
 

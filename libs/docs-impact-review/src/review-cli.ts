@@ -7,12 +7,7 @@ import { parseArgs } from 'node:util';
 import { connect } from '@themoltnet/sdk/node';
 import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 
-import {
-  createGit,
-  ensureRevisions,
-  existsAt,
-  requireFullOid,
-} from './git.js';
+import { createGit, ensureRevisions, existsAt, requireFullOid } from './git.js';
 import { boundDiff, collectChangeSet } from './ingest.js';
 import { renderComment, summarizeCorpus } from './report.js';
 import {

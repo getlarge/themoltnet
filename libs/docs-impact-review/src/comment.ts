@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 
-import { githubToken } from './config.js';
+import { githubApiUrl, githubToken } from './config.js';
 import { requireFullOid } from './git.js';
+import { GitHubApi } from './github-api.js';
 import { DOCS_IMPACT_COMMENT_MARKER, renderComment } from './report.js';
 import type { DocsImpactReport } from './types.js';
 
@@ -41,8 +42,13 @@ export function renderStale(
 export function renderPublished(
   report: DocsImpactReport,
   runUrl: string,
+  correlationId?: string,
 ): string {
-  return `${renderComment(report)}\n\n[workflow run](${runUrl})`;
+  // The correlation id ties the comment to its MoltNet tasks and worker logs.
+  const correlation = correlationId
+    ? ` · correlation \`${correlationId}\``
+    : '';
+  return `${renderComment(report)}\n\n[workflow run](${runUrl})${correlation}`;
 }
 
 export function renderMissingReport(revision: string, runUrl: string): string {
@@ -70,64 +76,43 @@ export function findDocsImpactComment(
   );
 }
 
-class GitHubApi {
+/** The comment's GitHub calls, retried on rate limits and 5xx errors. */
+class CommentApi {
+  private readonly api: GitHubApi;
+
   constructor(
     private readonly repo: string,
-    private readonly token: string,
+    token: string,
     private readonly author: string,
-    private readonly fetchImpl: typeof fetch = fetch,
-  ) {}
-
-  private async request<T>(path: string, init?: RequestInit): Promise<T> {
-    const response = await this.fetchImpl(`https://api.github.com${path}`, {
-      ...init,
-      headers: {
-        accept: 'application/vnd.github+json',
-        authorization: `Bearer ${this.token}`,
-        'content-type': 'application/json',
-        'x-github-api-version': '2022-11-28',
-        ...init?.headers,
-      },
-    });
-    if (!response.ok) {
-      const detail = await response
-        .json()
-        .then((body: { message?: unknown }) =>
-          typeof body.message === 'string' ? `: ${body.message}` : '',
-        )
-        .catch(() => '');
-      throw new Error(
-        `GitHub API ${init?.method ?? 'GET'} ${path} failed with ${response.status}${detail}`,
-      );
-    }
-    return (await response.json()) as T;
+    options: {
+      apiUrl?: string;
+      fetchImpl?: typeof fetch;
+      sleep?: (ms: number) => Promise<void>;
+    },
+  ) {
+    this.api = new GitHubApi({ token, ...options });
   }
 
   async headSha(prNumber: number): Promise<string> {
-    const pr = await this.request<{ head: { sha: string } }>(
+    const pr = await this.api.request<{ head: { sha: string } }>(
       `/repos/${this.repo}/pulls/${prNumber}`,
     );
     return pr.head.sha;
   }
 
   async upsert(prNumber: number, body: string): Promise<void> {
-    const comments: IssueComment[] = [];
-    for (let page = 1; ; page += 1) {
-      const batch = await this.request<IssueComment[]>(
-        `/repos/${this.repo}/issues/${prNumber}/comments?per_page=100&page=${page}`,
-      );
-      comments.push(...batch);
-      if (batch.length < 100) break;
-    }
+    const comments = await this.api.paginate<IssueComment>(
+      `/repos/${this.repo}/issues/${prNumber}/comments`,
+    );
     const existing = findDocsImpactComment(comments, this.author);
     if (existing) {
-      await this.request(`/repos/${this.repo}/issues/comments/${existing.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ body }),
-      });
+      await this.api.request(
+        `/repos/${this.repo}/issues/comments/${existing.id}`,
+        { method: 'PATCH', body: JSON.stringify({ body }) },
+      );
       return;
     }
-    await this.request(`/repos/${this.repo}/issues/${prNumber}/comments`, {
+    await this.api.request(`/repos/${this.repo}/issues/${prNumber}/comments`, {
       method: 'POST',
       body: JSON.stringify({ body }),
     });
@@ -161,15 +146,17 @@ export async function updateDocsImpactComment(args: {
   /** Login of the account the token posts as, e.g. `my-app[bot]`. */
   author: string;
   reportPath?: string;
+  correlationId?: string;
+  apiUrl?: string;
   fetchImpl?: typeof fetch;
+  sleep?: (ms: number) => Promise<void>;
 }): Promise<'progress' | 'published' | 'stale' | 'missing'> {
   requireFullOid(args.reviewedRevision, 'reviewed revision');
-  const github = new GitHubApi(
-    args.repo,
-    args.token,
-    args.author,
-    args.fetchImpl,
-  );
+  const github = new CommentApi(args.repo, args.token, args.author, {
+    apiUrl: args.apiUrl,
+    fetchImpl: args.fetchImpl,
+    sleep: args.sleep,
+  });
   const current = requireFullOid(
     await github.headSha(args.prNumber),
     'current revision',
@@ -196,7 +183,10 @@ export async function updateDocsImpactComment(args: {
     );
     return 'missing';
   }
-  await github.upsert(args.prNumber, renderPublished(report, args.runUrl));
+  await github.upsert(
+    args.prNumber,
+    renderPublished(report, args.runUrl, args.correlationId),
+  );
   // Narrow the check-then-write race: if the head moved while publishing,
   // replace the result with the stale notice.
   const after = await github.headSha(args.prNumber);
@@ -222,6 +212,7 @@ export async function runCommentCli(args: string[]): Promise<void> {
       'run-url': { type: 'string' },
       report: { type: 'string' },
       author: { type: 'string' },
+      'correlation-id': { type: 'string' },
     },
   });
   if (
@@ -233,7 +224,7 @@ export async function runCommentCli(args: string[]): Promise<void> {
     !values.author
   ) {
     throw new Error(
-      'Usage: comment --mode start|publish --repo owner/repo --pr N --revision SHA --run-url URL --author LOGIN [--report summary.json]',
+      'Usage: comment --mode start|publish --repo owner/repo --pr N --revision SHA --run-url URL --author LOGIN [--report summary.json] [--correlation-id UUID]',
     );
   }
   const prNumber = Number(values.pr);
@@ -251,6 +242,8 @@ export async function runCommentCli(args: string[]): Promise<void> {
     token,
     author: values.author,
     reportPath: values.report,
+    correlationId: values['correlation-id'],
+    apiUrl: githubApiUrl(),
   });
   process.stdout.write(`${JSON.stringify({ status })}\n`);
 }

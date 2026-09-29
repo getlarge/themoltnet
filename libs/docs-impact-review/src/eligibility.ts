@@ -4,7 +4,6 @@
  * erasable TypeScript so the `prepare` job can run it with plain `node`
  * (native type stripping) before any install.
  */
-import { readFileSync } from 'node:fs';
 
 export interface PullRequestFile {
   filename: string;
@@ -60,16 +59,4 @@ export function checkEligibility(pr: PullRequestFacts): Eligibility {
     };
   }
   return { eligible: true };
-}
-
-/** `eligibility <facts.json>` prints `skip=` and `reason=` lines. */
-export function runEligibilityCli(args: string[]): void {
-  const path = args[0];
-  if (!path) throw new Error('usage: eligibility.ts <facts.json>');
-  const facts = JSON.parse(readFileSync(path, 'utf8')) as PullRequestFacts;
-  const result = checkEligibility(facts);
-  const reason = result.eligible ? '' : result.reason;
-  process.stdout.write(
-    `skip=${String(!result.eligible)}\nreason=${reason.replace(/\n/g, ' ')}\n`,
-  );
 }

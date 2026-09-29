@@ -135,6 +135,26 @@ describe('updateDocsImpactComment', () => {
     expect(write.body?.body).toContain('Docs impact: reviewing');
   });
 
+  it('names the correlation id under a published result', async () => {
+    // Arrange
+    const api = github({ head: HEAD });
+
+    // Act
+    await updateDocsImpactComment({
+      ...base,
+      mode: 'publish',
+      reportPath: reportFile({}),
+      correlationId: '00000000-0000-4000-8000-000000000009',
+      fetchImpl: api.fetchImpl,
+    });
+
+    // Assert
+    const [write] = writes(api.calls);
+    expect(write.body?.body).toContain(
+      `[workflow run](${RUN}) · correlation \`00000000-0000-4000-8000-000000000009\``,
+    );
+  });
+
   it('updates its own marker comment, not one by another account', async () => {
     // Arrange
     const api = github({

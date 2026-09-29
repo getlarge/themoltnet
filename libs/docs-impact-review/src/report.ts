@@ -14,14 +14,26 @@ const ERROR_TEXT_MAX = 1_000;
 /** Comment-side cap for free text; validation only guards runaway output. */
 export const COMMENT_TEXT_MAX = 280;
 
+/**
+ * Model-written text is published as the posting identity, so it must not
+ * notify anyone or inject markup: `@` mentions are broken with a zero-width
+ * space and `<`/`>` are escaped.
+ */
+export function neutralize(text: string): string {
+  return text
+    .replace(/@(?=[A-Za-z0-9_-])/g, '@\u200b')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 export function shorten(text: string, max = COMMENT_TEXT_MAX): string {
-  const flat = text.replace(/\s+/g, ' ').trim();
+  const flat = neutralize(text).replace(/\s+/g, ' ').trim();
   return flat.length <= max ? flat : `${flat.slice(0, max - 1).trimEnd()}…`;
 }
 
 /** A Markdown heading as plain text: `## Flags` → `Flags`. */
 export function headingText(section: string): string {
-  return section.replace(/^#{1,6}\s+/, '').trim();
+  return neutralize(section.replace(/^#{1,6}\s+/, '').trim());
 }
 
 /** `48s`, `2m 48s`; sub-second durations round up to `1s`. */
@@ -122,7 +134,7 @@ export function renderComment(report: DocsImpactReport): string {
   if (report.gaps.length > 0) {
     lines.push('', 'Not covered by this review:');
     for (const gap of report.gaps) {
-      lines.push(`- \`${gap.scope}\`: ${gap.reason}`);
+      lines.push(`- \`${gap.scope}\`: ${neutralize(gap.reason)}`);
     }
   }
   return lines.join('\n');

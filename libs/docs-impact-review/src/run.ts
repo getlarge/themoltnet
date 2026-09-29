@@ -1,4 +1,7 @@
-/** Runs a CLI entry point and maps its result or failure to the exit code. */
+/**
+ * Runs a command-line entry point: its result becomes the exit code, and an
+ * error is printed as `[fatal] <message>` with exit code 1.
+ */
 export function runMain(cli: () => Promise<number>): void {
   cli()
     .then((code) => {

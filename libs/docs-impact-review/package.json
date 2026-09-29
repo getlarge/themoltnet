@@ -18,9 +18,17 @@
       "import": "./src/comment.ts",
       "types": "./src/comment.ts"
     },
-    "./eligibility": {
-      "import": "./src/eligibility.ts",
-      "types": "./src/eligibility.ts"
+    "./prepare": {
+      "import": "./src/prepare.ts",
+      "types": "./src/prepare.ts"
+    },
+    "./config": {
+      "import": "./src/config.ts",
+      "types": "./src/config.ts"
+    },
+    "./run": {
+      "import": "./src/run.ts",
+      "types": "./src/run.ts"
     }
   },
   "engines": {
@@ -42,7 +50,8 @@
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "yaml": "catalog:"
   },
   "nx": {
     "projectType": "library",

@@ -112,11 +112,14 @@ Each stage task is tagged `review:docs-impact`, `stage:<extract|coverage>`,
 ## In CI
 
 In this repository,
-[`docs-impact-review.yml`](../../.github/workflows/docs-impact-review.yml) runs
-the review as an advisory check through
-[`docs-impact-review-action`](../../packages/docs-impact-review-action/README.md),
-which bundles this library. The action README describes the trust model, the
-jobs, and how other repositories set the review up. It never blocks merges.
+[`docs-impact-review.yml`](../../.github/workflows/docs-impact-review.yml) calls
+the reusable workflow
+[`docs-impact-review-reusable.yml`](../../.github/workflows/docs-impact-review-reusable.yml),
+which runs
+[`docs-impact-review-action`](../../packages/docs-impact-review-action/README.md)
+(bundling this library) and its workers. The action README describes the trust
+model and how other repositories set the review up. The review is advisory:
+its comment never blocks a merge.
 
 ```mermaid
 sequenceDiagram
