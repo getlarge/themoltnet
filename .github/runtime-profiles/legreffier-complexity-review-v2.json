@@ -11,7 +11,7 @@
   "description": "Bounded, input-only GLM 5.3 Flash runtime for PR complexity review.",
   "maxBashTimeouts": 1,
   "maxOutputTokens": 4096,
-  "maxTurns": 4,
+  "maxTurns": 8,
   "model": "glm-5.3-flash",
   "name": "legreffier-complexity-review-v2",
   "provider": "ollama-cloud",

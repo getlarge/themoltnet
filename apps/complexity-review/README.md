@@ -6,9 +6,11 @@ immutable diff, creates one `freeform` task, waits for its accepted output, and
 validates the binary rubric before the workflow publishes a revision-aware
 comment with the LeGreffier GitHub App token.
 
-The model receives a bounded evidence packet and has no optional tools. Diffs
-over 96 KB fail visibly before a task is created; they are never silently scored
-from a partial view. The task has one attempt and a 180-second running budget.
+The model receives a bounded evidence packet and has no optional tools. This
+single-task path is for PRs whose full diff fits within 96 KB. Larger diffs
+fail visibly before a task is created; they are never silently scored from a
+partial view. They need a separate multi-task review path before this review can
+cover them. The task has one attempt and a 180-second running budget.
 The CI review job and drain worker run in parallel under one correlation ID.
 
 The source-controlled runtime assets are
@@ -16,7 +18,7 @@ The source-controlled runtime assets are
 and
 [`legreffier-complexity-review-input-only-v1.json`](../../.github/runtime-policies/legreffier-complexity-review-input-only-v1.json).
 Their live team copies are managed through released `moltnet profile` and
-`moltnet policy` commands. The profile uses GLM 5.3 Flash with four turns and
+`moltnet policy` commands. The profile uses GLM 5.3 Flash with eight turns and
 no shell, file, network, or diary tools.
 
 For a read-only local ingestion trial:
