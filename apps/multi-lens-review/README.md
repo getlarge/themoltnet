@@ -52,22 +52,24 @@ topic. Base-declared generated files remain in the coverage ledger without
 uploading their complete patch payload; model candidates remain in topic
 artifacts and mandatory coverage.
 
-```text
-trusted ingest + compact manifest
-            │
- LLM topic planner + generated hints (large changes)
-            │ server gate
-        global design preflight
-            │ PROCEED only
- verified bounded topic staging
-            │
- one canary multi-lens topic review
-            │ trusted validation
- remaining multi-lens topic reviews
-            │ trusted reduction
-  one topic-verdict artifact
-            │ server gate
-       one global synthesis
+```mermaid
+flowchart TD
+  ingest["Trusted ingest + compact manifest<br/>per-file byte counts and SHA-256, base .gitattributes"]
+  ingest -->|"large change: > 25 files, 1,500 LOC or 64 KiB"| planner["LLM topic planner<br/>exact-revision worktree<br/>uploads the TopicPlan artifact"]
+  ingest -->|small change| deterministic["Deterministic topics"]
+  planner --> gate1{"Trusted plan validation"}
+  gate1 -->|invalid| fail(["Failed · no approval"])
+  gate1 -->|valid| preflight
+  deterministic --> preflight["Global design preflight"]
+  preflight -->|PIVOT or ASK| stop(["Stop before line-level review<br/>return rationale or questions"])
+  preflight -->|PROCEED| staging["Verified topic staging<br/>one immutable artifact per topic"]
+  staging --> canary["One canary multi-lens topic review"]
+  canary --> gate2{"Trusted validation<br/>complete lane coverage"}
+  gate2 -->|invalid| fail
+  gate2 -->|valid| topics["Remaining topic reviews<br/>at most 12 tasks"]
+  topics --> reduce["Trusted reduction<br/>one topic-verdict artifact"]
+  reduce --> synthesis["Global synthesis"]
+  synthesis --> verdict(["Verdict comment"])
 ```
 
 `PIVOT` and `ASK` stop before line-level tasks. GitHub Actions is unattended,
@@ -218,6 +220,33 @@ planner/preflight/canary gates and drain the correlation. Trusted synthesis
 cannot weaken a topic recommendation or omit any blocker or major finding.
 The final marker-backed comment renders completed findings, pivot rationale,
 or questions, plus topic, coverage, artifact, task, and token diagnostics.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant GH as GitHub
+  participant P as prepare
+  participant RP as runtime-preflight
+  participant O as orchestrate
+  participant W as review-workers (2)
+  participant DB as Absurd Postgres (Fly proxy)
+  participant M as MoltNet
+  GH->>P: @legreffier /multi-lens-review
+  P->>GH: fetch the raw diff and file metadata
+  P->>P: upload the review input artifact
+  RP->>DB: start the proxy, provision the Absurd schema
+  RP->>M: preflight executor authentication and attestation
+  par orchestration
+    O->>DB: start the proxy, spawn or reconnect the durable run
+    O->>M: planner, preflight, canary, topic reviews, synthesis tasks
+    O->>M: poll outcomes, validate each gate
+    O->>DB: checkpoint task ids and artifact CIDs
+  and workers
+    W->>M: drain tasks with this correlation id
+    M-->>W: claim, run in a sandboxed VM, submit
+  end
+  O->>GH: upsert the consolidated review comment
+```
 
 Local `act` runs never publish or update a PR comment.
 
