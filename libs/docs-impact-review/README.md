@@ -6,35 +6,33 @@ question: **does this PR leave users, operators, or contributors with missing
 or incorrect instructions?** It is not a correctness, security, style, or
 general docs review.
 
-This app is the measurement harness. It runs locally against existing PRs so
-precision and per-phase latency can be measured before any CI workflow or PR
-comment exists.
+This library is the reviewer. CI runs it through
+[`docs-impact-review-action`](../../packages/docs-impact-review-action/README.md),
+which bundles it; locally, the `cli` target runs it against existing pull
+requests to measure precision and per-stage latency.
 
 ## Pipeline
 
-```text
-trusted ingest (git, base .gitattributes)      no model
-  │  source/docs patches only; tests, generated, binary listed by name
-  │  deleted files summarized by header; every dropped file is a gap
-  ├─ no source and no docs changed ───────────▶ not-needed (0 tasks)
-  ▼
-stage 1: extract   freeform task, workspace none, tool-less
-  │  public contract changes + evidence + exact search terms
-  ├─ no contract change and no docs changed ──▶ not-needed (1 task)
-  ▼
-trusted retrieval                              no model
-  │  docs changed in PR > routing map > symbol search > nearest README
-  │  at most 6 docs, heading-bounded excerpts at head
-  ▼
-stage 2: coverage  freeform task, dedicated worktree at head, ≤4 reads
-  │  covered | updates-needed | not-needed, ≤3 findings
-  ▼
-trusted resolution
-     any gap + clean outcome ▶ incomplete; stage failure ▶ failed (no outcome)
+```mermaid
+flowchart TD
+  ingest["Trusted ingest — no model<br/>git diff, base .gitattributes, base config<br/>tests, generated, binary listed by name"]
+  ingest -->|no source or docs changed| nn0(["not-needed · 0 tasks"])
+  ingest -->|source changed| extract["Stage 1 · extract<br/>tool-less task<br/>contract changes, evidence, search terms"]
+  ingest -->|docs changed only| retrieval
+  extract -->|no contract change and no docs changed| nn1(["not-needed · 1 task"])
+  extract --> retrieval["Trusted retrieval — no model<br/>changed docs › routing map › search › nearest README<br/>at most 6 docs, excerpts at head"]
+  retrieval --> coverage["Stage 2 · coverage<br/>worktree at head, ≤ 4 read-only tool calls<br/>missing or incorrect docs"]
+  retrieval -->|PR adds docs text| check["Stage 3 · docs check<br/>tool-less task, runs beside coverage<br/>keep, rewrite, or remove each added hunk"]
+  coverage --> resolve["Trusted resolution"]
+  check --> resolve
+  resolve --> outcome(["covered · updates-needed · not-needed · incomplete"])
+  resolve -->|stage failure| failed(["failed · no outcome"])
 ```
 
-Trusted code validates both stage outputs strictly: evidence must cite changed
-files, findings must reference a known change (or `docs:<changed doc>` for a
+Any coverage gap turns a clean outcome into `incomplete`, and a docs-check
+failure is recorded as a gap while the coverage result stands. Trusted code
+validates every stage output strictly: evidence must cite changed files,
+findings must reference a known change (or `docs:<changed doc>` for a
 contradiction in a doc the PR edits), and `incomplete` can only be decided by
 trusted code, never by the model.
 
@@ -119,6 +117,35 @@ the review as an advisory check through
 [`docs-impact-review-action`](../../packages/docs-impact-review-action/README.md),
 which bundles this library. The action README describes the trust model, the
 jobs, and how other repositories set the review up. It never blocks merges.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant GH as GitHub
+  participant P as prepare job
+  participant R as review job
+  participant W as worker jobs (one per profile)
+  participant M as MoltNet
+  GH->>P: pull_request, or @legreffier /docs-review
+  P->>GH: read the pull request and its files
+  P->>P: pin base and head, derive correlation id, eligibility gate
+  par review
+    P-->>R: pinned revisions, correlation id, profiles
+    R->>GH: "reviewing" comment
+    R->>M: create extract task
+  and workers
+    P-->>W: correlation id, profile
+    W->>M: drain tasks with this correlation id
+  end
+  M-->>W: claim extract, run it in a sandboxed VM
+  W->>M: submit output
+  R->>M: poll, then create coverage and docs-check tasks
+  M-->>W: each profile's worker claims its stage
+  W->>M: submit outputs
+  R->>M: poll outcomes, validate, resolve
+  R->>GH: publish the comment, or "stale" if the head moved
+  W->>W: exit after 120 s without new tasks
+```
 
 **Triggers.** Non-draft pull requests on `opened`, `ready_for_review`,
 `synchronize` and `reopened`. An owner, member or collaborator can rerun it on
