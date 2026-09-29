@@ -157,10 +157,11 @@ jobs:
     # Generous until p95 is measured in CI; the target is a 2–3 minute review.
     timeout-minutes: 10
     environment: legreffier
+    # The comment is written with the LeGreffier App token minted below, so
+    # the workflow token only reads the repository and the pull request.
     permissions:
       contents: read
-      issues: write
-      pull-requests: write
+      pull-requests: read
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -188,11 +189,27 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
+      # Comments are attributed to the agent's GitHub App, scoped to this
+      # repository with only the permissions the comment needs.
+      - name: Mint the LeGreffier App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.MOLTNET_GITHUB_APP_ID }}
+          private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
+          repositories: ${{ github.event.repository.name }}
+          permission-issues: write
+          permission-pull-requests: read
+
       - name: Mark the review in progress
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          COMMENT_AUTHOR: ${{ steps.app-token.outputs.app-slug }}[bot]
         run: |
           node --import tsx apps/docs-impact-review/src/comment.ts \
             --mode start --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" \
-            --revision "$HEAD_SHA" --run-url "$RUN_URL"
+            --revision "$HEAD_SHA" --run-url "$RUN_URL" \
+            --author "$COMMENT_AUTHOR"
 
       - name: Review documentation impact
         id: review
@@ -217,13 +234,16 @@ jobs:
             > "$summary"
 
       - name: Publish the review comment
-        if: always() && !cancelled()
+        if: always() && !cancelled() && steps.app-token.outcome == 'success'
         env:
           SUMMARY: ${{ steps.review.outputs.summary }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          COMMENT_AUTHOR: ${{ steps.app-token.outputs.app-slug }}[bot]
         run: |
           node --import tsx apps/docs-impact-review/src/comment.ts \
             --mode publish --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" \
             --revision "$HEAD_SHA" --run-url "$RUN_URL" \
+            --author "$COMMENT_AUTHOR" \
             --report "${SUMMARY:-$RUNNER_TEMP/docs-impact-summary.json}"
 
       # Advisory, not required for merge: publish first, then make a review
@@ -307,5 +327,8 @@ jobs:
           # timeout, so an unclaimed stage fails rather than hanging.
           wait-for-first-task-sec: '420'
           wait-after-task-sec: '120'
+          # Chained stages are created as earlier ones finish; a short
+          # backoff cap keeps the next claim within seconds.
+          max-poll-interval-ms: '3000'
           profile: ${{ matrix.profile }}
           daemon-version: workspace

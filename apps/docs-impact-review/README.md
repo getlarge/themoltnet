@@ -121,7 +121,8 @@ runs the review as an advisory check. It never blocks merges.
 any pull request, drafts included, by commenting `@legreffier /docs-review`. A
 new push cancels the run for the previous head.
 
-**Trust.** The workflow runs code from the base branch only. The reviewed head
+**Trust.** The workflow runs code from the pull request's base revision only,
+including the eligibility gate. The reviewed head
 is fetched as inert git objects and never checked out. The run is skipped, with
 a notice in the run summary, for:
 
@@ -141,6 +142,12 @@ a notice in the run summary, for:
 
 The comment is published only if the pull request still points at the
 reviewed head. Otherwise it says the result is stale.
+
+The comment is written by the LeGreffier GitHub App, with an installation token
+scoped to this repository (issues write, pull requests read). The token is
+minted from the `legreffier` environment's `MOLTNET_GITHUB_APP_ID` variable and
+`MOLTNET_GITHUB_APP_PRIVATE_KEY` secret. The review only updates a marker
+comment written by that App.
 
 **Configuration** (repository variables; the `prepare` job computes the
 worker list outside the `legreffier` environment, so environment-scoped

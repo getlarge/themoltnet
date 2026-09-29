@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   COMMENT_TEXT_MAX,
   DOCS_IMPACT_COMMENT_MARKER,
+  formatDuration,
+  headingText,
   percentile,
   renderComment,
   summarizeCorpus,
@@ -42,7 +44,7 @@ describe('renderComment', () => {
     // Assert
     expect(body.split('\n')).toEqual([
       DOCS_IMPACT_COMMENT_MARKER,
-      `**Docs impact: covered** · head \`${'b'.repeat(40)}\``,
+      `**Docs impact: covered** · head [\`bbbbbbb\`](https://github.com/getlarge/themoltnet/commit/${'b'.repeat(40)}) · reviewed in 1s`,
     ]);
   });
 
@@ -67,11 +69,38 @@ describe('renderComment', () => {
     );
 
     // Assert
+    const blob = `https://github.com/getlarge/themoltnet/blob/${'b'.repeat(40)}`;
     expect(body).toContain('**Docs impact: updates-needed**');
+    expect(body).toContain(' · 1 finding · ');
     expect(body).not.toContain('****');
     expect(body).toContain(
-      '- `docs/reference/cli.md` › ## Flags — Document --dry-run. (evidence: `apps/cli/src/flags.ts`: adds --dry-run)',
+      `- [\`docs/reference/cli.md\`](${blob}/docs/reference/cli.md) › Flags — Document --dry-run.\n` +
+        `  - Evidence: [\`apps/cli/src/flags.ts\`](${blob}/apps/cli/src/flags.ts) — adds --dry-run`,
     );
+  });
+
+  it('does not link a doc that does not exist at head yet', () => {
+    // Act
+    const body = renderComment(
+      report({
+        outcome: 'updates-needed',
+        selectedDocs: [
+          { path: 'docs/new.md', reasons: ['routing-map'], missing: true },
+        ],
+        findings: [
+          {
+            changeId: 'c',
+            issue: 'missing',
+            evidence: { path: 'src/a.ts', detail: 'd' },
+            docsPath: 'docs/new.md',
+            update: 'Create it.',
+          },
+        ],
+      }),
+    );
+
+    // Assert
+    expect(body).toContain('- **missing** `docs/new.md` — Create it.');
   });
 
   it('shortens long finding text for the comment without dropping it', () => {
@@ -91,11 +120,16 @@ describe('renderComment', () => {
     );
 
     // Assert
-    const line = body
+    const lines = body
       .split('\n')
-      .find((entry) => entry.startsWith('- `docs/a.md`'));
-    expect(line?.length).toBeLessThan(2 * COMMENT_TEXT_MAX + 80);
-    expect(line).toContain('…');
+      .filter(
+        (entry) => entry.includes('`docs/a.md`') || entry.includes('Evidence'),
+      );
+    expect(lines).toHaveLength(2);
+    for (const line of lines) {
+      expect(line.length).toBeLessThan(COMMENT_TEXT_MAX + 200);
+      expect(line).toContain('…');
+    }
   });
 
   it('shows three findings and says how many more the report holds', () => {
@@ -116,7 +150,8 @@ describe('renderComment', () => {
     );
 
     // Assert
-    expect(body.match(/^- `docs\/a\.md`/gm)).toHaveLength(3);
+    expect(body.match(/^- \[`docs\/a\.md`\]/gm)).toHaveLength(3);
+    expect(body).toContain(' · 5 findings · ');
     expect(body).toContain('…and 2 more findings in the workflow run report.');
   });
 
@@ -142,6 +177,28 @@ describe('renderComment', () => {
     // Assert
     expect(body).toContain('**Docs impact: not reviewed**');
     expect(body).toContain('no daemon');
+  });
+});
+
+describe('headingText', () => {
+  it.each([
+    ['## What it tried', 'What it tried'],
+    ['### 6. Verify the result', '6. Verify the result'],
+    ['Plain section', 'Plain section'],
+  ])('renders %j as %j', (section, expected) => {
+    // Act / Assert
+    expect(headingText(section)).toBe(expected);
+  });
+});
+
+describe('formatDuration', () => {
+  it.each([
+    [300, '1s'],
+    [48_000, '48s'],
+    [168_400, '2m 48s'],
+  ])('formats %d ms as %s', (ms, expected) => {
+    // Act / Assert
+    expect(formatDuration(ms)).toBe(expected);
   });
 });
 

@@ -10,7 +10,7 @@ import type { DocsImpactReport } from './types.js';
 export interface IssueComment {
   id: number;
   body: string | null;
-  user: { type: string } | null;
+  user: { login: string } | null;
 }
 
 function runLine(revision: string, runUrl: string): string {
@@ -55,13 +55,18 @@ export function renderMissingReport(revision: string, runUrl: string): string {
   ].join('\n');
 }
 
-/** Only a bot-authored marker comment is ours to update. */
+/**
+ * Only a marker comment written by the posting identity is ours to update:
+ * a token cannot edit another account's comment, and a human quoting the
+ * marker must not be overwritten.
+ */
 export function findDocsImpactComment(
   comments: IssueComment[],
+  author: string,
 ): IssueComment | undefined {
   return comments.find(
     (comment) =>
-      comment.user?.type === 'Bot' &&
+      comment.user?.login === author &&
       comment.body?.includes(DOCS_IMPACT_COMMENT_MARKER),
   );
 }
@@ -70,6 +75,7 @@ class GitHubApi {
   constructor(
     private readonly repo: string,
     private readonly token: string,
+    private readonly author: string,
     private readonly fetchImpl: typeof fetch = fetch,
   ) {}
 
@@ -108,7 +114,7 @@ class GitHubApi {
       comments.push(...batch);
       if (batch.length < 100) break;
     }
-    const existing = findDocsImpactComment(comments);
+    const existing = findDocsImpactComment(comments, this.author);
     if (existing) {
       await this.request(`/repos/${this.repo}/issues/comments/${existing.id}`, {
         method: 'PATCH',
@@ -147,11 +153,18 @@ export async function updateDocsImpactComment(args: {
   reviewedRevision: string;
   runUrl: string;
   token: string;
+  /** Login of the account the token posts as, e.g. `my-app[bot]`. */
+  author: string;
   reportPath?: string;
   fetchImpl?: typeof fetch;
 }): Promise<'progress' | 'published' | 'stale' | 'missing'> {
   requireFullOid(args.reviewedRevision, 'reviewed revision');
-  const github = new GitHubApi(args.repo, args.token, args.fetchImpl);
+  const github = new GitHubApi(
+    args.repo,
+    args.token,
+    args.author,
+    args.fetchImpl,
+  );
   const current = requireFullOid(
     await github.headSha(args.prNumber),
     'current revision',
@@ -201,6 +214,7 @@ async function main(): Promise<void> {
       revision: { type: 'string' },
       'run-url': { type: 'string' },
       report: { type: 'string' },
+      author: { type: 'string' },
     },
   });
   if (
@@ -208,10 +222,11 @@ async function main(): Promise<void> {
     !values.repo ||
     !values.pr ||
     !values.revision ||
-    !values['run-url']
+    !values['run-url'] ||
+    !values.author
   ) {
     throw new Error(
-      'Usage: comment --mode start|publish --repo owner/repo --pr N --revision SHA --run-url URL [--report summary.json]',
+      'Usage: comment --mode start|publish --repo owner/repo --pr N --revision SHA --run-url URL --author LOGIN [--report summary.json]',
     );
   }
   const prNumber = Number(values.pr);
@@ -227,6 +242,7 @@ async function main(): Promise<void> {
     reviewedRevision: values.revision,
     runUrl: values['run-url'],
     token,
+    author: values.author,
     reportPath: values.report,
   });
   process.stdout.write(`${JSON.stringify({ status })}\n`);

@@ -22,7 +22,7 @@ interface Call {
 function github(opts: {
   /** One value, or the sequence returned by successive head reads. */
   head: string | string[];
-  comments?: Array<{ id: number; body: string; type: string }>;
+  comments?: Array<{ id: number; body: string; login: string }>;
 }) {
   const calls: Call[] = [];
   let headReads = 0;
@@ -42,7 +42,7 @@ function github(opts: {
       payload = (opts.comments ?? []).map((c) => ({
         id: c.id,
         body: c.body,
-        user: { type: c.type },
+        user: { login: c.login },
       }));
     }
     return Promise.resolve(
@@ -74,11 +74,14 @@ describe('updateDocsImpactComment', () => {
       JSON.stringify({
         reports: [
           {
+            repo: 'o/r',
             headRevision: HEAD,
             status: 'completed',
             outcome: 'covered',
             findings: [],
             gaps: [],
+            selectedDocs: [],
+            timings: { ingestMs: 1, retrievalMs: 1, stages: {}, totalMs: 1 },
             ...report,
           },
         ],
@@ -93,6 +96,7 @@ describe('updateDocsImpactComment', () => {
     reviewedRevision: HEAD,
     runUrl: RUN,
     token: 't',
+    author: 'legreffier[bot]',
   };
 
   it('posts a progress comment when the review starts', async () => {
@@ -113,7 +117,7 @@ describe('updateDocsImpactComment', () => {
     expect(write.body?.body).toContain('Docs impact: reviewing');
   });
 
-  it('updates the existing bot comment instead of posting another', async () => {
+  it('updates its own marker comment, not one by another account', async () => {
     // Arrange
     const api = github({
       head: HEAD,
@@ -121,9 +125,18 @@ describe('updateDocsImpactComment', () => {
         {
           id: 1,
           body: `${DOCS_IMPACT_COMMENT_MARKER} by a human`,
-          type: 'User',
+          login: 'someone',
         },
-        { id: 2, body: `${DOCS_IMPACT_COMMENT_MARKER} old`, type: 'Bot' },
+        {
+          id: 3,
+          body: `${DOCS_IMPACT_COMMENT_MARKER} from the workflow token`,
+          login: 'github-actions[bot]',
+        },
+        {
+          id: 2,
+          body: `${DOCS_IMPACT_COMMENT_MARKER} old`,
+          login: 'legreffier[bot]',
+        },
       ],
     });
 
