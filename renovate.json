@@ -53,7 +53,15 @@
     },
     {
       "description": "Pin existing workflow refs promptly, then review future updates weekly",
+      "groupName": "GitHub Actions SHA pins",
       "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["pinDigest"],
+      "schedule": ["at any time"]
+    },
+    {
+      "description": "Pin Dockerfile bases separately from version updates",
+      "groupName": "Dockerfile base digest pins",
+      "matchManagers": ["dockerfile"],
       "matchUpdateTypes": ["pinDigest"],
       "schedule": ["at any time"]
     },
