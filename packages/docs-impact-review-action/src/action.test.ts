@@ -89,12 +89,20 @@ function fakeReview(stdout: string, code = 0): string {
   return path;
 }
 
+const prepared = {
+  skip: 'false',
+  'pr-number': '7',
+  'base-sha': 'a'.repeat(40),
+  'head-sha': 'b'.repeat(40),
+  'correlation-id': '00000000-0000-4000-8000-000000000001',
+  profile: 'docs-review',
+  'coverage-profile': 'coverage-model',
+  'docs-check-profile': 'docs-review',
+  'worker-profiles': '["docs-review","coverage-model"]',
+};
+
 const reviewInputs = {
-  PR_NUMBER: '7',
-  BASE_SHA: 'a'.repeat(40),
-  HEAD_SHA: 'b'.repeat(40),
-  CORRELATION_ID: '00000000-0000-4000-8000-000000000001',
-  PROFILE: 'docs-review',
+  PREPARED: JSON.stringify(prepared),
   TEAM_ID: 'team',
   DIARY_ID: 'diary',
   APP_ID: '',
@@ -161,8 +169,68 @@ describe('prepare: gate', () => {
   });
 });
 
-describe('review: input checks', () => {
-  it('names every missing input', () => {
+describe('review: prepared input', () => {
+  beforeEach(() => {
+    spawnSync('git', ['init', '-q'], { cwd: root });
+  });
+
+  it('reads the pinned revisions, profiles, and correlation id', () => {
+    // Act
+    const result = runStep('check-review', reviewInputs);
+
+    // Assert
+    expect(result.stderr).not.toContain('::error::');
+    expect(result.status).toBe(0);
+    expect(outputs()).toMatchObject({
+      'pr-number': '7',
+      'base-sha': 'a'.repeat(40),
+      'head-sha': 'b'.repeat(40),
+      'correlation-id': prepared['correlation-id'],
+      profile: 'docs-review',
+      'coverage-profile': 'coverage-model',
+    });
+  });
+
+  it('requires the prepare outputs', () => {
+    // Act
+    const result = runStep('check-review', { ...reviewInputs, PREPARED: '' });
+
+    // Assert
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('toJSON(needs.prepare.outputs)');
+  });
+
+  it('refuses a pull request that prepare skipped', () => {
+    // Act
+    const result = runStep('check-review', {
+      ...reviewInputs,
+      PREPARED: JSON.stringify({ ...prepared, skip: 'true' }),
+    });
+
+    // Assert
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('not eligible');
+  });
+
+  it('names every invalid prepared field', () => {
+    // Act
+    const result = runStep('check-review', {
+      ...reviewInputs,
+      PREPARED: JSON.stringify({
+        ...prepared,
+        'head-sha': 'b'.repeat(7),
+        'correlation-id': 'chosen-by-hand',
+      }),
+    });
+
+    // Assert
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      'missing or invalid: head-sha correlation-id',
+    );
+  });
+
+  it('names missing team and diary inputs', () => {
     // Act
     const result = runStep('check-review', {
       ...reviewInputs,
@@ -188,28 +256,19 @@ describe('review: input checks', () => {
   });
 
   it('requires a checkout of the repository', () => {
-    // Act: root is a plain directory, not a git work tree.
-    const result = runStep('check-review', reviewInputs);
+    // Arrange: a directory that is not a git work tree.
+    const outside = mkdtempSync(resolve(tmpdir(), 'docs-impact-outside-'));
 
-    // Assert
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain('check out the repository');
-  });
+    try {
+      // Act
+      const result = runStep('check-review', reviewInputs, outside);
 
-  it('accepts complete inputs inside a checkout', () => {
-    // Arrange
-    spawnSync('git', ['init', '-q'], { cwd: root });
-
-    // Act
-    const result = runStep('check-review', {
-      ...reviewInputs,
-      APP_ID: '1',
-      APP_KEY: 'k',
-    });
-
-    // Assert
-    expect(result.stderr).not.toContain('::error::');
-    expect(result.status).toBe(0);
+      // Assert
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain('check out the repository');
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
+    }
   });
 });
 
@@ -303,5 +362,10 @@ describe('inputs', () => {
   it('requires the step', () => {
     // Assert
     expect(action.inputs.step.required).toBe(true);
+  });
+
+  it('never asks the caller for a correlation id', () => {
+    // Assert
+    expect(Object.keys(action.inputs)).not.toContain('correlation-id');
   });
 });

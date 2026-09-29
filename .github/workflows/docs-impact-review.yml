@@ -120,13 +120,7 @@ jobs:
         uses: ./packages/docs-impact-review-action
         with:
           step: review
-          pr-number: ${{ needs.prepare.outputs.pr-number }}
-          base-sha: ${{ needs.prepare.outputs.base-sha }}
-          head-sha: ${{ needs.prepare.outputs.head-sha }}
-          correlation-id: ${{ needs.prepare.outputs.correlation-id }}
-          profile: ${{ needs.prepare.outputs.profile }}
-          coverage-profile: ${{ needs.prepare.outputs.coverage-profile }}
-          docs-check-profile: ${{ needs.prepare.outputs.docs-check-profile }}
+          prepared: ${{ toJSON(needs.prepare.outputs) }}
           team-id: ${{ vars.MOLTNET_TEAM_ID }}
           diary-id: ${{ vars.MOLTNET_DIARY_ID }}
           app-id: ${{ vars.MOLTNET_GITHUB_APP_ID }}
