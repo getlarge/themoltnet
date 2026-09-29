@@ -328,6 +328,7 @@ describe('moltnet-agent providers', () => {
         { id: 'gemma4:31b-cloud', input: ['text', 'image'], reasoning: false },
         { id: 'local-model', reasoning: false },
       ],
+      failures: [],
     });
     expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
       { id: 'existing', reasoning: false },

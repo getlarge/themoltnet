@@ -380,7 +380,7 @@ describe('ProviderConfigurationService', () => {
     // call resolves and the unprobed model simply stays text-only.
     await expect(
       service.discover('ollama-cloud', { save: true }),
-    ).resolves.toEqual({ models: [{ id: 'qwen3.5:397b' }] });
+    ).resolves.toEqual({ models: [{ id: 'qwen3.5:397b' }], failures: [] });
     expect(service.list()['ollama-cloud']?.models).toEqual([
       { id: 'qwen3.5:397b' },
     ]);
@@ -487,6 +487,7 @@ describe('ProviderConfigurationService', () => {
         { id: 'local', reasoning: false },
         { id: 'shared', reasoning: false },
       ],
+      failures: [],
     });
     // Configuration probes `stale`; discovery then calls /v1/models,
     // /api/tags and /api/show for `local`.
@@ -516,6 +517,7 @@ describe('ProviderConfigurationService', () => {
 
     await expect(service.discover('remote')).resolves.toEqual({
       models: [{ id: 'remote-model' }],
+      failures: [],
     });
     // A non-Ollama provider must not be probed: one call, no /api/show.
     expect(fetchImpl).toHaveBeenCalledOnce();
@@ -589,6 +591,23 @@ describe('ProviderConfigurationService', () => {
       }),
       'Provider model discovery was cancelled',
     );
+  });
+
+  it('reports a partial discovery when one endpoint fails and another answers', async () => {
+    const fetchImpl = vi.fn<typeof fetch>((input) =>
+      Promise.resolve(
+        String(input).endsWith('/api/tags')
+          ? new Response(JSON.stringify({ models: [{ name: 'tagged-model' }] }))
+          : new Response(null, { status: 503 }),
+      ),
+    );
+    const { service } = fixture({ fetchImpl });
+    await service.set('ollama-cloud', { baseUrl: 'https://ollama.com/v1' });
+
+    const result = await service.discover('ollama-cloud');
+
+    expect(result.models.map((model) => model.id)).toContain('tagged-model');
+    expect(result.failures).toEqual([{ kind: 'http', status: 503 }]);
   });
 
   it('warns for rejected discovery responses with safe error context', async () => {

@@ -323,7 +323,11 @@ export class ProviderConfigurationService {
   async discover(
     providerIdInput: string,
     options: { save?: boolean; signal?: AbortSignal } = {},
-  ): Promise<{ models: ProviderModelEntry[] }> {
+  ): Promise<{
+    models: ProviderModelEntry[];
+    /** Endpoints that failed while others answered: a partial discovery. */
+    failures: DiscoveryFailure[];
+  }> {
     const providerId = assertProviderId(providerIdInput);
     const provider = this.options.store.readProviders()[providerId];
     if (!provider) {
@@ -442,7 +446,7 @@ export class ProviderConfigurationService {
       },
       'Provider model discovery completed',
     );
-    return { models };
+    return { models, failures: [...failures] };
   }
 
   /**
