@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { describeGitFailure, existsAt, GitCommandError } from './git.js';
+import {
+  describeGitFailure,
+  ensureRevisions,
+  existsAt,
+  type Git,
+  GitCommandError,
+} from './git.js';
 import { createTestRepo, type TestRepo } from './test-repo.js';
 
 describe('existsAt', () => {
@@ -73,5 +79,51 @@ describe('git failures', () => {
     // Assert
     expect(error.message).toContain(message);
     expect(error instanceof GitCommandError).toBe(_label === 'an exit status');
+  });
+});
+
+describe('ensureRevisions', () => {
+  let repo: TestRepo;
+  let calls: string[][];
+  let git: Git;
+
+  beforeEach(() => {
+    repo = createTestRepo();
+    calls = [];
+    git = (args, input) => {
+      calls.push(args);
+      if (args[0] === 'fetch') return '';
+      return repo.git(args, input);
+    };
+  });
+
+  afterEach(() => {
+    repo.cleanup();
+  });
+
+  it('does not contact the remote when both revisions are present', () => {
+    // Arrange
+    const base = repo.commit({ 'a.md': 'a\n' });
+    const head = repo.commit({ 'a.md': 'b\n' });
+
+    // Act
+    ensureRevisions(git, [base, head]);
+
+    // Assert
+    expect(calls.some((args) => args[0] === 'fetch')).toBe(false);
+  });
+
+  it('fetches only the missing revision', () => {
+    // Arrange
+    const base = repo.commit({ 'a.md': 'a\n' });
+    const missing = 'f'.repeat(40);
+
+    // Act
+    ensureRevisions(git, [base, missing]);
+
+    // Assert
+    expect(calls.filter((args) => args[0] === 'fetch')).toEqual([
+      ['fetch', '--no-tags', '--quiet', 'origin', missing],
+    ]);
   });
 });

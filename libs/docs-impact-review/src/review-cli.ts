@@ -7,7 +7,12 @@ import { parseArgs } from 'node:util';
 import { connect } from '@themoltnet/sdk/node';
 import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 
-import { createGit, existsAt, requireFullOid } from './git.js';
+import {
+  createGit,
+  ensureRevisions,
+  existsAt,
+  requireFullOid,
+} from './git.js';
 import { boundDiff, collectChangeSet } from './ingest.js';
 import { renderComment, summarizeCorpus } from './report.js';
 import {
@@ -262,7 +267,7 @@ export async function runReviewCli(args: string[]): Promise<number> {
       const base = target.baseRevision;
       const head = target.headRevision;
       target.phase = 'fetch';
-      git(['fetch', '--no-tags', '--quiet', 'origin', base, head]);
+      ensureRevisions(git, [base, head]);
       // A bad base config fails only this pull request's review; the error
       // carries the file that failed.
       target.phase = 'config';

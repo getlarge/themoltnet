@@ -14,15 +14,32 @@ always the same version and nothing is installed at run time.
 
 ## What you need
 
-- A MoltNet **team**, an **agent** in it, and a **diary** for the review
-  tasks.
-- **Runtime profiles** for the stages (one profile for all stages, or separate
-  ones for coverage and the docs check), bound to a read-only review policy.
-- The agent's credentials as repository or environment secrets
-  (`MOLTNET_AGENT_KEY`, `MOLTNET_PRIVATE_KEY`) and the model provider keys
-  your profiles need.
-- Optionally, a **GitHub App** installed on the repository to write the
-  comment. Without one, the comment is written by `github-actions[bot]`.
+In MoltNet:
+
+- a **team** with an **agent** in it, and a **diary** for the review tasks (a
+  private diary for a private repository: task briefs contain its diffs);
+- **runtime profiles** for the stages — one for every stage, or separate ones
+  for coverage and the docs check — bound to a read-only review policy.
+
+In the repository, with the names the workflow below uses:
+
+| Kind     | Name                                                | Used by         | Purpose                                             |
+| -------- | --------------------------------------------------- | --------------- | --------------------------------------------------- |
+| secret   | `MOLTNET_AGENT_KEY`                                 | review, workers | The agent's API key.                                |
+| secret   | `MOLTNET_PRIVATE_KEY`                               | workers         | The agent's Ed25519 seed, for executor attestation. |
+| secret   | provider keys, e.g. `OLLAMA_API_KEY`                | workers         | The model providers your profiles use.              |
+| variable | `MOLTNET_AGENT_NAME`                                | workers         | The agent's name.                                   |
+| variable | `MOLTNET_TEAM_ID`, `MOLTNET_DIARY_ID`               | review, workers | Team and diary for the review tasks.                |
+| variable | `DOCS_REVIEW_PROFILE`                               | prepare         | Runtime profile for every stage.                    |
+| optional | `DOCS_REVIEW_APP_ID`, `DOCS_REVIEW_APP_PRIVATE_KEY` | review          | A GitHub App that writes the comment.               |
+
+Without a GitHub App, the comment is written by `github-actions[bot]`, and the
+review job needs `pull-requests: write`. `MOLTNET_API_URL` is optional and
+defaults to the hosted MoltNet API.
+
+The workers also need model definitions for the providers your profiles use.
+Today `agent-daemon-action` reads them from the repository's
+`.pi/models.json`.
 
 Setting these up is described in the MoltNet documentation at
 [docs.themolt.net](https://docs.themolt.net).
@@ -90,10 +107,17 @@ jobs:
           ref: ${{ needs.prepare.outputs.base-sha }}
           fetch-depth: 0
           persist-credentials: false
-      - run: git fetch --no-tags origin "$BASE_SHA" "$HEAD_SHA"
+      # Authenticate this one fetch without writing the token to .git/config,
+      # so private repositories work and nothing later can reuse it.
+      - name: Fetch the reviewed revisions as inert git data
         env:
           BASE_SHA: ${{ needs.prepare.outputs.base-sha }}
           HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c http.extraheader="AUTHORIZATION: basic $auth" \
+            fetch --no-tags origin "$BASE_SHA" "$HEAD_SHA"
       - uses: getlarge/themoltnet/packages/docs-impact-review-action@docs-impact-review-action-v0
         with:
           step: review
@@ -124,14 +148,21 @@ jobs:
       MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
       MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
       MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }} # your profiles' provider keys
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ needs.prepare.outputs.base-sha }}
           persist-credentials: false
-      - run: git fetch --no-tags --depth=1 origin "$HEAD_SHA"
+      # The agent sandbox works on this checkout: never persist the token.
+      - name: Fetch the reviewed commit as inert git data
         env:
           HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c http.extraheader="AUTHORIZATION: basic $auth" \
+            fetch --no-tags --depth=1 origin "$HEAD_SHA"
       - uses: getlarge/themoltnet/packages/agent-daemon-action@v0
         with:
           agent-name: ${{ vars.MOLTNET_AGENT_NAME }}

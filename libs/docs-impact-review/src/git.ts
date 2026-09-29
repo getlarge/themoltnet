@@ -102,3 +102,24 @@ export function existsAt(git: Git, revision: string, path: string): boolean {
     throw error;
   }
 }
+
+/**
+ * Fetches only the revisions missing locally. A caller that already fetched
+ * them (with credentials it did not persist, as a private repository needs)
+ * must not have the reviewer contact the remote again.
+ */
+export function ensureRevisions(git: Git, revisions: readonly string[]): void {
+  const missing = revisions.filter((revision) => {
+    try {
+      git(['cat-file', '-e', `${revision}^{commit}`]);
+      return false;
+    } catch (error) {
+      // Only git's own "absent" answer means fetch; a stall is an error.
+      if (error instanceof GitCommandError) return true;
+      throw error;
+    }
+  });
+  if (missing.length > 0) {
+    git(['fetch', '--no-tags', '--quiet', 'origin', ...missing]);
+  }
+}

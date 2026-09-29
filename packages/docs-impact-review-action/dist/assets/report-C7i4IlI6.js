@@ -18,6 +18,32 @@ function createGit(cwd) {
 		]
 	});
 }
+/**
+* Fetches only the revisions missing locally. A caller that already fetched
+* them (with credentials it did not persist, as a private repository needs)
+* must not have the reviewer contact the remote again.
+*/
+function ensureRevisions(git, revisions) {
+	const missing = revisions.filter((revision) => {
+		try {
+			git([
+				"cat-file",
+				"-e",
+				`${revision}^{commit}`
+			]);
+			return false;
+		} catch {
+			return true;
+		}
+	});
+	if (missing.length > 0) git([
+		"fetch",
+		"--no-tags",
+		"--quiet",
+		"origin",
+		...missing
+	]);
+}
 //#endregion
 //#region ../../libs/docs-impact-review/src/report.ts
 var DOCS_IMPACT_COMMENT_MARKER = "<!-- moltnet:docs-impact-review -->";
@@ -130,4 +156,4 @@ function summarizeCorpus(reports) {
 	};
 }
 //#endregion
-export { requireFullOid as a, createGit as i, renderComment as n, summarizeCorpus as r, DOCS_IMPACT_COMMENT_MARKER as t };
+export { ensureRevisions as a, createGit as i, renderComment as n, requireFullOid as o, summarizeCorpus as r, DOCS_IMPACT_COMMENT_MARKER as t };

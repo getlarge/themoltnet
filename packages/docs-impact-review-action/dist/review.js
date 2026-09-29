@@ -1,4 +1,4 @@
-import { a as requireFullOid, i as createGit, n as renderComment, r as summarizeCorpus } from "./assets/report-YW7q9wms.js";
+import { a as ensureRevisions, i as createGit, n as renderComment, o as requireFullOid, r as summarizeCorpus } from "./assets/report-C7i4IlI6.js";
 import { t as runMain } from "./assets/run-ClXssV5J.js";
 import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
@@ -27257,14 +27257,7 @@ async function runReviewCli(args) {
 		const meta = readPullRequest(repo, pr);
 		const base = requireFullOid(values["base-sha"] ?? meta.baseRefOid, "base revision");
 		const head = requireFullOid(values["head-sha"] ?? meta.headRefOid, "head revision");
-		git([
-			"fetch",
-			"--no-tags",
-			"--quiet",
-			"origin",
-			base,
-			head
-		]);
+		ensureRevisions(git, [base, head]);
 		const config = configOverride ?? loadReviewConfig(git, base).config;
 		if (dryRun || !tasks) {
 			const changeSet = collectChangeSet(git, base, head, config.docsExclude);

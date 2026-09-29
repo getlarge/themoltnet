@@ -1,4 +1,4 @@
-import { a as requireFullOid, n as renderComment, t as DOCS_IMPACT_COMMENT_MARKER } from "./assets/report-YW7q9wms.js";
+import { n as renderComment, o as requireFullOid, t as DOCS_IMPACT_COMMENT_MARKER } from "./assets/report-C7i4IlI6.js";
 import { t as runMain } from "./assets/run-ClXssV5J.js";
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
