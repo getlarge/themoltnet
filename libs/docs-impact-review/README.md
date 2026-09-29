@@ -42,7 +42,7 @@ trusted code, never by the model.
 | --------------------------- | -------- | --------------------------- |
 | Diff bytes (stage 1)        | 64 000   | `DEFAULT_BUDGETS`           |
 | Per-file patch bytes        | 12 000   | `DEFAULT_BUDGETS`           |
-| Docs-diff bytes (stage 2)   | 16 000   | `DEFAULT_BUDGETS`           |
+| Docs-diff bytes (stage 3)   | 16 000   | `DEFAULT_BUDGETS`           |
 | Excerpt bytes per doc       | 8 000    | `DEFAULT_BUDGETS`           |
 | Docs per review             | 6        | `DEFAULT_BUDGETS`           |
 | Running timeout per stage   | 120 s    | `STAGE_RUNNING_TIMEOUT_SEC` |
@@ -106,7 +106,8 @@ pnpm exec nx run @moltnet/docs-impact-review:cli -- \
   --config .github/docs-impact-review.json --out /tmp/docs-impact
 ```
 
-Each stage task is tagged `review:docs-impact`, `stage:<extract|coverage>`,
+Each stage task is tagged `review:docs-impact`,
+`stage:<extract|coverage|docs-check>`,
 `pr:<n>`, and `revision:<head>`, and shares one correlation id per PR.
 
 ## In CI

@@ -23,22 +23,22 @@ function sequence(
   return { urls, fetchImpl };
 }
 
+const FAST = { baseDelay: 1, maxDelay: 5, jitter: false };
+
 describe('GitHubApi', () => {
-  it('retries rate limits and server errors, honoring retry-after', async () => {
+  it('retries rate limits and server errors on reads, logging each retry', async () => {
     // Arrange
-    const waits: number[] = [];
+    const logs: string[] = [];
     const { urls, fetchImpl } = sequence([
-      { status: 429, headers: { 'retry-after': '2' } },
+      { status: 429, headers: { 'retry-after': '0' } },
       { status: 502 },
       { status: 200, body: { ok: true } },
     ]);
     const api = new GitHubApi({
       token: 't',
       fetchImpl,
-      sleep: (ms) => {
-        waits.push(ms);
-        return Promise.resolve();
-      },
+      retry: FAST,
+      log: (message) => logs.push(message),
     });
 
     // Act
@@ -47,7 +47,62 @@ describe('GitHubApi', () => {
     // Assert
     expect(result).toEqual({ ok: true });
     expect(urls).toHaveLength(3);
-    expect(waits).toEqual([2_000, 2_000]);
+    expect(logs).toEqual([
+      expect.stringContaining('GET /repos/o/r: status 429, retry 1'),
+      expect.stringContaining('GET /repos/o/r: status 502, retry 2'),
+    ]);
+  });
+
+  it('never retries a write on a server error, which may have applied it', async () => {
+    // Arrange
+    const { urls, fetchImpl } = sequence([
+      { status: 502 },
+      { status: 201, body: {} },
+    ]);
+    const api = new GitHubApi({
+      token: 't',
+      fetchImpl,
+      retry: FAST,
+      log: () => {},
+    });
+
+    // Act / Assert
+    await expect(
+      api.request('/repos/o/r/issues/1/comments', {
+        method: 'POST',
+        body: '{}',
+      }),
+    ).rejects.toThrow(
+      'GitHub API POST /repos/o/r/issues/1/comments failed with 502',
+    );
+    expect(urls).toHaveLength(1);
+  });
+
+  it.each([
+    ['a secondary rate limit', { 'retry-after': '0' }],
+    ['an exhausted primary rate limit', { 'x-ratelimit-remaining': '0' }],
+  ])('retries a write refused by %s', async (_label, headers) => {
+    // Arrange
+    const { urls, fetchImpl } = sequence([
+      { status: 403, headers },
+      { status: 201, body: { id: 1 } },
+    ]);
+    const api = new GitHubApi({
+      token: 't',
+      fetchImpl,
+      retry: FAST,
+      log: () => {},
+    });
+
+    // Act
+    const result = await api.request('/repos/o/r/issues/1/comments', {
+      method: 'POST',
+      body: '{}',
+    });
+
+    // Assert
+    expect(result).toEqual({ id: 1 });
+    expect(urls).toHaveLength(2);
   });
 
   it('gives up after the last attempt with the GitHub message', async () => {
@@ -55,12 +110,14 @@ describe('GitHubApi', () => {
     const { fetchImpl } = sequence([
       { status: 503 },
       { status: 503 },
+      { status: 503 },
       { status: 503, body: { message: 'Service unavailable' } },
     ]);
     const api = new GitHubApi({
       token: 't',
       fetchImpl,
-      sleep: () => Promise.resolve(),
+      retry: FAST,
+      log: () => {},
     });
 
     // Act / Assert

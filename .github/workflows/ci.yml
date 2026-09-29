@@ -127,6 +127,24 @@ jobs:
             exit 1
           fi
 
+  action-runtime-lock:
+    name: Action runtime lock is current
+    needs: [affected]
+    if: needs.affected.outputs.action-runtime-lock == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
+      # Built-ins only, so no install.
+      - run: node tools/src/release/action-runtime-lock.ts --check
+
   wsl-agent-daemon:
     name: WSL2 agent daemon acceptance
     needs: [affected]
@@ -328,6 +346,7 @@ jobs:
       wsl-agent-daemon: ${{ steps.compute.outputs.wsl-agent-daemon }}
       legreffier-plugin: ${{ steps.compute.outputs.legreffier-plugin }}
       check-dist-actions: ${{ steps.compute.outputs.check-dist-actions }}
+      action-runtime-lock: ${{ steps.compute.outputs.action-runtime-lock }}
       agents-matrix: ${{ steps.matrix.outputs.matrix }}
       has-agents: ${{ steps.matrix.outputs.has-agents }}
       tier: ${{ steps.matrix.outputs.tier }}
@@ -517,6 +536,20 @@ jobs:
             echo "check-dist-actions=true" >> "$GITHUB_OUTPUT"
           else
             echo "check-dist-actions=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Files an action runs from outside its package are hashed into its
+          # runtime.lock, so changing them releases the action.
+          if [ "${{ github.event_name }}" = "pull_request" ] &&
+            ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- \
+              .github/workflows/docs-impact-review-reusable.yml \
+              packages/agent-daemon-action/action.yml \
+              packages/agent-daemon-action/src \
+              'packages/*-action/runtime.lock' \
+              tools/src/release/action-runtime-lock.ts; then
+            echo "action-runtime-lock=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "action-runtime-lock=false" >> "$GITHUB_OUTPUT"
           fi
 
           if contains "@themoltnet/os-keyring" "@themoltnet/sdk" "moltnet-cli" "@moltnet/agent-config" "@moltnet/agent-desktop"; then

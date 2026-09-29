@@ -34,24 +34,39 @@ export interface PrepareOptions {
   protectedPaths: string[];
 }
 
-/** The `prepare` outputs; every value is a string, as step outputs are. */
+/** Version of the `prepared` payload; `review` refuses any other. */
+export const PREPARED_VERSION = 1;
+
+/**
+ * Everything `review` and the workers need from `prepare`, passed between
+ * jobs as one JSON output so callers forward a single value.
+ */
 export interface PreparedReview {
-  skip: 'true' | 'false';
+  v: typeof PREPARED_VERSION;
+  /** `review` refuses a pull request the gate turned away. */
+  eligible: boolean;
+  pr: number;
+  baseSha: string;
+  headSha: string;
+  correlationId: string;
+  /** `GITHUB_RUN_ATTEMPT` of `prepare`; a later attempt must re-run it. */
+  runAttempt: number;
+  profiles: { default: string; coverage: string; docsCheck: string };
+  /** Distinct profiles: one drain worker each. */
+  workerProfiles: string[];
+}
+
+export interface PrepareResult {
+  skip: boolean;
+  /** Why the pull request is not reviewed; empty when it is. */
   reason: string;
-  'pr-number': string;
-  'base-sha': string;
-  'head-sha': string;
-  'correlation-id': string;
-  profile: string;
-  'coverage-profile': string;
-  'docs-check-profile': string;
-  /** JSON array of distinct profiles: one drain worker each. */
-  'worker-profiles': string;
+  prepared: PreparedReview;
 }
 
 interface PullRequest {
   number: number;
   user: { login: string };
+  changed_files: number;
   base: { sha: string };
   head: { sha: string; repo: { full_name: string } | null };
 }
@@ -64,7 +79,7 @@ interface PullRequestFileResponse {
 /** Collects the pull request facts, pins revisions, and applies the gate. */
 export async function preparePullRequestReview(
   options: PrepareOptions,
-): Promise<PreparedReview> {
+): Promise<PrepareResult> {
   const { api, repo, pullNumber } = options;
   const pr = await api.request<PullRequest>(
     `/repos/${repo}/pulls/${pullNumber}`,
@@ -86,26 +101,34 @@ export async function preparePullRequestReview(
     ),
     protectedPaths: options.protectedPaths,
   };
-  const eligibility = checkEligibility(facts);
-  const coverageProfile = options.coverageProfile || options.profile;
-  const docsCheckProfile = options.docsCheckProfile || options.profile;
+  // The files endpoint stops at 3,000 entries: a protected path past the
+  // cap would go unseen, so an incomplete list is never reviewed.
+  const eligibility =
+    files.length < pr.changed_files
+      ? {
+          eligible: false as const,
+          reason: `GitHub listed ${files.length} of ${pr.changed_files} changed files, so the protected paths cannot be checked`,
+        }
+      : checkEligibility(facts);
+  const coverage = options.coverageProfile || options.profile;
+  const docsCheck = options.docsCheckProfile || options.profile;
+  const runAttempt = Number(options.runAttempt);
   return {
-    skip: eligibility.eligible ? 'false' : 'true',
+    skip: !eligibility.eligible,
     reason: eligibility.eligible ? '' : eligibility.reason,
-    'pr-number': String(pr.number),
-    'base-sha': pr.base.sha,
-    'head-sha': pr.head.sha,
-    'correlation-id': correlationIdFor(
-      [repo, pr.number, pr.head.sha, options.runId, options.runAttempt].join(
-        ':',
+    prepared: {
+      v: PREPARED_VERSION,
+      eligible: eligibility.eligible,
+      pr: pr.number,
+      baseSha: pr.base.sha,
+      headSha: pr.head.sha,
+      correlationId: correlationIdFor(
+        [repo, pr.number, pr.head.sha, options.runId, runAttempt].join(':'),
       ),
-    ),
-    profile: options.profile,
-    'coverage-profile': coverageProfile,
-    'docs-check-profile': docsCheckProfile,
-    'worker-profiles': JSON.stringify([
-      ...new Set([options.profile, coverageProfile, docsCheckProfile]),
-    ]),
+      runAttempt,
+      profiles: { default: options.profile, coverage, docsCheck },
+      workerProfiles: [...new Set([options.profile, coverage, docsCheck])],
+    },
   };
 }
 
@@ -153,7 +176,7 @@ export async function runPrepareCli(
   const event = JSON.parse(
     readFileSync(required(env, 'GITHUB_EVENT_PATH'), 'utf8'),
   ) as unknown;
-  const prepared = await preparePullRequestReview({
+  const result = await preparePullRequestReview({
     api: new GitHubApi({
       token: required(env, 'GITHUB_TOKEN'),
       apiUrl: env.GITHUB_API_URL,
@@ -169,20 +192,26 @@ export async function runPrepareCli(
     protectedPaths,
   });
   const output = required(env, 'GITHUB_OUTPUT');
+  // Values are single-line JSON or plain strings, so `name=value` is safe.
   appendFileSync(
     output,
-    (Object.entries(prepared) as Array<[string, string]>)
-      .map(([name, value]) => `${name}=${value.replace(/[\r\n]+/g, ' ')}\n`)
+    [
+      `skip=${result.skip}`,
+      `reason=${result.reason.replace(/[\r\n]+/g, ' ')}`,
+      `correlation-id=${result.prepared.correlationId}`,
+      `prepared=${JSON.stringify(result.prepared)}`,
+    ]
+      .map((line) => `${line}\n`)
       .join(''),
   );
-  if (prepared.skip === 'true') {
+  if (result.skip) {
     process.stdout.write(
-      `::notice::Docs impact review skipped: ${prepared.reason}\n`,
+      `::notice::Docs impact review skipped: ${result.reason}\n`,
     );
     if (env.GITHUB_STEP_SUMMARY) {
       appendFileSync(
         env.GITHUB_STEP_SUMMARY,
-        `### Docs impact review skipped\n\n${prepared.reason}\n`,
+        `### Docs impact review skipped\n\n${result.reason}\n`,
       );
     }
   }

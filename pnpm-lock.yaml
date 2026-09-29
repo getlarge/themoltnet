@@ -2353,6 +2353,9 @@ importers:
 
   libs/docs-impact-review:
     dependencies:
+      '@moltnet/api-client':
+        specifier: workspace:*
+        version: link:../api-client
       '@themoltnet/os-keyring':
         specifier: workspace:*
         version: link:../os-keyring

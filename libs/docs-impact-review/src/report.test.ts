@@ -265,6 +265,36 @@ describe('neutralize', () => {
     expect(body).not.toContain('<img');
   });
 
+  it('keeps only the text of Markdown links and images', () => {
+    // Act / Assert
+    expect(neutralize('see [the docs](https://evil.example) ![x](y.png)')).toBe(
+      'see the docs x',
+    );
+  });
+
+  it('keeps crafted paths inside their code span and link target', () => {
+    // Act
+    const body = renderComment(
+      report({
+        outcome: 'updates-needed',
+        findings: [
+          {
+            changeId: 'c',
+            evidence: { path: 'src/a`](https://x) b.ts', detail: 'd' },
+            docsPath: 'docs/a.md',
+            update: 'u',
+          },
+        ],
+        gaps: [{ scope: 'x` **bold**', reason: 'r' }],
+      }),
+    );
+
+    // Assert
+    expect(body).toContain('[``src/a`](https://x) b.ts``]');
+    expect(body).toContain('/src/a%60%5D%28https%3A//x%29%20b.ts)');
+    expect(body).toContain('- ``x` **bold**``: r');
+  });
+
   it('leaves email-like text and plain text readable', () => {
     // Act / Assert
     expect(neutralize('a @ b')).toBe('a @ b');

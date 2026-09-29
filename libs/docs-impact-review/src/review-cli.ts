@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { Console } from 'node:console';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -47,6 +48,12 @@ each pull request's base revision; --config uses a local file instead.
 a saved run's summary.json without creating tasks.`;
 
 const GH_TIMEOUT_MS = 60_000;
+
+/** stdout carries the summary JSON, so diagnostics (read retries) go to stderr. */
+const stderrLogger = new Console({
+  stdout: process.stderr,
+  stderr: process.stderr,
+});
 
 interface PullRequest {
   title: string;
@@ -314,7 +321,7 @@ export async function runReviewCli(args: string[]): Promise<number> {
       }
 
       return runDocsImpactReview(
-        { git, tasks, ctx: createSleepingContext() },
+        { git, tasks, ctx: createSleepingContext(), logger: stderrLogger },
         {
           config,
           configSource: source,

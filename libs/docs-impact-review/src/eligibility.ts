@@ -29,6 +29,14 @@ export type Eligibility =
   | { eligible: true }
   | { eligible: false; reason: string };
 
+/**
+ * GitHub lists changed files relative to the repository root, so a prefix
+ * written as `./.github/` or `/.github/` means `.github/`.
+ */
+function normalizePrefix(prefix: string): string {
+  return prefix.trim().replace(/^(?:\.?\/)+/, '');
+}
+
 export function checkEligibility(pr: PullRequestFacts): Eligibility {
   // Fork PRs run without secrets and cannot publish; a deleted fork is
   // treated the same way.
@@ -41,9 +49,9 @@ export function checkEligibility(pr: PullRequestFacts): Eligibility {
       reason: 'Dependabot pull requests are not reviewed',
     };
   }
-  const protectedPaths = (pr.protectedPaths ?? []).filter(
-    (prefix) => prefix.length > 0,
-  );
+  const protectedPaths = (pr.protectedPaths ?? [])
+    .map(normalizePrefix)
+    .filter((prefix) => prefix.length > 0);
   const runtimeChanges = new Set<string>();
   for (const file of pr.files) {
     for (const path of [file.filename, file.previous_filename]) {

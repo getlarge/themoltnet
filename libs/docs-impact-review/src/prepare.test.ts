@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GitHubApi } from './github-api.js';
 import {
   correlationIdFor,
+  PREPARED_VERSION,
   preparePullRequestReview,
   pullNumberFromEvent,
   runPrepareCli,
@@ -15,21 +16,42 @@ import {
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
+interface FakePullRequest {
+  author?: string;
+  headRepo?: string | null;
+  changedFiles?: number;
+}
+
+/** GitHub double: the pull request, and its files served 100 per page. */
 function github(
   files: Array<{ filename: string; previous_filename?: string }>,
+  pr: FakePullRequest = {},
 ) {
   return ((url: string) => {
-    const path = new URL(url).pathname;
-    const body = path.endsWith('/files')
-      ? files
-      : {
-          number: 7,
-          user: { login: 'someone' },
-          base: { sha: 'a'.repeat(40) },
-          head: { sha: 'b'.repeat(40), repo: { full_name: 'o/r' } },
-        };
+    const parsed = new URL(url);
+    let body: unknown;
+    if (parsed.pathname.endsWith('/files')) {
+      const page = Number(parsed.searchParams.get('page') ?? '1');
+      body = files.slice((page - 1) * 100, page * 100);
+    } else {
+      body = {
+        number: 7,
+        user: { login: pr.author ?? 'someone' },
+        changed_files: pr.changedFiles ?? files.length,
+        base: { sha: 'a'.repeat(40) },
+        head: {
+          sha: 'b'.repeat(40),
+          repo:
+            pr.headRepo === null ? null : { full_name: pr.headRepo ?? 'o/r' },
+        },
+      };
+    }
     return Promise.resolve(new Response(JSON.stringify(body)));
   }) as typeof fetch;
+}
+
+function api(fetchImpl: typeof fetch): GitHubApi {
+  return new GitHubApi({ token: 't', fetchImpl });
 }
 
 const options = {
@@ -58,51 +80,107 @@ describe('correlationIdFor', () => {
 describe('preparePullRequestReview', () => {
   it('pins revisions, derives the correlation id, and dedupes worker profiles', async () => {
     // Act
-    const prepared = await preparePullRequestReview({
+    const result = await preparePullRequestReview({
       ...options,
-      api: new GitHubApi({
-        token: 't',
-        fetchImpl: github([{ filename: 'src/a.ts' }]),
-      }),
+      api: api(github([{ filename: 'src/a.ts' }])),
       coverageProfile: 'coverage-model',
     });
 
     // Assert
-    expect(prepared).toMatchObject({
-      skip: 'false',
+    expect(result).toEqual({
+      skip: false,
       reason: '',
-      'pr-number': '7',
-      'base-sha': 'a'.repeat(40),
-      'head-sha': 'b'.repeat(40),
-      profile: 'docs-review',
-      'coverage-profile': 'coverage-model',
-      'docs-check-profile': 'docs-review',
-      'worker-profiles': '["docs-review","coverage-model"]',
+      prepared: {
+        v: PREPARED_VERSION,
+        eligible: true,
+        pr: 7,
+        baseSha: 'a'.repeat(40),
+        headSha: 'b'.repeat(40),
+        correlationId: correlationIdFor(`o/r:7:${'b'.repeat(40)}:100:1`),
+        runAttempt: 1,
+        profiles: {
+          default: 'docs-review',
+          coverage: 'coverage-model',
+          docsCheck: 'docs-review',
+        },
+        workerProfiles: ['docs-review', 'coverage-model'],
+      },
     });
-    expect(prepared['correlation-id']).toBe(
-      correlationIdFor(`o/r:7:${'b'.repeat(40)}:100:1`),
-    );
   });
 
-  it('skips a pull request that renames a protected file away', async () => {
+  it.each([
+    ['a fork', { headRepo: 'someone/r' }, [], 'fork'],
+    ['a deleted fork', { headRepo: null }, [], 'fork'],
+    ['Dependabot', { author: 'dependabot[bot]' }, [], 'Dependabot'],
+    [
+      'a rename away from a protected file',
+      {},
+      [
+        {
+          filename: 'tools/x.yml',
+          previous_filename: '.github/workflows/docs.yml',
+        },
+      ],
+      '.github/workflows/docs.yml',
+    ],
+    [
+      'a protected file on the second page',
+      {},
+      [
+        ...Array.from({ length: 100 }, (_, index) => ({
+          filename: `src/${index}.ts`,
+        })),
+        { filename: '.github/workflows/docs.yml' },
+      ],
+      '.github/workflows/docs.yml',
+    ],
+    [
+      'a file list GitHub truncated',
+      { changedFiles: 3_001 },
+      [{ filename: 'src/a.ts' }],
+      'listed 1 of 3001 changed files',
+    ],
+  ])('skips %s', async (_label, pr, files, reason) => {
     // Act
-    const prepared = await preparePullRequestReview({
+    const result = await preparePullRequestReview({
       ...options,
-      api: new GitHubApi({
-        token: 't',
-        fetchImpl: github([
-          {
-            filename: 'tools/x.yml',
-            previous_filename: '.github/workflows/docs.yml',
-          },
-        ]),
-      }),
+      api: api(github(files, pr)),
     });
 
     // Assert
-    expect(prepared.skip).toBe('true');
-    expect(prepared.reason).toContain('.github/workflows/docs.yml');
+    expect(result.skip).toBe(true);
+    expect(result.prepared.eligible).toBe(false);
+    expect(result.reason).toContain(reason);
   });
+
+  it('passes a renamed file through under its new name', async () => {
+    // Act
+    const result = await preparePullRequestReview({
+      ...options,
+      protectedPaths: ['tools/'],
+      api: api(
+        github([{ filename: 'tools/x.yml', previous_filename: 'old/x.yml' }]),
+      ),
+    });
+
+    // Assert
+    expect(result.reason).toContain('tools/x.yml');
+  });
+
+  it.each(['./.github/workflows/docs.yml', '/.github/workflows/docs.yml'])(
+    'matches the protected prefix %s from the repository root',
+    async (prefix) => {
+      // Act
+      const result = await preparePullRequestReview({
+        ...options,
+        protectedPaths: [prefix],
+        api: api(github([{ filename: '.github/workflows/docs.yml' }])),
+      });
+
+      // Assert
+      expect(result.skip).toBe(true);
+    },
+  );
 });
 
 describe('pullNumberFromEvent', () => {
@@ -159,7 +237,7 @@ describe('runPrepareCli', () => {
     };
   }
 
-  it('writes every output line', async () => {
+  it('writes skip, reason, the correlation id, and the prepared payload', async () => {
     // Arrange
     const vars = env();
 
@@ -167,10 +245,18 @@ describe('runPrepareCli', () => {
     await runPrepareCli(vars, github([{ filename: 'src/a.ts' }]));
 
     // Assert
-    const lines = readFileSync(vars.GITHUB_OUTPUT, 'utf8');
-    expect(lines).toContain('skip=false\n');
-    expect(lines).toContain(`head-sha=${'b'.repeat(40)}\n`);
-    expect(lines).toMatch(/correlation-id=[0-9a-f-]{36}\n/);
+    const lines = readFileSync(vars.GITHUB_OUTPUT, 'utf8').split('\n');
+    expect(lines).toContain('skip=false');
+    expect(lines).toContain('reason=');
+    expect(lines.find((line) => line.startsWith('correlation-id='))).toMatch(
+      /^correlation-id=[0-9a-f-]{36}$/,
+    );
+    const prepared = JSON.parse(
+      (lines.find((line) => line.startsWith('prepared=')) ?? '').slice(
+        'prepared='.length,
+      ),
+    ) as { v: number; headSha: string };
+    expect(prepared).toMatchObject({ v: 1, headSha: 'b'.repeat(40) });
     expect(stdout.join('')).not.toContain('::warning::');
   });
 

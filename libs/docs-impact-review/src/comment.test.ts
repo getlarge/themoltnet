@@ -4,13 +4,14 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { updateDocsImpactComment } from './comment.js';
+import { renderProgress, updateDocsImpactComment } from './comment.js';
 import { DOCS_IMPACT_COMMENT_MARKER } from './report.js';
 import type { DocsImpactReport } from './types.js';
 
 const HEAD = 'b'.repeat(40);
 const NEWER = 'c'.repeat(40);
 const RUN = 'https://github.com/o/r/actions/runs/1';
+const CORRELATION = '00000000-0000-4000-8000-000000000009';
 
 interface Call {
   method: string;
@@ -248,6 +249,82 @@ describe('updateDocsImpactComment', () => {
     expect(writes(api.calls)[0].body?.body).toContain(
       'Docs impact: not reviewed',
     );
+  });
+
+  it('names the correlation id when the run produced no report', async () => {
+    // Arrange
+    const api = github({ head: HEAD });
+
+    // Act
+    await updateDocsImpactComment({
+      ...base,
+      mode: 'publish',
+      reportPath: join(dir, 'missing.json'),
+      correlationId: CORRELATION,
+      fetchImpl: api.fetchImpl,
+    });
+
+    // Assert
+    expect(writes(api.calls)[0].body?.body).toContain(
+      `correlation \`${CORRELATION}\``,
+    );
+  });
+
+  it('replaces its own placeholder when the run is cancelled', async () => {
+    // Arrange
+    const api = github({
+      head: HEAD,
+      comments: [
+        {
+          id: 5,
+          login: 'legreffier[bot]',
+          body: renderProgress(HEAD, RUN),
+        },
+      ],
+    });
+
+    // Act
+    const status = await updateDocsImpactComment({
+      ...base,
+      mode: 'cancelled',
+      correlationId: CORRELATION,
+      fetchImpl: api.fetchImpl,
+    });
+
+    // Assert
+    expect(status).toBe('cancelled');
+    const [write] = writes(api.calls);
+    expect(write).toMatchObject({
+      method: 'PATCH',
+      path: '/repos/o/r/issues/comments/5',
+    });
+    expect(write.body?.body).toContain('Docs impact: not completed');
+    expect(write.body?.body).toContain(CORRELATION);
+  });
+
+  it("leaves a newer run's comment alone when cancelled", async () => {
+    // Arrange
+    const api = github({
+      head: HEAD,
+      comments: [
+        {
+          id: 5,
+          login: 'legreffier[bot]',
+          body: renderProgress(HEAD, 'https://github.com/o/r/actions/runs/2'),
+        },
+      ],
+    });
+
+    // Act
+    const status = await updateDocsImpactComment({
+      ...base,
+      mode: 'cancelled',
+      fetchImpl: api.fetchImpl,
+    });
+
+    // Assert
+    expect(status).toBe('unchanged');
+    expect(writes(api.calls)).toEqual([]);
   });
 
   it('treats a report for another head as missing', async () => {

@@ -3,7 +3,7 @@ import { parseArgs } from 'node:util';
 
 import { githubApiUrl, githubToken } from './config.js';
 import { requireFullOid } from './git.js';
-import { GitHubApi } from './github-api.js';
+import { GitHubApi, type GitHubApiOptions } from './github-api.js';
 import { DOCS_IMPACT_COMMENT_MARKER, renderComment } from './report.js';
 import type { DocsImpactReport } from './types.js';
 
@@ -13,14 +13,25 @@ export interface IssueComment {
   user: { login: string } | null;
 }
 
-function runLine(revision: string, runUrl: string): string {
-  return `Head \`${revision}\` · [workflow run](${runUrl})`;
+/** The correlation id ties a comment to its MoltNet tasks and worker logs. */
+function correlationSuffix(correlationId?: string): string {
+  return correlationId ? ` · correlation \`${correlationId}\`` : '';
 }
+
+function runLine(
+  revision: string,
+  runUrl: string,
+  correlationId?: string,
+): string {
+  return `Head \`${revision}\` · [workflow run](${runUrl})${correlationSuffix(correlationId)}`;
+}
+
+const PROGRESS_HEADLINE = '**Docs impact: reviewing**';
 
 export function renderProgress(revision: string, runUrl: string): string {
   return [
     DOCS_IMPACT_COMMENT_MARKER,
-    `**Docs impact: reviewing** · ${runLine(revision, runUrl)}`,
+    `${PROGRESS_HEADLINE} · ${runLine(revision, runUrl)}`,
     '',
     'Any result for an earlier head is stale until this review finishes.',
   ].join('\n');
@@ -30,10 +41,11 @@ export function renderStale(
   reviewedRevision: string,
   currentRevision: string,
   runUrl: string,
+  correlationId?: string,
 ): string {
   return [
     DOCS_IMPACT_COMMENT_MARKER,
-    `**Docs impact: stale** · ${runLine(reviewedRevision, runUrl)}`,
+    `**Docs impact: stale** · ${runLine(reviewedRevision, runUrl, correlationId)}`,
     '',
     `The pull request now points at \`${currentRevision}\`. This result was not published as current guidance.`,
   ].join('\n');
@@ -44,20 +56,41 @@ export function renderPublished(
   runUrl: string,
   correlationId?: string,
 ): string {
-  // The correlation id ties the comment to its MoltNet tasks and worker logs.
-  const correlation = correlationId
-    ? ` · correlation \`${correlationId}\``
-    : '';
-  return `${renderComment(report)}\n\n[workflow run](${runUrl})${correlation}`;
+  return `${renderComment(report)}\n\n[workflow run](${runUrl})${correlationSuffix(correlationId)}`;
 }
 
-export function renderMissingReport(revision: string, runUrl: string): string {
+export function renderMissingReport(
+  revision: string,
+  runUrl: string,
+  correlationId?: string,
+): string {
   return [
     DOCS_IMPACT_COMMENT_MARKER,
-    `**Docs impact: not reviewed** · ${runLine(revision, runUrl)}`,
+    `**Docs impact: not reviewed** · ${runLine(revision, runUrl, correlationId)}`,
     '',
     'The review did not produce a report. No judgment was made.',
   ].join('\n');
+}
+
+export function renderCancelled(
+  revision: string,
+  runUrl: string,
+  correlationId?: string,
+): string {
+  return [
+    DOCS_IMPACT_COMMENT_MARKER,
+    `**Docs impact: not completed** · ${runLine(revision, runUrl, correlationId)}`,
+    '',
+    'The run was cancelled or timed out before the review finished. No judgment was made.',
+  ].join('\n');
+}
+
+/** Whether `body` is the in-progress placeholder of the run at `runUrl`. */
+function isProgressOf(body: string | null, runUrl: string): boolean {
+  return (
+    !!body?.includes(PROGRESS_HEADLINE) &&
+    body.includes(`[workflow run](${runUrl})`)
+  );
 }
 
 /**
@@ -87,7 +120,7 @@ class CommentApi {
     options: {
       apiUrl?: string;
       fetchImpl?: typeof fetch;
-      sleep?: (ms: number) => Promise<void>;
+      retry?: GitHubApiOptions['retry'];
     },
   ) {
     this.api = new GitHubApi({ token, ...options });
@@ -100,11 +133,22 @@ class CommentApi {
     return pr.head.sha;
   }
 
-  async upsert(prNumber: number, body: string): Promise<void> {
+  async find(prNumber: number): Promise<IssueComment | undefined> {
     const comments = await this.api.paginate<IssueComment>(
       `/repos/${this.repo}/issues/${prNumber}/comments`,
     );
-    const existing = findDocsImpactComment(comments, this.author);
+    return findDocsImpactComment(comments, this.author);
+  }
+
+  async edit(id: number, body: string): Promise<void> {
+    await this.api.request(`/repos/${this.repo}/issues/comments/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ body }),
+    });
+  }
+
+  async upsert(prNumber: number, body: string): Promise<void> {
+    const existing = await this.find(prNumber);
     if (existing) {
       await this.api.request(
         `/repos/${this.repo}/issues/comments/${existing.id}`,
@@ -137,7 +181,7 @@ function readReport(path: string | undefined): DocsImpactReport | undefined {
  * a newer one.
  */
 export async function updateDocsImpactComment(args: {
-  mode: 'start' | 'publish';
+  mode: 'start' | 'publish' | 'cancelled';
   repo: string;
   prNumber: number;
   reviewedRevision: string;
@@ -149,14 +193,29 @@ export async function updateDocsImpactComment(args: {
   correlationId?: string;
   apiUrl?: string;
   fetchImpl?: typeof fetch;
-  sleep?: (ms: number) => Promise<void>;
-}): Promise<'progress' | 'published' | 'stale' | 'missing'> {
+  retry?: GitHubApiOptions['retry'];
+}): Promise<
+  'progress' | 'published' | 'stale' | 'missing' | 'cancelled' | 'unchanged'
+> {
   requireFullOid(args.reviewedRevision, 'reviewed revision');
   const github = new CommentApi(args.repo, args.token, args.author, {
     apiUrl: args.apiUrl,
     fetchImpl: args.fetchImpl,
-    sleep: args.sleep,
+    retry: args.retry,
   });
+  // A cancelled run replaces only its own placeholder: by the time it runs,
+  // a newer run may already own the comment.
+  if (args.mode === 'cancelled') {
+    const existing = await github.find(args.prNumber);
+    if (!existing || !isProgressOf(existing.body, args.runUrl)) {
+      return 'unchanged';
+    }
+    await github.edit(
+      existing.id,
+      renderCancelled(args.reviewedRevision, args.runUrl, args.correlationId),
+    );
+    return 'cancelled';
+  }
   const current = requireFullOid(
     await github.headSha(args.prNumber),
     'current revision',
@@ -164,7 +223,12 @@ export async function updateDocsImpactComment(args: {
   if (current !== args.reviewedRevision) {
     await github.upsert(
       args.prNumber,
-      renderStale(args.reviewedRevision, current, args.runUrl),
+      renderStale(
+        args.reviewedRevision,
+        current,
+        args.runUrl,
+        args.correlationId,
+      ),
     );
     return 'stale';
   }
@@ -179,7 +243,11 @@ export async function updateDocsImpactComment(args: {
   if (!report || report.headRevision !== args.reviewedRevision) {
     await github.upsert(
       args.prNumber,
-      renderMissingReport(args.reviewedRevision, args.runUrl),
+      renderMissingReport(
+        args.reviewedRevision,
+        args.runUrl,
+        args.correlationId,
+      ),
     );
     return 'missing';
   }
@@ -193,7 +261,12 @@ export async function updateDocsImpactComment(args: {
   if (after !== args.reviewedRevision) {
     await github.upsert(
       args.prNumber,
-      renderStale(args.reviewedRevision, after, args.runUrl),
+      renderStale(
+        args.reviewedRevision,
+        after,
+        args.runUrl,
+        args.correlationId,
+      ),
     );
     return 'stale';
   }
@@ -216,7 +289,9 @@ export async function runCommentCli(args: string[]): Promise<void> {
     },
   });
   if (
-    (values.mode !== 'start' && values.mode !== 'publish') ||
+    (values.mode !== 'start' &&
+      values.mode !== 'publish' &&
+      values.mode !== 'cancelled') ||
     !values.repo ||
     !values.pr ||
     !values.revision ||
@@ -224,7 +299,7 @@ export async function runCommentCli(args: string[]): Promise<void> {
     !values.author
   ) {
     throw new Error(
-      'Usage: comment --mode start|publish --repo owner/repo --pr N --revision SHA --run-url URL --author LOGIN [--report summary.json] [--correlation-id UUID]',
+      'Usage: comment --mode start|publish|cancelled --repo owner/repo --pr N --revision SHA --run-url URL --author LOGIN [--report summary.json] [--correlation-id UUID]',
     );
   }
   const prNumber = Number(values.pr);

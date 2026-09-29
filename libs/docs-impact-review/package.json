@@ -10,21 +10,25 @@
       "import": "./src/index.ts",
       "types": "./src/index.ts"
     },
-    "./review-cli": {
-      "import": "./src/review-cli.ts",
-      "types": "./src/review-cli.ts"
-    },
     "./comment": {
       "import": "./src/comment.ts",
       "types": "./src/comment.ts"
+    },
+    "./config": {
+      "import": "./src/config.ts",
+      "types": "./src/config.ts"
+    },
+    "./github-api": {
+      "import": "./src/github-api.ts",
+      "types": "./src/github-api.ts"
     },
     "./prepare": {
       "import": "./src/prepare.ts",
       "types": "./src/prepare.ts"
     },
-    "./config": {
-      "import": "./src/config.ts",
-      "types": "./src/config.ts"
+    "./review-cli": {
+      "import": "./src/review-cli.ts",
+      "types": "./src/review-cli.ts"
     },
     "./run": {
       "import": "./src/run.ts",
@@ -40,6 +44,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@moltnet/api-client": "workspace:*",
     "@themoltnet/os-keyring": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
     "@themoltnet/tasks-orchestrator": "workspace:*",

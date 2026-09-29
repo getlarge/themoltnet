@@ -9,9 +9,10 @@ import {
 } from '@nx/devkit';
 
 import {
+  authHeaderValue,
   missingBundleEntries,
   stableMajorTagFor,
-  tagPushArgs,
+  tagPushCommand,
 } from './github-action-release.js';
 
 type PackageJson = {
@@ -21,6 +22,8 @@ type PackageJson = {
 type Options = {
   project: string;
   entries: string[];
+  /** Other action projects whose committed bundles this action runs. */
+  alsoVerify: string[];
   stableMajorTagPrefix: string;
   dryRun: boolean;
 };
@@ -78,6 +81,9 @@ function parsePublisherArgs(argv = process.argv.slice(2)): Options {
       'stable-major-tag-prefix': {
         type: 'string',
       },
+      'also-verify': {
+        type: 'string',
+      },
       tag: {
         type: 'string',
       },
@@ -106,6 +112,10 @@ function parsePublisherArgs(argv = process.argv.slice(2)): Options {
       .split(',')
       .map((entry) => entry.trim())
       .filter(Boolean),
+    alsoVerify: (values['also-verify'] ?? '')
+      .split(',')
+      .map((project) => project.trim())
+      .filter(Boolean),
     stableMajorTagPrefix: values['stable-major-tag-prefix'] ?? 'v',
     dryRun:
       values['dry-run'] === true ||
@@ -114,11 +124,15 @@ function parsePublisherArgs(argv = process.argv.slice(2)): Options {
   };
 }
 
-function git(args: string[], options: { stdio?: 'ignore' | 'inherit' } = {}) {
+function git(
+  args: string[],
+  options: { stdio?: 'ignore' | 'inherit'; env?: Record<string, string> } = {},
+) {
   if (options.stdio) {
     execFileSync('git', args, {
       stdio: options.stdio,
       windowsHide: true,
+      env: { ...process.env, ...options.env },
     });
     return '';
   }
@@ -174,6 +188,11 @@ async function main() {
   }
 
   assertBundleCommitted(bundleDir);
+  // A workflow at this tag may also run another action's bundle from the
+  // same commit; a stale one must not ship under this release.
+  for (const other of options.alsoVerify) {
+    assertBundleCommitted(join(await resolveProjectRoot(other), 'dist'));
+  }
 
   const packageJson = JSON.parse(
     readFileSync(packageJsonPath, 'utf-8'),
@@ -210,9 +229,16 @@ async function main() {
   git(['tag', '-f', stableMajorTag, target], { stdio: 'inherit' });
   // The release job checks out without persisted credentials and hands the
   // token to this one push.
-  git(tagPushArgs(stableMajorTag, process.env.GITHUB_ACTION_RELEASE_TOKEN), {
-    stdio: 'inherit',
-  });
+  const token = process.env.GITHUB_ACTION_RELEASE_TOKEN;
+  if (token && process.env.GITHUB_ACTIONS === 'true') {
+    process.stdout.write(`::add-mask::${authHeaderValue(token)}\n`);
+  }
+  const push = tagPushCommand(
+    stableMajorTag,
+    token,
+    process.env.GITHUB_SERVER_URL,
+  );
+  git(push.args, { stdio: 'inherit', env: push.env });
 }
 
 main().catch((error: unknown) => {

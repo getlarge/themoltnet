@@ -5,9 +5,10 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  authHeaderValue,
   missingBundleEntries,
   stableMajorTagFor,
-  tagPushArgs,
+  tagPushCommand,
 } from './github-action-release.js';
 
 describe('stableMajorTagFor', () => {
@@ -54,31 +55,32 @@ describe('missingBundleEntries', () => {
   });
 });
 
-describe('tagPushArgs', () => {
+describe('tagPushCommand', () => {
   it('force-pushes the tag with the ambient credentials by default', () => {
     // Act / Assert
-    expect(tagPushArgs('v0')).toEqual([
-      'push',
-      'origin',
-      'refs/tags/v0:refs/tags/v0',
-      '--force',
-    ]);
+    expect(tagPushCommand('v0')).toEqual({
+      args: ['push', 'origin', 'refs/tags/v0:refs/tags/v0', '--force'],
+      env: {},
+    });
   });
 
-  it('authenticates only this push when given a token', () => {
+  it('authenticates only this push through the environment, not argv', () => {
     // Act
-    const args = tagPushArgs('v0', 'secret-token');
+    const command = tagPushCommand(
+      'v0',
+      'secret-token',
+      'https://ghe.example.com',
+    );
 
     // Assert
-    expect(args.slice(0, 2)).toEqual([
-      '-c',
-      `http.https://github.com/.extraheader=AUTHORIZATION: basic ${Buffer.from('x-access-token:secret-token').toString('base64')}`,
-    ]);
-    expect(args.slice(2)).toEqual([
-      'push',
-      'origin',
-      'refs/tags/v0:refs/tags/v0',
-      '--force',
-    ]);
+    expect(command.args.join(' ')).not.toContain('secret');
+    expect(command.args.join(' ')).not.toContain(
+      authHeaderValue('secret-token'),
+    );
+    expect(command.env).toEqual({
+      GIT_CONFIG_COUNT: '1',
+      GIT_CONFIG_KEY_0: 'http.https://ghe.example.com/.extraheader',
+      GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${Buffer.from('x-access-token:secret-token').toString('base64')}`,
+    });
   });
 });

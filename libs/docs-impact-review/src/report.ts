@@ -16,11 +16,13 @@ export const COMMENT_TEXT_MAX = 280;
 
 /**
  * Model-written text is published as the posting identity, so it must not
- * notify anyone or inject markup: `@` mentions are broken with a zero-width
- * space and `<`/`>` are escaped.
+ * notify anyone or inject markup: Markdown links and images keep only their
+ * text, `@` mentions are broken with a zero-width space, and `<`/`>` are
+ * escaped.
  */
 export function neutralize(text: string): string {
   return text
+    .replace(/!?\[([^\]\n]*)\]\([^)\n]*\)/g, '$1')
     .replace(/@(?=[A-Za-z0-9_-])/g, '@\u200b')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
@@ -43,8 +45,18 @@ export function formatDuration(ms: number): string {
   return minutes > 0 ? `${minutes}m ${seconds % 60}s` : `${seconds}s`;
 }
 
+/** A repository path shown as code and linked at head; both escaped. */
 function fileLink(report: DocsImpactReport, path: string): string {
-  return `[\`${path}\`](https://github.com/${report.repo}/blob/${report.headRevision}/${path})`;
+  // encodeURIComponent leaves `(` and `)`, which would end the link.
+  const target = path
+    .split('/')
+    .map((segment) =>
+      encodeURIComponent(segment).replace(/[()]/g, (char) =>
+        char === '(' ? '%28' : '%29',
+      ),
+    )
+    .join('/');
+  return `[${codeSpan(path)}](https://github.com/${report.repo}/blob/${report.headRevision}/${target})`;
 }
 
 /**
@@ -113,7 +125,7 @@ export function renderComment(report: DocsImpactReport): string {
     lines.push('');
     for (const finding of report.findings.slice(0, COMMENT_MAX_FINDINGS)) {
       const doc = missing.has(finding.docsPath)
-        ? `\`${finding.docsPath}\``
+        ? codeSpan(finding.docsPath)
         : fileLink(report, finding.docsPath);
       const section = finding.section
         ? ` › ${headingText(finding.section)}`
@@ -134,7 +146,7 @@ export function renderComment(report: DocsImpactReport): string {
   if (report.gaps.length > 0) {
     lines.push('', 'Not covered by this review:');
     for (const gap of report.gaps) {
-      lines.push(`- \`${gap.scope}\`: ${neutralize(gap.reason)}`);
+      lines.push(`- ${codeSpan(gap.scope)}: ${neutralize(gap.reason)}`);
     }
   }
   return lines.join('\n');

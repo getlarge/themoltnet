@@ -23,22 +23,36 @@ export function missingBundleEntries(
   return entries.filter((entry) => !existsSync(join(bundleDir, entry)));
 }
 
+export interface GitCommand {
+  args: string[];
+  /** Extra environment for this one `git` process. */
+  env: Record<string, string>;
+}
+
 /**
- * `git` arguments that force-push the tag. With a token, it authenticates
+ * The `git` command that force-pushes the tag. With a token, it authenticates
  * only this push, so the checkout never persists a write-capable credential.
+ * The header goes through `GIT_CONFIG_*` rather than `-c`, so it is not in
+ * the process arguments; callers mask `authHeaderValue` in logs.
  */
-export function tagPushArgs(tag: string, token?: string): string[] {
-  const auth = token
-    ? [
-        '-c',
-        `http.https://github.com/.extraheader=AUTHORIZATION: basic ${Buffer.from(`x-access-token:${token}`).toString('base64')}`,
-      ]
-    : [];
-  return [
-    ...auth,
-    'push',
-    'origin',
-    `refs/tags/${tag}:refs/tags/${tag}`,
-    '--force',
-  ];
+export function tagPushCommand(
+  tag: string,
+  token?: string,
+  serverUrl = 'https://github.com',
+): GitCommand {
+  return {
+    args: ['push', 'origin', `refs/tags/${tag}:refs/tags/${tag}`, '--force'],
+    env: token
+      ? {
+          GIT_CONFIG_COUNT: '1',
+          GIT_CONFIG_KEY_0: `http.${serverUrl.replace(/\/?$/, '/')}.extraheader`,
+          GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${authHeaderValue(token)}`,
+        }
+      : {},
+  };
+}
+
+/** The base64 credential in the header; GitHub masks the token, not this. */
+export function authHeaderValue(token: string): string {
+  return Buffer.from(`x-access-token:${token}`).toString('base64');
 }

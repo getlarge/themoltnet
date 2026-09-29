@@ -44,9 +44,11 @@ Setting these up is described in the MoltNet documentation at
 ## Workflow
 
 Call the reusable workflow. It runs `prepare` (collect facts, pin revisions,
-check eligibility), the review, and one worker per distinct profile, and it
-checks out this action and `agent-daemon-action` from its own commit, so the
-reviewer and its workers are always the same version.
+check eligibility), the review, and one worker per distinct profile. It checks
+out this action and `agent-daemon-action` from its own commit, pinned once in
+`prepare`, so the reviewer and the workers' action always match. The
+`agent-daemon` binary the workers run is released separately; pin it with
+`daemon-version` to control upgrades.
 
 ```yaml
 name: Docs impact review
@@ -68,7 +70,11 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    secrets: inherit
+    # Pass only what the review uses rather than `secrets: inherit`.
+    secrets:
+      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+      MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }} # your profiles' provider
     with:
       profile: docs-review # example: your runtime profile's name
       # A pull request that changes the review workflow is not reviewed.
@@ -84,10 +90,17 @@ Useful inputs besides `profile` and `protected-paths`:
 | `environment`                                            | GitHub environment holding the secrets and `MOLTNET_*` variables.                  |
 | `team-id`, `diary-id`, `agent-name`, `app-id`, `api-url` | Override the matching `MOLTNET_*` variables.                                       |
 | `project-id`                                             | A MoltNet project whose binding supplies the repository to workers.                |
-| `daemon-version`                                         | The workers' `agent-daemon` release (`latest` by default).                         |
+| `daemon-version`                                         | The workers' `agent-daemon` release: `latest` (default) or an exact version.       |
+| `runtime-ref`                                            | Advanced: run the review from another revision of this repository. Leave empty.    |
 
-To re-run a review, re-run all jobs: re-running only the failed review job
-starts it without workers.
+With `environment`, secrets come from that environment instead, since
+environment secrets cannot be passed through `workflow_call`.
+
+The workflow's outputs are `skip`, `reason`, and `correlation-id` (the id of
+the run's MoltNet tasks and worker logs).
+
+To re-run a review, re-run all jobs. Re-running only the failed review job
+would start it without workers, so the review refuses and says so.
 
 MoltNet's own workflow,
 [`docs-impact-review.yml`](../../.github/workflows/docs-impact-review.yml),
@@ -97,12 +110,62 @@ trigger.
 ### Using the action directly
 
 The reusable workflow is built from this composite action, which has two
-steps: `step: prepare` (outputs the pinned revisions, the profiles, the
-correlation id, and `skip`) and `step: review` (takes those outputs as
-`prepared: ${{ toJSON(needs.prepare.outputs) }}`, plus `team-id`, `diary-id`,
-and the optional `app-id`/`app-private-key`). Workers must drain the same
-`correlation-id` with a matching `agent-daemon-action`. See
-[`action.yml`](./action.yml) and the reusable workflow for the full wiring.
+steps. `step: prepare` outputs `skip`, `reason`, `correlation-id`, and
+`prepared`: one versioned JSON value with the pinned revisions, the profiles,
+and `workerProfiles`. `step: review` takes that value as `prepared`, plus
+`team-id`, `diary-id`, and the optional `app-id`/`app-private-key`, and runs
+in a checkout of the **base** revision with the head fetched as git objects.
+Workers drain the same correlation id with `agent-daemon-action`, one per
+profile in `workerProfiles`. A minimal skeleton:
+
+```yaml
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    permissions: { contents: read, pull-requests: read }
+    outputs:
+      skip: ${{ steps.prepare.outputs.skip }}
+      prepared: ${{ steps.prepare.outputs.prepared }}
+    steps:
+      - id: prepare
+        uses: getlarge/themoltnet/packages/docs-impact-review-action@docs-impact-review-action-v0
+        with:
+          step: prepare
+          profile: docs-review
+          protected-paths: .github/workflows/docs-impact-review.yml
+
+  review:
+    needs: prepare
+    if: needs.prepare.outputs.skip == 'false'
+    runs-on: ubuntu-latest
+    permissions: { contents: read, pull-requests: write }
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ fromJSON(needs.prepare.outputs.prepared).baseSha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - run: git fetch --no-tags origin "$HEAD_SHA"
+        env:
+          HEAD_SHA: ${{ fromJSON(needs.prepare.outputs.prepared).headSha }}
+      - uses: getlarge/themoltnet/packages/docs-impact-review-action@docs-impact-review-action-v0
+        env:
+          MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+          MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
+        with:
+          step: review
+          prepared: ${{ needs.prepare.outputs.prepared }}
+          team-id: ${{ vars.MOLTNET_TEAM_ID }}
+          diary-id: ${{ vars.MOLTNET_DIARY_ID }}
+
+  # plus one agent-daemon-action worker per workerProfiles entry, draining
+  # fromJSON(needs.prepare.outputs.prepared).correlationId; see the reusable
+  # workflow.
+```
+
+A private repository needs an authenticated fetch; the reusable workflow
+shows one that does not persist the token. See [`action.yml`](./action.yml)
+for every input.
 
 ## Trust
 
@@ -115,16 +178,25 @@ and the optional `app-id`/`app-private-key`). Workers must drain the same
 - `prepare` skips pull requests from forks, Dependabot pull requests, and
   pull requests that change a `protected-paths` prefix.
 - The comment is only published if the pull request still points at the
-  reviewed head; otherwise it says the result is stale.
+  reviewed head; otherwise it says the result is stale. A cancelled or
+  timed-out run replaces only its own "reviewing" placeholder.
 
 ## Versions
 
 Pin the moving major tag `docs-impact-review-action-v0`, or an immutable
 release tag `docs-impact-review-action-vX.Y.Z`. Both exist from the first
 release of the action; until then, pin a commit SHA. The action is released by
-release-please as the `docs-impact-review-action` component; the release job
-checks the committed bundle at the release tag and moves
-`docs-impact-review-action-v0` to it. It never moves the `v0` tag that
+release-please as the `docs-impact-review-action` component. The release job
+checks the committed bundles at the release tag (this action's and
+`agent-daemon-action`'s, which the reusable workflow runs from the same
+commit), publishes the release, and then moves
+`docs-impact-review-action-v0` to it.
+
+The reusable workflow and `agent-daemon-action` live outside this package, so
+[`runtime.lock`](./runtime.lock) records their hashes: CI fails a pull request
+that changes them without refreshing the lock
+(`node tools/src/release/action-runtime-lock.ts --write`), and the refreshed
+lock, committed as a fix or feature, releases this action with the change. It never moves the `v0` tag that
 `agent-daemon-action` uses. The committed `dist/` is rebuilt with
 
 ```bash

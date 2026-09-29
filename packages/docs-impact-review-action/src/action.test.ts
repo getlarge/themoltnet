@@ -97,15 +97,19 @@ function calls(name: string): string[][] {
 }
 
 const prepared = {
-  skip: 'false',
-  'pr-number': '7',
-  'base-sha': 'a'.repeat(40),
-  'head-sha': 'b'.repeat(40),
-  'correlation-id': '00000000-0000-4000-8000-000000000001',
-  profile: 'docs-review',
-  'coverage-profile': 'coverage-model',
-  'docs-check-profile': 'docs-review',
-  'worker-profiles': '["docs-review","coverage-model"]',
+  v: 1,
+  eligible: true,
+  pr: 7,
+  baseSha: 'a'.repeat(40),
+  headSha: 'b'.repeat(40),
+  correlationId: '00000000-0000-4000-8000-000000000001',
+  runAttempt: 1,
+  profiles: {
+    default: 'docs-review',
+    coverage: 'coverage-model',
+    docsCheck: 'docs-review',
+  },
+  workerProfiles: ['docs-review', 'coverage-model'],
 };
 
 const reviewInputs = {
@@ -114,6 +118,7 @@ const reviewInputs = {
   DIARY_ID: 'diary',
   APP_ID: '',
   APP_KEY: '',
+  GITHUB_RUN_ATTEMPT: '1',
 };
 
 beforeEach(() => {
@@ -186,10 +191,12 @@ describe('prepare: committed bundle', () => {
     });
 
     // Assert
-    expect(outputs()).toMatchObject({
-      skip: 'true',
-      'pr-number': '7',
-      'head-sha': 'b'.repeat(40),
+    expect(outputs()).toMatchObject({ skip: 'true' });
+    expect(JSON.parse(outputs().prepared)).toMatchObject({
+      v: 1,
+      eligible: false,
+      pr: 7,
+      headSha: 'b'.repeat(40),
     });
     expect(outputs().reason).toContain('.github/workflows/docs.yml');
     expect(outputs()['correlation-id']).toMatch(/^[0-9a-f-]{36}$/);
@@ -213,7 +220,7 @@ describe('review: prepared input', () => {
       'pr-number': '7',
       'base-sha': 'a'.repeat(40),
       'head-sha': 'b'.repeat(40),
-      'correlation-id': prepared['correlation-id'],
+      'correlation-id': prepared.correlationId,
       profile: 'docs-review',
       'coverage-profile': 'coverage-model',
     });
@@ -225,19 +232,43 @@ describe('review: prepared input', () => {
 
     // Assert
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain('toJSON(needs.prepare.outputs)');
+    expect(result.stderr).toContain("the prepare step's prepared output");
   });
 
   it('refuses a pull request that prepare skipped', () => {
     // Act
     const result = runStep('check-review', {
       ...reviewInputs,
-      PREPARED: JSON.stringify({ ...prepared, skip: 'true' }),
+      PREPARED: JSON.stringify({ ...prepared, eligible: false }),
     });
 
     // Assert
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('not eligible');
+  });
+
+  it('refuses a payload version it does not know', () => {
+    // Act
+    const result = runStep('check-review', {
+      ...reviewInputs,
+      PREPARED: JSON.stringify({ ...prepared, v: 2 }),
+    });
+
+    // Assert
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("version '2' is not supported");
+  });
+
+  it('asks to re-run all jobs when only the review was re-run', () => {
+    // Act
+    const result = runStep('check-review', {
+      ...reviewInputs,
+      GITHUB_RUN_ATTEMPT: '2',
+    });
+
+    // Assert
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('re-run all jobs, not only failed ones');
   });
 
   it('names every invalid prepared field', () => {
@@ -246,15 +277,15 @@ describe('review: prepared input', () => {
       ...reviewInputs,
       PREPARED: JSON.stringify({
         ...prepared,
-        'head-sha': 'b'.repeat(7),
-        'correlation-id': 'chosen-by-hand',
+        headSha: 'b'.repeat(7),
+        correlationId: 'chosen-by-hand',
       }),
     });
 
     // Assert
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(
-      'missing or invalid: head-sha correlation-id',
+      'missing or invalid: headSha correlationId',
     );
   });
 
@@ -384,6 +415,42 @@ describe('review: comments', () => {
       'my-app[bot]',
       '--report',
       resolve(root, 'summary.json'),
+      '--correlation-id',
+      'c-1',
+    ]);
+  });
+
+  it('marks its placeholder not completed when cancelled, best effort', () => {
+    // Arrange
+    const step = action.runs.steps.find(
+      (candidate) => candidate.id === 'cancelled',
+    ) as { if?: string };
+
+    // Act
+    const result = runStep('cancelled', {
+      ...env,
+      DIST: fakeDist(),
+      CORRELATION_ID: 'c-1',
+      FAKE_CODE: '1',
+    });
+
+    // Assert
+    expect(step.if).toContain('cancelled()');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('could not mark the review not completed');
+    expect(calls('comment')[0]).toEqual([
+      '--mode',
+      'cancelled',
+      '--repo',
+      'o/r',
+      '--pr',
+      '7',
+      '--revision',
+      'b'.repeat(40),
+      '--run-url',
+      env.RUN_URL,
+      '--author',
+      'my-app[bot]',
       '--correlation-id',
       'c-1',
     ]);

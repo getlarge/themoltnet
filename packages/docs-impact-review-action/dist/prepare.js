@@ -1,8 +1,15 @@
-import { n as actionEnv, t as GitHubApi } from "./assets/github-api-Bz5k9z37.js";
-import { t as runMain } from "./assets/run-DcpEUPSf.js";
+import { i as actionEnv, t as runMain } from "./assets/run-BzFLlp08.js";
+import { t as GitHubApi } from "./assets/github-api-CbIYj_8t.js";
 import { createHash } from "node:crypto";
 import { appendFileSync, readFileSync } from "node:fs";
 //#region ../../libs/docs-impact-review/src/eligibility.ts
+/**
+* GitHub lists changed files relative to the repository root, so a prefix
+* written as `./.github/` or `/.github/` means `.github/`.
+*/
+function normalizePrefix(prefix) {
+	return prefix.trim().replace(/^(?:\.?\/)+/, "");
+}
 function checkEligibility(pr) {
 	if (pr.headRepo !== pr.baseRepo) return {
 		eligible: false,
@@ -12,7 +19,7 @@ function checkEligibility(pr) {
 		eligible: false,
 		reason: "Dependabot pull requests are not reviewed"
 	};
-	const protectedPaths = (pr.protectedPaths ?? []).filter((prefix) => prefix.length > 0);
+	const protectedPaths = (pr.protectedPaths ?? []).map(normalizePrefix).filter((prefix) => prefix.length > 0);
 	const runtimeChanges = /* @__PURE__ */ new Set();
 	for (const file of pr.files) for (const path of [file.filename, file.previous_filename]) if (path && protectedPaths.some((prefix) => path.startsWith(prefix))) runtimeChanges.add(path);
 	if (runtimeChanges.size > 0) return {
@@ -40,7 +47,7 @@ async function preparePullRequestReview(options) {
 	const { api, repo, pullNumber } = options;
 	const pr = await api.request(`/repos/${repo}/pulls/${pullNumber}`);
 	const files = await api.paginate(`/repos/${repo}/pulls/${pullNumber}/files`);
-	const eligibility = checkEligibility({
+	const facts = {
 		headRepo: pr.head.repo?.full_name ?? null,
 		baseRepo: repo,
 		author: pr.user.login,
@@ -49,30 +56,42 @@ async function preparePullRequestReview(options) {
 			...file.previous_filename ? { previous_filename: file.previous_filename } : {}
 		})),
 		protectedPaths: options.protectedPaths
-	});
-	const coverageProfile = options.coverageProfile || options.profile;
-	const docsCheckProfile = options.docsCheckProfile || options.profile;
+	};
+	const eligibility = files.length < pr.changed_files ? {
+		eligible: false,
+		reason: `GitHub listed ${files.length} of ${pr.changed_files} changed files, so the protected paths cannot be checked`
+	} : checkEligibility(facts);
+	const coverage = options.coverageProfile || options.profile;
+	const docsCheck = options.docsCheckProfile || options.profile;
+	const runAttempt = Number(options.runAttempt);
 	return {
-		skip: eligibility.eligible ? "false" : "true",
+		skip: !eligibility.eligible,
 		reason: eligibility.eligible ? "" : eligibility.reason,
-		"pr-number": String(pr.number),
-		"base-sha": pr.base.sha,
-		"head-sha": pr.head.sha,
-		"correlation-id": correlationIdFor([
-			repo,
-			pr.number,
-			pr.head.sha,
-			options.runId,
-			options.runAttempt
-		].join(":")),
-		profile: options.profile,
-		"coverage-profile": coverageProfile,
-		"docs-check-profile": docsCheckProfile,
-		"worker-profiles": JSON.stringify([...new Set([
-			options.profile,
-			coverageProfile,
-			docsCheckProfile
-		])])
+		prepared: {
+			v: 1,
+			eligible: eligibility.eligible,
+			pr: pr.number,
+			baseSha: pr.base.sha,
+			headSha: pr.head.sha,
+			correlationId: correlationIdFor([
+				repo,
+				pr.number,
+				pr.head.sha,
+				options.runId,
+				runAttempt
+			].join(":")),
+			runAttempt,
+			profiles: {
+				default: options.profile,
+				coverage,
+				docsCheck
+			},
+			workerProfiles: [...new Set([
+				options.profile,
+				coverage,
+				docsCheck
+			])]
+		}
 	};
 }
 /** The pull request a `pull_request` or `issue_comment` event is about. */
@@ -93,7 +112,7 @@ async function runPrepareCli(env, fetchImpl) {
 	if (protectedPaths.length === 0) process.stdout.write("::warning::no protected-paths: a pull request that changes the review workflow is reviewed by the workflow it changes\n");
 	const eventName = required(env, "GITHUB_EVENT_NAME");
 	const event = JSON.parse(readFileSync(required(env, "GITHUB_EVENT_PATH"), "utf8"));
-	const prepared = await preparePullRequestReview({
+	const result = await preparePullRequestReview({
 		api: new GitHubApi({
 			token: required(env, "GITHUB_TOKEN"),
 			apiUrl: env.GITHUB_API_URL,
@@ -108,10 +127,15 @@ async function runPrepareCli(env, fetchImpl) {
 		docsCheckProfile: env.DOCS_CHECK_PROFILE,
 		protectedPaths
 	});
-	appendFileSync(required(env, "GITHUB_OUTPUT"), Object.entries(prepared).map(([name, value]) => `${name}=${value.replace(/[\r\n]+/g, " ")}\n`).join(""));
-	if (prepared.skip === "true") {
-		process.stdout.write(`::notice::Docs impact review skipped: ${prepared.reason}\n`);
-		if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, `### Docs impact review skipped\n\n${prepared.reason}\n`);
+	appendFileSync(required(env, "GITHUB_OUTPUT"), [
+		`skip=${result.skip}`,
+		`reason=${result.reason.replace(/[\r\n]+/g, " ")}`,
+		`correlation-id=${result.prepared.correlationId}`,
+		`prepared=${JSON.stringify(result.prepared)}`
+	].map((line) => `${line}\n`).join(""));
+	if (result.skip) {
+		process.stdout.write(`::notice::Docs impact review skipped: ${result.reason}\n`);
+		if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, `### Docs impact review skipped\n\n${result.reason}\n`);
 	}
 }
 //#endregion
