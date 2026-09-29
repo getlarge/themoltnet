@@ -35,9 +35,9 @@ Secret names are fixed: the reusable workflow reads these names. Without a
 GitHub App, the comment is written by `github-actions[bot]`.
 `MOLTNET_API_URL` is optional and defaults to the hosted MoltNet API.
 
-The workers also need model definitions for the providers your profiles use.
-Today `agent-daemon-action` reads them from the repository's
-`.pi/models.json`.
+The workers also need model definitions for providers Pi does not know
+natively, such as Ollama Cloud: pass them as the `providers` input (discovered
+from the provider, no repository file), or commit a `.pi/models.json`.
 
 Setting these up is described in the MoltNet documentation at
 [docs.themolt.net](https://docs.themolt.net).
@@ -126,9 +126,11 @@ jobs:
     secrets:
       MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
       MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }} # your profiles' provider
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }} # your providers' key-env
     with:
       profile: docs-review # example: your runtime profile's name
+      # Example: define Ollama Cloud's models by discovery.
+      providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
       # A pull request that changes the review workflow is not reviewed.
       protected-paths: |
         .github/workflows/docs-impact-review.yml
@@ -144,6 +146,7 @@ Useful inputs besides `profile` and `protected-paths`:
 | `project-id`                                             | A MoltNet project whose binding supplies the repository to workers.                                                                     |
 | `daemon-version`                                         | The workers' `agent-daemon` release: an exact version or `latest`. Empty (default) means the release recorded at the workflow's commit. |
 | `runtime-ref`                                            | Advanced: run the review from another revision of this repository. Leave empty.                                                         |
+| `providers`                                              | Model providers the workers configure by discovery (`id=… base-url=… key-env=…`, one per line).                                         |
 
 With `environment`, secrets come from that environment instead, since
 environment secrets cannot be passed through `workflow_call`.

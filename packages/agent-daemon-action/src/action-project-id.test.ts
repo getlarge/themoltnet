@@ -11,7 +11,6 @@
  */
 import { spawnSync } from 'node:child_process';
 import {
-  chmodSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -21,32 +20,22 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { parse } from 'yaml';
 
-const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const action = parse(
-  readFileSync(resolve(packageRoot, 'action.yml'), 'utf8'),
-) as {
-  inputs: Record<string, { default?: string }>;
-  runs: {
-    steps: { id?: string; run?: string; env?: Record<string, string> }[];
-  };
-};
+import {
+  loadAction,
+  renderRun as render,
+  stepById as stepByIdIn,
+  writeExecutable,
+} from './test-support.js';
 
-function stepById(id: string) {
-  const step = action.runs.steps.find((candidate) => candidate.id === id);
-  if (!step?.run) throw new Error(`Missing action step id: ${id}`);
-  return step as { id: string; run: string; env?: Record<string, string> };
-}
-
+const action = loadAction();
+const stepById = (id: string) => stepByIdIn(action, id);
 /** Expressions are resolved by the runner, not bash; inline the ones used. */
-function renderRun(run: string): string {
-  return run.replaceAll('${{ inputs.cancel-superseded }}', 'false');
-}
+const renderRun = (run: string) =>
+  render(run, { 'inputs.cancel-superseded': 'false' });
 
 const PROJECT = '55555555-5555-4555-8555-555555555555';
 const TEAM = '11111111-1111-4111-8111-111111111111';
@@ -54,11 +43,6 @@ const TEAM = '11111111-1111-4111-8111-111111111111';
 let root: string;
 let binDir: string;
 let callLog: string;
-
-function writeExecutable(path: string, body: string) {
-  writeFileSync(path, `#!/usr/bin/env bash\n${body}\n`, 'utf8');
-  chmodSync(path, 0o755);
-}
 
 /** Fake `npx`: `task create --help` prints $FAKE_CREATE_HELP; a create logs argv. */
 function installFakeNpx() {

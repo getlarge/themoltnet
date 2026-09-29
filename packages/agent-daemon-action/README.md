@@ -48,7 +48,7 @@ Four invocation shapes:
     wait-for-first-task-sec: '300' # drain only
     wait-after-task-sec: '300' # drain only
     max-poll-interval-ms: '3000' # drain only; empty = daemon default
-    providers: ollama-cloud https://ollama.com/v1 OLLAMA_API_KEY # optional
+    providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY # optional
     daemon-version: latest
     # Required — runtime profile UUID or team-scoped name.
     # Equivalently set MOLTNET_AGENT_PROFILE on `env:` below.
@@ -262,30 +262,49 @@ that env (loading its secrets) before the allowlist check ran.
 If `MOLTNET_AGENT_ALLOWLIST` is unset or empty, the parse job exits
 with an error explaining what to set. The workflow fails closed.
 
-## Pi provider auth
-
-Pi-headless inside the daemon needs to authenticate against an LLM
-provider. Two mutually-compatible options:
-
-### Custom providers (`providers` input)
+## Model providers
 
 Providers Pi does not know natively, such as Ollama Cloud, need model
-definitions. Configure them in the daemon's provider store with the
-`providers` input, one per line — `<id> <base-url> <key-env> [<api>]`:
+definitions. The action offers two sources for them.
+
+### `providers` input
+
+Configure providers in the daemon's provider store, one per line, as
+`key=value` tokens:
 
 ```yaml
 providers: |
-  ollama-cloud https://ollama.com/v1 OLLAMA_API_KEY
+  # Ollama Cloud; the key comes from OLLAMA_API_KEY
+  id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
+  # A local, keyless provider with another Pi API kind
+  id=ollama base-url=http://localhost:11434/v1 api=openai-completions
 ```
 
-For each line the action runs `moltnet-agent providers set`, piping the API key
-from the named environment variable (`-` for a keyless provider), then
+| Token      | Required | Meaning                                                                                                                                  |
+| ---------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`       | yes      | Provider id, as referenced by your runtime profiles.                                                                                     |
+| `base-url` | yes      | Provider API URL. Must be `https`, except for `localhost`, `127.*`, or `[::1]`.                                                          |
+| `key-env`  | no       | Environment variable holding the API key; omit for a keyless provider. `GITHUB_*`, `ACTIONS_*`, `RUNNER_*`, and `MOLTNET_*` are refused. |
+| `api`      | no       | Pi API kind; defaults to `openai-completions`.                                                                                           |
+
+Unknown tokens are errors, so new tokens can be added without changing the
+meaning of existing lines. Blank lines and lines starting with `#` are ignored.
+
+For each line the action runs `moltnet-agent providers set`, piping the key on
+stdin (it is masked in the log and never passed as an argument), then
 `moltnet-agent providers discover --save` to record the provider's models and
-their capabilities. The discovered `providers.json` is cached for a week, keyed
-by the input and the daemon version; API keys are never cached and are
-re-supplied on every run. With `providers` set, the daemon builds Pi's model
-configuration from this store, layering a repository `.pi/` on top when one
-exists. `providers` cannot yet be combined with `PI_AUTH_JSON`.
+their capabilities. The discovered `providers.json` is cached per ISO week,
+input, and resolved daemon version; a cache with no models for a provider is
+rediscovered, a discovery that found no models fails the step, and a partial
+discovery is used but not cached. Keys are never cached and are removed from
+the store when the action ends.
+
+With `providers` set, the daemon composes Pi's model configuration from this
+store. A repository `.pi/models.json` is merged underneath: its providers and
+models are kept, and for a provider id defined in both, the store's definition
+wins. `PI_AUTH_JSON` is written into the store alongside. A caller-set
+`PI_CODING_AGENT_DIR` would make the daemon ignore the store, so the action
+refuses that combination.
 
 ### Repository `.pi/` configuration
 
@@ -299,6 +318,11 @@ When repo-local `.pi/settings.json` or `.pi/models.json` exist, the action
 copies them into the runner-local Pi directory before starting the daemon, and
 they must reference secrets by environment variable name, for example
 `"apiKey": "$OLLAMA_API_KEY"`.
+
+## Pi provider auth
+
+Pi-headless inside the daemon needs to authenticate against an LLM
+provider. Two mutually-compatible options:
 
 ### Option A — Env-var API key (default, stateless)
 

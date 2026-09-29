@@ -1,90 +1,91 @@
 /**
- * Executes the `providers` shell block from action.yml against a fake
- * `moltnet-agent` to pin the provider-configuration contract:
+ * Executes the provider steps from action.yml against a fake `moltnet-agent`
+ * to pin the provider-configuration contract:
  *
- * - each line configures one provider; the API key is piped on stdin from
- *   the named environment variable, never passed as an argument;
- * - models are discovered unless the provider cache was restored;
- * - an empty discovery fails the step so it is never cached.
+ * - each line configures one provider; the API key reaches the CLI on stdin,
+ *   never on argv, and is masked in the log;
+ * - models are discovered unless a restored cache already holds them;
+ * - an empty discovery fails the step, and a partial one is not cached.
  */
 import { spawnSync } from 'node:child_process';
-import {
-  chmodSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { parse } from 'yaml';
 
-const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const action = parse(
-  readFileSync(resolve(packageRoot, 'action.yml'), 'utf8'),
-) as {
-  inputs: Record<string, { default?: string }>;
-  runs: { steps: { id?: string; if?: string; name?: string; run?: string }[] };
-};
+import {
+  loadAction,
+  readCalls,
+  renderRun,
+  stepById,
+  writeExecutable,
+} from './test-support.js';
 
-function step(id: string) {
-  const found = action.runs.steps.find((candidate) => candidate.id === id);
-  if (!found?.run) throw new Error(`Missing action step id: ${id}`);
-  return found as { id: string; run: string; if?: string };
-}
+const action = loadAction();
 
 let root: string;
-let log: string;
 let agent: string;
+let output: string;
 
-/** Fake agent: logs argv and stdin; `discover` prints $FAKE_MODELS models. */
+/**
+ * Fake agent: logs argv to argv.log and stdin to stdin.log (one line per
+ * call). `providers list` reports $FAKE_KNOWN models; `discover` prints
+ * $FAKE_MODELS models and $FAKE_FAILURES endpoint failures, and exits
+ * $FAKE_DISCOVER_CODE.
+ */
 function installFakeAgent() {
   agent = resolve(root, 'moltnet-agent');
-  writeFileSync(
+  writeExecutable(
     agent,
     [
-      '#!/usr/bin/env bash',
-      'stdin=""',
-      'if [[ " $* " == *" --api-key-stdin "* ]]; then stdin="$(cat)"; fi',
-      `printf '%s|stdin=%s\\n' "$*" "$stdin" >> "${log}"`,
+      `printf '%s\\n' "$*" >> "${root}/argv.log"`,
+      'if [[ " $* " == *" --api-key-stdin "* ]]; then',
+      `  printf '%s\\n' "$(cat)" >> "${root}/stdin.log"`,
+      'fi',
+      'if [ "$2" = list ]; then',
+      '  models=""',
+      '  for ((i = 1; i <= ${FAKE_KNOWN:-0}; i++)); do models="$models{\\"id\\":\\"m$i\\"},"; done',
+      '  printf \'{"configuredProviders":{"%s":{"models":[%s]}}}\' "${FAKE_ID:-ollama-cloud}" "${models%,}"',
+      'fi',
       'if [ "$2" = discover ]; then',
       '  models=""',
       '  for ((i = 1; i <= ${FAKE_MODELS:-2}; i++)); do models="$models{\\"id\\":\\"m$i\\"},"; done',
-      '  printf \'{"models":[%s]}\' "${models%,}"',
+      '  failures=""',
+      '  for ((i = 1; i <= ${FAKE_FAILURES:-0}; i++)); do failures="$failures{\\"kind\\":\\"network\\"},"; done',
+      '  printf \'{"models":[%s],"failures":[%s]}\' "${models%,}" "${failures%,}"',
+      '  exit "${FAKE_DISCOVER_CODE:-0}"',
       'fi',
     ].join('\n'),
   );
-  chmodSync(agent, 0o755);
 }
 
 function runProviders(env: Record<string, string>) {
-  return spawnSync('bash', ['-c', step('providers').run], {
-    encoding: 'utf8',
-    env: {
-      PATH: process.env.PATH ?? '',
-      HOME: root,
-      DAEMON_VERSION: 'latest',
-      MOLTNET_AGENT_BIN: agent,
-      CACHE_HIT: 'false',
-      ...env,
+  return spawnSync(
+    'bash',
+    ['-c', renderRun(stepById(action, 'providers').run)],
+    {
+      encoding: 'utf8',
+      env: {
+        PATH: process.env.PATH ?? '',
+        HOME: root,
+        GITHUB_OUTPUT: output,
+        MOLTNET_AGENT_BIN: agent,
+        CACHE_HIT: 'false',
+        ...env,
+      },
     },
-  });
+  );
 }
 
-function calls(): string[] {
-  try {
-    return readFileSync(log, 'utf8').trim().split('\n');
-  } catch {
-    return [];
-  }
-}
+const argv = () => readCalls(resolve(root, 'argv.log'));
+const stdin = () => readCalls(resolve(root, 'stdin.log'));
+const cloud =
+  'id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY';
 
 beforeEach(() => {
   root = mkdtempSync(resolve(tmpdir(), 'agent-daemon-action-providers-'));
-  log = resolve(root, 'calls.log');
+  output = resolve(root, 'github-output');
   installFakeAgent();
 });
 
@@ -106,53 +107,102 @@ describe('providers input', () => {
 });
 
 describe('providers step', () => {
-  it('pipes the API key on stdin and discovers models', () => {
+  it('pipes the API key on stdin only, masks it, and discovers models', () => {
     // Act
     const result = runProviders({
-      PROVIDERS: 'ollama-cloud https://ollama.com/v1 OLLAMA_API_KEY\n',
+      PROVIDERS: cloud,
       OLLAMA_API_KEY: 'sk-test',
     });
 
     // Assert
     expect(result.status).toBe(0);
-    expect(calls()).toEqual([
-      'providers set ollama-cloud --base-url https://ollama.com/v1 --api openai-completions --api-key-stdin|stdin=sk-test',
-      'providers discover ollama-cloud --save --json|stdin=',
+    expect(argv()).toEqual([
+      'providers set ollama-cloud --base-url https://ollama.com/v1 --api openai-completions --api-key-stdin',
+      'providers list --json',
+      'providers discover ollama-cloud --save --json',
     ]);
-    expect(calls().join('\n')).not.toContain('sk-test --');
+    expect(argv().join('\n')).not.toContain('sk-test');
+    expect(stdin()).toEqual(['sk-test']);
+    expect(result.stdout).toContain('::add-mask::sk-test');
+    expect(readFileSync(output, 'utf8')).toContain('cacheable=true');
   });
 
-  it('configures a keyless provider with its own API kind', () => {
+  it('keeps each key with its own provider', () => {
     // Act
     const result = runProviders({
-      PROVIDERS: 'ollama http://localhost:11434/v1 - openai-responses',
+      PROVIDERS: `${cloud}\nid=openai base-url=https://api.openai.com/v1 key-env=OPENAI_API_KEY api=openai-responses\n`,
+      OLLAMA_API_KEY: 'sk-ollama',
+      OPENAI_API_KEY: 'sk-openai',
     });
 
     // Assert
     expect(result.status).toBe(0);
-    expect(calls()[0]).toBe(
-      'providers set ollama --base-url http://localhost:11434/v1 --api openai-responses|stdin=',
+    expect(stdin()).toEqual(['sk-ollama', 'sk-openai']);
+    expect(argv()).toContain(
+      'providers set openai --base-url https://api.openai.com/v1 --api openai-responses --api-key-stdin',
     );
   });
 
-  it('skips discovery when the provider cache was restored', () => {
+  it('configures a keyless local provider', () => {
     // Act
     const result = runProviders({
-      PROVIDERS: 'ollama-cloud https://ollama.com/v1 OLLAMA_API_KEY',
-      OLLAMA_API_KEY: 'sk-test',
-      CACHE_HIT: 'true',
+      PROVIDERS: 'id=ollama base-url=http://localhost:11434/v1\r\n',
     });
 
     // Assert
     expect(result.status).toBe(0);
-    expect(calls()).toHaveLength(1);
-    expect(calls()[0]).toContain('providers set ollama-cloud');
+    expect(argv()[0]).toBe(
+      'providers set ollama --base-url http://localhost:11434/v1 --api openai-completions',
+    );
+    expect(stdin()).toEqual([]);
+  });
+
+  it('skips discovery when a restored cache holds models for the provider', () => {
+    // Act
+    const result = runProviders({
+      PROVIDERS: cloud,
+      OLLAMA_API_KEY: 'sk-test',
+      CACHE_HIT: 'true',
+      FAKE_KNOWN: '3',
+    });
+
+    // Assert
+    expect(result.status).toBe(0);
+    expect(argv().some((call) => call.includes('discover'))).toBe(false);
+  });
+
+  it('rediscovers when a restored cache holds no models for the provider', () => {
+    // Act
+    const result = runProviders({
+      PROVIDERS: cloud,
+      OLLAMA_API_KEY: 'sk-test',
+      CACHE_HIT: 'true',
+      FAKE_KNOWN: '0',
+    });
+
+    // Assert
+    expect(result.status).toBe(0);
+    expect(argv()).toContain('providers discover ollama-cloud --save --json');
+  });
+
+  it('does not cache a partial discovery', () => {
+    // Act
+    const result = runProviders({
+      PROVIDERS: cloud,
+      OLLAMA_API_KEY: 'sk-test',
+      FAKE_FAILURES: '1',
+    });
+
+    // Assert
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('discovery was partial');
+    expect(readFileSync(output, 'utf8')).toContain('cacheable=false');
   });
 
   it('fails when discovery finds no models, so nothing empty is cached', () => {
     // Act
     const result = runProviders({
-      PROVIDERS: 'ollama-cloud https://ollama.com/v1 OLLAMA_API_KEY',
+      PROVIDERS: cloud,
       OLLAMA_API_KEY: 'sk-test',
       FAKE_MODELS: '0',
     });
@@ -162,36 +212,132 @@ describe('providers step', () => {
     expect(result.stderr).toContain('discovery found no models');
   });
 
-  it.each([
-    [
-      'a missing key variable',
-      'ollama-cloud https://ollama.com/v1 OLLAMA_API_KEY',
-      'needs its API key',
-    ],
-    ['a malformed line', 'ollama-cloud', 'must be: <id> <base-url>'],
-    [
-      'a key variable that is not a name',
-      'x https://x.test/v1 $(id)',
-      'not an environment variable name',
-    ],
-  ])('rejects %s', (_label, providers, message) => {
+  it('fails when discovery itself fails', () => {
     // Act
-    const result = runProviders({ PROVIDERS: providers });
+    const result = runProviders({
+      PROVIDERS: cloud,
+      OLLAMA_API_KEY: 'sk-test',
+      FAKE_DISCOVER_CODE: '1',
+    });
 
     // Assert
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain(message);
-    expect(calls()).toEqual([]);
+    expect(result.status).not.toBe(0);
+  });
+
+  it.each([
+    ['a missing key variable', cloud, {}, 'needs its API key'],
+    [
+      'an empty key variable',
+      cloud,
+      { OLLAMA_API_KEY: '' },
+      'needs its API key',
+    ],
+    [
+      'a line without an id',
+      'base-url=https://x.test/v1',
+      {},
+      'needs id= and base-url=',
+    ],
+    [
+      'an unknown token',
+      `${cloud} models=a,b`,
+      { OLLAMA_API_KEY: 'k' },
+      "unknown providers token 'models=a,b'",
+    ],
+    [
+      'a key variable that is not a name',
+      'id=x base-url=https://x.test/v1 key-env=$(id)',
+      {},
+      'not an environment variable name',
+    ],
+    [
+      'a platform credential as key',
+      'id=x base-url=https://x.test/v1 key-env=GITHUB_TOKEN',
+      { GITHUB_TOKEN: 'ghs_x' },
+      'cannot use GITHUB_TOKEN',
+    ],
+    [
+      'a plain http public endpoint',
+      'id=x base-url=http://x.test/v1 key-env=X_KEY',
+      { X_KEY: 'k' },
+      'must use https',
+    ],
+  ])(
+    'rejects %s before calling the agent',
+    (_label, providers, env, message) => {
+      // Act
+      const result = runProviders({ PROVIDERS: providers, ...env });
+
+      // Assert
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain(message);
+      expect(argv()).toEqual([]);
+    },
+  );
+
+  it('accepts a lowercase key variable name', () => {
+    // Act
+    const result = runProviders({
+      PROVIDERS: 'id=x base-url=https://x.test/v1 key-env=my_key',
+      my_key: 'k',
+    });
+
+    // Assert
+    expect(result.status).toBe(0);
   });
 
   it('ignores blank lines and comments', () => {
     // Act
     const result = runProviders({
-      PROVIDERS: '\n# local models\nollama http://localhost:11434/v1 -\n',
+      PROVIDERS:
+        '\n# local models\nid=ollama base-url=http://127.0.0.1:11434/v1\n',
     });
 
     // Assert
     expect(result.status).toBe(0);
-    expect(calls()).toHaveLength(2);
+    expect(argv()[0]).toContain('providers set ollama');
+  });
+});
+
+describe('providers checks', () => {
+  it('refuses providers when the caller set PI_CODING_AGENT_DIR', () => {
+    // Arrange
+    const step = action.runs.steps.find(
+      (candidate) => candidate.name === 'Check the providers configuration',
+    );
+
+    // Act
+    const result = spawnSync('bash', ['-c', step?.run ?? ''], {
+      encoding: 'utf8',
+      env: { PATH: process.env.PATH ?? '', PI_CODING_AGENT_DIR: '/tmp/pi' },
+    });
+
+    // Assert
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('would ignore the providers input');
+  });
+
+  it('writes PI_AUTH_JSON into the provider store alongside providers', () => {
+    // Arrange
+    const step = action.runs.steps.find((candidate) =>
+      candidate.name?.startsWith('Materialize Pi auth.json'),
+    );
+
+    // Act
+    const result = spawnSync('bash', ['-c', renderRun(step?.run ?? '')], {
+      encoding: 'utf8',
+      env: {
+        PATH: process.env.PATH ?? '',
+        HOME: root,
+        PROVIDERS: cloud,
+        PI_AUTH_JSON: '{"openai-codex":{}}',
+      },
+    });
+
+    // Assert
+    expect(result.status).toBe(0);
+    expect(
+      readFileSync(resolve(root, '.config/moltnet/pi/auth.json'), 'utf8'),
+    ).toBe('{"openai-codex":{}}');
   });
 });

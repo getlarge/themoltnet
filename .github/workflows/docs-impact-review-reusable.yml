@@ -71,6 +71,14 @@ on:
           this environment and read them from it. Empty for repository secrets.
         type: string
         default: ''
+      providers:
+        description: >
+          Model providers the workers configure, one per line as key=value
+          tokens (see agent-daemon-action's `providers` input), for example
+          `id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY`.
+          Empty to use a repository .pi/models.json instead.
+        type: string
+        default: ''
       daemon-version:
         description: >
           agent-daemon release the workers run: an exact version or
@@ -328,3 +336,4 @@ jobs:
           profile: ${{ matrix.profile }}
           daemon-version: ${{ steps.daemon-version.outputs.value }}
           project-id: ${{ inputs.project-id }}
+          providers: ${{ inputs.providers }}
