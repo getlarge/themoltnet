@@ -64,12 +64,39 @@ import {
   type SessionSubscribeEvent,
   shouldEmitToolCallError,
   submitRepromptStopped,
+  warnUnsupportedThinkingLevel,
   wireSessionAbort,
 } from './execute-pi-task.js';
 import { classifyProviderFailure } from './provider-error-classification.js';
 
 const shouldRetryProviderErrorMessage = (message: string | null | undefined) =>
   classifyProviderFailure(message).retryable;
+
+it('keeps the task-bound logger context when warning about unsupported thinking', () => {
+  const warnings: Array<{ context: Record<string, unknown>; message: string }> =
+    [];
+  const logger = {
+    marker: 'task-bound',
+    warn(
+      this: { marker: string },
+      context: Record<string, unknown>,
+      message: string,
+    ) {
+      expect(this.marker).toBe('task-bound');
+      warnings.push({ context, message });
+    },
+  } as unknown as NonNullable<
+    Parameters<typeof warnUnsupportedThinkingLevel>[0]
+  >;
+  warnUnsupportedThinkingLevel(
+    logger,
+    { model: 'glm-5.3-flash' },
+    'Thinking ignored',
+  );
+  expect(warnings).toEqual([
+    { context: { model: 'glm-5.3-flash' }, message: 'Thinking ignored' },
+  ]);
+});
 
 function executorTestClaimedTask(): ClaimedTask {
   return {
