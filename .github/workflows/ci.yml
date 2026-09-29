@@ -164,7 +164,8 @@ jobs:
         if: steps.wsl-bundle-runtime.outputs.cache-hit == 'true'
         run: |
           $archive = Join-Path $env:RUNNER_TEMP 'wsl-bundle-runtime.tar'
-          $wslArchive = (wsl.exe --distribution Ubuntu-24.04 -- wslpath -u $archive).Trim()
+          $drive = $archive[0].ToString().ToLowerInvariant()
+          $wslArchive = '/mnt/' + $drive + $archive.Substring(2).Replace('\', '/')
           wsl.exe --distribution Ubuntu-24.04 -- mkdir -p /root/.cache
           wsl.exe --distribution Ubuntu-24.04 -- tar -xf $wslArchive -C /root/.cache
       - name: Install WSL2 build, Go, and Gondolin dependencies
@@ -195,7 +196,8 @@ jobs:
         if: success() && steps.wsl-bundle-runtime.outputs.cache-hit != 'true'
         run: |
           $archive = Join-Path $env:RUNNER_TEMP 'wsl-bundle-runtime.tar'
-          $wslArchive = (wsl.exe --distribution Ubuntu-24.04 -- wslpath -u $archive).Trim()
+          $drive = $archive[0].ToString().ToLowerInvariant()
+          $wslArchive = '/mnt/' + $drive + $archive.Substring(2).Replace('\', '/')
           wsl.exe --distribution Ubuntu-24.04 -- tar -C /root/.cache -cf $wslArchive moltnet-release
       - name: Save WSL bundle runtime
         if: success() && steps.wsl-bundle-runtime.outputs.cache-hit != 'true'
