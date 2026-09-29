@@ -1,4 +1,4 @@
-FROM docker/sandbox-templates:claude-code
+FROM docker/sandbox-templates:claude-code@sha256:868e3f5ef10579e06903d42e86448851ed59319ab8b9fba6dea2772c449bb2a6
 
 USER root
 

@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.7@sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e
 # @moltnet/mcp-server — generic packaging Dockerfile.
 #
 # Build via Nx (autoinferred by @nx/docker):
