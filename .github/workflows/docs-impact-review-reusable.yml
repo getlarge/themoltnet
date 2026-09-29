@@ -69,7 +69,7 @@ on:
         type: string
         default: ''
       daemon-version:
-        description: agent-daemon release for the workers (`latest`, an exact version, or `workspace` in the MoltNet repository).
+        description: agent-daemon release for the workers (`latest` or an exact version). The workers run the signed release bundle, never code from the checkout.
         type: string
         default: latest
       runtime-ref:
@@ -161,10 +161,6 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    env:
-      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
-      MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
-      MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -189,8 +185,13 @@ jobs:
           path: .docs-impact-runtime
           sparse-checkout: packages/docs-impact-review-action
           persist-credentials: false
+      # Credentials are given only to the step that uses them.
       - name: Review documentation impact
         uses: ./.docs-impact-runtime/packages/docs-impact-review-action
+        env:
+          MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+          MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
+          MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
         with:
           step: review
           prepared: ${{ toJSON(needs.prepare.outputs) }}
@@ -216,17 +217,6 @@ jobs:
     environment: ${{ inputs.environment }}
     permissions:
       contents: read
-    env:
-      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
-      MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
-      MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
-      MOLTNET_TEAM_ID: ${{ inputs.team-id || vars.MOLTNET_TEAM_ID }}
-      MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
-      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -248,18 +238,20 @@ jobs:
           path: .docs-impact-runtime
           sparse-checkout: packages/agent-daemon-action
           persist-credentials: false
-      # `workspace` runs the daemon from the checked-out MoltNet repository.
-      - if: inputs.daemon-version == 'workspace'
-        uses: pnpm/action-setup@v6
-      - if: inputs.daemon-version == 'workspace'
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: 24
-          cache: pnpm
-      - if: inputs.daemon-version == 'workspace'
-        run: pnpm install --frozen-lockfile
+      # Credentials and provider keys are given only to the daemon step.
       - name: Drain this review's tasks
         uses: ./.docs-impact-runtime/packages/agent-daemon-action
+        env:
+          MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+          MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
+          MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
+          MOLTNET_TEAM_ID: ${{ inputs.team-id || vars.MOLTNET_TEAM_ID }}
+          MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         with:
           agent-name: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
           mode: drain

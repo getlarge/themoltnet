@@ -2,9 +2,10 @@ name: Docs impact review
 
 # Advisory documentation-impact review (#2373): does this PR leave users,
 # operators, or contributors with missing, incorrect, or unnecessary
-# instructions? Calls the reusable workflow other repositories use, with the
-# review runtime taken from the pull request's base revision; the reviewed
-# head is fetched as inert git data and never checked out or executed.
+# instructions? Calls the reusable workflow other repositories use, from the
+# default branch, with the review runtime taken from the default branch (or
+# the pull request base when that is the default branch); the reviewed head is
+# fetched as inert git data and never checked out or executed.
 
 on:
   pull_request:
@@ -36,22 +37,22 @@ jobs:
           (github.event.comment.author_association == 'OWNER' ||
             github.event.comment.author_association == 'MEMBER' ||
             github.event.comment.author_association == 'COLLABORATOR')))
-    uses: ./.github/workflows/docs-impact-review-reusable.yml
+    # The reusable workflow comes from the default branch, like the runtime it
+    # checks out. Its jobs run in the legreffier environment and read the
+    # secrets and MOLTNET_* variables from it, so none are passed here.
+    uses: getlarge/themoltnet/.github/workflows/docs-impact-review-reusable.yml@main
     permissions:
       contents: read
       pull-requests: write
-    secrets: inherit
     with:
-      # Team, diary, agent, App id, and API URL come from the legreffier
-      # environment's MOLTNET_* variables inside the reusable workflow.
       environment: legreffier
       profile: ${{ vars.MOLTNET_DOCS_IMPACT_PROFILE }}
       coverage-profile: ${{ vars.MOLTNET_DOCS_IMPACT_COVERAGE_PROFILE }}
       docs-check-profile: ${{ vars.MOLTNET_DOCS_IMPACT_DOCS_CHECK_PROFILE }}
-      # Run the review from the pull request base (the default branch for a
-      # comment), not the reviewed head.
-      runtime-ref: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
-      daemon-version: workspace
+      # The review runtime comes from the default branch: the pull request base
+      # when it targets the default branch, the default branch otherwise
+      # (including comment triggers). Never the reviewed head.
+      runtime-ref: ${{ github.event.pull_request.base.ref == github.event.repository.default_branch && github.event.pull_request.base.sha || github.event.repository.default_branch }}
       # The review runtime: a PR changing it is not reviewed by it.
       protected-paths: |
         .github/workflows/docs-impact-review.yml
