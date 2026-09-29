@@ -26,6 +26,23 @@ Their live team copies are managed through released `moltnet profile` and
 `moltnet policy` commands. The profile uses GLM 5.3 Flash with eight turns and
 no shell, file, network, or diary tools.
 
+The profile definition cannot contain a `policies` field: the API accepts
+policy bindings separately. After creating the profile and policy from the
+linked JSON files, bind the policy explicitly (this replaces the profile's
+entire policy set), then check the effective permissions:
+
+```bash
+TEAM=6743b4b1-6b93-46e2-a048-19490f04f91a
+moltnet profile set-policies legreffier-complexity-review-v2 \
+  --policy legreffier-complexity-review-input-only-v1 --team-id "$TEAM"
+moltnet profile policies legreffier-complexity-review-v2 --team-id "$TEAM"
+moltnet profile allowed-tools legreffier-complexity-review-v2 --team-id "$TEAM"
+```
+
+The resolved view must show `enforcement: "enforce"` with empty
+`allowedTools` and `allowedShellCommands` arrays. Recheck it whenever either
+runtime asset is applied.
+
 For a read-only local ingestion trial, the command prints the change-map task:
 
 ```bash
