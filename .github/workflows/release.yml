@@ -30,7 +30,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, agent-daemon-action, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, legreffier-plugin, cli, api-client, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, n8n-nodes-moltnet, node-red-theme, agent-daemon, agent-desktop, console, database, mcp-host, mcp-server, rest-api, otel-custom-collector
+          Valid values: sdk, agent-daemon-action, docs-impact-review-action, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, legreffier-plugin, cli, api-client, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, n8n-nodes-moltnet, node-red-theme, agent-daemon, agent-desktop, console, database, mcp-host, mcp-server, rest-api, otel-custom-collector
         required: false
         type: string
 
@@ -69,6 +69,8 @@ jobs:
       os-keyring-tag-name: ${{ steps.release.outputs['libs/os-keyring--tag_name'] }}
       agent-daemon-action-release-created: ${{ steps.release.outputs['packages/agent-daemon-action--release_created'] }}
       agent-daemon-action-tag-name: ${{ steps.release.outputs['packages/agent-daemon-action--tag_name'] }}
+      docs-impact-review-action-release-created: ${{ steps.release.outputs['packages/docs-impact-review-action--release_created'] }}
+      docs-impact-review-action-tag-name: ${{ steps.release.outputs['packages/docs-impact-review-action--tag_name'] }}
       tasks-orchestrator-release-created: ${{ steps.release.outputs['libs/tasks-orchestrator--release_created'] }}
       tasks-orchestrator-tag-name: ${{ steps.release.outputs['libs/tasks-orchestrator--tag_name'] }}
       credentials-release-created: ${{ steps.release.outputs['libs/credentials--release_created'] }}
@@ -288,6 +290,8 @@ jobs:
       os-keyring-tag: ${{ steps.resolve.outputs.os-keyring-tag }}
       agent-daemon-action: ${{ steps.resolve.outputs.agent-daemon-action }}
       agent-daemon-action-tag: ${{ steps.resolve.outputs.agent-daemon-action-tag }}
+      docs-impact-review-action: ${{ steps.resolve.outputs.docs-impact-review-action }}
+      docs-impact-review-action-tag: ${{ steps.resolve.outputs.docs-impact-review-action-tag }}
       tasks-orchestrator: ${{ steps.resolve.outputs.tasks-orchestrator }}
       tasks-orchestrator-tag: ${{ steps.resolve.outputs.tasks-orchestrator-tag }}
       credentials: ${{ steps.resolve.outputs.credentials }}
@@ -349,6 +353,8 @@ jobs:
           RP_OS_KEYRING_TAG: ${{ needs.release-please.outputs.os-keyring-tag-name }}
           RP_AGENT_DAEMON_ACTION_CREATED: ${{ needs.release-please.outputs.agent-daemon-action-release-created }}
           RP_AGENT_DAEMON_ACTION_TAG: ${{ needs.release-please.outputs.agent-daemon-action-tag-name }}
+          RP_DOCS_IMPACT_REVIEW_ACTION_CREATED: ${{ needs.release-please.outputs.docs-impact-review-action-release-created }}
+          RP_DOCS_IMPACT_REVIEW_ACTION_TAG: ${{ needs.release-please.outputs.docs-impact-review-action-tag-name }}
           RP_TASKS_ORCHESTRATOR_CREATED: ${{ needs.release-please.outputs.tasks-orchestrator-release-created }}
           RP_TASKS_ORCHESTRATOR_TAG: ${{ needs.release-please.outputs.tasks-orchestrator-tag-name }}
           RP_CREDENTIALS_CREATED: ${{ needs.release-please.outputs.credentials-release-created }}
@@ -487,6 +493,7 @@ jobs:
           resolve "sdk"          "$RP_SDK_CREATED"       "$RP_SDK_TAG"       "sdk"
           resolve "os-keyring"   "$RP_OS_KEYRING_CREATED" "$RP_OS_KEYRING_TAG" "os-keyring"
           resolve "agent-daemon-action" "$RP_AGENT_DAEMON_ACTION_CREATED" "$RP_AGENT_DAEMON_ACTION_TAG" "agent-daemon-action"
+          resolve "docs-impact-review-action" "$RP_DOCS_IMPACT_REVIEW_ACTION_CREATED" "$RP_DOCS_IMPACT_REVIEW_ACTION_TAG" "docs-impact-review-action"
           resolve "tasks-orchestrator" "$RP_TASKS_ORCHESTRATOR_CREATED" "$RP_TASKS_ORCHESTRATOR_TAG" "tasks-orchestrator"
           resolve "credentials" "$RP_CREDENTIALS_CREATED" "$RP_CREDENTIALS_TAG" "credentials"
           resolve "credential-broker" "$RP_CREDENTIAL_BROKER_CREATED" "$RP_CREDENTIAL_BROKER_TAG" "credential-broker"
@@ -759,6 +766,37 @@ jobs:
 
       - name: Publish agent-daemon-action release
         run: gh release edit "${{ needs.resolve-publish.outputs.agent-daemon-action-tag }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-docs-impact-review-action:
+    name: Release docs-impact-review-action
+    needs: resolve-publish
+    if: ${{ always() && needs.resolve-publish.outputs.docs-impact-review-action == 'true' && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.resolve-publish.outputs.docs-impact-review-action-tag }}
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Rebuilds dist/, refuses to release when it differs from the committed
+      # bundle, then moves the stable major tag to the release commit.
+      - run: pnpm exec nx run @themoltnet/docs-impact-review-action:publish-action
+
+      - name: Publish docs-impact-review-action release
+        run: gh release edit "${{ needs.resolve-publish.outputs.docs-impact-review-action-tag }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

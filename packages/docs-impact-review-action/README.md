@@ -216,9 +216,11 @@ the worker matrix). `review` outputs `summary-path`, the review report.
 ## Versions
 
 Pin the moving major tag `docs-impact-review-action-v0`, or an immutable
-release tag `docs-impact-review-action-vX.Y.Z`. The action is released by Nx
-release in its own `docs-impact-review-action` group. The committed `dist/`
-is rebuilt with
+release tag `docs-impact-review-action-vX.Y.Z`. The action is released by
+release-please as the `docs-impact-review-action` component; the release job
+checks the committed bundle at the release tag and moves
+`docs-impact-review-action-v0` to it. It never moves the `v0` tag that
+`agent-daemon-action` uses. The committed `dist/` is rebuilt with
 
 ```bash
 pnpm exec nx run @themoltnet/docs-impact-review-action:build

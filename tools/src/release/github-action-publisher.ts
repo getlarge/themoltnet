@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -150,15 +150,21 @@ async function main() {
   const projectRoot = await resolveProjectRoot(options.project);
   const packageJsonPath = join(projectRoot, 'package.json');
   const actionPath = join(projectRoot, 'action.yml');
-  const bundlePath = join(projectRoot, 'dist/main.js');
+  const bundleDir = join(projectRoot, 'dist');
 
-  for (const path of [packageJsonPath, actionPath, bundlePath]) {
+  for (const path of [packageJsonPath, actionPath, bundleDir]) {
     if (!existsSync(path)) {
       throw new Error(`GitHub Action release artifact is missing: ${path}`);
     }
   }
+  // Actions bundle different entry points (agent-daemon-action ships
+  // main.js; docs-impact-review-action ships review, comment, eligibility),
+  // so require a non-empty bundle rather than one file name.
+  if (readdirSync(bundleDir).length === 0) {
+    throw new Error(`GitHub Action bundle is empty: ${bundleDir}`);
+  }
 
-  assertBundleCommitted(join(projectRoot, 'dist'));
+  assertBundleCommitted(bundleDir);
 
   const packageJson = JSON.parse(
     readFileSync(packageJsonPath, 'utf-8'),

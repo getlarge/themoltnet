@@ -27,7 +27,7 @@
   },
   "nx": {
     "targets": {
-      "nx-release-publish": {
+      "publish-action": {
         "executor": "nx:run-commands",
         "dependsOn": [
           "build"
