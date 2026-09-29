@@ -190,20 +190,25 @@ and the comment says so.
 }
 ```
 
-| Key                | Effect                                                                                                                                                                                                                                   |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `routing`          | Maps code paths to the pages that document them. Nearest READMEs are found automatically, so list only pages a README would miss. Routed pages are required reading: if they overflow, the review reports a gap.                         |
-| `docs.exclude`     | Markdown that is never reviewed, searched, or selected. Added to the built-in `**/CHANGELOG.md`.                                                                                                                                         |
-| `docs.agentFacing` | Instructions written for agents (skills, prompts). They rank below user and operator docs unless the pull request changed them or a routing rule names them. Added to the built-in list (`.agents/**`, `.claude/**`, `**/skills/**`, …). |
-| `instructions`     | Up to 2,000 characters of guidance added to every stage brief. It refines the review within its fixed scope and output format; it cannot change them.                                                                                    |
+| Key                | Effect                                                                                                                                                                                                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `routing`          | Maps code paths to the pages that document them. Nearest READMEs are found automatically, so list only pages a README would miss. Routed pages are required reading: if they overflow, the review reports a gap.                                                    |
+| `docs.exclude`     | Markdown that is never reviewed, searched, or selected. Added to the built-in `**/CHANGELOG.md`.                                                                                                                                                                    |
+| `docs.agentFacing` | Instructions written for agents (skills, prompts). They rank below user and operator docs unless the pull request changed them or a routing rule names them. Added to the built-in `.agents/**`, `.claude/**`, `.codex/**`, `.cursor/**`, `.pi/**`, `**/skills/**`. |
+| `instructions`     | Up to 2,000 characters of guidance added to every stage brief. It refines the review within its fixed scope and output format; it cannot change them.                                                                                                               |
 
 Both `docs` lists add to the built-in ones; an empty list adds nothing.
 
-**Globs** follow git pathspec rules everywhere they are used (routing
-`paths`, `docs.exclude`, `docs.agentFacing`): `**` spans any number of
-directories, `*` and `?` stay within one, wildcards match names that start with
-a dot, and a pattern without wildcards matches that path and everything below
-it (`vendor` covers `vendor/a.md`).
+**Globs** use one small dialect everywhere (routing `paths`, `docs.exclude`,
+`docs.agentFacing`), close to git pathspecs: `**` as a whole segment spans any
+number of directories, `*` and `?` stay within one segment, wildcards match
+names that start with a dot, and a pattern without wildcards matches that path
+and everything below it (`vendor` covers `vendor/a.md`). Leading and trailing
+`/` are ignored. Character classes (`[ab]`) are not supported, and a pattern
+using them is rejected rather than matched literally.
+
+A routing rule may not name a page that `docs.exclude` drops: the
+configuration is rejected instead of silently losing a required route.
 
 **Versioning.** The file declares `"version": 1`. Within version 1, new keys
 are only added, never renamed or removed, and an unknown key is an error that
@@ -211,7 +216,10 @@ names it. A configuration using a key the pinned reviewer does not know yet
 needs a newer reviewer.
 
 An invalid configuration fails that pull request's review with a message naming
-the file, the revision, and every key to fix; other pull requests still run.
+the file, the revision, and the keys to fix (the first five, and how many
+more); other pull requests still run. So does any other per-pull-request
+failure, such as a revision that cannot be fetched: its failed report is
+written like any other, including to `--out`.
 
 Mark generated code and docs with `linguist-generated` in `.gitattributes`
 rather than in this file: the reviewer reads it from the base revision too.

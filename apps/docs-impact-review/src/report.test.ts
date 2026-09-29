@@ -192,7 +192,25 @@ describe('renderComment', () => {
     // Assert
     expect(defaults).toContain('reviewed with the default configuration');
     expect(override).toContain('configuration in `local.json`');
-    expect(base.split('\n')).toHaveLength(2);
+    expect(base).toContain('_Configuration: `x`._');
+  });
+
+  it('keeps an error message inside its code span', () => {
+    // Act
+    const body = renderComment(
+      report({
+        status: 'failed',
+        outcome: undefined,
+        headRevision: '',
+        error: 'bad `key`\n# heading [link](https://x)',
+      }),
+    );
+
+    // Assert
+    expect(body).toContain(
+      '``bad `key` # heading [link](https://x)``. No judgment was made.',
+    );
+    expect(body).toContain('head unknown');
   });
 
   it('never renders a failed run as a clean result', () => {

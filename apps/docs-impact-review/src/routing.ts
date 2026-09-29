@@ -208,6 +208,19 @@ export interface DocsSelection {
   overflow: Array<{ path: string; reasons: DocsSelectionReason[] }>;
 }
 
+/**
+ * The one candidate pipeline for reviews and dry runs: drop what the
+ * repository excludes, then rank within the budget.
+ */
+export function selectCandidates(
+  candidates: Map<string, DocsSelectionReason[]>,
+  docs: { docsExclude: readonly string[]; agentFacing: readonly string[] },
+  maxDocs: number,
+): DocsSelection {
+  excludeCandidates(candidates, docs.docsExclude);
+  return selectDocs(candidates, maxDocs, docs.agentFacing);
+}
+
 export function selectDocs(
   candidates: ReadonlyMap<string, DocsSelectionReason[]>,
   maxDocs: number,

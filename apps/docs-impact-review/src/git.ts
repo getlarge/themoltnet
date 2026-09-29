@@ -1,5 +1,7 @@
 import { execFileSync } from 'node:child_process';
 
+import { gitEnv } from './config.js';
+
 /** Runs `git` with the given arguments and returns stdout. */
 export type Git = (args: string[], input?: string) => string;
 
@@ -12,7 +14,14 @@ export function requireFullOid(value: string, label: string): string {
   return value;
 }
 
-export function createGit(cwd: string): Git {
+/** Long enough for a cold fetch of a large pull request. */
+export const GIT_TIMEOUT_MS = 5 * 60_000;
+
+/**
+ * Git never prompts (a missing credential fails instead of hanging), and a
+ * command that stalls is killed after `timeoutMs`.
+ */
+export function createGit(cwd: string, timeoutMs = GIT_TIMEOUT_MS): Git {
   return (args, input) =>
     execFileSync('git', args, {
       cwd,
@@ -20,6 +29,8 @@ export function createGit(cwd: string): Git {
       input,
       maxBuffer: 64 * 1024 * 1024,
       stdio: ['pipe', 'pipe', 'pipe'],
+      timeout: timeoutMs,
+      env: gitEnv(),
     });
 }
 

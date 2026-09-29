@@ -20,11 +20,11 @@ export type { RoutingMap } from './routing.js';
 export { stageTiming } from './timing.js';
 export type * from './types.js';
 export {
-  configFailureReport,
   createSleepingContext,
   DEFAULT_BUDGETS,
   DEFAULT_POLL_INTERVAL_SEC,
   type DocsImpactDeps,
   type DocsImpactInput,
+  failedReport,
   runDocsImpactReview,
 } from './workflow.js';

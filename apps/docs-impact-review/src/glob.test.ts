@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { matchesAny, matchesGlob } from './glob.js';
+import { matchesAny, matchesGlob, validateGlob } from './glob.js';
 
 describe('matchesGlob', () => {
   it.each([
@@ -33,5 +33,38 @@ describe('matchesAny', () => {
     // Act / Assert
     expect(matchesAny('vendor/a.md', ['docs/**', 'vendor'])).toBe(true);
     expect(matchesAny('vendor/a.md', [])).toBe(false);
+  });
+});
+
+describe('matching cost', () => {
+  it('stays fast on a pattern built to backtrack against a long path', () => {
+    // Arrange
+    const glob = `**/${'*a'.repeat(12)}*b`;
+    const path = `${'x/'.repeat(200)}${'a'.repeat(400)}`;
+    const started = performance.now();
+
+    // Act
+    const matched = matchesGlob(path, glob);
+
+    // Assert
+    expect(matched).toBe(false);
+    expect(performance.now() - started).toBeLessThan(500);
+  });
+});
+
+describe('validateGlob', () => {
+  it.each([
+    ['docs/[ab]*.md', 'character classes'],
+    ['/', 'empty'],
+    ['', 'empty'],
+  ])('rejects %j', (glob, reason) => {
+    // Act / Assert
+    expect(validateGlob(glob)).toContain(reason);
+  });
+
+  it('accepts ordinary patterns, including leading and trailing slashes', () => {
+    // Act / Assert
+    expect(validateGlob('/vendor/')).toBeUndefined();
+    expect(matchesGlob('vendor/a.md', '/vendor/')).toBe(true);
   });
 });

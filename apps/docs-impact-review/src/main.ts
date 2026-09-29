@@ -14,13 +14,15 @@ import {
   loadReviewConfig,
   loadReviewConfigFile,
   REVIEW_CONFIG_PATH,
+  type ReviewConfig,
   ReviewConfigError,
+  type ReviewConfigSource,
 } from './review-config.js';
-import { excludeCandidates, routeDocs, selectDocs } from './routing.js';
+import { reviewEach } from './review-each.js';
+import { routeDocs, selectCandidates } from './routing.js';
 import { parseLabels, scoreReports } from './score.js';
 import type { DocsImpactReport, StageName } from './types.js';
 import {
-  configFailureReport,
   createSleepingContext,
   DEFAULT_BUDGETS,
   DEFAULT_POLL_INTERVAL_SEC,
@@ -44,6 +46,8 @@ each pull request's base revision; --config uses a local file instead.
 --labels scores the run against expected/forbidden findings; --rescore scores
 a saved run's summary.json without creating tasks.`;
 
+const GH_TIMEOUT_MS = 60_000;
+
 interface PullRequest {
   title: string;
   headRefOid: string;
@@ -62,9 +66,28 @@ function readPullRequest(repo: string, pr: number): PullRequest {
       '--json',
       'title,headRefOid,baseRefOid',
     ],
-    { encoding: 'utf8' },
+    { encoding: 'utf8', timeout: GH_TIMEOUT_MS },
   );
   return JSON.parse(raw) as PullRequest;
+}
+
+/** One line naming the configuration and what it adds to the defaults. */
+function describeConfig(
+  config: ReviewConfig,
+  source: ReviewConfigSource,
+): string {
+  if (source.kind === 'default') {
+    return `defaults (no ${REVIEW_CONFIG_PATH} at the base revision)`;
+  }
+  return [
+    source.location,
+    `${config.routing.rules.length} routing rules`,
+    `${config.docsExclude.length} exclusions`,
+    `${config.agentFacing.length} agent-facing globs`,
+    config.instructions
+      ? `${config.instructions.length} characters of instructions`
+      : 'no instructions',
+  ].join(', ');
 }
 
 function positiveInt(value: string, label: string): number {
@@ -195,118 +218,114 @@ async function main(): Promise<number> {
   }
   const tasks = agent ? createSdkTaskClient(agent) : undefined;
 
-  const reports: DocsImpactReport[] = [];
-  for (const pr of prs) {
-    const meta = readPullRequest(repo, pr);
-    // CI pins the revisions it validated, so a push between preparation and
-    // review cannot change what gets reviewed.
-    const base = requireFullOid(
-      values['base-sha'] ?? meta.baseRefOid,
-      'base revision',
-    );
-    const head = requireFullOid(
-      values['head-sha'] ?? meta.headRefOid,
-      'head revision',
-    );
-    git(['fetch', '--no-tags', '--quiet', 'origin', base, head]);
-    let loaded: ReturnType<typeof loadReviewConfig>;
-    try {
-      loaded = configOverride ?? loadReviewConfig(git, base);
-    } catch (error) {
-      if (!(error instanceof ReviewConfigError)) throw error;
-      process.stderr.write(`[config] pr ${pr}: ${error.message}\n`);
-      const failed = configFailureReport(
-        { repo, pr, baseRevision: base, headRevision: head },
-        error.message,
-      );
-      reports.push(failed);
-      process.stderr.write(`\n${renderComment(failed)}\n`);
-      continue;
-    }
-    const { config, source } = loaded;
-    process.stderr.write(
-      `[config] pr ${pr}: ${
-        source.kind === 'default'
-          ? `defaults (no ${REVIEW_CONFIG_PATH} at ${base})`
-          : `${source.location}, ${config.routing.rules.length} routing rules`
-      }\n`,
-    );
-
-    if (dryRun || !tasks) {
-      const changeSet = collectChangeSet(git, base, head, config.docsExclude);
-      const diff = boundDiff(git, changeSet, {
-        totalBytes: DEFAULT_BUDGETS.diffTotalBytes,
-        perFileBytes: DEFAULT_BUDGETS.diffPerFileBytes,
-      });
-      const routed = routeDocs(changeSet.files, config.routing, (path) =>
-        existsAt(git, head, path),
-      );
-      // The same exclusion and ranking as a real review.
-      excludeCandidates(routed.candidates, config.docsExclude);
-      const selection = selectDocs(
-        routed.candidates,
-        DEFAULT_BUDGETS.maxDocs,
-        config.agentFacing,
-      );
-      process.stdout.write(
-        `${JSON.stringify(
-          {
-            pr,
-            config: source,
-            files: changeSet.files.map(({ path, category }) => ({
-              path,
-              category,
-            })),
-            diffBytes: diff.bytes,
-            omittedPaths: diff.omittedPaths,
-            truncatedPaths: diff.truncatedPaths,
-            candidateDocs: Object.fromEntries(routed.candidates),
-            selectedDocs: selection.selected.map((doc) => doc.path),
-            unroutedSources: routed.unroutedSources,
-          },
-          null,
-          2,
-        )}\n`,
-      );
-      continue;
-    }
-
-    const report = await runDocsImpactReview(
-      { git, tasks, ctx: createSleepingContext() },
-      {
-        config,
-        configSource: source,
-        repo,
-        pr,
-        prTitle: meta.title,
-        baseRevision: base,
-        headRevision: head,
-        teamId,
-        diaryId,
-        correlationId: correlationArg ?? randomUUID(),
-        profileId,
-        stageProfileIds,
-        projectId: values.project,
-        tags: [
-          'review:docs-impact',
-          'experiment:docs-impact',
-          `repo:${repo}`,
-          `pr:${pr}`,
-          `revision:${head}`,
-        ],
-        pollIntervalSec,
-      },
-    );
-    reports.push(report);
+  const writeReport = (report: DocsImpactReport): void => {
     process.stderr.write(`\n${renderComment(report)}\n`);
-    if (values.out) {
-      mkdirSync(values.out, { recursive: true });
-      writeFileSync(
-        join(values.out, `pr-${pr}.json`),
-        `${JSON.stringify(report, null, 2)}\n`,
+    if (!values.out) return;
+    mkdirSync(values.out, { recursive: true });
+    writeFileSync(
+      join(values.out, `pr-${report.pr}.json`),
+      `${JSON.stringify(report, null, 2)}\n`,
+    );
+  };
+
+  const reports = await reviewEach(
+    repo,
+    prs,
+    async (target) => {
+      const { pr } = target;
+      const meta = readPullRequest(repo, pr);
+      // CI pins the revisions it validated, so a push between preparation
+      // and review cannot change what gets reviewed.
+      const base = requireFullOid(
+        values['base-sha'] ?? meta.baseRefOid,
+        'base revision',
       );
-    }
-  }
+      const head = requireFullOid(
+        values['head-sha'] ?? meta.headRefOid,
+        'head revision',
+      );
+      target.baseRevision = base;
+      target.headRevision = head;
+      git(['fetch', '--no-tags', '--quiet', 'origin', base, head]);
+      // A bad base config fails only this pull request's review; its report
+      // still names the file that failed.
+      target.configSource = configOverride?.source ?? {
+        kind: 'base',
+        location: `${REVIEW_CONFIG_PATH}@${base}`,
+      };
+      const { config, source } = configOverride ?? loadReviewConfig(git, base);
+      target.configSource = source;
+      process.stderr.write(
+        `[config] pr ${pr}: ${describeConfig(config, source)}\n`,
+      );
+
+      if (dryRun || !tasks) {
+        const changeSet = collectChangeSet(git, base, head, config.docsExclude);
+        const diff = boundDiff(git, changeSet, {
+          totalBytes: DEFAULT_BUDGETS.diffTotalBytes,
+          perFileBytes: DEFAULT_BUDGETS.diffPerFileBytes,
+        });
+        const routed = routeDocs(changeSet.files, config.routing, (path) =>
+          existsAt(git, head, path),
+        );
+        // The same exclusion and ranking as a real review.
+        const selection = selectCandidates(
+          routed.candidates,
+          config,
+          DEFAULT_BUDGETS.maxDocs,
+        );
+        process.stdout.write(
+          `${JSON.stringify(
+            {
+              pr,
+              config: source,
+              files: changeSet.files.map(({ path, category }) => ({
+                path,
+                category,
+              })),
+              diffBytes: diff.bytes,
+              omittedPaths: diff.omittedPaths,
+              truncatedPaths: diff.truncatedPaths,
+              candidateDocs: Object.fromEntries(routed.candidates),
+              selectedDocs: selection.selected.map((doc) => doc.path),
+              unroutedSources: routed.unroutedSources,
+            },
+            null,
+            2,
+          )}\n`,
+        );
+        return undefined;
+      }
+
+      return runDocsImpactReview(
+        { git, tasks, ctx: createSleepingContext() },
+        {
+          config,
+          configSource: source,
+          repo,
+          pr,
+          prTitle: meta.title,
+          baseRevision: base,
+          headRevision: head,
+          teamId,
+          diaryId,
+          correlationId: correlationArg ?? randomUUID(),
+          profileId,
+          stageProfileIds,
+          projectId: values.project,
+          tags: [
+            'review:docs-impact',
+            'experiment:docs-impact',
+            `repo:${repo}`,
+            `pr:${pr}`,
+            `revision:${head}`,
+          ],
+          pollIntervalSec,
+        },
+      );
+    },
+    writeReport,
+  );
 
   if (reports.length > 0) {
     process.stdout.write(

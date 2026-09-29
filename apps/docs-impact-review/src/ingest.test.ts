@@ -37,7 +37,7 @@ describe('collectChangeSet', () => {
     });
 
     // Act
-    const changeSet = collectChangeSet(repo.git, base, head);
+    const changeSet = collectChangeSet(repo.git, base, head, []);
 
     // Assert
     const byPath = Object.fromEntries(
@@ -108,7 +108,7 @@ describe('collectChangeSet', () => {
     });
 
     // Act
-    const changeSet = collectChangeSet(repo.git, base, head);
+    const changeSet = collectChangeSet(repo.git, base, head, []);
 
     // Assert
     expect(
@@ -121,9 +121,9 @@ describe('collectChangeSet', () => {
     const base = repo.commit({ 'a.ts': '1' });
 
     // Act / Assert
-    expect(() => collectChangeSet(repo.git, base.slice(0, 7), base)).toThrow(
-      /full 40-character/,
-    );
+    expect(() =>
+      collectChangeSet(repo.git, base.slice(0, 7), base, []),
+    ).toThrow(/full 40-character/);
   });
 });
 
@@ -147,7 +147,7 @@ describe('boundDiff', () => {
       'docs/a.md': '# A\n',
       'CHANGELOG.md': '## x\n',
     });
-    const changeSet = collectChangeSet(repo.git, base, head);
+    const changeSet = collectChangeSet(repo.git, base, head, []);
 
     // Act
     const diff = boundDiff(repo.git, changeSet, {
@@ -169,7 +169,7 @@ describe('boundDiff', () => {
       'src/retired.ts': 'export const retired = 1;\n'.repeat(300),
     });
     const head = repo.commit({ 'src/retired.ts': null });
-    const changeSet = collectChangeSet(repo.git, base, head);
+    const changeSet = collectChangeSet(repo.git, base, head, []);
 
     // Act
     const diff = boundDiff(repo.git, changeSet, {
@@ -189,7 +189,7 @@ describe('boundDiff', () => {
       'src/keep.ts': 'export const big = 1;\n'.repeat(400),
       'src/drop.ts': 'export const other = 1;\n'.repeat(400),
     });
-    const changeSet = collectChangeSet(repo.git, base, head);
+    const changeSet = collectChangeSet(repo.git, base, head, []);
 
     // Act
     const diff = boundDiff(repo.git, changeSet, {

@@ -7,3 +7,11 @@ export function githubToken(): string | undefined {
   const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
   return token?.trim() || undefined;
 }
+
+/**
+ * The environment for `git` child processes: inherited, but never prompting
+ * for credentials, so a missing one fails instead of hanging the review.
+ */
+export function gitEnv(): NodeJS.ProcessEnv {
+  return { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+}

@@ -165,7 +165,7 @@ export function collectChangeSet(
   git: Git,
   baseRevision: string,
   headRevision: string,
-  docsExclude: readonly string[] = [],
+  docsExclude: readonly string[],
 ): ChangeSet {
   requireFullOid(baseRevision, 'base revision');
   requireFullOid(headRevision, 'head revision');

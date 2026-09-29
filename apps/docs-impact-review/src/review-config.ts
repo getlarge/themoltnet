@@ -2,6 +2,7 @@ import { type Static, Type } from 'typebox';
 import { Value } from 'typebox/value';
 
 import { type Git, requireFullOid } from './git.js';
+import { matchesAny, validateGlob } from './glob.js';
 import { type RoutingMap, RoutingRule } from './routing.js';
 
 /** Where a repository keeps its reviewer configuration. */
@@ -58,13 +59,15 @@ export interface ReviewConfig {
   instructions?: string;
 }
 
-/** Where a review's configuration came from, recorded in its report. */
-export interface ReviewConfigSource {
-  /** `base`: the pull request's base revision; `file`: a local override. */
-  kind: 'base' | 'file' | 'default';
-  /** The file read, e.g. `.github/docs-impact-review.json@<oid>`. */
-  location?: string;
-}
+/**
+ * Where a review's configuration came from, recorded in its report:
+ * the pull request's base revision (`<path>@<oid>`), a local override file,
+ * or the defaults.
+ */
+export type ReviewConfigSource =
+  | { kind: 'base'; location: string }
+  | { kind: 'file'; location: string }
+  | { kind: 'default' };
 
 /** Changelogs record history; they are never documentation to review. */
 export const DEFAULT_DOCS_EXCLUDE = ['**/CHANGELOG.md'];
@@ -97,12 +100,9 @@ function unique(values: readonly string[]): string[] {
 }
 
 function describeErrors(value: unknown): string {
+  const errors = [...Value.Errors(ReviewConfigSchema, value)];
   const problems: string[] = [];
-  for (const error of Value.Errors(ReviewConfigSchema, value)) {
-    if (problems.length === MAX_REPORTED_ERRORS) {
-      problems.push('…');
-      break;
-    }
+  for (const error of errors.slice(0, MAX_REPORTED_ERRORS)) {
     const at = error.instancePath || '(root)';
     const unknown = (error.params as { additionalProperties?: string[] })
       .additionalProperties;
@@ -112,7 +112,38 @@ function describeErrors(value: unknown): string {
         : `${at}: ${error.message}`,
     );
   }
+  const hidden = errors.length - MAX_REPORTED_ERRORS;
+  if (hidden > 0) problems.push(`…and ${hidden} more`);
   return problems.join('; ');
+}
+
+/**
+ * Problems the schema cannot express: unusable globs, and a routed page that
+ * is also excluded, which would silently drop a required route.
+ */
+function describeContradictions(config: ReviewConfig): string[] {
+  const problems: string[] = [];
+  const globs = [
+    ...config.routing.rules.flatMap((rule) =>
+      rule.paths.map((glob) => [`routing ${rule.id} paths`, glob] as const),
+    ),
+    ...config.docsExclude.map((glob) => ['docs.exclude', glob] as const),
+    ...config.agentFacing.map((glob) => ['docs.agentFacing', glob] as const),
+  ];
+  for (const [where, glob] of globs) {
+    const reason = validateGlob(glob);
+    if (reason) problems.push(`${where}: "${glob}": ${reason}`);
+  }
+  for (const rule of config.routing.rules) {
+    for (const doc of rule.docs) {
+      if (matchesAny(doc, config.docsExclude)) {
+        problems.push(
+          `routing ${rule.id} names ${doc}, which docs.exclude excludes`,
+        );
+      }
+    }
+  }
+  return problems;
 }
 
 /** `location` names the file in errors, e.g. `<path>@<revision>`. */
@@ -125,7 +156,7 @@ export function parseReviewConfig(
       `invalid ${location}: ${describeErrors(value)}. Keys this reviewer does not know may need a newer docs impact review version.`,
     );
   }
-  return {
+  const config: ReviewConfig = {
     routing: { rules: value.routing ?? [] },
     docsExclude: unique([
       ...DEFAULT_DOCS_EXCLUDE,
@@ -137,6 +168,13 @@ export function parseReviewConfig(
     ]),
     ...(value.instructions ? { instructions: value.instructions.trim() } : {}),
   };
+  const contradictions = describeContradictions(config);
+  if (contradictions.length > 0) {
+    throw new ReviewConfigError(
+      `invalid ${location}: ${contradictions.join('; ')}`,
+    );
+  }
+  return config;
 }
 
 function parseJson(raw: string, location: string): unknown {
@@ -160,8 +198,11 @@ export function loadReviewConfig(
   requireFullOid(baseRevision, 'base revision');
   // `ls-tree` prints nothing for an absent path and fails for a missing or
   // corrupt object, so only a real absence falls back to the defaults.
+  // --full-tree: resolve the path from the repository root, as `git show`
+  // does, whatever the working directory.
   const listed = git([
     'ls-tree',
+    '--full-tree',
     '--name-only',
     baseRevision,
     '--',

@@ -14,11 +14,10 @@ import { boundDiff, collectChangeSet } from './ingest.js';
 import type { ReviewConfig, ReviewConfigSource } from './review-config.js';
 import {
   dropGenericTerms,
-  excludeCandidates,
   isRequiredCandidate,
   routeDocs,
   searchDocsForTerms,
-  selectDocs,
+  selectCandidates,
 } from './routing.js';
 import { extractExcerpt } from './sections.js';
 import {
@@ -307,11 +306,10 @@ function retrieveDocs(
     if (!reasons.includes('symbol-search')) reasons.push('symbol-search');
     routed.candidates.set(path, reasons);
   }
-  excludeCandidates(routed.candidates, config.docsExclude);
-  const selection = selectDocs(
+  const selection = selectCandidates(
     routed.candidates,
+    config,
     budgets.maxDocs,
-    config.agentFacing,
   );
   // Heuristic matches (symbol search, nearest README) that do not fit are
   // not coverage gaps; docs the PR changed or the routing map owns are.
@@ -336,14 +334,16 @@ function retrieveDocs(
 }
 
 /**
- * A review that could not start because the repository configuration is
+ * A review that could not run, e.g. because the repository configuration is
  * invalid. It fails like any other review, so the comment names the problem.
+ * Revisions not yet known are empty.
  */
-export function configFailureReport(
+export function failedReport(
   target: Pick<
     DocsImpactInput,
     'repo' | 'pr' | 'baseRevision' | 'headRevision'
   >,
+  source: ReviewConfigSource | undefined,
   message: string,
 ): DocsImpactReport {
   return {
@@ -352,6 +352,7 @@ export function configFailureReport(
     pr: target.pr,
     baseRevision: target.baseRevision,
     headRevision: target.headRevision,
+    ...(source ? { config: source } : {}),
     status: 'failed',
     error: message,
     findings: [],

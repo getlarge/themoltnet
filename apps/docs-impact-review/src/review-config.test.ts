@@ -1,8 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { createGit } from './git.js';
 import {
   DEFAULT_AGENT_FACING,
   DEFAULT_REVIEW_CONFIG,
@@ -93,6 +94,40 @@ describe('parseReviewConfig', () => {
     expect(parse).toThrow(/\/docs\/exclude\/0.*; .*\/docs\/agentFacing/);
   });
 
+  it('counts the problems it does not list', () => {
+    // Act
+    const parse = () =>
+      parseReviewConfig({ version: 1, docs: { exclude: Array(7).fill('') } });
+
+    // Assert
+    expect(parse).toThrow(/…and \d+ more/);
+  });
+
+  it.each([
+    [
+      'routing r paths',
+      { routing: [{ id: 'r', paths: ['src/[ab]'], docs: ['d.md'] }] },
+    ],
+    ['docs.exclude', { docs: { exclude: ['vendor/[ab]'] } }],
+    ['docs.agentFacing', { docs: { agentFacing: ['/'] } }],
+  ])('rejects an unusable glob in %s', (where, value) => {
+    // Act / Assert
+    expect(() => parseReviewConfig({ version: 1, ...value })).toThrow(where);
+  });
+
+  it('rejects a routed page that docs.exclude drops', () => {
+    // Act / Assert
+    expect(() =>
+      parseReviewConfig({
+        version: 1,
+        docs: { exclude: ['vendor'] },
+        routing: [{ id: 'cli', paths: ['cli/**'], docs: ['vendor/cli.md'] }],
+      }),
+    ).toThrow(
+      /routing cli names vendor\/cli\.md, which docs\.exclude excludes/,
+    );
+  });
+
   it.each([
     ['an unsupported version', { version: 2 }],
     [
@@ -167,6 +202,20 @@ describe('loadReviewConfig', () => {
       location: `${REVIEW_CONFIG_PATH}@${base}`,
     });
     expect(loaded.config.instructions).toBe('Docs live in site/.');
+  });
+
+  it('finds the configuration from a subdirectory working directory', () => {
+    // Arrange
+    const base = repo.commit({
+      [REVIEW_CONFIG_PATH]: JSON.stringify({ version: 1 }),
+      'sub/a.md': '# a',
+    });
+
+    // Act
+    const loaded = loadReviewConfig(createGit(join(repo.dir, 'sub')), base);
+
+    // Assert
+    expect(loaded.source.kind).toBe('base');
   });
 
   it('falls back to defaults when the base has no configuration', () => {

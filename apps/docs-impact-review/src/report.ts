@@ -30,17 +30,34 @@ function fileLink(report: DocsImpactReport, path: string): string {
 }
 
 /**
+ * Inline code that `text` cannot break out of: the fence is longer than any
+ * backtick run inside, and newlines are flattened.
+ */
+function codeSpan(text: string): string {
+  const flat = text.replace(/\s+/g, ' ').trim();
+  const longest = Math.max(
+    0,
+    ...(flat.match(/`+/g) ?? []).map((run) => run.length),
+  );
+  const fence = '`'.repeat(longest + 1);
+  const pad = flat.startsWith('`') || flat.endsWith('`') ? ' ' : '';
+  return `${fence}${pad}${flat}${pad}${fence}`;
+}
+
+/**
  * One concise PR comment body. Clean results stay on one line; a failed run
  * says so explicitly instead of looking like an empty clean result.
  */
 export function renderComment(report: DocsImpactReport): string {
-  const head = `head [\`${report.headRevision.slice(0, 7)}\`](https://github.com/${report.repo}/commit/${report.headRevision})`;
+  const head = report.headRevision
+    ? `head [\`${report.headRevision.slice(0, 7)}\`](https://github.com/${report.repo}/commit/${report.headRevision})`
+    : 'head unknown';
   if (report.status === 'failed' || !report.outcome) {
     return [
       DOCS_IMPACT_COMMENT_MARKER,
       `**Docs impact: not reviewed** · ${head}`,
       '',
-      `The review did not complete: ${report.error ?? 'unknown error'}. No judgment was made.`,
+      `The review did not complete: ${codeSpan(report.error ?? 'unknown error')}. No judgment was made.`,
     ].join('\n');
   }
   const count = report.findings.length;
@@ -61,8 +78,10 @@ export function renderComment(report: DocsImpactReport): string {
   } else if (report.config?.kind === 'file') {
     lines.push(
       '',
-      `_Reviewed with the configuration in \`${report.config.location ?? 'a local file'}\`, not the base revision's._`,
+      `_Reviewed with the configuration in ${codeSpan(report.config.location)}, not the base revision's._`,
     );
+  } else if (report.config?.kind === 'base') {
+    lines.push('', `_Configuration: ${codeSpan(report.config.location)}._`);
   }
   // A doc the review says is missing does not exist at head yet.
   const missing = new Set(
