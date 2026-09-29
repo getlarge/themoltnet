@@ -158,8 +158,10 @@ export class FakeTasks implements TaskClient {
     const task = {
       id,
       taskType: body.taskType,
-      title: body.title ?? null,
-      tags: [],
+      title: body.title?.trim() || null,
+      tags: [...new Set((body.tags ?? []).map((tag) => tag.trim()))].filter(
+        Boolean,
+      ),
       teamId: body.teamId,
       diaryId: body.diaryId,
       projectId: body.projectId ?? null,

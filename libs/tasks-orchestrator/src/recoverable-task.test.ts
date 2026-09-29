@@ -7,7 +7,7 @@ import {
   waitForRecoverableTask,
 } from './recoverable-task.js';
 import { FakeTasks, replayContext } from './testing.js';
-import type { TaskClient } from './types.js';
+import type { Logger, SdkTaskAttempt, TaskClient } from './types.js';
 
 const body: Parameters<TaskClient['createTask']>[0] = {
   taskType: 'freeform',
@@ -87,6 +87,106 @@ describe('waitForRecoverableTask', () => {
     ]);
   });
 
+  it('replays two replacements with distinct checkpoints, lineage, and all usage', async () => {
+    const tasks = new FakeTasks([
+      { __taskStatus: 'failed' },
+      { __taskStatus: 'failed' },
+      { done: true },
+    ]);
+    const initial = await tasks.createTask(body);
+    const getTask = tasks.getTask.bind(tasks);
+    tasks.getTask = async (id) => {
+      const task = await getTask(id);
+      return id.endsWith('000000000003')
+        ? { ...task, acceptedAttemptN: 2 }
+        : task;
+    };
+    const listAttempts = tasks.listAttempts.bind(tasks);
+    tasks.listAttempts = async (id) => {
+      const attempts = await listAttempts(id);
+      const taskN = Number(id.slice(-12));
+      const withUsage = attempts.map((attempt) => ({
+        ...attempt,
+        usage: { inputTokens: taskN, outputTokens: taskN * 2, model: 'test' },
+      }));
+      if (taskN !== 3) return withUsage;
+      return [
+        {
+          ...withUsage[0],
+          attemptN: 1,
+          status: 'failed',
+          usage: { inputTokens: 10, outputTokens: 20, model: 'test' },
+        } as SdkTaskAttempt,
+        { ...withUsage[0], attemptN: 2 } as SdkTaskAttempt,
+      ];
+    };
+    const ctx = replayContext('two-replacements');
+    const gate = vi.fn(() =>
+      Promise.resolve({ verdict: 'approve' as const, reasonCode: 'retryable' }),
+    );
+    const options = setup(tasks, {
+      ctx,
+      maxReplacements: 2,
+      recoveryGate: {
+        identity: { name: 'test-rule', version: '1' },
+        decide: gate,
+      },
+    });
+
+    const first = await waitForRecoverableTask(initial, options);
+    ctx.resetForReplay();
+    const replayed = await waitForRecoverableTask(initial, options);
+
+    expect(first.kind).toBe('accepted');
+    expect(replayed.kind).toBe('accepted');
+    expect(
+      first.chain.map(({ replacementN, attempts }) => [
+        replacementN,
+        attempts.length,
+      ]),
+    ).toEqual([
+      [0, 1],
+      [1, 1],
+      [2, 2],
+    ]);
+    expect(
+      first.decisions.map(({ candidate, replacementTaskId }) => ({
+        failedTaskId: candidate.failedTaskId,
+        originalTaskId: candidate.originalTaskId,
+        remainingReplacements: candidate.remainingReplacements,
+        replacementTaskId,
+      })),
+    ).toEqual([
+      {
+        failedTaskId: initial.id,
+        originalTaskId: initial.id,
+        remainingReplacements: 1,
+        replacementTaskId: '00000000-0000-4000-8000-000000000002',
+      },
+      {
+        failedTaskId: '00000000-0000-4000-8000-000000000002',
+        originalTaskId: initial.id,
+        remainingReplacements: 0,
+        replacementTaskId: '00000000-0000-4000-8000-000000000003',
+      },
+    ]);
+    expect(first.cumulativeUsage).toEqual({
+      inputTokens: 16,
+      outputTokens: 32,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      toolCalls: 0,
+    });
+    expect(ctx.checkpointNames).toEqual([
+      'extract.2.recovery.1.decision',
+      'extract.2.recovery.1.create',
+      'extract.2.recovery.2.decision',
+      'extract.2.recovery.2.create',
+    ]);
+    expect(gate).toHaveBeenCalledTimes(2);
+    expect(tasks.created).toHaveLength(3);
+  });
+
   it.each(['deny', 'abstain'] as const)(
     'blocks %s without creating a task',
     async (verdict) => {
@@ -128,11 +228,17 @@ describe('waitForRecoverableTask', () => {
   ])('fails closed on $name gate result', async ({ decide, reasonCode }) => {
     const tasks = new FakeTasks([{ __taskStatus: 'failed' }]);
     const initial = await tasks.createTask(body);
+    const logger = {
+      error: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+    } satisfies Logger;
     const result = await waitForRecoverableTask(
       initial,
       setup(tasks, {
         recoveryGate: { identity: { name: 'test-rule', version: '1' }, decide },
         gateTimeoutMs: 5,
+        logger,
       }),
     );
     expect(result).toMatchObject({
@@ -140,6 +246,14 @@ describe('waitForRecoverableTask', () => {
       decision: { verdict: 'invalid', reasonCode },
     });
     expect(tasks.created).toHaveLength(1);
+    if (reasonCode === 'gate_error') {
+      expect(logger.error.mock.calls.at(-1)?.[0]).toMatchObject({
+        err: { message: 'offline' },
+      });
+      expect(logger.error.mock.calls.at(-1)?.[1]).toBe(
+        'orchestration.recovery.gate.error',
+      );
+    }
   });
 
   it('does not ask the gate after the independent replacement budget is spent', async () => {
@@ -258,11 +372,25 @@ describe('waitForRecoverableTask', () => {
     const tasks = new FakeTasks([{ __taskStatus: 'failed' }]);
     const initial = await tasks.createTask(body);
     tasks.createTask = vi.fn().mockRejectedValue(new Error('unavailable'));
-    const result = await waitForRecoverableTask(initial, setup(tasks));
+    const logger = {
+      error: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+    } satisfies Logger;
+    const result = await waitForRecoverableTask(
+      initial,
+      setup(tasks, { logger }),
+    );
     expect(result).toMatchObject({
       kind: 'replacement_create_failed',
       reasonCode: 'replacement_create_error',
     });
+    expect(logger.error.mock.calls.at(-1)?.[0]).toMatchObject({
+      err: { message: 'unavailable' },
+    });
+    expect(logger.error.mock.calls.at(-1)?.[1]).toBe(
+      'orchestration.recovery.create.error',
+    );
   });
 
   it('fails closed when a gate tries to change its candidate', async () => {
@@ -461,5 +589,55 @@ describe('waitForRecoverableTask', () => {
       ),
     ).rejects.toThrow('frozenRequest does not match');
     expect(gate).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { title: 'changed' },
+    { tags: ['different'] },
+    { dispatchTimeoutSec: 30 },
+    { runningTimeoutSec: 60 },
+  ])('rejects changed frozen request metadata %o', async (change) => {
+    const tasks = new FakeTasks([{ __taskStatus: 'failed' }]);
+    const initial = await tasks.createTask(body);
+    await expect(
+      waitForRecoverableTask(
+        initial,
+        setup(tasks, { frozenRequest: { ...body, ...change } }),
+      ),
+    ).rejects.toThrow('frozenRequest does not match');
+  });
+
+  it('rejects a replayed decision under a different gate version', async () => {
+    const tasks = new FakeTasks([{ __taskStatus: 'failed' }]);
+    const initial = await tasks.createTask(body);
+    const ctx = replayContext('gate-version-change');
+    const first = await waitForRecoverableTask(
+      initial,
+      setup(tasks, {
+        ctx,
+        recoveryGate: {
+          identity: { name: 'test-rule', version: '1' },
+          decide: () =>
+            Promise.resolve({ verdict: 'deny', reasonCode: 'policy' }),
+        },
+      }),
+    );
+    expect(first.kind).toBe('blocked');
+    ctx.resetForReplay();
+    const newGate = vi.fn();
+    await expect(
+      waitForRecoverableTask(
+        initial,
+        setup(tasks, {
+          ctx,
+          recoveryGate: {
+            identity: { name: 'test-rule', version: '2' },
+            decide: newGate,
+          },
+        }),
+      ),
+    ).rejects.toThrow('gate identity');
+    expect(newGate).not.toHaveBeenCalled();
+    expect(tasks.created).toHaveLength(1);
   });
 });

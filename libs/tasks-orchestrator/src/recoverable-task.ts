@@ -4,9 +4,15 @@ import { isDeepStrictEqual } from 'node:util';
 import { waitForTaskOutcome } from './await-engine.js';
 import { isWorkflowInterruption } from './interruption.js';
 import { createTaskStep } from './task-step.js';
+import {
+  addAttemptUsage,
+  attemptsForOutcome,
+  emptyUsage,
+} from './task-usage.js';
 import type {
   AcceptedTaskResult,
   CumulativeTaskUsage,
+  Logger,
   SdkTask,
   SdkTaskAttempt,
   TaskClient,
@@ -71,6 +77,8 @@ export interface RecoveryDecisionRecord {
 export interface RecoveryChainElement<TState> {
   replacementN: number;
   outcome: TaskOutcome<TState>;
+  /** Every execution attempt for this task, including those before acceptance. */
+  attempts: SdkTaskAttempt[];
 }
 
 export interface WaitForRecoverableTaskOptions<
@@ -124,31 +132,21 @@ export type RecoverableTaskOutcome<TState> = RecoveryBase<TState> &
       }
   );
 
-function usageOf<TState>(outcome: TaskOutcome<TState>): SdkTaskAttempt[] {
-  if (outcome.kind === 'accepted') return [outcome.result.attempt];
-  if (outcome.kind === 'invalid_output') return [outcome.attempt];
-  return outcome.attempts;
-}
-
-function addUsage(usage: CumulativeTaskUsage, attempts: SdkTaskAttempt[]) {
-  for (const attempt of attempts) {
-    if (!attempt.usage) continue;
-    usage.inputTokens += attempt.usage.inputTokens;
-    usage.outputTokens += attempt.usage.outputTokens;
-    usage.cacheReadTokens += attempt.usage.cacheReadTokens ?? 0;
-    usage.cacheWriteTokens += attempt.usage.cacheWriteTokens ?? 0;
-    usage.toolCalls += attempt.usage.toolCalls ?? 0;
-  }
-}
-
 function matchesFrozenRequest(task: SdkTask, body: FrozenTaskRequest): boolean {
+  const tags = [...new Set((body.tags ?? []).map((tag) => tag.trim()))].filter(
+    Boolean,
+  );
   return (
     task.taskType === body.taskType &&
+    task.title === (body.title?.trim() || null) &&
+    isDeepStrictEqual(task.tags, tags) &&
     task.teamId === body.teamId &&
     task.diaryId === body.diaryId &&
     task.projectId === (body.projectId ?? null) &&
     task.correlationId === (body.correlationId ?? null) &&
-    (body.maxAttempts === undefined || task.maxAttempts === body.maxAttempts) &&
+    task.maxAttempts === (body.maxAttempts ?? 1) &&
+    task.dispatchTimeoutSec === (body.dispatchTimeoutSec ?? null) &&
+    task.runningTimeoutSec === (body.runningTimeoutSec ?? null) &&
     isDeepStrictEqual(task.input, body.input) &&
     isDeepStrictEqual(task.references, body.references ?? []) &&
     isDeepStrictEqual(task.claimCondition, body.claimCondition ?? null) &&
@@ -217,14 +215,17 @@ async function decideWithTimeout(
   gate: RecoveryGate,
   input: Omit<RecoveryGateInput, 'signal'>,
   timeoutMs: number,
+  logger?: Logger,
+  logPrefix = 'orchestration',
 ): Promise<RecoveryGateDecision | { verdict: 'invalid'; reasonCode: string }> {
   const controller = new AbortController();
+  const timeoutError = new Error('recovery gate timed out');
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const result = await Promise.race([
       gate.decide({ ...input, signal: controller.signal }),
       new Promise<never>((_resolve, reject) => {
-        timer = setTimeout(() => reject(new Error('gate_timeout')), timeoutMs);
+        timer = setTimeout(() => reject(timeoutError), timeoutMs);
       }),
     ]);
     if (!validDecision(result))
@@ -246,12 +247,18 @@ async function decideWithTimeout(
     };
   } catch (error) {
     if (isWorkflowInterruption(error)) throw error;
+    logger?.error(
+      {
+        err: error,
+        gateIdentity: gate.identity,
+        failedTaskId: input.candidate.failedTaskId,
+        replacementN: input.candidate.replacementN,
+      },
+      `${logPrefix}.recovery.gate.error`,
+    );
     return {
       verdict: 'invalid',
-      reasonCode:
-        error instanceof Error && error.message === 'gate_timeout'
-          ? 'gate_timeout'
-          : 'gate_error',
+      reasonCode: error === timeoutError ? 'gate_timeout' : 'gate_error',
     };
   } finally {
     if (timer) clearTimeout(timer);
@@ -311,20 +318,15 @@ export async function waitForRecoverableTask<TState>(
 
   const chain: RecoveryChainElement<TState>[] = [];
   const decisions: RecoveryDecisionRecord[] = [];
-  const cumulativeUsage: CumulativeTaskUsage = {
-    inputTokens: 0,
-    outputTokens: 0,
-    cacheReadTokens: 0,
-    cacheWriteTokens: 0,
-    toolCalls: 0,
-  };
+  const cumulativeUsage: CumulativeTaskUsage = emptyUsage();
   let currentTask = initialTask;
   let replacementN = 0;
 
   for (;;) {
     const outcome = await waitForTaskOutcome(currentTask.id, options);
-    chain.push({ replacementN, outcome });
-    addUsage(cumulativeUsage, usageOf(outcome));
+    const attempts = await attemptsForOutcome(outcome, options.tasks);
+    chain.push({ replacementN, outcome, attempts });
+    addAttemptUsage(cumulativeUsage, attempts);
     const base = { chain, decisions, cumulativeUsage };
     if (outcome.kind === 'accepted')
       return { ...base, kind: 'accepted', result: outcome.result };
@@ -374,6 +376,8 @@ export async function waitForRecoverableTask<TState>(
           idempotencyKey: taskCreateIdempotencyKey(options.ctx, decisionName),
         },
         options.gateTimeoutMs,
+        options.logger,
+        options.logPrefix,
       );
       return {
         candidate,
@@ -387,10 +391,11 @@ export async function waitForRecoverableTask<TState>(
     });
     if (
       !isDeepStrictEqual(decision.candidate, candidate) ||
-      decision.decisionInputDigest !== decisionInputDigest
+      decision.decisionInputDigest !== decisionInputDigest ||
+      !isDeepStrictEqual(decision.gateIdentity, stableGateIdentity)
     )
       throw new Error(
-        'replayed recovery decision does not match the current candidate',
+        'replayed recovery decision does not match the current candidate or gate identity',
       );
     decisions.push(decision);
     if (decision.verdict !== 'approve')
@@ -423,6 +428,14 @@ export async function waitForRecoverableTask<TState>(
       replacementN += 1;
     } catch (error) {
       if (isWorkflowInterruption(error)) throw error;
+      options.logger?.error(
+        {
+          err: error,
+          failedTaskId: currentTask.id,
+          replacementN: candidate.replacementN,
+        },
+        `${options.logPrefix ?? 'orchestration'}.recovery.create.error`,
+      );
       return {
         ...base,
         kind: 'replacement_create_failed',

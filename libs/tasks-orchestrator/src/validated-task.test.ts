@@ -75,6 +75,44 @@ describe('waitForValidatedTask', () => {
     });
   });
 
+  it('counts failed attempts before an accepted task attempt', async () => {
+    const tasks = new FakeTasks([{ phase: 'done' }]);
+    const initial = await tasks.createTask(baseBody);
+    const getTask = tasks.getTask.bind(tasks);
+    tasks.getTask = async (id) => ({
+      ...(await getTask(id)),
+      acceptedAttemptN: 2,
+    });
+    const listAttempts = tasks.listAttempts.bind(tasks);
+    tasks.listAttempts = async (id) => {
+      const [accepted] = await listAttempts(id);
+      return [
+        {
+          ...accepted,
+          attemptN: 1,
+          status: 'failed',
+          usage: { inputTokens: 4, outputTokens: 1, model: 'test' },
+        } as SdkTaskAttempt,
+        {
+          ...accepted,
+          attemptN: 2,
+          usage: { inputTokens: 5, outputTokens: 2, model: 'test' },
+        } as SdkTaskAttempt,
+      ];
+    };
+
+    const result = await waitForValidatedTask(initial, options(tasks));
+
+    expect(result.kind).toBe('accepted');
+    expect(result.cumulativeUsage).toEqual({
+      inputTokens: 9,
+      outputTokens: 3,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      toolCalls: 0,
+    });
+  });
+
   it('creates one successful repair with exact parser feedback and key', async () => {
     const tasks = new FakeTasks([{ invalid: true }, { phase: 'repaired' }]);
     const initial = await tasks.createTask(baseBody);

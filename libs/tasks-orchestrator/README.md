@@ -232,10 +232,14 @@ separate service or process. Only a validated `approve` verdict creates a replac
 timeout, or hook failure returns `blocked` with a reason code; a creation error
 returns `replacement_create_failed`. The result retains each task outcome,
 all attempts, decision metadata, replacement task ID, and cumulative usage.
+With a logger, gate and creation errors retain their original causes in
+structured logs; durable results contain only reason codes.
 
 Decision and task creation have separate stable checkpoints. Replay after a
 completed decision checkpoint reuses the verdict; replay after a completed
-creation checkpoint reuses the task. An external gate can still be called again
+creation checkpoint reuses the task. The decision checkpoint is bound to the
+gate name and version; changing either for an in-flight execution fails closed.
+An external gate can still be called again
 if the worker dies **after the service answers but before the decision checkpoint
 completes**. Its adapter should use the supplied idempotency key and return the
 same verdict for that key. The replacement create uses the existing
