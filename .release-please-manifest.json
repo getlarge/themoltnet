@@ -26,6 +26,7 @@
   "libs/shell-command-analyzer": "0.4.0",
   "libs/tasks-orchestrator": "0.4.14",
   "libs/yubikey-preview-sign": "0.4.1",
+  "packages/agent-daemon-action": "0.1.0",
   "packages/cli": "3.9.0",
   "packages/cli/npm/darwin-arm64": "3.9.0",
   "packages/cli/npm/darwin-x64": "3.9.0",

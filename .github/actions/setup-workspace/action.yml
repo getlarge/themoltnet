@@ -11,8 +11,12 @@ inputs:
     description: Enable the setup-go module and build cache.
     default: 'false'
   go-cache-dependency-path:
-    description: Optional dependency files used to key the Go cache.
-    default: ''
+    description: Dependency files used to key the Go cache.
+    default: |
+      go.work
+      go.work.sum
+      **/go.mod
+      **/go.sum
   rust:
     description: Install the Rust version declared in .tool-versions.
     default: 'false'
@@ -36,13 +40,7 @@ runs:
       with:
         node-version-file: .tool-versions
         cache: ${{ inputs.pnpm-cache == 'true' && 'pnpm' || '' }}
-    - if: inputs.go-cache-dependency-path == ''
-      uses: actions/setup-go@v6
-      with:
-        go-version-file: .tool-versions
-        cache: ${{ inputs.go-cache }}
-    - if: inputs.go-cache-dependency-path != ''
-      uses: actions/setup-go@v6
+    - uses: actions/setup-go@v6
       with:
         go-version-file: .tool-versions
         cache: ${{ inputs.go-cache }}

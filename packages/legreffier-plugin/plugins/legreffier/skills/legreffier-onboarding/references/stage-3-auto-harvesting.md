@@ -57,7 +57,7 @@ Onboarding stage: connected, first session
 
 <metadata>
 operator: <$USER> | tool: <tool> | timestamp: <ISO-UTC>
-branch: <branch> | scope: onboarding | refs: .moltnet/<AGENT_NAME>/
+branch: <branch> | scope: onboarding | refs: <current-repo-path>
 </metadata>
 ```
 

@@ -138,6 +138,15 @@ const HOST_AUTHENTICATED_HOST_EXEC_REFUSED_ENV = new Set([
   'SSH_AUTH_SOCK',
 ]);
 
+export function warnUnsupportedThinkingLevel(
+  logger: ToolPolicyLogger | undefined,
+  context: Record<string, unknown>,
+  message: string,
+): void {
+  if (logger) logger.warn(context, message);
+  else console.error(JSON.stringify({ level: 'warn', message, ...context }));
+}
+
 /** `capability:<name>[:<operation>]` entries in the tool allow-set. */
 export function isHostCapabilityGrant(name: string): boolean {
   return name.startsWith('capability:');
@@ -1450,11 +1459,8 @@ export async function executePiTask(
           model: opts.model,
           thinkingLevel: opts.thinkingLevel,
         };
-        (
-          opts.toolPolicyLogger?.warn ??
-          ((obj, message) =>
-            console.error(JSON.stringify({ level: 'warn', message, ...obj })))
-        )(
+        warnUnsupportedThinkingLevel(
+          opts.toolPolicyLogger,
           context,
           !modelHandle.reasoning
             ? 'Runtime profile thinking level is ignored because the model is not declared as a reasoning model'

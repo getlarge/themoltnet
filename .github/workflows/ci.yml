@@ -158,8 +158,16 @@ jobs:
         id: wsl-bundle-runtime
         uses: actions/cache/restore@v6
         with:
-          path: \\wsl.localhost\Ubuntu-24.04\root\.cache\moltnet-release
-          key: wsl2-agent-bundle-runtime-linux-x64-${{ hashFiles('.tool-versions') }}
+          path: ${{ runner.temp }}\wsl-bundle-runtime.tar
+          key: wsl2-agent-bundle-runtime-linux-x64-v2-${{ hashFiles('.tool-versions') }}
+      - name: Unpack WSL bundle runtime
+        if: steps.wsl-bundle-runtime.outputs.cache-hit == 'true'
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'wsl-bundle-runtime.tar'
+          $drive = $archive[0].ToString().ToLowerInvariant()
+          $wslArchive = '/mnt/' + $drive + $archive.Substring(2).Replace('\', '/')
+          wsl.exe --distribution Ubuntu-24.04 -- mkdir -p /root/.cache
+          wsl.exe --distribution Ubuntu-24.04 -- tar -xf $wslArchive -C /root/.cache
       - name: Install WSL2 build, Go, and Gondolin dependencies
         run: wsl.exe --distribution Ubuntu-24.04 -- bash -lc 'cd ~/src/themoltnet && bash tools/ci/wsl-agent-daemon.sh setup'
       - name: Build, install, and validate the Linux bundle in WSL2
@@ -184,12 +192,19 @@ jobs:
       - name: Show WSL agent server log on failure
         if: failure()
         run: wsl.exe --distribution Ubuntu-24.04 -- bash -lc 'cat "$HOME/moltnet-agent-server.log" 2>/dev/null || true'
+      - name: Pack WSL bundle runtime
+        if: success() && steps.wsl-bundle-runtime.outputs.cache-hit != 'true'
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'wsl-bundle-runtime.tar'
+          $drive = $archive[0].ToString().ToLowerInvariant()
+          $wslArchive = '/mnt/' + $drive + $archive.Substring(2).Replace('\', '/')
+          wsl.exe --distribution Ubuntu-24.04 -- tar -C /root/.cache -cf $wslArchive moltnet-release
       - name: Save WSL bundle runtime
         if: success() && steps.wsl-bundle-runtime.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
         with:
-          path: \\wsl.localhost\Ubuntu-24.04\root\.cache\moltnet-release
-          key: wsl2-agent-bundle-runtime-linux-x64-${{ hashFiles('.tool-versions') }}
+          path: ${{ runner.temp }}\wsl-bundle-runtime.tar
+          key: wsl2-agent-bundle-runtime-linux-x64-v2-${{ hashFiles('.tool-versions') }}
 
   native-keyring:
     name: Native keyring
@@ -223,7 +238,7 @@ jobs:
           cache: pnpm
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.25'
+          go-version: '1.27'
           cache-dependency-path: |
             go.work.sum
             apps/moltnet-cli/go.sum
@@ -445,7 +460,15 @@ jobs:
             echo "e2e-mcp=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if contains "moltnet-cli" "moltnet-api-client"; then
+          # A workflow-only Go version update does not affect an Nx project.
+          # Exercise the Go CLI lane when its CI, release, or sync toolchain
+          # changes so its required check cannot pass through the early exit.
+          if contains "moltnet-cli" "moltnet-api-client" ||
+            git diff --unified=0 "$NX_BASE" "$NX_HEAD" -- \
+              .github/workflows/ci.yml \
+              .github/workflows/release.yml \
+              .github/workflows/sync-cli-go-mod.yml |
+              grep -Eq '^\+[^+].*go-version:'; then
             echo "e2e-go-cli=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-go-cli=false" >> "$GITHUB_OUTPUT"
@@ -553,7 +576,10 @@ jobs:
       - uses: actions/setup-go@v6
         if: steps.matrix.outputs.has-agents == 'true'
         with:
-          go-version: '1.26'
+          go-version: '1.27'
+          # This job only installs golangci-lint, whose binary is cached below.
+          # Restoring the full Go cache can exhaust its five-minute budget.
+          cache: false
       - name: Cache golangci-lint
         if: steps.matrix.outputs.has-agents == 'true'
         id: golangci-lint-cache
@@ -1211,7 +1237,12 @@ jobs:
           cache: pnpm
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.25'
+          go-version: '1.27'
+          cache-dependency-path: |
+            go.work
+            go.work.sum
+            **/go.mod
+            **/go.sum
       - run: pnpm install --frozen-lockfile
       - name: Regenerate OpenAPI spec and client
         run: pnpm run generate
@@ -1789,7 +1820,12 @@ jobs:
       - uses: actions/setup-go@v6
         if: needs.affected.outputs.e2e-go-cli == 'true'
         with:
-          go-version: '1.25'
+          go-version: '1.27'
+          cache-dependency-path: |
+            go.work
+            go.work.sum
+            **/go.mod
+            **/go.sum
       - name: Log in to GHCR
         if: needs.affected.outputs.e2e-go-cli == 'true'
         uses: docker/login-action@v4
@@ -1943,7 +1979,7 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: '3.14'
 
       - name: Validate canonical Agent Skills
         run: |

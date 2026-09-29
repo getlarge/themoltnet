@@ -30,7 +30,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, legreffier-plugin, cli, api-client, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, n8n-nodes-moltnet, node-red-theme, agent-daemon, agent-desktop, console, database, mcp-host, mcp-server, rest-api, otel-custom-collector
+          Valid values: sdk, agent-daemon-action, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, legreffier-plugin, cli, api-client, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, n8n-nodes-moltnet, node-red-theme, agent-daemon, agent-desktop, console, database, mcp-host, mcp-server, rest-api, otel-custom-collector
         required: false
         type: string
 
@@ -67,6 +67,8 @@ jobs:
       sdk-tag-name: ${{ steps.release.outputs['libs/sdk--tag_name'] }}
       os-keyring-release-created: ${{ steps.release.outputs['libs/os-keyring--release_created'] }}
       os-keyring-tag-name: ${{ steps.release.outputs['libs/os-keyring--tag_name'] }}
+      agent-daemon-action-release-created: ${{ steps.release.outputs['packages/agent-daemon-action--release_created'] }}
+      agent-daemon-action-tag-name: ${{ steps.release.outputs['packages/agent-daemon-action--tag_name'] }}
       tasks-orchestrator-release-created: ${{ steps.release.outputs['libs/tasks-orchestrator--release_created'] }}
       tasks-orchestrator-tag-name: ${{ steps.release.outputs['libs/tasks-orchestrator--tag_name'] }}
       credentials-release-created: ${{ steps.release.outputs['libs/credentials--release_created'] }}
@@ -145,10 +147,13 @@ jobs:
     # success() check on the skipped transitive dependency.
     if: ${{ always() && needs.resolve-publish.outputs.docker-has-releases == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     permissions:
       contents: write
       packages: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.resolve-publish.outputs.docker-matrix) }}
@@ -165,7 +170,7 @@ jobs:
       - uses: actions/setup-go@v6
         if: ${{ matrix.project == 'otel-custom-collector' }}
         with:
-          go-version: '1.26'
+          go-version: '1.27'
           check-latest: true
           cache: true
 
@@ -192,6 +197,7 @@ jobs:
           --configuration=release
 
       - name: Verify published multi-platform manifest
+        id: image
         env:
           NX_DOCKER_RELEASE_PROJECT: ${{ matrix.project }}
           NX_DOCKER_RELEASE_TAG: ${{ matrix.version }}
@@ -199,6 +205,65 @@ jobs:
           node tools/verify-docker-manifest.mjs
           --project "$NX_DOCKER_RELEASE_PROJECT"
           --tag "$NX_DOCKER_RELEASE_TAG"
+
+      - name: Install Syft for release SBOMs
+        id: syft
+        uses: anchore/sbom-action/download-syft@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        with:
+          syft-version: v1.42.3
+
+      - name: Generate platform release SBOMs in parallel
+        env:
+          SYFT_CMD: ${{ steps.syft.outputs.cmd }}
+          AMD64_REF: ${{ steps.image.outputs.amd64_ref }}
+          ARM64_REF: ${{ steps.image.outputs.arm64_ref }}
+        run: |
+          "$SYFT_CMD" "registry:$AMD64_REF" -o "spdx-json=$RUNNER_TEMP/release-amd64.spdx.json" &
+          amd64_pid=$!
+          "$SYFT_CMD" "registry:$ARM64_REF" -o "spdx-json=$RUNNER_TEMP/release-arm64.spdx.json" &
+          arm64_pid=$!
+
+          amd64_status=0
+          arm64_status=0
+          wait "$amd64_pid" || amd64_status=$?
+          wait "$arm64_pid" || arm64_status=$?
+          if [ "$amd64_status" -ne 0 ] || [ "$arm64_status" -ne 0 ]; then
+            echo "::error::Release SBOM generation failed (amd64=$amd64_status, arm64=$arm64_status)"
+            exit 1
+          fi
+
+      - name: Validate release SBOMs
+        run: |
+          for file in "$RUNNER_TEMP/release-amd64.spdx.json" "$RUNNER_TEMP/release-arm64.spdx.json"; do
+            jq -e '.spdxVersion | startswith("SPDX-")' "$file" > /dev/null
+            if [ "$(wc -c < "$file")" -gt 16777216 ]; then
+              echo "::error::Release SBOM exceeds the attestation size limit: $file"
+              exit 1
+            fi
+          done
+
+      - name: Attest release provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.image.outputs.image_name }}
+          subject-digest: ${{ steps.image.outputs.image_digest }}
+          push-to-registry: true
+
+      - name: Attest linux/amd64 release SBOM
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.image.outputs.image_name }}
+          subject-digest: ${{ steps.image.outputs.image_digest }}
+          sbom-path: ${{ runner.temp }}/release-amd64.spdx.json
+          push-to-registry: true
+
+      - name: Attest linux/arm64 release SBOM
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.image.outputs.image_name }}
+          subject-digest: ${{ steps.image.outputs.image_digest }}
+          sbom-path: ${{ runner.temp }}/release-arm64.spdx.json
+          push-to-registry: true
 
       - name: Publish GitHub release
         env:
@@ -221,6 +286,8 @@ jobs:
       sdk-tag: ${{ steps.resolve.outputs.sdk-tag }}
       os-keyring: ${{ steps.resolve.outputs.os-keyring }}
       os-keyring-tag: ${{ steps.resolve.outputs.os-keyring-tag }}
+      agent-daemon-action: ${{ steps.resolve.outputs.agent-daemon-action }}
+      agent-daemon-action-tag: ${{ steps.resolve.outputs.agent-daemon-action-tag }}
       tasks-orchestrator: ${{ steps.resolve.outputs.tasks-orchestrator }}
       tasks-orchestrator-tag: ${{ steps.resolve.outputs.tasks-orchestrator-tag }}
       credentials: ${{ steps.resolve.outputs.credentials }}
@@ -280,6 +347,8 @@ jobs:
           RP_SDK_TAG: ${{ needs.release-please.outputs.sdk-tag-name }}
           RP_OS_KEYRING_CREATED: ${{ needs.release-please.outputs.os-keyring-release-created }}
           RP_OS_KEYRING_TAG: ${{ needs.release-please.outputs.os-keyring-tag-name }}
+          RP_AGENT_DAEMON_ACTION_CREATED: ${{ needs.release-please.outputs.agent-daemon-action-release-created }}
+          RP_AGENT_DAEMON_ACTION_TAG: ${{ needs.release-please.outputs.agent-daemon-action-tag-name }}
           RP_TASKS_ORCHESTRATOR_CREATED: ${{ needs.release-please.outputs.tasks-orchestrator-release-created }}
           RP_TASKS_ORCHESTRATOR_TAG: ${{ needs.release-please.outputs.tasks-orchestrator-tag-name }}
           RP_CREDENTIALS_CREATED: ${{ needs.release-please.outputs.credentials-release-created }}
@@ -417,6 +486,7 @@ jobs:
           echo "Resolving publish targets..."
           resolve "sdk"          "$RP_SDK_CREATED"       "$RP_SDK_TAG"       "sdk"
           resolve "os-keyring"   "$RP_OS_KEYRING_CREATED" "$RP_OS_KEYRING_TAG" "os-keyring"
+          resolve "agent-daemon-action" "$RP_AGENT_DAEMON_ACTION_CREATED" "$RP_AGENT_DAEMON_ACTION_TAG" "agent-daemon-action"
           resolve "tasks-orchestrator" "$RP_TASKS_ORCHESTRATOR_CREATED" "$RP_TASKS_ORCHESTRATOR_TAG" "tasks-orchestrator"
           resolve "credentials" "$RP_CREDENTIALS_CREATED" "$RP_CREDENTIALS_TAG" "credentials"
           resolve "credential-broker" "$RP_CREDENTIAL_BROKER_CREATED" "$RP_CREDENTIAL_BROKER_TAG" "credential-broker"
@@ -654,6 +724,41 @@ jobs:
 
       - name: Publish OS keyring release
         run: gh release edit "${{ needs.resolve-publish.outputs.os-keyring-tag }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # GitHub Actions are not published to a registry: consumers load them from
+  # this repository by tag. The release tag already points at the release
+  # commit; this job verifies the committed bundle there, moves the action's
+  # stable major tag to it, and publishes the draft release.
+  publish-agent-daemon-action:
+    name: Release agent-daemon-action
+    needs: resolve-publish
+    if: ${{ always() && needs.resolve-publish.outputs.agent-daemon-action == 'true' && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.resolve-publish.outputs.agent-daemon-action-tag }}
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Rebuilds dist/, refuses to release when it differs from the committed
+      # bundle, then moves the stable major tag to the release commit.
+      - run: pnpm exec nx run @themoltnet/agent-daemon-action:publish-action
+
+      - name: Publish agent-daemon-action release
+        run: gh release edit "${{ needs.resolve-publish.outputs.agent-daemon-action-tag }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -1224,7 +1329,7 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.25'
+          go-version: '1.27'
 
       - name: Extract semver from tag
         id: tag

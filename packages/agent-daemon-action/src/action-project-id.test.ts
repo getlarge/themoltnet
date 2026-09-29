@@ -292,6 +292,55 @@ describe('run step with project-id', () => {
     },
   );
 
+  it('caps the drain polling backoff when max-poll-interval-ms is set', () => {
+    const bin = installFakeDaemon();
+
+    const result = runStep('run', {
+      ...runEnv(bin),
+      DAEMON_MODE: 'drain',
+      MAX_POLL_INTERVAL_MS: '3000',
+    });
+
+    expect(result.status).toBe(0);
+    const args = daemonArgs();
+    expect(args[args.indexOf('--max-poll-interval-ms') + 1]).toBe('3000');
+  });
+
+  it('keeps the daemon polling default when max-poll-interval-ms is empty or the mode is once', () => {
+    const bin = installFakeDaemon();
+
+    const drain = runStep('run', {
+      ...runEnv(bin),
+      DAEMON_MODE: 'drain',
+      MAX_POLL_INTERVAL_MS: '',
+    });
+    const drainArgs = daemonArgs();
+    const once = runStep('run', {
+      ...runEnv(bin),
+      MAX_POLL_INTERVAL_MS: '3000',
+    });
+
+    expect(drain.status).toBe(0);
+    expect(drainArgs).not.toContain('--max-poll-interval-ms');
+    expect(once.status).toBe(0);
+    expect(daemonArgs()).not.toContain('--max-poll-interval-ms');
+  });
+
+  it('rejects a max-poll-interval-ms that is not a positive integer', () => {
+    const bin = installFakeDaemon();
+
+    const result = runStep('run', {
+      ...runEnv(bin),
+      DAEMON_MODE: 'drain',
+      MAX_POLL_INTERVAL_MS: '0',
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      'max-poll-interval-ms must be a positive integer',
+    );
+  });
+
   it('trims surrounding whitespace (incl. newlines) before validating and binding', () => {
     const bin = installFakeDaemon();
 

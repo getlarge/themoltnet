@@ -210,8 +210,10 @@ For an ephemeral correlated worker, store a team- or identity-scoped
 `MOLTNET_PRIVATE_KEY`, then pass `mode: drain`, `task-types`, `correlation-id`,
 and `wait-for-first-task-sec` to the action. For dependency-driven runs, also
 set `wait-after-task-sec` so workers stay alive while follow-up tasks become
-runnable. The action deliberately skips credential-file materialization in this
-mode, and the Pi guest receives neither secret.
+runnable, and `max-poll-interval-ms` so a follow-up task is claimed within
+seconds rather than after the daemon's 30-second idle backoff. The action
+deliberately skips credential-file materialization in this mode, and the Pi
+guest receives neither secret.
 
 GitHub correlation anchors live in branch names, first commit trailers, and PR
 body markers so fulfill and assess tasks can share one `correlationId`.

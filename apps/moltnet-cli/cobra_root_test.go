@@ -74,3 +74,24 @@ func TestVersionCommand(t *testing.T) {
 		}
 	})
 }
+
+func TestShouldCheckForCLIUpdate(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		command, version string
+		want             bool
+	}{
+		{"start", "1.2.3", true},
+		{"start", "v1.2.3", true},
+		// Test and workspace builds must not reach the network or write the
+		// update cache from a goroutine that outlives the command.
+		{"start", "test", false},
+		{"start", "dev", false},
+		{"projects", "1.2.3", false},
+	}
+	for _, tc := range cases {
+		if got := shouldCheckForCLIUpdate(tc.command, tc.version); got != tc.want {
+			t.Errorf("shouldCheckForCLIUpdate(%q, %q) = %v, want %v", tc.command, tc.version, got, tc.want)
+		}
+	}
+}

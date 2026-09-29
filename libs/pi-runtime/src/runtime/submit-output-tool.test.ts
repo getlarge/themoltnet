@@ -137,6 +137,75 @@ describe('createSubmitOutputTool', () => {
     expect(tool.promptGuidelines?.join('\n')).not.toContain('task prompt');
   });
 
+  it('shows the expected JSON type on non-string transport fields', () => {
+    // Arrange
+    const handle = createSubmitOutputTool('pr_review');
+    const properties = (
+      handle.tool as unknown as {
+        parameters: { properties: Record<string, { description?: string }> };
+      }
+    ).parameters.properties;
+
+    // Assert: without a type, some models send arrays and numbers as strings.
+    expect(properties.scores.description).toContain('JSON array');
+    expect(properties.composite.description).toContain('JSON number');
+    expect(properties.verdict.description).toBeUndefined();
+  });
+
+  it('decodes array and number fields sent as JSON strings', async () => {
+    // Arrange
+    const handle = createSubmitOutputTool('pr_review');
+    const scores = [{ criterionId: 'c1', score: 1, rationale: 'ok' }];
+
+    // Act
+    const result = await callExecute(handle)({
+      scores: JSON.stringify(scores),
+      composite: '0.8',
+      verdict: 'looks fine',
+    });
+
+    // Assert
+    expect(result.isError).toBeFalsy();
+    expect(handle.getCaptured()).toEqual({
+      scores,
+      composite: 0.8,
+      verdict: 'looks fine',
+    });
+  });
+
+  it('keeps string fields verbatim even when they parse as JSON', async () => {
+    // Arrange
+    const handle = createSubmitOutputTool('pr_review');
+
+    // Act
+    await callExecute(handle)({
+      scores: [{ criterionId: 'c1', score: 1, rationale: 'ok' }],
+      composite: 1,
+      verdict: '[1]',
+    });
+
+    // Assert
+    expect(handle.getCaptured()?.verdict).toBe('[1]');
+  });
+
+  it('reports a stringified field that decodes to the wrong type', async () => {
+    // Arrange
+    const handle = createSubmitOutputTool('pr_review');
+
+    // Act
+    const result = await callExecute(handle)({
+      scores: '{"criterionId":"c1"}',
+      composite: 'high',
+      verdict: 'v',
+    });
+
+    // Assert
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('output/scores');
+    expect(result.content[0]?.text).toContain('output/composite');
+    expect(handle.getCaptured()).toBeNull();
+  });
+
   it('lets malformed nested verification reach the executor for repair', async () => {
     const handle = createSubmitOutputTool('freeform', {
       input: submitOutputOnlyFreeformInput,

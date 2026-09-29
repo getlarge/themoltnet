@@ -25,7 +25,9 @@ Four invocation shapes:
    `correlation-id`. No task id is required. `wait-for-first-task-sec` prevents
    an ephemeral worker from exiting before a parallel orchestrator creates the
    run's first task. `wait-after-task-sec` keeps it alive across dependency
-   gaps before follow-up tasks are queued.
+   gaps before follow-up tasks are queued. `max-poll-interval-ms` caps the
+   idle polling backoff (30 s by default) so a follow-up task is claimed
+   within seconds of being created.
 
 ## Usage
 
@@ -45,6 +47,7 @@ Four invocation shapes:
     correlation-id: ${{ needs.prepare.outputs.correlation-id }} # drain only
     wait-for-first-task-sec: '300' # drain only
     wait-after-task-sec: '300' # drain only
+    max-poll-interval-ms: '3000' # drain only; empty = daemon default
     daemon-version: latest
     # Required — runtime profile UUID or team-scoped name.
     # Equivalently set MOLTNET_AGENT_PROFILE on `env:` below.
@@ -130,11 +133,11 @@ one-binding project config to `$RUNNER_TEMP` that registers the runner checkout
   defaults `node-version` to `'24'` (the LTS sibling). Override via
   the `node-version` input only if you have a specific reason; older
   versions emit `EBADENGINE` warnings and may fail at sandbox boot.
-- **No `/dev/kvm`** — standard GitHub-hosted runners do not expose KVM.
-  Gondolin auto-falls-back to TCG software emulation in that case;
-  expect ~1–3 min of cold-start time per task while the snapshot
-  cache warms. Self-hosted runners with KVM passthrough boot in
-  seconds.
+- **KVM** — GitHub-hosted Linux runners expose `/dev/kvm` to root and
+  the `kvm` group only. The action adds a udev rule that opens it to the
+  runner user, so the sandbox boots with hardware acceleration. Where
+  `/dev/kvm` is absent, Gondolin falls back to TCG software emulation,
+  which boots much more slowly.
 
 ## Required secrets / vars
 
@@ -448,12 +451,12 @@ byte-identical output, which is what lets CI diff it.
 local scratch, and hiding it from `git status` is what let it drift
 behind its sources unnoticed.
 
-The action is semvered by Nx release in the `github-actions` group.
-Consumers can pin the immutable `agent-daemon-action-vX.Y.Z` tag or the
-moving major tag (`v0`, later `v1`) that the action release publish target
-updates after the semver tag is created. The publish target rebuilds the
-bundle and refuses to release while `dist/` differs from its sources, so
-merge any open bundle sync PR before releasing.
+The action is released by release-please as the `agent-daemon-action`
+component. Consumers can pin the immutable `agent-daemon-action-vX.Y.Z` tag or
+the moving major tag (`v0`, later `v1`) that the release workflow moves to the
+release commit. That job rebuilds the bundle and refuses to release while
+`dist/` differs from its sources, so merge any open bundle sync PR before
+merging a release PR that includes the action.
 
 ## License
 

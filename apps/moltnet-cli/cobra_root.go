@@ -45,7 +45,7 @@ without human intervention.`,
 			}
 		}
 		// Advisory and credential-free: the refresh must never delay a command.
-		if cmd.Name() != "start" || isCLIWorkspaceInvocation() {
+		if !shouldCheckForCLIUpdate(cmd.Name(), version) {
 			return
 		}
 		go func() {
@@ -89,6 +89,14 @@ without human intervention.`,
 	rootCmd.AddCommand(newStartCmd())
 
 	return rootCmd
+}
+
+// shouldCheckForCLIUpdate limits the background update check to `start` on a
+// released build. Workspace and test builds carry a non-release version such
+// as "test"; checking there reaches the network and writes the update cache
+// after the command returns, into whatever cache directory is current then.
+func shouldCheckForCLIUpdate(command, version string) bool {
+	return command == "start" && validVersion(version) && !isCLIWorkspaceInvocation()
 }
 
 func newVersionCmd(version, commit string) *cobra.Command {

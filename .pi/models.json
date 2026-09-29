@@ -75,6 +75,20 @@
           }
         },
         {
+          "contextWindow": 1048576,
+          "id": "deepseek-v4.1-flash",
+          "input": ["text", "image"],
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
           "contextWindow": 262144,
           "id": "gemma4:cloud",
           "input": ["text", "image"],
@@ -91,6 +105,20 @@
         {
           "contextWindow": 262144,
           "id": "gemma4:31b-cloud",
+          "input": ["text", "image"],
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
+          "contextWindow": 262144,
+          "id": "gemma4:31b",
           "input": ["text", "image"],
           "reasoning": true,
           "thinkingLevelMap": {

@@ -31,8 +31,6 @@ Configured in `nx.json` under `release.groups`:
 - `cli`: fixed-version CLI family, including the Go CLI and npm wrapper
   packages.
 - `go-modules`: independent Go library modules.
-- `github-actions`: independent GitHub Actions distributed from this repo by
-  tag.
 - `docker-images`: independent Docker images built from Nx projects with
   Dockerfiles.
 
@@ -76,7 +74,6 @@ This command intentionally exercises real side effects:
 - GitHub release creation
 - Go CLI archive build and GitHub release asset upload
 - npm package publish
-- GitHub Action stable major tag movement
 
 Before running it, prepare cleanup for every surface below. If any publish step
 gets far enough to create immutable public state, do not pretend the rehearsal
@@ -134,9 +131,7 @@ release, do not set `GO_RELEASE_SKIP_PROXY`; the Go publish targets must verify
 the tagged modules through GOPROXY after the release commit and tags are pushed.
 `GO_RELEASE_USE_LOCAL_REPLACES=true` is also local-only; it lets the Go CLI
 artifact build resolve sibling Go modules from the worktree while the rehearsal
-tags are still local-only. `GITHUB_ACTION_RELEASE_SKIP_PUSH=true` is local-only
-and prevents the GitHub Action publisher from moving the stable major tag such
-as `v0`.
+tags are still local-only.
 
 If Verdaccio requires an npm token, create a throwaway local user and write a
 root `.npmrc` in the disposable worktree. Nx forwards `--userconfig` to custom
@@ -221,12 +216,6 @@ for tag in $TAGS; do
 done
 ```
 
-Delete GitHub Action stable major tags only if the rehearsal moved them:
-
-```bash
-git push origin :refs/tags/v0
-```
-
 Remove the rehearsal release commit from the rehearsal branch or discard the
 worktree. If it was pushed to a branch, delete the branch instead of reverting
 unless a reviewer needs the release commit for audit:
@@ -282,7 +271,6 @@ Use dry-runs only as a fast preflight before the full rehearsal:
 ```bash
 pnpm exec nx release version patch --groups npm-packages --dry-run --verbose
 pnpm exec nx release version patch --groups go-modules,cli --dry-run --verbose
-pnpm exec nx release version patch --groups github-actions --dry-run --verbose
 NX_DRY_RUN=true pnpm exec nx release version patch --groups docker-images --dry-run --verbose
 ```
 
@@ -370,30 +358,11 @@ pnpm exec nx run moltnet-cli:nx-release-publish -- --skip-upload --verbose
 
 ## GitHub Actions
 
-The agent daemon action is semvered by the `github-actions` release group. It is
-not published to npm; consumers load it from this repository with path-based
-GitHub Action syntax:
-
-```yaml
-uses: getlarge/themoltnet/packages/agent-daemon-action@v0
-```
-
-Nx creates the immutable semver tag:
-
-```text
-agent-daemon-action-v{version}
-```
-
-The action's `nx-release-publish` target validates that
-`packages/agent-daemon-action/dist/main.js` is committed, then moves the stable
-major tag (`v0`, later `v1`) to the release commit. Rebuild the committed bundle
-through Nx:
-
-```bash
-pnpm exec nx run @themoltnet/agent-daemon-action:build
-```
-
-Do not use `pnpm --filter` for action build/test/typecheck tasks.
+GitHub Actions are not released by Nx. Release-please releases them as
+components (`agent-daemon-action`), and the `publish-agent-daemon-action` job in
+`.github/workflows/release.yml` verifies the committed bundle at the release tag
+and moves the action's stable major tag. See the action README for the
+consumer-facing tags.
 
 ## Docker Images
 

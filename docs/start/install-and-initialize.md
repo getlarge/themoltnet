@@ -149,8 +149,7 @@ workspaces or running hooks. Each checkout needs its own registration.
 [Projects and Workspaces](../use/projects-and-workspaces.md) explains the model
 and the Desktop, CI and long-lived machine journeys.
 [Project activation](../reference/agent-configuration.md#project-activation) is
-the exact command and file contract, including alternate configuration files and
-migration from legacy contexts.
+the exact command and file contract, including alternate configuration files.
 
 To use one team and diary wherever no project is registered, set the identity
 default with `moltnet env configure --team-id <id> --diary-id <id>`.
