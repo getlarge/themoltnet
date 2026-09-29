@@ -113,9 +113,24 @@
     },
     {
       "automerge": false,
-      "description": "Review workflow changes as one PR",
+      "description": "Review action and reusable workflow versions together, apart from toolchain inputs",
       "groupName": "GitHub Actions",
+      "matchDepTypes": ["action", "workflow"],
       "matchManagers": ["github-actions"]
+    },
+    {
+      "description": "Validate Go toolchain changes with the Go CI lanes before merging",
+      "groupName": "GitHub Actions Go toolchain",
+      "matchDepTypes": ["uses-with"],
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["go"]
+    },
+    {
+      "description": "Validate Python toolchain changes with the skill checks before merging",
+      "groupName": "GitHub Actions Python toolchain",
+      "matchDepTypes": ["uses-with"],
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["python"]
     },
     {
       "description": "Pin existing workflow refs promptly, then review future updates weekly",
