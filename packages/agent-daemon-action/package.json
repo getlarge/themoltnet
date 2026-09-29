@@ -43,7 +43,7 @@
       "@themoltnet/agent-daemon"
     ],
     "targets": {
-      "nx-release-publish": {
+      "publish-action": {
         "executor": "nx:run-commands",
         "dependsOn": [
           "build"

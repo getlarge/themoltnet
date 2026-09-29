@@ -179,6 +179,11 @@
       "component": "yubikey-preview-sign",
       "release-type": "node"
     },
+    "packages/agent-daemon-action": {
+      "bump-minor-pre-major": true,
+      "component": "agent-daemon-action",
+      "release-type": "node"
+    },
     "packages/cli": {
       "component": "cli-wrapper",
       "release-type": "node",
