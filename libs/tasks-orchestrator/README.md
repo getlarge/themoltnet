@@ -242,6 +242,8 @@ task has an expiry, the replacement uses the initial effective lifetime instead
 of a possibly changed server default. A long delay between expiry calculation
 and database insertion can fail closed because the API does not expose the
 original relative lifetime directly.
+If the initial task has no expiry and a replacement acquires one from a later
+server default, recovery rejects the created replacement and returns its ID.
 
 Decision and task creation have separate stable checkpoints. Replay after a
 completed decision checkpoint reuses the verdict; replay after a completed

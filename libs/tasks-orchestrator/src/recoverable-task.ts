@@ -175,6 +175,10 @@ function frozenRequestMismatches(
   );
   if (body.expiresInSec !== undefined) {
     check('expiresInSec', observedLifetimeSeconds(task) === body.expiresInSec);
+  } else {
+    // No expiry cannot be requested explicitly by the API. Reject a replacement
+    // that acquires one after a server default changes.
+    check('expiresInSec', task.expiresAt === null);
   }
   check('input', isDeepStrictEqual(task.input, body.input));
   check(

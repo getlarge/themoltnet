@@ -177,6 +177,11 @@ describe('waitForRecoverableTask', () => {
       cacheWriteTokens: 0,
       toolCalls: 0,
     });
+    expect(replayed.chain).toEqual(first.chain);
+    expect(replayed.decisions).toEqual(first.decisions);
+    expect(replayed.cumulativeUsage).toEqual(first.cumulativeUsage);
+    if (first.kind === 'accepted' && replayed.kind === 'accepted')
+      expect(replayed.result).toEqual(first.result);
     expect(ctx.checkpointNames).toEqual([
       'extract.2.recovery.1.decision',
       'extract.2.recovery.1.create',
@@ -686,6 +691,34 @@ describe('waitForRecoverableTask', () => {
 
     expect(result.kind).toBe('accepted');
     expect(tasks.created[1]?.expiresInSec).toBe(60);
+  });
+
+  it('fails closed if a formerly non-expiring replacement acquires a default expiry', async () => {
+    const tasks = new FakeTasks([{ __taskStatus: 'failed' }, { done: true }]);
+    const initial = await tasks.createTask(body);
+    const realCreate = tasks.createTask.bind(tasks);
+    tasks.createTask = async (request, options) => {
+      const created = await realCreate(request, options);
+      return {
+        ...created,
+        expiresAt: new Date(
+          Date.parse(created.queuedAt) + 3_600_000,
+        ).toISOString(),
+      };
+    };
+
+    const result = await waitForRecoverableTask(initial, setup(tasks));
+
+    expect(result).toMatchObject({
+      kind: 'replacement_create_failed',
+      reasonCode: 'replacement_identity_mismatch',
+      replacementTaskId: '00000000-0000-4000-8000-000000000002',
+      mismatchedFields: ['expiresInSec'],
+      decisions: [
+        { replacementTaskId: '00000000-0000-4000-8000-000000000002' },
+      ],
+    });
+    expect(tasks.created[1]?.expiresInSec).toBeUndefined();
   });
 
   it('records a replacement whose returned lifetime differs', async () => {
