@@ -204,29 +204,31 @@ jobs:
           --project "$NX_DOCKER_RELEASE_PROJECT"
           --tag "$NX_DOCKER_RELEASE_TAG"
 
-      - name: Generate linux/amd64 release SBOM
-        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+      - name: Install Syft for release SBOMs
+        id: syft
+        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
         with:
-          image: ${{ steps.image.outputs.amd64_ref }}
-          registry-username: ${{ github.actor }}
-          registry-password: ${{ github.token }}
-          format: spdx-json
-          output-file: ${{ runner.temp }}/release-amd64.spdx.json
           syft-version: v1.42.3
-          upload-artifact: false
-          upload-release-assets: false
 
-      - name: Generate linux/arm64 release SBOM
-        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
-        with:
-          image: ${{ steps.image.outputs.arm64_ref }}
-          registry-username: ${{ github.actor }}
-          registry-password: ${{ github.token }}
-          format: spdx-json
-          output-file: ${{ runner.temp }}/release-arm64.spdx.json
-          syft-version: v1.42.3
-          upload-artifact: false
-          upload-release-assets: false
+      - name: Generate platform release SBOMs in parallel
+        env:
+          SYFT_CMD: ${{ steps.syft.outputs.cmd }}
+          AMD64_REF: ${{ steps.image.outputs.amd64_ref }}
+          ARM64_REF: ${{ steps.image.outputs.arm64_ref }}
+        run: |
+          "$SYFT_CMD" "registry:$AMD64_REF" -o "spdx-json=$RUNNER_TEMP/release-amd64.spdx.json" &
+          amd64_pid=$!
+          "$SYFT_CMD" "registry:$ARM64_REF" -o "spdx-json=$RUNNER_TEMP/release-arm64.spdx.json" &
+          arm64_pid=$!
+
+          amd64_status=0
+          arm64_status=0
+          wait "$amd64_pid" || amd64_status=$?
+          wait "$arm64_pid" || arm64_status=$?
+          if [ "$amd64_status" -ne 0 ] || [ "$arm64_status" -ne 0 ]; then
+            echo "::error::Release SBOM generation failed (amd64=$amd64_status, arm64=$arm64_status)"
+            exit 1
+          fi
 
       - name: Validate release SBOMs
         run: |
