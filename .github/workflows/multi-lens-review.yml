@@ -164,10 +164,10 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1 # master 2026-08-15
         with:
-          version: 0.4.39
+          version: 0.4.108
       - run: pnpm install --frozen-lockfile
 
       - name: Start private review database proxy
@@ -257,7 +257,7 @@ jobs:
           cache: pnpm
       - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1 # master 2026-08-15
         with:
-          version: 0.4.39
+          version: 0.4.108
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec nx run @themoltnet/multi-lens-review:build
 

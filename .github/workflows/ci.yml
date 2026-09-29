@@ -238,7 +238,7 @@ jobs:
           cache: pnpm
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.25'
+          go-version: '1.27'
           cache-dependency-path: |
             go.work.sum
             apps/moltnet-cli/go.sum
@@ -568,7 +568,7 @@ jobs:
       - uses: actions/setup-go@v6
         if: steps.matrix.outputs.has-agents == 'true'
         with:
-          go-version: '1.26'
+          go-version: '1.27'
           # This job only installs golangci-lint, whose binary is cached below.
           # Restoring the full Go cache can exhaust its five-minute budget.
           cache: false
@@ -1229,7 +1229,7 @@ jobs:
           cache: pnpm
       - uses: actions/setup-go@v6
         with:
-          go-version: '1.25'
+          go-version: '1.27'
           cache-dependency-path: |
             go.work
             go.work.sum
@@ -1812,7 +1812,7 @@ jobs:
       - uses: actions/setup-go@v6
         if: needs.affected.outputs.e2e-go-cli == 'true'
         with:
-          go-version: '1.25'
+          go-version: '1.27'
           cache-dependency-path: |
             go.work
             go.work.sum
@@ -1971,7 +1971,7 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: '3.14'
 
       - name: Validate canonical Agent Skills
         run: |
