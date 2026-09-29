@@ -143,7 +143,15 @@ jobs:
           FACTS: ${{ steps.facts.outputs.facts-path }}
         run: |
           set -euo pipefail
-          node apps/docs-impact-review/src/eligibility.ts "$FACTS" | tee -a "$GITHUB_OUTPUT"
+          gate=apps/docs-impact-review/src/eligibility.ts
+          # A base revision that predates the reviewer (for example the PR
+          # that introduces it) has no runtime to review with.
+          if [ ! -f "$gate" ]; then
+            printf 'skip=true\nreason=the base revision does not contain the docs impact reviewer\n' \
+              | tee -a "$GITHUB_OUTPUT"
+          else
+            node "$gate" "$FACTS" | tee -a "$GITHUB_OUTPUT"
+          fi
           if grep -q '^skip=true' "$GITHUB_OUTPUT"; then
             reason="$(grep '^reason=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
             echo "::notice::Docs impact review skipped: $reason"
