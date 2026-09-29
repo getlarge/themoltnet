@@ -63,7 +63,7 @@ jobs:
         uses: renovatebot/github-action@1cd96b855fee0da6f230617e89dbff0e06ea393a # v46.3.5
         with:
           # renovate: datasource=docker depName=ghcr.io/renovatebot/renovate
-          renovate-version: 44.116.0
+          renovate-version: 44.119.1
           token: ${{ steps.app.outputs.token }}
         env:
           RENOVATE_PLATFORM: github
