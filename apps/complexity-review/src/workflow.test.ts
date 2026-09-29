@@ -17,6 +17,7 @@ import {
   buildSynthesisTask,
   parseChangeMap,
   parseDomainResult,
+  parseFreeformReviewOutput,
   parseReviewOutput,
   type ReviewInput,
   runComplexityReview,
@@ -131,6 +132,7 @@ describe('staged complexity review', () => {
   it('uses separate map, domain and synthesis briefs with strict domain coverage', () => {
     const map = buildChangeMapTask(input, evidence);
     expect(map.input.brief).toContain('do not score the rubric yet');
+    expect(map.input).not.toHaveProperty('successCriteria');
     const work = buildDomainWork(
       [
         {
@@ -143,8 +145,9 @@ describe('staged complexity review', () => {
     )[0];
     const domain = buildDomainTask(input, evidence, work);
     expect(domain.input.brief).toContain('<untrusted-file-diff');
+    expect(domain.input.brief).toContain('<untrusted-assigned-paths');
+    expect(domain.input.brief).not.toContain('<untrusted-manifest');
     const result = {
-      workId: work.id,
       paths: ['apps/a.ts'],
       summary: 'Small app behavior update',
       signals: [
@@ -155,7 +158,43 @@ describe('staged complexity review', () => {
         },
       ],
     };
-    expect(parseDomainResult(summary(result), work, rubric)).toEqual(result);
+    expect(
+      parseDomainResult(
+        summary({ ...result, workId: 'task-uuid' }),
+        work,
+        rubric,
+      ),
+    ).toEqual({
+      ...result,
+      workId: work.id,
+    });
+    expect(
+      parseDomainResult(
+        {
+          summary: 'Concise prose summary',
+          artifacts: [{ kind: 'note', body: JSON.stringify(result) }],
+        },
+        work,
+        rubric,
+      ),
+    ).toEqual({ ...result, workId: work.id });
+    expect(
+      parseDomainResult(
+        { summary: JSON.stringify(result) + '"' },
+        work,
+        rubric,
+      ),
+    ).toEqual({ ...result, workId: work.id });
+    expect(() =>
+      parseDomainResult(
+        {
+          ...summary(result),
+          artifacts: [{ kind: 'note', body: JSON.stringify(result) }],
+        },
+        work,
+        rubric,
+      ),
+    ).toThrow('exactly one JSON payload');
     expect(() =>
       parseDomainResult(summary({ ...result, paths: [] }), work, rubric),
     ).toThrow('omitted or added paths');
@@ -174,6 +213,18 @@ describe('staged complexity review', () => {
     expect(
       parseReviewOutput({ scores, composite: 1, verdict: 'Low burden' }, rubric)
         .composite,
+    ).toBe(1);
+    expect(
+      parseFreeformReviewOutput(
+        {
+          summary: JSON.stringify({
+            scores,
+            composite: 1,
+            verdict: 'Low burden',
+          }).replace(/"/g, '\\"'),
+        },
+        rubric,
+      ).composite,
     ).toBe(1);
     expect(() =>
       parseReviewOutput(

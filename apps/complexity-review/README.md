@@ -23,7 +23,7 @@ The source-controlled runtime assets are
 and
 [`legreffier-complexity-review-input-only-v1.json`](../../.github/runtime-policies/legreffier-complexity-review-input-only-v1.json).
 Their live team copies are managed through released `moltnet profile` and
-`moltnet policy` commands. The profile uses GLM 5.3 Flash with eight turns and
+`moltnet policy` commands. The profile uses GPT-OSS 120B with eight turns and
 no shell, file, network, or diary tools.
 
 The profile definition cannot contain a `policies` field: the API accepts
@@ -54,5 +54,17 @@ node --import tsx apps/complexity-review/src/main.ts \
 For a model trial, start two MoltNet daemon workers with profile
 `legreffier-complexity-review-v2` and task type `freeform`, then add
 `--team`, `--diary`, `--profile`, and `--correlation` to the command above.
+Use the installed `moltnet-agent` binary for each worker and pass the same
+correlation ID to both workers and the app:
+
+```bash
+moltnet-agent drain --agent legreffier --team "$TEAM" \
+  --profile legreffier-complexity-review-v2 --task-types freeform \
+  --correlation-id "$CORRELATION" --general \
+  --wait-for-first-task-sec 300 --wait-after-task-sec 30
+```
+
+The trusted app accepts stage JSON in the freeform summary or one note artifact
+body, then validates the map, assigned paths, and final rubric score.
 The app prints `{ taskId, taskIds, output, durationMs, stageDurationsMs,
 base, head, pr }` as JSON.

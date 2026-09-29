@@ -8,11 +8,11 @@
     }
   ],
   "defaultWorkspaceMode": "none",
-  "description": "Bounded, input-only GLM 5.3 Flash runtime for PR complexity review.",
+  "description": "Bounded, input-only GPT-OSS 120B runtime for PR complexity review.",
   "maxBashTimeouts": 1,
   "maxOutputTokens": 4096,
   "maxTurns": 8,
-  "model": "glm-5.3-flash",
+  "model": "gpt-oss:120b",
   "name": "legreffier-complexity-review-v2",
   "provider": "ollama-cloud",
   "requiredEnv": [],
