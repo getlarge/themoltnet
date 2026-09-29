@@ -1,11 +1,11 @@
 name: Sync action bundle
 
-# packages/agent-daemon-action/dist/ and packages/docs-impact-review-action/dist/
+# packages/*-action/dist/ (every project tagged platform:gha)
 # are committed bundles that inline @themoltnet/sdk, libs/docs-impact-review,
 # and their dependencies. Rather than making every PR that
 # touches that dependency chain carry a rebuilt bundle, main rebuilds it here
 # and proposes the result as a single, continuously refreshed PR. CI verifies
-# that PR's bundle (see `check-dist-agent-daemon-action` in ci.yml), and the
+# that PR's bundle (see `check-dist-actions` in ci.yml), and the
 # action publisher refuses to release while main's bundle is stale.
 
 on:
@@ -15,8 +15,7 @@ on:
     # Nx-cached, so a push that does not affect the action restores the cached
     # bundle and finds nothing to propose.
     paths:
-      - 'packages/agent-daemon-action/**'
-      - 'packages/docs-impact-review-action/**'
+      - 'packages/*-action/**'
       - 'libs/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -58,12 +57,12 @@ jobs:
       - name: Rebuild the action bundles
         id: bundle
         run: |
-          pnpm exec nx run-many -t build --projects=@themoltnet/agent-daemon-action,@themoltnet/docs-impact-review-action
+          pnpm exec nx run-many -t build --projects=tag:platform:gha
           # `git status --porcelain`, not `git diff`: the build code-splits
           # into content-hashed assets/ chunks, and a renamed chunk arrives
           # untracked, which `git diff` does not report.
-          if [ -n "$(git status --porcelain -- packages/agent-daemon-action/dist/ packages/docs-impact-review-action/dist/)" ]; then
-            git status --short -- packages/agent-daemon-action/dist/ packages/docs-impact-review-action/dist/
+          if [ -n "$(git status --porcelain -- 'packages/*-action/dist/')" ]; then
+            git status --short -- 'packages/*-action/dist/'
             echo changed=true >> "$GITHUB_OUTPUT"
           else
             echo changed=false >> "$GITHUB_OUTPUT"
@@ -79,7 +78,7 @@ jobs:
           git config user.name "MoltNet Release[bot]"
           git config user.email "261968324+moltnet-release[bot]@users.noreply.github.com"
           git switch -c "$branch"
-          git add -A packages/agent-daemon-action/dist/ packages/docs-impact-review-action/dist/
+          git add -A 'packages/*-action/dist/'
           git commit -m "$title"
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           remote_branch_sha=$(git ls-remote --heads origin "refs/heads/${branch}" | awk '{print $1}')

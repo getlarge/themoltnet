@@ -288,10 +288,7 @@ jobs:
       sdk-tag: ${{ steps.resolve.outputs.sdk-tag }}
       os-keyring: ${{ steps.resolve.outputs.os-keyring }}
       os-keyring-tag: ${{ steps.resolve.outputs.os-keyring-tag }}
-      agent-daemon-action: ${{ steps.resolve.outputs.agent-daemon-action }}
-      agent-daemon-action-tag: ${{ steps.resolve.outputs.agent-daemon-action-tag }}
-      docs-impact-review-action: ${{ steps.resolve.outputs.docs-impact-review-action }}
-      docs-impact-review-action-tag: ${{ steps.resolve.outputs.docs-impact-review-action-tag }}
+      actions-matrix: ${{ steps.resolve.outputs.actions-matrix }}
       tasks-orchestrator: ${{ steps.resolve.outputs.tasks-orchestrator }}
       tasks-orchestrator-tag: ${{ steps.resolve.outputs.tasks-orchestrator-tag }}
       credentials: ${{ steps.resolve.outputs.credentials }}
@@ -494,6 +491,16 @@ jobs:
           resolve "os-keyring"   "$RP_OS_KEYRING_CREATED" "$RP_OS_KEYRING_TAG" "os-keyring"
           resolve "agent-daemon-action" "$RP_AGENT_DAEMON_ACTION_CREATED" "$RP_AGENT_DAEMON_ACTION_TAG" "agent-daemon-action"
           resolve "docs-impact-review-action" "$RP_DOCS_IMPACT_REVIEW_ACTION_CREATED" "$RP_DOCS_IMPACT_REVIEW_ACTION_TAG" "docs-impact-review-action"
+
+          # GitHub Actions share one publish job; list the ones to release.
+          actions_matrix='[]'
+          for action in agent-daemon-action docs-impact-review-action; do
+            if grep -qx "${action}=true" "$GITHUB_OUTPUT"; then
+              tag="$(grep "^${action}-tag=" "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
+              actions_matrix="$(jq -c --arg project "@themoltnet/${action}" --arg tag "$tag" '. + [{project: $project, tag: $tag}]' <<< "$actions_matrix")"
+            fi
+          done
+          echo "actions-matrix=${actions_matrix}" >> "$GITHUB_OUTPUT"
           resolve "tasks-orchestrator" "$RP_TASKS_ORCHESTRATOR_CREATED" "$RP_TASKS_ORCHESTRATOR_TAG" "tasks-orchestrator"
           resolve "credentials" "$RP_CREDENTIALS_CREATED" "$RP_CREDENTIALS_TAG" "credentials"
           resolve "credential-broker" "$RP_CREDENTIAL_BROKER_CREATED" "$RP_CREDENTIAL_BROKER_TAG" "credential-broker"
@@ -738,18 +745,30 @@ jobs:
   # this repository by tag. The release tag already points at the release
   # commit; this job verifies the committed bundle there, moves the action's
   # stable major tag to it, and publishes the draft release.
-  publish-agent-daemon-action:
-    name: Release agent-daemon-action
+  #
+  # If the bundle check fails, the release tag points at a stale dist/: leave
+  # the draft unpublished, merge the "chore(actions): refresh action bundles"
+  # PR, and ship the fix in the next release. Re-running this job cannot
+  # succeed, because it checks out the same tag.
+  publish-actions:
+    name: Release ${{ matrix.project }}
     needs: resolve-publish
-    if: ${{ always() && needs.resolve-publish.outputs.agent-daemon-action == 'true' && !failure() && !cancelled() }}
+    if: ${{ always() && needs.resolve-publish.outputs.actions-matrix != '' && needs.resolve-publish.outputs.actions-matrix != '[]' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.resolve-publish.outputs.actions-matrix) }}
     steps:
+      # No persisted credentials: dependency install scripts run next, and the
+      # token is handed only to the tag push below.
       - uses: actions/checkout@v6
         with:
-          ref: ${{ needs.resolve-publish.outputs.agent-daemon-action-tag }}
+          ref: ${{ matrix.tag }}
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v6
 
@@ -761,44 +780,16 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       # Rebuilds dist/, refuses to release when it differs from the committed
-      # bundle, then moves the stable major tag to the release commit.
-      - run: pnpm exec nx run @themoltnet/agent-daemon-action:publish-action
+      # bundle or lacks an entry, then moves the stable major tag.
+      - run: pnpm exec nx run ${{ matrix.project }}:publish-action
+        env:
+          GITHUB_ACTION_RELEASE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish agent-daemon-action release
-        run: gh release edit "${{ needs.resolve-publish.outputs.agent-daemon-action-tag }}" --draft=false
+      - name: Publish the release
+        run: gh release edit "$TAG" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-docs-impact-review-action:
-    name: Release docs-impact-review-action
-    needs: resolve-publish
-    if: ${{ always() && needs.resolve-publish.outputs.docs-impact-review-action == 'true' && !failure() && !cancelled() }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ needs.resolve-publish.outputs.docs-impact-review-action-tag }}
-
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      # Rebuilds dist/, refuses to release when it differs from the committed
-      # bundle, then moves the stable major tag to the release commit.
-      - run: pnpm exec nx run @themoltnet/docs-impact-review-action:publish-action
-
-      - name: Publish docs-impact-review-action release
-        run: gh release edit "${{ needs.resolve-publish.outputs.docs-impact-review-action-tag }}" --draft=false
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ matrix.tag }}
 
   publish-tasks-orchestrator:
     name: Publish tasks-orchestrator to npm

@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -8,13 +8,20 @@ import {
   readProjectsConfigurationFromProjectGraph,
 } from '@nx/devkit';
 
+import {
+  missingBundleEntries,
+  stableMajorTagFor,
+  tagPushArgs,
+} from './github-action-release.js';
+
 type PackageJson = {
   version?: string;
 };
 
 type Options = {
   project: string;
-  stableMajorTag: string | null;
+  entries: string[];
+  stableMajorTagPrefix: string;
   dryRun: boolean;
 };
 
@@ -65,7 +72,10 @@ function parsePublisherArgs(argv = process.argv.slice(2)): Options {
       registry: {
         type: 'string',
       },
-      'stable-major-tag': {
+      entries: {
+        type: 'string',
+      },
+      'stable-major-tag-prefix': {
         type: 'string',
       },
       tag: {
@@ -92,7 +102,11 @@ function parsePublisherArgs(argv = process.argv.slice(2)): Options {
 
   return {
     project: values.project,
-    stableMajorTag: values['stable-major-tag'] ?? null,
+    entries: (values.entries ?? '')
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean),
+    stableMajorTagPrefix: values['stable-major-tag-prefix'] ?? 'v',
     dryRun:
       values['dry-run'] === true ||
       values.dryRun === true ||
@@ -129,12 +143,6 @@ function assertBundleCommitted(bundleDir: string) {
   }
 }
 
-function assertSemver(version: string) {
-  if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) {
-    throw new Error(`GitHub Action package version is not semver: ${version}`);
-  }
-}
-
 async function resolveProjectRoot(projectName: string) {
   const graph = await createProjectGraphAsync({ exitOnError: false });
   const projects = readProjectsConfigurationFromProjectGraph(graph).projects;
@@ -157,11 +165,12 @@ async function main() {
       throw new Error(`GitHub Action release artifact is missing: ${path}`);
     }
   }
-  // Actions bundle different entry points (agent-daemon-action ships
-  // main.js; docs-impact-review-action ships review, comment, eligibility),
-  // so require a non-empty bundle rather than one file name.
-  if (readdirSync(bundleDir).length === 0) {
-    throw new Error(`GitHub Action bundle is empty: ${bundleDir}`);
+  // Each action runs its own entry points (`node dist/<entry>`).
+  const missing = missingBundleEntries(bundleDir, options.entries);
+  if (missing.length > 0) {
+    throw new Error(
+      `GitHub Action bundle ${bundleDir} lacks: ${missing.join(', ')}`,
+    );
   }
 
   assertBundleCommitted(bundleDir);
@@ -172,10 +181,10 @@ async function main() {
   if (!packageJson.version) {
     throw new Error(`${packageJsonPath} is missing version`);
   }
-  assertSemver(packageJson.version);
-
-  const major = packageJson.version.split('.')[0];
-  const stableMajorTag = options.stableMajorTag ?? `v${major}`;
+  const stableMajorTag = stableMajorTagFor(
+    packageJson.version,
+    options.stableMajorTagPrefix,
+  );
   const target = git(['rev-parse', 'HEAD']);
 
   process.stdout.write(
@@ -199,15 +208,11 @@ async function main() {
   }
 
   git(['tag', '-f', stableMajorTag, target], { stdio: 'inherit' });
-  git(
-    [
-      'push',
-      'origin',
-      `refs/tags/${stableMajorTag}:refs/tags/${stableMajorTag}`,
-      '--force',
-    ],
-    { stdio: 'inherit' },
-  );
+  // The release job checks out without persisted credentials and hands the
+  // token to this one push.
+  git(tagPushArgs(stableMajorTag, process.env.GITHUB_ACTION_RELEASE_TOKEN), {
+    stdio: 'inherit',
+  });
 }
 
 main().catch((error: unknown) => {

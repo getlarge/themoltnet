@@ -431,7 +431,7 @@ lags its sources, and in-repo workflows that use
 
 A PR may still commit `dist/` itself, for example so this repo's own
 workflows exercise the change before merge. The CI job
-`check-dist-agent-daemon-action`
+`check-dist-actions`
 (see [`.github/workflows/ci.yml`](https://github.com/getlarge/themoltnet/blob/main/.github/workflows/ci.yml))
 runs only for PRs that change `dist/`. It rebuilds from source and fails
 if the whole `dist/` directory differs from what is committed; the build
