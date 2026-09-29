@@ -226,13 +226,6 @@
           "pattern": "{projectName}-v{version}"
         }
       },
-      "github-actions": {
-        "projects": ["@themoltnet/agent-daemon-action"],
-        "projectsRelationship": "independent",
-        "releaseTag": {
-          "pattern": "agent-daemon-action-v{version}"
-        }
-      },
       "go-modules": {
         "projects": ["moltnet-api-client"],
         "projectsRelationship": "independent",

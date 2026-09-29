@@ -451,12 +451,12 @@ byte-identical output, which is what lets CI diff it.
 local scratch, and hiding it from `git status` is what let it drift
 behind its sources unnoticed.
 
-The action is semvered by Nx release in the `github-actions` group.
-Consumers can pin the immutable `agent-daemon-action-vX.Y.Z` tag or the
-moving major tag (`v0`, later `v1`) that the action release publish target
-updates after the semver tag is created. The publish target rebuilds the
-bundle and refuses to release while `dist/` differs from its sources, so
-merge any open bundle sync PR before releasing.
+The action is released by release-please as the `agent-daemon-action`
+component. Consumers can pin the immutable `agent-daemon-action-vX.Y.Z` tag or
+the moving major tag (`v0`, later `v1`) that the release workflow moves to the
+release commit. That job rebuilds the bundle and refuses to release while
+`dist/` differs from its sources, so merge any open bundle sync PR before
+merging a release PR that includes the action.
 
 ## License
 
