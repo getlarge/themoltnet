@@ -228,6 +228,9 @@
       "path": "packages/agent-daemon-action"
     },
     {
+      "path": "packages/docs-impact-review-action"
+    },
+    {
       "path": "packages/github-agent"
     },
     {

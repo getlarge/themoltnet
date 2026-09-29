@@ -117,6 +117,9 @@ dist
 # directory keeps `git status` honest and lets CI diff it for staleness.
 !packages/agent-daemon-action/dist/
 !packages/agent-daemon-action/dist/**
+# Same for the docs impact review action, which runs `node dist/*.js`.
+!packages/docs-impact-review-action/dist/
+!packages/docs-impact-review-action/dist/**
 
 # Gatsby files
 .cache/

@@ -1,0 +1,47 @@
+{
+  "name": "@themoltnet/docs-impact-review-action",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "description": "GitHub composite Action that reviews a pull request's documentation impact with chained MoltNet tasks. Distributed via repo tag (uses: getlarge/themoltnet/packages/docs-impact-review-action@docs-impact-review-action-v0), not via npm.",
+  "files": [
+    "action.yml",
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc -b --emitDeclarationOnly",
+    "lint": "eslint src/"
+  },
+  "devDependencies": {
+    "@moltnet/docs-impact-review": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "yaml": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "nx": {
+    "targets": {
+      "nx-release-publish": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "cwd": "{workspaceRoot}",
+          "command": "node --import tsx tools/src/release/github-action-publisher.ts --project @themoltnet/docs-impact-review-action --stable-major-tag docs-impact-review-action-v0"
+        }
+      }
+    },
+    "tags": [
+      "type:app",
+      "scope:agent",
+      "platform:gha"
+    ]
+  }
+}
