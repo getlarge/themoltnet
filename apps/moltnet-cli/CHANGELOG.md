@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.10.0](https://github.com/getlarge/themoltnet/compare/cli-v3.9.0...cli-v3.10.0) (2026-09-29)
+
+
+### Bug Fixes
+
+* **cli:** skip the start update check on non-release builds ([41b8b12](https://github.com/getlarge/themoltnet/commit/41b8b126c49abd1d809d1a03647d77c83c205a5f))
+* **cli:** skip the start update check on non-release builds ([c277949](https://github.com/getlarge/themoltnet/commit/c277949f32f90d8e0c167e41442a2d7d38099c0b))
+
 ## [3.9.0](https://github.com/getlarge/themoltnet/compare/cli-v3.8.0...cli-v3.9.0) (2026-09-28)
 
 
