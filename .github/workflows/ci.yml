@@ -158,8 +158,13 @@ jobs:
         id: wsl-bundle-runtime
         uses: actions/cache/restore@v6
         with:
-          path: \\wsl.localhost\Ubuntu-24.04\root\.cache\moltnet-release
-          key: wsl2-agent-bundle-runtime-linux-x64-${{ hashFiles('.tool-versions') }}
+          path: ${{ runner.temp }}\wsl-bundle-runtime.tar
+          key: wsl2-agent-bundle-runtime-linux-x64-v2-${{ hashFiles('.tool-versions') }}
+      - name: Unpack WSL bundle runtime
+        if: steps.wsl-bundle-runtime.outputs.cache-hit == 'true'
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'wsl-bundle-runtime.tar'
+          wsl.exe --distribution Ubuntu-24.04 -- bash -lc 'mkdir -p "$HOME/.cache" && tar -xf "$(wslpath -u "$1")" -C "$HOME/.cache"' -- $archive
       - name: Install WSL2 build, Go, and Gondolin dependencies
         run: wsl.exe --distribution Ubuntu-24.04 -- bash -lc 'cd ~/src/themoltnet && bash tools/ci/wsl-agent-daemon.sh setup'
       - name: Build, install, and validate the Linux bundle in WSL2
@@ -184,12 +189,17 @@ jobs:
       - name: Show WSL agent server log on failure
         if: failure()
         run: wsl.exe --distribution Ubuntu-24.04 -- bash -lc 'cat "$HOME/moltnet-agent-server.log" 2>/dev/null || true'
+      - name: Pack WSL bundle runtime
+        if: success() && steps.wsl-bundle-runtime.outputs.cache-hit != 'true'
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'wsl-bundle-runtime.tar'
+          wsl.exe --distribution Ubuntu-24.04 -- bash -lc 'tar -C "$HOME/.cache" -cf "$(wslpath -u "$1")" moltnet-release' -- $archive
       - name: Save WSL bundle runtime
         if: success() && steps.wsl-bundle-runtime.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
         with:
-          path: \\wsl.localhost\Ubuntu-24.04\root\.cache\moltnet-release
-          key: wsl2-agent-bundle-runtime-linux-x64-${{ hashFiles('.tool-versions') }}
+          path: ${{ runner.temp }}\wsl-bundle-runtime.tar
+          key: wsl2-agent-bundle-runtime-linux-x64-v2-${{ hashFiles('.tool-versions') }}
 
   native-keyring:
     name: Native keyring
@@ -554,6 +564,11 @@ jobs:
         if: steps.matrix.outputs.has-agents == 'true'
         with:
           go-version: '1.26'
+          cache-dependency-path: |
+            go.work
+            go.work.sum
+            **/go.mod
+            **/go.sum
       - name: Cache golangci-lint
         if: steps.matrix.outputs.has-agents == 'true'
         id: golangci-lint-cache
@@ -1212,6 +1227,11 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: '1.25'
+          cache-dependency-path: |
+            go.work
+            go.work.sum
+            **/go.mod
+            **/go.sum
       - run: pnpm install --frozen-lockfile
       - name: Regenerate OpenAPI spec and client
         run: pnpm run generate
@@ -1790,6 +1810,11 @@ jobs:
         if: needs.affected.outputs.e2e-go-cli == 'true'
         with:
           go-version: '1.25'
+          cache-dependency-path: |
+            go.work
+            go.work.sum
+            **/go.mod
+            **/go.sum
       - name: Log in to GHCR
         if: needs.affected.outputs.e2e-go-cli == 'true'
         uses: docker/login-action@v4
