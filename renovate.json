@@ -31,19 +31,85 @@
       "matchUpdateTypes": ["major"]
     },
     {
-      "description": "One reviewed minor-update PR per manager",
-      "groupName": "{{manager}} minor updates",
-      "matchUpdateTypes": ["minor"]
-    },
-    {
-      "description": "Keep routine patches and initial pins together by manager",
-      "groupName": "{{manager}} patch and pin updates",
-      "matchUpdateTypes": ["patch", "pin", "digest", "pinDigest"]
-    },
-    {
       "description": "Let new patch releases settle before proposing them",
       "matchUpdateTypes": ["patch"],
       "minimumReleaseAge": "3 days"
+    },
+    {
+      "description": "Keep Nx core and plugins on the same version",
+      "groupName": "Nx workspace",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["nx", "@nx/**"]
+    },
+    {
+      "description": "Review compatible Vite build-tool updates together; approve major migrations separately",
+      "groupName": "Vite build tools",
+      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "vite",
+        "@vitejs/plugin-react",
+        "vite-plugin-dts",
+        "vite-plugin-singlefile"
+      ],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "allowedVersions": "<9.0.0",
+      "description": "Nx 22 supports Vite 5 through 8",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["vite"]
+    },
+    {
+      "description": "Keep Vitest and its official companion packages aligned",
+      "groupName": "Vitest",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["vitest", "@vitest/**"]
+    },
+    {
+      "allowedVersions": "<5.0.0",
+      "description": "Nx 22 supports Vitest 3 and 4; review a newer major with Nx compatibility first",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["vitest", "@vitest/**"]
+    },
+    {
+      "allowedVersions": "<5.10.0",
+      "description": "Nx 22 supports TypeScript 5.4 through 5.9",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["typescript"]
+    },
+    {
+      "description": "Review Fastify and plugin updates together without bundling unrelated major migrations",
+      "groupName": "Fastify",
+      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "fastify",
+        "fastify-plugin",
+        "@fastify/**",
+        "@getlarge/fastify-mcp",
+        "@scalar/fastify-api-reference"
+      ],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "description": "Keep React runtime and type declarations aligned",
+      "groupName": "React",
+      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "react",
+        "react-dom",
+        "@types/react",
+        "@types/react-dom"
+      ]
+    },
+    {
+      "description": "Review React companion tooling with routine React updates",
+      "groupName": "React",
+      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "@testing-library/react",
+        "eslint-plugin-react-hooks"
+      ],
+      "matchUpdateTypes": ["minor", "patch"]
     },
     {
       "automerge": false,
@@ -78,7 +144,7 @@
     }
   ],
   "postUpdateOptions": ["gomodTidy", "pnpmDedupe"],
-  "prConcurrentLimit": 2,
+  "prConcurrentLimit": 4,
   "prHourlyLimit": 1,
   "schedule": ["* 0-6 * * 1"],
   "timezone": "Europe/Paris",
