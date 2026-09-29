@@ -10,8 +10,12 @@ permissions: {}
 env:
   MOLTNET_CLI_VERSION: '3.3.0'
 
+# Every comment on the pull request starts a run, and runs whose jobs all
+# skip still join the concurrency group. Only this workflow's command shares
+# the pull request's group; any other comment gets a group of its own, so it
+# cannot cancel a review in progress.
 concurrency:
-  group: multi-lens-review-${{ github.event.pull_request.number || github.event.issue.number }}
+  group: multi-lens-review-${{ github.event.pull_request.number || github.event.issue.number }}-${{ (github.event_name == 'issue_comment' && !contains(github.event.comment.body, '@legreffier /multi-lens-review')) && github.run_id || 'review' }}
   cancel-in-progress: true
 
 jobs:
