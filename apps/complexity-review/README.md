@@ -2,16 +2,21 @@
 
 This app owns the LeGreffier PR complexity review. The GitHub workflow pins a PR's
 base and head, then runs trusted code from the base revision. The app reads the
-immutable diff, creates one `freeform` task, waits for its accepted output, and
-validates the binary rubric before the workflow publishes a revision-aware
-comment with the LeGreffier GitHub App token.
+immutable diff and runs three stages: a change-map task groups every changed
+file by domain, focused domain tasks review the full patches in parallel, and
+a synthesis task scores the binary rubric. Trusted code validates file coverage,
+stage output, and score arithmetic before the workflow publishes a
+revision-aware comment with the LeGreffier GitHub App token.
 
-The model receives a bounded evidence packet and has no optional tools. This
-single-task path is for PRs whose full diff fits within 96 KB. Larger diffs
-fail visibly before a task is created; they are never silently scored from a
-partial view. They need a separate multi-task review path before this review can
-cover them. The task has one attempt and a 180-second running budget.
-The CI review job and drain worker run in parallel under one correlation ID.
+Each model task receives a bounded evidence packet and has no optional tools.
+The planner receives changed paths, statistics, and short excerpts; focused
+tasks receive the complete patches for their assigned paths. Trusted code splits
+groups into packets of at most 96 KB and refuses a patch larger than that limit
+or a plan needing more than eight focused tasks. Such changes fail visibly and
+are never silently scored from a partial view. Each task has one attempt and a
+180-second running budget. Two drain workers can claim focused tasks in parallel
+under one correlation ID. The final comment leads with a compact burden, head,
+and elapsed-time line.
 
 The source-controlled runtime assets are
 [`legreffier-complexity-review-v2.json`](../../.github/runtime-profiles/legreffier-complexity-review-v2.json)
@@ -21,7 +26,7 @@ Their live team copies are managed through released `moltnet profile` and
 `moltnet policy` commands. The profile uses GLM 5.3 Flash with eight turns and
 no shell, file, network, or diary tools.
 
-For a read-only local ingestion trial:
+For a read-only local ingestion trial, the command prints the change-map task:
 
 ```bash
 node --import tsx apps/complexity-review/src/main.ts \
@@ -29,7 +34,8 @@ node --import tsx apps/complexity-review/src/main.ts \
   --base <base-oid> --head <head-oid> --dry-run
 ```
 
-For a model trial, start a MoltNet daemon worker bound to this checkout with
-profile `legreffier-complexity-review-v2` and task type `freeform`, then add
+For a model trial, start two MoltNet daemon workers with profile
+`legreffier-complexity-review-v2` and task type `freeform`, then add
 `--team`, `--diary`, `--profile`, and `--correlation` to the command above.
-The app prints `{ taskId, output, durationMs, base, head, pr }` as JSON.
+The app prints `{ taskId, taskIds, output, durationMs, stageDurationsMs,
+base, head, pr }` as JSON.

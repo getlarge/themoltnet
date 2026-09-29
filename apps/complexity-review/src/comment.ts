@@ -91,9 +91,17 @@ export function renderComplexityReviewResult(args: {
   revision: string;
   runUrl: string;
   taskId: string;
+  durationMs: number;
+  domainCount: number;
   output: PrReviewOutput;
 }): string {
   requireFullOid(args.revision, 'review revision');
+  const burden =
+    args.output.composite >= 0.8
+      ? 'low'
+      : args.output.composite >= 0.5
+        ? 'moderate'
+        : 'high';
   const criteria = args.output.scores
     .map(
       (score) =>
@@ -105,6 +113,8 @@ export function renderComplexityReviewResult(args: {
   return (
     `${COMPLEXITY_REVIEW_COMMENT_MARKER}\n` +
     '## MoltNet complexity review\n\n' +
+    `Complexity: ${burden} burden · head ${args.revision.slice(0, 7)} · reviewed in ${Math.round(args.durationMs / 1000)}s\n\n` +
+    `Stages: change map → ${args.domainCount} focused review${args.domainCount === 1 ? '' : 's'} → synthesis.\n\n` +
     `**Weighted composite:** ${args.output.composite.toFixed(2)}\n\n` +
     `**Verdict:** ${args.output.verdict}\n\n` +
     `${criteria}\n\n` +
@@ -253,10 +263,21 @@ export async function updateComplexityReviewComment(args: {
 
   const report = JSON.parse(readFileSync(args.resultPath, 'utf8')) as {
     output?: unknown;
+    durationMs?: unknown;
+    taskIds?: unknown;
   };
   const output = report.output;
   if (!Value.Check(PrReviewOutputSchema, output)) {
     throw new Error('accepted task output is not a valid PrReviewOutput');
+  }
+  if (
+    typeof report.durationMs !== 'number' ||
+    !Number.isFinite(report.durationMs) ||
+    report.durationMs < 0 ||
+    !Array.isArray(report.taskIds) ||
+    report.taskIds.length < 3
+  ) {
+    throw new Error('accepted review report has no valid workflow timing');
   }
   await github.upsertComment(
     args.prNumber,
@@ -264,6 +285,8 @@ export async function updateComplexityReviewComment(args: {
       revision: args.reviewedRevision,
       runUrl: args.runUrl,
       taskId: args.taskId,
+      durationMs: report.durationMs,
+      domainCount: report.taskIds.length - 2,
       output,
     }),
   );

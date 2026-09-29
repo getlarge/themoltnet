@@ -8,12 +8,8 @@ import { connect } from '@themoltnet/sdk/node';
 import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 import { Value } from 'typebox/value';
 
-import {
-  buildEvidence,
-  buildReviewTask,
-  type Git,
-  runComplexityReview,
-} from './workflow.js';
+import { buildEvidence, type Git } from './evidence.js';
+import { buildChangeMapTask, runComplexityReview } from './workflow.js';
 
 function git(args: string[]): string {
   return execFileSync('git', args, {
@@ -107,7 +103,7 @@ async function main() {
   };
   if (values['dry-run']) {
     process.stdout.write(
-      `${JSON.stringify({ bytes: evidence.bytes, task: buildReviewTask(context, evidence) }, null, 2)}\n`,
+      `${JSON.stringify({ bytes: evidence.bytes, files: evidence.files.length, task: buildChangeMapTask(context, evidence) }, null, 2)}\n`,
     );
     return;
   }
