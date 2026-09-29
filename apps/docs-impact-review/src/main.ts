@@ -7,19 +7,20 @@ import { parseArgs } from 'node:util';
 import { connect } from '@themoltnet/sdk/node';
 import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 
-import { createGit, requireFullOid } from './git.js';
+import { createGit, existsAt, requireFullOid } from './git.js';
 import { boundDiff, collectChangeSet } from './ingest.js';
 import { renderComment, summarizeCorpus } from './report.js';
 import {
   loadReviewConfig,
-  parseReviewConfig,
+  loadReviewConfigFile,
   REVIEW_CONFIG_PATH,
-  type ReviewConfig,
+  ReviewConfigError,
 } from './review-config.js';
-import { routeDocs } from './routing.js';
+import { excludeCandidates, routeDocs, selectDocs } from './routing.js';
 import { parseLabels, scoreReports } from './score.js';
 import type { DocsImpactReport, StageName } from './types.js';
 import {
+  configFailureReport,
   createSleepingContext,
   DEFAULT_BUDGETS,
   DEFAULT_POLL_INTERVAL_SEC,
@@ -157,9 +158,21 @@ async function main(): Promise<number> {
   const pollIntervalSec = values['poll-interval']
     ? Number(values['poll-interval'])
     : DEFAULT_POLL_INTERVAL_SEC;
-  const configOverride: ReviewConfig | undefined = values.config
-    ? parseReviewConfig(JSON.parse(readFileSync(values.config, 'utf8')))
-    : undefined;
+  // A --config file applies to every pull request, so a bad one stops the
+  // run before any work; a bad base config fails only its own review.
+  let configOverride: ReturnType<typeof loadReviewConfigFile> | undefined;
+  if (values.config) {
+    try {
+      configOverride = loadReviewConfigFile(
+        (path) => readFileSync(path, 'utf8'),
+        values.config,
+      );
+    } catch (error) {
+      if (!(error instanceof ReviewConfigError)) throw error;
+      process.stderr.write(`${error.message}\n`);
+      return 2;
+    }
+  }
   const git = createGit(process.cwd());
 
   const agent = dryRun ? undefined : await connect();
@@ -196,7 +209,28 @@ async function main(): Promise<number> {
       'head revision',
     );
     git(['fetch', '--no-tags', '--quiet', 'origin', base, head]);
-    const config = configOverride ?? loadReviewConfig(git, base).config;
+    let loaded: ReturnType<typeof loadReviewConfig>;
+    try {
+      loaded = configOverride ?? loadReviewConfig(git, base);
+    } catch (error) {
+      if (!(error instanceof ReviewConfigError)) throw error;
+      process.stderr.write(`[config] pr ${pr}: ${error.message}\n`);
+      const failed = configFailureReport(
+        { repo, pr, baseRevision: base, headRevision: head },
+        error.message,
+      );
+      reports.push(failed);
+      process.stderr.write(`\n${renderComment(failed)}\n`);
+      continue;
+    }
+    const { config, source } = loaded;
+    process.stderr.write(
+      `[config] pr ${pr}: ${
+        source.kind === 'default'
+          ? `defaults (no ${REVIEW_CONFIG_PATH} at ${base})`
+          : `${source.location}, ${config.routing.rules.length} routing rules`
+      }\n`,
+    );
 
     if (dryRun || !tasks) {
       const changeSet = collectChangeSet(git, base, head, config.docsExclude);
@@ -204,18 +238,21 @@ async function main(): Promise<number> {
         totalBytes: DEFAULT_BUDGETS.diffTotalBytes,
         perFileBytes: DEFAULT_BUDGETS.diffPerFileBytes,
       });
-      const routed = routeDocs(changeSet.files, config.routing, (path) => {
-        try {
-          git(['cat-file', '-e', `${head}:${path}`]);
-          return true;
-        } catch {
-          return false;
-        }
-      });
+      const routed = routeDocs(changeSet.files, config.routing, (path) =>
+        existsAt(git, head, path),
+      );
+      // The same exclusion and ranking as a real review.
+      excludeCandidates(routed.candidates, config.docsExclude);
+      const selection = selectDocs(
+        routed.candidates,
+        DEFAULT_BUDGETS.maxDocs,
+        config.agentFacing,
+      );
       process.stdout.write(
         `${JSON.stringify(
           {
             pr,
+            config: source,
             files: changeSet.files.map(({ path, category }) => ({
               path,
               category,
@@ -224,6 +261,7 @@ async function main(): Promise<number> {
             omittedPaths: diff.omittedPaths,
             truncatedPaths: diff.truncatedPaths,
             candidateDocs: Object.fromEntries(routed.candidates),
+            selectedDocs: selection.selected.map((doc) => doc.path),
             unroutedSources: routed.unroutedSources,
           },
           null,
@@ -234,8 +272,10 @@ async function main(): Promise<number> {
     }
 
     const report = await runDocsImpactReview(
-      { git, tasks, ctx: createSleepingContext(), config },
+      { git, tasks, ctx: createSleepingContext() },
       {
+        config,
+        configSource: source,
         repo,
         pr,
         prTitle: meta.title,

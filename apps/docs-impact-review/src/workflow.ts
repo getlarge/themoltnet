@@ -9,15 +9,12 @@ import {
 } from '@themoltnet/tasks-orchestrator';
 
 import { docsCheckFindings, extractDocsHunks } from './docs-check.js';
-import type { Git } from './git.js';
+import { existsAt, type Git } from './git.js';
 import { boundDiff, collectChangeSet } from './ingest.js';
-import {
-  DEFAULT_REVIEW_CONFIG,
-  matchesAny,
-  type ReviewConfig,
-} from './review-config.js';
+import type { ReviewConfig, ReviewConfigSource } from './review-config.js';
 import {
   dropGenericTerms,
+  excludeCandidates,
   isRequiredCandidate,
   routeDocs,
   searchDocsForTerms,
@@ -75,7 +72,14 @@ export const DEFAULT_BUDGETS: Budgets = {
   docsHunkBytes: 1_500,
 };
 
-export interface DocsImpactInput extends StageContext {
+/**
+ * Everything a review decides from. The repository configuration is part of
+ * the input, not a dependency, so it is recorded with the review; stage
+ * guidance comes only from `config.instructions`.
+ */
+export interface DocsImpactInput extends Omit<StageContext, 'instructions'> {
+  config: ReviewConfig;
+  configSource: ReviewConfigSource;
   pollIntervalSec?: number;
   budgets?: Partial<Budgets>;
 }
@@ -84,8 +88,6 @@ export interface DocsImpactDeps {
   git: Git;
   tasks: TaskClient;
   ctx: WorkflowContext;
-  /** Repository configuration, read from the base revision by the caller. */
-  config?: ReviewConfig;
   logger?: Logger;
   now?: () => number;
 }
@@ -268,17 +270,9 @@ function countByCategory(files: ChangedFile[]): Record<FileCategory, number> {
   return counts;
 }
 
-function existsAt(git: Git, revision: string, path: string): boolean {
-  try {
-    git(['cat-file', '-e', `${revision}:${path}`]);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function retrieveDocs(
   deps: DocsImpactDeps,
+  config: ReviewConfig,
   changeSet: ChangeSet,
   changes: ContractChange[],
   budgets: Budgets,
@@ -286,7 +280,6 @@ function retrieveDocs(
   searchTermsDropped: string[],
 ): SelectedDoc[] {
   const { git } = deps;
-  const config = deps.config ?? DEFAULT_REVIEW_CONFIG;
   const head = changeSet.headRevision;
   const evidencePaths = new Set(
     changes.flatMap((change) => change.evidence.map((item) => item.path)),
@@ -314,10 +307,7 @@ function retrieveDocs(
     if (!reasons.includes('symbol-search')) reasons.push('symbol-search');
     routed.candidates.set(path, reasons);
   }
-  // Routing rules and nearest READMEs can still name an excluded page.
-  for (const path of routed.candidates.keys()) {
-    if (matchesAny(path, config.docsExclude)) routed.candidates.delete(path);
-  }
+  excludeCandidates(routed.candidates, config.docsExclude);
   const selection = selectDocs(
     routed.candidates,
     budgets.maxDocs,
@@ -345,14 +335,47 @@ function retrieveDocs(
   });
 }
 
+/**
+ * A review that could not start because the repository configuration is
+ * invalid. It fails like any other review, so the comment names the problem.
+ */
+export function configFailureReport(
+  target: Pick<
+    DocsImpactInput,
+    'repo' | 'pr' | 'baseRevision' | 'headRevision'
+  >,
+  message: string,
+): DocsImpactReport {
+  return {
+    version: 1,
+    repo: target.repo,
+    pr: target.pr,
+    baseRevision: target.baseRevision,
+    headRevision: target.headRevision,
+    status: 'failed',
+    error: message,
+    findings: [],
+    gaps: [],
+    searchTermsDropped: [],
+    repairs: [],
+    manifest: { files: 0, byCategory: countByCategory([]), diffBytes: 0 },
+    selectedDocs: [],
+    contractChanges: [],
+    timings: { ingestMs: 0, retrievalMs: 0, stages: {}, totalMs: 0 },
+  };
+}
+
 export async function runDocsImpactReview(
   deps: DocsImpactDeps,
-  rawInput: DocsImpactInput,
+  reviewInput: DocsImpactInput,
 ): Promise<DocsImpactReport> {
-  const config = deps.config ?? DEFAULT_REVIEW_CONFIG;
-  const input: DocsImpactInput = config.instructions
-    ? { ...rawInput, instructions: config.instructions }
-    : rawInput;
+  const { config, configSource, ...rest } = reviewInput;
+  const input: StageContext & DocsImpactInput = {
+    ...rest,
+    config,
+    configSource,
+    ...(config.instructions ? { instructions: config.instructions } : {}),
+  };
   const now = deps.now ?? Date.now;
   const budgets = { ...DEFAULT_BUDGETS, ...input.budgets };
   const started = now();
@@ -368,6 +391,7 @@ export async function runDocsImpactReview(
     pr: input.pr,
     baseRevision: input.baseRevision,
     headRevision: input.headRevision,
+    config: { ...configSource, routingRules: config.routing.rules.length },
     status: 'completed',
     findings: [],
     gaps: [],
@@ -484,6 +508,7 @@ export async function runDocsImpactReview(
     const retrievalStarted = now();
     const docs = retrieveDocs(
       deps,
+      config,
       changeSet,
       report.contractChanges,
       budgets,

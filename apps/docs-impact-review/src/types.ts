@@ -160,6 +160,12 @@ export interface DocsImpactReport {
   pr: number;
   baseRevision: string;
   headRevision: string;
+  /** Where the repository configuration came from, and how many routes. */
+  config?: {
+    kind: 'base' | 'file' | 'default';
+    location?: string;
+    routingRules: number;
+  };
   status: 'completed' | 'failed';
   /** Absent when status is `failed`: a failure never reads as a clean result. */
   outcome?: Outcome;

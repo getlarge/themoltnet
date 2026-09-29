@@ -169,12 +169,15 @@ per-stage timing breakdown and token counts.
 
 A repository configures the review in `.github/docs-impact-review.json`. The
 reviewer reads it from the pull request's **base** revision, so a pull request
-cannot change the rules it is reviewed by. Without the file, the defaults apply.
+cannot change the rules it is reviewed by. Without the file, the defaults apply
+and the comment says so.
 
 ```json
 {
-  "agentFacing": [".agents/**", "**/skills/**"],
-  "docs": { "exclude": ["vendor/**"] },
+  "docs": {
+    "agentFacing": ["prompts/**"],
+    "exclude": ["vendor"]
+  },
   "instructions": "User-facing CLI docs live in docs/reference/.",
   "routing": [
     {
@@ -187,12 +190,28 @@ cannot change the rules it is reviewed by. Without the file, the defaults apply.
 }
 ```
 
-| Key            | Effect                                                                                                                                                                                                           |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `routing`      | Maps code paths to the pages that document them. Nearest READMEs are found automatically, so list only pages a README would miss. Routed pages are required reading: if they overflow, the review reports a gap. |
-| `docs.exclude` | Markdown globs that are never reviewed, searched, or selected, added to the built-in `**/CHANGELOG.md`.                                                                                                          |
-| `agentFacing`  | Globs for instructions written for agents (skills, prompts). They rank below user and operator docs unless the pull request changed them or a routing rule names them. Replaces the default list.                |
-| `instructions` | Up to 2,000 characters of guidance added to every stage brief. It refines the review within its fixed scope and output format; it cannot change them.                                                            |
+| Key                | Effect                                                                                                                                                                                                                                   |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `routing`          | Maps code paths to the pages that document them. Nearest READMEs are found automatically, so list only pages a README would miss. Routed pages are required reading: if they overflow, the review reports a gap.                         |
+| `docs.exclude`     | Markdown that is never reviewed, searched, or selected. Added to the built-in `**/CHANGELOG.md`.                                                                                                                                         |
+| `docs.agentFacing` | Instructions written for agents (skills, prompts). They rank below user and operator docs unless the pull request changed them or a routing rule names them. Added to the built-in list (`.agents/**`, `.claude/**`, `**/skills/**`, …). |
+| `instructions`     | Up to 2,000 characters of guidance added to every stage brief. It refines the review within its fixed scope and output format; it cannot change them.                                                                                    |
+
+Both `docs` lists add to the built-in ones; an empty list adds nothing.
+
+**Globs** follow git pathspec rules everywhere they are used (routing
+`paths`, `docs.exclude`, `docs.agentFacing`): `**` spans any number of
+directories, `*` and `?` stay within one, wildcards match names that start with
+a dot, and a pattern without wildcards matches that path and everything below
+it (`vendor` covers `vendor/a.md`).
+
+**Versioning.** The file declares `"version": 1`. Within version 1, new keys
+are only added, never renamed or removed, and an unknown key is an error that
+names it. A configuration using a key the pinned reviewer does not know yet
+needs a newer reviewer.
+
+An invalid configuration fails that pull request's review with a message naming
+the file, the revision, and every key to fix; other pull requests still run.
 
 Mark generated code and docs with `linguist-generated` in `.gitattributes`
 rather than in this file: the reviewer reads it from the base revision too.

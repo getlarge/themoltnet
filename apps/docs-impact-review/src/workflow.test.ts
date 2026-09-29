@@ -134,6 +134,8 @@ describe('runDocsImpactReview', () => {
       profileId: '00000000-0000-4000-8000-000000000004',
       tags: ['review:docs-impact'],
       pollIntervalSec: 0,
+      config,
+      configSource: { kind: 'base' as const, location: 'fixture' },
     };
   }
 
@@ -149,7 +151,6 @@ describe('runDocsImpactReview', () => {
         git: repo.git,
         tasks: tasks.client,
         ctx: createSleepingContext(),
-        config,
       },
       { ...input(head), ...overrides },
     );

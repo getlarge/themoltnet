@@ -22,3 +22,13 @@ export function createGit(cwd: string): Git {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 }
+
+/** Whether `path` exists at `revision`. */
+export function existsAt(git: Git, revision: string, path: string): boolean {
+  try {
+    git(['cat-file', '-e', `${revision}:${path}`]);
+    return true;
+  } catch {
+    return false;
+  }
+}

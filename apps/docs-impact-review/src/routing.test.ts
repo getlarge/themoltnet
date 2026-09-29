@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { DEFAULT_AGENT_FACING } from './review-config.js';
+import { DEFAULT_AGENT_FACING, DEFAULT_DOCS_EXCLUDE } from './review-config.js';
 import {
   dropGenericTerms,
-  parseRoutingMap,
+  excludeCandidates,
   routeDocs,
+  type RoutingMap,
   searchDocsForTerms,
   selectDocs,
 } from './routing.js';
@@ -18,8 +19,7 @@ function file(
   return { path, status: 'modified', additions: 1, deletions: 1, category };
 }
 
-const map = parseRoutingMap({
-  version: 1,
+const map: RoutingMap = {
   rules: [
     {
       id: 'cli',
@@ -27,14 +27,22 @@ const map = parseRoutingMap({
       docs: ['docs/reference/cli.md'],
     },
   ],
-});
+};
 
-describe('parseRoutingMap', () => {
-  it('rejects unknown fields', () => {
-    // Act / Assert
-    expect(() =>
-      parseRoutingMap({ version: 1, rules: [], extra: true }),
-    ).toThrow(/routing map/);
+describe('excludeCandidates', () => {
+  it('drops routed or README candidates the repository excludes', () => {
+    // Arrange
+    const candidates = new Map([
+      ['vendor/tool/README.md', ['nearest-readme' as const]],
+      ['.github/CHANGELOG.md', ['routing-map' as const]],
+      ['docs/cli.md', ['routing-map' as const]],
+    ]);
+
+    // Act
+    excludeCandidates(candidates, ['**/CHANGELOG.md', 'vendor']);
+
+    // Assert
+    expect([...candidates.keys()]).toEqual(['docs/cli.md']);
   });
 });
 
@@ -85,7 +93,7 @@ describe('selectDocs', () => {
     ]);
 
     // Act
-    const selection = selectDocs(candidates, 3);
+    const selection = selectDocs(candidates, 3, []);
 
     // Assert
     expect(selection.selected.map((doc) => doc.path)).toEqual([
@@ -126,6 +134,7 @@ describe('selectDocs agent-facing ranking', () => {
         ['docs/use/x.md', ['symbol-search' as const]],
       ]),
       1,
+      DEFAULT_AGENT_FACING,
     );
 
     // Assert
@@ -172,7 +181,12 @@ describe('searchDocsForTerms', () => {
     });
 
     // Act
-    const hits = searchDocsForTerms(repo.git, head, ['--dry-run', 'x']);
+    const hits = searchDocsForTerms(
+      repo.git,
+      head,
+      ['--dry-run', 'x'],
+      DEFAULT_DOCS_EXCLUDE,
+    );
 
     // Assert
     expect(Object.fromEntries(hits)).toEqual({
@@ -185,6 +199,7 @@ describe('searchDocsForTerms', () => {
     const head = repo.commit({
       'docs/cli.md': 'Pass `--dry-run` to preview.\n',
       'vendor/tool/README.md': 'Pass `--dry-run` too.\n',
+      '.github/CHANGELOG.md': 'added --dry-run\n',
     });
 
     // Act
@@ -192,10 +207,11 @@ describe('searchDocsForTerms', () => {
       repo.git,
       head,
       ['--dry-run'],
-      ['**/CHANGELOG.md', 'vendor/**'],
+      ['**/CHANGELOG.md', 'vendor'],
     );
 
-    // Assert
+    // Assert: `vendor` excludes the directory, and a dot-directory changelog
+    // is excluded like any other, as git would.
     expect([...hits.keys()]).toEqual(['docs/cli.md']);
   });
 
@@ -204,7 +220,12 @@ describe('searchDocsForTerms', () => {
     const head = repo.commit({ 'docs/cli.md': 'nothing here\n' });
 
     // Act
-    const hits = searchDocsForTerms(repo.git, head, ['MOLTNET_NEW_VAR']);
+    const hits = searchDocsForTerms(
+      repo.git,
+      head,
+      ['MOLTNET_NEW_VAR'],
+      DEFAULT_DOCS_EXCLUDE,
+    );
 
     // Assert
     expect(hits.size).toBe(0);

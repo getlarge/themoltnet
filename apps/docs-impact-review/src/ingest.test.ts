@@ -62,6 +62,24 @@ describe('collectChangeSet', () => {
     expect(changeSet.files).toHaveLength(11);
   });
 
+  it('treats a deleted Markdown file under an exclusion as generated', () => {
+    // Arrange
+    const base = repo.commit({ 'vendor/lib/README.md': '# vendored\n' });
+    const head = repo.commit({ 'vendor/lib/README.md': null });
+
+    // Act
+    const changeSet = collectChangeSet(repo.git, base, head, ['vendor']);
+
+    // Assert
+    expect(changeSet.files).toMatchObject([
+      {
+        path: 'vendor/lib/README.md',
+        status: 'deleted',
+        category: 'generated',
+      },
+    ]);
+  });
+
   it('treats Markdown matching the repository exclusions as generated', () => {
     // Arrange
     const base = repo.commit({ 'README.md': '# x\n' });

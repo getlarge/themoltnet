@@ -1,4 +1,5 @@
 export { createGit, type Git } from './git.js';
+export { matchesAny, matchesGlob } from './glob.js';
 export { boundDiff, collectChangeSet } from './ingest.js';
 export {
   DOCS_IMPACT_COMMENT_MARKER,
@@ -8,14 +9,18 @@ export {
 export {
   DEFAULT_REVIEW_CONFIG,
   loadReviewConfig,
+  loadReviewConfigFile,
   parseReviewConfig,
   REVIEW_CONFIG_PATH,
   type ReviewConfig,
+  ReviewConfigError,
+  type ReviewConfigSource,
 } from './review-config.js';
-export { parseRoutingMap, type RoutingMap } from './routing.js';
+export type { RoutingMap } from './routing.js';
 export { stageTiming } from './timing.js';
 export type * from './types.js';
 export {
+  configFailureReport,
   createSleepingContext,
   DEFAULT_BUDGETS,
   DEFAULT_POLL_INTERVAL_SEC,

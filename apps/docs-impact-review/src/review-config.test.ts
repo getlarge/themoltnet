@@ -7,9 +7,11 @@ import {
   DEFAULT_AGENT_FACING,
   DEFAULT_REVIEW_CONFIG,
   loadReviewConfig,
+  loadReviewConfigFile,
   MAX_INSTRUCTIONS_LENGTH,
   parseReviewConfig,
   REVIEW_CONFIG_PATH,
+  ReviewConfigError,
 } from './review-config.js';
 import { createTestRepo, type TestRepo } from './test-repo.js';
 
@@ -40,43 +42,93 @@ describe('parseReviewConfig', () => {
     expect(parseReviewConfig({ version: 1 })).toEqual(DEFAULT_REVIEW_CONFIG);
   });
 
-  it('keeps changelogs excluded when a repository adds its own exclusions', () => {
+  it('adds repository exclusions and agent-facing globs to the defaults', () => {
     // Act
     const config = parseReviewConfig({
       version: 1,
-      docs: { exclude: ['vendor/**'] },
+      docs: { exclude: ['vendor'], agentFacing: ['prompts/**'] },
     });
 
     // Assert
-    expect(config.docsExclude).toEqual(['**/CHANGELOG.md', 'vendor/**']);
+    expect(config.docsExclude).toEqual(['**/CHANGELOG.md', 'vendor']);
+    expect(config.agentFacing).toEqual([...DEFAULT_AGENT_FACING, 'prompts/**']);
   });
 
-  it('replaces the default agent-facing globs when set', () => {
+  it('treats empty lists as adding nothing', () => {
     // Act
     const config = parseReviewConfig({
       version: 1,
-      agentFacing: ['prompts/**'],
+      docs: { exclude: [], agentFacing: [] },
     });
 
     // Assert
-    expect(config.agentFacing).toEqual(['prompts/**']);
-    expect(DEFAULT_AGENT_FACING).not.toContain('prompts/**');
+    expect(config).toEqual(DEFAULT_REVIEW_CONFIG);
+  });
+
+  it('names an unknown key, the file, and the versioning hint', () => {
+    // Act
+    const parse = () =>
+      parseReviewConfig(
+        { version: 1, agentFacing: ['x/**'] },
+        `${REVIEW_CONFIG_PATH}@${'a'.repeat(40)}`,
+      );
+
+    // Assert
+    expect(parse).toThrow(ReviewConfigError);
+    expect(parse).toThrow(`${REVIEW_CONFIG_PATH}@${'a'.repeat(40)}`);
+    expect(parse).toThrow('unknown key "agentFacing"');
+    expect(parse).toThrow('newer docs impact review version');
+  });
+
+  it('reports several problems in one pass', () => {
+    // Act
+    const parse = () =>
+      parseReviewConfig({
+        version: 1,
+        docs: { exclude: [''], agentFacing: 'x' },
+        routing: [{ id: '', paths: [], docs: ['d.md'] }],
+      });
+
+    // Assert
+    expect(parse).toThrow(/\/docs\/exclude\/0.*; .*\/docs\/agentFacing/);
   });
 
   it.each([
-    ['an unknown key', { version: 1, routingMap: [] }],
     ['an unsupported version', { version: 2 }],
     [
       'overlong instructions',
       { version: 1, instructions: 'x'.repeat(MAX_INSTRUCTIONS_LENGTH + 1) },
     ],
+    ['whitespace-only instructions', { version: 1, instructions: '   ' }],
     [
       'a routing rule without docs',
       { version: 1, routing: [{ id: 'cli', paths: ['cli/**'], docs: [] }] },
     ],
   ])('rejects %s', (_label, value) => {
     // Act / Assert
-    expect(() => parseReviewConfig(value)).toThrow(REVIEW_CONFIG_PATH);
+    expect(() => parseReviewConfig(value)).toThrow(ReviewConfigError);
+  });
+});
+
+describe('loadReviewConfigFile', () => {
+  it('names the file it cannot read or parse', () => {
+    // Act / Assert
+    expect(() =>
+      loadReviewConfigFile(() => {
+        throw new Error('ENOENT');
+      }, 'missing.json'),
+    ).toThrow('cannot read missing.json: ENOENT');
+    expect(() => loadReviewConfigFile(() => '{', 'bad.json')).toThrow(
+      'bad.json is not valid JSON',
+    );
+  });
+
+  it('records the file as the configuration source', () => {
+    // Act
+    const loaded = loadReviewConfigFile(() => '{"version":1}', 'local.json');
+
+    // Assert
+    expect(loaded.source).toEqual({ kind: 'file', location: 'local.json' });
   });
 });
 
@@ -110,7 +162,10 @@ describe('loadReviewConfig', () => {
     const loaded = loadReviewConfig(repo.git, base);
 
     // Assert
-    expect(loaded.source).toBe('base');
+    expect(loaded.source).toEqual({
+      kind: 'base',
+      location: `${REVIEW_CONFIG_PATH}@${base}`,
+    });
     expect(loaded.config.instructions).toBe('Docs live in site/.');
   });
 
@@ -121,7 +176,7 @@ describe('loadReviewConfig', () => {
     // Act / Assert
     expect(loadReviewConfig(repo.git, base)).toEqual({
       config: DEFAULT_REVIEW_CONFIG,
-      source: 'default',
+      source: { kind: 'default' },
     });
   });
 
@@ -133,11 +188,13 @@ describe('loadReviewConfig', () => {
     expect(() => loadReviewConfig(repo.git, 'f'.repeat(40))).toThrow();
   });
 
-  it('fails on a configuration that is not valid JSON', () => {
+  it('fails on a configuration that is not valid JSON, naming the revision', () => {
     // Arrange
     const base = repo.commit({ [REVIEW_CONFIG_PATH]: '{ version: 1 }' });
 
     // Act / Assert
-    expect(() => loadReviewConfig(repo.git, base)).toThrow('not valid JSON');
+    expect(() => loadReviewConfig(repo.git, base)).toThrow(
+      `${REVIEW_CONFIG_PATH}@${base} is not valid JSON`,
+    );
   });
 });

@@ -1,14 +1,7 @@
 {
-  "agentFacing": [
-    ".agents/**",
-    ".claude/**",
-    ".codex/**",
-    ".cursor/**",
-    ".pi/**",
-    "**/skills/**",
-    "evals/**",
-    "evals-v2/**"
-  ],
+  "docs": {
+    "agentFacing": ["evals/**", "evals-v2/**"]
+  },
   "routing": [
     {
       "docs": [

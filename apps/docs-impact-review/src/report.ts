@@ -51,6 +51,19 @@ export function renderComment(report: DocsImpactReport): string {
     `reviewed in ${formatDuration(report.timings.totalMs)}`,
   ];
   const lines = [DOCS_IMPACT_COMMENT_MARKER, context.join(' · ')];
+  // A review without the repository's own configuration has no routing rules,
+  // so it may miss docs the maintainers mapped; say so where it is read.
+  if (report.config?.kind === 'default') {
+    lines.push(
+      '',
+      '_No `.github/docs-impact-review.json` at the base revision: reviewed with the default configuration, without routing rules._',
+    );
+  } else if (report.config?.kind === 'file') {
+    lines.push(
+      '',
+      `_Reviewed with the configuration in \`${report.config.location ?? 'a local file'}\`, not the base revision's._`,
+    );
+  }
   // A doc the review says is missing does not exist at head yet.
   const missing = new Set(
     report.selectedDocs.filter((doc) => doc.missing).map((doc) => doc.path),

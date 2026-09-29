@@ -1,9 +1,9 @@
 import { posix } from 'node:path';
 
 import { type Static, Type } from 'typebox';
-import { Value } from 'typebox/value';
 
 import type { Git } from './git.js';
+import { matchesAny } from './glob.js';
 import type { ChangedFile, DocsSelectionReason } from './types.js';
 
 export const RoutingRule = Type.Object(
@@ -15,23 +15,11 @@ export const RoutingRule = Type.Object(
   { additionalProperties: false },
 );
 
-const RoutingMap = Type.Object(
-  {
-    version: Type.Literal(1),
-    rules: Type.Array(RoutingRule),
-  },
-  { additionalProperties: false },
-);
-export type RoutingMap = Static<typeof RoutingMap>;
+export type RoutingRule = Static<typeof RoutingRule>;
 
-export function parseRoutingMap(value: unknown): RoutingMap {
-  if (!Value.Check(RoutingMap, value)) {
-    const [first] = Value.Errors(RoutingMap, value);
-    throw new Error(
-      `invalid docs routing map at ${first?.instancePath || '(root)'}: ${first?.message}`,
-    );
-  }
-  return value;
+/** The configured routing rules; validated with the repository config. */
+export interface RoutingMap {
+  rules: RoutingRule[];
 }
 
 export interface RoutedDocs {
@@ -77,7 +65,7 @@ export function routeDocs(
     if (file.category !== 'source') continue;
     let routed = false;
     for (const rule of map.rules) {
-      if (rule.paths.some((glob) => posix.matchesGlob(file.path, glob))) {
+      if (matchesAny(file.path, rule.paths)) {
         for (const doc of rule.docs) addReason(candidates, doc, 'routing-map');
         routed = true;
       }
@@ -104,7 +92,7 @@ export function searchDocsForTerms(
   git: Git,
   headRevision: string,
   terms: readonly string[],
-  exclude: readonly string[] = ['**/CHANGELOG.md'],
+  exclude: readonly string[],
 ): Map<string, string[]> {
   const usable = [
     ...new Set(
@@ -138,7 +126,6 @@ export function searchDocsForTerms(
         '--',
         '*.md',
         '*.mdx',
-        ...exclude.map((glob) => `:(exclude,glob)${glob}`),
       ]);
     } catch (error) {
       // `git grep` exits 1 when nothing matches.
@@ -148,6 +135,9 @@ export function searchDocsForTerms(
     for (const line of output.split('\n')) {
       if (!line.startsWith(prefix)) continue;
       const path = line.slice(prefix.length);
+      // Filtered here rather than with pathspec excludes, so search applies
+      // the same glob semantics as ingestion and selection.
+      if (matchesAny(path, exclude)) continue;
       const terms = hits.get(path) ?? [];
       if (!terms.includes(term)) terms.push(term);
       hits.set(path, terms);
@@ -188,6 +178,19 @@ export function dropGenericTerms(
 /** Agent-facing instructions rank below user or operator docs. */
 const AGENT_FACING_PENALTY = 3;
 
+/**
+ * Drops candidates the repository excludes. Routing rules and nearest READMEs
+ * can still name an excluded page; changed docs are already categorized away.
+ */
+export function excludeCandidates(
+  candidates: Map<string, DocsSelectionReason[]>,
+  exclude: readonly string[],
+): void {
+  for (const path of candidates.keys()) {
+    if (matchesAny(path, exclude)) candidates.delete(path);
+  }
+}
+
 /** Candidates that must be reviewed; overflowing them is a coverage gap. */
 export function isRequiredCandidate(reasons: DocsSelectionReason[]): boolean {
   return reasons.includes('changed-in-pr') || reasons.includes('routing-map');
@@ -208,7 +211,7 @@ export interface DocsSelection {
 export function selectDocs(
   candidates: ReadonlyMap<string, DocsSelectionReason[]>,
   maxDocs: number,
-  agentFacing: readonly string[] = [],
+  agentFacing: readonly string[],
 ): DocsSelection {
   const ranked = [...candidates.entries()]
     .map(([path, reasons]) => ({
@@ -216,8 +219,7 @@ export function selectDocs(
       reasons,
       score:
         reasons.reduce((sum, reason) => sum + REASON_WEIGHT[reason], 0) -
-        (agentFacing.some((glob) => posix.matchesGlob(path, glob)) &&
-        !isRequiredCandidate(reasons)
+        (matchesAny(path, agentFacing) && !isRequiredCandidate(reasons)
           ? AGENT_FACING_PENALTY
           : 0),
     }))

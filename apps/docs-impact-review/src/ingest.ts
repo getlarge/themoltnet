@@ -1,5 +1,5 @@
 import { type Git, requireFullOid } from './git.js';
-import { matchesAny } from './review-config.js';
+import { matchesAny } from './glob.js';
 import { truncateAtLine } from './text.js';
 import type {
   BoundedDiff,

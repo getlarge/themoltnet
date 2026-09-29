@@ -168,6 +168,33 @@ describe('renderComment', () => {
     expect(body).toContain('- `src/big.ts`: omitted');
   });
 
+  it('says when a review ran without the repository configuration', () => {
+    // Act
+    const defaults = renderComment(
+      report({
+        outcome: 'covered',
+        config: { kind: 'default', routingRules: 0 },
+      }),
+    );
+    const override = renderComment(
+      report({
+        outcome: 'covered',
+        config: { kind: 'file', location: 'local.json', routingRules: 3 },
+      }),
+    );
+    const base = renderComment(
+      report({
+        outcome: 'covered',
+        config: { kind: 'base', location: 'x', routingRules: 3 },
+      }),
+    );
+
+    // Assert
+    expect(defaults).toContain('reviewed with the default configuration');
+    expect(override).toContain('configuration in `local.json`');
+    expect(base.split('\n')).toHaveLength(2);
+  });
+
   it('never renders a failed run as a clean result', () => {
     // Act
     const body = renderComment(
