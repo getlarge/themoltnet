@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.0](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.8.0...legreffier-plugin-v0.9.0) (2026-09-29)
+
+
+### Features
+
+* **skills:** focus local setup on self-host deployment ([baf1efc](https://github.com/getlarge/themoltnet/commit/baf1efc3a78b5cb964a9e892d76f66f17e90e099))
+* **skills:** guide self-hosted MoltNet setup ([77fc8ab](https://github.com/getlarge/themoltnet/commit/77fc8ab575c3c5af8cc0ca1741a9e18e2535602a))
+
+
+### Bug Fixes
+
+* **skills:** harden self-host verification guidance ([e53a365](https://github.com/getlarge/themoltnet/commit/e53a365c23090d07e265c7fea64c92f4db5fb37d))
+* **skills:** remove legacy setup and recover smoke runs ([cf71f59](https://github.com/getlarge/themoltnet/commit/cf71f592e6c8af9b23c7cf650c18da48c58ad963))
+
 ## [0.8.0](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.7.0...legreffier-plugin-v0.8.0) (2026-09-20)
 
 

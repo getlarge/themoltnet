@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.20.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.19.0...pi-runtime-v0.20.0) (2026-09-29)
+
+
+### Features
+
+* **review:** advisory docs-impact reviewer (app + CI workflow) ([4277715](https://github.com/getlarge/themoltnet/commit/427771527ae77a7cd1689959c45712ae9f2ad06c))
+
+
+### Bug Fixes
+
+* **pi-runtime:** decode submit fields sent as JSON strings ([c7ed097](https://github.com/getlarge/themoltnet/commit/c7ed097fc7f9c08782d5799e2be007bf58e36887))
+* **pi-runtime:** keep logger receiver for thinking warnings ([11d4f98](https://github.com/getlarge/themoltnet/commit/11d4f98c71ff13df3e654c4f3efb65846234a7ed))
+* **pi-runtime:** keep logger receiver for thinking warnings ([f91c18c](https://github.com/getlarge/themoltnet/commit/f91c18cd3194237700c0a9873444501073448000))
+
 ## [0.19.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.18.9...pi-runtime-v0.19.0) (2026-09-28)
 
 
