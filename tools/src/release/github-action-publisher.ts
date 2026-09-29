@@ -122,7 +122,7 @@ function assertBundleCommitted(bundleDir: string) {
   if (changes) {
     throw new Error(
       `${bundleDir} does not match its sources:\n${changes}\n` +
-        'Merge the open "chore(agent-daemon-action): refresh action bundle" PR ' +
+        'Merge the open "chore(actions): refresh action bundles" PR ' +
         '(branch automation/action-bundle-sync, opened by sync-action-bundle.yml) ' +
         'or commit a rebuilt bundle before releasing.',
     );

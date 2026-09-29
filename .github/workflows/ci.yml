@@ -91,10 +91,11 @@ jobs:
             libs/moltnet-api-client/go.sum
       - run: pnpm exec nx run @moltnet/tools:test:agent-bundle
 
-  # The composite action executes dist/, not src/, and the bundle inlines
-  # libs/sdk. sync-action-bundle.yml keeps main's bundle current; this job
-  # runs only for PRs that commit dist/ (see the `affected` job) and fails when
-  # that committed bundle does not match its sources. The action publisher
+  # The composite actions execute dist/, not src/, and their bundles inline
+  # libraries (libs/sdk, libs/docs-impact-review). sync-action-bundle.yml keeps
+  # main's bundles current; this job runs only for PRs that commit a dist/ (see
+  # the `affected` job) and fails when a committed bundle does not match its
+  # sources. The action publisher
   # (tools/src/release/github-action-publisher.ts) refuses to release a stale
   # bundle as the last line of defence.
   check-dist-agent-daemon-action:
@@ -113,17 +114,21 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec nx run @themoltnet/agent-daemon-action:build
+      - run: pnpm exec nx run-many -t build --projects=@themoltnet/agent-daemon-action,@themoltnet/docs-impact-review-action
       # `git status --porcelain`, not `git diff`: the build code-splits into
       # content-hashed assets/ chunks, and a renamed chunk arrives *untracked*,
       # which `git diff` does not report.
-      - name: Fail when the committed bundle is out of date
+      - name: Fail when a committed bundle is out of date
         run: |
-          if [ -n "$(git status --porcelain -- packages/agent-daemon-action/dist/)" ]; then
-            git status --short -- packages/agent-daemon-action/dist/
-            echo "::error::packages/agent-daemon-action/dist/ is out of date. Run 'pnpm exec nx run @themoltnet/agent-daemon-action:build' and commit the result."
-            exit 1
-          fi
+          stale=0
+          for project in agent-daemon-action docs-impact-review-action; do
+            if [ -n "$(git status --porcelain -- "packages/$project/dist/")" ]; then
+              git status --short -- "packages/$project/dist/"
+              echo "::error::packages/$project/dist/ is out of date. Run 'pnpm exec nx run @themoltnet/$project:build' and commit the result."
+              stale=1
+            fi
+          done
+          exit "$stale"
 
   wsl-agent-daemon:
     name: WSL2 agent daemon acceptance
@@ -511,7 +516,7 @@ jobs:
           # author shipping a bundle deliberately): a committed bundle must
           # still match its sources.
           if [ "${{ github.event_name }}" = "pull_request" ] &&
-            ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- packages/agent-daemon-action/dist/; then
+            ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- packages/agent-daemon-action/dist/ packages/docs-impact-review-action/dist/; then
             echo "check-dist-agent-daemon-action=true" >> "$GITHUB_OUTPUT"
           else
             echo "check-dist-agent-daemon-action=false" >> "$GITHUB_OUTPUT"
