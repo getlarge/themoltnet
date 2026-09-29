@@ -113,41 +113,25 @@ Each stage task is tagged `review:docs-impact`, `stage:<extract|coverage>`,
 
 ## In CI
 
-[`docs-impact-review.yml`](../../.github/workflows/docs-impact-review.yml)
-runs the review as an advisory check. It never blocks merges.
+In this repository,
+[`docs-impact-review.yml`](../../.github/workflows/docs-impact-review.yml) runs
+the review as an advisory check through
+[`docs-impact-review-action`](../../packages/docs-impact-review-action/README.md),
+which bundles this library. The action README describes the trust model, the
+jobs, and how other repositories set the review up. It never blocks merges.
 
 **Triggers.** Non-draft pull requests on `opened`, `ready_for_review`,
 `synchronize` and `reopened`. An owner, member or collaborator can rerun it on
 any pull request, drafts included, by commenting `@legreffier /docs-review`. A
 new push cancels the run for the previous head.
 
-**Trust.** The workflow runs code from the pull request's base revision only,
-including the eligibility gate. The reviewed head
-is fetched as inert git objects and never checked out. The run is skipped, with
-a notice in the run summary, for:
+**Protected paths.** A pull request that changes the review runtime is not
+reviewed by it: the workflow, the `legreffier-docs-review-*` profiles, the
+runtime policies, this library, the action, and `agent-daemon-action`.
 
-- pull requests from forks;
-- Dependabot pull requests;
-- pull requests that change the review runtime itself: this workflow, the
-  `legreffier-docs-review-*` profiles, this app or `agent-daemon-action`.
-
-**Jobs.**
-
-- `prepare` pins the base and head revisions and derives a correlation id per
-  run.
-- `review` posts a "reviewing" comment, runs the review against the pinned
-  revisions and publishes the result.
-- `workers` starts one drain worker per distinct profile, claiming only this
-  run's tasks.
-
-The comment is published only if the pull request still points at the
-reviewed head. Otherwise it says the result is stale.
-
-The comment is written by the LeGreffier GitHub App, with an installation token
-scoped to this repository with pull requests write only. The token is
-minted from the `legreffier` environment's `MOLTNET_GITHUB_APP_ID` variable and
-`MOLTNET_GITHUB_APP_PRIVATE_KEY` secret. The review only updates a marker
-comment written by that App.
+**Comment identity.** The comment is written by the LeGreffier GitHub App, from
+the `legreffier` environment's `MOLTNET_GITHUB_APP_ID` variable and
+`MOLTNET_GITHUB_APP_PRIVATE_KEY` secret.
 
 **Configuration** (repository variables; the `prepare` job computes the
 worker list outside the `legreffier` environment, so environment-scoped

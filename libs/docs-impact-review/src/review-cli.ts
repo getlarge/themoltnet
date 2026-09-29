@@ -98,8 +98,10 @@ function positiveInt(value: string, label: string): number {
   return parsed;
 }
 
-async function main(): Promise<number> {
+/** The review CLI; returns the process exit code. */
+export async function runReviewCli(args: string[]): Promise<number> {
   const { values } = parseArgs({
+    args,
     options: {
       repo: { type: 'string' },
       pr: { type: 'string', multiple: true },
@@ -356,14 +358,3 @@ async function main(): Promise<number> {
   }
   return reports.some((report) => report.status === 'failed') ? 1 : 0;
 }
-
-main()
-  .then((code) => {
-    process.exitCode = code;
-  })
-  .catch((error: unknown) => {
-    process.stderr.write(
-      `[fatal] ${error instanceof Error ? error.message : String(error)}\n`,
-    );
-    process.exitCode = 1;
-  });

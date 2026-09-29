@@ -4,22 +4,30 @@
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
-  "description": "Experimental documentation-impact PR reviewer: trusted ingestion and routing, then two chained MoltNet tasks.",
+  "description": "Documentation-impact PR reviewer: trusted ingestion and routing, then chained MoltNet tasks. Run in CI through packages/docs-impact-review-action.",
   "exports": {
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
+    },
+    "./review-cli": {
+      "import": "./src/review-cli.ts",
+      "types": "./src/review-cli.ts"
+    },
+    "./comment": {
+      "import": "./src/comment.ts",
+      "types": "./src/comment.ts"
+    },
+    "./eligibility": {
+      "import": "./src/eligibility.ts",
+      "types": "./src/eligibility.ts"
     }
-  },
-  "bin": {
-    "moltnet-docs-impact-review": "./dist/main.js"
   },
   "engines": {
     "node": ">=22.20"
   },
   "scripts": {
     "cli": "tsx src/main.ts",
-    "build": "vite build",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint ."
   },
@@ -37,11 +45,11 @@
     "vitest": "catalog:"
   },
   "nx": {
-    "projectType": "application",
+    "projectType": "library",
     "tags": [
-      "type:app",
+      "type:feature",
       "scope:agent",
-      "platform:cli"
+      "platform:server"
     ]
   }
 }

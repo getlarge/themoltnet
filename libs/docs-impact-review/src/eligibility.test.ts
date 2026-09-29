@@ -1,17 +1,15 @@
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
-
 import { describe, expect, it } from 'vitest';
 
-import {
-  checkEligibility,
-  type PullRequestFacts,
-  RUNTIME_PATH_PREFIXES,
-} from './eligibility.js';
+import { checkEligibility, type PullRequestFacts } from './eligibility.js';
 
 const REPO = 'getlarge/themoltnet';
+const PROTECTED = [
+  '.github/workflows/docs-impact-review.yml',
+  '.github/runtime-profiles/legreffier-docs-review-',
+  '.github/runtime-policies/',
+  'libs/docs-impact-review/',
+  'packages/agent-daemon-action/',
+];
 
 function pr(overrides: Partial<PullRequestFacts> = {}): PullRequestFacts {
   return {
@@ -19,6 +17,7 @@ function pr(overrides: Partial<PullRequestFacts> = {}): PullRequestFacts {
     baseRepo: REPO,
     author: 'someone',
     files: [{ filename: 'apps/cli/src/flags.ts' }],
+    protectedPaths: PROTECTED,
     ...overrides,
   };
 }
@@ -52,7 +51,7 @@ describe('checkEligibility', () => {
       'a runtime policy',
       '.github/runtime-policies/legreffier-review-readonly-v1.json',
     ],
-    ['the reviewer app', 'apps/docs-impact-review/src/stages.ts'],
+    ['the reviewer', 'libs/docs-impact-review/src/stages.ts'],
     ['the daemon action', 'packages/agent-daemon-action/action.yml'],
   ])('rejects a PR that changes %s', (_label, filename) => {
     // Act
@@ -70,7 +69,7 @@ describe('checkEligibility', () => {
     const files = [
       {
         filename: 'tools/harmless.ts',
-        previous_filename: 'apps/docs-impact-review/src/stages.ts',
+        previous_filename: 'libs/docs-impact-review/src/stages.ts',
       },
     ];
 
@@ -87,7 +86,7 @@ describe('checkEligibility', () => {
       pr({
         files: [
           {
-            filename: 'apps/docs-impact-review/src/new.ts',
+            filename: 'libs/docs-impact-review/src/new.ts',
             previous_filename: 'tools/old.ts',
           },
         ],
@@ -99,44 +98,24 @@ describe('checkEligibility', () => {
   });
 });
 
-describe('eligibility CLI', () => {
-  it('prints GitHub output lines when run with plain node', () => {
-    // Arrange: exactly how the workflow's prepare job invokes it.
-    const dir = mkdtempSync(join(tmpdir(), 'eligibility-'));
-    const facts = join(dir, 'facts.json');
-    writeFileSync(facts, JSON.stringify(pr({ author: 'dependabot[bot]' })));
+describe('protected paths', () => {
+  it('protects nothing a repository did not name', () => {
+    // Act
+    const result = checkEligibility(
+      pr({
+        protectedPaths: undefined,
+        files: [{ filename: '.github/workflows/docs-impact-review.yml' }],
+      }),
+    );
 
-    try {
-      // Act
-      const output = execFileSync(
-        process.execPath,
-        [resolve(import.meta.dirname, 'eligibility.ts'), facts],
-        { encoding: 'utf8' },
-      );
-
-      // Assert
-      expect(output).toBe(
-        'skip=true\nreason=Dependabot pull requests are not reviewed\n',
-      );
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
+    // Assert
+    expect(result).toEqual({ eligible: true });
   });
 
-  it('is the gate the workflow actually runs', () => {
-    // Arrange
-    const workflow = readFileSync(
-      resolve(
-        import.meta.dirname,
-        '../../../.github/workflows/docs-impact-review.yml',
-      ),
-      'utf8',
-    );
-
-    // Assert: the workflow protects itself and invokes this module.
-    expect(RUNTIME_PATH_PREFIXES).toContain(
-      '.github/workflows/docs-impact-review.yml',
-    );
-    expect(workflow).toContain('apps/docs-impact-review/src/eligibility.ts');
+  it('ignores empty prefixes, which would match every path', () => {
+    // Act / Assert
+    expect(checkEligibility(pr({ protectedPaths: [''] }))).toEqual({
+      eligible: true,
+    });
   });
 });

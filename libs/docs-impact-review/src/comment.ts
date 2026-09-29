@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs';
-import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import { githubToken } from './config.js';
@@ -211,8 +210,10 @@ export async function updateDocsImpactComment(args: {
   return 'published';
 }
 
-async function main(): Promise<void> {
+/** The comment CLI used by CI to post and update the review comment. */
+export async function runCommentCli(args: string[]): Promise<void> {
   const { values } = parseArgs({
+    args,
     options: {
       mode: { type: 'string' },
       repo: { type: 'string' },
@@ -252,16 +253,4 @@ async function main(): Promise<void> {
     reportPath: values.report,
   });
   process.stdout.write(`${JSON.stringify({ status })}\n`);
-}
-
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-) {
-  main().catch((error: unknown) => {
-    process.stderr.write(
-      `[fatal] ${error instanceof Error ? error.message : String(error)}\n`,
-    );
-    process.exitCode = 1;
-  });
 }

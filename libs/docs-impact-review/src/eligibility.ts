@@ -5,7 +5,6 @@
  * (native type stripping) before any install.
  */
 import { readFileSync } from 'node:fs';
-import { pathToFileURL } from 'node:url';
 
 export interface PullRequestFile {
   filename: string;
@@ -19,27 +18,17 @@ export interface PullRequestFacts {
   baseRepo: string;
   author: string;
   files: PullRequestFile[];
+  /**
+   * Path prefixes of the review runtime in this repository, e.g. the workflow
+   * that runs the review. A pull request touching one is not reviewed by the
+   * runtime it modifies.
+   */
+  protectedPaths?: string[];
 }
 
 export type Eligibility =
   | { eligible: true }
   | { eligible: false; reason: string };
-
-/**
- * The trusted review runtime. A PR touching it must not be reviewed by the
- * runtime it modifies.
- */
-export const RUNTIME_PATH_PREFIXES = [
-  '.github/workflows/docs-impact-review.yml',
-  '.github/runtime-profiles/legreffier-docs-review-',
-  '.github/runtime-policies/',
-  'apps/docs-impact-review/',
-  'packages/agent-daemon-action/',
-];
-
-function touchesRuntime(path: string): boolean {
-  return RUNTIME_PATH_PREFIXES.some((prefix) => path.startsWith(prefix));
-}
 
 export function checkEligibility(pr: PullRequestFacts): Eligibility {
   // Fork PRs run without secrets and cannot publish; a deleted fork is
@@ -53,10 +42,15 @@ export function checkEligibility(pr: PullRequestFacts): Eligibility {
       reason: 'Dependabot pull requests are not reviewed',
     };
   }
+  const protectedPaths = (pr.protectedPaths ?? []).filter(
+    (prefix) => prefix.length > 0,
+  );
   const runtimeChanges = new Set<string>();
   for (const file of pr.files) {
     for (const path of [file.filename, file.previous_filename]) {
-      if (path && touchesRuntime(path)) runtimeChanges.add(path);
+      if (path && protectedPaths.some((prefix) => path.startsWith(prefix))) {
+        runtimeChanges.add(path);
+      }
     }
   }
   if (runtimeChanges.size > 0) {
@@ -68,9 +62,9 @@ export function checkEligibility(pr: PullRequestFacts): Eligibility {
   return { eligible: true };
 }
 
-/** `node eligibility.ts <facts.json>` prints `skip=` and `reason=` lines. */
-function main(): void {
-  const path = process.argv[2];
+/** `eligibility <facts.json>` prints `skip=` and `reason=` lines. */
+export function runEligibilityCli(args: string[]): void {
+  const path = args[0];
   if (!path) throw new Error('usage: eligibility.ts <facts.json>');
   const facts = JSON.parse(readFileSync(path, 'utf8')) as PullRequestFacts;
   const result = checkEligibility(facts);
@@ -78,11 +72,4 @@ function main(): void {
   process.stdout.write(
     `skip=${String(!result.eligible)}\nreason=${reason.replace(/\n/g, ' ')}\n`,
   );
-}
-
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-) {
-  main();
 }
