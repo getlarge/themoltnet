@@ -1,0 +1,278 @@
+name: Docs impact review (reusable)
+
+# Reviews whether a pull request leaves users, operators, or contributors with
+# missing, incorrect, or unnecessary documentation. Called from a workflow
+# that owns the triggers; this workflow owns the jobs: prepare, review, and
+# one drain worker per distinct profile.
+#
+# The review runtime (packages/docs-impact-review-action and
+# packages/agent-daemon-action) is checked out from this workflow's own
+# commit, so the reviewer and its workers are always the same version. The
+# reviewed pull request head is fetched as inert git data and never checked
+# out or executed.
+
+on:
+  workflow_call:
+    inputs:
+      # team-id, diary-id, agent-name, app-id, and api-url fall back to the
+      # MOLTNET_TEAM_ID, MOLTNET_DIARY_ID, MOLTNET_AGENT_NAME,
+      # MOLTNET_GITHUB_APP_ID, and MOLTNET_API_URL variables, read in the
+      # review and worker jobs, so environment-scoped variables work too.
+      team-id:
+        description: MoltNet team that owns the review tasks. Defaults to vars.MOLTNET_TEAM_ID.
+        type: string
+        default: ''
+      diary-id:
+        description: MoltNet diary the review tasks record to (a private one for a private repository). Defaults to vars.MOLTNET_DIARY_ID.
+        type: string
+        default: ''
+      agent-name:
+        description: MoltNet agent the workers run as. Defaults to vars.MOLTNET_AGENT_NAME.
+        type: string
+        default: ''
+      profile:
+        description: Runtime profile (name or id) for every stage unless overridden.
+        type: string
+        required: true
+      coverage-profile:
+        description: Optional runtime profile for the coverage stage.
+        type: string
+        default: ''
+      docs-check-profile:
+        description: Optional runtime profile for the docs check stage.
+        type: string
+        default: ''
+      protected-paths:
+        description: >
+          Newline-separated path prefixes of the calling repository's review
+          runtime, at least the calling workflow file. A pull request that
+          changes one is not reviewed.
+        type: string
+        default: ''
+      project-id:
+        description: Optional MoltNet project whose binding supplies the repository to workers.
+        type: string
+        default: ''
+      app-id:
+        description: Optional GitHub App id that writes the comment, with the MOLTNET_GITHUB_APP_PRIVATE_KEY secret. Defaults to vars.MOLTNET_GITHUB_APP_ID.
+        type: string
+        default: ''
+      api-url:
+        description: MoltNet API URL. Defaults to vars.MOLTNET_API_URL, then the hosted API.
+        type: string
+        default: ''
+      environment:
+        description: >
+          GitHub environment holding the secrets. Environment secrets cannot
+          be passed through workflow_call, so the review and worker jobs run in
+          this environment and read them from it. Empty for repository secrets.
+        type: string
+        default: ''
+      daemon-version:
+        description: agent-daemon release for the workers (`latest`, an exact version, or `workspace` in the MoltNet repository).
+        type: string
+        default: latest
+      runtime-ref:
+        description: >
+          Revision of the runtime repository to run the review from. Empty
+          means this workflow's own commit; the MoltNet repository passes the
+          pull request base.
+        type: string
+        default: ''
+    secrets:
+      MOLTNET_AGENT_KEY:
+        description: The agent's API key.
+        required: false
+      MOLTNET_PRIVATE_KEY:
+        description: The agent's Ed25519 seed, for executor attestation.
+        required: false
+      MOLTNET_GITHUB_APP_PRIVATE_KEY:
+        description: Private key of the GitHub App set by `app-id`.
+        required: false
+      OLLAMA_API_KEY:
+        required: false
+      OPENAI_API_KEY:
+        required: false
+      ANTHROPIC_API_KEY:
+        required: false
+      OPENROUTER_API_KEY:
+        required: false
+      GEMINI_API_KEY:
+        required: false
+
+permissions: {}
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      skip: ${{ steps.present.outputs.skip || steps.prepare.outputs.skip }}
+      pr-number: ${{ steps.prepare.outputs.pr-number }}
+      base-sha: ${{ steps.prepare.outputs.base-sha }}
+      head-sha: ${{ steps.prepare.outputs.head-sha }}
+      correlation-id: ${{ steps.prepare.outputs.correlation-id }}
+      profile: ${{ steps.prepare.outputs.profile }}
+      coverage-profile: ${{ steps.prepare.outputs.coverage-profile }}
+      docs-check-profile: ${{ steps.prepare.outputs.docs-check-profile }}
+      worker-profiles: ${{ steps.prepare.outputs.worker-profiles }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ inputs.runtime-ref || job.workflow_sha }}
+          path: .docs-impact-runtime
+          sparse-checkout: packages/docs-impact-review-action
+          persist-credentials: false
+
+      # A runtime revision that predates the action (for example the pull
+      # request that introduces it, reviewed from its base) has nothing to run.
+      - name: Check that the runtime contains the reviewer
+        id: present
+        run: |
+          if [ ! -f .docs-impact-runtime/packages/docs-impact-review-action/action.yml ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Docs impact review skipped: the runtime revision does not contain the docs impact reviewer"
+          fi
+
+      - name: Collect facts, pin revisions, check eligibility
+        id: prepare
+        if: steps.present.outputs.skip != 'true'
+        uses: ./.docs-impact-runtime/packages/docs-impact-review-action
+        with:
+          step: prepare
+          profile: ${{ inputs.profile }}
+          coverage-profile: ${{ inputs.coverage-profile }}
+          docs-check-profile: ${{ inputs.docs-check-profile }}
+          protected-paths: ${{ inputs.protected-paths }}
+
+  review:
+    needs: prepare
+    if: needs.prepare.outputs.skip == 'false'
+    runs-on: ubuntu-latest
+    # Above the stage budgets: two chained stages of at most 300 s dispatch
+    # plus 120 s running each, so the reviewer reports before the job dies.
+    timeout-minutes: 20
+    environment: ${{ inputs.environment }}
+    # pull-requests: write is used only when no GitHub App writes the comment.
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+      MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
+      MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.prepare.outputs.base-sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      # Authenticate this one fetch without writing the token to .git/config,
+      # so private repositories work and nothing later can reuse it.
+      - name: Fetch the reviewed revisions as inert git data
+        env:
+          BASE_SHA: ${{ needs.prepare.outputs.base-sha }}
+          HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c http.extraheader="AUTHORIZATION: basic $auth" \
+            fetch --no-tags origin "$BASE_SHA" "$HEAD_SHA"
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ inputs.runtime-ref || job.workflow_sha }}
+          path: .docs-impact-runtime
+          sparse-checkout: packages/docs-impact-review-action
+          persist-credentials: false
+      - name: Review documentation impact
+        uses: ./.docs-impact-runtime/packages/docs-impact-review-action
+        with:
+          step: review
+          prepared: ${{ toJSON(needs.prepare.outputs) }}
+          team-id: ${{ inputs.team-id || vars.MOLTNET_TEAM_ID }}
+          diary-id: ${{ inputs.diary-id || vars.MOLTNET_DIARY_ID }}
+          project-id: ${{ inputs.project-id }}
+          app-id: ${{ inputs.app-id || vars.MOLTNET_GITHUB_APP_ID }}
+          app-private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
+
+  workers:
+    needs: prepare
+    if: needs.prepare.outputs.skip == 'false'
+    # The review job is authoritative: a worker failure surfaces there as a
+    # failed or unclaimed stage, never as a false clean result. Re-run all
+    # jobs, not only failed ones: a review re-run alone has no workers.
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: ${{ fromJSON(needs.prepare.outputs.worker-profiles) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+    env:
+      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+      MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
+      MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
+      MOLTNET_TEAM_ID: ${{ inputs.team-id || vars.MOLTNET_TEAM_ID }}
+      MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.prepare.outputs.base-sha }}
+          persist-credentials: false
+      # The agent sandbox works on this checkout: never persist the token.
+      - name: Fetch the reviewed commit as inert git data
+        env:
+          HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c http.extraheader="AUTHORIZATION: basic $auth" \
+            fetch --no-tags --depth=1 origin "$HEAD_SHA"
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ inputs.runtime-ref || job.workflow_sha }}
+          path: .docs-impact-runtime
+          sparse-checkout: packages/agent-daemon-action
+          persist-credentials: false
+      # `workspace` runs the daemon from the checked-out MoltNet repository.
+      - if: inputs.daemon-version == 'workspace'
+        uses: pnpm/action-setup@v6
+      - if: inputs.daemon-version == 'workspace'
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - if: inputs.daemon-version == 'workspace'
+        run: pnpm install --frozen-lockfile
+      - name: Drain this review's tasks
+        uses: ./.docs-impact-runtime/packages/agent-daemon-action
+        with:
+          agent-name: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
+          mode: drain
+          task-types: freeform
+          correlation-id: ${{ needs.prepare.outputs.correlation-id }}
+          # A coverage or docs-check worker's first task only exists after the
+          # review job has started and extraction has finished. Tasks carry a
+          # dispatch timeout, so an unclaimed stage fails rather than hangs.
+          wait-for-first-task-sec: '420'
+          wait-after-task-sec: '120'
+          # Chained stages are created as earlier ones finish; a short
+          # backoff cap keeps the next claim within seconds.
+          max-poll-interval-ms: '3000'
+          profile: ${{ matrix.profile }}
+          daemon-version: ${{ inputs.daemon-version }}
+          project-id: ${{ inputs.project-id }}

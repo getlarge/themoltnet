@@ -1,0 +1,8 @@
+# actionlint 1.7.12 predates the `job.workflow_repository` and
+# `job.workflow_sha` contexts, which a reusable workflow uses to check out its
+# own commit. Ignore only those two properties, only in that workflow.
+paths:
+  .github/workflows/docs-impact-review-reusable.yml:
+    ignore:
+      - 'property "workflow_repository" is not defined'
+      - 'property "workflow_sha" is not defined'

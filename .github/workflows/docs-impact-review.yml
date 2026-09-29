@@ -2,10 +2,9 @@ name: Docs impact review
 
 # Advisory documentation-impact review (#2373): does this PR leave users,
 # operators, or contributors with missing, incorrect, or unnecessary
-# instructions? Runs packages/docs-impact-review-action from the pull
-# request's base revision, the same way other repositories use the released
-# action; the reviewed head is fetched as inert git data and never checked out
-# or executed.
+# instructions? Calls the reusable workflow other repositories use, with the
+# review runtime taken from the pull request's base revision; the reviewed
+# head is fetched as inert git data and never checked out or executed.
 
 on:
   pull_request:
@@ -25,7 +24,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  prepare:
+  review:
     if: |
       vars.MOLTNET_DOCS_IMPACT_REVIEW_ENABLED == 'true' &&
       ((github.event_name == 'pull_request' &&
@@ -37,147 +36,29 @@ jobs:
           (github.event.comment.author_association == 'OWNER' ||
             github.event.comment.author_association == 'MEMBER' ||
             github.event.comment.author_association == 'COLLABORATOR')))
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    uses: ./.github/workflows/docs-impact-review-reusable.yml
     permissions:
       contents: read
-      pull-requests: read
-    outputs:
-      skip: ${{ steps.present.outputs.skip || steps.prepare.outputs.skip }}
-      pr-number: ${{ steps.prepare.outputs.pr-number }}
-      base-sha: ${{ steps.prepare.outputs.base-sha }}
-      head-sha: ${{ steps.prepare.outputs.head-sha }}
-      correlation-id: ${{ steps.prepare.outputs.correlation-id }}
-      profile: ${{ steps.prepare.outputs.profile }}
-      coverage-profile: ${{ steps.prepare.outputs.coverage-profile }}
-      docs-check-profile: ${{ steps.prepare.outputs.docs-check-profile }}
-      worker-profiles: ${{ steps.prepare.outputs.worker-profiles }}
-    steps:
-      # The action comes from the PR base (the default branch for a comment
-      # trigger); the PR head is never checked out.
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
-          sparse-checkout: packages/docs-impact-review-action
-          persist-credentials: false
-
-      # A base revision that predates the action (for example the PR that
-      # introduces it) has no reviewer to run.
-      - name: Check that the base contains the reviewer
-        id: present
-        run: |
-          if [ ! -f packages/docs-impact-review-action/action.yml ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::Docs impact review skipped: the base revision does not contain the docs impact reviewer"
-          fi
-
-      - name: Collect facts, pin revisions, check eligibility
-        id: prepare
-        if: steps.present.outputs.skip != 'true'
-        uses: ./packages/docs-impact-review-action
-        with:
-          step: prepare
-          profile: ${{ vars.MOLTNET_DOCS_IMPACT_PROFILE }}
-          coverage-profile: ${{ vars.MOLTNET_DOCS_IMPACT_COVERAGE_PROFILE }}
-          docs-check-profile: ${{ vars.MOLTNET_DOCS_IMPACT_DOCS_CHECK_PROFILE }}
-          # The review runtime: a PR changing it is not reviewed by it.
-          protected-paths: |
-            .github/workflows/docs-impact-review.yml
-            .github/runtime-profiles/legreffier-docs-review-
-            .github/runtime-policies/
-            libs/docs-impact-review/
-            packages/docs-impact-review-action/
-            packages/agent-daemon-action/
-
-  review:
-    needs: prepare
-    if: needs.prepare.outputs.skip == 'false'
-    runs-on: ubuntu-latest
-    # Generous until p95 is measured in CI; the target is a 2–3 minute review.
-    timeout-minutes: 10
-    environment: legreffier
-    # The comment is written with the LeGreffier App token the action mints,
-    # so the workflow token only reads the repository and the pull request.
-    permissions:
-      contents: read
-      pull-requests: read
-    env:
-      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
-      MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
-      MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ needs.prepare.outputs.base-sha }}
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Fetch the reviewed revisions as inert git data
-        env:
-          BASE_SHA: ${{ needs.prepare.outputs.base-sha }}
-          HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
-        run: git fetch --no-tags origin "$BASE_SHA" "$HEAD_SHA"
-      - name: Review documentation impact
-        uses: ./packages/docs-impact-review-action
-        with:
-          step: review
-          prepared: ${{ toJSON(needs.prepare.outputs) }}
-          team-id: ${{ vars.MOLTNET_TEAM_ID }}
-          diary-id: ${{ vars.MOLTNET_DIARY_ID }}
-          app-id: ${{ vars.MOLTNET_GITHUB_APP_ID }}
-          app-private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
-
-  workers:
-    needs: prepare
-    if: needs.prepare.outputs.skip == 'false'
-    # The review job is authoritative: a worker failure surfaces there as a
-    # failed or unclaimed stage, never as a false clean result.
-    continue-on-error: true
-    strategy:
-      fail-fast: false
-      matrix:
-        profile: ${{ fromJSON(needs.prepare.outputs.worker-profiles) }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    environment: legreffier
-    permissions:
-      contents: read
-    env:
-      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
-      MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
-      MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
-      MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
-      MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
-      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ needs.prepare.outputs.base-sha }}
-          persist-credentials: false
-      - name: Fetch the reviewed commit as inert git data
-        env:
-          HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
-        run: git fetch --no-tags --depth=1 origin "$HEAD_SHA"
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Drain this review's tasks
-        uses: ./packages/agent-daemon-action
-        with:
-          agent-name: ${{ vars.MOLTNET_AGENT_NAME }}
-          mode: drain
-          task-types: freeform
-          correlation-id: ${{ needs.prepare.outputs.correlation-id }}
-          # A coverage or docs-check worker's first task only exists after the
-          # review job has installed and extraction has finished, which on a
-          # cold runner can take several minutes. Tasks carry a dispatch
-          # timeout, so an unclaimed stage fails rather than hanging.
-          wait-for-first-task-sec: '420'
-          wait-after-task-sec: '120'
-          # Chained stages are created as earlier ones finish; a short
-          # backoff cap keeps the next claim within seconds.
-          max-poll-interval-ms: '3000'
-          profile: ${{ matrix.profile }}
-          daemon-version: workspace
+      pull-requests: write
+    secrets: inherit
+    with:
+      # Team, diary, agent, App id, and API URL come from the legreffier
+      # environment's MOLTNET_* variables inside the reusable workflow.
+      environment: legreffier
+      profile: ${{ vars.MOLTNET_DOCS_IMPACT_PROFILE }}
+      coverage-profile: ${{ vars.MOLTNET_DOCS_IMPACT_COVERAGE_PROFILE }}
+      docs-check-profile: ${{ vars.MOLTNET_DOCS_IMPACT_DOCS_CHECK_PROFILE }}
+      # Run the review from the pull request base (the default branch for a
+      # comment), not the reviewed head.
+      runtime-ref: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
+      daemon-version: workspace
+      # The review runtime: a PR changing it is not reviewed by it.
+      protected-paths: |
+        .github/workflows/docs-impact-review.yml
+        .github/workflows/docs-impact-review-reusable.yml
+        .github/actionlint.yaml
+        .github/runtime-profiles/legreffier-docs-review-
+        .github/runtime-policies/
+        libs/docs-impact-review/
+        packages/docs-impact-review-action/
+        packages/agent-daemon-action/
