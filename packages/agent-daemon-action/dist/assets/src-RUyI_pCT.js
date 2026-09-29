@@ -9,6 +9,9 @@ var SUPPORTED_PLATFORMS = new Set([
 	"win32"
 ]);
 var OSKeyringSecretProvider = class {
+	platform;
+	loadKeytar;
+	service;
 	name = OS_KEYRING_SECRET_PROVIDER;
 	capabilities = Object.freeze({
 		read: true,
@@ -62,7 +65,7 @@ var OSKeyringSecretProvider = class {
 };
 async function loadNativeKeytar() {
 	try {
-		const module = await import("./keytar-YU6njFr8.js").then((m) => /* @__PURE__ */ __toESM(m.default, 1));
+		const module = await import("./keytar-B8gATvpz.js").then((m) => /* @__PURE__ */ __toESM(m.default, 1));
 		return module.default ?? module;
 	} catch (error) {
 		throw new Error("OS keyring native bindings are unavailable", { cause: error });
