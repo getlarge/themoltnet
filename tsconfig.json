@@ -39,6 +39,9 @@
       "path": "libs/docs-impact-review"
     },
     {
+      "path": "apps/complexity-review"
+    },
+    {
       "path": "apps/orchestration-e2e"
     },
     {

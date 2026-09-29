@@ -10,10 +10,11 @@ of the bound policies is what a session actually enforces.
 `{ "argvPrefix": ["git", "diff"] }` allows only `git diff`. No shell rule allows
 output redirection.
 
-| Definition                                                                   | Profile                                                                                                                                                                                             |
-| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`legreffier-review-readonly-v1.json`](./legreffier-review-readonly-v1.json) | `legreffier-review-v1`, `legreffier-docs-review-v1`, `legreffier-docs-review-codex-v1`, `legreffier-docs-review-gemma-v1`, `legreffier-docs-review-gptoss-v1`, `legreffier-docs-review-deepseek-v1` |
-| [`multi-lens-review-readonly-v1.json`](./multi-lens-review-readonly-v1.json) | `multi-lens-review-v1`                                                                                                                                                                              |
+| Definition                                                                                             | Profile                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`legreffier-review-readonly-v1.json`](./legreffier-review-readonly-v1.json)                           | `legreffier-review-v1`, `legreffier-docs-review-v1`, `legreffier-docs-review-codex-v1`, `legreffier-docs-review-gemma-v1`, `legreffier-docs-review-gptoss-v1`, `legreffier-docs-review-deepseek-v1` |
+| [`legreffier-complexity-review-input-only-v1.json`](./legreffier-complexity-review-input-only-v1.json) | `legreffier-complexity-review-v2`                                                                                                                                                                   |
+| [`multi-lens-review-readonly-v1.json`](./multi-lens-review-readonly-v1.json)                           | `multi-lens-review-v1`                                                                                                                                                                              |
 
 The definitions here are the reviewable source of truth. They are **not**
 applied automatically — the server holds the live state, and these files are

@@ -1,0 +1,42 @@
+{
+  "name": "@moltnet/complexity-review",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "description": "Bounded PR complexity review workflow",
+  "bin": {
+    "moltnet-complexity-review": "./dist/main.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc -b --emitDeclarationOnly",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@moltnet/tasks": "workspace:*",
+    "@themoltnet/os-keyring": "workspace:*",
+    "@themoltnet/sdk": "workspace:*",
+    "@themoltnet/tasks-orchestrator": "workspace:*",
+    "multiformats": "catalog:",
+    "typebox": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "projectType": "application",
+    "tags": [
+      "type:app",
+      "scope:agent",
+      "platform:cli"
+    ]
+  }
+}

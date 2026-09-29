@@ -8,6 +8,8 @@ import {
 } from '@moltnet/tasks';
 import { Value } from 'typebox/value';
 
+import { githubToken } from './config.js';
+
 export const COMPLEXITY_REVIEW_COMMENT_MARKER =
   '<!-- moltnet:complexity-review -->';
 
@@ -16,7 +18,7 @@ const FULL_GIT_OID = /^[0-9a-f]{40}$/;
 export interface IssueComment {
   id: number;
   body: string | null;
-  user: { type: string } | null;
+  user: { login: string } | null;
 }
 
 function requireFullOid(value: string, label: string): string {
@@ -114,10 +116,11 @@ export function renderComplexityReviewResult(args: {
 
 export function findComplexityReviewComment(
   comments: IssueComment[],
+  author: string,
 ): IssueComment | undefined {
   return comments.find(
     (comment) =>
-      comment.user?.type === 'Bot' &&
+      comment.user?.login === author &&
       comment.body?.includes(COMPLEXITY_REVIEW_COMMENT_MARKER),
   );
 }
@@ -130,6 +133,7 @@ class GitHubApi {
   constructor(
     private readonly repo: string,
     private readonly token: string,
+    private readonly author: string,
     private readonly fetchImpl: typeof fetch = fetch,
   ) {}
 
@@ -172,6 +176,7 @@ class GitHubApi {
   async upsertComment(prNumber: number, body: string): Promise<void> {
     const existing = findComplexityReviewComment(
       await this.listComments(prNumber),
+      this.author,
     );
     if (existing) {
       await this.request(`/repos/${this.repo}/issues/comments/${existing.id}`, {
@@ -194,13 +199,19 @@ export async function updateComplexityReviewComment(args: {
   reviewedRevision: string;
   runUrl: string;
   token: string;
+  author: string;
   taskId?: string;
   reviewSucceeded?: boolean;
   resultPath?: string;
   fetchImpl?: typeof fetch;
 }): Promise<'progress' | 'published' | 'stale' | 'failed'> {
   requireFullOid(args.reviewedRevision, 'reviewed revision');
-  const github = new GitHubApi(args.repo, args.token, args.fetchImpl);
+  const github = new GitHubApi(
+    args.repo,
+    args.token,
+    args.author,
+    args.fetchImpl,
+  );
   const pr = await github.getPullRequest(args.prNumber);
   const currentRevision = requireFullOid(pr.head.sha, 'current revision');
 
@@ -240,7 +251,10 @@ export async function updateComplexityReviewComment(args: {
     return 'failed';
   }
 
-  const output = JSON.parse(readFileSync(args.resultPath, 'utf8')) as unknown;
+  const report = JSON.parse(readFileSync(args.resultPath, 'utf8')) as {
+    output?: unknown;
+  };
+  const output = report.output;
   if (!Value.Check(PrReviewOutputSchema, output)) {
     throw new Error('accepted task output is not a valid PrReviewOutput');
   }
@@ -267,6 +281,7 @@ async function main(): Promise<void> {
       'task-id': { type: 'string' },
       'review-succeeded': { type: 'boolean', default: false },
       'result-path': { type: 'string' },
+      author: { type: 'string' },
     },
   });
   if (
@@ -274,7 +289,8 @@ async function main(): Promise<void> {
     !values.repo ||
     !values.pr ||
     !values.revision ||
-    !values['run-url']
+    !values['run-url'] ||
+    !values.author
   ) {
     throw new Error(
       'Usage: complexity-review-comment --mode start|publish --repo owner/repo --pr N --revision SHA --run-url URL',
@@ -284,8 +300,7 @@ async function main(): Promise<void> {
   if (!Number.isInteger(prNumber) || prNumber < 1) {
     throw new Error('--pr must be a positive integer');
   }
-  const token = process.env.GITHUB_TOKEN?.trim();
-  if (!token) throw new Error('GITHUB_TOKEN is required');
+  const token = githubToken();
 
   const status = await updateComplexityReviewComment({
     mode: values.mode,
@@ -294,6 +309,7 @@ async function main(): Promise<void> {
     reviewedRevision: values.revision,
     runUrl: values['run-url'],
     token,
+    author: values.author,
     taskId: values['task-id'],
     reviewSucceeded: values['review-succeeded'],
     resultPath: values['result-path'],

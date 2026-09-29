@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  complexity-review:
+  prepare:
     if: |
       vars.MOLTNET_COMPLEXITY_REVIEW_ENABLED == 'true' &&
       ((github.event_name == 'issue_comment' &&
@@ -28,224 +28,185 @@ jobs:
           (github.event.comment.author_association == 'OWNER' ||
             github.event.comment.author_association == 'MEMBER' ||
             github.event.comment.author_association == 'COLLABORATOR')) ||
-        (github.event_name == 'pull_request'))
+        (github.event_name == 'pull_request' && github.event.pull_request.draft == false))
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+      contents: read
+    outputs:
+      skip: ${{ steps.facts.outputs.skip }}
+      pr: ${{ steps.facts.outputs.pr }}
+      base: ${{ steps.facts.outputs.base }}
+      head: ${{ steps.facts.outputs.head }}
+      correlation: ${{ steps.facts.outputs.correlation }}
+    steps:
+      - name: Pin revisions and guard trusted runtime
+        id: facts
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const crypto = require('node:crypto');
+            const number = context.eventName === 'pull_request'
+              ? context.payload.pull_request.number : context.payload.issue.number;
+            const {data: pr} = await github.rest.pulls.get({
+              owner: context.repo.owner, repo: context.repo.repo, pull_number: number,
+            });
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner, repo: context.repo.repo, pull_number: number, per_page: 100,
+            });
+            const guarded = [
+              '.github/workflows/legreffier-complexity-review.yml',
+              'apps/complexity-review/',
+              '.github/runtime-profiles/legreffier-complexity-review-',
+              '.github/runtime-policies/legreffier-complexity-review-',
+              'packages/agent-daemon-action/',
+            ];
+            const matches = files.map(f => f.filename).filter(path =>
+              guarded.some(prefix => path.startsWith(prefix)));
+            const skip = pr.head.repo?.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
+              pr.user.login === 'dependabot[bot]' || matches.length > 0;
+            core.setOutput('skip', String(skip));
+            if (skip) core.notice(`Complexity review skipped: ${matches.join(', ') || 'fork or Dependabot'}`);
+            const seed = `${context.repo.owner}/${context.repo.repo}:${number}:${pr.head.sha}:${context.runId}:${context.runAttempt}`;
+            const bytes = crypto.createHash('sha256').update(seed).digest().subarray(0, 16);
+            bytes[6] = (bytes[6] & 0x0f) | 0x50;
+            bytes[8] = (bytes[8] & 0x3f) | 0x80;
+            const hex = bytes.toString('hex');
+            core.setOutput('pr', String(number));
+            core.setOutput('base', pr.base.sha);
+            core.setOutput('head', pr.head.sha);
+            core.setOutput('correlation', `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`);
+
+  review:
+    needs: prepare
+    if: needs.prepare.outputs.skip == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
     environment: legreffier
     permissions:
       contents: read
-      issues: write
-      pull-requests: write
+      pull-requests: read
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # MoltNet credentials are set at the job level (not as composite
-      # action inputs) because GitHub Actions YAML expression substitution
-      # collapses newlines in multi-line secrets — see issue #121 / the
-      # legreffier diary for the incident write-up. Composite-action steps
-      # inherit job env directly, with no string-substitution round trip.
-      # Use a published CLI even while a release commit is waiting on npm.
-      MOLTNET_CLI_VERSION: '3.3.0'
-      MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
-      MOLTNET_SUBJECT_ID: ${{ secrets.MOLTNET_SUBJECT_ID }}
-      MOLTNET_SUBJECT_TYPE: agent
-      MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
-      MOLTNET_CLIENT_SECRET: ${{ secrets.MOLTNET_CLIENT_SECRET }}
-      # The daemon authenticates with this key; the OAuth pair above only
-      # materializes the agent's git/SSH/App assets (#2160).
       MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
-      MOLTNET_PUBLIC_KEY: ${{ secrets.MOLTNET_PUBLIC_KEY }}
-      MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
-      MOLTNET_FINGERPRINT: ${{ secrets.MOLTNET_FINGERPRINT }}
+      MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
+      MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
       MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
       MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
-      MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
-      MOLTNET_GITHUB_APP_ID: ${{ vars.MOLTNET_GITHUB_APP_ID }}
-      MOLTNET_GITHUB_APP_INSTALLATION_ID: ${{ vars.MOLTNET_GITHUB_APP_INSTALLATION_ID }}
-      MOLTNET_GITHUB_APP_SLUG: ${{ vars.MOLTNET_GITHUB_APP_SLUG }}
-      MOLTNET_GITHUB_APP_PRIVATE_KEY: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
-      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-      PI_AUTH_JSON: ${{ secrets.PI_AUTH_JSON }}
+      PR_NUMBER: ${{ needs.prepare.outputs.pr }}
+      BASE_SHA: ${{ needs.prepare.outputs.base }}
+      HEAD_SHA: ${{ needs.prepare.outputs.head }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
-      - name: Guard trusted complexity runtime changes
-        id: runtime-guard
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+      - uses: actions/checkout@v6
         with:
-          script: |
-            const pullNumber =
-              context.eventName === 'pull_request'
-                ? context.payload.pull_request.number
-                : context.payload.issue.number;
-            const files = await github.paginate(
-              github.rest.pulls.listFiles,
-              {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: pullNumber,
-                per_page: 100,
-              },
-            );
-            const runtimePaths = [
-              '.github/workflows/legreffier-complexity-review.yml',
-              'tools/src/tasks/compose-pr-review.ts',
-              'tools/src/tasks/pr-complexity-review.ts',
-              'tools/src/tasks/complexity-review-comment.ts',
-              'tools/src/tasks/read-task-output.ts',
-              'packages/agent-daemon-action/',
-            ];
-            const matches = files
-              .map(file => file.filename)
-              .filter(path => runtimePaths.some(runtime =>
-                runtime.endsWith('/') ? path.startsWith(runtime) : path === runtime,
-              ));
-            const skip = matches.length > 0;
-            core.setOutput('skip', String(skip));
-            if (skip) {
-              core.notice(
-                `Skipping self-review because trusted complexity runtime changes: ${matches.join(', ')}`,
-              );
-            }
-
-      - if: steps.runtime-guard.outputs.skip != 'true'
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          # Always execute trusted workflow/runtime code. The reviewed head is
-          # fetched below as inert git data and never checked out or executed.
-          ref: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
+          ref: ${{ needs.prepare.outputs.base }}
           fetch-depth: 0
           persist-credentials: false
-      - if: steps.runtime-guard.outputs.skip != 'true'
-        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-      - if: steps.runtime-guard.outputs.skip != 'true'
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: pnpm
-
-      - name: Install dependencies
-        if: steps.runtime-guard.outputs.skip != 'true'
-        run: pnpm install --frozen-lockfile
-
-      - name: Compose pr_review (complexity) task spec
-        id: compose
-        if: steps.runtime-guard.outputs.skip != 'true'
-        env:
-          PR_NUMBER: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.event.issue.number }}
-          PR_HEAD_REF: ${{ github.event_name == 'pull_request' && github.head_ref || '' }}
-        run: |
-          set -euo pipefail
-          head_ref="$PR_HEAD_REF"
-          if [ -z "$head_ref" ]; then
-            head_ref="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json headRefName --jq .headRefName)"
-          fi
-          branch_tag="$(printf '%s' "$head_ref" \
-            | tr '[:upper:]' '[:lower:]' \
-            | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+|-+$//g' \
-            | cut -c1-121)"
-          if [ -z "$branch_tag" ]; then
-            branch_tag="unknown"
-          fi
-          task_spec_path="$RUNNER_TEMP/pr-review-task-spec.json"
-          node --import tsx tools/src/tasks/compose-pr-review.ts \
-            --pr "$PR_NUMBER" \
-            --repo "$GITHUB_REPOSITORY" \
-            > "$task_spec_path"
-          head_sha="$(jq -r '.reviewRevision' "$task_spec_path")"
-          base_sha="$(jq -r '.reviewBaseRevision' "$task_spec_path")"
-          if ! [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]] || ! [[ "$base_sha" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "::error::composer did not return full reviewed revisions" >&2
-            exit 1
-          fi
-          echo "task-spec-path=$task_spec_path" >> "$GITHUB_OUTPUT"
-          echo "base-sha=$base_sha" >> "$GITHUB_OUTPUT"
-          echo "head-sha=$head_sha" >> "$GITHUB_OUTPUT"
-          echo "pr-number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
-          echo "task-tags=ci,source:github-actions,workflow:legreffier-complexity-review,repo:$GITHUB_REPOSITORY,agent-daemon,agent:legreffier,review:pr,review:complexity,pr:$PR_NUMBER,branch:$branch_tag,revision:$head_sha" >> "$GITHUB_OUTPUT"
-
-      - name: Fetch immutable review revisions as inert git data
-        if: steps.runtime-guard.outputs.skip != 'true'
-        env:
-          BASE_SHA: ${{ steps.compose.outputs.base-sha }}
-          HEAD_SHA: ${{ steps.compose.outputs.head-sha }}
-        run: git fetch --no-tags origin "$BASE_SHA" "$HEAD_SHA"
-
-      - name: Mark complexity comment in progress
-        if: steps.runtime-guard.outputs.skip != 'true'
-        env:
-          PR_NUMBER: ${{ steps.compose.outputs.pr-number }}
-          HEAD_SHA: ${{ steps.compose.outputs.head-sha }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          node --import tsx tools/src/tasks/complexity-review-comment.ts \
-            --mode start \
-            --repo "$GITHUB_REPOSITORY" \
-            --pr "$PR_NUMBER" \
-            --revision "$HEAD_SHA" \
-            --run-url "$RUN_URL"
-
-      - name: Run task
-        id: review
-        if: steps.runtime-guard.outputs.skip != 'true'
+      - run: pnpm install --frozen-lockfile
+      - name: Mint the LeGreffier App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.MOLTNET_GITHUB_APP_ID }}
+          private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
+          repositories: ${{ github.event.repository.name }}
+          permission-pull-requests: write
+      - name: Mark review in progress
         continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          COMMENT_AUTHOR: ${{ steps.app-token.outputs.app-slug }}[bot]
+        run: |
+          node --import tsx apps/complexity-review/src/comment.ts \
+            --mode start --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" \
+            --revision "$HEAD_SHA" --run-url "$RUN_URL" --author "$COMMENT_AUTHOR"
+      - name: Review complexity
+        id: review
+        continue-on-error: true
+        env:
+          CORRELATION: ${{ needs.prepare.outputs.correlation }}
+        run: |
+          report="$RUNNER_TEMP/complexity-review.json"
+          echo "report=$report" >> "$GITHUB_OUTPUT"
+          node --import tsx apps/complexity-review/src/main.ts \
+            --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" \
+            --base "$BASE_SHA" --head "$HEAD_SHA" \
+            --team "$MOLTNET_TEAM_ID" --diary "$MOLTNET_DIARY_ID" \
+            --profile legreffier-complexity-review-v2 \
+            --correlation "$CORRELATION" > "$report"
+      - name: Publish revision-aware comment
+        if: always() && !cancelled() && steps.app-token.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          COMMENT_AUTHOR: ${{ steps.app-token.outputs.app-slug }}[bot]
+          REPORT: ${{ steps.review.outputs.report }}
+          REVIEW_OUTCOME: ${{ steps.review.outcome }}
+        run: |
+          args=(--mode publish --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" \
+            --revision "$HEAD_SHA" --run-url "$RUN_URL" --author "$COMMENT_AUTHOR")
+          if [ "$REVIEW_OUTCOME" = success ] && [ -s "$REPORT" ]; then
+            args+=(--review-succeeded --result-path "$REPORT")
+            args+=(--task-id "$(jq -r .taskId "$REPORT")")
+          fi
+          node --import tsx apps/complexity-review/src/comment.ts "${args[@]}"
+      - name: Record review duration
+        if: steps.review.outcome == 'success'
+        env:
+          REPORT: ${{ steps.review.outputs.report }}
+        run: |
+          jq -r '"Complexity review model task: \(.durationMs / 1000) seconds (task \(.taskId))."' "$REPORT" >> "$GITHUB_STEP_SUMMARY"
+      - name: Fail when review did not complete
+        if: always() && !cancelled() && steps.review.outcome != 'success'
+        run: exit 1
+
+  worker:
+    needs: prepare
+    if: needs.prepare.outputs.skip == 'false'
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: legreffier
+    permissions:
+      contents: read
+    env:
+      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+      MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
+      MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
+      MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
+      MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.base }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Fetch reviewed head as inert git data
+        env:
+          HEAD_SHA: ${{ needs.prepare.outputs.head }}
+        run: git fetch --no-tags origin "$HEAD_SHA"
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Drain this review's task
         uses: ./packages/agent-daemon-action
         with:
-          task-spec-path: ${{ steps.compose.outputs.task-spec-path }}
-          tags: ${{ steps.compose.outputs.task-tags }}
-          cancel-superseded: 'true'
-          supersession-tags: workflow:legreffier-complexity-review,pr:${{ steps.compose.outputs.pr-number }}
-          skip-validation: 'false'
-          max-attempts: '2'
-          # Hardened read-only review runtime (.github/runtime-profiles/legreffier-review-v1.json):
-          # sandboxed, no network egress, bounded turns, and a prompt contract that
-          # treats reviewed diffs as untrusted data. Falls back to the generic agent
-          # profile only if the variable is unset.
-          profile: ${{ vars.MOLTNET_REVIEW_PROFILE || vars.MOLTNET_AGENT_PROFILE }}
-
-      - name: Read accepted complexity output
-        id: result
-        if: steps.runtime-guard.outputs.skip != 'true' && steps.review.outcome == 'success'
-        env:
-          TASK_ID: ${{ steps.review.outputs.task-id }}
-        run: |
-          set -euo pipefail
-          result="$RUNNER_TEMP/complexity-review-result.json"
-          node --import tsx tools/src/tasks/read-task-output.ts \
-            --task-id "$TASK_ID" \
-            --team-id "$MOLTNET_TEAM_ID" \
-            --agent-name "$MOLTNET_AGENT_NAME" \
-            > "$result"
-          echo "path=$result" >> "$GITHUB_OUTPUT"
-
-      - name: Publish revision-aware complexity comment
-        if: always() && !cancelled() && steps.runtime-guard.outputs.skip != 'true'
-        env:
-          PR_NUMBER: ${{ steps.compose.outputs.pr-number }}
-          HEAD_SHA: ${{ steps.compose.outputs.head-sha }}
-          TASK_ID: ${{ steps.review.outputs.task-id }}
-          REVIEW_OUTCOME: ${{ steps.review.outcome }}
-          RESULT_PATH: ${{ steps.result.outputs.path }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          set -euo pipefail
-          args=(
-            --mode publish
-            --repo "$GITHUB_REPOSITORY"
-            --pr "$PR_NUMBER"
-            --revision "$HEAD_SHA"
-            --run-url "$RUN_URL"
-          )
-          if [ -n "${TASK_ID:-}" ]; then
-            args+=(--task-id "$TASK_ID")
-          fi
-          if [ "$REVIEW_OUTCOME" = "success" ]; then
-            args+=(--review-succeeded --result-path "$RESULT_PATH")
-          fi
-          node --import tsx tools/src/tasks/complexity-review-comment.ts "${args[@]}"
-
-      - name: Enforce complexity task success
-        if: always() && !cancelled() && steps.runtime-guard.outputs.skip != 'true' && steps.review.outcome != 'success'
-        env:
-          REVIEW_OUTCOME: ${{ steps.review.outcome }}
-        run: |
-          echo "::error::complexity review task ended with $REVIEW_OUTCOME" >&2
-          exit 1
+          agent-name: ${{ vars.MOLTNET_AGENT_NAME }}
+          mode: drain
+          task-types: freeform
+          correlation-id: ${{ needs.prepare.outputs.correlation }}
+          wait-for-first-task-sec: '300'
+          wait-after-task-sec: '5'
+          max-poll-interval-ms: '3000'
+          profile: legreffier-complexity-review-v2
+          daemon-version: workspace

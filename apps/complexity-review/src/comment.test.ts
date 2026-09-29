@@ -7,9 +7,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   COMPLEXITY_REVIEW_COMMENT_MARKER,
+  findComplexityReviewComment,
   renderComplexityReviewResult,
   updateComplexityReviewComment,
-} from './complexity-review-comment.js';
+} from './comment.js';
 
 const OLD_HEAD = 'a'.repeat(40);
 const NEW_HEAD = 'b'.repeat(40);
@@ -32,7 +33,7 @@ function fakeGitHub(args: {
   comments?: Array<{
     id: number;
     body: string;
-    user: { type: string };
+    user: { login: string };
   }>;
 }) {
   const calls: Array<{ url: string; init?: RequestInit }> = [];
@@ -70,7 +71,7 @@ describe('complexity review comment lifecycle', () => {
         {
           id: 7,
           body: `${COMPLEXITY_REVIEW_COMMENT_MARKER}\nold result`,
-          user: { type: 'Bot' },
+          user: { login: 'legreffier[bot]' },
         },
       ],
     });
@@ -82,6 +83,7 @@ describe('complexity review comment lifecycle', () => {
       reviewedRevision: OLD_HEAD,
       runUrl: RUN_URL,
       token: 'test-token',
+      author: 'legreffier[bot]',
       taskId: 'task-old',
       reviewSucceeded: true,
       resultPath: '/unused-because-the-result-is-stale',
@@ -108,7 +110,7 @@ describe('complexity review comment lifecycle', () => {
             taskId: 'task-old',
             output,
           }),
-          user: { type: 'Bot' },
+          user: { login: 'legreffier[bot]' },
         },
       ],
     });
@@ -120,6 +122,7 @@ describe('complexity review comment lifecycle', () => {
       reviewedRevision: NEW_HEAD,
       runUrl: RUN_URL,
       token: 'test-token',
+      author: 'legreffier[bot]',
       fetchImpl: github.fetchImpl,
     });
 
@@ -139,7 +142,7 @@ describe('complexity review comment lifecycle', () => {
     const dir = mkdtempSync(join(tmpdir(), 'complexity-review-'));
     tempDirs.push(dir);
     const resultPath = join(dir, 'result.json');
-    writeFileSync(resultPath, JSON.stringify(output));
+    writeFileSync(resultPath, JSON.stringify({ output }));
     const github = fakeGitHub({ currentHead: NEW_HEAD });
 
     const status = await updateComplexityReviewComment({
@@ -149,6 +152,7 @@ describe('complexity review comment lifecycle', () => {
       reviewedRevision: NEW_HEAD,
       runUrl: RUN_URL,
       token: 'test-token',
+      author: 'legreffier[bot]',
       taskId: 'task-new',
       reviewSucceeded: true,
       resultPath,
@@ -161,6 +165,26 @@ describe('complexity review comment lifecycle', () => {
     expect(body.body).toContain(COMPLEXITY_REVIEW_COMMENT_MARKER);
     expect(body.body).toContain('Weighted composite:** 1.00');
     expect(body.body).toContain('measures review burden, not correctness');
-    expect(readFileSync(resultPath, 'utf8')).toBe(JSON.stringify(output));
+    expect(readFileSync(resultPath, 'utf8')).toBe(JSON.stringify({ output }));
+  });
+});
+
+describe('comment ownership', () => {
+  it('selects only the LeGreffier App marker', () => {
+    const comments = [
+      {
+        id: 1,
+        body: COMPLEXITY_REVIEW_COMMENT_MARKER,
+        user: { login: 'other-bot[bot]' },
+      },
+      {
+        id: 2,
+        body: COMPLEXITY_REVIEW_COMMENT_MARKER,
+        user: { login: 'legreffier[bot]' },
+      },
+    ];
+    expect(findComplexityReviewComment(comments, 'legreffier[bot]')?.id).toBe(
+      2,
+    );
   });
 });
