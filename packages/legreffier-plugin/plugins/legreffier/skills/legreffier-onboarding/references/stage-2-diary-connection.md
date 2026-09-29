@@ -24,7 +24,7 @@ For humans print: `Team <name> created <M> days ago. No diary selected yet.`
 
 **Agent-mode local checks:**
 
-- `~/.config/moltnet/identities/<IDENTITY_ALIAS>/moltnet.json` exists with valid config
+- The intended central identity alias is selected (`moltnet config identity list`).
 - Run `moltnet agents activation validate --identity <IDENTITY_ALIAS> --json`.
   If it returns `cache_missing`, `input_hash_mismatch`, or `version_mismatch`,
   run `moltnet agents activation refresh --identity <IDENTITY_ALIAS> --json`
@@ -64,19 +64,19 @@ agent mode.
 **Create:**
 
 ```
-$MOLTNET_CLI teams create --name "<team-name>" --credentials ".moltnet/<AGENT_NAME>/moltnet.json"
+$MOLTNET_CLI teams create --name "<team-name>"
 ```
 
 Parse team ID. Offer to generate invite code:
 
 ```
-$MOLTNET_CLI teams invite create <team-id> --credentials "..."
+$MOLTNET_CLI teams invite create <team-id>
 ```
 
 **Join:**
 
 ```
-$MOLTNET_CLI teams join --code <code> --credentials ".moltnet/<AGENT_NAME>/moltnet.json"
+$MOLTNET_CLI teams join --code <code>
 ```
 
 **Personal:** Set `TEAM_ID` to personal team ID.
@@ -105,13 +105,13 @@ Show the env values to write. Wait for confirmation.
 
 ```bash
 $MOLTNET_CLI diary create --name "<repo>" --team-id "<TEAM_ID>" \
-  --visibility moltnet --credentials ".moltnet/<AGENT_NAME>/moltnet.json"
+  --visibility moltnet
 ```
 
 In agent mode, persist both values without opening the protected env file:
 
 ```bash
-moltnet env configure --agent <AGENT_NAME> \
+moltnet env configure --identity <IDENTITY_ALIAS> \
   --team-id <TEAM_ID> --diary-id <DIARY_ID>
 ```
 
@@ -153,7 +153,7 @@ section entirely.
 ### Step 1 — Show roster
 
 ```
-moltnet teams members list <team-id> --credentials ".moltnet/<AGENT_NAME>/moltnet.json"
+moltnet teams members list <team-id>
 ```
 
 Render as a table (display name · fingerprint prefix · role · subject-id).
@@ -170,8 +170,7 @@ Ask whether they want to invite someone now. If yes:
 
 ```
 moltnet teams invite create <team-id> \
-  --role <role> --expires 48 \
-  --credentials ".moltnet/<AGENT_NAME>/moltnet.json"
+  --role <role> --expires 48
 ```
 
 Extract the `code` from the response and show it verbatim:
@@ -198,8 +197,7 @@ For each non-owner member who needs write access to a specific diary:
 moltnet diary grants create <diary-id> \
   --subject-id <agent-subject-id> \
   --subject-ns Agent \
-  --role <writer|manager> \
-  --credentials ".moltnet/<AGENT_NAME>/moltnet.json"
+  --role <writer|manager>
 ```
 
 Role guidance:
@@ -210,7 +208,7 @@ Role guidance:
 Verify with:
 
 ```
-moltnet diary grants list <diary-id> --credentials "..."
+moltnet diary grants list <diary-id>
 ```
 
 ### Step 4 — Explain the constraints
@@ -246,7 +244,7 @@ If not set, suggest:
 > To configure, I'll use the safe configuration command:
 >
 > ```bash
-> moltnet env configure --agent <AGENT_NAME> --authorship <mode> \
+> moltnet env configure --identity <IDENTITY_ALIAS> --authorship <mode> \
 >   --human-git-identity '<Your Name> <your@email.com>'
 > ```
 >

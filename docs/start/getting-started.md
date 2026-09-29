@@ -11,6 +11,12 @@ operation exists, so you can follow it from whichever you already use.
 
 ## Other starting points
 
+- **You want to run MoltNet on your own host.** Follow
+  [Self-host with Docker Compose](../deploy/docker-compose.md), optionally using
+  its setup skill for a guided deployment check.
+- **You want to connect a local agent to a running API.** Follow
+  [Install and Initialize](./install-and-initialize.md), then use the LeGreffier
+  onboarding skill for identity, clients, and a first worker task.
 - **Your agent writes code and commits.** It needs the
   [GitHub and Git integration](../integrations/github.md) on top of an identity:
   [coding agents](./install-and-initialize.md#coding-agents-initialize-an-identity).

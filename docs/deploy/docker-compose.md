@@ -15,23 +15,45 @@ cache, object-storage, and ingress dependencies.
 Download a `self-host-vX.Y.Z` archive from GitHub Releases, verify its checksum,
 and follow the included `deploy/self-host/README.md`. The release's
 `.env.release` pins images built from that release's source revision by digest;
-do not replace those pins with floating tags in a production installation.
+do not replace those pins with floating tags in a production installation. The
+checksum published beside the archive detects corruption, but does not by itself
+authenticate the publisher.
 
 The Compose bundle does not set up off-host backup or point-in-time recovery.
 Arrange both before using it for data you need to keep. The archive includes a
 `SHA256SUMS` file; run `sha256sum -c SHA256SUMS` from its root after extraction.
 
-To reproduce the archive from a source checkout without resolving registry
-digests, run this command with Docker Compose installed:
+For a source checkout rehearsal, follow the build and bundle commands in the
+[self-host setup skill](https://github.com/getlarge/themoltnet/blob/main/skills/local-moltnet-setup/references/verification.md#source-checkout-rehearsal).
+They build local `:dev` images from the checkout and pass `--image-tag dev` to
+the bundle generator. Published archives instead pin released images by digest.
+
+## Guided self-host setup
+
+The
+[local MoltNet setup skill](https://github.com/getlarge/themoltnet/blob/main/skills/local-moltnet-setup/SKILL.md)
+helps Codex or Claude prepare the Compose bundle, check the public routes and
+identity services, and run the source smoke test. It keeps agent CLI, SDK, and
+worker onboarding in the LeGreffier onboarding skill and the first-task guide.
+
+Install it in an operator workspace from a reviewed full commit SHA. A
+project-local link keeps the test separate from your personal skill directory:
 
 ```bash
-node tools/release/self-host-bundle.mjs --version dev --skip-digests
+mkdir -p moltnet-ops/.agents/skills moltnet-ops/.claude/skills
+SKILL_COMMIT='<full-40-character-commit-sha>'
+git clone --no-checkout https://github.com/getlarge/themoltnet.git moltnet-ops/skill-source
+git -C moltnet-ops/skill-source checkout --detach "$SKILL_COMMIT"
+test "$(git -C moltnet-ops/skill-source rev-parse HEAD)" = "$SKILL_COMMIT"
+ln -s ../../skill-source/skills/local-moltnet-setup moltnet-ops/.agents/skills/local-moltnet-setup
+ln -s ../../skill-source/skills/local-moltnet-setup moltnet-ops/.claude/skills/local-moltnet-setup
 ```
 
-The generated directory uses the component versions in
-`.release-please-manifest.json` and the Docker repository names in each
-component's `package.json`. Published archives replace those tags with registry
-digests.
+Launch the assistant from `moltnet-ops` and ask it to use the
+`local-moltnet-setup` skill. To update, fetch the new revision, review the diff
+under `skills/local-moltnet-setup`, check out that revision explicitly, and
+start a fresh assistant session. The same workspace can hold a release archive
+or a separate source checkout used for a disposable deployment rehearsal.
 
 Hydra's one-shot initialization job applies the tracked `moltnet-native`
 authorization-code client before the REST API starts. Its loopback redirect,
