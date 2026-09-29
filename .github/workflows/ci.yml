@@ -564,11 +564,9 @@ jobs:
         if: steps.matrix.outputs.has-agents == 'true'
         with:
           go-version: '1.26'
-          cache-dependency-path: |
-            go.work
-            go.work.sum
-            **/go.mod
-            **/go.sum
+          # This job only installs golangci-lint, whose binary is cached below.
+          # Restoring the full Go cache can exhaust its five-minute budget.
+          cache: false
       - name: Cache golangci-lint
         if: steps.matrix.outputs.has-agents == 'true'
         id: golangci-lint-cache
