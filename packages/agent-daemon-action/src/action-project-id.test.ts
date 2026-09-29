@@ -231,7 +231,7 @@ describe('run step with project-id', () => {
     WAIT_AFTER_TASK_SEC: '0',
     DAEMON_VERSION: 'latest',
     DAEMON_MODE: 'once',
-    MOLTNET_AGENT_BIN: bin,
+    AGENT_BIN: bin,
     MOLTNET_AGENT_NAME: 'agent-a',
     MOLTNET_AGENT_PROFILE: '',
     MOLTNET_TEAM_ID: TEAM,

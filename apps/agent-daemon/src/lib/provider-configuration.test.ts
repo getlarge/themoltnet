@@ -22,6 +22,7 @@ function fixture(
       warn: ReturnType<typeof vi.fn>;
     };
     requestTimeoutMs?: number;
+    discoveryAttempts?: number;
   } = {},
 ) {
   const temp = mkdtempSync(join(tmpdir(), 'provider-configuration-'));
@@ -40,6 +41,7 @@ function fixture(
       store,
       secrets,
       secretProviders,
+      discoveryRetryDelayMs: 0,
       ...options,
       fetchImpl: options.fetchImpl ?? discoveryFetch({}),
     }),
@@ -380,7 +382,12 @@ describe('ProviderConfigurationService', () => {
     // call resolves and the unprobed model simply stays text-only.
     await expect(
       service.discover('ollama-cloud', { save: true }),
-    ).resolves.toEqual({ models: [{ id: 'qwen3.5:397b' }], failures: [] });
+    ).resolves.toEqual({
+      models: [{ id: 'qwen3.5:397b' }],
+      failures: [],
+      // Reported separately, so a caller can avoid caching the gap.
+      probeFailures: [{ kind: 'http', status: 500 }],
+    });
     expect(service.list()['ollama-cloud']?.models).toEqual([
       { id: 'qwen3.5:397b' },
     ]);
@@ -488,6 +495,7 @@ describe('ProviderConfigurationService', () => {
         { id: 'shared', reasoning: false },
       ],
       failures: [],
+      probeFailures: [],
     });
     // Configuration probes `stale`; discovery then calls /v1/models,
     // /api/tags and /api/show for `local`.
@@ -518,6 +526,7 @@ describe('ProviderConfigurationService', () => {
     await expect(service.discover('remote')).resolves.toEqual({
       models: [{ id: 'remote-model' }],
       failures: [],
+      probeFailures: [],
     });
     // A non-Ollama provider must not be probed: one call, no /api/show.
     expect(fetchImpl).toHaveBeenCalledOnce();
@@ -610,6 +619,61 @@ describe('ProviderConfigurationService', () => {
     expect(result.failures).toEqual([{ kind: 'http', status: 503 }]);
   });
 
+  it.each([
+    ['a server error', () => new Response(null, { status: 502 })],
+    ['a rate limit', () => new Response(null, { status: 429 })],
+    [
+      'a network error',
+      () => {
+        throw new TypeError('fetch failed');
+      },
+    ],
+  ])('retries discovery after %s', async (_label, fail) => {
+    // Arrange
+    let calls = 0;
+    const fetchImpl = vi.fn<typeof fetch>(() => {
+      calls += 1;
+      return calls === 1
+        ? Promise.resolve().then(fail)
+        : Promise.resolve(
+            new Response(JSON.stringify({ data: [{ id: 'model-a' }] })),
+          );
+    });
+    const { service } = fixture({ fetchImpl });
+    await service.set('remote', { baseUrl: 'https://provider.example/v1' });
+
+    // Act
+    const result = await service.discover('remote');
+
+    // Assert
+    expect(result).toMatchObject({ models: [{ id: 'model-a' }], failures: [] });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it('records only the last failure after the final try', async () => {
+    // Arrange
+    const fetchImpl = vi.fn<typeof fetch>((input) =>
+      Promise.resolve(
+        String(input).endsWith('/api/tags')
+          ? new Response(JSON.stringify({ models: [{ name: 'tagged' }] }))
+          : new Response(null, { status: 503 }),
+      ),
+    );
+    const { service } = fixture({ fetchImpl, discoveryAttempts: 2 });
+    await service.set('ollama-cloud', { baseUrl: 'https://ollama.com/v1' });
+
+    // Act
+    const result = await service.discover('ollama-cloud');
+
+    // Assert
+    expect(result.failures).toEqual([{ kind: 'http', status: 503 }]);
+    expect(
+      fetchImpl.mock.calls.filter(([input]) =>
+        String(input).endsWith('/models'),
+      ),
+    ).toHaveLength(2);
+  });
+
   it('warns for rejected discovery responses with safe error context', async () => {
     const logger = { info: vi.fn(), warn: vi.fn() };
     const fetchImpl = vi.fn<typeof fetch>(() =>
@@ -623,6 +687,8 @@ describe('ProviderConfigurationService', () => {
     await expect(service.discover('remote')).rejects.toMatchObject({
       name: 'AgentServerModelDiscoveryError',
     });
+    // An authorization failure is not transient: no retry.
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(logger.warn).toHaveBeenCalledWith(
       expect.objectContaining({
         code: 'agent_server_provider_discovery_upstream_error',

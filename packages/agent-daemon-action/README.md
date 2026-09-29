@@ -280,29 +280,41 @@ providers: |
   id=ollama base-url=http://localhost:11434/v1 api=openai-completions
 ```
 
-| Token      | Required | Meaning                                                                                                                                  |
-| ---------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`       | yes      | Provider id, as referenced by your runtime profiles.                                                                                     |
-| `base-url` | yes      | Provider API URL. Must be `https`, except for `localhost`, `127.*`, or `[::1]`.                                                          |
-| `key-env`  | no       | Environment variable holding the API key; omit for a keyless provider. `GITHUB_*`, `ACTIONS_*`, `RUNNER_*`, and `MOLTNET_*` are refused. |
-| `api`      | no       | Pi API kind; defaults to `openai-completions`.                                                                                           |
+| Token      | Required | Meaning                                                                                                                                                                                                                                                                                                    |
+| ---------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`       | yes      | Provider id, as referenced by your runtime profiles.                                                                                                                                                                                                                                                       |
+| `base-url` | yes      | Provider API URL. Must be `https`, except `http` to this machine: `localhost`, `127.x.x.x`, or `[::1]`, followed by a port, a path, or nothing.                                                                                                                                                            |
+| `key-env`  | no       | Environment variable holding the API key, named `*_API_KEY` (for example `OLLAMA_API_KEY`); omit for a keyless provider. `GITHUB_*`, `ACTIONS_*`, `RUNNER_*`, and `MOLTNET_*` names are refused, and so is any other credential (`GH_TOKEN`, `PI_AUTH_JSON`, cloud keys). The value must be a single line. |
+| `api`      | no       | Pi API kind; defaults to `openai-completions`.                                                                                                                                                                                                                                                             |
 
 Unknown tokens are errors, so new tokens can be added without changing the
 meaning of existing lines. Blank lines and lines starting with `#` are ignored.
 
-For each line the action runs `moltnet-agent providers set`, piping the key on
-stdin (it is masked in the log and never passed as an argument), then
-`moltnet-agent providers discover --save` to record the provider's models and
-their capabilities. The discovered `providers.json` is cached per ISO week,
-input, and resolved daemon version; a cache with no models for a provider is
-rediscovered, a discovery that found no models fails the step, and a partial
-discovery is used but not cached. Keys are never cached and are removed from
-the store when the action ends.
+The action resolves the daemon's provider store once, the way the daemon
+does (`MOLTNET_HOME`, then `MOLTNET_AGENT_SERVER_ROOT`, then
+`~/.config/moltnet`; both set must name the same directory), and passes it to
+every command as `--root`. For each line it runs `moltnet-agent providers
+set`, piping the key on stdin (masked in the log first, never passed as an
+argument); a keyless line clears any key the store still holds. Then
+`moltnet-agent providers discover --save` records the provider's models and
+their capabilities.
+
+The discovered `providers.json` is cached per input and resolved daemon
+version, and refreshed each ISO week. A cache with no models for a provider is
+rediscovered, and a discovery that found no models fails the step. A partial
+discovery (a listing endpoint or a capability probe failed) is never cached
+and never replaces a complete model list: with one, the run keeps using it.
+A store that already holds providers, such as a self-hosted runner's or a
+caller-set `MOLTNET_HOME`, is neither restored from nor saved to the cache.
+Keys are never cached; when the action ends, it clears every key it stored
+through the daemon CLI and removes `pi/auth.json`.
 
 With `providers` set, the daemon composes Pi's model configuration from this
-store. A repository `.pi/models.json` is merged underneath: its providers and
-models are kept, and for a provider id defined in both, the store's definition
-wins. `PI_AUTH_JSON` is written into the store alongside. A caller-set
+store. A repository `.pi/models.json` is merged underneath: providers only in
+the repository are kept as they are; for a provider id defined in both, the
+provider settings come from the store, the model lists are combined, and the
+store's entry wins for a model id defined in both. `PI_AUTH_JSON` is written
+into the store alongside, with the same expiry check as without `providers`. A caller-set
 `PI_CODING_AGENT_DIR` would make the daemon ignore the store, so the action
 refuses that combination.
 

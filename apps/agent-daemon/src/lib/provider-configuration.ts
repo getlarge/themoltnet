@@ -1,3 +1,5 @@
+import { setTimeout as sleep } from 'node:timers/promises';
+
 import {
   formatSecretReferenceString,
   parseSecretReferenceString,
@@ -81,6 +83,36 @@ const silentLogger: ProviderConfigurationLogger = {
   warn: () => undefined,
 };
 
+type DiscoveryRequest = {
+  failures: DiscoveryFailure[];
+  headers: Record<string, string>;
+  providerId: string;
+  signal?: AbortSignal;
+  url: string;
+} & (
+  | {
+      // Only the probe is a POST, and only it carries a body. Keyed on the
+      // endpoint so a body cannot be passed with a GET listing and silently
+      // turn it into a 405.
+      endpoint: 'ollama_show';
+      method: 'POST';
+      body: Record<string, unknown>;
+    }
+  | {
+      endpoint: 'openai_models' | 'ollama_tags';
+      method?: never;
+      body?: never;
+    }
+);
+
+/** Worth another try: the provider was briefly unavailable or unreachable. */
+function isTransientDiscoveryFailure(failure: DiscoveryFailure): boolean {
+  if (failure.kind === 'network') return true;
+  return (
+    failure.kind === 'http' && (failure.status >= 500 || failure.status === 429)
+  );
+}
+
 export class ProviderConfigurationService {
   private readonly fetchImpl: typeof fetch;
   private readonly logger: ProviderConfigurationLogger;
@@ -93,6 +125,10 @@ export class ProviderConfigurationService {
       fetchImpl?: typeof fetch;
       logger?: ProviderConfigurationLogger;
       requestTimeoutMs?: number;
+      /** Tries per discovery request, the first included. */
+      discoveryAttempts?: number;
+      /** Base delay between tries; the nth retry waits n times this. */
+      discoveryRetryDelayMs?: number;
     },
   ) {
     this.fetchImpl = options.fetchImpl ?? fetch;
@@ -169,6 +205,8 @@ export class ProviderConfigurationService {
               headers: apiKey ? { authorization: `Bearer ${apiKey}` } : {},
               ids,
               origin: parsedBaseUrl.origin,
+              // Best effort while saving: a model keeps what it declared.
+              probeFailures: [],
               providerId,
               signal: options.signal,
             });
@@ -327,6 +365,11 @@ export class ProviderConfigurationService {
     models: ProviderModelEntry[];
     /** Endpoints that failed while others answered: a partial discovery. */
     failures: DiscoveryFailure[];
+    /**
+     * Capability probes that failed: the model list is complete, but some
+     * models may lack vision or thinking metadata.
+     */
+    probeFailures: DiscoveryFailure[];
   }> {
     const providerId = assertProviderId(providerIdInput);
     const provider = this.options.store.readProviders()[providerId];
@@ -344,6 +387,7 @@ export class ProviderConfigurationService {
       ? { authorization: `Bearer ${apiKey}` }
       : {};
     const failures: DiscoveryFailure[] = [];
+    const probeFailures: DiscoveryFailure[] = [];
     const collector = new ModelDiscoveryCollector();
     collector.addOpenAiResponse(
       await this.requestDiscoveryEndpoint({
@@ -395,6 +439,7 @@ export class ProviderConfigurationService {
         headers,
         ids,
         origin: parsed.origin,
+        probeFailures,
         providerId,
         signal: options.signal,
       });
@@ -446,22 +491,29 @@ export class ProviderConfigurationService {
       },
       'Provider model discovery completed',
     );
-    return { models, failures: [...failures] };
+    return {
+      models,
+      failures: [...failures],
+      probeFailures: [...probeFailures],
+    };
   }
 
   /**
    * Fill in capabilities and supported thinking levels from `/api/show`.
    *
-   * Failures here are deliberately not pushed into the discovery `failures`
-   * array: that array decides the error code of a *failed* discovery, so a
-   * probe rejection must not relabel an otherwise-successful one. A model whose
-   * probe fails retains any capabilities already reported by `/api/tags`.
+   * Failures here go to `probeFailures`, never the discovery `failures`:
+   * that array decides the error code of a *failed* discovery, so a probe
+   * rejection must not relabel an otherwise-successful one. They are still
+   * reported, so a caller can avoid caching a list missing capabilities. A
+   * model whose probe fails retains any capabilities already reported by
+   * `/api/tags`.
    */
   private async resolveOllamaCapabilities(input: {
     collector: ModelDiscoveryCollector;
     headers: Record<string, string>;
     ids: readonly string[];
     origin: string;
+    probeFailures: DiscoveryFailure[];
     providerId: string;
     signal?: AbortSignal;
   }): Promise<void> {
@@ -488,9 +540,9 @@ export class ProviderConfigurationService {
           const body = await this.requestDiscoveryEndpoint({
             body: { model: id },
             endpoint: 'ollama_show',
-            // A throwaway array: probe failures stay out of the discovery
-            // failure record by construction, not by convention.
-            failures: [],
+            // Probe failures stay out of the discovery failure record by
+            // construction, not by convention.
+            failures: input.probeFailures,
             // Same host and same credential as /v1/models and /api/tags, which
             // this provider is already authenticated against. /api/show needs
             // no auth for public models, but a private one on the operator's
@@ -536,28 +588,52 @@ export class ProviderConfigurationService {
     }
   }
 
+  /**
+   * One discovery request, retried on transient failures (5xx, 429, network
+   * errors and timeouts), never on 401/403 or an invalid body: a single blip
+   * must not fail a CI job on a cold cache. Only the final attempt's failure
+   * is recorded.
+   */
   private async requestDiscoveryEndpoint(
-    input: {
-      failures: DiscoveryFailure[];
-      headers: Record<string, string>;
-      providerId: string;
-      signal?: AbortSignal;
-      url: string;
-    } & (
-      | {
-          // Only the probe is a POST, and only it carries a body. Keyed on the
-          // endpoint so a body cannot be passed with a GET listing and silently
-          // turn it into a 405.
-          endpoint: 'ollama_show';
-          method: 'POST';
-          body: Record<string, unknown>;
-        }
-      | {
-          endpoint: 'openai_models' | 'ollama_tags';
-          method?: never;
-          body?: never;
-        }
-    ),
+    input: DiscoveryRequest,
+  ): Promise<unknown> {
+    const attempts = Math.max(1, this.options.discoveryAttempts ?? 3);
+    for (let attempt = 1; ; attempt += 1) {
+      const failures: DiscoveryFailure[] = [];
+      const body = await this.requestDiscoveryOnce({ ...input, failures });
+      const [failure] = failures;
+      if (
+        !failure ||
+        attempt >= attempts ||
+        !isTransientDiscoveryFailure(failure) ||
+        input.signal?.aborted
+      ) {
+        input.failures.push(...failures);
+        return body;
+      }
+      const delayMs = (this.options.discoveryRetryDelayMs ?? 500) * attempt;
+      this.logger.info(
+        {
+          attempt,
+          code: 'agent_server_provider_discovery_retry',
+          delayMs,
+          endpoint: input.endpoint,
+          providerId: input.providerId,
+        },
+        'Retrying provider model discovery request',
+      );
+      try {
+        await sleep(delayMs, undefined, { signal: input.signal });
+      } catch {
+        // Cancelled while waiting: report the failure seen so far.
+        input.failures.push(...failures);
+        return body;
+      }
+    }
+  }
+
+  private async requestDiscoveryOnce(
+    input: DiscoveryRequest,
   ): Promise<unknown> {
     const startedAt = Date.now();
     const timeout = AbortSignal.timeout(

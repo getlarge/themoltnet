@@ -110,11 +110,14 @@ inputs:
       line, as `key=value` tokens: `id=<id> base-url=<url> key-env=<VAR>`
       and optionally `api=<pi-api-kind>` (default `openai-completions`).
       `key-env` names the environment variable holding the provider's API
-      key; omit it for a keyless provider. Blank lines and `#` comments are
-      ignored. Models are discovered from the provider and cached for a week.
-      When set, the daemon composes Pi's model configuration from this store;
-      a repository `.pi/models.json` is merged underneath, and for a provider
-      id defined in both, the store's definition wins.
+      key and must end in `_API_KEY`; omit it for a keyless provider. A key is
+      sent only over https, or http to this machine (localhost, 127.x,
+      [::1]). Blank lines and `#` comments are ignored. Models are discovered
+      from the provider and cached, refreshed each ISO week. When set, the
+      daemon composes Pi's model configuration from this store; a repository
+      `.pi/models.json` is merged underneath: provider settings come from the
+      store, models are combined, and the store wins for a model id defined
+      in both. See the README for every rule.
     required: false
     default: ''
   profile:
@@ -545,18 +548,51 @@ runs:
         } >> "$GITHUB_ENV"
         echo "::notice::Pi agent dir set to $PI_AGENT_DIR"
 
+    # The daemon's provider store, resolved once like the daemon resolves it
+    # (MOLTNET_HOME, then MOLTNET_AGENT_SERVER_ROOT, then ~/.config/moltnet;
+    # both set must name the same directory). Every providers command gets it
+    # as --root, and the cleanup acts on exactly this directory.
+    - name: Resolve the provider store
+      id: store
+      if: inputs.providers != ''
+      shell: bash
+      run: |
+        set -euo pipefail
+        canonical() {
+          mkdir -p -- "$1"
+          (cd -- "$1" && pwd -P)
+        }
+        if [ -n "${MOLTNET_HOME+set}" ] && [ -n "${MOLTNET_AGENT_SERVER_ROOT+set}" ] &&
+          [ "$(canonical "$MOLTNET_HOME")" != "$(canonical "$MOLTNET_AGENT_SERVER_ROOT")" ]; then
+          echo "::error::MOLTNET_HOME and MOLTNET_AGENT_SERVER_ROOT name different stores; set one" >&2
+          exit 1
+        fi
+        if [ -n "${MOLTNET_HOME+set}" ]; then
+          store="$(canonical "$MOLTNET_HOME")"
+        elif [ -n "${MOLTNET_AGENT_SERVER_ROOT+set}" ]; then
+          store="$(canonical "$MOLTNET_AGENT_SERVER_ROOT")"
+        else
+          store="$HOME/.config/moltnet"
+        fi
+        # A store that already has providers (a self-hosted runner, or a
+        # caller-provided MOLTNET_HOME) is neither replaced from nor saved to
+        # the cache, which describes only this input's providers.
+        existing=false
+        [ -f "$store/providers.json" ] && existing=true
+        echo "path=$store" >> "$GITHUB_OUTPUT"
+        echo "existing=$existing" >> "$GITHUB_OUTPUT"
+
     - name: Materialize Pi auth.json (when PI_AUTH_JSON is set)
       shell: bash
       env:
         PROVIDERS: ${{ inputs.providers }}
+        STORE: ${{ steps.store.outputs.path }}
       run: |
         set -euo pipefail
         # When the caller exports PI_AUTH_JSON (the contents of an
         # `~/.pi/agent/auth.json` produced by `pi /login` against
         # subscription providers — Anthropic Pro/Max, ChatGPT
-        # Plus/Pro Codex, GitHub Copilot), write it to a runner-local
-        # Pi agent dir and point pi-extension at it via
-        # PI_CODING_AGENT_DIR.
+        # Plus/Pro Codex, GitHub Copilot), write it where Pi reads it.
         #
         # If PI_AUTH_JSON is absent the daemon falls back to env-var
         # providers (ANTHROPIC_API_KEY etc.) which Pi reads natively.
@@ -568,16 +604,17 @@ runs:
         # When that happens, re-run `pi /login` locally and re-upload
         # the secret. See:
         # https://developers.openai.com/codex/auth/ci-cd-auth#what-to-do-when-refresh-stops-working
-        if [ -n "${PI_AUTH_JSON:-}" ] && [ -n "$PROVIDERS" ]; then
+        if [ -z "${PI_AUTH_JSON:-}" ]; then
+          echo "::notice::PI_AUTH_JSON not set; Pi will use env-var providers"
+          exit 0
+        fi
+        if [ -n "$PROVIDERS" ]; then
           # With `providers`, the daemon reads auth from its store, next to
           # the providers it composes Pi's configuration from.
-          store="${MOLTNET_HOME:-${MOLTNET_AGENT_SERVER_ROOT:-$HOME/.config/moltnet}}"
-          mkdir -p "$store/pi"
-          chmod 700 "$store/pi"
-          printf '%s' "$PI_AUTH_JSON" > "$store/pi/auth.json"
-          chmod 600 "$store/pi/auth.json"
-          echo "::notice::Pi auth.json materialized in the provider store at $store/pi/auth.json"
-        elif [ -n "${PI_AUTH_JSON:-}" ]; then
+          auth_dir="${STORE:?the provider store must be resolved before materializing Pi auth}/pi"
+          mkdir -p "$auth_dir"
+          chmod 700 "$auth_dir"
+        else
           # Pi looks for auth at $PI_CODING_AGENT_DIR/auth.json or,
           # when that env is unset, $HOME/.pi/agent/auth.json (see
           # @earendil-works/pi-coding-agent's config.ts:getAgentDir()).
@@ -585,48 +622,47 @@ runs:
           # PI_CODING_AGENT_DIR — keeps the secret out of the home
           # tree (so it doesn't leak into action caches that include
           # `~`) while staying inside what pi can read directly.
-          PI_AGENT_DIR="${PI_CODING_AGENT_DIR:?PI_CODING_AGENT_DIR must be configured before materializing Pi auth}"
-          mkdir -p "$PI_AGENT_DIR"
-          printf '%s' "$PI_AUTH_JSON" > "$PI_AGENT_DIR/auth.json"
-          chmod 600 "$PI_AGENT_DIR/auth.json"
-          echo "::notice::Pi auth.json materialized at $PI_AGENT_DIR/auth.json (PI_CODING_AGENT_DIR=$PI_AGENT_DIR)"
+          auth_dir="${PI_CODING_AGENT_DIR:?PI_CODING_AGENT_DIR must be configured before materializing Pi auth}"
+          mkdir -p "$auth_dir"
+        fi
+        auth="$auth_dir/auth.json"
+        printf '%s' "$PI_AUTH_JSON" > "$auth"
+        chmod 600 "$auth"
+        echo "::notice::Pi auth.json materialized at $auth"
 
-          # Best-effort staleness check (#1040). Pi writes per-provider
-          # entries with shape:
-          #   { "<provider>": { "type": "oauth", "expires": <ms-epoch>, ... } }
-          # `expires` is the *access* token TTL (Pi rotates it on each
-          # run), so its absolute value isn't the refresh-window edge —
-          # but because this action does NOT write rotated tokens back
-          # to the secret, `expires` falling into the past is a strong
-          # signal that the secret has been frozen long enough that the
-          # opaque ~30-day refresh window is at risk. Treated as:
-          #   - any provider expires < now      → ::warning::
-          #   - any provider expires < now-30d  → ::error:: (still
-          #     proceed; the daemon will surface the real 401 if the
-          #     refresh genuinely failed, and we don't want this check
-          #     to block recovery flows that happen to pass a fresh
-          #     bundle inline)
-          # If jq isn't available or the JSON shape doesn't match,
-          # silently skip — never fail the workflow on this heuristic.
-          if command -v jq >/dev/null 2>&1; then
-            now_ms=$(($(date +%s) * 1000))
-            grace_ms=$(( 30 * 86400 * 1000 ))
-            min_expires=$(jq -r '
-              [.[] | select(type == "object" and .expires != null) | .expires]
-              | if length == 0 then empty else min end
-            ' "$PI_AGENT_DIR/auth.json" 2>/dev/null || true)
-            if [ -n "${min_expires:-}" ] && [ "$min_expires" -gt 0 ] 2>/dev/null; then
-              if [ "$min_expires" -lt $(( now_ms - grace_ms )) ]; then
-                days_past=$(( (now_ms - min_expires) / 86400000 ))
-                echo "::error::PI_AUTH_JSON access token expired ${days_past} days ago — Pi's refresh window has almost certainly elapsed. Re-run \`pi /login\` and re-upload the secret. See https://developers.openai.com/codex/auth/ci-cd-auth#what-to-do-when-refresh-stops-working"
-              elif [ "$min_expires" -lt "$now_ms" ]; then
-                hours_past=$(( (now_ms - min_expires) / 3600000 ))
-                echo "::warning::PI_AUTH_JSON access token expired ${hours_past}h ago. Pi will try to refresh, but if you see a 401, re-run \`pi /login\` and re-upload the secret."
-              fi
+        # Best-effort staleness check (#1040). Pi writes per-provider
+        # entries with shape:
+        #   { "<provider>": { "type": "oauth", "expires": <ms-epoch>, ... } }
+        # `expires` is the *access* token TTL (Pi rotates it on each
+        # run), so its absolute value isn't the refresh-window edge —
+        # but because this action does NOT write rotated tokens back
+        # to the secret, `expires` falling into the past is a strong
+        # signal that the secret has been frozen long enough that the
+        # opaque ~30-day refresh window is at risk. Treated as:
+        #   - any provider expires < now      → ::warning::
+        #   - any provider expires < now-30d  → ::error:: (still
+        #     proceed; the daemon will surface the real 401 if the
+        #     refresh genuinely failed, and we don't want this check
+        #     to block recovery flows that happen to pass a fresh
+        #     bundle inline)
+        # If jq isn't available or the JSON shape doesn't match,
+        # silently skip — never fail the workflow on this heuristic.
+        if command -v jq >/dev/null 2>&1; then
+          now_ms=$(($(date +%s) * 1000))
+          grace_ms=$(( 30 * 86400 * 1000 ))
+          min_expires=$(jq -r '
+            [.[] | select(type == "object" and .expires != null) | .expires]
+            | if length == 0 then empty else min end
+          ' "$auth" 2>/dev/null || true)
+          if [ -n "${min_expires:-}" ] && [ "$min_expires" -gt 0 ] 2>/dev/null; then
+            if [ "$min_expires" -lt $(( now_ms - grace_ms )) ]; then
+              days_past=$(( (now_ms - min_expires) / 86400000 ))
+              echo "::error::PI_AUTH_JSON access token expired ${days_past} days ago — Pi's refresh window has almost certainly elapsed. Re-run \`pi /login\` and re-upload the secret. See https://developers.openai.com/codex/auth/ci-cd-auth#what-to-do-when-refresh-stops-working"
+            elif [ "$min_expires" -lt "$now_ms" ]; then
+              hours_past=$(( (now_ms - min_expires) / 3600000 ))
+              echo "::warning::PI_AUTH_JSON access token expired ${hours_past}h ago. Pi will try to refresh, but if you see a 401, re-run \`pi /login\` and re-upload the secret."
             fi
           fi
-        else
-          echo "::notice::PI_AUTH_JSON not set; Pi will use env-var providers"
         fi
 
     # Cache the gondolin snapshot (the alpine guest qcow2 + cli/gh
@@ -861,6 +897,7 @@ runs:
       shell: bash
       env:
         DAEMON_VERSION: ${{ inputs.daemon-version }}
+        PROVIDERS: ${{ inputs.providers }}
       run: |
         set -euo pipefail
         if [ "$DAEMON_VERSION" = "workspace" ]; then
@@ -870,16 +907,28 @@ runs:
             echo 'exec node --import tsx "$GITHUB_WORKSPACE/apps/agent-daemon/src/main.ts" "$@"'
           } > "$bin"
           chmod 755 "$bin"
-          echo "MOLTNET_AGENT_BIN=$bin" >> "$GITHUB_ENV"
-          # The daemon source at this checkout identifies the version.
-          version="workspace-$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD:apps/agent-daemon 2>/dev/null || echo unknown)"
+          # The daemon source and the store schema it reads identify the
+          # version: a change to either invalidates cached provider stores.
+          if trees="$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD:apps/agent-daemon HEAD:libs/agent-config 2>/dev/null)"; then
+            version="workspace-$(printf '%s' "$trees" | sha256sum | cut -c1-16)"
+          else
+            version=''
+          fi
         else
           # The signed release bundle ships its own Node runtime and gondolin
           # natives, verified by the installer's signature check.
-          version="$("$MOLTNET_AGENT_BIN" --version 2>/dev/null | head -n 1 | tr -c 'A-Za-z0-9._-' '-' || true)"
+          bin="$MOLTNET_AGENT_BIN"
+          version="$("$bin" --version 2>/dev/null | head -n 1 | tr -d '\r\n' | tr -c 'A-Za-z0-9._-' '-' || true)"
         fi
+        # The version keys the provider cache; without it a cache would be
+        # shared by every daemon.
+        if [ -z "$version" ] && [ -n "$PROVIDERS" ]; then
+          echo "::error::cannot determine the agent-daemon version ($DAEMON_VERSION), which keys the provider cache" >&2
+          exit 1
+        fi
+        # A step output, not GITHUB_ENV: the command stays this action's.
+        echo "bin=$bin" >> "$GITHUB_OUTPUT"
         echo "version=${version:-unknown}" >> "$GITHUB_OUTPUT"
-        echo "store=${MOLTNET_HOME:-${MOLTNET_AGENT_SERVER_ROOT:-$HOME/.config/moltnet}}" >> "$GITHUB_OUTPUT"
 
     # Discovered provider models are cached so most runs skip discovery. The
     # cache holds only providers.json: API keys stay in the store's secrets
@@ -891,20 +940,21 @@ runs:
       env:
         PROVIDERS: ${{ inputs.providers }}
         DAEMON_RESOLVED: ${{ steps.daemon.outputs.version }}
+        RUNNER_OS_NAME: ${{ runner.os }}
       run: |
         set -euo pipefail
         digest="$(printf '%s' "$PROVIDERS" | sha256sum | cut -c1-16)"
         # v1: bump to drop every cached store. The resolved daemon version
         # invalidates a store an older daemon wrote; the ISO week (%G-%V)
         # refreshes discovered models at least weekly.
-        echo "value=${{ runner.os }}-agent-daemon-providers-v1-${DAEMON_RESOLVED}-${digest}-$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+        echo "value=${RUNNER_OS_NAME}-agent-daemon-providers-v1-${DAEMON_RESOLVED}-${digest}-$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
 
     - name: Restore provider cache
       id: restore-providers
-      if: inputs.providers != ''
+      if: inputs.providers != '' && steps.store.outputs.existing != 'true'
       uses: actions/cache/restore@v6
       with:
-        path: ${{ steps.daemon.outputs.store }}/providers.json
+        path: ${{ steps.store.outputs.path }}/providers.json
         key: ${{ steps.providers-cache-key.outputs.value }}
 
     - name: Configure model providers
@@ -914,9 +964,15 @@ runs:
       env:
         PROVIDERS: ${{ inputs.providers }}
         CACHE_HIT: ${{ steps.restore-providers.outputs.cache-hit }}
+        AGENT_BIN: ${{ steps.daemon.outputs.bin }}
+        STORE: ${{ steps.store.outputs.path }}
       run: |
         set -euo pipefail
-        agent=("$MOLTNET_AGENT_BIN")
+        agent=("$AGENT_BIN")
+        providers_file="$STORE/providers.json"
+        # Ids whose keys the cleanup step clears, recorded as they are set.
+        configured="$RUNNER_TEMP/moltnet-configured-providers"
+        : > "$configured"
         cacheable=true
         # Tokens are split on spaces; never expand them as globs.
         set -f
@@ -940,64 +996,84 @@ runs:
             echo "::error::providers line needs id= and base-url=: $line" >&2
             exit 1
           fi
-          # A key goes only to a TLS endpoint, except on the local machine.
-          case "$base_url" in
-            https://*) ;;
-            http://localhost|http://localhost[:/]*|http://127.*|http://\[::1\]*) ;;
-            *)
-              echo "::error::provider '$id' base-url must use https (or http on localhost): $base_url" >&2
-              exit 1
-              ;;
-          esac
-          args=(providers set "$id" --base-url "$base_url" --api "$api")
+          # A key goes only to a TLS endpoint, except on this machine. The
+          # host must end at a port, a path, or the end of the URL, so
+          # http://127.evil.example or http://localhost@evil.example fail.
+          if [[ ! "$base_url" =~ ^https:// ]] &&
+            [[ ! "$base_url" =~ ^http://(localhost|127(\.[0-9]{1,3}){3}|\[::1\])(:[0-9]+)?(/.*)?$ ]]; then
+            echo "::error::provider '$id' base-url must use https (or http on localhost): $base_url" >&2
+            exit 1
+          fi
+          args=(providers set "$id" --base-url "$base_url" --api "$api" --root "$STORE")
           if [ -z "$key_env" ]; then
-            "${agent[@]}" "${args[@]}" < /dev/null
+            # Clear any key a restored or persistent store still references,
+            # so discovery never sends a key this input did not name.
+            "${agent[@]}" "${args[@]}" --clear-api-key < /dev/null
           else
-            if [[ ! "$key_env" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
-              echo "::error::'$key_env' is not an environment variable name" >&2
+            # Only provider API keys: platform credentials (GITHUB_TOKEN,
+            # GH_TOKEN, cloud credentials, ...) never match this.
+            if [[ ! "$key_env" =~ ^[A-Z][A-Z0-9_]*_API_KEY$ ]]; then
+              echo "::error::provider '$id' key-env must name a *_API_KEY variable, got '$key_env'" >&2
               exit 1
             fi
-            # Platform credentials must never be sent to a provider.
             case "$key_env" in
-              GITHUB_*|ACTIONS_*|RUNNER_*|MOLTNET_*|PI_AUTH_JSON)
+              GITHUB_*|ACTIONS_*|RUNNER_*|MOLTNET_*)
                 echo "::error::provider '$id' cannot use $key_env as its API key" >&2
                 exit 1
                 ;;
             esac
-            if [ -z "${!key_env:-}" ]; then
+            key="${!key_env:-}"
+            if [ -z "$key" ]; then
               echo "::error::provider '$id' needs its API key in \$$key_env" >&2
               exit 1
             fi
-            echo "::add-mask::${!key_env}"
-            printf '%s' "${!key_env}" | "${agent[@]}" "${args[@]}" --api-key-stdin
+            # ::add-mask:: covers one line only.
+            if [[ "$key" == *$'\n'* || "$key" == *$'\r'* ]]; then
+              echo "::error::provider '$id' API key in \$$key_env spans several lines" >&2
+              exit 1
+            fi
+            echo "::add-mask::$key"
+            printf '%s' "$key" | "${agent[@]}" "${args[@]}" --api-key-stdin
           fi
-          known="$("${agent[@]}" providers list --json < /dev/null | jq --arg id "$id" '(.configuredProviders[$id].models // []) | length')"
+          echo "$id" >> "$configured"
+          known="$("${agent[@]}" providers list --json --root "$STORE" < /dev/null | jq --arg id "$id" '(.configuredProviders[$id].models // []) | length')"
           if [ "$CACHE_HIT" = true ] && [ "${known:-0}" -gt 0 ]; then
             echo "::notice::provider $id configured ($known cached models)"
             continue
           fi
-          discovered="$("${agent[@]}" providers discover "$id" --save --json < /dev/null)"
+          # Keep the previous model list if this discovery turns out partial.
+          backup="$RUNNER_TEMP/moltnet-providers-backup.json"
+          cp "$providers_file" "$backup"
+          discovered="$("${agent[@]}" providers discover "$id" --save --json --root "$STORE" < /dev/null)"
           count="$(jq '.models | length' <<< "$discovered")"
-          failures="$(jq '(.failures // []) | length' <<< "$discovered")"
+          # Older daemons report neither field: treat them as complete.
+          failures="$(jq '((.failures // []) + (.probeFailures // [])) | length' <<< "$discovered")"
           # An empty discovery would otherwise be cached for a week.
           if [ "${count:-0}" -eq 0 ]; then
+            cp "$backup" "$providers_file"
             echo "::error::provider '$id' discovery found no models at $base_url" >&2
             exit 1
           fi
-          # A partial discovery is usable for this run but not worth caching.
           if [ "${failures:-0}" -gt 0 ]; then
+            # A partial discovery is never cached, and never replaces a
+            # complete list: with one, this run keeps using it.
             cacheable=false
-            echo "::warning::provider $id discovery was partial ($failures endpoint failures); not caching it"
+            if [ "${known:-0}" -gt 0 ]; then
+              cp "$backup" "$providers_file"
+              echo "::warning::provider $id discovery was partial ($failures failures); keeping its $known known models"
+              continue
+            fi
+            echo "::warning::provider $id discovery was partial ($failures failures); using it for this run only"
           fi
           echo "::notice::provider $id configured ($count models discovered)"
         done <<< "$PROVIDERS"
         echo "cacheable=$cacheable" >> "$GITHUB_OUTPUT"
 
     - name: Save provider cache
-      if: inputs.providers != '' && steps.restore-providers.outputs.cache-hit != 'true' && steps.providers.outputs.cacheable == 'true'
+      if: inputs.providers != '' && steps.store.outputs.existing != 'true' && steps.restore-providers.outputs.cache-hit != 'true' && steps.providers.outputs.cacheable == 'true'
       uses: actions/cache/save@v6
       with:
-        path: ${{ steps.daemon.outputs.store }}/providers.json
+        path: ${{ steps.store.outputs.path }}/providers.json
         key: ${{ steps.providers-cache-key.outputs.value }}
 
     - id: run
@@ -1012,6 +1088,7 @@ runs:
         MAX_POLL_INTERVAL_MS: ${{ inputs.max-poll-interval-ms }}
         DAEMON_VERSION: ${{ inputs.daemon-version }}
         DAEMON_MODE: ${{ inputs.mode }}
+        AGENT_BIN: ${{ steps.daemon.outputs.bin }}
         PROJECT_ID: ${{ inputs.project-id }}
       run: |
         set -euo pipefail
@@ -1073,7 +1150,7 @@ runs:
 
         # Resolved once by the "Resolve the daemon command" step: the signed
         # release bundle, or a wrapper running the workspace source.
-        daemon_cmd=("$MOLTNET_AGENT_BIN")
+        daemon_cmd=("$AGENT_BIN")
 
         if [ -n "${PROJECT_ID:-}" ]; then
           uuid_re='^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
@@ -1129,11 +1206,29 @@ runs:
         path: ~/.cache/moltnet/gondolin
         key: ${{ steps.gondolin-cache-key.outputs.value }}
 
-    # Provider keys were written to the daemon's store for this run. A
-    # self-hosted runner keeps its home directory, so remove them.
+    # Provider keys and Pi auth were written to the daemon's store for this
+    # run. A self-hosted runner keeps its home directory, so remove them. The
+    # daemon CLI clears each key it stored, so this never depends on its
+    # secret layout. Nothing to do when the store was never resolved.
     - name: Remove provider keys from the store
-      if: always() && inputs.providers != ''
+      id: cleanup-providers
+      if: always() && inputs.providers != '' && steps.store.outputs.path != ''
       shell: bash
       env:
-        STORE: ${{ steps.daemon.outputs.store }}
-      run: rm -rf "${STORE:?}/secrets/pi-provider"
+        STORE: ${{ steps.store.outputs.path }}
+        AGENT_BIN: ${{ steps.daemon.outputs.bin }}
+      run: |
+        set -uo pipefail
+        status=0
+        rm -f "$STORE/pi/auth.json" || status=1
+        configured="$RUNNER_TEMP/moltnet-configured-providers"
+        if [ -n "$AGENT_BIN" ] && [ -f "$configured" ]; then
+          while IFS= read -r id; do
+            [ -n "$id" ] || continue
+            if ! "$AGENT_BIN" providers set "$id" --clear-api-key --root "$STORE" < /dev/null; then
+              echo "::warning::could not clear the API key of provider $id" >&2
+              status=1
+            fi
+          done < "$configured"
+        fi
+        exit "$status"

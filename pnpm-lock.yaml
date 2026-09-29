@@ -3493,6 +3493,9 @@ importers:
         specifier: workspace:*
         version: link:../../libs/sdk
     devDependencies:
+      '@moltnet/agent-daemon-api-client':
+        specifier: workspace:*
+        version: link:../../libs/agent-daemon-api-client
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../../libs/tasks

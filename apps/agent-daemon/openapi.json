@@ -1256,6 +1256,63 @@
       },
       "DiscoveredModels": {
         "properties": {
+          "failures": {
+            "items": {
+              "anyOf": [
+                {
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "http"
+                      ],
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "status"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "properties": {
+                    "errorType": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "enum": [
+                        "network"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "errorType"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "invalid_response"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            "type": "array"
+          },
           "models": {
             "items": {
               "properties": {
@@ -1298,10 +1355,69 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "probeFailures": {
+            "items": {
+              "anyOf": [
+                {
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "http"
+                      ],
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "status"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "properties": {
+                    "errorType": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "enum": [
+                        "network"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "errorType"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "invalid_response"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            "type": "array"
           }
         },
         "required": [
-          "models"
+          "models",
+          "failures",
+          "probeFailures"
         ],
         "type": "object"
       },

@@ -329,6 +329,7 @@ describe('moltnet-agent providers', () => {
         { id: 'local-model', reasoning: false },
       ],
       failures: [],
+      probeFailures: [],
     });
     expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
       { id: 'existing', reasoning: false },

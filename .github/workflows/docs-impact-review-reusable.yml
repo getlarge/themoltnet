@@ -76,7 +76,10 @@ on:
           Model providers the workers configure, one per line as key=value
           tokens (see agent-daemon-action's `providers` input), for example
           `id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY`.
-          Empty to use a repository .pi/models.json instead.
+          `key-env` can name only a provider secret this workflow passes to the
+          workers: OLLAMA_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY,
+          OPENROUTER_API_KEY, or GEMINI_API_KEY. Empty to use a repository
+          .pi/models.json instead.
         type: string
         default: ''
       daemon-version:
