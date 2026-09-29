@@ -5,6 +5,13 @@ export {
   renderComment,
   summarizeCorpus,
 } from './report.js';
+export {
+  DEFAULT_REVIEW_CONFIG,
+  loadReviewConfig,
+  parseReviewConfig,
+  REVIEW_CONFIG_PATH,
+  type ReviewConfig,
+} from './review-config.js';
 export { parseRoutingMap, type RoutingMap } from './routing.js';
 export { stageTiming } from './timing.js';
 export type * from './types.js';

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { DEFAULT_AGENT_FACING } from './review-config.js';
 import {
   dropGenericTerms,
   parseRoutingMap,
@@ -108,7 +109,7 @@ describe('selectDocs agent-facing ranking', () => {
     ]);
 
     // Act
-    const selection = selectDocs(candidates, 2);
+    const selection = selectDocs(candidates, 2, DEFAULT_AGENT_FACING);
 
     // Assert
     expect(selection.selected.map((doc) => doc.path)).toEqual([
@@ -177,6 +178,25 @@ describe('searchDocsForTerms', () => {
     expect(Object.fromEntries(hits)).toEqual({
       'docs/cli.md': ['--dry-run'],
     });
+  });
+
+  it('skips Markdown matching the repository exclusions', () => {
+    // Arrange
+    const head = repo.commit({
+      'docs/cli.md': 'Pass `--dry-run` to preview.\n',
+      'vendor/tool/README.md': 'Pass `--dry-run` too.\n',
+    });
+
+    // Act
+    const hits = searchDocsForTerms(
+      repo.git,
+      head,
+      ['--dry-run'],
+      ['**/CHANGELOG.md', 'vendor/**'],
+    );
+
+    // Assert
+    expect([...hits.keys()]).toEqual(['docs/cli.md']);
   });
 
   it('returns nothing when no term matches', () => {

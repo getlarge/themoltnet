@@ -12,10 +12,14 @@ import { docsCheckFindings, extractDocsHunks } from './docs-check.js';
 import type { Git } from './git.js';
 import { boundDiff, collectChangeSet } from './ingest.js';
 import {
+  DEFAULT_REVIEW_CONFIG,
+  matchesAny,
+  type ReviewConfig,
+} from './review-config.js';
+import {
   dropGenericTerms,
   isRequiredCandidate,
   routeDocs,
-  type RoutingMap,
   searchDocsForTerms,
   selectDocs,
 } from './routing.js';
@@ -80,7 +84,8 @@ export interface DocsImpactDeps {
   git: Git;
   tasks: TaskClient;
   ctx: WorkflowContext;
-  routingMap: RoutingMap;
+  /** Repository configuration, read from the base revision by the caller. */
+  config?: ReviewConfig;
   logger?: Logger;
   now?: () => number;
 }
@@ -281,6 +286,7 @@ function retrieveDocs(
   searchTermsDropped: string[],
 ): SelectedDoc[] {
   const { git } = deps;
+  const config = deps.config ?? DEFAULT_REVIEW_CONFIG;
   const head = changeSet.headRevision;
   const evidencePaths = new Set(
     changes.flatMap((change) => change.evidence.map((item) => item.path)),
@@ -291,7 +297,7 @@ function retrieveDocs(
       (file.category === 'source' && evidencePaths.has(file.path)),
   );
   const readmes = new Map<string, boolean>();
-  const routed = routeDocs(relevant, deps.routingMap, (path) => {
+  const routed = routeDocs(relevant, config.routing, (path) => {
     const cached = readmes.get(path);
     if (cached !== undefined) return cached;
     const exists = existsAt(git, head, path);
@@ -299,14 +305,24 @@ function retrieveDocs(
     return exists;
   });
   const terms = changes.flatMap((change) => change.searchTerms);
-  const search = dropGenericTerms(searchDocsForTerms(git, head, terms));
+  const search = dropGenericTerms(
+    searchDocsForTerms(git, head, terms, config.docsExclude),
+  );
   searchTermsDropped.push(...search.generic);
   for (const path of search.hits.keys()) {
     const reasons = routed.candidates.get(path) ?? [];
     if (!reasons.includes('symbol-search')) reasons.push('symbol-search');
     routed.candidates.set(path, reasons);
   }
-  const selection = selectDocs(routed.candidates, budgets.maxDocs);
+  // Routing rules and nearest READMEs can still name an excluded page.
+  for (const path of routed.candidates.keys()) {
+    if (matchesAny(path, config.docsExclude)) routed.candidates.delete(path);
+  }
+  const selection = selectDocs(
+    routed.candidates,
+    budgets.maxDocs,
+    config.agentFacing,
+  );
   // Heuristic matches (symbol search, nearest README) that do not fit are
   // not coverage gaps; docs the PR changed or the routing map owns are.
   for (const { path, reasons } of selection.overflow) {
@@ -331,8 +347,12 @@ function retrieveDocs(
 
 export async function runDocsImpactReview(
   deps: DocsImpactDeps,
-  input: DocsImpactInput,
+  rawInput: DocsImpactInput,
 ): Promise<DocsImpactReport> {
+  const config = deps.config ?? DEFAULT_REVIEW_CONFIG;
+  const input: DocsImpactInput = config.instructions
+    ? { ...rawInput, instructions: config.instructions }
+    : rawInput;
   const now = deps.now ?? Date.now;
   const budgets = { ...DEFAULT_BUDGETS, ...input.budgets };
   const started = now();
@@ -388,6 +408,7 @@ export async function runDocsImpactReview(
       deps.git,
       input.baseRevision,
       input.headRevision,
+      config.docsExclude,
     );
     const diff = boundDiff(deps.git, changeSet, {
       totalBytes: budgets.diffTotalBytes,

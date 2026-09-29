@@ -62,6 +62,25 @@ describe('collectChangeSet', () => {
     expect(changeSet.files).toHaveLength(11);
   });
 
+  it('treats Markdown matching the repository exclusions as generated', () => {
+    // Arrange
+    const base = repo.commit({ 'README.md': '# x\n' });
+    const head = repo.commit({
+      'vendor/lib/README.md': '# vendored\n',
+      'docs/guide.md': '# guide\n',
+    });
+
+    // Act
+    const changeSet = collectChangeSet(repo.git, base, head, ['vendor/**']);
+
+    // Assert
+    expect(
+      Object.fromEntries(
+        changeSet.files.map(({ path, category }) => [path, category]),
+      ),
+    ).toEqual({ 'vendor/lib/README.md': 'generated', 'docs/guide.md': 'docs' });
+  });
+
   it('ignores generated declarations added by the reviewed head', () => {
     // Arrange
     const base = repo.commit({ 'src/public.ts': 'export const a = 1;\n' });

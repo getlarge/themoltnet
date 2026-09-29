@@ -6,7 +6,7 @@ import { Value } from 'typebox/value';
 import type { Git } from './git.js';
 import type { ChangedFile, DocsSelectionReason } from './types.js';
 
-const RoutingRule = Type.Object(
+export const RoutingRule = Type.Object(
   {
     id: Type.String({ minLength: 1 }),
     paths: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
@@ -104,6 +104,7 @@ export function searchDocsForTerms(
   git: Git,
   headRevision: string,
   terms: readonly string[],
+  exclude: readonly string[] = ['**/CHANGELOG.md'],
 ): Map<string, string[]> {
   const usable = [
     ...new Set(
@@ -137,7 +138,7 @@ export function searchDocsForTerms(
         '--',
         '*.md',
         '*.mdx',
-        ':(exclude,glob)**/CHANGELOG.md',
+        ...exclude.map((glob) => `:(exclude,glob)${glob}`),
       ]);
     } catch (error) {
       // `git grep` exits 1 when nothing matches.
@@ -184,9 +185,7 @@ export function dropGenericTerms(
   return { hits: kept, generic };
 }
 
-/** Agent-facing instructions (skills, evals), not user or operator docs. */
-const AGENT_FACING =
-  /^(\.agents|\.claude|\.codex|\.pi|skills|evals|evals-v2)\/|\/skills\//;
+/** Agent-facing instructions rank below user or operator docs. */
 const AGENT_FACING_PENALTY = 3;
 
 /** Candidates that must be reviewed; overflowing them is a coverage gap. */
@@ -209,6 +208,7 @@ export interface DocsSelection {
 export function selectDocs(
   candidates: ReadonlyMap<string, DocsSelectionReason[]>,
   maxDocs: number,
+  agentFacing: readonly string[] = [],
 ): DocsSelection {
   const ranked = [...candidates.entries()]
     .map(([path, reasons]) => ({
@@ -216,7 +216,8 @@ export function selectDocs(
       reasons,
       score:
         reasons.reduce((sum, reason) => sum + REASON_WEIGHT[reason], 0) -
-        (AGENT_FACING.test(path) && !isRequiredCandidate(reasons)
+        (agentFacing.some((glob) => posix.matchesGlob(path, glob)) &&
+        !isRequiredCandidate(reasons)
           ? AGENT_FACING_PENALTY
           : 0),
     }))

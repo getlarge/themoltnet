@@ -10,7 +10,13 @@ import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 import { createGit, requireFullOid } from './git.js';
 import { boundDiff, collectChangeSet } from './ingest.js';
 import { renderComment, summarizeCorpus } from './report.js';
-import { parseRoutingMap, routeDocs } from './routing.js';
+import {
+  loadReviewConfig,
+  parseReviewConfig,
+  REVIEW_CONFIG_PATH,
+  type ReviewConfig,
+} from './review-config.js';
+import { routeDocs } from './routing.js';
 import { parseLabels, scoreReports } from './score.js';
 import type { DocsImpactReport, StageName } from './types.js';
 import {
@@ -25,13 +31,15 @@ const USAGE = `Usage: moltnet-docs-impact-review --repo owner/repo --pr N [--pr 
   [--project <uuid>] [--correlation-id <uuid>]
   [--base-sha <oid> --head-sha <oid>]
   [--profile-extract|--profile-coverage|--profile-docs-check <name-or-id>]
-  [--out <dir>] [--poll-interval <sec>] [--routing <path>] [--dry-run]
+  [--out <dir>] [--poll-interval <sec>] [--config <path>] [--dry-run]
   [--labels <path>]
        moltnet-docs-impact-review --rescore <summary.json> --labels <path>
 
 Runs the experimental docs-impact review against existing pull requests from a
 local checkout. PR metadata is read with \`gh\`; base/head are fetched as inert
-git objects. --dry-run performs ingestion and routing only (no tasks).
+git objects. The review configuration is read from ${REVIEW_CONFIG_PATH} at
+each pull request's base revision; --config uses a local file instead.
+--dry-run performs ingestion and routing only (no tasks).
 --labels scores the run against expected/forbidden findings; --rescore scores
 a saved run's summary.json without creating tasks.`;
 
@@ -83,7 +91,7 @@ async function main(): Promise<number> {
       'head-sha': { type: 'string' },
       out: { type: 'string' },
       'poll-interval': { type: 'string' },
-      routing: { type: 'string' },
+      config: { type: 'string' },
       'dry-run': { type: 'boolean', default: false },
       labels: { type: 'string' },
       rescore: { type: 'string' },
@@ -149,11 +157,9 @@ async function main(): Promise<number> {
   const pollIntervalSec = values['poll-interval']
     ? Number(values['poll-interval'])
     : DEFAULT_POLL_INTERVAL_SEC;
-  const routingPath =
-    values.routing ?? new URL('../docs-routing.json', import.meta.url);
-  const routingMap = parseRoutingMap(
-    JSON.parse(readFileSync(routingPath, 'utf8')) as unknown,
-  );
+  const configOverride: ReviewConfig | undefined = values.config
+    ? parseReviewConfig(JSON.parse(readFileSync(values.config, 'utf8')))
+    : undefined;
   const git = createGit(process.cwd());
 
   const agent = dryRun ? undefined : await connect();
@@ -190,14 +196,15 @@ async function main(): Promise<number> {
       'head revision',
     );
     git(['fetch', '--no-tags', '--quiet', 'origin', base, head]);
+    const config = configOverride ?? loadReviewConfig(git, base).config;
 
     if (dryRun || !tasks) {
-      const changeSet = collectChangeSet(git, base, head);
+      const changeSet = collectChangeSet(git, base, head, config.docsExclude);
       const diff = boundDiff(git, changeSet, {
         totalBytes: DEFAULT_BUDGETS.diffTotalBytes,
         perFileBytes: DEFAULT_BUDGETS.diffPerFileBytes,
       });
-      const routed = routeDocs(changeSet.files, routingMap, (path) => {
+      const routed = routeDocs(changeSet.files, config.routing, (path) => {
         try {
           git(['cat-file', '-e', `${head}:${path}`]);
           return true;
@@ -227,7 +234,7 @@ async function main(): Promise<number> {
     }
 
     const report = await runDocsImpactReview(
-      { git, tasks, ctx: createSleepingContext(), routingMap },
+      { git, tasks, ctx: createSleepingContext(), config },
       {
         repo,
         pr,

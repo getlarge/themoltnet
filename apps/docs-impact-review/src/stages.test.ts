@@ -395,6 +395,40 @@ describe('parseCoverageCheck', () => {
   });
 });
 
+describe('repository guidance', () => {
+  it('adds maintainer guidance to every stage brief, before the output contract', () => {
+    // Arrange
+    const ctx = {
+      ...context,
+      instructions: 'CLI reference lives in site/cli.md.',
+    };
+    const briefs = [
+      buildExtractTask(ctx, { manifest: '', diff: '' }),
+      buildCoverageTask(ctx, { changes: [], docs: [], docsDiff: '' }),
+      buildDocsCheckTask(ctx, []),
+    ].map((task) => (task.input as { brief: string }).brief);
+
+    // Assert
+    for (const brief of briefs) {
+      const guidance = brief.indexOf('CLI reference lives in site/cli.md.');
+      expect(guidance).toBeGreaterThan(-1);
+      expect(guidance).toBeLessThan(brief.indexOf('Return ONLY'));
+    }
+  });
+
+  it('adds nothing when the repository gives no guidance', () => {
+    // Act
+    const brief = (
+      buildExtractTask(context, { manifest: '', diff: '' }).input as {
+        brief: string;
+      }
+    ).brief;
+
+    // Assert
+    expect(brief).not.toContain('Repository guidance');
+  });
+});
+
 describe('buildExtractTask', () => {
   it('embeds the diff as fenced untrusted data without requesting a workspace', () => {
     // Act

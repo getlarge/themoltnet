@@ -105,7 +105,7 @@ pnpm exec nx run @moltnet/docs-impact-review:cli -- \
   --repo getlarge/themoltnet --pr 2462 --pr 2454 --pr 2459 \
   --team "$MOLTNET_TEAM_ID" --diary "$MOLTNET_DIARY_ID" \
   --profile legreffier-docs-review-v1 --project "$MOLTNET_PROJECT_ID" \
-  --out /tmp/docs-impact
+  --config .github/docs-impact-review.json --out /tmp/docs-impact
 ```
 
 Each stage task is tagged `review:docs-impact`, `stage:<extract|coverage>`,
@@ -165,9 +165,41 @@ starts cold. Stage budgets (a 120 s running timeout and the profile's turn limit
 budgets (`DEFAULT_BUDGETS`) are described above. The run summary records the
 per-stage timing breakdown and token counts.
 
-## Routing map
+## Repository configuration
 
-[`docs-routing.json`](./docs-routing.json) maps cross-cutting code paths to
-canonical pages. Package-level READMEs are found by the nearest-README rule, so
-the map only lists pages a README would miss. A test fails when a mapped doc
-no longer exists.
+A repository configures the review in `.github/docs-impact-review.json`. The
+reviewer reads it from the pull request's **base** revision, so a pull request
+cannot change the rules it is reviewed by. Without the file, the defaults apply.
+
+```json
+{
+  "agentFacing": [".agents/**", "**/skills/**"],
+  "docs": { "exclude": ["vendor/**"] },
+  "instructions": "User-facing CLI docs live in docs/reference/.",
+  "routing": [
+    {
+      "docs": ["docs/reference/cli.md"],
+      "id": "cli",
+      "paths": ["apps/cli/**"]
+    }
+  ],
+  "version": 1
+}
+```
+
+| Key            | Effect                                                                                                                                                                                                           |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `routing`      | Maps code paths to the pages that document them. Nearest READMEs are found automatically, so list only pages a README would miss. Routed pages are required reading: if they overflow, the review reports a gap. |
+| `docs.exclude` | Markdown globs that are never reviewed, searched, or selected, added to the built-in `**/CHANGELOG.md`.                                                                                                          |
+| `agentFacing`  | Globs for instructions written for agents (skills, prompts). They rank below user and operator docs unless the pull request changed them or a routing rule names them. Replaces the default list.                |
+| `instructions` | Up to 2,000 characters of guidance added to every stage brief. It refines the review within its fixed scope and output format; it cannot change them.                                                            |
+
+Mark generated code and docs with `linguist-generated` in `.gitattributes`
+rather than in this file: the reviewer reads it from the base revision too.
+
+This repository's own configuration is
+[`.github/docs-impact-review.json`](../../.github/docs-impact-review.json). A
+test fails when a routed page no longer exists.
+
+When replaying pull requests whose base predates the file, pass
+`--config .github/docs-impact-review.json` so the review uses the current rules.

@@ -5,7 +5,7 @@ import type {
 } from '@themoltnet/tasks-orchestrator';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { parseRoutingMap } from './routing.js';
+import { parseReviewConfig } from './review-config.js';
 import type { CreateBody } from './stages.js';
 import { createTestRepo, type TestRepo } from './test-repo.js';
 import {
@@ -85,9 +85,9 @@ function json(value: unknown): { summary: string } {
   return { summary: JSON.stringify(value) };
 }
 
-const routingMap = parseRoutingMap({
+const config = parseReviewConfig({
   version: 1,
-  rules: [
+  routing: [
     {
       id: 'cli',
       paths: ['apps/cli/src/**'],
@@ -149,7 +149,7 @@ describe('runDocsImpactReview', () => {
         git: repo.git,
         tasks: tasks.client,
         ctx: createSleepingContext(),
-        routingMap,
+        config,
       },
       { ...input(head), ...overrides },
     );

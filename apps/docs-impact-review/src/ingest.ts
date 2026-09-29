@@ -1,4 +1,5 @@
 import { type Git, requireFullOid } from './git.js';
+import { matchesAny } from './review-config.js';
 import { truncateAtLine } from './text.js';
 import type {
   BoundedDiff,
@@ -40,10 +41,12 @@ function categorize(
   path: string,
   binary: boolean,
   baseGenerated: ReadonlySet<string>,
+  docsExclude: readonly string[],
 ): FileCategory {
   if (binary) return 'binary';
   if (
     baseGenerated.has(path) ||
+    (DOCS_PATTERN.test(path) && matchesAny(path, docsExclude)) ||
     GENERATED_BASENAMES.has(basename(path)) ||
     GENERATED_PATTERNS.some((pattern) => pattern.test(path))
   ) {
@@ -154,10 +157,15 @@ function generatedFromBaseAttributes(
   return generated;
 }
 
+/**
+ * `docsExclude` globs mark Markdown the repository does not want reviewed
+ * (vendored or generated pages); it is categorized as generated.
+ */
 export function collectChangeSet(
   git: Git,
   baseRevision: string,
   headRevision: string,
+  docsExclude: readonly string[] = [],
 ): ChangeSet {
   requireFullOid(baseRevision, 'base revision');
   requireFullOid(headRevision, 'head revision');
@@ -179,7 +187,12 @@ export function collectChangeSet(
     status: statuses.get(record.path) ?? 'modified',
     additions: record.additions,
     deletions: record.deletions,
-    category: categorize(record.path, record.binary, baseGenerated),
+    category: categorize(
+      record.path,
+      record.binary,
+      baseGenerated,
+      docsExclude,
+    ),
   }));
   return { baseRevision, headRevision, files };
 }
