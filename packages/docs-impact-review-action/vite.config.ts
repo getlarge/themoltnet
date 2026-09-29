@@ -16,9 +16,9 @@ export default defineConfig({
     target: 'node22',
     rollupOptions: {
       input: {
+        prepare: 'src/prepare.ts',
         review: 'src/review.ts',
         comment: 'src/comment.ts',
-        eligibility: 'src/eligibility.ts',
       },
       output: { format: 'esm', entryFileNames: '[name].js' },
     },

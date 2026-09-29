@@ -62,7 +62,7 @@ var OSKeyringSecretProvider = class {
 };
 async function loadNativeKeytar() {
 	try {
-		const module = await import("./keytar-DC6qnqp6.js").then((m) => /* @__PURE__ */ __toESM(m.default, 1));
+		const module = await import("./keytar-DW82XCu8.js").then((m) => /* @__PURE__ */ __toESM(m.default, 1));
 		return module.default ?? module;
 	} catch (error) {
 		throw new Error("OS keyring native bindings are unavailable", { cause: error });

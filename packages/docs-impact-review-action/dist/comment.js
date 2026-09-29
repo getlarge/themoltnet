@@ -1,17 +1,8 @@
-import { n as renderComment, o as requireFullOid, t as DOCS_IMPACT_COMMENT_MARKER } from "./assets/report-C7i4IlI6.js";
-import { t as runMain } from "./assets/run-ClXssV5J.js";
+import { i as githubToken, r as githubApiUrl, t as GitHubApi } from "./assets/github-api-Bz5k9z37.js";
+import { t as runMain } from "./assets/run-DcpEUPSf.js";
+import { n as renderComment, s as requireFullOid, t as DOCS_IMPACT_COMMENT_MARKER } from "./assets/report-VGtIbLtg.js";
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-//#region ../../libs/docs-impact-review/src/config.ts
-/**
-* Environment access for this app (the only module allowed to read
-* `process.env`). Tokens come from the environment, never argv, so they stay
-* out of shell history and process listings.
-*/
-function githubToken() {
-	return (process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN)?.trim() || void 0;
-}
-//#endregion
 //#region ../../libs/docs-impact-review/src/comment.ts
 function runLine(revision, runUrl) {
 	return `Head \`${revision}\` · [workflow run](${runUrl})`;
@@ -32,8 +23,9 @@ function renderStale(reviewedRevision, currentRevision, runUrl) {
 		`The pull request now points at \`${currentRevision}\`. This result was not published as current guidance.`
 	].join("\n");
 }
-function renderPublished(report, runUrl) {
-	return `${renderComment(report)}\n\n[workflow run](${runUrl})`;
+function renderPublished(report, runUrl, correlationId) {
+	const correlation = correlationId ? ` · correlation \`${correlationId}\`` : "";
+	return `${renderComment(report)}\n\n[workflow run](${runUrl})${correlation}`;
 }
 function renderMissingReport(revision, runUrl) {
 	return [
@@ -51,49 +43,30 @@ function renderMissingReport(revision, runUrl) {
 function findDocsImpactComment(comments, author) {
 	return comments.find((comment) => comment.user?.login === author && comment.body?.includes("<!-- moltnet:docs-impact-review -->"));
 }
-var GitHubApi = class {
-	constructor(repo, token, author, fetchImpl = fetch) {
+/** The comment's GitHub calls, retried on rate limits and 5xx errors. */
+var CommentApi = class {
+	api;
+	constructor(repo, token, author, options) {
 		this.repo = repo;
-		this.token = token;
 		this.author = author;
-		this.fetchImpl = fetchImpl;
-	}
-	async request(path, init) {
-		const response = await this.fetchImpl(`https://api.github.com${path}`, {
-			...init,
-			headers: {
-				accept: "application/vnd.github+json",
-				authorization: `Bearer ${this.token}`,
-				"content-type": "application/json",
-				"x-github-api-version": "2022-11-28",
-				...init?.headers
-			}
+		this.api = new GitHubApi({
+			token,
+			...options
 		});
-		if (!response.ok) {
-			const detail = await response.json().then((body) => typeof body.message === "string" ? `: ${body.message}` : "").catch(() => "");
-			throw new Error(`GitHub API ${init?.method ?? "GET"} ${path} failed with ${response.status}${detail}`);
-		}
-		return await response.json();
 	}
 	async headSha(prNumber) {
-		return (await this.request(`/repos/${this.repo}/pulls/${prNumber}`)).head.sha;
+		return (await this.api.request(`/repos/${this.repo}/pulls/${prNumber}`)).head.sha;
 	}
 	async upsert(prNumber, body) {
-		const comments = [];
-		for (let page = 1;; page += 1) {
-			const batch = await this.request(`/repos/${this.repo}/issues/${prNumber}/comments?per_page=100&page=${page}`);
-			comments.push(...batch);
-			if (batch.length < 100) break;
-		}
-		const existing = findDocsImpactComment(comments, this.author);
+		const existing = findDocsImpactComment(await this.api.paginate(`/repos/${this.repo}/issues/${prNumber}/comments`), this.author);
 		if (existing) {
-			await this.request(`/repos/${this.repo}/issues/comments/${existing.id}`, {
+			await this.api.request(`/repos/${this.repo}/issues/comments/${existing.id}`, {
 				method: "PATCH",
 				body: JSON.stringify({ body })
 			});
 			return;
 		}
-		await this.request(`/repos/${this.repo}/issues/${prNumber}/comments`, {
+		await this.api.request(`/repos/${this.repo}/issues/${prNumber}/comments`, {
 			method: "POST",
 			body: JSON.stringify({ body })
 		});
@@ -114,7 +87,11 @@ function readReport(path) {
 */
 async function updateDocsImpactComment(args) {
 	requireFullOid(args.reviewedRevision, "reviewed revision");
-	const github = new GitHubApi(args.repo, args.token, args.author, args.fetchImpl);
+	const github = new CommentApi(args.repo, args.token, args.author, {
+		apiUrl: args.apiUrl,
+		fetchImpl: args.fetchImpl,
+		sleep: args.sleep
+	});
 	const current = requireFullOid(await github.headSha(args.prNumber), "current revision");
 	if (current !== args.reviewedRevision) {
 		await github.upsert(args.prNumber, renderStale(args.reviewedRevision, current, args.runUrl));
@@ -129,7 +106,7 @@ async function updateDocsImpactComment(args) {
 		await github.upsert(args.prNumber, renderMissingReport(args.reviewedRevision, args.runUrl));
 		return "missing";
 	}
-	await github.upsert(args.prNumber, renderPublished(report, args.runUrl));
+	await github.upsert(args.prNumber, renderPublished(report, args.runUrl, args.correlationId));
 	const after = await github.headSha(args.prNumber);
 	if (after !== args.reviewedRevision) {
 		await github.upsert(args.prNumber, renderStale(args.reviewedRevision, after, args.runUrl));
@@ -148,10 +125,11 @@ async function runCommentCli(args) {
 			revision: { type: "string" },
 			"run-url": { type: "string" },
 			report: { type: "string" },
-			author: { type: "string" }
+			author: { type: "string" },
+			"correlation-id": { type: "string" }
 		}
 	});
-	if (values.mode !== "start" && values.mode !== "publish" || !values.repo || !values.pr || !values.revision || !values["run-url"] || !values.author) throw new Error("Usage: comment --mode start|publish --repo owner/repo --pr N --revision SHA --run-url URL --author LOGIN [--report summary.json]");
+	if (values.mode !== "start" && values.mode !== "publish" || !values.repo || !values.pr || !values.revision || !values["run-url"] || !values.author) throw new Error("Usage: comment --mode start|publish --repo owner/repo --pr N --revision SHA --run-url URL --author LOGIN [--report summary.json] [--correlation-id UUID]");
 	const prNumber = Number(values.pr);
 	if (!Number.isInteger(prNumber) || prNumber < 1) throw new Error("--pr must be a positive integer");
 	const token = githubToken();
@@ -164,7 +142,9 @@ async function runCommentCli(args) {
 		runUrl: values["run-url"],
 		token,
 		author: values.author,
-		reportPath: values.report
+		reportPath: values.report,
+		correlationId: values["correlation-id"],
+		apiUrl: githubApiUrl()
 	});
 	process.stdout.write(`${JSON.stringify({ status })}\n`);
 }

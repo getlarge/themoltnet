@@ -1,5 +1,8 @@
-//#region src/run.ts
-/** Runs a CLI entry point and maps its result or failure to the exit code. */
+//#region ../../libs/docs-impact-review/src/run.ts
+/**
+* Runs a command-line entry point: its result becomes the exit code, and an
+* error is printed as `[fatal] <message>` with exit code 1.
+*/
 function runMain(cli) {
 	cli().then((code) => {
 		process.exitCode = code;

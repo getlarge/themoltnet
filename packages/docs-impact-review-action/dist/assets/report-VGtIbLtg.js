@@ -18,6 +18,19 @@ function createGit(cwd) {
 		]
 	});
 }
+/** Whether `path` exists at `revision`. */
+function existsAt(git, revision, path) {
+	try {
+		git([
+			"cat-file",
+			"-e",
+			`${revision}:${path}`
+		]);
+		return true;
+	} catch {
+		return false;
+	}
+}
 /**
 * Fetches only the revisions missing locally. A caller that already fetched
 * them (with credentials it did not persist, as a private repository needs)
@@ -47,13 +60,21 @@ function ensureRevisions(git, revisions) {
 //#endregion
 //#region ../../libs/docs-impact-review/src/report.ts
 var DOCS_IMPACT_COMMENT_MARKER = "<!-- moltnet:docs-impact-review -->";
+/**
+* Model-written text is published as the posting identity, so it must not
+* notify anyone or inject markup: `@` mentions are broken with a zero-width
+* space and `<`/`>` are escaped.
+*/
+function neutralize(text) {
+	return text.replace(/@(?=[A-Za-z0-9_-])/g, "@​").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
 function shorten(text, max = 280) {
-	const flat = text.replace(/\s+/g, " ").trim();
+	const flat = neutralize(text).replace(/\s+/g, " ").trim();
 	return flat.length <= max ? flat : `${flat.slice(0, max - 1).trimEnd()}…`;
 }
 /** A Markdown heading as plain text: `## Flags` → `Flags`. */
 function headingText(section) {
-	return section.replace(/^#{1,6}\s+/, "").trim();
+	return neutralize(section.replace(/^#{1,6}\s+/, "").trim());
 }
 /** `48s`, `2m 48s`; sub-second durations round up to `1s`. */
 function formatDuration(ms) {
@@ -74,7 +95,7 @@ function renderComment(report) {
 		DOCS_IMPACT_COMMENT_MARKER,
 		`**Docs impact: not reviewed** · ${head}`,
 		"",
-		`The review did not complete: ${report.error ?? "unknown error"}. No judgment was made.`
+		`The review did not complete: ${neutralize(report.error ?? "unknown error")}. No judgment was made.`
 	].join("\n");
 	const count = report.findings.length;
 	const lines = [DOCS_IMPACT_COMMENT_MARKER, [
@@ -83,6 +104,8 @@ function renderComment(report) {
 		...count > 0 ? [`${count} finding${count === 1 ? "" : "s"}`] : [],
 		`reviewed in ${formatDuration(report.timings.totalMs)}`
 	].join(" · ")];
+	if (report.config?.kind === "default") lines.push("", "_No `.github/docs-impact-review.json` at the base revision: reviewed with the default configuration, without routing rules._");
+	else if (report.config?.kind === "file") lines.push("", `_Reviewed with the configuration in \`${report.config.location ?? "a local file"}\`, not the base revision's._`);
 	const missing = new Set(report.selectedDocs.filter((doc) => doc.missing).map((doc) => doc.path));
 	if (count > 0) {
 		lines.push("");
@@ -97,7 +120,7 @@ function renderComment(report) {
 	if (hidden > 0) lines.push(`- …and ${hidden} more finding${hidden === 1 ? "" : "s"} in the workflow run report.`);
 	if (report.gaps.length > 0) {
 		lines.push("", "Not covered by this review:");
-		for (const gap of report.gaps) lines.push(`- \`${gap.scope}\`: ${gap.reason}`);
+		for (const gap of report.gaps) lines.push(`- \`${gap.scope}\`: ${neutralize(gap.reason)}`);
 	}
 	return lines.join("\n");
 }
@@ -156,4 +179,4 @@ function summarizeCorpus(reports) {
 	};
 }
 //#endregion
-export { ensureRevisions as a, createGit as i, renderComment as n, requireFullOid as o, summarizeCorpus as r, DOCS_IMPACT_COMMENT_MARKER as t };
+export { ensureRevisions as a, createGit as i, renderComment as n, existsAt as o, summarizeCorpus as r, requireFullOid as s, DOCS_IMPACT_COMMENT_MARKER as t };

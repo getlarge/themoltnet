@@ -4,7 +4,9 @@ description: >
   missing, incorrect, or unnecessary documentation, using chained MoltNet tasks
   claimed by agent-daemon-action workers. Run `step: prepare` in one job and
   `step: review` in another; the review never checks out or executes the pull
-  request head.
+  request head. Most repositories should call the reusable workflow
+  `.github/workflows/docs-impact-review-reusable.yml`, which wires both steps
+  and the workers.
 author: getlarge
 inputs:
   step:
@@ -72,34 +74,34 @@ inputs:
 outputs:
   skip:
     description: '`true` when the pull request is not reviewed (`prepare`).'
-    value: ${{ steps.gate.outputs.skip }}
+    value: ${{ steps.prepare.outputs.skip }}
   reason:
     description: Why the pull request is not reviewed (`prepare`).
-    value: ${{ steps.gate.outputs.reason }}
+    value: ${{ steps.prepare.outputs.reason }}
   pr-number:
-    value: ${{ steps.facts.outputs.pr-number }}
     description: Pull request number (`prepare`).
+    value: ${{ steps.prepare.outputs.pr-number }}
   base-sha:
-    value: ${{ steps.facts.outputs.base-sha }}
     description: Pinned base revision (`prepare`).
+    value: ${{ steps.prepare.outputs.base-sha }}
   head-sha:
-    value: ${{ steps.facts.outputs.head-sha }}
     description: Pinned head revision (`prepare`).
+    value: ${{ steps.prepare.outputs.head-sha }}
   correlation-id:
-    value: ${{ steps.facts.outputs.correlation-id }}
     description: Correlation id for this run's tasks (`prepare`).
+    value: ${{ steps.prepare.outputs.correlation-id }}
   profile:
-    value: ${{ steps.facts.outputs.profile }}
     description: Default stage profile (`prepare`).
+    value: ${{ steps.prepare.outputs.profile }}
   coverage-profile:
-    value: ${{ steps.facts.outputs.coverage-profile }}
     description: Coverage stage profile (`prepare`).
+    value: ${{ steps.prepare.outputs.coverage-profile }}
   docs-check-profile:
-    value: ${{ steps.facts.outputs.docs-check-profile }}
     description: Docs check stage profile (`prepare`).
+    value: ${{ steps.prepare.outputs.docs-check-profile }}
   worker-profiles:
-    value: ${{ steps.facts.outputs.worker-profiles }}
     description: JSON array of distinct profiles, one drain worker each (`prepare`).
+    value: ${{ steps.prepare.outputs.worker-profiles }}
   summary-path:
     value: ${{ steps.review.outputs.summary }}
     description: Path of the review summary JSON (`review`).
@@ -118,119 +120,26 @@ runs:
           *) echo "::error::step must be prepare or review, got '$STEP'" >&2; exit 1 ;;
         esac
 
-    - uses: actions/setup-node@v6
+    - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
       with:
         node-version: ${{ inputs.node-version }}
 
     # ---------------------------------------------------------------- prepare
 
-    - name: Collect pull request facts and pin revisions
-      id: facts
-      if: inputs.step == 'prepare'
-      uses: actions/github-script@v8
-      env:
-        REVIEW_PROFILE: ${{ inputs.profile }}
-        COVERAGE_PROFILE: ${{ inputs.coverage-profile }}
-        DOCS_CHECK_PROFILE: ${{ inputs.docs-check-profile }}
-        PROTECTED_PATHS: ${{ inputs.protected-paths }}
-      with:
-        github-token: ${{ inputs.github-token }}
-        script: |
-          const crypto = require('node:crypto');
-          const fs = require('node:fs');
-          const path = require('node:path');
-          const pullNumber =
-            context.eventName === 'pull_request'
-              ? context.payload.pull_request.number
-              : context.payload.issue?.number;
-          if (!pullNumber) {
-            core.setFailed('run on pull_request or on an issue_comment of a pull request');
-            return;
-          }
-          const profile = process.env.REVIEW_PROFILE;
-          if (!profile) {
-            core.setFailed('the `profile` input is required for step: prepare');
-            return;
-          }
-          const { data: pr } = await github.rest.pulls.get({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            pull_number: pullNumber,
-          });
-          const files = await github.paginate(github.rest.pulls.listFiles, {
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            pull_number: pullNumber,
-            per_page: 100,
-          });
-          const protectedPaths = (process.env.PROTECTED_PATHS ?? '')
-            .split('\n')
-            .map((line) => line.trim())
-            .filter(Boolean);
-          const factsPath = path.join(process.env.RUNNER_TEMP, 'docs-impact-pr-facts.json');
-          fs.writeFileSync(
-            factsPath,
-            JSON.stringify({
-              headRepo: pr.head.repo?.full_name ?? null,
-              baseRepo: `${context.repo.owner}/${context.repo.repo}`,
-              author: pr.user.login,
-              files: files.map((file) => ({
-                filename: file.filename,
-                ...(file.previous_filename
-                  ? { previous_filename: file.previous_filename }
-                  : {}),
-              })),
-              protectedPaths,
-            }),
-          );
-          const coverageProfile = process.env.COVERAGE_PROFILE || profile;
-          const docsCheckProfile = process.env.DOCS_CHECK_PROFILE || profile;
-          // One correlation per run: drain workers claim only this review's
-          // tasks, and a rerun never collides with a cancelled one.
-          const seed = [
-            `${context.repo.owner}/${context.repo.repo}`,
-            pr.number,
-            pr.head.sha,
-            context.runId,
-            context.runAttempt,
-          ].join(':');
-          const bytes = crypto.createHash('sha256').update(seed).digest().subarray(0, 16);
-          bytes[6] = (bytes[6] & 0x0f) | 0x50;
-          bytes[8] = (bytes[8] & 0x3f) | 0x80;
-          const hex = bytes.toString('hex');
-          core.setOutput('facts-path', factsPath);
-          core.setOutput('pr-number', String(pr.number));
-          core.setOutput('base-sha', pr.base.sha);
-          core.setOutput('head-sha', pr.head.sha);
-          core.setOutput(
-            'correlation-id',
-            `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`,
-          );
-          core.setOutput('profile', profile);
-          core.setOutput('coverage-profile', coverageProfile);
-          core.setOutput('docs-check-profile', docsCheckProfile);
-          // One drain worker per distinct profile, so stages on different
-          // models run in parallel.
-          core.setOutput(
-            'worker-profiles',
-            JSON.stringify([...new Set([profile, coverageProfile, docsCheckProfile])]),
-          );
-
-    - name: Check eligibility (fork, Dependabot, review-runtime changes)
-      id: gate
+    # Facts, pinned revisions, the correlation id, and the eligibility gate
+    # all come from the bundled, tested `prepare` command.
+    - name: Collect facts, pin revisions, check eligibility
+      id: prepare
       if: inputs.step == 'prepare'
       shell: bash
       env:
-        FACTS: ${{ steps.facts.outputs.facts-path }}
-        ACTION_PATH: ${{ github.action_path }}
-      run: |
-        set -euo pipefail
-        node "$ACTION_PATH/dist/eligibility.js" "$FACTS" | tee -a "$GITHUB_OUTPUT"
-        if grep -q '^skip=true' "$GITHUB_OUTPUT"; then
-          reason="$(grep '^reason=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
-          echo "::notice::Docs impact review skipped: $reason"
-          printf '### Docs impact review skipped\n\n%s\n' "$reason" >> "$GITHUB_STEP_SUMMARY"
-        fi
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        DIST: ${{ github.action_path }}/dist
+        PROFILE: ${{ inputs.profile }}
+        COVERAGE_PROFILE: ${{ inputs.coverage-profile }}
+        DOCS_CHECK_PROFILE: ${{ inputs.docs-check-profile }}
+        PROTECTED_PATHS: ${{ inputs.protected-paths }}
+      run: node "$DIST/prepare.js"
 
     # ----------------------------------------------------------------- review
 
@@ -315,19 +224,14 @@ runs:
         # alone is refused on a pull request.
         permission-pull-requests: write
 
-    # The reviewer runs from this action's committed bundle, so the action
-    # and the reviewer are always the same version.
-    - name: Resolve the reviewer and comment identity
+    - name: Resolve the comment identity
       id: setup
       if: inputs.step == 'review'
       shell: bash
       env:
-        ACTION_PATH: ${{ github.action_path }}
         APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
       run: |
         set -euo pipefail
-        echo "review=node $ACTION_PATH/dist/review.js" >> "$GITHUB_OUTPUT"
-        echo "comment=node $ACTION_PATH/dist/comment.js" >> "$GITHUB_OUTPUT"
         if [ -n "$APP_SLUG" ]; then
           echo "author=${APP_SLUG}[bot]" >> "$GITHUB_OUTPUT"
         else
@@ -342,13 +246,13 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ steps.app-token.outputs.token || inputs.github-token }}
-        COMMENT: ${{ steps.setup.outputs.comment }}
+        DIST: ${{ github.action_path }}/dist
         AUTHOR: ${{ steps.setup.outputs.author }}
         RUN_URL: ${{ steps.setup.outputs.run-url }}
         PR_NUMBER: ${{ steps.check-review.outputs.pr-number }}
         HEAD_SHA: ${{ steps.check-review.outputs.head-sha }}
       run: |
-        $COMMENT --mode start --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" \
+        node "$DIST/comment.js" --mode start --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" \
           --revision "$HEAD_SHA" --run-url "$RUN_URL" --author "$AUTHOR" \
           || echo "::warning::could not post the in-progress comment"
 
@@ -358,7 +262,7 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
-        REVIEW: ${{ steps.setup.outputs.review }}
+        DIST: ${{ github.action_path }}/dist
         PR_NUMBER: ${{ steps.check-review.outputs.pr-number }}
         BASE_SHA: ${{ steps.check-review.outputs.base-sha }}
         HEAD_SHA: ${{ steps.check-review.outputs.head-sha }}
@@ -371,7 +275,9 @@ runs:
         PROJECT_ID: ${{ inputs.project-id }}
       run: |
         summary="$RUNNER_TEMP/docs-impact-summary.json"
+        errors="$RUNNER_TEMP/docs-impact-stderr.log"
         echo "summary=$summary" >> "$GITHUB_OUTPUT"
+        echo "stderr=$errors" >> "$GITHUB_OUTPUT"
         args=(
           --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER"
           --base-sha "$BASE_SHA" --head-sha "$HEAD_SHA"
@@ -384,35 +290,40 @@ runs:
         [ -n "$PROJECT_ID" ] && args+=(--project "$PROJECT_ID")
         # Record the exit code instead of failing here, so the comment is
         # published before the step that fails the run.
+        # stderr is kept for the failure annotation and still shown in the log.
         set +e
-        $REVIEW "${args[@]}" > "$summary"
+        node "$DIST/review.js" "${args[@]}" > "$summary" 2> >(tee "$errors" >&2)
         echo "exit-code=$?" >> "$GITHUB_OUTPUT"
 
     - name: Publish the review comment
       id: publish
-      if: always() && inputs.step == 'review' && steps.review.outputs.summary != ''
+      if: always() && !cancelled() && inputs.step == 'review' && steps.review.outputs.summary != ''
       shell: bash
       env:
         GITHUB_TOKEN: ${{ steps.app-token.outputs.token || inputs.github-token }}
-        COMMENT: ${{ steps.setup.outputs.comment }}
+        DIST: ${{ github.action_path }}/dist
+        CORRELATION_ID: ${{ steps.check-review.outputs.correlation-id }}
         AUTHOR: ${{ steps.setup.outputs.author }}
         RUN_URL: ${{ steps.setup.outputs.run-url }}
         PR_NUMBER: ${{ steps.check-review.outputs.pr-number }}
         HEAD_SHA: ${{ steps.check-review.outputs.head-sha }}
         SUMMARY: ${{ steps.review.outputs.summary }}
       run: |
-        $COMMENT --mode publish --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" \
+        node "$DIST/comment.js" --mode publish --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" \
           --revision "$HEAD_SHA" --run-url "$RUN_URL" --author "$AUTHOR" \
-          --report "$SUMMARY"
+          --report "$SUMMARY" --correlation-id "$CORRELATION_ID"
 
     - name: Record the timing breakdown
       id: timings
-      if: always() && inputs.step == 'review' && steps.review.outputs.summary != ''
+      if: always() && !cancelled() && inputs.step == 'review' && steps.review.outputs.summary != ''
       shell: bash
       env:
         SUMMARY: ${{ steps.review.outputs.summary }}
+        CORRELATION_ID: ${{ steps.check-review.outputs.correlation-id }}
       run: |
-        if [ -s "$SUMMARY" ]; then
+        echo "Correlation id: \`$CORRELATION_ID\` (MoltNet tasks and worker logs)" >> "$GITHUB_STEP_SUMMARY"
+        # A crashed review can leave partial JSON; skip the timings then.
+        if jq -e . "$SUMMARY" >/dev/null 2>&1; then
           {
             echo '### Docs impact review timings'
             echo '```json'
@@ -425,14 +336,21 @@ runs:
     # visible as a failed run instead of a green one.
     - name: Fail when the review did not complete
       id: fail
-      if: always() && inputs.step == 'review' && steps.review.outputs.summary != ''
+      if: always() && !cancelled() && inputs.step == 'review' && steps.review.outputs.summary != ''
       shell: bash
       env:
         EXIT_CODE: ${{ steps.review.outputs.exit-code }}
         SUMMARY: ${{ steps.review.outputs.summary }}
+        STDERR: ${{ steps.review.outputs.stderr }}
+        CORRELATION_ID: ${{ steps.check-review.outputs.correlation-id }}
       run: |
         if [ "${EXIT_CODE:-1}" != 0 ]; then
-          echo "::error::docs impact review exited with ${EXIT_CODE:-unknown}" >&2
+          cause="$(grep -v '^[[:space:]]*$' "$STDERR" 2>/dev/null | tail -n 1 || true)"
+          echo "::error::docs impact review exited with ${EXIT_CODE:-unknown} (correlation $CORRELATION_ID)${cause:+: $cause}" >&2
+          exit 1
+        fi
+        if ! jq -e . "$SUMMARY" >/dev/null 2>&1; then
+          echo "::error::docs impact review wrote no valid report (correlation $CORRELATION_ID)" >&2
           exit 1
         fi
         if jq -e '.reports[0].status == "failed"' "$SUMMARY" >/dev/null; then

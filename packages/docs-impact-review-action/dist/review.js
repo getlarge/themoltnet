@@ -1,9 +1,9 @@
-import { a as ensureRevisions, i as createGit, n as renderComment, o as requireFullOid, r as summarizeCorpus } from "./assets/report-C7i4IlI6.js";
-import { t as runMain } from "./assets/run-ClXssV5J.js";
+import { t as runMain } from "./assets/run-DcpEUPSf.js";
+import { a as ensureRevisions, i as createGit, n as renderComment, o as existsAt, r as summarizeCorpus, s as requireFullOid } from "./assets/report-VGtIbLtg.js";
 import { createRequire } from "node:module";
-import { execFileSync } from "node:child_process";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { constants, lstatSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { basename, dirname, isAbsolute, join, parse, posix, relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
 import { homedir } from "node:os";
@@ -5936,12 +5936,12 @@ function format(link, base) {
 		default: return toStringV1(bytes, baseCache(link), base ?? base32.encoder);
 	}
 }
-var cache = /* @__PURE__ */ new WeakMap();
+var cache$1 = /* @__PURE__ */ new WeakMap();
 function baseCache(cid) {
-	const baseCache = cache.get(cid);
+	const baseCache = cache$1.get(cid);
 	if (baseCache == null) {
 		const baseCache = /* @__PURE__ */ new Map();
-		cache.set(cid, baseCache);
+		cache$1.set(cid, baseCache);
 		return baseCache;
 	}
 	return baseCache;
@@ -21232,7 +21232,7 @@ var OSKeyringSecretProvider = class {
 	provider() {
 		this.providerPromise ??= Promise.resolve().then(() => {
 			const service = storeSecretService(this.storeOptions);
-			return import("./assets/src-DKvfpmtl.js").then(({ OSKeyringSecretProvider: Provider }) => new Provider(this.platform, void 0, service)).catch((error) => {
+			return import("./assets/src-BPtf9AfV.js").then(({ OSKeyringSecretProvider: Provider }) => new Provider(this.platform, void 0, service)).catch((error) => {
 				throw new Error("OS keyring support requires @themoltnet/os-keyring; install it in this Node application", { cause: error });
 			});
 		});
@@ -25639,226 +25639,61 @@ function createSdkTaskClient(agent) {
 	};
 }
 //#endregion
-//#region ../../libs/docs-impact-review/src/routing.ts
-var RoutingRule = _Object_({
-	id: String$1({ minLength: 1 }),
-	paths: _Array_(String$1({ minLength: 1 }), { minItems: 1 }),
-	docs: _Array_(String$1({ minLength: 1 }), { minItems: 1 })
-}, { additionalProperties: false });
-_Object_({
-	version: Literal(1),
-	rules: _Array_(RoutingRule)
-}, { additionalProperties: false });
-function addReason(candidates, path, reason) {
-	const reasons = candidates.get(path) ?? [];
-	if (!reasons.includes(reason)) reasons.push(reason);
-	candidates.set(path, reasons);
-}
-/** Nearest README.md in an ancestor directory, excluding the repository root. */
-function nearestReadme(path, readmeExists) {
-	for (let dir = posix.dirname(path); dir !== "."; dir = posix.dirname(dir)) {
-		const candidate = `${dir}/README.md`;
-		if (readmeExists(candidate)) return candidate;
-	}
-}
-function routeDocs(files, map, readmeExists) {
-	const candidates = /* @__PURE__ */ new Map();
-	const unroutedSources = [];
-	for (const file of files) {
-		if (file.category === "docs") {
-			addReason(candidates, file.path, "changed-in-pr");
-			continue;
-		}
-		if (file.category !== "source") continue;
-		let routed = false;
-		for (const rule of map.rules) if (rule.paths.some((glob) => posix.matchesGlob(file.path, glob))) {
-			for (const doc of rule.docs) addReason(candidates, doc, "routing-map");
-			routed = true;
-		}
-		const readme = nearestReadme(file.path, readmeExists);
-		if (readme) {
-			addReason(candidates, readme, "nearest-readme");
-			routed = true;
-		}
-		if (!routed) unroutedSources.push(file.path);
-	}
-	return {
-		candidates,
-		unroutedSources
-	};
-}
-var MIN_TERM_LENGTH = 3;
-var MAX_TERM_LENGTH = 80;
+//#region ../../libs/docs-impact-review/src/glob.ts
 /**
-* One exact, fixed-string search over Markdown at the head revision. Model
-* proposed terms are data: they are passed to `git grep -F` as patterns and
-* never interpreted as regular expressions or shell.
+* The one glob matcher for repository configuration (`docs.exclude`,
+* `docs.agentFacing`, routing `paths`). Semantics follow git pathspecs rather
+* than shell globs, so a pattern means the same thing wherever it is used:
+*
+* - `**` matches any number of path segments, including none;
+* - `*` and `?` match within one segment;
+* - wildcards match names starting with a dot (`**\/CHANGELOG.md` matches
+*   `.github/CHANGELOG.md`);
+* - a pattern without wildcards matches that exact path and everything below
+*   it (`vendor` matches `vendor/a.md`).
 */
-function searchDocsForTerms(git, headRevision, terms, exclude = ["**/CHANGELOG.md"]) {
-	const usable = [...new Set(terms.map((term) => term.trim()).filter((term) => term.length >= MIN_TERM_LENGTH && term.length <= MAX_TERM_LENGTH && !/[\r\n]/.test(term)))];
-	const hits = /* @__PURE__ */ new Map();
-	if (usable.length === 0) return hits;
-	const prefix = `${headRevision}:`;
-	for (const term of usable) {
-		let output;
-		try {
-			output = git([
-				"grep",
-				"-I",
-				"-F",
-				"-l",
-				"-e",
-				term,
-				headRevision,
-				"--",
-				"*.md",
-				"*.mdx",
-				...exclude.map((glob) => `:(exclude,glob)${glob}`)
-			]);
-		} catch (error) {
-			if (error.status === 1) continue;
-			throw error;
+var WILDCARD = /[*?]/;
+var cache = /* @__PURE__ */ new Map();
+function escape(text) {
+	return text.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+}
+function compile(glob) {
+	const cached = cache.get(glob);
+	if (cached) return cached;
+	const pattern = glob.replace(/^\/+/, "").replace(/\/+$/, "");
+	let source;
+	if (!WILDCARD.test(pattern)) source = `${escape(pattern)}(?:/.*)?`;
+	else {
+		source = "";
+		for (let i = 0; i < pattern.length; i += 1) {
+			const char = pattern[i];
+			if (char === "*" && pattern[i + 1] === "*") {
+				const atStart = i === 0 || pattern[i - 1] === "/";
+				const next = pattern[i + 2];
+				if (atStart && next === "/") {
+					source += "(?:.*/)?";
+					i += 2;
+				} else if (atStart && next === void 0) {
+					source += ".*";
+					i += 1;
+				} else {
+					source += "[^/]*";
+					i += 1;
+				}
+			} else if (char === "*") source += "[^/]*";
+			else if (char === "?") source += "[^/]";
+			else source += escape(char);
 		}
-		for (const line of output.split("\n")) {
-			if (!line.startsWith(prefix)) continue;
-			const path = line.slice(prefix.length);
-			const terms = hits.get(path) ?? [];
-			if (!terms.includes(term)) terms.push(term);
-			hits.set(path, terms);
-		}
 	}
-	return hits;
+	const compiled = new RegExp(`^${source}$`);
+	cache.set(glob, compiled);
+	return compiled;
 }
-/**
-* Drops search terms that match too many files (e.g. `--help`): they flood
-* selection with unrelated pages and push relevant ones out.
-*/
-function dropGenericTerms(hits, maxFilesPerTerm = 8) {
-	const filesPerTerm = /* @__PURE__ */ new Map();
-	for (const terms of hits.values()) for (const term of terms) filesPerTerm.set(term, (filesPerTerm.get(term) ?? 0) + 1);
-	const generic = [...filesPerTerm.entries()].filter(([, count]) => count > maxFilesPerTerm).map(([term]) => term).sort();
-	const kept = /* @__PURE__ */ new Map();
-	for (const [path, terms] of hits) {
-		const specific = terms.filter((term) => !generic.includes(term));
-		if (specific.length > 0) kept.set(path, specific);
-	}
-	return {
-		hits: kept,
-		generic
-	};
-}
-/** Agent-facing instructions rank below user or operator docs. */
-var AGENT_FACING_PENALTY = 3;
-/** Candidates that must be reviewed; overflowing them is a coverage gap. */
-function isRequiredCandidate(reasons) {
-	return reasons.includes("changed-in-pr") || reasons.includes("routing-map");
-}
-var REASON_WEIGHT = {
-	"changed-in-pr": 8,
-	"routing-map": 4,
-	"symbol-search": 2,
-	"nearest-readme": 1
-};
-function selectDocs(candidates, maxDocs, agentFacing = []) {
-	const ranked = [...candidates.entries()].map(([path, reasons]) => ({
-		path,
-		reasons,
-		score: reasons.reduce((sum, reason) => sum + REASON_WEIGHT[reason], 0) - (agentFacing.some((glob) => posix.matchesGlob(path, glob)) && !isRequiredCandidate(reasons) ? AGENT_FACING_PENALTY : 0)
-	})).sort((a, b) => b.score - a.score || a.path.localeCompare(b.path));
-	return {
-		selected: ranked.slice(0, maxDocs).map(({ path, reasons }) => ({
-			path,
-			reasons
-		})),
-		overflow: ranked.slice(maxDocs).map(({ path, reasons }) => ({
-			path,
-			reasons
-		}))
-	};
-}
-//#endregion
-//#region ../../libs/docs-impact-review/src/review-config.ts
-/** Where a repository keeps its reviewer configuration. */
-var REVIEW_CONFIG_PATH = ".github/docs-impact-review.json";
-var ReviewConfigSchema = _Object_({
-	version: Literal(1),
-	routing: Optional(_Array_(RoutingRule)),
-	docs: Optional(_Object_({ exclude: Optional(_Array_(String$1({ minLength: 1 }), { minItems: 1 })) }, { additionalProperties: false })),
-	agentFacing: Optional(_Array_(String$1({ minLength: 1 }))),
-	instructions: Optional(String$1({
-		minLength: 1,
-		maxLength: 2e3
-	}))
-}, { additionalProperties: false });
-/** Changelogs record history; they are never documentation to review. */
-var DEFAULT_DOCS_EXCLUDE = ["**/CHANGELOG.md"];
-var DEFAULT_AGENT_FACING = [
-	".agents/**",
-	".claude/**",
-	".codex/**",
-	".cursor/**",
-	".pi/**",
-	"**/skills/**"
-];
-var DEFAULT_REVIEW_CONFIG = {
-	routing: {
-		version: 1,
-		rules: []
-	},
-	docsExclude: DEFAULT_DOCS_EXCLUDE,
-	agentFacing: DEFAULT_AGENT_FACING
-};
-function parseReviewConfig(value) {
-	if (!Check(ReviewConfigSchema, value)) {
-		const [first] = Errors(ReviewConfigSchema, value);
-		throw new Error(`invalid ${REVIEW_CONFIG_PATH} at ${first?.instancePath || "(root)"}: ${first?.message}`);
-	}
-	return {
-		routing: {
-			version: 1,
-			rules: value.routing ?? []
-		},
-		docsExclude: [...new Set([...DEFAULT_DOCS_EXCLUDE, ...value.docs?.exclude ?? []])],
-		agentFacing: value.agentFacing ?? DEFAULT_AGENT_FACING,
-		...value.instructions ? { instructions: value.instructions.trim() } : {}
-	};
-}
-/**
-* Reads the configuration from the base revision, never the head: a pull
-* request must not be able to change the rules it is reviewed by.
-*/
-function loadReviewConfig(git, baseRevision) {
-	git([
-		"cat-file",
-		"-e",
-		`${baseRevision}^{commit}`
-	]);
-	try {
-		git([
-			"cat-file",
-			"-e",
-			`${baseRevision}:${REVIEW_CONFIG_PATH}`
-		]);
-	} catch {
-		return {
-			config: DEFAULT_REVIEW_CONFIG,
-			source: "default"
-		};
-	}
-	const raw = git(["show", `${baseRevision}:${REVIEW_CONFIG_PATH}`]);
-	let parsed;
-	try {
-		parsed = JSON.parse(raw);
-	} catch (error) {
-		throw new Error(`${REVIEW_CONFIG_PATH} at ${baseRevision} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`);
-	}
-	return {
-		config: parseReviewConfig(parsed),
-		source: "base"
-	};
+function matchesGlob(path, glob) {
+	return compile(glob).test(path);
 }
 function matchesAny(path, globs) {
-	return globs.some((glob) => posix.matchesGlob(path, glob));
+	return globs.some((glob) => matchesGlob(path, glob));
 }
 //#endregion
 //#region ../../libs/docs-impact-review/src/text.ts
@@ -26073,6 +25908,265 @@ function boundDiff(git, changeSet, budget) {
 	}
 	result.text = blocks.map((entry) => entry.text).join("");
 	return result;
+}
+//#endregion
+//#region ../../libs/docs-impact-review/src/routing.ts
+var RoutingRule = _Object_({
+	id: String$1({ minLength: 1 }),
+	paths: _Array_(String$1({ minLength: 1 }), { minItems: 1 }),
+	docs: _Array_(String$1({ minLength: 1 }), { minItems: 1 })
+}, { additionalProperties: false });
+function addReason(candidates, path, reason) {
+	const reasons = candidates.get(path) ?? [];
+	if (!reasons.includes(reason)) reasons.push(reason);
+	candidates.set(path, reasons);
+}
+/** Nearest README.md in an ancestor directory, excluding the repository root. */
+function nearestReadme(path, readmeExists) {
+	for (let dir = posix.dirname(path); dir !== "."; dir = posix.dirname(dir)) {
+		const candidate = `${dir}/README.md`;
+		if (readmeExists(candidate)) return candidate;
+	}
+}
+function routeDocs(files, map, readmeExists) {
+	const candidates = /* @__PURE__ */ new Map();
+	const unroutedSources = [];
+	for (const file of files) {
+		if (file.category === "docs") {
+			addReason(candidates, file.path, "changed-in-pr");
+			continue;
+		}
+		if (file.category !== "source") continue;
+		let routed = false;
+		for (const rule of map.rules) if (matchesAny(file.path, rule.paths)) {
+			for (const doc of rule.docs) addReason(candidates, doc, "routing-map");
+			routed = true;
+		}
+		const readme = nearestReadme(file.path, readmeExists);
+		if (readme) {
+			addReason(candidates, readme, "nearest-readme");
+			routed = true;
+		}
+		if (!routed) unroutedSources.push(file.path);
+	}
+	return {
+		candidates,
+		unroutedSources
+	};
+}
+var MIN_TERM_LENGTH = 3;
+var MAX_TERM_LENGTH = 80;
+/**
+* One exact, fixed-string search over Markdown at the head revision. Model
+* proposed terms are data: they are passed to `git grep -F` as patterns and
+* never interpreted as regular expressions or shell.
+*/
+function searchDocsForTerms(git, headRevision, terms, exclude) {
+	const usable = [...new Set(terms.map((term) => term.trim()).filter((term) => term.length >= MIN_TERM_LENGTH && term.length <= MAX_TERM_LENGTH && !/[\r\n]/.test(term)))];
+	const hits = /* @__PURE__ */ new Map();
+	if (usable.length === 0) return hits;
+	const prefix = `${headRevision}:`;
+	for (const term of usable) {
+		let output;
+		try {
+			output = git([
+				"grep",
+				"-I",
+				"-F",
+				"-l",
+				"-e",
+				term,
+				headRevision,
+				"--",
+				"*.md",
+				"*.mdx"
+			]);
+		} catch (error) {
+			if (error.status === 1) continue;
+			throw error;
+		}
+		for (const line of output.split("\n")) {
+			if (!line.startsWith(prefix)) continue;
+			const path = line.slice(prefix.length);
+			if (matchesAny(path, exclude)) continue;
+			const terms = hits.get(path) ?? [];
+			if (!terms.includes(term)) terms.push(term);
+			hits.set(path, terms);
+		}
+	}
+	return hits;
+}
+/**
+* Drops search terms that match too many files (e.g. `--help`): they flood
+* selection with unrelated pages and push relevant ones out.
+*/
+function dropGenericTerms(hits, maxFilesPerTerm = 8) {
+	const filesPerTerm = /* @__PURE__ */ new Map();
+	for (const terms of hits.values()) for (const term of terms) filesPerTerm.set(term, (filesPerTerm.get(term) ?? 0) + 1);
+	const generic = [...filesPerTerm.entries()].filter(([, count]) => count > maxFilesPerTerm).map(([term]) => term).sort();
+	const kept = /* @__PURE__ */ new Map();
+	for (const [path, terms] of hits) {
+		const specific = terms.filter((term) => !generic.includes(term));
+		if (specific.length > 0) kept.set(path, specific);
+	}
+	return {
+		hits: kept,
+		generic
+	};
+}
+/** Agent-facing instructions rank below user or operator docs. */
+var AGENT_FACING_PENALTY = 3;
+/**
+* Drops candidates the repository excludes. Routing rules and nearest READMEs
+* can still name an excluded page; changed docs are already categorized away.
+*/
+function excludeCandidates(candidates, exclude) {
+	for (const path of candidates.keys()) if (matchesAny(path, exclude)) candidates.delete(path);
+}
+/** Candidates that must be reviewed; overflowing them is a coverage gap. */
+function isRequiredCandidate(reasons) {
+	return reasons.includes("changed-in-pr") || reasons.includes("routing-map");
+}
+var REASON_WEIGHT = {
+	"changed-in-pr": 8,
+	"routing-map": 4,
+	"symbol-search": 2,
+	"nearest-readme": 1
+};
+function selectDocs(candidates, maxDocs, agentFacing) {
+	const ranked = [...candidates.entries()].map(([path, reasons]) => ({
+		path,
+		reasons,
+		score: reasons.reduce((sum, reason) => sum + REASON_WEIGHT[reason], 0) - (matchesAny(path, agentFacing) && !isRequiredCandidate(reasons) ? AGENT_FACING_PENALTY : 0)
+	})).sort((a, b) => b.score - a.score || a.path.localeCompare(b.path));
+	return {
+		selected: ranked.slice(0, maxDocs).map(({ path, reasons }) => ({
+			path,
+			reasons
+		})),
+		overflow: ranked.slice(maxDocs).map(({ path, reasons }) => ({
+			path,
+			reasons
+		}))
+	};
+}
+//#endregion
+//#region ../../libs/docs-impact-review/src/review-config.ts
+/** Where a repository keeps its reviewer configuration. */
+var REVIEW_CONFIG_PATH = ".github/docs-impact-review.json";
+/** Extra reviewer guidance is advice, not a second brief. */
+var MAX_INSTRUCTIONS_LENGTH = 2e3;
+/** Schema errors reported at once, so one pass fixes several keys. */
+var MAX_REPORTED_ERRORS = 5;
+var GlobList = _Array_(String$1({ minLength: 1 }));
+var ReviewConfigSchema = _Object_({
+	version: Literal(1),
+	routing: Optional(_Array_(RoutingRule)),
+	docs: Optional(_Object_({
+		exclude: Optional(GlobList),
+		agentFacing: Optional(GlobList)
+	}, { additionalProperties: false })),
+	instructions: Optional(String$1({
+		minLength: 1,
+		maxLength: MAX_INSTRUCTIONS_LENGTH,
+		pattern: "\\S"
+	}))
+}, { additionalProperties: false });
+/** Changelogs record history; they are never documentation to review. */
+var DEFAULT_DOCS_EXCLUDE = ["**/CHANGELOG.md"];
+var DEFAULT_AGENT_FACING = [
+	".agents/**",
+	".claude/**",
+	".codex/**",
+	".cursor/**",
+	".pi/**",
+	"**/skills/**"
+];
+var DEFAULT_REVIEW_CONFIG = {
+	routing: { rules: [] },
+	docsExclude: DEFAULT_DOCS_EXCLUDE,
+	agentFacing: DEFAULT_AGENT_FACING
+};
+/** An invalid or unreadable configuration; the message names what to fix. */
+var ReviewConfigError = class extends Error {
+	constructor(message) {
+		super(message);
+		this.name = "ReviewConfigError";
+	}
+};
+function unique(values) {
+	return [...new Set(values)];
+}
+function describeErrors(value) {
+	const problems = [];
+	for (const error of Errors(ReviewConfigSchema, value)) {
+		if (problems.length === MAX_REPORTED_ERRORS) {
+			problems.push("…");
+			break;
+		}
+		const at = error.instancePath || "(root)";
+		const unknown = error.params.additionalProperties;
+		problems.push(unknown?.length ? `${at}: unknown key ${unknown.map((key) => `"${key}"`).join(", ")}` : `${at}: ${error.message}`);
+	}
+	return problems.join("; ");
+}
+/** `location` names the file in errors, e.g. `<path>@<revision>`. */
+function parseReviewConfig(value, location = REVIEW_CONFIG_PATH) {
+	if (!Check(ReviewConfigSchema, value)) throw new ReviewConfigError(`invalid ${location}: ${describeErrors(value)}. Keys this reviewer does not know may need a newer docs impact review version.`);
+	return {
+		routing: { rules: value.routing ?? [] },
+		docsExclude: unique([...DEFAULT_DOCS_EXCLUDE, ...value.docs?.exclude ?? []]),
+		agentFacing: unique([...DEFAULT_AGENT_FACING, ...value.docs?.agentFacing ?? []]),
+		...value.instructions ? { instructions: value.instructions.trim() } : {}
+	};
+}
+function parseJson(raw, location) {
+	try {
+		return JSON.parse(raw);
+	} catch (error) {
+		throw new ReviewConfigError(`${location} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`);
+	}
+}
+/**
+* Reads the configuration from the base revision, never the head: a pull
+* request must not be able to change the rules it is reviewed by.
+*/
+function loadReviewConfig(git, baseRevision) {
+	requireFullOid(baseRevision, "base revision");
+	if (!git([
+		"ls-tree",
+		"--name-only",
+		baseRevision,
+		"--",
+		".github/docs-impact-review.json"
+	]).trim()) return {
+		config: DEFAULT_REVIEW_CONFIG,
+		source: { kind: "default" }
+	};
+	const location = `${REVIEW_CONFIG_PATH}@${baseRevision}`;
+	return {
+		config: parseReviewConfig(parseJson(git(["show", `${baseRevision}:${REVIEW_CONFIG_PATH}`]), location), location),
+		source: {
+			kind: "base",
+			location
+		}
+	};
+}
+/** Reads a local configuration file, e.g. to replay older pull requests. */
+function loadReviewConfigFile(readFile, path) {
+	let raw;
+	try {
+		raw = readFile(path);
+	} catch (error) {
+		throw new ReviewConfigError(`cannot read ${path}: ${error instanceof Error ? error.message : String(error)}`);
+	}
+	return {
+		config: parseReviewConfig(parseJson(raw, path), path),
+		source: {
+			kind: "file",
+			location: path
+		}
+	};
 }
 //#endregion
 //#region ../../libs/docs-impact-review/src/types.ts
@@ -26898,21 +26992,8 @@ function countByCategory(files) {
 	for (const file of files) counts[file.category] += 1;
 	return counts;
 }
-function existsAt(git, revision, path) {
-	try {
-		git([
-			"cat-file",
-			"-e",
-			`${revision}:${path}`
-		]);
-		return true;
-	} catch {
-		return false;
-	}
-}
-function retrieveDocs(deps, changeSet, changes, budgets, gaps, searchTermsDropped) {
+function retrieveDocs(deps, config, changeSet, changes, budgets, gaps, searchTermsDropped) {
 	const { git } = deps;
-	const config = deps.config ?? DEFAULT_REVIEW_CONFIG;
 	const head = changeSet.headRevision;
 	const evidencePaths = new Set(changes.flatMap((change) => change.evidence.map((item) => item.path)));
 	const relevant = changeSet.files.filter((file) => file.category === "docs" || file.category === "source" && evidencePaths.has(file.path));
@@ -26932,7 +27013,7 @@ function retrieveDocs(deps, changeSet, changes, budgets, gaps, searchTermsDroppe
 		if (!reasons.includes("symbol-search")) reasons.push("symbol-search");
 		routed.candidates.set(path, reasons);
 	}
-	for (const path of routed.candidates.keys()) if (matchesAny(path, config.docsExclude)) routed.candidates.delete(path);
+	excludeCandidates(routed.candidates, config.docsExclude);
 	const selection = selectDocs(routed.candidates, budgets.maxDocs, config.agentFacing);
 	for (const { path, reasons } of selection.overflow) {
 		if (!isRequiredCandidate(reasons)) continue;
@@ -26955,12 +27036,46 @@ function retrieveDocs(deps, changeSet, changes, budgets, gaps, searchTermsDroppe
 		};
 	});
 }
-async function runDocsImpactReview(deps, rawInput) {
-	const config = deps.config ?? DEFAULT_REVIEW_CONFIG;
-	const input = config.instructions ? {
-		...rawInput,
-		instructions: config.instructions
-	} : rawInput;
+/**
+* A review that could not start because the repository configuration is
+* invalid. It fails like any other review, so the comment names the problem.
+*/
+function configFailureReport(target, message) {
+	return {
+		version: 1,
+		repo: target.repo,
+		pr: target.pr,
+		baseRevision: target.baseRevision,
+		headRevision: target.headRevision,
+		status: "failed",
+		error: message,
+		findings: [],
+		gaps: [],
+		searchTermsDropped: [],
+		repairs: [],
+		manifest: {
+			files: 0,
+			byCategory: countByCategory([]),
+			diffBytes: 0
+		},
+		selectedDocs: [],
+		contractChanges: [],
+		timings: {
+			ingestMs: 0,
+			retrievalMs: 0,
+			stages: {},
+			totalMs: 0
+		}
+	};
+}
+async function runDocsImpactReview(deps, reviewInput) {
+	const { config, configSource, ...rest } = reviewInput;
+	const input = {
+		...rest,
+		config,
+		configSource,
+		...config.instructions ? { instructions: config.instructions } : {}
+	};
 	const now = deps.now ?? Date.now;
 	const budgets = {
 		...DEFAULT_BUDGETS,
@@ -26979,6 +27094,10 @@ async function runDocsImpactReview(deps, rawInput) {
 		pr: input.pr,
 		baseRevision: input.baseRevision,
 		headRevision: input.headRevision,
+		config: {
+			...configSource,
+			routingRules: config.routing.rules.length
+		},
 		status: "completed",
 		findings: [],
 		gaps: [],
@@ -27054,7 +27173,7 @@ async function runDocsImpactReview(deps, rawInput) {
 			return finish();
 		}
 		const retrievalStarted = now();
-		const docs = retrieveDocs(deps, changeSet, report.contractChanges, budgets, report.gaps, report.searchTermsDropped);
+		const docs = retrieveDocs(deps, config, changeSet, report.contractChanges, budgets, report.gaps, report.searchTermsDropped);
 		report.selectedDocs = docs.map(({ path, reasons, missing }) => ({
 			path,
 			reasons,
@@ -27229,7 +27348,14 @@ async function runReviewCli(args) {
 	const diaryId = values.diary ?? "";
 	const prs = values.pr.map((value) => positiveInt(value, "--pr"));
 	const pollIntervalSec = values["poll-interval"] ? Number(values["poll-interval"]) : 2;
-	const configOverride = values.config ? parseReviewConfig(JSON.parse(readFileSync(values.config, "utf8"))) : void 0;
+	let configOverride;
+	if (values.config) try {
+		configOverride = loadReviewConfigFile((path) => readFileSync(path, "utf8"), values.config);
+	} catch (error) {
+		if (!(error instanceof ReviewConfigError)) throw error;
+		process.stderr.write(`${error.message}\n`);
+		return 2;
+	}
 	const git = createGit(process.cwd());
 	const agent = dryRun ? void 0 : await connect();
 	let profileId = values.profile ?? "";
@@ -27258,27 +27384,36 @@ async function runReviewCli(args) {
 		const base = requireFullOid(values["base-sha"] ?? meta.baseRefOid, "base revision");
 		const head = requireFullOid(values["head-sha"] ?? meta.headRefOid, "head revision");
 		ensureRevisions(git, [base, head]);
-		const config = configOverride ?? loadReviewConfig(git, base).config;
+		let loaded;
+		try {
+			loaded = configOverride ?? loadReviewConfig(git, base);
+		} catch (error) {
+			if (!(error instanceof ReviewConfigError)) throw error;
+			process.stderr.write(`[config] pr ${pr}: ${error.message}\n`);
+			const failed = configFailureReport({
+				repo,
+				pr,
+				baseRevision: base,
+				headRevision: head
+			}, error.message);
+			reports.push(failed);
+			process.stderr.write(`\n${renderComment(failed)}\n`);
+			continue;
+		}
+		const { config, source } = loaded;
+		process.stderr.write(`[config] pr ${pr}: ${source.kind === "default" ? `defaults (no ${REVIEW_CONFIG_PATH} at ${base})` : `${source.location}, ${config.routing.rules.length} routing rules`}\n`);
 		if (dryRun || !tasks) {
 			const changeSet = collectChangeSet(git, base, head, config.docsExclude);
 			const diff = boundDiff(git, changeSet, {
 				totalBytes: DEFAULT_BUDGETS.diffTotalBytes,
 				perFileBytes: DEFAULT_BUDGETS.diffPerFileBytes
 			});
-			const routed = routeDocs(changeSet.files, config.routing, (path) => {
-				try {
-					git([
-						"cat-file",
-						"-e",
-						`${head}:${path}`
-					]);
-					return true;
-				} catch {
-					return false;
-				}
-			});
+			const routed = routeDocs(changeSet.files, config.routing, (path) => existsAt(git, head, path));
+			excludeCandidates(routed.candidates, config.docsExclude);
+			const selection = selectDocs(routed.candidates, DEFAULT_BUDGETS.maxDocs, config.agentFacing);
 			process.stdout.write(`${JSON.stringify({
 				pr,
+				config: source,
 				files: changeSet.files.map(({ path, category }) => ({
 					path,
 					category
@@ -27287,6 +27422,7 @@ async function runReviewCli(args) {
 				omittedPaths: diff.omittedPaths,
 				truncatedPaths: diff.truncatedPaths,
 				candidateDocs: Object.fromEntries(routed.candidates),
+				selectedDocs: selection.selected.map((doc) => doc.path),
 				unroutedSources: routed.unroutedSources
 			}, null, 2)}\n`);
 			continue;
@@ -27294,9 +27430,10 @@ async function runReviewCli(args) {
 		const report = await runDocsImpactReview({
 			git,
 			tasks,
-			ctx: createSleepingContext(),
-			config
+			ctx: createSleepingContext()
 		}, {
+			config,
+			configSource: source,
 			repo,
 			pr,
 			prTitle: meta.title,

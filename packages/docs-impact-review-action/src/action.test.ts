@@ -3,14 +3,16 @@
  * runner does: with plain `bash` and plain `node`, against fake review and
  * comment commands.
  */
-import { spawnSync } from 'node:child_process';
+import { execFile, spawnSync } from 'node:child_process';
 import {
-  chmodSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
+import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -63,30 +65,35 @@ function outputs(): Record<string, string> {
   );
 }
 
-function writeFacts(facts: Record<string, unknown>): string {
-  const path = resolve(root, 'facts.json');
-  writeFileSync(
-    path,
-    JSON.stringify({
-      headRepo: 'o/r',
-      baseRepo: 'o/r',
-      author: 'someone',
-      files: [{ filename: 'src/a.ts' }],
-      ...facts,
-    }),
-  );
-  return path;
+/**
+ * A stand-in for the bundled commands: `review.js` and `comment.js` log their
+ * arguments to `<root>/<name>-args`; `review.js` prints $FAKE_STDOUT, writes
+ * $FAKE_STDERR, and exits with $FAKE_CODE.
+ */
+function fakeDist(): string {
+  const dist = resolve(root, 'fake-dist');
+  mkdirSync(dist, { recursive: true });
+  for (const name of ['review', 'comment']) {
+    writeFileSync(
+      resolve(dist, `${name}.js`),
+      [
+        "const { appendFileSync } = require('node:fs');",
+        `appendFileSync(${JSON.stringify(resolve(root, `${name}-args`))}, JSON.stringify(process.argv.slice(2)) + '\\n');`,
+        "process.stdout.write(process.env.FAKE_STDOUT ?? '');",
+        "process.stderr.write(process.env.FAKE_STDERR ?? '');",
+        'process.exitCode = Number(process.env.FAKE_CODE ?? 0);',
+      ].join('\n'),
+    );
+  }
+  writeFileSync(resolve(dist, 'package.json'), '{"type":"commonjs"}');
+  return dist;
 }
 
-/** A stand-in for the review CLI: logs its arguments and exits with $CODE. */
-function fakeReview(stdout: string, code = 0): string {
-  const path = resolve(root, 'review');
-  writeFileSync(
-    path,
-    `#!/usr/bin/env bash\nprintf '%s\\n' "$@" > "${root}/review-args"\nprintf '%s' '${stdout}'\nexit ${code}\n`,
-  );
-  chmodSync(path, 0o755);
-  return path;
+function calls(name: string): string[][] {
+  return readFileSync(resolve(root, `${name}-args`), 'utf8')
+    .trim()
+    .split('\n')
+    .map((line) => JSON.parse(line) as string[]);
 }
 
 const prepared = {
@@ -119,53 +126,74 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true });
 });
 
-describe('committed eligibility bundle', () => {
-  it('runs with plain node and reports why a pull request is skipped', () => {
+describe('prepare: committed bundle', () => {
+  let server: Server;
+  let apiUrl: string;
+
+  beforeEach(async () => {
+    server = createServer((request, response) => {
+      const body = request.url?.startsWith('/repos/o/r/pulls/7/files')
+        ? [{ filename: '.github/workflows/docs.yml' }]
+        : {
+            number: 7,
+            user: { login: 'someone' },
+            base: { sha: 'a'.repeat(40) },
+            head: { sha: 'b'.repeat(40), repo: { full_name: 'o/r' } },
+          };
+      response.setHeader('content-type', 'application/json');
+      response.end(JSON.stringify(body));
+    });
+    await new Promise<void>((done) => {
+      server.listen(0, '127.0.0.1', done);
+    });
+    apiUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  });
+
+  afterEach(async () => {
+    await new Promise<void>((done) => {
+      server.close(() => done());
+    });
+  });
+
+  it('runs with plain node and skips a pull request that changes a protected path', async () => {
     // Arrange
-    const facts = writeFacts({ author: 'dependabot[bot]' });
+    const event = resolve(root, 'event.json');
+    writeFileSync(event, JSON.stringify({ pull_request: { number: 7 } }));
 
     // Act
-    const result = spawnSync(
-      process.execPath,
-      [resolve(packageRoot, 'dist/eligibility.js'), facts],
-      { encoding: 'utf8' },
-    );
-
-    // Assert
-    expect(result.stdout).toBe(
-      'skip=true\nreason=Dependabot pull requests are not reviewed\n',
-    );
-  });
-});
-
-describe('prepare: gate', () => {
-  it('skips a pull request that changes a protected path', () => {
-    // Arrange
-    const facts = writeFacts({
-      files: [{ filename: '.github/workflows/docs.yml' }],
-      protectedPaths: ['.github/workflows/docs.yml'],
+    const stdout = await new Promise<string>((done, fail) => {
+      execFile(
+        process.execPath,
+        [resolve(packageRoot, 'dist/prepare.js')],
+        {
+          env: {
+            PATH: process.env.PATH ?? '',
+            GITHUB_API_URL: apiUrl,
+            GITHUB_TOKEN: 't',
+            GITHUB_REPOSITORY: 'o/r',
+            GITHUB_EVENT_NAME: 'pull_request',
+            GITHUB_EVENT_PATH: event,
+            GITHUB_RUN_ID: '100',
+            GITHUB_RUN_ATTEMPT: '1',
+            GITHUB_OUTPUT: output,
+            GITHUB_STEP_SUMMARY: resolve(root, 'summary.md'),
+            PROFILE: 'docs-review',
+            PROTECTED_PATHS: '.github/workflows/docs.yml',
+          },
+        },
+        (error, out) => (error ? fail(error) : done(out)),
+      );
     });
 
-    // Act
-    const result = runStep('gate', { FACTS: facts, ACTION_PATH: packageRoot });
-
     // Assert
-    expect(result.status).toBe(0);
-    expect(outputs()).toMatchObject({ skip: 'true' });
+    expect(outputs()).toMatchObject({
+      skip: 'true',
+      'pr-number': '7',
+      'head-sha': 'b'.repeat(40),
+    });
     expect(outputs().reason).toContain('.github/workflows/docs.yml');
-    expect(result.stdout).toContain('::notice::Docs impact review skipped');
-  });
-
-  it('lets an eligible pull request through', () => {
-    // Act
-    const result = runStep('gate', {
-      FACTS: writeFacts({}),
-      ACTION_PATH: packageRoot,
-    });
-
-    // Assert
-    expect(result.status).toBe(0);
-    expect(outputs()).toMatchObject({ skip: 'false', reason: '' });
+    expect(outputs()['correlation-id']).toMatch(/^[0-9a-f-]{36}$/);
+    expect(stdout).toContain('::notice::Docs impact review skipped');
   });
 });
 
@@ -272,6 +300,108 @@ describe('review: prepared input', () => {
   });
 });
 
+describe('review: comment identity', () => {
+  it.each([
+    ['my-app', 'my-app[bot]'],
+    ['', 'github-actions[bot]'],
+  ])('App slug %j comments as %s', (slug, author) => {
+    // Act
+    const result = runStep('setup', {
+      APP_SLUG: slug,
+      GITHUB_SERVER_URL: 'https://github.com',
+      GITHUB_RUN_ID: '100',
+    });
+
+    // Assert
+    expect(result.status).toBe(0);
+    expect(outputs()).toMatchObject({
+      author,
+      'run-url': 'https://github.com/o/r/actions/runs/100',
+    });
+  });
+});
+
+describe('review: comments', () => {
+  const env = {
+    AUTHOR: 'my-app[bot]',
+    RUN_URL: 'https://github.com/o/r/actions/runs/100',
+    PR_NUMBER: '7',
+    HEAD_SHA: 'b'.repeat(40),
+  };
+
+  it('posts the placeholder, and a failure there does not fail the step', () => {
+    // Act
+    const result = runStep('mark', {
+      ...env,
+      DIST: fakeDist(),
+      FAKE_CODE: '1',
+    });
+
+    // Assert
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('could not post the in-progress comment');
+    expect(calls('comment')).toEqual([
+      [
+        '--mode',
+        'start',
+        '--repo',
+        'o/r',
+        '--pr',
+        '7',
+        '--revision',
+        'b'.repeat(40),
+        '--run-url',
+        env.RUN_URL,
+        '--author',
+        'my-app[bot]',
+      ],
+    ]);
+  });
+
+  it('publishes the report with the correlation id', () => {
+    // Act
+    const result = runStep('publish', {
+      ...env,
+      DIST: fakeDist(),
+      SUMMARY: resolve(root, 'summary.json'),
+      CORRELATION_ID: 'c-1',
+    });
+
+    // Assert
+    expect(result.status).toBe(0);
+    expect(calls('comment')[0]).toEqual([
+      '--mode',
+      'publish',
+      '--repo',
+      'o/r',
+      '--pr',
+      '7',
+      '--revision',
+      'b'.repeat(40),
+      '--run-url',
+      env.RUN_URL,
+      '--author',
+      'my-app[bot]',
+      '--report',
+      resolve(root, 'summary.json'),
+      '--correlation-id',
+      'c-1',
+    ]);
+  });
+
+  it('never publishes after cancellation', () => {
+    // Assert: a cancelled run must not overwrite a newer run's comment.
+    for (const id of ['publish', 'timings', 'fail']) {
+      const step = action.runs.steps.find(
+        (candidate) => candidate.id === id,
+      ) as {
+        if?: string;
+      };
+      expect(step.if).toContain('!cancelled()');
+    }
+  });
+});
+
 describe('review: run', () => {
   const env = {
     PR_NUMBER: '7',
@@ -287,7 +417,8 @@ describe('review: run', () => {
     // Act
     const result = runStep('review', {
       ...env,
-      REVIEW: fakeReview('{}'),
+      DIST: fakeDist(),
+      FAKE_STDOUT: '{}',
       COVERAGE_PROFILE: 'coverage-model',
       DOCS_CHECK_PROFILE: '',
       PROJECT_ID: '',
@@ -295,43 +426,97 @@ describe('review: run', () => {
 
     // Assert
     expect(result.status).toBe(0);
-    const args = readFileSync(resolve(root, 'review-args'), 'utf8');
-    expect(args).toContain('--profile-coverage\ncoverage-model');
+    const [args] = calls('review');
+    expect(args).toEqual(
+      expect.arrayContaining(['--profile-coverage', 'coverage-model']),
+    );
     expect(args).not.toContain('--profile-docs-check');
     expect(args).not.toContain('--project');
     expect(outputs()['exit-code']).toBe('0');
   });
 
-  it('records a failing review instead of stopping before the comment', () => {
+  it('records a failing review and its stderr instead of stopping before the comment', () => {
     // Act
     const result = runStep('review', {
       ...env,
-      REVIEW: fakeReview('{"reports":[]}', 3),
+      DIST: fakeDist(),
+      FAKE_STDOUT: '{"reports":[]}',
+      FAKE_STDERR: 'loading\n[fatal] runtime profile "x" not found in team\n',
+      FAKE_CODE: '3',
     });
 
     // Assert
     expect(result.status).toBe(0);
     expect(outputs()['exit-code']).toBe('3');
     expect(readFileSync(outputs().summary, 'utf8')).toBe('{"reports":[]}');
+    expect(readFileSync(outputs().stderr, 'utf8')).toContain('[fatal]');
+  });
+
+  it('survives an action path with a space', () => {
+    // Arrange
+    const spaced = resolve(root, 'with space');
+    mkdirSync(spaced);
+    const dist = fakeDist();
+    const target = resolve(spaced, 'dist');
+    spawnSync('cp', ['-R', dist, target]);
+
+    // Act
+    const result = runStep('review', {
+      ...env,
+      DIST: target,
+      FAKE_STDOUT: '{}',
+    });
+
+    // Assert
+    expect(result.status).toBe(0);
+    expect(outputs()['exit-code']).toBe('0');
   });
 });
 
 describe('review: fail', () => {
   function summary(value: unknown): string {
     const path = resolve(root, 'docs-impact-summary.json');
-    writeFileSync(path, JSON.stringify(value));
+    writeFileSync(
+      path,
+      typeof value === 'string' ? value : JSON.stringify(value),
+    );
     return path;
   }
 
-  it('fails the run when the review exited non-zero', () => {
+  it('names the last error line and the correlation id when the review exited non-zero', () => {
+    // Arrange
+    const stderr = resolve(root, 'stderr.log');
+    writeFileSync(
+      stderr,
+      'loading\n[fatal] runtime profile "x" not found in team\n\n',
+    );
+
     // Act
     const result = runStep('fail', {
       EXIT_CODE: '1',
       SUMMARY: summary({ reports: [] }),
+      STDERR: stderr,
+      CORRELATION_ID: 'c-1',
     });
 
     // Assert
     expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      'exited with 1 (correlation c-1): [fatal] runtime profile "x" not found in team',
+    );
+  });
+
+  it('fails on a partial report instead of piling up jq errors', () => {
+    // Act
+    const result = runStep('fail', {
+      EXIT_CODE: '0',
+      SUMMARY: summary('{"reports":['),
+      CORRELATION_ID: 'c-1',
+    });
+
+    // Assert
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('wrote no valid report (correlation c-1)');
   });
 
   it('fails the run when the report says the review failed', () => {
