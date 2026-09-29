@@ -108,6 +108,12 @@ jobs:
   deploy:
     name: Deploy
     needs: [preflight, build-image]
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
     if: >-
       ${{ !cancelled() && needs.preflight.result == 'success' &&
           (needs.build-image.result == 'success' || needs.build-image.result == 'skipped') }}
