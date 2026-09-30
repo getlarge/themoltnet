@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import {
@@ -10,7 +11,7 @@ import {
 
 import {
   authHeaderValue,
-  missingBundleEntries,
+  releaseProblems,
   stableMajorTagFor,
   tagPushCommand,
 } from './github-action-release.js';
@@ -47,7 +48,7 @@ function normalizeBooleanOptionValues(args: string[]) {
   });
 }
 
-function parsePublisherArgs(argv = process.argv.slice(2)): Options {
+export function parsePublisherArgs(argv = process.argv.slice(2)): Options {
   const { values } = parseArgs({
     args: normalizeBooleanOptionValues(argv),
     options: {
@@ -142,21 +143,6 @@ function git(
   }).trim();
 }
 
-// `git status --porcelain`, not `git diff`: the bundle code-splits into
-// content-hashed chunks, and a renamed chunk is untracked, which `git diff`
-// does not report.
-function assertBundleCommitted(bundleDir: string) {
-  const changes = git(['status', '--porcelain', '--', bundleDir]);
-  if (changes) {
-    throw new Error(
-      `${bundleDir} does not match its sources:\n${changes}\n` +
-        'Merge the open "chore(actions): refresh action bundles" PR ' +
-        '(branch automation/action-bundle-sync, opened by sync-action-bundle.yml) ' +
-        'or commit a rebuilt bundle before releasing.',
-    );
-  }
-}
-
 async function resolveProjectRoot(projectName: string) {
   const graph = await createProjectGraphAsync({ exitOnError: false });
   const projects = readProjectsConfigurationFromProjectGraph(graph).projects;
@@ -179,19 +165,27 @@ async function main() {
       throw new Error(`GitHub Action release artifact is missing: ${path}`);
     }
   }
-  // Each action runs its own entry points (`node dist/<entry>`).
-  const missing = missingBundleEntries(bundleDir, options.entries);
-  if (missing.length > 0) {
+  // Each action runs its own entry points (`node dist/<entry>`); a
+  // workflow at this tag may also run another action's bundle from the same
+  // commit, so a stale one must not ship under this release either.
+  const otherBundleDirs = await Promise.all(
+    options.alsoVerify.map(async (other) =>
+      join(await resolveProjectRoot(other), 'dist'),
+    ),
+  );
+  const problems = releaseProblems({
+    root: git(['rev-parse', '--show-toplevel']),
+    bundleDir,
+    entries: options.entries,
+    otherBundleDirs,
+  });
+  if (problems.length > 0) {
     throw new Error(
-      `GitHub Action bundle ${bundleDir} lacks: ${missing.join(', ')}`,
+      `${options.project} is not ready to release:\n- ${problems.join('\n- ')}\n` +
+        'Merge the open "fix(actions): refresh action bundles" PR ' +
+        '(branch automation/action-bundle-sync, opened by sync-action-bundle.yml), ' +
+        'or commit rebuilt bundles and refreshed runtime locks, before releasing.',
     );
-  }
-
-  assertBundleCommitted(bundleDir);
-  // A workflow at this tag may also run another action's bundle from the
-  // same commit; a stale one must not ship under this release.
-  for (const other of options.alsoVerify) {
-    assertBundleCommitted(join(await resolveProjectRoot(other), 'dist'));
   }
 
   const packageJson = JSON.parse(
@@ -241,7 +235,12 @@ async function main() {
   git(push.args, { stdio: 'inherit', env: push.env });
 }
 
-main().catch((error: unknown) => {
-  process.stderr.write(`${error instanceof Error ? error.message : error}\n`);
-  process.exitCode = 1;
-});
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  main().catch((error: unknown) => {
+    process.stderr.write(`${error instanceof Error ? error.message : error}\n`);
+    process.exitCode = 1;
+  });
+}

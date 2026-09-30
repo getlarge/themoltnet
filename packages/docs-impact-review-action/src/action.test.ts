@@ -204,14 +204,18 @@ describe('prepare: committed bundle', () => {
   });
 });
 
+// The checks themselves are tested in the library (prepared.test.ts); these
+// run the committed bundle the way the step does.
 describe('review: prepared input', () => {
+  const dist = resolve(packageRoot, 'dist');
+
   beforeEach(() => {
     spawnSync('git', ['init', '-q'], { cwd: root });
   });
 
   it('reads the pinned revisions, profiles, and correlation id', () => {
     // Act
-    const result = runStep('check-review', reviewInputs);
+    const result = runStep('check-review', { ...reviewInputs, DIST: dist });
 
     // Assert
     expect(result.stderr).not.toContain('::error::');
@@ -226,108 +230,21 @@ describe('review: prepared input', () => {
     });
   });
 
-  it('requires the prepare outputs', () => {
-    // Act
-    const result = runStep('check-review', { ...reviewInputs, PREPARED: '' });
-
-    // Assert
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain("the prepare step's prepared output");
-  });
-
-  it('refuses a pull request that prepare skipped', () => {
+  it('turns a wiring problem into one encoded annotation', () => {
     // Act
     const result = runStep('check-review', {
       ...reviewInputs,
-      PREPARED: JSON.stringify({ ...prepared, eligible: false }),
-    });
-
-    // Assert
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain('not eligible');
-  });
-
-  it('refuses a payload version it does not know', () => {
-    // Act
-    const result = runStep('check-review', {
-      ...reviewInputs,
-      PREPARED: JSON.stringify({ ...prepared, v: 2 }),
-    });
-
-    // Assert
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain("version '2' is not supported");
-  });
-
-  it('asks to re-run all jobs when only the review was re-run', () => {
-    // Act
-    const result = runStep('check-review', {
-      ...reviewInputs,
+      DIST: dist,
       GITHUB_RUN_ATTEMPT: '2',
     });
 
     // Assert
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain('re-run all jobs, not only failed ones');
-  });
-
-  it('names every invalid prepared field', () => {
-    // Act
-    const result = runStep('check-review', {
-      ...reviewInputs,
-      PREPARED: JSON.stringify({
-        ...prepared,
-        headSha: 'b'.repeat(7),
-        correlationId: 'chosen-by-hand',
-      }),
-    });
-
-    // Assert
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain(
-      'missing or invalid: headSha correlationId',
-    );
-  });
-
-  it('names missing team and diary inputs', () => {
-    // Act
-    const result = runStep('check-review', {
-      ...reviewInputs,
-      TEAM_ID: '',
-      DIARY_ID: '',
-    });
-
-    // Assert
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain('missing inputs: TEAM_ID DIARY_ID');
-  });
-
-  it.each([
-    ['an App id without its key', { APP_ID: '1', APP_KEY: '' }],
-    ['an App key without its id', { APP_ID: '', APP_KEY: 'k' }],
-  ])('rejects %s', (_label, app) => {
-    // Act
-    const result = runStep('check-review', { ...reviewInputs, ...app });
-
-    // Assert
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain('set app-id and app-private-key together');
-  });
-
-  it('requires a checkout of the repository', () => {
-    // Arrange: a directory that is not a git work tree.
-    const outside = mkdtempSync(resolve(tmpdir(), 'docs-impact-outside-'));
-
-    try {
-      // Act
-      const result = runStep('check-review', reviewInputs, outside);
-
-      // Assert
-      expect(result.status).toBe(1);
-      expect(result.stderr).toContain('check out the repository');
-    } finally {
-      rmSync(outside, { recursive: true, force: true });
-    }
+    expect(result.stderr.trim().split('\n')).toEqual([
+      expect.stringMatching(
+        /^::error::this is run attempt 2, .*re-run all jobs/,
+      ),
+    ]);
   });
 });
 
@@ -365,6 +282,7 @@ describe('review: comments', () => {
     const result = runStep('mark', {
       ...env,
       DIST: fakeDist(),
+      CORRELATION_ID: 'c-1',
       FAKE_CODE: '1',
     });
 
@@ -385,6 +303,8 @@ describe('review: comments', () => {
         env.RUN_URL,
         '--author',
         'my-app[bot]',
+        '--correlation-id',
+        'c-1',
       ],
     ]);
   });
@@ -436,6 +356,10 @@ describe('review: comments', () => {
 
     // Assert
     expect(step.if).toContain('cancelled()');
+    // A publish that failed leaves the placeholder too.
+    expect(step.if).toContain(
+      "failure() && steps.publish.outcome == 'failure'",
+    );
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('could not mark the review not completed');
     expect(calls('comment')[0]).toEqual([
@@ -550,6 +474,34 @@ describe('review: fail', () => {
     return path;
   }
 
+  it('names the report error, encoded, before the stderr tail', () => {
+    // Arrange: a failed report makes the review exit 1, and its stderr ends
+    // with the rendered comment, not the cause.
+    const stderr = resolve(root, 'stderr.log');
+    writeFileSync(stderr, '_Configuration: `x`._\n');
+
+    // Act
+    const result = runStep('fail', {
+      EXIT_CODE: '1',
+      SUMMARY: summary({
+        reports: [
+          {
+            status: 'failed',
+            error: 'invalid config\n::warning::injected 100%',
+          },
+        ],
+      }),
+      STDERR: stderr,
+      CORRELATION_ID: 'c-1',
+    });
+
+    // Assert
+    expect(result.status).toBe(1);
+    expect(result.stderr.trim().split('\n')).toEqual([
+      '::error::docs impact review failed (correlation c-1): invalid config%0A::warning::injected 100%25',
+    ]);
+  });
+
   it('names the last error line and the correlation id when the review exited non-zero', () => {
     // Arrange
     const stderr = resolve(root, 'stderr.log');
@@ -619,5 +571,57 @@ describe('inputs', () => {
   it('never asks the caller for a correlation id', () => {
     // Assert
     expect(Object.keys(action.inputs)).not.toContain('correlation-id');
+  });
+});
+
+describe('fetch-revisions.sh', () => {
+  const script = resolve(packageRoot, 'scripts/fetch-revisions.sh');
+
+  function run(args: string[]) {
+    // A fake git records its arguments and the config it was given.
+    const bin = resolve(root, 'bin');
+    mkdirSync(bin, { recursive: true });
+    writeFileSync(
+      resolve(bin, 'git'),
+      [
+        '#!/usr/bin/env bash',
+        `printf '%s\\n' "$*" > "${root}/git-args"`,
+        `printf '%s|%s\\n' "$GIT_CONFIG_KEY_0" "$GIT_CONFIG_VALUE_0" > "${root}/git-config"`,
+      ].join('\n'),
+      { mode: 0o755 },
+    );
+    return spawnSync('bash', [script, ...args], {
+      encoding: 'utf8',
+      env: {
+        PATH: `${bin}:${process.env.PATH ?? ''}`,
+        GH_TOKEN: 'ghs_secret',
+        GITHUB_SERVER_URL: 'https://github.com',
+      },
+    });
+  }
+
+  it('authenticates through git config in the environment, never argv', () => {
+    // Act
+    const result = run(['--depth', '1', 'b'.repeat(40)]);
+
+    // Assert
+    const header = Buffer.from('x-access-token:ghs_secret').toString('base64');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(`::add-mask::${header}`);
+    expect(readFileSync(resolve(root, 'git-args'), 'utf8').trim()).toBe(
+      `fetch --no-tags --depth=1 origin ${'b'.repeat(40)}`,
+    );
+    expect(readFileSync(resolve(root, 'git-config'), 'utf8').trim()).toBe(
+      `http.https://github.com/.extraheader|AUTHORIZATION: basic ${header}`,
+    );
+  });
+
+  it('refuses anything but full commit ids', () => {
+    // Act
+    const result = run(['main']);
+
+    // Assert
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain('not a full commit id: main');
   });
 });

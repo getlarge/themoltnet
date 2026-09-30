@@ -9,9 +9,10 @@ name: Docs impact review (reusable)
 # packages/agent-daemon-action) is checked out from this workflow's own
 # commit, resolved once in `prepare` and pinned for every job, so the
 # reviewer and the workers' action always come from the same commit. The
-# agent-daemon binary the workers run is a separate release, chosen by
-# `daemon-version`. The reviewed pull request head is fetched as inert git
-# data and never checked out or executed.
+# workers run the signed agent-daemon release recorded at that commit
+# (apps/agent-daemon/package.json) unless `daemon-version` says otherwise, so
+# a pinned workflow reproduces its runs. The reviewed pull request head is
+# fetched as inert git data and never checked out or executed.
 
 on:
   workflow_call:
@@ -72,12 +73,12 @@ on:
         default: ''
       daemon-version:
         description: >
-          agent-daemon release the workers run (`latest` or an exact
-          version); pin it to control upgrades. It is released separately
-          from this workflow. The workers run the signed release bundle, never
-          code from the checkout.
+          agent-daemon release the workers run: an exact version or
+          `latest`. Empty (the default) means the release recorded at this
+          workflow's commit, so a pinned workflow tag reproduces its runs. The
+          workers run the signed release bundle, never code from the checkout.
         type: string
-        default: latest
+        default: ''
       runtime-ref:
         description: >
           Advanced: revision of the runtime repository to run the review
@@ -142,7 +143,13 @@ jobs:
           WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
           WORKFLOW_SHA: ${{ job.workflow_sha }}
           RUNTIME_REF: ${{ inputs.runtime-ref }}
+          DAEMON_VERSION: ${{ inputs.daemon-version }}
         run: |
+          # The runtime checkout holds no daemon sources to run.
+          if [ "$DAEMON_VERSION" = workspace ]; then
+            echo "::error::daemon-version: workspace is not available here; use an exact version, latest, or leave it empty" >&2
+            exit 1
+          fi
           if [ -z "$WORKFLOW_REPOSITORY" ]; then
             echo "::error::job.workflow_repository is empty: this runner cannot tell which repository holds the reusable workflow" >&2
             exit 1
@@ -209,22 +216,6 @@ jobs:
           ref: ${{ fromJSON(needs.prepare.outputs.prepared).baseSha }}
           fetch-depth: 0
           persist-credentials: false
-      # Authenticate this one fetch without writing the token to .git/config,
-      # so private repositories work and nothing later can reuse it. The
-      # header goes through the environment, not the command line, and its
-      # base64 form is masked (GitHub masks only the raw token).
-      - name: Fetch the reviewed revisions as inert git data
-        env:
-          BASE_SHA: ${{ fromJSON(needs.prepare.outputs.prepared).baseSha }}
-          HEAD_SHA: ${{ fromJSON(needs.prepare.outputs.prepared).headSha }}
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
-          echo "::add-mask::$auth"
-          GIT_CONFIG_COUNT=1 \
-            GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL}/.extraheader" \
-            GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
-            git fetch --no-tags origin "$BASE_SHA" "$HEAD_SHA"
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: ${{ needs.prepare.outputs.runtime-repository }}
@@ -232,6 +223,12 @@ jobs:
           path: .docs-impact-runtime
           sparse-checkout: packages/docs-impact-review-action
           persist-credentials: false
+      - name: Fetch the reviewed revisions as inert git data
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ fromJSON(needs.prepare.outputs.prepared).baseSha }}
+          HEAD_SHA: ${{ fromJSON(needs.prepare.outputs.prepared).headSha }}
+        run: .docs-impact-runtime/packages/docs-impact-review-action/scripts/fetch-revisions.sh "$BASE_SHA" "$HEAD_SHA"
       # Credentials are given only to the step that uses them.
       - name: Review documentation impact
         uses: ./.docs-impact-runtime/packages/docs-impact-review-action
@@ -270,25 +267,37 @@ jobs:
         with:
           ref: ${{ fromJSON(needs.prepare.outputs.prepared).baseSha }}
           persist-credentials: false
-      # The agent sandbox works on this checkout: never persist the token.
-      - name: Fetch the reviewed commit as inert git data
-        env:
-          HEAD_SHA: ${{ fromJSON(needs.prepare.outputs.prepared).headSha }}
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
-          echo "::add-mask::$auth"
-          GIT_CONFIG_COUNT=1 \
-            GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL}/.extraheader" \
-            GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
-            git fetch --no-tags --depth=1 origin "$HEAD_SHA"
+      # agent-daemon-action reads the CLI version next to it, and the default
+      # daemon release is the one recorded at the runtime commit.
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: ${{ needs.prepare.outputs.runtime-repository }}
           ref: ${{ needs.prepare.outputs.runtime-sha }}
           path: .docs-impact-runtime
-          sparse-checkout: packages/agent-daemon-action
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /packages/agent-daemon-action/
+            /packages/docs-impact-review-action/scripts/
+            /packages/cli/package.json
+            /apps/agent-daemon/package.json
           persist-credentials: false
+      # The agent sandbox works on the base checkout: never persist the token.
+      - name: Fetch the reviewed commit as inert git data
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ fromJSON(needs.prepare.outputs.prepared).headSha }}
+        run: .docs-impact-runtime/packages/docs-impact-review-action/scripts/fetch-revisions.sh --depth 1 "$HEAD_SHA"
+      - name: Resolve the agent-daemon release
+        id: daemon-version
+        env:
+          REQUESTED: ${{ inputs.daemon-version }}
+        run: |
+          version="${REQUESTED:-$(jq -r .version .docs-impact-runtime/apps/agent-daemon/package.json)}"
+          if [ "$version" != latest ] && ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::agent-daemon release '$version' is not an exact version or latest" >&2
+            exit 1
+          fi
+          echo "value=$version" >> "$GITHUB_OUTPUT"
       # Credentials and provider keys are given only to the daemon step.
       - name: Drain this review's tasks
         uses: ./.docs-impact-runtime/packages/agent-daemon-action
@@ -317,5 +326,5 @@ jobs:
           # backoff cap keeps the next claim within seconds.
           max-poll-interval-ms: '3000'
           profile: ${{ matrix.profile }}
-          daemon-version: ${{ inputs.daemon-version }}
+          daemon-version: ${{ steps.daemon-version.outputs.value }}
           project-id: ${{ inputs.project-id }}

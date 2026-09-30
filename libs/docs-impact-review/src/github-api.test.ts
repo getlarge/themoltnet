@@ -23,7 +23,7 @@ function sequence(
   return { urls, fetchImpl };
 }
 
-const FAST = { baseDelay: 1, maxDelay: 5, jitter: false };
+const FAST = { baseDelay: 1, jitter: false };
 
 describe('GitHubApi', () => {
   it('retries rate limits and server errors on reads, logging each retry', async () => {
@@ -102,6 +102,81 @@ describe('GitHubApi', () => {
 
     // Assert
     expect(result).toEqual({ id: 1 });
+    expect(urls).toHaveLength(2);
+  });
+
+  it('fails at once on a rate limit longer than the run waits', async () => {
+    // Arrange
+    const { urls, fetchImpl } = sequence([
+      { status: 403, headers: { 'retry-after': '3600' } },
+      { status: 200, body: {} },
+    ]);
+    const api = new GitHubApi({
+      token: 't',
+      fetchImpl,
+      retry: FAST,
+      log: () => {},
+    });
+
+    // Act / Assert
+    await expect(api.request('/repos/o/r')).rejects.toMatchObject({
+      message:
+        'GitHub API GET /repos/o/r is rate limited for 3600 s, longer than this run waits',
+      status: 429,
+    });
+    expect(urls).toHaveLength(1);
+  });
+
+  it('waits for a primary rate limit reset within the budget', async () => {
+    // Arrange
+    const now = 1_000_000;
+    const { urls, fetchImpl } = sequence([
+      {
+        status: 403,
+        headers: {
+          'x-ratelimit-remaining': '0',
+          'x-ratelimit-reset': String(now / 1_000),
+        },
+      },
+      { status: 200, body: { ok: true } },
+    ]);
+    const api = new GitHubApi({
+      token: 't',
+      fetchImpl,
+      retry: FAST,
+      log: () => {},
+      now: () => now,
+    });
+
+    // Act
+    const result = await api.request('/repos/o/r');
+
+    // Assert
+    expect(result).toEqual({ ok: true });
+    expect(urls).toHaveLength(2);
+  });
+
+  it('retries an idempotent edit on a server error', async () => {
+    // Arrange
+    const { urls, fetchImpl } = sequence([
+      { status: 502 },
+      { status: 200, body: { id: 5 } },
+    ]);
+    const api = new GitHubApi({
+      token: 't',
+      fetchImpl,
+      retry: FAST,
+      log: () => {},
+    });
+
+    // Act
+    const result = await api.request('/repos/o/r/issues/comments/5', {
+      method: 'PATCH',
+      body: '{}',
+    });
+
+    // Assert
+    expect(result).toEqual({ id: 5 });
     expect(urls).toHaveLength(2);
   });
 

@@ -26,6 +26,7 @@ describe('action runtime locks', () => {
     writeFileSync(join(root, 'workflow.yml'), 'on: workflow_call\n');
     writeFileSync(join(root, 'dep/src/main.ts'), 'export {};\n');
     writeFileSync(join(root, 'dep/src/main.test.ts'), 'test\n');
+    execFileSync('git', ['add', '-A'], { cwd: root });
     writeFileSync(join(root, spec.lock), computeLock(root, spec));
   });
 
@@ -40,11 +41,13 @@ describe('action runtime locks', () => {
     expect(staleLocks(root, [spec])).toEqual([spec.lock]);
   });
 
-  it('ignores excluded files and notices new ones', () => {
+  it('ignores excluded files and untracked ones, and notices staged ones', () => {
     // Act / Assert
     writeFileSync(join(root, 'dep/src/main.test.ts'), 'changed\n');
     expect(staleLocks(root, [spec])).toEqual([]);
     writeFileSync(join(root, 'dep/src/extra.ts'), 'export {};\n');
+    expect(staleLocks(root, [spec])).toEqual([]);
+    execFileSync('git', ['add', 'dep/src/extra.ts'], { cwd: root });
     expect(staleLocks(root, [spec])).toEqual([spec.lock]);
   });
 

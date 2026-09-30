@@ -265,11 +265,36 @@ describe('neutralize', () => {
     expect(body).not.toContain('<img');
   });
 
-  it('keeps only the text of Markdown links and images', () => {
+  it.each([
+    [
+      'a link',
+      'see [the docs](https://evil.example)',
+      'see \\[the docs\\](https://evil.example)',
+    ],
+    [
+      'a nested link',
+      '[[a](b)](https://evil.example)',
+      '\\[\\[a\\](b)\\](https://evil.example)',
+    ],
+    ['an image', '![x](y.png)', '!\\[x\\](y.png)'],
+    [
+      'a reference definition',
+      'ok\n[ref]: https://evil.example',
+      'ok \\[ref\\]: https://evil.example',
+    ],
+    [
+      'a heading',
+      'fine\n# Docs impact: covered',
+      'fine # Docs impact: covered',
+    ],
+    [
+      'an issue reference',
+      'see #12 and o/r#34',
+      'see #\u200b12 and o/r#\u200b34',
+    ],
+  ])('defuses %s', (_label, input, expected) => {
     // Act / Assert
-    expect(neutralize('see [the docs](https://evil.example) ![x](y.png)')).toBe(
-      'see the docs x',
-    );
+    expect(neutralize(input)).toBe(expected);
   });
 
   it('keeps crafted paths inside their code span and link target', () => {

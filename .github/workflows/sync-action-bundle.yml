@@ -58,11 +58,16 @@ jobs:
         id: bundle
         run: |
           pnpm exec nx run-many -t build --projects=tag:platform:gha
+          # Stage the bundles, then refresh the runtime locks that hash them
+          # (the lock lists staged files only).
+          git add -A 'packages/*-action/dist/'
+          node tools/src/release/action-runtime-lock.ts --write
+          git add 'packages/*-action/runtime.lock'
           # `git status --porcelain`, not `git diff`: the build code-splits
           # into content-hashed assets/ chunks, and a renamed chunk arrives
           # untracked, which `git diff` does not report.
-          if [ -n "$(git status --porcelain -- 'packages/*-action/dist/')" ]; then
-            git status --short -- 'packages/*-action/dist/'
+          if [ -n "$(git status --porcelain -- 'packages/*-action/dist/' 'packages/*-action/runtime.lock')" ]; then
+            git status --short -- 'packages/*-action/dist/' 'packages/*-action/runtime.lock'
             echo changed=true >> "$GITHUB_OUTPUT"
           else
             echo changed=false >> "$GITHUB_OUTPUT"
@@ -73,12 +78,13 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          title="chore(actions): refresh action bundles"
+          # A fix, not a chore: the bundle is the code the actions run, so a
+          # refreshed bundle must release them.
+          title="fix(actions): refresh action bundles"
           branch="automation/action-bundle-sync"
           git config user.name "MoltNet Release[bot]"
           git config user.email "261968324+moltnet-release[bot]@users.noreply.github.com"
           git switch -c "$branch"
-          git add -A 'packages/*-action/dist/'
           git commit -m "$title"
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           remote_branch_sha=$(git ls-remote --heads origin "refs/heads/${branch}" | awk '{print $1}')
@@ -96,7 +102,9 @@ jobs:
             --state open \
             --json url \
             --jq '.[0].url // empty')
-          if [ -z "$pr_url" ]; then
+          if [ -n "$pr_url" ]; then
+            gh pr edit "$pr_url" --repo "$GITHUB_REPOSITORY" --title "$title"
+          else
             gh pr create \
               --repo "$GITHUB_REPOSITORY" \
               --base main \

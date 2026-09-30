@@ -1,85 +1,124 @@
-import { a as gitEnv } from "./run-BzFLlp08.js";
-import { execFileSync } from "node:child_process";
-//#region ../../libs/docs-impact-review/src/git.ts
-var FULL_OID = /^[0-9a-f]{40}$/;
-function requireFullOid(value, label) {
-	if (!FULL_OID.test(value)) throw new Error(`${label} must be a full 40-character lowercase git OID`);
-	return value;
-}
-/** Long enough for a cold fetch of a large pull request. */
-var GIT_TIMEOUT_MS = 5 * 6e4;
-/**
-* Git never prompts (a missing credential fails instead of hanging), and a
-* command that stalls is killed after `timeoutMs`.
-*/
-function createGit(cwd, timeoutMs = GIT_TIMEOUT_MS) {
-	return (args, input) => execFileSync("git", args, {
-		cwd,
-		encoding: "utf8",
-		input,
-		maxBuffer: 64 * 1024 * 1024,
-		stdio: [
-			"pipe",
-			"pipe",
-			"pipe"
-		],
-		timeout: timeoutMs,
-		env: gitEnv()
-	});
-}
-/** Whether `path` exists at `revision`. */
-function existsAt(git, revision, path) {
-	try {
-		git([
-			"cat-file",
-			"-e",
-			`${revision}:${path}`
-		]);
-		return true;
-	} catch {
-		return false;
-	}
-}
-/**
-* Fetches only the revisions missing locally. A caller that already fetched
-* them (with credentials it did not persist, as a private repository needs)
-* must not have the reviewer contact the remote again.
-*/
-function ensureRevisions(git, revisions) {
-	const missing = revisions.filter((revision) => {
-		try {
-			git([
-				"cat-file",
-				"-e",
-				`${revision}^{commit}`
-			]);
-			return false;
-		} catch {
-			return true;
+//#region ../../libs/api-client/src/retry-fetch.ts
+var DEFAULT_RETRY_STATUSES = [
+	408,
+	429,
+	500,
+	502,
+	503,
+	504
+];
+var DEFAULT_RETRY_METHODS = [
+	"GET",
+	"HEAD",
+	"OPTIONS",
+	"PUT"
+];
+function createRetryFetch(options) {
+	const { maxRetries = 3, baseDelay = 500, maxDelay = 1e4, retryStatuses = DEFAULT_RETRY_STATUSES, retryMethods = DEFAULT_RETRY_METHODS, retryOnNetworkError = true, baseFetch = globalThis.fetch, jitter = true, onRetry } = options ?? {};
+	const retryMethodSet = new Set(retryMethods.map((m) => m.toUpperCase()));
+	return async function retryFetch(input, init) {
+		const method = (input instanceof Request ? input.method : init?.method ?? "GET").toUpperCase();
+		const signal = init?.signal ?? (input instanceof Request ? input.signal : void 0);
+		let lastError;
+		let lastResponse;
+		for (let attempt = 0; attempt <= maxRetries; attempt++) try {
+			const response = await baseFetch(input instanceof Request ? input.clone() : input, init);
+			const isRateLimited = response.status === 429;
+			if (!(retryStatuses.includes(response.status) && (isRateLimited || retryMethodSet.has(method))) || attempt === maxRetries) return response;
+			lastResponse = response;
+			await response.body?.cancel().catch(() => {});
+			const delay = computeDelay(attempt, baseDelay, maxDelay, jitter, response);
+			onRetry?.(attempt, delay, `status ${response.status}`);
+			await sleep(delay, signal);
+		} catch (err) {
+			lastError = err;
+			if (signal?.aborted || !retryOnNetworkError || !retryMethodSet.has(method) || attempt === maxRetries) throw err;
+			const delay = computeDelay(attempt, baseDelay, maxDelay, jitter);
+			onRetry?.(attempt, delay, "network error");
+			await sleep(delay, signal);
 		}
+		if (lastResponse) return lastResponse;
+		throw lastError;
+	};
+}
+function computeDelay(attempt, baseDelay, maxDelay, jitter, response) {
+	const retryAfter = response?.headers.get("Retry-After");
+	if (retryAfter) {
+		const seconds = Number(retryAfter);
+		if (!Number.isNaN(seconds)) return Math.min(seconds * 1e3, maxDelay);
+		const date = Date.parse(retryAfter);
+		if (!Number.isNaN(date)) return Math.min(Math.max(date - Date.now(), 0), maxDelay);
+	}
+	const exponential = baseDelay * 2 ** attempt;
+	const jitterMs = jitter ? Math.random() * baseDelay : 0;
+	return Math.min(exponential + jitterMs, maxDelay);
+}
+function abortReason(signal) {
+	const reason = signal?.reason;
+	return reason instanceof Error ? reason : new DOMException("The operation was aborted.", "AbortError");
+}
+function sleep(ms, signal) {
+	return new Promise((resolve, reject) => {
+		if (signal?.aborted) {
+			reject(abortReason(signal));
+			return;
+		}
+		const onAbort = () => {
+			clearTimeout(timer);
+			reject(abortReason(signal));
+		};
+		const timer = setTimeout(() => {
+			signal?.removeEventListener("abort", onAbort);
+			resolve();
+		}, ms);
+		signal?.addEventListener("abort", onAbort, { once: true });
 	});
-	if (missing.length > 0) git([
-		"fetch",
-		"--no-tags",
-		"--quiet",
-		"origin",
-		...missing
-	]);
+}
+function createRateLimitFetch(options) {
+	return createRetryFetch({
+		maxRetries: options?.maxRetries ?? 3,
+		baseDelay: options?.baseDelayMs ?? 1e3,
+		maxDelay: options?.maxDelayMs ?? 3e4,
+		retryStatuses: [429],
+		retryMethods: [
+			"GET",
+			"HEAD",
+			"OPTIONS",
+			"PUT",
+			"POST",
+			"PATCH",
+			"DELETE"
+		],
+		retryOnNetworkError: false
+	});
 }
 //#endregion
 //#region ../../libs/docs-impact-review/src/report.ts
 var DOCS_IMPACT_COMMENT_MARKER = "<!-- moltnet:docs-impact-review -->";
 /**
-* Model-written text is published as the posting identity, so it must not
-* notify anyone or inject markup: Markdown links and images keep only their
-* text, `@` mentions are broken with a zero-width space, and `<`/`>` are
-* escaped.
+* An error in the comment stays readable and far below GitHub's 65,536
+* character limit; the full text is in the run's report and log.
+*/
+var ERROR_TEXT_MAX = 1e3;
+/**
+* Model-written text is published as the posting identity, so it must stay
+* one line of plain text:
+*
+* - whitespace collapses to single spaces, so no heading, list or reference
+*   definition can start;
+* - `[`, `]` and `!` before `[` are escaped, so no link or image forms, at
+*   any nesting;
+* - `@` mentions and `#123` or `owner/repo#123` references are broken with a
+*   zero-width space, so nobody is notified and nothing is backlinked;
+* - `<` and `>` are escaped, so no HTML or autolink.
+*
+* Each rule is one pass over the text with no backtracking.
 */
 function neutralize(text) {
-	return text.replace(/!?\[([^\]\n]*)\]\([^)\n]*\)/g, "$1").replace(/@(?=[A-Za-z0-9_-])/g, "@​").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+	return text.replace(/\s+/g, " ").trim().replace(/[[\]]/g, (bracket) => `\\${bracket}`).replace(/@(?=[A-Za-z0-9_-])/g, "@​").replace(/#(?=\d)/g, "#​").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 function shorten(text, max = 280) {
-	const flat = neutralize(text).replace(/\s+/g, " ").trim();
+	const flat = neutralize(text);
 	return flat.length <= max ? flat : `${flat.slice(0, max - 1).trimEnd()}…`;
 }
 /** A Markdown heading as plain text: `## Flags` → `Flags`. */
@@ -101,8 +140,9 @@ function fileLink(report, path) {
 * Inline code that `text` cannot break out of: the fence is longer than any
 * backtick run inside, and newlines are flattened.
 */
-function codeSpan(text) {
-	const flat = text.replace(/\s+/g, " ").trim();
+function codeSpan(text, max = Number.POSITIVE_INFINITY) {
+	const collapsed = text.replace(/\s+/g, " ").trim();
+	const flat = collapsed.length <= max ? collapsed : `${collapsed.slice(0, max - 1).trimEnd()}…`;
 	const longest = Math.max(0, ...(flat.match(/`+/g) ?? []).map((run) => run.length));
 	const fence = "`".repeat(longest + 1);
 	const pad = flat.startsWith("`") || flat.endsWith("`") ? " " : "";
@@ -118,7 +158,7 @@ function renderComment(report) {
 		DOCS_IMPACT_COMMENT_MARKER,
 		`**Docs impact: not reviewed** · ${head}`,
 		"",
-		`The review did not complete: ${codeSpan(report.error ?? "unknown error")}. No judgment was made.`
+		`The review did not complete: ${codeSpan(report.error || "unknown error", ERROR_TEXT_MAX)}. No judgment was made.`
 	].join("\n");
 	const count = report.findings.length;
 	const lines = [DOCS_IMPACT_COMMENT_MARKER, [
@@ -203,4 +243,4 @@ function summarizeCorpus(reports) {
 	};
 }
 //#endregion
-export { ensureRevisions as a, createGit as i, renderComment as n, existsAt as o, summarizeCorpus as r, requireFullOid as s, DOCS_IMPACT_COMMENT_MARKER as t };
+export { createRateLimitFetch as a, summarizeCorpus as i, codeSpan as n, createRetryFetch as o, renderComment as r, DOCS_IMPACT_COMMENT_MARKER as t };

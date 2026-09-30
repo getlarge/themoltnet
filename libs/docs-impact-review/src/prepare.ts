@@ -8,6 +8,11 @@ import {
   type PullRequestFile,
 } from './eligibility.js';
 import { GitHubApi } from './github-api.js';
+import { PREPARED_VERSION, type PreparedReview } from './prepared.js';
+import { codeSpan } from './report.js';
+import { workflowCommandValue } from './workflow-command.js';
+
+export { PREPARED_VERSION, type PreparedReview } from './prepared.js';
 
 /**
  * A UUID derived from `seed` (SHA-256, with the version and variant bits of a
@@ -32,28 +37,6 @@ export interface PrepareOptions {
   coverageProfile?: string;
   docsCheckProfile?: string;
   protectedPaths: string[];
-}
-
-/** Version of the `prepared` payload; `review` refuses any other. */
-export const PREPARED_VERSION = 1;
-
-/**
- * Everything `review` and the workers need from `prepare`, passed between
- * jobs as one JSON output so callers forward a single value.
- */
-export interface PreparedReview {
-  v: typeof PREPARED_VERSION;
-  /** `review` refuses a pull request the gate turned away. */
-  eligible: boolean;
-  pr: number;
-  baseSha: string;
-  headSha: string;
-  correlationId: string;
-  /** `GITHUB_RUN_ATTEMPT` of `prepare`; a later attempt must re-run it. */
-  runAttempt: number;
-  profiles: { default: string; coverage: string; docsCheck: string };
-  /** Distinct profiles: one drain worker each. */
-  workerProfiles: string[];
 }
 
 export interface PrepareResult {
@@ -205,13 +188,14 @@ export async function runPrepareCli(
       .join(''),
   );
   if (result.skip) {
+    // The reason can hold pull request paths: never a workflow command.
     process.stdout.write(
-      `::notice::Docs impact review skipped: ${result.reason}\n`,
+      `::notice::Docs impact review skipped: ${workflowCommandValue(result.reason)}\n`,
     );
     if (env.GITHUB_STEP_SUMMARY) {
       appendFileSync(
         env.GITHUB_STEP_SUMMARY,
-        `### Docs impact review skipped\n\n${result.reason}\n`,
+        `### Docs impact review skipped\n\n${codeSpan(result.reason)}\n`,
       );
     }
   }

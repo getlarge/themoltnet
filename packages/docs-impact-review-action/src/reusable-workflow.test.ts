@@ -22,8 +22,10 @@ const workflowText = readFileSync(workflowPath, 'utf8');
 
 interface Step {
   id?: string;
+  name?: string;
   uses?: string;
   if?: string;
+  run?: string;
   with?: Record<string, string>;
 }
 interface Job {
@@ -180,5 +182,80 @@ describe('reusable workflow wiring', () => {
         ref: '${{ needs.prepare.outputs.runtime-sha }}',
       });
     }
+  });
+});
+
+describe('workers runtime checkout', () => {
+  it('includes every file agent-daemon-action reads outside its own directory', () => {
+    // Arrange
+    const daemonAction = readFileSync(
+      resolve(packageRoot, '../agent-daemon-action/action.yml'),
+      'utf8',
+    );
+    const checkout = workflow.jobs.workers.steps.find(
+      (step) => step.with?.path === '.docs-impact-runtime',
+    );
+    const patterns = (checkout?.with?.['sparse-checkout'] ?? '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    // Act: paths the action reaches as ACTION_PATH/../../<path>.
+    const outside = matches(
+      daemonAction,
+      /ACTION_PATH \+ '\/\.\.\/\.\.\/([^']+)'/g,
+    );
+
+    // Assert
+    expect(checkout?.with?.['sparse-checkout-cone-mode']).toBe(false);
+    expect(outside.length).toBeGreaterThan(0);
+    for (const path of outside) {
+      expect(
+        patterns.some((pattern) =>
+          pattern.endsWith('/')
+            ? `/${path}`.startsWith(pattern)
+            : pattern === `/${path}`,
+        ),
+      ).toBe(true);
+    }
+  });
+});
+
+describe('caller workflow', () => {
+  const caller = parse(
+    readFileSync(
+      resolve(packageRoot, '../../.github/workflows/docs-impact-review.yml'),
+      'utf8',
+    ),
+  ) as {
+    concurrency: { group: string };
+    jobs: { review: { if: string } };
+  };
+
+  it('shares the review group only for a comment the review job accepts', () => {
+    // Arrange
+    const group = caller.concurrency.group;
+    const gate = caller.jobs.review.if;
+
+    // Act: the predicates both sides must agree on.
+    const command = /contains\(github\.event\.comment\.body, '([^']+)'\)/;
+    const associations = matches(
+      gate,
+      /author_association == '([A-Z]+)'/g,
+    ).sort();
+
+    // Assert
+    expect(command.exec(group)?.[1]).toBe(command.exec(gate)?.[1]);
+    expect(group).toContain(
+      "!endsWith(github.event.comment.user.login, '[bot]')",
+    );
+    expect(gate).toContain(
+      "!endsWith(github.event.comment.user.login, '[bot]')",
+    );
+    const listed = /fromJSON\('(\[[^\]]+\])'\)/.exec(group)?.[1];
+    expect((JSON.parse(listed ?? '[]') as string[]).sort()).toEqual(
+      associations,
+    );
+    expect(group).toMatch(/&& github\.run_id \|\| 'review' \}\}$/);
   });
 });

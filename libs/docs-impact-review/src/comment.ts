@@ -28,10 +28,14 @@ function runLine(
 
 const PROGRESS_HEADLINE = '**Docs impact: reviewing**';
 
-export function renderProgress(revision: string, runUrl: string): string {
+export function renderProgress(
+  revision: string,
+  runUrl: string,
+  correlationId?: string,
+): string {
   return [
     DOCS_IMPACT_COMMENT_MARKER,
-    `${PROGRESS_HEADLINE} · ${runLine(revision, runUrl)}`,
+    `${PROGRESS_HEADLINE} · ${runLine(revision, runUrl, correlationId)}`,
     '',
     'Any result for an earlier head is stale until this review finishes.',
   ].join('\n');
@@ -81,7 +85,7 @@ export function renderCancelled(
     DOCS_IMPACT_COMMENT_MARKER,
     `**Docs impact: not completed** · ${runLine(revision, runUrl, correlationId)}`,
     '',
-    'The run was cancelled or timed out before the review finished. No judgment was made.',
+    'The run stopped before its result was published: it was cancelled, or the result could not be posted. No judgment was made.',
   ].join('\n');
 }
 
@@ -150,10 +154,7 @@ class CommentApi {
   async upsert(prNumber: number, body: string): Promise<void> {
     const existing = await this.find(prNumber);
     if (existing) {
-      await this.api.request(
-        `/repos/${this.repo}/issues/comments/${existing.id}`,
-        { method: 'PATCH', body: JSON.stringify({ body }) },
-      );
+      await this.edit(existing.id, body);
       return;
     }
     await this.api.request(`/repos/${this.repo}/issues/${prNumber}/comments`, {
@@ -235,7 +236,7 @@ export async function updateDocsImpactComment(args: {
   if (args.mode === 'start') {
     await github.upsert(
       args.prNumber,
-      renderProgress(args.reviewedRevision, args.runUrl),
+      renderProgress(args.reviewedRevision, args.runUrl, args.correlationId),
     );
     return 'progress';
   }

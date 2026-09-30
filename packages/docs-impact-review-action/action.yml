@@ -17,7 +17,7 @@ inputs:
     required: false
     default: ${{ github.token }}
   node-version:
-    description: Node.js version for the bundled reviewer, which needs Node.js 22 or later.
+    description: Node.js version for the bundled reviewer, which needs Node.js 22.20 or later (for path.matchesGlob).
     required: false
     default: '24'
 
@@ -136,75 +136,13 @@ runs:
       if: inputs.step == 'review'
       shell: bash
       env:
+        DIST: ${{ github.action_path }}/dist
         PREPARED: ${{ inputs.prepared }}
         TEAM_ID: ${{ inputs.team-id }}
         DIARY_ID: ${{ inputs.diary-id }}
         APP_ID: ${{ inputs.app-id }}
         APP_KEY: ${{ inputs.app-private-key }}
-      run: |
-        set -euo pipefail
-        if [ -z "$PREPARED" ] || ! jq -e 'type == "object"' <<< "$PREPARED" >/dev/null 2>&1; then
-          echo "::error::step: review needs the prepare payload: set prepared to the prepare step's prepared output" >&2
-          exit 1
-        fi
-        field() { jq -r "$1 // \"\"" <<< "$PREPARED"; }
-        version="$(field .v)"
-        if [ "$version" != 1 ]; then
-          echo "::error::prepared payload version '$version' is not supported (expected 1): run prepare and review with the same action version" >&2
-          exit 1
-        fi
-        if [ "$(field .eligible)" != true ]; then
-          echo "::error::the prepared review is not eligible; gate the review job on the prepare skip output being 'false'" >&2
-          exit 1
-        fi
-        # "Re-run failed jobs" re-runs review without prepare or the workers:
-        # the tasks would wait for workers that are not coming.
-        prepared_attempt="$(field .runAttempt)"
-        if [ -n "${GITHUB_RUN_ATTEMPT:-}" ] && [ "$prepared_attempt" != "$GITHUB_RUN_ATTEMPT" ]; then
-          echo "::error::this is run attempt $GITHUB_RUN_ATTEMPT, but prepare ran in attempt $prepared_attempt, so no workers run for this review: re-run all jobs, not only failed ones" >&2
-          exit 1
-        fi
-        pr_number="$(field .pr)"
-        base_sha="$(field .baseSha)"
-        head_sha="$(field .headSha)"
-        correlation_id="$(field .correlationId)"
-        profile="$(field .profiles.default)"
-        problems=()
-        [[ "$pr_number" =~ ^[1-9][0-9]*$ ]] || problems+=("pr")
-        [[ "$base_sha" =~ ^[0-9a-f]{40}$ ]] || problems+=("baseSha")
-        [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]] || problems+=("headSha")
-        [[ "$correlation_id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || problems+=("correlationId")
-        [ -n "$profile" ] || problems+=("profiles.default")
-        if [ "${#problems[@]}" -gt 0 ]; then
-          echo "::error::prepared review has missing or invalid: ${problems[*]}" >&2
-          exit 1
-        fi
-        missing=()
-        for name in TEAM_ID DIARY_ID; do
-          [ -n "${!name}" ] || missing+=("$name")
-        done
-        if [ "${#missing[@]}" -gt 0 ]; then
-          echo "::error::step: review is missing inputs: ${missing[*]}" >&2
-          exit 1
-        fi
-        if { [ -n "$APP_ID" ] && [ -z "$APP_KEY" ]; } ||
-          { [ -z "$APP_ID" ] && [ -n "$APP_KEY" ]; }; then
-          echo "::error::set app-id and app-private-key together" >&2
-          exit 1
-        fi
-        if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-          echo "::error::check out the repository at the base revision before step: review" >&2
-          exit 1
-        fi
-        {
-          echo "pr-number=$pr_number"
-          echo "base-sha=$base_sha"
-          echo "head-sha=$head_sha"
-          echo "correlation-id=$correlation_id"
-          echo "profile=$profile"
-          echo "coverage-profile=$(field .profiles.coverage)"
-          echo "docs-check-profile=$(field .profiles.docsCheck)"
-        } >> "$GITHUB_OUTPUT"
+      run: node "$DIST/check.js"
 
     # Comments are written by the configured GitHub App when there is one,
     # with a token scoped to this repository and pull requests write only.
@@ -247,9 +185,11 @@ runs:
         RUN_URL: ${{ steps.setup.outputs.run-url }}
         PR_NUMBER: ${{ steps.check-review.outputs.pr-number }}
         HEAD_SHA: ${{ steps.check-review.outputs.head-sha }}
+        CORRELATION_ID: ${{ steps.check-review.outputs.correlation-id }}
       run: |
         node "$DIST/comment.js" --mode start --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" \
           --revision "$HEAD_SHA" --run-url "$RUN_URL" --author "$AUTHOR" \
+          --correlation-id "$CORRELATION_ID" \
           || echo "::warning::could not post the in-progress comment"
 
     - name: Review documentation impact
@@ -328,12 +268,13 @@ runs:
           } >> "$GITHUB_STEP_SUMMARY"
         fi
 
-    # A cancelled or timed-out run would otherwise leave its "reviewing"
-    # placeholder forever. Best effort: only this run's own placeholder is
-    # replaced, so a newer run's comment is never touched.
+    # A cancelled run, or one whose result could not be published, would
+    # otherwise leave its "reviewing" placeholder forever. Best effort: only
+    # this run's own placeholder is replaced, so a newer run's comment is
+    # never touched.
     - name: Mark the review not completed
       id: cancelled
-      if: cancelled() && inputs.step == 'review' && steps.mark.outcome == 'success'
+      if: (cancelled() || (failure() && steps.publish.outcome == 'failure')) && inputs.step == 'review' && steps.mark.outcome == 'success'
       shell: bash
       env:
         GITHUB_TOKEN: ${{ steps.app-token.outputs.token || inputs.github-token }}
@@ -361,16 +302,25 @@ runs:
         STDERR: ${{ steps.review.outputs.stderr }}
         CORRELATION_ID: ${{ steps.check-review.outputs.correlation-id }}
       run: |
+        # Text from the report or stderr is untrusted: encode it so a newline
+        # cannot start another workflow command.
+        encode() {
+          local value="${1//%/%25}"
+          value="${value//$'\r'/%0D}"
+          printf '%s' "${value//$'\n'/%0A}"
+        }
+        # A report explains its own failure; stderr is the fallback when the
+        # review crashed before writing one.
+        if jq -e '.reports[0].status == "failed"' "$SUMMARY" >/dev/null 2>&1; then
+          echo "::error::docs impact review failed (correlation $CORRELATION_ID): $(encode "$(jq -r '.reports[0].error // "unknown error"' "$SUMMARY")")" >&2
+          exit 1
+        fi
         if [ "${EXIT_CODE:-1}" != 0 ]; then
           cause="$(grep -v '^[[:space:]]*$' "$STDERR" 2>/dev/null | tail -n 1 || true)"
-          echo "::error::docs impact review exited with ${EXIT_CODE:-unknown} (correlation $CORRELATION_ID)${cause:+: $cause}" >&2
+          echo "::error::docs impact review exited with ${EXIT_CODE:-unknown} (correlation $CORRELATION_ID)${cause:+: $(encode "$cause")}" >&2
           exit 1
         fi
         if ! jq -e . "$SUMMARY" >/dev/null 2>&1; then
           echo "::error::docs impact review wrote no valid report (correlation $CORRELATION_ID)" >&2
-          exit 1
-        fi
-        if jq -e '.reports[0].status == "failed"' "$SUMMARY" >/dev/null; then
-          echo "::error::docs impact review failed: $(jq -r '.reports[0].error' "$SUMMARY")" >&2
           exit 1
         fi

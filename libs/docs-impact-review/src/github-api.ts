@@ -17,39 +17,73 @@ export interface GitHubApiOptions {
   apiUrl?: string;
   fetchImpl?: typeof fetch;
   /** Backoff tuning; tests shorten the delays. */
-  retry?: Pick<
-    RetryOptions,
-    'maxRetries' | 'baseDelay' | 'maxDelay' | 'jitter'
-  >;
-  /** Budget for one request, retries included. */
-  timeoutMs?: number;
+  retry?: Pick<RetryOptions, 'maxRetries' | 'baseDelay' | 'jitter'>;
+  /**
+   * Longest rate-limit wait honoured. A longer one fails at once with a
+   * rate-limit error instead of retrying while still blocked.
+   */
+  maxRateLimitWaitMs?: number;
+  /** Budget for one attempt; each retry gets its own. */
+  attemptTimeoutMs?: number;
   /** Where retries are reported; stderr by default. */
   log?: (message: string) => void;
+  /** Test seam for `x-ratelimit-reset`. */
+  now?: () => number;
 }
 
-const DEFAULT_TIMEOUT_MS = 60_000;
+const DEFAULT_ATTEMPT_TIMEOUT_MS = 30_000;
+const DEFAULT_MAX_RATE_LIMIT_WAIT_MS = 60_000;
+/** Marks a rate limit too long to wait for, set by `rateLimits`. */
+const LONG_WAIT_HEADER = 'x-moltnet-rate-limit-wait-ms';
+/** The edit is idempotent; creating a comment (POST) is not. */
+const RETRY_METHODS = ['GET', 'HEAD', 'OPTIONS', 'PUT', 'PATCH'];
+
+/** How long GitHub asks us to wait, from `retry-after` or the reset time. */
+function rateLimitWaitMs(response: Response, now: number): number | undefined {
+  const retryAfter = response.headers.get('retry-after');
+  if (retryAfter !== null && Number.isFinite(Number(retryAfter))) {
+    return Number(retryAfter) * 1_000;
+  }
+  if (response.headers.get('x-ratelimit-remaining') === '0') {
+    const reset = Number(response.headers.get('x-ratelimit-reset'));
+    return Number.isFinite(reset) ? Math.max(0, reset * 1_000 - now) : 0;
+  }
+  return undefined;
+}
 
 /**
  * GitHub reports secondary rate limits as 403 with `retry-after`, and an
  * exhausted primary limit as 403 with `x-ratelimit-remaining: 0`. Either way
- * the request was not executed, so it is retried like a 429, whatever the
- * method.
+ * the request was not executed, so a wait within `maxWaitMs` is retried like
+ * a 429, whatever the method, and honoured in full; a longer one is returned
+ * as a final 403 so the caller fails with a rate-limit error at once. Each
+ * attempt also gets its own timeout.
  */
-function rateLimitsAs429(baseFetch: typeof fetch): typeof fetch {
+function rateLimits(
+  baseFetch: typeof fetch,
+  options: { maxWaitMs: number; attemptTimeoutMs: number; now: () => number },
+): typeof fetch {
   return async (input, init) => {
-    const response = await baseFetch(input, init);
-    if (
-      response.status === 403 &&
-      (response.headers.has('retry-after') ||
-        response.headers.get('x-ratelimit-remaining') === '0')
-    ) {
-      return new Response(response.body, {
-        status: 429,
-        statusText: 'rate limited (403)',
-        headers: response.headers,
-      });
+    const timeout = AbortSignal.timeout(options.attemptTimeoutMs);
+    const response = await baseFetch(input, {
+      ...init,
+      signal: init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout,
+    });
+    if (response.status !== 403 && response.status !== 429) return response;
+    const waitMs = rateLimitWaitMs(response, options.now());
+    if (waitMs === undefined) return response;
+    const headers = new Headers(response.headers);
+    if (waitMs > options.maxWaitMs) {
+      headers.set(LONG_WAIT_HEADER, String(waitMs));
+      return new Response(response.body, { status: 403, headers });
     }
-    return response;
+    // createRetryFetch honours `retry-after` in seconds.
+    headers.set('retry-after', String(Math.ceil(waitMs / 1_000)));
+    return new Response(response.body, {
+      status: 429,
+      statusText: 'rate limited',
+      headers,
+    });
   };
 }
 
@@ -57,8 +91,9 @@ function rateLimitsAs429(baseFetch: typeof fetch): typeof fetch {
  * Minimal GitHub REST client for the review's own calls: headers,
  * pagination, and errors that carry GitHub's message. Retries come from
  * `createRetryFetch`: rate limits for every method (the request was never
- * executed), server errors and network failures only for idempotent methods,
- * so a comment is never posted twice.
+ * executed), server errors, timeouts and network failures only for
+ * idempotent methods (PATCH included, POST not), so a comment is never
+ * posted twice.
  */
 export class GitHubApi {
   private readonly apiUrl: string;
@@ -69,7 +104,11 @@ export class GitHubApi {
     let apiUrl = options.apiUrl || 'https://api.github.com';
     while (apiUrl.endsWith('/')) apiUrl = apiUrl.slice(0, -1);
     this.apiUrl = apiUrl;
-    this.baseFetch = rateLimitsAs429(options.fetchImpl ?? fetch);
+    this.baseFetch = rateLimits(options.fetchImpl ?? fetch, {
+      maxWaitMs: options.maxRateLimitWaitMs ?? DEFAULT_MAX_RATE_LIMIT_WAIT_MS,
+      attemptTimeoutMs: options.attemptTimeoutMs ?? DEFAULT_ATTEMPT_TIMEOUT_MS,
+      now: options.now ?? Date.now,
+    });
     this.log =
       options.log ?? ((message) => process.stderr.write(`${message}\n`));
   }
@@ -78,8 +117,11 @@ export class GitHubApi {
     const method = (init?.method ?? 'GET').toUpperCase();
     const retryFetch = createRetryFetch({
       baseDelay: 1_000,
-      maxDelay: 30_000,
       ...this.options.retry,
+      // Waits beyond this are refused before they reach the retry layer.
+      maxDelay:
+        this.options.maxRateLimitWaitMs ?? DEFAULT_MAX_RATE_LIMIT_WAIT_MS,
+      retryMethods: RETRY_METHODS,
       baseFetch: this.baseFetch,
       onRetry: (attempt, delay, reason) =>
         this.log(
@@ -89,7 +131,6 @@ export class GitHubApi {
     const response = await retryFetch(`${this.apiUrl}${path}`, {
       ...init,
       method,
-      signal: AbortSignal.timeout(this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS),
       headers: {
         accept: 'application/vnd.github+json',
         authorization: `Bearer ${this.options.token}`,
@@ -99,6 +140,13 @@ export class GitHubApi {
       },
     });
     if (response.ok) return (await response.json()) as T;
+    const longWait = response.headers.get(LONG_WAIT_HEADER);
+    if (longWait) {
+      throw new GitHubApiError(
+        `GitHub API ${method} ${path} is rate limited for ${Math.ceil(Number(longWait) / 1_000)} s, longer than this run waits`,
+        429,
+      );
+    }
     const detail = await response
       .json()
       .then((body: { message?: unknown }) =>

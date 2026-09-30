@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
 /**
- * Bundles the reviewer's three command-line entry points into self-contained
+ * Bundles the reviewer's four command-line entry points into self-contained
  * Node.js scripts that action.yml runs with `node`. A composite action gets no
  * `npm install`, and bundling keeps the action and the reviewer it runs at
  * one version. Dependencies are inlined, as in agent-daemon-action; the OS
@@ -17,6 +17,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         prepare: 'src/prepare.ts',
+        check: 'src/check.ts',
         review: 'src/review.ts',
         comment: 'src/comment.ts',
       },

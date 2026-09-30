@@ -1,6 +1,7 @@
-import { o as githubApiUrl, s as githubToken, t as runMain } from "./assets/run-BzFLlp08.js";
-import { t as GitHubApi } from "./assets/github-api-CbIYj_8t.js";
-import { n as renderComment, s as requireFullOid, t as DOCS_IMPACT_COMMENT_MARKER } from "./assets/report-BTjjIjzQ.js";
+import { a as githubToken, i as githubApiUrl, t as runMain } from "./assets/run-BAJLqHWw.js";
+import { r as renderComment, t as DOCS_IMPACT_COMMENT_MARKER } from "./assets/report-v9naF6qM.js";
+import { t as GitHubApi } from "./assets/github-api-CCXuPPqb.js";
+import { i as requireFullOid } from "./assets/git-vBoKCgzJ.js";
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 //#region ../../libs/docs-impact-review/src/comment.ts
@@ -12,10 +13,10 @@ function runLine(revision, runUrl, correlationId) {
 	return `Head \`${revision}\` · [workflow run](${runUrl})${correlationSuffix(correlationId)}`;
 }
 var PROGRESS_HEADLINE = "**Docs impact: reviewing**";
-function renderProgress(revision, runUrl) {
+function renderProgress(revision, runUrl, correlationId) {
 	return [
 		DOCS_IMPACT_COMMENT_MARKER,
-		`${PROGRESS_HEADLINE} · ${runLine(revision, runUrl)}`,
+		`${PROGRESS_HEADLINE} · ${runLine(revision, runUrl, correlationId)}`,
 		"",
 		"Any result for an earlier head is stale until this review finishes."
 	].join("\n");
@@ -44,7 +45,7 @@ function renderCancelled(revision, runUrl, correlationId) {
 		DOCS_IMPACT_COMMENT_MARKER,
 		`**Docs impact: not completed** · ${runLine(revision, runUrl, correlationId)}`,
 		"",
-		"The run was cancelled or timed out before the review finished. No judgment was made."
+		"The run stopped before its result was published: it was cancelled, or the result could not be posted. No judgment was made."
 	].join("\n");
 }
 /** Whether `body` is the in-progress placeholder of the run at `runUrl`. */
@@ -87,10 +88,7 @@ var CommentApi = class {
 	async upsert(prNumber, body) {
 		const existing = await this.find(prNumber);
 		if (existing) {
-			await this.api.request(`/repos/${this.repo}/issues/comments/${existing.id}`, {
-				method: "PATCH",
-				body: JSON.stringify({ body })
-			});
+			await this.edit(existing.id, body);
 			return;
 		}
 		await this.api.request(`/repos/${this.repo}/issues/${prNumber}/comments`, {
@@ -131,7 +129,7 @@ async function updateDocsImpactComment(args) {
 		return "stale";
 	}
 	if (args.mode === "start") {
-		await github.upsert(args.prNumber, renderProgress(args.reviewedRevision, args.runUrl));
+		await github.upsert(args.prNumber, renderProgress(args.reviewedRevision, args.runUrl, args.correlationId));
 		return "progress";
 	}
 	const report = readReport(args.reportPath);

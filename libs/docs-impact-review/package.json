@@ -26,6 +26,10 @@
       "import": "./src/prepare.ts",
       "types": "./src/prepare.ts"
     },
+    "./prepared": {
+      "import": "./src/prepared.ts",
+      "types": "./src/prepared.ts"
+    },
     "./review-cli": {
       "import": "./src/review-cli.ts",
       "types": "./src/review-cli.ts"
@@ -33,6 +37,10 @@
     "./run": {
       "import": "./src/run.ts",
       "types": "./src/run.ts"
+    },
+    "./workflow-command": {
+      "import": "./src/workflow-command.ts",
+      "types": "./src/workflow-command.ts"
     }
   },
   "engines": {

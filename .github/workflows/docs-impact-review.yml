@@ -16,12 +16,20 @@ on:
 permissions: {}
 
 # Every comment on the pull request starts a run, and runs whose jobs all
-# skip still join the concurrency group. Only a comment that would start a
-# review (this workflow's command, from an owner, member, or collaborator, not
-# a bot) shares the pull request's group; any other comment gets a group of
-# its own, so it cannot cancel a review in progress.
+# skip (including a pull_request run on a draft) still join the concurrency
+# group. Only a comment that would start a review (this workflow's command,
+# from an owner, member, or collaborator, not a bot) shares the pull
+# request's group; any other comment gets a group of its own, so it cannot
+# cancel a review in progress. Keep the comment predicate in sync with
+# jobs.review.if; a test compares them.
 concurrency:
-  group: docs-impact-review-${{ github.event.pull_request.number || github.event.issue.number }}-${{ (github.event_name == 'issue_comment' && !(contains(github.event.comment.body, '@legreffier /docs-review') && !endsWith(github.event.comment.user.login, '[bot]') && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))) && github.run_id || 'review' }}
+  group: >-
+    docs-impact-review-${{ github.event.pull_request.number || github.event.issue.number }}-${{
+    (github.event_name == 'issue_comment' &&
+    !(contains(github.event.comment.body, '@legreffier /docs-review') &&
+    !endsWith(github.event.comment.user.login, '[bot]') &&
+    contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)))
+    && github.run_id || 'review' }}
   cancel-in-progress: true
 
 jobs:

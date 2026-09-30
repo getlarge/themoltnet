@@ -15,21 +15,32 @@ const ERROR_TEXT_MAX = 1_000;
 export const COMMENT_TEXT_MAX = 280;
 
 /**
- * Model-written text is published as the posting identity, so it must not
- * notify anyone or inject markup: Markdown links and images keep only their
- * text, `@` mentions are broken with a zero-width space, and `<`/`>` are
- * escaped.
+ * Model-written text is published as the posting identity, so it must stay
+ * one line of plain text:
+ *
+ * - whitespace collapses to single spaces, so no heading, list or reference
+ *   definition can start;
+ * - `[`, `]` and `!` before `[` are escaped, so no link or image forms, at
+ *   any nesting;
+ * - `@` mentions and `#123` or `owner/repo#123` references are broken with a
+ *   zero-width space, so nobody is notified and nothing is backlinked;
+ * - `<` and `>` are escaped, so no HTML or autolink.
+ *
+ * Each rule is one pass over the text with no backtracking.
  */
 export function neutralize(text: string): string {
   return text
-    .replace(/!?\[([^\]\n]*)\]\([^)\n]*\)/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[[\]]/g, (bracket) => `\\${bracket}`)
     .replace(/@(?=[A-Za-z0-9_-])/g, '@\u200b')
+    .replace(/#(?=\d)/g, '#\u200b')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 }
 
 export function shorten(text: string, max = COMMENT_TEXT_MAX): string {
-  const flat = neutralize(text).replace(/\s+/g, ' ').trim();
+  const flat = neutralize(text);
   return flat.length <= max ? flat : `${flat.slice(0, max - 1).trimEnd()}…`;
 }
 
@@ -63,7 +74,7 @@ function fileLink(report: DocsImpactReport, path: string): string {
  * Inline code that `text` cannot break out of: the fence is longer than any
  * backtick run inside, and newlines are flattened.
  */
-function codeSpan(text: string, max = Number.POSITIVE_INFINITY): string {
+export function codeSpan(text: string, max = Number.POSITIVE_INFINITY): string {
   const collapsed = text.replace(/\s+/g, ' ').trim();
   const flat =
     collapsed.length <= max

@@ -46,9 +46,9 @@ Setting these up is described in the MoltNet documentation at
 Call the reusable workflow. It runs `prepare` (collect facts, pin revisions,
 check eligibility), the review, and one worker per distinct profile. It checks
 out this action and `agent-daemon-action` from its own commit, pinned once in
-`prepare`, so the reviewer and the workers' action always match. The
-`agent-daemon` binary the workers run is released separately; pin it with
-`daemon-version` to control upgrades.
+`prepare`, so the reviewer and the workers' action always match. The workers
+run the signed `agent-daemon` release recorded at that commit, so a pinned
+tag reproduces its runs; `daemon-version` overrides it.
 
 ```yaml
 name: Docs impact review
@@ -84,14 +84,14 @@ jobs:
 
 Useful inputs besides `profile` and `protected-paths`:
 
-| Input                                                    | Purpose                                                                            |
-| -------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `coverage-profile`, `docs-check-profile`                 | Different models for the coverage and docs-check stages; each gets its own worker. |
-| `environment`                                            | GitHub environment holding the secrets and `MOLTNET_*` variables.                  |
-| `team-id`, `diary-id`, `agent-name`, `app-id`, `api-url` | Override the matching `MOLTNET_*` variables.                                       |
-| `project-id`                                             | A MoltNet project whose binding supplies the repository to workers.                |
-| `daemon-version`                                         | The workers' `agent-daemon` release: `latest` (default) or an exact version.       |
-| `runtime-ref`                                            | Advanced: run the review from another revision of this repository. Leave empty.    |
+| Input                                                    | Purpose                                                                                                                                 |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `coverage-profile`, `docs-check-profile`                 | Different models for the coverage and docs-check stages; each gets its own worker.                                                      |
+| `environment`                                            | GitHub environment holding the secrets and `MOLTNET_*` variables.                                                                       |
+| `team-id`, `diary-id`, `agent-name`, `app-id`, `api-url` | Override the matching `MOLTNET_*` variables.                                                                                            |
+| `project-id`                                             | A MoltNet project whose binding supplies the repository to workers.                                                                     |
+| `daemon-version`                                         | The workers' `agent-daemon` release: an exact version or `latest`. Empty (default) means the release recorded at the workflow's commit. |
+| `runtime-ref`                                            | Advanced: run the review from another revision of this repository. Leave empty.                                                         |
 
 With `environment`, secrets come from that environment instead, since
 environment secrets cannot be passed through `workflow_call`.
@@ -192,19 +192,24 @@ checks the committed bundles at the release tag (this action's and
 commit), publishes the release, and then moves
 `docs-impact-review-action-v0` to it.
 
-The reusable workflow and `agent-daemon-action` live outside this package, so
-[`runtime.lock`](./runtime.lock) records their hashes: CI fails a pull request
-that changes them without refreshing the lock
-(`node tools/src/release/action-runtime-lock.ts --write`), and the refreshed
-lock, committed as a fix or feature, releases this action with the change. It never moves the `v0` tag that
-`agent-daemon-action` uses. The committed `dist/` is rebuilt with
+The reusable workflow and `agent-daemon-action` (its `action.yml` and the
+bundle the workers run) live outside this package, so
+[`runtime.lock`](./runtime.lock) records their hashes. Every pull request
+checks the lock, and the release refuses a stale one. A change to those files
+therefore touches this package, and release-please releases it when the
+change is a fix or a feature. This release never moves the `v0` tag that
+`agent-daemon-action` uses.
+
+The committed `dist/` is rebuilt with
 
 ```bash
 pnpm exec nx run @themoltnet/docs-impact-review-action:build
 ```
 
-and kept current on `main` by `sync-action-bundle.yml`; CI fails a pull
-request whose committed bundle does not match its sources.
+and kept current on `main` by `sync-action-bundle.yml`, which opens a
+`fix(actions): refresh action bundles` pull request with the rebuilt bundles
+and refreshed locks, so a bundle change releases the actions that ship it.
+CI fails a pull request whose committed bundle does not match its sources.
 
 ## License
 

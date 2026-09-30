@@ -1,5 +1,7 @@
-import { i as actionEnv, t as runMain } from "./assets/run-BzFLlp08.js";
-import { t as GitHubApi } from "./assets/github-api-CbIYj_8t.js";
+import { n as actionEnv, t as runMain } from "./assets/run-BAJLqHWw.js";
+import { n as codeSpan } from "./assets/report-v9naF6qM.js";
+import { t as GitHubApi } from "./assets/github-api-CCXuPPqb.js";
+import { t as workflowCommandValue } from "./assets/workflow-command-UvtADBsB.js";
 import { createHash } from "node:crypto";
 import { appendFileSync, readFileSync } from "node:fs";
 //#region ../../libs/docs-impact-review/src/eligibility.ts
@@ -134,8 +136,8 @@ async function runPrepareCli(env, fetchImpl) {
 		`prepared=${JSON.stringify(result.prepared)}`
 	].map((line) => `${line}\n`).join(""));
 	if (result.skip) {
-		process.stdout.write(`::notice::Docs impact review skipped: ${result.reason}\n`);
-		if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, `### Docs impact review skipped\n\n${result.reason}\n`);
+		process.stdout.write(`::notice::Docs impact review skipped: ${workflowCommandValue(result.reason)}\n`);
+		if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, `### Docs impact review skipped\n\n${codeSpan(result.reason)}\n`);
 	}
 }
 //#endregion

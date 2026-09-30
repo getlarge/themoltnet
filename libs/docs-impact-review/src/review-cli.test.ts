@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { runReviewCli } from './review-cli.js';
+import { parseReviewCliArgs, runReviewCli } from './review-cli.js';
 
 const SHA = 'a'.repeat(40);
 const UUID = '00000000-0000-4000-8000-000000000001';
@@ -58,6 +58,21 @@ describe('runReviewCli arguments', () => {
       'must be a UUID',
     ],
     ['--rescore without labels', ['--rescore', 'x.json'], 'requires --labels'],
+    [
+      'an abbreviated pinned revision',
+      [
+        '--repo',
+        'o/r',
+        '--pr',
+        '1',
+        ...REVIEW,
+        '--base-sha',
+        'abc1234',
+        '--head-sha',
+        SHA,
+      ],
+      'must be full 40-character git OIDs',
+    ],
   ])('refuses %s with exit 2', async (_label, args, message) => {
     // Act
     const code = await runReviewCli(args);
@@ -103,5 +118,47 @@ describe('runReviewCli arguments', () => {
     // Assert
     expect(code).toBe(2);
     expect(stderr.join('')).toContain('cannot read');
+  });
+});
+
+describe('parseReviewCliArgs', () => {
+  it('describes a pinned CI review', () => {
+    // Act
+    const parsed = parseReviewCliArgs([
+      '--repo',
+      'o/r',
+      '--pr',
+      '7',
+      ...REVIEW,
+      '--profile-coverage',
+      'cov',
+      '--correlation-id',
+      UUID,
+      '--base-sha',
+      SHA,
+      '--head-sha',
+      'b'.repeat(40),
+    ]);
+
+    // Assert
+    expect(parsed).toMatchObject({
+      kind: 'review',
+      options: {
+        repo: 'o/r',
+        prs: [7],
+        dryRun: false,
+        profile: 'p',
+        stageProfiles: { coverage: 'cov' },
+        correlationId: UUID,
+        pinned: { base: SHA, head: 'b'.repeat(40) },
+      },
+    });
+  });
+
+  it('asks for a dry run without a team or profile', () => {
+    // Act / Assert
+    expect(
+      parseReviewCliArgs(['--repo', 'o/r', '--pr', '1', '--dry-run']),
+    ).toMatchObject({ kind: 'review', options: { dryRun: true, teamId: '' } });
   });
 });

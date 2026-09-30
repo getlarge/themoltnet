@@ -1,4 +1,4 @@
-import { r as __toESM } from "../review.js";
+import { E as __toESM } from "./value-DmYVUS9b.js";
 //#region ../../libs/os-keyring/src/provider.ts
 var MOLTNET_SECRET_SERVICE = "themolt.net";
 var OS_KEYRING_SECRET_PROVIDER = "os-keyring";
@@ -65,7 +65,7 @@ var OSKeyringSecretProvider = class {
 };
 async function loadNativeKeytar() {
 	try {
-		const module = await import("./keytar-Cnm4xIpv.js").then((m) => /* @__PURE__ */ __toESM(m.default, 1));
+		const module = await import("./keytar-_7zWJGhY.js").then((m) => /* @__PURE__ */ __toESM(m.default, 1));
 		return module.default ?? module;
 	} catch (error) {
 		throw new Error("OS keyring native bindings are unavailable", { cause: error });

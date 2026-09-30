@@ -15,6 +15,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 export interface RuntimeLock {
   /** Lock file, relative to the repository root. */
@@ -29,8 +30,9 @@ export const RUNTIME_LOCKS: RuntimeLock[] = [
     pathspecs: [
       '.github/workflows/docs-impact-review-reusable.yml',
       'packages/agent-daemon-action/action.yml',
-      ':(glob)packages/agent-daemon-action/src/**',
-      ':(exclude,glob)packages/agent-daemon-action/src/**/*.test.ts',
+      // The bundle the workers run, not its sources: the bundle-sync PR
+      // refreshes this lock together with the bundle.
+      'packages/agent-daemon-action/dist',
     ],
   },
 ];
@@ -53,17 +55,12 @@ export function renderLock(files: ReadonlyMap<string, Buffer>): string {
 function listFiles(root: string, pathspecs: string[]): string[] {
   return execFileSync(
     'git',
-    [
-      'ls-files',
-      '--cached',
-      '--others',
-      '--exclude-standard',
-      '--',
-      ...pathspecs,
-    ],
+    // Staged files only, NUL-separated: an untracked local file never enters
+    // the lock, and no path is quoted.
+    ['ls-files', '--cached', '-z', '--', ...pathspecs],
     { cwd: root, encoding: 'utf8' },
   )
-    .split('\n')
+    .split('\0')
     .filter(Boolean);
 }
 
@@ -104,7 +101,7 @@ function main(argv: string[]): number {
     const stale = staleLocks(root);
     for (const lock of stale) {
       process.stderr.write(
-        `::error file=${lock}::${lock} is out of date. Run 'node tools/src/release/action-runtime-lock.ts --write' and commit it in a fix or feat commit, so the action is released with the change.\n`,
+        `::error file=${lock}::${lock} is out of date. Stage your changes, run 'node tools/src/release/action-runtime-lock.ts --write', and commit the lock in a fix or feat commit, so the action is released with the change.\n`,
       );
     }
     return stale.length > 0 ? 1 : 0;
@@ -115,6 +112,9 @@ function main(argv: string[]): number {
   return 2;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   process.exitCode = main(process.argv.slice(2));
 }
