@@ -27,8 +27,11 @@ import type {
 } from '@moltnet/api-client';
 import { RuntimeProfileRef } from '@moltnet/runtime-profiles';
 import {
+  type ClaimCondition as ClaimConditionType,
   ClaimConditionDefinition,
   ExecutorTrustLevel,
+  MAX_CLAIM_CONDITION_BRANCHES,
+  MAX_CLAIM_CONDITION_STATUSES,
   SuccessCriteria,
   Task,
   TaskAttempt,
@@ -106,6 +109,65 @@ export const TaskCreateSchema = Type.Object({
       description: 'Optional correlation ID for grouping related tasks.',
     }),
   ),
+  claim_condition: Type.Optional(
+    Type.Unsafe<ClaimConditionType>(
+      Type.Cyclic(
+        {
+          McpTaskClaimCondition: Type.Union([
+            Type.Object(
+              {
+                op: Type.Literal('all'),
+                conditions: Type.Array(Type.Ref('McpTaskClaimCondition'), {
+                  minItems: 1,
+                  maxItems: MAX_CLAIM_CONDITION_BRANCHES,
+                }),
+              },
+              { additionalProperties: false },
+            ),
+            Type.Object(
+              {
+                op: Type.Literal('any'),
+                conditions: Type.Array(Type.Ref('McpTaskClaimCondition'), {
+                  minItems: 1,
+                  maxItems: MAX_CLAIM_CONDITION_BRANCHES,
+                }),
+              },
+              { additionalProperties: false },
+            ),
+            Type.Object(
+              {
+                op: Type.Literal('task_status'),
+                taskId: Type.String({ format: 'uuid' }),
+                statuses: Type.Array(TaskStatusSchema, {
+                  minItems: 1,
+                  maxItems: MAX_CLAIM_CONDITION_STATUSES,
+                }),
+              },
+              { additionalProperties: false },
+            ),
+            Type.Object(
+              {
+                op: Type.Literal('task_accepted'),
+                taskId: Type.String({ format: 'uuid' }),
+              },
+              { additionalProperties: false },
+            ),
+          ]),
+        },
+        'McpTaskClaimCondition',
+        { description: 'Claim only when the referenced task conditions hold.' },
+      ),
+    ),
+  ),
+  idempotency_key: Type.Optional(
+    Type.String({
+      minLength: 1,
+      maxLength: 200,
+      pattern: '\\S',
+      description:
+        'Stable retry key. Reusing it with a different request returns 409.',
+    }),
+  ),
   max_attempts: Type.Optional(
     Type.Integer({
       minimum: 1,
@@ -144,6 +206,8 @@ export type TaskCreateInput = {
   references?: CreateTaskBody['references'];
   allowed_profiles?: CreateTaskBody['allowedProfiles'];
   correlation_id?: CreateTaskBody['correlationId'];
+  claim_condition?: CreateTaskBody['claimCondition'];
+  idempotency_key?: string;
   max_attempts?: CreateTaskBody['maxAttempts'];
   expires_in_sec?: CreateTaskBody['expiresInSec'];
   required_executor_trust_level?: CreateTaskBody['requiredExecutorTrustLevel'];

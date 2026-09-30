@@ -229,6 +229,30 @@ describe('waitForTaskOutcome (polling transitions)', () => {
     }
   });
 
+  it.each([
+    ['expired', null, /status expired/],
+    ['completed', null, /without an accepted attempt/],
+  ])(
+    'returns failed for terminal %s without polling again',
+    async (status, acceptedN, reason) => {
+      const tasks = new ScriptedTasks(
+        [[status, acceptedN]],
+        attempt('failed', null),
+      );
+      const { ctx, sleeps } = recordingContext();
+      const outcome = await waitForTaskOutcome('t1', {
+        tasks,
+        ctx,
+        pollIntervalSec: 1,
+        parse: parseState,
+      });
+      expect(outcome.kind).toBe('failed');
+      if (outcome.kind === 'failed') expect(outcome.reason).toMatch(reason);
+      expect(tasks.getCalls).toBe(1);
+      expect(sleeps).toHaveLength(0);
+    },
+  );
+
   it('propagates an unexpected getTask rejection', async () => {
     const tasks = new ScriptedTasks(
       [['queued', null]],

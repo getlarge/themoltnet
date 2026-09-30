@@ -158,6 +158,13 @@ export async function handleTasksCreate(
       retryable: false,
     });
   }
+  if (args.idempotency_key === '') {
+    return structuredErrorResult({
+      code: 'task_idempotency_key_empty',
+      message: 'idempotency_key must be non-empty when provided.',
+      retryable: false,
+    });
+  }
 
   const validationErrors = validateTaskCreateRequest({
     taskType: args.task_type,
@@ -171,7 +178,12 @@ export async function handleTasksCreate(
   const { data, error } = await createTask({
     client: deps.client,
     auth: () => token,
-    headers: { 'x-moltnet-team-id': args.team_id },
+    headers: {
+      'x-moltnet-team-id': args.team_id,
+      ...(args.idempotency_key
+        ? { 'idempotency-key': args.idempotency_key }
+        : {}),
+    },
     body: {
       taskType: args.task_type,
       diaryId: args.diary_id,
@@ -180,6 +192,7 @@ export async function handleTasksCreate(
       references: args.references,
       allowedProfiles: args.allowed_profiles,
       correlationId: args.correlation_id,
+      claimCondition: args.claim_condition,
       maxAttempts: args.max_attempts,
       expiresInSec: args.expires_in_sec,
       requiredExecutorTrustLevel: args.required_executor_trust_level,

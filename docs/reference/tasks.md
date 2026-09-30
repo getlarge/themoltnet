@@ -154,9 +154,9 @@ the configured team context.
 
 ### Create envelope
 
-Every surface posts the same `CreateTaskReq` body to `POST /tasks`. The field
-set is identical across CLI, MCP, and SDK; only the naming convention and the
-validator origin differ:
+Every surface posts the same `CreateTaskReq` body to `POST /tasks`. The create
+options are shared across CLI, MCP, and SDK; the retry key is sent as a header.
+Naming conventions and validator origin differ:
 
 | Field                         | REST / SDK                   | MCP `tasks_create` arg          | Go CLI flag                                               |
 | ----------------------------- | ---------------------------- | ------------------------------- | --------------------------------------------------------- |
@@ -168,6 +168,8 @@ validator origin differ:
 | References                    | `references[]`               | `references[]`                  | `--reference '<json>'` (repeatable)                       |
 | Allowed runtime profiles      | `allowedProfiles[]`          | `allowed_profiles[]`            | `--allowed-profile '{"profileId":"<uuid>"}'` (repeatable) |
 | Correlation ID                | `correlationId`              | `correlation_id`                | `--correlation-id`                                        |
+| Claim condition               | `claimCondition`             | `claim_condition`               | `--claim-condition '<json>'`                              |
+| Retry key (HTTP header)       | `Idempotency-Key`            | `idempotency_key`               | `--idempotency-key`                                       |
 | Max attempts                  | `maxAttempts`                | `max_attempts`                  | `--max-attempts`                                          |
 | Expires in (seconds)          | `expiresInSec`               | `expires_in_sec`                | `--expires-in-sec`                                        |
 | Required executor trust level | `requiredExecutorTrustLevel` | `required_executor_trust_level` | `--required-executor-trust-level`                         |
@@ -181,6 +183,11 @@ task-type fields such as `brief`, `expectedOutput`, `constraints`, and
 
 `requiredExecutorTrustLevel` enum values: `selfDeclared`, `agentSigned`,
 `releaseVerifiedTool`, `sandboxAttested`.
+
+For workflow retries, reuse one idempotency key with the same task body. A
+`correlationId` groups tasks for queries but does not prevent duplicates.
+`claimCondition` can gate a task on another task's status or accepted attempt;
+the CLI takes the JSON condition as one argument.
 
 `projectId` accepts a project UUID on create; omit it for General work. On the
 CLI (`--project-id ""`), the SDK (`.project('')`) and MCP (`project_id: ""`) an

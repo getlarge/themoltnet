@@ -518,6 +518,9 @@ reference on RuntimeProfileRef.`,
 				inputFile:                     flagString(cmd, "input-file"),
 				correlationID:                 flagString(cmd, "correlation-id"),
 				correlationIDSet:              cmd.Flags().Changed("correlation-id"),
+				claimCondition:                flagString(cmd, "claim-condition"),
+				idempotencyKey:                flagString(cmd, "idempotency-key"),
+				idempotencyKeySet:             cmd.Flags().Changed("idempotency-key"),
 				references:                    flagStringArray(cmd, "reference"),
 				allowedProfiles:               flagStringArray(cmd, "allowed-profile"),
 				requiredExecutorTrustLevel:    flagString(cmd, "required-executor-trust-level"),
@@ -546,6 +549,8 @@ reference on RuntimeProfileRef.`,
 	cmd.Flags().String("project-id", "", "Project UUID — only runs bound to this project can claim the task; omit for General work")
 	cmd.Flags().String("input-file", "-", `Path to the input JSON blob; "-" reads stdin (default)`)
 	cmd.Flags().String("correlation-id", "", "Correlation UUID — link this task to an existing chain")
+	cmd.Flags().String("claim-condition", "", "ClaimCondition JSON object — gate claiming on other task outcomes")
+	cmd.Flags().String("idempotency-key", "", "Stable retry key; reuse with the same request to avoid duplicate tasks")
 	cmd.Flags().StringArray("reference", nil, "TaskRef JSON object; repeatable")
 	cmd.Flags().StringArray("allowed-profile", nil, "RuntimeProfileRef JSON object; repeatable")
 	cmd.Flags().String("required-executor-trust-level", "", "One of: selfDeclared, agentSigned, releaseVerifiedTool, sandboxAttested")
