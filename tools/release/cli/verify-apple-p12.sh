@@ -103,8 +103,10 @@ fi
 # Developer ID certificates contain Apple-specific critical extensions that
 # generic OpenSSL does not interpret. Quill ignores those known extensions;
 # -ignore_critical lets OpenSSL validate the cryptographic chain itself.
+# -trusted confines trust anchors to the root extracted from this P12, so a
+# runner's default CA store cannot substitute another Apple Root CA.
 if ! verify_error=$(openssl verify -ignore_critical -purpose any \
-  -CAfile "$root" -untrusted "$intermediate" "$leaf" 2>&1); then
+  -trusted "$root" -untrusted "$intermediate" "$leaf" 2>&1); then
   echo "APPLE_CERT_P12 does not contain a valid Developer ID leaf-to-root chain" >&2
   openssl_diagnostics "$verify_error"
   exit 1
