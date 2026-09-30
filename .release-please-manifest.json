@@ -24,7 +24,7 @@
   "libs/sandbox-gondolin": "0.5.2",
   "libs/sdk": "0.147.0",
   "libs/shell-command-analyzer": "0.4.0",
-  "libs/tasks-orchestrator": "0.4.14",
+  "libs/tasks-orchestrator": "0.5.0",
   "libs/yubikey-preview-sign": "0.4.1",
   "packages/agent-daemon-action": "0.2.0",
   "packages/cli": "3.10.0",
