@@ -8,22 +8,24 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  artifact-metadata: write
-  attestations: write
-  contents: write
-  id-token: write
+  contents: read
 
 jobs:
   build-and-release:
     name: Build and release QEMU runtime (darwin-arm64)
     runs-on: macos-15
     timeout-minutes: 30
+    permissions:
+      artifact-metadata: write
+      attestations: write
+      contents: write
+      id-token: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
 
@@ -34,7 +36,7 @@ jobs:
         run: node tools/release/agent-bundle/build-qemu-runtime.mjs
 
       - name: Attest QEMU runtime provenance
-        uses: actions/attest@v4
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
         with:
           subject-path: dist/qemu-runtime/moltnet-qemu-runtime-darwin-arm64.tar.gz
 

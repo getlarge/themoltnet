@@ -121,7 +121,7 @@ jobs:
           echo "Wrote $(wc -c < ory-backup-passphrase.asc) bytes of ciphertext."
 
       - name: Upload the ciphertext
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ory-backup-passphrase-escrow
           path: ory-backup-passphrase.asc

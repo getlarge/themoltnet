@@ -69,7 +69,7 @@ jobs:
     steps:
       - name: Guard trusted complexity runtime changes
         id: runtime-guard
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const pullNumber =
@@ -107,7 +107,7 @@ jobs:
             }
 
       - if: steps.runtime-guard.outputs.skip != 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           # Always execute trusted workflow/runtime code. The reviewed head is
           # fetched below as inert git data and never checked out or executed.
@@ -115,9 +115,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - if: steps.runtime-guard.outputs.skip != 'true'
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       - if: steps.runtime-guard.outputs.skip != 'true'
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
           cache: pnpm
