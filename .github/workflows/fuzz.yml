@@ -1,0 +1,28 @@
+name: Fuzz credential references
+
+on:
+  schedule:
+    - cron: '20 4 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  credential-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: apps/moltnet-cli/go.mod
+          cache-dependency-path: |
+            go.work.sum
+            apps/moltnet-cli/go.sum
+            libs/moltnet-api-client/go.sum
+      - name: Fuzz credential reference parsing
+        working-directory: apps/moltnet-cli
+        run: go test . -run '^$' -fuzz '^FuzzParseSecretReferenceString$' -fuzztime=2m

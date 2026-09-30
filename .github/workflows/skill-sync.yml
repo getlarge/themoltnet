@@ -1,5 +1,7 @@
 name: Skill Sync Check
 
+permissions: {}
+
 on:
   push:
     branches: [main]
@@ -15,7 +17,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Check .claude/skills are symlinks into the canonical .agents/skills
         run: bash .github/scripts/check-skill-sync.sh

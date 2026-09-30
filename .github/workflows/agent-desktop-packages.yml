@@ -27,7 +27,7 @@ jobs:
       NX_NO_CLOUD: 'true'
       APPIMAGE_EXTRACT_AND_RUN: '1'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
@@ -44,7 +44,7 @@ jobs:
         run: pnpm exec nx run @moltnet/agent-desktop:tauri:bundle --configuration=${{ matrix.platform }} --excludeTaskDependencies
       - name: Verify package installation and launch
         run: bash tools/release/agent-desktop/${{ matrix.platform }}-smoke.sh
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: failure()
         with:
           name: desktop-packages-${{ matrix.platform }}

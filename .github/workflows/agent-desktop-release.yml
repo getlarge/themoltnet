@@ -71,7 +71,7 @@ jobs:
       version: ${{ steps.revision.outputs.version }}
       agent-cli-version: ${{ steps.daemon.outputs.version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
 
@@ -117,11 +117,11 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         if: ${{ inputs.agent-bundle-artifact != '' }}
         with:
           name: ${{ inputs.agent-bundle-artifact }}
@@ -135,7 +135,7 @@ jobs:
           bash tools/release/agent-desktop/stage-agent.sh \
             "$AGENT_CLI_VERSION" "$RUNNER_TEMP/desktop-agent" ${SOURCE:+"$SOURCE"}
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: agent-desktop-daemon
           path: ${{ runner.temp }}/desktop-agent
@@ -160,7 +160,7 @@ jobs:
       # The Linux smoke runs the AppImage on a runner without FUSE.
       APPIMAGE_EXTRACT_AND_RUN: '1'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ needs.resolve.outputs.revision }}
           persist-credentials: false
@@ -264,7 +264,7 @@ jobs:
           VERSION: ${{ needs.resolve.outputs.version }}
         run: bash tools/release/agent-desktop/materialize.sh ${{ matrix.platform }} "$VERSION" "$TAURI_UPDATER_PUBLIC_KEY"
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         if: ${{ matrix.platform == 'linux' }}
         with:
           name: agent-desktop-daemon
@@ -277,7 +277,7 @@ jobs:
           tar -xzf "$RUNNER_TEMP/desktop-agent/moltnet-agent-linux-x64.tar.gz" -C dist/agent-bundle
           bash tools/release/agent-desktop/linux-smoke.sh
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: agent-desktop-package-${{ matrix.platform }}
           path: dist/agent-desktop
@@ -296,12 +296,12 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
           sparse-checkout: tools/release
 
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           pattern: agent-desktop-package-*
           path: dist/agent-desktop

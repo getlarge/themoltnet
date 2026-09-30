@@ -44,7 +44,7 @@ jobs:
     steps:
       - name: Fetch and validate untrusted PR review input
         id: prepare
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           REVIEW_PROFILE: ${{ vars.MOLTNET_MULTI_LENS_REVIEW_PROFILE }}
         with:
@@ -128,7 +128,7 @@ jobs:
             core.setOutput('pr-number', String(pr.number));
             core.setOutput('profile', process.env.REVIEW_PROFILE);
 
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: multi-lens-review-input
           path: |
@@ -152,20 +152,20 @@ jobs:
       MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
       OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ needs.prepare.outputs.base-sha }}
           persist-credentials: false
       - name: Checkout trusted workflow helpers
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: ${{ github.repository }}
           ref: ${{ github.workflow_sha }}
           path: .trusted-workflow
           sparse-checkout: apps/multi-lens-review/scripts
           persist-credentials: false
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
           cache: pnpm
@@ -239,24 +239,24 @@ jobs:
       MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
       MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ needs.prepare.outputs.base-sha }}
           persist-credentials: false
       - name: Checkout trusted workflow helpers
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: ${{ github.repository }}
           ref: ${{ github.workflow_sha }}
           path: .trusted-workflow
           sparse-checkout: apps/multi-lens-review/scripts
           persist-credentials: false
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: multi-lens-review-input
           path: ${{ runner.temp }}/multi-lens-review
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
           cache: pnpm
@@ -305,7 +305,7 @@ jobs:
         # `act` sets ACT=true. Local trusted-runtime acceptance must never
         # mutate the PR fixture.
         if: always() && env.ACT != 'true'
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           RESULT_PATH: ${{ steps.review.outputs.result }}
           REVIEW_OUTCOME: ${{ steps.review.outcome }}
@@ -390,7 +390,7 @@ jobs:
       # Keep both workers alive across planner -> preflight -> canary gates.
       REVIEW_WORKER_IDLE_GRACE_SEC: '900'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ needs.prepare.outputs.base-sha }}
           persist-credentials: false
@@ -398,8 +398,8 @@ jobs:
         env:
           HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
         run: git fetch --no-tags --depth=1 origin "$HEAD_SHA"
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
           cache: pnpm
