@@ -23,6 +23,8 @@ export interface PiModelSpec {
   input?: readonly PiModelModality[];
   reasoning?: boolean;
   thinkingLevelMap?: Readonly<Record<string, string>>;
+  /** Explicit provider claim that strict JSON-schema function tools work. */
+  supportsStrictMode?: boolean;
 }
 
 export interface WritePiProviderInput {
@@ -89,6 +91,9 @@ function toPiModel(entry: PiModelSpec): PiModelSpec {
     ...(entry.reasoning !== undefined ? { reasoning: entry.reasoning } : {}),
     ...(entry.thinkingLevelMap
       ? { thinkingLevelMap: { ...entry.thinkingLevelMap } }
+      : {}),
+    ...(entry.supportsStrictMode !== undefined
+      ? { compat: { supportsStrictMode: entry.supportsStrictMode } }
       : {}),
   };
 }

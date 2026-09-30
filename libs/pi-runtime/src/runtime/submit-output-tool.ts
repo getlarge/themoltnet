@@ -33,7 +33,7 @@ import {
   SUBMIT_OUTPUT_GATE_ID,
   validateTaskSubmission,
 } from '@themoltnet/agent-runtime';
-import { type TObject, type TSchema, Type } from 'typebox';
+import { type TObject, type TSchema } from 'typebox';
 
 import { recordTaskOutputParseResult } from './task-output.js';
 
@@ -112,11 +112,9 @@ export class UnknownTaskTypeForSubmitToolError extends Error {
 }
 
 /**
- * Pi validates tool arguments before execute() runs. Keep the top-level field
- * names visible to providers, but let malformed field values reach the strict
- * registry-aware validator in execute(). The full contract remains in the
- * tool prompt; otherwise a bad nested value is rejected before the runtime
- * can repair it or explain the error to the model.
+ * Pi validates tool arguments before execute() runs. The exact task schema is
+ * sent to the provider; this check also keeps top-level decoding bounded to
+ * known properties when a provider stringifies JSON values.
  */
 function requireObjectSchema(schema: TSchema): TObject {
   if (
@@ -170,25 +168,32 @@ function admitsJsonType(types: Set<string>, type: string): boolean {
   return types.has(type) || (type === 'integer' && types.has('number'));
 }
 
-function recoverableSubmitToolParameters(schema: TSchema): TObject {
-  const objectSchema = requireObjectSchema(schema);
-  return Type.Object(
-    Object.fromEntries(
-      Object.entries(objectSchema.properties).map(([name, property]) => {
-        // The value stays unconstrained so malformed calls reach execute(),
-        // but the expected type stays visible: with a bare `{}` some models
-        // send every array, object, and number as a JSON string.
-        const types = [...schemaJsonTypes(property)].sort();
-        const hint =
-          types.length > 0 && !types.includes('string')
-            ? {
-                description: `JSON ${types.join(' | ')}. Send a native JSON value, not a string.`,
-              }
-            : {};
-        return [name, Type.Optional(Type.Any(hint))];
-      }),
-    ),
-    { additionalProperties: true },
+/** Pi represents optional strict-tool fields as required nullable fields. */
+function omitStrictOptionalNulls(value: unknown, schema: unknown): unknown {
+  if (!isRecord(schema)) return value;
+  if (Array.isArray(value)) {
+    return Array.isArray(schema.items) || !schema.items
+      ? value
+      : value.map((item) => omitStrictOptionalNulls(item, schema.items));
+  }
+  if (!isRecord(value) || !isRecord(schema.properties)) return value;
+  const properties = schema.properties;
+  const required = new Set(
+    Array.isArray(schema.required) ? schema.required : [],
+  );
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([name, item]) => {
+      const property = properties[name];
+      if (
+        item === null &&
+        property &&
+        !required.has(name) &&
+        !schemaJsonTypes(property).has('null')
+      ) {
+        return [];
+      }
+      return [[name, omitStrictOptionalNulls(item, property)]];
+    }),
   );
 }
 
@@ -291,9 +296,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function unwrapSoleOutputEnvelope(params: unknown, schema: TSchema): unknown {
   if (!isRecord(params) || Object.keys(params).length !== 1) return params;
   const objectSchema = requireObjectSchema(schema);
-  const properties = isRecord(objectSchema.properties)
-    ? objectSchema.properties
-    : Object.create(null);
+  const properties: Record<string, unknown> = isRecord(objectSchema.properties)
+    ? (objectSchema.properties as Record<string, unknown>)
+    : {};
   if ('output' in properties || !('output' in params)) return params;
   return params.output;
 }
@@ -303,7 +308,7 @@ function onlySubmitOutputGate(input: unknown): boolean {
   const criteria = input.successCriteria;
   const gates = criteria.gates;
   if (!Array.isArray(gates) || gates.length !== 1) return false;
-  const [gate] = gates;
+  const [gate] = gates as unknown[];
   if (!isRecord(gate) || gate.id !== SUBMIT_OUTPUT_GATE_ID) return false;
 
   const assertions = criteria.assertions;
@@ -411,7 +416,7 @@ export function createSubmitOutputTool(
   let invalidCallCount = 0;
   let lastValidationFailure: { code: string; message: string } | null = null;
 
-  const schema = recoverableSubmitToolParameters(contract.parametersSchema);
+  const schema = contract.parametersSchema;
 
   const tool = defineTool({
     name: contract.toolName,
@@ -424,11 +429,19 @@ export function createSubmitOutputTool(
       `Agent submission schema:\n\`\`\`json\n${contract.parametersSchemaJson}\n\`\`\``,
     promptGuidelines: [
       `Call \`${contract.toolName}\` with the exact ${taskType} agent submission shape shown above.`,
-      'The transport accepts malformed objects only so validation errors can be recovered in-session; the schema shown above is authoritative.',
       'If the submit tool returns a validation error, fix every listed field and call the same tool again.',
       'The first valid submission is final and immediately ends the session.',
     ],
     parameters: schema,
+    constrainedSampling: { type: 'json_schema', strict: 'prefer' },
+    prepareArguments: (args) => {
+      const decoded = omitStrictOptionalNulls(
+        decodeStringifiedFields(unwrapSoleOutputEnvelope(args, schema), schema),
+        schema,
+      );
+      return (maybeRepairSubmitOutput(taskType, decoded, opts) ??
+        decoded) as Record<string, unknown>;
+    },
     async execute(_id, params) {
       if (captured) {
         const details: SubmitOutputDetails = {

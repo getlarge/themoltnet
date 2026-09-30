@@ -41,8 +41,15 @@ function parseModelArgs(
   modelInputs: string[] | undefined,
   modelReasoning: string[] | undefined,
   modelThinkingMaps: string[] | undefined,
+  modelStrictTools: string[] | undefined,
 ): ProviderModelEntry[] | undefined {
-  if (!models && !modelInputs && !modelReasoning && !modelThinkingMaps)
+  if (
+    !models &&
+    !modelInputs &&
+    !modelReasoning &&
+    !modelThinkingMaps &&
+    !modelStrictTools
+  )
     return undefined;
   const entries = new Map<string, ProviderModelEntry>();
   for (const id of models ?? []) entries.set(id, { id });
@@ -115,6 +122,9 @@ function parseModelArgs(
       reasoning: true,
       thinkingLevelMap: map,
     });
+  }
+  for (const id of modelStrictTools ?? []) {
+    entries.set(id, { ...entries.get(id), id, supportsStrictMode: true });
   }
   return [...entries.values()];
 }
@@ -249,6 +259,7 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
           'model-input': { type: 'string', multiple: true },
           'model-reasoning': { type: 'string', multiple: true },
           'model-thinking-map': { type: 'string', multiple: true },
+          'model-strict-tools': { type: 'string', multiple: true },
           'clear-models': { type: 'boolean' },
           'api-key-stdin': { type: 'boolean' },
           'clear-api-key': { type: 'boolean' },
@@ -270,12 +281,14 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
         );
       }
       if (
-        (values['model-reasoning'] || values['model-thinking-map']) &&
+        (values['model-reasoning'] ||
+          values['model-thinking-map'] ||
+          values['model-strict-tools']) &&
         values['clear-models']
       ) {
         throw new ProviderCliError(
           'invalid_arguments',
-          '--model-reasoning and --model-thinking-map cannot be used with --clear-models',
+          'model capability flags cannot be used with --clear-models',
         );
       }
       if (values['api-key-stdin'] && values['clear-api-key']) {
@@ -297,6 +310,7 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
               values['model-input'],
               values['model-reasoning'],
               values['model-thinking-map'],
+              values['model-strict-tools'],
             ),
         apiKeyStdin: values['api-key-stdin'] ?? false,
         clearApiKey: values['clear-api-key'] ?? false,

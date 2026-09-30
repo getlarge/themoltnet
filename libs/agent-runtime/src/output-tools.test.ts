@@ -30,9 +30,8 @@ describe('getSubmitOutputContract', () => {
       expect(c, `${t} contract`).not.toBeNull();
       expect(c!.taskType).toBe(t);
       expect(c!.toolName).toBe(`submit_${t}_output`);
-      // The schema is the task type's agent-submission TObject. Pi uses a
-      // permissive transport schema for recoverable errors, but its prompt
-      // must expose these exact fields to the model.
+      // The schema is the task type's agent-submission TObject and is sent
+      // directly to Pi as the submit tool's parameter contract.
       expect(c!.parametersSchema).toBeDefined();
       expect(c!.parametersSchema).toBe(getTaskSubmissionSchema(t));
       expect(

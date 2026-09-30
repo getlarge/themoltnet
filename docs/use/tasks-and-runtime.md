@@ -802,9 +802,26 @@ Every task type has a structured output schema. A completed attempt stores:
 - optional usage, artifact references, and task-type-specific fields
 
 The bundled Pi executor asks the model to call a per-task submit tool such as
-`submit_fulfill_brief_output`. If the tool is not called, the executor falls
-back to parsing the final assistant message as JSON. Tool capture is preferred
-because schema errors can be returned to the model inside the same session.
+`submit_fulfill_brief_output`. The tool advertises the task's submission schema
+to Pi and requests JSON Schema constrained sampling when the selected model and
+provider support it. When configuring a custom OpenAI-compatible model,
+`--model-strict-tools <model>` declares verified support and maps to Pi's
+`compat.supportsStrictMode`. Ollama's model capability list does not itself
+establish support for strict function definitions. MoltNet validates every
+submitted payload, including cross-field task rules, before accepting it. If the
+tool is not called, the executor accepts a complete JSON object in the final
+assistant turn when it passes the task submission schema and the task has no
+required submit-tool-call gate. Otherwise it makes bounded same-session
+submit-tool retries. The fallback runs the same task submission validation and
+rejects prose containing an embedded JSON example or an earlier draft from
+another turn. Tool capture is preferred because schema errors can be returned to
+the model inside the same session.
+
+Pi's strict JSON Schema subset does not accept open-ended record fields such as
+`patternProperties`. Those task types currently use typed tool calls with
+MoltNet validation; `strict: 'prefer'` falls back automatically. The opt-in
+`structured-output.live.test.ts` checks provider behavior when its
+`MOLTNET_LIVE_STRUCTURED_*` environment variables are supplied.
 
 When a proposer includes `input.successCriteria`, producer task outputs must
 include an `output.verification` record. This is the producer's own assessment

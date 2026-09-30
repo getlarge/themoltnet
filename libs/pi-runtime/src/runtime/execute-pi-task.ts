@@ -57,6 +57,7 @@ import {
   type TaskUserPromptContext,
   traceRuntimePhase,
   validateTaskOutput,
+  validateTaskSubmission,
 } from '@themoltnet/agent-runtime';
 import {
   activateAgentEnv,
@@ -1347,12 +1348,9 @@ export async function executePiTask(
       },
     });
 
-    // Per-task-type submit-output tool. Captured payload (when the
-    // model calls the tool with valid args) becomes the authoritative
-    // output. For task types with a registered submit tool, a valid
-    // submit call is required to complete the attempt; the legacy
-    // parser fallback is only consulted when the task type has no
-    // registered output schema (resolveSubmitTools returns null).
+    // Per-task-type submit-output tool. A validated tool call is the
+    // authoritative output; a complete final-turn JSON object can recover a
+    // missing call after the same task submission validation.
     const submitCompletion = createSubmitCompletionCoordinator({
       // Pi's native terminate result ends a lone successful submit without
       // manufacturing an aborted provider turn. A mixed tool batch does not
@@ -1936,7 +1934,6 @@ export async function executePiTask(
       resolveProviderStateAfterSubmit(
         turnState,
         submitToolHandle?.getCaptured() !== null,
-        submitCompletion.hasRequestedCompletion(),
       );
     // One provider-error-tolerant prompt pass. Reused for both the initial
     // task prompt and each submit-missing re-prompt so every pass inherits
@@ -1947,9 +1944,7 @@ export async function executePiTask(
         initialPrompt: promptText,
         cancelSignal: reporter.cancelSignal,
         isCapAborted: () => capAbort !== null,
-        hasValidatedSubmit: () =>
-          submitToolHandle?.getCaptured() !== null &&
-          submitCompletion.hasRequestedCompletion(),
+        hasValidatedSubmit: () => submitToolHandle?.getCaptured() !== null,
         getProviderErrorState: terminalProviderState,
         maxRetries:
           opts.maxProviderErrorRetries ?? DEFAULT_PROVIDER_ERROR_RETRIES,
@@ -1979,7 +1974,22 @@ export async function executePiTask(
       submitToolName: submitToolHandle?.toolName,
       submitMissingPrompt: submitMissingConfig.submitMissingPrompt,
       maxSubmitMissingReprompts: submitMissingConfig.maxSubmitMissingReprompts,
-      getSubmitState: submitMissingConfig.getSubmitState,
+      getSubmitState: () => {
+        const state = submitMissingConfig.getSubmitState();
+        if (
+          state &&
+          isValidFinalAssistantSubmission(
+            turnState.finalAssistantText,
+            task.taskType,
+            task.input,
+            task.inputCid,
+          )
+        ) {
+          return { ...state, captured: true };
+        }
+        return state;
+      },
+      getStopReason: () => turnState.lastStopReason,
       isStopped: () =>
         submitRepromptStopped({
           cancelled: reporter.cancelSignal.aborted,
@@ -2045,6 +2055,7 @@ export async function executePiTask(
         input: task.input,
         inputCid: task.inputCid,
         assistantText: turnState.assistantText,
+        finalAssistantText: turnState.finalAssistantText,
         submitToolHandle,
         emit,
       });
@@ -2214,6 +2225,10 @@ export type SessionSubscribeEvent = Parameters<
 export interface SessionTurnState {
   /** Streamed assistant text, concatenated across `text_delta` events. */
   assistantText: string;
+  /** Text from the last completed assistant turn, for safe output recovery. */
+  finalAssistantText: string;
+  /** Stop reason of the latest completed assistant turn. */
+  lastStopReason: string | null;
   /** Final turn ended with `stopReason: 'error'` (last-turn-wins). */
   llmAbort: boolean;
   /** Provider diagnostic from the final error turn, else null. */
@@ -2227,6 +2242,8 @@ export interface SessionTurnState {
 export function createSessionTurnState(): SessionTurnState {
   return {
     assistantText: '',
+    finalAssistantText: '',
+    lastStopReason: null,
     llmAbort: false,
     llmErrorMessage: null,
     toolUseTurnCount: 0,
@@ -2234,20 +2251,16 @@ export function createSessionTurnState(): SessionTurnState {
   };
 }
 
-/** A valid final submit is authoritative after the submit tool requests
- * completion. Pi can report the runtime's intentional session.abort() as an
- * error turn before the coordinator observes the final tool_execution_end,
- * even after recording the successful tool result. The coordinator still delays
- * abort until observed tools drain, while this state check preserves the
- * captured output and avoids a spurious provider retry. Cancellation and caps
- * keep their separate failure paths.
+/** A validated submit is authoritative even when Pi reports an abort while
+ * settling its tool result. Completion coordination controls the session but
+ * does not determine whether the output was captured. Cancellation and caps
+ * keep their separate failure paths in the caller.
  */
 export function resolveProviderStateAfterSubmit(
   state: Pick<SessionTurnState, 'llmAbort' | 'llmErrorMessage'>,
   validOutputCaptured: boolean,
-  completionRequested: boolean,
 ): Pick<SessionTurnState, 'llmAbort' | 'llmErrorMessage'> {
-  if (validOutputCaptured && completionRequested) {
+  if (validOutputCaptured) {
     return { llmAbort: false, llmErrorMessage: null };
   }
   return {
@@ -2368,6 +2381,7 @@ export function makeSessionEventHandler(
         // limit, …) up to the task's `error.message` instead of the
         // generic 'LLM API error during turn'.
         errorMessage?: string;
+        content?: Array<{ type?: string; text?: string }>;
         usage?: {
           input?: number;
           output?: number;
@@ -2384,6 +2398,15 @@ export function makeSessionEventHandler(
         if (cw) usage.cacheWriteTokens = (usage.cacheWriteTokens ?? 0) + cw;
       }
       const stopReason = msg?.stopReason ?? 'end_turn';
+      if (msg?.role === 'assistant') state.lastStopReason = stopReason;
+      if (msg?.role === 'assistant') {
+        // Use the completed message, never the accumulated stream: earlier
+        // turns can contain draft JSON that must not become task output.
+        state.finalAssistantText = (msg.content ?? [])
+          .filter((part) => part.type === 'text')
+          .map((part) => part.text ?? '')
+          .join('');
+      }
       track(emit('turn_end', { stop_reason: stopReason }));
       // Tool-use turn counter for the max-turns cap. Anthropic SDK
       // semantics: count only tool-use turns (any turn whose
@@ -2435,6 +2458,8 @@ export interface CaptureAttemptOutputDeps {
   inputCid?: string;
   /** Streamed assistant text, used only by the legacy parser fallback. */
   assistantText: string;
+  /** Completed final assistant turn; excludes prior turns and examples. */
+  finalAssistantText?: string;
   /** Submit-output handle, or null for task types with no registered schema. */
   submitToolHandle: Pick<
     SubmitOutputToolHandle,
@@ -2444,6 +2469,52 @@ export interface CaptureAttemptOutputDeps {
     kind: TurnEventKind,
     payload: Record<string, unknown>,
   ) => Promise<void>;
+}
+
+function parseExactJsonObject(
+  text: string | undefined,
+): Record<string, unknown> | null {
+  try {
+    const value: unknown = JSON.parse(text?.trim() ?? '');
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function requiresSubmitToolCall(input: unknown): boolean {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return false;
+  const criteria = (input as Record<string, unknown>)['successCriteria'];
+  if (!criteria || typeof criteria !== 'object' || Array.isArray(criteria))
+    return false;
+  const gates = (criteria as Record<string, unknown>)['gates'];
+  return (
+    Array.isArray(gates) &&
+    (gates as unknown[]).some(
+      (gate) =>
+        gate !== null &&
+        typeof gate === 'object' &&
+        !Array.isArray(gate) &&
+        (gate as Record<string, unknown>)['kind'] === 'submit-tool-call' &&
+        (gate as Record<string, unknown>)['required'] === true,
+    )
+  );
+}
+
+export function isValidFinalAssistantSubmission(
+  text: string | undefined,
+  taskType: string,
+  input: unknown,
+  inputCid?: string,
+): boolean {
+  const object = parseExactJsonObject(text);
+  return (
+    !requiresSubmitToolCall(input) &&
+    object !== null &&
+    validateTaskSubmission(taskType, object, input, { inputCid }).length === 0
+  );
 }
 
 export interface MaterializeCapturedAttemptOutputDeps {
@@ -2569,6 +2640,7 @@ export async function captureAttemptOutput(
     input,
     inputCid,
     assistantText,
+    finalAssistantText,
     submitToolHandle,
     emit,
   } = deps;
@@ -2606,6 +2678,28 @@ export async function captureAttemptOutput(
   }
 
   if (submitToolHandle) {
+    // Some providers finish with the requested JSON in assistant text despite
+    // repeated submit-tool nudges. Recover only a whole final-turn object;
+    // the normal parser's permissive last-object scan could accept an earlier
+    // draft or an example embedded in prose.
+    const exactObject = parseExactJsonObject(finalAssistantText);
+    if (exactObject && !requiresSubmitToolCall(input)) {
+      const parsed = await parseStructuredTaskOutput(
+        JSON.stringify(exactObject),
+        taskType,
+        {
+          model,
+          input,
+          inputCid,
+        },
+      );
+      if (parsed.output) {
+        await emit('info', {
+          event: 'submit_output_recovered_from_final_text',
+        });
+        return parsed;
+      }
+    }
     const validationFailure = submitToolHandle.getLastValidationFailure();
     const error = validationFailure ?? {
       code: 'submit_output_missing',
@@ -3198,6 +3292,8 @@ export interface PromptUntilSubmittedArgs {
    * tool is registered (legacy parser path) — recovery is skipped.
    */
   getSubmitState: () => SubmitGateState | null;
+  /** Latest assistant stop reason; a length stop cannot satisfy a missing submit. */
+  getStopReason?: () => string | null;
   /** True when cancel or cap-abort fired; halts further re-prompts. */
   isStopped: () => boolean;
   onSubmitReprompt?: (
@@ -3236,6 +3332,21 @@ export async function promptUntilSubmitted(
     return { runError: first.runError, submitReprompts: 0 };
   }
 
+  const outputLimitError = () => {
+    if (args.getStopReason?.() !== 'length') return null;
+    const state = args.getSubmitState();
+    if (!state || state.captured) return null;
+    return {
+      code: 'model_output_length',
+      message:
+        'The model reached its output token limit before submitting valid task output.',
+    };
+  };
+  const firstLimitError = outputLimitError();
+  if (firstLimitError) {
+    return { runError: firstLimitError, submitReprompts: 0 };
+  }
+
   let submitReprompts = 0;
   while (submitReprompts < args.maxSubmitMissingReprompts) {
     if (args.isStopped()) break;
@@ -3262,6 +3373,10 @@ export async function promptUntilSubmitted(
     const pass = await args.runPrompt(prompt);
     if (pass.runError) {
       return { runError: pass.runError, submitReprompts };
+    }
+    const limitError = outputLimitError();
+    if (limitError) {
+      return { runError: limitError, submitReprompts };
     }
   }
 

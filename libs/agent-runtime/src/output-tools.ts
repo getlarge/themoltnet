@@ -45,9 +45,7 @@ export interface SubmitOutputContract {
   /** TypeBox schema the tool's `parameters` MUST validate against. Pass it
    * through verbatim to the executor's tool-definition factory. */
   parametersSchema: TSchema;
-  /** Stable JSON rendering the executor must make visible to the model.
-   * Pi registers a permissive transport schema so invalid calls can be
-   * corrected in-session; this remains the authoritative typed contract. */
+  /** Stable JSON rendering the executor must make visible to the model. */
   parametersSchemaJson: string;
 }
 

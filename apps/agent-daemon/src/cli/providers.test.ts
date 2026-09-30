@@ -85,6 +85,8 @@ describe('moltnet-agent providers', () => {
           'deepseek:cloud',
           '--model-thinking-map',
           'deepseek:cloud=off:none,low:low,high:high',
+          '--model-strict-tools',
+          'deepseek:cloud',
         ],
         { ...test.dependencies, interactive: false },
       ),
@@ -99,6 +101,7 @@ describe('moltnet-agent providers', () => {
         id: 'deepseek:cloud',
         reasoning: true,
         thinkingLevelMap: { off: 'none', low: 'low', high: 'high' },
+        supportsStrictMode: true,
       },
     ]);
   });

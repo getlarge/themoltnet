@@ -250,6 +250,7 @@ Usage:
     [--model-input <id>=text,image ...]
     [--model-reasoning <id> ...]
     [--model-thinking-map <id>=off:none,low:low,... ...]
+    [--model-strict-tools <id> ...]
     [--api-key-stdin | --clear-api-key] [--root <path>]
   moltnet-agent providers discover <id> [--save] [--json] [--root <path>]
   moltnet-agent providers remove <id> [--yes] [--root <path>]
@@ -267,6 +268,8 @@ a model with no declared modalities is text-only to Pi, which drops image
 content parts before the request leaves the runtime.
 --model-reasoning marks a model as supporting reasoning. --model-thinking-map
 sets its Pi thinking-level to provider effort mapping and implies reasoning.
+--model-strict-tools explicitly enables Pi's strict JSON-schema tool mode for
+a model after confirming the provider accepts strict function definitions.
 For existing Ollama providers, run providers discover <id> --save to detect
 thinking support from Ollama capabilities and refresh saved model metadata.
 `;
