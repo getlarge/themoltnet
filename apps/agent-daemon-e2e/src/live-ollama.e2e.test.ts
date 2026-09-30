@@ -19,7 +19,7 @@ import {
 } from '@themoltnet/agent-runtime';
 import { writePiConfig } from '@themoltnet/pi-runtime/pi-config';
 import { type Agent, connect } from '@themoltnet/sdk';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import {
   buildProducerVerification,
@@ -459,6 +459,15 @@ async function runLiveTask(input: {
 }): Promise<number> {
   const oldCwd = process.cwd();
   try {
+    for (const name of [
+      'MOLTNET_CREDENTIALS_PATH',
+      'MOLTNET_AGENT_KEY',
+      'MOLTNET_AGENT_KEY_REF',
+      'MOLTNET_CLIENT_ID',
+      'MOLTNET_CLIENT_SECRET',
+    ]) {
+      vi.stubEnv(name, '');
+    }
     process.chdir(input.sandboxRoot);
     const exitCode = await runOnce([
       '--task-id',
@@ -477,6 +486,7 @@ async function runLiveTask(input: {
     expect(exitCode).toBe(0);
   } finally {
     process.chdir(oldCwd);
+    vi.unstubAllEnvs();
   }
 
   const final = await input.agent.tasks.get(input.taskId);
