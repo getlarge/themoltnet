@@ -69,8 +69,8 @@ jobs:
           # `git status --porcelain`, not `git diff`: the build code-splits
           # into content-hashed assets/ chunks, and a renamed chunk arrives
           # untracked, which `git diff` does not report.
-          if [ -n "$(git status --porcelain -- 'packages/*-action/dist/' 'packages/*-action/runtime.lock')" ]; then
-            git status --short -- 'packages/*-action/dist/' 'packages/*-action/runtime.lock'
+          if [ -n "$(git status --porcelain -- ':(glob)packages/*-action/dist/**' 'packages/*-action/runtime.lock')" ]; then
+            git status --short -- ':(glob)packages/*-action/dist/**' 'packages/*-action/runtime.lock'
             echo changed=true >> "$GITHUB_OUTPUT"
           else
             echo changed=false >> "$GITHUB_OUTPUT"
