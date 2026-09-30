@@ -49,7 +49,8 @@ export async function waitForPackages(
   version,
   get = globalThis.fetch,
   sleep = delay,
-  maxAttempts = 20,
+  // npm scans publishes before exposing them; this can take over 15 minutes.
+  maxAttempts = 100,
 ) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
