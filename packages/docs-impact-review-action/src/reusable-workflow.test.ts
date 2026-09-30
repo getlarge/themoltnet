@@ -229,8 +229,23 @@ describe('caller workflow', () => {
     ),
   ) as {
     concurrency: { group: string };
-    jobs: { review: { if: string } };
+    jobs: {
+      review: {
+        if: string;
+        secrets?: unknown;
+        with?: Record<string, string>;
+      };
+    };
   };
+
+  it('passes secrets: inherit with an environment, or its secrets arrive empty', () => {
+    // GitHub gives a called workflow's jobs their environment's secrets only
+    // when the caller inherits; they cannot be listed under `secrets:`.
+    const job = caller.jobs.review;
+
+    expect(job.with?.environment).toBeTruthy();
+    expect(job.secrets).toBe('inherit');
+  });
 
   it('shares the review group only for a comment the review job accepts', () => {
     // Arrange

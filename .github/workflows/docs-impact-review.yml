@@ -46,12 +46,15 @@ jobs:
             github.event.comment.author_association == 'MEMBER' ||
             github.event.comment.author_association == 'COLLABORATOR')))
     # The reusable workflow comes from the default branch, like the runtime it
-    # checks out. Its jobs run in the legreffier environment and read the
-    # secrets and MOLTNET_* variables from it, so none are passed here.
+    # checks out, so a pull request cannot change the code that receives the
+    # secrets. Its jobs run in the legreffier environment; GitHub gives a
+    # called workflow's jobs that environment's secrets only when the caller
+    # passes `secrets: inherit`.
     uses: getlarge/themoltnet/.github/workflows/docs-impact-review-reusable.yml@main
     permissions:
       contents: read
       pull-requests: write
+    secrets: inherit
     with:
       environment: legreffier
       profile: ${{ vars.MOLTNET_DOCS_IMPACT_PROFILE }}
