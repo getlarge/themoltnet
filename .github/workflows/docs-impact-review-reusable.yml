@@ -66,9 +66,10 @@ on:
         default: ''
       environment:
         description: >
-          GitHub environment holding the secrets. Environment secrets cannot
-          be passed through workflow_call, so the review and worker jobs run in
-          this environment and read them from it. Empty for repository secrets.
+          GitHub environment holding the secrets. The review and worker jobs
+          run in it; GitHub gives them its secrets only when the caller passes
+          `secrets: inherit` (environment secrets cannot be listed under
+          `secrets:`). Empty for repository secrets passed explicitly.
         type: string
         default: ''
       providers:

@@ -124,7 +124,8 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    # Pass only what the review uses rather than `secrets: inherit`.
+    # Repository secrets: pass only what the review uses. (Secrets in a GitHub
+    # environment need `secrets: inherit` instead; see below.)
     secrets:
       MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
       MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
@@ -150,8 +151,12 @@ Useful inputs besides `profile` and `protected-paths`:
 | `runtime-ref`                                            | Advanced: run the review from another revision of this repository. Leave empty.                                                         |
 | `providers`                                              | Model providers the workers configure by discovery (`id=… base-url=… key-env=…`, one per line).                                         |
 
-With `environment`, secrets come from that environment instead, since
-environment secrets cannot be passed through `workflow_call`.
+**Secrets in a GitHub environment.** Environment secrets cannot be listed
+under `secrets:`. Pass `environment: <name>` and `secrets: inherit` instead of
+the `secrets:` map: the review and worker jobs run in that environment, and
+GitHub gives them its secrets only with `secrets: inherit`. Without it they
+arrive empty, and the review fails with a missing `MOLTNET_AGENT_KEY` or App
+key.
 
 The workflow's outputs are `skip`, `reason`, and `correlation-id` (the id of
 the run's MoltNet tasks and worker logs).
