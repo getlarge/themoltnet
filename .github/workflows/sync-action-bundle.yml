@@ -60,14 +60,17 @@ jobs:
           pnpm exec nx run-many -t build --projects=tag:platform:gha
           # Stage the bundles, then refresh the runtime locks that hash them
           # (the lock lists staged files only).
-          git add -A 'packages/*-action/dist/'
+          # :(glob) with /** so the pathspec matches the tracked bundle files
+          # even when nothing changed; the plain 'dist/' form then fails
+          # with "pathspec did not match any files".
+          git add -A -- ':(glob)packages/*-action/dist/**'
           node tools/src/release/action-runtime-lock.ts --write
-          git add 'packages/*-action/runtime.lock'
+          git add -- 'packages/*-action/runtime.lock'
           # `git status --porcelain`, not `git diff`: the build code-splits
           # into content-hashed assets/ chunks, and a renamed chunk arrives
           # untracked, which `git diff` does not report.
-          if [ -n "$(git status --porcelain -- 'packages/*-action/dist/' 'packages/*-action/runtime.lock')" ]; then
-            git status --short -- 'packages/*-action/dist/' 'packages/*-action/runtime.lock'
+          if [ -n "$(git status --porcelain -- ':(glob)packages/*-action/dist/**' 'packages/*-action/runtime.lock')" ]; then
+            git status --short -- ':(glob)packages/*-action/dist/**' 'packages/*-action/runtime.lock'
             echo changed=true >> "$GITHUB_OUTPUT"
           else
             echo changed=false >> "$GITHUB_OUTPUT"

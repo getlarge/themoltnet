@@ -19179,7 +19179,7 @@ async function waitForTaskOutcome(taskId, opts) {
 			status: task.status,
 			acceptedAttemptN: task.acceptedAttemptN
 		}, `${prefix}.task.wait.poll`);
-		if (task.status === "failed" || task.status === "cancelled") {
+		if (task.status === "failed" || task.status === "cancelled" || task.status === "expired" || task.status === "completed" && task.acceptedAttemptN === null) {
 			const attempts = await tasks.listAttempts(taskId);
 			logger?.error({
 				taskId,
@@ -19190,7 +19190,7 @@ async function waitForTaskOutcome(taskId, opts) {
 				kind: "failed",
 				task,
 				attempts,
-				reason: `task ${taskId} ended with status ${task.status}`
+				reason: task.status === "completed" ? `task ${taskId} completed without an accepted attempt` : `task ${taskId} ended with status ${task.status}`
 			};
 		}
 		if (task.status === "completed" && task.acceptedAttemptN !== null) {

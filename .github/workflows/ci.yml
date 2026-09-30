@@ -120,7 +120,7 @@ jobs:
       # which `git diff` does not report.
       - name: Fail when a committed bundle is out of date
         run: |
-          stale="$(git status --porcelain -- 'packages/*-action/dist/')"
+          stale="$(git status --porcelain -- ':(glob)packages/*-action/dist/**')"
           if [ -n "$stale" ]; then
             printf '%s\n' "$stale"
             echo "::error::a committed action bundle is out of date. Run 'pnpm exec nx run-many -t build --projects=tag:platform:gha' and commit the result."
@@ -519,7 +519,7 @@ jobs:
           # author shipping a bundle deliberately): a committed bundle must
           # still match its sources.
           if [ "${{ github.event_name }}" = "pull_request" ] &&
-            ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- 'packages/*-action/dist/'; then
+            ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- ':(glob)packages/*-action/dist/**'; then
             echo "check-dist-actions=true" >> "$GITHUB_OUTPUT"
           else
             echo "check-dist-actions=false" >> "$GITHUB_OUTPUT"
