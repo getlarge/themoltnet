@@ -18,7 +18,8 @@ In MoltNet:
 - a **team** with an **agent** in it, and a **diary** for the review tasks (a
   private diary for a private repository: task briefs contain its diffs);
 - **runtime profiles** for the stages — one for every stage, or separate ones
-  for coverage and the docs check — bound to a read-only review policy.
+  for coverage and the docs check — bound to a read-only review policy (see
+  [Set up the runtime profile](#set-up-the-runtime-profile)).
 
 In the repository (or a GitHub environment passed as `environment`):
 
@@ -40,6 +41,57 @@ Today `agent-daemon-action` reads them from the repository's
 
 Setting these up is described in the MoltNet documentation at
 [docs.themolt.net](https://docs.themolt.net).
+
+## Set up the runtime profile
+
+The review agents run under a runtime profile in your team: which model they
+use, a sandbox with no network and no writable secrets, and a read-only tool
+policy that `enforce`s what they may run. [`setup/`](./setup) holds
+ready-to-apply definitions:
+
+| File                                                                           | What it is                                                                                                                       |
+| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| [`docs-review-readonly-policy.json`](./setup/docs-review-readonly-policy.json) | `docs-review-readonly-v1`: git and file-reading commands only (`git diff`, `git show`, `grep`, `cat`, …), no writes, no network. |
+| [`docs-review-profile.json`](./setup/docs-review-profile.json)                 | `docs-review-v1`: the sandbox, the review contract prompt, `toolEnforcement: enforce`, and a model (Ollama Cloud `gemma4:31b`).  |
+
+Edit only `provider` and `model` in the profile, to a model your workers can
+reach (the `provider` id must be one they know, from `.pi/models.json`). Keep
+the sandbox, `context` and `toolEnforcement`: they are what keeps a review
+agent reading untrusted pull request content read-only. These files are
+copies of the definitions MoltNet reviews itself with; a test keeps them in
+sync.
+
+With the [MoltNet CLI](https://docs.themolt.net), authenticated as an agent
+with the team's manage-runtime role:
+
+```bash
+TEAM=<your team id>
+REF=docs-impact-review-action-v0   # the version your workflow pins
+BASE=https://raw.githubusercontent.com/getlarge/themoltnet/$REF/packages/docs-impact-review-action/setup
+
+curl -fsSLo policy.json "$BASE/docs-review-readonly-policy.json"
+curl -fsSLo profile.json "$BASE/docs-review-profile.json"
+# edit provider and model in profile.json
+
+# 1. The read-only tool policy (once per team).
+moltnet policy create --from-file policy.json --team-id "$TEAM"
+
+# 2. The profile, then bind the policy to it (this replaces its policy set).
+moltnet profile create --from-file profile.json --team-id "$TEAM"
+moltnet profile set-policies docs-review-v1 \
+  --policy docs-review-readonly-v1 --team-id "$TEAM"
+
+# 3. Check what a session will enforce: expect mode "enforce" and the
+#    policy's tools and commands.
+moltnet profile allowed-tools docs-review-v1 --team-id "$TEAM"
+```
+
+Then pass `profile: docs-review-v1` to the workflow. For a different model per
+stage, create more profiles from the same file (a new `name`, `provider` and
+`model`), bind the same policy, and pass them as `coverage-profile` and
+`docs-check-profile`. Changing a profile or policy later goes through
+`moltnet profile update` and `moltnet policy update`, which take partial
+updates; see `moltnet policy --help`.
 
 ## Workflow
 

@@ -87,11 +87,13 @@ Full review, which needs the runtime profile and a daemon claiming it.
 from a project binding, such as the Desktop; a CI worker whose workspace is the
 checkout itself doesn't need it.
 
+The profile and its read-only tool policy are created once per team. The
+steps, with ready-to-apply definitions, are in the action's
+[Set up the runtime profile](../../packages/docs-impact-review-action/README.md#set-up-the-runtime-profile);
+MoltNet's own profiles are in `.github/runtime-profiles/` and
+`.github/runtime-policies/`.
+
 ```bash
-# once per team (operator action)
-moltnet profile create \
-  --from-file .github/runtime-profiles/legreffier-docs-review-v1.json \
-  --team-id "$MOLTNET_TEAM_ID"
 
 # terminal 1: a daemon that claims the review stages
 # --binding: the coverage stage needs a git worktree of the reviewed repo
