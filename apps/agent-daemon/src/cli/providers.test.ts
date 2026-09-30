@@ -142,6 +142,25 @@ describe('moltnet-agent providers', () => {
       reasoning: true,
       supportsStrictMode: false,
     });
+    expect(
+      await runProviders(
+        ['set', 'remote', '--model-strict-mode', 'model-a=default'],
+        test.dependencies,
+      ),
+    ).toBe(0);
+    expect(test.configuration.list().remote.models?.[0]).toEqual({
+      id: 'model-a',
+      reasoning: true,
+      input: ['text', 'image'],
+    });
+    expect(
+      await runProviders(
+        ['set', 'remote', '--model-strict-mode', 'model-typo=true'],
+        test.dependencies,
+      ),
+    ).toBe(1);
+    expect(test.stderr.at(-1)).toContain('existing model "model-typo"');
+    expect(test.configuration.list().remote.models).toHaveLength(2);
   });
   it.each([
     { stdinIsTTY: true, stdoutIsTTY: true, accepted: false },

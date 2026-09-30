@@ -127,16 +127,16 @@ function parseModelArgs(
     const separator = raw.lastIndexOf('=');
     const id = raw.slice(0, separator);
     const mode = raw.slice(separator + 1);
-    if (separator <= 0 || !['true', 'false'].includes(mode)) {
+    if (separator <= 0 || !['true', 'false', 'default'].includes(mode)) {
       throw new ProviderCliError(
         'invalid_arguments',
-        `--model-strict-mode expects <model-id>=true|false, received "${raw}"`,
+        `--model-strict-mode expects <model-id>=true|false|default, received "${raw}"`,
       );
     }
     entries.set(id, {
       ...entries.get(id),
       id,
-      supportsStrictMode: mode === 'true',
+      supportsStrictMode: mode === 'default' ? undefined : mode === 'true',
     });
   }
   return [...entries.values()];
@@ -326,6 +326,9 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
               values['model-strict-mode'],
             ),
         patchModels: !values.model && !values['clear-models'],
+        strictModeIds: (values['model-strict-mode'] ?? []).map((raw) =>
+          raw.slice(0, raw.lastIndexOf('=')),
+        ),
         apiKeyStdin: values['api-key-stdin'] ?? false,
         clearApiKey: values['clear-api-key'] ?? false,
       };
@@ -500,6 +503,7 @@ async function setProvider(
     api?: string;
     models?: ProviderModelEntry[];
     patchModels?: boolean;
+    strictModeIds?: string[];
   },
 ): Promise<number> {
   let apiKey: string | undefined;
@@ -523,6 +527,7 @@ async function setProvider(
       ? mergeModelEntries(
           context.configuration.list()[parsed.providerId]?.models ?? [],
           parsed.models,
+          parsed.strictModeIds ?? [],
         )
       : parsed.models;
   const provider = await context.configuration.set(
@@ -543,8 +548,17 @@ async function setProvider(
 function mergeModelEntries(
   existing: ProviderModelEntry[],
   updates: ProviderModelEntry[],
+  strictModeIds: string[],
 ): ProviderModelEntry[] {
   const entries = new Map(existing.map((model) => [model.id, model]));
+  for (const id of strictModeIds) {
+    if (!entries.has(id)) {
+      throw new ProviderCliError(
+        'invalid_arguments',
+        `--model-strict-mode requires an existing model "${id}"; declare it with --model or --model-input first`,
+      );
+    }
+  }
   for (const update of updates) {
     entries.set(update.id, { ...entries.get(update.id), ...update });
   }
