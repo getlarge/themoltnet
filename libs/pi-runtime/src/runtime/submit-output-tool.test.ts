@@ -243,6 +243,70 @@ describe('createSubmitOutputTool', () => {
     expect(nullable).toMatchObject({ pullRequestUrl: null });
   });
 
+  it('captures strict null placeholders with submit-only gate verification', async () => {
+    const handle = createSubmitOutputTool('freeform', {
+      input: submitOutputOnlyFreeformInput,
+      inputCid: 'bafy-input',
+    });
+    const prepared = handle.tool.prepareArguments?.({
+      summary: 'done',
+      branch: null,
+      artifacts: null,
+      proposedTaskType: null,
+      diaryEntryIds: null,
+      verification: null,
+    });
+
+    const result = await callExecute(handle)(prepared);
+
+    expect(result.isError).toBeFalsy();
+    expect(handle.getCaptured()).toMatchObject({
+      summary: 'done',
+      verification: {
+        inputCid: 'bafy-input',
+        passed: true,
+        results: [expect.objectContaining({ id: 'submit-output' })],
+      },
+    });
+    expect(handle.getCaptured()).not.toHaveProperty('branch');
+    expect(handle.getCapturedRepairKinds()).toEqual(
+      expect.arrayContaining([
+        'submit_gate_verification',
+        'pi_schema_coercion',
+      ]),
+    );
+  });
+
+  it('ignores an invalid duplicate after capture without changing failure state', async () => {
+    const handle = createSubmitOutputTool('fulfill_brief');
+    const execute = callExecute(handle);
+    await execute(handle.tool.prepareArguments?.(validFulfillBriefOutput));
+
+    const duplicate = handle.tool.prepareArguments?.({ branch: 123 });
+    const result = await execute(duplicate);
+
+    expect(result.terminate).toBe(true);
+    expect(result.content[0]?.text).toContain('already captured');
+    expect(handle.getCaptured()).toEqual(validFulfillBriefOutput);
+    expect(handle.getCallCount()).toBe(1);
+    expect(handle.getInvalidCallCount()).toBe(0);
+    expect(handle.getLastValidationFailure()).toBeNull();
+  });
+
+  it('counts multiple Pi-side schema rejections before a valid capture', async () => {
+    const handle = createSubmitOutputTool('fulfill_brief');
+    expect(() => handle.tool.prepareArguments?.({ branch: 'a' })).toThrow();
+    expect(() => handle.tool.prepareArguments?.({ branch: 'b' })).toThrow();
+
+    await callExecute(handle)(
+      handle.tool.prepareArguments?.(validFulfillBriefOutput),
+    );
+
+    expect(handle.getInvalidCallCount()).toBe(2);
+    expect(handle.getCallCount()).toBe(1);
+    expect(handle.getCaptured()).toEqual(validFulfillBriefOutput);
+  });
+
   it('decodes array and number fields sent as JSON strings', async () => {
     // Arrange
     const handle = createSubmitOutputTool('pr_review');
@@ -348,7 +412,7 @@ describe('createSubmitOutputTool', () => {
   it('returns a tool error WITHOUT terminate:true on schema-invalid args', async () => {
     const handle = createSubmitOutputTool('fulfill_brief');
     const result = await callExecute(handle)({
-      branch: 123, // wrong type — schema requires string
+      branch: {}, // cannot be coerced to the required string
       commits: [],
       pullRequestUrl: null,
       diaryEntryIds: [],

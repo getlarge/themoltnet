@@ -2028,11 +2028,7 @@ export async function executePiTask(
     const cancelled = reporter.cancelSignal.aborted;
     const providerState = terminalProviderState();
     if (turnState.llmAbort && !providerState.llmAbort) {
-      await emit('info', {
-        event: 'post_submit_abort_normalized',
-        stop_reason: turnState.lastStopReason,
-        provider_error: sanitizeProviderDiagnostic(turnState.llmErrorMessage),
-      });
+      await emit('info', postSubmitAbortDiagnostic(turnState));
     }
 
     let parsedOutput: Record<string, unknown> | null = null;
@@ -2179,6 +2175,15 @@ export async function executePiTask(
       attemptN,
     });
   }
+}
+
+/** Preserve the provider diagnostic when a captured submit wins the attempt. */
+export function postSubmitAbortDiagnostic(state: SessionTurnState) {
+  return {
+    event: 'post_submit_abort_normalized',
+    stop_reason: state.lastStopReason,
+    provider_error: sanitizeProviderDiagnostic(state.llmErrorMessage),
+  };
 }
 
 export function buildToolPolicyDecisionContext(

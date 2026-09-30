@@ -359,20 +359,6 @@ function repairProducerSubmitOutput(
   return repaired;
 }
 
-function maybeRepairSubmitOutput(
-  taskType: string,
-  params: unknown,
-  opts: CreateSubmitOutputToolOptions,
-): Record<string, unknown> | null {
-  const repaired = repairProducerSubmitOutput(taskType, params, opts);
-  if (!repaired) return null;
-  return validateTaskSubmission(taskType, repaired, opts.input, {
-    inputCid: opts.inputCid,
-  }).length === 0
-    ? repaired
-    : null;
-}
-
 type SubmitRepairKind =
   | 'output_envelope'
   | 'json_string_fields'
@@ -385,6 +371,8 @@ function normalizeSubmitArguments(
   taskType: string,
   params: unknown,
   schema: TSchema,
+  toolName: string,
+  description: string,
   opts: CreateSubmitOutputToolOptions,
 ): { candidate: unknown; repairKinds: SubmitRepairKind[] } {
   const repairKinds: SubmitRepairKind[] = [];
@@ -392,7 +380,11 @@ function normalizeSubmitArguments(
   if (unwrapped !== params) repairKinds.push('output_envelope');
   const decoded = decodeStringifiedFields(unwrapped, schema);
   if (decoded !== unwrapped) repairKinds.push('json_string_fields');
-  const repaired = maybeRepairSubmitOutput(taskType, decoded, opts);
+  // Producer repair is mechanical for a submit-only gate. Apply it before
+  // Pi validation, which removes strict-mode null placeholders. Cross-field
+  // task validation runs on Pi's cleaned value in execute().
+  const repaired = repairProducerSubmitOutput(taskType, decoded, opts);
+  const candidate = repaired ?? decoded;
   if (repaired && isRecord(decoded)) {
     if (repaired.artifacts !== decoded.artifacts)
       repairKinds.push('artifact_shape');
@@ -404,7 +396,19 @@ function normalizeSubmitArguments(
     )
       repairKinds.push('submit_gate_verification');
   }
-  return { candidate: repaired ?? decoded, repairKinds };
+  const piNormalized = validateToolArguments(
+    { name: toolName, description, parameters: schema },
+    {
+      type: 'toolCall',
+      id: 'submit-prepare',
+      name: toolName,
+      arguments: candidate as Record<string, never>,
+    },
+  ) as Record<string, unknown>;
+  if (JSON.stringify(piNormalized) !== JSON.stringify(candidate)) {
+    repairKinds.push('pi_schema_coercion');
+  }
+  return { candidate: piNormalized, repairKinds };
 }
 
 export function createSubmitOutputTool(
@@ -429,7 +433,7 @@ export function createSubmitOutputTool(
 
   const schema = contract.parametersSchema;
 
-  const recordInvalidCall = (candidate: unknown): string => {
+  const recordInvalidCall = (candidate: unknown, piError?: unknown): string => {
     invalidCallCount += 1;
     const errors = validateTaskSubmission(taskType, candidate, opts.input, {
       inputCid: opts.inputCid,
@@ -437,7 +441,9 @@ export function createSubmitOutputTool(
     const detailMsg =
       errors.length > 0
         ? formatValidationErrors(errors)
-        : 'Pi rejected arguments against the advertised tool schema';
+        : piError instanceof Error
+          ? piError.message.split('\n\nReceived arguments:')[0]
+          : 'Pi rejected arguments against the advertised tool schema';
     const message =
       `Output failed validation (invalid call ${invalidCallCount}): ` +
       `${detailMsg}. ` +
@@ -469,34 +475,27 @@ export function createSubmitOutputTool(
     parameters: schema,
     constrainedSampling: { type: 'json_schema', strict: 'prefer' },
     prepareArguments: (args) => {
-      const normalized = normalizeSubmitArguments(taskType, args, schema, opts);
+      // A later duplicate in the same batch must reach execute()'s immutable
+      // captured branch. Pi validates after prepareArguments, so pass the
+      // already-valid payload rather than invalid duplicate arguments.
+      if (captured) return captured;
       try {
-        // Pi normally performs this after prepareArguments. Doing it here as
-        // well lets MoltNet record a rejection that would otherwise bypass
-        // execute() entirely, while using Pi's own coercion/null semantics.
-        const prepared = validateToolArguments(
-          {
-            name: contract.toolName,
-            description: contract.description,
-            parameters: schema,
-          },
-          {
-            type: 'toolCall',
-            id: 'submit-prepare',
-            name: contract.toolName,
-            arguments: normalized.candidate as Record<string, never>,
-          },
-        ) as Record<string, unknown>;
-        if (JSON.stringify(prepared) !== JSON.stringify(normalized.candidate)) {
-          normalized.repairKinds.push('pi_schema_coercion');
-        }
+        const normalized = normalizeSubmitArguments(
+          taskType,
+          args,
+          schema,
+          contract.toolName,
+          contract.description,
+          opts,
+        );
+        const prepared = normalized.candidate as Record<string, unknown>;
         preparedRepairKinds.set(
           JSON.stringify(prepared),
           normalized.repairKinds,
         );
         return prepared;
-      } catch {
-        throw new Error(recordInvalidCall(normalized.candidate));
+      } catch (error) {
+        throw new Error(recordInvalidCall(args, error));
       }
     },
     async execute(_id, params) {
@@ -531,9 +530,32 @@ export function createSubmitOutputTool(
       // affordance as a plain schema miss.
       const key = JSON.stringify(params);
       const preparedKinds = preparedRepairKinds.get(key);
-      const normalized = preparedKinds
-        ? { candidate: params, repairKinds: preparedKinds }
-        : normalizeSubmitArguments(taskType, params, schema, opts);
+      if (preparedKinds) preparedRepairKinds.delete(key);
+      let normalized: { candidate: unknown; repairKinds: SubmitRepairKind[] };
+      try {
+        normalized = preparedKinds
+          ? { candidate: params, repairKinds: preparedKinds }
+          : normalizeSubmitArguments(
+              taskType,
+              params,
+              schema,
+              contract.toolName,
+              contract.description,
+              opts,
+            );
+      } catch (error) {
+        const message = recordInvalidCall(params, error);
+        return {
+          content: [{ type: 'text' as const, text: message }],
+          details: {
+            captured: false,
+            callCount,
+            invalidCallCount,
+            error: 'output_validation_failed',
+          },
+          isError: true,
+        };
+      }
       const candidateParams = normalized.candidate;
       const errors = validateTaskSubmission(
         taskType,

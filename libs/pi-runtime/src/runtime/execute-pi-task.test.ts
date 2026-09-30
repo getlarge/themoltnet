@@ -53,6 +53,7 @@ import {
   materializeCapturedAttemptOutput,
   notifyProviderErrorRetryUi,
   openVmWorkspaceFileForRead,
+  postSubmitAbortDiagnostic,
   promptUntilSubmitted,
   promptWithProviderErrorRetries,
   resolveAttemptBrokeredHttpSecrets,
@@ -1627,6 +1628,21 @@ describe('buildAttemptResult (result-construction characterization)', () => {
         ...resolveProviderStateAfterSubmit(rawState, false),
       }).status,
     ).toBe('failed');
+  });
+
+  it('retains the provider error and stop reason after a captured submit', () => {
+    expect(
+      postSubmitAbortDiagnostic({
+        ...createSessionTurnState(),
+        llmAbort: true,
+        llmErrorMessage: 'provider returned 503',
+        lastStopReason: 'error',
+      }),
+    ).toEqual({
+      event: 'post_submit_abort_normalized',
+      provider_error: 'provider returned 503',
+      stop_reason: 'error',
+    });
   });
 
   it('materializes a validated submit when Pi throws while settling the prompt', async () => {
