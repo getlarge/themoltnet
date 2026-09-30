@@ -49,7 +49,6 @@ import {
   formatProviderErrorRetryNotification,
   formatProviderErrorRetryStatus,
   isBashTimeoutResult,
-  isValidFinalAssistantSubmission,
   makeSessionEventHandler,
   materializeCapturedAttemptOutput,
   notifyProviderErrorRetryUi,
@@ -69,6 +68,7 @@ import {
   wireSessionAbort,
 } from './execute-pi-task.js';
 import { classifyProviderFailure } from './provider-error-classification.js';
+import { createSubmitOutputTool } from './submit-output-tool.js';
 
 const shouldRetryProviderErrorMessage = (message: string | null | undefined) =>
   classifyProviderFailure(message).retryable;
@@ -1998,79 +1998,18 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
     expect(emitted[0].payload.phase).toBe('output_validation');
   });
 
-  it('recovers a schema-valid object from the final assistant turn', async () => {
-    const { emit, emitted } = makeEmit();
+  it('does not accept truncated final assistant JSON when a submit tool is registered', async () => {
+    const { emit } = makeEmit();
     const result = await captureAttemptOutput({
       taskType: 'freeform',
       model: 'm',
       input: {},
-      assistantText: '{"summary":"draft"}{"summary":"done","artifacts":[]}',
-      finalAssistantText: '{"summary":"done","artifacts":[]}',
+      assistantText: '{"summary":',
       submitToolHandle: fakeHandle({ captured: null }),
       emit: emit as never,
     });
-    expect(result.output).toEqual({ summary: 'done', artifacts: [] });
-    expect(result.error).toBeNull();
-    expect(emitted).toEqual([
-      {
-        kind: 'info',
-        payload: { event: 'submit_output_recovered_from_final_text' },
-      },
-    ]);
-  });
-
-  it('requires the actual submit tool call when the task has a submit gate', async () => {
-    const { emit } = makeEmit();
-    const input = {
-      successCriteria: {
-        version: 1,
-        gates: [
-          {
-            id: 'submit-output',
-            kind: 'submit-tool-call',
-            required: true,
-          },
-        ],
-      },
-    };
-    const result = await captureAttemptOutput({
-      taskType: 'freeform',
-      input,
-      assistantText: '{"summary":"done","artifacts":[]}',
-      finalAssistantText: '{"summary":"done","artifacts":[]}',
-      submitToolHandle: fakeHandle({ captured: null }),
-      emit: emit as never,
-    });
-
     expect(result.output).toBeNull();
     expect(result.error?.code).toBe('submit_output_missing');
-    expect(
-      isValidFinalAssistantSubmission(
-        '{"summary":"done","artifacts":[]}',
-        'freeform',
-        input,
-      ),
-    ).toBe(false);
-  });
-
-  it('does not recover an embedded object or invalid final payload', async () => {
-    const { emit } = makeEmit();
-    for (const finalAssistantText of [
-      'Example: {"summary":"done","artifacts":[]}',
-      '{"summary":"draft"}{"summary":"done","artifacts":[]}',
-      '{"unrelated":true}',
-    ]) {
-      const result = await captureAttemptOutput({
-        taskType: 'freeform',
-        input: {},
-        assistantText: '{"summary":"done","artifacts":[]}',
-        finalAssistantText,
-        submitToolHandle: fakeHandle({ captured: null }),
-        emit: emit as never,
-      });
-      expect(result.output).toBeNull();
-      expect(result.error?.code).toBe('submit_output_missing');
-    }
   });
 
   it('surfaces the latest validation failure verbatim (no submit_output_missing)', async () => {
@@ -2090,6 +2029,26 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
     expect(result.error).toEqual(validationFailure);
   });
 
+  it('classifies a Pi prepareArguments rejection as output_validation_failed', async () => {
+    const handle = createSubmitOutputTool('fulfill_brief');
+    expect(() =>
+      handle.tool.prepareArguments?.({ summary: 'incomplete' }),
+    ).toThrow();
+    const { emit } = makeEmit();
+
+    const result = await captureAttemptOutput({
+      taskType: 'fulfill_brief',
+      model: 'm',
+      input: {},
+      assistantText: '',
+      submitToolHandle: handle,
+      emit: emit as never,
+    });
+
+    expect(result.error?.code).toBe('output_validation_failed');
+    expect(handle.getInvalidCallCount()).toBe(1);
+  });
+
   it('falls back to parsing assistant text when no submit tool is registered', async () => {
     const { emit } = makeEmit();
     const result = await captureAttemptOutput({
@@ -2103,28 +2062,6 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
     // Routed to the parser path, which rejects unparseable prose.
     expect(result.output).toBeNull();
     expect(result.error).not.toBeNull();
-  });
-});
-
-describe('isValidFinalAssistantSubmission', () => {
-  it('recognizes only a complete schema-valid final object', () => {
-    expect(
-      isValidFinalAssistantSubmission(
-        '{"summary":"done","artifacts":[]}',
-        'freeform',
-        {},
-      ),
-    ).toBe(true);
-    expect(
-      isValidFinalAssistantSubmission(
-        'Example: {"summary":"done","artifacts":[]}',
-        'freeform',
-        {},
-      ),
-    ).toBe(false);
-    expect(
-      isValidFinalAssistantSubmission('{"wrong":true}', 'freeform', {}),
-    ).toBe(false);
   });
 });
 
@@ -2284,22 +2221,6 @@ describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
       { kind: 'text_delta', payload: { delta: 'Hello ' } },
       { kind: 'text_delta', payload: { delta: 'world' } },
     ]);
-  });
-
-  it('keeps only the completed final assistant turn for output recovery', () => {
-    const { deps, state } = makeDeps();
-    const handler = makeSessionEventHandler(deps);
-    handler(
-      turnEnd('end_turn', {
-        content: [{ type: 'text', text: '{"summary":"draft"}' }],
-      }),
-    );
-    handler(
-      turnEnd('end_turn', {
-        content: [{ type: 'text', text: '{"summary":"done"}' }],
-      }),
-    );
-    expect(state.finalAssistantText).toBe('{"summary":"done"}');
   });
 
   it('tracks a length stop from the final assistant turn', () => {
@@ -2691,6 +2612,7 @@ describe('promptUntilSubmitted (submit-missing same-session recovery)', () => {
         lastValidationFailure: null,
       }),
       getStopReason: () => 'length',
+      maxOutputTokens: 1024,
       isStopped: () => false,
     });
 
@@ -2698,6 +2620,9 @@ describe('promptUntilSubmitted (submit-missing same-session recovery)', () => {
       runError: { code: 'model_output_length' },
       submitReprompts: 0,
     });
+    expect(result.runError?.message).toContain('maxTokens=1024');
+    expect(result.runError?.message).toContain('0 submit reprompt(s)');
+    expect(result.runError?.message).toContain('Raise maxTokens');
     expect(prompts).toEqual(['extract']);
   });
 

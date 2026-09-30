@@ -179,6 +179,40 @@ describe('createSubmitOutputTool', () => {
     });
   });
 
+  it('records arguments rejected before execute and exposes the validation failure', () => {
+    const handle = createSubmitOutputTool('fulfill_brief');
+
+    expect(() =>
+      handle.tool.prepareArguments?.({
+        ...validFulfillBriefOutput,
+        summary: undefined,
+      }),
+    ).toThrow('Output failed validation (invalid call 1)');
+    expect(handle.getInvalidCallCount()).toBe(1);
+    expect(handle.getLastValidationFailure()).toMatchObject({
+      code: 'output_validation_failed',
+      message: expect.stringContaining('summary'),
+    });
+    expect(handle.getCaptured()).toBeNull();
+  });
+
+  it('reports repairs on the accepted call and none on an untouched submission', async () => {
+    const repaired = createSubmitOutputTool('fulfill_brief');
+    const prepared = repaired.tool.prepareArguments?.({
+      output: { ...validFulfillBriefOutput, commits: '[]' },
+    });
+    await callExecute(repaired)(prepared);
+    expect(repaired.getCapturedRepairKinds()).toEqual(
+      expect.arrayContaining(['output_envelope', 'json_string_fields']),
+    );
+
+    const untouched = createSubmitOutputTool('fulfill_brief');
+    await callExecute(untouched)(
+      untouched.tool.prepareArguments?.(validFulfillBriefOutput),
+    );
+    expect(untouched.getCapturedRepairKinds()).toEqual([]);
+  });
+
   it('omits Pi strict-mode null placeholders for optional fields', () => {
     const handle = createSubmitOutputTool('freeform');
     const prepared = handle.tool.prepareArguments?.({

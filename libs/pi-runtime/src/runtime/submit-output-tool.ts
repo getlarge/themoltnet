@@ -26,6 +26,7 @@
  * call. The strict closing block in the system prompt (commit 1 of this
  * PR) carries that weight.
  */
+import { validateToolArguments } from '@earendil-works/pi-ai';
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import {
@@ -94,6 +95,8 @@ export interface SubmitOutputToolHandle {
   getInvalidCallCount: () => number;
   /** Last validation failure, if the model submitted invalid args. */
   getLastValidationFailure: () => { code: string; message: string } | null;
+  /** Normalizations applied to the accepted submit call; contains no payload. */
+  getCapturedRepairKinds: () => string[];
 }
 
 /**
@@ -168,35 +171,6 @@ function admitsJsonType(types: Set<string>, type: string): boolean {
   return types.has(type) || (type === 'integer' && types.has('number'));
 }
 
-/** Pi represents optional strict-tool fields as required nullable fields. */
-function omitStrictOptionalNulls(value: unknown, schema: unknown): unknown {
-  if (!isRecord(schema)) return value;
-  if (Array.isArray(value)) {
-    return Array.isArray(schema.items) || !schema.items
-      ? value
-      : value.map((item) => omitStrictOptionalNulls(item, schema.items));
-  }
-  if (!isRecord(value) || !isRecord(schema.properties)) return value;
-  const properties = schema.properties;
-  const required = new Set(
-    Array.isArray(schema.required) ? schema.required : [],
-  );
-  return Object.fromEntries(
-    Object.entries(value).flatMap(([name, item]) => {
-      const property = properties[name];
-      if (
-        item === null &&
-        property &&
-        !required.has(name) &&
-        !schemaJsonTypes(property).has('null')
-      ) {
-        return [];
-      }
-      return [[name, omitStrictOptionalNulls(item, property)]];
-    }),
-  );
-}
-
 /**
  * Decodes top-level fields that arrive as JSON-encoded strings when the
  * schema does not admit a string there, e.g. `"scores": "[{...}]"` or
@@ -211,7 +185,7 @@ function decodeStringifiedFields(params: unknown, schema: TSchema): unknown {
   >;
   let decoded: Record<string, unknown> | null = null;
   for (const [name, value] of Object.entries(params)) {
-    if (typeof value !== 'string' || !(name in properties)) continue;
+    if (typeof value !== 'string' || !Object.hasOwn(properties, name)) continue;
     const types = schemaJsonTypes(properties[name]);
     if (types.size === 0 || types.has('string')) continue;
     let parsed: unknown;
@@ -299,7 +273,8 @@ function unwrapSoleOutputEnvelope(params: unknown, schema: TSchema): unknown {
   const properties: Record<string, unknown> = isRecord(objectSchema.properties)
     ? (objectSchema.properties as Record<string, unknown>)
     : {};
-  if ('output' in properties || !('output' in params)) return params;
+  if (Object.hasOwn(properties, 'output') || !Object.hasOwn(params, 'output'))
+    return params;
   return params.output;
 }
 
@@ -398,6 +373,40 @@ function maybeRepairSubmitOutput(
     : null;
 }
 
+type SubmitRepairKind =
+  | 'output_envelope'
+  | 'json_string_fields'
+  | 'artifact_shape'
+  | 'proposed_task_type'
+  | 'submit_gate_verification'
+  | 'pi_schema_coercion';
+
+function normalizeSubmitArguments(
+  taskType: string,
+  params: unknown,
+  schema: TSchema,
+  opts: CreateSubmitOutputToolOptions,
+): { candidate: unknown; repairKinds: SubmitRepairKind[] } {
+  const repairKinds: SubmitRepairKind[] = [];
+  const unwrapped = unwrapSoleOutputEnvelope(params, schema);
+  if (unwrapped !== params) repairKinds.push('output_envelope');
+  const decoded = decodeStringifiedFields(unwrapped, schema);
+  if (decoded !== unwrapped) repairKinds.push('json_string_fields');
+  const repaired = maybeRepairSubmitOutput(taskType, decoded, opts);
+  if (repaired && isRecord(decoded)) {
+    if (repaired.artifacts !== decoded.artifacts)
+      repairKinds.push('artifact_shape');
+    if (repaired.proposedTaskType !== decoded.proposedTaskType)
+      repairKinds.push('proposed_task_type');
+    if (
+      JSON.stringify(repaired.verification) !==
+      JSON.stringify(decoded.verification)
+    )
+      repairKinds.push('submit_gate_verification');
+  }
+  return { candidate: repaired ?? decoded, repairKinds };
+}
+
 export function createSubmitOutputTool(
   taskType: string,
   opts: CreateSubmitOutputToolOptions = {},
@@ -415,8 +424,33 @@ export function createSubmitOutputTool(
   let callCount = 0;
   let invalidCallCount = 0;
   let lastValidationFailure: { code: string; message: string } | null = null;
+  let capturedRepairKinds: SubmitRepairKind[] = [];
+  const preparedRepairKinds = new Map<string, SubmitRepairKind[]>();
 
   const schema = contract.parametersSchema;
+
+  const recordInvalidCall = (candidate: unknown): string => {
+    invalidCallCount += 1;
+    const errors = validateTaskSubmission(taskType, candidate, opts.input, {
+      inputCid: opts.inputCid,
+    });
+    const detailMsg =
+      errors.length > 0
+        ? formatValidationErrors(errors)
+        : 'Pi rejected arguments against the advertised tool schema';
+    const message =
+      `Output failed validation (invalid call ${invalidCallCount}): ` +
+      `${detailMsg}. ` +
+      `${submitOutputRepairHint(taskType, errors, schema)} ` +
+      'Re-call this tool with a corrected output in the current session.';
+    lastValidationFailure = { code: 'output_validation_failed', message };
+    recordTaskOutputParseResult({
+      taskType,
+      model: opts.model,
+      code: 'output_validation_failed',
+    });
+    return message;
+  };
 
   const tool = defineTool({
     name: contract.toolName,
@@ -435,12 +469,35 @@ export function createSubmitOutputTool(
     parameters: schema,
     constrainedSampling: { type: 'json_schema', strict: 'prefer' },
     prepareArguments: (args) => {
-      const decoded = omitStrictOptionalNulls(
-        decodeStringifiedFields(unwrapSoleOutputEnvelope(args, schema), schema),
-        schema,
-      );
-      return (maybeRepairSubmitOutput(taskType, decoded, opts) ??
-        decoded) as Record<string, unknown>;
+      const normalized = normalizeSubmitArguments(taskType, args, schema, opts);
+      try {
+        // Pi normally performs this after prepareArguments. Doing it here as
+        // well lets MoltNet record a rejection that would otherwise bypass
+        // execute() entirely, while using Pi's own coercion/null semantics.
+        const prepared = validateToolArguments(
+          {
+            name: contract.toolName,
+            description: contract.description,
+            parameters: schema,
+          },
+          {
+            type: 'toolCall',
+            id: 'submit-prepare',
+            name: contract.toolName,
+            arguments: normalized.candidate as Record<string, never>,
+          },
+        ) as Record<string, unknown>;
+        if (JSON.stringify(prepared) !== JSON.stringify(normalized.candidate)) {
+          normalized.repairKinds.push('pi_schema_coercion');
+        }
+        preparedRepairKinds.set(
+          JSON.stringify(prepared),
+          normalized.repairKinds,
+        );
+        return prepared;
+      } catch {
+        throw new Error(recordInvalidCall(normalized.candidate));
+      }
     },
     async execute(_id, params) {
       if (captured) {
@@ -472,16 +529,12 @@ export function createSubmitOutputTool(
       // pollutes attestations. Returning isError:true lets the agent
       // re-call with a corrected payload mid-session — same recovery
       // affordance as a plain schema miss.
-      const unwrappedParams = decodeStringifiedFields(
-        unwrapSoleOutputEnvelope(params, contract.parametersSchema),
-        contract.parametersSchema,
-      );
-      const repairedParams = maybeRepairSubmitOutput(
-        taskType,
-        unwrappedParams,
-        opts,
-      );
-      const candidateParams = repairedParams ?? unwrappedParams;
+      const key = JSON.stringify(params);
+      const preparedKinds = preparedRepairKinds.get(key);
+      const normalized = preparedKinds
+        ? { candidate: params, repairKinds: preparedKinds }
+        : normalizeSubmitArguments(taskType, params, schema, opts);
+      const candidateParams = normalized.candidate;
       const errors = validateTaskSubmission(
         taskType,
         candidateParams,
@@ -489,28 +542,13 @@ export function createSubmitOutputTool(
         { inputCid: opts.inputCid },
       );
       if (errors.length > 0) {
-        invalidCallCount += 1;
-        const detailMsg = formatValidationErrors(errors);
-        const message =
-          `Output failed validation (invalid call ${invalidCallCount}): ` +
-          `${detailMsg}. ` +
-          `${submitOutputRepairHint(taskType, errors, contract.parametersSchema)} ` +
-          'Re-call this tool with a corrected output in the current session.';
-        lastValidationFailure = {
-          code: 'output_validation_failed',
-          message,
-        };
+        const message = recordInvalidCall(candidateParams);
         const details: SubmitOutputDetails = {
           captured: false,
           callCount,
           invalidCallCount,
           error: 'output_validation_failed',
         };
-        recordTaskOutputParseResult({
-          taskType,
-          model: opts.model,
-          code: 'output_validation_failed',
-        });
         return {
           content: [
             {
@@ -524,6 +562,8 @@ export function createSubmitOutputTool(
       }
 
       captured = candidateParams as Record<string, unknown>;
+      capturedRepairKinds = normalized.repairKinds;
+      preparedRepairKinds.clear();
       callCount += 1;
       await opts.onValidCapture?.();
       const details: SubmitOutputDetails = {
@@ -553,6 +593,7 @@ export function createSubmitOutputTool(
     getCallCount: () => callCount,
     getInvalidCallCount: () => invalidCallCount,
     getLastValidationFailure: () => lastValidationFailure,
+    getCapturedRepairKinds: () => [...capturedRepairKinds],
   };
 }
 

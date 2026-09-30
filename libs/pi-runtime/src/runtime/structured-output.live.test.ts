@@ -9,11 +9,13 @@ import { Type } from 'typebox';
 import { Value } from 'typebox/value';
 import { describe, expect, it } from 'vitest';
 
-import { readLiveStructuredOutputConfig } from '../config.js';
 import { writePiConfig } from '../pi-config.js';
 
-const { provider, api, baseUrl, modelId, apiKey } =
-  readLiveStructuredOutputConfig();
+const provider = process.env['MOLTNET_LIVE_STRUCTURED_PROVIDER'];
+const api = process.env['MOLTNET_LIVE_STRUCTURED_API'];
+const baseUrl = process.env['MOLTNET_LIVE_STRUCTURED_BASE_URL'];
+const modelId = process.env['MOLTNET_LIVE_STRUCTURED_MODEL'];
+const apiKey = process.env['MOLTNET_LIVE_STRUCTURED_API_KEY'];
 const enabled = !!(provider && api && baseUrl && modelId && apiKey);
 
 describe.skipIf(!enabled)('live structured tool output', () => {

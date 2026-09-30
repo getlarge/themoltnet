@@ -27,6 +27,11 @@ export interface PiModelSpec {
   supportsStrictMode?: boolean;
 }
 
+/** Serialized model entry consumed by Pi's model registry. */
+interface PiStoredModelSpec extends Omit<PiModelSpec, 'supportsStrictMode'> {
+  compat?: { supportsStrictMode: boolean };
+}
+
 export interface WritePiProviderInput {
   /** Pi provider API kind, e.g. `openai-completions`. */
   api: string;
@@ -82,7 +87,7 @@ export type WritePiConfigInput =
  * Normalise a model entry to Pi's on-disk shape. `input` is emitted only when
  * declared, so a text-only model serializes as a bare `{ id }`.
  */
-function toPiModel(entry: PiModelSpec): PiModelSpec {
+function toPiModel(entry: PiModelSpec): PiStoredModelSpec {
   return {
     id: entry.id,
     ...(entry.input && entry.input.length > 0
