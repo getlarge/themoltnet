@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.20.1](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.20.0...pi-runtime-v0.20.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* **agent:** enforce structured task submissions ([326e432](https://github.com/getlarge/themoltnet/commit/326e4320965922a45ef86cab903b92560828bd41))
+* **agent:** enforce structured task submissions ([baa80a1](https://github.com/getlarge/themoltnet/commit/baa80a160714a90c787530c6391089e040a341e5))
+* **pi-runtime:** make submit tool the sole structured output contract ([8921a74](https://github.com/getlarge/themoltnet/commit/8921a74096077733cf39ee7b554473f9f06ee334))
+* **pi-runtime:** preserve strict submit verification and duplicate capture ([99ff669](https://github.com/getlarge/themoltnet/commit/99ff6698e83f4d9499a401205cbfea8a3c5ca631))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.8.0
+
 ## [0.20.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.19.0...pi-runtime-v0.20.0) (2026-09-29)
 
 

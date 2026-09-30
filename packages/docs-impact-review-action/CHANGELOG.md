@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.1](https://github.com/getlarge/themoltnet/compare/docs-impact-review-action-v0.2.0...docs-impact-review-action-v0.2.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* **agent-daemon-action:** skip mention dispatch in drain mode ([a1b79d0](https://github.com/getlarge/themoltnet/commit/a1b79d0977cd3fcead017dd5cbcd2d9e49192064))
+* **agent-daemon-action:** skip mention dispatch in drain mode ([9592fc9](https://github.com/getlarge/themoltnet/commit/9592fc9f36b7ca044cd35a214f0b89cf604a1633))
+* **docs-impact-review-action:** inherit secrets for environment-scoped callers ([beead42](https://github.com/getlarge/themoltnet/commit/beead4264026a44d3fbb3960cc121a34ae8695a5))
+* **docs-impact-review-action:** inherit secrets for environment-scoped callers ([65375db](https://github.com/getlarge/themoltnet/commit/65375dbb297c3cee0cfe0a2f3e323ceca7d1b086))
+
 ## [0.2.0](https://github.com/getlarge/themoltnet/compare/docs-impact-review-action-v0.1.0...docs-impact-review-action-v0.2.0) (2026-09-30)
 
 

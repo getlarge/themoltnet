@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.67.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.67.0...agent-daemon-v0.67.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* **agent-daemon:** allow strict model mode to be toggled ([9f0fa20](https://github.com/getlarge/themoltnet/commit/9f0fa204d3e52e1a13c41cc9d2e61c3c7a404170))
+* **agent-daemon:** make strict-mode overrides reversible ([994ee1a](https://github.com/getlarge/themoltnet/commit/994ee1a772f48b630b49ef6bd2d65ac2d1b94743))
+* **agent:** enforce structured task submissions ([326e432](https://github.com/getlarge/themoltnet/commit/326e4320965922a45ef86cab903b92560828bd41))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.8.0
+    * @themoltnet/pi-runtime bumped to 0.20.1
+
 ## [0.67.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.66.7...agent-daemon-v0.67.0) (2026-09-30)
 
 

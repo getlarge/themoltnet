@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.3.0...agent-daemon-action-v0.3.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* **agent-daemon-action:** skip mention dispatch in drain mode ([a1b79d0](https://github.com/getlarge/themoltnet/commit/a1b79d0977cd3fcead017dd5cbcd2d9e49192064))
+* **agent-daemon-action:** skip mention dispatch in drain mode ([9592fc9](https://github.com/getlarge/themoltnet/commit/9592fc9f36b7ca044cd35a214f0b89cf604a1633))
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.2.0...agent-daemon-action-v0.3.0) (2026-09-30)
 
 
