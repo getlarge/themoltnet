@@ -11,12 +11,18 @@ inputs:
     description: Enable the setup-go module and build cache.
     default: 'false'
   go-cache-dependency-path:
-    description: Dependency files used to key the Go cache.
+    description: >
+      Dependency files used to key the Go cache. List files, never a ** glob:
+      hashing one walks the whole checkout, node_modules included.
     default: |
       go.work
       go.work.sum
-      **/go.mod
-      **/go.sum
+      apps/moltnet-cli/go.mod
+      apps/moltnet-cli/go.sum
+      libs/moltnet-api-client/go.mod
+      libs/moltnet-api-client/go.sum
+      libs/moltnet-authn/go.mod
+      libs/moltnet-authn/go.sum
   rust:
     description: Install the Rust version declared in .tool-versions.
     default: 'false'
