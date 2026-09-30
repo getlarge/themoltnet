@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.11.0](https://github.com/getlarge/themoltnet/compare/cli-v3.10.0...cli-v3.11.0) (2026-09-30)
+
+
+### Features
+
+* **cli:** expose task claim conditions and retry keys ([6da939b](https://github.com/getlarge/themoltnet/commit/6da939b21d9e15958fa411fdbc1b1e9adf2f2c7f))
+
 ## [3.10.0](https://github.com/getlarge/themoltnet/compare/cli-v3.9.0...cli-v3.10.0) (2026-09-29)
 
 

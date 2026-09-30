@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.5.0...tasks-orchestrator-v0.5.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* **tasks-orchestrator:** return on terminal task states ([1f71abd](https://github.com/getlarge/themoltnet/commit/1f71abd88e8f53ef446c8038057ed53ca4a48386))
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.4.14...tasks-orchestrator-v0.5.0) (2026-09-30)
 
 
