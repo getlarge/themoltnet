@@ -1238,11 +1238,17 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: '1.27'
+          # Explicit go.work modules, never **/go.mod: a ** glob walks every
+          # file in the checkout, including node_modules, just to hash these.
           cache-dependency-path: |
             go.work
             go.work.sum
-            **/go.mod
-            **/go.sum
+            apps/moltnet-cli/go.mod
+            apps/moltnet-cli/go.sum
+            libs/moltnet-api-client/go.mod
+            libs/moltnet-api-client/go.sum
+            libs/moltnet-authn/go.mod
+            libs/moltnet-authn/go.sum
       - run: pnpm install --frozen-lockfile
       - name: Regenerate OpenAPI spec and client
         run: pnpm run generate
@@ -1821,8 +1827,17 @@ jobs:
         if: needs.affected.outputs.e2e-go-cli == 'true'
         with:
           go-version: '1.27'
-          # Keep cache restore time out of this job's 15-minute E2E budget.
-          cache: false
+          # Explicit go.work modules, never **/go.mod: a ** glob walks every
+          # file in the checkout, including node_modules, just to hash these.
+          cache-dependency-path: |
+            go.work
+            go.work.sum
+            apps/moltnet-cli/go.mod
+            apps/moltnet-cli/go.sum
+            libs/moltnet-api-client/go.mod
+            libs/moltnet-api-client/go.sum
+            libs/moltnet-authn/go.mod
+            libs/moltnet-authn/go.sum
       - name: Log in to GHCR
         if: needs.affected.outputs.e2e-go-cli == 'true'
         uses: docker/login-action@v4
