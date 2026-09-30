@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.5.0](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.4.14...tasks-orchestrator-v0.5.0) (2026-09-30)
+
+
+### Features
+
+* **tasks-orchestrator:** add bounded stage recovery ([eb95af6](https://github.com/getlarge/themoltnet/commit/eb95af6ec1bba9b627fd227928ff833756f64b3b))
+* **tasks-orchestrator:** gate terminal-stage replacement ([bacc252](https://github.com/getlarge/themoltnet/commit/bacc2529271b6233b63da75873861a68cf18be48))
+
+
+### Bug Fixes
+
+* **tasks-orchestrator:** harden recovery replay and usage accounting ([6d60198](https://github.com/getlarge/themoltnet/commit/6d60198cd6906c7f1d081fb2942fe8e512d5415c))
+* **tasks-orchestrator:** preserve recovery lifetime and bound diagnostics ([b2011d0](https://github.com/getlarge/themoltnet/commit/b2011d0327836f4870b41fcef2a489754e32888d))
+* **tasks-orchestrator:** reject expiry added to replacement ([cf54f4a](https://github.com/getlarge/themoltnet/commit/cf54f4a42f441d3c2d2c983b56b0295fe89b5e8f))
+
 ## [0.4.14](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.4.13...tasks-orchestrator-v0.4.14) (2026-09-25)
 
 
