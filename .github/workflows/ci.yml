@@ -1821,11 +1821,8 @@ jobs:
         if: needs.affected.outputs.e2e-go-cli == 'true'
         with:
           go-version: '1.27'
-          cache-dependency-path: |
-            go.work
-            go.work.sum
-            **/go.mod
-            **/go.sum
+          # Keep cache restore time out of this job's 15-minute E2E budget.
+          cache: false
       - name: Log in to GHCR
         if: needs.affected.outputs.e2e-go-cli == 'true'
         uses: docker/login-action@v4
