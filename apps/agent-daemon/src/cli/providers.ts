@@ -135,6 +135,8 @@ interface ProviderCliDependencies {
 }
 
 interface ProviderCliContext {
+  /** The provider store this command reads and writes. */
+  storeRoot: string;
   configuration: ProviderConfigurationService;
   oauth: OAuthProviderService;
   stdout(value: string): void;
@@ -412,6 +414,7 @@ async function createContext(
     dependencies.interactive ??
     Boolean(process.stdout.isTTY);
   return {
+    storeRoot: store.root,
     configuration,
     oauth,
     stdout: dependencies.stdout ?? console.log,
@@ -441,7 +444,14 @@ function listProviders(context: ProviderCliContext, json: boolean): number {
   const configuredProviders = context.configuration.list();
   const oauthProviders = context.oauth.list();
   if (json) {
-    context.stdout(JSON.stringify({ configuredProviders, oauthProviders }));
+    // storeRoot lets automation act on the exact store the daemon resolved.
+    context.stdout(
+      JSON.stringify({
+        storeRoot: context.storeRoot,
+        configuredProviders,
+        oauthProviders,
+      }),
+    );
     return 0;
   }
   const configured = Object.entries(configuredProviders);
@@ -512,9 +522,11 @@ async function discoverProvider(
     json: boolean;
   },
 ): Promise<number> {
+  // The CLI runs unattended (CI): ride out a transient provider failure.
   const result = await context.configuration.discover(parsed.providerId, {
     save: parsed.save,
     signal: context.signal,
+    retry: true,
   });
   if (parsed.json) context.stdout(JSON.stringify(result));
   else {

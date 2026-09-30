@@ -697,6 +697,8 @@ describe('provider model discovery', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
       models: [{ id: 'gpt-oss:120b' }, { id: 'qwen3' }],
+      failures: [],
+      probeFailures: [],
     });
     expect(calls[0]).toEqual({
       url: 'https://ollama.com/v1/models',
@@ -733,7 +735,13 @@ describe('provider model discovery', () => {
       url: '/v1/providers/ollama-local/discover-models',
       headers: authedHeaders(token),
     });
-    expect(ok.json()).toEqual({ models: [{ id: 'llama3.3:70b' }] });
+    // The OpenAI listing's 404 is reported (the discovery was partial), and
+    // so is the capability probe this fake also answers with 404.
+    expect(ok.json()).toEqual({
+      models: [{ id: 'llama3.3:70b' }],
+      failures: [{ kind: 'http', status: 404 }],
+      probeFailures: [{ kind: 'http', status: 404 }],
+    });
 
     const dead = (async () =>
       new Response('nope', { status: 404 })) as unknown as typeof fetch;

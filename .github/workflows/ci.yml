@@ -91,16 +91,17 @@ jobs:
             libs/moltnet-api-client/go.sum
       - run: pnpm exec nx run @moltnet/tools:test:agent-bundle
 
-  # The composite action executes dist/, not src/, and the bundle inlines
-  # libs/sdk. sync-action-bundle.yml keeps main's bundle current; this job
-  # runs only for PRs that commit dist/ (see the `affected` job) and fails when
-  # that committed bundle does not match its sources. The action publisher
+  # The composite actions execute dist/, not src/, and their bundles inline
+  # libraries (libs/sdk, libs/docs-impact-review). sync-action-bundle.yml keeps
+  # main's bundles current; this job runs only for PRs that commit a dist/ (see
+  # the `affected` job) and fails when a committed bundle does not match its
+  # sources. The action publisher
   # (tools/src/release/github-action-publisher.ts) refuses to release a stale
   # bundle as the last line of defence.
-  check-dist-agent-daemon-action:
+  check-dist-actions:
     name: Action bundle is current
     needs: [affected]
-    if: needs.affected.outputs.check-dist-agent-daemon-action == 'true'
+    if: needs.affected.outputs.check-dist-actions == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -113,15 +114,16 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec nx run @themoltnet/agent-daemon-action:build
+      - run: pnpm exec nx run-many -t build --projects=tag:platform:gha
       # `git status --porcelain`, not `git diff`: the build code-splits into
       # content-hashed assets/ chunks, and a renamed chunk arrives *untracked*,
       # which `git diff` does not report.
-      - name: Fail when the committed bundle is out of date
+      - name: Fail when a committed bundle is out of date
         run: |
-          if [ -n "$(git status --porcelain -- packages/agent-daemon-action/dist/)" ]; then
-            git status --short -- packages/agent-daemon-action/dist/
-            echo "::error::packages/agent-daemon-action/dist/ is out of date. Run 'pnpm exec nx run @themoltnet/agent-daemon-action:build' and commit the result."
+          stale="$(git status --porcelain -- 'packages/*-action/dist/')"
+          if [ -n "$stale" ]; then
+            printf '%s\n' "$stale"
+            echo "::error::a committed action bundle is out of date. Run 'pnpm exec nx run-many -t build --projects=tag:platform:gha' and commit the result."
             exit 1
           fi
 
@@ -325,7 +327,7 @@ jobs:
       agent-bundle: ${{ steps.compute.outputs.agent-bundle }}
       wsl-agent-daemon: ${{ steps.compute.outputs.wsl-agent-daemon }}
       legreffier-plugin: ${{ steps.compute.outputs.legreffier-plugin }}
-      check-dist-agent-daemon-action: ${{ steps.compute.outputs.check-dist-agent-daemon-action }}
+      check-dist-actions: ${{ steps.compute.outputs.check-dist-actions }}
       agents-matrix: ${{ steps.matrix.outputs.matrix }}
       has-agents: ${{ steps.matrix.outputs.has-agents }}
       tier: ${{ steps.matrix.outputs.tier }}
@@ -347,6 +349,12 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+      # Every pull request: cheap, and a path gate would have to copy the
+      # lock definitions. Files an action runs from outside its package are
+      # hashed into its runtime.lock, so changing them releases the action.
+      - name: Action runtime locks are current
+        if: github.event_name == 'pull_request'
+        run: node tools/src/release/action-runtime-lock.ts --check
       - run: pnpm install --frozen-lockfile
       - id: shas
         uses: nrwl/nx-set-shas@v5
@@ -511,10 +519,10 @@ jobs:
           # author shipping a bundle deliberately): a committed bundle must
           # still match its sources.
           if [ "${{ github.event_name }}" = "pull_request" ] &&
-            ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- packages/agent-daemon-action/dist/; then
-            echo "check-dist-agent-daemon-action=true" >> "$GITHUB_OUTPUT"
+            ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- 'packages/*-action/dist/'; then
+            echo "check-dist-actions=true" >> "$GITHUB_OUTPUT"
           else
-            echo "check-dist-agent-daemon-action=false" >> "$GITHUB_OUTPUT"
+            echo "check-dist-actions=false" >> "$GITHUB_OUTPUT"
           fi
 
           if contains "@themoltnet/os-keyring" "@themoltnet/sdk" "moltnet-cli" "@moltnet/agent-config" "@moltnet/agent-desktop"; then

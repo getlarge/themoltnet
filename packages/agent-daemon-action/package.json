@@ -28,6 +28,7 @@
     "@themoltnet/sdk": "workspace:*"
   },
   "devDependencies": {
+    "@moltnet/agent-daemon-api-client": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
@@ -50,7 +51,7 @@
         ],
         "options": {
           "cwd": "{workspaceRoot}",
-          "command": "node --import tsx tools/src/release/github-action-publisher.ts --project @themoltnet/agent-daemon-action"
+          "command": "node --import tsx tools/src/release/github-action-publisher.ts --project @themoltnet/agent-daemon-action --entries main.js"
         }
       }
     },

@@ -36,7 +36,7 @@
       "path": "apps/multi-lens-review"
     },
     {
-      "path": "apps/docs-impact-review"
+      "path": "libs/docs-impact-review"
     },
     {
       "path": "apps/orchestration-e2e"
@@ -226,6 +226,9 @@
     },
     {
       "path": "packages/agent-daemon-action"
+    },
+    {
+      "path": "packages/docs-impact-review-action"
     },
     {
       "path": "packages/github-agent"

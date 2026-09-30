@@ -1,0 +1,94 @@
+{
+  "description": "Read-only inspection tools for the docs impact review stages: git and file reading, no writes, no network.",
+  "name": "docs-review-readonly-v1",
+  "shellCommands": [
+    {
+      "argvPrefix": ["git", "blame"]
+    },
+    {
+      "argvPrefix": ["git", "cat-file"]
+    },
+    {
+      "argvPrefix": ["git", "diff"]
+    },
+    {
+      "argvPrefix": ["git", "diff-tree"]
+    },
+    {
+      "argvPrefix": ["git", "grep"]
+    },
+    {
+      "argvPrefix": ["git", "log"]
+    },
+    {
+      "argvPrefix": ["git", "ls-files"]
+    },
+    {
+      "argvPrefix": ["git", "merge-base"]
+    },
+    {
+      "argvPrefix": ["git", "name-rev"]
+    },
+    {
+      "argvPrefix": ["git", "rev-parse"]
+    },
+    {
+      "argvPrefix": ["git", "show"]
+    },
+    {
+      "argvPrefix": ["git", "status"]
+    },
+    {
+      "argvPrefix": ["cat"]
+    },
+    {
+      "argvPrefix": ["cd"]
+    },
+    {
+      "argvPrefix": ["cut"]
+    },
+    {
+      "argvPrefix": ["grep"]
+    },
+    {
+      "argvPrefix": ["head"]
+    },
+    {
+      "argvPrefix": ["ls"]
+    },
+    {
+      "argvPrefix": ["pwd"]
+    },
+    {
+      "argvPrefix": ["sha256sum"]
+    },
+    {
+      "argvPrefix": ["sort"]
+    },
+    {
+      "argvPrefix": ["tail"]
+    },
+    {
+      "argvPrefix": ["tr"]
+    },
+    {
+      "argvPrefix": ["uniq"]
+    },
+    {
+      "argvPrefix": ["wc"]
+    }
+  ],
+  "tools": [
+    "find",
+    "grep",
+    "ls",
+    "moltnet_diary_tags",
+    "moltnet_download_task_artifact",
+    "moltnet_get_entry",
+    "moltnet_get_task",
+    "moltnet_list_entries",
+    "moltnet_list_task_artifacts",
+    "moltnet_search_entries",
+    "read"
+  ]
+}

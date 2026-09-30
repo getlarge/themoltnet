@@ -1,0 +1,77 @@
+{
+  "name": "@moltnet/docs-impact-review",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "description": "Documentation-impact PR reviewer: trusted ingestion and routing, then chained MoltNet tasks. Run in CI through packages/docs-impact-review-action.",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./comment": {
+      "import": "./src/comment.ts",
+      "types": "./src/comment.ts"
+    },
+    "./config": {
+      "import": "./src/config.ts",
+      "types": "./src/config.ts"
+    },
+    "./github-api": {
+      "import": "./src/github-api.ts",
+      "types": "./src/github-api.ts"
+    },
+    "./prepare": {
+      "import": "./src/prepare.ts",
+      "types": "./src/prepare.ts"
+    },
+    "./prepared": {
+      "import": "./src/prepared.ts",
+      "types": "./src/prepared.ts"
+    },
+    "./review-cli": {
+      "import": "./src/review-cli.ts",
+      "types": "./src/review-cli.ts"
+    },
+    "./run": {
+      "import": "./src/run.ts",
+      "types": "./src/run.ts"
+    },
+    "./workflow-command": {
+      "import": "./src/workflow-command.ts",
+      "types": "./src/workflow-command.ts"
+    }
+  },
+  "engines": {
+    "node": ">=22.20"
+  },
+  "scripts": {
+    "cli": "tsx src/main.ts",
+    "typecheck": "tsc -b --emitDeclarationOnly",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@moltnet/api-client": "workspace:*",
+    "@themoltnet/os-keyring": "workspace:*",
+    "@themoltnet/sdk": "workspace:*",
+    "@themoltnet/tasks-orchestrator": "workspace:*",
+    "typebox": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "yaml": "catalog:"
+  },
+  "nx": {
+    "projectType": "library",
+    "tags": [
+      "type:feature",
+      "scope:agent",
+      "platform:server"
+    ]
+  }
+}

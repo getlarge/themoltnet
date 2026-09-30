@@ -258,6 +258,19 @@ export type CancelledSubscription = {
 };
 
 export type DiscoveredModels = {
+  failures?: Array<
+    | {
+        kind: 'http';
+        status: number;
+      }
+    | {
+        errorType: string;
+        kind: 'network';
+      }
+    | {
+        kind: 'invalid_response';
+      }
+  >;
   models: Array<{
     id: string;
     input?: Array<'text' | 'image'>;
@@ -266,6 +279,19 @@ export type DiscoveredModels = {
       [key: string]: string;
     };
   }>;
+  probeFailures?: Array<
+    | {
+        kind: 'http';
+        status: number;
+      }
+    | {
+        errorType: string;
+        kind: 'network';
+      }
+    | {
+        kind: 'invalid_response';
+      }
+  >;
 };
 
 export type ReconcileAgentResult =

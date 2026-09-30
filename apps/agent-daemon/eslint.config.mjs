@@ -8,6 +8,7 @@ export default [
     ignoredDependencies: [
       // Private workspace packages are build inputs bundled into dist, not
       // installable runtime dependencies.
+      '@moltnet/api-client',
       '@moltnet/crypto-service',
       '@moltnet/execution-integrations',
       '@moltnet/execution-plan',

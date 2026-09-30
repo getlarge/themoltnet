@@ -22,6 +22,7 @@ function fixture(
       warn: ReturnType<typeof vi.fn>;
     };
     requestTimeoutMs?: number;
+    discoveryRetryDelayMs?: number;
   } = {},
 ) {
   const temp = mkdtempSync(join(tmpdir(), 'provider-configuration-'));
@@ -40,6 +41,7 @@ function fixture(
       store,
       secrets,
       secretProviders,
+      discoveryRetryDelayMs: 0,
       ...options,
       fetchImpl: options.fetchImpl ?? discoveryFetch({}),
     }),
@@ -380,7 +382,12 @@ describe('ProviderConfigurationService', () => {
     // call resolves and the unprobed model simply stays text-only.
     await expect(
       service.discover('ollama-cloud', { save: true }),
-    ).resolves.toEqual({ models: [{ id: 'qwen3.5:397b' }] });
+    ).resolves.toEqual({
+      models: [{ id: 'qwen3.5:397b' }],
+      failures: [],
+      // Reported separately, so a caller can avoid caching the gap.
+      probeFailures: [{ kind: 'http', status: 500 }],
+    });
     expect(service.list()['ollama-cloud']?.models).toEqual([
       { id: 'qwen3.5:397b' },
     ]);
@@ -487,6 +494,8 @@ describe('ProviderConfigurationService', () => {
         { id: 'local', reasoning: false },
         { id: 'shared', reasoning: false },
       ],
+      failures: [],
+      probeFailures: [],
     });
     // Configuration probes `stale`; discovery then calls /v1/models,
     // /api/tags and /api/show for `local`.
@@ -516,6 +525,8 @@ describe('ProviderConfigurationService', () => {
 
     await expect(service.discover('remote')).resolves.toEqual({
       models: [{ id: 'remote-model' }],
+      failures: [],
+      probeFailures: [],
     });
     // A non-Ollama provider must not be probed: one call, no /api/show.
     expect(fetchImpl).toHaveBeenCalledOnce();
@@ -591,6 +602,195 @@ describe('ProviderConfigurationService', () => {
     );
   });
 
+  it('reports a partial discovery when one endpoint fails and another answers', async () => {
+    const fetchImpl = vi.fn<typeof fetch>((input) =>
+      Promise.resolve(
+        String(input).endsWith('/api/tags')
+          ? new Response(JSON.stringify({ models: [{ name: 'tagged-model' }] }))
+          : new Response(null, { status: 503 }),
+      ),
+    );
+    const { service } = fixture({ fetchImpl });
+    await service.set('ollama-cloud', { baseUrl: 'https://ollama.com/v1' });
+
+    const result = await service.discover('ollama-cloud');
+
+    expect(result.models.map((model) => model.id)).toContain('tagged-model');
+    expect(result.failures).toEqual([{ kind: 'http', status: 503 }]);
+  });
+
+  it.each([
+    ['a server error', () => new Response(null, { status: 502 })],
+    ['a rate limit', () => new Response(null, { status: 429 })],
+    [
+      'a network error',
+      () => {
+        throw new TypeError('fetch failed');
+      },
+    ],
+  ])('retries a listing after %s when asked to', async (_label, fail) => {
+    // Arrange
+    let calls = 0;
+    const fetchImpl = vi.fn<typeof fetch>(() => {
+      calls += 1;
+      return calls === 1
+        ? Promise.resolve().then(fail)
+        : Promise.resolve(
+            new Response(JSON.stringify({ data: [{ id: 'model-a' }] })),
+          );
+    });
+    const { service } = fixture({ fetchImpl });
+    await service.set('remote', { baseUrl: 'https://provider.example/v1' });
+
+    // Act
+    const result = await service.discover('remote', { retry: true });
+
+    // Assert
+    expect(result).toMatchObject({ models: [{ id: 'model-a' }], failures: [] });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it('answers at once without retry, as the console route does', async () => {
+    // Arrange
+    const fetchImpl = vi.fn<typeof fetch>(() =>
+      Promise.resolve(new Response(null, { status: 503 })),
+    );
+    const { service } = fixture({ fetchImpl });
+    await service.set('remote', { baseUrl: 'https://provider.example/v1' });
+
+    // Act / Assert
+    await expect(service.discover('remote')).rejects.toMatchObject({
+      name: 'AgentServerModelDiscoveryError',
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([400, 401, 403, 404])(
+    'never retries a %i, even when asked to',
+    async (status) => {
+      // Arrange
+      const fetchImpl = vi.fn<typeof fetch>((input) =>
+        Promise.resolve(
+          String(input).endsWith('/api/tags')
+            ? new Response(JSON.stringify({ models: [{ name: 'tagged' }] }))
+            : new Response(null, { status }),
+        ),
+      );
+      const { service } = fixture({ fetchImpl });
+      await service.set('ollama-cloud', { baseUrl: 'https://ollama.com/v1' });
+
+      // Act
+      const result = await service.discover('ollama-cloud', { retry: true });
+
+      // Assert
+      expect(result.failures).toEqual([{ kind: 'http', status }]);
+      expect(
+        fetchImpl.mock.calls.filter(([input]) =>
+          String(input).endsWith('/models'),
+        ),
+      ).toHaveLength(1);
+    },
+  );
+
+  it('records only the last failure after the final try', async () => {
+    // Arrange
+    const fetchImpl = vi.fn<typeof fetch>((input) =>
+      Promise.resolve(
+        String(input).endsWith('/api/tags')
+          ? new Response(JSON.stringify({ models: [{ name: 'tagged' }] }))
+          : new Response(null, { status: 503 }),
+      ),
+    );
+    const { service } = fixture({ fetchImpl });
+    await service.set('ollama-cloud', { baseUrl: 'https://ollama.com/v1' });
+
+    // Act
+    const result = await service.discover('ollama-cloud', { retry: true });
+
+    // Assert
+    expect(result.failures).toEqual([{ kind: 'http', status: 503 }]);
+    expect(
+      fetchImpl.mock.calls.filter(([input]) =>
+        String(input).endsWith('/models'),
+      ),
+    ).toHaveLength(3);
+  });
+
+  it('probes capabilities once each, even with retry', async () => {
+    // Arrange
+    const fetchImpl = vi.fn<typeof fetch>((input) => {
+      const url = String(input);
+      if (url.endsWith('/api/show')) {
+        return Promise.resolve(new Response(null, { status: 503 }));
+      }
+      if (url.endsWith('/api/tags')) {
+        return Promise.resolve(new Response(JSON.stringify({ models: [] })));
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify({ data: [{ id: 'm1' }, { id: 'm2' }] })),
+      );
+    });
+    const { service } = fixture({ fetchImpl });
+    await service.set('ollama-cloud', { baseUrl: 'https://ollama.com/v1' });
+
+    // Act
+    const result = await service.discover('ollama-cloud', { retry: true });
+
+    // Assert
+    expect(result.probeFailures).toHaveLength(2);
+    expect(
+      fetchImpl.mock.calls.filter(([input]) =>
+        String(input).endsWith('/api/show'),
+      ),
+    ).toHaveLength(2);
+  });
+
+  it('reports a cancel during the retry wait as a cancellation', async () => {
+    // Arrange
+    const controller = new AbortController();
+    const fetchImpl = vi.fn<typeof fetch>(() => {
+      setTimeout(() => controller.abort(), 5);
+      return Promise.resolve(new Response(null, { status: 503 }));
+    });
+    const { service } = fixture({ fetchImpl, discoveryRetryDelayMs: 1_000 });
+    await service.set('remote', { baseUrl: 'https://provider.example/v1' });
+
+    // Act / Assert
+    await expect(
+      service.discover('remote', { retry: true, signal: controller.signal }),
+    ).rejects.toMatchObject({ code: 'operation_aborted' });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['plain http to a public host', 'http://provider.example/v1', true],
+    ['http to this machine', 'http://127.0.0.1:11434/v1', false],
+    ['https', 'https://provider.example/v1', false],
+  ])('refuses a key over %s: %s', async (_label, baseUrl, refused) => {
+    // Arrange
+    const { service } = fixture({});
+
+    // Act
+    const set = service.set('keyed', { baseUrl, apiKey: 'sk-test' });
+
+    // Assert
+    if (refused) {
+      await expect(set).rejects.toThrow('must use https');
+    } else {
+      await expect(set).resolves.toBeDefined();
+    }
+  });
+
+  it('allows a keyless provider over plain http', async () => {
+    // Arrange
+    const { service } = fixture({});
+
+    // Act / Assert
+    await expect(
+      service.set('open', { baseUrl: 'http://provider.example/v1' }),
+    ).resolves.toBeDefined();
+  });
+
   it('warns for rejected discovery responses with safe error context', async () => {
     const logger = { info: vi.fn(), warn: vi.fn() };
     const fetchImpl = vi.fn<typeof fetch>(() =>
@@ -604,6 +804,8 @@ describe('ProviderConfigurationService', () => {
     await expect(service.discover('remote')).rejects.toMatchObject({
       name: 'AgentServerModelDiscoveryError',
     });
+    // An authorization failure is not transient: no retry.
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(logger.warn).toHaveBeenCalledWith(
       expect.objectContaining({
         code: 'agent_server_provider_discovery_upstream_error',

@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import {
@@ -8,13 +9,23 @@ import {
   readProjectsConfigurationFromProjectGraph,
 } from '@nx/devkit';
 
+import {
+  authHeaderValue,
+  releaseProblems,
+  stableMajorTagFor,
+  tagPushCommand,
+} from './github-action-release.js';
+
 type PackageJson = {
   version?: string;
 };
 
 type Options = {
   project: string;
-  stableMajorTag: string | null;
+  entries: string[];
+  /** Other action projects whose committed bundles this action runs. */
+  alsoVerify: string[];
+  stableMajorTagPrefix: string;
   dryRun: boolean;
 };
 
@@ -37,7 +48,7 @@ function normalizeBooleanOptionValues(args: string[]) {
   });
 }
 
-function parsePublisherArgs(argv = process.argv.slice(2)): Options {
+export function parsePublisherArgs(argv = process.argv.slice(2)): Options {
   const { values } = parseArgs({
     args: normalizeBooleanOptionValues(argv),
     options: {
@@ -65,7 +76,13 @@ function parsePublisherArgs(argv = process.argv.slice(2)): Options {
       registry: {
         type: 'string',
       },
-      'stable-major-tag': {
+      entries: {
+        type: 'string',
+      },
+      'stable-major-tag-prefix': {
+        type: 'string',
+      },
+      'also-verify': {
         type: 'string',
       },
       tag: {
@@ -92,7 +109,15 @@ function parsePublisherArgs(argv = process.argv.slice(2)): Options {
 
   return {
     project: values.project,
-    stableMajorTag: values['stable-major-tag'] ?? null,
+    entries: (values.entries ?? '')
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean),
+    alsoVerify: (values['also-verify'] ?? '')
+      .split(',')
+      .map((project) => project.trim())
+      .filter(Boolean),
+    stableMajorTagPrefix: values['stable-major-tag-prefix'] ?? 'v',
     dryRun:
       values['dry-run'] === true ||
       values.dryRun === true ||
@@ -100,11 +125,15 @@ function parsePublisherArgs(argv = process.argv.slice(2)): Options {
   };
 }
 
-function git(args: string[], options: { stdio?: 'ignore' | 'inherit' } = {}) {
+function git(
+  args: string[],
+  options: { stdio?: 'ignore' | 'inherit'; env?: Record<string, string> } = {},
+) {
   if (options.stdio) {
     execFileSync('git', args, {
       stdio: options.stdio,
       windowsHide: true,
+      env: { ...process.env, ...options.env },
     });
     return '';
   }
@@ -112,27 +141,6 @@ function git(args: string[], options: { stdio?: 'ignore' | 'inherit' } = {}) {
     encoding: 'utf-8',
     windowsHide: true,
   }).trim();
-}
-
-// `git status --porcelain`, not `git diff`: the bundle code-splits into
-// content-hashed chunks, and a renamed chunk is untracked, which `git diff`
-// does not report.
-function assertBundleCommitted(bundleDir: string) {
-  const changes = git(['status', '--porcelain', '--', bundleDir]);
-  if (changes) {
-    throw new Error(
-      `${bundleDir} does not match its sources:\n${changes}\n` +
-        'Merge the open "chore(agent-daemon-action): refresh action bundle" PR ' +
-        '(branch automation/action-bundle-sync, opened by sync-action-bundle.yml) ' +
-        'or commit a rebuilt bundle before releasing.',
-    );
-  }
-}
-
-function assertSemver(version: string) {
-  if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) {
-    throw new Error(`GitHub Action package version is not semver: ${version}`);
-  }
 }
 
 async function resolveProjectRoot(projectName: string) {
@@ -150,15 +158,35 @@ async function main() {
   const projectRoot = await resolveProjectRoot(options.project);
   const packageJsonPath = join(projectRoot, 'package.json');
   const actionPath = join(projectRoot, 'action.yml');
-  const bundlePath = join(projectRoot, 'dist/main.js');
+  const bundleDir = join(projectRoot, 'dist');
 
-  for (const path of [packageJsonPath, actionPath, bundlePath]) {
+  for (const path of [packageJsonPath, actionPath, bundleDir]) {
     if (!existsSync(path)) {
       throw new Error(`GitHub Action release artifact is missing: ${path}`);
     }
   }
-
-  assertBundleCommitted(join(projectRoot, 'dist'));
+  // Each action runs its own entry points (`node dist/<entry>`); a
+  // workflow at this tag may also run another action's bundle from the same
+  // commit, so a stale one must not ship under this release either.
+  const otherBundleDirs = await Promise.all(
+    options.alsoVerify.map(async (other) =>
+      join(await resolveProjectRoot(other), 'dist'),
+    ),
+  );
+  const problems = releaseProblems({
+    root: git(['rev-parse', '--show-toplevel']),
+    bundleDir,
+    entries: options.entries,
+    otherBundleDirs,
+  });
+  if (problems.length > 0) {
+    throw new Error(
+      `${options.project} is not ready to release:\n- ${problems.join('\n- ')}\n` +
+        'Merge the open "fix(actions): refresh action bundles" PR ' +
+        '(branch automation/action-bundle-sync, opened by sync-action-bundle.yml), ' +
+        'or commit rebuilt bundles and refreshed runtime locks, before releasing.',
+    );
+  }
 
   const packageJson = JSON.parse(
     readFileSync(packageJsonPath, 'utf-8'),
@@ -166,10 +194,10 @@ async function main() {
   if (!packageJson.version) {
     throw new Error(`${packageJsonPath} is missing version`);
   }
-  assertSemver(packageJson.version);
-
-  const major = packageJson.version.split('.')[0];
-  const stableMajorTag = options.stableMajorTag ?? `v${major}`;
+  const stableMajorTag = stableMajorTagFor(
+    packageJson.version,
+    options.stableMajorTagPrefix,
+  );
   const target = git(['rev-parse', 'HEAD']);
 
   process.stdout.write(
@@ -193,18 +221,26 @@ async function main() {
   }
 
   git(['tag', '-f', stableMajorTag, target], { stdio: 'inherit' });
-  git(
-    [
-      'push',
-      'origin',
-      `refs/tags/${stableMajorTag}:refs/tags/${stableMajorTag}`,
-      '--force',
-    ],
-    { stdio: 'inherit' },
+  // The release job checks out without persisted credentials and hands the
+  // token to this one push.
+  const token = process.env.GITHUB_ACTION_RELEASE_TOKEN;
+  if (token && process.env.GITHUB_ACTIONS === 'true') {
+    process.stdout.write(`::add-mask::${authHeaderValue(token)}\n`);
+  }
+  const push = tagPushCommand(
+    stableMajorTag,
+    token,
+    process.env.GITHUB_SERVER_URL,
   );
+  git(push.args, { stdio: 'inherit', env: push.env });
 }
 
-main().catch((error: unknown) => {
-  process.stderr.write(`${error instanceof Error ? error.message : error}\n`);
-  process.exitCode = 1;
-});
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  main().catch((error: unknown) => {
+    process.stderr.write(`${error instanceof Error ? error.message : error}\n`);
+    process.exitCode = 1;
+  });
+}

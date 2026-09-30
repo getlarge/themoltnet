@@ -222,6 +222,29 @@ export function parseProviderBaseUrl(value: string, providerId: string): URL {
   return parsed;
 }
 
+/** This machine: `localhost`, `127.0.0.0/8`, or `::1`. */
+export function isLoopbackHost(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/^\[(.*)\]$/u, '$1');
+  return (
+    host === 'localhost' ||
+    host === '::1' ||
+    (isIP(host) === 4 && host.startsWith('127.'))
+  );
+}
+
+/**
+ * A provider API key travels only over TLS, or to this machine: never in
+ * clear text across a network.
+ */
+export function assertKeyTransport(url: URL, providerId: string): void {
+  if (url.protocol === 'https:' || isLoopbackHost(url.hostname)) return;
+  throw new AgentServerModelDiscoveryError(
+    'invalid_provider',
+    `provider "${providerId}" has an API key, so its base URL must use https (or http to localhost)`,
+    400,
+  );
+}
+
 function isNonLoopbackPrivateAddress(hostname: string): boolean {
   if (isIP(hostname) !== 4) return false;
   const [first, second] = hostname.split('.').map(Number);

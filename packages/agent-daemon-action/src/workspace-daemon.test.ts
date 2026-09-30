@@ -13,9 +13,10 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 
+import { loadAction, stepById, stepByName } from './test-support.js';
+
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const workspaceRoot = resolve(packageRoot, '../..');
-const actionPath = resolve(packageRoot, 'action.yml');
 const multiLensWorkflowPath = resolve(
   workspaceRoot,
   '.github/workflows/multi-lens-review.yml',
@@ -25,39 +26,17 @@ const daemonSourcePath = resolve(
   'apps/agent-daemon/src/main.ts',
 );
 
-interface WorkflowStep {
-  name?: string;
-  run?: string;
-  uses?: string;
-}
-
-interface CompositeAction {
-  runs: { steps: WorkflowStep[] };
-}
-
 interface WorkflowFile {
   jobs: Record<string, { env?: Record<string, string> }>;
 }
 
-const action = parse(readFileSync(actionPath, 'utf8')) as CompositeAction;
+const action = loadAction();
 const workflow = parse(
   readFileSync(multiLensWorkflowPath, 'utf8'),
 ) as WorkflowFile;
 
-function actionStep(name: string): WorkflowStep {
-  const step = action.runs.steps.find((candidate) => candidate.name === name);
-  if (!step) throw new Error(`Missing action step: ${name}`);
-  return step;
-}
-
-/** Some steps carry an `id` instead of a `name` (e.g. `create-task`). */
-function actionStepById(id: string): WorkflowStep {
-  const step = action.runs.steps.find(
-    (candidate) => (candidate as { id?: string }).id === id,
-  );
-  if (!step) throw new Error(`Missing action step id: ${id}`);
-  return step;
-}
+const actionStep = (name: string) => stepByName(action, name);
+const actionStepById = (id: string) => stepById(action, id);
 
 describe('workspace daemon action contract', () => {
   it('uses a TypeScript-aware source entrypoint in workspace mode', () => {

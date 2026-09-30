@@ -1,10 +1,11 @@
 name: Sync action bundle
 
-# packages/agent-daemon-action/dist/ is a committed bundle that inlines
-# @themoltnet/sdk and its dependencies. Rather than making every PR that
+# packages/*-action/dist/ (every project tagged platform:gha)
+# are committed bundles that inline @themoltnet/sdk, libs/docs-impact-review,
+# and their dependencies. Rather than making every PR that
 # touches that dependency chain carry a rebuilt bundle, main rebuilds it here
 # and proposes the result as a single, continuously refreshed PR. CI verifies
-# that PR's bundle (see `check-dist-agent-daemon-action` in ci.yml), and the
+# that PR's bundle (see `check-dist-actions` in ci.yml), and the
 # action publisher refuses to release while main's bundle is stale.
 
 on:
@@ -14,7 +15,7 @@ on:
     # Nx-cached, so a push that does not affect the action restores the cached
     # bundle and finds nothing to propose.
     paths:
-      - 'packages/agent-daemon-action/**'
+      - 'packages/*-action/**'
       - 'libs/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -34,18 +35,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      - uses: actions/create-github-app-token@v3
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         id: app-token
         with:
           app-id: ${{ secrets.MOLTNET_RELEASE_APP_ID }}
@@ -53,15 +54,20 @@ jobs:
           owner: getlarge
           repositories: themoltnet
 
-      - name: Rebuild the action bundle
+      - name: Rebuild the action bundles
         id: bundle
         run: |
-          pnpm exec nx run @themoltnet/agent-daemon-action:build
+          pnpm exec nx run-many -t build --projects=tag:platform:gha
+          # Stage the bundles, then refresh the runtime locks that hash them
+          # (the lock lists staged files only).
+          git add -A 'packages/*-action/dist/'
+          node tools/src/release/action-runtime-lock.ts --write
+          git add 'packages/*-action/runtime.lock'
           # `git status --porcelain`, not `git diff`: the build code-splits
           # into content-hashed assets/ chunks, and a renamed chunk arrives
           # untracked, which `git diff` does not report.
-          if [ -n "$(git status --porcelain -- packages/agent-daemon-action/dist/)" ]; then
-            git status --short -- packages/agent-daemon-action/dist/
+          if [ -n "$(git status --porcelain -- 'packages/*-action/dist/' 'packages/*-action/runtime.lock')" ]; then
+            git status --short -- 'packages/*-action/dist/' 'packages/*-action/runtime.lock'
             echo changed=true >> "$GITHUB_OUTPUT"
           else
             echo changed=false >> "$GITHUB_OUTPUT"
@@ -72,12 +78,13 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          title="chore(agent-daemon-action): refresh action bundle"
+          # A fix, not a chore: the bundle is the code the actions run, so a
+          # refreshed bundle must release them.
+          title="fix(actions): refresh action bundles"
           branch="automation/action-bundle-sync"
           git config user.name "MoltNet Release[bot]"
           git config user.email "261968324+moltnet-release[bot]@users.noreply.github.com"
           git switch -c "$branch"
-          git add -A packages/agent-daemon-action/dist/
           git commit -m "$title"
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           remote_branch_sha=$(git ls-remote --heads origin "refs/heads/${branch}" | awk '{print $1}')
@@ -95,13 +102,15 @@ jobs:
             --state open \
             --json url \
             --jq '.[0].url // empty')
-          if [ -z "$pr_url" ]; then
+          if [ -n "$pr_url" ]; then
+            gh pr edit "$pr_url" --repo "$GITHUB_REPOSITORY" --title "$title"
+          else
             gh pr create \
               --repo "$GITHUB_REPOSITORY" \
               --base main \
               --head "$branch" \
               --title "$title" \
-              --body "Rebuilt \`packages/agent-daemon-action/dist/\` from main's sources. The bundle inlines \`@themoltnet/sdk\`, so SDK changes make it stale. In-repo workflows that use \`./packages/agent-daemon-action\` and action releases run this bundle, so merge this PR before releasing the action."
+              --body "Rebuilt the committed action bundles (\`packages/agent-daemon-action/dist/\`, \`packages/docs-impact-review-action/dist/\`) from main's sources. The bundles inline \`@themoltnet/sdk\` and \`libs/docs-impact-review\`, so changes there make them stale. In-repo workflows that use these actions and action releases run the bundles, so merge this PR before releasing an action."
           fi
 
       # A later push can make main's bundle current again (for example a PR

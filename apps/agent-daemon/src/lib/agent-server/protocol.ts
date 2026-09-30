@@ -433,10 +433,25 @@ export const PutProviderSchema = Type.Object({
   apiKey: Type.Optional(Type.String()),
 });
 
+const DiscoveryFailureList = Type.Array(
+  Type.Union([
+    Type.Object({ kind: Type.Literal('http'), status: Type.Integer() }),
+    Type.Object({ kind: Type.Literal('network'), errorType: Type.String() }),
+    Type.Object({ kind: Type.Literal('invalid_response') }),
+  ]),
+);
+
 export const DiscoverModelsSchema = Type.Object(
-  // Entries, not ids: discovery resolves input modalities, and the console
-  // saves what it was given rather than re-deriving them client-side.
-  { models: ProviderModelList },
+  {
+    // Entries, not ids: discovery resolves input modalities, and the console
+    // saves what it was given rather than re-deriving them client-side.
+    models: ProviderModelList,
+    // Optional so clients also read daemons that predate them.
+    /** Listing endpoints that failed while others answered. */
+    failures: Type.Optional(DiscoveryFailureList),
+    /** Capability probes that failed; some models may lack metadata. */
+    probeFailures: Type.Optional(DiscoveryFailureList),
+  },
   { $id: 'DiscoveredModels' },
 );
 

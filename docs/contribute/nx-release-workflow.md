@@ -359,10 +359,10 @@ pnpm exec nx run moltnet-cli:nx-release-publish -- --skip-upload --verbose
 ## GitHub Actions
 
 GitHub Actions are not released by Nx. Release-please releases them as
-components (`agent-daemon-action`), and the `publish-agent-daemon-action` job in
-`.github/workflows/release.yml` verifies the committed bundle at the release tag
-and moves the action's stable major tag. See the action README for the
-consumer-facing tags.
+components (`agent-daemon-action`, `docs-impact-review-action`), and the matrix
+`publish-actions` job in `.github/workflows/release.yml` verifies the committed
+bundle at the release tag and moves the action's stable major tag. See the
+action README for the consumer-facing tags.
 
 ## Docker Images
 

@@ -48,6 +48,7 @@ Four invocation shapes:
     wait-for-first-task-sec: '300' # drain only
     wait-after-task-sec: '300' # drain only
     max-poll-interval-ms: '3000' # drain only; empty = daemon default
+    providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY # optional
     daemon-version: latest
     # Required — runtime profile UUID or team-scoped name.
     # Equivalently set MOLTNET_AGENT_PROFILE on `env:` below.
@@ -261,21 +262,89 @@ that env (loading its secrets) before the allowlist check ran.
 If `MOLTNET_AGENT_ALLOWLIST` is unset or empty, the parse job exits
 with an error explaining what to set. The workflow fails closed.
 
+## Model providers
+
+Providers Pi does not know natively, such as Ollama Cloud, need model
+definitions. The action offers two sources for them.
+
+### `providers` input
+
+Configure providers in the daemon's provider store, one per line, as
+`key=value` tokens:
+
+```yaml
+providers: |
+  # Ollama Cloud; the key comes from OLLAMA_API_KEY
+  id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
+  # A local, keyless provider with another Pi API kind
+  id=ollama base-url=http://localhost:11434/v1 api=openai-completions
+```
+
+| Token      | Required | Meaning                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ---------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`       | yes      | Provider id, as referenced by your runtime profiles.                                                                                                                                                                                                                                                                                                                                                    |
+| `base-url` | yes      | Provider API URL, `http` or `https`, without credentials. A provider with a key must use `https`, except `http` to this machine: `localhost`, `127.x.x.x`, or `[::1]`, followed by a port, a path, or nothing. Keyless providers may use plain `http`.                                                                                                                                                  |
+| `key-env`  | no       | Environment variable holding the API key; omit for a keyless provider. The name must end in `_API_KEY` (for example `OLLAMA_API_KEY`) and not start with `GITHUB_`, `ACTIONS_`, `RUNNER_`, or `MOLTNET_`. This keeps tokens such as `GH_TOKEN` or `PI_AUTH_JSON` out by mistake; it cannot tell a provider key from another `*_API_KEY` secret, so name the right one. The value must be a single line. |
+| `api`      | no       | Pi API kind; defaults to `openai-completions`.                                                                                                                                                                                                                                                                                                                                                          |
+
+Unknown tokens are errors, so new tokens can be added without changing the
+meaning of existing lines. Blank lines and lines starting with `#` are ignored.
+
+The action uses the provider store the daemon itself resolves (reported by
+`moltnet-agent providers list --json`) and passes it to every command as
+`--root`. For each line it runs `moltnet-agent providers set`, piping the key
+on stdin (masked in the log first, never passed as an argument); a keyless
+line clears any key the store still holds. Then
+`moltnet-agent providers discover --save` records the provider's models and
+their capabilities; the CLI retries a listing on transient failures, and the
+action bounds each discovery at 15 minutes.
+
+The discovered `providers.json` is cached per input and resolved daemon
+version, and refreshed each ISO week; `providers-refresh: true` ignores the
+cache for one run. A cache with no models for a provider is rediscovered, and
+a discovery that fails or finds no models fails the step, naming the
+provider. A discovery with transient failures (network errors, 5xx, 429, in a
+listing or a capability probe) is partial: it is never cached and never
+replaces a complete model list, and with one the run keeps using it. Permanent
+answers such as a 404 are not partial, since the next run would get the same.
+
+**Persistent stores.** A store that already holds providers, such as a
+self-hosted runner's or a caller-set `MOLTNET_HOME`, belongs to its operator.
+It is neither restored from nor saved to the cache. A provider already there
+is used only if it has the same base URL and API kind and holds no key;
+otherwise the step fails rather than change it (remove it there, rename it
+in the input, or give the job its own `MOLTNET_HOME`). When the action ends it
+undoes only what it wrote: it clears the keys it stored, through the daemon
+CLI, and removes the `pi/auth.json` it wrote, putting back an operator's own
+login if there was one. Keys are never cached.
+
+With `providers` set, the daemon composes Pi's model configuration from this
+store. A repository `.pi/models.json` is merged underneath: providers only in
+the repository are kept as they are. For a provider id defined in both, the
+store's entry replaces the repository's whole provider object (fields such as
+`headers` in the repository entry are dropped), except that repository models
+the store lacks are added. `PI_AUTH_JSON` is written into the store
+alongside, with the same expiry check as without `providers`. A caller-set
+`PI_CODING_AGENT_DIR` would make the daemon ignore the store, so the action
+refuses that combination.
+
+### Repository `.pi/` configuration
+
+Without `providers`, the action sets `PI_CODING_AGENT_DIR` before starting
+the daemon. By default it points to `$RUNNER_TEMP/.pi/agent`, keeping GitHub
+runs isolated from both repo-local `.pi` config and the runner user's home
+directory. Set `PI_CODING_AGENT_DIR` explicitly only if you want the action to
+use a different runner-local Pi directory.
+
+When repo-local `.pi/settings.json` or `.pi/models.json` exist, the action
+copies them into the runner-local Pi directory before starting the daemon, and
+they must reference secrets by environment variable name, for example
+`"apiKey": "$OLLAMA_API_KEY"`.
+
 ## Pi provider auth
 
 Pi-headless inside the daemon needs to authenticate against an LLM
 provider. Two mutually-compatible options:
-
-The action always sets `PI_CODING_AGENT_DIR` before starting the
-daemon. By default it points to `$RUNNER_TEMP/.pi/agent`, keeping
-GitHub runs isolated from both repo-local `.pi` config and the runner
-user's home directory. Set `PI_CODING_AGENT_DIR` explicitly only if
-you want the action to use a different runner-local Pi directory.
-
-When repo-local `.pi/settings.json` or `.pi/models.json` exist, the action
-copies them into the runner-local Pi directory before starting the daemon. Keep
-provider/model registry data in those committed files and reference secrets by
-environment variable name, for example `"apiKey": "$OLLAMA_API_KEY"`.
 
 ### Option A — Env-var API key (default, stateless)
 
@@ -293,9 +362,8 @@ Pi picks it up via `process.env`. Charges go to the API account that
 owns the key. No rotation needed — the key just keeps working until
 you revoke it.
 
-If the selected runtime profile uses Ollama, set `OLLAMA_API_KEY` and make sure
-the runner's Pi model registry includes the matching provider/model. The action
-does not derive or materialize model config from provider/model env vars.
+If the selected runtime profile uses Ollama, set `OLLAMA_API_KEY` and configure
+the provider with the `providers` input (or a repository `.pi/models.json`).
 
 ### Option B — Subscription OAuth via `PI_AUTH_JSON` (covers ChatGPT Codex, Claude Pro/Max, Copilot)
 
@@ -431,7 +499,7 @@ lags its sources, and in-repo workflows that use
 
 A PR may still commit `dist/` itself, for example so this repo's own
 workflows exercise the change before merge. The CI job
-`check-dist-agent-daemon-action`
+`check-dist-actions`
 (see [`.github/workflows/ci.yml`](https://github.com/getlarge/themoltnet/blob/main/.github/workflows/ci.yml))
 runs only for PRs that change `dist/`. It rebuilds from source and fails
 if the whole `dist/` directory differs from what is committed; the build

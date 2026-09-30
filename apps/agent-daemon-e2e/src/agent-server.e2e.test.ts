@@ -499,6 +499,8 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(openai.response.status).toBe(200);
     expect(openai.data).toEqual({
       models: [{ id: MODEL_ID }, { id: 'e2e-other' }],
+      failures: [],
+      probeFailures: [],
     });
 
     const ollamaProvider = 'ollama-e2e-discovery';
@@ -518,10 +520,14 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       path: { providerId: ollamaProvider },
     });
     expect(ollama.response.status).toBe(200);
+    // The stub serves only /api/tags: the OpenAI listing's 404 is reported,
+    // and the tags answer still yields the model.
     expect(ollama.data).toEqual({
       models: [
         { id: 'tags-only-model', input: ['text', 'image'], reasoning: false },
       ],
+      failures: [{ kind: 'http', status: 404 }],
+      probeFailures: [],
     });
 
     const deadProvider = 'e2e-discovery-dead';
@@ -730,6 +736,8 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       models: [
         { id: 'tags-only-model', input: ['text', 'image'], reasoning: false },
       ],
+      failures: [{ kind: 'http', status: 404 }],
+      probeFailures: [],
     });
 
     const listedAfterDiscovery = await listAgentServerProviders({
