@@ -336,6 +336,14 @@ function modelArray(
       );
     }
     if (
+      entry.supportsStrictMode !== undefined &&
+      typeof entry.supportsStrictMode !== 'boolean'
+    ) {
+      return invalid(
+        `"${field}" entry "${id}" must declare "supportsStrictMode" as a boolean`,
+      );
+    }
+    if (
       entry.thinkingLevelMap !== undefined &&
       (typeof entry.thinkingLevelMap !== 'object' ||
         entry.thinkingLevelMap === null ||
@@ -365,6 +373,9 @@ function modelArray(
       id,
       ...(entry.input ? { input: entry.input as ProviderModelModality[] } : {}),
       ...(entry.reasoning !== undefined ? { reasoning: entry.reasoning } : {}),
+      ...(entry.supportsStrictMode !== undefined
+        ? { supportsStrictMode: entry.supportsStrictMode }
+        : {}),
       ...(entry.thinkingLevelMap
         ? { thinkingLevelMap: entry.thinkingLevelMap as Record<string, string> }
         : {}),

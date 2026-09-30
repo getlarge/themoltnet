@@ -23,6 +23,13 @@ export interface PiModelSpec {
   input?: readonly PiModelModality[];
   reasoning?: boolean;
   thinkingLevelMap?: Readonly<Record<string, string>>;
+  /** Explicit provider claim that strict JSON-schema function tools work. */
+  supportsStrictMode?: boolean;
+}
+
+/** Serialized model entry consumed by Pi's model registry. */
+interface PiStoredModelSpec extends Omit<PiModelSpec, 'supportsStrictMode'> {
+  compat?: { supportsStrictMode: boolean };
 }
 
 export interface WritePiProviderInput {
@@ -80,7 +87,7 @@ export type WritePiConfigInput =
  * Normalise a model entry to Pi's on-disk shape. `input` is emitted only when
  * declared, so a text-only model serializes as a bare `{ id }`.
  */
-function toPiModel(entry: PiModelSpec): PiModelSpec {
+function toPiModel(entry: PiModelSpec): PiStoredModelSpec {
   return {
     id: entry.id,
     ...(entry.input && entry.input.length > 0
@@ -89,6 +96,9 @@ function toPiModel(entry: PiModelSpec): PiModelSpec {
     ...(entry.reasoning !== undefined ? { reasoning: entry.reasoning } : {}),
     ...(entry.thinkingLevelMap
       ? { thinkingLevelMap: { ...entry.thinkingLevelMap } }
+      : {}),
+    ...(entry.supportsStrictMode !== undefined
+      ? { compat: { supportsStrictMode: entry.supportsStrictMode } }
       : {}),
   };
 }

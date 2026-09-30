@@ -85,6 +85,8 @@ describe('moltnet-agent providers', () => {
           'deepseek:cloud',
           '--model-thinking-map',
           'deepseek:cloud=off:none,low:low,high:high',
+          '--model-strict-mode',
+          'deepseek:cloud=true',
         ],
         { ...test.dependencies, interactive: false },
       ),
@@ -99,8 +101,66 @@ describe('moltnet-agent providers', () => {
         id: 'deepseek:cloud',
         reasoning: true,
         thinkingLevelMap: { off: 'none', low: 'low', high: 'high' },
+        supportsStrictMode: true,
       },
     ]);
+  });
+  it('updates strict mode without erasing other model capabilities', async () => {
+    const test = await fixture();
+    await test.configuration.set('remote', {
+      baseUrl: 'https://provider.example/v1',
+      models: [
+        { id: 'model-a', reasoning: true, input: ['text', 'image'] },
+        { id: 'model-b', input: ['text'] },
+      ],
+    });
+
+    expect(
+      await runProviders(
+        ['set', 'remote', '--model-strict-mode', 'model-a=true'],
+        test.dependencies,
+      ),
+    ).toBe(0);
+    expect(test.configuration.list().remote.models).toEqual([
+      {
+        id: 'model-a',
+        reasoning: true,
+        input: ['text', 'image'],
+        supportsStrictMode: true,
+      },
+      { id: 'model-b', input: ['text'] },
+    ]);
+
+    expect(
+      await runProviders(
+        ['set', 'remote', '--model-strict-mode', 'model-a=false'],
+        test.dependencies,
+      ),
+    ).toBe(0);
+    expect(test.configuration.list().remote.models?.[0]).toMatchObject({
+      id: 'model-a',
+      reasoning: true,
+      supportsStrictMode: false,
+    });
+    expect(
+      await runProviders(
+        ['set', 'remote', '--model-strict-mode', 'model-a=default'],
+        test.dependencies,
+      ),
+    ).toBe(0);
+    expect(test.configuration.list().remote.models?.[0]).toEqual({
+      id: 'model-a',
+      reasoning: true,
+      input: ['text', 'image'],
+    });
+    expect(
+      await runProviders(
+        ['set', 'remote', '--model-strict-mode', 'model-typo=true'],
+        test.dependencies,
+      ),
+    ).toBe(1);
+    expect(test.stderr.at(-1)).toContain('existing model "model-typo"');
+    expect(test.configuration.list().remote.models).toHaveLength(2);
   });
   it.each([
     { stdinIsTTY: true, stdoutIsTTY: true, accepted: false },

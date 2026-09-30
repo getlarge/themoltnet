@@ -1347,12 +1347,9 @@ export async function executePiTask(
       },
     });
 
-    // Per-task-type submit-output tool. Captured payload (when the
-    // model calls the tool with valid args) becomes the authoritative
-    // output. For task types with a registered submit tool, a valid
-    // submit call is required to complete the attempt; the legacy
-    // parser fallback is only consulted when the task type has no
-    // registered output schema (resolveSubmitTools returns null).
+    // Per-task-type submit-output tool. A validated tool call is the
+    // authoritative output; a complete final-turn JSON object can recover a
+    // missing call after the same task submission validation.
     const submitCompletion = createSubmitCompletionCoordinator({
       // Pi's native terminate result ends a lone successful submit without
       // manufacturing an aborted provider turn. A mixed tool batch does not
@@ -1936,7 +1933,6 @@ export async function executePiTask(
       resolveProviderStateAfterSubmit(
         turnState,
         submitToolHandle?.getCaptured() !== null,
-        submitCompletion.hasRequestedCompletion(),
       );
     // One provider-error-tolerant prompt pass. Reused for both the initial
     // task prompt and each submit-missing re-prompt so every pass inherits
@@ -1947,9 +1943,7 @@ export async function executePiTask(
         initialPrompt: promptText,
         cancelSignal: reporter.cancelSignal,
         isCapAborted: () => capAbort !== null,
-        hasValidatedSubmit: () =>
-          submitToolHandle?.getCaptured() !== null &&
-          submitCompletion.hasRequestedCompletion(),
+        hasValidatedSubmit: () => submitToolHandle?.getCaptured() !== null,
         getProviderErrorState: terminalProviderState,
         maxRetries:
           opts.maxProviderErrorRetries ?? DEFAULT_PROVIDER_ERROR_RETRIES,
@@ -1980,6 +1974,8 @@ export async function executePiTask(
       submitMissingPrompt: submitMissingConfig.submitMissingPrompt,
       maxSubmitMissingReprompts: submitMissingConfig.maxSubmitMissingReprompts,
       getSubmitState: submitMissingConfig.getSubmitState,
+      getStopReason: () => turnState.lastStopReason,
+      maxOutputTokens: opts.maxOutputTokens,
       isStopped: () =>
         submitRepromptStopped({
           cancelled: reporter.cancelSignal.aborted,
@@ -2032,7 +2028,7 @@ export async function executePiTask(
     const cancelled = reporter.cancelSignal.aborted;
     const providerState = terminalProviderState();
     if (turnState.llmAbort && !providerState.llmAbort) {
-      await emit('info', { event: 'post_submit_abort_normalized' });
+      await emit('info', postSubmitAbortDiagnostic(turnState));
     }
 
     let parsedOutput: Record<string, unknown> | null = null;
@@ -2066,6 +2062,23 @@ export async function executePiTask(
         parsedOutput = materialized.output;
         parsedOutputCid = materialized.outputCid;
         parseError = materialized.error;
+      }
+      if (parsedOutput && !parseError) {
+        const outputSource = submitToolHandle ? 'submit_tool' : 'legacy_parser';
+        const repairKinds = submitToolHandle?.getCapturedRepairKinds() ?? [];
+        await traceRuntimePhase(
+          'moltnet.execution.output.complete',
+          {
+            'moltnet.task.output_source': outputSource,
+            'moltnet.task.output_repair_kinds': repairKinds,
+          },
+          () =>
+            emit('info', {
+              event: 'output_completion',
+              output_source: outputSource,
+              repair_kinds: repairKinds,
+            }),
+        );
       }
     }
 
@@ -2164,6 +2177,15 @@ export async function executePiTask(
   }
 }
 
+/** Preserve the provider diagnostic when a captured submit wins the attempt. */
+export function postSubmitAbortDiagnostic(state: SessionTurnState) {
+  return {
+    event: 'post_submit_abort_normalized',
+    stop_reason: state.lastStopReason,
+    provider_error: sanitizeProviderDiagnostic(state.llmErrorMessage),
+  };
+}
+
 export function buildToolPolicyDecisionContext(
   claimedTask: ClaimedTask,
   executionRuntimeProfileId?: string,
@@ -2214,6 +2236,8 @@ export type SessionSubscribeEvent = Parameters<
 export interface SessionTurnState {
   /** Streamed assistant text, concatenated across `text_delta` events. */
   assistantText: string;
+  /** Stop reason of the latest completed assistant turn. */
+  lastStopReason: string | null;
   /** Final turn ended with `stopReason: 'error'` (last-turn-wins). */
   llmAbort: boolean;
   /** Provider diagnostic from the final error turn, else null. */
@@ -2227,6 +2251,7 @@ export interface SessionTurnState {
 export function createSessionTurnState(): SessionTurnState {
   return {
     assistantText: '',
+    lastStopReason: null,
     llmAbort: false,
     llmErrorMessage: null,
     toolUseTurnCount: 0,
@@ -2234,20 +2259,16 @@ export function createSessionTurnState(): SessionTurnState {
   };
 }
 
-/** A valid final submit is authoritative after the submit tool requests
- * completion. Pi can report the runtime's intentional session.abort() as an
- * error turn before the coordinator observes the final tool_execution_end,
- * even after recording the successful tool result. The coordinator still delays
- * abort until observed tools drain, while this state check preserves the
- * captured output and avoids a spurious provider retry. Cancellation and caps
- * keep their separate failure paths.
+/** A validated submit is authoritative even when Pi reports an abort while
+ * settling its tool result. Completion coordination controls the session but
+ * does not determine whether the output was captured. Cancellation and caps
+ * keep their separate failure paths in the caller.
  */
 export function resolveProviderStateAfterSubmit(
   state: Pick<SessionTurnState, 'llmAbort' | 'llmErrorMessage'>,
   validOutputCaptured: boolean,
-  completionRequested: boolean,
 ): Pick<SessionTurnState, 'llmAbort' | 'llmErrorMessage'> {
-  if (validOutputCaptured && completionRequested) {
+  if (validOutputCaptured) {
     return { llmAbort: false, llmErrorMessage: null };
   }
   return {
@@ -2384,6 +2405,7 @@ export function makeSessionEventHandler(
         if (cw) usage.cacheWriteTokens = (usage.cacheWriteTokens ?? 0) + cw;
       }
       const stopReason = msg?.stopReason ?? 'end_turn';
+      if (msg?.role === 'assistant') state.lastStopReason = stopReason;
       track(emit('turn_end', { stop_reason: stopReason }));
       // Tool-use turn counter for the max-turns cap. Anthropic SDK
       // semantics: count only tool-use turns (any turn whose
@@ -3198,6 +3220,10 @@ export interface PromptUntilSubmittedArgs {
    * tool is registered (legacy parser path) — recovery is skipped.
    */
   getSubmitState: () => SubmitGateState | null;
+  /** Latest assistant stop reason; a length stop cannot satisfy a missing submit. */
+  getStopReason?: () => string | null;
+  /** Configured output cap, included in the length-stop diagnostic. */
+  maxOutputTokens?: number | null;
   /** True when cancel or cap-abort fired; halts further re-prompts. */
   isStopped: () => boolean;
   onSubmitReprompt?: (
@@ -3231,12 +3257,26 @@ export async function promptUntilSubmitted(
   runError: { code: string; message: string } | null;
   submitReprompts: number;
 }> {
+  let submitReprompts = 0;
   const first = await args.runPrompt(args.initialPrompt);
   if (first.runError) {
     return { runError: first.runError, submitReprompts: 0 };
   }
 
-  let submitReprompts = 0;
+  const outputLimitError = () => {
+    if (args.getStopReason?.() !== 'length') return null;
+    const state = args.getSubmitState();
+    if (!state || state.captured) return null;
+    return {
+      code: 'model_output_length',
+      message: `The model reached its output token limit (maxTokens=${args.maxOutputTokens ?? 'provider default'}) after ${submitReprompts} submit reprompt(s) without valid task output. Raise maxTokens and retry the task.`,
+    };
+  };
+  const firstLimitError = outputLimitError();
+  if (firstLimitError) {
+    return { runError: firstLimitError, submitReprompts: 0 };
+  }
+
   while (submitReprompts < args.maxSubmitMissingReprompts) {
     if (args.isStopped()) break;
     const state = args.getSubmitState();
@@ -3262,6 +3302,10 @@ export async function promptUntilSubmitted(
     const pass = await args.runPrompt(prompt);
     if (pass.runError) {
       return { runError: pass.runError, submitReprompts };
+    }
+    const limitError = outputLimitError();
+    if (limitError) {
+      return { runError: limitError, submitReprompts };
     }
   }
 

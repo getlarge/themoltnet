@@ -36,6 +36,7 @@ describe('writeStorePiConfig', () => {
             id: 'glm-5.2:cloud',
             reasoning: true,
             thinkingLevelMap: { off: 'none', low: 'low' },
+            supportsStrictMode: true,
           },
         ],
       },
@@ -57,6 +58,7 @@ describe('writeStorePiConfig', () => {
           id: 'glm-5.2:cloud',
           reasoning: true,
           thinkingLevelMap: { off: 'none', low: 'low' },
+          compat: { supportsStrictMode: true },
         },
       ],
     });

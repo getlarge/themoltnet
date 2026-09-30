@@ -474,6 +474,9 @@ export class ProviderConfigurationService {
         ...(!model.thinkingLevelMap && override?.thinkingLevelMap
           ? { thinkingLevelMap: { ...override.thinkingLevelMap } }
           : {}),
+        ...(override?.supportsStrictMode !== undefined
+          ? { supportsStrictMode: override.supportsStrictMode }
+          : {}),
       };
     });
     const detected = models.filter(

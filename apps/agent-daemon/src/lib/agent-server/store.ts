@@ -167,6 +167,7 @@ export interface ProviderModelEntry {
   input?: ProviderModelModality[];
   reasoning?: boolean;
   thinkingLevelMap?: Record<string, string>;
+  supportsStrictMode?: boolean;
 }
 
 export interface ProviderEntry {
@@ -199,6 +200,9 @@ export function copyProviderModel(
     ...(entry.reasoning !== undefined ? { reasoning: entry.reasoning } : {}),
     ...(entry.thinkingLevelMap
       ? { thinkingLevelMap: { ...entry.thinkingLevelMap } }
+      : {}),
+    ...(entry.supportsStrictMode !== undefined
+      ? { supportsStrictMode: entry.supportsStrictMode }
       : {}),
   };
 }

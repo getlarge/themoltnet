@@ -53,6 +53,7 @@ import {
   materializeCapturedAttemptOutput,
   notifyProviderErrorRetryUi,
   openVmWorkspaceFileForRead,
+  postSubmitAbortDiagnostic,
   promptUntilSubmitted,
   promptWithProviderErrorRetries,
   resolveAttemptBrokeredHttpSecrets,
@@ -68,6 +69,7 @@ import {
   wireSessionAbort,
 } from './execute-pi-task.js';
 import { classifyProviderFailure } from './provider-error-classification.js';
+import { createSubmitOutputTool } from './submit-output-tool.js';
 
 const shouldRetryProviderErrorMessage = (message: string | null | undefined) =>
   classifyProviderFailure(message).retryable;
@@ -1569,10 +1571,8 @@ describe('buildAttemptResult (result-construction characterization)', () => {
       llmErrorMessage: null as string | null,
     };
     let captured = false;
-    let completionStarted = false;
     const prompt = vi.fn(() => {
       captured = true;
-      completionStarted = true;
       rawState.llmAbort = true;
       rawState.llmErrorMessage = 'This operation was aborted';
       return Promise.resolve();
@@ -1583,7 +1583,7 @@ describe('buildAttemptResult (result-construction characterization)', () => {
       initialPrompt: 'extract',
       cancelSignal: new AbortController().signal,
       getProviderErrorState: () =>
-        resolveProviderStateAfterSubmit(rawState, captured, completionStarted),
+        resolveProviderStateAfterSubmit(rawState, captured),
       maxRetries: 4,
       baseDelayMs: 0,
       maxDelayMs: 0,
@@ -1594,11 +1594,7 @@ describe('buildAttemptResult (result-construction characterization)', () => {
     expect(result).toEqual({ runError: null, retryCount: 0 });
     expect(prompt).toHaveBeenCalledTimes(1);
     expect(onRetry).not.toHaveBeenCalled();
-    const terminal = resolveProviderStateAfterSubmit(
-      rawState,
-      captured,
-      completionStarted,
-    );
+    const terminal = resolveProviderStateAfterSubmit(rawState, captured);
     const capturedOutput = await captureAttemptOutput({
       taskType: 'freeform',
       input: {},
@@ -1623,15 +1619,30 @@ describe('buildAttemptResult (result-construction characterization)', () => {
     expect(
       buildAttemptResult({
         ...base,
-        ...resolveProviderStateAfterSubmit(rawState, true, false),
+        ...resolveProviderStateAfterSubmit(rawState, true),
       }).status,
-    ).toBe('failed');
+    ).toBe('completed');
     expect(
       buildAttemptResult({
         ...base,
-        ...resolveProviderStateAfterSubmit(rawState, false, true),
+        ...resolveProviderStateAfterSubmit(rawState, false),
       }).status,
     ).toBe('failed');
+  });
+
+  it('retains the provider error and stop reason after a captured submit', () => {
+    expect(
+      postSubmitAbortDiagnostic({
+        ...createSessionTurnState(),
+        llmAbort: true,
+        llmErrorMessage: 'provider returned 503',
+        lastStopReason: 'error',
+      }),
+    ).toEqual({
+      event: 'post_submit_abort_normalized',
+      provider_error: 'provider returned 503',
+      stop_reason: 'error',
+    });
   });
 
   it('materializes a validated submit when Pi throws while settling the prompt', async () => {
@@ -1689,10 +1700,8 @@ describe('buildAttemptResult (result-construction characterization)', () => {
       llmErrorMessage: null as string | null,
     };
     let captured = false;
-    let completionRequested = false;
     const prompt = vi.fn(() => {
       captured = true;
-      completionRequested = true;
       rawState.llmAbort = true;
       rawState.llmErrorMessage = 'This operation was aborted';
       return Promise.resolve();
@@ -1703,11 +1712,7 @@ describe('buildAttemptResult (result-construction characterization)', () => {
       initialPrompt: 'extract',
       cancelSignal: new AbortController().signal,
       getProviderErrorState: () =>
-        resolveProviderStateAfterSubmit(
-          rawState,
-          captured,
-          completionRequested,
-        ),
+        resolveProviderStateAfterSubmit(rawState, captured),
       maxRetries: 4,
       baseDelayMs: 0,
       maxDelayMs: 0,
@@ -1717,15 +1722,13 @@ describe('buildAttemptResult (result-construction characterization)', () => {
     expect(result).toEqual({ runError: null, retryCount: 0 });
     expect(prompt).toHaveBeenCalledTimes(1);
     expect(onRetry).not.toHaveBeenCalled();
-    expect(
-      resolveProviderStateAfterSubmit(rawState, captured, completionRequested),
-    ).toEqual({
+    expect(resolveProviderStateAfterSubmit(rawState, captured)).toEqual({
       llmAbort: false,
       llmErrorMessage: null,
     });
-    expect(
-      resolveProviderStateAfterSubmit(rawState, captured, false).llmAbort,
-    ).toBe(true);
+    expect(resolveProviderStateAfterSubmit(rawState, false).llmAbort).toBe(
+      true,
+    );
   });
 
   it('fails with the runError, which wins over parse/llm errors', () => {
@@ -2011,6 +2014,20 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
     expect(emitted[0].payload.phase).toBe('output_validation');
   });
 
+  it('does not accept truncated final assistant JSON when a submit tool is registered', async () => {
+    const { emit } = makeEmit();
+    const result = await captureAttemptOutput({
+      taskType: 'freeform',
+      model: 'm',
+      input: {},
+      assistantText: '{"summary":',
+      submitToolHandle: fakeHandle({ captured: null }),
+      emit: emit as never,
+    });
+    expect(result.output).toBeNull();
+    expect(result.error?.code).toBe('submit_output_missing');
+  });
+
   it('surfaces the latest validation failure verbatim (no submit_output_missing)', async () => {
     const { emit } = makeEmit();
     const validationFailure = {
@@ -2026,6 +2043,26 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
       emit: emit as never,
     });
     expect(result.error).toEqual(validationFailure);
+  });
+
+  it('classifies a Pi prepareArguments rejection as output_validation_failed', async () => {
+    const handle = createSubmitOutputTool('fulfill_brief');
+    expect(() =>
+      handle.tool.prepareArguments?.({ summary: 'incomplete' }),
+    ).toThrow();
+    const { emit } = makeEmit();
+
+    const result = await captureAttemptOutput({
+      taskType: 'fulfill_brief',
+      model: 'm',
+      input: {},
+      assistantText: '',
+      submitToolHandle: handle,
+      emit: emit as never,
+    });
+
+    expect(result.error?.code).toBe('output_validation_failed');
+    expect(handle.getInvalidCallCount()).toBe(1);
   });
 
   it('falls back to parsing assistant text when no submit tool is registered', async () => {
@@ -2200,6 +2237,14 @@ describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
       { kind: 'text_delta', payload: { delta: 'Hello ' } },
       { kind: 'text_delta', payload: { delta: 'world' } },
     ]);
+  });
+
+  it('tracks a length stop from the final assistant turn', () => {
+    const { deps, state } = makeDeps();
+    const handler = makeSessionEventHandler(deps);
+    handler(turnEnd('end_turn'));
+    handler(turnEnd('length'));
+    expect(state.lastStopReason).toBe('length');
   });
 
   it('bridges tool-execution events to the reporter, including the error branch', () => {
@@ -2566,6 +2611,64 @@ describe('promptUntilSubmitted (submit-missing same-session recovery)', () => {
 
     expect(result).toEqual({ runError: null, submitReprompts: 0 });
     expect(prompts).toEqual(['do the task']);
+  });
+
+  it('reports an output limit immediately instead of nudging an incomplete turn', async () => {
+    const prompts: string[] = [];
+    const result = await promptUntilSubmitted({
+      runPrompt: async (text) => {
+        prompts.push(text);
+        return { runError: null };
+      },
+      initialPrompt: 'extract',
+      submitMissingPrompt: 'call submit_freeform_output now',
+      maxSubmitMissingReprompts: 3,
+      getSubmitState: () => ({
+        captured: false,
+        lastValidationFailure: null,
+      }),
+      getStopReason: () => 'length',
+      maxOutputTokens: 1024,
+      isStopped: () => false,
+    });
+
+    expect(result).toMatchObject({
+      runError: { code: 'model_output_length' },
+      submitReprompts: 0,
+    });
+    expect(result.runError?.message).toContain('maxTokens=1024');
+    expect(result.runError?.message).toContain('0 submit reprompt(s)');
+    expect(result.runError?.message).toContain('Raise maxTokens');
+    expect(prompts).toEqual(['extract']);
+  });
+
+  it('keeps a valid submission when a final turn reports length', async () => {
+    const result = await promptUntilSubmitted({
+      runPrompt: async () => ({ runError: null }),
+      initialPrompt: 'extract',
+      submitMissingPrompt: 'call submit now',
+      maxSubmitMissingReprompts: 3,
+      getSubmitState: () => ({
+        captured: true,
+        lastValidationFailure: null,
+      }),
+      getStopReason: () => 'length',
+      isStopped: () => false,
+    });
+    expect(result).toEqual({ runError: null, submitReprompts: 0 });
+  });
+
+  it('leaves a legacy task with no submit tool to its parser path', async () => {
+    const result = await promptUntilSubmitted({
+      runPrompt: async () => ({ runError: null }),
+      initialPrompt: 'extract',
+      submitMissingPrompt: '',
+      maxSubmitMissingReprompts: 0,
+      getSubmitState: () => null,
+      getStopReason: () => 'length',
+      isStopped: () => false,
+    });
+    expect(result).toEqual({ runError: null, submitReprompts: 0 });
   });
 
   it('re-prompts with validation feedback and captures in the same session', async () => {

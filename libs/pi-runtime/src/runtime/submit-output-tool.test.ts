@@ -1,3 +1,4 @@
+import { makeStrictJsonSchema } from '@earendil-works/pi-ai/api/constrained-sampling';
 import { metrics } from '@opentelemetry/api';
 import {
   AggregationTemporality,
@@ -6,6 +7,7 @@ import {
   MetricReader,
 } from '@opentelemetry/sdk-metrics';
 import { BUILT_IN_TASK_TYPES } from '@themoltnet/agent-runtime';
+import type { TSchema } from 'typebox';
 import { Value } from 'typebox/value';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -22,8 +24,8 @@ import {
 /**
  * The tool is constructed via pi-coding-agent's `defineTool` — its
  * `execute` is reachable through the wrapped definition. The submit
- * transport schema exposes the real fields while remaining permissive enough
- * for malformed calls to reach strict in-handler validation.
+ * transport schema is the task contract; Pi validates arguments before
+ * execute, while the handler enforces task-specific cross-field rules.
  */
 function callExecute(handle: ReturnType<typeof createSubmitOutputTool>) {
   const tool = handle.tool as unknown as {
@@ -106,7 +108,7 @@ describe('createSubmitOutputTool', () => {
     expect(handle.toolName).toBe('submit_fulfill_brief_output');
   });
 
-  it('exposes the real pr_review fields while keeping top-level transport validation recoverable', () => {
+  it('advertises the task schema and requests constrained sampling', () => {
     const handle = createSubmitOutputTool('pr_review');
     const tool = handle.tool as unknown as {
       parameters: {
@@ -117,17 +119,24 @@ describe('createSubmitOutputTool', () => {
       };
       promptSnippet?: string;
       promptGuidelines?: string[];
+      constrainedSampling?: unknown;
     };
-    // Providers need the actual field contract, while omitted/wrapped fields
-    // must still reach execute() for recoverable validation feedback.
     expect(tool.parameters.type).toBe('object');
     expect(Object.keys(tool.parameters.properties ?? {})).toEqual([
       'scores',
       'composite',
       'verdict',
     ]);
-    expect(tool.parameters.required).toBeUndefined();
-    expect(tool.parameters.additionalProperties).toBeTruthy();
+    expect(tool.parameters.required).toEqual([
+      'scores',
+      'composite',
+      'verdict',
+    ]);
+    expect(tool.parameters.additionalProperties).toBe(false);
+    expect(tool.constrainedSampling).toEqual({
+      type: 'json_schema',
+      strict: 'prefer',
+    });
     expect(tool.promptSnippet).toContain('submit_pr_review_output');
     expect(tool.promptSnippet).toContain('Agent submission schema');
     expect(tool.promptSnippet).toContain('"scores"');
@@ -137,19 +146,165 @@ describe('createSubmitOutputTool', () => {
     expect(tool.promptGuidelines?.join('\n')).not.toContain('task prompt');
   });
 
-  it('shows the expected JSON type on non-string transport fields', () => {
+  it('distinguishes task schemas Pi can currently send in strict mode', () => {
+    const compatible = createSubmitOutputTool('fulfill_brief');
+    const openEnded = createSubmitOutputTool('freeform');
+
+    expect(() =>
+      makeStrictJsonSchema(compatible.tool.parameters as TSchema),
+    ).not.toThrow();
+    expect(() =>
+      makeStrictJsonSchema(openEnded.tool.parameters as TSchema),
+    ).toThrow('patternProperties schemas are unsupported');
+  });
+
+  it('prepares stringified values before Pi validates the tool call', () => {
     // Arrange
     const handle = createSubmitOutputTool('pr_review');
-    const properties = (
-      handle.tool as unknown as {
-        parameters: { properties: Record<string, { description?: string }> };
-      }
-    ).parameters.properties;
+    const tool = handle.tool as unknown as {
+      prepareArguments: (args: unknown) => unknown;
+    };
 
-    // Assert: without a type, some models send arrays and numbers as strings.
-    expect(properties.scores.description).toContain('JSON array');
-    expect(properties.composite.description).toContain('JSON number');
-    expect(properties.verdict.description).toBeUndefined();
+    // Assert
+    expect(
+      tool.prepareArguments({
+        scores: '[{"criterionId":"c1","score":1,"rationale":"ok"}]',
+        composite: '0.8',
+        verdict: 'approve',
+      }),
+    ).toEqual({
+      scores: [{ criterionId: 'c1', score: 1, rationale: 'ok' }],
+      composite: 0.8,
+      verdict: 'approve',
+    });
+  });
+
+  it('records arguments rejected before execute and exposes the validation failure', () => {
+    const handle = createSubmitOutputTool('fulfill_brief');
+
+    expect(() =>
+      handle.tool.prepareArguments?.({
+        ...validFulfillBriefOutput,
+        summary: undefined,
+      }),
+    ).toThrow('Output failed validation (invalid call 1)');
+    expect(handle.getInvalidCallCount()).toBe(1);
+    expect(handle.getLastValidationFailure()).toMatchObject({
+      code: 'output_validation_failed',
+      message: expect.stringContaining('summary'),
+    });
+    expect(handle.getCaptured()).toBeNull();
+  });
+
+  it('reports repairs on the accepted call and none on an untouched submission', async () => {
+    const repaired = createSubmitOutputTool('fulfill_brief');
+    const prepared = repaired.tool.prepareArguments?.({
+      output: { ...validFulfillBriefOutput, commits: '[]' },
+    });
+    await callExecute(repaired)(prepared);
+    expect(repaired.getCapturedRepairKinds()).toEqual(
+      expect.arrayContaining(['output_envelope', 'json_string_fields']),
+    );
+
+    const untouched = createSubmitOutputTool('fulfill_brief');
+    await callExecute(untouched)(
+      untouched.tool.prepareArguments?.(validFulfillBriefOutput),
+    );
+    expect(untouched.getCapturedRepairKinds()).toEqual([]);
+  });
+
+  it('omits Pi strict-mode null placeholders for optional fields', () => {
+    const handle = createSubmitOutputTool('freeform');
+    const prepared = handle.tool.prepareArguments?.({
+      summary: 'done',
+      branch: null,
+      artifacts: [
+        {
+          kind: 'file',
+          title: 'notes',
+          description: null,
+          url: null,
+          path: '/tmp/notes',
+        },
+      ],
+      proposedTaskType: null,
+      diaryEntryIds: null,
+      verification: null,
+    });
+
+    expect(prepared).toEqual({
+      summary: 'done',
+      artifacts: [{ kind: 'file', title: 'notes', path: '/tmp/notes' }],
+    });
+    expect(Value.Check(handle.tool.parameters, prepared)).toBe(true);
+
+    const fulfill = createSubmitOutputTool('fulfill_brief');
+    const nullable = fulfill.tool.prepareArguments?.(validFulfillBriefOutput);
+    expect(nullable).toMatchObject({ pullRequestUrl: null });
+  });
+
+  it('captures strict null placeholders with submit-only gate verification', async () => {
+    const handle = createSubmitOutputTool('freeform', {
+      input: submitOutputOnlyFreeformInput,
+      inputCid: 'bafy-input',
+    });
+    const prepared = handle.tool.prepareArguments?.({
+      summary: 'done',
+      branch: null,
+      artifacts: null,
+      proposedTaskType: null,
+      diaryEntryIds: null,
+      verification: null,
+    });
+
+    const result = await callExecute(handle)(prepared);
+
+    expect(result.isError).toBeFalsy();
+    expect(handle.getCaptured()).toMatchObject({
+      summary: 'done',
+      verification: {
+        inputCid: 'bafy-input',
+        passed: true,
+        results: [expect.objectContaining({ id: 'submit-output' })],
+      },
+    });
+    expect(handle.getCaptured()).not.toHaveProperty('branch');
+    expect(handle.getCapturedRepairKinds()).toEqual(
+      expect.arrayContaining([
+        'submit_gate_verification',
+        'pi_schema_coercion',
+      ]),
+    );
+  });
+
+  it('ignores an invalid duplicate after capture without changing failure state', async () => {
+    const handle = createSubmitOutputTool('fulfill_brief');
+    const execute = callExecute(handle);
+    await execute(handle.tool.prepareArguments?.(validFulfillBriefOutput));
+
+    const duplicate = handle.tool.prepareArguments?.({ branch: 123 });
+    const result = await execute(duplicate);
+
+    expect(result.terminate).toBe(true);
+    expect(result.content[0]?.text).toContain('already captured');
+    expect(handle.getCaptured()).toEqual(validFulfillBriefOutput);
+    expect(handle.getCallCount()).toBe(1);
+    expect(handle.getInvalidCallCount()).toBe(0);
+    expect(handle.getLastValidationFailure()).toBeNull();
+  });
+
+  it('counts multiple Pi-side schema rejections before a valid capture', async () => {
+    const handle = createSubmitOutputTool('fulfill_brief');
+    expect(() => handle.tool.prepareArguments?.({ branch: 'a' })).toThrow();
+    expect(() => handle.tool.prepareArguments?.({ branch: 'b' })).toThrow();
+
+    await callExecute(handle)(
+      handle.tool.prepareArguments?.(validFulfillBriefOutput),
+    );
+
+    expect(handle.getInvalidCallCount()).toBe(2);
+    expect(handle.getCallCount()).toBe(1);
+    expect(handle.getCaptured()).toEqual(validFulfillBriefOutput);
   });
 
   it('decodes array and number fields sent as JSON strings', async () => {
@@ -220,8 +375,9 @@ describe('createSubmitOutputTool', () => {
         passed: true,
       },
     };
-    expect(Value.Check(handle.tool.parameters, malformed)).toBe(true);
-    const result = await callExecute(handle)(malformed);
+    const prepared = handle.tool.prepareArguments?.(malformed);
+    expect(Value.Check(handle.tool.parameters, prepared)).toBe(true);
+    const result = await callExecute(handle)(prepared);
     expect(result.isError).toBeFalsy();
     expect(handle.getCaptured()?.verification).toEqual({
       inputCid: 'bafy-input',
@@ -256,7 +412,7 @@ describe('createSubmitOutputTool', () => {
   it('returns a tool error WITHOUT terminate:true on schema-invalid args', async () => {
     const handle = createSubmitOutputTool('fulfill_brief');
     const result = await callExecute(handle)({
-      branch: 123, // wrong type — schema requires string
+      branch: {}, // cannot be coerced to the required string
       commits: [],
       pullRequestUrl: null,
       diaryEntryIds: [],

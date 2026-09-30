@@ -41,8 +41,15 @@ function parseModelArgs(
   modelInputs: string[] | undefined,
   modelReasoning: string[] | undefined,
   modelThinkingMaps: string[] | undefined,
+  modelStrictModes: string[] | undefined,
 ): ProviderModelEntry[] | undefined {
-  if (!models && !modelInputs && !modelReasoning && !modelThinkingMaps)
+  if (
+    !models &&
+    !modelInputs &&
+    !modelReasoning &&
+    !modelThinkingMaps &&
+    !modelStrictModes
+  )
     return undefined;
   const entries = new Map<string, ProviderModelEntry>();
   for (const id of models ?? []) entries.set(id, { id });
@@ -114,6 +121,22 @@ function parseModelArgs(
       id,
       reasoning: true,
       thinkingLevelMap: map,
+    });
+  }
+  for (const raw of modelStrictModes ?? []) {
+    const separator = raw.lastIndexOf('=');
+    const id = raw.slice(0, separator);
+    const mode = raw.slice(separator + 1);
+    if (separator <= 0 || !['true', 'false', 'default'].includes(mode)) {
+      throw new ProviderCliError(
+        'invalid_arguments',
+        `--model-strict-mode expects <model-id>=true|false|default, received "${raw}"`,
+      );
+    }
+    entries.set(id, {
+      ...entries.get(id),
+      id,
+      supportsStrictMode: mode === 'default' ? undefined : mode === 'true',
     });
   }
   return [...entries.values()];
@@ -251,6 +274,7 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
           'model-input': { type: 'string', multiple: true },
           'model-reasoning': { type: 'string', multiple: true },
           'model-thinking-map': { type: 'string', multiple: true },
+          'model-strict-mode': { type: 'string', multiple: true },
           'clear-models': { type: 'boolean' },
           'api-key-stdin': { type: 'boolean' },
           'clear-api-key': { type: 'boolean' },
@@ -272,12 +296,14 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
         );
       }
       if (
-        (values['model-reasoning'] || values['model-thinking-map']) &&
+        (values['model-reasoning'] ||
+          values['model-thinking-map'] ||
+          values['model-strict-mode']) &&
         values['clear-models']
       ) {
         throw new ProviderCliError(
           'invalid_arguments',
-          '--model-reasoning and --model-thinking-map cannot be used with --clear-models',
+          '--model-reasoning, --model-thinking-map, and --model-strict-mode cannot be used with --clear-models',
         );
       }
       if (values['api-key-stdin'] && values['clear-api-key']) {
@@ -299,7 +325,12 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
               values['model-input'],
               values['model-reasoning'],
               values['model-thinking-map'],
+              values['model-strict-mode'],
             ),
+        patchModels: !values.model && !values['clear-models'],
+        strictModeIds: (values['model-strict-mode'] ?? []).map((raw) =>
+          raw.slice(0, raw.lastIndexOf('=')),
+        ),
         apiKeyStdin: values['api-key-stdin'] ?? false,
         clearApiKey: values['clear-api-key'] ?? false,
       };
@@ -481,6 +512,8 @@ async function setProvider(
     baseUrl?: string;
     api?: string;
     models?: ProviderModelEntry[];
+    patchModels?: boolean;
+    strictModeIds?: string[];
   },
 ): Promise<number> {
   let apiKey: string | undefined;
@@ -499,12 +532,20 @@ async function setProvider(
       );
     }
   }
+  const models =
+    parsed.models && parsed.patchModels
+      ? mergeModelEntries(
+          context.configuration.list()[parsed.providerId]?.models ?? [],
+          parsed.models,
+          parsed.strictModeIds ?? [],
+        )
+      : parsed.models;
   const provider = await context.configuration.set(
     parsed.providerId,
     {
       ...(parsed.baseUrl ? { baseUrl: parsed.baseUrl } : {}),
       ...(parsed.api ? { api: parsed.api } : {}),
-      ...(parsed.models ? { models: parsed.models } : {}),
+      ...(models ? { models } : {}),
       ...(apiKey ? { apiKey } : {}),
       ...(parsed.clearApiKey ? { clearApiKey: true } : {}),
     },
@@ -512,6 +553,26 @@ async function setProvider(
   );
   context.stdout(JSON.stringify({ id: parsed.providerId, ...provider }));
   return 0;
+}
+
+function mergeModelEntries(
+  existing: ProviderModelEntry[],
+  updates: ProviderModelEntry[],
+  strictModeIds: string[],
+): ProviderModelEntry[] {
+  const entries = new Map(existing.map((model) => [model.id, model]));
+  for (const id of strictModeIds) {
+    if (!entries.has(id)) {
+      throw new ProviderCliError(
+        'invalid_arguments',
+        `--model-strict-mode requires an existing model "${id}"; declare it with --model or --model-input first`,
+      );
+    }
+  }
+  for (const update of updates) {
+    entries.set(update.id, { ...entries.get(update.id), ...update });
+  }
+  return [...entries.values()];
 }
 
 async function discoverProvider(

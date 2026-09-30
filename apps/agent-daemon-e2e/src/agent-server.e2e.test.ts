@@ -44,6 +44,7 @@ import {
 import { enrollTeam, FileSecretProvider } from '@themoltnet/sdk/node';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { startHttpStub } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const NATIVE_ORIGIN = 'moltnet-agent-desktop://native';
@@ -103,24 +104,17 @@ function startJsonStub(
   routes: Record<string, unknown>,
   onRequest?: (request: IncomingMessage) => void,
 ): Promise<{ server: Server; url: string }> {
-  return new Promise((resolveStub) => {
-    const server = createServer((request, response) => {
-      onRequest?.(request);
-      const path = new URL(request.url ?? '/', 'http://stub').pathname;
-      const payload = routes[path];
-      if (payload === undefined) {
-        response.writeHead(404).end();
-        return;
-      }
-      response
-        .writeHead(200, { 'content-type': 'application/json' })
-        .end(JSON.stringify(payload));
-    });
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address();
-      const port = typeof address === 'object' && address ? address.port : 0;
-      resolveStub({ server, url: `http://127.0.0.1:${port}` });
-    });
+  return startHttpStub((request, response) => {
+    onRequest?.(request);
+    const path = new URL(request.url ?? '/', 'http://stub').pathname;
+    const payload = routes[path];
+    if (payload === undefined) {
+      response.writeHead(404).end();
+      return;
+    }
+    response
+      .writeHead(200, { 'content-type': 'application/json' })
+      .end(JSON.stringify(payload));
   });
 }
 
