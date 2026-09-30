@@ -1,7 +1,7 @@
 # Complexity review
 
-This app owns the LeGreffier PR complexity review. The GitHub workflow pins a PR's
-base and head, then runs trusted code from the base revision. The app reads the
+This library owns the LeGreffier PR complexity review. The reusable GitHub workflow pins a PR's
+base and head, then runs trusted code from the base revision. The library reads the
 immutable diff and runs three stages: a change-map task groups every changed
 file by domain, focused domain tasks review the full patches in parallel, and
 a synthesis task scores the binary rubric. Trusted code validates file coverage,
@@ -46,7 +46,7 @@ runtime asset is applied.
 For a read-only local ingestion trial, the command prints the change-map task:
 
 ```bash
-node --import tsx apps/complexity-review/src/main.ts \
+node --import tsx libs/complexity-review/src/main.ts \
   --repo getlarge/themoltnet --pr 2545 \
   --base <base-oid> --head <head-oid> --dry-run
 ```
@@ -55,7 +55,7 @@ For a model trial, start two MoltNet daemon workers with profile
 `legreffier-complexity-review-v2` and task type `freeform`, then add
 `--team`, `--diary`, `--profile`, and `--correlation` to the command above.
 Use the installed `moltnet-agent` binary for each worker and pass the same
-correlation ID to both workers and the app:
+correlation ID to both workers and the library:
 
 ```bash
 moltnet-agent drain --agent legreffier --team "$TEAM" \
@@ -64,7 +64,7 @@ moltnet-agent drain --agent legreffier --team "$TEAM" \
   --wait-for-first-task-sec 300 --wait-after-task-sec 30
 ```
 
-The trusted app accepts stage JSON in the freeform summary or one note artifact
+The trusted library accepts stage JSON in the freeform summary or one note artifact
 body, then validates the map, assigned paths, and final rubric score.
 The app prints `{ taskId, taskIds, output, durationMs, stageDurationsMs,
 base, head, pr }` as JSON.

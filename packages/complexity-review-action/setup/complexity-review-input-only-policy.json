@@ -1,0 +1,6 @@
+{
+  "description": "No inspection or shell tools; the complexity task carries pinned evidence in its prompt.",
+  "name": "legreffier-complexity-review-input-only-v1",
+  "shellCommands": [],
+  "tools": []
+}

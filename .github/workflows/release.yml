@@ -30,7 +30,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, agent-daemon-action, docs-impact-review-action, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, legreffier-plugin, cli, api-client, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, n8n-nodes-moltnet, node-red-theme, agent-daemon, agent-desktop, console, database, mcp-host, mcp-server, rest-api, otel-custom-collector
+          Valid values: sdk, agent-daemon-action, docs-impact-review-action, complexity-review-action, os-keyring, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, signer, github-agent, legreffier, legreffier-plugin, cli, api-client, design-system, pi-extension, sandbox-gondolin, pi-runtime, shell-command-analyzer, agent-runtime, n8n-nodes-moltnet, node-red-theme, agent-daemon, agent-desktop, console, database, mcp-host, mcp-server, rest-api, otel-custom-collector
         required: false
         type: string
 
@@ -72,6 +72,8 @@ jobs:
       agent-daemon-action-tag-name: ${{ steps.release.outputs['packages/agent-daemon-action--tag_name'] }}
       docs-impact-review-action-release-created: ${{ steps.release.outputs['packages/docs-impact-review-action--release_created'] }}
       docs-impact-review-action-tag-name: ${{ steps.release.outputs['packages/docs-impact-review-action--tag_name'] }}
+      complexity-review-action-release-created: ${{ steps.release.outputs['packages/complexity-review-action--release_created'] }}
+      complexity-review-action-tag-name: ${{ steps.release.outputs['packages/complexity-review-action--tag_name'] }}
       tasks-orchestrator-release-created: ${{ steps.release.outputs['libs/tasks-orchestrator--release_created'] }}
       tasks-orchestrator-tag-name: ${{ steps.release.outputs['libs/tasks-orchestrator--tag_name'] }}
       credentials-release-created: ${{ steps.release.outputs['libs/credentials--release_created'] }}
@@ -356,6 +358,8 @@ jobs:
           RP_AGENT_DAEMON_ACTION_TAG: ${{ needs.release-please.outputs.agent-daemon-action-tag-name }}
           RP_DOCS_IMPACT_REVIEW_ACTION_CREATED: ${{ needs.release-please.outputs.docs-impact-review-action-release-created }}
           RP_DOCS_IMPACT_REVIEW_ACTION_TAG: ${{ needs.release-please.outputs.docs-impact-review-action-tag-name }}
+          RP_COMPLEXITY_REVIEW_ACTION_CREATED: ${{ needs.release-please.outputs.complexity-review-action-release-created }}
+          RP_COMPLEXITY_REVIEW_ACTION_TAG: ${{ needs.release-please.outputs.complexity-review-action-tag-name }}
           RP_TASKS_ORCHESTRATOR_CREATED: ${{ needs.release-please.outputs.tasks-orchestrator-release-created }}
           RP_TASKS_ORCHESTRATOR_TAG: ${{ needs.release-please.outputs.tasks-orchestrator-tag-name }}
           RP_CREDENTIALS_CREATED: ${{ needs.release-please.outputs.credentials-release-created }}
@@ -495,10 +499,11 @@ jobs:
           resolve "os-keyring"   "$RP_OS_KEYRING_CREATED" "$RP_OS_KEYRING_TAG" "os-keyring"
           resolve "agent-daemon-action" "$RP_AGENT_DAEMON_ACTION_CREATED" "$RP_AGENT_DAEMON_ACTION_TAG" "agent-daemon-action"
           resolve "docs-impact-review-action" "$RP_DOCS_IMPACT_REVIEW_ACTION_CREATED" "$RP_DOCS_IMPACT_REVIEW_ACTION_TAG" "docs-impact-review-action"
+          resolve "complexity-review-action" "$RP_COMPLEXITY_REVIEW_ACTION_CREATED" "$RP_COMPLEXITY_REVIEW_ACTION_TAG" "complexity-review-action"
 
           # GitHub Actions share one publish job; list the ones to release.
           actions_matrix='[]'
-          for action in agent-daemon-action docs-impact-review-action; do
+          for action in agent-daemon-action docs-impact-review-action complexity-review-action; do
             if grep -qx "${action}=true" "$GITHUB_OUTPUT"; then
               tag="$(grep "^${action}-tag=" "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
               actions_matrix="$(jq -c --arg project "@themoltnet/${action}" --arg tag "$tag" '. + [{project: $project, tag: $tag}]' <<< "$actions_matrix")"

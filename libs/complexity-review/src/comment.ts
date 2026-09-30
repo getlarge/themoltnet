@@ -293,7 +293,7 @@ export async function updateComplexityReviewComment(args: {
   return 'published';
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const { values } = parseArgs({
     options: {
       mode: { type: 'string' },

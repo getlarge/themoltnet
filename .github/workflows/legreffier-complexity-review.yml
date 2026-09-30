@@ -1,216 +1,47 @@
 name: LeGreffier Complexity Review
-
 on:
+  pull_request:
+    types: [opened, ready_for_review, synchronize, reopened]
   issue_comment:
     types: [created]
-  pull_request:
-    types: [ready_for_review, synchronize]
-
 permissions: {}
-
-# Every comment on the pull request starts a run, and runs whose jobs all
-# skip still join the concurrency group. Only a comment that would start a
-# review (this workflow's command, from an owner, member, or collaborator, not
-# a bot) shares the pull request's group; any other comment gets a group of
-# its own, so it cannot cancel a review in progress.
+# Only eligible comments share the PR review group; unrelated comments cannot
+# cancel an active review. Keep the predicate in sync with jobs.review.if.
 concurrency:
-  group: legreffier-complexity-review-${{ github.event.pull_request.number || github.event.issue.number }}-${{ (github.event_name == 'issue_comment' && !(contains(github.event.comment.body, '@legreffier /complexity-review') && !endsWith(github.event.comment.user.login, '[bot]') && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))) && github.run_id || 'review' }}
+  group: >-
+    legreffier-complexity-review-${{ github.event.pull_request.number || github.event.issue.number }}-${{
+    (github.event_name == 'issue_comment' &&
+    !(contains(github.event.comment.body, '@legreffier /complexity-review') &&
+    !endsWith(github.event.comment.user.login, '[bot]') &&
+    contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)))
+    && github.run_id || 'review' }}
   cancel-in-progress: true
-
 jobs:
-  prepare:
+  review:
     if: |
       vars.MOLTNET_COMPLEXITY_REVIEW_ENABLED == 'true' &&
-      ((github.event_name == 'issue_comment' &&
-          github.event.issue.pull_request != null &&
-          contains(github.event.comment.body, '@legreffier /complexity-review') &&
-          !endsWith(github.event.comment.user.login, '[bot]') &&
-          (github.event.comment.author_association == 'OWNER' ||
-            github.event.comment.author_association == 'MEMBER' ||
-            github.event.comment.author_association == 'COLLABORATOR')) ||
-        (github.event_name == 'pull_request' && github.event.pull_request.draft == false))
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      pull-requests: read
-      contents: read
-    outputs:
-      skip: ${{ steps.facts.outputs.skip }}
-      pr: ${{ steps.facts.outputs.pr }}
-      base: ${{ steps.facts.outputs.base }}
-      head: ${{ steps.facts.outputs.head }}
-      correlation: ${{ steps.facts.outputs.correlation }}
-    steps:
-      - name: Pin revisions and guard trusted runtime
-        id: facts
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const crypto = require('node:crypto');
-            const number = context.eventName === 'pull_request'
-              ? context.payload.pull_request.number : context.payload.issue.number;
-            const {data: pr} = await github.rest.pulls.get({
-              owner: context.repo.owner, repo: context.repo.repo, pull_number: number,
-            });
-            const files = await github.paginate(github.rest.pulls.listFiles, {
-              owner: context.repo.owner, repo: context.repo.repo, pull_number: number, per_page: 100,
-            });
-            const guarded = [
-              '.github/workflows/legreffier-complexity-review.yml',
-              'apps/complexity-review/',
-              '.github/runtime-profiles/legreffier-complexity-review-',
-              '.github/runtime-policies/legreffier-complexity-review-',
-              'packages/agent-daemon-action/',
-            ];
-            const matches = files.map(f => f.filename).filter(path =>
-              guarded.some(prefix => path.startsWith(prefix)));
-            const skip = pr.head.repo?.full_name !== `${context.repo.owner}/${context.repo.repo}` ||
-              pr.user.login === 'dependabot[bot]' || matches.length > 0;
-            core.setOutput('skip', String(skip));
-            if (skip) core.notice(`Complexity review skipped: ${matches.join(', ') || 'fork or Dependabot'}`);
-            const seed = `${context.repo.owner}/${context.repo.repo}:${number}:${pr.head.sha}:${context.runId}:${context.runAttempt}`;
-            const bytes = crypto.createHash('sha256').update(seed).digest().subarray(0, 16);
-            bytes[6] = (bytes[6] & 0x0f) | 0x50;
-            bytes[8] = (bytes[8] & 0x3f) | 0x80;
-            const hex = bytes.toString('hex');
-            core.setOutput('pr', String(number));
-            core.setOutput('base', pr.base.sha);
-            core.setOutput('head', pr.head.sha);
-            core.setOutput('correlation', `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`);
-
-  review:
-    needs: prepare
-    if: needs.prepare.outputs.skip == 'false'
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    environment: legreffier
+      ((github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
+       (github.event_name == 'issue_comment' && github.event.issue.pull_request != null &&
+        contains(github.event.comment.body, '@legreffier /complexity-review') &&
+        !endsWith(github.event.comment.user.login, '[bot]') &&
+        (github.event.comment.author_association == 'OWNER' ||
+         github.event.comment.author_association == 'MEMBER' ||
+         github.event.comment.author_association == 'COLLABORATOR')))
+    uses: getlarge/themoltnet/.github/workflows/complexity-review-reusable.yml@main
     permissions:
       contents: read
-      pull-requests: read
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
-      MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
-      MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
-      MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
-      MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
-      PR_NUMBER: ${{ needs.prepare.outputs.pr }}
-      BASE_SHA: ${{ needs.prepare.outputs.base }}
-      HEAD_SHA: ${{ needs.prepare.outputs.head }}
-      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ needs.prepare.outputs.base }}
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Mint the LeGreffier App token
-        id: app-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        with:
-          app-id: ${{ vars.MOLTNET_GITHUB_APP_ID }}
-          private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
-          repositories: ${{ github.event.repository.name }}
-          permission-pull-requests: write
-      - name: Mark review in progress
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-          COMMENT_AUTHOR: ${{ steps.app-token.outputs.app-slug }}[bot]
-        run: |
-          node --import tsx apps/complexity-review/src/comment.ts \
-            --mode start --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" \
-            --revision "$HEAD_SHA" --run-url "$RUN_URL" --author "$COMMENT_AUTHOR"
-      - name: Review complexity
-        id: review
-        continue-on-error: true
-        env:
-          CORRELATION: ${{ needs.prepare.outputs.correlation }}
-        run: |
-          report="$RUNNER_TEMP/complexity-review.json"
-          echo "report=$report" >> "$GITHUB_OUTPUT"
-          node --import tsx apps/complexity-review/src/main.ts \
-            --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" \
-            --base "$BASE_SHA" --head "$HEAD_SHA" \
-            --team "$MOLTNET_TEAM_ID" --diary "$MOLTNET_DIARY_ID" \
-            --profile legreffier-complexity-review-v2 \
-            --correlation "$CORRELATION" > "$report"
-      - name: Publish revision-aware comment
-        if: always() && !cancelled() && steps.app-token.outcome == 'success'
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-          COMMENT_AUTHOR: ${{ steps.app-token.outputs.app-slug }}[bot]
-          REPORT: ${{ steps.review.outputs.report }}
-          REVIEW_OUTCOME: ${{ steps.review.outcome }}
-        run: |
-          args=(--mode publish --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" \
-            --revision "$HEAD_SHA" --run-url "$RUN_URL" --author "$COMMENT_AUTHOR")
-          if [ "$REVIEW_OUTCOME" = success ] && [ -s "$REPORT" ]; then
-            args+=(--review-succeeded --result-path "$REPORT")
-            args+=(--task-id "$(jq -r .taskId "$REPORT")")
-          fi
-          node --import tsx apps/complexity-review/src/comment.ts "${args[@]}"
-      - name: Record review duration
-        if: steps.review.outcome == 'success'
-        env:
-          REPORT: ${{ steps.review.outputs.report }}
-        run: |
-          jq -r '"Complexity review: \(.durationMs / 1000) seconds across \(.taskIds | length) tasks (map \(.stageDurationsMs.map / 1000)s, domains \(.stageDurationsMs.domains / 1000)s, synthesis \(.stageDurationsMs.synthesis / 1000)s)."' "$REPORT" >> "$GITHUB_STEP_SUMMARY"
-      - name: Fail when review did not complete
-        if: always() && !cancelled() && steps.review.outcome != 'success'
-        run: exit 1
-
-  worker:
-    needs: prepare
-    if: needs.prepare.outputs.skip == 'false'
-    continue-on-error: true
-    strategy:
-      fail-fast: false
-      matrix:
-        slot: [1, 2]
-    runs-on: ubuntu-latest
-    timeout-minutes: 27
-    environment: legreffier
-    permissions:
-      contents: read
-    env:
-      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
-      MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
-      MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
-      MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
-      MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
-      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ needs.prepare.outputs.base }}
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Fetch reviewed head as inert git data
-        env:
-          HEAD_SHA: ${{ needs.prepare.outputs.head }}
-        run: git fetch --no-tags origin "$HEAD_SHA"
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Drain this review's task
-        uses: ./packages/agent-daemon-action
-        with:
-          agent-name: ${{ vars.MOLTNET_AGENT_NAME }}
-          mode: drain
-          task-types: freeform
-          correlation-id: ${{ needs.prepare.outputs.correlation }}
-          wait-for-first-task-sec: '300'
-          wait-after-task-sec: '120'
-          max-poll-interval-ms: '3000'
-          profile: legreffier-complexity-review-v2
-          daemon-version: workspace
+      pull-requests: write
+    secrets: inherit
+    with:
+      environment: legreffier
+      profile: legreffier-complexity-review-v2
+      runtime-ref: ${{ github.event.pull_request.base.ref == github.event.repository.default_branch && github.event.pull_request.base.sha || github.event.repository.default_branch }}
+      protected-paths: |
+        .github/workflows/legreffier-complexity-review.yml
+        .github/workflows/complexity-review-reusable.yml
+        .github/complexity-review.json
+        .github/runtime-profiles/legreffier-complexity-review-
+        .github/runtime-policies/legreffier-complexity-review-
+        libs/complexity-review/
+        packages/complexity-review-action/
+        packages/agent-daemon-action/

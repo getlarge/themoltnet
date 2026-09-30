@@ -233,6 +233,11 @@
       "skip-github-release": true,
       "versioning": "always-bump-minor"
     },
+    "packages/complexity-review-action": {
+      "bump-minor-pre-major": true,
+      "component": "complexity-review-action",
+      "release-type": "node"
+    },
     "packages/docs-impact-review-action": {
       "bump-minor-pre-major": true,
       "component": "docs-impact-review-action",

@@ -4,15 +4,25 @@
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
-  "description": "Bounded PR complexity review workflow",
-  "bin": {
-    "moltnet-complexity-review": "./dist/main.js"
+  "description": "Bounded PR complexity review with staged MoltNet tasks",
+  "exports": {
+    "./main": {
+      "import": "./src/main.ts",
+      "types": "./src/main.ts"
+    },
+    "./comment": {
+      "import": "./src/comment.ts",
+      "types": "./src/comment.ts"
+    },
+    "./prepare": {
+      "import": "./src/prepare.ts",
+      "types": "./src/prepare.ts"
+    }
   },
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "build": "vite build",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint ."
   },
@@ -28,15 +38,14 @@
     "@types/node": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:",
     "vitest": "catalog:"
   },
   "nx": {
-    "projectType": "application",
+    "projectType": "library",
     "tags": [
-      "type:app",
+      "type:feature",
       "scope:agent",
-      "platform:cli"
+      "platform:server"
     ]
   }
 }

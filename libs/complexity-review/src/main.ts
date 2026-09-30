@@ -42,7 +42,7 @@ function ghPr(repo: string, pr: number) {
   };
 }
 
-async function main() {
+export async function main() {
   const { values } = parseArgs({
     options: {
       repo: { type: 'string' },
@@ -126,9 +126,13 @@ async function main() {
   );
 }
 
-main().catch((error: unknown) => {
-  process.stderr.write(
-    `[fatal] ${error instanceof Error ? error.message : String(error)}\n`,
-  );
-  process.exitCode = 1;
-});
+if (
+  process.argv[1] &&
+  import.meta.url === new URL(`file://${process.argv[1]}`).href
+)
+  main().catch((error: unknown) => {
+    process.stderr.write(
+      `[fatal] ${error instanceof Error ? error.message : String(error)}\n`,
+    );
+    process.exitCode = 1;
+  });
