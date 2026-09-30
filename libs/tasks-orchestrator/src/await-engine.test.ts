@@ -40,6 +40,7 @@ describe('waitForTaskOutcome (terminal, via FakeTasks)', () => {
     expect(outcome.kind).toBe('accepted');
     if (outcome.kind === 'accepted') {
       expect(outcome.result.state).toEqual({ phase: 'done' });
+      expect(outcome.attempts).toHaveLength(1);
     }
   });
 
@@ -55,6 +56,7 @@ describe('waitForTaskOutcome (terminal, via FakeTasks)', () => {
     expect(outcome.kind).toBe('invalid_output');
     if (outcome.kind === 'invalid_output') {
       expect(outcome.reason).toMatch(/missing phase/);
+      expect(outcome.attempts).toHaveLength(1);
     }
   });
 

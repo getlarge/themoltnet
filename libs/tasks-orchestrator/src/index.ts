@@ -25,6 +25,19 @@ export {
   type ParallelTasksArgs,
   type ParallelTasksResult,
 } from './parallel.js';
+export type {
+  FrozenTaskRequest,
+  RecoverableTaskOutcome,
+  RecoveryCandidate,
+  RecoveryChainElement,
+  RecoveryDecisionRecord,
+  RecoveryFailureSummary,
+  RecoveryGate,
+  RecoveryGateDecision,
+  RecoveryGateInput,
+  WaitForRecoverableTaskOptions,
+} from './recoverable-task.js';
+export { waitForRecoverableTask } from './recoverable-task.js';
 export { createSdkTaskClient } from './sdk-task-client.js';
 export { createTaskStep, type TaskCreateStepMetadata } from './task-step.js';
 export type {

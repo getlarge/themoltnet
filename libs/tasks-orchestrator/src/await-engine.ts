@@ -129,6 +129,7 @@ export async function waitForTaskOutcome<TState>(
         return {
           kind: 'accepted',
           result: { task, attempt, state: parse(attempt.output) },
+          attempts,
         };
       } catch (error) {
         const reason =
@@ -144,7 +145,7 @@ export async function waitForTaskOutcome<TState>(
           },
           `${prefix}.task.wait.invalid_output`,
         );
-        return { kind: 'invalid_output', task, attempt, reason };
+        return { kind: 'invalid_output', task, attempt, attempts, reason };
       }
     }
     await waitForSignalOrSleep({

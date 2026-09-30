@@ -1,43 +1,15 @@
 import { waitForTaskOutcome } from './await-engine.js';
 import { createTaskStep } from './task-step.js';
+import {
+  addAttemptUsage,
+  attemptsForOutcome,
+  emptyUsage,
+} from './task-usage.js';
 import type {
-  CumulativeTaskUsage,
   SdkTask,
-  SdkTaskAttempt,
-  TaskOutcome,
   ValidatedTaskOutcome,
   WaitForValidatedTaskOptions,
 } from './types.js';
-
-const emptyUsage = (): CumulativeTaskUsage => ({
-  inputTokens: 0,
-  outputTokens: 0,
-  cacheReadTokens: 0,
-  cacheWriteTokens: 0,
-  toolCalls: 0,
-});
-
-function outcomeAttempts<TState>(
-  outcome: TaskOutcome<TState>,
-): SdkTaskAttempt[] {
-  if (outcome.kind === 'accepted') return [outcome.result.attempt];
-  if (outcome.kind === 'invalid_output') return [outcome.attempt];
-  return outcome.attempts;
-}
-
-function addOutcomeUsage<TState>(
-  usage: CumulativeTaskUsage,
-  outcome: TaskOutcome<TState>,
-): void {
-  for (const attempt of outcomeAttempts(outcome)) {
-    if (!attempt.usage) continue;
-    usage.inputTokens += attempt.usage.inputTokens;
-    usage.outputTokens += attempt.usage.outputTokens;
-    usage.cacheReadTokens += attempt.usage.cacheReadTokens ?? 0;
-    usage.cacheWriteTokens += attempt.usage.cacheWriteTokens ?? 0;
-    usage.toolCalls += attempt.usage.toolCalls ?? 0;
-  }
-}
 
 /**
  * Await a task and repair accepted-but-domain-invalid output through bounded,
@@ -60,7 +32,7 @@ export async function waitForValidatedTask<TState>(
   for (;;) {
     const outcome = await waitForTaskOutcome(currentTask.id, options);
     chain.push({ repairN, outcome });
-    addOutcomeUsage(cumulativeUsage, outcome);
+    addAttemptUsage(cumulativeUsage, attemptsForOutcome(outcome));
 
     if (outcome.kind === 'accepted') {
       return {

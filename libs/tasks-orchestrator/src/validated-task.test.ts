@@ -61,14 +61,54 @@ describe('waitForValidatedTask', () => {
   it('returns direct success as repair zero', async () => {
     const tasks = new FakeTasks([{ phase: 'done' }]);
     const initial = await tasks.createTask(baseBody);
+    const listAttempts = vi.spyOn(tasks, 'listAttempts');
 
     const result = await waitForValidatedTask(initial, options(tasks));
 
     expect(result.kind).toBe('accepted');
     expect(result.chain.map((element) => element.repairN)).toEqual([0]);
+    expect(listAttempts).toHaveBeenCalledTimes(1);
     expect(result.cumulativeUsage).toEqual({
       inputTokens: 0,
       outputTokens: 0,
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      toolCalls: 0,
+    });
+  });
+
+  it('counts failed attempts before an accepted task attempt', async () => {
+    const tasks = new FakeTasks([{ phase: 'done' }]);
+    const initial = await tasks.createTask(baseBody);
+    const getTask = tasks.getTask.bind(tasks);
+    tasks.getTask = async (id) => ({
+      ...(await getTask(id)),
+      acceptedAttemptN: 2,
+    });
+    const listAttempts = tasks.listAttempts.bind(tasks);
+    tasks.listAttempts = async (id) => {
+      const [accepted] = await listAttempts(id);
+      return [
+        {
+          ...accepted,
+          attemptN: 1,
+          status: 'failed',
+          usage: { inputTokens: 4, outputTokens: 1, model: 'test' },
+        } as SdkTaskAttempt,
+        {
+          ...accepted,
+          attemptN: 2,
+          usage: { inputTokens: 5, outputTokens: 2, model: 'test' },
+        } as SdkTaskAttempt,
+      ];
+    };
+
+    const result = await waitForValidatedTask(initial, options(tasks));
+
+    expect(result.kind).toBe('accepted');
+    expect(result.cumulativeUsage).toEqual({
+      inputTokens: 9,
+      outputTokens: 3,
       cacheReadTokens: 0,
       cacheWriteTokens: 0,
       toolCalls: 0,

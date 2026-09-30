@@ -33,7 +33,7 @@ function expectPrivateDatabaseProxy(job: string, consumerName: string): void {
   const stopIndex = job.indexOf('- name: Stop private review database proxy');
 
   expect(setupIndex).toBeGreaterThanOrEqual(0);
-  expect(job).toContain('version: 0.4.39');
+  expect(job).toContain('version: 0.4.108');
   expect(startIndex).toBeGreaterThan(setupIndex);
   expect(consumerIndex).toBeGreaterThan(startIndex);
   expect(stopIndex).toBeGreaterThan(consumerIndex);
@@ -78,7 +78,7 @@ describe('multi-lens GitHub workflow', () => {
   it('installs a pinned uv action before provisioning the review database', () => {
     const job = workflowJob('runtime-preflight', 'orchestrate');
     const setupUvIndex = job.indexOf(
-      '- uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d',
+      '- uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7',
     );
     const provisionIndex = job.indexOf('- name: Provision Absurd schema');
 

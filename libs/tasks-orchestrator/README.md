@@ -169,6 +169,98 @@ const outcome = await waitForValidatedTask(initialTask, {
 freeform schema or prompt policy. Callback and transport failures propagate,
 and failed or cancelled tasks return `failed` without consuming repair budget.
 
+### Recovering a terminally failed stage
+
+`maxAttempts` retries execution on **one task ID** while its task-level budget
+remains. `waitForRecoverableTask` is an opt-in workflow decision made **after** a
+task becomes terminally failed: it creates a new task ID for the same frozen
+request. Its `maxReplacements` budget is independent of task attempts and
+`waitForValidatedTask`'s semantic-repair budget. A cancelled task is not
+restarted unless `recoverCancelled: true` is explicit.
+
+```ts
+import {
+  createTaskStep,
+  waitForRecoverableTask,
+} from '@themoltnet/tasks-orchestrator';
+
+// Keep this exact request in the workflow's durable input or a prior checkpoint.
+const frozenRequest = {
+  taskType: 'freeform' as const,
+  teamId,
+  diaryId,
+  correlationId,
+  input: { brief: 'Extract the document from the accepted source.' },
+  maxAttempts: 1,
+};
+const initialTask = await createTaskStep(
+  ctx,
+  'extract.2.create',
+  ({ idempotencyKey }) => tasks.createTask(frozenRequest, { idempotencyKey }),
+);
+
+const outcome = await waitForRecoverableTask(initialTask, {
+  tasks,
+  ctx,
+  pollIntervalSec: 5,
+  parse: parseExtraction,
+  frozenRequest,
+  maxReplacements: 1,
+  checkpointPrefix: 'extract.2',
+  gateTimeoutMs: 5_000,
+  recoveryGate: {
+    identity: { name: 'my-recovery-policy', version: '1' },
+    decide: async ({ candidate, failure, idempotencyKey, signal }) => {
+      // This could call a rule service, supervisor task, or other decision engine.
+      // Give an external service the stable key for its own idempotency.
+      return recoveryPolicy.decide(candidate, failure, {
+        idempotencyKey,
+        signal,
+      });
+    },
+  },
+  summarizeFailure: ({ attempts }) => ({
+    code: classifyFailure(attempts), // caller-sanitized, short and secret-free
+  }),
+});
+```
+
+The gate receives one candidate and a bounded, caller-sanitized failure
+summary. It receives no task client or checkpoint context. A callback can
+still capture its own capabilities; run an untrusted decision engine in a
+separate service or process. Only a validated `approve` verdict creates a replacement. Denial, abstention, malformed output,
+timeout, or hook failure returns `blocked` with a reason code; a creation error
+returns `replacement_create_failed`. The result retains each task outcome,
+all attempts, decision metadata, replacement task ID, and cumulative usage.
+With a logger, gate and creation errors emit bounded diagnostic categories
+and allowlisted status or transport codes; raw adapter errors and response
+details are excluded. Durable results contain only reason codes. If creation
+returns a mismatched task, the result includes its ID and mismatched field names.
+For an explicit `expiresInSec`, the returned expiry and queue timestamp must
+reconcile to that whole-second lifetime. If the request omits it but the initial
+task has an expiry, the replacement uses the initial effective lifetime instead
+of a possibly changed server default. A long delay between expiry calculation
+and database insertion can fail closed because the API does not expose the
+original relative lifetime directly.
+If the initial task has no expiry and a replacement acquires one from a later
+server default, recovery rejects the created replacement and returns its ID.
+
+Decision and task creation have separate stable checkpoints. Replay after a
+completed decision checkpoint reuses the verdict; replay after a completed
+creation checkpoint reuses the task. The decision checkpoint is bound to the
+gate name and version; changing either for an in-flight execution fails closed.
+An external gate can still be called again
+if the worker dies **after the service answers but before the decision checkpoint
+completes**. Its adapter should use the supplied idempotency key and return the
+same verdict for that key. The replacement create uses the existing
+`createTaskStep` key to reconcile the equivalent task-create gap.
+
+For a failed semantic-repair task, pass its original frozen repair request and
+its last **completed** continuation parent as `parentTaskId`. The orchestrator
+reuses the exact repair input, including validation feedback, instead of using
+the failed attempt as a continuation source. Domain-invalid accepted output
+remains an `invalid_output` result for the caller's semantic-repair policy.
+
 ### SDK task client
 
 `createSdkTaskClient(agent)` adapts a `@themoltnet/sdk` `Agent` into the
