@@ -34,8 +34,11 @@ type taskCreateOpts struct {
 
 	inputFile string // "-" or path; empty defaults to stdin
 
-	correlationID    string
-	correlationIDSet bool
+	correlationID     string
+	correlationIDSet  bool
+	claimCondition    string // ClaimCondition JSON object
+	idempotencyKey    string
+	idempotencyKeySet bool
 
 	references      []string // raw JSON blobs, each a TaskRef
 	allowedProfiles []string // raw JSON blobs, each a RuntimeProfileRef
@@ -85,6 +88,9 @@ func runTaskCreateWithClient(ctx context.Context, client *moltnetapi.Client, opt
 	if err != nil {
 		return err
 	}
+	if opts.idempotencyKeySet && strings.TrimSpace(opts.idempotencyKey) == "" {
+		return fmt.Errorf("--idempotency-key must not be empty when provided")
+	}
 
 	if !opts.skipValidation {
 		if err := validateTaskInputAgainstServer(ctx, client, opts.taskType, req.Input); err != nil {
@@ -114,7 +120,11 @@ func runTaskCreateWithClient(ctx context.Context, client *moltnetapi.Client, opt
 		return nil
 	}
 
-	res, err := client.CreateTask(ctx, req, moltnetapi.CreateTaskParams{XMoltnetTeamID: teamID})
+	params := moltnetapi.CreateTaskParams{XMoltnetTeamID: teamID}
+	if opts.idempotencyKey != "" {
+		params.IdempotencyKey = moltnetapi.NewOptString(opts.idempotencyKey)
+	}
+	res, err := client.CreateTask(ctx, req, params)
 	if err != nil {
 		return fmt.Errorf("task create: %w", formatTransportError(err))
 	}
@@ -181,6 +191,16 @@ func buildCreateTaskReq(opts taskCreateOpts) (*moltnetapi.CreateTaskReq, error) 
 		if err != nil {
 			return nil, err
 		}
+	}
+	if opts.claimCondition != "" {
+		var condition moltnetapi.ClaimCondition
+		if err := json.Unmarshal([]byte(opts.claimCondition), &condition); err != nil {
+			return nil, fmt.Errorf("invalid --claim-condition JSON: %w", err)
+		}
+		if err := condition.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid --claim-condition: %w", err)
+		}
+		req.ClaimCondition = moltnetapi.NewOptClaimCondition(condition)
 	}
 
 	if opts.projectIDSet {

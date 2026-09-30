@@ -137,6 +137,47 @@ func TestRunTaskCreate_Happy(t *testing.T) {
 	}
 }
 
+func TestRunTaskCreate_ClaimConditionAndIdempotencyKey(t *testing.T) {
+	h := &stubCreateHandler{descriptors: []moltnetapi.TaskTypeDescriptor{fulfillBriefSchema()}}
+	_, _, client := newTestServer(t, h)
+	opts := newCreateOpts(`{"brief":"dependent work"}`)
+	opts.claimCondition = `{"op":"task_accepted","taskId":"11111111-1111-4111-8111-111111111111"}`
+	opts.idempotencyKey = "workflow:dependent-work"
+	opts.out = io.Discard
+	if err := runTaskCreateWithClient(context.Background(), client, opts); err != nil {
+		t.Fatalf("runTaskCreateWithClient: %v", err)
+	}
+	if _, ok := h.lastCreate.ClaimCondition.Get(); !ok {
+		t.Fatal("claim condition missing from request")
+	}
+	if got, ok := h.lastParams.IdempotencyKey.Get(); !ok || got != opts.idempotencyKey {
+		t.Errorf("idempotency key = %q (set=%v)", got, ok)
+	}
+}
+
+func TestBuildCreateTaskReq_RejectsInvalidClaimCondition(t *testing.T) {
+	opts := newCreateOpts(`{"brief":"dependent work"}`)
+	opts.claimCondition = `{"op":"task_accepted","taskId":"not-a-uuid"}`
+	if _, err := buildCreateTaskReq(opts); err == nil || !strings.Contains(err.Error(), "--claim-condition") {
+		t.Fatalf("expected claim condition error, got %v", err)
+	}
+}
+
+func TestRunTaskCreate_RejectsEmptyIdempotencyKey(t *testing.T) {
+	h := &stubCreateHandler{descriptors: []moltnetapi.TaskTypeDescriptor{fulfillBriefSchema()}}
+	_, _, client := newTestServer(t, h)
+	opts := newCreateOpts(`{"brief":"dependent work"}`)
+	opts.idempotencyKeySet = true
+	opts.idempotencyKey = ""
+	if err := runTaskCreateWithClient(context.Background(), client, opts); err == nil || !strings.Contains(err.Error(), "--idempotency-key") {
+		t.Fatalf("expected empty idempotency key error, got %v", err)
+	}
+	_, created := h.counts()
+	if created != 0 {
+		t.Fatalf("created %d tasks with an empty retry key", created)
+	}
+}
+
 func TestRunTaskCreate_DryRunPrintsCanonicalBody(t *testing.T) {
 	h := &stubCreateHandler{descriptors: []moltnetapi.TaskTypeDescriptor{fulfillBriefSchema()}}
 	_, _, client := newTestServer(t, h)
