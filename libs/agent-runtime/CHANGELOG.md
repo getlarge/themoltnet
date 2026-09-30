@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.7.0...agent-runtime-v1.8.0) (2026-09-30)
+
+
+### Bug Fixes
+
+* **agent:** enforce structured task submissions ([326e432](https://github.com/getlarge/themoltnet/commit/326e4320965922a45ef86cab903b92560828bd41))
+* **agent:** enforce structured task submissions ([baa80a1](https://github.com/getlarge/themoltnet/commit/baa80a160714a90c787530c6391089e040a341e5))
+
 ## [1.7.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.6.0...agent-runtime-v1.7.0) (2026-09-25)
 
 
