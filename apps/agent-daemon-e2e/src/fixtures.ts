@@ -1,10 +1,13 @@
 import { randomUUID } from 'node:crypto';
+import { mkdtempSync } from 'node:fs';
 import {
   createServer,
   type IncomingMessage,
   type Server,
   type ServerResponse,
 } from 'node:http';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import {
   buildScenarioRunEvalInput,
@@ -18,7 +21,69 @@ import {
   type WrittenAgentCredentials,
 } from '@moltnet/agent-eval/agent-credentials';
 import { AGENT_CREDENTIAL_SCOPES } from '@moltnet/models';
+// eslint-disable-next-line @nx/enforce-module-boundaries -- E2E fixtures run the daemon entry point.
+import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 import type { Agent } from '@themoltnet/sdk';
+import { vi } from 'vitest';
+
+export function createDaemonRunRoots(prefix: string) {
+  return {
+    sandboxRoot: mkdtempSync(join(tmpdir(), `${prefix}-cwd-`)),
+    agentRoot: mkdtempSync(join(tmpdir(), `${prefix}-agent-`)),
+    piDir: mkdtempSync(join(tmpdir(), `${prefix}-pi-`)),
+  };
+}
+
+/** Run the real daemon with isolated credentials, cwd, and test environment. */
+export async function runDaemonOnce(input: {
+  credentials: Parameters<typeof provisionDaemonCredentials>[0];
+  sandboxRoot: string;
+  piDir: string;
+  taskId: string;
+  profileId: string;
+  env?: Record<string, string>;
+}): Promise<number> {
+  const oldCwd = process.cwd();
+  const oldSecretRoot = process.env.MOLTNET_SECRET_ROOT;
+  try {
+    await provisionDaemonCredentials(input.credentials);
+    for (const name of [
+      'MOLTNET_CREDENTIALS_PATH',
+      'MOLTNET_AGENT_KEY',
+      'MOLTNET_AGENT_KEY_REF',
+      'MOLTNET_CLIENT_ID',
+      'MOLTNET_CLIENT_SECRET',
+    ]) {
+      vi.stubEnv(name, '');
+    }
+    vi.stubEnv('MOLTNET_API_URL', input.credentials.apiUrl);
+    vi.stubEnv('PI_CODING_AGENT_DIR', input.piDir);
+    for (const [name, value] of Object.entries(input.env ?? {})) {
+      vi.stubEnv(name, value);
+    }
+    process.chdir(input.sandboxRoot);
+    return await runOnce([
+      '--task-id',
+      input.taskId,
+      '--agent',
+      input.credentials.agentName,
+      '--profile',
+      input.profileId,
+      '--team',
+      input.credentials.teamId,
+      '--agent-root',
+      input.credentials.agentRoot,
+    ]);
+  } finally {
+    process.chdir(oldCwd);
+    if (oldSecretRoot === undefined) {
+      delete process.env.MOLTNET_SECRET_ROOT;
+    } else {
+      process.env.MOLTNET_SECRET_ROOT = oldSecretRoot;
+    }
+    vi.unstubAllEnvs();
+  }
+}
 
 /** Bind a provider/agent-server HTTP stub on an ephemeral loopback port. */
 export async function startHttpStub(

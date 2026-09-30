@@ -1,18 +1,18 @@
 /** Exercise the real daemon, Pi session, provider wire format, and task API. */
 import { randomUUID } from 'node:crypto';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { rmSync } from 'node:fs';
 import { type Server, type ServerResponse } from 'node:http';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 
-// eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite exercises the daemon entry point.
-import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 import { getSubmitOutputContract } from '@themoltnet/agent-runtime';
 import { writePiConfig } from '@themoltnet/pi-runtime/pi-config';
 import { type Agent, connect } from '@themoltnet/sdk';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { provisionDaemonCredentials, startHttpStub } from './fixtures.js';
+import {
+  createDaemonRunRoots,
+  runDaemonOnce,
+  startHttpStub,
+} from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const PROVIDER = 'structured-output-fixture';
@@ -137,21 +137,9 @@ describe('structured task submission through Pi (e2e)', () => {
   async function runFixtureTask(argumentsToReturn: Record<string, unknown>[]) {
     const requestStart = requests.length;
     queuedArguments.push(...argumentsToReturn);
-    const sandboxRoot = mkdtempSync(join(tmpdir(), 'structured-e2e-cwd-'));
-    const agentRoot = mkdtempSync(join(tmpdir(), 'structured-e2e-agent-'));
-    const piDir = mkdtempSync(join(tmpdir(), 'structured-e2e-pi-'));
+    const { sandboxRoot, agentRoot, piDir } =
+      createDaemonRunRoots('structured-e2e');
     tempRoots.push(sandboxRoot, agentRoot, piDir);
-    await provisionDaemonCredentials({
-      agent,
-      agentRoot,
-      agentName: creds.name,
-      agentId: creds.agentId,
-      teamId: creds.personalTeamId,
-      publicKey: creds.keyPair.publicKey,
-      privateKey: creds.keyPair.privateKey,
-      fingerprint: creds.keyPair.fingerprint,
-      apiUrl: harness.restApiUrl,
-    });
     writePiConfig({
       piDir,
       providers: {
@@ -191,37 +179,27 @@ describe('structured task submission through Pi (e2e)', () => {
       { teamId: creds.personalTeamId },
     );
 
-    const oldCwd = process.cwd();
     try {
-      for (const name of [
-        'MOLTNET_CREDENTIALS_PATH',
-        'MOLTNET_AGENT_KEY',
-        'MOLTNET_AGENT_KEY_REF',
-        'MOLTNET_CLIENT_ID',
-        'MOLTNET_CLIENT_SECRET',
-      ]) {
-        vi.stubEnv(name, '');
-      }
-      vi.stubEnv('MOLTNET_API_URL', harness.restApiUrl);
-      vi.stubEnv('PI_CODING_AGENT_DIR', piDir);
-      vi.stubEnv(KEY_ENV, 'fixture-key');
-      process.chdir(sandboxRoot);
-      const exitCode = await runOnce([
-        '--task-id',
-        task.id,
-        '--agent',
-        creds.name,
-        '--profile',
-        profile.id,
-        '--team',
-        creds.personalTeamId,
-        '--agent-root',
-        agentRoot,
-      ]);
+      const exitCode = await runDaemonOnce({
+        credentials: {
+          agent,
+          agentRoot,
+          agentName: creds.name,
+          agentId: creds.agentId,
+          teamId: creds.personalTeamId,
+          publicKey: creds.keyPair.publicKey,
+          privateKey: creds.keyPair.privateKey,
+          fingerprint: creds.keyPair.fingerprint,
+          apiUrl: harness.restApiUrl,
+        },
+        sandboxRoot,
+        piDir,
+        taskId: task.id,
+        profileId: profile.id,
+        env: { [KEY_ENV]: 'fixture-key' },
+      });
       expect(exitCode).toBe(0);
     } finally {
-      process.chdir(oldCwd);
-      vi.unstubAllEnvs();
       await agent.runtimeProfiles.delete(profile.id);
     }
     return { task, taskRequests: requests.slice(requestStart) };
