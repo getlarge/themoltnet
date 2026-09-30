@@ -5,6 +5,12 @@ export const DOCS_IMPACT_COMMENT_MARKER = '<!-- moltnet:docs-impact-review -->';
 /** The comment shows at most this many findings; the report keeps all. */
 export const COMMENT_MAX_FINDINGS = 3;
 
+/**
+ * An error in the comment stays readable and far below GitHub's 65,536
+ * character limit; the full text is in the run's report and log.
+ */
+const ERROR_TEXT_MAX = 1_000;
+
 /** Comment-side cap for free text; validation only guards runaway output. */
 export const COMMENT_TEXT_MAX = 280;
 
@@ -33,8 +39,12 @@ function fileLink(report: DocsImpactReport, path: string): string {
  * Inline code that `text` cannot break out of: the fence is longer than any
  * backtick run inside, and newlines are flattened.
  */
-function codeSpan(text: string): string {
-  const flat = text.replace(/\s+/g, ' ').trim();
+function codeSpan(text: string, max = Number.POSITIVE_INFINITY): string {
+  const collapsed = text.replace(/\s+/g, ' ').trim();
+  const flat =
+    collapsed.length <= max
+      ? collapsed
+      : `${collapsed.slice(0, max - 1).trimEnd()}…`;
   const longest = Math.max(
     0,
     ...(flat.match(/`+/g) ?? []).map((run) => run.length),
@@ -57,7 +67,7 @@ export function renderComment(report: DocsImpactReport): string {
       DOCS_IMPACT_COMMENT_MARKER,
       `**Docs impact: not reviewed** · ${head}`,
       '',
-      `The review did not complete: ${codeSpan(report.error ?? 'unknown error')}. No judgment was made.`,
+      `The review did not complete: ${codeSpan(report.error || 'unknown error', ERROR_TEXT_MAX)}. No judgment was made.`,
     ].join('\n');
   }
   const count = report.findings.length;

@@ -115,6 +115,25 @@ describe('parseReviewConfig', () => {
     expect(() => parseReviewConfig({ version: 1, ...value })).toThrow(where);
   });
 
+  it.each([
+    [
+      'a repeated routing id',
+      [
+        { id: 'cli', paths: ['a/**'], docs: ['a.md'] },
+        { id: 'cli', paths: ['b/**'], docs: ['b.md'] },
+      ],
+      'routing id cli is repeated',
+    ],
+    [
+      'a glob as a routed page',
+      [{ id: 'cli', paths: ['a/**'], docs: ['docs/*.md'] }],
+      'must be a path, not a glob',
+    ],
+  ])('rejects %s', (_label, routing, message) => {
+    // Act / Assert
+    expect(() => parseReviewConfig({ version: 1, routing })).toThrow(message);
+  });
+
   it('rejects a routed page that docs.exclude drops', () => {
     // Act / Assert
     expect(() =>

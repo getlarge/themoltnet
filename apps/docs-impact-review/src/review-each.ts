@@ -1,4 +1,4 @@
-import type { ReviewConfigSource } from './review-config.js';
+import { ReviewConfigError, type ReviewConfigSource } from './review-config.js';
 import type { DocsImpactReport } from './types.js';
 import { failedReport } from './workflow.js';
 
@@ -9,6 +9,8 @@ export interface ReviewTarget {
   baseRevision: string;
   headRevision: string;
   configSource?: ReviewConfigSource;
+  /** What the review is doing, named when it fails (`fetch`, `config`…). */
+  phase?: string;
 }
 
 /**
@@ -22,6 +24,8 @@ export async function reviewEach(
   prs: readonly number[],
   review: (target: ReviewTarget) => Promise<DocsImpactReport | undefined>,
   onReport: (report: DocsImpactReport) => void,
+  log: (message: string) => void = (message) =>
+    process.stderr.write(`${message}\n`),
 ): Promise<DocsImpactReport[]> {
   const reports: DocsImpactReport[] = [];
   for (const pr of prs) {
@@ -35,15 +39,27 @@ export async function reviewEach(
     try {
       report = await review(target);
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const detail = target.phase
+        ? `failed during ${target.phase}: ${message}`
+        : message;
+      log(`[pr ${pr}] ${detail}`);
       report = failedReport(
         target,
-        target.configSource,
-        error instanceof Error ? error.message : String(error),
+        error instanceof ReviewConfigError ? error.source : target.configSource,
+        detail,
       );
     }
     if (!report) continue;
     reports.push(report);
-    onReport(report);
+    // Writing one report (e.g. to --out) must not stop the others.
+    try {
+      onReport(report);
+    } catch (error) {
+      log(
+        `[pr ${pr}] could not write the report: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
   return reports;
 }

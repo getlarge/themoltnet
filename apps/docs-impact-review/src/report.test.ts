@@ -195,6 +195,20 @@ describe('renderComment', () => {
     expect(base).toContain('_Configuration: `x`._');
   });
 
+  it.each([
+    ['a long error', 'x'.repeat(70_000), /`x{999}…`/],
+    ['an empty error', '', /`unknown error`/],
+  ])('bounds %s in the comment', (_label, error, expected) => {
+    // Act
+    const body = renderComment(
+      report({ status: 'failed', outcome: undefined, error }),
+    );
+
+    // Assert
+    expect(body).toMatch(expected);
+    expect(body.length).toBeLessThan(2_000);
+  });
+
   it('keeps an error message inside its code span', () => {
     // Act
     const body = renderComment(

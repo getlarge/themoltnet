@@ -1,5 +1,5 @@
 export { createGit, type Git } from './git.js';
-export { matchesAny, matchesGlob } from './glob.js';
+export { matchesAny, matchesGlob, validateGlob } from './glob.js';
 export { boundDiff, collectChangeSet } from './ingest.js';
 export {
   DOCS_IMPACT_COMMENT_MARKER,
@@ -7,6 +7,7 @@ export {
   summarizeCorpus,
 } from './report.js';
 export {
+  baseConfigSource,
   DEFAULT_REVIEW_CONFIG,
   loadReviewConfig,
   loadReviewConfigFile,
@@ -14,6 +15,8 @@ export {
   REVIEW_CONFIG_PATH,
   type ReviewConfig,
   ReviewConfigError,
+  type ReviewConfigFile,
+  ReviewConfigSchema,
   type ReviewConfigSource,
 } from './review-config.js';
 export type { RoutingMap } from './routing.js';

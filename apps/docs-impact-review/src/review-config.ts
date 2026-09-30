@@ -16,7 +16,8 @@ const MAX_REPORTED_ERRORS = 5;
 
 const GlobList = Type.Array(Type.String({ minLength: 1 }));
 
-const ReviewConfigSchema = Type.Object(
+/** JSON schema of `.github/docs-impact-review.json`, for editors and tools. */
+export const ReviewConfigSchema = Type.Object(
   {
     version: Type.Literal(1),
     /** Code paths whose changes must be checked against specific docs. */
@@ -53,10 +54,10 @@ const ReviewConfigSchema = Type.Object(
 export type ReviewConfigFile = Static<typeof ReviewConfigSchema>;
 
 export interface ReviewConfig {
-  routing: RoutingMap;
-  docsExclude: string[];
-  agentFacing: string[];
-  instructions?: string;
+  readonly routing: RoutingMap;
+  readonly docsExclude: readonly string[];
+  readonly agentFacing: readonly string[];
+  readonly instructions?: string;
 }
 
 /**
@@ -70,28 +71,53 @@ export type ReviewConfigSource =
   | { kind: 'default' };
 
 /** Changelogs record history; they are never documentation to review. */
-export const DEFAULT_DOCS_EXCLUDE = ['**/CHANGELOG.md'];
+export const DEFAULT_DOCS_EXCLUDE: readonly string[] = Object.freeze([
+  '**/CHANGELOG.md',
+]);
 
-export const DEFAULT_AGENT_FACING = [
+export const DEFAULT_AGENT_FACING: readonly string[] = Object.freeze([
   '.agents/**',
   '.claude/**',
   '.codex/**',
   '.cursor/**',
   '.pi/**',
   '**/skills/**',
-];
+]);
 
-export const DEFAULT_REVIEW_CONFIG: ReviewConfig = {
-  routing: { rules: [] },
+export const DEFAULT_REVIEW_CONFIG: ReviewConfig = Object.freeze({
+  routing: Object.freeze({ rules: [] }),
   docsExclude: DEFAULT_DOCS_EXCLUDE,
   agentFacing: DEFAULT_AGENT_FACING,
-};
+});
 
 /** An invalid or unreadable configuration; the message names what to fix. */
 export class ReviewConfigError extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    /** The configuration that failed, when it was found. */
+    readonly source?: ReviewConfigSource,
+  ) {
     super(message);
     this.name = 'ReviewConfigError';
+  }
+}
+
+/** The source of a configuration read from `revision`. */
+export function baseConfigSource(
+  revision: string,
+): Extract<ReviewConfigSource, { kind: 'base' }> {
+  return { kind: 'base', location: `${REVIEW_CONFIG_PATH}@${revision}` };
+}
+
+/** Runs `parse`, attributing a configuration error to `source`. */
+function attributed<T>(source: ReviewConfigSource, parse: () => T): T {
+  try {
+    return parse();
+  } catch (error) {
+    if (error instanceof ReviewConfigError && !error.source) {
+      throw new ReviewConfigError(error.message, source);
+    }
+    throw error;
   }
 }
 
@@ -134,8 +160,17 @@ function describeContradictions(config: ReviewConfig): string[] {
     const reason = validateGlob(glob);
     if (reason) problems.push(`${where}: "${glob}": ${reason}`);
   }
+  const seen = new Set<string>();
   for (const rule of config.routing.rules) {
+    if (seen.has(rule.id)) problems.push(`routing id ${rule.id} is repeated`);
+    seen.add(rule.id);
     for (const doc of rule.docs) {
+      // A routed page is one exact path, so a wildcard is a mistake.
+      if (/[*?[\]{}]/.test(doc)) {
+        problems.push(
+          `routing ${rule.id} docs: "${doc}" must be a path, not a glob`,
+        );
+      }
       if (matchesAny(doc, config.docsExclude)) {
         problems.push(
           `routing ${rule.id} names ${doc}, which docs.exclude excludes`,
@@ -211,11 +246,13 @@ export function loadReviewConfig(
   if (!listed) {
     return { config: DEFAULT_REVIEW_CONFIG, source: { kind: 'default' } };
   }
-  const location = `${REVIEW_CONFIG_PATH}@${baseRevision}`;
+  const source = baseConfigSource(baseRevision);
   const raw = git(['show', `${baseRevision}:${REVIEW_CONFIG_PATH}`]);
   return {
-    config: parseReviewConfig(parseJson(raw, location), location),
-    source: { kind: 'base', location },
+    config: attributed(source, () =>
+      parseReviewConfig(parseJson(raw, source.location), source.location),
+    ),
+    source,
   };
 }
 
@@ -232,8 +269,11 @@ export function loadReviewConfigFile(
       `cannot read ${path}: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
+  const source: ReviewConfigSource = { kind: 'file', location: path };
   return {
-    config: parseReviewConfig(parseJson(raw, path), path),
-    source: { kind: 'file', location: path },
+    config: attributed(source, () =>
+      parseReviewConfig(parseJson(raw, path), path),
+    ),
+    source,
   };
 }

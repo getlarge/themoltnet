@@ -200,14 +200,20 @@ and the comment says so.
 Both `docs` lists add to the built-in ones; an empty list adds nothing.
 
 **Globs** use one small dialect everywhere (routing `paths`, `docs.exclude`,
-`docs.agentFacing`), close to git pathspecs: `**` as a whole segment spans any
-number of directories, `*` and `?` stay within one segment, wildcards match
-names that start with a dot, and a pattern without wildcards matches that path
-and everything below it (`vendor` covers `vendor/a.md`). Leading and trailing
-`/` are ignored. Character classes (`[ab]`) are not supported, and a pattern
-using them is rejected rather than matched literally.
+`docs.agentFacing`), close to git pathspecs:
 
-A routing rule may not name a page that `docs.exclude` drops: the
+- `**` as a whole segment spans any number of directories; inside a segment
+  (`foo**`) it is just two `*`;
+- `*` and `?` stay within one segment, and match names that start with a dot;
+- a pattern without wildcards matches that path and everything below it
+  (`vendor` covers `vendor/a.md`);
+- leading and trailing `/` are ignored, and `.`/`..` are not resolved;
+- character classes (`[ab]`), brace alternatives (`{md,mdx}`), escapes (`\`)
+  and a leading `!` are rejected rather than matched literally, so they can
+  gain a meaning later.
+
+Routing `docs` entries are exact paths, not globs, and routing `id`s must be
+unique. A routing rule may not name a page that `docs.exclude` drops: the
 configuration is rejected instead of silently losing a required route.
 
 **Versioning.** The file declares `"version": 1`. Within version 1, new keys

@@ -10,12 +10,17 @@
  *   `.github/CHANGELOG.md`);
  * - a pattern without wildcards matches that exact path and everything below
  *   it (`vendor` matches `vendor/a.md`);
- * - leading and trailing `/` are ignored; `[` and `]` are not supported
+ * - `**` inside a segment (`foo**`) is two `*`, so it stays in the segment;
+ * - `.` and `..` are ordinary names: they never resolve, so they only match
+ *   themselves, and paths never contain them;
+ * - leading and trailing `/` are ignored;
+ * - `[`, `]`, `{`, `}`, `\` and a leading `!` are not supported
  *   (`validateGlob` rejects them, so they can gain a meaning later).
  *
- * Matching works segment by segment with memoized dynamic programming, never
- * a backtracking regular expression: patterns come from the base branch, but
- * paths come from the pull request, and the cost stays polynomial in both.
+ * Matching works segment by segment with iterative dynamic programming,
+ * never a backtracking regular expression or recursion: patterns come from
+ * the base branch, but paths come from the pull request, and the cost stays
+ * polynomial in both whatever the path depth.
  */
 const WILDCARD = /[*?]/;
 
@@ -26,6 +31,11 @@ function segments(text: string): string[] {
 /** Why `glob` is not a usable pattern, or `undefined` when it is. */
 export function validateGlob(glob: string): string | undefined {
   if (/[[\]]/.test(glob)) return 'character classes ([ ]) are not supported';
+  if (/[{}]/.test(glob)) return 'brace alternatives ({ }) are not supported';
+  if (glob.includes('\\')) return 'escapes (\\) are not supported';
+  if (glob.trimStart().startsWith('!')) {
+    return 'negation (a leading !) is not supported';
+  }
   if (segments(glob).length === 0) return 'the pattern is empty';
   return undefined;
 }
@@ -53,30 +63,28 @@ function matchSegment(pattern: string, name: string): boolean {
   return previous[name.length];
 }
 
-/** Segments with `**`: memoized over (pattern index, path index). */
+/**
+ * Segments with `**`, bottom-up: `next[j]` says whether the pattern after
+ * segment `i` matches the path from segment `j`. O(pattern × path) segment
+ * matches and no recursion, so a deep path cannot exhaust the stack.
+ */
 function matchSegments(pattern: string[], path: string[]): boolean {
-  const memo = new Map<number, boolean>();
-  const width = path.length + 1;
-  const visit = (i: number, j: number): boolean => {
-    const key = i * width + j;
-    const known = memo.get(key);
-    if (known !== undefined) return known;
-    let result: boolean;
-    if (i === pattern.length) {
-      result = j === path.length;
-    } else if (pattern[i] === '**') {
-      // `**` matches no segment, or consumes one and stays in place.
-      result = visit(i + 1, j) || (j < path.length && visit(i, j + 1));
-    } else {
-      result =
-        j < path.length &&
-        matchSegment(pattern[i], path[j]) &&
-        visit(i + 1, j + 1);
+  let next = new Array<boolean>(path.length + 1).fill(false);
+  next[path.length] = true;
+  for (let i = pattern.length - 1; i >= 0; i -= 1) {
+    const current = new Array<boolean>(path.length + 1).fill(false);
+    for (let j = path.length; j >= 0; j -= 1) {
+      if (pattern[i] === '**') {
+        // `**` matches no segment, or consumes one and stays in place.
+        current[j] = next[j] || (j < path.length && current[j + 1]);
+      } else {
+        current[j] =
+          j < path.length && next[j + 1] && matchSegment(pattern[i], path[j]);
+      }
     }
-    memo.set(key, result);
-    return result;
-  };
-  return visit(0, 0);
+    next = current;
+  }
+  return next[0];
 }
 
 export function matchesGlob(path: string, glob: string): boolean {

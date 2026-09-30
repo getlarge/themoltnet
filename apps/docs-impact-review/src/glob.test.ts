@@ -52,9 +52,29 @@ describe('matching cost', () => {
   });
 });
 
+describe('matching depth', () => {
+  it('matches a path thousands of segments deep without recursion', () => {
+    // Arrange
+    const deep = `${'a/'.repeat(8_000)}c`;
+
+    // Act / Assert
+    expect(matchesGlob(deep, '**/c')).toBe(true);
+    expect(matchesGlob(`${'a/'.repeat(8_000)}b`, '**/c')).toBe(false);
+  });
+
+  it('keeps ** inside a segment within that segment', () => {
+    // Act / Assert
+    expect(matchesGlob('docs/foo-bar.md', 'docs/foo**')).toBe(true);
+    expect(matchesGlob('docs/foo/bar.md', 'docs/foo**')).toBe(false);
+  });
+});
+
 describe('validateGlob', () => {
   it.each([
     ['docs/[ab]*.md', 'character classes'],
+    ['docs/*.{md,mdx}', 'brace alternatives'],
+    ['docs\\*.md', 'escapes'],
+    ['!vendor/**', 'negation'],
     ['/', 'empty'],
     ['', 'empty'],
   ])('rejects %j', (glob, reason) => {

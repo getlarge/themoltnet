@@ -233,28 +233,40 @@ async function main(): Promise<number> {
     prs,
     async (target) => {
       const { pr } = target;
-      const meta = readPullRequest(repo, pr);
       // CI pins the revisions it validated, so a push between preparation
-      // and review cannot change what gets reviewed.
-      const base = requireFullOid(
-        values['base-sha'] ?? meta.baseRefOid,
-        'base revision',
-      );
-      const head = requireFullOid(
-        values['head-sha'] ?? meta.headRefOid,
-        'head revision',
-      );
-      target.baseRevision = base;
-      target.headRevision = head;
+      // and review cannot change what gets reviewed. Pinned revisions are
+      // recorded first: a report that fails later still names its head.
+      const pinnedBase = values['base-sha'];
+      const pinnedHead = values['head-sha'];
+      let title = `#${pr}`;
+      if (pinnedBase && pinnedHead) {
+        target.baseRevision = requireFullOid(pinnedBase, 'base revision');
+        target.headRevision = requireFullOid(pinnedHead, 'head revision');
+        // Only the title is still needed, and it is not worth failing for.
+        try {
+          title = readPullRequest(repo, pr).title;
+        } catch (error) {
+          process.stderr.write(
+            `[pr ${pr}] title unavailable, reviewing without it: ${error instanceof Error ? error.message : String(error)}\n`,
+          );
+        }
+      } else {
+        target.phase = 'gh pr view';
+        const meta = readPullRequest(repo, pr);
+        title = meta.title;
+        target.baseRevision = requireFullOid(meta.baseRefOid, 'base revision');
+        target.headRevision = requireFullOid(meta.headRefOid, 'head revision');
+      }
+      const base = target.baseRevision;
+      const head = target.headRevision;
+      target.phase = 'fetch';
       git(['fetch', '--no-tags', '--quiet', 'origin', base, head]);
-      // A bad base config fails only this pull request's review; its report
-      // still names the file that failed.
-      target.configSource = configOverride?.source ?? {
-        kind: 'base',
-        location: `${REVIEW_CONFIG_PATH}@${base}`,
-      };
+      // A bad base config fails only this pull request's review; the error
+      // carries the file that failed.
+      target.phase = 'config';
       const { config, source } = configOverride ?? loadReviewConfig(git, base);
       target.configSource = source;
+      target.phase = 'review';
       process.stderr.write(
         `[config] pr ${pr}: ${describeConfig(config, source)}\n`,
       );
@@ -268,7 +280,9 @@ async function main(): Promise<number> {
         const routed = routeDocs(changeSet.files, config.routing, (path) =>
           existsAt(git, head, path),
         );
-        // The same exclusion and ranking as a real review.
+        // The same exclusion and ranking as a real review, over routing
+        // alone: a dry run has no extraction, so no evidence filter and no
+        // symbol search.
         const selection = selectCandidates(
           routed.candidates,
           config,
@@ -304,7 +318,7 @@ async function main(): Promise<number> {
           configSource: source,
           repo,
           pr,
-          prTitle: meta.title,
+          prTitle: title,
           baseRevision: base,
           headRevision: head,
           teamId,
