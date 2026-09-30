@@ -1,7 +1,7 @@
 /** Exercise the real daemon, Pi session, provider wire format, and task API. */
 import { randomUUID } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
-import { createServer, type Server, type ServerResponse } from 'node:http';
+import { type Server, type ServerResponse } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -12,7 +12,7 @@ import { writePiConfig } from '@themoltnet/pi-runtime/pi-config';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { provisionDaemonCredentials } from './fixtures.js';
+import { provisionDaemonCredentials, startHttpStub } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const PROVIDER = 'structured-output-fixture';
@@ -102,7 +102,7 @@ describe('structured task submission through Pi (e2e)', () => {
       clientId: creds.clientId,
       clientSecret: creds.clientSecret,
     });
-    providerServer = createServer((request, response) => {
+    const providerStub = await startHttpStub((request, response) => {
       if (request.url !== '/v1/chat/completions') {
         response.writeHead(404).end();
         return;
@@ -121,15 +121,8 @@ describe('structured task submission through Pi (e2e)', () => {
         sendToolCall(response, args);
       });
     });
-    await new Promise<void>((resolve, reject) => {
-      providerServer.once('error', reject);
-      providerServer.listen(0, '127.0.0.1', resolve);
-    });
-    const address = providerServer.address();
-    if (!address || typeof address === 'string') {
-      throw new Error('Fixture provider did not bind a TCP port');
-    }
-    providerBaseUrl = `http://127.0.0.1:${address.port}/v1`;
+    providerServer = providerStub.server;
+    providerBaseUrl = `${providerStub.url}/v1`;
   }, 120_000);
 
   afterAll(async () => {
