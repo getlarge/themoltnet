@@ -41,14 +41,14 @@ function parseModelArgs(
   modelInputs: string[] | undefined,
   modelReasoning: string[] | undefined,
   modelThinkingMaps: string[] | undefined,
-  modelStrictTools: string[] | undefined,
+  modelStrictModes: string[] | undefined,
 ): ProviderModelEntry[] | undefined {
   if (
     !models &&
     !modelInputs &&
     !modelReasoning &&
     !modelThinkingMaps &&
-    !modelStrictTools
+    !modelStrictModes
   )
     return undefined;
   const entries = new Map<string, ProviderModelEntry>();
@@ -123,8 +123,21 @@ function parseModelArgs(
       thinkingLevelMap: map,
     });
   }
-  for (const id of modelStrictTools ?? []) {
-    entries.set(id, { ...entries.get(id), id, supportsStrictMode: true });
+  for (const raw of modelStrictModes ?? []) {
+    const separator = raw.lastIndexOf('=');
+    const id = raw.slice(0, separator);
+    const mode = raw.slice(separator + 1);
+    if (separator <= 0 || !['true', 'false'].includes(mode)) {
+      throw new ProviderCliError(
+        'invalid_arguments',
+        `--model-strict-mode expects <model-id>=true|false, received "${raw}"`,
+      );
+    }
+    entries.set(id, {
+      ...entries.get(id),
+      id,
+      supportsStrictMode: mode === 'true',
+    });
   }
   return [...entries.values()];
 }
@@ -259,7 +272,7 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
           'model-input': { type: 'string', multiple: true },
           'model-reasoning': { type: 'string', multiple: true },
           'model-thinking-map': { type: 'string', multiple: true },
-          'model-strict-tools': { type: 'string', multiple: true },
+          'model-strict-mode': { type: 'string', multiple: true },
           'clear-models': { type: 'boolean' },
           'api-key-stdin': { type: 'boolean' },
           'clear-api-key': { type: 'boolean' },
@@ -283,12 +296,12 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
       if (
         (values['model-reasoning'] ||
           values['model-thinking-map'] ||
-          values['model-strict-tools']) &&
+          values['model-strict-mode']) &&
         values['clear-models']
       ) {
         throw new ProviderCliError(
           'invalid_arguments',
-          'model capability flags cannot be used with --clear-models',
+          '--model-reasoning, --model-thinking-map, and --model-strict-mode cannot be used with --clear-models',
         );
       }
       if (values['api-key-stdin'] && values['clear-api-key']) {
@@ -310,8 +323,9 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
               values['model-input'],
               values['model-reasoning'],
               values['model-thinking-map'],
-              values['model-strict-tools'],
+              values['model-strict-mode'],
             ),
+        patchModels: !values.model && !values['clear-models'],
         apiKeyStdin: values['api-key-stdin'] ?? false,
         clearApiKey: values['clear-api-key'] ?? false,
       };
@@ -485,6 +499,7 @@ async function setProvider(
     baseUrl?: string;
     api?: string;
     models?: ProviderModelEntry[];
+    patchModels?: boolean;
   },
 ): Promise<number> {
   let apiKey: string | undefined;
@@ -503,12 +518,19 @@ async function setProvider(
       );
     }
   }
+  const models =
+    parsed.models && parsed.patchModels
+      ? mergeModelEntries(
+          context.configuration.list()[parsed.providerId]?.models ?? [],
+          parsed.models,
+        )
+      : parsed.models;
   const provider = await context.configuration.set(
     parsed.providerId,
     {
       ...(parsed.baseUrl ? { baseUrl: parsed.baseUrl } : {}),
       ...(parsed.api ? { api: parsed.api } : {}),
-      ...(parsed.models ? { models: parsed.models } : {}),
+      ...(models ? { models } : {}),
       ...(apiKey ? { apiKey } : {}),
       ...(parsed.clearApiKey ? { clearApiKey: true } : {}),
     },
@@ -516,6 +538,17 @@ async function setProvider(
   );
   context.stdout(JSON.stringify({ id: parsed.providerId, ...provider }));
   return 0;
+}
+
+function mergeModelEntries(
+  existing: ProviderModelEntry[],
+  updates: ProviderModelEntry[],
+): ProviderModelEntry[] {
+  const entries = new Map(existing.map((model) => [model.id, model]));
+  for (const update of updates) {
+    entries.set(update.id, { ...entries.get(update.id), ...update });
+  }
+  return [...entries.values()];
 }
 
 async function discoverProvider(
