@@ -39,7 +39,12 @@ describe('excludeCandidates', () => {
     ]);
 
     // Act
-    excludeCandidates(candidates, ['**/CHANGELOG.md', 'vendor']);
+    // `**` skips dot directories, so the dot changelog is named explicitly.
+    excludeCandidates(candidates, [
+      '**/CHANGELOG.md',
+      '**/.*/**/CHANGELOG.md',
+      'vendor/**',
+    ]);
 
     // Assert
     expect([...candidates.keys()]).toEqual(['docs/cli.md']);
@@ -207,11 +212,11 @@ describe('searchDocsForTerms', () => {
       repo.git,
       head,
       ['--dry-run'],
-      ['**/CHANGELOG.md', 'vendor'],
+      ['**/CHANGELOG.md', '**/.*/**/CHANGELOG.md', 'vendor/**'],
     );
 
-    // Assert: `vendor` excludes the directory, and a dot-directory changelog
-    // is excluded like any other, as git would.
+    // Assert: `vendor/**` excludes the directory, and the dot-directory
+    // changelog is excluded by the pattern that names the dot.
     expect([...hits.keys()]).toEqual(['docs/cli.md']);
   });
 

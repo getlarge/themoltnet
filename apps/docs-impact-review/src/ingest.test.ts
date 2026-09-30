@@ -68,7 +68,7 @@ describe('collectChangeSet', () => {
     const head = repo.commit({ 'vendor/lib/README.md': null });
 
     // Act
-    const changeSet = collectChangeSet(repo.git, base, head, ['vendor']);
+    const changeSet = collectChangeSet(repo.git, base, head, ['vendor/**']);
 
     // Assert
     expect(changeSet.files).toMatchObject([

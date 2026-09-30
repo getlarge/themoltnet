@@ -176,7 +176,7 @@ and the comment says so.
 {
   "docs": {
     "agentFacing": ["prompts/**"],
-    "exclude": ["vendor"]
+    "exclude": ["vendor/**"]
   },
   "instructions": "User-facing CLI docs live in docs/reference/.",
   "routing": [
@@ -190,27 +190,49 @@ and the comment says so.
 }
 ```
 
-| Key                | Effect                                                                                                                                                                                                                                                              |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `routing`          | Maps code paths to the pages that document them. Nearest READMEs are found automatically, so list only pages a README would miss. Routed pages are required reading: if they overflow, the review reports a gap.                                                    |
-| `docs.exclude`     | Markdown that is never reviewed, searched, or selected. Added to the built-in `**/CHANGELOG.md`.                                                                                                                                                                    |
-| `docs.agentFacing` | Instructions written for agents (skills, prompts). They rank below user and operator docs unless the pull request changed them or a routing rule names them. Added to the built-in `.agents/**`, `.claude/**`, `.codex/**`, `.cursor/**`, `.pi/**`, `**/skills/**`. |
-| `instructions`     | Up to 2,000 characters of guidance added to every stage brief. It refines the review within its fixed scope and output format; it cannot change them.                                                                                                               |
+| Key                | Effect                                                                                                                                                                                                                                                                                    |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `routing`          | Maps code paths to the pages that document them. Nearest READMEs are found automatically, so list only pages a README would miss. Routed pages are required reading: if they overflow, the review reports a gap.                                                                          |
+| `docs.exclude`     | Markdown that is never reviewed, searched, or selected. Added to the built-in `**/CHANGELOG.md` and `**/.*/**/CHANGELOG.md`.                                                                                                                                                              |
+| `docs.agentFacing` | Instructions written for agents (skills, prompts). They rank below user and operator docs unless the pull request changed them or a routing rule names them. Added to the built-in `.agents/**`, `.claude/**`, `.codex/**`, `.cursor/**`, `.pi/**`, `**/skills/**`, `**/.*/**/skills/**`. |
+| `instructions`     | Up to 2,000 characters of guidance added to every stage brief. It refines the review within its fixed scope and output format; it cannot change them.                                                                                                                                     |
 
 Both `docs` lists add to the built-in ones; an empty list adds nothing.
 
-**Globs** use one small dialect everywhere (routing `paths`, `docs.exclude`,
-`docs.agentFacing`), close to git pathspecs:
+**Globs** (routing `paths`, `docs.exclude`, `docs.agentFacing`) use Node's
+[`path.matchesGlob`](https://nodejs.org/api/path.html#pathmatchesglobpath-pattern),
+which follows minimatch syntax: `*`, `?`, `**`, `{a,b}` and `[ab]`. Paths are
+relative to the repository root and always use `/`. Four pitfalls:
 
-- `**` as a whole segment spans any number of directories; inside a segment
-  (`foo**`) it is just two `*`;
-- `*` and `?` stay within one segment, and match names that start with a dot;
-- a pattern without wildcards matches that path and everything below it
-  (`vendor` covers `vendor/a.md`);
-- leading and trailing `/` are ignored, and `.`/`..` are not resolved;
-- character classes (`[ab]`), brace alternatives (`{md,mdx}`), escapes (`\`)
-  and a leading `!` are rejected rather than matched literally, so they can
-  gain a meaning later.
+| Pitfall                                                                | Wrong                                           | Right                                                           |
+| ---------------------------------------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------- |
+| `*` and `**` never match a name starting with a dot                    | `**/CHANGELOG.md` misses `.github/CHANGELOG.md` | add `**/.*/**/CHANGELOG.md`, or `.github/**` for that directory |
+| A pattern matches whole paths, not directories                         | `vendor` matches only a file named `vendor`     | `vendor/**`                                                     |
+| Paths have no leading `/` or `./` (rejected)                           | `/docs/**`, `./docs/**`                         | `docs/**`                                                       |
+| On macOS and Windows, wildcard parts ignore case; CI on Linux does not | `docs/*.MD` matches `docs/a.md` locally only    | match the case of the files: `docs/*.md`                        |
+
+Good patterns:
+
+```json
+{
+  "docs": {
+    "agentFacing": ["prompts/**", "**/.*/**/prompts/**"],
+    "exclude": ["vendor/**", "docs/generated/**", "**/*.snap.md"]
+  },
+  "routing": [
+    {
+      "docs": ["docs/reference/cli.md"],
+      "id": "cli",
+      "paths": ["apps/cli/**", "packages/cli/src/**/*.{ts,tsx}"]
+    }
+  ],
+  "version": 1
+}
+```
+
+A leading `!` (negation) and `\` are rejected, and a path segment may hold
+at most three `*`: the matcher backtracks, so a segment such as `*a*a*a*a*b`
+would take exponential time on a long file name.
 
 Routing `docs` entries are exact paths, not globs, and routing `id`s must be
 unique. A routing rule may not name a page that `docs.exclude` drops: the

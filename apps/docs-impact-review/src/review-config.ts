@@ -73,6 +73,8 @@ export type ReviewConfigSource =
 /** Changelogs record history; they are never documentation to review. */
 export const DEFAULT_DOCS_EXCLUDE: readonly string[] = Object.freeze([
   '**/CHANGELOG.md',
+  // `**` skips dot directories: name them to reach `.github/CHANGELOG.md`.
+  '**/.*/**/CHANGELOG.md',
 ]);
 
 export const DEFAULT_AGENT_FACING: readonly string[] = Object.freeze([
@@ -82,6 +84,8 @@ export const DEFAULT_AGENT_FACING: readonly string[] = Object.freeze([
   '.cursor/**',
   '.pi/**',
   '**/skills/**',
+  // Skills under a dot directory, e.g. `plugin/.claude/skills/`.
+  '**/.*/**/skills/**',
 ]);
 
 export const DEFAULT_REVIEW_CONFIG: ReviewConfig = Object.freeze({

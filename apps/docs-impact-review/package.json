@@ -15,7 +15,7 @@
     "moltnet-docs-impact-review": "./dist/main.js"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.20"
   },
   "scripts": {
     "cli": "tsx src/main.ts",

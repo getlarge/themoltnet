@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createGit } from './git.js';
 import {
   DEFAULT_AGENT_FACING,
+  DEFAULT_DOCS_EXCLUDE,
   DEFAULT_REVIEW_CONFIG,
   loadReviewConfig,
   loadReviewConfigFile,
@@ -47,11 +48,11 @@ describe('parseReviewConfig', () => {
     // Act
     const config = parseReviewConfig({
       version: 1,
-      docs: { exclude: ['vendor'], agentFacing: ['prompts/**'] },
+      docs: { exclude: ['vendor/**'], agentFacing: ['prompts/**'] },
     });
 
     // Assert
-    expect(config.docsExclude).toEqual(['**/CHANGELOG.md', 'vendor']);
+    expect(config.docsExclude).toEqual([...DEFAULT_DOCS_EXCLUDE, 'vendor/**']);
     expect(config.agentFacing).toEqual([...DEFAULT_AGENT_FACING, 'prompts/**']);
   });
 
@@ -106,9 +107,9 @@ describe('parseReviewConfig', () => {
   it.each([
     [
       'routing r paths',
-      { routing: [{ id: 'r', paths: ['src/[ab]'], docs: ['d.md'] }] },
+      { routing: [{ id: 'r', paths: ['!src/**'], docs: ['d.md'] }] },
     ],
-    ['docs.exclude', { docs: { exclude: ['vendor/[ab]'] } }],
+    ['docs.exclude', { docs: { exclude: ['./vendor/**'] } }],
     ['docs.agentFacing', { docs: { agentFacing: ['/'] } }],
   ])('rejects an unusable glob in %s', (where, value) => {
     // Act / Assert
@@ -139,7 +140,7 @@ describe('parseReviewConfig', () => {
     expect(() =>
       parseReviewConfig({
         version: 1,
-        docs: { exclude: ['vendor'] },
+        docs: { exclude: ['vendor/**'] },
         routing: [{ id: 'cli', paths: ['cli/**'], docs: ['vendor/cli.md'] }],
       }),
     ).toThrow(
