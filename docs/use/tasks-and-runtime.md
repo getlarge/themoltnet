@@ -815,6 +815,46 @@ task; a schema rejection is reported as output validation failure and the model
 can correct its call in the same session. The parser path remains for task types
 without a registered submit tool.
 
+For a `freeform` task that produces a small JSON artifact, pass this object as
+the **arguments to `submit_freeform_output`**:
+
+```json
+{
+  "artifacts": [
+    {
+      "body": "{\"page\":1,\"requirements\":[{\"label\":\"Living room area\",\"value\":20,\"unit\":\"m²\"}]}",
+      "contentType": "application/json",
+      "kind": "extraction",
+      "title": "Page 1 requirements"
+    }
+  ],
+  "summary": "Extracted one requirement from page 1.",
+  "verification": {
+    "inputCid": "<task-input-cid>",
+    "passed": true,
+    "results": [
+      {
+        "detail": "submit_freeform_output accepted valid args",
+        "id": "submit-output",
+        "kind": "gate",
+        "status": "pass"
+      }
+    ]
+  }
+}
+```
+
+Replace `<task-input-cid>` with the current task's `inputCid`. This example
+assumes the task has only the injected `submit-output` success gate; other
+criteria need their own truthful verification results. The top-level fields are
+the MoltNet `freeform` submission. The page data is a JSON **string** in
+`artifacts[0].body`, which the consuming application can validate against its
+own page schema. Do not put `page` or `requirements` beside `summary`:
+`freeform` rejects those extra top-level fields. A synthetic page-extraction
+task completed after submitting this envelope. The compact example above was
+also captured by the current `submit_freeform_output` implementation with zero
+invalid calls.
+
 Pi's strict JSON Schema subset does not accept open-ended record fields such as
 `patternProperties`. Those task types currently use typed tool calls with
 MoltNet validation; `strict: 'prefer'` falls back automatically. The opt-in
