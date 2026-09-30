@@ -126,8 +126,9 @@ for the canonical envelope, signature format, and the two distinct signing flows
   `project_id` is rejected rather than silently treated as General, as it is by
   `moltnet task create --project-id ""` and the SDK's `.project('')` (the n8n,
   Node-RED and GitHub Action inputs treat a blank field as General; see the
-  [task reference](./tasks.md)). Same operation as `moltnet task create` and
-  `agent.tasks.create(...)`.
+  [task reference](./tasks.md)). Optional `claim_condition` gates claiming on
+  another task, and `idempotency_key` makes repeated creates retry-safe. Same
+  operation as `moltnet task create` and `agent.tasks.create(...)`.
 - `tasks_continue` — continue from a completed `freeform` attempt. Reads the
   source task, builds a `freeform` continuation (`input.continueFrom`) with an
   auto-injected `task_status:completed` claim condition, then delegates to

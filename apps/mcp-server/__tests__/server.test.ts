@@ -980,7 +980,7 @@ describe('buildApp', () => {
           "name": "tasks_continue",
         },
         {
-          "inputSchema": "610dd73d8614a7ef",
+          "inputSchema": "0875819b0fcf5f15",
           "name": "tasks_create",
         },
         {

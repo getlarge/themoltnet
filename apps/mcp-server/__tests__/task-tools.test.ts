@@ -1,5 +1,6 @@
 import { Buffer } from 'node:buffer';
 
+import { Value } from 'typebox/value';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -232,6 +233,70 @@ describe('Task tools', () => {
       );
     });
 
+    it('forwards a claim condition and retry key', async () => {
+      vi.mocked(createTask).mockResolvedValue(sdkOk(mockTask, 201) as never);
+      const claimCondition = { op: 'task_accepted' as const, taskId: TASK_ID };
+      await handleTasksCreate(
+        {
+          task_type: 'curate_pack',
+          team_id: TEAM_ID,
+          diary_id: DIARY_ID,
+          input: taskInput,
+          claim_condition: claimCondition,
+          idempotency_key: 'workflow:create-pack',
+        },
+        deps,
+        context,
+      );
+      expect(createTask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: {
+            'x-moltnet-team-id': TEAM_ID,
+            'idempotency-key': 'workflow:create-pack',
+          },
+          body: expect.objectContaining({ claimCondition }),
+        }),
+      );
+    });
+
+    it('validates nested claim conditions at the tool boundary', () => {
+      const base = {
+        task_type: 'curate_pack',
+        team_id: TEAM_ID,
+        diary_id: DIARY_ID,
+        input: taskInput,
+      };
+      const condition = {
+        op: 'all',
+        conditions: [{ op: 'task_accepted', taskId: TASK_ID }],
+      };
+      expect(
+        Value.Check(TaskCreateSchema, { ...base, claim_condition: condition }),
+      ).toBe(true);
+      expect(
+        Value.Check(TaskCreateSchema, {
+          ...base,
+          claim_condition: { ...condition, conditions: [] },
+        }),
+      ).toBe(false);
+    });
+
+    it('rejects an explicitly empty retry key', async () => {
+      const result = await handleTasksCreate(
+        {
+          task_type: 'curate_pack',
+          team_id: TEAM_ID,
+          diary_id: DIARY_ID,
+          input: taskInput,
+          idempotency_key: '',
+        },
+        deps,
+        context,
+      );
+      expect(result.isError).toBe(true);
+      expect(createTask).not.toHaveBeenCalled();
+    });
+
     it('omits projectId when project_id is absent', async () => {
       vi.mocked(createTask).mockResolvedValue(sdkOk(mockTask, 201) as never);
       await handleTasksCreate(
@@ -322,6 +387,8 @@ describe('Task tools', () => {
         'references',
         'allowed_profiles',
         'correlation_id',
+        'claim_condition',
+        'idempotency_key',
         'max_attempts',
         'expires_in_sec',
         'required_executor_trust_level',
