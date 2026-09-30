@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.67.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.66.7...agent-daemon-v0.67.0) (2026-09-30)
+
+
+### Features
+
+* **agent-daemon-action:** configure model providers from a providers input ([cd8fd56](https://github.com/getlarge/themoltnet/commit/cd8fd56545c571ddcbcb3af70a111197e8e9214d))
+* **agent-daemon:** report partial provider discovery ([ef3df93](https://github.com/getlarge/themoltnet/commit/ef3df935674273cdc1550d9cb4a0c08073471554))
+
+
+### Bug Fixes
+
+* **agent-daemon-action:** harden the providers input against persistent stores ([c4a7cdb](https://github.com/getlarge/themoltnet/commit/c4a7cdb2f3bb5bbcce4079feb5584d2df0e2d708))
+* **agent-daemon-action:** leave operator provider stores intact ([dffe7b9](https://github.com/getlarge/themoltnet/commit/dffe7b99d27db586a37ec6fb299e942077301558))
+
 ## [0.66.7](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.66.6...agent-daemon-v0.66.7) (2026-09-29)
 
 

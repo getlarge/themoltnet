@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.28.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.27.2...mcp-server-v0.28.0) (2026-09-30)
+
+
+### Features
+
+* **mcp:** expose task claim conditions and retry keys ([adad266](https://github.com/getlarge/themoltnet/commit/adad2660a8c310aec7127be0d9636dd0dd4debbe))
+
 ## [0.27.2](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.27.1...mcp-server-v0.27.2) (2026-09-28)
 
 
