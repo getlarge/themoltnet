@@ -213,15 +213,22 @@ describe('Nx release configuration', () => {
     );
   });
 
-  it('builds the collector release with the latest Go 1.26 patch', () => {
-    expect(workflow).toContain(
-      `      - uses: actions/setup-go@v6
-        if: \${{ matrix.project == 'otel-custom-collector' }}
-        with:
-          go-version: '1.26'
-          check-latest: true
-          cache: true`,
+  it('builds the collector release with the latest patch of a Go minor its go.mod accepts', () => {
+    // Renovate moves the pinned minor; the invariant is the shape (latest
+    // patch of one minor, cached) and that the minor meets go.mod's floor.
+    const step =
+      /- uses: actions\/setup-go@\S+(?: # \S+)?\n\s+if: \$\{\{ matrix\.project == 'otel-custom-collector' \}\}\n\s+with:\n\s+go-version: '1\.(\d+)'\n\s+check-latest: true\n\s+cache: true/.exec(
+        workflow,
+      );
+    const goMod = readFileSync(
+      join(workspaceRoot, 'infra/otel/custom-collector/go.mod'),
+      'utf8',
     );
+    const floor = /^go 1\.(\d+)/m.exec(goMod);
+
+    expect(step).not.toBeNull();
+    expect(floor).not.toBeNull();
+    expect(Number(step?.[1])).toBeGreaterThanOrEqual(Number(floor?.[1]));
   });
 
   it.each(['mac-os', 'linux'])(
