@@ -2,15 +2,15 @@
  * Executes the provider steps from action.yml against a fake `moltnet-agent`
  * to pin the provider-configuration contract:
  *
- * - each line configures one provider in the resolved store (`--root`); the
- *   API key reaches the CLI on stdin, never on argv, and is masked first;
- * - a keyless line clears any key the store still references;
- * - models are discovered unless a restored cache already holds them;
- * - an empty discovery fails the step; a partial one is not cached and never
- *   replaces a complete model list;
- * - the cleanup clears every stored key through the CLI and removes Pi auth.
+ * - the store is the one the daemon reports; every command gets `--root`;
+ * - each line configures one provider; the API key reaches the CLI on stdin,
+ *   never on argv, and is masked first; a keyless line clears stored keys;
+ * - a persistent store's own providers are never changed;
+ * - models are discovered unless a restored cache already holds them; an
+ *   empty discovery fails the step; a transiently partial one is not cached
+ *   and never replaces a complete model list;
+ * - the cleanup undoes only what the run wrote.
  */
-import { spawnSync } from 'node:child_process';
 import {
   existsSync,
   mkdirSync,
@@ -18,7 +18,6 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -30,8 +29,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   loadAction,
   readCalls,
-  renderRun,
+  readOutputs,
+  runStepScript,
   stepById,
+  stepByName,
+  stepWithId,
   writeExecutable,
 } from './test-support.js';
 
@@ -55,9 +57,11 @@ function discovered(overrides: Partial<DiscoveredModels> = {}): string {
 
 /**
  * Fake agent: logs argv to argv.log and stdin to stdin.log (one line per
- * call). `set` creates providers.json when missing; `providers list` reports
- * $FAKE_KNOWN models; `discover` writes `discovered` into providers.json,
- * prints $FAKE_DISCOVERED, and exits $FAKE_DISCOVER_CODE.
+ * call). `set` creates providers.json when missing. `providers list` reports
+ * $FAKE_STORE_ROOT as storeRoot (omitted when empty) and, for $FAKE_ID,
+ * $FAKE_CURRENT (a provider view) or $FAKE_KNOWN models. `discover` writes
+ * `discovered` into providers.json, prints $FAKE_DISCOVERED, and exits
+ * $FAKE_DISCOVER_CODE.
  */
 function installFakeAgent() {
   agent = resolve(root, 'moltnet-agent');
@@ -79,7 +83,11 @@ function installFakeAgent() {
       'if [ "$2" = list ]; then',
       '  models=""',
       '  for ((i = 1; i <= ${FAKE_KNOWN:-0}; i++)); do models="$models{\\"id\\":\\"m$i\\"},"; done',
-      '  printf \'{"configuredProviders":{"%s":{"models":[%s]}}}\' "${FAKE_ID:-ollama-cloud}" "${models%,}"',
+      '  current="$FAKE_CURRENT"',
+      '  [ -n "$current" ] || current="{\\"models\\":[${models%,}]}"',
+      '  root_field=""',
+      '  [ -n "${FAKE_STORE_ROOT:-}" ] && root_field="\\"storeRoot\\":\\"$FAKE_STORE_ROOT\\","',
+      '  printf \'{%s"configuredProviders":{"%s":%s}}\' "$root_field" "${FAKE_ID:-ollama-cloud}" "$current"',
       'fi',
       'if [ "$2" = discover ]; then',
       '  printf "discovered" > "$store/providers.json"',
@@ -91,15 +99,11 @@ function installFakeAgent() {
 }
 
 function runStep(id: string, env: Record<string, string>) {
-  return spawnSync('bash', ['-c', renderRun(stepById(action, id).run)], {
-    encoding: 'utf8',
-    env: {
-      PATH: process.env.PATH ?? '',
-      HOME: root,
-      RUNNER_TEMP: root,
-      GITHUB_OUTPUT: output,
-      ...env,
-    },
+  return runStepScript(stepById(action, id), {
+    HOME: root,
+    RUNNER_TEMP: root,
+    GITHUB_OUTPUT: output,
+    ...env,
   });
 }
 
@@ -107,24 +111,14 @@ function runProviders(env: Record<string, string>) {
   return runStep('providers', {
     AGENT_BIN: agent,
     STORE: store,
+    STORE_EXISTING: 'false',
     CACHE_HIT: 'false',
     FAKE_DISCOVERED: discovered(),
     ...env,
   });
 }
 
-function outputs(): Record<string, string> {
-  return Object.fromEntries(
-    readFileSync(output, 'utf8')
-      .split('\n')
-      .filter((line) => line.includes('='))
-      .map((line) => [
-        line.slice(0, line.indexOf('=')),
-        line.slice(line.indexOf('=') + 1),
-      ]),
-  );
-}
-
+const outputs = () => readOutputs(output);
 const argv = () => readCalls(resolve(root, 'argv.log'));
 const stdin = () => readCalls(resolve(root, 'stdin.log'));
 const cloud =
@@ -150,53 +144,46 @@ describe('providers input', () => {
   });
 
   it('stops forcing the Pi agent dir when providers are configured', () => {
-    const agentDir = action.runs.steps.find(
-      (candidate) => candidate.name === 'Configure Pi agent dir',
+    expect(stepByName(action, 'Configure Pi agent dir').if).toBe(
+      "inputs.providers == ''",
     );
-    expect(agentDir?.if).toBe("inputs.providers == ''");
+  });
+
+  it('can bypass the provider cache for one run', () => {
+    expect(action.inputs['providers-refresh']).toMatchObject({
+      default: 'false',
+    });
+    expect(stepWithId(action, 'restore-providers').if).toContain(
+      "inputs.providers-refresh != 'true'",
+    );
   });
 });
 
 describe('provider store', () => {
-  it('defaults to ~/.config/moltnet and reports a fresh store', () => {
-    // Act
-    const result = runStep('store', {});
-
-    // Assert
-    expect(result.status).toBe(0);
-    expect(outputs()).toEqual({
-      path: resolve(root, '.config/moltnet'),
-      existing: 'false',
-    });
-  });
-
-  it('prefers MOLTNET_HOME, canonicalized like the daemon does', () => {
-    // Arrange
-    const real = resolve(root, 'real');
-    mkdirSync(real);
-    symlinkSync(real, resolve(root, 'link'));
-
+  it('uses the store the daemon reports', () => {
     // Act
     const result = runStep('store', {
-      MOLTNET_HOME: resolve(root, 'link'),
-      MOLTNET_AGENT_SERVER_ROOT: real,
+      AGENT_BIN: agent,
+      FAKE_STORE_ROOT: store,
     });
 
     // Assert
     expect(result.status).toBe(0);
-    expect(outputs().path).toBe(real);
+    expect(outputs()).toEqual({ path: store, existing: 'false' });
+    expect(argv()).toEqual(['providers list --json']);
   });
 
-  it('refuses MOLTNET_HOME and MOLTNET_AGENT_SERVER_ROOT naming different stores', () => {
+  it('falls back, with a warning, for a daemon that does not report it', () => {
     // Act
     const result = runStep('store', {
-      MOLTNET_HOME: resolve(root, 'a'),
-      MOLTNET_AGENT_SERVER_ROOT: resolve(root, 'b'),
+      AGENT_BIN: agent,
+      MOLTNET_HOME: store,
     });
 
     // Assert
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain('name different stores');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('does not report its store root');
+    expect(outputs().path).toBe(store);
   });
 
   it('marks a store that already has providers, so the cache leaves it alone', () => {
@@ -205,18 +192,20 @@ describe('provider store', () => {
     writeFileSync(resolve(store, 'providers.json'), '{}');
 
     // Act
-    runStep('store', { MOLTNET_HOME: store });
+    const result = runStep('store', {
+      AGENT_BIN: agent,
+      FAKE_STORE_ROOT: store,
+    });
 
     // Assert
     expect(outputs().existing).toBe('true');
-    const restore = action.runs.steps.find(
-      (step) => step.id === 'restore-providers',
+    expect(result.stdout).toContain('the provider cache is not used');
+    expect(stepWithId(action, 'restore-providers').if).toContain(
+      "steps.store.outputs.existing != 'true'",
     );
-    const save = action.runs.steps.find(
-      (step) => step.name === 'Save provider cache',
-    );
-    expect(restore?.if).toContain("steps.store.outputs.existing != 'true'");
-    expect(save?.if).toContain("steps.store.outputs.existing != 'true'");
+    expect(
+      action.runs.steps.find((step) => step.name === 'Save provider cache')?.if,
+    ).toContain("steps.store.outputs.existing != 'true'");
   });
 });
 
@@ -275,7 +264,17 @@ describe('providers step', () => {
     expect(stdin()).toEqual([]);
   });
 
-  it('records each configured provider for the cleanup', () => {
+  it('allows a keyless provider over plain http on the network', () => {
+    // Act
+    const result = runProviders({
+      PROVIDERS: 'id=lan base-url=http://ollama.lan:11434/v1',
+    });
+
+    // Assert
+    expect(result.status).toBe(0);
+  });
+
+  it('records, for the cleanup, only the providers it stored a key for', () => {
     // Act
     runProviders({
       PROVIDERS: `${cloud}\nid=ollama base-url=http://127.0.0.1:11434/v1`,
@@ -285,7 +284,6 @@ describe('providers step', () => {
     // Assert
     expect(readCalls(resolve(root, 'moltnet-configured-providers'))).toEqual([
       'ollama-cloud',
-      'ollama',
     ]);
   });
 
@@ -321,11 +319,12 @@ describe('providers step', () => {
 
   it.each([
     [
-      'an endpoint failure',
+      'an endpoint outage',
       { failures: [{ kind: 'http' as const, status: 503 }] },
     ],
+    ['a rate limit', { failures: [{ kind: 'http' as const, status: 429 }] }],
     [
-      'a capability probe failure',
+      'a capability probe timeout',
       {
         probeFailures: [
           { kind: 'network' as const, errorType: 'TimeoutError' },
@@ -343,10 +342,28 @@ describe('providers step', () => {
     // Assert
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('using it for this run only');
+    expect(result.stdout).toContain('"kind":');
     expect(readFileSync(resolve(store, 'providers.json'), 'utf8')).toBe(
       'discovered',
     );
     expect(outputs().cacheable).toBe('false');
+  });
+
+  it('caches a discovery whose only failures are permanent', () => {
+    // Act: Ollama answers 404 on an endpoint it does not serve; a probe
+    // rejects one model. Neither will change next run.
+    const result = runProviders({
+      PROVIDERS: cloud,
+      OLLAMA_API_KEY: 'sk-test',
+      FAKE_DISCOVERED: discovered({
+        failures: [{ kind: 'http', status: 404 }],
+        probeFailures: [{ kind: 'http', status: 400 }],
+      }),
+    });
+
+    // Assert
+    expect(result.status).toBe(0);
+    expect(outputs().cacheable).toBe('true');
   });
 
   it('keeps a complete model list when a new discovery is partial', () => {
@@ -391,10 +408,13 @@ describe('providers step', () => {
 
     // Assert
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain('discovery found no models');
+    expect(result.stderr).toContain(
+      "::error::provider 'ollama-cloud' discovery found no models at https://ollama.com/v1",
+    );
+    expect(outputs().cacheable).toBeUndefined();
   });
 
-  it('fails when discovery itself fails', () => {
+  it('names the provider when discovery itself fails', () => {
     // Act
     const result = runProviders({
       PROVIDERS: cloud,
@@ -403,7 +423,58 @@ describe('providers step', () => {
     });
 
     // Assert
-    expect(result.status).not.toBe(0);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "::error::provider 'ollama-cloud' discovery failed at https://ollama.com/v1",
+    );
+    expect(outputs().cacheable).toBeUndefined();
+  });
+
+  describe('in a persistent store', () => {
+    const operatorProvider = (fields: Record<string, unknown>) =>
+      JSON.stringify({
+        api: 'openai-completions',
+        baseUrl: 'https://ollama.com/v1',
+        hasApiKey: false,
+        models: [],
+        ...fields,
+      });
+
+    it('reuses a matching provider that holds no key', () => {
+      // Act
+      const result = runProviders({
+        PROVIDERS: cloud,
+        OLLAMA_API_KEY: 'sk-test',
+        STORE_EXISTING: 'true',
+        FAKE_CURRENT: operatorProvider({}),
+      });
+
+      // Assert
+      expect(result.status).toBe(0);
+    });
+
+    it.each([
+      ['its own key', { hasApiKey: true }],
+      ['another base URL', { baseUrl: 'https://other.example/v1' }],
+      ['another API kind', { api: 'openai-responses' }],
+    ])('refuses to change an operator provider with %s', (_label, fields) => {
+      // Act
+      const result = runProviders({
+        PROVIDERS: cloud,
+        OLLAMA_API_KEY: 'sk-test',
+        STORE_EXISTING: 'true',
+        FAKE_CURRENT: operatorProvider(fields),
+      });
+
+      // Assert
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain(
+        'already configured differently in the persistent store',
+      );
+      expect(argv().some((call) => call.startsWith('providers set'))).toBe(
+        false,
+      );
+    });
   });
 
   it.each([
@@ -432,6 +503,13 @@ describe('providers step', () => {
       { OLLAMA_API_KEY: 'k' },
       "unknown providers token 'models=a,b'",
     ],
+    [
+      'credentials in the URL',
+      'id=x base-url=https://user:secret@x.test/v1',
+      {},
+      'must not contain credentials',
+    ],
+    ['a URL that is not http', 'id=x base-url=ftp://x.test/v1', {}, 'http(s)'],
   ])('rejects %s before sending a key', (_label, providers, env, message) => {
     // Act
     const result = runProviders({ PROVIDERS: providers, ...env });
@@ -484,13 +562,11 @@ describe('providers step', () => {
 
   it.each([
     'http://x.test/v1',
+    'HTTP://x.test/v1',
     'http://127.evil.example/v1',
     'http://127.0.0.1.evil.example/v1',
     'http://localhost.evil.example/v1',
-    'http://localhost@evil.example/v1',
-    'http://127.0.0.1@evil.example/v1',
     'http://[::1].evil.example/v1',
-    'ftp://ollama.com/v1',
   ])('refuses a key over plain http to %s', (baseUrl) => {
     // Act
     const result = runProviders({
@@ -505,13 +581,32 @@ describe('providers step', () => {
   });
 
   it.each([
+    'http://localhost@evil.example/v1',
+    'http://127.0.0.1@evil.example/v1',
+    'http://127.0.0.1:11434@evil.example/v1',
+    'http://localhost:11434@evil/v1',
+  ])('refuses a host hidden behind userinfo: %s', (baseUrl) => {
+    // Act
+    const result = runProviders({
+      PROVIDERS: `id=x base-url=${baseUrl} key-env=X_API_KEY`,
+      X_API_KEY: 'k',
+    });
+
+    // Assert
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('must not contain credentials');
+    expect(argv()).toEqual([]);
+  });
+
+  it.each([
     'https://ollama.com/v1',
+    'HTTPS://ollama.com/v1',
     'http://localhost',
     'http://localhost:11434/v1',
     'http://127.0.0.1:11434/v1',
     'http://127.1.2.3/v1',
     'http://[::1]:11434/v1',
-  ])('accepts %s', (baseUrl) => {
+  ])('accepts a key to %s', (baseUrl) => {
     // Act
     const result = runProviders({
       PROVIDERS: `id=x base-url=${baseUrl} key-env=X_API_KEY`,
@@ -608,16 +703,11 @@ describe('daemon command', () => {
 
 describe('providers checks', () => {
   it('refuses providers when the caller set PI_CODING_AGENT_DIR', () => {
-    // Arrange
-    const step = action.runs.steps.find(
-      (candidate) => candidate.name === 'Check the providers configuration',
-    );
-
     // Act
-    const result = spawnSync('bash', ['-c', step?.run ?? ''], {
-      encoding: 'utf8',
-      env: { PATH: process.env.PATH ?? '', PI_CODING_AGENT_DIR: '/tmp/pi' },
-    });
+    const result = runStepScript(
+      stepByName(action, 'Check the providers configuration'),
+      { PI_CODING_AGENT_DIR: '/tmp/pi' },
+    );
 
     // Assert
     expect(result.status).toBe(1);
@@ -625,13 +715,10 @@ describe('providers checks', () => {
   });
 
   function runAuth(env: Record<string, string>) {
-    const step = action.runs.steps.find((candidate) =>
-      candidate.name?.startsWith('Materialize Pi auth.json'),
+    return runStepScript(
+      stepByName(action, 'Materialize Pi auth.json (when PI_AUTH_JSON is set)'),
+      { HOME: root, RUNNER_TEMP: root, ...env },
     );
-    return spawnSync('bash', ['-c', renderRun(step?.run ?? '')], {
-      encoding: 'utf8',
-      env: { PATH: process.env.PATH ?? '', HOME: root, ...env },
-    });
   }
 
   it('writes PI_AUTH_JSON into the resolved provider store', () => {
@@ -647,6 +734,21 @@ describe('providers checks', () => {
     expect(readFileSync(resolve(store, 'pi/auth.json'), 'utf8')).toBe(
       '{"openai-codex":{}}',
     );
+    expect(existsSync(resolve(root, 'moltnet-pi-auth.written'))).toBe(true);
+  });
+
+  it('keeps an operator login aside for the cleanup to restore', () => {
+    // Arrange
+    mkdirSync(resolve(store, 'pi'), { recursive: true });
+    writeFileSync(resolve(store, 'pi/auth.json'), '{"operator":{}}');
+
+    // Act
+    runAuth({ PROVIDERS: cloud, STORE: store, PI_AUTH_JSON: '{"ci":{}}' });
+
+    // Assert
+    expect(
+      readFileSync(resolve(root, 'moltnet-pi-auth.json.previous'), 'utf8'),
+    ).toBe('{"operator":{}}');
   });
 
   it('checks a stored PI_AUTH_JSON for expired tokens too', () => {
@@ -674,13 +776,17 @@ describe('provider cleanup', () => {
     });
   }
 
-  it('clears each configured key through the CLI and removes Pi auth', () => {
-    // Arrange
+  beforeEach(() => {
     mkdirSync(resolve(store, 'pi'), { recursive: true });
-    writeFileSync(resolve(store, 'pi/auth.json'), '{}');
+  });
+
+  it('clears the keys it stored through the CLI and removes the Pi auth it wrote', () => {
+    // Arrange
+    writeFileSync(resolve(store, 'pi/auth.json'), '{"ci":{}}');
+    writeFileSync(resolve(root, 'moltnet-pi-auth.written'), '');
     writeFileSync(
       resolve(root, 'moltnet-configured-providers'),
-      'ollama-cloud\nollama\n',
+      'ollama-cloud\nopenai\n',
     );
 
     // Act
@@ -691,32 +797,46 @@ describe('provider cleanup', () => {
     expect(existsSync(resolve(store, 'pi/auth.json'))).toBe(false);
     expect(argv()).toEqual([
       `providers set ollama-cloud --clear-api-key --root ${store}`,
-      `providers set ollama --clear-api-key --root ${store}`,
+      `providers set openai --clear-api-key --root ${store}`,
     ]);
   });
 
-  it('still removes Pi auth when the daemon was never resolved', () => {
+  it('puts back an operator login it had set aside', () => {
     // Arrange
-    mkdirSync(resolve(store, 'pi'), { recursive: true });
-    writeFileSync(resolve(store, 'pi/auth.json'), '{}');
+    writeFileSync(resolve(store, 'pi/auth.json'), '{"ci":{}}');
+    writeFileSync(resolve(root, 'moltnet-pi-auth.written'), '');
+    writeFileSync(
+      resolve(root, 'moltnet-pi-auth.json.previous'),
+      '{"operator":{}}',
+    );
+
+    // Act
+    runCleanup({});
+
+    // Assert
+    expect(readFileSync(resolve(store, 'pi/auth.json'), 'utf8')).toBe(
+      '{"operator":{}}',
+    );
+  });
+
+  it('leaves Pi auth it did not write alone', () => {
+    // Arrange
+    writeFileSync(resolve(store, 'pi/auth.json'), '{"operator":{}}');
 
     // Act
     const result = runCleanup({ AGENT_BIN: '' });
 
     // Assert
     expect(result.status).toBe(0);
-    expect(existsSync(resolve(store, 'pi/auth.json'))).toBe(false);
+    expect(readFileSync(resolve(store, 'pi/auth.json'), 'utf8')).toBe(
+      '{"operator":{}}',
+    );
     expect(argv()).toEqual([]);
   });
 
   it('runs whenever the store was resolved, even after a failure', () => {
-    // Act
-    const step = action.runs.steps.find(
-      (candidate) => candidate.id === 'cleanup-providers',
-    );
-
     // Assert
-    expect(step?.if).toBe(
+    expect(stepById(action, 'cleanup-providers').if).toBe(
       "always() && inputs.providers != '' && steps.store.outputs.path != ''",
     );
   });

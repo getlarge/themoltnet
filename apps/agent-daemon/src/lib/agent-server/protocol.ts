@@ -446,10 +446,11 @@ export const DiscoverModelsSchema = Type.Object(
     // Entries, not ids: discovery resolves input modalities, and the console
     // saves what it was given rather than re-deriving them client-side.
     models: ProviderModelList,
+    // Optional so clients also read daemons that predate them.
     /** Listing endpoints that failed while others answered. */
-    failures: DiscoveryFailureList,
+    failures: Type.Optional(DiscoveryFailureList),
     /** Capability probes that failed; some models may lack metadata. */
-    probeFailures: DiscoveryFailureList,
+    probeFailures: Type.Optional(DiscoveryFailureList),
   },
   { $id: 'DiscoveredModels' },
 );

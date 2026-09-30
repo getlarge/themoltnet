@@ -1415,9 +1415,7 @@
           }
         },
         "required": [
-          "models",
-          "failures",
-          "probeFailures"
+          "models"
         ],
         "type": "object"
       },

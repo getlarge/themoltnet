@@ -258,7 +258,7 @@ export type CancelledSubscription = {
 };
 
 export type DiscoveredModels = {
-  failures: Array<
+  failures?: Array<
     | {
         kind: 'http';
         status: number;
@@ -279,7 +279,7 @@ export type DiscoveredModels = {
       [key: string]: string;
     };
   }>;
-  probeFailures: Array<
+  probeFailures?: Array<
     | {
         kind: 'http';
         status: number;

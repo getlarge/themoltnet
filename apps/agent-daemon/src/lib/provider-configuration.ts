@@ -1,5 +1,4 @@
-import { setTimeout as sleep } from 'node:timers/promises';
-
+import { createRetryFetch } from '@moltnet/api-client/retry';
 import {
   formatSecretReferenceString,
   parseSecretReferenceString,
@@ -12,6 +11,7 @@ import {
 
 import {
   AgentServerModelDiscoveryError,
+  assertKeyTransport,
   type DiscoveryFailure,
   MAX_DISCOVERED_MODELS,
   ModelDiscoveryCollector,
@@ -87,6 +87,8 @@ type DiscoveryRequest = {
   failures: DiscoveryFailure[];
   headers: Record<string, string>;
   providerId: string;
+  /** Listings only: probes are one attempt each. */
+  retry?: boolean;
   signal?: AbortSignal;
   url: string;
 } & (
@@ -105,13 +107,8 @@ type DiscoveryRequest = {
     }
 );
 
-/** Worth another try: the provider was briefly unavailable or unreachable. */
-function isTransientDiscoveryFailure(failure: DiscoveryFailure): boolean {
-  if (failure.kind === 'network') return true;
-  return (
-    failure.kind === 'http' && (failure.status >= 500 || failure.status === 429)
-  );
-}
+/** Statuses worth another try: the provider was briefly unavailable. */
+const TRANSIENT_STATUSES = [429, 500, 502, 503, 504];
 
 export class ProviderConfigurationService {
   private readonly fetchImpl: typeof fetch;
@@ -125,9 +122,7 @@ export class ProviderConfigurationService {
       fetchImpl?: typeof fetch;
       logger?: ProviderConfigurationLogger;
       requestTimeoutMs?: number;
-      /** Tries per discovery request, the first included. */
-      discoveryAttempts?: number;
-      /** Base delay between tries; the nth retry waits n times this. */
+      /** Base backoff for retried discovery listings (`retry: true`). */
       discoveryRetryDelayMs?: number;
     },
   ) {
@@ -178,6 +173,10 @@ export class ProviderConfigurationService {
           );
         }
         const parsedBaseUrl = parseProviderBaseUrl(baseUrl, providerId);
+        const keepsKey =
+          Boolean(input.apiKey) ||
+          (!input.clearApiKey && Boolean(previous?.apiKeyRef));
+        if (keepsKey) assertKeyTransport(parsedBaseUrl, providerId);
         let models = (input.models ?? previous?.models ?? []).map(
           copyProviderModel,
         );
@@ -360,7 +359,17 @@ export class ProviderConfigurationService {
 
   async discover(
     providerIdInput: string,
-    options: { save?: boolean; signal?: AbortSignal } = {},
+    options: {
+      save?: boolean;
+      signal?: AbortSignal;
+      /**
+       * Retry the listing endpoints on transient failures (5xx, 429, network
+       * errors, timeouts). For unattended callers such as CI, where one blip
+       * would fail a job; interactive callers get the answer at once.
+       * Capability probes are never retried.
+       */
+      retry?: boolean;
+    } = {},
   ): Promise<{
     models: ProviderModelEntry[];
     /** Endpoints that failed while others answered: a partial discovery. */
@@ -383,6 +392,8 @@ export class ProviderConfigurationService {
     const parsed = parseProviderBaseUrl(provider.baseUrl, providerId);
     const baseUrl = parsed.href.replace(/\/$/u, '');
     const apiKey = await this.resolveApiKey(providerId, provider);
+    // A store written before this rule must not leak its key either.
+    if (apiKey) assertKeyTransport(parsed, providerId);
     const headers: Record<string, string> = apiKey
       ? { authorization: `Bearer ${apiKey}` }
       : {};
@@ -395,6 +406,7 @@ export class ProviderConfigurationService {
         failures,
         headers,
         providerId,
+        retry: options.retry,
         signal: options.signal,
         url: `${baseUrl}/models`,
       }),
@@ -408,6 +420,7 @@ export class ProviderConfigurationService {
           failures,
           headers,
           providerId,
+          retry: options.retry,
           signal: options.signal,
           url: `${parsed.origin}/api/tags`,
         }),
@@ -589,59 +602,47 @@ export class ProviderConfigurationService {
   }
 
   /**
-   * One discovery request, retried on transient failures (5xx, 429, network
-   * errors and timeouts), never on 401/403 or an invalid body: a single blip
-   * must not fail a CI job on a cold cache. Only the final attempt's failure
-   * is recorded.
+   * Each attempt gets its own timeout; with `retry`, transient failures are
+   * retried by `createRetryFetch` (which honours `Retry-After`), and only
+   * the final failure is recorded.
    */
+  private discoveryFetch(input: DiscoveryRequest): typeof fetch {
+    const timeoutMs = this.options.requestTimeoutMs ?? 10_000;
+    const timed: typeof fetch = (url, init) =>
+      this.fetchImpl(url, {
+        ...init,
+        signal: init?.signal
+          ? AbortSignal.any([init.signal, AbortSignal.timeout(timeoutMs)])
+          : AbortSignal.timeout(timeoutMs),
+      });
+    if (!input.retry) return timed;
+    return createRetryFetch({
+      baseFetch: timed,
+      maxRetries: 2,
+      baseDelay: this.options.discoveryRetryDelayMs ?? 500,
+      retryStatuses: TRANSIENT_STATUSES,
+      onRetry: (attempt, delayMs, reason) =>
+        this.logger.info(
+          {
+            attempt: attempt + 1,
+            code: 'agent_server_provider_discovery_retry',
+            delayMs,
+            endpoint: input.endpoint,
+            providerId: input.providerId,
+            reason,
+          },
+          'Retrying provider model discovery request',
+        ),
+    });
+  }
+
   private async requestDiscoveryEndpoint(
     input: DiscoveryRequest,
   ): Promise<unknown> {
-    const attempts = Math.max(1, this.options.discoveryAttempts ?? 3);
-    for (let attempt = 1; ; attempt += 1) {
-      const failures: DiscoveryFailure[] = [];
-      const body = await this.requestDiscoveryOnce({ ...input, failures });
-      const [failure] = failures;
-      if (
-        !failure ||
-        attempt >= attempts ||
-        !isTransientDiscoveryFailure(failure) ||
-        input.signal?.aborted
-      ) {
-        input.failures.push(...failures);
-        return body;
-      }
-      const delayMs = (this.options.discoveryRetryDelayMs ?? 500) * attempt;
-      this.logger.info(
-        {
-          attempt,
-          code: 'agent_server_provider_discovery_retry',
-          delayMs,
-          endpoint: input.endpoint,
-          providerId: input.providerId,
-        },
-        'Retrying provider model discovery request',
-      );
-      try {
-        await sleep(delayMs, undefined, { signal: input.signal });
-      } catch {
-        // Cancelled while waiting: report the failure seen so far.
-        input.failures.push(...failures);
-        return body;
-      }
-    }
-  }
-
-  private async requestDiscoveryOnce(
-    input: DiscoveryRequest,
-  ): Promise<unknown> {
     const startedAt = Date.now();
-    const timeout = AbortSignal.timeout(
-      this.options.requestTimeoutMs ?? 10_000,
-    );
     let response: Response;
     try {
-      response = await this.fetchImpl(input.url, {
+      response = await this.discoveryFetch(input)(input.url, {
         ...(input.body
           ? { body: JSON.stringify(input.body), method: input.method }
           : {}),
@@ -649,9 +650,7 @@ export class ProviderConfigurationService {
           ? { ...input.headers, 'content-type': 'application/json' }
           : input.headers,
         redirect: 'error',
-        signal: input.signal
-          ? AbortSignal.any([input.signal, timeout])
-          : timeout,
+        signal: input.signal,
       });
     } catch (error) {
       const elapsedMs = Date.now() - startedAt;
@@ -675,11 +674,12 @@ export class ProviderConfigurationService {
         );
       }
       const errorType = error instanceof Error ? error.name : typeof error;
+      const timedOut = errorType === 'TimeoutError';
       input.failures.push({ kind: 'network', errorType });
       this.logger.warn(
         {
-          abortSource: timeout.aborted ? 'timeout' : undefined,
-          code: timeout.aborted
+          abortSource: timedOut ? 'timeout' : undefined,
+          code: timedOut
             ? 'agent_server_provider_discovery_timeout'
             : 'agent_server_provider_discovery_request_failed',
           elapsedMs,
@@ -687,7 +687,7 @@ export class ProviderConfigurationService {
           errorType,
           providerId: input.providerId,
         },
-        timeout.aborted
+        timedOut
           ? 'Provider model discovery request timed out'
           : 'Provider model discovery request failed',
       );

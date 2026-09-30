@@ -2,6 +2,7 @@
  * Shared harness for tests that run action.yml shell steps with bash against
  * fake binaries.
  */
+import { spawnSync } from 'node:child_process';
 import { chmodSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,6 +32,22 @@ export function loadAction(): CompositeAction {
   return parse(
     readFileSync(resolve(packageRoot, 'action.yml'), 'utf8'),
   ) as CompositeAction;
+}
+
+/** Any step by id, including `uses:` steps that have no shell block. */
+export function stepWithId(action: CompositeAction, id: string): ActionStep {
+  const step = action.runs.steps.find((candidate) => candidate.id === id);
+  if (!step) throw new Error(`Missing action step id: ${id}`);
+  return step;
+}
+
+export function stepByName(
+  action: CompositeAction,
+  name: string,
+): ActionStep & { run: string } {
+  const step = action.runs.steps.find((candidate) => candidate.name === name);
+  if (!step?.run) throw new Error(`Missing action step: ${name}`);
+  return step as ActionStep & { run: string };
 }
 
 export function stepById(
@@ -73,4 +90,33 @@ export function readCalls(path: string): string[] {
   } catch {
     return [];
   }
+}
+
+/**
+ * Runs a step's shell block with bash, as the runner does, with a minimal
+ * environment: PATH plus `env`.
+ */
+export function runStepScript(
+  step: ActionStep & { run: string },
+  env: Record<string, string>,
+  cwd?: string,
+) {
+  return spawnSync('bash', ['-c', renderRun(step.run)], {
+    cwd,
+    encoding: 'utf8',
+    env: { PATH: process.env.PATH ?? '', ...env },
+  });
+}
+
+/** The `name=value` lines a step appended to its GITHUB_OUTPUT file. */
+export function readOutputs(path: string): Record<string, string> {
+  return Object.fromEntries(
+    readFileSync(path, 'utf8')
+      .split('\n')
+      .filter((line) => line.includes('='))
+      .map((line) => [
+        line.slice(0, line.indexOf('=')),
+        line.slice(line.indexOf('=') + 1),
+      ]),
+  );
 }

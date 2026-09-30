@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -233,6 +233,8 @@ describe('moltnet-agent providers', () => {
     ).toBe(0);
 
     expect(JSON.parse(test.stdout.at(-1) ?? '{}')).toMatchObject({
+      // Automation acts on the store the daemon resolved, not its own guess.
+      storeRoot: realpathSync(test.root),
       configuredProviders: { local: { hasApiKey: false } },
       oauthProviders: [
         { id: 'anthropic', connected: false },

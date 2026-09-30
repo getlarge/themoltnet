@@ -55,7 +55,9 @@ ready-to-apply definitions:
 | [`docs-review-profile.json`](./setup/docs-review-profile.json)                 | `docs-review-v1`: the sandbox, the review contract prompt, `toolEnforcement: enforce`, and a model (Ollama Cloud `gemma4:31b`).  |
 
 Edit only `provider` and `model` in the profile, to a model your workers can
-reach (the `provider` id must be one they know, from `.pi/models.json`). Keep
+reach. The `provider` id must be one the workers know: an `id` in the
+`providers` input (for example `ollama-cloud`), or a provider in the
+repository's `.pi/models.json`. Keep
 the sandbox, `context` and `toolEnforcement`: they are what keeps a review
 agent reading untrusted pull request content read-only. These files are
 copies of the definitions MoltNet reviews itself with; a test keeps them in
