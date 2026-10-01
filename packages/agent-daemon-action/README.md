@@ -265,7 +265,7 @@ with an error explaining what to set. The workflow fails closed.
 ## Model providers
 
 Providers Pi does not know natively, such as Ollama Cloud, need model
-definitions. The action offers two sources for them.
+definitions. Configure them with the `providers` input.
 
 ### `providers` input
 
@@ -318,28 +318,16 @@ undoes only what it wrote: it clears the keys it stored, through the daemon
 CLI, and removes the `pi/auth.json` it wrote, putting back an operator's own
 login if there was one. Keys are never cached.
 
-With `providers` set, the daemon composes Pi's model configuration from this
-store. A repository `.pi/models.json` is merged underneath: providers only in
-the repository are kept as they are. For a provider id defined in both, the
-store's entry replaces the repository's whole provider object (fields such as
-`headers` in the repository entry are dropped), except that repository models
-the store lacks are added. `PI_AUTH_JSON` is written into the store
-alongside, with the same expiry check as without `providers`. A caller-set
-`PI_CODING_AGENT_DIR` would make the daemon ignore the store, so the action
-refuses that combination.
+With `providers` set, the daemon composes Pi's model configuration from the
+provider store. Repository Pi files are not copied or merged. `PI_AUTH_JSON`
+is written into the store alongside, with the same expiry check as without
+`providers`. A caller-set `PI_CODING_AGENT_DIR` would make the daemon ignore
+the store, so the action refuses that combination.
 
-### Repository `.pi/` configuration
-
-Without `providers`, the action sets `PI_CODING_AGENT_DIR` before starting
-the daemon. By default it points to `$RUNNER_TEMP/.pi/agent`, keeping GitHub
-runs isolated from both repo-local `.pi` config and the runner user's home
-directory. Set `PI_CODING_AGENT_DIR` explicitly only if you want the action to
-use a different runner-local Pi directory.
-
-When repo-local `.pi/settings.json` or `.pi/models.json` exist, the action
-copies them into the runner-local Pi directory before starting the daemon, and
-they must reference secrets by environment variable name, for example
-`"apiKey": "$OLLAMA_API_KEY"`.
+Without `providers`, the action uses an empty `$RUNNER_TEMP/.pi/agent`
+directory for Pi's built-in providers and environment-based authentication.
+It does not copy repository settings or model catalogs. A caller may select
+an explicit runner-local directory with `PI_CODING_AGENT_DIR`.
 
 ## Pi provider auth
 
@@ -363,7 +351,7 @@ owns the key. No rotation needed — the key just keeps working until
 you revoke it.
 
 If the selected runtime profile uses Ollama, set `OLLAMA_API_KEY` and configure
-the provider with the `providers` input (or a repository `.pi/models.json`).
+the provider with the `providers` input.
 
 ### Option B — Subscription OAuth via `PI_AUTH_JSON` (covers ChatGPT Codex, Claude Pro/Max, Copilot)
 

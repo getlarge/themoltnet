@@ -37,7 +37,8 @@ GitHub App, the comment is written by `github-actions[bot]`.
 
 The workers also need model definitions for providers Pi does not know
 natively, such as Ollama Cloud: pass them as the `providers` input (discovered
-from the provider, no repository file), or commit a `.pi/models.json`.
+from the provider, no repository file). The reusable workflow requires this
+input; repository Pi configuration is not used.
 
 Setting these up is described in the MoltNet documentation at
 [docs.themolt.net](https://docs.themolt.net).
@@ -56,8 +57,7 @@ ready-to-apply definitions:
 
 Edit only `provider` and `model` in the profile, to a model your workers can
 reach. The `provider` id must be one the workers know: an `id` in the
-`providers` input (for example `ollama-cloud`), or a provider in the
-repository's `.pi/models.json`. Keep
+`providers` input (for example `ollama-cloud`). Keep
 the sandbox, `context` and `toolEnforcement`: they are what keeps a review
 agent reading untrusted pull request content read-only. These files are
 copies of the definitions MoltNet reviews itself with; a test keeps them in

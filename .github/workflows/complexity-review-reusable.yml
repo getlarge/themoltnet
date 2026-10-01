@@ -35,9 +35,12 @@ on:
         type: string
         default: ''
       providers:
-        description: Provider definitions accepted by agent-daemon-action; empty uses .pi/models.json.
+        description: >
+          Provider definitions accepted by agent-daemon-action, one per line.
+          key-env must name a provider secret passed to the workers. Repository
+          Pi configuration is not used.
         type: string
-        default: ''
+        required: true
       daemon-version:
         description: Exact released daemon version; empty pins the release recorded at the runtime commit.
         type: string
@@ -95,7 +98,12 @@ jobs:
           WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
           WORKFLOW_SHA: ${{ job.workflow_sha }}
           RUNTIME_REF: ${{ inputs.runtime-ref }}
+          PROVIDERS: ${{ inputs.providers }}
         run: |
+          if ! printf '%s\n' "$PROVIDERS" | grep -Eq '^[[:space:]]*[^#[:space:]]'; then
+            echo '::error::providers must contain a provider definition; repository Pi configuration is not used' >&2
+            exit 1
+          fi
           if [ -z "$WORKFLOW_REPOSITORY" ]; then echo '::error::workflow repository is unknown'; exit 1; fi
           if [ -z "$RUNTIME_REF" ] && ! [[ "$WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]; then echo '::error::set runtime-ref to a commit'; exit 1; fi
           echo "repository=$WORKFLOW_REPOSITORY" >> "$GITHUB_OUTPUT"

@@ -114,11 +114,8 @@ inputs:
       sent only over https, or http to this machine (localhost, 127.x,
       [::1]); keyless providers may use http. URLs carry no credentials. Blank lines and `#` comments are ignored. Models are discovered
       from the provider and cached, refreshed each ISO week. When set, the
-      daemon composes Pi's model configuration from this store; a repository
-      `.pi/models.json` is merged underneath: for a provider id defined in
-      both, the store's provider entry replaces the repository's, except that
-      repository models the store lacks are added. See the README for every
-      rule.
+      daemon composes Pi's model configuration from this store. Repository
+      .pi files are not used. See the README for every rule.
     required: false
     default: ''
   providers-refresh:
@@ -543,13 +540,6 @@ runs:
         # Callers may still provide PI_CODING_AGENT_DIR explicitly.
         PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$RUNNER_TEMP/.pi/agent}"
         mkdir -p "$PI_AGENT_DIR"
-        for config_file in settings.json models.json; do
-          source_file="$GITHUB_WORKSPACE/.pi/$config_file"
-          if [ -f "$source_file" ] && [ ! -f "$PI_AGENT_DIR/$config_file" ]; then
-            cp "$source_file" "$PI_AGENT_DIR/$config_file"
-            echo "::notice::Pi $config_file copied from repo .pi/ into $PI_AGENT_DIR"
-          fi
-        done
         {
           echo "PI_CODING_AGENT_DIR=$PI_AGENT_DIR"
         } >> "$GITHUB_ENV"
@@ -779,7 +769,14 @@ runs:
         fi
         echo "MOLTNET_AGENT_BIN=$bin" >> "$GITHUB_ENV"
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-        echo "::notice::$("$bin" --version 2>/dev/null || echo 'moltnet-agent installed')"
+        # Read the signed install's manifest; older daemons have no --version.
+        version="$(node -e 'const fs = require("node:fs"); const path = require("node:path"); const bin = fs.realpathSync(process.argv[1]); const manifest = JSON.parse(fs.readFileSync(path.resolve(path.dirname(bin), "../manifest.json"), "utf8")); process.stdout.write(manifest.version);' "$bin")"
+        if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo '::error::installed daemon manifest has no exact release version' >&2
+          exit 1
+        fi
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        echo "::notice::moltnet-agent $version installed"
 
     # One daemon command for every step. `workspace` runs the daemon source
     # from the checkout: workspace package exports intentionally resolve to
@@ -792,6 +789,7 @@ runs:
       env:
         DAEMON_VERSION: ${{ inputs.daemon-version }}
         PROVIDERS: ${{ inputs.providers }}
+        INSTALLED_VERSION: ${{ steps.install-daemon.outputs.version }}
       run: |
         set -euo pipefail
         if [ "$DAEMON_VERSION" = "workspace" ]; then
@@ -812,7 +810,7 @@ runs:
           # The signed release bundle ships its own Node runtime and gondolin
           # natives, verified by the installer's signature check.
           bin="$MOLTNET_AGENT_BIN"
-          version="$("$bin" --version 2>/dev/null | head -n 1 | tr -d '\r\n' | tr -c 'A-Za-z0-9._-' '-' || true)"
+          version="${INSTALLED_VERSION:-}"
         fi
         # The version keys the provider cache; without it a cache would be
         # shared by every daemon.

@@ -6,8 +6,9 @@ The public entry point is
 The caller workflow owns triggers and names protected runtime paths. The
 reusable workflow pins one runtime commit, checks out the PR base as trusted
 code, fetches the PR head as inert git data, and runs two released daemon
-workers in parallel. `providers` is forwarded to `agent-daemon-action`; an
-empty value uses the repository's `.pi/models.json`.
+workers in parallel. The required `providers` input is forwarded to
+`agent-daemon-action`, which discovers the consumer's provider models.
+Repository Pi configuration is not used.
 
 The action has `prepare` and `review` steps. `prepare` collects PR facts,
 reads `.github/complexity-review.json` at the PR base, checks protected paths,

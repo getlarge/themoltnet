@@ -90,6 +90,7 @@ jobs:
       - name: Run task
         uses: ./packages/agent-daemon-action
         with:
+          providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
           task-spec-path: ${{ steps.compose.outputs.task-spec-path }}
           tags: ${{ steps.compose.outputs.task-tags }}
           # Flip to 'false' once the deployed `pr_review` schema includes
