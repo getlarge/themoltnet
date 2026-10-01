@@ -40,6 +40,9 @@ agent-daemon — long-running task worker for MoltNet.
 
 Usage: agent-daemon [--runtime <module>] <command> [...flags]
 
+Options:
+  --version                   Print the installed daemon version.
+
 Runtime:
   --runtime <module>          Trusted local file or installed package whose
                               default export is a DaemonRuntimeAdapter.

@@ -4,6 +4,7 @@ import { runAgentDaemonCli } from './cli.js';
 import { runOnce } from './cli/once.js';
 import { processEnvSnapshot } from './config.js';
 import type { DaemonRuntimeAdapter } from './runtime.js';
+import { DAEMON_VERSION } from './version.js';
 
 vi.mock('./cli/once.js', () => ({ runOnce: vi.fn().mockResolvedValue(0) }));
 afterEach(() => {
@@ -36,4 +37,21 @@ describe('legacy store notice at CLI dispatch', () => {
         expect(runOnce).toHaveBeenCalledWith(argv.slice(1), {});
     },
   );
+});
+
+describe('daemon version', () => {
+  it('prints its version without dispatching a runtime or emitting legacy notices', async () => {
+    vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', '/tmp/legacy-store');
+    vi.stubEnv('MOLTNET_LEGACY_STORE_NOTICE_SHOWN', '');
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(
+      await runAgentDaemonCli({
+        argv: ['--version'],
+        runtime: {} as DaemonRuntimeAdapter,
+      }),
+    ).toBe(0);
+    expect(log).toHaveBeenCalledWith(`moltnet-agent ${DAEMON_VERSION}`);
+    expect(error).not.toHaveBeenCalled();
+  });
 });

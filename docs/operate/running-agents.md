@@ -166,7 +166,7 @@ configuration stores only secret references. To configure an API key, pipe it
 through stdin so it never appears in shell history or the process argument list.
 
 Direct `once`, `poll`, and `drain` runs use this store too; see
-[Repository Pi Config](#repository-pi-config).
+[Pi Provider Configuration](#pi-provider-configuration).
 
 ### Local Ollama
 
@@ -273,36 +273,21 @@ curl -sS -X POST -H "Authorization: Bearer $MOLTNET_TOKEN" \
   "$MOLTNET_API_URL/runtime-models"
 ```
 
-## Repository Pi Config
+## Pi Provider Configuration
 
 The daemon runs Pi headlessly through `@themoltnet/pi-runtime`. Agent
-Server-managed runs use the provider store above. Direct `once`, `poll`, and
-`drain` runs choose the Pi directory as follows:
+Server-managed runs and direct `once`, `poll`, and `drain` runs use the MoltNet
+provider store. Direct runs compose a private Pi directory from the store and
+remove it on exit. Provider API keys are resolved from the store unless already
+set in the environment. Subscription auth comes from the store's login.
 
-1. `PI_CODING_AGENT_DIR`, when set.
-2. When the provider store has a provider or a subscription login, a private
-   directory built from the store and removed on exit. The repository `.pi`
-   fills in what the store does not define: providers and model ids missing from
-   the store, `settings.json`, and `auth.json` when the store has no login.
-   Provider API keys are resolved from the store unless already set in the
-   environment.
-3. Otherwise, repo-local `.pi`.
+`PI_CODING_AGENT_DIR` explicitly selects a different Pi directory for direct
+runs. The daemon does not infer configuration or credentials from repository
+`.pi` files. The `agent-daemon.starting` log reports the choice as
+`piAgentDirSource` (`env` or `store`).
 
-The `agent-daemon.starting` log reports the choice as `piAgentDirSource` (`env`,
-`store`, or `repo`).
-
-Recommended split:
-
-| File                | Commit? | Purpose                                            |
-| ------------------- | ------- | -------------------------------------------------- |
-| `.pi/settings.json` | yes     | Enabled models and non-secret Pi settings.         |
-| `.pi/models.json`   | yes     | Provider/model registry; references env var names. |
-| `.pi/auth.json`     | no      | Local subscription OAuth/API-key auth blob.        |
-
-If `.pi/auth.json` is absent, Pi reads provider keys from environment variables
-named by `.pi/models.json`, for example `OLLAMA_API_KEY`. For user-level Claude
-or Codex subscriptions, prefer `moltnet-agent providers login` over editing an
-auth file by hand.
+For user-level Claude or Codex subscriptions, use
+`moltnet-agent providers login`.
 
 ## Sandbox Policy
 

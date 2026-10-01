@@ -1,4 +1,5 @@
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readdirSync,
@@ -11,7 +12,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ProvidersState } from './agent-server/store.js';
 import { type PiAgentDir, resolvePiAgentDir } from './pi-agent-dir.js';
@@ -53,6 +54,7 @@ describe('resolvePiAgentDir', () => {
   const resolved: PiAgentDir[] = [];
 
   afterEach(() => {
+    vi.restoreAllMocks();
     for (const dir of resolved.splice(0)) dir.cleanup();
     for (const root of tempRoots.splice(0)) {
       rmSync(root, { recursive: true, force: true });
@@ -114,7 +116,6 @@ describe('resolvePiAgentDir', () => {
         agentServerRoot: input.storeRoot,
         profilePrerequisiteEnv: input.env ?? {},
       },
-      input.agentRoot,
       input.profiles ?? [],
       {
         secretProviders: {
@@ -148,23 +149,28 @@ describe('resolvePiAgentDir', () => {
     expect(statSync(explicit).isDirectory()).toBe(true);
   });
 
-  it('falls back to repo .pi when the store has no providers and no login', async () => {
-    // Arrange
+  it('ignores repository configuration even when the store is empty', async () => {
     const agentRoot = tempDir();
-
-    // Act
+    vi.spyOn(process, 'cwd').mockReturnValue(agentRoot);
+    writeRepoPi(agentRoot, {
+      models: REPO_MODELS,
+      auth: { repository: {} },
+      settings: { transport: 'sse' },
+    });
     const result = await resolve({
       agentRoot,
       storeRoot: join(tempDir(), 'missing'),
       profiles: OLLAMA_CLOUD_PROFILE,
     });
-
-    // Assert
-    expect(result).toMatchObject({
-      path: join(agentRoot, '.pi'),
-      source: 'repo',
-      env: {},
+    expect(result.source).toBe('store');
+    expect(result.path).not.toBe(join(agentRoot, '.pi'));
+    expect(readJson(join(result.path, 'models.json'))).toEqual({
+      providers: {},
     });
+    expect(existsSync(join(result.path, 'auth.json'))).toBe(false);
+    expect(
+      readFileSync(join(result.path, 'settings.json'), 'utf8'),
+    ).not.toContain('sse');
   });
 
   it('composes a private dir from store providers, login and API keys', async () => {
@@ -201,11 +207,12 @@ describe('resolvePiAgentDir', () => {
     });
   });
 
-  it('layers repo models and settings under the store catalog', async () => {
+  it('uses only store models and settings even when repository files exist', async () => {
     // Arrange
     const agentRoot = tempDir();
     const storeRoot = tempDir();
     writeStore(storeRoot, { providers: STORE_OLLAMA });
+    vi.spyOn(process, 'cwd').mockReturnValue(agentRoot);
     writeRepoPi(agentRoot, {
       models: REPO_MODELS,
       settings: { transport: 'sse' },
@@ -226,22 +233,18 @@ describe('resolvePiAgentDir', () => {
           api: 'openai-completions',
           apiKey: '$MOLTNET_PROVIDER_OLLAMA_CLOUD_API_KEY',
           baseUrl: 'https://ollama.com/v1',
-          models: [
-            { id: 'glm-5.2' },
-            { id: 'glm-5.2:cloud', contextWindow: 202752, reasoning: true },
-          ],
+          models: [{ id: 'glm-5.2' }],
         },
-        ollama: REPO_MODELS.providers.ollama,
       },
     });
-    expect(readJson(join(result.path, 'settings.json'))).toEqual({
-      transport: 'sse',
-    });
+    expect(
+      readFileSync(join(result.path, 'settings.json'), 'utf8'),
+    ).not.toContain('sse');
   });
 
   it.each([
     { storeLogin: true, expected: { codex: { access: 'store' } } },
-    { storeLogin: false, expected: { anthropic: { access: 'repo' } } },
+    { storeLogin: false, expected: undefined },
   ])(
     'links one auth.json, never merged (store login: $storeLogin)',
     async ({ storeLogin, expected }) => {
@@ -258,7 +261,9 @@ describe('resolvePiAgentDir', () => {
       const result = await resolve({ agentRoot, storeRoot });
 
       // Assert
-      expect(readJson(join(result.path, 'auth.json'))).toEqual(expected);
+      if (expected)
+        expect(readJson(join(result.path, 'auth.json'))).toEqual(expected);
+      else expect(existsSync(join(result.path, 'auth.json'))).toBe(false);
     },
   );
 

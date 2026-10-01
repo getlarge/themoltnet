@@ -23,6 +23,10 @@ export async function runAgentDaemonCli(options: {
   argv?: string[];
 }): Promise<number> {
   const [subcommand, ...rest] = options.argv ?? process.argv.slice(2);
+  if (subcommand === '--version') {
+    console.log(`moltnet-agent ${DAEMON_VERSION}`);
+    return 0;
+  }
   const help =
     subcommand === '--help' ||
     subcommand === '-h' ||

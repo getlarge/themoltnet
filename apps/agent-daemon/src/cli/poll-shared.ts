@@ -410,11 +410,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     throw new Error(`No safe runtime profiles remain. ${details}`);
   }
   // PI_CODING_AGENT_DIR is process-wide, so every profile shares one Pi dir.
-  const piAgentDir = await resolvePiAgentDir(
-    cfg,
-    profiles[0].mountPath,
-    profiles,
-  );
+  const piAgentDir = await resolvePiAgentDir(cfg, profiles);
   process.once('exit', piAgentDir.cleanup);
   activatePiCodingAgentDir(piAgentDir.path, piAgentDir.env);
   if (!runtimes.has(profiles[0].id)) {
