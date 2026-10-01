@@ -460,6 +460,7 @@ async function runLiveTask(input: {
   const oldCwd = process.cwd();
   try {
     for (const name of [
+      'MOLTNET_API_URL',
       'MOLTNET_CREDENTIALS_PATH',
       'MOLTNET_AGENT_KEY',
       'MOLTNET_AGENT_KEY_REF',
