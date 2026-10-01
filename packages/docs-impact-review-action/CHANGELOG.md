@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.2](https://github.com/getlarge/themoltnet/compare/docs-impact-review-action-v0.2.1...docs-impact-review-action-v0.2.2) (2026-10-01)
+
+
+### Bug Fixes
+
+* **actions:** use supported GitHub App token input ([61b9f8c](https://github.com/getlarge/themoltnet/commit/61b9f8c3a9b4fc1f76f1679037e57ed044c6e911))
+* **actions:** use supported GitHub App token input ([c60a26b](https://github.com/getlarge/themoltnet/commit/c60a26bdb0b8b67d809554fa67516a9ae177114b))
+* **ci:** configure review providers independently of repository Pi files ([61d45cb](https://github.com/getlarge/themoltnet/commit/61d45cb67853c607172dc60034201c762f66a91f))
+* **ci:** isolate workflow providers without changing agent runtime ([efee2c8](https://github.com/getlarge/themoltnet/commit/efee2c81be5d8a6c531ce2a33ee043aeb918dfd6))
+* **review:** document provider setup with concrete examples ([bde5dec](https://github.com/getlarge/themoltnet/commit/bde5decdade668bd818a1b292f665fd5e22b4c82))
+* **review:** require workflow-owned providers and resolve installed daemon version ([3ac69e3](https://github.com/getlarge/themoltnet/commit/3ac69e31e8745445501d1318cea5049bb4188b14))
+
 ## [0.2.1](https://github.com/getlarge/themoltnet/compare/docs-impact-review-action-v0.2.0...docs-impact-review-action-v0.2.1) (2026-09-30)
 
 

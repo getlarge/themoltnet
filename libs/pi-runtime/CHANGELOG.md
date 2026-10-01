@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.21.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.20.1...pi-runtime-v0.21.0) (2026-10-01)
+
+
+### Features
+
+* **daemon:** enforce typed freeform results ([6ed36d1](https://github.com/getlarge/themoltnet/commit/6ed36d1faab102df4f830eac3dcfbf3fa8faedd8))
+* **tasks:** enforce custom output contracts in daemon ([3710185](https://github.com/getlarge/themoltnet/commit/3710185427f565b404e6d8efef4b9a05c9f21409))
+* **tasks:** support typed freeform results ([6ebe475](https://github.com/getlarge/themoltnet/commit/6ebe47563a70f1ce7f0bf3093e33c9fee8d25673))
+
+
+### Bug Fixes
+
+* address review round 1 on output contract recovery ([0a3ad90](https://github.com/getlarge/themoltnet/commit/0a3ad90b61e55b958f7e2357600026bcd74486ad))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.9.0
+    * @themoltnet/sandbox-gondolin bumped to 0.6.0
+    * @themoltnet/sdk bumped to 0.148.0
+
 ## [0.20.1](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.20.0...pi-runtime-v0.20.1) (2026-09-30)
 
 
