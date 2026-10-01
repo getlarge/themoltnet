@@ -13,6 +13,8 @@
   "scripts": {
     "generate:pi": "tsx scripts/generate-pi-catalog.ts",
     "check:pi": "tsx scripts/generate-pi-catalog.ts --check",
+    "generate:ollama-cloud": "tsx scripts/generate-ollama-cloud-catalog.ts",
+    "check:ollama-cloud": "tsx scripts/generate-ollama-cloud-catalog.ts --check",
     "test": "vitest run"
   },
   "devDependencies": {

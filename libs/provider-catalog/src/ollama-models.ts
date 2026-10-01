@@ -1,3 +1,4 @@
+import { ollamaCloudModelIds } from './ollama-cloud-models.generated.js';
 import type { RuntimeModelCatalogEntry } from './types.js';
 
 // MoltNet's Pi integration uses Ollama's OpenAI-compatible endpoint. That
@@ -35,24 +36,16 @@ export const ollamaModels: readonly RuntimeModelCatalogEntry[] = [
   capabilities: { ...openAiCompatibleRequestCapabilities },
 }));
 
-/** Reviewed Ollama Cloud entries from the public Model Library (2026-09-04). */
-export const ollamaCloudModels: readonly RuntimeModelCatalogEntry[] = [
-  'deepseek-v3.1:671b-cloud',
-  'deepseek-v4-flash:cloud',
-  'deepseek-v4-pro:cloud',
-  'gemma3:27b-cloud',
-  'gemma4:cloud',
-  'glm-5.1:cloud',
-  'glm-5.2:cloud',
-  'kimi-k2.5:cloud',
-  'llama3.3:70b-cloud',
-  'minimax-m2.5:cloud',
-  'minimax-m3:cloud',
-  'qwen3-coder:480b-cloud',
-].map((model) => ({
-  provider: 'ollama-cloud',
-  model,
-  displayName: `Ollama Cloud · ${model}`,
-  description: 'Ollama Cloud model suggestion.',
-  capabilities: { ...openAiCompatibleRequestCapabilities },
-}));
+/**
+ * Ollama Cloud entries generated from the public model list at
+ * https://ollama.com/v1/models (see `generate:ollama-cloud`). Ids are the ones
+ * the `ollama-cloud` provider accepts, without local-proxy `:cloud` aliases.
+ */
+export const ollamaCloudModels: readonly RuntimeModelCatalogEntry[] =
+  ollamaCloudModelIds.map((model) => ({
+    provider: 'ollama-cloud',
+    model,
+    displayName: `Ollama Cloud · ${model}`,
+    description: 'Ollama Cloud model suggestion.',
+    capabilities: { ...openAiCompatibleRequestCapabilities },
+  }));

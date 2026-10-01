@@ -47,6 +47,16 @@ describe('provider catalog', () => {
     ).toBe(globalRuntimeModelCatalog.length);
   });
 
+  it('uses Ollama Cloud API model ids, not local-proxy :cloud aliases', () => {
+    // `:cloud` / `-cloud` names only exist on a local Ollama server proxying
+    // cloud models; the ollama-cloud provider talks to https://ollama.com/v1.
+    const proxyAliases = ollamaCloudModels
+      .map((entry) => entry.model)
+      .filter((model) => /(:|-)cloud$/.test(model));
+
+    expect(proxyAliases).toEqual([]);
+  });
+
   it('records request option support and leaves unknown providers undecided', () => {
     for (const entry of piRuntimeModels) {
       for (const option of [

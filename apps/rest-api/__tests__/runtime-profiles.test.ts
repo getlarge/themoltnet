@@ -357,13 +357,13 @@ describe('runtime profile routes', () => {
     mocks.runtimeProfileRepository.create.mockResolvedValue(
       mockProfile({
         provider: 'ollama-cloud',
-        model: 'qwen3-coder:480b-cloud',
+        model: 'gpt-oss:120b',
       }),
     );
     const payload = {
       name: 'ollama-options',
       provider: 'ollama-cloud',
-      model: 'qwen3-coder:480b-cloud',
+      model: 'gpt-oss:120b',
       sandbox: {},
       temperature: 0.2,
       topP: 0.9,

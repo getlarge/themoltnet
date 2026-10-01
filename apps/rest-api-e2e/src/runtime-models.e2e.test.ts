@@ -204,7 +204,7 @@ describe('Runtime Models Catalog API', () => {
     expect(
       data!.items.some(
         (item) =>
-          item.provider === 'ollama-cloud' && item.model === 'minimax-m3:cloud',
+          item.provider === 'ollama-cloud' && item.model === 'minimax-m3',
       ),
     ).toBe(true);
     // Seeded entries are global → no teamId.
