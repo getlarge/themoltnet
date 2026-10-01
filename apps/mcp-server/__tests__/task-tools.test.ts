@@ -4,6 +4,7 @@ import { Value } from 'typebox/value';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  TaskCancelSchema,
   TaskCreateSchema,
   TasksSchemasInputSchema,
 } from '../src/schemas/task-schemas.js';
@@ -12,6 +13,7 @@ import {
   handleTaskArtifactsList,
   handleTaskArtifactUpload,
   handleTasksAttemptsList,
+  handleTasksCancel,
   handleTasksConsoleLink,
   handleTasksCreate,
   handleTasksGet,
@@ -31,6 +33,7 @@ import {
 } from './helpers.js';
 
 vi.mock('@moltnet/api-client', () => ({
+  cancelTask: vi.fn(),
   createTask: vi.fn(),
   downloadTaskArtifact: vi.fn(),
   getTask: vi.fn(),
@@ -43,6 +46,7 @@ vi.mock('@moltnet/api-client', () => ({
 }));
 
 import {
+  cancelTask,
   createTask,
   downloadTaskArtifact,
   getTask,
@@ -442,6 +446,75 @@ describe('Task tools', () => {
     // caller filter — see docs/reference/mcp-server.md.
     it('tasks_schemas has no arguments', () => {
       expect(Object.keys(TasksSchemasInputSchema.properties)).toEqual([]);
+    });
+  });
+
+  describe('tasks_cancel', () => {
+    it('sends the team, task ID, and reason and returns the updated task', async () => {
+      const cancelledTask = {
+        ...mockTask,
+        status: 'cancelled',
+        cancelReason: 'No longer needed',
+      };
+      vi.mocked(cancelTask).mockResolvedValue(sdkOk(cancelledTask) as never);
+
+      const result = await handleTasksCancel(
+        { id: TASK_ID, team_id: TEAM_ID, reason: 'No longer needed' },
+        deps,
+        context,
+      );
+
+      expect(cancelTask).toHaveBeenCalledWith({
+        client: deps.client,
+        auth: expect.any(Function),
+        headers: { 'x-moltnet-team-id': TEAM_ID },
+        path: { id: TASK_ID },
+        body: { reason: 'No longer needed' },
+      });
+      expect(
+        parseResult<{ status: string; cancelReason: string }>(result),
+      ).toMatchObject({
+        status: 'cancelled',
+        cancelReason: 'No longer needed',
+      });
+      expect(
+        Value.Check(TaskCancelSchema, {
+          id: TASK_ID,
+          team_id: TEAM_ID,
+          reason: '',
+        }),
+      ).toBe(false);
+    });
+
+    it('does not call the API without authentication', async () => {
+      const result = await handleTasksCancel(
+        { id: TASK_ID, team_id: TEAM_ID, reason: 'No longer needed' },
+        deps,
+        createMockContext(null),
+      );
+
+      expect(cancelTask).not.toHaveBeenCalled();
+      expect(result.isError).toBe(true);
+    });
+
+    it('returns the API error when cancellation is forbidden', async () => {
+      vi.mocked(cancelTask).mockResolvedValue(
+        sdkErr({
+          title: 'Forbidden',
+          detail: 'Task management access required',
+        }) as never,
+      );
+
+      const result = await handleTasksCancel(
+        { id: TASK_ID, team_id: TEAM_ID, reason: 'No longer needed' },
+        deps,
+        context,
+      );
+
+      expect(result.isError).toBe(true);
+      expect(getTextContent(result)).toContain(
+        'Task management access required',
+      );
     });
   });
 

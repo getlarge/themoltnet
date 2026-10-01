@@ -567,6 +567,7 @@ describe('buildApp', () => {
     // task tools
     expect(toolNames).toContain('tasks_schemas');
     expect(toolNames).toContain('tasks_create');
+    expect(toolNames).toContain('tasks_cancel');
     expect(toolNames).toContain('tasks_get');
     expect(toolNames).toContain('tasks_list');
     expect(toolNames).toContain('tasks_attempts_list');
@@ -970,6 +971,10 @@ describe('buildApp', () => {
         {
           "inputSchema": "f64675cd81e5209c",
           "name": "tasks_attempts_list",
+        },
+        {
+          "inputSchema": "7717dc4a809d3bbf",
+          "name": "tasks_cancel",
         },
         {
           "inputSchema": "1c9c9b04f93c865c",

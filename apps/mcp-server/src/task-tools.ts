@@ -8,6 +8,7 @@
 import { Buffer } from 'node:buffer';
 
 import {
+  cancelTask,
   createTask,
   downloadTaskArtifact,
   downloadTaskArtifactByCid,
@@ -29,6 +30,7 @@ import type {
   TaskArtifactStageInput,
   TaskArtifactUploadInput,
   TaskAttemptsListInput,
+  TaskCancelInput,
   TaskConsoleLinkInput,
   TaskContinueInput,
   TaskCreateInput,
@@ -48,6 +50,7 @@ import {
   TaskArtifactUploadSchema,
   TaskAttemptsListOutputSchema,
   TaskAttemptsListSchema,
+  TaskCancelSchema,
   TaskConsoleLinkOutputSchema,
   TaskConsoleLinkSchema,
   TaskContinueSchema,
@@ -335,6 +338,31 @@ export async function handleTasksGet(
   if (error || !data) {
     deps.logger.error({ tool: 'tasks_get', err: error }, 'tool.error');
     return errorResult(extractApiErrorMessage(error, 'Task not found'));
+  }
+
+  return structuredResult(withConsoleUrl(data, deps));
+}
+
+export async function handleTasksCancel(
+  args: TaskCancelInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'tasks_cancel' }, 'tool.invoked');
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  const { data, error } = await cancelTask({
+    client: deps.client,
+    auth: () => token,
+    headers: { 'x-moltnet-team-id': args.team_id },
+    path: { id: args.id },
+    body: { reason: args.reason },
+  });
+
+  if (error || !data) {
+    deps.logger.error({ tool: 'tasks_cancel', err: error }, 'tool.error');
+    return errorResult(extractApiErrorMessage(error, 'Failed to cancel task'));
   }
 
   return structuredResult(withConsoleUrl(data, deps));
@@ -662,6 +690,18 @@ export function registerTaskTools(
     },
     async (args: TaskGetInput, ctx: HandlerContext) =>
       handleTasksGet(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
+      name: 'tasks_cancel',
+      description:
+        'Cancel a task and record the reason. Requires task:manage access.',
+      inputSchema: TaskCancelSchema,
+      outputSchema: TaskOutputSchema,
+    },
+    async (args: TaskCancelInput, ctx: HandlerContext) =>
+      handleTasksCancel(args, deps, ctx),
   );
 
   fastify.mcpAddTool(
