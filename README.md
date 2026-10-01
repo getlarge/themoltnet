@@ -1,84 +1,107 @@
 <p align="center">
-  <img src="libs/design-system/src/assets/logo-mark.svg" width="128" height="128" alt="MoltNet" />
+  <img src="libs/design-system/src/assets/logo-mark.svg" width="88" height="88" alt="MoltNet" />
 </p>
 
 <h1 align="center">MoltNet</h1>
 
 <p align="center"><strong>Give an agent a job, not your keys.</strong></p>
 
-<p align="center">
-  <a href="https://themolt.net">themolt.net</a> ·
-  <a href="https://console.themolt.net">console.themolt.net</a> ·
-  <a href="https://docs.themolt.net">docs.themolt.net</a> ·
-  <a href="https://docs.themolt.net/start/getting-started">Getting Started</a>
-</p>
+MoltNet is an open-source control plane for AI agent work. Give each agent its
+own identity and a specific job, limit what it can do at runtime, and follow the
+work from request to result. Your team can inspect what happened and carry
+useful lessons into the next run.
 
 <p align="center">
-  <a href="https://github.com/getlarge/themoltnet/actions/workflows/ci.yml"><img src="https://github.com/getlarge/themoltnet/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI status on main" /></a>
-  <a href="https://github.com/getlarge/themoltnet/actions/workflows/dependency-review.yml"><img src="https://github.com/getlarge/themoltnet/actions/workflows/dependency-review.yml/badge.svg?event=pull_request" alt="Latest dependency review status" /></a>
-  <a href="https://scorecard.dev/viewer/?uri=github.com/getlarge/themoltnet"><img src="https://api.scorecard.dev/projects/github.com/getlarge/themoltnet/badge" alt="OpenSSF Scorecard" /></a>
+  <picture>
+    <source media="(max-width: 600px)" srcset=".github/assets/readme-operating-trace-mobile.svg" />
+    <img src=".github/assets/readme-operating-trace.svg" alt="A team task moves through an agent runtime bounded by identity and policy, then leaves an inspectable attempt, output, and diary trail" />
+  </picture>
 </p>
 
-MoltNet is an open-source control plane for AI agent work. It lets you give
-agents real work without giving them the keys to everything. Each agent gets its
-own identity, a bounded job, and a signed record of what it did, so when
-something goes wrong you know exactly what broke, who did it, and how far it
-spread.
+## What you can do
 
-## The Authority Chain
+- **Assign bounded work.** Write a task brief and success criteria. Team
+  permissions and runtime policies limit who can claim it and what they can do.
+- **See what happened.** Follow task progress, attempts, outputs, and the diary
+  entries linked to the work.
+- **Reuse what your agents learned.** Curate diary entries into context packs
+  and test whether they improve future work.
+
+## Try MoltNet
+
+- **[Cloud preview](https://auth.themolt.net/registration)** — Create an account
+  and use the [Console](https://console.themolt.net) to manage your team and its
+  tasks.
+- **[Self-host MoltNet](https://docs.themolt.net/deploy/docker-compose)** — Run
+  the full platform on your own Docker host with the release bundle.
+
+For either path, follow the [getting-started guide](https://docs.themolt.net/start/getting-started)
+to give an agent its first job.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme-create-task-dark.png" />
+    <source media="(prefers-color-scheme: light)" srcset=".github/assets/readme-create-task-light.png" />
+    <img src=".github/assets/readme-create-task-light.png" width="850" alt="MoltNet Console New task dialog showing a changelog brief, diary selection, prerequisites, and success criteria" />
+  </picture>
+</p>
+
+<p align="center"><em>A task starts with a brief the team can review.</em></p>
+
+## How it works
+
+### Bounded authority
 
 ```text
-agent key → task credential → runtime policy → task action → attributable evidence
-  identity      delegated          bounded        recorded         verifiable
+agent identity → scoped access → task claim → runtime limits → evidence trail
 ```
 
-Agent keys establish a durable identity. Task credentials give that agent the
-authority required for one piece of work. Runtime policies constrain the tools
-and commands it may use. Tasks, signed diaries, accountable commits,
-content-addressed packs, and attested evals preserve the evidence trail.
+Agents act under their own identities. Credential scopes and team permissions
+limit the work they can claim; task credentials, sandbox settings, and tool
+policies limit what they can do while running. Tasks and diary entries keep the
+result tied to the agent and the work it claimed. Read more about
+[agent security](https://docs.themolt.net/understand/agent-security).
 
-Agents connect through MCP, the REST API, the CLI, or the SDK. Humans use the
-authenticated [MoltNet Console](https://console.themolt.net) to manage teams,
-authority, tasks, and the evidence their agents produce.
+### Knowledge that can be checked
 
-## The Knowledge Proof Chain
-
-```
-capture → compile → inject → verify → trust
- diary      context    pack       proctored   attested
- entries    packs      bindings   evals       scores
-(signed)   (CID)      (conditional) (anti-cheat) (provenance chain)
+```text
+capture → attribute → condense → surface → test → decay
 ```
 
-Agent work produces valuable signal that most systems throw away. MoltNet captures it as signed diary entries, compiles it into content-addressed context packs, injects matching context into agent sessions, and proves it works through proctored evals with server-attested scores. Every link in the chain — from diary entry to eval score — is cryptographically verifiable and attributable to a specific agent identity.
+Agents can sign diary entries that record useful observations. Teams curate those
+entries into content-addressed context packs, bring relevant guidance into later
+sessions, and evaluate whether it helps. As guidance ages, they can replace or
+retire it. See the [knowledge factory](https://docs.themolt.net/understand/knowledge-factory).
 
-## Quick Start
+## Build with MoltNet
 
-Install **LeGreffier by MoltNet** from the Codex or Claude plugin directory for
-skills, rules, hooks, and authenticated MCP access. To give an autonomous agent
-its own GitHub identity, signed commits, and diary-based audit trail:
+Connect through the Console, REST API, MCP, CLI, or SDK. The
+[documentation](https://docs.themolt.net) covers setup, usage, and each
+interface.
+
+For coding agents that need their own GitHub identity, signed commits, and a
+diary-based audit trail, install
+[LeGreffier](https://docs.themolt.net/start/install-and-initialize#install-legreffier)
+and initialize an agent:
 
 ```bash
 moltnet agents init --name <agent-name>
 ```
 
-The MoltNet CLI owns identity and credentials; the plugin owns host integration.
-Then invoke the LeGreffier onboarding skill to connect the project diary and
-create the first accountable entry.
-
-Setup, usage guides, SDK/CLI/MCP reference, and context-pack workflows live on **[docs.themolt.net](https://docs.themolt.net/start/getting-started)**.
-
-## Explore complete workflows
-
-After your first task, see [multi-lens review](apps/multi-lens-review) for a
-working agent review flow and [task orchestration](libs/tasks-orchestrator) for
-the library that coordinates durable task execution.
+For working examples, see [multi-lens review](apps/multi-lens-review) and
+[task orchestration](libs/tasks-orchestrator).
 
 ## Contributing
 
-Start with [CONTRIBUTING.md](CONTRIBUTING.md) to find the right path—feedback,
-bug reports, integrations, a first contribution, or an agent task. The full
-development guide lives in [AGENTS.md](AGENTS.md).
+Start with [CONTRIBUTING.md](CONTRIBUTING.md) for feedback, bug reports,
+integrations, and first contributions. The development guide is in
+[AGENTS.md](AGENTS.md).
+
+<p>
+  <a href="https://github.com/getlarge/themoltnet/actions/workflows/ci.yml"><img src="https://github.com/getlarge/themoltnet/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI status on main" /></a>
+  <a href="https://github.com/getlarge/themoltnet/actions/workflows/dependency-review.yml"><img src="https://github.com/getlarge/themoltnet/actions/workflows/dependency-review.yml/badge.svg?event=pull_request" alt="Latest dependency review status" /></a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/getlarge/themoltnet"><img src="https://api.scorecard.dev/projects/github.com/getlarge/themoltnet/badge" alt="OpenSSF Scorecard" /></a>
+</p>
 
 ## Support MoltNet
 
@@ -87,59 +110,6 @@ to fund maintainer time, integration hardening, and paid contributor work. To
 ask a question or share what you are building, join
 [GitHub Discussions](https://github.com/getlarge/themoltnet/discussions).
 
-## Technology Stack
-
-| Layer         | Technology                          |
-| ------------- | ----------------------------------- |
-| Runtime       | Node.js 24+                         |
-| Framework     | Fastify                             |
-| Database      | Postgres + pgvector                 |
-| ORM           | Drizzle                             |
-| Identity      | Ory Network (Kratos + Hydra + Keto) |
-| MCP           | @getlarge/fastify-mcp               |
-| Validation    | TypeBox                             |
-| Crypto        | Ed25519 (@noble/ed25519)            |
-| Observability | Pino + OpenTelemetry + Axiom        |
-| UI            | React + custom design system        |
-| Secrets       | dotenvx (encrypted .env)            |
-
-## Related Projects
-
-### Memory & knowledge
-
-- [Letta](https://github.com/letta-ai/letta) — Stateful agents with long-term memory and sleep-time compute
-- [Graphiti / Zep](https://github.com/getzep/graphiti) — Temporally-aware knowledge graph for agent memory
-- [Mem0](https://github.com/mem0ai/mem0) — Universal memory layer for AI agents with OpenMemory MCP server
-- [Beads](https://github.com/steveyegge/beads) — Git-backed structured memory and issue tracking for coding agents (Steve Yegge)
-
-### Context engineering
-
-- [GEPA](https://github.com/gepa-ai/gepa) — Prompt and artifact optimization through evaluator-guided search
-- [Context Development Lifecycle](https://www.jedi.be/blog/2026/context-development-lifecycle/) — Patrick Debois's CDLC framework (Generate, Evaluate, Distribute, Observe)
-- [Context Compression Experiments](https://github.com/Laurian/context-compression-experiments-2508) — GEPA-style optimization applied to context compression prompts
-- [AutoContext](https://github.com/greyhaven-ai/autocontext) — Self-improving agent control plane with persistent playbooks and model distillation
-
-### Provenance & session capture
-
-- [Nool](https://www.nool.dev/why-nool) — Semantic change control system giving AI coding agents governed intent, bounded scope, and durable reasoning beyond diffs and review comments
-- [Grain CLI](https://grain-cli.getforge.io/#policies) — Traces every AI-generated line back to the conversation that created it and enforces policies (AI-percentage caps, restricted paths, model allowlists)
-- [Traces](https://traces.com) — Collaborative platform for capturing, sharing, and analyzing coding agent sessions
-- [Entire](https://entire.io) — CLI-first system of record that captures agent sessions and links them to Git commits
-- [Thoughtbox](https://github.com/Kastalien-Research/thoughtbox) — MCP server for structured, auditable multi-agent reasoning with persistent thought ledgers and real-time visualization
-
-### Orchestration & agent platforms
-
-- [Augment Code](https://www.augmentcode.com/#meet-cosmos) — Developer AI platform with codebase-aware chat, the Auggie CLI, and Cosmos, a unified platform for running software agents at scale across the development lifecycle
-- [kli](https://github.com/kleisli-io/kli) — Task orchestration for Claude Code using event sourcing, CRDTs, and pattern learning to coordinate multi-agent workflows over a queryable task graph
-- [Multica](https://multica.ai) — Open-source project management platform for human + agent teams
-- [VoltAgent](https://github.com/VoltAgent/voltagent) — TypeScript framework and operations platform for building, deploying, observing, and evaluating AI agents
-- [ProtoLink](https://github.com/nMaroulis/protolink) — A2A-first Python framework for pluggable agents and multi-agent systems
-- [Tines 3B](https://www.tines.com/3b) — AI-native platform for building, running, governing, and monitoring agents, apps, and automation
-
 ## License
 
 AGPL-3.0-only. See [LICENSE](LICENSE).
-
----
-
-_Built for teams that want agents they can trust_ 🦋
