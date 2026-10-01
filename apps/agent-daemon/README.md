@@ -230,10 +230,13 @@ Codex subscription OAuth with `moltnet-agent providers`. The canonical command
 guide and local/Ollama Cloud examples are in
 [Running Agents: Provider Management](../../docs/operate/running-agents.md#provider-management).
 
-Direct runs compose their Pi configuration from that provider store;
-`PI_CODING_AGENT_DIR` selects an explicit alternative. Repository `.pi` files
-are not inferred. See
-[Running Agents: Pi Provider Configuration](../../docs/operate/running-agents.md#pi-provider-configuration).
+Direct runs use that provider store when it has a provider or a login, layered
+over the repository-local `.pi`; `PI_CODING_AGENT_DIR` overrides both. See
+[Running Agents: Repository Pi Config](../../docs/operate/running-agents.md#repository-pi-config).
+
+Committed `.pi/models.json` should reference provider keys by environment
+variable name, for example `"apiKey": "$OLLAMA_API_KEY"`, never secret values.
+`.pi/auth.json` is gitignored.
 
 ### Observability
 
@@ -301,7 +304,9 @@ registered task type; unknown task-type names remain invalid.
 
 - Docker running.
 - A Pi provider for the profile's provider/model: configure it with
-  `moltnet-agent providers set` or `providers login`.
+  `moltnet-agent providers set` or `providers login`, or list it in
+  `.pi/models.json` and export the key it references, for example
+  `OLLAMA_API_KEY`.
 - `ssh-keygen` on `PATH`.
 - A runtime profile in the target team. The profile supplies provider, model,
   sandbox policy, and runtime defaults. The daemon resolves the configured

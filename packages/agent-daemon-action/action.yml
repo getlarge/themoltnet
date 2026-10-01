@@ -529,8 +529,7 @@ runs:
           exit 1
         fi
 
-    # With `providers`, the daemon composes Pi's configuration from its own
-    # provider store (configured below), so no agent dir is forced here.
+    # Provider-backed runs get their private catalog after discovery below.
     - name: Configure Pi agent dir
       if: inputs.providers == ''
       shell: bash
@@ -1121,6 +1120,50 @@ runs:
           echo "::notice::provider $id configured ($count models discovered)"
         done <<< "$PROVIDERS"
         echo "cacheable=$cacheable" >> "$GITHUB_OUTPUT"
+
+    - name: Compose workflow Pi catalog
+      id: pi-catalog
+      if: inputs.providers != ''
+      shell: bash
+      env:
+        AGENT_BIN: ${{ steps.daemon.outputs.bin }}
+        STORE: ${{ steps.store.outputs.path }}
+        PROVIDERS: ${{ inputs.providers }}
+      run: |
+        set -euo pipefail
+        catalog="$RUNNER_TEMP/moltnet-workflow-providers.json"
+        "$AGENT_BIN" providers list --json --root "$STORE" < /dev/null > "$catalog"
+        export WORKFLOW_PROVIDER_CATALOG="$catalog"
+        node <<'NODE'
+        const fs = require('node:fs');
+        const path = require('node:path');
+        const configured = JSON.parse(fs.readFileSync(process.env.WORKFLOW_PROVIDER_CATALOG, 'utf8')).configuredProviders;
+        const providers = {};
+        for (const line of process.env.PROVIDERS.split('\n')) {
+          if (!line.trim() || line.trimStart().startsWith('#')) continue;
+          const fields = Object.fromEntries(line.trim().split(/\s+/).map(token => {
+            const separator = token.indexOf('=');
+            return [token.slice(0, separator), token.slice(separator + 1)];
+          }));
+          const provider = configured[fields.id];
+          if (!provider?.models?.length) throw new Error(`Provider ${fields.id} has no discovered models`);
+          providers[fields.id] = {
+            api: provider.api,
+            baseUrl: provider.baseUrl,
+            ...(fields['key-env'] ? { apiKey: `$${fields['key-env']}` } : {}),
+            models: provider.models.map(({ supportsStrictMode, ...model }) => ({
+              ...model,
+              ...(supportsStrictMode !== undefined ? { compat: { supportsStrictMode } } : {}),
+            })),
+          };
+        }
+        const dir = fs.mkdtempSync(path.join(process.env.RUNNER_TEMP, 'moltnet-workflow-pi-'));
+        fs.writeFileSync(path.join(dir, 'models.json'), JSON.stringify({ providers }), { mode: 0o600 });
+        fs.writeFileSync(path.join(dir, 'settings.json'), JSON.stringify({ enableInstallTelemetry: false }), { mode: 0o600 });
+        fs.symlinkSync(path.join(process.env.STORE, 'pi', 'auth.json'), path.join(dir, 'auth.json'));
+        fs.appendFileSync(process.env.GITHUB_ENV, `PI_CODING_AGENT_DIR=${dir}\n`);
+        NODE
+        rm -f "$catalog"
 
     - name: Save provider cache
       if: inputs.providers != '' && steps.store.outputs.existing != 'true' && steps.restore-providers.outputs.cache-hit != 'true' && steps.providers.outputs.cacheable == 'true'

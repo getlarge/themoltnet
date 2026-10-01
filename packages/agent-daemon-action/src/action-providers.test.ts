@@ -144,7 +144,7 @@ describe('providers input', () => {
     expect(action.inputs.providers).toMatchObject({ default: '' });
   });
 
-  it('stops forcing the Pi agent dir when providers are configured', () => {
+  it('defers the provider-backed Pi directory until after discovery', () => {
     expect(stepByName(action, 'Configure Pi agent dir').if).toBe(
       "inputs.providers == ''",
     );
@@ -157,6 +157,103 @@ describe('providers input', () => {
     expect(stepWithId(action, 'restore-providers').if).toContain(
       "inputs.providers-refresh != 'true'",
     );
+  });
+});
+
+describe('workflow Pi catalog', () => {
+  it('loads discovered Ollama models without repository or unrelated store configuration', () => {
+    const env = resolve(root, 'github-env');
+    writeFileSync(env, '');
+    const workspace = resolve(root, 'workspace');
+    mkdirSync(resolve(workspace, '.pi'), { recursive: true });
+    writeFileSync(
+      resolve(workspace, '.pi', 'models.json'),
+      '{"providers":{"repo-only":{}}}',
+    );
+    writeFileSync(
+      resolve(workspace, '.pi', 'settings.json'),
+      '{"defaultModel":"repo-only"}',
+    );
+    const result = runStep('pi-catalog', {
+      AGENT_BIN: agent,
+      STORE: store,
+      PROVIDERS: cloud,
+      GITHUB_ENV: env,
+      GITHUB_WORKSPACE: workspace,
+      FAKE_CURRENT: JSON.stringify({
+        api: 'openai-completions',
+        baseUrl: 'https://ollama.com/v1',
+        models: [
+          {
+            id: 'gpt-oss:120b',
+            reasoning: true,
+            input: ['text'],
+            thinkingLevelMap: { high: 'high' },
+            supportsStrictMode: false,
+          },
+        ],
+      }),
+    });
+    expect(result.status, result.stderr).toBe(0);
+    const dir = readFileSync(env, 'utf8').trim().split('=')[1];
+    expect(
+      JSON.parse(readFileSync(resolve(dir, 'models.json'), 'utf8')),
+    ).toEqual({
+      providers: {
+        'ollama-cloud': {
+          api: 'openai-completions',
+          baseUrl: 'https://ollama.com/v1',
+          apiKey: '$OLLAMA_API_KEY',
+          models: [
+            {
+              id: 'gpt-oss:120b',
+              reasoning: true,
+              input: ['text'],
+              thinkingLevelMap: { high: 'high' },
+              compat: { supportsStrictMode: false },
+            },
+          ],
+        },
+      },
+    });
+    expect(
+      JSON.parse(readFileSync(resolve(dir, 'settings.json'), 'utf8')),
+    ).toEqual({ enableInstallTelemetry: false });
+    expect(argv()).toEqual([`providers list --json --root ${store}`]);
+  });
+
+  it('supports keyless providers without inventing a key reference', () => {
+    const env = resolve(root, 'github-env');
+    writeFileSync(env, '');
+    const result = runStep('pi-catalog', {
+      AGENT_BIN: agent,
+      STORE: store,
+      GITHUB_ENV: env,
+      PROVIDERS: 'id=local base-url=http://localhost:11434/v1',
+      FAKE_ID: 'local',
+      FAKE_CURRENT: JSON.stringify({
+        api: 'openai-completions',
+        baseUrl: 'http://localhost:11434/v1',
+        models: [{ id: 'llama3.2' }],
+      }),
+    });
+    expect(result.status, result.stderr).toBe(0);
+    const dir = readFileSync(env, 'utf8').trim().split('=')[1];
+    expect(
+      JSON.parse(readFileSync(resolve(dir, 'models.json'), 'utf8')).providers
+        .local,
+    ).not.toHaveProperty('apiKey');
+  });
+
+  it('fails before running the daemon when discovery has no models', () => {
+    const result = runStep('pi-catalog', {
+      AGENT_BIN: agent,
+      STORE: store,
+      PROVIDERS: cloud,
+      FAKE_CURRENT: '{"models":[]}',
+    });
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain('has no discovered models');
   });
 });
 

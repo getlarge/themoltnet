@@ -309,7 +309,7 @@ export async function runOnce(
   });
   const { executionPlans, preparedRuntime, sandbox, slotIdentity, stateDirs } =
     prepared;
-  const piAgentDir = await resolvePiAgentDir(cfg, [profile]);
+  const piAgentDir = await resolvePiAgentDir(cfg, sandbox.rootDir, [profile]);
   process.once('exit', piAgentDir.cleanup);
   activatePiCodingAgentDir(piAgentDir.path, piAgentDir.env);
   const otelShutdown = await initWorkerOtel({

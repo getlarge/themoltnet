@@ -359,11 +359,12 @@ undoes only what it wrote: it clears the keys it stored, through the daemon
 CLI, and removes the `pi/auth.json` it wrote, putting back an operator's own
 login if there was one. Keys are never cached.
 
-With `providers` set, the daemon composes Pi's model configuration from the
-provider store. `PI_AUTH_JSON` is written into the store alongside, with the
-same expiry check as without
-`providers`. A caller-set `PI_CODING_AGENT_DIR` would make the daemon ignore
-the store, so the action refuses that combination.
+With `providers` set, the action generates a private Pi catalog from the
+configured providers and their discovered models, then selects it through
+`PI_CODING_AGENT_DIR`. Model capabilities and thinking metadata are preserved;
+API keys use the declared `key-env` variables. `PI_AUTH_JSON` is written into
+the store and linked into this directory. A caller-set `PI_CODING_AGENT_DIR`
+conflicts with the generated catalog, so the action refuses that combination.
 
 Without `providers`, the action uses an empty `$RUNNER_TEMP/.pi/agent`
 directory for Pi's built-in providers and environment-based authentication.
