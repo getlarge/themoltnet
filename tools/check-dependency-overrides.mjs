@@ -136,8 +136,7 @@ export function devOnlyAdvisories(target, prodReport, fullReport) {
   return Object.values(fullReport.advisories ?? {})
     .filter(
       (a) =>
-        a.module_name === target &&
-        !prodIds.has(a.github_advisory_id ?? a.id),
+        a.module_name === target && !prodIds.has(a.github_advisory_id ?? a.id),
     )
     .map((a) => ({
       id: a.github_advisory_id ?? String(a.id),
