@@ -215,6 +215,7 @@ jobs:
       - name: Preflight executor authentication and attestation
         uses: ./packages/agent-daemon-action
         with:
+          providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
           agent-name: ${{ vars.MOLTNET_AGENT_NAME }}
           mode: drain
           task-types: freeform
@@ -407,6 +408,7 @@ jobs:
       - name: Drain this review run
         uses: ./packages/agent-daemon-action
         with:
+          providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
           agent-name: ${{ vars.MOLTNET_AGENT_NAME }}
           mode: drain
           task-types: freeform

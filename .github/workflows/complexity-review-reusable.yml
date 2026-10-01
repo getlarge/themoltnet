@@ -35,9 +35,15 @@ on:
         type: string
         default: ''
       providers:
-        description: Provider definitions accepted by agent-daemon-action; empty uses .pi/models.json.
+        description: >
+          Model providers, one per line: id=<provider> base-url=<url>
+          key-env=<secret-name> api=<api-kind>. For example:
+          id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY.
+          api defaults to openai-completions; omit key-env for keyless endpoints.
+          Supported secrets: OLLAMA_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY,
+          OPENROUTER_API_KEY, GEMINI_API_KEY.
         type: string
-        default: ''
+        required: true
       daemon-version:
         description: Exact released daemon version; empty pins the release recorded at the runtime commit.
         type: string
@@ -95,7 +101,12 @@ jobs:
           WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
           WORKFLOW_SHA: ${{ job.workflow_sha }}
           RUNTIME_REF: ${{ inputs.runtime-ref }}
+          PROVIDERS: ${{ inputs.providers }}
         run: |
+          if ! printf '%s\n' "$PROVIDERS" | grep -Eq '^[[:space:]]*[^#[:space:]]'; then
+            echo '::error::providers must contain a provider definition, for example: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY' >&2
+            exit 1
+          fi
           if [ -z "$WORKFLOW_REPOSITORY" ]; then echo '::error::workflow repository is unknown'; exit 1; fi
           if [ -z "$RUNTIME_REF" ] && ! [[ "$WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]; then echo '::error::set runtime-ref to a commit'; exit 1; fi
           echo "repository=$WORKFLOW_REPOSITORY" >> "$GITHUB_OUTPUT"

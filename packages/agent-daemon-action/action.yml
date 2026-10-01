@@ -114,11 +114,9 @@ inputs:
       sent only over https, or http to this machine (localhost, 127.x,
       [::1]); keyless providers may use http. URLs carry no credentials. Blank lines and `#` comments are ignored. Models are discovered
       from the provider and cached, refreshed each ISO week. When set, the
-      daemon composes Pi's model configuration from this store; a repository
-      `.pi/models.json` is merged underneath: for a provider id defined in
-      both, the store's provider entry replaces the repository's, except that
-      repository models the store lacks are added. See the README for every
-      rule.
+      daemon composes Pi's model configuration from this store. For example:
+      id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY.
+      See the README for provider setup examples.
     required: false
     default: ''
   providers-refresh:
@@ -531,8 +529,7 @@ runs:
           exit 1
         fi
 
-    # With `providers`, the daemon composes Pi's configuration from its own
-    # provider store (configured below), so no agent dir is forced here.
+    # Provider-backed runs get their private catalog after discovery below.
     - name: Configure Pi agent dir
       if: inputs.providers == ''
       shell: bash
@@ -543,13 +540,6 @@ runs:
         # Callers may still provide PI_CODING_AGENT_DIR explicitly.
         PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$RUNNER_TEMP/.pi/agent}"
         mkdir -p "$PI_AGENT_DIR"
-        for config_file in settings.json models.json; do
-          source_file="$GITHUB_WORKSPACE/.pi/$config_file"
-          if [ -f "$source_file" ] && [ ! -f "$PI_AGENT_DIR/$config_file" ]; then
-            cp "$source_file" "$PI_AGENT_DIR/$config_file"
-            echo "::notice::Pi $config_file copied from repo .pi/ into $PI_AGENT_DIR"
-          fi
-        done
         {
           echo "PI_CODING_AGENT_DIR=$PI_AGENT_DIR"
         } >> "$GITHUB_ENV"
@@ -779,7 +769,14 @@ runs:
         fi
         echo "MOLTNET_AGENT_BIN=$bin" >> "$GITHUB_ENV"
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-        echo "::notice::$("$bin" --version 2>/dev/null || echo 'moltnet-agent installed')"
+        # Read the signed install's manifest; older daemons have no --version.
+        version="$(node -e 'const fs = require("node:fs"); const path = require("node:path"); const bin = fs.realpathSync(process.argv[1]); const manifest = JSON.parse(fs.readFileSync(path.resolve(path.dirname(bin), "../manifest.json"), "utf8")); process.stdout.write(manifest.version);' "$bin")"
+        if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo '::error::installed daemon manifest has no exact release version' >&2
+          exit 1
+        fi
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        echo "::notice::moltnet-agent $version installed"
 
     # One daemon command for every step. `workspace` runs the daemon source
     # from the checkout: workspace package exports intentionally resolve to
@@ -792,6 +789,7 @@ runs:
       env:
         DAEMON_VERSION: ${{ inputs.daemon-version }}
         PROVIDERS: ${{ inputs.providers }}
+        INSTALLED_VERSION: ${{ steps.install-daemon.outputs.version }}
       run: |
         set -euo pipefail
         if [ "$DAEMON_VERSION" = "workspace" ]; then
@@ -812,7 +810,7 @@ runs:
           # The signed release bundle ships its own Node runtime and gondolin
           # natives, verified by the installer's signature check.
           bin="$MOLTNET_AGENT_BIN"
-          version="$("$bin" --version 2>/dev/null | head -n 1 | tr -d '\r\n' | tr -c 'A-Za-z0-9._-' '-' || true)"
+          version="${INSTALLED_VERSION:-}"
         fi
         # The version keys the provider cache; without it a cache would be
         # shared by every daemon.
@@ -1122,6 +1120,50 @@ runs:
           echo "::notice::provider $id configured ($count models discovered)"
         done <<< "$PROVIDERS"
         echo "cacheable=$cacheable" >> "$GITHUB_OUTPUT"
+
+    - name: Compose workflow Pi catalog
+      id: pi-catalog
+      if: inputs.providers != ''
+      shell: bash
+      env:
+        AGENT_BIN: ${{ steps.daemon.outputs.bin }}
+        STORE: ${{ steps.store.outputs.path }}
+        PROVIDERS: ${{ inputs.providers }}
+      run: |
+        set -euo pipefail
+        catalog="$RUNNER_TEMP/moltnet-workflow-providers.json"
+        "$AGENT_BIN" providers list --json --root "$STORE" < /dev/null > "$catalog"
+        export WORKFLOW_PROVIDER_CATALOG="$catalog"
+        node <<'NODE'
+        const fs = require('node:fs');
+        const path = require('node:path');
+        const configured = JSON.parse(fs.readFileSync(process.env.WORKFLOW_PROVIDER_CATALOG, 'utf8')).configuredProviders;
+        const providers = {};
+        for (const line of process.env.PROVIDERS.split('\n')) {
+          if (!line.trim() || line.trimStart().startsWith('#')) continue;
+          const fields = Object.fromEntries(line.trim().split(/\s+/).map(token => {
+            const separator = token.indexOf('=');
+            return [token.slice(0, separator), token.slice(separator + 1)];
+          }));
+          const provider = configured[fields.id];
+          if (!provider?.models?.length) throw new Error(`Provider ${fields.id} has no discovered models`);
+          providers[fields.id] = {
+            api: provider.api,
+            baseUrl: provider.baseUrl,
+            ...(fields['key-env'] ? { apiKey: `$${fields['key-env']}` } : {}),
+            models: provider.models.map(({ supportsStrictMode, ...model }) => ({
+              ...model,
+              ...(supportsStrictMode !== undefined ? { compat: { supportsStrictMode } } : {}),
+            })),
+          };
+        }
+        const dir = fs.mkdtempSync(path.join(process.env.RUNNER_TEMP, 'moltnet-workflow-pi-'));
+        fs.writeFileSync(path.join(dir, 'models.json'), JSON.stringify({ providers }), { mode: 0o600 });
+        fs.writeFileSync(path.join(dir, 'settings.json'), JSON.stringify({ enableInstallTelemetry: false }), { mode: 0o600 });
+        fs.symlinkSync(path.join(process.env.STORE, 'pi', 'auth.json'), path.join(dir, 'auth.json'));
+        fs.appendFileSync(process.env.GITHUB_ENV, `PI_CODING_AGENT_DIR=${dir}\n`);
+        NODE
+        rm -f "$catalog"
 
     - name: Save provider cache
       if: inputs.providers != '' && steps.store.outputs.existing != 'true' && steps.restore-providers.outputs.cache-hit != 'true' && steps.providers.outputs.cacheable == 'true'
