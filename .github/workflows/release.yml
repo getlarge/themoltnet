@@ -59,7 +59,7 @@ jobs:
     name: Release Please
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     permissions:
       contents: write
       pull-requests: write
@@ -138,12 +138,61 @@ jobs:
       otel-collector-tag-name: ${{ steps.release.outputs['infra/otel/custom-collector--tag_name'] }}
       otel-collector-version: ${{ steps.release.outputs['infra/otel/custom-collector--version'] }}
     steps:
+      # App-authored PRs and artifact commits trigger CI; GITHUB_TOKEN writes
+      # do not. Keep preparation in this serialized job before publication.
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          client-id: ${{ secrets.MOLTNET_RELEASE_APP_ID }}
+          private-key: ${{ secrets.MOLTNET_RELEASE_APP_KEY }}
+          owner: getlarge
+          repositories: themoltnet
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
         id: release
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      # Build from the proposed versions, then commit onto that exact PR head.
+      # A non-force push rejects a concurrent Release Please/head update.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        if: steps.release.outputs.prs_created == 'true'
+        with:
+          ref: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+        if: steps.release.outputs.prs_created == 'true'
+      - name: Prepare release PR artifacts
+        if: steps.release.outputs.prs_created == 'true'
+        run: |
+          node tools/release/sync-gondolin-cli-pin.mjs
+          pnpm exec nx run-many -t build --projects=tag:platform:gha
+          # Locks enumerate staged files, including added/deleted hashed chunks.
+          git add -A -- ':(glob)packages/*-action/dist/**'
+          node tools/src/release/action-runtime-lock.ts --write
+          git add -- 'packages/*-action/runtime.lock' libs/sandbox-gondolin/src/snapshot.ts
+      - name: Commit artifacts to release PR
+        if: steps.release.outputs.prs_created == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ fromJSON(steps.release.outputs.pr).number }}
+          PR_BRANCH: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+        run: |
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          # Never push after the PR has closed/merged or changed its branch.
+          state=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json state,headRefName,headRefOid)
+          test "$(jq -r .state <<< "$state")" = OPEN
+          test "$(jq -r .headRefName <<< "$state")" = "$PR_BRANCH"
+          test "$(jq -r .headRefOid <<< "$state")" = "$(git rev-parse HEAD)"
+          git config user.name "MoltNet Release[bot]"
+          git config user.email "261968324+moltnet-release[bot]@users.noreply.github.com"
+          git commit -m "chore(release): prepare bundles and published guest CLI pin"
+          gh auth setup-git
+          git push origin "HEAD:refs/heads/$PR_BRANCH"
 
   publish-docker-images:
     name: Publish ${{ matrix.project }}:${{ matrix.version }}
@@ -1763,20 +1812,6 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 30
           command: pnpm --filter @themoltnet/cli publish --no-git-checks --access public --provenance
-
-  propose-gondolin-cli-pin:
-    name: Propose Gondolin CLI pin
-    needs: [resolve-publish, publish-cli-wrapper]
-    if: >-
-      always() && !cancelled() &&
-      needs.resolve-publish.outputs.cli == 'true' &&
-      needs.publish-cli-wrapper.result == 'success'
-    uses: ./.github/workflows/sync-gondolin-cli-pin.yml
-    permissions:
-      contents: read
-    with:
-      cli_version: ${{ needs.resolve-publish.outputs.cli-tag }}
-    secrets: inherit
 
   # The cli is an 8-component linked-versions group. Only apps/moltnet-cli
   # gets a real GitHub release (cli-v<x>); the other 7 siblings use

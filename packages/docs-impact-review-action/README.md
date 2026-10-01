@@ -289,10 +289,10 @@ The committed `dist/` is rebuilt with
 pnpm exec nx run @themoltnet/docs-impact-review-action:build
 ```
 
-and kept current on `main` by `sync-action-bundle.yml`, which opens a
-`fix(actions): refresh action bundles` pull request with the rebuilt bundles
-and refreshed locks, so a bundle change releases the actions that ship it.
-CI fails a pull request whose committed bundle does not match its sources.
+Release Please PRs rebuild and commit all action bundles and runtime locks
+before merge. CI verifies the committed artifacts against the proposed source
+and versions, and publishing verifies them again at the immutable release tag.
+Source PRs may also commit bundles to exercise their changes in this repository.
 
 ## License
 

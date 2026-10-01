@@ -182,9 +182,7 @@ async function main() {
   if (problems.length > 0) {
     throw new Error(
       `${options.project} is not ready to release:\n- ${problems.join('\n- ')}\n` +
-        'Merge the open "fix(actions): refresh action bundles" PR ' +
-        '(branch automation/action-bundle-sync, opened by sync-action-bundle.yml), ' +
-        'or commit rebuilt bundles and refreshed runtime locks, before releasing.',
+        'Rebuild and commit action bundles and runtime locks on the Release Please PR before merging it.',
     );
   }
 

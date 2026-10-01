@@ -519,21 +519,15 @@ resolved by checking out the repo at the requested `ref` — there is no
 build step on the consumer's runner.
 
 The bundle inlines `@themoltnet/sdk`, so SDK changes make it stale too.
-PRs that change sources do **not** need to rebuild it. After they merge,
-[`sync-action-bundle.yml`](https://github.com/getlarge/themoltnet/blob/main/.github/workflows/sync-action-bundle.yml)
-rebuilds the bundle on `main` and opens or refreshes a single
-`chore(agent-daemon-action): refresh action bundle` PR from
-`automation/action-bundle-sync`. Until that PR merges, `main`'s bundle
-lags its sources, and in-repo workflows that use
-`./packages/agent-daemon-action` run the previous bundle.
+Source PRs can defer rebuilding it: `.github/workflows/release.yml` rebuilds
+all action bundles and runtime locks on the Release Please PR, after version
+updates and before merge. In-repo workflows run the committed bundle, so a
+source PR may still commit `dist/` to exercise its changes before release.
 
-A PR may still commit `dist/` itself, for example so this repo's own
-workflows exercise the change before merge. The CI job
-`check-dist-actions`
-(see [`.github/workflows/ci.yml`](https://github.com/getlarge/themoltnet/blob/main/.github/workflows/ci.yml))
-runs only for PRs that change `dist/`. It rebuilds from source and fails
-if the whole `dist/` directory differs from what is committed; the build
-code-splits into content-hashed `assets/` chunks. To commit a bundle:
+The CI job `check-dist-actions` runs for every release PR and any PR that changes
+bundles or runtime locks. It rebuilds from source and fails if the whole `dist/`
+directory differs from what is committed, including content-hashed `assets/`
+chunks, or if a runtime lock is stale. To commit a bundle:
 
 ```bash
 pnpm exec nx run @themoltnet/agent-daemon-action:build

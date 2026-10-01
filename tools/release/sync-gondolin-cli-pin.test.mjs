@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import {
   advancePin,
   compareVersions,
+  publishedPin,
   verifyPackages,
   waitForPackages,
 } from './sync-gondolin-cli-pin.mjs';
@@ -74,5 +75,58 @@ test('requires all three published packages', async () => {
       json: async () => ({ version: '3.5.0' }),
     })),
     /cli-linux-arm64@3.5.0 unavailable/,
+  );
+});
+
+const currentPin = "const MOLTNET_CLI_VERSION = '3.11.0';";
+
+test('uses the published dist-tag and verifies exact platform versions', async () => {
+  const visited = [];
+  const updated = await publishedPin(currentPin, async (url) => {
+    visited.push(url);
+    return { ok: true, json: async () => ({ version: '3.12.0' }) };
+  });
+  assert.equal(updated, "const MOLTNET_CLI_VERSION = '3.12.0';");
+  assert.equal(visited.length, 4);
+  assert.ok(visited[0].endsWith('/latest'));
+  assert.ok(visited.slice(1).every((url) => url.endsWith('/3.12.0')));
+});
+
+test('retains the pin during partial npm publication', async () => {
+  const updated = await publishedPin(currentPin, async (url) => ({
+    ok: !url.includes('arm64'),
+    status: url.includes('arm64') ? 404 : 200,
+    json: async () => ({ version: '3.12.0' }),
+  }));
+  assert.equal(updated, currentPin);
+});
+
+test('never rolls back a newer pin or queries platforms for an unchanged pin', async () => {
+  for (const version of ['3.10.0', '3.11.0']) {
+    let requests = 0;
+    assert.equal(
+      await publishedPin(currentPin, async () => {
+        requests++;
+        return { ok: true, json: async () => ({ version }) };
+      }),
+      currentPin,
+    );
+    assert.equal(requests, 1);
+  }
+});
+
+test('fails closed on registry errors and inconsistent metadata', async () => {
+  await assert.rejects(
+    publishedPin(currentPin, async () => ({ ok: false, status: 503 })),
+    /Cannot resolve/,
+  );
+  await assert.rejects(
+    publishedPin(currentPin, async (url) => ({
+      ok: true,
+      json: async () => ({
+        version: url.endsWith('/latest') ? '3.12.0' : '3.11.0',
+      }),
+    })),
+    /resolved 3.11.0/,
   );
 });
