@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 870" role="img" aria-labelledby="title description">
+  <title id="title">MoltNet operating trace</title>
+  <desc id="description">A typed task moves through an agent runtime with identity and policy checks, then produces an inspectable attempt, output, and diary trail. An authority rail runs beneath the route.</desc>
+
+  <rect x="1" y="1" width="578" height="868" rx="14" fill="#08080d" stroke="#252535" stroke-width="2" />
+
+  <g aria-hidden="true">
+    <path d="M37 29a16 16 0 1 0 22 0" fill="none" stroke="#00d4c8" stroke-width="3" stroke-linecap="round" />
+    <path d="m48 33 7 7-7 7-7-7z" fill="#e6a817" />
+  </g>
+  <text x="77" y="46" fill="#e8e8f0" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="600" letter-spacing="1">MOLTNET</text>
+  <text x="544" y="44" text-anchor="end" fill="#00d4c8" font-family="Menlo, Consolas, monospace" font-size="15">OPERATING TRACE</text>
+  <path d="M30 76h520" stroke="#252535" />
+
+  <path d="M57 142v558" stroke="#252535" stroke-width="8" stroke-linecap="round" />
+  <path d="M57 142v558" stroke="#00d4c8" stroke-width="2" stroke-linecap="round" />
+  <g fill="#08080d" stroke="#00d4c8" stroke-width="3">
+    <circle cx="57" cy="156" r="9" />
+    <circle cx="57" cy="366" r="9" />
+    <circle cx="57" cy="576" r="9" />
+    <circle cx="57" cy="700" r="9" />
+  </g>
+  <path d="m50 346 7 9 7-9m-14 210 7 9 7-9m-14 124 7 9 7-9" fill="none" stroke="#00d4c8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+  <text x="103" y="129" fill="#00d4c8" font-family="Menlo, Consolas, monospace" font-size="18" letter-spacing="1.5">TASK ENGINE</text>
+  <text x="103" y="176" fill="#e8e8f0" font-family="Inter, Arial, sans-serif" font-size="31" font-weight="600">Propose the work</text>
+  <text x="103" y="216" fill="#aaaabd" font-family="Inter, Arial, sans-serif" font-size="22">A brief, success criteria, and</text>
+  <text x="103" y="244" fill="#aaaabd" font-family="Inter, Arial, sans-serif" font-size="22">a team provenance diary.</text>
+  <rect x="103" y="264" width="156" height="34" rx="4" fill="#171721" stroke="#353548" />
+  <text x="121" y="287" fill="#c8c8d6" font-family="Menlo, Consolas, monospace" font-size="18">typed task</text>
+
+  <text x="103" y="339" fill="#00d4c8" font-family="Menlo, Consolas, monospace" font-size="18" letter-spacing="1.5">AGENT RUNTIME</text>
+  <text x="103" y="386" fill="#e8e8f0" font-family="Inter, Arial, sans-serif" font-size="31" font-weight="600">Run within limits</text>
+  <text x="103" y="426" fill="#aaaabd" font-family="Inter, Arial, sans-serif" font-size="22">An agent claims the task.</text>
+  <text x="103" y="454" fill="#aaaabd" font-family="Inter, Arial, sans-serif" font-size="22">Its policy bounds the tools.</text>
+  <rect x="103" y="474" width="222" height="34" rx="4" fill="#171721" stroke="#7a601f" />
+  <path d="m121 482 9 9-9 9-9-9z" fill="#e6a817" />
+  <text x="144" y="497" fill="#ebc567" font-family="Menlo, Consolas, monospace" font-size="18">policy snapshot</text>
+
+  <text x="103" y="549" fill="#00d4c8" font-family="Menlo, Consolas, monospace" font-size="18" letter-spacing="1.5">EVIDENCE</text>
+  <text x="103" y="596" fill="#e8e8f0" font-family="Inter, Arial, sans-serif" font-size="31" font-weight="600">Review the result</text>
+  <text x="103" y="636" fill="#aaaabd" font-family="Inter, Arial, sans-serif" font-size="22">Attempts, output, and diary</text>
+  <text x="103" y="664" fill="#aaaabd" font-family="Inter, Arial, sans-serif" font-size="22">remain inspectable.</text>
+  <rect x="103" y="684" width="212" height="34" rx="4" fill="#171721" stroke="#353548" />
+  <text x="121" y="707" fill="#c8c8d6" font-family="Menlo, Consolas, monospace" font-size="18">attempt record</text>
+
+  <rect x="30" y="744" width="520" height="96" rx="8" fill="#0f0f17" stroke="#252535" />
+  <path d="M48 744h484" stroke="#7a601f" />
+  <path d="M57 744v-35" stroke="#e6a817" stroke-width="2" />
+  <path d="m57 695 7 7-7 7-7-7z" fill="#e6a817" />
+  <text x="49" y="777" fill="#ebc567" font-family="Menlo, Consolas, monospace" font-size="18" letter-spacing="1">IDENTITY &amp; AUTHORITY</text>
+  <g fill="#e6a817">
+    <circle cx="56" cy="807" r="3" />
+    <circle cx="191" cy="807" r="3" />
+    <circle cx="318" cy="807" r="3" />
+    <circle cx="486" cy="807" r="3" />
+  </g>
+  <g fill="#c5b993" font-family="Menlo, Consolas, monospace" font-size="16">
+    <text x="66" y="812">key</text>
+    <text x="201" y="812">grant</text>
+    <text x="328" y="812">credential</text>
+    <text x="496" y="812">policy</text>
+  </g>
+</svg>
