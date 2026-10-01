@@ -7,11 +7,10 @@
 # Lightweight image that runs Drizzle migrations then exits. Same shape as
 # rest-api/mcp-server: host nx build → linux pnpm install + deploy → package.
 
-ARG NODE_VERSION=24.14.1
 ARG PNPM_VERSION=10.29.3
 
 # ---------- base ----------
-FROM node:${NODE_VERSION}-slim AS base
+FROM node:24.14.1-slim@sha256:b506e7321f176aae77317f99d67a24b272c1f09f1d10f1761f2773447d8da26c AS base
 ENV PNPM_HOME="/pnpm" \
     PATH="/pnpm/bin:$PATH" \
     HUSKY=0 \
@@ -33,7 +32,7 @@ RUN pnpm install --offline --frozen-lockfile --prod
 RUN pnpm --filter @moltnet/database deploy --legacy --prod /out
 
 # ---------- production ----------
-FROM node:${NODE_VERSION}-slim AS production
+FROM node:24.14.1-slim@sha256:b506e7321f176aae77317f99d67a24b272c1f09f1d10f1761f2773447d8da26c AS production
 
 LABEL org.opencontainers.image.source="https://github.com/getlarge/themoltnet"
 LABEL org.opencontainers.image.description="MoltNet database migration runner"

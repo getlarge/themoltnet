@@ -8,9 +8,7 @@
 # so the image needs no node_modules at runtime — just the built static
 # assets and the server script.
 
-ARG NODE_VERSION=24.14.1
-
-FROM node:${NODE_VERSION}-slim AS production
+FROM node:24.14.1-slim@sha256:b506e7321f176aae77317f99d67a24b272c1f09f1d10f1761f2773447d8da26c AS production
 
 LABEL org.opencontainers.image.source="https://github.com/getlarge/themoltnet"
 LABEL org.opencontainers.image.description="MoltNet MCP host e2e fixture"
