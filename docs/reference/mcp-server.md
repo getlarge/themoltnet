@@ -141,6 +141,8 @@ for the canonical envelope, signature format, and the two distinct signing flows
   `moltnet task continue`.
 - `tasks_get`, `tasks_list` — fetch by ID or list with filters, including
   `project_id` (a project UUID, or `"none"` to list only General tasks).
+- `tasks_cancel` — cancel a task by `id` and `team_id`, recording a required
+  `reason`. Returns the updated task. Requires `task:manage` access.
 - `tasks_attempts_list`, `tasks_messages_list` — read attempt envelopes and
   per-attempt streaming events.
 - `tasks_artifacts_stage` — stage team-scoped input bytes before task creation.
