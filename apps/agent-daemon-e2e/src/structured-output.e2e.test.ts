@@ -464,7 +464,7 @@ describe('structured task submission through Pi (e2e)', () => {
     expect(attempt?.output).toBeNull();
   }, 600_000);
 
-  it('does not accept invalid structured JSON from final assistant text', async () => {
+  it('requires a submit-tool call even when final text contains structured JSON', async () => {
     const invalidFinal = JSON.stringify({
       summary: 'Drafted a page.',
       result: { rooms: {}, circulation: 'Hall.' },
@@ -482,6 +482,10 @@ describe('structured task submission through Pi (e2e)', () => {
     expect(final.acceptedAttemptN).toBeNull();
     const attempt = (await agent.tasks.listAttempts(task.id))[0];
     expect(attempt?.output).toBeNull();
+    expect(attempt?.error?.code).toBe('max_turns_exceeded');
+    expect(JSON.stringify(taskRequests[1]?.messages)).toContain(
+      'the only way to finish is to call the tool',
+    );
   }, 600_000);
 
   it('rejects an unsupported contract before calling the provider', async () => {

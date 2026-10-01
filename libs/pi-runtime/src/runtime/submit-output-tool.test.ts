@@ -508,6 +508,36 @@ describe('createSubmitOutputTool', () => {
     expect(handle.getCaptured()).toBeNull();
   });
 
+  it('preserves required result in contracted freeform retry guidance', async () => {
+    const handle = createSubmitOutputTool('freeform', {
+      input: {
+        outputContract: {
+          version: 1,
+          schema: {
+            type: 'object',
+            properties: { category: { type: 'string' } },
+            required: ['category'],
+            additionalProperties: false,
+          },
+        },
+      },
+    });
+    const response = await callExecute(handle)({
+      summary: 'Done.',
+      result: { category: 'technical' },
+      artifacts: 'invalid',
+    });
+
+    expect(response.isError).toBe(true);
+    expect(response.content[0].text).toContain(
+      'preserve the required `result`',
+    );
+    expect(response.content[0].text).not.toContain(
+      'Minimal valid freeform retry',
+    );
+    expect(handle.getCaptured()).toBeNull();
+  });
+
   it('repairs freeform submit-output-only verification and artifact shape', async () => {
     const handle = createSubmitOutputTool('freeform', {
       input: submitOutputOnlyFreeformInput,

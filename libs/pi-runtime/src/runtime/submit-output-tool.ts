@@ -239,7 +239,11 @@ function submitOutputRepairHint(
   }
 
   if (fields.has('output/artifacts') || fields.has('output/verification')) {
-    if (taskType === 'freeform') {
+    if (taskType === 'freeform' && required.includes('result')) {
+      hints.push(
+        'For this contracted freeform retry, preserve the required `result` and ensure it satisfies the advertised result schema while correcting artifacts and verification.',
+      );
+    } else if (taskType === 'freeform') {
       hints.push(
         'Minimal valid freeform retry: { "summary": "completed", "artifacts": [], "verification": { "inputCid": "<task inputCid>", "results": [{ "id": "submit-output", "kind": "gate", "status": "pass", "detail": "submit_freeform_output accepted valid args" }], "passed": true } }.',
       );
