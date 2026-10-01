@@ -91,13 +91,9 @@ jobs:
             libs/moltnet-api-client/go.sum
       - run: pnpm exec nx run @moltnet/tools:test:agent-bundle
 
-  # The composite actions execute dist/, not src/, and their bundles inline
-  # libraries (libs/sdk, libs/docs-impact-review). sync-action-bundle.yml keeps
-  # main's bundles current; this job runs only for PRs that commit a dist/ (see
-  # the `affected` job) and fails when a committed bundle does not match its
-  # sources. The action publisher
-  # (tools/src/release/github-action-publisher.ts) refuses to release a stale
-  # bundle as the last line of defence.
+  # Release PRs prepare committed bundles from their proposed versions. Also
+  # check ordinary PRs carrying bundles/locks. Publishing verifies the same
+  # artifacts again at the immutable release tag.
   check-dist-actions:
     name: Action bundle is current
     needs: [affected]
@@ -126,6 +122,8 @@ jobs:
             echo "::error::a committed action bundle is out of date. Run 'pnpm exec nx run-many -t build --projects=tag:platform:gha' and commit the result."
             exit 1
           fi
+
+      - run: node tools/src/release/action-runtime-lock.ts --check
 
   wsl-agent-daemon:
     name: WSL2 agent daemon acceptance
@@ -513,13 +511,10 @@ jobs:
             echo "legreffier-plugin=false" >> "$GITHUB_OUTPUT"
           fi
 
-          # The action's committed bundle is refreshed on main by
-          # sync-action-bundle.yml, so source-only PRs do not carry it. Verify
-          # it only when a PR commits dist/ itself (the bundle-sync PR, or an
-          # author shipping a bundle deliberately): a committed bundle must
-          # still match its sources.
+          # Every release PR must prove its bundles current, even before the
+          # preparation commit arrives. Source-only PRs can defer bundling.
           if [ "${{ github.event_name }}" = "pull_request" ] &&
-            ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- ':(glob)packages/*-action/dist/**'; then
+            ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- .release-please-manifest.json ':(glob)packages/*-action/dist/**' 'packages/*-action/runtime.lock'; then
             echo "check-dist-actions=true" >> "$GITHUB_OUTPUT"
           else
             echo "check-dist-actions=false" >> "$GITHUB_OUTPUT"
