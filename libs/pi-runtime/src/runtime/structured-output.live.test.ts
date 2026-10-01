@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { validateToolArguments } from '@earendil-works/pi-ai';
 import { ModelRuntime } from '@earendil-works/pi-coding-agent';
 import { getSubmitOutputContract } from '@themoltnet/agent-runtime';
 import { Type } from 'typebox';
@@ -10,6 +11,7 @@ import { Value } from 'typebox/value';
 import { describe, expect, it } from 'vitest';
 
 import { writePiConfig } from '../pi-config.js';
+import { createSubmitOutputTool } from './submit-output-tool.js';
 
 const provider = process.env['MOLTNET_LIVE_STRUCTURED_PROVIDER'];
 const api = process.env['MOLTNET_LIVE_STRUCTURED_API'];
@@ -19,7 +21,7 @@ const apiKey = process.env['MOLTNET_LIVE_STRUCTURED_API_KEY'];
 const enabled = !!(provider && api && baseUrl && modelId && apiKey);
 
 describe.skipIf(!enabled)('live structured tool output', () => {
-  it('sends strict schema through Pi and receives a schema-valid tool call', async () => {
+  it('sends strict schema through Pi and captures normalized task output', async () => {
     const piDir = mkdtempSync(join(tmpdir(), 'moltnet-structured-live-'));
     const schema = Type.Object(
       { kind: Type.Literal('probe'), count: Type.Integer() },
@@ -94,6 +96,23 @@ describe.skipIf(!enabled)('live structured tool output', () => {
 
       const contract = getSubmitOutputContract('fulfill_brief');
       expect(contract).not.toBeNull();
+      const submit = createSubmitOutputTool('fulfill_brief', {
+        inputCid: 'bafy-live-probe',
+        input: {
+          brief: 'Live structured-output probe',
+          successCriteria: {
+            version: 1,
+            gates: [
+              {
+                id: 'submit-output',
+                kind: 'submit-tool-call',
+                description: 'Submit valid structured output.',
+                required: true,
+              },
+            ],
+          },
+        },
+      });
       payload = undefined;
       const taskResponse = await runtime.completeSimple(
         model!,
@@ -136,12 +155,49 @@ describe.skipIf(!enabled)('live structured tool output', () => {
         (part) => part.type === 'toolCall' && part.name === contract!.toolName,
       );
       expect(taskCall).toBeDefined();
+      if (taskCall?.type !== 'toolCall') {
+        throw new Error('Provider did not return the submit tool call');
+      }
+      const rawSchemaValid = Value.Check(
+        contract!.parametersSchema,
+        taskCall.arguments,
+      );
+      // Strict providers can still return optional nulls or malformed
+      // verification; exercise the same repair and validation path as Pi.
+      const prepared =
+        submit.tool.prepareArguments?.(taskCall.arguments) ??
+        taskCall.arguments;
+      const validated = validateToolArguments(
+        {
+          name: contract!.toolName,
+          description: contract!.description,
+          parameters: contract!.parametersSchema,
+        },
+        { ...taskCall, arguments: prepared as Record<string, never> },
+      );
+      const result = await (
+        submit.tool as unknown as {
+          execute: (
+            id: string,
+            params: Record<string, unknown>,
+          ) => Promise<{ isError?: boolean }>;
+        }
+      ).execute('live-probe', validated);
+      expect(result.isError).toBeFalsy();
       expect(
-        Value.Check(
-          contract!.parametersSchema,
-          taskCall?.type === 'toolCall' ? taskCall.arguments : undefined,
-        ),
+        Value.Check(contract!.parametersSchema, submit.getCaptured()),
       ).toBe(true);
+      expect(submit.getCallCount()).toBe(1);
+      console.info(
+        'live structured output:',
+        JSON.stringify({
+          provider,
+          modelId,
+          rawSchemaValid,
+          captured: submit.getCallCount() === 1,
+          repairKinds: submit.getCapturedRepairKinds(),
+        }),
+      );
     } finally {
       rmSync(piDir, { recursive: true, force: true });
     }

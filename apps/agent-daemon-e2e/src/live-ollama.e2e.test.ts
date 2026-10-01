@@ -19,7 +19,7 @@ import {
 } from '@themoltnet/agent-runtime';
 import { writePiConfig } from '@themoltnet/pi-runtime/pi-config';
 import { type Agent, connect } from '@themoltnet/sdk';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import {
   buildProducerVerification,
@@ -175,6 +175,7 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
         agent,
         agentName,
         agentRoot,
+        apiUrl: harness.restApiUrl,
         profileId: profile.id,
         sandboxRoot,
         taskId: parent.id,
@@ -221,6 +222,7 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
         agent,
         agentName,
         agentRoot,
+        apiUrl: harness.restApiUrl,
         profileId: profile.id,
         sandboxRoot,
         taskId: continuation.id,
@@ -266,6 +268,7 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
         agent,
         agentName,
         agentRoot,
+        apiUrl: harness.restApiUrl,
         profileId: profile.id,
         sandboxRoot,
         taskId: artifactTask.id,
@@ -452,6 +455,7 @@ async function runLiveTask(input: {
   agent: Agent;
   agentName: string;
   agentRoot: string;
+  apiUrl: string;
   profileId: string;
   sandboxRoot: string;
   taskId: string;
@@ -459,6 +463,16 @@ async function runLiveTask(input: {
 }): Promise<number> {
   const oldCwd = process.cwd();
   try {
+    for (const name of [
+      'MOLTNET_CREDENTIALS_PATH',
+      'MOLTNET_AGENT_KEY',
+      'MOLTNET_AGENT_KEY_REF',
+      'MOLTNET_CLIENT_ID',
+      'MOLTNET_CLIENT_SECRET',
+    ]) {
+      vi.stubEnv(name, '');
+    }
+    vi.stubEnv('MOLTNET_API_URL', input.apiUrl);
     process.chdir(input.sandboxRoot);
     const exitCode = await runOnce([
       '--task-id',
@@ -477,6 +491,7 @@ async function runLiveTask(input: {
     expect(exitCode).toBe(0);
   } finally {
     process.chdir(oldCwd);
+    vi.unstubAllEnvs();
   }
 
   const final = await input.agent.tasks.get(input.taskId);

@@ -19,6 +19,7 @@ const PROVIDER = 'structured-output-fixture';
 const MODEL = 'strict-tool-fixture';
 const KEY_ENV = 'OLLAMA_API_KEY';
 const SUBMIT_TOOL = 'submit_fulfill_brief_output';
+const FREEFORM_TOOL = 'submit_freeform_output';
 const VALID_ARGUMENTS = {
   branch: 'e2e/structured-output',
   commits: [],
@@ -48,6 +49,7 @@ interface ToolWireRequest {
 
 function sendToolCall(
   serverResponse: ServerResponse,
+  toolName: string,
   args: Record<string, unknown>,
 ): void {
   const chunk = {
@@ -65,7 +67,7 @@ function sendToolCall(
               index: 0,
               id: `call-${randomUUID()}`,
               type: 'function',
-              function: { name: SUBMIT_TOOL, arguments: JSON.stringify(args) },
+              function: { name: toolName, arguments: JSON.stringify(args) },
             },
           ],
         },
@@ -91,7 +93,10 @@ describe('structured task submission through Pi (e2e)', () => {
   let providerServer: Server;
   let providerBaseUrl: string;
   const requests: ToolWireRequest[] = [];
-  const queuedArguments: Record<string, unknown>[] = [];
+  const queuedArguments: Array<{
+    toolName: string;
+    args: Record<string, unknown>;
+  }> = [];
   const tempRoots: string[] = [];
 
   beforeAll(async () => {
@@ -113,12 +118,12 @@ describe('structured task submission through Pi (e2e)', () => {
         requests.push(
           JSON.parse(Buffer.concat(chunks).toString('utf8')) as ToolWireRequest,
         );
-        const args = queuedArguments.shift();
-        if (!args) {
+        const responseFixture = queuedArguments.shift();
+        if (!responseFixture) {
           response.writeHead(500).end('No fixture response queued');
           return;
         }
-        sendToolCall(response, args);
+        sendToolCall(response, responseFixture.toolName, responseFixture.args);
       });
     });
     providerServer = providerStub.server;
@@ -134,9 +139,15 @@ describe('structured task submission through Pi (e2e)', () => {
     await harness?.teardown();
   });
 
-  async function runFixtureTask(argumentsToReturn: Record<string, unknown>[]) {
+  async function runFixtureTask(
+    argumentsToReturn: Record<string, unknown>[],
+    taskType: 'fulfill_brief' | 'freeform' = 'fulfill_brief',
+  ) {
     const requestStart = requests.length;
-    queuedArguments.push(...argumentsToReturn);
+    const toolName = taskType === 'freeform' ? FREEFORM_TOOL : SUBMIT_TOOL;
+    queuedArguments.push(
+      ...argumentsToReturn.map((args) => ({ toolName, args })),
+    );
     const { sandboxRoot, agentRoot, piDir } =
       createDaemonRunRoots('structured-e2e');
     tempRoots.push(sandboxRoot, agentRoot, piDir);
@@ -168,12 +179,14 @@ describe('structured task submission through Pi (e2e)', () => {
     );
     const task = await agent.tasks.create(
       {
-        taskType: 'fulfill_brief',
+        taskType,
         diaryId: creds.privateDiaryId,
         maxAttempts: 1,
         input: {
-          brief: 'Call submit_fulfill_brief_output with a short summary.',
-          scopeHint: 'structured-output-e2e',
+          brief: `Call ${toolName} with a short summary.`,
+          ...(taskType === 'fulfill_brief'
+            ? { scopeHint: 'structured-output-e2e' }
+            : {}),
         },
       },
       { teamId: creds.personalTeamId },
@@ -260,5 +273,42 @@ describe('structured task submission through Pi (e2e)', () => {
     expect(attempt?.output).toMatchObject({
       summary: VALID_ARGUMENTS.summary,
     });
+  }, 600_000);
+
+  it('uses a typed freeform envelope without pretending to validate page JSON inside its body', async () => {
+    const pageBody = JSON.stringify({ page: 1, unexpectedField: true });
+    const { task, taskRequests } = await runFixtureTask(
+      [
+        {
+          summary: 'A small page draft was returned.',
+          artifacts: [
+            {
+              kind: 'page',
+              title: 'Page 1',
+              body: pageBody,
+              contentType: 'application/json',
+            },
+          ],
+          verification: null,
+        },
+      ],
+      'freeform',
+    );
+
+    const request = taskRequests.find((body) =>
+      body.tools?.some((tool) => tool.function?.name === FREEFORM_TOOL),
+    );
+    const submit = request?.tools?.find(
+      (tool) => tool.function?.name === FREEFORM_TOOL,
+    )?.function;
+    expect(submit?.strict).toBe(false);
+    expect(submit?.parameters?.properties).toHaveProperty('artifacts');
+    expect(submit?.parameters?.properties).not.toHaveProperty('page');
+
+    const final = await agent.tasks.get(task.id);
+    expect(final.status).toBe('completed');
+    const attempt = (await agent.tasks.listAttempts(task.id))[0];
+    expect(attempt?.output).toHaveProperty('artifacts.0.body', pageBody);
+    expect(attempt?.output).toHaveProperty('verification.passed', true);
   }, 600_000);
 });
