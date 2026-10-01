@@ -2,6 +2,7 @@ import { DescriptionList, Stack, Text } from '@themoltnet/design-system';
 import type { ComponentType } from 'react';
 
 import { FreeformArtifactList } from './freeform-artifact-list.js';
+import { JsonViewer } from './json-viewer.js';
 import { MEASURE, SectionLabel } from './layout.js';
 import { readFreeformOutput } from './task-output.js';
 import type { TaskAttemptSummary, TaskSummary } from './types.js';
@@ -32,34 +33,31 @@ function FreeformOutputBody({ output }: TaskOutputRenderContext) {
 
   return (
     <Stack gap={5}>
-      <Stack gap={4}>
-        <SectionLabel>What the agent produced</SectionLabel>
-        {freeform.artifacts.length > 0 ? (
-          <FreeformArtifactList artifacts={freeform.artifacts} />
-        ) : (
-          <Text color="secondary">
-            No artifacts were attached. The summary above is the whole result.
-          </Text>
-        )}
-      </Stack>
+      {freeform.result !== undefined ? (
+        <JsonViewer
+          value={freeform.result}
+          label="Structured result"
+          defaultExpanded
+        />
+      ) : null}
+      {freeform.artifacts.length > 0 || freeform.result === undefined ? (
+        <Stack gap={4}>
+          <SectionLabel>What the agent produced</SectionLabel>
+          {freeform.artifacts.length > 0 ? (
+            <FreeformArtifactList artifacts={freeform.artifacts} />
+          ) : (
+            <Text color="secondary">
+              No artifacts were attached. The summary above is the whole result.
+            </Text>
+          )}
+        </Stack>
+      ) : null}
 
-      {freeform.branch || freeform.proposedTaskType ? (
+      {freeform.branch ? (
         <DescriptionList
           columns={2}
           compact
-          items={[
-            ...(freeform.branch
-              ? [{ label: 'Branch', value: freeform.branch, mono: true }]
-              : []),
-            ...(freeform.proposedTaskType
-              ? [
-                  {
-                    label: 'Proposed task type',
-                    value: `${freeform.proposedTaskType.name} — ${freeform.proposedTaskType.rationale}`,
-                  },
-                ]
-              : []),
-          ]}
+          items={[{ label: 'Branch', value: freeform.branch, mono: true }]}
         />
       ) : null}
     </Stack>

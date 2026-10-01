@@ -266,6 +266,20 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
     return this;
   }
 
+  /** Require a typed `output.result` for a freeform task. */
+  outputSchema(schema: Record<string, unknown>): this {
+    if (this.taskType !== 'freeform') {
+      throw new TaskBuildError([
+        {
+          field: 'input/outputContract',
+          message: 'outputSchema is supported for freeform tasks only',
+        },
+      ]);
+    }
+    this.inputData.outputContract = { version: 1, schema };
+    return this;
+  }
+
   /**
    * Push a context entry onto `input.context` — a `ContextRef[]`, NOT a
    * free-form object. `content` must be a string (≤ 64 KiB); `slug` must

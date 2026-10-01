@@ -6,6 +6,7 @@ import type {
   TaskValidationError,
 } from '../async-validation.js';
 import { SuccessCriteria, VerificationRecord } from '../success-criteria.js';
+import { OutputContract } from './output-contract.js';
 
 export const FREEFORM_TYPE = 'freeform' as const;
 
@@ -53,17 +54,6 @@ export const FreeformContinueFrom = Type.Object(
 );
 export type FreeformContinueFrom = Static<typeof FreeformContinueFrom>;
 
-export const FreeformTaskTypeProposal = Type.Object(
-  {
-    name: Type.String({ minLength: 1 }),
-    rationale: Type.String({ minLength: 1 }),
-    inputShape: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
-    outputShape: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
-  },
-  { $id: 'FreeformTaskTypeProposal', additionalProperties: false },
-);
-export type FreeformTaskTypeProposal = Static<typeof FreeformTaskTypeProposal>;
-
 export const FreeformInput = Type.Object(
   {
     /** Natural-language work request when no narrower task type fits yet. */
@@ -73,6 +63,8 @@ export const FreeformInput = Type.Object(
      * Kept as prose because this task type is the discovery lane.
      */
     expectedOutput: Type.Optional(Type.String({ minLength: 1 })),
+    /** Typed result contract supplied by the task proposer. */
+    outputContract: Type.Optional(OutputContract),
     constraints: Type.Optional(
       Type.Array(Type.String({ minLength: 1 }), { maxItems: 20 }),
     ),
@@ -124,23 +116,27 @@ export const FreeformArtifact = Type.Object(
 );
 export type FreeformArtifact = Static<typeof FreeformArtifact>;
 
+const freeformOutputFields = {
+  /** 2-5 sentence result summary. */
+  summary: Type.String({ minLength: 1 }),
+  /** Branch used for code-changing freeform work. */
+  branch: Type.Optional(Type.String({ minLength: 1 })),
+  artifacts: Type.Optional(Type.Array(FreeformArtifact, { maxItems: 20 })),
+  diaryEntryIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
+  /** Required when input.successCriteria is set. */
+  verification: Type.Optional(VerificationRecord),
+};
+
+export const FreeformSubmission = Type.Object(freeformOutputFields, {
+  $id: 'FreeformSubmission',
+  additionalProperties: false,
+});
+
 export const FreeformOutput = Type.Object(
   {
-    /** 2-5 sentence result summary. */
-    summary: Type.String({ minLength: 1 }),
-    /**
-     * Branch used for code-changing freeform work. Optional because many
-     * exploratory tasks produce prose or inline artifacts only.
-     */
-    branch: Type.Optional(Type.String({ minLength: 1 })),
-    artifacts: Type.Optional(Type.Array(FreeformArtifact, { maxItems: 20 })),
-    proposedTaskType: Type.Optional(FreeformTaskTypeProposal),
-    diaryEntryIds: Type.Optional(Type.Array(Type.String({ format: 'uuid' }))),
-    /**
-     * Required when input.successCriteria is set, including the submit-output
-     * gate injected by create-time normalization.
-     */
-    verification: Type.Optional(VerificationRecord),
+    ...freeformOutputFields,
+    /** Agent-authored structured data. The daemon owns contract validation. */
+    result: Type.Optional(Type.Unknown()),
   },
   { $id: 'FreeformOutput', additionalProperties: false },
 );

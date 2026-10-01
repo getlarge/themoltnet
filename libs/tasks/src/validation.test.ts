@@ -599,7 +599,7 @@ describe('validateTaskOutput', () => {
     );
   });
 
-  it('accepts freeform output with a proposed task type', () => {
+  it('rejects the removed freeform task type proposal field', () => {
     const errors = validateTaskOutput(
       'freeform',
       {
@@ -628,7 +628,11 @@ describe('validateTaskOutput', () => {
       },
     );
 
-    expect(errors).toEqual([]);
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'output/proposedTaskType' }),
+      ]),
+    );
   });
 
   describe('verification cross-field rule (fulfillment task types)', () => {

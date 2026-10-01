@@ -146,16 +146,37 @@ describe('createSubmitOutputTool', () => {
     expect(tool.promptGuidelines?.join('\n')).not.toContain('task prompt');
   });
 
-  it('distinguishes task schemas Pi can currently send in strict mode', () => {
+  it('supports strict mode for ordinary and contracted freeform tools', () => {
     const compatible = createSubmitOutputTool('fulfill_brief');
-    const openEnded = createSubmitOutputTool('freeform');
+    const freeform = createSubmitOutputTool('freeform');
+    const contracted = createSubmitOutputTool('freeform', {
+      input: {
+        outputContract: {
+          version: 1,
+          schema: {
+            type: 'object',
+            properties: {
+              confidence: { type: 'number', minimum: 0, maximum: 1 },
+            },
+            required: ['confidence'],
+            additionalProperties: false,
+          },
+        },
+      },
+    });
 
     expect(() =>
       makeStrictJsonSchema(compatible.tool.parameters as TSchema),
     ).not.toThrow();
     expect(() =>
-      makeStrictJsonSchema(openEnded.tool.parameters as TSchema),
-    ).toThrow('patternProperties schemas are unsupported');
+      makeStrictJsonSchema(freeform.tool.parameters as TSchema),
+    ).not.toThrow();
+    expect(() =>
+      makeStrictJsonSchema(contracted.tool.parameters as TSchema),
+    ).not.toThrow();
+    expect(contracted.tool.parameters.properties?.result).toMatchObject({
+      type: 'object',
+    });
   });
 
   it('prepares stringified values before Pi validates the tool call', () => {
@@ -227,7 +248,6 @@ describe('createSubmitOutputTool', () => {
           path: '/tmp/notes',
         },
       ],
-      proposedTaskType: null,
       diaryEntryIds: null,
       verification: null,
     });
@@ -252,7 +272,6 @@ describe('createSubmitOutputTool', () => {
       summary: 'done',
       branch: null,
       artifacts: null,
-      proposedTaskType: null,
       diaryEntryIds: null,
       verification: null,
     });
@@ -489,7 +508,37 @@ describe('createSubmitOutputTool', () => {
     expect(handle.getCaptured()).toBeNull();
   });
 
-  it('repairs freeform submit-output-only verification and optional field shapes', async () => {
+  it('preserves required result in contracted freeform retry guidance', async () => {
+    const handle = createSubmitOutputTool('freeform', {
+      input: {
+        outputContract: {
+          version: 1,
+          schema: {
+            type: 'object',
+            properties: { category: { type: 'string' } },
+            required: ['category'],
+            additionalProperties: false,
+          },
+        },
+      },
+    });
+    const response = await callExecute(handle)({
+      summary: 'Done.',
+      result: { category: 'technical' },
+      artifacts: 'invalid',
+    });
+
+    expect(response.isError).toBe(true);
+    expect(response.content[0].text).toContain(
+      'preserve the required `result`',
+    );
+    expect(response.content[0].text).not.toContain(
+      'Minimal valid freeform retry',
+    );
+    expect(handle.getCaptured()).toBeNull();
+  });
+
+  it('repairs freeform submit-output-only verification and artifact shape', async () => {
     const handle = createSubmitOutputTool('freeform', {
       input: submitOutputOnlyFreeformInput,
       inputCid: 'bafy-input',
@@ -497,7 +546,6 @@ describe('createSubmitOutputTool', () => {
     const result = await callExecute(handle)({
       summary: 'done',
       artifacts: { kind: 'note', title: 'Result', body: 'done' },
-      proposedTaskType: 'freeform_followup',
       verification: 'submit-output passed',
     });
 
@@ -505,10 +553,6 @@ describe('createSubmitOutputTool', () => {
     expect(handle.getCaptured()).toEqual({
       summary: 'done',
       artifacts: [{ kind: 'note', title: 'Result', body: 'done' }],
-      proposedTaskType: {
-        name: 'freeform_followup',
-        rationale: 'Suggested by the model during freeform execution.',
-      },
       verification: {
         inputCid: 'bafy-input',
         results: [

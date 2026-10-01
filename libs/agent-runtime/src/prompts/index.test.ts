@@ -44,7 +44,6 @@ describe('buildTaskUserPrompt', () => {
     expect(prompt).toContain('Freeform Task Agent');
     expect(prompt).toContain('Figure out if this recurring request');
     expect(prompt).toContain('taxonomy_probe');
-    expect(prompt).toContain('proposedTaskType');
     expect(prompt).toContain('continuation can recover that git context');
     expect(prompt).not.toContain('submit_freeform_output');
     expect(prompt).not.toContain('moltnet_upload_task_artifact');

@@ -1417,7 +1417,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
           ...service.command,
         ],
         {
-          stdout: 'ignore',
+          stdout: 'pipe',
           stderr: 'pipe',
           ...(service.env && { env: service.env }),
           signal: servicesAbort.signal,
@@ -1426,6 +1426,12 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       // Drain stderr while retaining only its tail. Awaiting the process alone
       // can deadlock when a noisy service fills the guest pipe.
       let stderr = '';
+      // Observe the exec result immediately: output() can fail independently,
+      // and aborting the service must never leave its result rejection orphaned.
+      const completion = Promise.resolve(handle).then(
+        (result) => ({ kind: 'completed' as const, result }),
+        (error: unknown) => ({ kind: 'failed' as const, error }),
+      );
       const exited = (async () => {
         try {
           if ('output' in handle && typeof handle.output === 'function') {
@@ -1435,15 +1441,18 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
               }
             }
           }
-          const result = await handle;
-          stderr = stderrTail(stderr, String(result.stderr ?? ''));
-          return { exitCode: result.exitCode, stderr };
         } catch (error) {
+          stderr = stderrTail(stderr, String(error));
+        }
+        const outcome = await completion;
+        if (outcome.kind === 'failed') {
           return {
             exitCode: undefined,
-            stderr: stderrTail(stderr, String(error)),
+            stderr: stderrTail(stderr, String(outcome.error)),
           };
         }
+        stderr = stderrTail(stderr, String(outcome.result.stderr ?? ''));
+        return { exitCode: outcome.result.exitCode, stderr };
       })();
       serviceExits.set(
         service.id,

@@ -1,4 +1,4 @@
-/** Exercise the real daemon, Pi session, provider wire format, and task API. */
+/** Exercise the daemon and Pi with scripted provider responses. Live model coverage lives in live-ollama.e2e.test.ts. */
 import { randomUUID } from 'node:crypto';
 import { rmSync } from 'node:fs';
 import { type Server, type ServerResponse } from 'node:http';
@@ -20,6 +20,39 @@ const MODEL = 'strict-tool-fixture';
 const KEY_ENV = 'OLLAMA_API_KEY';
 const SUBMIT_TOOL = 'submit_fulfill_brief_output';
 const FREEFORM_TOOL = 'submit_freeform_output';
+const PAGE_SCHEMA = {
+  type: 'object',
+  properties: {
+    rooms: {
+      type: 'object',
+      properties: {
+        livingRoom: {
+          type: 'object',
+          properties: {
+            widthM: { type: 'number' },
+            lengthM: { type: 'number' },
+          },
+          required: ['widthM', 'lengthM'],
+          additionalProperties: false,
+        },
+        bedroom: {
+          type: 'object',
+          properties: {
+            widthM: { type: 'number' },
+            lengthM: { type: 'number' },
+          },
+          required: ['widthM', 'lengthM'],
+          additionalProperties: false,
+        },
+      },
+      required: ['livingRoom', 'bedroom'],
+      additionalProperties: false,
+    },
+    circulation: { type: 'string' },
+  },
+  required: ['rooms', 'circulation'],
+  additionalProperties: false,
+};
 const VALID_ARGUMENTS = {
   branch: 'e2e/structured-output',
   commits: [],
@@ -86,6 +119,27 @@ function sendToolCall(
   serverResponse.end('data: [DONE]\n\n');
 }
 
+function sendFixtureFinalMessage(
+  response: ServerResponse,
+  content: string,
+): void {
+  const chunk = {
+    id: `chatcmpl-${randomUUID()}`,
+    object: 'chat.completion.chunk',
+    created: Math.floor(Date.now() / 1000),
+    model: MODEL,
+    choices: [
+      { index: 0, delta: { role: 'assistant', content }, finish_reason: null },
+    ],
+  };
+  response.writeHead(200, { 'content-type': 'text/event-stream' });
+  response.write(`data: ${JSON.stringify(chunk)}\n\n`);
+  response.write(
+    `data: ${JSON.stringify({ ...chunk, choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] })}\n\n`,
+  );
+  response.end('data: [DONE]\n\n');
+}
+
 describe('structured task submission through Pi (e2e)', () => {
   let harness: DaemonTestHarness;
   let agent: Agent;
@@ -93,10 +147,9 @@ describe('structured task submission through Pi (e2e)', () => {
   let providerServer: Server;
   let providerBaseUrl: string;
   const requests: ToolWireRequest[] = [];
-  const queuedArguments: Array<{
-    toolName: string;
-    args: Record<string, unknown>;
-  }> = [];
+  const queuedArguments: Array<
+    { toolName: string; args: Record<string, unknown> } | { finalText: string }
+  > = [];
   const tempRoots: string[] = [];
 
   beforeAll(async () => {
@@ -123,7 +176,15 @@ describe('structured task submission through Pi (e2e)', () => {
           response.writeHead(500).end('No fixture response queued');
           return;
         }
-        sendToolCall(response, responseFixture.toolName, responseFixture.args);
+        if ('finalText' in responseFixture) {
+          sendFixtureFinalMessage(response, responseFixture.finalText);
+        } else {
+          sendToolCall(
+            response,
+            responseFixture.toolName,
+            responseFixture.args,
+          );
+        }
       });
     });
     providerServer = providerStub.server;
@@ -140,13 +201,20 @@ describe('structured task submission through Pi (e2e)', () => {
   });
 
   async function runFixtureTask(
-    argumentsToReturn: Record<string, unknown>[],
+    argumentsToReturn: Array<Record<string, unknown> | { finalText: string }>,
     taskType: 'fulfill_brief' | 'freeform' = 'fulfill_brief',
+    extraInput: Record<string, unknown> = {},
+    expectedExitCode = 0,
   ) {
     const requestStart = requests.length;
     const toolName = taskType === 'freeform' ? FREEFORM_TOOL : SUBMIT_TOOL;
+    queuedArguments.length = 0;
     queuedArguments.push(
-      ...argumentsToReturn.map((args) => ({ toolName, args })),
+      ...argumentsToReturn.map((args) =>
+        'finalText' in args
+          ? { finalText: args.finalText as string }
+          : { toolName, args },
+      ),
     );
     const { sandboxRoot, agentRoot, piDir } =
       createDaemonRunRoots('structured-e2e');
@@ -187,6 +255,7 @@ describe('structured task submission through Pi (e2e)', () => {
           ...(taskType === 'fulfill_brief'
             ? { scopeHint: 'structured-output-e2e' }
             : {}),
+          ...extraInput,
         },
       },
       { teamId: creds.personalTeamId },
@@ -211,8 +280,9 @@ describe('structured task submission through Pi (e2e)', () => {
         profileId: profile.id,
         env: { [KEY_ENV]: 'fixture-key' },
       });
-      expect(exitCode).toBe(0);
+      expect(exitCode).toBe(expectedExitCode);
     } finally {
+      queuedArguments.length = 0;
       await agent.runtimeProfiles.delete(profile.id);
     }
     return { task, taskRequests: requests.slice(requestStart) };
@@ -301,7 +371,7 @@ describe('structured task submission through Pi (e2e)', () => {
     const submit = request?.tools?.find(
       (tool) => tool.function?.name === FREEFORM_TOOL,
     )?.function;
-    expect(submit?.strict).toBe(false);
+    expect(submit?.strict).toBe(true);
     expect(submit?.parameters?.properties).toHaveProperty('artifacts');
     expect(submit?.parameters?.properties).not.toHaveProperty('page');
 
@@ -310,5 +380,134 @@ describe('structured task submission through Pi (e2e)', () => {
     const attempt = (await agent.tasks.listAttempts(task.id))[0];
     expect(attempt?.output).toHaveProperty('artifacts.0.body', pageBody);
     expect(attempt?.output).toHaveProperty('verification.passed', true);
+  }, 600_000);
+
+  it('enforces a proposer supplied page schema on the tool and accepted output', async () => {
+    const validPage = {
+      rooms: {
+        livingRoom: { widthM: 4, lengthM: 5 },
+        bedroom: { widthM: 3, lengthM: 4 },
+      },
+      circulation: 'A doorway connects the rooms.',
+    };
+    const { task, taskRequests } = await runFixtureTask(
+      [
+        {
+          summary: 'Drafted a page.',
+          result: {
+            ...validPage,
+            rooms: { livingRoom: validPage.rooms.livingRoom },
+          },
+          verification: null,
+        },
+        { summary: 'Drafted a page.', result: validPage, verification: null },
+      ],
+      'freeform',
+      { outputContract: { version: 1, schema: PAGE_SCHEMA } },
+    );
+
+    const submit = taskRequests[0]?.tools?.find(
+      (tool) => tool.function?.name === FREEFORM_TOOL,
+    )?.function;
+    expect(submit?.strict).toBe(true);
+    expect(submit?.parameters?.properties?.result).toHaveProperty(
+      'properties.rooms.properties.bedroom.properties.widthM.type',
+      'number',
+    );
+    expect(submit?.parameters?.properties?.result).toHaveProperty(
+      'properties.circulation.type',
+      'string',
+    );
+    expect(submit?.parameters?.properties?.result).toHaveProperty(
+      'required',
+      expect.arrayContaining(['rooms', 'circulation']),
+    );
+    expect(taskRequests).toHaveLength(2);
+    expect(JSON.stringify(taskRequests[1]?.messages)).toContain(
+      'output/result/rooms/bedroom',
+    );
+    expect(JSON.stringify(taskRequests[1]?.messages)).toContain(
+      'Output failed validation',
+    );
+    const final = await agent.tasks.get(task.id);
+    expect(final.status).toBe('completed');
+    expect(final.input).toHaveProperty('outputContract.schema', PAGE_SCHEMA);
+    const attempt = (await agent.tasks.listAttempts(task.id))[0];
+    expect(attempt?.output).toHaveProperty('result', validPage);
+    expect(attempt?.output).toHaveProperty(
+      'verification.inputCid',
+      final.inputCid,
+    );
+  }, 600_000);
+
+  it('never accepts an invalid-only contracted result', async () => {
+    const invalid = {
+      summary: 'Drafted a page.',
+      result: { rooms: {}, circulation: 'Hall.' },
+      verification: null,
+    };
+    const { task, taskRequests } = await runFixtureTask(
+      Array.from({ length: 8 }, () => invalid),
+      'freeform',
+      { outputContract: { version: 1, schema: PAGE_SCHEMA } },
+      1,
+    );
+
+    expect(taskRequests.length).toBeGreaterThan(1);
+    expect(JSON.stringify(taskRequests[1]?.messages)).toContain(
+      'output/result/rooms/livingRoom',
+    );
+    const final = await agent.tasks.get(task.id);
+    expect(final.status).not.toBe('completed');
+    expect(final.acceptedAttemptN).toBeNull();
+    const attempt = (await agent.tasks.listAttempts(task.id))[0];
+    expect(attempt?.output).toBeNull();
+  }, 600_000);
+
+  it('requires a submit-tool call even when final text contains structured JSON', async () => {
+    const invalidFinal = JSON.stringify({
+      summary: 'Drafted a page.',
+      result: { rooms: {}, circulation: 'Hall.' },
+    });
+    const { task, taskRequests } = await runFixtureTask(
+      Array.from({ length: 4 }, () => ({ finalText: invalidFinal })),
+      'freeform',
+      { outputContract: { version: 1, schema: PAGE_SCHEMA } },
+      1,
+    );
+
+    expect(taskRequests.length).toBeGreaterThan(1);
+    const final = await agent.tasks.get(task.id);
+    expect(final.status).not.toBe('completed');
+    expect(final.acceptedAttemptN).toBeNull();
+    const attempt = (await agent.tasks.listAttempts(task.id))[0];
+    expect(attempt?.output).toBeNull();
+    expect(attempt?.error?.code).toBe('max_turns_exceeded');
+    expect(JSON.stringify(taskRequests[1]?.messages)).toContain(
+      'the only way to finish is to call the tool',
+    );
+  }, 600_000);
+
+  it('rejects an unsupported contract before calling the provider', async () => {
+    const { task, taskRequests } = await runFixtureTask(
+      [],
+      'freeform',
+      {
+        outputContract: {
+          version: 1,
+          schema: { ...PAGE_SCHEMA, $ref: '#/missing' },
+        },
+      },
+      1,
+    );
+
+    expect(taskRequests).toHaveLength(0);
+    const final = await agent.tasks.get(task.id);
+    expect(final.status).not.toBe('completed');
+    expect(final.acceptedAttemptN).toBeNull();
+    const attempt = (await agent.tasks.listAttempts(task.id))[0];
+    expect(attempt?.error?.code).toBe('invalid_output_contract');
+    expect(attempt?.error?.message).toContain('$ref');
+    expect(attempt?.output).toBeNull();
   }, 600_000);
 });

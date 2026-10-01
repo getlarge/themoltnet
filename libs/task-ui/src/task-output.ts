@@ -25,7 +25,7 @@ export interface FreeformOutputView {
   branch?: string;
   artifacts: FreeformArtifactView[];
   diaryEntryIds: string[];
-  proposedTaskType?: { name: string; rationale: string };
+  result?: unknown;
 }
 
 export type VerificationResultStatus = 'pass' | 'fail' | 'skip';
@@ -95,21 +95,12 @@ export function readFreeformOutput(output: unknown): FreeformOutputView | null {
         (id): id is string => typeof id === 'string' && id.length > 0,
       )
     : [];
-  const proposal = isRecord(output.proposedTaskType)
-    ? output.proposedTaskType
-    : null;
-  const proposalName = optionalString(proposal?.name);
-  const proposalRationale = optionalString(proposal?.rationale);
-
   return {
     summary,
     branch: optionalString(output.branch),
     artifacts,
     diaryEntryIds,
-    proposedTaskType:
-      proposalName && proposalRationale
-        ? { name: proposalName, rationale: proposalRationale }
-        : undefined,
+    result: output.result,
   };
 }
 

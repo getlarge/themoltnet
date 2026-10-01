@@ -96,6 +96,141 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
     await harness?.teardown();
   });
 
+  it('uses a real model to submit a typed result under a task-specific contract', async () => {
+    const sandboxRoot = mkdtempSync(join(tmpdir(), 'daemon-live-contract-'));
+    const agentRoot = mkdtempSync(join(tmpdir(), 'daemon-live-agent-'));
+    const piDir = mkdtempSync(join(tmpdir(), 'daemon-live-pi-'));
+    tempRoots.push(sandboxRoot, agentRoot, piDir);
+    await provisionDaemonCredentials({
+      agent,
+      agentRoot,
+      agentName,
+      agentId,
+      teamId,
+      apiUrl: harness.restApiUrl,
+      publicKey,
+      privateKey,
+      fingerprint,
+    });
+    writePiConfig({ piDir, provider: LIVE_PROVIDER, model: LIVE_MODEL });
+
+    const oldPiDir = process.env.PI_CODING_AGENT_DIR;
+    process.env.PI_CODING_AGENT_DIR = piDir;
+    let profileId: string | null = null;
+    try {
+      const profile = await agent.runtimeProfiles.create(
+        {
+          name: `live-contract-${randomUUID()}`,
+          runtimeKind: 'gondolin_pi',
+          provider: LIVE_PROVIDER,
+          model: LIVE_MODEL,
+          maxTurns: 12,
+          maxBashTimeouts: 1,
+          defaultWorkspaceMode: 'shared_mount',
+          allowedWorkspaceModes: ['shared_mount'],
+          requiredEnv: ['OLLAMA_API_KEY'],
+          requiredTools: [],
+          sandbox: {
+            env: { NODE_OPTIONS: '--dns-result-order=ipv4first' },
+            resources: { cpus: 2, memory: '2G' },
+          },
+        },
+        { teamId },
+      );
+      profileId = profile.id;
+
+      const task = await agent.tasks.create(
+        {
+          taskType: 'freeform',
+          title: 'Live typed extraction smoke',
+          diaryId,
+          maxAttempts: 1,
+          input: {
+            brief:
+              'Extract the room areas from this evidence: "t1: Salon 24 m2; t2: Chambre 12 m2." ' +
+              'Return both rooms as structured result.rooms, with their sourceId and numeric areaM2. ' +
+              'Do not inspect files or run commands. Call submit_freeform_output with the result object. ' +
+              FREEFORM_SUBMIT_INSTRUCTIONS,
+            constraints: [
+              'Do not run shell commands.',
+              'Do not create diary entries.',
+              'Do not modify the workspace.',
+            ],
+            outputContract: {
+              version: 1,
+              schema: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['rooms'],
+                properties: {
+                  rooms: {
+                    type: 'array',
+                    minItems: 2,
+                    maxItems: 2,
+                    items: {
+                      type: 'object',
+                      additionalProperties: false,
+                      required: ['label', 'areaM2', 'sourceId'],
+                      properties: {
+                        label: { type: 'string', minLength: 1 },
+                        areaM2: { type: 'number', minimum: 0 },
+                        sourceId: { type: 'string', enum: ['t1', 't2'] },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        { teamId },
+      );
+
+      const attemptN = await runLiveTask({
+        agent,
+        agentName,
+        agentRoot,
+        apiUrl: harness.restApiUrl,
+        profileId: profile.id,
+        sandboxRoot,
+        taskId: task.id,
+        teamId,
+      });
+      const attempt = (await agent.tasks.listAttempts(task.id)).find(
+        (item) => item.attemptN === attemptN,
+      );
+      expect(attempt?.status).toBe('completed');
+      expect(attempt?.output).toHaveProperty('result.rooms');
+      const rooms = (
+        attempt?.output as {
+          result: {
+            rooms: { label: string; areaM2: number; sourceId: string }[];
+          };
+        }
+      ).result.rooms;
+      expect(rooms).toHaveLength(2);
+      expect(
+        rooms.map(({ areaM2, sourceId }) => ({ areaM2, sourceId })),
+      ).toEqual(
+        expect.arrayContaining([
+          { areaM2: 24, sourceId: 't1' },
+          { areaM2: 12, sourceId: 't2' },
+        ]),
+      );
+      expect(rooms.every(({ label }) => label.trim().length > 0)).toBe(true);
+      expect(attempt?.output).toHaveProperty('verification.inputCid');
+    } finally {
+      if (oldPiDir === undefined) {
+        delete process.env.PI_CODING_AGENT_DIR;
+      } else {
+        process.env.PI_CODING_AGENT_DIR = oldPiDir;
+      }
+      if (profileId) {
+        await agent.runtimeProfiles.delete(profileId);
+      }
+    }
+  }, 900_000);
+
   it('runs a real freeform task and a continuation through Pi, slots, and durable sessions', async () => {
     const sandboxRoot = mkdtempSync(join(tmpdir(), 'daemon-live-ollama-'));
     const agentRoot = mkdtempSync(join(tmpdir(), 'daemon-live-agent-'));

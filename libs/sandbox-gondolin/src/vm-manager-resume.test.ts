@@ -1044,6 +1044,55 @@ describe('resumeVm task-context mount', () => {
     );
   });
 
+  it('drains service output and observes an exec rejection during stop', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-service-stop-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    mkdirSync(workspace, { recursive: true });
+    let aborted = false;
+    gondolinMock.vm.exec.mockImplementation(((
+      command: string[],
+      options?: { signal?: AbortSignal },
+    ) => {
+      if (command[0] === 'setsid') {
+        const result = new Promise<{ exitCode: number; stderr: string }>(
+          (_resolve, reject) => {
+            options?.signal?.addEventListener(
+              'abort',
+              () => {
+                aborted = true;
+                reject(new Error('exec aborted'));
+              },
+              { once: true },
+            );
+          },
+        );
+        return Object.assign(result, {
+          async *output() {
+            yield { stream: 'stderr' as const, data: Buffer.from('partial') };
+            await Promise.reject(new Error('output stream failed'));
+          },
+        });
+      }
+      return Promise.resolve({ exitCode: 0, stdout: '', stderr: '' });
+    }) as never);
+
+    const managed = await resumeVm({
+      checkpointPath: path.join(root, 'checkpoint.qcow2'),
+      agentName: 'configless',
+      agentRootDir: root,
+      mountPath: workspace,
+      guestProjection: { services: [{ id: 'background', command: ['true'] }] },
+    });
+    await managed.services.stop();
+
+    expect(aborted).toBe(true);
+    expect(gondolinMock.vm.exec).toHaveBeenCalledWith(
+      expect.arrayContaining(['setsid']),
+      expect.objectContaining({ stdout: 'pipe', stderr: 'pipe' }),
+    );
+  });
+
   it('rejects a path-unsafe service id before launching anything', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-bad-service-'));
     tempRoots.push(root);
@@ -1219,7 +1268,7 @@ describe('resumeVm task-context mount', () => {
         'serve',
         'agent-signing',
       ]),
-      expect.objectContaining({ stdout: 'ignore', stderr: 'pipe' }),
+      expect.objectContaining({ stdout: 'pipe', stderr: 'pipe' }),
     );
     expect(diagnostics).toContainEqual(
       expect.objectContaining({

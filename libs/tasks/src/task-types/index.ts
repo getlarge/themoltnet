@@ -23,6 +23,7 @@ import {
   FREEFORM_TYPE,
   FreeformInput,
   FreeformOutput,
+  FreeformSubmission,
   validateFreeformInputAsync,
 } from './freeform.js';
 import {
@@ -75,6 +76,7 @@ export * from './fulfill-brief.js';
 export * from './judge-eval-attempt.js';
 export * from './judge-eval-variant.js';
 export * from './judge-pack.js';
+export * from './output-contract.js';
 export * from './pr-review.js';
 export * from './render-pack.js';
 export * from './run-eval.js';
@@ -261,6 +263,7 @@ export const BUILT_IN_TASK_TYPES = {
     name: FREEFORM_TYPE,
     inputSchema: FreeformInput,
     outputSchema: FreeformOutput,
+    submissionSchema: FreeformSubmission,
     outputKind: 'artifact',
     resumable: true,
     workspaceMode: 'shared_mount',

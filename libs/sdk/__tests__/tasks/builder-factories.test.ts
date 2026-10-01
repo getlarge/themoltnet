@@ -66,6 +66,25 @@ describe('typed per-type factories produce validator-passing bodies', () => {
     ).toEqual([]);
   });
 
+  it('buildFreeform with a typed result contract', () => {
+    const schema = {
+      type: 'object',
+      properties: { category: { type: 'string' } },
+      required: ['category'],
+      additionalProperties: false,
+    };
+    const built = buildFreeform({ brief: 'Classify a document.' })
+      .outputSchema(schema)
+      .team(TEAM)
+      .diary(DIARY)
+      .build();
+
+    expect(ok(built)).toEqual([]);
+    expect(built.body.input).toMatchObject({
+      outputContract: { version: 1, schema },
+    });
+  });
+
   it('buildFulfillBrief', () => {
     expect(
       ok(buildFulfillBrief({ brief: 'b' }).team(TEAM).diary(DIARY).build()),

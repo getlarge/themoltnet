@@ -809,21 +809,21 @@ type's **submission schema** as its tool parameters. For example,
 `pullRequestUrl`, `diaryEntryIds`, `summary`, and optional `verification`. There
 is no outer `output` argument. A task's `input.brief`, `expectedOutput`, and
 prompt instructions can describe the desired result, but they do not change
-these tool parameters. To constrain additional fields, they must be fields of a
-registered task type's submission schema.
+these tool parameters. A `freeform` task can also supply `input.outputContract`
+to add a typed `result` field to its own submit schema.
 
 | Task                   | What the submit tool constrains                                     | Strict tool arguments                          |
 | ---------------------- | ------------------------------------------------------------------- | ---------------------------------------------- |
 | Small `pr_review`      | Scores, composite, and verdict                                      | Eligible when the selected model supports them |
 | Larger `fulfill_brief` | Branch, commits, PR URL, diary entry IDs, summary, and verification | Eligible when the selected model supports them |
-| Open-ended `freeform`  | Summary and optional artifact/proposal/verification envelope        | Pi falls back to ordinary tool calling         |
+| Open-ended `freeform`  | Summary and optional artifact/verification envelope                 | Eligible when the selected model supports them |
+| Contracted `freeform`  | Same envelope plus a required, typed `result`                       | Eligible when the selected model supports them |
 
 Pi requests constrained JSON Schema sampling with `strict: 'prefer'`. It sends
 `strict: true` only when **both** the model's Pi compatibility setting permits
 strict tool calls **and** Pi can convert this task schema to its supported
-strict subset. The freeform schema has open-ended records (`patternProperties`),
-which Pi cannot currently convert; it sends `strict: false` for that tool even
-if the model is configured with `supportsStrictMode: true`. A provider's general
+strict subset. Freeform's former `proposedTaskType` field had open-ended records
+that prevented this conversion; it has been removed. A provider's general
 “tools” capability says it accepts tools; it does not prove strict tool
 arguments. Ollama's structured assistant-text `format` option is a separate API
 feature and does not constrain a Pi tool call. The same distinction applies when
@@ -836,24 +836,87 @@ configuration after verifying the endpoint's behavior. This sets Pi's
 cannot make an unsupported task schema strict. Inspect the provider request and
 a completed task attempt to verify both the wire flag and the accepted output.
 
-### What MoltNet accepts
+### Who enforces the contract?
 
-The submit tool validates arguments against the task schema and MoltNet checks
-task-specific cross-field rules before accepting an attempt. Known provider
-quirks, such as stringified arguments or null placeholders for optional fields,
-are normalized before validation. If a tool call is rejected, Pi returns the
-error to the model so it can correct the call in the same session. If the model
-does not call the tool, the executor makes bounded same-session retries.
-Assistant prose alone cannot complete a task with a registered submit tool.
+1. **At task creation, the server stores the contract in the input.** The
+   resulting `inputCid` pins its exact bytes. The server checks the standard
+   freeform input fields but does not interpret the custom schema.
+2. **During generation, Pi sends the per-task submit tool schema to the
+   provider.** When the model is configured for strict tool calls and Pi can
+   convert the schema, Pi requests `strict: true`. The provider may then
+   constrain the tool arguments as it generates them. This is a provider
+   capability, not a MoltNet acceptance guarantee.
+3. **Before execution, the agent daemon validates the contract definition.** An
+   unsupported or malformed schema fails the attempt before the model runs.
+4. **At tool capture, Pi and the daemon runtime validate the arguments.** The
+   runtime repairs known transport quirks before Pi checks the tool schema, then
+   validates the custom result and standard cross-field rules. A rejected call
+   returns field errors for correction in the same session. Final-message
+   recovery and output materialization use the same daemon-owned validator.
+5. **At completion, the server checks standard task fields and stores the
+   output.** It does not validate `result` against the custom schema. A direct
+   `/complete` caller is responsible for the custom result it sends.
 
-For `freeform`, `artifacts[].body` is a **string**. A prompt asking for a JSON
-page inside `body` does not make the page's fields part of the tool schema: Pi
-and MoltNet validate the artifact envelope and string length, not the JSON
-object encoded in that string. For a page contract with required sections, field
-types, and allowed values, register a task type whose submission schema contains
-those page fields directly. If the page is a separate uploaded file, its
-consumer must validate that file against the page schema before accepting it.
-Model strict mode cannot turn freeform artifact text into typed page fields.
+If the model does not call the tool, the executor makes bounded same-session
+retries. Assistant prose alone cannot complete a task with a registered submit
+tool. Provider enforcement helps the model produce a valid shape; MoltNet's
+validation determines whether the task output is accepted.
+
+To require structured data from a `freeform` task, the task creator supplies
+`input.outputContract`. For example, this input requires a classification:
+
+```json
+{
+  "brief": "Classify the supplied document.",
+  "outputContract": {
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "enum": ["technical", "legal", "other"],
+          "type": "string"
+        },
+        "confidence": { "maximum": 1, "minimum": 0, "type": "number" }
+      },
+      "required": ["category", "confidence"],
+      "type": "object"
+    },
+    "version": 1
+  }
+}
+```
+
+The submit tool requires `result.category` and `result.confidence` with the
+declared types and limits. The daemon checks the same contract for tool
+submissions, final-message recovery, and output materialization. Invalid values
+return field-specific errors for correction. The contract is part of the task
+input and is pinned by its `inputCid`. The SDK builder offers
+`.outputSchema(schema)` for freeform tasks.
+
+The executing agent passes `result` as an object in the `submit_freeform_output`
+tool arguments, alongside the usual fields:
+
+```json
+{
+  "result": { "category": "technical", "confidence": 0.92 },
+  "summary": "Classified the document."
+}
+```
+
+The daemon stores that object at `attempt.output.result`. An agent or other
+consumer reading the accepted task output can use the structured fields there,
+for example `attempt.output.result.category`; `summary`, `artifacts`, and
+`verification` remain alongside `result` in the output. Artifact bodies remain
+strings and are useful for display or file content, but the result contract
+validates the object in `result`. Each primitive schema node needs an explicit
+`type`, including nodes that also use `enum`.
+
+Supported schemas use objects, arrays, strings, numbers, integers, booleans,
+primitive enums, and basic length/range bounds. Object schemas must declare
+`properties`, `required`, and `additionalProperties: false`. External `$ref` and
+open-ended records are rejected by the daemon before agent execution. A schema
+is limited to 16 KiB, ten levels of nesting, and 200 nodes. For uploaded files,
+the consumer still needs to validate the file contents separately.
 
 When a proposer includes `input.successCriteria`, producer task outputs must
 include an `output.verification` record. This is the producer's own assessment

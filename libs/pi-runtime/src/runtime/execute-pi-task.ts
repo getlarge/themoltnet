@@ -56,7 +56,7 @@ import {
   type TaskUsage,
   type TaskUserPromptContext,
   traceRuntimePhase,
-  validateTaskOutput,
+  validateAgentTaskOutput,
 } from '@themoltnet/agent-runtime';
 import {
   activateAgentEnv,
@@ -2510,9 +2510,14 @@ export async function materializeCapturedAttemptOutput(
     durationMs: deps.durationMs,
     traceparent: deps.traceparent,
   });
-  const errors = validateTaskOutput(deps.taskType, durableOutput, deps.input, {
-    inputCid: deps.inputCid,
-  });
+  const errors = validateAgentTaskOutput(
+    deps.taskType,
+    durableOutput,
+    deps.input,
+    {
+      inputCid: deps.inputCid,
+    },
+  );
   if (errors.length > 0) {
     const error = {
       code: 'output_validation_failed',

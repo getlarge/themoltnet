@@ -55,6 +55,30 @@ describe('getSubmitOutputContract', () => {
     expect(c!.parametersSchemaJson).not.toContain('"traceparent"');
   });
 
+  it('places a freeform output contract directly under result', () => {
+    const schema = {
+      type: 'object',
+      properties: { category: { type: 'string' } },
+      required: ['category'],
+      additionalProperties: false,
+    };
+    const contract = getSubmitOutputContract('freeform', {
+      outputContract: { version: 1, schema },
+    });
+
+    expect(contract?.parametersSchema).toHaveProperty(
+      'properties.result',
+      schema,
+    );
+    expect(contract?.parametersSchema).toHaveProperty(
+      'required',
+      expect.arrayContaining(['result']),
+    );
+    expect(contract?.parametersSchema).not.toHaveProperty(
+      'properties.proposedTaskType',
+    );
+  });
+
   it('makes the verification passed invariant visible in the submit schema', () => {
     const c = getSubmitOutputContract('run_eval');
 

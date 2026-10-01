@@ -39,9 +39,9 @@ for uncertain work while preserving the runtime contract the daemon needs.
 Use `freeform` when the requester can describe the work but cannot yet justify a
 durable task type. Its input accepts a natural-language `brief`, optional
 `expectedOutput`, `constraints`, `context`, and a non-binding
-`suggestedTaskType`. Its output can include `proposedTaskType` and
-`followUpTasks`, so repeated freeform patterns can later be promoted into plugin
-catalog entries or built-in task types.
+`suggestedTaskType`. Proposers can set `outputContract` to require a typed
+`output.result` without registering a new task type. The usual `summary`,
+`artifacts`, and `verification` fields remain available.
 
 `freeform` deliberately keeps runtime control narrow. Standalone freeform tasks
 may set `input.execution.workspace` to `none`, `shared_mount`, or

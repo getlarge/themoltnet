@@ -85,8 +85,6 @@ export function buildFreeformUserPrompt(
   const outcomeHints = [
     'Complete the brief using the supplied task facts, context, and effective',
     'runtime capabilities.',
-    'If the request reveals a recurring task shape, populate the',
-    '`proposedTaskType` field exposed by the registered submit-output tool.',
     'If you changed code on a branch, populate its `branch` field so a',
     'continuation can recover that git context.',
   ].join('\n');
@@ -104,6 +102,14 @@ export function buildFreeformUserPrompt(
       source: 'task_input',
       header: 'Expected Output',
       body: expectedOutput,
+    },
+    {
+      id: 'freeform.output_contract',
+      source: 'task_input',
+      header: 'Structured result contract',
+      body: input.outputContract
+        ? 'Call submit_freeform_output with a top-level `result` field matching the task output contract. Pass `result` as a JSON object; do not put it in an artifact body.'
+        : '',
     },
     {
       id: 'freeform.constraints',
