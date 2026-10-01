@@ -35,6 +35,7 @@ jobs:
     with:
       environment: legreffier
       profile: legreffier-complexity-review-v2
+      providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
       runtime-ref: ${{ github.event.pull_request.base.ref == github.event.repository.default_branch && github.event.pull_request.base.sha || github.event.repository.default_branch }}
       protected-paths: |
         .github/workflows/legreffier-complexity-review.yml
