@@ -8,15 +8,21 @@ a synthesis task scores the binary rubric. Trusted code validates file coverage,
 stage output, and score arithmetic before the workflow publishes a
 revision-aware comment with the LeGreffier GitHub App token.
 
-Each model task receives a bounded evidence packet and has no optional tools.
-The planner receives changed paths, statistics, and short excerpts; focused
-tasks receive the complete patches for their assigned paths. Trusted code splits
-groups into packets of at most 96 KB and refuses a patch larger than that limit
-or a plan needing more than eight focused tasks. Such changes fail visibly and
-are never silently scored from a partial view. Each task has one attempt and a
-180-second running budget. Two drain workers can claim focused tasks in parallel
-under one correlation ID. The final comment leads with a compact burden, head,
-and elapsed-time line.
+Focused tasks receive evidence packets of at most 96 KB and have no optional
+tools. Larger source patches are split into numbered segments without dropping
+bytes, and synthesis combines observations across segments. There is no PR-wide
+file-count or focused-task-count rejection; focused reviews run with concurrency
+four and remain subject to the workflow timeout.
+
+Generated dependency lockfiles are represented by their diff headers, original
+patch size, added/deleted line counts, and patch digest. Their contents are not
+reviewed, and the final comment explicitly lists these summarized paths. Source
+patches retain complete coverage. Every changed path still appears in the change
+map and domain validation.
+
+Each task has one attempt and a 180-second running budget. Two drain workers
+claim focused tasks under one correlation ID. The final comment leads with a
+compact burden, head, and elapsed-time line.
 
 The source-controlled runtime assets are
 [`legreffier-complexity-review-v2.json`](../../.github/runtime-profiles/legreffier-complexity-review-v2.json)

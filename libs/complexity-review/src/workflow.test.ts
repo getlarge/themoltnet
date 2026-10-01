@@ -59,7 +59,7 @@ const evidence: ReviewEvidence = {
 const summary = (value: unknown) => ({ summary: JSON.stringify(value) });
 
 describe('staged complexity review', () => {
-  it('reads the complete pinned diff by changed path and rejects oversized patches', () => {
+  it('reads the complete pinned diff by changed path without rejecting oversized patches', () => {
     const calls: string[][] = [];
     const git = (args: string[]) => {
       calls.push(args);
@@ -81,19 +81,29 @@ describe('staged complexity review', () => {
       '--unified=2',
       base + '...' + head,
     ]);
-    expect(() =>
-      buildEvidence(
-        (args) =>
-          args.includes('--name-only')
-            ? 'huge.ts\0'
-            : args.includes('--stat')
-              ? ''
-              : 'diff --git a/huge.ts b/huge.ts\n' +
-                'x'.repeat(MAX_PATCH_BYTES + 1),
-        base,
-        head,
-      ),
-    ).toThrow('per-task limit');
+    const large = buildEvidence(
+      (args) =>
+        args.includes('--name-only')
+          ? 'huge.ts\0'
+          : args.includes('--stat')
+            ? ''
+            : 'diff --git a/huge.ts b/huge.ts\n' +
+              'x'.repeat(MAX_PATCH_BYTES + 1),
+      base,
+      head,
+    );
+    expect(large.files[0].bytes).toBeGreaterThan(MAX_PATCH_BYTES);
+    const packets = buildDomainWork(
+      [{ id: 'large', nature: 'large source change', paths: ['huge.ts'] }],
+      large,
+    );
+    expect(packets).toHaveLength(2);
+    expect(
+      packets
+        .flatMap((work) => work.files)
+        .map((file) => file.patch)
+        .join(''),
+    ).toBe(large.files[0].patch);
   });
 
   it('checks that the map covers each changed path exactly once before focused reviews', () => {
@@ -240,98 +250,146 @@ describe('staged complexity review', () => {
     ).toThrow();
   });
 
-  it('maps first, creates focused reviews together, then synthesizes', async () => {
-    const created: Array<{ id: string; stage: string; key: string }> = [];
-    const scores = rubric.criteria.map((criterion) => ({
-      criterionId: criterion.id,
-      score: 1 as const,
-      rationale: 'Reviewable change',
-    }));
-    const outputs = new Map<string, unknown>();
-    const tasks: TaskClient = {
-      createTask: (body, options) => {
-        const stage =
-          body.tags?.find((tag) => tag.startsWith('stage:'))?.slice(6) ?? '';
-        const id = 'task-' + created.length;
-        created.push({ id, stage, key: options?.idempotencyKey ?? '' });
-        if (stage === 'map') {
-          outputs.set(
-            id,
-            summary({
-              groups: [
-                { id: 'app', nature: 'app change', fileIndexes: [0, 1] },
-              ],
-            }),
-          );
-        } else if (stage.startsWith('domain:')) {
-          const index = stage.endsWith('-1') ? 0 : 1;
-          outputs.set(
-            id,
-            summary({
-              workId: stage.slice(7),
-              paths: [evidence.files[index].path],
-              summary: 'Reviewed the full patch',
-              signals: [
-                {
-                  criterionId: 'cognitive_load',
-                  evidence: 'One small change',
-                  impact: 'reduces',
-                },
-              ],
-            }),
-          );
-        } else {
-          outputs.set(
-            id,
-            summary({ scores, composite: 1, verdict: 'Low burden' }),
-          );
-        }
-        return Promise.resolve({ id } as Awaited<
-          ReturnType<TaskClient['createTask']>
-        >);
-      },
-      getTask: (id) => {
-        if (
-          id.startsWith('task-') &&
-          created.find((item) => item.id === id)?.stage.startsWith('domain:')
-        ) {
-          expect(
-            created.filter((item) => item.stage.startsWith('domain:')),
-          ).toHaveLength(2);
-        }
-        return Promise.resolve({
-          id,
-          status: 'completed',
-          acceptedAttemptN: 1,
-        } as Awaited<ReturnType<TaskClient['getTask']>>);
-      },
-      listAttempts: (id) =>
-        Promise.resolve([
+  it.each([
+    evidence,
+    {
+      manifest: 'large source',
+      files: [
+        {
+          path: 'src/large.ts',
+          patch: 'x'.repeat(MAX_PATCH_BYTES * 2 + 1),
+          bytes: MAX_PATCH_BYTES * 2 + 1,
+        },
+      ],
+      bytes: MAX_PATCH_BYTES * 2 + 1,
+    },
+    {
+      manifest: 'lockfile deletion',
+      files: [
+        {
+          path: 'example/pnpm-lock.yaml',
+          patch: 'Generated lockfile deletion summarized',
+          bytes: 36,
+          summarized: true,
+        },
+      ],
+      bytes: 36,
+    },
+  ])(
+    'maps, reviews each packet, and synthesizes with explicit coverage',
+    async (evidence) => {
+      const work = buildDomainWork(
+        [
           {
-            taskId: id,
-            attemptN: 1,
+            id: 'app',
+            nature: 'app change',
+            paths: evidence.files.map((file) => file.path),
+          },
+        ],
+        evidence,
+      );
+      const created: Array<{ id: string; stage: string; key: string }> = [];
+      const scores = rubric.criteria.map((criterion) => ({
+        criterionId: criterion.id,
+        score: 1 as const,
+        rationale: 'Reviewable change',
+      }));
+      const outputs = new Map<string, unknown>();
+      const tasks: TaskClient = {
+        createTask: (body, options) => {
+          const stage =
+            body.tags?.find((tag) => tag.startsWith('stage:'))?.slice(6) ?? '';
+          const id = 'task-' + created.length;
+          created.push({ id, stage, key: options?.idempotencyKey ?? '' });
+          if (stage === 'map') {
+            outputs.set(
+              id,
+              summary({
+                groups: [
+                  {
+                    id: 'app',
+                    nature: 'app change',
+                    fileIndexes: evidence.files.map((_, index) => index),
+                  },
+                ],
+              }),
+            );
+          } else if (stage.startsWith('domain:')) {
+            const assigned = work.find(
+              (item) => 'domain:' + item.id === stage,
+            )!;
+            outputs.set(
+              id,
+              summary({
+                workId: stage.slice(7),
+                paths: assigned.files.map((file) => file.path),
+                summary: 'Reviewed the full patch',
+                signals: [
+                  {
+                    criterionId: 'cognitive_load',
+                    evidence: 'One small change',
+                    impact: 'reduces',
+                  },
+                ],
+              }),
+            );
+          } else {
+            outputs.set(
+              id,
+              summary({ scores, composite: 1, verdict: 'Low burden' }),
+            );
+          }
+          return Promise.resolve({ id } as Awaited<
+            ReturnType<TaskClient['createTask']>
+          >);
+        },
+        getTask: (id) => {
+          if (
+            id.startsWith('task-') &&
+            created.find((item) => item.id === id)?.stage.startsWith('domain:')
+          ) {
+            expect(
+              created.filter((item) => item.stage.startsWith('domain:')),
+            ).toHaveLength(work.length);
+          }
+          return Promise.resolve({
+            id,
             status: 'completed',
-            output: outputs.get(id),
-          } as Awaited<ReturnType<TaskClient['listAttempts']>>[number],
-        ]),
-    };
-    const result = await runComplexityReview(tasks, input, evidence);
-    expect(created.map((item) => item.stage)).toEqual([
-      'map',
-      'domain:app-1',
-      'domain:app-2',
-      'synthesis',
-    ]);
-    expect(created.every((item) => item.key.startsWith('complexity:'))).toBe(
-      true,
-    );
-    expect(result.taskIds).toHaveLength(4);
-    expect(result.output.composite).toBe(1);
-    expect(
-      Object.values(result.stageDurationsMs).reduce(
-        (sum, value) => sum + value,
-        0,
-      ),
-    ).toBe(result.durationMs);
-  });
+            acceptedAttemptN: 1,
+          } as Awaited<ReturnType<TaskClient['getTask']>>);
+        },
+        listAttempts: (id) =>
+          Promise.resolve([
+            {
+              taskId: id,
+              attemptN: 1,
+              status: 'completed',
+              output: outputs.get(id),
+            } as Awaited<ReturnType<TaskClient['listAttempts']>>[number],
+          ]),
+      };
+      const result = await runComplexityReview(tasks, input, evidence);
+      expect(created.map((item) => item.stage)).toEqual([
+        'map',
+        ...work.map((item) => 'domain:' + item.id),
+        'synthesis',
+      ]);
+      expect(created.every((item) => item.key.startsWith('complexity:'))).toBe(
+        true,
+      );
+      expect(result.taskIds).toHaveLength(work.length + 2);
+      expect(result.summarizedPaths).toEqual(
+        evidence.files
+          .filter((file) => file.summarized)
+          .map((file) => file.path),
+      );
+      expect(result.output.composite).toBe(1);
+      expect(
+        Object.values(result.stageDurationsMs).reduce(
+          (sum, value) => sum + value,
+          0,
+        ),
+      ).toBe(result.durationMs);
+    },
+  );
 });

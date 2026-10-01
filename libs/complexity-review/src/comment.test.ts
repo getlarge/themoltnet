@@ -64,6 +64,22 @@ const output: PrReviewOutput = {
 };
 
 describe('complexity review comment lifecycle', () => {
+  it('discloses generated lockfile summary coverage in the published result', () => {
+    const body = renderComplexityReviewResult({
+      revision: OLD_HEAD,
+      runUrl: RUN_URL,
+      taskId: 'task',
+      durationMs: 1000,
+      domainCount: 1,
+      output,
+      summarizedPaths: ['examples/custom-pi-runtime/pnpm-lock.yaml'],
+    });
+    expect(body).toContain(
+      'Generated lockfile contents summarized (change metadata only)',
+    );
+    expect(body).toContain('examples/custom-pi-runtime/pnpm-lock.yaml');
+  });
+
   it('does not publish a task result when a push arrives during review', async () => {
     const github = fakeGitHub({
       currentHead: NEW_HEAD,
@@ -150,6 +166,7 @@ describe('complexity review comment lifecycle', () => {
         output,
         durationMs: 55_000,
         taskIds: ['map', 'domain', 'synthesis'],
+        summarizedPaths: ['examples/pnpm-lock.yaml'],
       }),
     );
     const github = fakeGitHub({ currentHead: NEW_HEAD });
@@ -180,6 +197,10 @@ describe('complexity review comment lifecycle', () => {
       'Stages: change map → 1 focused review → synthesis.',
     );
     expect(body.body).toContain('measures review burden, not correctness');
+    expect(body.body).toContain(
+      'Generated lockfile contents summarized (change metadata only):',
+    );
+    expect(body.body).toContain('examples/pnpm-lock.yaml');
     expect(JSON.parse(readFileSync(resultPath, 'utf8'))).toMatchObject({
       output,
       durationMs: 55_000,
