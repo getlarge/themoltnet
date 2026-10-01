@@ -1,4 +1,4 @@
-/** Exercise the real daemon, Pi session, provider wire format, and task API. */
+/** Exercise the daemon and Pi with scripted provider responses. Live model coverage lives in live-ollama.e2e.test.ts. */
 import { randomUUID } from 'node:crypto';
 import { rmSync } from 'node:fs';
 import { type Server, type ServerResponse } from 'node:http';
@@ -119,7 +119,10 @@ function sendToolCall(
   serverResponse.end('data: [DONE]\n\n');
 }
 
-function sendFinalMessage(response: ServerResponse, content: string): void {
+function sendFixtureFinalMessage(
+  response: ServerResponse,
+  content: string,
+): void {
   const chunk = {
     id: `chatcmpl-${randomUUID()}`,
     object: 'chat.completion.chunk',
@@ -174,7 +177,7 @@ describe('structured task submission through Pi (e2e)', () => {
           return;
         }
         if ('finalText' in responseFixture) {
-          sendFinalMessage(response, responseFixture.finalText);
+          sendFixtureFinalMessage(response, responseFixture.finalText);
         } else {
           sendToolCall(
             response,
