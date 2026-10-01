@@ -50,20 +50,7 @@
       "models": [
         {
           "contextWindow": 1048576,
-          "id": "deepseek-v4-flash:cloud",
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "low": "low",
-            "medium": "medium",
-            "minimal": "low",
-            "off": "none",
-            "xhigh": "max"
-          }
-        },
-        {
-          "contextWindow": 1048576,
-          "id": "deepseek-v4-pro:cloud",
+          "id": "deepseek-v4-pro:0813",
           "reasoning": true,
           "thinkingLevelMap": {
             "high": "high",
@@ -90,34 +77,6 @@
         },
         {
           "contextWindow": 262144,
-          "id": "gemma4:cloud",
-          "input": ["text", "image"],
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "low": "low",
-            "medium": "medium",
-            "minimal": "low",
-            "off": "none",
-            "xhigh": "max"
-          }
-        },
-        {
-          "contextWindow": 262144,
-          "id": "gemma4:31b-cloud",
-          "input": ["text", "image"],
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "low": "low",
-            "medium": "medium",
-            "minimal": "low",
-            "off": "none",
-            "xhigh": "max"
-          }
-        },
-        {
-          "contextWindow": 262144,
           "id": "gemma4:31b",
           "input": ["text", "image"],
           "reasoning": true,
@@ -131,8 +90,8 @@
           }
         },
         {
-          "contextWindow": 202752,
-          "id": "glm-5.1:cloud",
+          "contextWindow": 1000000,
+          "id": "glm-5.2",
           "reasoning": true,
           "thinkingLevelMap": {
             "high": "high",
@@ -144,21 +103,33 @@
           }
         },
         {
-          "contextWindow": 1000000,
-          "id": "glm-5.2:cloud",
+          "id": "glm-5.3",
           "reasoning": true,
           "thinkingLevelMap": {
             "high": "high",
             "low": "low",
-            "medium": "medium",
+            "medium": "low",
             "minimal": "low",
-            "off": "none",
+            "off": "low",
+            "xhigh": "max"
+          }
+        },
+        {
+          "id": "glm-5.3-flash",
+          "input": ["text", "image"],
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "low",
+            "minimal": "low",
+            "off": "low",
             "xhigh": "max"
           }
         },
         {
           "contextWindow": 131072,
-          "id": "gpt-oss:20b-cloud",
+          "id": "gpt-oss:120b",
           "reasoning": true,
           "thinkingLevelMap": {
             "high": "high",
@@ -170,7 +141,7 @@
         },
         {
           "contextWindow": 131072,
-          "id": "gpt-oss:120b-cloud",
+          "id": "gpt-oss:20b",
           "reasoning": true,
           "thinkingLevelMap": {
             "high": "high",
@@ -182,7 +153,7 @@
         },
         {
           "contextWindow": 262144,
-          "id": "kimi-k2.6:cloud",
+          "id": "kimi-k2.6",
           "input": ["text", "image"],
           "reasoning": true,
           "thinkingLevelMap": {
@@ -196,7 +167,7 @@
         },
         {
           "contextWindow": 262144,
-          "id": "kimi-k2.7-code:cloud",
+          "id": "kimi-k2.7-code",
           "input": ["text", "image"],
           "reasoning": true,
           "thinkingLevelMap": {
@@ -210,21 +181,8 @@
         },
         {
           "contextWindow": 1048576,
-          "id": "kimi-k3:cloud",
+          "id": "kimi-k3",
           "input": ["text", "image"],
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "low": "low",
-            "medium": "medium",
-            "minimal": "low",
-            "off": "none",
-            "xhigh": "max"
-          }
-        },
-        {
-          "contextWindow": 202752,
-          "id": "minimax-m2.5:cloud",
           "reasoning": true,
           "thinkingLevelMap": {
             "high": "high",
@@ -237,7 +195,7 @@
         },
         {
           "contextWindow": 204800,
-          "id": "minimax-m2.7:cloud",
+          "id": "minimax-m2.7",
           "reasoning": true,
           "thinkingLevelMap": {
             "high": "high",
@@ -250,7 +208,7 @@
         },
         {
           "contextWindow": 524288,
-          "id": "minimax-m3:cloud",
+          "id": "minimax-m3",
           "input": ["text", "image"],
           "reasoning": true,
           "thinkingLevelMap": {
@@ -263,35 +221,38 @@
           }
         },
         {
-          "contextWindow": 262144,
-          "id": "nemotron-3-super:cloud",
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "low": "low",
-            "medium": "medium",
-            "minimal": "low",
-            "off": "none",
-            "xhigh": "max"
-          }
-        },
-        {
-          "contextWindow": 262144,
-          "id": "nemotron-3-ultra:cloud",
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "low": "low",
-            "medium": "medium",
-            "minimal": "low",
-            "off": "none",
-            "xhigh": "max"
-          }
-        },
-        {
-          "contextWindow": 262144,
-          "id": "qwen3.5:cloud",
+          "id": "mistral-large-3:675b",
           "input": ["text", "image"],
+          "reasoning": false
+        },
+        {
+          "id": "nemotron-3-nano:30b",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
+          "contextWindow": 262144,
+          "id": "nemotron-3-super",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high",
+            "low": "low",
+            "medium": "medium",
+            "minimal": "low",
+            "off": "none",
+            "xhigh": "max"
+          }
+        },
+        {
+          "contextWindow": 262144,
+          "id": "nemotron-3-ultra",
           "reasoning": true,
           "thinkingLevelMap": {
             "high": "high",
