@@ -34,11 +34,11 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: examples/custom-pi-runtime/pnpm-lock.yaml
+          cache-dependency-path: examples/custom-pi-runtime/package.json
       - name: Install standalone dependencies
         env:
           npm_config_minimum_release_age_exclude: '@themoltnet/*'
-        run: pnpm install --ignore-workspace --frozen-lockfile
+        run: pnpm install --ignore-workspace --no-frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build

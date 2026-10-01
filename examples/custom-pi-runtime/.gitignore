@@ -1,0 +1,5 @@
+# Standalone example: install fresh against the published packages, like a
+# user would. A committed lockfile pins stale transitive dependencies.
+pnpm-lock.yaml
+node_modules/
+dist/

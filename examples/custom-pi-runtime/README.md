@@ -9,23 +9,24 @@ manifest and runtime inventory, while daemon core resolves and validates the
 authenticated agent's signing key. Adapters neither receive a MoltNet config
 directory nor construct or return an executor attestor.
 
-The example stays outside the root pnpm workspace and carries its own lockfile.
+The example stays outside the root pnpm workspace and does not commit a
+lockfile, so it resolves dependencies the way a fresh user install would.
 Install the published dependencies and build the runtime module:
 
 ```bash
 env npm_config_minimum_release_age_exclude='@themoltnet/*' \
-  pnpm install --ignore-workspace --frozen-lockfile
+  pnpm install --ignore-workspace
 pnpm build
 ```
 
 The package is intentionally absent from the root Nx graph. A dedicated CI
 workflow runs only when this example or its workflow changes. Reproduce that
-check locally by running the frozen install, typecheck, unit tests, and build in
+check locally by running the install, typecheck, unit tests, and build in
 sequence from this directory:
 
 ```bash
 env npm_config_minimum_release_age_exclude='@themoltnet/*' \
-  pnpm install --ignore-workspace --frozen-lockfile
+  pnpm install --ignore-workspace
 pnpm typecheck
 pnpm test
 pnpm build
@@ -266,7 +267,7 @@ Run the same isolated sequence as the dedicated example workflow:
 
 ```bash
 env npm_config_minimum_release_age_exclude='@themoltnet/*' \
-  pnpm install --ignore-workspace --frozen-lockfile
+  pnpm install --ignore-workspace
 pnpm typecheck
 pnpm test
 pnpm build
