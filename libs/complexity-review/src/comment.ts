@@ -93,6 +93,7 @@ export function renderComplexityReviewResult(args: {
   taskId: string;
   durationMs: number;
   domainCount: number;
+  summarizedPaths?: string[];
   output: PrReviewOutput;
 }): string {
   requireFullOid(args.revision, 'review revision');
@@ -118,6 +119,9 @@ export function renderComplexityReviewResult(args: {
     `**Weighted composite:** ${args.output.composite.toFixed(2)}\n\n` +
     `**Verdict:** ${args.output.verdict}\n\n` +
     `${criteria}\n\n` +
+    (args.summarizedPaths?.length
+      ? `Generated lockfile contents summarized (change metadata only): ${args.summarizedPaths.map((path) => JSON.stringify(path)).join(', ')}.\n\n`
+      : '') +
     '_This advisory measures review burden, not correctness or code quality. ' +
     'Low scores are expected for deliberately broad or security-sensitive changes._\n\n' +
     runDetails(args)
@@ -265,6 +269,7 @@ export async function updateComplexityReviewComment(args: {
     output?: unknown;
     durationMs?: unknown;
     taskIds?: unknown;
+    summarizedPaths?: unknown;
   };
   const output = report.output;
   if (!Value.Check(PrReviewOutputSchema, output)) {
@@ -279,6 +284,13 @@ export async function updateComplexityReviewComment(args: {
   ) {
     throw new Error('accepted review report has no valid workflow timing');
   }
+  if (
+    report.summarizedPaths !== undefined &&
+    (!Array.isArray(report.summarizedPaths) ||
+      report.summarizedPaths.some((path) => typeof path !== 'string'))
+  ) {
+    throw new Error('invalid summarized evidence paths');
+  }
   await github.upsertComment(
     args.prNumber,
     renderComplexityReviewResult({
@@ -287,6 +299,7 @@ export async function updateComplexityReviewComment(args: {
       taskId: args.taskId,
       durationMs: report.durationMs,
       domainCount: report.taskIds.length - 2,
+      summarizedPaths: report.summarizedPaths as string[] | undefined,
       output,
     }),
   );

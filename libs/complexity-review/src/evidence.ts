@@ -1,9 +1,15 @@
+import { createHash } from 'node:crypto';
+
 export type Git = (args: string[]) => string;
 
 export interface ChangedFile {
   path: string;
   patch: string;
   bytes: number;
+  /** Generated payloads are summarized explicitly, never presented as full patches. */
+  summarized?: boolean;
+  /** A source patch may span several packets, with no bytes discarded. */
+  segment?: { index: number; total: number };
 }
 
 export interface ReviewEvidence {
@@ -14,8 +20,16 @@ export interface ReviewEvidence {
 
 const FULL_OID = /^[0-9a-f]{40}$/;
 export const MAX_PATCH_BYTES = 96_000;
-export const MAX_CHANGED_FILES = 120;
-export const MAX_REVIEW_TASKS = 8;
+const LOCKFILES = new Set([
+  'pnpm-lock.yaml',
+  'package-lock.json',
+  'npm-shrinkwrap.json',
+  'yarn.lock',
+  'bun.lock',
+  'bun.lockb',
+  'Cargo.lock',
+  'go.sum',
+]);
 
 export function buildEvidence(
   git: Git,
@@ -29,11 +43,6 @@ export function buildEvidence(
   const paths = git(['diff', '--no-ext-diff', '--name-only', '-z', range])
     .split('\0')
     .filter(Boolean);
-  if (paths.length > MAX_CHANGED_FILES) {
-    throw new Error(
-      `complexity review has ${paths.length} changed files, above the ${MAX_CHANGED_FILES}-file limit`,
-    );
-  }
   const diff = git(['diff', '--no-ext-diff', '--unified=2', range]);
   const patches = diff.split(/(?=^diff --git )/m).filter(Boolean);
   if (patches.length !== paths.length) {
@@ -45,10 +54,22 @@ export function buildEvidence(
     if (bytes === 0) {
       throw new Error(`complexity patch for ${path} is empty`);
     }
-    if (bytes > MAX_PATCH_BYTES) {
-      throw new Error(
-        `complexity patch for ${path} is ${bytes} bytes, above the ${MAX_PATCH_BYTES}-byte per-task limit`,
-      );
+    if (LOCKFILES.has(path.slice(path.lastIndexOf('/') + 1))) {
+      const lines = patch.split('\n');
+      const hunkStart = lines.findIndex((line) => line.startsWith('@@'));
+      const header = lines
+        .slice(0, hunkStart < 0 ? lines.length : hunkStart)
+        .join('\n');
+      const payload = hunkStart < 0 ? [] : lines.slice(hunkStart);
+      const additions = payload.filter((line) => line.startsWith('+')).length;
+      const deletions = payload.filter((line) => line.startsWith('-')).length;
+      const summary = `${header}\nGenerated lockfile payload summarized: ${bytes} original patch bytes, ${additions} added lines, ${deletions} deleted lines.\nPatch SHA-256: ${createHash('sha256').update(patch).digest('hex')}\nLockfile contents are not reviewed; assess review burden from this metadata and related manifest changes.\n`;
+      return {
+        path,
+        patch: summary,
+        bytes: Buffer.byteLength(summary),
+        summarized: true,
+      };
     }
     return { path, patch, bytes };
   });
@@ -96,16 +117,45 @@ export function buildDomainWork(
     for (const path of group.paths) {
       const file = byPath.get(path);
       if (!file) throw new Error(`change map included unknown path ${path}`);
-      if (bytes + file.bytes > MAX_PATCH_BYTES) flush();
-      files.push(file);
-      bytes += file.bytes;
+      const chunks = splitPatch(file.patch);
+      for (const [index, patch] of chunks.entries()) {
+        const chunk =
+          chunks.length === 1
+            ? file
+            : {
+                ...file,
+                patch,
+                bytes: Buffer.byteLength(patch),
+                segment: { index: index + 1, total: chunks.length },
+              };
+        if (
+          bytes + chunk.bytes > MAX_PATCH_BYTES ||
+          files.some((item) => item.path === chunk.path)
+        )
+          flush();
+        files.push(chunk);
+        bytes += chunk.bytes;
+      }
     }
     flush();
   }
-  if (work.length > MAX_REVIEW_TASKS) {
-    throw new Error(
-      `complexity review needs ${work.length} domain tasks, above the ${MAX_REVIEW_TASKS}-task limit`,
-    );
-  }
   return work;
+}
+
+/** Lossless UTF-8 packets; prefer line boundaries, including for huge single lines. */
+function splitPatch(patch: string): string[] {
+  const data = Buffer.from(patch);
+  const chunks: string[] = [];
+  let start = 0;
+  while (start < data.length) {
+    let end = Math.min(start + MAX_PATCH_BYTES, data.length);
+    if (end < data.length) {
+      while ((data[end] & 0xc0) === 0x80) end--;
+      const newline = data.lastIndexOf(0x0a, end - 1);
+      if (newline >= start + MAX_PATCH_BYTES / 2) end = newline + 1;
+    }
+    chunks.push(data.subarray(start, end).toString('utf8'));
+    start = end;
+  }
+  return chunks;
 }

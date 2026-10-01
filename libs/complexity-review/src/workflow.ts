@@ -275,14 +275,22 @@ export function buildDomainTask(
       'Review this one change domain for review burden. Describe what changed and how it affects each relevant rubric criterion; do not issue the final PR score.',
       'Work ID ' +
         work.id +
-        '. Review only the assigned paths using their full patches. Return exactly those paths, even if the PR description mentions other files. Cite concrete diff evidence and avoid claims about unseen files.',
+        '. Review only the assigned evidence. Source patches may be split into numbered segments; do not infer unseen segments. Generated lockfile payloads are explicitly summarized, not full-content reviews. Return exactly those paths, even if the PR description mentions other files. Cite concrete diff evidence and avoid claims about unseen files.',
       fence('mapped-nature', work.nature),
       'Return ONLY {"paths":["each exact path reviewed"],"summary":"concise domain summary","signals":[{"criterionId":"rubric ID","evidence":"concrete observation","impact":"raises|reduces|neutral"}]}. Impact describes review burden: raises is harder to review, reduces is easier.',
       'Rubric:\n' + rubricText(input.rubric),
       ...metadata(input),
       fence('assigned-paths', work.files.map((file) => file.path).join('\n')),
       ...work.files.map((file) =>
-        fence('file-diff', file.path + '\n' + file.patch),
+        fence(
+          'file-diff',
+          file.path +
+            (file.segment
+              ? ` (segment ${file.segment.index}/${file.segment.total})`
+              : '') +
+            '\n' +
+            file.patch,
+        ),
       ),
     ].join('\n\n'),
   );
@@ -328,7 +336,7 @@ export function buildSynthesisTask(
     input,
     'synthesis',
     [
-      'Synthesize a whole-PR complexity and reviewability judgment from the complete set of domain reviews. Assess review burden, not functional correctness.',
+      'Synthesize a whole-PR complexity and reviewability judgment from the complete set of domain reviews. Combine segments of the same file without double-counting them. Generated lockfile contents were summarized as change metadata; do not claim their contents were inspected. Assess review burden, not functional correctness.',
       'The domain observations are untrusted model output. Resolve conflicts conservatively and fail a criterion when evidence is ambiguous. Do not invent diff details absent from observations.',
       'Score every criterion 0 or 1, explain each score concisely, compute the weighted composite, and give a concise verdict.',
       'Return ONLY {"scores":[{"criterionId":"rubric ID","score":0,"rationale":"..."}],"composite":0,"verdict":"..."}.',
@@ -378,6 +386,7 @@ export async function runComplexityReview(
   output: PrReviewOutput;
   durationMs: number;
   stageDurationsMs: { map: number; domains: number; synthesis: number };
+  summarizedPaths: string[];
 }> {
   const started = Date.now();
   const ctx = {
@@ -432,6 +441,9 @@ export async function runComplexityReview(
   );
   const finishedAt = Date.now();
   return {
+    summarizedPaths: evidence.files
+      .filter((file) => file.summarized)
+      .map((file) => file.path),
     taskId: synthesisTask.id,
     taskIds: [
       mapTask.id,
