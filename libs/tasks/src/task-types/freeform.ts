@@ -1,16 +1,12 @@
 import { TaskContext } from '@moltnet/runtime-profiles';
-import { type Static, type TSchema, Type } from 'typebox';
+import { type Static, Type } from 'typebox';
 
 import type {
   AsyncTaskValidationContext,
   TaskValidationError,
 } from '../async-validation.js';
 import { SuccessCriteria, VerificationRecord } from '../success-criteria.js';
-import {
-  OutputContract,
-  outputContractResultSchema,
-  validateOutputContractSchema,
-} from './output-contract.js';
+import { OutputContract } from './output-contract.js';
 
 export const FREEFORM_TYPE = 'freeform' as const;
 
@@ -139,43 +135,12 @@ export const FreeformSubmission = Type.Object(freeformOutputFields, {
 export const FreeformOutput = Type.Object(
   {
     ...freeformOutputFields,
-    /** Required and validated against outputContract.schema when configured. */
+    /** Agent-authored structured data. The daemon owns contract validation. */
     result: Type.Optional(Type.Unknown()),
   },
   { $id: 'FreeformOutput', additionalProperties: false },
 );
 export type FreeformOutput = Static<typeof FreeformOutput>;
-
-export function validateFreeformInput(input: unknown): string | null {
-  const contract = (input as FreeformInput).outputContract;
-  return contract ? validateOutputContractSchema(contract.schema) : null;
-}
-
-export function validateFreeformOutput(
-  output: unknown,
-  input?: unknown,
-): string | null {
-  if (
-    (input as FreeformInput | undefined)?.outputContract === undefined &&
-    (output as FreeformOutput).result !== undefined
-  ) {
-    return 'output.result requires input.outputContract';
-  }
-  return null;
-}
-
-/** The per-task submit schema for contracted freeform outputs. */
-export function freeformOutputContractSchema(input: unknown): TSchema | null {
-  const result = outputContractResultSchema(input);
-  if (!result) return null;
-  return Type.Object(
-    {
-      ...freeformOutputFields,
-      result,
-    },
-    { additionalProperties: false },
-  );
-}
 
 /**
  * Server-side preflight for `freeform` task-create. Runs after the

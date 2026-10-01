@@ -27,8 +27,9 @@
  *   - Description text: shared across executors so the tool's
  *     advertised purpose is identical regardless of who registers it.
  */
-import { getTaskSubmissionSchema } from '@moltnet/tasks';
 import type { TSchema } from 'typebox';
+
+import { getAgentSubmissionSchema } from './output-contract.js';
 
 export interface SubmitOutputContract {
   /** Concrete tool name the executor must register — e.g.
@@ -59,7 +60,7 @@ export function getSubmitOutputContract(
   taskType: string,
   input?: unknown,
 ): SubmitOutputContract | null {
-  const schema = getTaskSubmissionSchema(taskType, input);
+  const schema = getAgentSubmissionSchema(taskType, input);
   if (!schema) return null;
 
   return {

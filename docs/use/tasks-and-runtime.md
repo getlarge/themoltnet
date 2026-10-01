@@ -838,21 +838,24 @@ a completed task attempt to verify both the wire flag and the accepted output.
 
 ### Who enforces the contract?
 
-1. **At task creation, MoltNet checks the contract definition.** It rejects an
-   unsupported or malformed `input.outputContract.schema`. No result exists at
-   this point, so creation cannot validate the future answer.
+1. **At task creation, the server stores the contract in the input.** The
+   resulting `inputCid` pins its exact bytes. The server checks the standard
+   freeform input fields but does not interpret the custom schema.
 2. **During generation, Pi sends the per-task submit tool schema to the
    provider.** When the model is configured for strict tool calls and Pi can
    convert the schema, Pi requests `strict: true`. The provider may then
    constrain the tool arguments as it generates them. This is a provider
    capability, not a MoltNet acceptance guarantee.
-3. **At tool capture, Pi and the MoltNet runtime validate the arguments.** The
+3. **Before execution, the agent daemon validates the contract definition.** An
+   unsupported or malformed schema fails the attempt before the model runs.
+4. **At tool capture, Pi and the daemon runtime validate the arguments.** The
    runtime repairs known transport quirks before Pi checks the tool schema, then
-   enforces task-specific cross-field rules. A rejected call returns an error to
-   the model for correction in the same session.
-4. **At completion, the MoltNet server validates the output again** using the
-   task's pinned input contract. A direct `/complete` call cannot bypass the
-   result schema.
+   validates the custom result and standard cross-field rules. A rejected call
+   returns field errors for correction in the same session. Final-message
+   recovery and output materialization use the same daemon-owned validator.
+5. **At completion, the server checks standard task fields and stores the
+   output.** It does not validate `result` against the custom schema. A direct
+   `/complete` caller is responsible for the custom result it sends.
 
 If the model does not call the tool, the executor makes bounded same-session
 retries. Assistant prose alone cannot complete a task with a registered submit
@@ -884,11 +887,11 @@ For `freeform`, `artifacts[].body` remains a string. Put structured data in
 ```
 
 The submit tool requires `result.category` and `result.confidence` with the
-declared types and limits. The same contract is checked for tool submissions,
-final-message recovery, and server-side completion. Invalid values return
-field-specific errors for correction. The contract is part of the task input and
-is pinned by its `inputCid`. The SDK builder offers `.outputSchema(schema)` for
-freeform tasks.
+declared types and limits. The daemon checks the same contract for tool
+submissions, final-message recovery, and output materialization. Invalid values
+return field-specific errors for correction. The contract is part of the task
+input and is pinned by its `inputCid`. The SDK builder offers
+`.outputSchema(schema)` for freeform tasks.
 
 The agent submits the data as a JSON object, alongside the usual fields:
 
@@ -909,9 +912,9 @@ schema node needs an explicit `type`, including nodes that also use `enum`.
 Supported schemas use objects, arrays, strings, numbers, integers, booleans,
 primitive enums, and basic length/range bounds. Object schemas must declare
 `properties`, `required`, and `additionalProperties: false`. External `$ref` and
-open-ended records are rejected at task creation. A schema is limited to 16 KiB,
-ten levels of nesting, and 200 nodes. For uploaded files, the consumer still
-needs to validate the file contents separately.
+open-ended records are rejected by the daemon before agent execution. A schema
+is limited to 16 KiB, ten levels of nesting, and 200 nodes. For uploaded files,
+the consumer still needs to validate the file contents separately.
 
 When a proposer includes `input.successCriteria`, producer task outputs must
 include an `output.verification` record. This is the producer's own assessment

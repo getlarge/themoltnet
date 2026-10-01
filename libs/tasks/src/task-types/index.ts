@@ -24,9 +24,7 @@ import {
   FreeformInput,
   FreeformOutput,
   FreeformSubmission,
-  validateFreeformInput,
   validateFreeformInputAsync,
-  validateFreeformOutput,
 } from './freeform.js';
 import {
   FULFILL_BRIEF_TYPE,
@@ -273,10 +271,7 @@ export const BUILT_IN_TASK_TYPES = {
     sessionScope: 'correlation',
     acceptsInputWorkspaceOverride: true,
     requiresReferences: false,
-    validateInput: validateFreeformInput,
-    validateOutput: (output: unknown, input?: unknown) =>
-      validateFreeformOutput(output, input) ??
-      requireVerificationWhenCriteriaPresent(output, input),
+    validateOutput: requireVerificationWhenCriteriaPresent,
     validateInputAsync: validateFreeformInputAsync,
   },
   [FULFILL_BRIEF_TYPE]: {

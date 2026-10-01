@@ -9,6 +9,7 @@
  */
 export * from './context-bindings.js';
 export * from './host-capabilities/index.js';
+export * from './output-contract.js';
 export * from './output-tools.js';
 export * from './prompts/index.js';
 export * from './reporters/index.js';

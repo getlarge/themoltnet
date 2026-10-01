@@ -53,6 +53,7 @@ import {
   validateTaskTypes,
 } from '../lib/options.js';
 import { initWorkerOtel } from '../lib/otel.js';
+import { preflightOutputContract } from '../lib/output-contract-preflight.js';
 import { resolvePiAgentDir } from '../lib/pi-agent-dir.js';
 import {
   type PreparedRuntimeProfile,
@@ -699,6 +700,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         });
       },
       executeTask: async (claimedTask, reporter) => {
+        const contractFailure = preflightOutputContract(claimedTask);
+        if (contractFailure) return contractFailure;
         const selected = runtimeForClaimedTask(runtimes, claimedTask);
         const { executionPlans, profile, sandbox, slotIdentity, stateDirs } =
           selected;

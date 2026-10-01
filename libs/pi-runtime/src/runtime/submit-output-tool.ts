@@ -32,7 +32,7 @@ import { defineTool } from '@earendil-works/pi-coding-agent';
 import {
   getSubmitOutputContract,
   SUBMIT_OUTPUT_GATE_ID,
-  validateTaskSubmission,
+  validateAgentTaskSubmission,
 } from '@themoltnet/agent-runtime';
 import { type TObject, type TSchema } from 'typebox';
 
@@ -202,14 +202,14 @@ function decodeStringifiedFields(params: unknown, schema: TSchema): unknown {
 }
 
 function formatValidationErrors(
-  errors: ReturnType<typeof validateTaskSubmission>,
+  errors: ReturnType<typeof validateAgentTaskSubmission>,
 ): string {
   return errors.map((err) => `${err.field}: ${err.message}`).join('; ');
 }
 
 function submitOutputRepairHint(
   taskType: string,
-  errors: ReturnType<typeof validateTaskSubmission>,
+  errors: ReturnType<typeof validateAgentTaskSubmission>,
   schema: TSchema,
 ): string {
   const fields = new Set(errors.map((err) => err.field));
@@ -418,9 +418,14 @@ export function createSubmitOutputTool(
 
   const recordInvalidCall = (candidate: unknown, piError?: unknown): string => {
     invalidCallCount += 1;
-    const errors = validateTaskSubmission(taskType, candidate, opts.input, {
-      inputCid: opts.inputCid,
-    });
+    const errors = validateAgentTaskSubmission(
+      taskType,
+      candidate,
+      opts.input,
+      {
+        inputCid: opts.inputCid,
+      },
+    );
     const detailMsg =
       errors.length > 0
         ? formatValidationErrors(errors)
@@ -540,7 +545,7 @@ export function createSubmitOutputTool(
         };
       }
       const candidateParams = normalized.candidate;
-      const errors = validateTaskSubmission(
+      const errors = validateAgentTaskSubmission(
         taskType,
         candidateParams,
         opts.input,
