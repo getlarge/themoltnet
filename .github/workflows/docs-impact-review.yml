@@ -57,6 +57,7 @@ jobs:
     secrets: inherit
     with:
       environment: legreffier
+      providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
       profile: ${{ vars.MOLTNET_DOCS_IMPACT_PROFILE }}
       coverage-profile: ${{ vars.MOLTNET_DOCS_IMPACT_COVERAGE_PROFILE }}
       docs-check-profile: ${{ vars.MOLTNET_DOCS_IMPACT_DOCS_CHECK_PROFILE }}
