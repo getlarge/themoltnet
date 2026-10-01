@@ -1,7 +1,9 @@
 import type { Task, TaskAttempt } from '@moltnet/api-client';
 import {
+  getOutputContract,
   getTaskOutputSchema,
   type TaskRef,
+  validateOutputContractResult,
   validateTaskOutput,
 } from '@moltnet/tasks';
 
@@ -55,6 +57,11 @@ function matches(a: FreeformArtifactLike, filter?: ArtifactFilter): boolean {
  * field (judgment types use `output.verdict` / `output.composite`).
  * `artifact*` accessors apply to `freeform` / `run_eval`; other types yield
  * `[]` / `undefined`.
+ *
+ * For a `freeform` task whose input carries an `outputContract`, construction
+ * also validates `output.result` against that contract. The server stores the
+ * contract without enforcing it, so this is the reader-side guarantee; use
+ * {@link TaskResultReader.result} to read the validated value.
  */
 export class TaskResultReader<TOutput = Record<string, unknown>> {
   /** The validated, typed structured output of the accepted attempt. */
@@ -69,6 +76,7 @@ export class TaskResultReader<TOutput = Record<string, unknown>> {
   readonly taskId: string;
   /** CID of the accepted attempt output. */
   readonly outputCid: string;
+  readonly #hasOutputContract: boolean;
 
   constructor(task: Task, attempt: TaskAttempt) {
     const errors = [];
@@ -101,6 +109,13 @@ export class TaskResultReader<TOutput = Record<string, unknown>> {
       );
       if (outErrors.length > 0) throw new TaskResultError(outErrors);
     }
+    const contractErrors = validateOutputContractResult(
+      task.taskType,
+      task.input,
+      attempt.output,
+    );
+    if (contractErrors.length > 0) throw new TaskResultError(contractErrors);
+    this.#hasOutputContract = getOutputContract(task.input) !== undefined;
 
     this.output = attempt.output as TOutput;
     this.summary = (attempt.output as { summary?: string }).summary;
@@ -112,6 +127,26 @@ export class TaskResultReader<TOutput = Record<string, unknown>> {
       executorFingerprint: attempt.completedExecutorFingerprint ?? null,
     };
     this.usage = attempt.usage;
+  }
+
+  /**
+   * The structured `output.result`, already validated against the task's
+   * `input.outputContract` at construction. `T` is the caller's static view of
+   * the contract schema; the runtime check is the contract itself.
+   *
+   * @returns The validated result, typed as `T`.
+   * @throws {TaskResultError} if the task has no output contract.
+   */
+  result<T = unknown>(): T {
+    if (!this.#hasOutputContract) {
+      throw new TaskResultError([
+        {
+          field: 'input/outputContract',
+          message: 'task has no output contract, so it has no typed result',
+        },
+      ]);
+    }
+    return (this.output as { result: T }).result;
   }
 
   /**

@@ -199,3 +199,79 @@ describe('createResultReader (verification cross-field rule)', () => {
     ).toBe(true);
   });
 });
+
+describe('createResultReader (freeform output contract)', () => {
+  const outputContract = {
+    version: 1,
+    schema: {
+      type: 'object',
+      properties: {
+        category: { type: 'string', enum: ['technical', 'legal'] },
+        confidence: { type: 'number', minimum: 0, maximum: 1 },
+      },
+      required: ['category', 'confidence'],
+      additionalProperties: false,
+    },
+  };
+  const contractedTask = freeformTask({
+    input: { brief: 'Classify.', outputContract },
+  });
+
+  it('result<T>() returns the contract-validated result', () => {
+    const result = { category: 'legal', confidence: 0.9 };
+
+    const r = createResultReader(
+      contractedTask,
+      freeformAttempt({ summary: 'Classified.', result }),
+    );
+
+    expect(r.result<{ category: string; confidence: number }>()).toEqual(
+      result,
+    );
+  });
+
+  it('throws when the result violates the task contract', () => {
+    const act = () =>
+      createResultReader(
+        contractedTask,
+        freeformAttempt({
+          summary: 'Classified.',
+          result: { category: 'medical', confidence: 2 },
+        }),
+      );
+
+    expect(act).toThrow(TaskResultError);
+    expect(act).toThrow(/output\/result\/category/);
+    expect(act).toThrow(/output\/result\/confidence/);
+  });
+
+  it('throws when a contracted task output has no result', () => {
+    const act = () =>
+      createResultReader(
+        contractedTask,
+        freeformAttempt({ summary: 'Classified.' }),
+      );
+
+    expect(act).toThrow(/output\/result: is required/);
+  });
+
+  it('throws when an uncontracted output carries a result', () => {
+    const act = () =>
+      createResultReader(
+        freeformTask({ input: { brief: 'Classify.' } }),
+        freeformAttempt({ summary: 'Classified.', result: { any: 1 } }),
+      );
+
+    expect(act).toThrow(/requires input.outputContract/);
+  });
+
+  it('result() throws when the task has no output contract', () => {
+    const r = createResultReader(
+      freeformTask({ input: { brief: 'Classify.' } }),
+      freeformAttempt({ summary: 'Classified.' }),
+    );
+
+    expect(() => r.result()).toThrow(TaskResultError);
+    expect(() => r.result()).toThrow(/input\/outputContract/);
+  });
+});
