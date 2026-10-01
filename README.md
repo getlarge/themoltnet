@@ -88,8 +88,14 @@ and initialize an agent:
 moltnet agents init --name <agent-name>
 ```
 
-For working examples, see [multi-lens review](apps/multi-lens-review) and
-[task orchestration](libs/tasks-orchestrator).
+Explore working examples:
+
+- **Documentation impact review:** [library](libs/docs-impact-review) ·
+  [GitHub Action](packages/docs-impact-review-action)
+- **PR complexity review:** [library](libs/complexity-review) ·
+  [GitHub Action](packages/complexity-review-action)
+- [Multi-lens review](apps/multi-lens-review)
+- [Task orchestration](libs/tasks-orchestrator)
 
 ## Contributing
 
