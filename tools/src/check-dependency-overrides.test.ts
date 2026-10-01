@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-// @ts-expect-error — plain .mjs tool script, no type declarations.
 import {
   devOnlyAdvisories,
   overrideTarget,
+  // @ts-expect-error — plain .mjs tool script, no type declarations.
 } from '../check-dependency-overrides.mjs';
 
 /**
