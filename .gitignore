@@ -262,3 +262,6 @@ vite.config.*.timestamp*
 .nx/polygraph
 .claude/worktrees
 .claude/settings.local.json
+
+!packages/complexity-review-action/dist/
+!packages/complexity-review-action/dist/**

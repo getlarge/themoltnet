@@ -1,0 +1,235 @@
+name: Complexity review (reusable)
+
+# The caller owns triggers. Prepare pins the PR and one trusted runtime commit;
+# review and workers use that commit and fetch the reviewed head only as data.
+on:
+  workflow_call:
+    inputs:
+      profile:
+        description: MoltNet runtime profile for all stages.
+        type: string
+        required: true
+      protected-paths:
+        description: Newline-separated prefixes of the caller's review runtime.
+        type: string
+        default: ''
+      team-id:
+        type: string
+        default: ''
+      diary-id:
+        type: string
+        default: ''
+      agent-name:
+        type: string
+        default: ''
+      app-id:
+        type: string
+        default: ''
+      api-url:
+        type: string
+        default: ''
+      environment:
+        description: >
+          GitHub environment for review and worker jobs; caller must pass
+          secrets inherit.
+        type: string
+        default: ''
+      providers:
+        description: Provider definitions accepted by agent-daemon-action; empty uses .pi/models.json.
+        type: string
+        default: ''
+      daemon-version:
+        description: Exact released daemon version; empty pins the release recorded at the runtime commit.
+        type: string
+        default: ''
+      runtime-ref:
+        description: Review runtime revision; empty pins this workflow's commit.
+        type: string
+        default: ''
+    outputs:
+      skip:
+        value: ${{ jobs.prepare.outputs.skip }}
+        description: Whether the review was skipped.
+      reason:
+        value: ${{ jobs.prepare.outputs.reason }}
+        description: Skip reason.
+      correlation-id:
+        value: ${{ jobs.prepare.outputs.correlation-id }}
+        description: Correlation ID shared with tasks and workers.
+    secrets:
+      MOLTNET_AGENT_KEY:
+        required: false
+      MOLTNET_PRIVATE_KEY:
+        required: false
+      MOLTNET_GITHUB_APP_PRIVATE_KEY:
+        required: false
+      OLLAMA_API_KEY:
+        required: false
+      OPENAI_API_KEY:
+        required: false
+      ANTHROPIC_API_KEY:
+        required: false
+      OPENROUTER_API_KEY:
+        required: false
+      GEMINI_API_KEY:
+        required: false
+permissions: {}
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      skip: ${{ steps.present.outputs.skip || steps.prepare.outputs.skip }}
+      reason: ${{ steps.present.outputs.reason || steps.prepare.outputs.reason }}
+      prepared: ${{ steps.prepare.outputs.prepared }}
+      correlation-id: ${{ steps.prepare.outputs.correlation-id }}
+      runtime-repository: ${{ steps.runtime.outputs.repository }}
+      runtime-sha: ${{ steps.pin.outputs.sha }}
+    steps:
+      - name: Resolve review runtime
+        id: runtime
+        env:
+          WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          WORKFLOW_SHA: ${{ job.workflow_sha }}
+          RUNTIME_REF: ${{ inputs.runtime-ref }}
+        run: |
+          if [ -z "$WORKFLOW_REPOSITORY" ]; then echo '::error::workflow repository is unknown'; exit 1; fi
+          if [ -z "$RUNTIME_REF" ] && ! [[ "$WORKFLOW_SHA" =~ ^[0-9a-f]{40}$ ]]; then echo '::error::set runtime-ref to a commit'; exit 1; fi
+          echo "repository=$WORKFLOW_REPOSITORY" >> "$GITHUB_OUTPUT"
+          echo "ref=${RUNTIME_REF:-$WORKFLOW_SHA}" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ steps.runtime.outputs.repository }}
+          ref: ${{ steps.runtime.outputs.ref }}
+          path: .complexity-runtime
+          sparse-checkout: packages/complexity-review-action
+          persist-credentials: false
+      - name: Pin runtime commit
+        id: pin
+        run: echo "sha=$(git -C .complexity-runtime rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Check runtime availability
+        id: present
+        run: |
+          if [ ! -f .complexity-runtime/packages/complexity-review-action/action.yml ]; then
+            echo 'skip=true' >> "$GITHUB_OUTPUT"
+            echo 'reason=runtime revision predates complexity reviewer' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Collect facts and check eligibility
+        id: prepare
+        if: steps.present.outputs.skip != 'true'
+        uses: ./.complexity-runtime/packages/complexity-review-action
+        with:
+          step: prepare
+          profile: ${{ inputs.profile }}
+          protected-paths: ${{ inputs.protected-paths }}
+  review:
+    needs: prepare
+    if: needs.prepare.outputs.skip == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ fromJSON(needs.prepare.outputs.prepared).baseSha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ needs.prepare.outputs.runtime-repository }}
+          ref: ${{ needs.prepare.outputs.runtime-sha }}
+          path: .complexity-runtime
+          sparse-checkout: packages/complexity-review-action
+          persist-credentials: false
+      - name: Fetch reviewed revisions as inert git data
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ fromJSON(needs.prepare.outputs.prepared).baseSha }}
+          HEAD_SHA: ${{ fromJSON(needs.prepare.outputs.prepared).headSha }}
+        run: .complexity-runtime/packages/complexity-review-action/scripts/fetch-revisions.sh "$BASE_SHA" "$HEAD_SHA"
+      - name: Review PR complexity
+        uses: ./.complexity-runtime/packages/complexity-review-action
+        env:
+          MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+          MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
+          MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
+        with:
+          step: review
+          prepared: ${{ needs.prepare.outputs.prepared }}
+          team-id: ${{ inputs.team-id || vars.MOLTNET_TEAM_ID }}
+          diary-id: ${{ inputs.diary-id || vars.MOLTNET_DIARY_ID }}
+          app-id: ${{ inputs.app-id || vars.MOLTNET_GITHUB_APP_ID }}
+          app-private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
+  workers:
+    needs: prepare
+    if: needs.prepare.outputs.skip == 'false'
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        slot: [1, 2]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ fromJSON(needs.prepare.outputs.prepared).baseSha }}
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ needs.prepare.outputs.runtime-repository }}
+          ref: ${{ needs.prepare.outputs.runtime-sha }}
+          path: .complexity-runtime
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /packages/agent-daemon-action/
+            /packages/complexity-review-action/scripts/
+            /packages/cli/package.json
+            /apps/agent-daemon/package.json
+          persist-credentials: false
+      - name: Fetch reviewed head as inert git data
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ fromJSON(needs.prepare.outputs.prepared).headSha }}
+        run: .complexity-runtime/packages/complexity-review-action/scripts/fetch-revisions.sh --depth 1 "$HEAD_SHA"
+      - name: Resolve signed daemon release
+        id: daemon-version
+        env:
+          REQUESTED: ${{ inputs.daemon-version }}
+        run: |
+          version="${REQUESTED:-$(jq -r .version .complexity-runtime/apps/agent-daemon/package.json)}"
+          if [ "$version" != latest ] && ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo '::error::daemon-version must be an exact version or latest'; exit 1; fi
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+      - name: Drain review tasks
+        uses: ./.complexity-runtime/packages/agent-daemon-action
+        env:
+          MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+          MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
+          MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
+          MOLTNET_TEAM_ID: ${{ inputs.team-id || vars.MOLTNET_TEAM_ID }}
+          MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        with:
+          agent-name: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
+          mode: drain
+          task-types: freeform
+          correlation-id: ${{ fromJSON(needs.prepare.outputs.prepared).correlationId }}
+          wait-for-first-task-sec: '420'
+          wait-after-task-sec: '120'
+          max-poll-interval-ms: '3000'
+          profile: ${{ fromJSON(needs.prepare.outputs.prepared).profile }}
+          daemon-version: ${{ steps.daemon-version.outputs.value }}
+          providers: ${{ inputs.providers }}

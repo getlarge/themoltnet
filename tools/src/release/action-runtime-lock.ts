@@ -26,6 +26,14 @@ export interface RuntimeLock {
 
 export const RUNTIME_LOCKS: RuntimeLock[] = [
   {
+    lock: 'packages/complexity-review-action/runtime.lock',
+    pathspecs: [
+      '.github/workflows/complexity-review-reusable.yml',
+      'packages/agent-daemon-action/action.yml',
+      'packages/agent-daemon-action/dist',
+    ],
+  },
+  {
     lock: 'packages/docs-impact-review-action/runtime.lock',
     pathspecs: [
       '.github/workflows/docs-impact-review-reusable.yml',

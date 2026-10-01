@@ -1,0 +1,51 @@
+{
+  "name": "@moltnet/complexity-review",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "description": "Bounded PR complexity review with staged MoltNet tasks",
+  "exports": {
+    "./main": {
+      "import": "./src/main.ts",
+      "types": "./src/main.ts"
+    },
+    "./comment": {
+      "import": "./src/comment.ts",
+      "types": "./src/comment.ts"
+    },
+    "./prepare": {
+      "import": "./src/prepare.ts",
+      "types": "./src/prepare.ts"
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc -b --emitDeclarationOnly",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@moltnet/tasks": "workspace:*",
+    "@themoltnet/os-keyring": "workspace:*",
+    "@themoltnet/sdk": "workspace:*",
+    "@themoltnet/tasks-orchestrator": "workspace:*",
+    "multiformats": "catalog:",
+    "typebox": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "projectType": "library",
+    "tags": [
+      "type:feature",
+      "scope:agent",
+      "platform:server"
+    ]
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "name": "@themoltnet/complexity-review-action",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "description": "Bundled composite Action for staged MoltNet PR complexity review",
+  "files": [
+    "action.yml",
+    "dist",
+    "scripts",
+    "setup"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc -b --emitDeclarationOnly",
+    "lint": "eslint src/"
+  },
+  "devDependencies": {
+    "@moltnet/complexity-review": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "nx": {
+    "tags": [
+      "type:app",
+      "scope:agent",
+      "platform:gha"
+    ],
+    "targets": {
+      "publish-action": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "build",
+          {
+            "projects": [
+              "@themoltnet/agent-daemon-action"
+            ],
+            "target": "build"
+          }
+        ],
+        "options": {
+          "cwd": "{workspaceRoot}",
+          "command": "node --import tsx tools/src/release/github-action-publisher.ts --project @themoltnet/complexity-review-action --entries prepare.js,check.js,review.js,comment.js --stable-major-tag-prefix complexity-review-action-v --also-verify @themoltnet/agent-daemon-action"
+        }
+      }
+    }
+  }
+}

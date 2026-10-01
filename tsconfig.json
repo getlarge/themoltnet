@@ -39,6 +39,9 @@
       "path": "libs/docs-impact-review"
     },
     {
+      "path": "libs/complexity-review"
+    },
+    {
       "path": "apps/orchestration-e2e"
     },
     {
@@ -229,6 +232,9 @@
     },
     {
       "path": "packages/docs-impact-review-action"
+    },
+    {
+      "path": "packages/complexity-review-action"
     },
     {
       "path": "packages/github-agent"

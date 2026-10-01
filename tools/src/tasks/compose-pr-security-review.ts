@@ -2,7 +2,7 @@
  * compose-pr-security-review.ts — build a `pr_review` task spec for a
  * security-focused review of a GitHub PR.
  *
- * Mirrors compose-pr-review.ts (complexity) but binds:
+ * Builds a security-specific pr_review task and rubric.
  *
  *   - a security-focused rubric (`rubrics/pr-security-v1.json`)
  *   - a taskPrompt that steers the claimant through the security pipeline
@@ -17,7 +17,7 @@
  * Pure composer: emits the task spec as JSON on stdout. Does NOT call
  * the MoltNet API. The workflow pipes the output to `moltnet task create`.
  *
- * Side effects (same as compose-pr-review): reads PR via `gh`, PATCHes
+ * Side effects: reads PR via `gh`, PATCHes
  * the PR body to embed the correlation marker. Needs GH_TOKEN, not
  * MoltNet creds.
  */

@@ -1,7 +1,7 @@
 name: Sync action bundle
 
 # packages/*-action/dist/ (every project tagged platform:gha)
-# are committed bundles that inline @themoltnet/sdk, libs/docs-impact-review,
+# are committed bundles that inline @themoltnet/sdk, libs/docs-impact-review, libs/complexity-review,
 # and their dependencies. Rather than making every PR that
 # touches that dependency chain carry a rebuilt bundle, main rebuilds it here
 # and proposes the result as a single, continuously refreshed PR. CI verifies
@@ -114,7 +114,7 @@ jobs:
               --base main \
               --head "$branch" \
               --title "$title" \
-              --body "Rebuilt the committed action bundles (\`packages/agent-daemon-action/dist/\`, \`packages/docs-impact-review-action/dist/\`) from main's sources. The bundles inline \`@themoltnet/sdk\` and \`libs/docs-impact-review\`, so changes there make them stale. In-repo workflows that use these actions and action releases run the bundles, so merge this PR before releasing an action."
+              --body "Rebuilt the committed action bundles (\`packages/agent-daemon-action/dist/\`, \`packages/docs-impact-review-action/dist/\`, \`packages/complexity-review-action/dist/\`) from main's sources. The bundles inline \`@themoltnet/sdk\` and \`libs/docs-impact-review\` and \`libs/complexity-review\`, so changes there make them stale. In-repo workflows that use these actions and action releases run the bundles, so merge this PR before releasing an action."
           fi
 
       # A later push can make main's bundle current again (for example a PR

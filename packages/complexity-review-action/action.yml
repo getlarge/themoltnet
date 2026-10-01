@@ -1,0 +1,141 @@
+name: MoltNet complexity review
+description: Prepare or run a staged PR complexity review with a bundled runtime.
+author: getlarge
+inputs:
+  step:
+    description: prepare or review
+    required: true
+  github-token:
+    description: Token for PR facts and fallback comments.
+    default: ${{ github.token }}
+  profile:
+    description: MoltNet runtime profile for the review tasks.
+    default: ''
+  protected-paths:
+    description: Newline-separated prefixes of the review runtime.
+    default: ''
+  prepared:
+    description: JSON output of the prepare step.
+    default: ''
+  team-id:
+    description: MoltNet team ID.
+    default: ''
+  diary-id:
+    description: MoltNet diary ID.
+    default: ''
+  app-id:
+    description: GitHub App ID for comments.
+    default: ''
+  app-private-key:
+    description: GitHub App private key.
+    default: ''
+outputs:
+  skip:
+    value: ${{ steps.prepare.outputs.skip }}
+    description: Whether the review is skipped.
+  reason:
+    value: ${{ steps.prepare.outputs.reason }}
+    description: Skip reason.
+  correlation-id:
+    value: ${{ steps.prepare.outputs.correlation-id }}
+    description: Correlation ID shared with tasks and workers.
+  prepared:
+    value: ${{ steps.prepare.outputs.prepared }}
+    description: Pinned review facts for downstream jobs.
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      with:
+        node-version: '24'
+    - name: Prepare review
+      id: prepare
+      if: inputs.step == 'prepare'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        PROFILE: ${{ inputs.profile }}
+        PROTECTED_PATHS: ${{ inputs.protected-paths }}
+        DIST: ${{ github.action_path }}/dist
+      run: node "$DIST/prepare.js"
+    - name: Validate prepared review
+      id: checked
+      if: inputs.step == 'review'
+      shell: bash
+      env:
+        DIST: ${{ github.action_path }}/dist
+        PREPARED: ${{ inputs.prepared }}
+        TEAM_ID: ${{ inputs.team-id }}
+        DIARY_ID: ${{ inputs.diary-id }}
+      run: node "$DIST/check.js"
+    - name: Mint the GitHub App token
+      id: app-token
+      if: inputs.step == 'review' && inputs.app-id != ''
+      uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+      with:
+        app-id: ${{ inputs.app-id }}
+        private-key: ${{ inputs.app-private-key }}
+        repositories: ${{ github.event.repository.name }}
+        permission-pull-requests: write
+    - name: Mark review in progress
+      if: inputs.step == 'review'
+      shell: bash
+      continue-on-error: true
+      env:
+        GITHUB_TOKEN: ${{ steps.app-token.outputs.token || inputs.github-token }}
+        AUTHOR: ${{ steps.app-token.outputs.app-slug && format('{0}[bot]', steps.app-token.outputs.app-slug) || 'github-actions[bot]' }}
+        DIST: ${{ github.action_path }}/dist
+        PR: ${{ steps.checked.outputs.pr }}
+        HEAD: ${{ steps.checked.outputs.head }}
+      run: node "$DIST/comment.js" --mode start --repo "$GITHUB_REPOSITORY" --pr "$PR" --revision "$HEAD" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --author "$AUTHOR"
+    - name: Review complexity
+      id: review
+      if: inputs.step == 'review'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        DIST: ${{ github.action_path }}/dist
+        PR: ${{ steps.checked.outputs.pr }}
+        BASE: ${{ steps.checked.outputs.base }}
+        HEAD: ${{ steps.checked.outputs.head }}
+        CORRELATION: ${{ steps.checked.outputs.correlation }}
+        PROFILE: ${{ steps.checked.outputs.profile }}
+        RUBRIC: ${{ steps.checked.outputs.rubric }}
+        TEAM_ID: ${{ inputs.team-id }}
+        DIARY_ID: ${{ inputs.diary-id }}
+      run: |
+        report="$RUNNER_TEMP/complexity-review.json"
+        echo "report=$report" >> "$GITHUB_OUTPUT"
+        set +e
+        node "$DIST/review.js" --repo "$GITHUB_REPOSITORY" --pr "$PR" --base "$BASE" --head "$HEAD" --team "$TEAM_ID" --diary "$DIARY_ID" --profile "$PROFILE" --correlation "$CORRELATION" --rubric "$RUBRIC" > "$report"
+        echo "exit-code=$?" >> "$GITHUB_OUTPUT"
+    - name: Publish revision-aware review
+      if: always() && !cancelled() && inputs.step == 'review' && steps.review.outputs.report != ''
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ steps.app-token.outputs.token || inputs.github-token }}
+        AUTHOR: ${{ steps.app-token.outputs.app-slug && format('{0}[bot]', steps.app-token.outputs.app-slug) || 'github-actions[bot]' }}
+        DIST: ${{ github.action_path }}/dist
+        PR: ${{ steps.checked.outputs.pr }}
+        HEAD: ${{ steps.checked.outputs.head }}
+        REPORT: ${{ steps.review.outputs.report }}
+        EXIT_CODE: ${{ steps.review.outputs.exit-code }}
+      run: |
+        args=(--mode publish --repo "$GITHUB_REPOSITORY" --pr "$PR" --revision "$HEAD" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --author "$AUTHOR")
+        if [ "$EXIT_CODE" = 0 ] && [ -s "$REPORT" ]; then
+          args+=(--review-succeeded --result-path "$REPORT" --task-id "$(jq -r .taskId "$REPORT")")
+        fi
+        node "$DIST/comment.js" "${args[@]}"
+    - name: Record timing breakdown
+      if: always() && !cancelled() && inputs.step == 'review' && steps.review.outputs.exit-code == '0'
+      shell: bash
+      env:
+        REPORT: ${{ steps.review.outputs.report }}
+        CORRELATION: ${{ steps.checked.outputs.correlation }}
+      run: |
+        echo "Correlation id: \`$CORRELATION\` (MoltNet tasks and worker logs)" >> "$GITHUB_STEP_SUMMARY"
+        jq -r '"Complexity review: \(.durationMs / 1000) seconds across \(.taskIds | length) tasks (map \(.stageDurationsMs.map / 1000)s, domains \(.stageDurationsMs.domains / 1000)s, synthesis \(.stageDurationsMs.synthesis / 1000)s)."' "$REPORT" >> "$GITHUB_STEP_SUMMARY"
+    - name: Fail incomplete review
+      if: always() && !cancelled() && inputs.step == 'review' && steps.review.outputs.exit-code != '0'
+      shell: bash
+      run: exit 1
