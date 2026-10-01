@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.148.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.147.0...sdk-v0.148.0) (2026-10-01)
+
+
+### Features
+
+* **daemon:** enforce typed freeform results ([6ed36d1](https://github.com/getlarge/themoltnet/commit/6ed36d1faab102df4f830eac3dcfbf3fa8faedd8))
+* **tasks:** support typed freeform results ([6ebe475](https://github.com/getlarge/themoltnet/commit/6ebe47563a70f1ce7f0bf3093e33c9fee8d25673))
+
 ## [0.147.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.146.1...sdk-v0.147.0) (2026-09-25)
 
 

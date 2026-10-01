@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/sandbox-gondolin-v0.5.2...sandbox-gondolin-v0.6.0) (2026-10-01)
+
+
+### Features
+
+* **daemon:** enforce typed freeform results ([6ed36d1](https://github.com/getlarge/themoltnet/commit/6ed36d1faab102df4f830eac3dcfbf3fa8faedd8))
+
+
+### Bug Fixes
+
+* **sandbox:** observe projected service exec rejection on teardown ([5a6da85](https://github.com/getlarge/themoltnet/commit/5a6da85a27f710d0b52fe3361637875415aee69f))
+
 ## [0.5.2](https://github.com/getlarge/themoltnet/compare/sandbox-gondolin-v0.5.1...sandbox-gondolin-v0.5.2) (2026-09-26)
 
 

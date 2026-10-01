@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.68.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.67.1...agent-daemon-v0.68.0) (2026-10-01)
+
+
+### Features
+
+* **daemon:** enforce typed freeform results ([6ed36d1](https://github.com/getlarge/themoltnet/commit/6ed36d1faab102df4f830eac3dcfbf3fa8faedd8))
+* **tasks:** enforce custom output contracts in daemon ([3710185](https://github.com/getlarge/themoltnet/commit/3710185427f565b404e6d8efef4b9a05c9f21409))
+
+
+### Bug Fixes
+
+* **agent-daemon:** use explicit provider configuration without repository fallback ([9ca4bd7](https://github.com/getlarge/themoltnet/commit/9ca4bd71194fe78c5f0f281477aa0ba9b5ee3fdd))
+* **ci:** isolate workflow providers without changing agent runtime ([efee2c8](https://github.com/getlarge/themoltnet/commit/efee2c81be5d8a6c531ce2a33ee043aeb918dfd6))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.9.0
+    * @themoltnet/pi-runtime bumped to 0.21.0
+    * @themoltnet/sdk bumped to 0.148.0
+
 ## [0.67.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.67.0...agent-daemon-v0.67.1) (2026-09-30)
 
 

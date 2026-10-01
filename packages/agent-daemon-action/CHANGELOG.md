@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.2](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.3.1...agent-daemon-action-v0.3.2) (2026-10-01)
+
+
+### Bug Fixes
+
+* **ci:** configure review providers independently of repository Pi files ([61d45cb](https://github.com/getlarge/themoltnet/commit/61d45cb67853c607172dc60034201c762f66a91f))
+* **ci:** isolate workflow providers without changing agent runtime ([efee2c8](https://github.com/getlarge/themoltnet/commit/efee2c81be5d8a6c531ce2a33ee043aeb918dfd6))
+* **review:** document provider setup with concrete examples ([bde5dec](https://github.com/getlarge/themoltnet/commit/bde5decdade668bd818a1b292f665fd5e22b4c82))
+* **review:** require workflow-owned providers and resolve installed daemon version ([3ac69e3](https://github.com/getlarge/themoltnet/commit/3ac69e31e8745445501d1318cea5049bb4188b14))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.148.0
+
 ## [0.3.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.3.0...agent-daemon-action-v0.3.1) (2026-09-30)
 
 

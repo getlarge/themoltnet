@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.0](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.9.0...legreffier-plugin-v0.10.0) (2026-10-01)
+
+
+### Features
+
+* **complexity-review:** package staged review as reusable action ([59ef618](https://github.com/getlarge/themoltnet/commit/59ef61804b28f211da870350e616bb6738fd138b))
+
+
+### Bug Fixes
+
+* **legreffier-plugin:** accept pinned attestation action ([48af26f](https://github.com/getlarge/themoltnet/commit/48af26fa6482d5afada4581334c48a2591c0324b))
+
 ## [0.9.0](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.8.0...legreffier-plugin-v0.9.0) (2026-09-29)
 
 
