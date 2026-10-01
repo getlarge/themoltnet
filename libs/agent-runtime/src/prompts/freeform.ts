@@ -108,7 +108,7 @@ export function buildFreeformUserPrompt(
       source: 'task_input',
       header: 'Structured result contract',
       body: input.outputContract
-        ? 'Submit a `result` object matching the task output contract. Send the object directly, not JSON text in an artifact body.'
+        ? 'Call submit_freeform_output with a top-level `result` field matching the task output contract. Pass `result` as a JSON object; do not put it in an artifact body.'
         : '',
     },
     {

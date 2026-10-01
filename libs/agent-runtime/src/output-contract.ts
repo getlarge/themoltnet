@@ -41,7 +41,7 @@ export function validateAgentOutputContract(
     : [];
 }
 
-/** One schema for Pi tool advertisement and daemon submission validation. */
+/** One schema for submit tool advertisement and daemon submission validation. */
 export function getAgentSubmissionSchema(
   taskType: string,
   input?: unknown,

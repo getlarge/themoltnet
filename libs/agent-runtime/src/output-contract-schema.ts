@@ -4,7 +4,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** Keep proposer schemas bounded and within Pi's strict tool subset. */
+/** Reject unsupported or oversized task-supplied schemas before execution. */
 export function validateOutputContractSchema(schema: unknown): string | null {
   if (!isObject(schema) || schema.type !== 'object') {
     return 'outputContract.schema must be a JSON Schema object with type "object"';
