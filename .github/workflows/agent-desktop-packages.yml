@@ -35,9 +35,7 @@ jobs:
           rust: 'true'
           rust-cache: 'true'
           rust-cache-key: package
-      - name: Install packaging and display dependencies
-        if: matrix.platform == 'linux'
-        run: bash tools/release/agent-desktop/install-linux-build-dependencies.sh
+          agent-desktop-native: ${{ matrix.platform == 'linux' }}
       - name: Build Agent CLI payload for managed-startup smoke
         run: pnpm exec nx run @themoltnet/agent-daemon:bundle -- --no-qemu-img
       - name: Build unsigned CI packages
