@@ -53,9 +53,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Setup Fly.io CLI
-        run: |
-          curl -L https://fly.io/install.sh | sh
-          echo "$HOME/.fly/bin" >> "$GITHUB_PATH"
+        # Upstream master runs on node24 (superfly/flyctl-actions#108) but has
+        # no tagged release since v1.5, so pin the commit.
+        uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1 # master
 
       - name: Check required secrets
         env:
