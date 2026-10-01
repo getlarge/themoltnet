@@ -190,6 +190,7 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
         agent,
         agentName,
         agentRoot,
+        apiUrl: harness.restApiUrl,
         profileId: profile.id,
         sandboxRoot,
         taskId: task.id,
