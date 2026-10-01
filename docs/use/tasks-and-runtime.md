@@ -836,15 +836,28 @@ configuration after verifying the endpoint's behavior. This sets Pi's
 cannot make an unsupported task schema strict. Inspect the provider request and
 a completed task attempt to verify both the wire flag and the accepted output.
 
-### What MoltNet accepts
+### Who enforces the contract?
 
-The submit tool validates arguments against the task schema and MoltNet checks
-task-specific cross-field rules before accepting an attempt. Known provider
-quirks, such as stringified arguments or null placeholders for optional fields,
-are normalized before validation. If a tool call is rejected, Pi returns the
-error to the model so it can correct the call in the same session. If the model
-does not call the tool, the executor makes bounded same-session retries.
-Assistant prose alone cannot complete a task with a registered submit tool.
+1. **At task creation, MoltNet checks the contract definition.** It rejects an
+   unsupported or malformed `input.outputContract.schema`. No result exists at
+   this point, so creation cannot validate the future answer.
+2. **During generation, Pi sends the per-task submit tool schema to the
+   provider.** When the model is configured for strict tool calls and Pi can
+   convert the schema, Pi requests `strict: true`. The provider may then
+   constrain the tool arguments as it generates them. This is a provider
+   capability, not a MoltNet acceptance guarantee.
+3. **At tool capture, Pi and the MoltNet runtime validate the arguments.** The
+   runtime repairs known transport quirks before Pi checks the tool schema, then
+   enforces task-specific cross-field rules. A rejected call returns an error to
+   the model for correction in the same session.
+4. **At completion, the MoltNet server validates the output again** using the
+   task's pinned input contract. A direct `/complete` call cannot bypass the
+   result schema.
+
+If the model does not call the tool, the executor makes bounded same-session
+retries. Assistant prose alone cannot complete a task with a registered submit
+tool. Provider enforcement helps the model produce a valid shape; MoltNet's
+validation determines whether the task output is accepted.
 
 For `freeform`, `artifacts[].body` remains a string. Put structured data in
 `output.result` by supplying `input.outputContract` when creating the task:
@@ -887,7 +900,11 @@ The agent submits the data as a JSON object, alongside the usual fields:
 ```
 
 An `artifacts[].body` JSON string remains available for a file or page to
-display, but the contract validates `result` itself.
+display, but the contract validates `result` itself. The contract input is
+`{ "version": 1, "schema": ... }`; `artifactKind`, `artifactTitle`, and
+`resultSchema` are not contract fields. To request an artifact, describe it in
+the task brief and use the ordinary `artifacts` output field. Each primitive
+schema node needs an explicit `type`, including nodes that also use `enum`.
 
 Supported schemas use objects, arrays, strings, numbers, integers, booleans,
 primitive enums, and basic length/range bounds. Object schemas must declare
