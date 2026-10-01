@@ -1,0 +1,26 @@
+name: Setup Ory CLI
+description: Install a pinned Ory CLI release after verifying its SHA-256.
+inputs:
+  version:
+    description: Ory CLI release version, without the leading v.
+    default: '1.3.3'
+  sha256:
+    description: SHA-256 of ory_<version>-linux_64bit.tar.gz from the release checksums.txt.
+    default: '18bb16e1df542c7e76840a27131867e0e4e2a6d38ee578272d68cf8b8b08eb5b'
+runs:
+  using: composite
+  steps:
+    - name: Install Ory CLI
+      shell: bash
+      env:
+        ORY_VERSION: ${{ inputs.version }}
+        ORY_SHA256: ${{ inputs.sha256 }}
+      run: |
+        set -euo pipefail
+        archive="ory_${ORY_VERSION}-linux_64bit.tar.gz"
+        curl -fsSL -o "$RUNNER_TEMP/$archive" \
+          "https://github.com/ory/cli/releases/download/v${ORY_VERSION}/${archive}"
+        echo "${ORY_SHA256}  $RUNNER_TEMP/$archive" | sha256sum -c -
+        tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" ory
+        sudo install -m 0755 "$RUNNER_TEMP/ory" /usr/local/bin/ory
+        ory version

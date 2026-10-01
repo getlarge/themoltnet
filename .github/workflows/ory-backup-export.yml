@@ -30,7 +30,7 @@ jobs:
           python -m pip install awscli
 
       - name: Install Ory CLI
-        run: bash <(curl -s https://raw.githubusercontent.com/ory/meta/master/install.sh) -d -b /usr/local/bin ory
+        uses: ./.github/actions/setup-ory-cli
 
       - name: Export backup bundle
         env:
