@@ -480,6 +480,54 @@ asks for one in the task at hand.
 
 **Validation:** `pnpm run check:pack` verifies all publishable packages produce valid tarballs (checks `dist/index.js`, `dist/index.d.ts`, no `src/` leaks). Scans both `libs/` and `packages/`.
 
+## Dependency Management
+
+Renovate owns routine updates. When you change dependencies by hand, follow
+these rules.
+
+- **Upgrade Nx with `nx migrate`, never by editing versions.** Run
+  `pnpm exec nx migrate <version>`, then `pnpm install --no-frozen-lockfile`.
+  If a `migrations.json` was generated, run
+  `pnpm exec nx migrate --run-migrations`, review the code changes, and delete
+  `migrations.json` before committing. `nx` and every `@nx/*` package move
+  together.
+- **Versions live in the catalog.** Change versions in `pnpm-workspace.yaml`,
+  not in individual `package.json` files (see
+  [Adding a New Workspace](#adding-a-new-workspace)).
+- **Transitive fixes go in `pnpm.overrides`** in the root `package.json`, capped
+  at the current major: `"pkg": ">=<fixed> <<next-major>"`, or
+  `"pkg@3": ">=3.x.y <4"` when several majors coexist. Never use an override to
+  force a new major onto a dependent package; upgrade the parent package
+  instead. Remove an override once no dependent package needs it.
+- **No major bumps in vulnerability or maintenance PRs.** A major upgrade gets
+  its own PR, with its own migration work and review.
+- **Split dependency PRs by blast radius.** Keep build and dev tooling (Nx,
+  Vite, Vitest, docs, codegen, linters) separate from dependencies that ship
+  in published packages or deployed apps. To check which side a package is on,
+  see whether it is reachable through production dependencies
+  (`pnpm why -r --prod <pkg>`). Codegen tools whose output ships, such as
+  `@hey-api/openapi-ts`, count as shipped code.
+- **Respect the release-age gate.** `minimumReleaseAge` in
+  `pnpm-workspace.yaml` holds back versions published less than a day ago. Pick
+  the newest version older than that instead of adding it to the exclude list.
+- **Keep paired ecosystems in lockstep.** The `@tauri-apps/api` and
+  `@tauri-apps/cli` catalog entries must share major.minor with the `tauri`
+  crate in `apps/agent-desktop/src-tauri/Cargo.lock`, so bump both sides in the
+  same PR.
+- **Bump the Rust toolchain in every place it is pinned:** `.tool-versions`,
+  `rust-version` in `apps/agent-desktop/src-tauri/Cargo.toml`, and the
+  `dtolnay/rust-toolchain` pins in `.github/actions/setup-workspace` and
+  `.github/workflows/ci.yml`. Newer Tauri crates may require a newer Rust than
+  the pin, and edition 2021 resolution does not respect `rust-version`.
+- **Pin Docker base images by digest with a literal `FROM`** line
+  (`FROM node:24.14.1-slim@sha256:…`). Renovate cannot pin or update a `FROM`
+  that interpolates an `ARG`.
+- **Standalone examples outside the workspace do not commit lockfiles.** They
+  resolve the way a fresh user install would, and Renovate does not maintain
+  their lockfiles.
+- **Never hand-edit `pnpm-lock.yaml`.** Regenerate it with `pnpm install`, and
+  check that `pnpm install --frozen-lockfile` passes before you push.
+
 ## Troubleshooting
 
 ### pnpm store missing `.d.ts` files (TS7016 errors)
