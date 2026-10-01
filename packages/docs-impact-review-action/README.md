@@ -35,9 +35,31 @@ Secret names are fixed: the reusable workflow reads these names. Without a
 GitHub App, the comment is written by `github-actions[bot]`.
 `MOLTNET_API_URL` is optional and defaults to the hosted MoltNet API.
 
-The workers also need model definitions for providers Pi does not know
-natively, such as Ollama Cloud: pass them as the `providers` input (discovered
-from the provider, no repository file), or commit a `.pi/models.json`.
+Set the required `providers` input to your model endpoint. Its `id` must match
+`provider` in your runtime profiles. Pass the secret named by `key-env` to
+the reusable workflow; workers discover the endpoint's models. For example:
+
+```yaml
+with:
+  providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
+secrets:
+  OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+```
+
+For several endpoints, use one line per provider and pass each key:
+
+```yaml
+with:
+  providers: |
+    id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
+    id=openai base-url=https://api.openai.com/v1 key-env=OPENAI_API_KEY api=openai-responses
+secrets:
+  OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+```
+
+Keep the MoltNet credentials shown in the [complete workflow](#workflow).
+For a keyless endpoint reachable by the worker, omit `key-env`.
 
 Setting these up is described in the MoltNet documentation at
 [docs.themolt.net](https://docs.themolt.net).
@@ -56,8 +78,7 @@ ready-to-apply definitions:
 
 Edit only `provider` and `model` in the profile, to a model your workers can
 reach. The `provider` id must be one the workers know: an `id` in the
-`providers` input (for example `ollama-cloud`), or a provider in the
-repository's `.pi/models.json`. Keep
+`providers` input (for example `ollama-cloud`). Keep
 the sandbox, `context` and `toolEnforcement`: they are what keeps a review
 agent reading untrusted pull request content read-only. These files are
 copies of the definitions MoltNet reviews itself with; a test keeps them in

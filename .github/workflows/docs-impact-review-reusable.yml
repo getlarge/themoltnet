@@ -74,15 +74,14 @@ on:
         default: ''
       providers:
         description: >
-          Model providers the workers configure, one per line as key=value
-          tokens (see agent-daemon-action's `providers` input), for example
-          `id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY`.
-          `key-env` can name only a provider secret this workflow passes to the
-          workers: OLLAMA_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY,
-          OPENROUTER_API_KEY, or GEMINI_API_KEY. Empty to use a repository
-          .pi/models.json instead.
+          Model providers, one per line: id=<provider> base-url=<url>
+          key-env=<secret-name> api=<api-kind>. For example:
+          id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY.
+          api defaults to openai-completions; omit key-env for keyless endpoints.
+          Supported secrets: OLLAMA_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY,
+          OPENROUTER_API_KEY, GEMINI_API_KEY.
         type: string
-        default: ''
+        required: true
       daemon-version:
         description: >
           agent-daemon release the workers run: an exact version or
@@ -155,8 +154,13 @@ jobs:
           WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
           WORKFLOW_SHA: ${{ job.workflow_sha }}
           RUNTIME_REF: ${{ inputs.runtime-ref }}
+          PROVIDERS: ${{ inputs.providers }}
           DAEMON_VERSION: ${{ inputs.daemon-version }}
         run: |
+          if ! printf '%s\n' "$PROVIDERS" | grep -Eq '^[[:space:]]*[^#[:space:]]'; then
+            echo '::error::providers must contain a provider definition, for example: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY' >&2
+            exit 1
+          fi
           # The runtime checkout holds no daemon sources to run.
           if [ "$DAEMON_VERSION" = workspace ]; then
             echo "::error::daemon-version: workspace is not available here; use an exact version, latest, or leave it empty" >&2

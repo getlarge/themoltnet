@@ -129,6 +129,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - uses: ./packages/agent-daemon-action
         with:
+          providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
           # Server-side cap, slightly higher than `timeout-minutes`
           # above (30 min = 1800s + 5min SIGTERM grace = 2100s; pad
           # to 2400s/40 min so the server cap never beats the runner
@@ -181,4 +182,5 @@ jobs:
           #     PI_AUTH_PATH. Re-seed manually when the refresh window
           #     elapses (~30 days for Codex).
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
           PI_AUTH_JSON: ${{ secrets.PI_AUTH_JSON }}

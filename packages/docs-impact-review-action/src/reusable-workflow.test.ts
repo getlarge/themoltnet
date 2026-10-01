@@ -4,6 +4,7 @@
  * review without an error, so every reference is checked against what the
  * action and the `prepare` job actually declare.
  */
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -36,7 +37,10 @@ interface Job {
 }
 const workflow = parse(workflowText) as {
   on: {
-    workflow_call: { outputs: Record<string, { value: string }> };
+    workflow_call: {
+      outputs: Record<string, { value: string }>;
+      inputs: Record<string, { required?: boolean }>;
+    };
   };
   jobs: Record<string, Job>;
 };
@@ -273,4 +277,51 @@ describe('caller workflow', () => {
     );
     expect(group).toMatch(/&& github\.run_id \|\| 'review' \}\}$/);
   });
+});
+
+describe('consumer provider configuration', () => {
+  it.each([
+    'docs-impact-review-reusable.yml',
+    'complexity-review-reusable.yml',
+  ])(
+    '%s requires explicit providers before launching review workers',
+    (file) => {
+      const consumer = parse(
+        readFileSync(
+          resolve(packageRoot, '../../.github/workflows', file),
+          'utf8',
+        ),
+      ) as typeof workflow;
+      expect(consumer.on.workflow_call.inputs.providers.required).toBe(true);
+      const step = consumer.jobs.prepare.steps.find((step) =>
+        step.name?.startsWith('Resolve'),
+      )!;
+      for (const providers of ['', '  ', '# use repository models']) {
+        const result = spawnSync('bash', ['-c', step.run!], {
+          env: { PATH: process.env.PATH, PROVIDERS: providers },
+          encoding: 'utf8',
+        });
+        expect(result.status).toBe(1);
+        expect(result.stderr).toContain(
+          'providers must contain a provider definition',
+        );
+      }
+      const result = spawnSync('bash', ['-c', step.run!], {
+        env: {
+          PATH: process.env.PATH,
+          PROVIDERS:
+            '# consumer endpoint\nbase-url=https://example.test/v1 id=custom',
+          WORKFLOW_REPOSITORY: 'owner/runtime',
+          WORKFLOW_SHA: 'a'.repeat(40),
+          GITHUB_OUTPUT: '/dev/null',
+        },
+        encoding: 'utf8',
+      });
+      expect(result.status).toBe(0);
+      const workers = consumer.jobs.workers.steps.find((step) =>
+        step.uses?.endsWith('/packages/agent-daemon-action'),
+      )!;
+      expect(workers.with?.providers).toBe('${{ inputs.providers }}');
+    },
+  );
 });
