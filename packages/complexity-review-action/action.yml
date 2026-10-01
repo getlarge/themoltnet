@@ -73,7 +73,7 @@ runs:
       if: inputs.step == 'review' && inputs.app-id != ''
       uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
       with:
-        app-id: ${{ inputs.app-id }}
+        client-id: ${{ inputs.app-id }}
         private-key: ${{ inputs.app-private-key }}
         repositories: ${{ github.event.repository.name }}
         permission-pull-requests: write
