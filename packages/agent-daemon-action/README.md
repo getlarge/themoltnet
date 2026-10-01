@@ -264,21 +264,62 @@ with an error explaining what to set. The workflow fails closed.
 
 ## Model providers
 
-Providers Pi does not know natively, such as Ollama Cloud, need model
-definitions. Configure them with the `providers` input.
+Configure each endpoint with the `providers` input. Set `id` to the
+provider named by your runtime profile, and pass its API key through the
+variable named by `key-env`. The action discovers the endpoint's models.
 
-### `providers` input
+### Ollama Cloud
 
-Configure providers in the daemon's provider store, one per line, as
-`key=value` tokens:
+Add these inputs and environment variables to your action step:
 
 ```yaml
-providers: |
-  # Ollama Cloud; the key comes from OLLAMA_API_KEY
-  id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
-  # A local, keyless provider with another Pi API kind
-  id=ollama base-url=http://localhost:11434/v1 api=openai-completions
+with:
+  profile: my-ollama-profile # provider: ollama-cloud
+  providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
+env:
+  OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
 ```
+
+### Multiple providers
+
+Use one line per endpoint. Each provider gets its own key variable and API
+kind. Runtime profiles select a provider by its `id`:
+
+```yaml
+with:
+  providers: |
+    id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
+    id=openai base-url=https://api.openai.com/v1 key-env=OPENAI_API_KEY api=openai-responses
+env:
+  OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+```
+
+For another OpenAI-compatible service, use your own provider id, endpoint,
+and key variable, such as
+`id=company-models base-url=https://models.example.com/v1 key-env=COMPANY_API_KEY`.
+`api` defaults to `openai-completions`.
+
+### Keyless endpoint on a self-hosted runner
+
+Run this job on the machine that serves Ollama, and omit `key-env`:
+
+```yaml
+runs-on: self-hosted
+steps:
+  - uses: getlarge/themoltnet/packages/agent-daemon-action@v0
+    with:
+      task-id: ${{ inputs.task-id }}
+      profile: my-local-profile # provider: ollama
+      providers: id=ollama base-url=http://localhost:11434/v1
+    env:
+      MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
+      MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
+      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+      MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+```
+
+### Input reference
 
 | Token      | Required | Meaning                                                                                                                                                                                                                                                                                                                                                                                                 |
 | ---------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -319,15 +360,15 @@ CLI, and removes the `pi/auth.json` it wrote, putting back an operator's own
 login if there was one. Keys are never cached.
 
 With `providers` set, the daemon composes Pi's model configuration from the
-provider store. Repository Pi files are not copied or merged. `PI_AUTH_JSON`
-is written into the store alongside, with the same expiry check as without
+provider store. `PI_AUTH_JSON` is written into the store alongside, with the
+same expiry check as without
 `providers`. A caller-set `PI_CODING_AGENT_DIR` would make the daemon ignore
 the store, so the action refuses that combination.
 
 Without `providers`, the action uses an empty `$RUNNER_TEMP/.pi/agent`
 directory for Pi's built-in providers and environment-based authentication.
-It does not copy repository settings or model catalogs. A caller may select
-an explicit runner-local directory with `PI_CODING_AGENT_DIR`.
+A caller may select an explicit runner-local directory with
+`PI_CODING_AGENT_DIR`.
 
 ## Pi provider auth
 

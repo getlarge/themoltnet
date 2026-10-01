@@ -114,8 +114,9 @@ inputs:
       sent only over https, or http to this machine (localhost, 127.x,
       [::1]); keyless providers may use http. URLs carry no credentials. Blank lines and `#` comments are ignored. Models are discovered
       from the provider and cached, refreshed each ISO week. When set, the
-      daemon composes Pi's model configuration from this store. Repository
-      .pi files are not used. See the README for every rule.
+      daemon composes Pi's model configuration from this store. For example:
+      id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY.
+      See the README for provider setup examples.
     required: false
     default: ''
   providers-refresh:
