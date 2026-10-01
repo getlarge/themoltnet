@@ -329,20 +329,6 @@ function repairProducerSubmitOutput(
     }
   }
 
-  if ('proposedTaskType' in repaired && !isRecord(repaired.proposedTaskType)) {
-    if (
-      typeof repaired.proposedTaskType === 'string' &&
-      repaired.proposedTaskType.length > 0
-    ) {
-      repaired.proposedTaskType = {
-        name: repaired.proposedTaskType,
-        rationale: 'Suggested by the model during freeform execution.',
-      };
-    } else {
-      delete repaired.proposedTaskType;
-    }
-  }
-
   repaired.verification = {
     inputCid: opts.inputCid,
     results: [
@@ -363,7 +349,6 @@ type SubmitRepairKind =
   | 'output_envelope'
   | 'json_string_fields'
   | 'artifact_shape'
-  | 'proposed_task_type'
   | 'submit_gate_verification'
   | 'pi_schema_coercion';
 
@@ -388,8 +373,6 @@ function normalizeSubmitArguments(
   if (repaired && isRecord(decoded)) {
     if (repaired.artifacts !== decoded.artifacts)
       repairKinds.push('artifact_shape');
-    if (repaired.proposedTaskType !== decoded.proposedTaskType)
-      repairKinds.push('proposed_task_type');
     if (
       JSON.stringify(repaired.verification) !==
       JSON.stringify(decoded.verification)
@@ -419,7 +402,7 @@ export function createSubmitOutputTool(
   // @themoltnet/agent-runtime so the prompt builder and any executor
   // share one source of truth. pi-extension is the executor; future
   // executors (Codex SDK adapter, etc.) read the same contract.
-  const contract = getSubmitOutputContract(taskType);
+  const contract = getSubmitOutputContract(taskType, opts.input);
   if (!contract) {
     throw new UnknownTaskTypeForSubmitToolError(taskType);
   }

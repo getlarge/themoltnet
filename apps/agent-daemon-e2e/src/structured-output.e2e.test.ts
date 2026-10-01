@@ -20,6 +20,39 @@ const MODEL = 'strict-tool-fixture';
 const KEY_ENV = 'OLLAMA_API_KEY';
 const SUBMIT_TOOL = 'submit_fulfill_brief_output';
 const FREEFORM_TOOL = 'submit_freeform_output';
+const PAGE_SCHEMA = {
+  type: 'object',
+  properties: {
+    rooms: {
+      type: 'object',
+      properties: {
+        livingRoom: {
+          type: 'object',
+          properties: {
+            widthM: { type: 'number' },
+            lengthM: { type: 'number' },
+          },
+          required: ['widthM', 'lengthM'],
+          additionalProperties: false,
+        },
+        bedroom: {
+          type: 'object',
+          properties: {
+            widthM: { type: 'number' },
+            lengthM: { type: 'number' },
+          },
+          required: ['widthM', 'lengthM'],
+          additionalProperties: false,
+        },
+      },
+      required: ['livingRoom', 'bedroom'],
+      additionalProperties: false,
+    },
+    circulation: { type: 'string' },
+  },
+  required: ['rooms', 'circulation'],
+  additionalProperties: false,
+};
 const VALID_ARGUMENTS = {
   branch: 'e2e/structured-output',
   commits: [],
@@ -142,6 +175,7 @@ describe('structured task submission through Pi (e2e)', () => {
   async function runFixtureTask(
     argumentsToReturn: Record<string, unknown>[],
     taskType: 'fulfill_brief' | 'freeform' = 'fulfill_brief',
+    extraInput: Record<string, unknown> = {},
   ) {
     const requestStart = requests.length;
     const toolName = taskType === 'freeform' ? FREEFORM_TOOL : SUBMIT_TOOL;
@@ -187,6 +221,7 @@ describe('structured task submission through Pi (e2e)', () => {
           ...(taskType === 'fulfill_brief'
             ? { scopeHint: 'structured-output-e2e' }
             : {}),
+          ...extraInput,
         },
       },
       { teamId: creds.personalTeamId },
@@ -301,7 +336,7 @@ describe('structured task submission through Pi (e2e)', () => {
     const submit = request?.tools?.find(
       (tool) => tool.function?.name === FREEFORM_TOOL,
     )?.function;
-    expect(submit?.strict).toBe(false);
+    expect(submit?.strict).toBe(true);
     expect(submit?.parameters?.properties).toHaveProperty('artifacts');
     expect(submit?.parameters?.properties).not.toHaveProperty('page');
 
@@ -310,5 +345,55 @@ describe('structured task submission through Pi (e2e)', () => {
     const attempt = (await agent.tasks.listAttempts(task.id))[0];
     expect(attempt?.output).toHaveProperty('artifacts.0.body', pageBody);
     expect(attempt?.output).toHaveProperty('verification.passed', true);
+  }, 600_000);
+
+  it('enforces a proposer supplied page schema on the tool and accepted output', async () => {
+    const validPage = {
+      rooms: {
+        livingRoom: { widthM: 4, lengthM: 5 },
+        bedroom: { widthM: 3, lengthM: 4 },
+      },
+      circulation: 'A doorway connects the rooms.',
+    };
+    const { task, taskRequests } = await runFixtureTask(
+      [
+        {
+          summary: 'Drafted a page.',
+          result: {
+            ...validPage,
+            rooms: { livingRoom: validPage.rooms.livingRoom },
+          },
+          verification: null,
+        },
+        { summary: 'Drafted a page.', result: validPage, verification: null },
+      ],
+      'freeform',
+      { outputContract: { version: 1, schema: PAGE_SCHEMA } },
+    );
+
+    const submit = taskRequests[0]?.tools?.find(
+      (tool) => tool.function?.name === FREEFORM_TOOL,
+    )?.function;
+    expect(submit?.strict).toBe(true);
+    expect(submit?.parameters?.properties?.result).toHaveProperty(
+      'properties.rooms.properties.bedroom.properties.widthM.type',
+      'number',
+    );
+    expect(submit?.parameters?.properties?.result).toHaveProperty(
+      'properties.circulation.type',
+      'string',
+    );
+    expect(submit?.parameters?.properties?.result).toHaveProperty(
+      'required',
+      expect.arrayContaining(['rooms', 'circulation']),
+    );
+    expect(taskRequests).toHaveLength(2);
+    expect(taskRequests[1]?.messages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ role: 'tool' })]),
+    );
+    const final = await agent.tasks.get(task.id);
+    expect(final.status).toBe('completed');
+    const attempt = (await agent.tasks.listAttempts(task.id))[0];
+    expect(attempt?.output).toHaveProperty('result', validPage);
   }, 600_000);
 });

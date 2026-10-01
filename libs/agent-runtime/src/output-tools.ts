@@ -57,8 +57,9 @@ export interface SubmitOutputContract {
  */
 export function getSubmitOutputContract(
   taskType: string,
+  input?: unknown,
 ): SubmitOutputContract | null {
-  const schema = getTaskSubmissionSchema(taskType);
+  const schema = getTaskSubmissionSchema(taskType, input);
   if (!schema) return null;
 
   return {

@@ -23,7 +23,10 @@ import {
   FREEFORM_TYPE,
   FreeformInput,
   FreeformOutput,
+  FreeformSubmission,
+  validateFreeformInput,
   validateFreeformInputAsync,
+  validateFreeformOutput,
 } from './freeform.js';
 import {
   FULFILL_BRIEF_TYPE,
@@ -75,6 +78,7 @@ export * from './fulfill-brief.js';
 export * from './judge-eval-attempt.js';
 export * from './judge-eval-variant.js';
 export * from './judge-pack.js';
+export * from './output-contract.js';
 export * from './pr-review.js';
 export * from './render-pack.js';
 export * from './run-eval.js';
@@ -261,6 +265,7 @@ export const BUILT_IN_TASK_TYPES = {
     name: FREEFORM_TYPE,
     inputSchema: FreeformInput,
     outputSchema: FreeformOutput,
+    submissionSchema: FreeformSubmission,
     outputKind: 'artifact',
     resumable: true,
     workspaceMode: 'shared_mount',
@@ -268,7 +273,10 @@ export const BUILT_IN_TASK_TYPES = {
     sessionScope: 'correlation',
     acceptsInputWorkspaceOverride: true,
     requiresReferences: false,
-    validateOutput: requireVerificationWhenCriteriaPresent,
+    validateInput: validateFreeformInput,
+    validateOutput: (output: unknown, input?: unknown) =>
+      validateFreeformOutput(output, input) ??
+      requireVerificationWhenCriteriaPresent(output, input),
     validateInputAsync: validateFreeformInputAsync,
   },
   [FULFILL_BRIEF_TYPE]: {

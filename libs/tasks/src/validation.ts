@@ -9,6 +9,8 @@ import {
 import type { Gate } from './success-criteria.js';
 import {
   BUILT_IN_TASK_TYPES,
+  FREEFORM_TYPE,
+  freeformOutputContractSchema,
   JUDGE_EVAL_ATTEMPT_TYPE,
   RUN_EVAL_TYPE,
 } from './task-types/index.js';
@@ -293,9 +295,21 @@ function validateTaskResult(
     ];
   }
 
-  const schema = submission
-    ? (entry.submissionSchema ?? entry.outputSchema)
-    : entry.outputSchema;
+  const schema =
+    taskType === FREEFORM_TYPE &&
+    (input as { outputContract?: unknown } | undefined)?.outputContract
+      ? freeformOutputContractSchema(input)
+      : submission
+        ? (entry.submissionSchema ?? entry.outputSchema)
+        : entry.outputSchema;
+  if (!schema) {
+    return [
+      {
+        field: 'input/outputContract/schema',
+        message: 'valid outputContract is required to validate result',
+      },
+    ];
+  }
   const errors = schemaErrors('output', schema, value);
   if (errors.length > 0) return errors;
 
@@ -354,7 +368,16 @@ export function getTaskOutputSchema(taskType: string): TSchema | null {
 }
 
 /** Schema advertised by the submit-output tool for agent-authored fields. */
-export function getTaskSubmissionSchema(taskType: string): TSchema | null {
+export function getTaskSubmissionSchema(
+  taskType: string,
+  input?: unknown,
+): TSchema | null {
+  if (
+    taskType === FREEFORM_TYPE &&
+    (input as { outputContract?: unknown } | undefined)?.outputContract
+  ) {
+    return freeformOutputContractSchema(input);
+  }
   const entry = getTaskTypeEntry(taskType);
   return entry?.submissionSchema ?? entry?.outputSchema ?? null;
 }
