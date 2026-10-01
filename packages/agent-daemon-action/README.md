@@ -264,21 +264,62 @@ with an error explaining what to set. The workflow fails closed.
 
 ## Model providers
 
-Providers Pi does not know natively, such as Ollama Cloud, need model
-definitions. The action offers two sources for them.
+Configure each endpoint with the `providers` input. Set `id` to the
+provider named by your runtime profile, and pass its API key through the
+variable named by `key-env`. The action discovers the endpoint's models.
 
-### `providers` input
+### Ollama Cloud
 
-Configure providers in the daemon's provider store, one per line, as
-`key=value` tokens:
+Add these inputs and environment variables to your action step:
 
 ```yaml
-providers: |
-  # Ollama Cloud; the key comes from OLLAMA_API_KEY
-  id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
-  # A local, keyless provider with another Pi API kind
-  id=ollama base-url=http://localhost:11434/v1 api=openai-completions
+with:
+  profile: my-ollama-profile # provider: ollama-cloud
+  providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
+env:
+  OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
 ```
+
+### Multiple providers
+
+Use one line per endpoint. Each provider gets its own key variable and API
+kind. Runtime profiles select a provider by its `id`:
+
+```yaml
+with:
+  providers: |
+    id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
+    id=openai base-url=https://api.openai.com/v1 key-env=OPENAI_API_KEY api=openai-responses
+env:
+  OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+```
+
+For another OpenAI-compatible service, use your own provider id, endpoint,
+and key variable, such as
+`id=company-models base-url=https://models.example.com/v1 key-env=COMPANY_API_KEY`.
+`api` defaults to `openai-completions`.
+
+### Keyless endpoint on a self-hosted runner
+
+Run this job on the machine that serves Ollama, and omit `key-env`:
+
+```yaml
+runs-on: self-hosted
+steps:
+  - uses: getlarge/themoltnet/packages/agent-daemon-action@v0
+    with:
+      task-id: ${{ inputs.task-id }}
+      profile: my-local-profile # provider: ollama
+      providers: id=ollama base-url=http://localhost:11434/v1
+    env:
+      MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
+      MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
+      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+      MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+```
+
+### Input reference
 
 | Token      | Required | Meaning                                                                                                                                                                                                                                                                                                                                                                                                 |
 | ---------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -318,28 +359,17 @@ undoes only what it wrote: it clears the keys it stored, through the daemon
 CLI, and removes the `pi/auth.json` it wrote, putting back an operator's own
 login if there was one. Keys are never cached.
 
-With `providers` set, the daemon composes Pi's model configuration from this
-store. A repository `.pi/models.json` is merged underneath: providers only in
-the repository are kept as they are. For a provider id defined in both, the
-store's entry replaces the repository's whole provider object (fields such as
-`headers` in the repository entry are dropped), except that repository models
-the store lacks are added. `PI_AUTH_JSON` is written into the store
-alongside, with the same expiry check as without `providers`. A caller-set
-`PI_CODING_AGENT_DIR` would make the daemon ignore the store, so the action
-refuses that combination.
+With `providers` set, the action generates a private Pi catalog from the
+configured providers and their discovered models, then selects it through
+`PI_CODING_AGENT_DIR`. Model capabilities and thinking metadata are preserved;
+API keys use the declared `key-env` variables. `PI_AUTH_JSON` is written into
+the store and linked into this directory. A caller-set `PI_CODING_AGENT_DIR`
+conflicts with the generated catalog, so the action refuses that combination.
 
-### Repository `.pi/` configuration
-
-Without `providers`, the action sets `PI_CODING_AGENT_DIR` before starting
-the daemon. By default it points to `$RUNNER_TEMP/.pi/agent`, keeping GitHub
-runs isolated from both repo-local `.pi` config and the runner user's home
-directory. Set `PI_CODING_AGENT_DIR` explicitly only if you want the action to
-use a different runner-local Pi directory.
-
-When repo-local `.pi/settings.json` or `.pi/models.json` exist, the action
-copies them into the runner-local Pi directory before starting the daemon, and
-they must reference secrets by environment variable name, for example
-`"apiKey": "$OLLAMA_API_KEY"`.
+Without `providers`, the action uses an empty `$RUNNER_TEMP/.pi/agent`
+directory for Pi's built-in providers and environment-based authentication.
+A caller may select an explicit runner-local directory with
+`PI_CODING_AGENT_DIR`.
 
 ## Pi provider auth
 
@@ -363,7 +393,7 @@ owns the key. No rotation needed — the key just keeps working until
 you revoke it.
 
 If the selected runtime profile uses Ollama, set `OLLAMA_API_KEY` and configure
-the provider with the `providers` input (or a repository `.pi/models.json`).
+the provider with the `providers` input.
 
 ### Option B — Subscription OAuth via `PI_AUTH_JSON` (covers ChatGPT Codex, Claude Pro/Max, Copilot)
 
