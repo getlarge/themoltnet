@@ -795,31 +795,65 @@ moltnet task runtime-sessions get <task-id> --attempt 1
 
 ## Structured Output And Self-Verification
 
-Every task type has a structured output schema. A completed attempt stores:
+Every registered task type has an output schema. A completed attempt stores:
 
 - `output`: JSON matching the task type's output schema
 - `outputCid`: the canonical CID of that JSON
 - optional usage, artifact references, and task-type-specific fields
 
-The bundled Pi executor asks the model to call a per-task submit tool such as
-`submit_fulfill_brief_output`. The tool advertises the task's submission schema
-to Pi and requests JSON Schema constrained sampling when the selected model and
-provider support it. When configuring a custom OpenAI-compatible model,
-`--model-strict-mode <model>=true|false|default` declares verified support and
-maps to Pi's `compat.supportsStrictMode`. Ollama's model capability list does
-not itself establish support for strict function definitions. MoltNet validates
-every submitted payload, including cross-field task rules, before accepting it.
-If the tool is not called, the executor makes bounded same-session submit-tool
-retries. Once a submit tool is registered, assistant text cannot complete the
-task; a schema rejection is reported as output validation failure and the model
-can correct its call in the same session. The parser path remains for task types
-without a registered submit tool.
+### Which schema reaches the model?
 
-Pi's strict JSON Schema subset does not accept open-ended record fields such as
-`patternProperties`. Those task types currently use typed tool calls with
-MoltNet validation; `strict: 'prefer'` falls back automatically. The opt-in
-`structured-output.live.test.ts` checks provider behavior when its
-`MOLTNET_LIVE_STRUCTURED_*` environment variables are supplied.
+The bundled Pi executor registers `submit_<taskType>_output` with that task
+type's **submission schema** as its tool parameters. For example,
+`submit_fulfill_brief_output` accepts top-level `branch`, `commits`,
+`pullRequestUrl`, `diaryEntryIds`, `summary`, and optional `verification`. There
+is no outer `output` argument. A task's `input.brief`, `expectedOutput`, and
+prompt instructions can describe the desired result, but they do not change
+these tool parameters. To constrain additional fields, they must be fields of a
+registered task type's submission schema.
+
+| Task                   | What the submit tool constrains                                     | Strict tool arguments                          |
+| ---------------------- | ------------------------------------------------------------------- | ---------------------------------------------- |
+| Small `pr_review`      | Scores, composite, and verdict                                      | Eligible when the selected model supports them |
+| Larger `fulfill_brief` | Branch, commits, PR URL, diary entry IDs, summary, and verification | Eligible when the selected model supports them |
+| Open-ended `freeform`  | Summary and optional artifact/proposal/verification envelope        | Pi falls back to ordinary tool calling         |
+
+Pi requests constrained JSON Schema sampling with `strict: 'prefer'`. It sends
+`strict: true` only when **both** the model's Pi compatibility setting permits
+strict tool calls **and** Pi can convert this task schema to its supported
+strict subset. The freeform schema has open-ended records (`patternProperties`),
+which Pi cannot currently convert; it sends `strict: false` for that tool even
+if the model is configured with `supportsStrictMode: true`. A provider's general
+“tools” capability says it accepts tools; it does not prove strict tool
+arguments. Ollama's structured assistant-text `format` option is a separate API
+feature and does not constrain a Pi tool call. The same distinction applies when
+Pi uses OpenAI, Anthropic, or another provider.
+
+For a custom OpenAI-compatible model, set
+`--model-strict-mode <model-id>=true|false|default` in the daemon provider
+configuration after verifying the endpoint's behavior. This sets Pi's
+`compat.supportsStrictMode` for that model; `default` removes the override. It
+cannot make an unsupported task schema strict. Inspect the provider request and
+a completed task attempt to verify both the wire flag and the accepted output.
+
+### What MoltNet accepts
+
+The submit tool validates arguments against the task schema and MoltNet checks
+task-specific cross-field rules before accepting an attempt. Known provider
+quirks, such as stringified arguments or null placeholders for optional fields,
+are normalized before validation. If a tool call is rejected, Pi returns the
+error to the model so it can correct the call in the same session. If the model
+does not call the tool, the executor makes bounded same-session retries.
+Assistant prose alone cannot complete a task with a registered submit tool.
+
+For `freeform`, `artifacts[].body` is a **string**. A prompt asking for a JSON
+page inside `body` does not make the page's fields part of the tool schema: Pi
+and MoltNet validate the artifact envelope and string length, not the JSON
+object encoded in that string. For a page contract with required sections, field
+types, and allowed values, register a task type whose submission schema contains
+those page fields directly. If the page is a separate uploaded file, its
+consumer must validate that file against the page schema before accepting it.
+Model strict mode cannot turn freeform artifact text into typed page fields.
 
 When a proposer includes `input.successCriteria`, producer task outputs must
 include an `output.verification` record. This is the producer's own assessment
