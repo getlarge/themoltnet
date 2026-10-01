@@ -256,7 +256,7 @@ jobs:
       # prompt regardless of whether the keychain is unlocked, so those tests
       # skip on darwin (see requireOSKeyringTestable). The TypeScript suite
       # provisions its own keychain and binds Security.framework directly.
-      - uses: dtolnay/rust-toolchain@688313b0823df1393bcebb1b4add0438a6d36884 # 1.88.0
+      - uses: dtolnay/rust-toolchain@49fda20b3f489226feadfba7767be1db54e2cee1 # 1.90.0
       - name: Test affected native keyring projects
         if: runner.os != 'Linux'
         run: pnpm exec nx affected -t test-native

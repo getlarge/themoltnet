@@ -22,7 +22,7 @@ printf '%s\n' \
   '    "ssh-ed25519 AAAATEST";' \
   > "$fixture/apps/agent-desktop/src-tauri/build.rs"
 printf '%s\n' '  RELEASE_SIGNER_PUBKEY = "ssh-ed25519 AAAATEST"' > "$fixture/apps/rest-api/fly.toml"
-printf '%s\n' 'rust 1.88.0' > "$fixture/.tool-versions"
+printf '%s\n' 'rust 1.90.0' > "$fixture/.tool-versions"
 
 validate_release() {
   TAURI_UPDATER_PUBLIC_KEY='trusted-updater-key' \

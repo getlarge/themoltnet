@@ -56,20 +56,20 @@ runs:
       shell: bash
       run: |
         rust_version=$(awk '$1 == "rust" { print $2 }' .tool-versions)
-        [ "$rust_version" = '1.88.0' ] || {
-          echo "The pinned Rust action provides 1.88.0, but .tool-versions declares ${rust_version:-nothing}" >&2
+        [ "$rust_version" = '1.90.0' ] || {
+          echo "The pinned Rust action provides 1.90.0, but .tool-versions declares ${rust_version:-nothing}" >&2
           exit 1
         }
         if [ "${{ inputs.rust-cache }}" = true ] && [ -z "${{ inputs.rust-cache-key }}" ]; then
           echo 'rust-cache-key is required when rust-cache is true' >&2
           exit 1
         fi
-    # dtolnay/rust-toolchain commit 688313b resolves the Rust 1.88.0 release.
+    # dtolnay/rust-toolchain commit 49fda20 resolves the Rust 1.90.0 release.
     - if: inputs.rust == 'true' && inputs.rust-components == ''
-      uses: dtolnay/rust-toolchain@688313b0823df1393bcebb1b4add0438a6d36884
-    # dtolnay/rust-toolchain commit 688313b resolves the Rust 1.88.0 release.
+      uses: dtolnay/rust-toolchain@49fda20b3f489226feadfba7767be1db54e2cee1
+    # dtolnay/rust-toolchain commit 49fda20 resolves the Rust 1.90.0 release.
     - if: inputs.rust == 'true' && inputs.rust-components != ''
-      uses: dtolnay/rust-toolchain@688313b0823df1393bcebb1b4add0438a6d36884
+      uses: dtolnay/rust-toolchain@49fda20b3f489226feadfba7767be1db54e2cee1
       with:
         components: ${{ inputs.rust-components }}
     # Swatinem/rust-cache v2 is pinned by commit for reproducible cache behavior.

@@ -6,7 +6,7 @@ authors = ["MoltNet contributors"]
 default-run = "moltnet-agent-desktop"
 edition = "2021"
 license = "AGPL-3.0-only"
-rust-version = "1.88"
+rust-version = "1.90"
 
 [lib]
 name = "moltnet_agent_desktop_lib"
