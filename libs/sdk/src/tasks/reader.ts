@@ -6,6 +6,7 @@ import {
   validateOutputContractResult,
   validateTaskOutput,
 } from '@moltnet/tasks';
+import type { Static, TSchema } from 'typebox';
 
 import type { ReferenceRole } from './builder.js';
 import { TaskResultError } from './errors.js';
@@ -35,6 +36,19 @@ export interface AcceptedMeta {
   attemptN: number;
   completedAt: string | null;
   executorFingerprint: string | null;
+}
+
+/** JSON with object keys sorted, so stored and local schemas compare by value. */
+function canonicalJson(value: unknown): string {
+  return JSON.stringify(value, (_key, node: unknown) =>
+    node && typeof node === 'object' && !Array.isArray(node)
+      ? Object.fromEntries(
+          Object.entries(node as Record<string, unknown>).sort(([a], [b]) =>
+            a < b ? -1 : a > b ? 1 : 0,
+          ),
+        )
+      : node,
+  );
 }
 
 function matches(a: FreeformArtifactLike, filter?: ArtifactFilter): boolean {
@@ -76,7 +90,7 @@ export class TaskResultReader<TOutput = Record<string, unknown>> {
   readonly taskId: string;
   /** CID of the accepted attempt output. */
   readonly outputCid: string;
-  readonly #hasOutputContract: boolean;
+  readonly #outputContract: unknown;
 
   constructor(task: Task, attempt: TaskAttempt) {
     const errors = [];
@@ -115,7 +129,7 @@ export class TaskResultReader<TOutput = Record<string, unknown>> {
       attempt.output,
     );
     if (contractErrors.length > 0) throw new TaskResultError(contractErrors);
-    this.#hasOutputContract = getOutputContract(task.input) !== undefined;
+    this.#outputContract = getOutputContract(task.input);
 
     this.output = attempt.output as TOutput;
     this.summary = (attempt.output as { summary?: string }).summary;
@@ -131,14 +145,27 @@ export class TaskResultReader<TOutput = Record<string, unknown>> {
 
   /**
    * The structured `output.result`, already validated against the task's
-   * `input.outputContract` at construction. `T` is the caller's static view of
-   * the contract schema; the runtime check is the contract itself.
+   * `input.outputContract` at construction.
    *
-   * @returns The validated result, typed as `T`.
-   * @throws {TaskResultError} if the task has no output contract.
+   * Pass the TypeBox schema the task was created with to type the result as
+   * `Static<S>`; the reader checks that it equals the stored contract schema,
+   * so the static type cannot drift from what was enforced. Without a schema,
+   * the type defaults to `TOutput['result']`.
+   *
+   * @param schema - The contract schema used at creation (optional).
+   * @returns The validated result.
+   * @throws {TaskResultError} if the task has no output contract, or if
+   *   `schema` differs from the stored contract schema.
+   * @example
+   * const r = await agent.tasks.readResult(taskId);
+   * r.result(Rooms).rooms; // typed from the TypeBox schema
    */
-  result<T = unknown>(): T {
-    if (!this.#hasOutputContract) {
+  result<S extends TSchema>(schema: S): Static<S>;
+  result<
+    T = TOutput extends { result?: infer TResult } ? TResult : unknown,
+  >(): T;
+  result(schema?: TSchema): unknown {
+    if (this.#outputContract === undefined) {
       throw new TaskResultError([
         {
           field: 'input/outputContract',
@@ -146,7 +173,19 @@ export class TaskResultReader<TOutput = Record<string, unknown>> {
         },
       ]);
     }
-    return (this.output as { result: T }).result;
+    if (
+      schema !== undefined &&
+      canonicalJson(schema) !==
+        canonicalJson((this.#outputContract as { schema?: unknown }).schema)
+    ) {
+      throw new TaskResultError([
+        {
+          field: 'input/outputContract/schema',
+          message: 'does not match the schema passed to result()',
+        },
+      ]);
+    }
+    return (this.output as { result: unknown }).result;
   }
 
   /**

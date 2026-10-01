@@ -1,5 +1,6 @@
 import type { Task, TaskAttempt } from '@moltnet/api-client';
-import { describe, expect, it } from 'vitest';
+import { Type } from 'typebox';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import { TaskResultError } from '../../src/tasks/errors.js';
 import { createResultReader } from '../../src/tasks/reader.js';
@@ -273,5 +274,90 @@ describe('createResultReader (freeform output contract)', () => {
 
     expect(() => r.result()).toThrow(TaskResultError);
     expect(() => r.result()).toThrow(/input\/outputContract/);
+  });
+});
+
+describe('TaskResultReader.result type inference', () => {
+  it('defaults result() to the result type carried by TOutput', () => {
+    const r = createResultReader<{ summary: string; result: { n: number } }>(
+      freeformTask({
+        input: {
+          brief: 'Count.',
+          outputContract: {
+            version: 1,
+            schema: {
+              type: 'object',
+              properties: { n: { type: 'integer' } },
+              required: ['n'],
+              additionalProperties: false,
+            },
+          },
+        },
+      }),
+      freeformAttempt({ summary: 'Counted.', result: { n: 3 } }),
+    );
+
+    expectTypeOf(r.result()).toEqualTypeOf<{ n: number }>();
+    expect(r.result().n).toBe(3);
+  });
+});
+
+describe('TaskResultReader.result(schema)', () => {
+  const Rooms = Type.Object(
+    {
+      rooms: Type.Array(
+        Type.Object(
+          { id: Type.String(), m2: Type.Number() },
+          { additionalProperties: false },
+        ),
+      ),
+    },
+    { additionalProperties: false },
+  );
+  // Stored contracts come back from the API as plain JSON, possibly reordered.
+  const stored = {
+    additionalProperties: false,
+    properties: {
+      rooms: {
+        items: {
+          additionalProperties: false,
+          properties: { m2: { type: 'number' }, id: { type: 'string' } },
+          required: ['id', 'm2'],
+          type: 'object',
+        },
+        type: 'array',
+      },
+    },
+    required: ['rooms'],
+    type: 'object',
+  };
+  const task = freeformTask({
+    input: { brief: 'Rooms.', outputContract: { version: 1, schema: stored } },
+  });
+  const attempt = freeformAttempt({
+    summary: 'Read rooms.',
+    result: { rooms: [{ id: 't1', m2: 24 }] },
+  });
+
+  it('returns the result typed by the schema when it matches the contract', () => {
+    const r = createResultReader(task, attempt);
+
+    const result = r.result(Rooms);
+
+    expectTypeOf(result).toEqualTypeOf<{
+      rooms: { id: string; m2: number }[];
+    }>();
+    expect(result.rooms[0]).toEqual({ id: 't1', m2: 24 });
+  });
+
+  it('throws when the schema differs from the stored contract', () => {
+    const r = createResultReader(task, attempt);
+    const Other = Type.Object(
+      { rooms: Type.Array(Type.String()) },
+      { additionalProperties: false },
+    );
+
+    expect(() => r.result(Other)).toThrow(TaskResultError);
+    expect(() => r.result(Other)).toThrow(/input\/outputContract\/schema/);
   });
 });
