@@ -107,7 +107,11 @@ import { Redis } from 'ioredis';
 import pkg from '../package.json' with { type: 'json' };
 import { registerApiRoutes } from './app.js';
 import type { AppConfig } from './config.js';
-import { resolveOryUrls, resolveRedisConfig } from './config.js';
+import {
+  parseTrustProxy,
+  resolveOryUrls,
+  resolveRedisConfig,
+} from './config.js';
 import dbosPlugin from './plugins/dbos.js';
 import { createAssertDiaryReadable } from './services/diary-readable.js';
 import {
@@ -912,7 +916,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       rateLimitAllowList: config.security.RATE_LIMIT_ALLOWLIST.split(',')
         .map((path) => path.trim())
         .filter((path) => path.length > 0),
-      trustProxy: config.security.TRUST_PROXY,
+      trustProxy: parseTrustProxy(config.security.TRUST_PROXY),
       apiBaseUrl: config.security.API_BASE_URL.replace(/\/$/, ''),
     },
     packGcConfig: config.packGc,

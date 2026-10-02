@@ -339,7 +339,9 @@ services:
       RELEASE_SIGNER_PUBKEY: ${RELEASE_SIGNER_PUBKEY:?set RELEASE_SIGNER_PUBKEY}
       CORS_ORIGINS: https://${CONSOLE_DOMAIN},https://${IDENTITY_DOMAIN}
       API_BASE_URL: https://${API_DOMAIN}
-      TRUST_PROXY: '1'
+      # The API publishes no ports, so only peers on its private Docker
+      # networks (Caddy on ingress) can reach it.
+      TRUST_PROXY: uniquelocal
       AUTH_SCOPE_ENFORCEMENT: enforce
       REDIS_HOST: valkey
       REDIS_PORT: '6379'

@@ -312,10 +312,13 @@ export const SecurityConfigSchema = Type.Object({
   REDIS_PASSWORD: Type.Optional(Type.String({ minLength: 1 })),
   REDIS_DB: Type.Optional(Type.Number({ minimum: 0 })),
   REDIS_TLS: Type.Optional(Type.Boolean({ default: false })),
-  // Number of trusted reverse-proxy hops for Fastify proxy metadata. Rate
-  // limits use the configured client-IP header only from trusted proxy CIDRs;
-  // direct connections are keyed by their socket address.
-  TRUST_PROXY: Type.Number({ default: 0 }),
+  // Reverse proxies Fastify trusts for X-Forwarded-* metadata: a
+  // comma-separated list of IPs, CIDRs or proxy-addr range names
+  // (`loopback`, `linklocal`, `uniquelocal`). Empty trusts none. Hop counts
+  // are rejected (see parseTrustProxy). Rate limits use the configured
+  // client-IP header only from RATE_LIMIT_TRUSTED_PROXY_CIDRS; direct
+  // connections are keyed by their socket address.
+  TRUST_PROXY: Type.String({ default: '' }),
   // Base URL for callback URLs baked into GitHub App manifests.
   // Defaults to production; override in local dev / staging.
   API_BASE_URL: Type.String({ default: 'https://api.themolt.net' }),
@@ -559,6 +562,31 @@ export function loadSecurityConfig(
     SecurityConfigSchema,
     pickEnv(SecurityConfigSchema, env),
   );
+}
+
+/**
+ * Turns TRUST_PROXY into Fastify's `trustProxy` option.
+ *
+ * Only an explicit list of proxy addresses is accepted. A hop count cannot
+ * verify the immediate peer, so a direct client could spoof X-Forwarded-*
+ * values; Fastify 5.12 stops honouring numbers for that reason and silently
+ * trusts nothing instead. Rejecting the old numeric form at startup turns
+ * that silent behaviour change into an actionable configuration error.
+ */
+export function parseTrustProxy(value: string): string[] | false {
+  const entries = value
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+  const hopCount = entries.find((entry) => /^\d+$/.test(entry));
+  if (hopCount !== undefined) {
+    throw new Error(
+      `TRUST_PROXY no longer accepts a hop count (got "${hopCount}"). ` +
+        'Set it to the IPs or CIDRs of the reverse proxies in front of the ' +
+        'API (for example "172.16.0.0/12"), or leave it empty to trust none.',
+    );
+  }
+  return entries.length > 0 ? entries : false;
 }
 
 /** Resolved Redis connection params (ioredis-compatible options subset). */

@@ -13,6 +13,7 @@ import {
   loadServerConfig,
   loadTaskOrphanSweeperConfig,
   loadWebhookConfig,
+  parseTrustProxy,
   resolveOryUrls,
   resolveRedisConfig,
 } from '../src/config.js';
@@ -325,6 +326,52 @@ describe('loadSecurityConfig', () => {
       API_BASE_URL: 'http://localhost:8000',
     });
     expect(config.API_BASE_URL).toBe('http://localhost:8000');
+  });
+});
+
+describe('parseTrustProxy', () => {
+  it('trusts no proxy when TRUST_PROXY is unset', () => {
+    // Arrange
+    const config = loadSecurityConfig({});
+
+    // Act
+    const trustProxy = parseTrustProxy(config.TRUST_PROXY);
+
+    // Assert
+    expect(trustProxy).toBe(false);
+  });
+
+  it('reads a comma-separated list of proxy addresses and CIDRs', () => {
+    // Arrange
+    const value = ' 172.16.0.0/12, 10.0.0.1 ,,fdaa::/16 ';
+
+    // Act
+    const trustProxy = parseTrustProxy(value);
+
+    // Assert
+    expect(trustProxy).toEqual(['172.16.0.0/12', '10.0.0.1', 'fdaa::/16']);
+  });
+
+  it('accepts proxy-addr range names', () => {
+    // Arrange
+    const value = 'uniquelocal,loopback';
+
+    // Act
+    const trustProxy = parseTrustProxy(value);
+
+    // Assert
+    expect(trustProxy).toEqual(['uniquelocal', 'loopback']);
+  });
+
+  it('rejects a hop count, which cannot validate the immediate peer', () => {
+    // Arrange
+    const value = '1';
+
+    // Act
+    const parse = () => parseTrustProxy(value);
+
+    // Assert
+    expect(parse).toThrowError(/TRUST_PROXY no longer accepts a hop count/);
   });
 });
 
