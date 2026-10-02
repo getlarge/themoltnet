@@ -226,13 +226,13 @@ it, tracked in the design doc as a follow-up.
 ### REST surface
 
 The SDK wraps these endpoints; you rarely hit them directly. The MCP server also
-exposes equivalents (`tasks_create`, `tasks_list`, `tasks_get`,
+exposes equivalents (`tasks_create`, `tasks_list`, `tasks_get`, `tasks_cancel`,
 `tasks_attempts_list`, `tasks_messages_list`, `tasks_schemas`,
 `tasks_console_link`, `tasks_app_open`) for human and LLM operators driving the
 queue from a chat client. The Go CLI exposes
-`moltnet task create / schemas / list / get / tail / attempts` against the same
-endpoints; see [Tasks and Runtime](../use/tasks-and-runtime.md) for usage and
-the producer/judge walkthrough.
+`moltnet task create / schemas / list / get / cancel / tail / attempts` against
+the same endpoints; see [Tasks and Runtime](../use/tasks-and-runtime.md) for
+usage and the producer/judge walkthrough.
 
 #### Response compatibility
 

@@ -29,6 +29,9 @@ type stubTasksHandler struct {
 	listParams                      moltnetapi.ListTasksParams
 	getCalls                        int
 	getParams                       moltnetapi.GetTaskParams
+	cancelCalls                     int
+	cancelParams                    moltnetapi.CancelTaskParams
+	cancelReason                    string
 	listTaskArtifactsCalls          int
 	listTaskArtifactsParams         moltnetapi.ListTaskArtifactsParams
 	uploadTaskArtifactCalls         int
@@ -64,6 +67,13 @@ func (h *stubTasksHandler) GetTask(_ context.Context, params moltnetapi.GetTaskP
 	h.getCalls++
 	h.getParams = params
 	return newTaskFixture(params.ID, uuid.MustParse("22222222-2222-4222-8222-222222222222")), nil
+}
+
+func (h *stubTasksHandler) CancelTask(_ context.Context, req *moltnetapi.CancelTaskReq, params moltnetapi.CancelTaskParams) (moltnetapi.CancelTaskRes, error) {
+	h.cancelCalls++
+	h.cancelParams = params
+	h.cancelReason = req.Reason
+	return newTaskFixture(params.ID, params.XMoltnetTeamID.Value), nil
 }
 
 func (h *stubTasksHandler) ListTaskArtifacts(_ context.Context, params moltnetapi.ListTaskArtifactsParams) (moltnetapi.ListTaskArtifactsRes, error) {
@@ -614,6 +624,54 @@ func TestRunTaskGet_InvalidID(t *testing.T) {
 	}
 	if h.getCalls != 0 {
 		t.Errorf("request should not be made on invalid ID, got %d calls", h.getCalls)
+	}
+}
+
+func TestRunTaskCancel_PassesRequest(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	taskID := "11111111-1111-4111-8111-111111111111"
+	teamID := "22222222-2222-4222-8222-222222222222"
+	reason := "No longer needed"
+	if err := runTaskCancelWithClient(context.Background(), client, taskID, teamID, reason); err != nil {
+		t.Fatalf("runTaskCancelWithClient: %v", err)
+	}
+	if h.cancelCalls != 1 || h.cancelParams.ID != uuid.MustParse(taskID) || h.cancelReason != reason {
+		t.Errorf("cancel request = (%d, %s, %q), want (1, %s, %q)", h.cancelCalls, h.cancelParams.ID, h.cancelReason, taskID, reason)
+	}
+	if got, ok := h.cancelParams.XMoltnetTeamID.Get(); !ok || got != uuid.MustParse(teamID) {
+		t.Errorf("team ID = %s (set=%v), want %s", got, ok, teamID)
+	}
+}
+
+func TestRunTaskCancel_RejectsInvalidInput(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+	teamID := "22222222-2222-4222-8222-222222222222"
+	for _, tc := range []struct{ taskID, teamID, reason string }{
+		{"not-a-uuid", teamID, "No longer needed"},
+		{"11111111-1111-4111-8111-111111111111", "not-a-uuid", "No longer needed"},
+		{"11111111-1111-4111-8111-111111111111", teamID, "  "},
+	} {
+		if err := runTaskCancelWithClient(context.Background(), client, tc.taskID, tc.teamID, tc.reason); err == nil {
+			t.Errorf("expected error for %+v", tc)
+		}
+	}
+	if h.cancelCalls != 0 {
+		t.Errorf("request should not be made for invalid input, got %d calls", h.cancelCalls)
+	}
+}
+
+func TestTaskCancelRequiresReasonAndTeam(t *testing.T) {
+	for _, args := range [][]string{
+		{"task", "cancel", "11111111-1111-4111-8111-111111111111", "--reason", "No longer needed"},
+		{"task", "cancel", "11111111-1111-4111-8111-111111111111", "--team-id", "22222222-2222-4222-8222-222222222222"},
+	} {
+		_, _, err := executeCommand(NewRootCmd("test", ""), args...)
+		if err == nil {
+			t.Errorf("%v: expected required flag error", args)
+		}
 	}
 }
 

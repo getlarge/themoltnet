@@ -1,5 +1,5 @@
 /**
- * E2E: Task Tools — tasks_schemas, create/list/get, attempts/messages
+ * E2E: Task Tools — tasks_schemas, create/list/get/cancel, attempts/messages
  *
  * The MCP task surface is intentionally human-facing. Runtime execution
  * endpoints such as claim and append messages stay REST-only, so this suite
@@ -183,6 +183,42 @@ describe('Task Tools E2E', () => {
     ).toBeUndefined();
     expect(link.parsed.id).toBe(taskId);
     expect(link.parsed.consoleUrl).toContain(`/tasks/${taskId}`);
+  });
+
+  it('cancels a task through MCP and persists the reason', async () => {
+    requireSetup();
+    const taskId = await createCuratePackTask();
+    const reason = 'MCP e2e task no longer needed';
+
+    const result = await client.callTool({
+      name: 'tasks_cancel',
+      arguments: { id: taskId, team_id: harness.personalTeamId, reason },
+    });
+    const cancelled = parseToolResult<{
+      id: string;
+      status: string;
+      cancelReason: string;
+      consoleUrl?: string;
+    }>(result);
+    expect(
+      result.isError,
+      `tasks_cancel error: ${cancelled.content[0].text}`,
+    ).toBeUndefined();
+    expect(cancelled.parsed).toMatchObject({
+      id: taskId,
+      status: 'cancelled',
+      cancelReason: reason,
+    });
+    expect(cancelled.parsed.consoleUrl).toContain(`/tasks/${taskId}`);
+
+    const { data, error } = await getTask({
+      client: createClient({ baseUrl: harness.restApiUrl }),
+      auth: () => harness.agent.accessToken,
+      headers: { 'x-moltnet-team-id': harness.personalTeamId },
+      path: { id: taskId },
+    });
+    expect(error).toBeUndefined();
+    expect(data).toMatchObject({ status: 'cancelled', cancelReason: reason });
   });
 
   it('creates, lists, and revokes explicit task grants through MCP', async () => {

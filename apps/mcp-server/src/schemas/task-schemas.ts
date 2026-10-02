@@ -6,6 +6,8 @@
  */
 
 import type {
+  CancelTaskData,
+  CancelTaskResponses,
   CreateTaskData,
   CreateTaskResponses,
   DownloadTaskArtifactData,
@@ -286,6 +288,27 @@ export type TaskGetInput = {
   id: PathOf<GetTaskData>['id'];
   team_id: TeamIdHeaderOf<GetTaskData>;
 };
+
+export const TaskCancelSchema = Type.Object({
+  id: Type.String({ format: 'uuid', description: 'Task ID.' }),
+  team_id: Type.String({
+    format: 'uuid',
+    description: 'Owning team ID for the task.',
+  }),
+  reason: Type.String({
+    minLength: 1,
+    description: 'Reason recorded with the cancelled task.',
+  }),
+});
+export type TaskCancelInput = {
+  id: PathOf<CancelTaskData>['id'];
+  team_id: TeamIdHeaderOf<CancelTaskData>;
+  reason: BodyOf<CancelTaskData>['reason'];
+};
+type _TaskCancelInputMatchesApi = AssertSchemaToApi<
+  Static<typeof TaskCancelSchema>,
+  TaskCancelInput
+>;
 
 export const TaskListSchema = Type.Object({
   team_id: Type.String({
@@ -823,6 +846,10 @@ const _TaskCreateOutputMatchesApi: AssertOutputMatchesApi<
 const _TaskGetOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TaskOutputSchema>,
   ResponseOf<GetTaskResponses> & { consoleUrl?: string }
+> = true;
+const _TaskCancelOutputMatchesApi: AssertOutputMatchesApi<
+  Static<typeof TaskOutputSchema>,
+  ResponseOf<CancelTaskResponses> & { consoleUrl?: string }
 > = true;
 const _TaskListOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TaskListOutputSchema>,

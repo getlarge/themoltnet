@@ -252,6 +252,44 @@ func runTaskGetWithClient(ctx context.Context, client *moltnetapi.Client, taskID
 	return printJSON(task)
 }
 
+func runTaskCancelCmd(apiURL, credPath, taskID, teamID, reason string) error {
+	if strings.TrimSpace(reason) == "" {
+		return fmt.Errorf("--reason must not be empty")
+	}
+	client, err := newAuthenticatedClient(apiURL, credPath, teamID)
+	if err != nil {
+		return err
+	}
+	return runTaskCancelWithClient(context.Background(), client, taskID, teamID, reason)
+}
+
+func runTaskCancelWithClient(ctx context.Context, client *moltnetapi.Client, taskID, teamID, reason string) error {
+	taskUUID, err := uuid.Parse(taskID)
+	if err != nil {
+		return fmt.Errorf("invalid task ID %q: %w", taskID, err)
+	}
+	teamUUID, err := uuid.Parse(teamID)
+	if err != nil {
+		return fmt.Errorf("invalid --team-id %q: %w", teamID, err)
+	}
+	if strings.TrimSpace(reason) == "" {
+		return fmt.Errorf("--reason must not be empty")
+	}
+
+	res, err := client.CancelTask(ctx, &moltnetapi.CancelTaskReq{Reason: reason}, moltnetapi.CancelTaskParams{
+		ID:             taskUUID,
+		XMoltnetTeamID: moltnetapi.NewOptUUID(teamUUID),
+	})
+	if err != nil {
+		return fmt.Errorf("task cancel: %w", formatTransportError(err))
+	}
+	task, ok := res.(*moltnetapi.Task)
+	if !ok {
+		return formatAPIError(res)
+	}
+	return printJSON(task)
+}
+
 type taskAttemptsOpts struct {
 	apiURL       string
 	credPath     string

@@ -15,6 +15,7 @@ func newTaskCmd() *cobra.Command {
 
 	taskCmd.AddCommand(newTaskListCmd())
 	taskCmd.AddCommand(newTaskGetCmd())
+	taskCmd.AddCommand(newTaskCancelCmd())
 	taskCmd.AddCommand(newTaskTailCmd())
 	taskCmd.AddCommand(newTaskAttemptsCmd())
 	taskCmd.AddCommand(newTaskArtifactsCmd())
@@ -738,6 +739,30 @@ func newTaskGetCmd() *cobra.Command {
 	}
 	cmd.Flags().String("team-id", "", "Owning team UUID (required)")
 	_ = cmd.MarkFlagRequired("team-id")
+	return cmd
+}
+
+func newTaskCancelCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "cancel <task-id>",
+		Short:   "Cancel a task",
+		Example: `  moltnet task cancel <task-uuid> --team-id <uuid> --reason "No longer needed"`,
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath := flagString(cmd, "credentials")
+			return runTaskCancelCmd(
+				resolveAPIURL(cmd, credPath),
+				credPath,
+				args[0],
+				flagString(cmd, "team-id"),
+				flagString(cmd, "reason"),
+			)
+		},
+	}
+	cmd.Flags().String("team-id", "", "Owning team UUID (required)")
+	cmd.Flags().String("reason", "", "Reason recorded with the cancelled task (required)")
+	_ = cmd.MarkFlagRequired("team-id")
+	_ = cmd.MarkFlagRequired("reason")
 	return cmd
 }
 
