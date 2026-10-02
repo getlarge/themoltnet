@@ -494,11 +494,20 @@ these rules.
 - **Versions live in the catalog.** Change versions in `pnpm-workspace.yaml`,
   not in individual `package.json` files (see
   [Adding a New Workspace](#adding-a-new-workspace)).
-- **Transitive fixes go in `pnpm.overrides`** in the root `package.json`, capped
-  at the current major: `"pkg": ">=<fixed> <<next-major>"`, or
-  `"pkg@3": ">=3.x.y <4"` when several majors coexist. Never use an override to
-  force a new major onto a dependent package; upgrade the parent package
-  instead. Remove an override once no dependent package needs it.
+- **`pnpm.overrides` must justify themselves to the Override Hygiene gate.**
+  The blocking `Override Hygiene` CI job (`tools/check-dependency-overrides.mjs`)
+  re-resolves the workspace without overrides. It keeps an entry only if it
+  holds back an advisory in production dependencies (`pnpm audit --prod`) or
+  collapses duplicate versions. Run it locally before adding or removing an
+  override.
+  - **Try re-resolving first.** A fresh resolution often already selects the
+    patched version of a transitive dependency, so no override is needed.
+  - **Tooling-only advisories do not get overrides.** Fix them by upgrading
+    the parent package, or wait for an upstream release.
+  - **When an override is justified**, cap it at the current major:
+    `"pkg": ">=<fixed> <<next-major>"`, or `"pkg@3": ">=3.x.y <4"` when several
+    majors coexist. A 0.x minor bump counts as a major. Never use an override
+    to force a new major onto a dependent package; upgrade the parent instead.
 - **No major bumps in vulnerability or maintenance PRs.** A major upgrade gets
   its own PR, with its own migration work and review.
 - **Split dependency PRs by blast radius.** Keep build and dev tooling (Nx,
@@ -525,8 +534,12 @@ these rules.
 - **Standalone examples outside the workspace do not commit lockfiles.** They
   resolve the way a fresh user install would, and Renovate does not maintain
   their lockfiles.
-- **Never hand-edit `pnpm-lock.yaml`.** Regenerate it with `pnpm install`, and
-  check that `pnpm install --frozen-lockfile` passes before you push.
+- **Never hand-edit or text-merge `pnpm-lock.yaml`.** Regenerate it with
+  `pnpm install`, and check that `pnpm install --frozen-lockfile` passes before
+  you push. A git merge or rebase can report no conflicts and still corrupt the
+  lockfile (for example, a duplicated importer key). After merging or rebasing
+  onto `main`, check out `main`'s lockfile and run `pnpm install` again. Do not
+  use GitHub's "Update branch" button on PRs that change dependencies.
 
 ## Troubleshooting
 

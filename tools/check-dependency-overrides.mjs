@@ -118,6 +118,35 @@ function vulnerablePackages(report) {
 }
 
 /**
+ * Advisories on `target` that a full audit reports but the production audit
+ * does not: the ones an override was holding back only in dev and build
+ * tooling.
+ *
+ * These never justify an override, because the verdict uses production
+ * advisories only and tooling advisories are fixed upstream. They are still
+ * reported, so a "dead" override that was holding back a tooling advisory is
+ * not presented as protecting nothing.
+ */
+export function devOnlyAdvisories(target, prodReport, fullReport) {
+  const prodIds = new Set(
+    Object.values(prodReport.advisories ?? {})
+      .filter((a) => a.module_name === target)
+      .map((a) => a.github_advisory_id ?? a.id),
+  );
+  return Object.values(fullReport.advisories ?? {})
+    .filter(
+      (a) =>
+        a.module_name === target && !prodIds.has(a.github_advisory_id ?? a.id),
+    )
+    .map((a) => ({
+      id: a.github_advisory_id ?? String(a.id),
+      severity: a.severity,
+      title: a.title,
+    }))
+    .sort((a, b) => a.id.localeCompare(b.id));
+}
+
+/**
  * Counts how many distinct versions of each package a lockfile resolves.
  *
  * An override that no longer holds back an advisory may still be collapsing a
@@ -198,6 +227,9 @@ async function auditWithoutOverrides() {
     );
     return {
       report: await runPnpmAudit(['audit', '--prod', '--json'], dir),
+      // Same resolution, dev dependencies included. Informational only: it
+      // never changes a verdict (see devOnlyAdvisories).
+      fullReport: await runPnpmAudit(['audit', '--json'], dir),
       versions: countVersions(
         await readFile(join(dir, 'pnpm-lock.yaml'), 'utf8'),
       ),
@@ -245,14 +277,31 @@ function formatMarkdown({
 
   if (deadOverrides.length > 0) {
     lines.push(
-      `**Delete these ${deadOverrides.length}.** They hold back no advisory and collapse no`,
-      'versions — the packages that needed them have caught up upstream:',
+      `**Delete these ${deadOverrides.length}.** They hold back no production advisory and`,
+      'collapse no versions:',
       '',
       '```json',
       ...deadOverrides.map(({ key, range }) => `"${key}": "${range}",`),
       '```',
       '',
     );
+    const withDev = deadOverrides.filter((o) => o.devAdvisories.length > 0);
+    if (withDev.length > 0) {
+      lines.push(
+        'Some of them were holding back advisories in dev or build tooling.',
+        'Those come back once the override is removed. Tooling advisories do',
+        'not justify an override: fix them by upgrading the parent package, or',
+        'wait for an upstream release.',
+        '',
+        ...withDev.map(
+          ({ key, devAdvisories }) =>
+            `- \`${key}\`: ${devAdvisories
+              .map((a) => `${a.id} (${a.severity})`)
+              .join(', ')}`,
+        ),
+        '',
+      );
+    }
   }
 
   if (staleIgnores.length > 0) {
@@ -329,6 +378,11 @@ async function main() {
       range,
       target,
       dedupeCost,
+      devAdvisories: devOnlyAdvisories(
+        target,
+        withoutOverrides.report,
+        withoutOverrides.fullReport,
+      ),
       kind: justified.has(target)
         ? 'security'
         : dedupeCost > 0
@@ -380,12 +434,17 @@ async function main() {
     console.log(
       `Checked ${result.total} overrides against a no-override resolution.`,
     );
-    for (const { key, range, target, dedupeCost } of deadOverrides) {
-      const note =
-        dedupeCost > 0
-          ? `still dedupes ${target} (+${dedupeCost} versions without it) — keep with a reason, or accept the fan-out`
-          : `${target} has no live advisory and no dedupe effect — delete`;
-      console.log(`  DEAD  ${key}: ${range}\n          ${note}`);
+    for (const { key, range, target, devAdvisories } of deadOverrides) {
+      console.log(
+        `  DEAD  ${key}: ${range}\n          ${target} has no production advisory and no dedupe effect — delete`,
+      );
+      if (devAdvisories.length > 0) {
+        console.log(
+          `          dev-only advisories return without it: ${devAdvisories
+            .map((a) => `${a.id} (${a.severity})`)
+            .join(', ')} — fix by upgrading the parent package`,
+        );
+      }
     }
     for (const { ghsa, reason } of staleIgnores) {
       console.log(`  STALE ignoreGhsas ${ghsa} — ${reason}`);

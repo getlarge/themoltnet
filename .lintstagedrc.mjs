@@ -8,6 +8,8 @@
 //             belong to. --fix auto-corrects what it can; remaining violations
 //             block the commit.
 //   - format: `nx format:write` over exactly the staged files (prettier).
+//             TypeScript and JavaScript (including tool .mjs scripts) get both
+//             passes.
 //
 // Typecheck/test are intentionally NOT run here — `tsc -b` across the affected
 // graph is too slow for a commit hook. CI (and pre-push, if added) cover those.
@@ -56,7 +58,10 @@ export default {
         : []),
     ];
   },
-  '*.{ts,tsx}': (files) => [
+  // JavaScript gets the same treatment as TypeScript: tool scripts such as
+  // tools/*.mjs are linted and formatted by CI (nx format:check), so an
+  // unformatted .mjs must not get past the commit hook.
+  '*.{ts,tsx,js,jsx,mjs,cjs}': (files) => [
     `nx affected -t lint --fix --files=${list(files)}`,
     `nx format:write --files=${list(files)}`,
   ],
