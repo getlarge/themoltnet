@@ -97,6 +97,39 @@ export function createTaskCreateService(
   const defaultExpiresInSec = taskLifetime?.defaultExpiresInSec ?? null;
   const maxExpiresInSec = taskLifetime?.maxExpiresInSec ?? null;
 
+  /**
+   * Return the task an idempotency key already points to. A concurrent create
+   * with the same key commits the row before it writes the ownership grant,
+   * so the replay re-asserts that grant (an idempotent tuple insert) rather
+   * than hand back a task its caller cannot read yet.
+   */
+  async function replayExisting(
+    existing: DbTask,
+    keyHash: string,
+  ): Promise<Task> {
+    try {
+      await relationshipWriter.grantTaskOwnership(existing.id, existing.teamId);
+    } catch (err) {
+      logger.error(
+        { taskId: existing.id, err },
+        'task.create.idempotent_replay.grant_failed',
+      );
+      throw new TaskServiceError(
+        'conflict',
+        'Failed to register task ownership on idempotent replay',
+      );
+    }
+    logger.info(
+      {
+        taskId: existing.id,
+        teamId: existing.teamId,
+        keyHashPrefix: keyHash.slice(0, 12),
+      },
+      'task.create.idempotent_replay',
+    );
+    return dbTaskToWire(existing);
+  }
+
   return {
     async create(input) {
       const normalizedInput = normalizeTaskInputForCreate(
@@ -319,15 +352,7 @@ export function createTaskCreateService(
               'Idempotency-Key was already used with a different task request',
             );
           }
-          logger.info(
-            {
-              taskId: existing.id,
-              teamId: input.teamId,
-              keyHashPrefix: idempotencyKeyHash.slice(0, 12),
-            },
-            'task.create.idempotent_replay',
-          );
-          return dbTaskToWire(existing);
+          return replayExisting(existing, idempotencyKeyHash);
         }
       }
 
@@ -534,15 +559,7 @@ export function createTaskCreateService(
           });
           if (existing) {
             if (existing.idempotencyRequestCid === idempotencyRequestCid) {
-              logger.info(
-                {
-                  taskId: existing.id,
-                  teamId: input.teamId,
-                  keyHashPrefix: idempotencyKeyHash.slice(0, 12),
-                },
-                'task.create.idempotent_replay',
-              );
-              return dbTaskToWire(existing);
+              return replayExisting(existing, idempotencyKeyHash);
             }
             throw new TaskServiceError(
               'conflict',
