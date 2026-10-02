@@ -38,6 +38,15 @@ inputs:
   rust-cache-targets:
     description: Cache compiled Cargo target directories as well as the registry.
     default: 'true'
+  native-build-tools:
+    description: Install cmake and ninja (Linux) through the cached apt installer.
+    default: 'false'
+  agent-desktop-native:
+    description: >
+      Install the Agent desktop Linux build dependencies
+      (tools/release/agent-desktop/linux-build-dependencies.txt) through the
+      cached apt installer.
+    default: 'false'
 runs:
   using: composite
   steps:
@@ -51,6 +60,34 @@ runs:
         go-version-file: .tool-versions
         cache: ${{ inputs.go-cache }}
         cache-dependency-path: ${{ inputs.go-cache-dependency-path }}
+    # Cached apt installs. The key carries the runner image version because
+    # cached .deb files only satisfy the dependency set of the image they were
+    # downloaded on; a new image is a cache miss and refreshes from the mirror.
+    - name: Resolve runner image for apt cache keys
+      id: apt-image
+      if: runner.os == 'Linux' && (inputs.native-build-tools == 'true' || inputs.agent-desktop-native == 'true')
+      shell: bash
+      run: echo "image=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+    - name: Cache native build tool packages
+      if: runner.os == 'Linux' && inputs.native-build-tools == 'true'
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      with:
+        path: ~/.cache/moltnet-apt/build-tools
+        key: apt-build-tools-${{ runner.arch }}-${{ steps.apt-image.outputs.image }}-cmake-ninja
+    - name: Install native build tools
+      if: runner.os == 'Linux' && inputs.native-build-tools == 'true'
+      shell: bash
+      run: bash tools/ci/apt-install.sh --cache-dir "$HOME/.cache/moltnet-apt/build-tools" cmake ninja-build
+    - name: Cache Agent desktop native packages
+      if: runner.os == 'Linux' && inputs.agent-desktop-native == 'true'
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      with:
+        path: ~/.cache/moltnet-apt/agent-desktop
+        key: apt-agent-desktop-${{ runner.arch }}-${{ steps.apt-image.outputs.image }}-${{ hashFiles('tools/release/agent-desktop/linux-build-dependencies.txt') }}
+    - name: Install Agent desktop native dependencies
+      if: runner.os == 'Linux' && inputs.agent-desktop-native == 'true'
+      shell: bash
+      run: bash tools/release/agent-desktop/install-linux-build-dependencies.sh --cache-dir "$HOME/.cache/moltnet-apt/agent-desktop"
     - name: Verify the pinned Rust toolchain
       if: inputs.rust == 'true'
       shell: bash

@@ -1,17 +1,10 @@
 #!/usr/bin/env bash
 # One package list for native tests, PR packages, and signed Linux releases.
+# The list lives in linux-build-dependencies.txt so the cached CI install in
+# .github/actions/setup-workspace reads the same source.
+# Extra arguments (for example --cache-dir DIR) are passed to apt-install.sh.
 set -euo pipefail
 
-sudo apt-get update
-sudo apt-get install -y \
-  build-essential \
-  dbus-x11 \
-  file \
-  libayatana-appindicator3-dev \
-  libfuse2t64 \
-  librsvg2-dev \
-  libssl-dev \
-  libwebkit2gtk-4.1-dev \
-  libxdo-dev \
-  patchelf \
-  xvfb
+here=$(cd "$(dirname "$0")" && pwd)
+mapfile -t packages < <(grep -vE '^\s*(#|$)' "$here/linux-build-dependencies.txt")
+exec "$here/../../ci/apt-install.sh" "$@" "${packages[@]}"

@@ -150,8 +150,9 @@ describe('Nx release configuration', () => {
   });
 
   it('propagates dry-run mode to Docker release actions in CI', () => {
-    expect(workflow).toContain(
-      '- if: ${{ !inputs.dry-run }}\n        uses: docker/setup-buildx-action@v4',
+    // Third-party actions are pinned by commit SHA with the major as a comment.
+    expect(workflow).toMatch(
+      /- if: \$\{\{ !inputs\.dry-run \}\}\n {8}uses: docker\/setup-buildx-action@[0-9a-f]{40} # v4\n/,
     );
     expect(workflow).toContain(
       'NX_DRY_RUN=true pnpm exec nx release --dry-run',
@@ -193,7 +194,7 @@ describe('Nx release configuration', () => {
       expect(workflow).toContain(`"project":"${name}"`);
     }
 
-    expect(workflow).toContain('docker/setup-qemu-action@v4');
+    expect(workflow).toMatch(/docker\/setup-qemu-action@[0-9a-f]{40} # v4\n/);
     expect(workflow).toContain(
       'node tools/release/resolve-docker-release-matrix.mjs',
     );
