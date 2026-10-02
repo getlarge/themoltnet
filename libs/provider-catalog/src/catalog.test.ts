@@ -57,6 +57,24 @@ describe('provider catalog', () => {
     expect(proxyAliases).toEqual([]);
   });
 
+  it('records generated Ollama Cloud model capabilities', () => {
+    for (const entry of ollamaCloudModels) {
+      const { capabilities } = entry;
+      expect(capabilities.supportsVision).toEqual(expect.any(Boolean));
+      expect(capabilities.supportsReasoning).toEqual(expect.any(Boolean));
+      expect(capabilities.supportsTools).toEqual(expect.any(Boolean));
+      expect(capabilities.contextWindow).toEqual(expect.any(Number));
+      if (capabilities.supportsReasoning) {
+        expect(capabilities.thinkingLevels).toMatch(/^[a-z]+(,[a-z]+)*$/);
+        expect(String(capabilities.thinkingLevels).split(',')).toContain(
+          capabilities.defaultThinkingLevel,
+        );
+      } else {
+        expect(capabilities.thinkingLevels).toBeUndefined();
+      }
+    }
+  });
+
   it('records request option support and leaves unknown providers undecided', () => {
     for (const entry of piRuntimeModels) {
       for (const option of [

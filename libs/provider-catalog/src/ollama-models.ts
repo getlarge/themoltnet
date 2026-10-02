@@ -1,4 +1,4 @@
-import { ollamaCloudModelIds } from './ollama-cloud-models.generated.js';
+import { ollamaCloudModelData } from './ollama-cloud-models.generated.js';
 import type { RuntimeModelCatalogEntry } from './types.js';
 
 // MoltNet's Pi integration uses Ollama's OpenAI-compatible endpoint. That
@@ -37,15 +37,29 @@ export const ollamaModels: readonly RuntimeModelCatalogEntry[] = [
 }));
 
 /**
- * Ollama Cloud entries generated from the public model list at
- * https://ollama.com/v1/models (see `generate:ollama-cloud`). Ids are the ones
- * the `ollama-cloud` provider accepts, without local-proxy `:cloud` aliases.
+ * Ollama Cloud entries generated from the public model list and per-model
+ * `/api/show` metadata at https://ollama.com (see `generate:ollama-cloud`).
+ * Ids are the ones the `ollama-cloud` provider accepts, without local-proxy
+ * `:cloud` aliases. `thinkingLevels` lists Ollama's accepted thinking values
+ * (`off`/`on` for boolean models, otherwise named levels such as `high`).
  */
 export const ollamaCloudModels: readonly RuntimeModelCatalogEntry[] =
-  ollamaCloudModelIds.map((model) => ({
+  ollamaCloudModelData.map((model) => ({
     provider: 'ollama-cloud',
-    model,
-    displayName: `Ollama Cloud · ${model}`,
-    description: 'Ollama Cloud model suggestion.',
-    capabilities: { ...openAiCompatibleRequestCapabilities },
+    model: model.id,
+    displayName: `Ollama Cloud · ${model.id}`,
+    description: 'Generated from the Ollama Cloud model catalog.',
+    capabilities: {
+      supportsReasoning: model.thinkingLevels !== undefined,
+      supportsVision: model.vision,
+      supportsTools: model.tools,
+      ...openAiCompatibleRequestCapabilities,
+      contextWindow: model.contextWindow,
+      ...(model.thinkingLevels
+        ? {
+            thinkingLevels: model.thinkingLevels.join(','),
+            defaultThinkingLevel: model.defaultThinkingLevel ?? '',
+          }
+        : {}),
+    },
   }));
