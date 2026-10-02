@@ -44,11 +44,10 @@ jobs:
           # commitlint walks a range, so the merge-base must be present.
           fetch-depth: 0
           persist-credentials: false
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version: 24
-          cache: pnpm
+          install-dependencies: 'false'
+          go: 'false'
       # Only the root commitlint dev dependency is needed; the workspace
       # postinstall builds the Nx graph and is not worth paying for here.
       - run: pnpm install --frozen-lockfile --ignore-scripts
@@ -261,12 +260,9 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version: '24'
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+          go: 'false'
       - run: pnpm exec nx run @moltnet/agent-desktop-e2e:e2e --configuration=chrome --excludeTaskDependencies
 
   agent-desktop-packages:
@@ -327,11 +323,10 @@ jobs:
         with:
           fetch-depth: 0
           filter: tree:0
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version: 24
-          cache: pnpm
+          install-dependencies: 'false'
+          go: 'false'
       # Every pull request: cheap, and a path gate would have to copy the
       # lock definitions. Files an action runs from outside its package are
       # hashed into its runtime.lock, so changing them releases the action.
@@ -738,11 +733,10 @@ jobs:
         with:
           fetch-depth: 0
           filter: tree:0
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version: 24
-          cache: pnpm
+          install-dependencies: 'false'
+          go: 'false'
       - name: Install native build tools
         run: |
           if ! command -v cmake >/dev/null || ! command -v ninja >/dev/null; then
@@ -815,12 +809,9 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+          go: 'false'
       - name: Install plugin hosts
         run: npm install --global @openai/codex@0.149.0 @anthropic-ai/claude-code@2.1.248
       - name: Validate manifests
@@ -838,12 +829,9 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+          go: 'false'
       - name: Run Knip (JSON report)
         run: pnpm run knip --reporter json > knip-report.json 2>&1 || true
       - name: Run Knip (human-readable)
@@ -1049,12 +1037,9 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+          go: 'false'
       - name: Run audit
         id: audit
         run: |
@@ -1151,12 +1136,9 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+          go: 'false'
       - name: Check override hygiene
         id: overrides
         run: |
@@ -1306,15 +1288,10 @@ jobs:
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         if: needs.affected.outputs.e2e-node == 'true'
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-        if: needs.affected.outputs.e2e-node == 'true'
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         if: needs.affected.outputs.e2e-node == 'true'
         with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-        if: needs.affected.outputs.e2e-node == 'true'
+          go: 'false'
       - name: Log in to GHCR
         if: needs.affected.outputs.e2e-node == 'true'
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
@@ -1484,15 +1461,10 @@ jobs:
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-        if: needs.affected.outputs.e2e-agent-daemon == 'true'
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
         with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-        if: needs.affected.outputs.e2e-agent-daemon == 'true'
+          go: 'false'
       - name: Resolve Gondolin APT cache key
         id: gondolin-apt-key
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
@@ -1594,15 +1566,10 @@ jobs:
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         if: needs.affected.outputs.e2e-browser == 'true'
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-        if: needs.affected.outputs.e2e-browser == 'true'
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         if: needs.affected.outputs.e2e-browser == 'true'
         with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-        if: needs.affected.outputs.e2e-browser == 'true'
+          go: 'false'
       - name: Get Playwright version
         id: pw-version
         if: needs.affected.outputs.e2e-browser == 'true'
@@ -1684,15 +1651,10 @@ jobs:
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         if: needs.affected.outputs.e2e-mcp == 'true'
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-        if: needs.affected.outputs.e2e-mcp == 'true'
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         if: needs.affected.outputs.e2e-mcp == 'true'
         with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-        if: needs.affected.outputs.e2e-mcp == 'true'
+          go: 'false'
       - name: Get Playwright version
         id: pw-version
         if: needs.affected.outputs.e2e-mcp == 'true'
@@ -1839,13 +1801,11 @@ jobs:
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         if: needs.affected.outputs.e2e-cpp-sdk == 'true'
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-        if: needs.affected.outputs.e2e-cpp-sdk == 'true'
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         if: needs.affected.outputs.e2e-cpp-sdk == 'true'
         with:
-          node-version: 24
-          cache: pnpm
+          install-dependencies: 'false'
+          go: 'false'
       - name: Install native build tools
         if: needs.affected.outputs.e2e-cpp-sdk == 'true'
         run: |
@@ -1898,15 +1858,10 @@ jobs:
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         if: needs.affected.outputs.e2e-orchestration == 'true'
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-        if: needs.affected.outputs.e2e-orchestration == 'true'
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         if: needs.affected.outputs.e2e-orchestration == 'true'
         with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-        if: needs.affected.outputs.e2e-orchestration == 'true'
+          go: 'false'
       - name: Start Absurd Postgres and run migrations
         if: needs.affected.outputs.e2e-orchestration == 'true'
         env:
