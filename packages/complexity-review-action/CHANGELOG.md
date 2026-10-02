@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.1](https://github.com/getlarge/themoltnet/compare/complexity-review-action-v0.2.0...complexity-review-action-v0.2.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* **actions:** refresh action bundles ([63fca66](https://github.com/getlarge/themoltnet/commit/63fca66b8cc5cdb7117428851622e8cc594f491c))
+* **actions:** refresh action bundles ([f21d258](https://github.com/getlarge/themoltnet/commit/f21d25815b976085b34eebd8622614bbaf117ae2))
+* **ci:** refresh review action bundles after main update ([c2be13e](https://github.com/getlarge/themoltnet/commit/c2be13e986e9d3b289c67f2d51fd8a850182ab53))
+* **review:** use typed results for docs and complexity stages ([f67533d](https://github.com/getlarge/themoltnet/commit/f67533d7b4e270d8335c7200b0360d1e7b17ada7))
+* **review:** use typed results for docs and complexity stages ([0d82096](https://github.com/getlarge/themoltnet/commit/0d82096e4358c793a8a462dde34ea28161276e12))
+
 ## [0.2.0](https://github.com/getlarge/themoltnet/compare/complexity-review-action-v0.1.0...complexity-review-action-v0.2.0) (2026-10-01)
 
 

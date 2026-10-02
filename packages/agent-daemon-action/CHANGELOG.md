@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.3](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.3.2...agent-daemon-action-v0.3.3) (2026-10-02)
+
+
+### Bug Fixes
+
+* **actions:** refresh action bundles ([63fca66](https://github.com/getlarge/themoltnet/commit/63fca66b8cc5cdb7117428851622e8cc594f491c))
+* **actions:** refresh action bundles ([f21d258](https://github.com/getlarge/themoltnet/commit/f21d25815b976085b34eebd8622614bbaf117ae2))
+* **ci:** refresh review action bundles after main update ([c2be13e](https://github.com/getlarge/themoltnet/commit/c2be13e986e9d3b289c67f2d51fd8a850182ab53))
+* **release:** prepare bundles and Gondolin CLI pin on release PRs ([a434e27](https://github.com/getlarge/themoltnet/commit/a434e27a6d70b54e26971619e9d11890edad8938))
+* **release:** prepare generated artifacts on release PRs ([49ff4d0](https://github.com/getlarge/themoltnet/commit/49ff4d0583b564650209831689cd47b4b9961189))
+* **review:** use typed results for docs and complexity stages ([f67533d](https://github.com/getlarge/themoltnet/commit/f67533d7b4e270d8335c7200b0360d1e7b17ada7))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.149.0
+
 ## [0.3.2](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.3.1...agent-daemon-action-v0.3.2) (2026-10-01)
 
 

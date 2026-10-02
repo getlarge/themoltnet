@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.21.1](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.21.0...pi-runtime-v0.21.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* **provider-catalog:** generate Ollama Cloud models and capabilities ([68d8b2b](https://github.com/getlarge/themoltnet/commit/68d8b2bcd586ca3d5f82b97719af5d42d6cc05e0))
+* **review:** use typed results for docs and complexity stages ([f67533d](https://github.com/getlarge/themoltnet/commit/f67533d7b4e270d8335c7200b0360d1e7b17ada7))
+* **review:** use typed results for docs and complexity stages ([0d82096](https://github.com/getlarge/themoltnet/commit/0d82096e4358c793a8a462dde34ea28161276e12))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.10.0
+    * @themoltnet/sdk bumped to 0.149.0
+
 ## [0.21.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.20.1...pi-runtime-v0.21.0) (2026-10-01)
 
 

@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.69.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.68.0...agent-daemon-v0.69.0) (2026-10-02)
+
+
+### Features
+
+* **tasks:** add cancellation to CLI and MCP ([740967e](https://github.com/getlarge/themoltnet/commit/740967e9ce0584f5ce1f3ac3528cf35f8a35ebdf))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.10.0
+    * @themoltnet/pi-runtime bumped to 0.21.1
+    * @themoltnet/sdk bumped to 0.149.0
+
 ## [0.68.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.67.1...agent-daemon-v0.68.0) (2026-10-01)
 
 
