@@ -568,6 +568,48 @@ describe('createSubmitOutputTool', () => {
     });
   });
 
+  it('repairs submit-only verification while preserving a contracted result', async () => {
+    const handle = createSubmitOutputTool('freeform', {
+      input: {
+        ...submitOutputOnlyFreeformInput,
+        outputContract: {
+          version: 1,
+          schema: {
+            type: 'object',
+            properties: {
+              changes: { type: 'array', items: { type: 'string' } },
+            },
+            required: ['changes'],
+            additionalProperties: false,
+          },
+        },
+      },
+      inputCid: 'bafy-input',
+    });
+
+    const response = await callExecute(handle)({
+      summary: 'No documented changes',
+      result: { changes: [] },
+      verification: {
+        inputCid: 'wrong',
+        results: [
+          { id: 'submit-output', kind: 'submit-tool-call', status: 'pass' },
+        ],
+        passed: true,
+      },
+    });
+
+    expect(response.isError).toBeFalsy();
+    expect(handle.getCaptured()).toMatchObject({
+      result: { changes: [] },
+      verification: {
+        inputCid: 'bafy-input',
+        results: [{ id: 'submit-output', kind: 'gate', status: 'pass' }],
+        passed: true,
+      },
+    });
+  });
+
   it('repairs run_eval submit-output-only verification (not just freeform)', async () => {
     // The repair used to be freeform-only, so weaker models that mis-type the
     // `verification` object failed run_eval on verification alone. It now

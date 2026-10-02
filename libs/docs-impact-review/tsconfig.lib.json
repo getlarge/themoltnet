@@ -19,6 +19,9 @@
       "path": "../os-keyring/tsconfig.lib.json"
     },
     {
+      "path": "../tasks/tsconfig.lib.json"
+    },
+    {
       "path": "../api-client/tsconfig.lib.json"
     }
   ]

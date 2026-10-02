@@ -70,7 +70,8 @@ moltnet-agent drain --agent legreffier --team "$TEAM" \
   --wait-for-first-task-sec 300 --wait-after-task-sec 30
 ```
 
-The trusted library accepts stage JSON in the freeform summary or one note artifact
-body, then validates the map, assigned paths, and final rubric score.
+Each stage requires a typed freeform `result`. The task service validates its
+shape before accepting the output; the trusted library then checks the map,
+assigned paths, and final rubric score.
 The app prints `{ taskId, taskIds, output, durationMs, stageDurationsMs,
 base, head, pr }` as JSON.

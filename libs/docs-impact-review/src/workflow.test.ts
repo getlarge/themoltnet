@@ -14,7 +14,11 @@ import {
   runDocsImpactReview,
 } from './workflow.js';
 
-type StageOutput = { summary: string } | Error | 'timeout' | 'max-turns';
+type StageOutput =
+  | { summary: string; result: unknown }
+  | Error
+  | 'timeout'
+  | 'max-turns';
 
 /** Scripted task client: each created task completes with the next output. */
 function fakeTasks(
@@ -81,8 +85,8 @@ function fakeTasks(
   return { client, created };
 }
 
-function json(value: unknown): { summary: string } {
-  return { summary: JSON.stringify(value) };
+function json(value: unknown): { summary: string; result: unknown } {
+  return { summary: 'Review completed', result: value };
 }
 
 const config = parseReviewConfig({
@@ -478,13 +482,15 @@ describe('runDocsImpactReview', () => {
     });
 
     // Act
-    const { report } = run(head, [{ summary: 'looks fine to me' }]);
+    const { report } = run(head, [
+      { summary: 'looks fine to me', result: { changes: [] } },
+    ]);
 
     // Assert
     const result = await report;
     expect(result.status).toBe('failed');
     expect(result.outcome).toBeUndefined();
-    expect(result.error).toMatch(/strict JSON/);
+    expect(result.error).toMatch(/version/);
   });
 
   it('fails without an outcome when the runtime is unavailable', async () => {
