@@ -231,6 +231,6 @@
     "enabled": true,
     "groupName": "{{#if (containsString depName \"golang.org/x/\")}}golang.org/x{{else if (containsString depName \"go.opentelemetry.io/collector\")}}OTel Collector{{else if (containsString depName \"opentelemetry-collector-contrib\")}}OTel Collector{{else}}dependency {{{depName}}}{{/if}}",
     "groupSlug": "{{#if (containsString depName \"golang.org/x/\")}}golang-org-x-vulnerability{{else if (containsString depName \"go.opentelemetry.io/collector\")}}otel-collector-vulnerability{{else if (containsString depName \"opentelemetry-collector-contrib\")}}otel-collector-vulnerability{{else}}{{{datasource}}}-{{{depNameSanitized}}}-vulnerability{{/if}}",
-    "prConcurrentLimit": 2
+    "prConcurrentLimit": 5
   }
 }
