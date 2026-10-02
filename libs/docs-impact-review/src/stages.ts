@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import { reviewResultContractSchema } from '@moltnet/tasks';
+import { toOutputContractSchema } from '@moltnet/task-schemas';
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 import { type TSchema, Type } from 'typebox';
 import { Value } from 'typebox/value';
@@ -411,7 +411,7 @@ export function buildExtractTask(
       expectedOutput: 'ContractExtraction object in result.',
       outputContract: {
         version: 1,
-        schema: reviewResultContractSchema(ContractExtractionSchema),
+        schema: toOutputContractSchema(ContractExtractionSchema),
       },
       constraints: [
         'Do not use tools other than submit_freeform_output.',
@@ -466,7 +466,7 @@ export function buildCoverageTask(
       expectedOutput: 'CoverageCheck object in result.',
       outputContract: {
         version: 1,
-        schema: reviewResultContractSchema(CoverageCheckSchema),
+        schema: toOutputContractSchema(CoverageCheckSchema),
       },
       constraints: [
         'At most 4 read-only tool calls before submitting.',
@@ -539,7 +539,7 @@ export function buildDocsCheckTask(
       expectedOutput: 'DocsCheck object in result.',
       outputContract: {
         version: 1,
-        schema: reviewResultContractSchema(DocsCheckSchema),
+        schema: toOutputContractSchema(DocsCheckSchema),
       },
       constraints: [
         'Do not use tools other than submit_freeform_output.',

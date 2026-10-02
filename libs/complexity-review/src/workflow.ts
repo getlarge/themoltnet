@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
 
+import { toOutputContractSchema } from '@moltnet/task-schemas';
 import {
   type PrReviewOutput,
   PrReviewOutput as PrReviewOutputSchema,
-  reviewResultContractSchema,
   type Rubric,
   validatePrReviewOutput,
 } from '@moltnet/tasks';
@@ -140,7 +140,7 @@ function stageTask(
         'Put the requested structured object in result and a brief plain-language summary in summary.',
       outputContract: {
         version: 1 as const,
-        schema: reviewResultContractSchema(resultSchema),
+        schema: toOutputContractSchema(resultSchema),
       },
       constraints: [
         'Use only the evidence in this brief; do not call inspection, shell, file, network, or diary tools.',

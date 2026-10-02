@@ -9191,71 +9191,6 @@ var OutputContract = _Object_({
 	$id: "OutputContract",
 	additionalProperties: false
 });
-/**
-* Project a TypeBox review-result schema onto the intentionally small JSON
-* Schema subset accepted by freeform output contracts. Local validation keeps
-* constraints such as string patterns that this transport cannot express.
-*/
-function reviewResultContractSchema(schema) {
-	const source = schema;
-	if ("const" in source) {
-		const value = source.const;
-		if (![
-			"string",
-			"number",
-			"boolean"
-		].includes(typeof value)) throw new Error("review result literals must be primitive values");
-		return {
-			type: typeof value,
-			enum: [value]
-		};
-	}
-	if (Array.isArray(source.anyOf)) {
-		const values = source.anyOf.map((member) => member && typeof member === "object" ? member.const : void 0);
-		const kind = typeof values[0];
-		if (values.length === 0 || ![
-			"string",
-			"number",
-			"boolean"
-		].includes(kind) || values.some((value) => value === void 0 || typeof value !== kind)) throw new Error("review result unions must contain literals of one primitive type");
-		return {
-			type: kind,
-			enum: values
-		};
-	}
-	const type = source.type;
-	if (type === "object") {
-		const properties = source.properties;
-		return {
-			type,
-			properties: Object.fromEntries(Object.entries(properties).map(([name, child]) => [name, reviewResultContractSchema(child)])),
-			required: source.required ?? [],
-			additionalProperties: false
-		};
-	}
-	if (type === "array") {
-		const result = {
-			type,
-			items: reviewResultContractSchema(source.items)
-		};
-		for (const key of ["minItems", "maxItems"]) if (source[key] !== void 0) result[key] = source[key];
-		return result;
-	}
-	if (![
-		"string",
-		"number",
-		"integer",
-		"boolean"
-	].includes(type)) throw new Error(`unsupported review result schema type ${String(type)}`);
-	const result = { type };
-	for (const key of [
-		"minLength",
-		"maxLength",
-		"minimum",
-		"maximum"
-	]) if (source[key] !== void 0) result[key] = source[key];
-	return result;
-}
 //#endregion
 //#region ../../libs/tasks/src/task-types/freeform.ts
 var FREEFORM_TYPE = "freeform";
@@ -20119,6 +20054,73 @@ function extractExcerpt(markdown, terms, maxBytes) {
 	return truncateAtLine(`${outline}${(matching.length > 0 ? matching : sections.slice(0, 1)).map(render).join("\n")}`, maxBytes);
 }
 //#endregion
+//#region ../../libs/task-schemas/src/output-contract-schema.ts
+/**
+* Project a TypeBox schema onto the small JSON Schema subset accepted by task
+* output contracts. Callers retain their full schema for local validation of
+* constraints such as string patterns that this transport cannot express.
+*/
+function toOutputContractSchema(schema) {
+	const source = schema;
+	if ("const" in source) {
+		const value = source.const;
+		if (![
+			"string",
+			"number",
+			"boolean"
+		].includes(typeof value)) throw new Error("output contract literals must be primitive values");
+		return {
+			type: typeof value,
+			enum: [value]
+		};
+	}
+	if (Array.isArray(source.anyOf)) {
+		const values = source.anyOf.map((member) => member && typeof member === "object" ? member.const : void 0);
+		const kind = typeof values[0];
+		if (values.length === 0 || ![
+			"string",
+			"number",
+			"boolean"
+		].includes(kind) || values.some((value) => value === void 0 || typeof value !== kind)) throw new Error("output contract unions must contain literals of one primitive type");
+		return {
+			type: kind,
+			enum: values
+		};
+	}
+	const type = source.type;
+	if (type === "object") {
+		const properties = source.properties;
+		return {
+			type,
+			properties: Object.fromEntries(Object.entries(properties).map(([name, child]) => [name, toOutputContractSchema(child)])),
+			required: source.required ?? [],
+			additionalProperties: false
+		};
+	}
+	if (type === "array") {
+		const result = {
+			type,
+			items: toOutputContractSchema(source.items)
+		};
+		for (const key of ["minItems", "maxItems"]) if (source[key] !== void 0) result[key] = source[key];
+		return result;
+	}
+	if (![
+		"string",
+		"number",
+		"integer",
+		"boolean"
+	].includes(type)) throw new Error(`unsupported output contract schema type ${String(type)}`);
+	const result = { type };
+	for (const key of [
+		"minLength",
+		"maxLength",
+		"minimum",
+		"maximum"
+	]) if (source[key] !== void 0) result[key] = source[key];
+	return result;
+}
+//#endregion
 //#region ../../libs/docs-impact-review/src/types.ts
 var CONTRACT_KINDS = [
 	"cli",
@@ -20342,7 +20344,7 @@ function buildExtractTask(ctx, payload) {
 			expectedOutput: "ContractExtraction object in result.",
 			outputContract: {
 				version: 1,
-				schema: reviewResultContractSchema(ContractExtractionSchema)
+				schema: toOutputContractSchema(ContractExtractionSchema)
 			},
 			constraints: ["Do not use tools other than submit_freeform_output.", "Submit promptly; correct a rejected submission within the task budget."]
 		}
@@ -20379,7 +20381,7 @@ function buildCoverageTask(ctx, payload) {
 			expectedOutput: "CoverageCheck object in result.",
 			outputContract: {
 				version: 1,
-				schema: reviewResultContractSchema(CoverageCheckSchema)
+				schema: toOutputContractSchema(CoverageCheckSchema)
 			},
 			constraints: ["At most 4 read-only tool calls before submitting.", "Do not modify, build, install, fetch, or execute project code."]
 		}
@@ -20428,7 +20430,7 @@ function buildDocsCheckTask(ctx, hunks) {
 			expectedOutput: "DocsCheck object in result.",
 			outputContract: {
 				version: 1,
-				schema: reviewResultContractSchema(DocsCheckSchema)
+				schema: toOutputContractSchema(DocsCheckSchema)
 			},
 			constraints: ["Do not use tools other than submit_freeform_output.", "Submit promptly; correct a rejected submission within the task budget."]
 		}

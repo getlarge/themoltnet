@@ -6,6 +6,5 @@ export * from './success-criteria.js';
 export * from './task-artifacts.js';
 export * from './task-type-registry.js';
 export * from './task-types/index.js';
-export * from './task-types/output-contract.js';
 export * from './validation.js';
 export * from './wire.js';
