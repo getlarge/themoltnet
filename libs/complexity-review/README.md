@@ -52,7 +52,7 @@ runtime asset is applied.
 For a read-only local ingestion trial, the command prints the change-map task:
 
 ```bash
-node --import tsx libs/complexity-review/src/main.ts \
+node --import tsx packages/complexity-review-action/src/review.ts \
   --repo getlarge/themoltnet --pr 2545 \
   --base <base-oid> --head <head-oid> --dry-run
 ```

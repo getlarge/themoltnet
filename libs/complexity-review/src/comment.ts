@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs';
-import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import {
@@ -351,14 +350,4 @@ export async function main(): Promise<void> {
     resultPath: values['result-path'],
   });
   process.stdout.write(`${JSON.stringify({ status })}\n`);
-}
-
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-) {
-  main().catch((error: unknown) => {
-    console.error('[fatal]', error instanceof Error ? error.message : error);
-    process.exitCode = 1;
-  });
 }

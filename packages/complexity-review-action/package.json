@@ -14,13 +14,15 @@
   "scripts": {
     "build": "vite build",
     "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@moltnet/complexity-review": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:"
+    "vite": "catalog:",
+    "vitest": "catalog:"
   },
   "engines": {
     "node": ">=22"
