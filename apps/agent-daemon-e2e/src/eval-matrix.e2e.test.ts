@@ -50,7 +50,7 @@ const CORPUS_ROOT = join(import.meta.dirname, '../../..', 'evals-v2');
 const describeMatrix = describe.skipIf(process.env[MATRIX_FLAG] !== '1');
 
 function parseModels(): string[] {
-  return (process.env.MODELS ?? 'gpt-oss:120b-cloud')
+  return (process.env.MODELS ?? 'gpt-oss:120b')
     .split(',')
     .map((m) => m.trim())
     .filter((m) => m.length > 0);
@@ -143,7 +143,7 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
   const producerSandboxRoots = new Map<string, string>();
   const tempRoots: string[] = [];
   const models = parseModels();
-  const judgeModel = process.env.MOLTNET_EVAL_JUDGE_MODEL ?? 'gemma4:31b-cloud';
+  const judgeModel = process.env.MOLTNET_EVAL_JUDGE_MODEL ?? 'gemma4:31b';
   const scenarios = loadScenarios();
 
   beforeAll(async () => {
