@@ -6788,730 +6788,84 @@ function createTaskGrantsNamespace(context) {
 	};
 }
 //#endregion
-//#region ../../libs/tasks/src/rubric.ts
-/**
-* Rubric — structured acceptance criteria used by judgment tasks.
-*
-* Phase 1 (this PR): rubrics are embedded in task inputs. Their integrity
-* is pinned via the task's `input_cid` (which covers the whole input,
-* including the inline rubric). No separate storage, no CRUD.
-*
-* Phase 2 (see #881): rubrics become a first-class resource with their
-* own signed rows and CIDv1 lookup. The schema below is designed to
-* carry forward unchanged — only storage and addressing differ.
-*
-* Until Phase 2 lands, `rubricId` + `version` + `contentHash` are
-* informational fields the author fills in; no uniqueness is enforced.
-* `contentHash` is optional in Phase 1 because the *task*'s input_cid
-* is the authoritative commitment.
-*/
-/**
-* How a judge must score a single criterion.
-*
-* - `llm_score`: 0..1 continuous, `rationale` required. Smooths failures
-*   into the gradient — use `llm_checklist` instead for properties where
-*   a single failure is a real failure (grounding, faithfulness).
-* - `llm_checklist`: judge enumerates per-claim assertions with
-*   `{passed, evidence}`. The criterion's numeric `score` is derived:
-*   `1` iff every assertion passes, else `0`. Per-claim evidence is the
-*   dataset for cluster-analysis of failure modes. See #999.
-* - `boolean`: 0 or 1, `rationale` optional.
-* - `deterministic_signature_check`: judge runs a signature check;
-*   result is 0 or 1. No LLM discretion.
-* - `deterministic_coverage_check`: every referenced source entry
-*   appears in the rendered output; 0 or 1.
-*/
-var RubricScoringMode = Union([
-	Literal("llm_score"),
-	Literal("llm_checklist"),
-	Literal("boolean"),
-	Literal("deterministic_signature_check"),
-	Literal("deterministic_coverage_check")
-], { $id: "RubricScoringMode" });
-/**
-* One binary check produced by an `llm_checklist`-mode criterion.
-*
-* `evidence` is REQUIRED for both PASS and FAIL — agentskills.io grading
-* principle: \"Don't give the benefit of the doubt.\" A PASS without
-* concrete evidence (a quoted span, an entry id, a source location)
-* cannot be audited. A FAIL without evidence cannot be clustered into
-* structural fixes. The same shape is reused by `judge-eval-variant`
-* (#943) so tooling, dashboards, and analysis stay uniform.
-*/
-var AssertionResult = _Object_({
-	/** Stable id within a criterion, suitable for trend analysis across runs. */
-	id: String$1({ minLength: 1 }),
-	/** The assertion as authored or as enumerated by the judge. */
-	text: String$1({ minLength: 1 }),
-	passed: Boolean$1(),
-	/**
-	* Concrete reason — for PASS, point at the quoted span or source entry
-	* that satisfies the assertion; for FAIL, quote the offending claim or
-	* cite what is missing. Free-form prose intentionally; structured
-	* fields belong on the criterion `evidence` record.
-	*/
-	evidence: String$1({ minLength: 1 })
-}, {
-	$id: "AssertionResult",
-	additionalProperties: false
-});
-var RubricCriterion = _Object_({
-	/** Stable within a rubric (e.g. 'coverage'). Used as the score key. */
-	id: String$1({ minLength: 1 }),
-	description: String$1({ minLength: 1 }),
-	/** 0..1 inclusive. Weights across criteria should sum to 1 (checked client-side). */
-	weight: Number$1({
-		minimum: 0,
-		maximum: 1
-	}),
-	scoring: RubricScoringMode
-}, {
-	$id: "RubricCriterion",
-	additionalProperties: false
-});
-/**
-* A complete rubric. Same shape used in Phase 1 (inline) and Phase 2
-* (stored row `body`); only the addressing mechanism differs.
-*/
-var Rubric = _Object_({
-	/** Namespace within an author — e.g. 'pack-fidelity'. */
-	rubricId: String$1({ minLength: 1 }),
-	/** Monotonic version per `rubricId`. Prose like 'v1'. */
-	version: String$1({ minLength: 1 }),
-	/** Free-text preamble prepended to the judge's prompt. Kept short. */
-	preamble: Optional(String$1()),
-	/** Non-empty list of criteria. */
-	criteria: _Array_(RubricCriterion, { minItems: 1 }),
-	/**
-	* Applicability hint — e.g. 'packs', 'commits', 'briefs'.
-	* Purely documentary in Phase 1; used as a filter index in Phase 2.
-	*/
-	scope: Optional(String$1()),
-	/**
-	* Phase-2 artefact: CIDv1 of the canonical rubric body. Optional in
-	* Phase 1; when Phase 2 lands the server computes & enforces it.
-	*/
-	contentHash: Optional(String$1())
-}, {
-	$id: "Rubric",
-	additionalProperties: false
-});
-/**
-* Verify rubric criteria weights sum to 1.0 within floating-point tolerance.
-* The schema constrains each weight to [0,1] but can't express a cross-field
-* sum constraint, so this is enforced programmatically by callers that
-* accept rubrics (task input validators, server-side task creation).
-*
-* Returns null when valid; otherwise an error message suitable for surfacing
-* to the caller. Tolerance is 1e-6 to accommodate JSON round-tripping of
-* decimal fractions (e.g. 0.1 + 0.2 + 0.3 + 0.4 ≠ 1.0 exactly).
-*/
-function validateRubricWeights(rubric) {
-	const sum = rubric.criteria.reduce((acc, c) => acc + c.weight, 0);
-	if (Math.abs(sum - 1) > 1e-6) return `Rubric weights must sum to 1.0 (got ${sum.toFixed(6)})`;
-	return null;
+//#region ../../libs/tasks/src/output-contract-schema.ts
+function isObject(value) {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-//#endregion
-//#region ../../libs/tasks/src/success-criteria.ts
-/**
-* SuccessCriteria — proposer-stated acceptance criteria, evaluated in two
-* complementary places.
-*
-* Before this envelope existed, criteria were scattered: a vestigial
-* `criteriaCid` column nobody resolved, free-form prose on
-* `fulfill_brief.input`, and inline `rubric` / `criteria[]` fields on
-* judgment-task inputs. None of those were machine-verifiable
-* end-to-end.
-*
-* This module defines a single, content-addressable envelope a proposer
-* attaches to any task type. It has four orthogonal sections — pick
-* whichever apply per task type:
-*
-*   - `gates`        Promise-level structural/process checks
-*   - `assertions`   Declarative claims about output JSON
-*   - `rubric`       Weighted-criteria scoring instrument, reused
-*                    verbatim from `./rubric.ts`.
-*   - `sideEffects`  Required process side-effects (e.g. diary entry)
-*
-* ## Two roles, two task types
-*
-* **Producer self-assessment** (fulfillment tasks: `fulfill_brief`,
-* `curate_pack`, `render_pack`). The producer **LLM** evaluates the
-* criteria against its own output and emits a `VerificationRecord`
-* inside `output.verification`. The daemon is pure passthrough — it
-* does not run `evaluateAssertions`, does not inspect the verification
-* record. The REST API is dumb storage; it never re-runs assertions and
-* never runs LLMs. The cross-field rule
-* `requireVerificationWhenCriteriaPresent` enforces "verification
-* required iff successCriteria present" at task-output validation time
-* (server-side schema check). Self-assessment is a truthful self-rating,
-* NOT enforcement — `verification.passed=false` does not block /complete
-* and does not affect `acceptedAttemptN`. See
-* `docs/use/tasks-and-runtime.md` for the full producer/judge flow.
-*
-* **Binding evaluation** (judgment tasks: `assess_brief`, `judge_pack`).
-* A separate task whose IS the application of `successCriteria` to
-* someone else's output. Different agent (enforced at claim time), same
-* envelope. The judge's verdict is binding: this is the *gate* in the
-* MoltNet model. The rubric inside `successCriteria.rubric` IS the job
-* spec for the judge.
-*
-* The clean chain: producer task with `successCriteria` → producer
-* self-assesses honestly → proposer (or automation) creates a downstream
-* judgment task that references the same `successCriteria` (or a
-* stricter rubric) → judgment task delivers the binding verdict.
-*
-* Storage: SuccessCriteria lives inline at `task.input.successCriteria`,
-* pinned via the task's `inputCid`. No separate column or hash. When
-* #881 lands, the `rubric` field can graduate to `{ rubricCid }` lookup
-* without changing this envelope, and producer + judge tasks can pin
-* the SAME rubric across the chain for end-to-end auditability.
-*/
-var SchemaCheckSpec = _Object_({ 
-/**
-* CIDv1 of a stored TypeBox/JSON-schema document the producer LLM
-* resolves and runs `Value.Check` against its own output as part of
-* self-assessment.
-*/
-schemaCid: String$1({ minLength: 1 }) }, { additionalProperties: false });
-var CidEqualsSpec = _Object_({
-	/**
-	* Dotted path inside the verification context. `outputCid` is the
-	* common case (assert the attempt produced exactly this content).
-	*/
-	path: String$1({ minLength: 1 }),
-	expected: String$1({ minLength: 1 })
-}, { additionalProperties: false });
-var Gate = Union([
-	_Object_({
-		id: String$1({ minLength: 1 }),
-		kind: Literal("submit-tool-call"),
-		/**
-		* Human-readable contract text shown to the producer when it fetches
-		* `input.successCriteria`. This is a promise-level gate rather than a
-		* transport-level runtime hint.
-		*/
-		description: String$1({ minLength: 1 }),
-		required: Boolean$1()
-	}, { additionalProperties: false }),
-	_Object_({
-		id: String$1({ minLength: 1 }),
-		kind: Literal("schema-check"),
-		spec: SchemaCheckSpec,
-		required: Boolean$1()
-	}, { additionalProperties: false }),
-	_Object_({
-		id: String$1({ minLength: 1 }),
-		kind: Literal("cid-equals"),
-		spec: CidEqualsSpec,
-		required: Boolean$1()
-	}, { additionalProperties: false })
-], { $id: "Gate" });
-var AssertionOp = Union([
-	Literal("exists"),
-	Literal("equals"),
-	Literal("matches"),
-	Literal("in-range"),
-	Literal("min-length")
-], { $id: "AssertionOp" });
-var Assertion = _Object_({
-	id: String$1({ minLength: 1 }),
-	/** Dotted path; `*` expands over arrays. e.g. `commits.*.sha`. */
-	path: String$1({ minLength: 1 }),
-	op: AssertionOp,
-	/**
-	* Op-dependent literal. `exists` ignores it; `equals` compares with
-	* strict equality; `matches` is a regex source string (no flags);
-	* `in-range` is `[min, max]` inclusive; `min-length` is the minimum
-	* length for arrays or strings.
-	*/
-	value: Optional(Unknown())
-}, {
-	$id: "Assertion",
-	additionalProperties: false
-});
-var SideEffectsSpec = _Object_({
-	/** Executor must create at least one diary entry before completion. */
-	diaryEntryRequired: Optional(Boolean$1()),
-	/** Required tags on the diary entry (each must be present). */
-	diaryEntryTags: Optional(_Array_(String$1({ minLength: 1 }))),
-	/**
-	* Minimum number of source-entry references the output must cite.
-	* Per-task-type interpretation: e.g. `curate_pack` checks
-	* `output.entryRefs.length`; `fulfill_brief` checks `diaryEntryIds`.
-	*/
-	referencedEntries: Optional(Integer({ minimum: 0 }))
-}, {
-	$id: "SideEffectsSpec",
-	additionalProperties: false
-});
-var SuccessCriteria = _Object_({
-	/** Schema version. Bump on breaking changes. */
-	version: Literal(1),
-	gates: Optional(_Array_(Gate)),
-	assertions: Optional(_Array_(Assertion)),
-	rubric: Optional(Rubric),
-	/**
-	* Composite-score threshold. Only meaningful with `rubric`. Soft
-	* failure: an attempt with composite below this completes with
-	* `verification.passed=false` rather than failing outright.
-	*/
-	minComposite: Optional(Number$1({
-		minimum: 0,
-		maximum: 1
-	})),
-	sideEffects: Optional(SideEffectsSpec)
-}, {
-	$id: "SuccessCriteria",
-	additionalProperties: false
-});
-var VerificationResultStatus = Union([
-	Literal("pass"),
-	Literal("fail"),
-	Literal("skip")
-], { $id: "VerificationResultStatus" });
-var VerificationResultKind = Union([
-	Literal("gate"),
-	Literal("assertion"),
-	Literal("rubric"),
-	Literal("sideEffect")
-], { $id: "VerificationResultKind" });
-var VerificationResult = _Object_({
-	id: String$1({ minLength: 1 }),
-	kind: VerificationResultKind,
-	status: VerificationResultStatus,
-	detail: Optional(String$1())
-}, {
-	$id: "VerificationResult",
-	additionalProperties: false
-});
-var VerificationRecord = _Object_({
-	/**
-	* `inputCid` of the task this self-assessment was evaluated against.
-	* Pins the record to a specific input version so audit can confirm
-	* "this self-assessment was produced against this exact criteria
-	* document" (e.g. when comparing against a later judgment task that
-	* applied the same criteria).
-	*/
-	inputCid: String$1({ minLength: 1 }),
-	results: _Array_(VerificationResult),
-	/**
-	* True iff every result either passed or was skipped (no fail).
-	* Advisory only — does NOT gate /complete or affect
-	* `acceptedAttemptN`. Binding evaluation is the judge's role.
-	*/
-	passed: Boolean$1({ description: "True iff every verification result has status \"pass\" or \"skip\"; false when any result has status \"fail\"." })
-}, {
-	$id: "VerificationRecord",
-	additionalProperties: false
-});
-_Object_({
-	artifacts: _Array_(_Object_({
-		id: String$1({ format: "uuid" }),
-		teamId: String$1({ format: "uuid" }),
-		taskId: String$1({ format: "uuid" }),
-		attemptN: Union([Integer({ minimum: 1 }), Null()]),
-		kind: String$1({
-			minLength: 1,
-			maxLength: 100
-		}),
-		title: String$1({
-			minLength: 1,
-			maxLength: 255
-		}),
-		contentType: String$1({
-			minLength: 1,
-			maxLength: 200
-		}),
-		contentEncoding: Union([String$1({
-			minLength: 1,
-			maxLength: 100
-		}), Null()]),
-		sizeBytes: Integer({ minimum: 0 }),
-		cid: String$1({
-			minLength: 1,
-			maxLength: 100
-		}),
-		createdByAgentId: Union([String$1({ format: "uuid" }), Null()]),
-		expiresAt: Union([String$1({ format: "date-time" }), Null()]),
-		createdAt: String$1({ format: "date-time" })
-	}, { $id: "TaskArtifact" })),
-	nextCursor: Union([String$1({ minLength: 1 }), Null()])
-}, { $id: "TaskArtifactList" });
-_Object_({
-	limit: Optional(Integer({
-		minimum: 1,
-		maximum: 100
-	})),
-	cursor: Optional(String$1({ minLength: 1 }))
-}, {
-	$id: "ListTaskArtifactsQuery",
-	additionalProperties: false
-});
-var HeaderSafeContentType = String$1({
-	minLength: 1,
-	maxLength: 200,
-	pattern: "^[\\x21-\\x7e][\\x20-\\x7e]*$"
-});
-var HeaderSafeContentEncoding = String$1({
-	minLength: 1,
-	maxLength: 100,
-	pattern: "^[\\x21-\\x7e][\\x20-\\x7e]*$"
-});
-_Object_({
-	kind: String$1({
-		minLength: 1,
-		maxLength: 100
-	}),
-	title: String$1({
-		minLength: 1,
-		maxLength: 255
-	}),
-	contentType: Optional(HeaderSafeContentType),
-	contentEncoding: Optional(HeaderSafeContentEncoding)
-}, {
-	$id: "UploadTaskArtifactQuery",
-	additionalProperties: false
-});
-String$1({
-	$id: "TaskArtifactContent",
-	description: "Task artifact content stream.",
-	format: "binary"
-});
-_Object_({ taskId: String$1({ format: "uuid" }) }, {
-	$id: "TaskArtifactTaskParams",
-	additionalProperties: false
-});
-_Object_({
-	taskId: String$1({ format: "uuid" }),
-	attemptN: Integer({ minimum: 1 })
-}, {
-	$id: "TaskArtifactAttemptParams",
-	additionalProperties: false
-});
-_Object_({
-	taskId: String$1({ format: "uuid" }),
-	attemptN: Integer({ minimum: 1 }),
-	cid: String$1({
-		minLength: 1,
-		maxLength: 100
-	})
-}, {
-	$id: "TaskArtifactContentParams",
-	additionalProperties: false
-});
-_Object_({
-	contentType: Optional(HeaderSafeContentType),
-	contentEncoding: Optional(HeaderSafeContentEncoding)
-}, {
-	$id: "StageTaskArtifactQuery",
-	additionalProperties: false
-});
-_Object_({
-	cid: String$1({
-		minLength: 1,
-		maxLength: 100
-	}),
-	sizeBytes: Integer({ minimum: 0 }),
-	contentType: String$1({
-		minLength: 1,
-		maxLength: 200
-	})
-}, { $id: "StagedTaskArtifact" });
-_Object_({
-	taskId: String$1({ format: "uuid" }),
-	cid: String$1({
-		minLength: 1,
-		maxLength: 100
-	})
-}, {
-	$id: "TaskArtifactTaskContentParams",
-	additionalProperties: false
-});
-new TextEncoder();
-new TextDecoder();
-//#endregion
-//#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/hasher.js
-var DEFAULT_MIN_DIGEST_LENGTH = 20;
-function from({ name, code, encode, minDigestLength, maxDigestLength }) {
-	return new Hasher(name, code, encode, minDigestLength, maxDigestLength);
-}
-/**
-* Hasher represents a hashing algorithm implementation that produces as
-* `MultihashDigest`.
-*/
-var Hasher = class {
-	name;
-	code;
-	encode;
-	minDigestLength;
-	maxDigestLength;
-	constructor(name, code, encode, minDigestLength, maxDigestLength) {
-		this.name = name;
-		this.code = code;
-		this.encode = encode;
-		this.minDigestLength = minDigestLength ?? DEFAULT_MIN_DIGEST_LENGTH;
-		this.maxDigestLength = maxDigestLength;
+/** Reject unsupported or oversized task-supplied schemas before execution. */
+function validateOutputContractSchema(schema) {
+	if (!isObject(schema) || schema.type !== "object") return "outputContract.schema must be a JSON Schema object with type \"object\"";
+	let encoded;
+	try {
+		encoded = JSON.stringify(schema);
+	} catch {
+		return "outputContract.schema must be JSON serializable";
 	}
-	digest(input, options) {
-		if (options?.truncate != null) {
-			if (options.truncate < this.minDigestLength) throw new Error(`Invalid truncate option, must be greater than or equal to ${this.minDigestLength}`);
-			if (this.maxDigestLength != null && options.truncate > this.maxDigestLength) throw new Error(`Invalid truncate option, must be less than or equal to ${this.maxDigestLength}`);
+	if (encoded.length > 16384) return "outputContract.schema must be at most 16 KiB";
+	let nodes = 0;
+	const visit = (node, path, depth) => {
+		if (!isObject(node) || depth > 10 || ++nodes > 200) return `${path} must be a schema object within the depth and size limits`;
+		const type = node.type;
+		if (![
+			"object",
+			"array",
+			"string",
+			"number",
+			"integer",
+			"boolean"
+		].includes(type)) return `${path}.type must be object, array, string, number, integer, or boolean`;
+		const common = [
+			"type",
+			"description",
+			"title",
+			"enum"
+		];
+		const specific = type === "object" ? [
+			"properties",
+			"required",
+			"additionalProperties"
+		] : type === "array" ? [
+			"items",
+			"minItems",
+			"maxItems"
+		] : type === "string" ? ["minLength", "maxLength"] : type === "number" || type === "integer" ? ["minimum", "maximum"] : [];
+		const unknownKey = Object.keys(node).find((key) => !common.includes(key) && !specific.includes(key));
+		if (unknownKey) return `${path}.${unknownKey} is not supported`;
+		if (node.description !== void 0 && typeof node.description !== "string") return `${path}.description must be a string`;
+		if (node.title !== void 0 && typeof node.title !== "string") return `${path}.title must be a string`;
+		if (node.enum !== void 0 && (type === "object" || type === "array" || !Array.isArray(node.enum) || node.enum.length === 0 || node.enum.some((value) => type === "integer" ? !Number.isInteger(value) : typeof value !== type))) return `${path}.enum must contain values of the declared primitive type`;
+		if (type === "object") {
+			if (!isObject(node.properties) || node.additionalProperties !== false) return `${path} needs properties and additionalProperties: false`;
+			const keys = Object.keys(node.properties);
+			if (keys.length > 50 || keys.some((key) => [
+				"__proto__",
+				"prototype",
+				"constructor"
+			].includes(key))) return `${path}.properties has too many or reserved keys`;
+			if (!Array.isArray(node.required) || node.required.some((key) => typeof key !== "string" || !keys.includes(key)) || new Set(node.required).size !== node.required.length) return `${path}.required must list unique declared properties`;
+			for (const key of keys) {
+				const error = visit(node.properties[key], `${path}.properties.${key}`, depth + 1);
+				if (error) return error;
+			}
+		} else if (type === "array") {
+			if (!isObject(node.items)) return `${path}.items must be a schema object`;
+			for (const key of ["minItems", "maxItems"]) if (node[key] !== void 0 && (!Number.isInteger(node[key]) || node[key] < 0 || node[key] > 100)) return `${path}.${key} must be an integer between 0 and 100`;
+			if (typeof node.minItems === "number" && typeof node.maxItems === "number" && node.minItems > node.maxItems) return `${path}.minItems must not exceed maxItems`;
+			return visit(node.items, `${path}.items`, depth + 1);
+		} else {
+			const bounds = type === "string" ? ["minLength", "maxLength"] : ["minimum", "maximum"];
+			for (const key of bounds) if (node[key] !== void 0 && (typeof node[key] !== "number" || !Number.isFinite(node[key]) || type === "string" && (!Number.isInteger(node[key]) || node[key] < 0))) return `${path}.${key} must be a valid number`;
+			const [minKey, maxKey] = bounds;
+			if (typeof node[minKey] === "number" && typeof node[maxKey] === "number" && node[minKey] > node[maxKey]) return `${path}.${minKey} must not exceed ${maxKey}`;
 		}
-		if (input instanceof Uint8Array) {
-			const result = this.encode(input);
-			if (result instanceof Uint8Array) return createDigest(result, this.code, options?.truncate);
-			return result.then((digest) => createDigest(digest, this.code, options?.truncate));
-		} else throw Error("Unknown type, must be binary type");
-	}
-};
-/**
-* Create a Digest from the passed uint8array and code, optionally truncating it
-* first.
-*/
-function createDigest(digest, code, truncate) {
-	if (truncate != null && truncate !== digest.byteLength) {
-		if (truncate > digest.byteLength) throw new Error(`Invalid truncate option, must be less than or equal to ${digest.byteLength}`);
-		digest = digest.subarray(0, truncate);
-	}
-	return create(code, digest);
+		return null;
+	};
+	return visit(schema, "outputContract.schema", 0);
 }
-from({
-	name: "sha2-256",
-	code: 18,
-	encode: (input) => coerce(crypto$1.createHash("sha256").update(input).digest())
-});
-from({
-	name: "sha2-512",
-	code: 19,
-	encode: (input) => coerce(crypto$1.createHash("sha512").update(input).digest())
-});
-//#endregion
-//#region ../../libs/tasks/src/task-types/assess-brief.ts
-/**
-* `assess_brief` — independently evaluate a fulfilled brief.
-*
-* output_kind: judgment
-* criteria: required (`successCriteria.rubric` — same envelope as
-*   `judge_pack`)
-* references: required (must reference the target `fulfill_brief` task)
-*
-* The assessor is a different agent from the producer (enforced by the
-* server / runtime at claim time — not in the wire schema).
-*
-* The rubric in `successCriteria` IS the job spec — the assessor applies
-* it to the target task's output and emits per-criterion scores. Other
-* sections (`assertions`, `gates`, `sideEffects`) MAY be present and are
-* evaluated against the *assessor's output*.
-*/
-var ASSESS_BRIEF_TYPE = "assess_brief";
-var AssessBriefInput = _Object_({
-	/**
-	* Task id of the `fulfill_brief` being judged. Also must appear in
-	* the Task's `references[]` with role='judged_work'.
-	*/
-	targetTaskId: String$1({ format: "uuid" }),
-	/**
-	* Required SuccessCriteria envelope. Must contain a `rubric` — that
-	* rubric IS the assessment job spec.
-	*/
-	successCriteria: SuccessCriteria
-}, {
-	$id: "AssessBriefInput",
-	additionalProperties: false
-});
-var AssessBriefOutput = _Object_({
-	/**
-	* Per-criterion scores, same order/length as
-	* `input.successCriteria.rubric.criteria`.
-	*/
-	scores: _Array_(_Object_({
-		criterionId: String$1({ minLength: 1 }),
-		score: Number$1({
-			minimum: 0,
-			maximum: 1
-		}),
-		/** Required for `llm_score`; optional for `boolean`/`deterministic_*`. */
-		rationale: Optional(String$1()),
-		/** Present only for `deterministic_signature_check`. */
-		evidence: Optional(_Object_({
-			commitsVerified: Number$1(),
-			commitsTotal: Number$1(),
-			signatureFailures: _Array_(String$1())
-		}, { additionalProperties: false }))
-	}, {
-		$id: "AssessBriefScore",
-		additionalProperties: false
-	}), { minItems: 1 }),
-	/** Σ(weight_i * score_i). Recomputed by the assessor and checked client-side. */
-	composite: Number$1({
-		minimum: 0,
-		maximum: 1
-	}),
-	/** 1–3 sentence overall verdict. */
-	verdict: String$1({ minLength: 1 }),
-	/** Model identifier used for `llm_score` criteria, for auditability. */
-	judgeModel: Optional(String$1())
-}, {
-	$id: "AssessBriefOutput",
-	additionalProperties: false
-});
-/**
-* Async preflight (#1096):
-*   - `targetTaskId` resolves to a real task the caller can see.
-*   - The target is a `fulfill_brief` (you cannot grade an arbitrary
-*     task type as if it were a brief fulfillment).
-*   - Unless readiness checks are explicitly deferred, the target is
-*     `completed` with an accepted attempt — grading an in-flight or
-*     failed task would either race or grade nothing.
-*
-* Agent-distinctness ("assessor ≠ producer") is a runtime / auth-
-* layer concern and intentionally NOT checked here. It belongs in
-* an auth-aware claim-time check.
-*/
-async function validateAssessBriefInputAsync(input, ctx) {
-	const { targetTaskId } = input;
-	const errors = [];
-	const target = await ctx.resolveTask(targetTaskId);
-	if (!target) {
-		errors.push({
-			field: "targetTaskId",
-			message: `targetTaskId ${targetTaskId} does not resolve to a task you can read`
-		});
-		return errors;
-	}
-	if (target.taskType !== "fulfill_brief") errors.push({
-		field: "targetTaskId",
-		message: `targetTaskId ${targetTaskId} is a ${target.taskType}, not a fulfill_brief`
-	});
-	if (!ctx.deferReadinessChecks && (target.status !== "completed" || target.acceptedAttemptN === null)) errors.push({
-		field: "targetTaskId",
-		message: `targetTaskId ${targetTaskId} is not completed with an accepted attempt (status=${target.status}, acceptedAttemptN=${target.acceptedAttemptN})`
-	});
-	return errors;
+function outputContractResultSchema(input) {
+	if (!isObject(input) || !isObject(input.outputContract) || input.outputContract.version !== 1 || validateOutputContractSchema(input.outputContract.schema)) return null;
+	return Unsafe(input.outputContract.schema);
 }
-//#endregion
-//#region ../../libs/tasks/src/task-types/curate-pack.ts
-/**
-* `curate_pack` — select and rank diary entries into a context pack.
-*
-* output_kind: artifact
-* criteria: not required (rubric-less curation recipe)
-* references: optional (e.g. a prior rendered pack being re-curated)
-*
-* This is step 1 of the three-session attribution loop (#875). The agent
-* runs a structured exploration over a diary — tag inventory, hybrid
-* search, type/tag narrowing — and emits a ranked entry list via
-* `moltnet_pack_create`. The prompt is deterministic given the input
-* (no operator interaction), so two runs with the same input should
-* converge on similar packs.
-*
-* Related: `render_pack`, `judge_pack`.
-*/
-var CURATE_PACK_TYPE = "curate_pack";
-var EntryTypeFilter = Union([
-	Literal("episodic"),
-	Literal("semantic"),
-	Literal("procedural"),
-	Literal("reflection")
-]);
-var CuratePackInput = _Object_({
-	/** The diary to curate from. Usually the agent's session diary. */
-	diaryId: String$1({ format: "uuid" }),
-	/**
-	* Free-text prompt describing the desired pack. Seeds hybrid search
-	* and feeds the model's ranking reasoning. e.g.
-	* "incidents and workarounds related to CI pipelines".
-	*/
-	taskPrompt: String$1({ minLength: 1 }),
-	/**
-	* Restrict search to these entry types. When omitted, the curator
-	* agent picks per-search from the full taxonomy
-	* (`semantic` / `episodic` / `procedural`) based on what the prompt
-	* asks for — e.g. "failures and workarounds" should not return
-	* `procedural` entries (commit audit trails). Setting this field
-	* pins the search to the listed types and the curator may not
-	* widen.
-	*/
-	entryTypes: Optional(_Array_(EntryTypeFilter, { minItems: 1 })),
-	/**
-	* Tag filters applied after candidate discovery.
-	*  - `include`: candidate entries must carry ALL listed tags.
-	*  - `exclude`: drop entries carrying ANY listed tag.
-	*  - `prefix`: when listing tags via `moltnet_diary_tags`, narrow to
-	*    tags starting with this prefix (e.g. 'scope:').
-	*/
-	tagFilters: Optional(_Object_({
-		include: Optional(_Array_(String$1())),
-		exclude: Optional(_Array_(String$1())),
-		prefix: Optional(String$1())
-	}, { additionalProperties: false })),
-	/**
-	* Soft token budget passed through to `packs_create`. Acts as a
-	* constraint, not a target — the curator picks entry count such that
-	* the resulting pack fits under this budget.
-	*/
-	tokenBudget: Optional(Number$1({ minimum: 500 })),
-	/**
-	* Curation recipe identifier. Recorded on the pack's `params` for
-	* provenance. The runtime picks a prompt variant by recipe; unknown
-	* recipes fall back to the default.
-	*/
-	recipe: Optional(Union([Literal("topic-focused-v1"), Literal("scope-inventory-v1")])),
-	/**
-	* Proposer-stated, machine-verifiable success criteria. See
-	* `SuccessCriteria`. Pinned via `inputCid`. Optional.
-	*/
-	successCriteria: Optional(SuccessCriteria)
-}, {
-	$id: "CuratePackInput",
-	additionalProperties: false
-});
-/**
-* Index of the curated pack plus the reasoning trace. The pack itself
-* lives in the database (created via `moltnet_pack_create`); this output
-* is the receipt.
-*/
-var CuratePackOutput = _Object_({
-	/** UUID of the created pack row. */
-	packId: String$1({ format: "uuid" }),
-	/** CIDv1 of the pack's canonical content, as returned by the server. */
-	packCid: String$1({ minLength: 1 }),
-	/** Ordered entry selection (lowest rank = most prominent). */
-	entries: _Array_(_Object_({
-		entryId: String$1({ format: "uuid" }),
-		rank: Number$1({ minimum: 1 }),
-		/** Short phrase explaining why this entry earned its rank. */
-		rationale: String$1({ minLength: 1 })
-	}, { additionalProperties: false }), { minItems: 1 }),
-	/** Free-form recipe metadata mirrored onto the pack's `params`. */
-	recipeParams: Record(String$1(), Unknown()),
-	/**
-	* Intermediate exploration snapshots the curator chose to emit.
-	* Populated when the task runs a multi-phase exploration — each
-	* checkpoint compresses the state the curator carries into the next
-	* phase, so a follow-up session can resume from it without replaying
-	* the full tool-call history. Always safe to leave empty for small
-	* packs.
-	*/
-	checkpoints: Optional(_Array_(_Object_({
-		phase: String$1({ minLength: 1 }),
-		candidateIds: _Array_(String$1({ format: "uuid" })),
-		droppedIds: Optional(_Array_(String$1({ format: "uuid" }))),
-		notes: String$1({ minLength: 1 })
-	}, { additionalProperties: false }))),
-	/** 2–4 sentence narrative of the curation reasoning. */
-	summary: String$1({ minLength: 1 }),
-	/**
-	* Producer self-assessment against `input.successCriteria`. REQUIRED
-	* when `input.successCriteria` is set; MUST be omitted otherwise.
-	* See `SuccessCriteria` for the producer/judge model.
-	*/
-	verification: Optional(VerificationRecord)
-}, {
-	$id: "CuratePackOutput",
-	additionalProperties: false
-});
 //#endregion
 //#region ../../libs/runtime-profiles/src/context.ts
 /**
@@ -9182,6 +8536,324 @@ _Object_({
 	additionalProperties: false
 });
 //#endregion
+//#region ../../libs/tasks/src/rubric.ts
+/**
+* Rubric — structured acceptance criteria used by judgment tasks.
+*
+* Phase 1 (this PR): rubrics are embedded in task inputs. Their integrity
+* is pinned via the task's `input_cid` (which covers the whole input,
+* including the inline rubric). No separate storage, no CRUD.
+*
+* Phase 2 (see #881): rubrics become a first-class resource with their
+* own signed rows and CIDv1 lookup. The schema below is designed to
+* carry forward unchanged — only storage and addressing differ.
+*
+* Until Phase 2 lands, `rubricId` + `version` + `contentHash` are
+* informational fields the author fills in; no uniqueness is enforced.
+* `contentHash` is optional in Phase 1 because the *task*'s input_cid
+* is the authoritative commitment.
+*/
+/**
+* How a judge must score a single criterion.
+*
+* - `llm_score`: 0..1 continuous, `rationale` required. Smooths failures
+*   into the gradient — use `llm_checklist` instead for properties where
+*   a single failure is a real failure (grounding, faithfulness).
+* - `llm_checklist`: judge enumerates per-claim assertions with
+*   `{passed, evidence}`. The criterion's numeric `score` is derived:
+*   `1` iff every assertion passes, else `0`. Per-claim evidence is the
+*   dataset for cluster-analysis of failure modes. See #999.
+* - `boolean`: 0 or 1, `rationale` optional.
+* - `deterministic_signature_check`: judge runs a signature check;
+*   result is 0 or 1. No LLM discretion.
+* - `deterministic_coverage_check`: every referenced source entry
+*   appears in the rendered output; 0 or 1.
+*/
+var RubricScoringMode = Union([
+	Literal("llm_score"),
+	Literal("llm_checklist"),
+	Literal("boolean"),
+	Literal("deterministic_signature_check"),
+	Literal("deterministic_coverage_check")
+], { $id: "RubricScoringMode" });
+/**
+* One binary check produced by an `llm_checklist`-mode criterion.
+*
+* `evidence` is REQUIRED for both PASS and FAIL — agentskills.io grading
+* principle: \"Don't give the benefit of the doubt.\" A PASS without
+* concrete evidence (a quoted span, an entry id, a source location)
+* cannot be audited. A FAIL without evidence cannot be clustered into
+* structural fixes. The same shape is reused by `judge-eval-variant`
+* (#943) so tooling, dashboards, and analysis stay uniform.
+*/
+var AssertionResult = _Object_({
+	/** Stable id within a criterion, suitable for trend analysis across runs. */
+	id: String$1({ minLength: 1 }),
+	/** The assertion as authored or as enumerated by the judge. */
+	text: String$1({ minLength: 1 }),
+	passed: Boolean$1(),
+	/**
+	* Concrete reason — for PASS, point at the quoted span or source entry
+	* that satisfies the assertion; for FAIL, quote the offending claim or
+	* cite what is missing. Free-form prose intentionally; structured
+	* fields belong on the criterion `evidence` record.
+	*/
+	evidence: String$1({ minLength: 1 })
+}, {
+	$id: "AssertionResult",
+	additionalProperties: false
+});
+var RubricCriterion = _Object_({
+	/** Stable within a rubric (e.g. 'coverage'). Used as the score key. */
+	id: String$1({ minLength: 1 }),
+	description: String$1({ minLength: 1 }),
+	/** 0..1 inclusive. Weights across criteria should sum to 1 (checked client-side). */
+	weight: Number$1({
+		minimum: 0,
+		maximum: 1
+	}),
+	scoring: RubricScoringMode
+}, {
+	$id: "RubricCriterion",
+	additionalProperties: false
+});
+/**
+* A complete rubric. Same shape used in Phase 1 (inline) and Phase 2
+* (stored row `body`); only the addressing mechanism differs.
+*/
+var Rubric = _Object_({
+	/** Namespace within an author — e.g. 'pack-fidelity'. */
+	rubricId: String$1({ minLength: 1 }),
+	/** Monotonic version per `rubricId`. Prose like 'v1'. */
+	version: String$1({ minLength: 1 }),
+	/** Free-text preamble prepended to the judge's prompt. Kept short. */
+	preamble: Optional(String$1()),
+	/** Non-empty list of criteria. */
+	criteria: _Array_(RubricCriterion, { minItems: 1 }),
+	/**
+	* Applicability hint — e.g. 'packs', 'commits', 'briefs'.
+	* Purely documentary in Phase 1; used as a filter index in Phase 2.
+	*/
+	scope: Optional(String$1()),
+	/**
+	* Phase-2 artefact: CIDv1 of the canonical rubric body. Optional in
+	* Phase 1; when Phase 2 lands the server computes & enforces it.
+	*/
+	contentHash: Optional(String$1())
+}, {
+	$id: "Rubric",
+	additionalProperties: false
+});
+/**
+* Verify rubric criteria weights sum to 1.0 within floating-point tolerance.
+* The schema constrains each weight to [0,1] but can't express a cross-field
+* sum constraint, so this is enforced programmatically by callers that
+* accept rubrics (task input validators, server-side task creation).
+*
+* Returns null when valid; otherwise an error message suitable for surfacing
+* to the caller. Tolerance is 1e-6 to accommodate JSON round-tripping of
+* decimal fractions (e.g. 0.1 + 0.2 + 0.3 + 0.4 ≠ 1.0 exactly).
+*/
+function validateRubricWeights(rubric) {
+	const sum = rubric.criteria.reduce((acc, c) => acc + c.weight, 0);
+	if (Math.abs(sum - 1) > 1e-6) return `Rubric weights must sum to 1.0 (got ${sum.toFixed(6)})`;
+	return null;
+}
+//#endregion
+//#region ../../libs/tasks/src/success-criteria.ts
+/**
+* SuccessCriteria — proposer-stated acceptance criteria, evaluated in two
+* complementary places.
+*
+* Before this envelope existed, criteria were scattered: a vestigial
+* `criteriaCid` column nobody resolved, free-form prose on
+* `fulfill_brief.input`, and inline `rubric` / `criteria[]` fields on
+* judgment-task inputs. None of those were machine-verifiable
+* end-to-end.
+*
+* This module defines a single, content-addressable envelope a proposer
+* attaches to any task type. It has four orthogonal sections — pick
+* whichever apply per task type:
+*
+*   - `gates`        Promise-level structural/process checks
+*   - `assertions`   Declarative claims about output JSON
+*   - `rubric`       Weighted-criteria scoring instrument, reused
+*                    verbatim from `./rubric.ts`.
+*   - `sideEffects`  Required process side-effects (e.g. diary entry)
+*
+* ## Two roles, two task types
+*
+* **Producer self-assessment** (fulfillment tasks: `fulfill_brief`,
+* `curate_pack`, `render_pack`). The producer **LLM** evaluates the
+* criteria against its own output and emits a `VerificationRecord`
+* inside `output.verification`. The daemon is pure passthrough — it
+* does not run `evaluateAssertions`, does not inspect the verification
+* record. The REST API is dumb storage; it never re-runs assertions and
+* never runs LLMs. The cross-field rule
+* `requireVerificationWhenCriteriaPresent` enforces "verification
+* required iff successCriteria present" at task-output validation time
+* (server-side schema check). Self-assessment is a truthful self-rating,
+* NOT enforcement — `verification.passed=false` does not block /complete
+* and does not affect `acceptedAttemptN`. See
+* `docs/use/tasks-and-runtime.md` for the full producer/judge flow.
+*
+* **Binding evaluation** (judgment tasks: `assess_brief`, `judge_pack`).
+* A separate task whose IS the application of `successCriteria` to
+* someone else's output. Different agent (enforced at claim time), same
+* envelope. The judge's verdict is binding: this is the *gate* in the
+* MoltNet model. The rubric inside `successCriteria.rubric` IS the job
+* spec for the judge.
+*
+* The clean chain: producer task with `successCriteria` → producer
+* self-assesses honestly → proposer (or automation) creates a downstream
+* judgment task that references the same `successCriteria` (or a
+* stricter rubric) → judgment task delivers the binding verdict.
+*
+* Storage: SuccessCriteria lives inline at `task.input.successCriteria`,
+* pinned via the task's `inputCid`. No separate column or hash. When
+* #881 lands, the `rubric` field can graduate to `{ rubricCid }` lookup
+* without changing this envelope, and producer + judge tasks can pin
+* the SAME rubric across the chain for end-to-end auditability.
+*/
+var SchemaCheckSpec = _Object_({ 
+/**
+* CIDv1 of a stored TypeBox/JSON-schema document the producer LLM
+* resolves and runs `Value.Check` against its own output as part of
+* self-assessment.
+*/
+schemaCid: String$1({ minLength: 1 }) }, { additionalProperties: false });
+var CidEqualsSpec = _Object_({
+	/**
+	* Dotted path inside the verification context. `outputCid` is the
+	* common case (assert the attempt produced exactly this content).
+	*/
+	path: String$1({ minLength: 1 }),
+	expected: String$1({ minLength: 1 })
+}, { additionalProperties: false });
+var Gate = Union([
+	_Object_({
+		id: String$1({ minLength: 1 }),
+		kind: Literal("submit-tool-call"),
+		/**
+		* Human-readable contract text shown to the producer when it fetches
+		* `input.successCriteria`. This is a promise-level gate rather than a
+		* transport-level runtime hint.
+		*/
+		description: String$1({ minLength: 1 }),
+		required: Boolean$1()
+	}, { additionalProperties: false }),
+	_Object_({
+		id: String$1({ minLength: 1 }),
+		kind: Literal("schema-check"),
+		spec: SchemaCheckSpec,
+		required: Boolean$1()
+	}, { additionalProperties: false }),
+	_Object_({
+		id: String$1({ minLength: 1 }),
+		kind: Literal("cid-equals"),
+		spec: CidEqualsSpec,
+		required: Boolean$1()
+	}, { additionalProperties: false })
+], { $id: "Gate" });
+var AssertionOp = Union([
+	Literal("exists"),
+	Literal("equals"),
+	Literal("matches"),
+	Literal("in-range"),
+	Literal("min-length")
+], { $id: "AssertionOp" });
+var Assertion = _Object_({
+	id: String$1({ minLength: 1 }),
+	/** Dotted path; `*` expands over arrays. e.g. `commits.*.sha`. */
+	path: String$1({ minLength: 1 }),
+	op: AssertionOp,
+	/**
+	* Op-dependent literal. `exists` ignores it; `equals` compares with
+	* strict equality; `matches` is a regex source string (no flags);
+	* `in-range` is `[min, max]` inclusive; `min-length` is the minimum
+	* length for arrays or strings.
+	*/
+	value: Optional(Unknown())
+}, {
+	$id: "Assertion",
+	additionalProperties: false
+});
+var SideEffectsSpec = _Object_({
+	/** Executor must create at least one diary entry before completion. */
+	diaryEntryRequired: Optional(Boolean$1()),
+	/** Required tags on the diary entry (each must be present). */
+	diaryEntryTags: Optional(_Array_(String$1({ minLength: 1 }))),
+	/**
+	* Minimum number of source-entry references the output must cite.
+	* Per-task-type interpretation: e.g. `curate_pack` checks
+	* `output.entryRefs.length`; `fulfill_brief` checks `diaryEntryIds`.
+	*/
+	referencedEntries: Optional(Integer({ minimum: 0 }))
+}, {
+	$id: "SideEffectsSpec",
+	additionalProperties: false
+});
+var SuccessCriteria = _Object_({
+	/** Schema version. Bump on breaking changes. */
+	version: Literal(1),
+	gates: Optional(_Array_(Gate)),
+	assertions: Optional(_Array_(Assertion)),
+	rubric: Optional(Rubric),
+	/**
+	* Composite-score threshold. Only meaningful with `rubric`. Soft
+	* failure: an attempt with composite below this completes with
+	* `verification.passed=false` rather than failing outright.
+	*/
+	minComposite: Optional(Number$1({
+		minimum: 0,
+		maximum: 1
+	})),
+	sideEffects: Optional(SideEffectsSpec)
+}, {
+	$id: "SuccessCriteria",
+	additionalProperties: false
+});
+var VerificationResultStatus = Union([
+	Literal("pass"),
+	Literal("fail"),
+	Literal("skip")
+], { $id: "VerificationResultStatus" });
+var VerificationResultKind = Union([
+	Literal("gate"),
+	Literal("assertion"),
+	Literal("rubric"),
+	Literal("sideEffect")
+], { $id: "VerificationResultKind" });
+var VerificationResult = _Object_({
+	id: String$1({ minLength: 1 }),
+	kind: VerificationResultKind,
+	status: VerificationResultStatus,
+	detail: Optional(String$1())
+}, {
+	$id: "VerificationResult",
+	additionalProperties: false
+});
+var VerificationRecord = _Object_({
+	/**
+	* `inputCid` of the task this self-assessment was evaluated against.
+	* Pins the record to a specific input version so audit can confirm
+	* "this self-assessment was produced against this exact criteria
+	* document" (e.g. when comparing against a later judgment task that
+	* applied the same criteria).
+	*/
+	inputCid: String$1({ minLength: 1 }),
+	results: _Array_(VerificationResult),
+	/**
+	* True iff every result either passed or was skipped (no fail).
+	* Advisory only — does NOT gate /complete or affect
+	* `acceptedAttemptN`. Binding evaluation is the judge's role.
+	*/
+	passed: Boolean$1({ description: "True iff every verification result has status \"pass\" or \"skip\"; false when any result has status \"fail\"." })
+}, {
+	$id: "VerificationRecord",
+	additionalProperties: false
+});
+//#endregion
 //#region ../../libs/tasks/src/task-types/output-contract.ts
 /** Stored task field; the daemon validates the schema before execution. */
 var OutputContract = _Object_({
@@ -9372,6 +9044,477 @@ async function validateFreeformInputAsync(input, ctx) {
 	}];
 	return [];
 }
+//#endregion
+//#region ../../libs/tasks/src/output-contract-validation.ts
+/**
+* Proposer-supplied `freeform` output contracts. The server stores them
+* verbatim and never interprets them; executors and readers enforce them with
+* the functions below so every consumer applies the same rules.
+*/
+function getOutputContract(input) {
+	return input && typeof input === "object" && "outputContract" in input ? input.outputContract : void 0;
+}
+/** Validate the contract itself: version and supported JSON Schema subset. */
+function validateOutputContract(taskType, input) {
+	if (taskType !== "freeform") return [];
+	const contract = getOutputContract(input);
+	if (contract === void 0) return [];
+	if (!contract || typeof contract !== "object" || Array.isArray(contract)) return [{
+		field: "input/outputContract",
+		message: "must be an object"
+	}];
+	const value = contract;
+	if (value.version !== 1) return [{
+		field: "input/outputContract/version",
+		message: "must be 1"
+	}];
+	const error = validateOutputContractSchema(value.schema);
+	return error ? [{
+		field: "input/outputContract/schema",
+		message: error
+	}] : [];
+}
+/**
+* Validate `output.result` against the task's `input.outputContract`. A
+* contracted task must carry a conforming `result`; an uncontracted one must
+* not carry `result` at all. Non-freeform task types have no contract.
+*/
+function validateOutputContractResult(taskType, input, output) {
+	if (taskType !== "freeform") return [];
+	if (getOutputContract(input) === void 0) return output && typeof output === "object" && "result" in output ? [{
+		field: "output/result",
+		message: "requires input.outputContract"
+	}] : [];
+	const schema = outputContractResultSchema(input);
+	if (!schema) return validateOutputContract(taskType, input);
+	if (!output || typeof output !== "object" || !("result" in output)) return [{
+		field: "output/result",
+		message: "is required"
+	}];
+	return [...Errors(schema, output.result)].flatMap((rawError) => {
+		const error = rawError;
+		const field = `output/result${error.instancePath}`;
+		if (error.keyword === "required" && error.params?.requiredProperties) return error.params.requiredProperties.map((property) => ({
+			field: `${field}/${property}`,
+			message: `must have required property ${property}`
+		}));
+		if (error.keyword === "additionalProperties" && error.params?.additionalProperties) return error.params.additionalProperties.map((property) => ({
+			field: `${field}/${property}`,
+			message: error.message
+		}));
+		return [{
+			field,
+			message: error.message
+		}];
+	});
+}
+_Object_({
+	artifacts: _Array_(_Object_({
+		id: String$1({ format: "uuid" }),
+		teamId: String$1({ format: "uuid" }),
+		taskId: String$1({ format: "uuid" }),
+		attemptN: Union([Integer({ minimum: 1 }), Null()]),
+		kind: String$1({
+			minLength: 1,
+			maxLength: 100
+		}),
+		title: String$1({
+			minLength: 1,
+			maxLength: 255
+		}),
+		contentType: String$1({
+			minLength: 1,
+			maxLength: 200
+		}),
+		contentEncoding: Union([String$1({
+			minLength: 1,
+			maxLength: 100
+		}), Null()]),
+		sizeBytes: Integer({ minimum: 0 }),
+		cid: String$1({
+			minLength: 1,
+			maxLength: 100
+		}),
+		createdByAgentId: Union([String$1({ format: "uuid" }), Null()]),
+		expiresAt: Union([String$1({ format: "date-time" }), Null()]),
+		createdAt: String$1({ format: "date-time" })
+	}, { $id: "TaskArtifact" })),
+	nextCursor: Union([String$1({ minLength: 1 }), Null()])
+}, { $id: "TaskArtifactList" });
+_Object_({
+	limit: Optional(Integer({
+		minimum: 1,
+		maximum: 100
+	})),
+	cursor: Optional(String$1({ minLength: 1 }))
+}, {
+	$id: "ListTaskArtifactsQuery",
+	additionalProperties: false
+});
+var HeaderSafeContentType = String$1({
+	minLength: 1,
+	maxLength: 200,
+	pattern: "^[\\x21-\\x7e][\\x20-\\x7e]*$"
+});
+var HeaderSafeContentEncoding = String$1({
+	minLength: 1,
+	maxLength: 100,
+	pattern: "^[\\x21-\\x7e][\\x20-\\x7e]*$"
+});
+_Object_({
+	kind: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	title: String$1({
+		minLength: 1,
+		maxLength: 255
+	}),
+	contentType: Optional(HeaderSafeContentType),
+	contentEncoding: Optional(HeaderSafeContentEncoding)
+}, {
+	$id: "UploadTaskArtifactQuery",
+	additionalProperties: false
+});
+String$1({
+	$id: "TaskArtifactContent",
+	description: "Task artifact content stream.",
+	format: "binary"
+});
+_Object_({ taskId: String$1({ format: "uuid" }) }, {
+	$id: "TaskArtifactTaskParams",
+	additionalProperties: false
+});
+_Object_({
+	taskId: String$1({ format: "uuid" }),
+	attemptN: Integer({ minimum: 1 })
+}, {
+	$id: "TaskArtifactAttemptParams",
+	additionalProperties: false
+});
+_Object_({
+	taskId: String$1({ format: "uuid" }),
+	attemptN: Integer({ minimum: 1 }),
+	cid: String$1({
+		minLength: 1,
+		maxLength: 100
+	})
+}, {
+	$id: "TaskArtifactContentParams",
+	additionalProperties: false
+});
+_Object_({
+	contentType: Optional(HeaderSafeContentType),
+	contentEncoding: Optional(HeaderSafeContentEncoding)
+}, {
+	$id: "StageTaskArtifactQuery",
+	additionalProperties: false
+});
+_Object_({
+	cid: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	sizeBytes: Integer({ minimum: 0 }),
+	contentType: String$1({
+		minLength: 1,
+		maxLength: 200
+	})
+}, { $id: "StagedTaskArtifact" });
+_Object_({
+	taskId: String$1({ format: "uuid" }),
+	cid: String$1({
+		minLength: 1,
+		maxLength: 100
+	})
+}, {
+	$id: "TaskArtifactTaskContentParams",
+	additionalProperties: false
+});
+new TextEncoder();
+new TextDecoder();
+//#endregion
+//#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/hasher.js
+var DEFAULT_MIN_DIGEST_LENGTH = 20;
+function from({ name, code, encode, minDigestLength, maxDigestLength }) {
+	return new Hasher(name, code, encode, minDigestLength, maxDigestLength);
+}
+/**
+* Hasher represents a hashing algorithm implementation that produces as
+* `MultihashDigest`.
+*/
+var Hasher = class {
+	name;
+	code;
+	encode;
+	minDigestLength;
+	maxDigestLength;
+	constructor(name, code, encode, minDigestLength, maxDigestLength) {
+		this.name = name;
+		this.code = code;
+		this.encode = encode;
+		this.minDigestLength = minDigestLength ?? DEFAULT_MIN_DIGEST_LENGTH;
+		this.maxDigestLength = maxDigestLength;
+	}
+	digest(input, options) {
+		if (options?.truncate != null) {
+			if (options.truncate < this.minDigestLength) throw new Error(`Invalid truncate option, must be greater than or equal to ${this.minDigestLength}`);
+			if (this.maxDigestLength != null && options.truncate > this.maxDigestLength) throw new Error(`Invalid truncate option, must be less than or equal to ${this.maxDigestLength}`);
+		}
+		if (input instanceof Uint8Array) {
+			const result = this.encode(input);
+			if (result instanceof Uint8Array) return createDigest(result, this.code, options?.truncate);
+			return result.then((digest) => createDigest(digest, this.code, options?.truncate));
+		} else throw Error("Unknown type, must be binary type");
+	}
+};
+/**
+* Create a Digest from the passed uint8array and code, optionally truncating it
+* first.
+*/
+function createDigest(digest, code, truncate) {
+	if (truncate != null && truncate !== digest.byteLength) {
+		if (truncate > digest.byteLength) throw new Error(`Invalid truncate option, must be less than or equal to ${digest.byteLength}`);
+		digest = digest.subarray(0, truncate);
+	}
+	return create(code, digest);
+}
+from({
+	name: "sha2-256",
+	code: 18,
+	encode: (input) => coerce(crypto$1.createHash("sha256").update(input).digest())
+});
+from({
+	name: "sha2-512",
+	code: 19,
+	encode: (input) => coerce(crypto$1.createHash("sha512").update(input).digest())
+});
+//#endregion
+//#region ../../libs/tasks/src/task-types/assess-brief.ts
+/**
+* `assess_brief` — independently evaluate a fulfilled brief.
+*
+* output_kind: judgment
+* criteria: required (`successCriteria.rubric` — same envelope as
+*   `judge_pack`)
+* references: required (must reference the target `fulfill_brief` task)
+*
+* The assessor is a different agent from the producer (enforced by the
+* server / runtime at claim time — not in the wire schema).
+*
+* The rubric in `successCriteria` IS the job spec — the assessor applies
+* it to the target task's output and emits per-criterion scores. Other
+* sections (`assertions`, `gates`, `sideEffects`) MAY be present and are
+* evaluated against the *assessor's output*.
+*/
+var ASSESS_BRIEF_TYPE = "assess_brief";
+var AssessBriefInput = _Object_({
+	/**
+	* Task id of the `fulfill_brief` being judged. Also must appear in
+	* the Task's `references[]` with role='judged_work'.
+	*/
+	targetTaskId: String$1({ format: "uuid" }),
+	/**
+	* Required SuccessCriteria envelope. Must contain a `rubric` — that
+	* rubric IS the assessment job spec.
+	*/
+	successCriteria: SuccessCriteria
+}, {
+	$id: "AssessBriefInput",
+	additionalProperties: false
+});
+var AssessBriefOutput = _Object_({
+	/**
+	* Per-criterion scores, same order/length as
+	* `input.successCriteria.rubric.criteria`.
+	*/
+	scores: _Array_(_Object_({
+		criterionId: String$1({ minLength: 1 }),
+		score: Number$1({
+			minimum: 0,
+			maximum: 1
+		}),
+		/** Required for `llm_score`; optional for `boolean`/`deterministic_*`. */
+		rationale: Optional(String$1()),
+		/** Present only for `deterministic_signature_check`. */
+		evidence: Optional(_Object_({
+			commitsVerified: Number$1(),
+			commitsTotal: Number$1(),
+			signatureFailures: _Array_(String$1())
+		}, { additionalProperties: false }))
+	}, {
+		$id: "AssessBriefScore",
+		additionalProperties: false
+	}), { minItems: 1 }),
+	/** Σ(weight_i * score_i). Recomputed by the assessor and checked client-side. */
+	composite: Number$1({
+		minimum: 0,
+		maximum: 1
+	}),
+	/** 1–3 sentence overall verdict. */
+	verdict: String$1({ minLength: 1 }),
+	/** Model identifier used for `llm_score` criteria, for auditability. */
+	judgeModel: Optional(String$1())
+}, {
+	$id: "AssessBriefOutput",
+	additionalProperties: false
+});
+/**
+* Async preflight (#1096):
+*   - `targetTaskId` resolves to a real task the caller can see.
+*   - The target is a `fulfill_brief` (you cannot grade an arbitrary
+*     task type as if it were a brief fulfillment).
+*   - Unless readiness checks are explicitly deferred, the target is
+*     `completed` with an accepted attempt — grading an in-flight or
+*     failed task would either race or grade nothing.
+*
+* Agent-distinctness ("assessor ≠ producer") is a runtime / auth-
+* layer concern and intentionally NOT checked here. It belongs in
+* an auth-aware claim-time check.
+*/
+async function validateAssessBriefInputAsync(input, ctx) {
+	const { targetTaskId } = input;
+	const errors = [];
+	const target = await ctx.resolveTask(targetTaskId);
+	if (!target) {
+		errors.push({
+			field: "targetTaskId",
+			message: `targetTaskId ${targetTaskId} does not resolve to a task you can read`
+		});
+		return errors;
+	}
+	if (target.taskType !== "fulfill_brief") errors.push({
+		field: "targetTaskId",
+		message: `targetTaskId ${targetTaskId} is a ${target.taskType}, not a fulfill_brief`
+	});
+	if (!ctx.deferReadinessChecks && (target.status !== "completed" || target.acceptedAttemptN === null)) errors.push({
+		field: "targetTaskId",
+		message: `targetTaskId ${targetTaskId} is not completed with an accepted attempt (status=${target.status}, acceptedAttemptN=${target.acceptedAttemptN})`
+	});
+	return errors;
+}
+//#endregion
+//#region ../../libs/tasks/src/task-types/curate-pack.ts
+/**
+* `curate_pack` — select and rank diary entries into a context pack.
+*
+* output_kind: artifact
+* criteria: not required (rubric-less curation recipe)
+* references: optional (e.g. a prior rendered pack being re-curated)
+*
+* This is step 1 of the three-session attribution loop (#875). The agent
+* runs a structured exploration over a diary — tag inventory, hybrid
+* search, type/tag narrowing — and emits a ranked entry list via
+* `moltnet_pack_create`. The prompt is deterministic given the input
+* (no operator interaction), so two runs with the same input should
+* converge on similar packs.
+*
+* Related: `render_pack`, `judge_pack`.
+*/
+var CURATE_PACK_TYPE = "curate_pack";
+var EntryTypeFilter = Union([
+	Literal("episodic"),
+	Literal("semantic"),
+	Literal("procedural"),
+	Literal("reflection")
+]);
+var CuratePackInput = _Object_({
+	/** The diary to curate from. Usually the agent's session diary. */
+	diaryId: String$1({ format: "uuid" }),
+	/**
+	* Free-text prompt describing the desired pack. Seeds hybrid search
+	* and feeds the model's ranking reasoning. e.g.
+	* "incidents and workarounds related to CI pipelines".
+	*/
+	taskPrompt: String$1({ minLength: 1 }),
+	/**
+	* Restrict search to these entry types. When omitted, the curator
+	* agent picks per-search from the full taxonomy
+	* (`semantic` / `episodic` / `procedural`) based on what the prompt
+	* asks for — e.g. "failures and workarounds" should not return
+	* `procedural` entries (commit audit trails). Setting this field
+	* pins the search to the listed types and the curator may not
+	* widen.
+	*/
+	entryTypes: Optional(_Array_(EntryTypeFilter, { minItems: 1 })),
+	/**
+	* Tag filters applied after candidate discovery.
+	*  - `include`: candidate entries must carry ALL listed tags.
+	*  - `exclude`: drop entries carrying ANY listed tag.
+	*  - `prefix`: when listing tags via `moltnet_diary_tags`, narrow to
+	*    tags starting with this prefix (e.g. 'scope:').
+	*/
+	tagFilters: Optional(_Object_({
+		include: Optional(_Array_(String$1())),
+		exclude: Optional(_Array_(String$1())),
+		prefix: Optional(String$1())
+	}, { additionalProperties: false })),
+	/**
+	* Soft token budget passed through to `packs_create`. Acts as a
+	* constraint, not a target — the curator picks entry count such that
+	* the resulting pack fits under this budget.
+	*/
+	tokenBudget: Optional(Number$1({ minimum: 500 })),
+	/**
+	* Curation recipe identifier. Recorded on the pack's `params` for
+	* provenance. The runtime picks a prompt variant by recipe; unknown
+	* recipes fall back to the default.
+	*/
+	recipe: Optional(Union([Literal("topic-focused-v1"), Literal("scope-inventory-v1")])),
+	/**
+	* Proposer-stated, machine-verifiable success criteria. See
+	* `SuccessCriteria`. Pinned via `inputCid`. Optional.
+	*/
+	successCriteria: Optional(SuccessCriteria)
+}, {
+	$id: "CuratePackInput",
+	additionalProperties: false
+});
+/**
+* Index of the curated pack plus the reasoning trace. The pack itself
+* lives in the database (created via `moltnet_pack_create`); this output
+* is the receipt.
+*/
+var CuratePackOutput = _Object_({
+	/** UUID of the created pack row. */
+	packId: String$1({ format: "uuid" }),
+	/** CIDv1 of the pack's canonical content, as returned by the server. */
+	packCid: String$1({ minLength: 1 }),
+	/** Ordered entry selection (lowest rank = most prominent). */
+	entries: _Array_(_Object_({
+		entryId: String$1({ format: "uuid" }),
+		rank: Number$1({ minimum: 1 }),
+		/** Short phrase explaining why this entry earned its rank. */
+		rationale: String$1({ minLength: 1 })
+	}, { additionalProperties: false }), { minItems: 1 }),
+	/** Free-form recipe metadata mirrored onto the pack's `params`. */
+	recipeParams: Record(String$1(), Unknown()),
+	/**
+	* Intermediate exploration snapshots the curator chose to emit.
+	* Populated when the task runs a multi-phase exploration — each
+	* checkpoint compresses the state the curator carries into the next
+	* phase, so a follow-up session can resume from it without replaying
+	* the full tool-call history. Always safe to leave empty for small
+	* packs.
+	*/
+	checkpoints: Optional(_Array_(_Object_({
+		phase: String$1({ minLength: 1 }),
+		candidateIds: _Array_(String$1({ format: "uuid" })),
+		droppedIds: Optional(_Array_(String$1({ format: "uuid" }))),
+		notes: String$1({ minLength: 1 })
+	}, { additionalProperties: false }))),
+	/** 2–4 sentence narrative of the curation reasoning. */
+	summary: String$1({ minLength: 1 }),
+	/**
+	* Producer self-assessment against `input.successCriteria`. REQUIRED
+	* when `input.successCriteria` is set; MUST be omitted otherwise.
+	* See `SuccessCriteria` for the producer/judge model.
+	*/
+	verification: Optional(VerificationRecord)
+}, {
+	$id: "CuratePackOutput",
+	additionalProperties: false
+});
 //#endregion
 //#region ../../libs/tasks/src/task-types/fulfill-brief.ts
 /**
@@ -11398,6 +11541,10 @@ function buildPrReview(input) {
 }
 //#endregion
 //#region ../../libs/sdk/src/tasks/reader.ts
+/** JSON with object keys sorted, so stored and local schemas compare by value. */
+function canonicalJson(value) {
+	return JSON.stringify(value, (_key, node) => node && typeof node === "object" && !Array.isArray(node) ? Object.fromEntries(Object.entries(node).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) : node);
+}
 function matches$1(a, filter) {
 	if (filter === void 0) return true;
 	if (typeof filter === "string") return a.kind === filter;
@@ -11414,6 +11561,11 @@ function matches$1(a, filter) {
 * field (judgment types use `output.verdict` / `output.composite`).
 * `artifact*` accessors apply to `freeform` / `run_eval`; other types yield
 * `[]` / `undefined`.
+*
+* For a `freeform` task whose input carries an `outputContract`, construction
+* also validates `output.result` against that contract. The server stores the
+* contract without enforcing it, so this is the reader-side guarantee; use
+* {@link TaskResultReader.result} to read the validated value.
 */
 var TaskResultReader = class {
 	/** The validated, typed structured output of the accepted attempt. */
@@ -11428,6 +11580,7 @@ var TaskResultReader = class {
 	taskId;
 	/** CID of the accepted attempt output. */
 	outputCid;
+	#outputContract;
 	constructor(task, attempt) {
 		const errors = [];
 		if (task.acceptedAttemptN === null || task.acceptedAttemptN === void 0) errors.push({
@@ -11447,6 +11600,9 @@ var TaskResultReader = class {
 			const outErrors = validateTaskOutput(task.taskType, attempt.output, task.input);
 			if (outErrors.length > 0) throw new TaskResultError(outErrors);
 		}
+		const contractErrors = validateOutputContractResult(task.taskType, task.input, attempt.output);
+		if (contractErrors.length > 0) throw new TaskResultError(contractErrors);
+		this.#outputContract = getOutputContract(task.input);
 		this.output = attempt.output;
 		this.summary = attempt.output.summary;
 		this.taskId = task.id;
@@ -11457,6 +11613,17 @@ var TaskResultReader = class {
 			executorFingerprint: attempt.completedExecutorFingerprint ?? null
 		};
 		this.usage = attempt.usage;
+	}
+	result(schema) {
+		if (this.#outputContract === void 0) throw new TaskResultError([{
+			field: "input/outputContract",
+			message: "task has no output contract, so it has no typed result"
+		}]);
+		if (schema !== void 0 && canonicalJson(schema) !== canonicalJson(this.#outputContract.schema)) throw new TaskResultError([{
+			field: "input/outputContract/schema",
+			message: "does not match the schema passed to result()"
+		}]);
+		return this.output.result;
 	}
 	/**
 	* All artifacts (optionally filtered). Empty for output types without an

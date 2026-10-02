@@ -30222,3444 +30222,84 @@ function Priority(types) {
 	return Sort(types);
 }
 //#endregion
-//#region ../../libs/tasks/src/rubric.ts
-/**
-* Rubric — structured acceptance criteria used by judgment tasks.
-*
-* Phase 1 (this PR): rubrics are embedded in task inputs. Their integrity
-* is pinned via the task's `input_cid` (which covers the whole input,
-* including the inline rubric). No separate storage, no CRUD.
-*
-* Phase 2 (see #881): rubrics become a first-class resource with their
-* own signed rows and CIDv1 lookup. The schema below is designed to
-* carry forward unchanged — only storage and addressing differ.
-*
-* Until Phase 2 lands, `rubricId` + `version` + `contentHash` are
-* informational fields the author fills in; no uniqueness is enforced.
-* `contentHash` is optional in Phase 1 because the *task*'s input_cid
-* is the authoritative commitment.
-*/
-/**
-* How a judge must score a single criterion.
-*
-* - `llm_score`: 0..1 continuous, `rationale` required. Smooths failures
-*   into the gradient — use `llm_checklist` instead for properties where
-*   a single failure is a real failure (grounding, faithfulness).
-* - `llm_checklist`: judge enumerates per-claim assertions with
-*   `{passed, evidence}`. The criterion's numeric `score` is derived:
-*   `1` iff every assertion passes, else `0`. Per-claim evidence is the
-*   dataset for cluster-analysis of failure modes. See #999.
-* - `boolean`: 0 or 1, `rationale` optional.
-* - `deterministic_signature_check`: judge runs a signature check;
-*   result is 0 or 1. No LLM discretion.
-* - `deterministic_coverage_check`: every referenced source entry
-*   appears in the rendered output; 0 or 1.
-*/
-var RubricScoringMode = Union([
-	Literal("llm_score"),
-	Literal("llm_checklist"),
-	Literal("boolean"),
-	Literal("deterministic_signature_check"),
-	Literal("deterministic_coverage_check")
-], { $id: "RubricScoringMode" });
-/**
-* One binary check produced by an `llm_checklist`-mode criterion.
-*
-* `evidence` is REQUIRED for both PASS and FAIL — agentskills.io grading
-* principle: \"Don't give the benefit of the doubt.\" A PASS without
-* concrete evidence (a quoted span, an entry id, a source location)
-* cannot be audited. A FAIL without evidence cannot be clustered into
-* structural fixes. The same shape is reused by `judge-eval-variant`
-* (#943) so tooling, dashboards, and analysis stay uniform.
-*/
-var AssertionResult = _Object_({
-	/** Stable id within a criterion, suitable for trend analysis across runs. */
-	id: String$1({ minLength: 1 }),
-	/** The assertion as authored or as enumerated by the judge. */
-	text: String$1({ minLength: 1 }),
-	passed: Boolean$1(),
-	/**
-	* Concrete reason — for PASS, point at the quoted span or source entry
-	* that satisfies the assertion; for FAIL, quote the offending claim or
-	* cite what is missing. Free-form prose intentionally; structured
-	* fields belong on the criterion `evidence` record.
-	*/
-	evidence: String$1({ minLength: 1 })
-}, {
-	$id: "AssertionResult",
-	additionalProperties: false
-});
-var RubricCriterion = _Object_({
-	/** Stable within a rubric (e.g. 'coverage'). Used as the score key. */
-	id: String$1({ minLength: 1 }),
-	description: String$1({ minLength: 1 }),
-	/** 0..1 inclusive. Weights across criteria should sum to 1 (checked client-side). */
-	weight: Number$1({
-		minimum: 0,
-		maximum: 1
-	}),
-	scoring: RubricScoringMode
-}, {
-	$id: "RubricCriterion",
-	additionalProperties: false
-});
-/**
-* A complete rubric. Same shape used in Phase 1 (inline) and Phase 2
-* (stored row `body`); only the addressing mechanism differs.
-*/
-var Rubric = _Object_({
-	/** Namespace within an author — e.g. 'pack-fidelity'. */
-	rubricId: String$1({ minLength: 1 }),
-	/** Monotonic version per `rubricId`. Prose like 'v1'. */
-	version: String$1({ minLength: 1 }),
-	/** Free-text preamble prepended to the judge's prompt. Kept short. */
-	preamble: Optional(String$1()),
-	/** Non-empty list of criteria. */
-	criteria: _Array_(RubricCriterion, { minItems: 1 }),
-	/**
-	* Applicability hint — e.g. 'packs', 'commits', 'briefs'.
-	* Purely documentary in Phase 1; used as a filter index in Phase 2.
-	*/
-	scope: Optional(String$1()),
-	/**
-	* Phase-2 artefact: CIDv1 of the canonical rubric body. Optional in
-	* Phase 1; when Phase 2 lands the server computes & enforces it.
-	*/
-	contentHash: Optional(String$1())
-}, {
-	$id: "Rubric",
-	additionalProperties: false
-});
-/**
-* Verify rubric criteria weights sum to 1.0 within floating-point tolerance.
-* The schema constrains each weight to [0,1] but can't express a cross-field
-* sum constraint, so this is enforced programmatically by callers that
-* accept rubrics (task input validators, server-side task creation).
-*
-* Returns null when valid; otherwise an error message suitable for surfacing
-* to the caller. Tolerance is 1e-6 to accommodate JSON round-tripping of
-* decimal fractions (e.g. 0.1 + 0.2 + 0.3 + 0.4 ≠ 1.0 exactly).
-*/
-function validateRubricWeights(rubric) {
-	const sum = rubric.criteria.reduce((acc, c) => acc + c.weight, 0);
-	if (Math.abs(sum - 1) > 1e-6) return `Rubric weights must sum to 1.0 (got ${sum.toFixed(6)})`;
-	return null;
+//#region ../../libs/tasks/src/output-contract-schema.ts
+function isObject(value) {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-//#endregion
-//#region ../../libs/tasks/src/success-criteria.ts
-/**
-* SuccessCriteria — proposer-stated acceptance criteria, evaluated in two
-* complementary places.
-*
-* Before this envelope existed, criteria were scattered: a vestigial
-* `criteriaCid` column nobody resolved, free-form prose on
-* `fulfill_brief.input`, and inline `rubric` / `criteria[]` fields on
-* judgment-task inputs. None of those were machine-verifiable
-* end-to-end.
-*
-* This module defines a single, content-addressable envelope a proposer
-* attaches to any task type. It has four orthogonal sections — pick
-* whichever apply per task type:
-*
-*   - `gates`        Promise-level structural/process checks
-*   - `assertions`   Declarative claims about output JSON
-*   - `rubric`       Weighted-criteria scoring instrument, reused
-*                    verbatim from `./rubric.ts`.
-*   - `sideEffects`  Required process side-effects (e.g. diary entry)
-*
-* ## Two roles, two task types
-*
-* **Producer self-assessment** (fulfillment tasks: `fulfill_brief`,
-* `curate_pack`, `render_pack`). The producer **LLM** evaluates the
-* criteria against its own output and emits a `VerificationRecord`
-* inside `output.verification`. The daemon is pure passthrough — it
-* does not run `evaluateAssertions`, does not inspect the verification
-* record. The REST API is dumb storage; it never re-runs assertions and
-* never runs LLMs. The cross-field rule
-* `requireVerificationWhenCriteriaPresent` enforces "verification
-* required iff successCriteria present" at task-output validation time
-* (server-side schema check). Self-assessment is a truthful self-rating,
-* NOT enforcement — `verification.passed=false` does not block /complete
-* and does not affect `acceptedAttemptN`. See
-* `docs/use/tasks-and-runtime.md` for the full producer/judge flow.
-*
-* **Binding evaluation** (judgment tasks: `assess_brief`, `judge_pack`).
-* A separate task whose IS the application of `successCriteria` to
-* someone else's output. Different agent (enforced at claim time), same
-* envelope. The judge's verdict is binding: this is the *gate* in the
-* MoltNet model. The rubric inside `successCriteria.rubric` IS the job
-* spec for the judge.
-*
-* The clean chain: producer task with `successCriteria` → producer
-* self-assesses honestly → proposer (or automation) creates a downstream
-* judgment task that references the same `successCriteria` (or a
-* stricter rubric) → judgment task delivers the binding verdict.
-*
-* Storage: SuccessCriteria lives inline at `task.input.successCriteria`,
-* pinned via the task's `inputCid`. No separate column or hash. When
-* #881 lands, the `rubric` field can graduate to `{ rubricCid }` lookup
-* without changing this envelope, and producer + judge tasks can pin
-* the SAME rubric across the chain for end-to-end auditability.
-*/
-var SchemaCheckSpec = _Object_({ 
-/**
-* CIDv1 of a stored TypeBox/JSON-schema document the producer LLM
-* resolves and runs `Value.Check` against its own output as part of
-* self-assessment.
-*/
-schemaCid: String$1({ minLength: 1 }) }, { additionalProperties: false });
-var CidEqualsSpec = _Object_({
-	/**
-	* Dotted path inside the verification context. `outputCid` is the
-	* common case (assert the attempt produced exactly this content).
-	*/
-	path: String$1({ minLength: 1 }),
-	expected: String$1({ minLength: 1 })
-}, { additionalProperties: false });
-var Gate = Union([
-	_Object_({
-		id: String$1({ minLength: 1 }),
-		kind: Literal("submit-tool-call"),
-		/**
-		* Human-readable contract text shown to the producer when it fetches
-		* `input.successCriteria`. This is a promise-level gate rather than a
-		* transport-level runtime hint.
-		*/
-		description: String$1({ minLength: 1 }),
-		required: Boolean$1()
-	}, { additionalProperties: false }),
-	_Object_({
-		id: String$1({ minLength: 1 }),
-		kind: Literal("schema-check"),
-		spec: SchemaCheckSpec,
-		required: Boolean$1()
-	}, { additionalProperties: false }),
-	_Object_({
-		id: String$1({ minLength: 1 }),
-		kind: Literal("cid-equals"),
-		spec: CidEqualsSpec,
-		required: Boolean$1()
-	}, { additionalProperties: false })
-], { $id: "Gate" });
-var AssertionOp = Union([
-	Literal("exists"),
-	Literal("equals"),
-	Literal("matches"),
-	Literal("in-range"),
-	Literal("min-length")
-], { $id: "AssertionOp" });
-var Assertion = _Object_({
-	id: String$1({ minLength: 1 }),
-	/** Dotted path; `*` expands over arrays. e.g. `commits.*.sha`. */
-	path: String$1({ minLength: 1 }),
-	op: AssertionOp,
-	/**
-	* Op-dependent literal. `exists` ignores it; `equals` compares with
-	* strict equality; `matches` is a regex source string (no flags);
-	* `in-range` is `[min, max]` inclusive; `min-length` is the minimum
-	* length for arrays or strings.
-	*/
-	value: Optional(Unknown())
-}, {
-	$id: "Assertion",
-	additionalProperties: false
-});
-var SideEffectsSpec = _Object_({
-	/** Executor must create at least one diary entry before completion. */
-	diaryEntryRequired: Optional(Boolean$1()),
-	/** Required tags on the diary entry (each must be present). */
-	diaryEntryTags: Optional(_Array_(String$1({ minLength: 1 }))),
-	/**
-	* Minimum number of source-entry references the output must cite.
-	* Per-task-type interpretation: e.g. `curate_pack` checks
-	* `output.entryRefs.length`; `fulfill_brief` checks `diaryEntryIds`.
-	*/
-	referencedEntries: Optional(Integer({ minimum: 0 }))
-}, {
-	$id: "SideEffectsSpec",
-	additionalProperties: false
-});
-var SuccessCriteria = _Object_({
-	/** Schema version. Bump on breaking changes. */
-	version: Literal(1),
-	gates: Optional(_Array_(Gate)),
-	assertions: Optional(_Array_(Assertion)),
-	rubric: Optional(Rubric),
-	/**
-	* Composite-score threshold. Only meaningful with `rubric`. Soft
-	* failure: an attempt with composite below this completes with
-	* `verification.passed=false` rather than failing outright.
-	*/
-	minComposite: Optional(Number$1({
-		minimum: 0,
-		maximum: 1
-	})),
-	sideEffects: Optional(SideEffectsSpec)
-}, {
-	$id: "SuccessCriteria",
-	additionalProperties: false
-});
-var VerificationResultStatus = Union([
-	Literal("pass"),
-	Literal("fail"),
-	Literal("skip")
-], { $id: "VerificationResultStatus" });
-var VerificationResultKind = Union([
-	Literal("gate"),
-	Literal("assertion"),
-	Literal("rubric"),
-	Literal("sideEffect")
-], { $id: "VerificationResultKind" });
-var VerificationResult = _Object_({
-	id: String$1({ minLength: 1 }),
-	kind: VerificationResultKind,
-	status: VerificationResultStatus,
-	detail: Optional(String$1())
-}, {
-	$id: "VerificationResult",
-	additionalProperties: false
-});
-var VerificationRecord = _Object_({
-	/**
-	* `inputCid` of the task this self-assessment was evaluated against.
-	* Pins the record to a specific input version so audit can confirm
-	* "this self-assessment was produced against this exact criteria
-	* document" (e.g. when comparing against a later judgment task that
-	* applied the same criteria).
-	*/
-	inputCid: String$1({ minLength: 1 }),
-	results: _Array_(VerificationResult),
-	/**
-	* True iff every result either passed or was skipped (no fail).
-	* Advisory only — does NOT gate /complete or affect
-	* `acceptedAttemptN`. Binding evaluation is the judge's role.
-	*/
-	passed: Boolean$1({ description: "True iff every verification result has status \"pass\" or \"skip\"; false when any result has status \"fail\"." })
-}, {
-	$id: "VerificationRecord",
-	additionalProperties: false
-});
-_Object_({
-	artifacts: _Array_(_Object_({
-		id: String$1({ format: "uuid" }),
-		teamId: String$1({ format: "uuid" }),
-		taskId: String$1({ format: "uuid" }),
-		attemptN: Union([Integer({ minimum: 1 }), Null()]),
-		kind: String$1({
-			minLength: 1,
-			maxLength: 100
-		}),
-		title: String$1({
-			minLength: 1,
-			maxLength: 255
-		}),
-		contentType: String$1({
-			minLength: 1,
-			maxLength: 200
-		}),
-		contentEncoding: Union([String$1({
-			minLength: 1,
-			maxLength: 100
-		}), Null()]),
-		sizeBytes: Integer({ minimum: 0 }),
-		cid: String$1({
-			minLength: 1,
-			maxLength: 100
-		}),
-		createdByAgentId: Union([String$1({ format: "uuid" }), Null()]),
-		expiresAt: Union([String$1({ format: "date-time" }), Null()]),
-		createdAt: String$1({ format: "date-time" })
-	}, { $id: "TaskArtifact" })),
-	nextCursor: Union([String$1({ minLength: 1 }), Null()])
-}, { $id: "TaskArtifactList" });
-_Object_({
-	limit: Optional(Integer({
-		minimum: 1,
-		maximum: 100
-	})),
-	cursor: Optional(String$1({ minLength: 1 }))
-}, {
-	$id: "ListTaskArtifactsQuery",
-	additionalProperties: false
-});
-var HeaderSafeContentType = String$1({
-	minLength: 1,
-	maxLength: 200,
-	pattern: "^[\\x21-\\x7e][\\x20-\\x7e]*$"
-});
-var HeaderSafeContentEncoding = String$1({
-	minLength: 1,
-	maxLength: 100,
-	pattern: "^[\\x21-\\x7e][\\x20-\\x7e]*$"
-});
-_Object_({
-	kind: String$1({
-		minLength: 1,
-		maxLength: 100
-	}),
-	title: String$1({
-		minLength: 1,
-		maxLength: 255
-	}),
-	contentType: Optional(HeaderSafeContentType),
-	contentEncoding: Optional(HeaderSafeContentEncoding)
-}, {
-	$id: "UploadTaskArtifactQuery",
-	additionalProperties: false
-});
-String$1({
-	$id: "TaskArtifactContent",
-	description: "Task artifact content stream.",
-	format: "binary"
-});
-_Object_({ taskId: String$1({ format: "uuid" }) }, {
-	$id: "TaskArtifactTaskParams",
-	additionalProperties: false
-});
-_Object_({
-	taskId: String$1({ format: "uuid" }),
-	attemptN: Integer({ minimum: 1 })
-}, {
-	$id: "TaskArtifactAttemptParams",
-	additionalProperties: false
-});
-_Object_({
-	taskId: String$1({ format: "uuid" }),
-	attemptN: Integer({ minimum: 1 }),
-	cid: String$1({
-		minLength: 1,
-		maxLength: 100
-	})
-}, {
-	$id: "TaskArtifactContentParams",
-	additionalProperties: false
-});
-_Object_({
-	contentType: Optional(HeaderSafeContentType),
-	contentEncoding: Optional(HeaderSafeContentEncoding)
-}, {
-	$id: "StageTaskArtifactQuery",
-	additionalProperties: false
-});
-_Object_({
-	cid: String$1({
-		minLength: 1,
-		maxLength: 100
-	}),
-	sizeBytes: Integer({ minimum: 0 }),
-	contentType: String$1({
-		minLength: 1,
-		maxLength: 200
-	})
-}, { $id: "StagedTaskArtifact" });
-_Object_({
-	taskId: String$1({ format: "uuid" }),
-	cid: String$1({
-		minLength: 1,
-		maxLength: 100
-	})
-}, {
-	$id: "TaskArtifactTaskContentParams",
-	additionalProperties: false
-});
-new TextEncoder();
-new TextDecoder();
-//#endregion
-//#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/hasher.js
-var DEFAULT_MIN_DIGEST_LENGTH = 20;
-function from({ name, code, encode, minDigestLength, maxDigestLength }) {
-	return new Hasher(name, code, encode, minDigestLength, maxDigestLength);
-}
-/**
-* Hasher represents a hashing algorithm implementation that produces as
-* `MultihashDigest`.
-*/
-var Hasher = class {
-	name;
-	code;
-	encode;
-	minDigestLength;
-	maxDigestLength;
-	constructor(name, code, encode, minDigestLength, maxDigestLength) {
-		this.name = name;
-		this.code = code;
-		this.encode = encode;
-		this.minDigestLength = minDigestLength ?? DEFAULT_MIN_DIGEST_LENGTH;
-		this.maxDigestLength = maxDigestLength;
+/** Reject unsupported or oversized task-supplied schemas before execution. */
+function validateOutputContractSchema(schema) {
+	if (!isObject(schema) || schema.type !== "object") return "outputContract.schema must be a JSON Schema object with type \"object\"";
+	let encoded;
+	try {
+		encoded = JSON.stringify(schema);
+	} catch {
+		return "outputContract.schema must be JSON serializable";
 	}
-	digest(input, options) {
-		if (options?.truncate != null) {
-			if (options.truncate < this.minDigestLength) throw new Error(`Invalid truncate option, must be greater than or equal to ${this.minDigestLength}`);
-			if (this.maxDigestLength != null && options.truncate > this.maxDigestLength) throw new Error(`Invalid truncate option, must be less than or equal to ${this.maxDigestLength}`);
-		}
-		if (input instanceof Uint8Array) {
-			const result = this.encode(input);
-			if (result instanceof Uint8Array) return createDigest(result, this.code, options?.truncate);
-			return result.then((digest) => createDigest(digest, this.code, options?.truncate));
-		} else throw Error("Unknown type, must be binary type");
-	}
-};
-/**
-* Create a Digest from the passed uint8array and code, optionally truncating it
-* first.
-*/
-function createDigest(digest, code, truncate) {
-	if (truncate != null && truncate !== digest.byteLength) {
-		if (truncate > digest.byteLength) throw new Error(`Invalid truncate option, must be less than or equal to ${digest.byteLength}`);
-		digest = digest.subarray(0, truncate);
-	}
-	return create(code, digest);
-}
-from({
-	name: "sha2-256",
-	code: 18,
-	encode: (input) => coerce(crypto$1.createHash("sha256").update(input).digest())
-});
-from({
-	name: "sha2-512",
-	code: 19,
-	encode: (input) => coerce(crypto$1.createHash("sha512").update(input).digest())
-});
-//#endregion
-//#region ../../libs/tasks/src/task-types/assess-brief.ts
-/**
-* `assess_brief` — independently evaluate a fulfilled brief.
-*
-* output_kind: judgment
-* criteria: required (`successCriteria.rubric` — same envelope as
-*   `judge_pack`)
-* references: required (must reference the target `fulfill_brief` task)
-*
-* The assessor is a different agent from the producer (enforced by the
-* server / runtime at claim time — not in the wire schema).
-*
-* The rubric in `successCriteria` IS the job spec — the assessor applies
-* it to the target task's output and emits per-criterion scores. Other
-* sections (`assertions`, `gates`, `sideEffects`) MAY be present and are
-* evaluated against the *assessor's output*.
-*/
-var ASSESS_BRIEF_TYPE = "assess_brief";
-var AssessBriefInput = _Object_({
-	/**
-	* Task id of the `fulfill_brief` being judged. Also must appear in
-	* the Task's `references[]` with role='judged_work'.
-	*/
-	targetTaskId: String$1({ format: "uuid" }),
-	/**
-	* Required SuccessCriteria envelope. Must contain a `rubric` — that
-	* rubric IS the assessment job spec.
-	*/
-	successCriteria: SuccessCriteria
-}, {
-	$id: "AssessBriefInput",
-	additionalProperties: false
-});
-var AssessBriefOutput = _Object_({
-	/**
-	* Per-criterion scores, same order/length as
-	* `input.successCriteria.rubric.criteria`.
-	*/
-	scores: _Array_(_Object_({
-		criterionId: String$1({ minLength: 1 }),
-		score: Number$1({
-			minimum: 0,
-			maximum: 1
-		}),
-		/** Required for `llm_score`; optional for `boolean`/`deterministic_*`. */
-		rationale: Optional(String$1()),
-		/** Present only for `deterministic_signature_check`. */
-		evidence: Optional(_Object_({
-			commitsVerified: Number$1(),
-			commitsTotal: Number$1(),
-			signatureFailures: _Array_(String$1())
-		}, { additionalProperties: false }))
-	}, {
-		$id: "AssessBriefScore",
-		additionalProperties: false
-	}), { minItems: 1 }),
-	/** Σ(weight_i * score_i). Recomputed by the assessor and checked client-side. */
-	composite: Number$1({
-		minimum: 0,
-		maximum: 1
-	}),
-	/** 1–3 sentence overall verdict. */
-	verdict: String$1({ minLength: 1 }),
-	/** Model identifier used for `llm_score` criteria, for auditability. */
-	judgeModel: Optional(String$1())
-}, {
-	$id: "AssessBriefOutput",
-	additionalProperties: false
-});
-/**
-* Async preflight (#1096):
-*   - `targetTaskId` resolves to a real task the caller can see.
-*   - The target is a `fulfill_brief` (you cannot grade an arbitrary
-*     task type as if it were a brief fulfillment).
-*   - Unless readiness checks are explicitly deferred, the target is
-*     `completed` with an accepted attempt — grading an in-flight or
-*     failed task would either race or grade nothing.
-*
-* Agent-distinctness ("assessor ≠ producer") is a runtime / auth-
-* layer concern and intentionally NOT checked here. It belongs in
-* an auth-aware claim-time check.
-*/
-async function validateAssessBriefInputAsync(input, ctx) {
-	const { targetTaskId } = input;
-	const errors = [];
-	const target = await ctx.resolveTask(targetTaskId);
-	if (!target) {
-		errors.push({
-			field: "targetTaskId",
-			message: `targetTaskId ${targetTaskId} does not resolve to a task you can read`
-		});
-		return errors;
-	}
-	if (target.taskType !== "fulfill_brief") errors.push({
-		field: "targetTaskId",
-		message: `targetTaskId ${targetTaskId} is a ${target.taskType}, not a fulfill_brief`
-	});
-	if (!ctx.deferReadinessChecks && (target.status !== "completed" || target.acceptedAttemptN === null)) errors.push({
-		field: "targetTaskId",
-		message: `targetTaskId ${targetTaskId} is not completed with an accepted attempt (status=${target.status}, acceptedAttemptN=${target.acceptedAttemptN})`
-	});
-	return errors;
-}
-//#endregion
-//#region ../../libs/tasks/src/task-types/curate-pack.ts
-/**
-* `curate_pack` — select and rank diary entries into a context pack.
-*
-* output_kind: artifact
-* criteria: not required (rubric-less curation recipe)
-* references: optional (e.g. a prior rendered pack being re-curated)
-*
-* This is step 1 of the three-session attribution loop (#875). The agent
-* runs a structured exploration over a diary — tag inventory, hybrid
-* search, type/tag narrowing — and emits a ranked entry list via
-* `moltnet_pack_create`. The prompt is deterministic given the input
-* (no operator interaction), so two runs with the same input should
-* converge on similar packs.
-*
-* Related: `render_pack`, `judge_pack`.
-*/
-var CURATE_PACK_TYPE = "curate_pack";
-var EntryTypeFilter = Union([
-	Literal("episodic"),
-	Literal("semantic"),
-	Literal("procedural"),
-	Literal("reflection")
-]);
-var CuratePackInput = _Object_({
-	/** The diary to curate from. Usually the agent's session diary. */
-	diaryId: String$1({ format: "uuid" }),
-	/**
-	* Free-text prompt describing the desired pack. Seeds hybrid search
-	* and feeds the model's ranking reasoning. e.g.
-	* "incidents and workarounds related to CI pipelines".
-	*/
-	taskPrompt: String$1({ minLength: 1 }),
-	/**
-	* Restrict search to these entry types. When omitted, the curator
-	* agent picks per-search from the full taxonomy
-	* (`semantic` / `episodic` / `procedural`) based on what the prompt
-	* asks for — e.g. "failures and workarounds" should not return
-	* `procedural` entries (commit audit trails). Setting this field
-	* pins the search to the listed types and the curator may not
-	* widen.
-	*/
-	entryTypes: Optional(_Array_(EntryTypeFilter, { minItems: 1 })),
-	/**
-	* Tag filters applied after candidate discovery.
-	*  - `include`: candidate entries must carry ALL listed tags.
-	*  - `exclude`: drop entries carrying ANY listed tag.
-	*  - `prefix`: when listing tags via `moltnet_diary_tags`, narrow to
-	*    tags starting with this prefix (e.g. 'scope:').
-	*/
-	tagFilters: Optional(_Object_({
-		include: Optional(_Array_(String$1())),
-		exclude: Optional(_Array_(String$1())),
-		prefix: Optional(String$1())
-	}, { additionalProperties: false })),
-	/**
-	* Soft token budget passed through to `packs_create`. Acts as a
-	* constraint, not a target — the curator picks entry count such that
-	* the resulting pack fits under this budget.
-	*/
-	tokenBudget: Optional(Number$1({ minimum: 500 })),
-	/**
-	* Curation recipe identifier. Recorded on the pack's `params` for
-	* provenance. The runtime picks a prompt variant by recipe; unknown
-	* recipes fall back to the default.
-	*/
-	recipe: Optional(Union([Literal("topic-focused-v1"), Literal("scope-inventory-v1")])),
-	/**
-	* Proposer-stated, machine-verifiable success criteria. See
-	* `SuccessCriteria`. Pinned via `inputCid`. Optional.
-	*/
-	successCriteria: Optional(SuccessCriteria)
-}, {
-	$id: "CuratePackInput",
-	additionalProperties: false
-});
-/**
-* Index of the curated pack plus the reasoning trace. The pack itself
-* lives in the database (created via `moltnet_pack_create`); this output
-* is the receipt.
-*/
-var CuratePackOutput = _Object_({
-	/** UUID of the created pack row. */
-	packId: String$1({ format: "uuid" }),
-	/** CIDv1 of the pack's canonical content, as returned by the server. */
-	packCid: String$1({ minLength: 1 }),
-	/** Ordered entry selection (lowest rank = most prominent). */
-	entries: _Array_(_Object_({
-		entryId: String$1({ format: "uuid" }),
-		rank: Number$1({ minimum: 1 }),
-		/** Short phrase explaining why this entry earned its rank. */
-		rationale: String$1({ minLength: 1 })
-	}, { additionalProperties: false }), { minItems: 1 }),
-	/** Free-form recipe metadata mirrored onto the pack's `params`. */
-	recipeParams: Record(String$1(), Unknown()),
-	/**
-	* Intermediate exploration snapshots the curator chose to emit.
-	* Populated when the task runs a multi-phase exploration — each
-	* checkpoint compresses the state the curator carries into the next
-	* phase, so a follow-up session can resume from it without replaying
-	* the full tool-call history. Always safe to leave empty for small
-	* packs.
-	*/
-	checkpoints: Optional(_Array_(_Object_({
-		phase: String$1({ minLength: 1 }),
-		candidateIds: _Array_(String$1({ format: "uuid" })),
-		droppedIds: Optional(_Array_(String$1({ format: "uuid" }))),
-		notes: String$1({ minLength: 1 })
-	}, { additionalProperties: false }))),
-	/** 2–4 sentence narrative of the curation reasoning. */
-	summary: String$1({ minLength: 1 }),
-	/**
-	* Producer self-assessment against `input.successCriteria`. REQUIRED
-	* when `input.successCriteria` is set; MUST be omitted otherwise.
-	* See `SuccessCriteria` for the producer/judge model.
-	*/
-	verification: Optional(VerificationRecord)
-}, {
-	$id: "CuratePackOutput",
-	additionalProperties: false
-});
-//#endregion
-//#region ../../libs/runtime-profiles/src/context.ts
-/**
-* How an executor delivers a context entry to its underlying LLM.
-* V1 bindings only; Tier-2 (reference_file, mcp_resource, imported_file,
-* tool_response_seed, additional_context_hook) ship in a later slice.
-*/
-var CONTEXT_BINDINGS = [
-	"skill",
-	"context_inline",
-	"prompt_prefix",
-	"user_inline"
-];
-/** Maximum UTF-16 code units accepted in one ContextRef content field. */
-var CONTEXT_REF_MAX_CONTENT_LENGTH = 65536;
-var ContextBinding = Unsafe(Union(CONTEXT_BINDINGS.map((binding) => Literal(binding)), { $id: "ContextBinding" }));
-/** Reusable input fragment for any task type. Soft cap at 5 items. */
-var TaskContext = _Array_(_Object_({
-	slug: String$1({
-		minLength: 1,
-		maxLength: 64,
-		pattern: "^[a-zA-Z0-9_-]+$"
-	}),
-	binding: ContextBinding,
-	content: String$1({
-		minLength: 1,
-		maxLength: CONTEXT_REF_MAX_CONTENT_LENGTH
-	})
-}, {
-	$id: "ContextRef",
-	additionalProperties: false
-}), {
-	$id: "TaskContext",
-	maxItems: 5
-});
-//#endregion
-//#region ../../libs/runtime-profiles/src/runtime-models.ts
-/**
-* Runtime model catalog: a list of supported provider/model couples that
-* MoltNet daemons can target. Backed by the `runtime_models` table.
-*
-* Scope is intrinsic to the row:
-*   - `teamId == null`  => global entry (MoltNet-seeded, read-only to most callers)
-*   - `teamId != null`  => team-owned custom entry
-*
-* The REST API exposes a single shape regardless of scope; the team header
-* gates which rows are returned.
-*/
-var RuntimeModelProvider = String$1({
-	minLength: 1,
-	maxLength: 100,
-	pattern: "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}$"
-});
-var RuntimeModelName = String$1({
-	minLength: 1,
-	maxLength: 200,
-	pattern: "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,199}$"
-});
-var RuntimeModelCapabilities = Record(String$1({
-	minLength: 1,
-	maxLength: 64
-}), Union([
-	Boolean$1(),
-	Number$1(),
-	String$1({ maxLength: 256 })
-]));
-_Object_({
-	id: String$1({ format: "uuid" }),
-	teamId: Union([String$1({ format: "uuid" }), Null()]),
-	provider: RuntimeModelProvider,
-	model: RuntimeModelName,
-	displayName: Union([String$1({ maxLength: 200 }), Null()]),
-	description: Union([String$1({ maxLength: 4096 }), Null()]),
-	capabilities: RuntimeModelCapabilities,
-	isActive: Boolean$1(),
-	createdByAgentId: Union([String$1({ format: "uuid" }), Null()]),
-	createdByHumanId: Union([String$1({ format: "uuid" }), Null()]),
-	createdAt: String$1({ format: "date-time" }),
-	updatedAt: String$1({ format: "date-time" })
-}, {
-	$id: "RuntimeModel",
-	additionalProperties: false
-});
-//#endregion
-//#region ../../libs/runtime-profiles/src/runtime-profile-context-recipes.ts
-var RUNTIME_PROFILE_CONTEXT_CATALOGUE = {
-	version: 1,
-	fragments: {
-		"artifact-planner-v1": {
-			binding: "prompt_prefix",
-			content: "# Bounded artifact planner\n\n- The typed task facts, embedded bounded manifest, exact bound artifact references, registered tools, and runtime capability section are the complete contract. Do not search diaries, inspect a mounted repository, enumerate unrelated tasks or artifacts, modify a checkout, commit, branch, push, or contact GitHub.\n- Read only the exact artifact CIDs named by the task, and only when the embedded manifest does not provide enough evidence. Use the registered task-artifact tools for artifact access; never use shell or CLI wrappers to fetch artifacts, paginate, or discover them speculatively.\n- If the effective runtime exposes a local calculator or shell, use it only inside scratch for coverage accounting, budget arithmetic, and JSON validation. The runtime capability section and policy are authoritative; do not assume a static executable list.\n- Perform semantic classification and planning from supplied content and producer/consumer evidence. Do not substitute filename, directory, language, ecosystem, or repository-specific exclusion rules for evidence.\n- Write and upload exactly the requested versioned plan artifact, then reference its returned metadata through the registered submit-output tool. Do not emit a second prose or JSON representation.",
-			slug: "artifact-planner-v1"
-		},
-		"accountable-delivery-v1": {
-			binding: "prompt_prefix",
-			content: "# Accountable delivery\n\n- Pair every commit made during this task with a task-provenance diary entry created by the `moltnet_create_entry` custom tool. Put the returned id in a `MoltNet-Diary: <id>` commit trailer. The tool does not currently promise a content signature unless you pass `signed: true` while the runtime kernel declares the `agent-signing` host capability; never describe an entry as signed otherwise.\n- When the runtime kernel declares `agent-signing`, sign commits normally with `git commit -S`: the signature is brokered to the trusted host through `SSH_AUTH_SOCK` and no private key exists in the guest. Without that capability commits are unsigned; do not disable signing the runtime provides, and never try to obtain a key from host configuration.\n- Push a branch and open or update a pull request only when the task asks for it. Use a host-brokered GitHub placeholder only when the runtime kernel declares one; if no GitHub credential is active, the authenticated operation is unavailable.\n- Keep changes, commits, and any requested pull request coherent enough to review independently.",
-			slug: "accountable-delivery-v1"
-		},
-		"judgment-diary-v1": {
-			binding: "prompt_prefix",
-			content: "# Judgment diary discipline\n\n- For an `assess_brief`, `judge_pack`, or `pr_review` task, create a diary entry with the `moltnet_create_entry` custom tool before submitting the structured judgment. Capture the rationale and evidence that support the verdict. Do not claim a content signature unless you created the entry with `signed: true` under a runtime that declares the `agent-signing` host capability.\n- Add the `judgment` tag and the active task type tag (`assess_brief`, `judge_pack`, or `pr_review`). For `judge_pack`, also add `rubric:<rubricId>` from the task facts.\n- Do not use a shell `moltnet entry` command: task provenance is injected only by the custom tool.",
-			slug: "judgment-diary-v1"
-		},
-		"proactive-memory-v1": {
-			binding: "prompt_prefix",
-			content: "# Proactive memory use\n\n- Before non-trivial investigation, debugging, code changes, or review, check the task diary for relevant prior knowledge instead of waiting for a human to ask. Use `moltnet_diary_tags` for cheap reconnaissance, `moltnet_list_entries` when tags or task provenance are known, and `moltnet_search_entries` for semantic similarity. Do not search randomly: pass `taskFilter` for task-local or correlation-local queries, and pass `tags` / `entryTypes` for broader prior-knowledge queries using known tags such as `incident`, `decision`, or `scope:<area>`. Broaden only after constrained searches miss.\n- Before creating an `episodic` incident entry, search for similar incidents using the proposed title, root cause, error text, affected subsystem, and watch-for terms, filtered by `entryTypes: [\"episodic\", \"semantic\"]` and any known `scope:*` or task-provenance tags. If a close prior match exists, do not create an isolated duplicate: reference the prior entry in your response or diary content, update or link it when the new occurrence adds material evidence, or create a new recurrence entry only when the recurrence itself is important signal.\n- When you create a recurrence entry, include the prior matching entry id(s) in the content and explain what is new about this occurrence.",
-			slug: "proactive-memory-v1"
-		},
-		"run-eval-direct-v1": {
-			binding: "prompt_prefix",
-			content: "# Direct evaluation run\n\nThe supplied scenario, typed task facts, injected context, and registered submit-output tool are the complete task contract. Do not search diaries, create diary entries, modify a repository, commit, branch, push, or open a pull request unless a task fact explicitly requires it. Submit the agent-authored payload in the first turn; correction turns exist only to recover a rejected or missing submission.",
-			slug: "run-eval-direct-v1"
-		},
-		"task-diary-discipline-v1": {
-			binding: "prompt_prefix",
-			content: "# Task diary discipline\n\n- During a daemon task, create diary entries only through the `moltnet_create_entry` custom tool. It binds entries to the current task diary and injects task, type, attempt, and correlation provenance tags.\n- Do not shell out to `moltnet entry create`, `moltnet entry create-signed`, or any other `moltnet entry` subcommand from bash while a task is running. For a content-signed entry pass `signed: true` to the custom tool instead; it signs on the trusted host. Those shell paths bypass the custom tool's task-tag injection, so task-filtered diary queries cannot find the entry.\n- You may add useful tags, but do not try to replace task provenance supplied by the runtime.",
-			slug: "task-diary-discipline-v1"
-		},
-		"verification-and-artifacts-v1": {
-			binding: "prompt_prefix",
-			content: "# Verification and artifacts\n\n- Run relevant verification before submitting. When task facts include `successCriteria`, assess them honestly in the generated verification contract; a fail or skip with evidence is better than a fabricated pass.\n- The registered submit-output tool owns the exact agent submission schema and validation recovery. Use that schema; do not invent a JSON shape in prose.\n- Upload only task-relevant artifacts, and inspect each before uploading. Never upload secrets, credentials, API keys, auth tokens or headers, .env files, or personal or customer data; redact sensitive values, and prefer minimal, sanitized excerpts over whole logs, bundles, or datasets. Include artifact metadata only where the typed submit contract permits it.\n- If the task depends on prior artifacts, list and download the exact referenced artifact before judging or continuing that work.",
-			slug: "verification-and-artifacts-v1"
-		}
-	},
-	recipes: {
-		"artifact-planner@v1": {
-			description: "Minimal artifact-only context for bounded semantic classification and planning.",
-			fragments: ["artifact-planner-v1"]
-		},
-		"run-eval-direct@v1": {
-			description: "Minimal direct context for a short, isolated evaluation run.",
-			fragments: ["run-eval-direct-v1"]
-		},
-		"standard-engineering@v1": {
-			description: "Full opt-in operating guidance for engineering tasks that need diary research, accountable delivery, and verification discipline.",
-			fragments: [
-				"proactive-memory-v1",
-				"task-diary-discipline-v1",
-				"accountable-delivery-v1",
-				"judgment-diary-v1",
-				"verification-and-artifacts-v1"
-			]
-		}
-	}
-};
-function deepFreeze(value) {
-	if (value && typeof value === "object") {
-		for (const key of Object.keys(value)) deepFreeze(value[key]);
-		Object.freeze(value);
-	}
-	return value;
-}
-deepFreeze(RUNTIME_PROFILE_CONTEXT_CATALOGUE);
-Object.freeze(Object.keys(RUNTIME_PROFILE_CONTEXT_CATALOGUE.recipes));
-//#endregion
-//#region ../../libs/models/src/credential-scopes.ts
-var CREDENTIAL_SCOPES = {
-	AgentProfile: "agent:profile",
-	ConnectorInvoke: "connector:invoke",
-	CryptoSign: "crypto:sign",
-	DiaryManage: "diary:manage",
-	DiaryRead: "diary:read",
-	DiaryWrite: "diary:write",
-	HumanProfile: "human:profile",
-	KeyManage: "key:manage",
-	PackRead: "pack:read",
-	PackWrite: "pack:write",
-	RuntimeManage: "runtime:manage",
-	RuntimeRead: "runtime:read",
-	TaskClaim: "task:claim",
-	TaskExecute: "task:execute",
-	TaskManage: "task:manage",
-	TaskRead: "task:read",
-	TaskWrite: "task:write",
-	TeamJoin: "team:join",
-	TeamManage: "team:manage",
-	TeamRead: "team:read"
-};
-var ALL_CREDENTIAL_SCOPES = Object.freeze(Object.values(CREDENTIAL_SCOPES));
-/**
-* What the agent daemon cannot run without, checked against
-* `GET /agents/whoami` at startup. Task credentials attenuate it further to
-* `task:execute` alone.
-*
-* This is the **boot floor**, and deliberately not the same list as
-* `AGENT_CREDENTIAL_SCOPES`. A credential's scopes are fixed when it is minted
-* and `POST /agent-keys` caps a new key at the scopes of the credential
-* requesting it, so no key can ever widen itself. A scope added here therefore
-* stops every daemon already in the field, and only a human with a Console
-* session can mint the replacement. Add one only when the daemon genuinely
-* cannot work without it; anything a caller merely benefits from belongs in
-* `DAEMON_OPTIONAL_SCOPES`, where absence costs a capability instead.
-*
-* `crypto:sign` is part of the minimum because host-capability signing runs on
-* the daemon's own credential: the local seed signer calls the signing-request
-* endpoints, which require it. A grant without it produces a daemon that boots
-* cleanly and then fails the first time guest code signs a diary entry or a
-* commit.
-*/
-var DAEMON_MINIMUM_SCOPES = [
-	CREDENTIAL_SCOPES.AgentProfile,
-	CREDENTIAL_SCOPES.CryptoSign,
-	CREDENTIAL_SCOPES.RuntimeRead,
-	CREDENTIAL_SCOPES.TaskRead,
-	CREDENTIAL_SCOPES.TaskClaim,
-	CREDENTIAL_SCOPES.TaskExecute
-];
-/**
-* Read and enrollment authority a daemon uses when it has it, and runs without
-* when it does not: reading the teams it belongs to and their diaries, and
-* joining a team it is not yet a member of.
-*
-* Which product surface each one enables is deliberately not recorded here.
-* That mapping belongs to whatever consumes the scope and changes with it,
-* while the scope names are the contract and do not.
-*/
-var DAEMON_OPTIONAL_SCOPES = [
-	CREDENTIAL_SCOPES.DiaryRead,
-	CREDENTIAL_SCOPES.TeamRead,
-	CREDENTIAL_SCOPES.TeamJoin
-];
-[...[...DAEMON_MINIMUM_SCOPES, ...DAEMON_OPTIONAL_SCOPES], CREDENTIAL_SCOPES.DiaryWrite];
-CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TaskWrite;
-CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.DiaryRead, CREDENTIAL_SCOPES.PackRead, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TeamRead;
-/** Full grant ceiling for first-party agent OAuth2 clients. */
-var AGENT_OAUTH_SCOPES = Object.freeze(ALL_CREDENTIAL_SCOPES.filter((scope) => scope !== CREDENTIAL_SCOPES.HumanProfile));
-/**
-* REST capabilities exercised by the current MCP tool surface.
-*
-* Intentionally excludes connector invocation, key management, runtime
-* management/read, and task claiming because MCP exposes none of those
-* operations.
-*/
-var MCP_CLIENT_SCOPES = [
-	CREDENTIAL_SCOPES.AgentProfile,
-	CREDENTIAL_SCOPES.CryptoSign,
-	CREDENTIAL_SCOPES.DiaryManage,
-	CREDENTIAL_SCOPES.DiaryRead,
-	CREDENTIAL_SCOPES.DiaryWrite,
-	CREDENTIAL_SCOPES.HumanProfile,
-	CREDENTIAL_SCOPES.PackRead,
-	CREDENTIAL_SCOPES.PackWrite,
-	CREDENTIAL_SCOPES.TaskExecute,
-	CREDENTIAL_SCOPES.TaskManage,
-	CREDENTIAL_SCOPES.TaskRead,
-	CREDENTIAL_SCOPES.TaskWrite,
-	CREDENTIAL_SCOPES.TeamJoin,
-	CREDENTIAL_SCOPES.TeamManage,
-	CREDENTIAL_SCOPES.TeamRead
-];
-MCP_CLIENT_SCOPES.filter((scope) => scope !== CREDENTIAL_SCOPES.HumanProfile);
-/**
-* OIDC protocol scopes. Not MoltNet capabilities — they carry no REST
-* authorization — so every capability cap has to allow them through
-* explicitly rather than treating them as over-grants.
-*/
-var OIDC_PROTOCOL_SCOPES = [
-	"openid",
-	"offline",
-	"offline_access"
-];
-/** Optional OIDC identity claims requested by some interactive MCP clients. */
-var OIDC_IDENTITY_SCOPES = ["email", "profile"];
-/** Registration defaults do not grant identity claims unless requested. */
-var DCR_DEFAULT_SCOPES = Object.freeze([...OIDC_PROTOCOL_SCOPES, ...MCP_CLIENT_SCOPES]);
-Object.freeze([...DCR_DEFAULT_SCOPES, ...OIDC_IDENTITY_SCOPES]);
-Object.freeze({
-	protocolVersion: 2,
-	provisioningScope: "moltnet:provision",
-	localControlScope: "moltnet:local-control",
-	provisioningAudience: "moltnet:provisioning",
-	localControlAudience: "moltnet:agent-server",
-	/**
-	* Administratively registered public PKCE clients. The consent handler
-	* compares a token's `client_id` against these, so server and Desktop must
-	* agree: a mismatch rejects every approval with an opaque 403.
-	*/
-	nativeClientId: "moltnet-native",
-	approvalTransportGraceSeconds: 30,
-	callbackPort: 17375,
-	nativeLifetimeSeconds: 300,
-	serverPort: 17374
-});
-Object.freeze({
-	clientId: "tailscale-login",
-	redirectUri: "https://login.tailscale.com/a/oauth_response",
-	scopes: [
-		"openid",
-		"profile",
-		"email"
-	],
-	scope: "openid profile email"
-});
-//#endregion
-//#region ../../libs/models/src/preview-sign.ts
-function schemaRef$1(schema, id) {
-	return Unsafe(Ref$2(id));
-}
-var PreviewSignBase64UrlSchema = String$1({
-	$id: "PreviewSignBase64Url",
-	minLength: 1,
-	maxLength: 5462,
-	pattern: "^[A-Za-z0-9_-]+$"
-});
-var PreviewSignSha256Base64UrlSchema = String$1({
-	$id: "PreviewSignSha256Base64Url",
-	minLength: 43,
-	maxLength: 43,
-	pattern: "^[A-Za-z0-9_-]+$"
-});
-var PreviewSignP256DerSignatureBase64UrlSchema = String$1({
-	$id: "PreviewSignP256DerSignatureBase64Url",
-	minLength: 11,
-	maxLength: 96,
-	pattern: "^[A-Za-z0-9_-]+$"
-});
-var PreviewSignEs256PublicKeySchema = _Object_({
-	kty: Literal(2),
-	algorithm: Literal(-7),
-	curve: Literal(1),
-	x: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url"),
-	y: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url")
-}, {
-	$id: "PreviewSignEs256PublicKey",
-	additionalProperties: false
-});
-var PreviewSignEcdhEsHkdf256PublicKeySchema = _Object_({
-	kty: Literal(2),
-	algorithm: Literal(-25),
-	curve: Literal(1),
-	x: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url"),
-	y: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url")
-}, {
-	$id: "PreviewSignEcdhEsHkdf256PublicKey",
-	additionalProperties: false
-});
-var PreviewSignEsp256PublicKeySchema = _Object_({
-	kty: Literal(2),
-	algorithm: Literal(-9),
-	curve: Literal(1),
-	x: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url"),
-	y: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url")
-}, {
-	$id: "PreviewSignEsp256PublicKey",
-	additionalProperties: false
-});
-var PreviewSignArkgSeedPublicKeySchema = _Object_({
-	kty: Literal(-65537),
-	algorithm: Literal(-65700),
-	derivedAlgorithm: Literal(-9),
-	blindingKey: schemaRef$1(PreviewSignEs256PublicKeySchema, "PreviewSignEs256PublicKey"),
-	kemKey: schemaRef$1(PreviewSignEcdhEsHkdf256PublicKeySchema, "PreviewSignEcdhEsHkdf256PublicKey")
-}, {
-	$id: "PreviewSignArkgSeedPublicKey",
-	additionalProperties: false
-});
-var PreviewSignPublicMaterialSchema = _Object_({
-	version: Literal(1),
-	outerCredentialId: schemaRef$1(PreviewSignBase64UrlSchema, "PreviewSignBase64Url"),
-	outerPublicKey: schemaRef$1(PreviewSignEs256PublicKeySchema, "PreviewSignEs256PublicKey"),
-	previewKeyHandle: schemaRef$1(PreviewSignBase64UrlSchema, "PreviewSignBase64Url"),
-	seedPublicKey: schemaRef$1(PreviewSignArkgSeedPublicKeySchema, "PreviewSignArkgSeedPublicKey")
-}, {
-	$id: "PreviewSignPublicMaterial",
-	additionalProperties: false
-});
-var PreviewSignChallengeSchema = _Object_({
-	verificationMethod: Literal("human-hardware-previewsign"),
-	version: Literal(1),
-	envelope: schemaRef$1(PreviewSignBase64UrlSchema, "PreviewSignBase64Url"),
-	digest: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url"),
-	additionalArguments: schemaRef$1(PreviewSignBase64UrlSchema, "PreviewSignBase64Url"),
-	outerCredentialId: schemaRef$1(PreviewSignBase64UrlSchema, "PreviewSignBase64Url"),
-	outerPublicKey: schemaRef$1(PreviewSignEs256PublicKeySchema, "PreviewSignEs256PublicKey"),
-	previewKeyHandle: schemaRef$1(PreviewSignBase64UrlSchema, "PreviewSignBase64Url")
-}, {
-	$id: "PreviewSignChallenge",
-	additionalProperties: false
-});
-var PreviewSignChallengeValueSchema = _Object_({
-	verificationMethod: Literal("human-hardware-previewsign"),
-	value: schemaRef$1(PreviewSignChallengeSchema, "PreviewSignChallenge")
-}, {
-	$id: "PreviewSignChallengeValue",
-	additionalProperties: false
-});
-var PreviewSignChallengeOperationSchema = Union([Literal("credential-registration"), Literal("signing-request")], { $id: "PreviewSignChallengeOperation" });
-var PreviewSignReceiptSchema = _Object_({
-	version: Literal(1),
-	signature: schemaRef$1(PreviewSignP256DerSignatureBase64UrlSchema, "PreviewSignP256DerSignatureBase64Url")
-}, {
-	$id: "PreviewSignReceipt",
-	additionalProperties: false
-});
-var PreviewSignReceiptValueSchema = _Object_({
-	verificationMethod: Literal("human-hardware-previewsign"),
-	value: schemaRef$1(PreviewSignReceiptSchema, "PreviewSignReceipt")
-}, {
-	$id: "PreviewSignReceiptValue",
-	additionalProperties: false
-});
-var previewSignSchemaContext = {
-	PreviewSignBase64Url: PreviewSignBase64UrlSchema,
-	PreviewSignSha256Base64Url: PreviewSignSha256Base64UrlSchema,
-	PreviewSignP256DerSignatureBase64Url: PreviewSignP256DerSignatureBase64UrlSchema,
-	PreviewSignEs256PublicKey: PreviewSignEs256PublicKeySchema,
-	PreviewSignEcdhEsHkdf256PublicKey: PreviewSignEcdhEsHkdf256PublicKeySchema,
-	PreviewSignEsp256PublicKey: PreviewSignEsp256PublicKeySchema,
-	PreviewSignArkgSeedPublicKey: PreviewSignArkgSeedPublicKeySchema,
-	PreviewSignPublicMaterial: PreviewSignPublicMaterialSchema,
-	PreviewSignChallenge: PreviewSignChallengeSchema,
-	PreviewSignChallengeValue: PreviewSignChallengeValueSchema,
-	PreviewSignChallengeOperation: PreviewSignChallengeOperationSchema,
-	PreviewSignReceipt: PreviewSignReceiptSchema,
-	PreviewSignReceiptValue: PreviewSignReceiptValueSchema
-};
-//#endregion
-//#region ../../libs/models/src/verification-method.ts
-/**
-* Persisted and wire-level signing verification method identifiers.
-*
-* This vocabulary is append-only. Never rename, remove, or change an existing
-* value: PostgreSQL rows, workflow inputs, and API clients persist these exact
-* strings. Future signing methods must add a new property and value.
-*/
-var VERIFICATION_METHOD = {
-	AgentEd25519: "agent-ed25519",
-	HumanHardwarePreviewSign: "human-hardware-previewsign"
-};
-VERIFICATION_METHOD.AgentEd25519, VERIFICATION_METHOD.HumanHardwarePreviewSign;
-//#endregion
-//#region ../../libs/models/src/schemas.ts
-var UuidSchema = String$1({
-	format: "uuid",
-	description: "UUID v4 identifier"
-});
-var TimestampSchema = String$1({
-	format: "date-time",
-	description: "ISO 8601 timestamp"
-});
-Union([Literal(VERIFICATION_METHOD.AgentEd25519), Literal(VERIFICATION_METHOD.HumanHardwarePreviewSign)], { description: "Stable signing verification method identifier" });
-Union([
-	Literal("private"),
-	Literal("moltnet"),
-	Literal("public")
-], { description: "Entry visibility level" });
-var ENTRY_TYPE_VALUES = [
-	"episodic",
-	"semantic",
-	"procedural",
-	"reflection"
-];
-var EntryTypeSchema = Union([
-	Literal("episodic"),
-	Literal("semantic"),
-	Literal("procedural"),
-	Literal("reflection")
-], { description: "Entry memory type" });
-/** Regex fragment matching a single entry type value. */
-var ENTRY_TYPE_PATTERN = `(${ENTRY_TYPE_VALUES.join("|")})`;
-`${ENTRY_TYPE_PATTERN}${ENTRY_TYPE_PATTERN}`, ENTRY_TYPE_VALUES.length - 1;
-var PublicKeySchema = String$1({
-	pattern: "^ed25519:[A-Za-z0-9+/=]+$",
-	description: "Ed25519 public key with prefix"
-});
-var FingerprintSchema = String$1({
-	pattern: "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
-	description: "Key fingerprint (A1B2-C3D4-E5F6-G7H8)"
-});
-var AgentAliasSchema = String$1({
-	pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$",
-	minLength: 1,
-	maxLength: 63,
-	description: "Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup"
-});
-_Object_({
-	title: Optional(String$1({ maxLength: 255 })),
-	content: String$1({
-		minLength: 1,
-		maxLength: 1e5
-	}),
-	tags: Optional(_Array_(String$1({ maxLength: 128 }), { maxItems: 20 }))
-});
-_Object_({
-	title: Optional(String$1({ maxLength: 255 })),
-	content: Optional(String$1({
-		minLength: 1,
-		maxLength: 1e5
-	})),
-	tags: Optional(_Array_(String$1({ maxLength: 128 }), { maxItems: 20 }))
-});
-_Object_({
-	query: Optional(String$1({
-		minLength: 1,
-		maxLength: 500
-	})),
-	tags: Optional(_Array_(String$1({ maxLength: 128 }), {
-		minItems: 1,
-		maxItems: 20,
-		description: "Filter: entry must have ALL specified tags"
-	})),
-	limit: Optional(Number$1({
-		minimum: 1,
-		maximum: 100,
-		default: 20
-	})),
-	offset: Optional(Number$1({
-		minimum: 0,
-		default: 0
-	}))
-});
-_Object_({
-	identityId: UuidSchema,
-	publicKey: PublicKeySchema,
-	fingerprint: FingerprintSchema,
-	createdAt: TimestampSchema
-});
-_Object_({
-	publicKey: PublicKeySchema,
-	fingerprint: FingerprintSchema
-});
-_Object_({ message: String$1({
-	minLength: 1,
-	maxLength: 1e4
-}) });
-_Object_({
-	message: String$1(),
-	signature: String$1({ description: "Base64 encoded Ed25519 signature" }),
-	publicKey: PublicKeySchema
-});
-_Object_({
-	message: String$1({
-		minLength: 1,
-		maxLength: 1e4
-	}),
-	signature: String$1({ description: "Base64 encoded signature" }),
-	publicKey: PublicKeySchema
-});
-_Object_({
-	valid: Boolean$1(),
-	signer: Optional(_Object_({ fingerprint: FingerprintSchema }))
-});
-var BaseAuthContextSchema = _Object_({
-	identityId: UuidSchema,
-	scopes: _Array_(String$1()),
-	subjectType: Union([Literal("agent"), Literal("human")]),
-	currentTeamId: Union([UuidSchema, Null()])
-});
-Union([Intersect([BaseAuthContextSchema, _Object_({
-	subjectType: Literal("agent"),
-	publicKey: PublicKeySchema,
-	fingerprint: FingerprintSchema,
-	clientId: String$1()
-})]), Intersect([BaseAuthContextSchema, _Object_({
-	subjectType: Literal("human"),
-	clientId: Union([String$1(), Null()])
-})])]);
-_Object_({
-	success: Boolean$1(),
-	message: Optional(String$1())
-});
-_Object_({ diaryId: UuidSchema });
-_Object_({
-	diaryId: UuidSchema,
-	entryId: UuidSchema
-});
-_Object_({ entryId: UuidSchema });
-_Object_({ id: UuidSchema });
-_Object_({
-	publicKey: PublicKeySchema,
-	fingerprint: FingerprintSchema,
-	proof: String$1({
-		minLength: 1,
-		maxLength: 256
-	}),
-	credentialType: Literal("oauth2"),
-	agentName: String$1({
-		minLength: 1,
-		maxLength: 34
-	}),
-	org: Optional(String$1({
-		minLength: 1,
-		maxLength: 39,
-		pattern: "^[a-zA-Z0-9-]+$",
-		description: "GitHub organization name. When provided, the GitHub App will be created under this org instead of the personal account."
-	}))
-});
-_Object_({
-	workflowId: String$1(),
-	manifestFormUrl: String$1()
-});
-_Object_({
-	status: Union([
-		Literal("awaiting_github"),
-		Literal("github_code_ready"),
-		Literal("awaiting_installation"),
-		Literal("completed"),
-		Literal("failed")
-	]),
-	githubCode: Optional(String$1({ description: "GitHub manifest code sealed to the onboarding agent public key." })),
-	identityId: Optional(String$1()),
-	clientId: Optional(String$1()),
-	clientSecret: Optional(String$1({ description: "OAuth2 client secret sealed to the onboarding agent public key." })),
-	installationId: Optional(String$1())
-});
-_Object_({
-	wf: String$1({
-		minLength: 1,
-		description: "Workflow ID baked into setup_url"
-	}),
-	installation_id: String$1({ minLength: 1 }),
-	setup_action: Optional(String$1())
-});
-_Object_({ id: UuidSchema });
-_Object_({
-	id: UuidSchema,
-	subjectId: UuidSchema
-});
-_Object_({
-	id: UuidSchema,
-	inviteId: UuidSchema
-});
-_Object_({ name: String$1({
-	minLength: 1,
-	maxLength: 255
-}) });
-_Object_({
-	role: Optional(Union([
-		Literal("manager"),
-		Literal("executor"),
-		Literal("member")
-	])),
-	expiresInHours: Optional(Integer({
-		minimum: 1,
-		maximum: 720,
-		default: 168
-	}))
-});
-_Object_({
-	code: String$1({ minLength: 1 }),
-	issueAgentKey: Optional(Literal(true)),
-	expectedTeamId: Optional(UuidSchema)
-});
-_Object_({ role: Union([
-	Literal("manager"),
-	Literal("executor"),
-	Literal("member")
-]) });
-var TeamRoleSchema = Union([
-	Literal("owner"),
-	Literal("manager"),
-	Literal("executor"),
-	Literal("member")
-]);
-_Object_({
-	id: UuidSchema,
-	name: String$1()
-});
-var DateTimeUnsafe = Unsafe(String$1({ format: "date-time" }));
-_Object_({
-	id: UuidSchema,
-	code: String$1(),
-	role: Union([
-		Literal("manager"),
-		Literal("executor"),
-		Literal("member")
-	]),
-	usedAt: Union([String$1({ format: "date-time" }), Null()]),
-	expiresAt: DateTimeUnsafe,
-	createdAt: DateTimeUnsafe
-});
-var TeamMemberSchema = _Object_({
-	subjectId: UuidSchema,
-	subjectType: Union([Literal("agent"), Literal("human")]),
-	role: TeamRoleSchema,
-	displayName: String$1(),
-	alias: Optional(AgentAliasSchema),
-	fingerprint: Optional(String$1()),
-	email: Optional(String$1())
-});
-_Object_({
-	id: UuidSchema,
-	name: String$1(),
-	personal: Boolean$1(),
-	status: String$1(),
-	role: TeamRoleSchema
-});
-_Object_({
-	id: UuidSchema,
-	name: String$1(),
-	status: String$1(),
-	personal: Boolean$1(),
-	createdAt: DateTimeUnsafe,
-	updatedAt: DateTimeUnsafe,
-	members: _Array_(TeamMemberSchema)
-});
-_Object_({
-	teamId: UuidSchema,
-	role: TeamRoleSchema
-});
-_Object_({
-	updated: Boolean$1(),
-	role: Union([
-		Literal("manager"),
-		Literal("executor"),
-		Literal("member")
-	])
-});
-_Object_({ deleted: Boolean$1() });
-_Object_({ removed: Boolean$1() });
-var FoundingMemberSchema = _Object_({
-	subjectId: UuidSchema,
-	subjectNs: Union([Literal("Agent"), Literal("Human")]),
-	role: Union([
-		Literal("owner"),
-		Literal("manager"),
-		Literal("executor"),
-		Literal("member")
-	])
-});
-_Object_({
-	name: String$1({
-		minLength: 1,
-		maxLength: 255
-	}),
-	foundingMembers: Optional(_Array_(FoundingMemberSchema, { minItems: 1 }))
-});
-_Object_({
-	id: UuidSchema,
-	name: String$1(),
-	status: String$1(),
-	workflowId: Optional(String$1())
-});
-_Object_({});
-_Object_({
-	accepted: Boolean$1(),
-	teamStatus: String$1()
-});
-_Object_({ destinationTeamId: UuidSchema });
-_Object_({ transferId: UuidSchema });
-_Object_({ items: _Array_(_Object_({
-	id: UuidSchema,
-	diaryId: UuidSchema,
-	sourceTeamId: UuidSchema,
-	destinationTeamId: UuidSchema,
-	status: String$1(),
-	initiatedBy: UuidSchema,
-	expiresAt: Unsafe(String$1({ format: "date-time" })),
-	createdAt: Unsafe(String$1({ format: "date-time" }))
-})) });
-_Object_({ groupId: UuidSchema });
-_Object_({
-	groupId: UuidSchema,
-	subjectId: UuidSchema
-});
-_Object_({ name: String$1({
-	minLength: 1,
-	maxLength: 255
-}) });
-_Object_({
-	subjectId: UuidSchema,
-	subjectNs: Optional(Union([Literal("Agent"), Literal("Human")]))
-});
-_Object_({
-	id: UuidSchema,
-	name: String$1(),
-	teamId: UuidSchema
-});
-var GroupMemberResponseSchema = _Object_({
-	subjectId: UuidSchema,
-	subjectNs: String$1()
-});
-_Object_({
-	id: UuidSchema,
-	name: String$1(),
-	teamId: UuidSchema,
-	createdAt: DateTimeUnsafe,
-	members: _Array_(GroupMemberResponseSchema)
-});
-var DiaryGrantRoleSchema = Union([Literal("writer"), Literal("manager")]);
-var GrantSubjectNsSchema = Union([
-	Literal("Agent"),
-	Literal("Human"),
-	Literal("Group")
-]);
-_Object_({
-	subjectId: UuidSchema,
-	subjectNs: GrantSubjectNsSchema,
-	role: DiaryGrantRoleSchema
-});
-_Object_({
-	subjectId: UuidSchema,
-	subjectNs: GrantSubjectNsSchema,
-	role: DiaryGrantRoleSchema
-});
-_Object_({ grants: _Array_(_Object_({
-	subjectId: UuidSchema,
-	subjectNs: GrantSubjectNsSchema,
-	role: DiaryGrantRoleSchema
-})) });
-_Object_({ revoked: Boolean$1() });
-var TaskGrantRoleSchema = Union([Literal("writer"), Literal("manager")]);
-_Object_({
-	subjectId: UuidSchema,
-	subjectNs: GrantSubjectNsSchema,
-	role: TaskGrantRoleSchema
-});
-_Object_({
-	subjectId: UuidSchema,
-	subjectNs: GrantSubjectNsSchema,
-	role: TaskGrantRoleSchema
-});
-_Object_({ grants: _Array_(_Object_({
-	subjectId: UuidSchema,
-	subjectNs: GrantSubjectNsSchema,
-	role: TaskGrantRoleSchema
-})) });
-_Object_({ "x-moltnet-team-id": String$1({
-	format: "uuid",
-	description: "Team ID (UUID) that will own the resource. Required."
-}) });
-_Object_({ "x-moltnet-team-id": Optional(String$1({
-	format: "uuid",
-	description: "Team ID (UUID) for scoping the request. Optional."
-})) });
-_Object_({
-	kind: Literal("agent"),
-	/**
-	* Internal MoltNet agent ID — stable for the life of the agent and the
-	* value every agent foreign key and Keto tuple refers to.
-	*/
-	agentId: UuidSchema,
-	/**
-	* Ory Kratos identity bound to this agent, or null when it has none.
-	*
-	* Null is not a registration race (agents are created synchronously, with
-	* no webhook): it means the Kratos identity is gone or not yet
-	* reprovisioned. Keeping this nullable is what stops an identity loss from
-	* turning every read of that agent's resources into a serialization error.
-	*/
-	identityId: Union([UuidSchema, Null()]),
-	fingerprint: FingerprintSchema,
-	publicKey: PublicKeySchema
-}, {
-	$id: "AgentPrincipal",
-	additionalProperties: false
-});
-_Object_({
-	kind: Literal("human"),
-	humanId: UuidSchema,
-	identityId: Union([UuidSchema, Null()])
-}, {
-	$id: "HumanPrincipal",
-	additionalProperties: false
-});
-var principalUnionVariants = [_Object_({
-	kind: Literal("agent"),
-	agentId: UuidSchema,
-	identityId: Union([UuidSchema, Null()]),
-	fingerprint: FingerprintSchema,
-	publicKey: PublicKeySchema
-}, { additionalProperties: false }), _Object_({
-	kind: Literal("human"),
-	humanId: UuidSchema,
-	identityId: Union([UuidSchema, Null()])
-}, { additionalProperties: false })];
-Union(principalUnionVariants, {
-	$id: "PrincipalIdentity",
-	discriminator: { propertyName: "kind" }
-});
-/**
-* `$id`-less twin of `PrincipalIdentitySchema`. Required anywhere the
-* schema is **embedded** inline into another schema (MCP `outputSchema`
-* — every tool that returns a creator-bearing object embeds its own
-* copy; provenance-graph node `meta.creator`, etc.). Ajv 8 throws
-* `reference "PrincipalIdentity" resolves to more than one schema` if
-* the same `$id` appears twice in the same compilation pass, which is
-* exactly what happens when the MCP server lists tools and Ajv
-* traverses every advertised `outputSchema`.
-*
-* Structurally identical to `PrincipalIdentitySchema` (they share the
-* variants array); change one, change both.
-*/
-var PrincipalIdentitySchemaInline = Union(principalUnionVariants, { discriminator: { propertyName: "kind" } });
-//#endregion
-//#region ../../libs/models/src/problem-details.ts
-var ProblemCodeSchema = Union([
-	Literal("UNAUTHORIZED"),
-	Literal("FORBIDDEN"),
-	Literal("NOT_FOUND"),
-	Literal("CONFLICT"),
-	Literal("PROJECT_MISMATCH"),
-	Literal("UNSUPPORTED_MEDIA_TYPE"),
-	Literal("VALIDATION_FAILED"),
-	Literal("INVALID_CHALLENGE"),
-	Literal("INVALID_SIGNATURE"),
-	Literal("RATE_LIMIT_EXCEEDED"),
-	Literal("SERIALIZATION_EXHAUSTED"),
-	Literal("SIGNING_REQUEST_EXPIRED"),
-	Literal("SIGNING_REQUEST_ALREADY_COMPLETED"),
-	Literal("SIGNING_REQUEST_LIMIT_REACHED"),
-	Literal("REGISTRATION_FAILED"),
-	Literal("UPSTREAM_ERROR"),
-	Literal("SERVICE_UNAVAILABLE"),
-	Literal("INTERNAL_SERVER_ERROR"),
-	Literal("TEAM_PERSONAL_IMMUTABLE"),
-	Literal("TEAM_NOT_ACTIVE"),
-	Literal("INVITE_EXPIRED"),
-	Literal("INVITE_EXHAUSTED"),
-	Literal("TEAM_LAST_OWNER"),
-	Literal("TEAM_ALREADY_ACTIVE"),
-	Literal("TEAM_NOT_FOUNDING"),
-	Literal("FOUNDING_ALREADY_ACCEPTED"),
-	Literal("DIARY_TRANSFER_PENDING"),
-	Literal("DIARY_TRANSFER_NOT_FOUND"),
-	Literal("DIARY_TRANSFER_ALREADY_RESOLVED")
-]);
-var ProblemDetailsSchema = _Object_({
-	type: String$1({ format: "uri" }),
-	title: String$1(),
-	status: Integer({
-		minimum: 100,
-		maximum: 599
-	}),
-	code: ProblemCodeSchema,
-	detail: Optional(String$1()),
-	instance: Optional(String$1()),
-	retryAfter: Optional(Integer({
-		minimum: 0,
-		description: "Non-negative delay in seconds before retrying, matching the Retry-After response header when present."
-	}))
-}, {
-	$id: "ProblemDetails",
-	additionalProperties: true
-});
-_Object_({
-	field: String$1(),
-	message: String$1(),
-	/**
-	* Optional machine-readable code for branch-able client handling
-	* (e.g. `freeform.sourceTaskNotFound`). Free-form by convention:
-	* `<scope>.<failure>` with dot-namespacing. Absent when the producer
-	* didn't emit one — older code paths just send `field` + `message`.
-	*/
-	code: Optional(String$1())
-}, {
-	$id: "ValidationError",
-	additionalProperties: false
-});
-_Object_({
-	resource: String$1(),
-	id: Optional(String$1({ format: "uuid" })),
-	keys: Optional(Record(String$1(), String$1()))
-}, {
-	$id: "ConflictTarget",
-	additionalProperties: false
-});
-_Object_({
-	constraint: Optional(String$1()),
-	target: Optional(Ref$2("ConflictTarget"))
-}, {
-	$id: "ConflictError",
-	additionalProperties: false
-});
-var ConflictProblemDetailsSchema = Intersect([ProblemDetailsSchema, _Object_({ conflict: Ref$2("ConflictError") })], { $id: "ConflictProblemDetails" });
-_Object_({
-	type: String$1(),
-	severity: Number$1(),
-	match: String$1()
-}, {
-	$id: "InjectionThreat",
-	additionalProperties: false
-});
-Intersect([ConflictProblemDetailsSchema, _Object_({ flagged: Optional(_Array_(_Object_({
-	id: String$1({ format: "uuid" }),
-	threats: _Array_(Ref$2("InjectionThreat"))
-}, { additionalProperties: false }))) })], { $id: "InjectionConflictProblemDetails" });
-Intersect([ProblemDetailsSchema, _Object_({ errors: _Array_(Ref$2("ValidationError")) })], { $id: "ValidationProblemDetails" });
-_Object_({
-	id: String$1({ format: "uuid" }),
-	teamId: String$1({ format: "uuid" }),
-	creatorAgentId: Union([String$1({ format: "uuid" }), Null()]),
-	creatorHumanId: Union([String$1({ format: "uuid" }), Null()]),
-	name: String$1(),
-	description: Union([String$1(), Null()]),
-	defaultDiaryId: Union([String$1({ format: "uuid" }), Null()]),
-	archived: Boolean$1(),
-	createdAt: String$1({ format: "date-time" }),
-	updatedAt: String$1({ format: "date-time" })
-});
-_Object_({
-	...Partial(_Object_({
-		name: String$1({
-			minLength: 1,
-			maxLength: 255,
-			pattern: "\\S"
-		}),
-		description: Optional(Union([String$1({ maxLength: 1e4 }), Null()])),
-		defaultDiaryId: Optional(Union([String$1({ format: "uuid" }), Null()]))
-	}, { additionalProperties: false })).properties,
-	archived: Optional(Boolean$1())
-}, {
-	additionalProperties: false,
-	minProperties: 1
-});
-Union([
-	Literal("pack"),
-	Literal("entry"),
-	Literal("rendered_pack")
-]);
-var ProvenanceGraphEdgeKindSchema = Union([
-	Literal("includes"),
-	Literal("supersedes"),
-	Literal("rendered_from")
-]);
-var ProvenanceGraphPackMetaSchema = _Object_({
-	packId: UuidSchema,
-	diaryId: UuidSchema,
-	packCid: String$1(),
-	packType: String$1(),
-	packCodec: String$1(),
-	pinned: Boolean$1(),
-	createdAt: TimestampSchema,
-	expiresAt: Union([TimestampSchema, Null()]),
-	supersedesPackId: Union([UuidSchema, Null()])
-});
-/**
-* Discriminated creator embedded inside provenance-node response
-* payloads. Re-uses the shared `PrincipalIdentitySchemaInline` (the
-* `$id`-less twin) — embedding the named `PrincipalIdentitySchema`
-* here would clash with the top-level registration via @fastify/swagger
-* (`reference "PrincipalIdentity" resolves to more than one schema`).
-*/
-var ProvenanceGraphCreatorSchema = PrincipalIdentitySchemaInline;
-var ProvenanceGraphEntryMetaSchema = _Object_({
-	entryId: UuidSchema,
-	diaryId: UuidSchema,
-	entryType: EntryTypeSchema,
-	contentHash: Union([String$1(), Null()]),
-	createdAt: TimestampSchema,
-	updatedAt: TimestampSchema,
-	signed: Boolean$1(),
-	title: Union([String$1(), Null()]),
-	tags: _Array_(String$1()),
-	creator: Optional(ProvenanceGraphCreatorSchema)
-});
-var ProvenanceGraphPackNodeSchema = _Object_({
-	id: String$1(),
-	kind: Literal("pack"),
-	label: String$1(),
-	cid: Union([String$1(), Null()]),
-	meta: Intersect([ProvenanceGraphPackMetaSchema, _Object_({ creator: Optional(ProvenanceGraphCreatorSchema) })])
-});
-var ProvenanceGraphEntryNodeSchema = _Object_({
-	id: String$1(),
-	kind: Literal("entry"),
-	label: String$1(),
-	cid: Union([String$1(), Null()]),
-	meta: ProvenanceGraphEntryMetaSchema
-});
-var ProvenanceGraphRenderedPackMetaSchema = _Object_({
-	renderedPackId: UuidSchema,
-	sourcePackId: UuidSchema,
-	diaryId: UuidSchema,
-	packCid: String$1(),
-	renderMethod: String$1(),
-	totalTokens: Number$1(),
-	pinned: Boolean$1(),
-	createdAt: TimestampSchema,
-	expiresAt: Union([TimestampSchema, Null()]),
-	creator: Optional(ProvenanceGraphCreatorSchema)
-});
-var ProvenanceGraphNodeSchema = Union([
-	ProvenanceGraphPackNodeSchema,
-	ProvenanceGraphEntryNodeSchema,
-	_Object_({
-		id: String$1(),
-		kind: Literal("rendered_pack"),
-		label: String$1(),
-		cid: Union([String$1(), Null()]),
-		meta: ProvenanceGraphRenderedPackMetaSchema
-	})
-]);
-var ProvenanceGraphEdgeSchema = _Object_({
-	id: String$1(),
-	from: String$1(),
-	to: String$1(),
-	kind: ProvenanceGraphEdgeKindSchema,
-	label: Optional(String$1()),
-	meta: Optional(Record(String$1(), Union([
-		String$1(),
-		Number$1(),
-		Boolean$1(),
-		Null()
-	])))
-});
-_Object_({
-	metadata: _Object_({
-		format: Literal("moltnet.provenance-graph/v1"),
-		generatedAt: TimestampSchema,
-		rootNodeId: String$1(),
-		rootPackId: UuidSchema,
-		depth: Number$1({ minimum: 0 })
-	}),
-	nodes: _Array_(ProvenanceGraphNodeSchema),
-	edges: _Array_(ProvenanceGraphEdgeSchema)
-}, { $id: "ProvenanceGraph" });
-//#endregion
-//#region ../../libs/models/src/render-method.ts
-/**
-* The `renderMethod` convention for rendered packs (#1857).
-*
-* `renderedPacks.renderMethod` is a free-text `varchar(100)`. The server
-* bifurcates on exactly one thing — whether the label starts with `server:`
-* — and everything else is a caller-authored render whose markdown the
-* caller must supply. This module is the single owner of that convention:
-* the service, the API schemas, the runtime default and the console's
-* trust-tier derivation all read from here.
-*
-* The Go CLI (`apps/moltnet-cli/cobra_pack.go`) cannot import this module;
-* it carries a pointer comment and its default must be kept in sync with
-* `DEFAULT_SERVER_RENDER_METHOD` by hand.
-*
-* Values observed in production data and accepted unchanged:
-* `server:pack-to-docs-v1`, `agent:pack-to-docs-v1`, `agent-refined`.
-* `pi:pack-to-docs-v1` is the live pi-runtime default.
-*/
-/** Labels carrying this prefix are rendered deterministically by the server. */
-var SERVER_RENDER_PREFIX = "server:";
-/**
-* Prefixes that identify caller-authored markdown.
-*
-* `agent:` is the canonical documented label, `pi:` is what the pi-runtime
-* emits by default, and `agent-` covers the `agent-refined` family that is
-* live in production data.
-*/
-var CALLER_AUTHORED_PREFIXES = [
-	"agent:",
-	"pi:",
-	"agent-"
-];
-var DEFAULT_SERVER_RENDER_METHOD = "server:pack-to-docs-v1";
-var DEFAULT_AGENT_RENDER_METHOD = "agent:pack-to-docs-v1";
-var RenderMethodSchema = String$1({
-	minLength: 1,
-	maxLength: 100,
-	pattern: `^(${[SERVER_RENDER_PREFIX, ...CALLER_AUTHORED_PREFIXES].join("|")})\\S+$`,
-	description: "Render method label. Server render methods start with \"server:\" and must omit renderedMarkdown; caller-authored methods start with \"agent:\", \"pi:\" or \"agent-\" and require it.",
-	examples: [DEFAULT_SERVER_RENDER_METHOD, DEFAULT_AGENT_RENDER_METHOD]
-});
-//#endregion
-//#region ../../libs/models/src/signer-constraint.ts
-var SIGNER_CONSTRAINT_TYPE = {
-	Human: "human",
-	TeamRole: "team-role",
-	Group: "group"
-};
-Union([
-	_Object_({
-		type: Literal(SIGNER_CONSTRAINT_TYPE.Human),
-		id: String$1({ format: "uuid" })
-	}),
-	_Object_({
-		type: Literal(SIGNER_CONSTRAINT_TYPE.TeamRole),
-		id: TeamRoleSchema
-	}),
-	_Object_({
-		type: Literal(SIGNER_CONSTRAINT_TYPE.Group),
-		id: String$1({ format: "uuid" })
-	})
-]);
-//#endregion
-//#region ../../libs/models/src/signer-protocol.ts
-function schemaRef(schema) {
-	return Ref$2(schemaId(schema));
-}
-function schemaId(schema) {
-	const id = schema.$id;
-	if (typeof id !== "string" || id.length === 0) throw new Error("Signer protocol schemas must have an identifier");
-	return id;
-}
-var SignerBase64UrlSchema = PreviewSignBase64UrlSchema;
-var SignerUuidSchema = String$1({
-	$id: "SignerUuid",
-	pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
-});
-var SignerOperationSchema = Union([
-	Literal("credential-enrollment"),
-	Literal("credential-registration"),
-	Literal("signing-request")
-], { $id: "SignerOperation" });
-var SignerChallengeOperationSchema = PreviewSignChallengeOperationSchema;
-var SignerPreviewSignPublicMaterialSchema = PreviewSignPublicMaterialSchema;
-var SignerPreviewSignChallengeValueSchema = PreviewSignChallengeValueSchema;
-var SignerProblemSchema = _Object_({
-	code: String$1({ minLength: 1 }),
-	message: String$1({ minLength: 1 })
-}, {
-	$id: "SignerProblem",
-	additionalProperties: false
-});
-var SignerCeremonyParamsSchema = _Object_({ ceremonyId: Unsafe(schemaRef(SignerBase64UrlSchema)) }, {
-	$id: "SignerCeremonyParams",
-	additionalProperties: false
-});
-var SignerSessionSchema = _Object_({
-	version: Literal(1),
-	token: Unsafe(schemaRef(SignerBase64UrlSchema)),
-	expiresAt: String$1()
-}, {
-	$id: "SignerSession",
-	additionalProperties: false
-});
-var SignerEnrollmentCeremonyRequestSchema = _Object_({
-	version: Literal(1),
-	operation: Literal("credential-enrollment"),
-	label: String$1({
-		minLength: 1,
-		maxLength: 255
-	}),
-	teamId: Unsafe(schemaRef(SignerUuidSchema))
-}, {
-	$id: "SignerEnrollmentCeremonyRequest",
-	additionalProperties: false
-});
-var SignerChallengeCeremonyRequestSchema = _Object_({
-	version: Literal(1),
-	operation: Unsafe(schemaRef(SignerChallengeOperationSchema)),
-	resourceId: Unsafe(schemaRef(SignerUuidSchema)),
-	challenge: Unsafe(schemaRef(SignerPreviewSignChallengeValueSchema))
-}, {
-	$id: "SignerChallengeCeremonyRequest",
-	additionalProperties: false
-});
-var SignerCeremonyRequestSchema = Union([Unsafe(schemaRef(SignerEnrollmentCeremonyRequestSchema)), Unsafe(schemaRef(SignerChallengeCeremonyRequestSchema))], { $id: "SignerCeremonyRequest" });
-var SignerCeremonySchema = _Object_({
-	version: Literal(1),
-	id: Unsafe(schemaRef(SignerBase64UrlSchema)),
-	operation: Unsafe(schemaRef(SignerOperationSchema)),
-	approvalUrl: String$1(),
-	expiresAt: String$1()
-}, {
-	$id: "SignerCeremony",
-	additionalProperties: false
-});
-var SignerPendingResultSchema = _Object_({
-	version: Literal(1),
-	status: Literal("pending"),
-	operation: Unsafe(schemaRef(SignerOperationSchema))
-}, {
-	$id: "SignerPendingResult",
-	additionalProperties: false
-});
-var SignerEnrollmentResultSchema = _Object_({
-	version: Literal(1),
-	status: Literal("completed"),
-	operation: Literal("credential-enrollment"),
-	publicMaterial: Unsafe(schemaRef(SignerPreviewSignPublicMaterialSchema))
-}, {
-	$id: "SignerEnrollmentResult",
-	additionalProperties: false
-});
-var SignerReceiptSchema = PreviewSignReceiptValueSchema;
-var SignerSignatureResultSchema = _Object_({
-	version: Literal(1),
-	status: Literal("completed"),
-	operation: Unsafe(schemaRef(SignerChallengeOperationSchema)),
-	receipt: Unsafe(schemaRef(SignerReceiptSchema))
-}, {
-	$id: "SignerSignatureResult",
-	additionalProperties: false
-});
-var SignerFailedResultSchema = _Object_({
-	version: Literal(1),
-	status: Literal("failed"),
-	operation: Unsafe(schemaRef(SignerOperationSchema)),
-	code: String$1(),
-	message: String$1()
-}, {
-	$id: "SignerFailedResult",
-	additionalProperties: false
-});
-var SignerCeremonyResultSchema = Union([
-	Unsafe(schemaRef(SignerPendingResultSchema)),
-	Unsafe(schemaRef(SignerEnrollmentResultSchema)),
-	Unsafe(schemaRef(SignerSignatureResultSchema)),
-	Unsafe(schemaRef(SignerFailedResultSchema))
-], { $id: "SignerCeremonyResult" });
-({ ...previewSignSchemaContext }), schemaId(SignerUuidSchema), schemaId(SignerOperationSchema), schemaId(SignerProblemSchema), schemaId(SignerCeremonyParamsSchema), schemaId(SignerSessionSchema), schemaId(SignerEnrollmentCeremonyRequestSchema), schemaId(SignerChallengeCeremonyRequestSchema), schemaId(SignerCeremonyRequestSchema), schemaId(SignerCeremonySchema), schemaId(SignerPendingResultSchema), schemaId(SignerEnrollmentResultSchema), schemaId(SignerSignatureResultSchema), schemaId(SignerFailedResultSchema), schemaId(SignerCeremonyResultSchema);
-//#endregion
-//#region ../../libs/models/src/tool-enforcement.ts
-var TOOL_ENFORCEMENT_VALUES = [
-	"off",
-	"watch",
-	"enforce"
-];
-var ToolEnforcementSchema = Union([
-	Literal(TOOL_ENFORCEMENT_VALUES[0]),
-	Literal(TOOL_ENFORCEMENT_VALUES[1]),
-	Literal(TOOL_ENFORCEMENT_VALUES[2])
-], { description: "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)." });
-//#endregion
-//#region ../../libs/runtime-profiles/src/runtime-profiles.ts
-var RuntimeProfileName = String$1({
-	minLength: 1,
-	maxLength: 100,
-	pattern: "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$"
-});
-var RuntimeProfileEnvName = String$1({
-	minLength: 1,
-	maxLength: 128,
-	pattern: "^[A-Z_][A-Z0-9_]*$"
-});
-var RuntimeProfileToolName = String$1({
-	minLength: 1,
-	maxLength: 128,
-	pattern: "^[a-zA-Z0-9._/-]+$"
-});
-var RUNTIME_PROFILE_RUNTIME_KIND_PATTERN = "^[a-z][a-z0-9._-]{0,99}$";
-new RegExp(RUNTIME_PROFILE_RUNTIME_KIND_PATTERN);
-var RuntimeProfileRuntimeKind = String$1({
-	minLength: 1,
-	maxLength: 100,
-	pattern: RUNTIME_PROFILE_RUNTIME_KIND_PATTERN
-});
-var RuntimeProfileWorkspaceMode = Union([
-	Literal("none"),
-	Literal("shared_mount"),
-	Literal("dedicated_worktree")
-]);
-/**
-* Tool-policy enforcement mode for the profile's runtime `tool_call` gate:
-* `off` (inert), `watch` (audit only), `enforce` (block disallowed tools,
-* fail-closed). Read by the daemon via `GET /runtime-profiles/:id/allowed-tools`.
-*/
-var RuntimeProfileToolEnforcement = ToolEnforcementSchema;
-var RuntimeProfileAllowedWorkspaceModes = _Array_(RuntimeProfileWorkspaceMode, {
-	minItems: 1,
-	maxItems: 3,
-	uniqueItems: true
-});
-var RuntimeProfileThinkingLevelOptions = [
-	Literal("off"),
-	Literal("minimal"),
-	Literal("low"),
-	Literal("medium"),
-	Literal("high"),
-	Literal("xhigh")
-];
-Union([...RuntimeProfileThinkingLevelOptions]);
-var RuntimeProfileNullableThinkingLevel = Union([...RuntimeProfileThinkingLevelOptions, Null()]);
-var RuntimeProfileNullableTemperature = Union([Null(), Number$1({
-	minimum: 0,
-	maximum: 2
-})]);
-var RuntimeProfileNullableTopP = Union([Null(), Number$1({
-	minimum: 0,
-	maximum: 1
-})]);
-var RuntimeProfileNullableTopK = Union([Integer({
-	minimum: 1,
-	maximum: 1e4
-}), Null()]);
-var RuntimeProfileNullableMaxOutputTokens = Union([Integer({
-	minimum: 1,
-	maximum: 1e6
-}), Null()]);
-var RuntimeProfileAllowedHost = String$1({
-	minLength: 1,
-	maxLength: 255,
-	pattern: "^(?:\\*\\.)?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$"
-});
-var RuntimeProfileSandbox = _Object_({
-	network: Optional(_Object_({
-		allowedHosts: Optional(_Array_(RuntimeProfileAllowedHost, { maxItems: 50 })),
-		allowedInternalHosts: Optional(_Array_(RuntimeProfileAllowedHost, { maxItems: 50 }))
-	}, { additionalProperties: false })),
-	vfs: Optional(_Object_({
-		shadow: Optional(_Array_(String$1({
-			minLength: 1,
-			maxLength: 255
-		}), { maxItems: 100 })),
-		shadowMode: Optional(Union([Literal("deny"), Literal("tmpfs")]))
-	}, { additionalProperties: false })),
-	env: Optional(Record(RuntimeProfileEnvName, String$1({ maxLength: 4096 }))),
-	hostExec: Optional(_Object_({ autoApprove: Optional(Literal(false)) }, { additionalProperties: false })),
-	resources: Optional(_Object_({
-		memory: Optional(String$1({
-			minLength: 2,
-			maxLength: 16,
-			pattern: "^[0-9]+[KMG]?$"
-		})),
-		cpus: Optional(Integer({
-			minimum: 1,
-			maximum: 32
-		}))
-	}, { additionalProperties: false }))
-}, {
-	$id: "RuntimeProfileSandbox",
-	additionalProperties: false
-});
-var RuntimeProfileContext = _Object_({
-	slug: String$1({
-		minLength: 1,
-		maxLength: 64,
-		pattern: "^[a-zA-Z0-9_-]+$"
-	}),
-	binding: Union([
-		Literal("skill"),
-		Literal("context_inline"),
-		Literal("prompt_prefix"),
-		Literal("user_inline")
-	]),
-	content: String$1({
-		minLength: 1,
-		maxLength: 65536
-	})
-}, {
-	$id: "RuntimeProfileContext",
-	additionalProperties: false
-});
-var RuntimeProfileRef = _Object_({ profileId: String$1({ format: "uuid" }) }, {
-	$id: "RuntimeProfileRef",
-	additionalProperties: false
-});
-var RuntimeProfileMaxTurns = Integer({
-	minimum: 0,
-	maximum: 1e4
-});
-var RuntimeProfileMaxBashTimeouts = Integer({
-	minimum: 0,
-	maximum: 1e3
-});
-_Object_({
-	id: String$1({ format: "uuid" }),
-	teamId: String$1({ format: "uuid" }),
-	name: RuntimeProfileName,
-	description: Union([String$1({ maxLength: 4096 }), Null()]),
-	provider: String$1({
-		minLength: 1,
-		maxLength: 100
-	}),
-	model: String$1({
-		minLength: 1,
-		maxLength: 200
-	}),
-	thinkingLevel: RuntimeProfileNullableThinkingLevel,
-	temperature: RuntimeProfileNullableTemperature,
-	topP: RuntimeProfileNullableTopP,
-	topK: RuntimeProfileNullableTopK,
-	maxOutputTokens: RuntimeProfileNullableMaxOutputTokens,
-	runtimeKind: RuntimeProfileRuntimeKind,
-	sandbox: RuntimeProfileSandbox,
-	defaultWorkspaceMode: Union([RuntimeProfileWorkspaceMode, Null()]),
-	allowedWorkspaceModes: RuntimeProfileAllowedWorkspaceModes,
-	maxTurns: RuntimeProfileMaxTurns,
-	maxBashTimeouts: RuntimeProfileMaxBashTimeouts,
-	toolEnforcement: RuntimeProfileToolEnforcement,
-	requiredEnv: _Array_(RuntimeProfileEnvName, { maxItems: 100 }),
-	requiredTools: _Array_(RuntimeProfileToolName, { maxItems: 100 }),
-	requiredExecutables: _Array_(RuntimeProfileToolName, { maxItems: 100 }),
-	context: _Array_(RuntimeProfileContext, { maxItems: 5 }),
-	revision: Integer({ minimum: 1 }),
-	definitionCid: String$1({
-		minLength: 1,
-		maxLength: 100
-	}),
-	createdByAgentId: Union([String$1({ format: "uuid" }), Null()]),
-	createdByHumanId: Union([String$1({ format: "uuid" }), Null()]),
-	createdAt: String$1({ format: "date-time" }),
-	updatedAt: String$1({ format: "date-time" })
-}, {
-	$id: "RuntimeProfile",
-	additionalProperties: false
-});
-//#endregion
-//#region ../../libs/runtime-profiles/src/runtime-sessions.ts
-var RuntimeSessionKind = Union([
-	Literal("root"),
-	Literal("extend"),
-	Literal("fork")
-]);
-var RuntimeSessionCheckpointKind = Union([Literal("attempt_final")]);
-_Object_({
-	id: String$1({ format: "uuid" }),
-	teamId: String$1({ format: "uuid" }),
-	taskId: String$1({ format: "uuid" }),
-	attemptN: Integer({ minimum: 1 }),
-	sourceSlotId: Union([String$1({ format: "uuid" }), Null()]),
-	sourceRuntimeProfileId: Union([String$1({ format: "uuid" }), Null()]),
-	sessionKind: RuntimeSessionKind,
-	parentSessionId: Union([String$1({ format: "uuid" }), Null()]),
-	contentType: String$1({
-		minLength: 1,
-		maxLength: 200
-	}),
-	contentEncoding: Union([String$1({
-		minLength: 1,
-		maxLength: 100
-	}), Null()]),
-	sizeBytes: Integer({ minimum: 0 }),
-	sha256: String$1({
-		minLength: 64,
-		maxLength: 64
-	}),
-	storageClass: String$1({
-		minLength: 1,
-		maxLength: 100
-	}),
-	checkpointKind: RuntimeSessionCheckpointKind,
-	uploadedAt: String$1({ format: "date-time" })
-}, { $id: "RuntimeSession" });
-_Object_({
-	sourceSlotId: Optional(String$1({ format: "uuid" })),
-	sourceRuntimeProfileId: Optional(String$1({ format: "uuid" })),
-	sessionKind: RuntimeSessionKind,
-	parentSessionId: Optional(String$1({ format: "uuid" }))
-}, {
-	$id: "UploadRuntimeSessionQuery",
-	additionalProperties: false
-});
-String$1({
-	$id: "RuntimeSessionContent",
-	description: "Runtime session content stream.",
-	format: "binary"
-});
-_Object_({
-	taskId: String$1({ format: "uuid" }),
-	attemptN: Integer({ minimum: 1 })
-}, {
-	$id: "RuntimeSessionAttemptParams",
-	additionalProperties: false
-});
-//#endregion
-//#region ../../libs/runtime-profiles/src/runtime-slots.ts
-var RuntimeWorkspaceKind = Union([
-	Literal("origin"),
-	Literal("fork"),
-	Literal("scratch")
-]);
-var RuntimeSlotState = Union([Literal("active"), Literal("idle")]);
-var RuntimeWorkspace = _Object_({
-	id: String$1({ format: "uuid" }),
-	teamId: String$1({ format: "uuid" }),
-	workspaceId: String$1({ minLength: 1 }),
-	worktreePath: String$1({ minLength: 1 }),
-	worktreeBranch: Union([String$1({ minLength: 1 }), Null()]),
-	kind: RuntimeWorkspaceKind,
-	createdAtMs: Integer({ minimum: 0 }),
-	lastUsedAtMs: Integer({ minimum: 0 })
-}, { $id: "RuntimeWorkspace" });
-_Object_({ items: _Array_(_Object_({
-	slot: _Object_({
-		id: String$1({ format: "uuid" }),
-		teamId: String$1({ format: "uuid" }),
-		agentName: String$1({
-			minLength: 1,
-			maxLength: 100
-		}),
-		runtimeProfileId: Union([String$1({ format: "uuid" }), Null()]),
-		provider: String$1({
-			minLength: 1,
-			maxLength: 100
-		}),
-		model: String$1({
-			minLength: 1,
-			maxLength: 200
-		}),
-		slotKey: String$1({ minLength: 1 }),
-		taskType: String$1({
-			minLength: 1,
-			maxLength: 100
-		}),
-		state: RuntimeSlotState,
-		lastTaskId: String$1({ format: "uuid" }),
-		lastAttemptN: Integer({ minimum: 1 }),
-		sessionDir: Union([String$1({ minLength: 1 }), Null()]),
-		sessionPath: Union([String$1({ minLength: 1 }), Null()]),
-		workspaceRowId: Union([String$1({ format: "uuid" }), Null()]),
-		createdAtMs: Integer({ minimum: 0 }),
-		lastUsedAtMs: Integer({ minimum: 0 }),
-		expiresAtMs: Integer({ minimum: 0 })
-	}, { $id: "RuntimeSlot" }),
-	workspace: Union([RuntimeWorkspace, Null()])
-}, { $id: "ResolvedRuntimeSlot" })) }, { $id: "RuntimeSlotListResponse" });
-var MAX_RUNTIME_WARM_RETENTION_SEC = 86400;
-_Object_({
-	agentName: String$1({
-		minLength: 1,
-		maxLength: 100
-	}),
-	runtimeProfileId: String$1({ format: "uuid" }),
-	provider: String$1({
-		minLength: 1,
-		maxLength: 100
-	}),
-	model: String$1({
-		minLength: 1,
-		maxLength: 200
-	}),
-	slotKey: String$1({ minLength: 1 }),
-	taskType: String$1({
-		minLength: 1,
-		maxLength: 100
-	}),
-	sessionDir: Optional(String$1({ minLength: 1 })),
-	sessionPath: Optional(String$1({ minLength: 1 })),
-	workspaceId: Optional(String$1({ minLength: 1 })),
-	worktreePath: Optional(String$1({ minLength: 1 })),
-	worktreeBranch: Optional(String$1({ minLength: 1 })),
-	workspaceKind: Optional(RuntimeWorkspaceKind),
-	lastTaskId: String$1({ format: "uuid" }),
-	lastAttemptN: Integer({ minimum: 1 }),
-	warmRetentionSec: Integer({
-		minimum: 0,
-		maximum: MAX_RUNTIME_WARM_RETENTION_SEC
-	})
-}, {
-	$id: "BeginRuntimeSlotBody",
-	additionalProperties: false
-});
-_Object_({
-	agentName: String$1({
-		minLength: 1,
-		maxLength: 100
-	}),
-	runtimeProfileId: String$1({ format: "uuid" }),
-	provider: String$1({
-		minLength: 1,
-		maxLength: 100
-	}),
-	model: String$1({
-		minLength: 1,
-		maxLength: 200
-	}),
-	slotKey: String$1({ minLength: 1 }),
-	taskId: String$1({ format: "uuid" }),
-	attemptN: Integer({ minimum: 1 }),
-	sessionPath: Optional(String$1({ minLength: 1 })),
-	warmRetentionSec: Integer({
-		minimum: 0,
-		maximum: MAX_RUNTIME_WARM_RETENTION_SEC
-	})
-}, {
-	$id: "FinishRuntimeSlotBody",
-	additionalProperties: false
-});
-_Object_({
-	taskId: String$1({ format: "uuid" }),
-	attemptN: Integer({ minimum: 1 })
-}, {
-	$id: "FindLatestRuntimeSlotForAttemptQuery",
-	additionalProperties: false
-});
-_Object_({
-	agentName: Optional(String$1({
-		minLength: 1,
-		maxLength: 100
-	})),
-	runtimeProfileId: Optional(String$1({ format: "uuid" })),
-	state: Optional(RuntimeSlotState),
-	limit: Optional(Integer({
-		minimum: 1,
-		maximum: 200
-	}))
-}, {
-	$id: "ListRuntimeSlotsQuery",
-	additionalProperties: false
-});
-//#endregion
-//#region ../../libs/tasks/src/task-types/output-contract.ts
-/** Stored task field; the daemon validates the schema before execution. */
-var OutputContract = _Object_({
-	version: Literal(1),
-	schema: Unknown()
-}, {
-	$id: "OutputContract",
-	additionalProperties: false
-});
-//#endregion
-//#region ../../libs/tasks/src/task-types/freeform.ts
-var FREEFORM_TYPE = "freeform";
-var FreeformExecutionOptions = _Object_({
-	/**
-	* Workspace mode the proposer wants for this task. Matches the
-	* `run_eval` convention so the daemon's registry-level override
-	* resolution is uniform across task types.
-	*/
-	workspace: Optional(Union([
-		Literal("none"),
-		Literal("shared_mount"),
-		Literal("dedicated_worktree")
-	])),
-	/**
-	* Immutable commit expected in the selected repository workspace.
-	*
-	* The daemon verifies a shared mount against this revision, or creates a
-	* detached dedicated worktree at it, before the model starts. Requiring a
-	* full object id avoids branch drift between task creation and execution.
-	*/
-	revision: Optional(String$1({ pattern: "^[0-9a-fA-F]{40}$" }))
-}, {
-	$id: "FreeformExecutionOptions",
-	additionalProperties: false
-});
-var FreeformContinueFrom = _Object_({
-	taskId: String$1({ format: "uuid" }),
-	attemptN: Integer({ minimum: 1 }),
-	/**
-	* `'extend'` (default) continues the parent conversation and branch when
-	* branch metadata is available. `'fork'` cuts a new branch from the parent
-	* branch into a fresh worktree.
-	*/
-	mode: Optional(Union([Literal("extend"), Literal("fork")]))
-}, {
-	$id: "FreeformContinueFrom",
-	additionalProperties: false
-});
-var FreeformInput = _Object_({
-	/** Natural-language work request when no narrower task type fits yet. */
-	brief: String$1({ minLength: 1 }),
-	/**
-	* Optional expectation about the shape or destination of the answer.
-	* Kept as prose because this task type is the discovery lane.
-	*/
-	expectedOutput: Optional(String$1({ minLength: 1 })),
-	/** Typed result contract supplied by the task proposer. */
-	outputContract: Optional(OutputContract),
-	constraints: Optional(_Array_(String$1({ minLength: 1 }), { maxItems: 20 })),
-	/** Proposer's best guess; does not need to be registered yet. */
-	suggestedTaskType: Optional(String$1({ minLength: 1 })),
-	successCriteria: Optional(SuccessCriteria),
-	context: Optional(TaskContext),
-	/**
-	* Optional proposer-supplied execution hints. The `workspace` field
-	* mirrors run_eval's input.execution.workspace surface; the daemon
-	* honors it because the freeform registry entry sets
-	* acceptsInputWorkspaceOverride.
-	*/
-	execution: Optional(FreeformExecutionOptions),
-	/**
-	* When set, the daemon treats this task as a continuation of the named
-	* source attempt.
-	*/
-	continueFrom: Optional(FreeformContinueFrom)
-}, {
-	$id: "FreeformInput",
-	additionalProperties: false
-});
-var FreeformArtifact = _Object_({
-	kind: String$1({ minLength: 1 }),
-	title: String$1({ minLength: 1 }),
-	description: Optional(String$1({ minLength: 1 })),
-	url: Optional(String$1({ minLength: 1 })),
-	path: Optional(String$1({ minLength: 1 })),
-	/**
-	* Persistent task-artifact CID produced with `moltnet_upload_task_artifact`.
-	* Use this for large or binary bytes stored outside the structured output.
-	*/
-	cid: Optional(String$1({ minLength: 1 })),
-	contentType: Optional(String$1({ minLength: 1 })),
-	contentEncoding: Optional(String$1({ minLength: 1 })),
-	sizeBytes: Optional(Integer({ minimum: 0 })),
-	/**
-	* Inline artifact content, up to 64 KiB. Matches the diary-entry content
-	* cap so structured editors and renderers can handle either uniformly.
-	* For larger or binary content use `path` (worktree-ephemeral) or `url`
-	* (caller-managed); persistent file-backed artifacts are a follow-up.
-	*/
-	body: Optional(String$1({ maxLength: 65536 }))
-}, {
-	$id: "FreeformArtifact",
-	additionalProperties: false
-});
-var freeformOutputFields = {
-	/** 2-5 sentence result summary. */
-	summary: String$1({ minLength: 1 }),
-	/** Branch used for code-changing freeform work. */
-	branch: Optional(String$1({ minLength: 1 })),
-	artifacts: Optional(_Array_(FreeformArtifact, { maxItems: 20 })),
-	diaryEntryIds: Optional(_Array_(String$1({ format: "uuid" }))),
-	/** Required when input.successCriteria is set. */
-	verification: Optional(VerificationRecord)
-};
-var FreeformSubmission = _Object_(freeformOutputFields, {
-	$id: "FreeformSubmission",
-	additionalProperties: false
-});
-var FreeformOutput = _Object_({
-	...freeformOutputFields,
-	/** Agent-authored structured data. The daemon owns contract validation. */
-	result: Optional(Unknown())
-}, {
-	$id: "FreeformOutput",
-	additionalProperties: false
-});
-/**
-* Server-side preflight for `freeform` task-create. Runs after the
-* sync TypeBox check passes and only kicks in when
-* `input.continueFrom` is set — i.e. the proposer is asking to
-* continue from a prior freeform attempt (#1287).
-*
-* Failure modes, in evaluation order:
-*  1. `freeform.sourceTaskNotFound` — source task id does not resolve
-*     (does not exist OR caller can't read it; we don't distinguish).
-*  2. `freeform.sourceTaskTypeNotSupported` — source isn't `freeform`.
-*     v1 only supports freeform → freeform continuation.
-*  3. `freeform.sourceAttemptNotCompleted` — named attempt is missing
-*     or not in `completed` state; continuation only makes sense
-*     once the parent has produced a terminal output.
-*  4. `freeform.executionWorkspaceNotInheritable` — caller set
-*     `execution.workspace` together with `continueFrom`. Workspace
-*     mode for a continuation is derived by the daemon from parent runtime
-*     context (local slot first, durable session + source attempt branch
-*     second), so any caller-supplied override is silently dropped at the
-*     daemon plan stage. Reject explicitly so misconfiguration surfaces at
-*     create time.
-*
-* Returns on the first failure — the checks
-* are sequential preconditions, later ones presume earlier ones hold.
-*/
-async function validateFreeformInputAsync(input, ctx) {
-	const execution = input.execution;
-	if (execution?.revision && execution.workspace === "none") return [{
-		field: "input/execution/revision",
-		message: "execution.revision requires a repository workspace; use shared_mount or dedicated_worktree",
-		code: "freeform.executionRevisionRequiresRepository"
-	}];
-	const cf = input.continueFrom;
-	if (!cf) return [];
-	const source = await ctx.resolveTask(cf.taskId);
-	if (!source) return [{
-		field: "input/continueFrom/taskId",
-		message: `Source task ${cf.taskId} does not resolve to a task you can read`,
-		code: "freeform.sourceTaskNotFound"
-	}];
-	if (source.taskType !== "freeform") return [{
-		field: "input/continueFrom/taskId",
-		message: `Source task type '${source.taskType}' is not continuable; only freeform → freeform is supported in v1`,
-		code: "freeform.sourceTaskTypeNotSupported"
-	}];
-	if (execution?.workspace) return [{
-		field: "input/execution/workspace",
-		message: "execution.workspace is derived from parent runtime context when continueFrom is set; omit it",
-		code: "freeform.executionWorkspaceNotInheritable"
-	}];
-	if (execution?.revision) return [{
-		field: "input/execution/revision",
-		message: "execution.revision is derived from parent runtime context when continueFrom is set; omit it",
-		code: "freeform.executionRevisionNotInheritable"
-	}];
-	if (ctx.deferReadinessChecks) return [];
-	const attempt = (await ctx.listAttempts(cf.taskId)).find((a) => a.attemptN === cf.attemptN);
-	if (!attempt || attempt.status !== "completed") return [{
-		field: "input/continueFrom/attemptN",
-		message: `Source attempt ${cf.attemptN} on task ${cf.taskId} is not in 'completed' state`,
-		code: "freeform.sourceAttemptNotCompleted"
-	}];
-	return [];
-}
-//#endregion
-//#region ../../libs/tasks/src/task-types/fulfill-brief.ts
-/**
-* `fulfill_brief` — produce a signed change against a coding brief.
-*
-* output_kind: artifact
-* criteria: optional (assessment happens as a separate `assess_brief` task)
-* references: optional (external GitHub issue/PR is the typical seed)
-*/
-var FULFILL_BRIEF_TYPE = "fulfill_brief";
-var FulfillBriefInput = _Object_({
-	/** Human-readable problem statement. Rendered into the system prompt. */
-	brief: String$1({ minLength: 1 }),
-	/**
-	* Proposer-stated, machine-verifiable success criteria. Pinned via
-	* the task's `inputCid` (no separate hash needed — `successCriteria`
-	* is part of the input body). Optional: when omitted, completion is
-	* accepted on schema-valid output alone.
-	*/
-	successCriteria: Optional(SuccessCriteria),
-	/**
-	* Seed files the agent should read before starting. Paths relative
-	* to the repo root. Optional — the agent is free to explore.
-	*/
-	seedFiles: Optional(_Array_(String$1())),
-	/** Conventional commit scope hint (e.g. "tasks", "agent-runtime"). */
-	scopeHint: Optional(String$1())
-}, {
-	$id: "FulfillBriefInput",
-	additionalProperties: false
-});
-/**
-* Summary of the signed change. Individual commits / diary entries are
-* recoverable from git + the diary; this output is the index.
-*/
-var FulfillBriefOutput = _Object_({
-	/** Feature branch name the agent pushed to. */
-	branch: String$1({ minLength: 1 }),
-	/** Ordered list of commit SHAs produced by this attempt. */
-	commits: _Array_(_Object_({
-		sha: String$1({ minLength: 7 }),
-		message: String$1(),
-		diaryEntryId: Union([String$1({ format: "uuid" }), Null()])
-	}, { additionalProperties: false })),
-	/** PR URL if one was opened. Null if the attempt only pushed a branch. */
-	pullRequestUrl: Union([String$1(), Null()]),
-	/** Diary entries produced during the attempt (ordered). */
-	diaryEntryIds: _Array_(String$1({ format: "uuid" })),
-	/** 2–5 sentence summary the agent writes on completion. */
-	summary: String$1({ minLength: 1 }),
-	/**
-	* Producer self-assessment against `input.successCriteria`. The LLM
-	* is the sole author. REQUIRED when `input.successCriteria` is set
-	* (the per-type `validateOutput` enforces this); MUST be omitted
-	* otherwise. The daemon does not generate this — see
-	* `SuccessCriteria` for the producer/judge model.
-	*/
-	verification: Optional(VerificationRecord)
-}, {
-	$id: "FulfillBriefOutput",
-	additionalProperties: false
-});
-//#endregion
-//#region ../../libs/tasks/src/task-types/judge-pack.ts
-/**
-* `judge_pack` — independently score a rendered pack against a rubric.
-*
-* output_kind: judgment
-* criteria: required (`successCriteria.rubric` — see #852 amendment and
-*   Phase 2 issue #881)
-* references: required (must reference the `render_pack` task it judges,
-*   role='judged_work')
-*
-* Step 3 of the three-session attribution loop (#875). Mirrors
-* `assess_brief` in shape, but over a rendered context pack.
-*
-* Phase 1 rubric storage: the rubric body lives at
-* `input.successCriteria.rubric` and is pinned via the task's `inputCid`.
-* Phase 2 (#881) will replace the inline body with a `rubricCid`
-* referencing a stored `rubrics` row; the envelope stays the same.
-*
-* The judge MUST be a different agent from the renderer. Enforced at
-* claim time by the runtime, not in the wire schema.
-*/
-var JUDGE_PACK_TYPE = "judge_pack";
-var JudgePackInput = _Object_({
-	/** Rendered pack to judge. */
-	renderedPackId: String$1({ format: "uuid" }),
-	/**
-	* Pack the rendering came from. The judge reads source entries from
-	* here to ground grounding / coverage / faithfulness assessments.
-	*/
-	sourcePackId: String$1({ format: "uuid" }),
-	/**
-	* Required SuccessCriteria envelope. Must contain a `rubric` — that
-	* rubric IS the job spec for this judgment task (the judge applies
-	* it). Other sections (`assertions`, `gates`, `sideEffects`) MAY be
-	* present and are evaluated against the *judge's output* — e.g. an
-	* proposer can require the judge produce evidence-bearing assertions.
-	*/
-	successCriteria: SuccessCriteria
-}, {
-	$id: "JudgePackInput",
-	additionalProperties: false
-});
-/** One scored criterion. Mirrors `AssessBriefScore`. */
-var JudgePackScore = _Object_({
-	criterionId: String$1({ minLength: 1 }),
-	/**
-	* Per-criterion numeric score, 0..1.
-	* - `llm_score`: continuous 0..1 (smooths failures — see #999).
-	* - `llm_checklist`: derived — `1` iff every entry in `assertions`
-	*   has `passed: true`, else `0`. The judge MUST set this consistently
-	*   with the assertions array; the runtime rejects mismatches.
-	* - `boolean` / `deterministic_*`: exactly 0 or 1.
-	*/
-	score: Number$1({
-		minimum: 0,
-		maximum: 1
-	}),
-	/** Required for `llm_score`, optional otherwise. */
-	rationale: Optional(String$1()),
-	/**
-	* Per-claim binary results — REQUIRED when the criterion's `scoring`
-	* mode is `llm_checklist`, otherwise omitted. The list is the
-	* dataset for cluster-analysis of failure modes; every entry carries
-	* concrete `evidence` regardless of pass/fail. See #999 and the
-	* shared `AssertionResult` type in `../rubric.ts`.
-	*/
-	assertions: Optional(_Array_(AssertionResult, { minItems: 1 })),
-	/**
-	* Structured evidence for deterministic scorings. Shape depends on
-	* the criterion's `scoring` mode; stored as free-form JSON for
-	* forward compatibility.
-	*/
-	evidence: Optional(Record(String$1(), Unknown()))
-}, {
-	$id: "JudgePackScore",
-	additionalProperties: false
-});
-var JudgePackOutput = _Object_({
-	/**
-	* Per-criterion scores, same order/length as
-	* `input.successCriteria.rubric.criteria`.
-	*/
-	scores: _Array_(JudgePackScore, { minItems: 1 }),
-	/** Σ(weight_i × score_i). Server rejects mismatches against the rubric. */
-	composite: Number$1({
-		minimum: 0,
-		maximum: 1
-	}),
-	/** 1–3 sentence overall verdict. */
-	verdict: String$1({ minLength: 1 }),
-	/** Model id used for `llm_score` criteria. */
-	judgeModel: Optional(String$1()),
-	/**
-	* CIDv1 of the renderer binary the judge evaluated (when available
-	* via `moltnet_rendered_pack_get`). Carried forward for Promise
-	* Theory provenance — matches the `judgeBinaryCid` field on
-	* attestations. `null` is accepted and treated as "unavailable"
-	* equivalent to omission.
-	*/
-	rendererBinaryCid: Optional(Union([String$1(), Null()]))
-}, {
-	$id: "JudgePackOutput",
-	additionalProperties: false
-});
-/**
-* Cross-field validator for JudgePackOutput. Run after the TypeBox
-* schema check passes. Enforces invariants the schema can't express:
-*
-* 1. If a `JudgePackScore` carries an `assertions` array (i.e. the
-*    judge ran the criterion in `llm_checklist` mode), its numeric
-*    `score` MUST equal `1` if every `assertions[i].passed` is true,
-*    else `0`. The prompt instructs the judge to derive `score` from
-*    the array, but the LLM can drift — without this check, the
-*    runtime accepts inconsistent payloads and propagates them into
-*    composite scores and judge attestations (#999 P1).
-*
-* 2. If `score` is exactly `1` AND `assertions` is present, every
-*    assertion must have `passed: true`. Catches the failure mode in
-*    the issue: "score: 1 with a failing assertion accepted."
-*
-* Cross-rubric checks (e.g. "did the judge populate `assertions` for
-* every criterion the rubric marked `llm_checklist`?") require the
-* input rubric and live in a separate, runtime-side validator. This
-* one is rubric-agnostic on purpose — it catches within-score
-* inconsistency without needing the original task input.
-*/
-function validateJudgePackOutput(output) {
-	const scores = output.scores;
-	for (let i = 0; i < scores.length; i++) {
-		const s = scores[i];
-		if (!s.assertions) continue;
-		const allPassed = s.assertions.every((a) => a.passed);
-		const expected = allPassed ? 1 : 0;
-		if (s.score !== expected) return `scores[${i}] (criterionId="${s.criterionId}"): assertions ${allPassed ? "all pass" : "have at least one fail"} but score=${s.score}. Score must be derived: 1 iff every assertion passes, else 0 (#999 llm_checklist rule).`;
-	}
-	return null;
-}
-/**
-* Async preflight (#1096):
-*   - `renderedPackId` resolves to a rendered_packs row.
-*   - `sourcePackId` resolves to a context_packs row.
-*   - The rendered pack actually came from the claimed source pack —
-*     `renderedPack.sourcePackId === input.sourcePackId`. Without
-*     this check a judge can be tricked into grading rendering A as
-*     if it came from source B.
-*/
-async function validateJudgePackInputAsync(input, ctx) {
-	const { renderedPackId, sourcePackId } = input;
-	const errors = [];
-	const [rendered, source] = await Promise.all([ctx.resolveRenderedPack(renderedPackId), ctx.resolveContextPack(sourcePackId)]);
-	if (!rendered) errors.push({
-		field: "renderedPackId",
-		message: `renderedPackId ${renderedPackId} does not resolve to a rendered pack you can read`
-	});
-	if (!source) errors.push({
-		field: "sourcePackId",
-		message: `sourcePackId ${sourcePackId} does not resolve to a context pack you can read`
-	});
-	if (rendered && source && rendered.sourcePackId !== source.id) errors.push({
-		field: "sourcePackId",
-		message: `renderedPack ${renderedPackId} was produced from source ${rendered.sourcePackId}, not from sourcePackId=${sourcePackId}`
-	});
-	return errors;
-}
-//#endregion
-//#region ../../libs/tasks/src/task-types/judge-eval-attempt.ts
-/**
-* `judge_eval_attempt` — score one completed artifact-producing attempt
-* against a hidden judge rubric.
-*
-* output_kind: judgment
-* criteria: required (`successCriteria.rubric`)
-* references: not required at the input layer — `targetTaskId` +
-*   `targetAttemptN` pin the producer attempt being judged.
-*
-* This replaces the earlier parent/subagent `judge_eval_variant` design.
-* The unit of judgment is one producer attempt. Cross-variant deltas can be
-* computed later at read time from stored scores, rather than materialized as
-* their own task output.
-*/
-var JUDGE_EVAL_ATTEMPT_TYPE = "judge_eval_attempt";
-var JudgeEvalAttemptInput = _Object_({
-	targetTaskId: String$1({ format: "uuid" }),
-	targetAttemptN: Integer({ minimum: 1 }),
-	/**
-	* Hidden judge rubric. Producer tasks may carry their own rubric-free
-	* `successCriteria`, but only the judge sees this scoring key.
-	*/
-	successCriteria: SuccessCriteria
-}, {
-	$id: "JudgeEvalAttemptInput",
-	additionalProperties: false
-});
-/** Agent-authored part of a judge attempt's output. */
-var JudgeEvalAttemptSubmission = _Object_({
-	targetTaskId: String$1({ format: "uuid" }),
-	targetAttemptN: Integer({ minimum: 1 }),
-	variantLabel: String$1({
-		minLength: 1,
-		maxLength: 64,
-		pattern: "^(?!.* - ).*$"
-	}),
-	scores: _Array_(JudgePackScore, { minItems: 1 }),
-	composite: Number$1({
-		minimum: 0,
-		maximum: 1
-	}),
-	verdict: String$1({ minLength: 1 }),
-	judgeModel: Optional(String$1({ minLength: 1 }))
-}, {
-	$id: "JudgeEvalAttemptSubmission",
-	additionalProperties: false
-});
-/** Durable output after the executor stamps the claim trace context. */
-var JudgeEvalAttemptOutput = _Object_({
-	targetTaskId: String$1({ format: "uuid" }),
-	targetAttemptN: Integer({ minimum: 1 }),
-	variantLabel: String$1({
-		minLength: 1,
-		maxLength: 64,
-		pattern: "^(?!.* - ).*$"
-	}),
-	scores: _Array_(JudgePackScore, { minItems: 1 }),
-	composite: Number$1({
-		minimum: 0,
-		maximum: 1
-	}),
-	verdict: String$1({ minLength: 1 }),
-	judgeModel: Optional(String$1({ minLength: 1 })),
-	/** Stamped when the claim supplied a W3C trace context. */
-	traceparent: Optional(String$1({ minLength: 1 }))
-}, {
-	$id: "JudgeEvalAttemptOutput",
-	additionalProperties: false
-});
-function validateJudgeEvalAttemptInput(input) {
-	const sc = input.successCriteria;
-	if (!sc) return "successCriteria is required for judge_eval_attempt";
-	if (!sc.rubric) return "successCriteria.rubric is required for judge_eval_attempt";
-	return validateRubricWeights(sc.rubric);
-}
-function validateJudgeEvalAttemptOutput(output, input) {
-	const out = output;
-	const inp = input;
-	if (inp) {
-		if (out.targetTaskId !== inp.targetTaskId) return `output.targetTaskId (${out.targetTaskId}) does not match input.targetTaskId (${inp.targetTaskId})`;
-		if (out.targetAttemptN !== inp.targetAttemptN) return `output.targetAttemptN (${out.targetAttemptN}) does not match input.targetAttemptN (${inp.targetAttemptN})`;
-	}
-	for (let s = 0; s < out.scores.length; s++) {
-		const sc = out.scores[s];
-		if (!sc.assertions) continue;
-		const allPassed = sc.assertions.every((a) => a.passed);
-		const expected = allPassed ? 1 : 0;
-		if (sc.score !== expected) return `scores[${s}] (criterionId="${sc.criterionId}"): assertions ${allPassed ? "all pass" : "have at least one fail"} but score=${sc.score}. Score must be 1 iff every assertion passes, else 0.`;
-	}
-	if (inp?.successCriteria?.rubric) {
-		const criteria = inp.successCriteria.rubric.criteria;
-		const weightById = new Map(criteria.map((c) => [c.id, c.weight]));
-		let sum = 0;
-		for (const sc of out.scores) {
-			const w = weightById.get(sc.criterionId);
-			if (w === void 0) return `scores references unknown criterionId "${sc.criterionId}"`;
-			sum += w * sc.score;
-		}
-		const rounded = Math.round(sum * 1e3) / 1e3;
-		if (Math.abs(rounded - out.composite) > .001) return `composite (${out.composite}) does not match weighted rubric sum (${rounded})`;
-	}
-	return null;
-}
-async function validateJudgeEvalAttemptInputAsync(input, ctx) {
-	const inp = input;
-	const errors = [];
-	const target = await ctx.resolveTask(inp.targetTaskId);
-	if (!target) return [{
-		field: "targetTaskId",
-		message: `targetTaskId=${inp.targetTaskId} does not resolve to a task you can read`
-	}];
-	if (target.outputKind !== "artifact") errors.push({
-		field: "targetTaskId",
-		message: `targetTaskId=${inp.targetTaskId} has outputKind=${target.outputKind}; only artifact-producing tasks can be judged`
-	});
-	if (!ctx.deferReadinessChecks && (target.status !== "completed" || target.acceptedAttemptN === null)) errors.push({
-		field: "targetTaskId",
-		message: `targetTaskId=${inp.targetTaskId} is not completed with an accepted attempt (status=${target.status}, acceptedAttemptN=${target.acceptedAttemptN})`
-	});
-	else if (target.acceptedAttemptN !== null && target.acceptedAttemptN !== inp.targetAttemptN) errors.push({
-		field: "targetAttemptN",
-		message: `targetAttemptN=${inp.targetAttemptN} does not match the producer's acceptedAttemptN=${target.acceptedAttemptN}`
-	});
-	if (!target.correlationId) errors.push({
-		field: "targetTaskId",
-		message: "target producer has no correlation_id; cannot enforce duplicate-judge protection"
-	});
-	if (errors.length > 0 || !target.correlationId) return errors;
-	const rubric = inp.successCriteria.rubric;
-	const duplicate = (await ctx.listTasksByCorrelation(target.correlationId)).find((task) => {
-		if (task.id === ctx.currentTaskId) return false;
-		if (task.taskType !== "judge_eval_attempt") return false;
-		if (task.status === "failed" || task.status === "cancelled" || task.status === "expired") return false;
-		const existing = task.input;
-		const existingRubric = existing.successCriteria?.rubric;
-		return existing.targetTaskId === inp.targetTaskId && existing.targetAttemptN === inp.targetAttemptN && existingRubric?.rubricId === rubric?.rubricId && existingRubric?.version === rubric?.version;
-	});
-	if (duplicate) errors.push({
-		field: "targetTaskId",
-		message: `judge task ${duplicate.id} already exists for (${inp.targetTaskId}, attempt ${inp.targetAttemptN}, rubric ${rubric?.rubricId}@${rubric?.version})`
-	});
-	return errors;
-}
-async function onCreateJudgeEvalAttempt(input, _ctx) {
-	const judge = input;
-	const rubric = judge.successCriteria.rubric;
-	if (!rubric) return [];
-	return [{
-		kind: "guardTaskUniqueness",
-		taskType: JUDGE_EVAL_ATTEMPT_TYPE,
-		lockKey: [
-			JUDGE_EVAL_ATTEMPT_TYPE,
-			judge.targetTaskId,
-			String(judge.targetAttemptN),
-			rubric.rubricId,
-			rubric.version
-		].join(":"),
-		inputMatches: [
-			{
-				path: ["targetTaskId"],
-				value: judge.targetTaskId
-			},
-			{
-				path: ["targetAttemptN"],
-				value: judge.targetAttemptN
-			},
-			{
-				path: [
-					"successCriteria",
-					"rubric",
-					"rubricId"
-				],
-				value: rubric.rubricId
-			},
-			{
-				path: [
-					"successCriteria",
-					"rubric",
-					"version"
-				],
-				value: rubric.version
+	if (encoded.length > 16384) return "outputContract.schema must be at most 16 KiB";
+	let nodes = 0;
+	const visit = (node, path, depth) => {
+		if (!isObject(node) || depth > 10 || ++nodes > 200) return `${path} must be a schema object within the depth and size limits`;
+		const type = node.type;
+		if (![
+			"object",
+			"array",
+			"string",
+			"number",
+			"integer",
+			"boolean"
+		].includes(type)) return `${path}.type must be object, array, string, number, integer, or boolean`;
+		const common = [
+			"type",
+			"description",
+			"title",
+			"enum"
+		];
+		const specific = type === "object" ? [
+			"properties",
+			"required",
+			"additionalProperties"
+		] : type === "array" ? [
+			"items",
+			"minItems",
+			"maxItems"
+		] : type === "string" ? ["minLength", "maxLength"] : type === "number" || type === "integer" ? ["minimum", "maximum"] : [];
+		const unknownKey = Object.keys(node).find((key) => !common.includes(key) && !specific.includes(key));
+		if (unknownKey) return `${path}.${unknownKey} is not supported`;
+		if (node.description !== void 0 && typeof node.description !== "string") return `${path}.description must be a string`;
+		if (node.title !== void 0 && typeof node.title !== "string") return `${path}.title must be a string`;
+		if (node.enum !== void 0 && (type === "object" || type === "array" || !Array.isArray(node.enum) || node.enum.length === 0 || node.enum.some((value) => type === "integer" ? !Number.isInteger(value) : typeof value !== type))) return `${path}.enum must contain values of the declared primitive type`;
+		if (type === "object") {
+			if (!isObject(node.properties) || node.additionalProperties !== false) return `${path} needs properties and additionalProperties: false`;
+			const keys = Object.keys(node.properties);
+			if (keys.length > 50 || keys.some((key) => [
+				"__proto__",
+				"prototype",
+				"constructor"
+			].includes(key))) return `${path}.properties has too many or reserved keys`;
+			if (!Array.isArray(node.required) || node.required.some((key) => typeof key !== "string" || !keys.includes(key)) || new Set(node.required).size !== node.required.length) return `${path}.required must list unique declared properties`;
+			for (const key of keys) {
+				const error = visit(node.properties[key], `${path}.properties.${key}`, depth + 1);
+				if (error) return error;
 			}
-		]
-	}];
+		} else if (type === "array") {
+			if (!isObject(node.items)) return `${path}.items must be a schema object`;
+			for (const key of ["minItems", "maxItems"]) if (node[key] !== void 0 && (!Number.isInteger(node[key]) || node[key] < 0 || node[key] > 100)) return `${path}.${key} must be an integer between 0 and 100`;
+			if (typeof node.minItems === "number" && typeof node.maxItems === "number" && node.minItems > node.maxItems) return `${path}.minItems must not exceed maxItems`;
+			return visit(node.items, `${path}.items`, depth + 1);
+		} else {
+			const bounds = type === "string" ? ["minLength", "maxLength"] : ["minimum", "maximum"];
+			for (const key of bounds) if (node[key] !== void 0 && (typeof node[key] !== "number" || !Number.isFinite(node[key]) || type === "string" && (!Number.isInteger(node[key]) || node[key] < 0))) return `${path}.${key} must be a valid number`;
+			const [minKey, maxKey] = bounds;
+			if (typeof node[minKey] === "number" && typeof node[maxKey] === "number" && node[minKey] > node[maxKey]) return `${path}.${minKey} must not exceed ${maxKey}`;
+		}
+		return null;
+	};
+	return visit(schema, "outputContract.schema", 0);
 }
-//#endregion
-//#region ../../libs/tasks/src/task-types/pr-review.ts
-var PR_REVIEW_TYPE = "pr_review";
-var PrReviewInput = _Object_({
-	subject: _Object_({
-		title: String$1({ minLength: 1 }),
-		summary: String$1({ minLength: 1 }),
-		resourceUrls: Optional(_Array_(String$1({ minLength: 1 }))),
-		inspectionHints: Optional(_Array_(String$1({ minLength: 1 })))
-	}, {
-		$id: "PrReviewSubject",
-		additionalProperties: false
-	}),
-	taskPrompt: Optional(String$1({ minLength: 1 })),
-	successCriteria: SuccessCriteria,
-	context: Optional(TaskContext)
-}, {
-	$id: "PrReviewInput",
-	additionalProperties: false
-});
-var PrReviewOutput = _Object_({
-	scores: _Array_(_Object_({
-		criterionId: String$1({ minLength: 1 }),
-		score: Union([Literal(0), Literal(1)]),
-		rationale: String$1({ minLength: 1 })
-	}, {
-		$id: "PrReviewScore",
-		additionalProperties: false
-	}), { minItems: 1 }),
-	composite: Number$1({
-		minimum: 0,
-		maximum: 1
-	}),
-	verdict: String$1({ minLength: 1 })
-}, {
-	$id: "PrReviewOutput",
-	additionalProperties: false
-});
-function requireBooleanRubric(rubric) {
-	for (const criterion of rubric.criteria) if (criterion.scoring !== "boolean") return `pr_review requires boolean scoring for every rubric criterion; criterion "${criterion.id}" uses "${criterion.scoring}"`;
-	return null;
+function outputContractResultSchema(input) {
+	if (!isObject(input) || !isObject(input.outputContract) || input.outputContract.version !== 1 || validateOutputContractSchema(input.outputContract.schema)) return null;
+	return Unsafe(input.outputContract.schema);
 }
-function validatePrReviewInput(input) {
-	const sc = input.successCriteria;
-	if (!sc) return "successCriteria is required for judgment tasks";
-	if (!sc.rubric) return "successCriteria.rubric is required for judgment tasks";
-	return validateRubricWeights(sc.rubric) ?? requireBooleanRubric(sc.rubric);
-}
-function validatePrReviewOutput(output, input) {
-	if (!input) return null;
-	const scores = output.scores;
-	const rubric = input.successCriteria.rubric;
-	if (!rubric) return null;
-	if (scores.length !== rubric.criteria.length) return `scores length ${scores.length} does not match rubric criteria length ${rubric.criteria.length}`;
-	let composite = 0;
-	for (let i = 0; i < rubric.criteria.length; i++) {
-		const criterion = rubric.criteria[i];
-		const score = scores[i];
-		if (score.criterionId !== criterion.id) return `scores[${i}] has criterionId "${score.criterionId}" but rubric expects "${criterion.id}" in that position`;
-		composite += criterion.weight * score.score;
-	}
-	const claimed = output.composite;
-	if (Math.abs(claimed - composite) > 1e-6) return `composite ${claimed} does not match weighted sum ${composite.toFixed(6)}`;
-	return null;
-}
-//#endregion
-//#region ../../libs/tasks/src/task-types/render-pack.ts
-/**
-* `render_pack` — turn a context pack into a signed rendered artefact.
-*
-* output_kind: artifact
-* criteria: not required
-* references: the `curate_pack` task that produced the pack (optional
-*   but recommended for provenance chaining).
-*
-* Step 2 of the three-session attribution loop (#875). Mechanical: wraps
-* `moltnet_pack_render`. The only reason this is a Task and not a direct
-* SDK call is attribution — the renderer identity is recorded on the task
-* attempt signature, independent from the curator and the judge.
-*
-* Related: `curate_pack`, `judge_pack`.
-*/
-var RENDER_PACK_TYPE = "render_pack";
-var RenderPackInput = _Object_({
-	/** Pack to render. Must exist and be readable by the renderer agent. */
-	packId: String$1({ format: "uuid" }),
-	/**
-	* Persist the rendered pack on the server. Default true. When false,
-	* the rendered content is returned in the task output only — useful
-	* for dry-runs.
-	*/
-	persist: Optional(Boolean$1()),
-	/**
-	* Pin the rendered pack so it is not eligible for expiry. Default
-	* false (attribution loop is ephemeral by design).
-	*/
-	pinned: Optional(Boolean$1()),
-	/**
-	* Proposer-stated, machine-verifiable success criteria. See
-	* `SuccessCriteria`. Pinned via `inputCid`. Optional.
-	*/
-	successCriteria: Optional(SuccessCriteria)
-}, {
-	$id: "RenderPackInput",
-	additionalProperties: false
-});
-var RenderPackOutput = _Object_({
-	/**
-	* UUID of the persisted rendered pack row. Null when `persist: false`
-	* or when the renderer chose not to persist (e.g. validation failure).
-	*/
-	renderedPackId: Union([String$1({ format: "uuid" }), Null()]),
-	/** CIDv1 of the canonical rendered content. Always present. */
-	renderedCid: String$1({ minLength: 1 }),
-	/**
-	* Label identifying the renderer implementation — e.g.
-	* `pi:pack-to-docs-v1`, `server:pack-to-docs-v1`. Recorded verbatim
-	* from the server's render response; validated against the convention
-	* owned by `@moltnet/models` (`RenderMethodSchema`).
-	*/
-	renderMethod: RenderMethodSchema,
-	/** Size in bytes of the rendered markdown. */
-	byteSize: Number$1({ minimum: 0 }),
-	/** Number of source entries represented in the rendering. */
-	entriesRendered: Number$1({ minimum: 0 }),
-	/** 1–3 sentence summary. */
-	summary: String$1({ minLength: 1 }),
-	/**
-	* Producer self-assessment against `input.successCriteria`. REQUIRED
-	* when `input.successCriteria` is set; MUST be omitted otherwise.
-	* See `SuccessCriteria` for the producer/judge model.
-	*/
-	verification: Optional(VerificationRecord)
-}, {
-	$id: "RenderPackOutput",
-	additionalProperties: false
-});
-/**
-* Async preflight (#1096): `packId` resolves to a context_packs row
-* the caller can read.
-*/
-async function validateRenderPackInputAsync(input, ctx) {
-	const { packId } = input;
-	if (!await ctx.resolveContextPack(packId)) return [{
-		field: "packId",
-		message: `packId ${packId} does not resolve to a context pack you can read`
-	}];
-	return [];
-}
-//#endregion
-//#region ../../libs/tasks/src/task-types/run-eval.ts
-/**
-* `run_eval` — execute a scenario prompt under a named variant for
-* later per-attempt grading by `judge_eval_attempt` tasks.
-*
-* output_kind: artifact
-* criteria: optional producer-only checks (when set,
-*   output.verification is required — the judge rubric remains hidden
-*   on downstream `judge_eval_attempt` tasks)
-* references: not required (scenario lives entirely in input)
-*/
-var RUN_EVAL_TYPE = "run_eval";
-var RunEvalExecution = _Object_({
-	/**
-	* `vitro` = proctored eval in an isolated runner context whose main
-	* comparison target is prompt/context behavior.
-	* `vivo` = live-repo eval against a real checkout/worktree.
-	*/
-	mode: Union([Literal("vitro"), Literal("vivo")], { $id: "RunEvalMode" }),
-	/**
-	* Workspace shape selected by the task creator for this variant run.
-	* `none` means the runner should not expose the repository checkout at
-	* all; it receives an empty scratch workspace instead.
-	*/
-	workspace: Union([
-		Literal("none"),
-		Literal("shared_mount"),
-		Literal("dedicated_worktree")
-	], { $id: "RunEvalWorkspace" })
-}, {
-	$id: "RunEvalExecution",
-	additionalProperties: false
-});
-/**
-* Producer-visible checks for `run_eval`. Deliberately forbids `rubric`
-* so the variant runner cannot see the downstream judge's answer key.
-* Keep the rest of the SuccessCriteria envelope available for generic
-* process / structure checks (`gates`, `assertions`, `sideEffects`).
-*/
-var RunEvalSuccessCriteria = _Object_({
-	version: Literal(1),
-	gates: Optional(SuccessCriteria.properties.gates),
-	assertions: Optional(SuccessCriteria.properties.assertions),
-	sideEffects: Optional(SuccessCriteria.properties.sideEffects)
-}, {
-	$id: "RunEvalSuccessCriteria",
-	additionalProperties: false
-});
-var RunEvalInput = _Object_({
-	scenario: _Object_({
-		prompt: String$1({ minLength: 1 }),
-		inputFiles: Optional(_Array_(String$1({ minLength: 1 })))
-	}, { additionalProperties: false }),
-	/** Variant identity. Joins variants under a correlation_id. */
-	variantLabel: String$1({
-		minLength: 1,
-		maxLength: 64
-	}),
-	/**
-	* Per-task execution shape. The task creator, not the task type
-	* registry, decides whether this eval runs in vitro or vivo and
-	* whether it needs no repo, the shared mount, or a dedicated worktree.
-	*/
-	execution: RunEvalExecution,
-	/** Empty array IS the baseline. */
-	context: TaskContext,
-	/**
-	* Optional producer-visible checks (advisory; the judge in Slice 2
-	* is the binding evaluator). Intentionally excludes `rubric` so the
-	* producer cannot read the downstream judge's scoring key. When
-	* present, `output.verification` MUST be supplied (see
-	* `validateRunEvalOutput`).
-	*/
-	successCriteria: Optional(RunEvalSuccessCriteria)
-}, {
-	$id: "RunEvalInput",
-	additionalProperties: false
-});
-var RunEvalArtifact = _Object_({
-	path: String$1({ minLength: 1 }),
-	cid: String$1({ minLength: 1 })
-}, { additionalProperties: false });
-/**
-* Fields the eval agent authors through its submit-output tool. Runtime
-* telemetry deliberately does not live here: an agent cannot truthfully
-* measure provider token usage, wall-clock duration, or the claim trace.
-*/
-var RunEvalSubmission = _Object_({
-	response: String$1({ minLength: 1 }),
-	artifacts: Optional(_Array_(RunEvalArtifact)),
-	/** Required iff input.successCriteria is set. */
-	verification: Optional(VerificationRecord)
-}, {
-	$id: "RunEvalSubmission",
-	additionalProperties: false
-});
-/**
-* Durable eval output. The daemon materializes this from RunEvalSubmission
-* and observed execution metadata before the task service accepts it.
-*/
-var RunEvalOutput = _Object_({
-	response: String$1({ minLength: 1 }),
-	artifacts: Optional(_Array_(RunEvalArtifact)),
-	/** Stamped by the executor from observed model usage. */
-	totalTokens: Integer({ minimum: 0 }),
-	/** Stamped by the executor from the attempt clock. */
-	durationMs: Integer({ minimum: 0 }),
-	/** Stamped when the claim supplied a W3C trace context. */
-	traceparent: Optional(String$1({ minLength: 1 })),
-	/** Required iff input.successCriteria is set. */
-	verification: Optional(VerificationRecord)
-}, {
-	$id: "RunEvalOutput",
-	additionalProperties: false
-});
-/**
-* Cross-field rule mirroring the `requireVerificationWhenCriteriaPresent`
-* rule used by the brief task types: when input declares
-* `successCriteria`, output MUST carry `verification`; when it doesn't,
-* output MUST NOT carry one.
-*/
-function validateRunEvalOutput(output, input) {
-	const hasCriteria = input !== null && input !== void 0 && input.successCriteria !== void 0;
-	const hasVerification = output !== null && output !== void 0 && output.verification !== void 0;
-	if (hasCriteria && !hasVerification) return "output.verification is required because input.successCriteria is set; the producer LLM must self-assess against the producer checks";
-	if (!hasCriteria && hasVerification) return "output.verification was supplied but input.successCriteria is unset; omit verification when there are no producer checks to assess against";
-	return null;
-}
-//#endregion
-//#region ../../libs/tasks/src/task-types/index.ts
-/**
-* Validate that a judgment-task input carries a rubric inside its
-* `successCriteria` envelope, and that the rubric's weights sum to 1.
-* Used for `assess_brief` and `judge_pack`.
-*/
-function validateJudgmentInput(input) {
-	const sc = input.successCriteria;
-	if (!sc) return "successCriteria is required for judgment tasks";
-	if (!sc.rubric) return "successCriteria.rubric is required for judgment tasks";
-	return validateRubricWeights(sc.rubric);
-}
-/**
-* Cross-field rule: when `input.successCriteria` is set, the producer's
-* output MUST carry a `verification` block (the LLM's self-assessment).
-* When it is unset, the output MUST NOT carry one (avoid garbage data).
-*
-* Used by all three fulfillment task types. Judgment task outputs do
-* NOT use this — their entire output IS a structured judgment, so a
-* separate self-assessment field would be circular.
-*/
-function requireVerificationWhenCriteriaPresent(output, input) {
-	const hasCriteria = input !== void 0 && input !== null && input.successCriteria !== void 0;
-	const hasVerification = output.verification !== void 0;
-	if (hasCriteria && !hasVerification) return "output.verification is required because input.successCriteria is set; the producer LLM must self-assess against the criteria";
-	if (!hasCriteria && hasVerification) return "output.verification was supplied but input.successCriteria is unset; omit verification when there are no criteria to assess against";
-	return null;
-}
-/**
-* Client-side task-type registry. Mirrors the server-owned DB registry
-* (PR 2). PR 0 shipped the two brief types; this PR adds the three
-* pack-pipeline types for the three-session attribution loop (#875).
-*
-* Consumers validate `Task.input` against
-* `BUILT_IN_TASK_TYPES[task.task_type].inputSchema` before creating
-* / claiming a task.
-*/
-var BUILT_IN_TASK_TYPES = {
-	[FREEFORM_TYPE]: {
-		name: FREEFORM_TYPE,
-		inputSchema: FreeformInput,
-		outputSchema: FreeformOutput,
-		submissionSchema: FreeformSubmission,
-		outputKind: "artifact",
-		resumable: true,
-		workspaceMode: "shared_mount",
-		workspaceScope: "attempt",
-		sessionScope: "correlation",
-		acceptsInputWorkspaceOverride: true,
-		requiresReferences: false,
-		validateOutput: requireVerificationWhenCriteriaPresent,
-		validateInputAsync: validateFreeformInputAsync
-	},
-	[FULFILL_BRIEF_TYPE]: {
-		name: FULFILL_BRIEF_TYPE,
-		inputSchema: FulfillBriefInput,
-		outputSchema: FulfillBriefOutput,
-		outputKind: "artifact",
-		resumable: true,
-		workspaceMode: "dedicated_worktree",
-		workspaceScope: "session",
-		sessionScope: "correlation",
-		requiresReferences: false,
-		validateOutput: requireVerificationWhenCriteriaPresent
-	},
-	[ASSESS_BRIEF_TYPE]: {
-		name: ASSESS_BRIEF_TYPE,
-		inputSchema: AssessBriefInput,
-		outputSchema: AssessBriefOutput,
-		outputKind: "judgment",
-		workspaceMode: "dedicated_worktree",
-		workspaceScope: "attempt",
-		sessionScope: "none",
-		requiresReferences: true,
-		validateInput: validateJudgmentInput,
-		validateInputAsync: validateAssessBriefInputAsync
-	},
-	[PR_REVIEW_TYPE]: {
-		name: PR_REVIEW_TYPE,
-		inputSchema: PrReviewInput,
-		outputSchema: PrReviewOutput,
-		outputKind: "judgment",
-		workspaceMode: "dedicated_worktree",
-		workspaceScope: "attempt",
-		sessionScope: "none",
-		requiresReferences: false,
-		validateInput: validatePrReviewInput,
-		validateOutput: validatePrReviewOutput
-	},
-	[CURATE_PACK_TYPE]: {
-		name: CURATE_PACK_TYPE,
-		inputSchema: CuratePackInput,
-		outputSchema: CuratePackOutput,
-		outputKind: "artifact",
-		workspaceScope: "attempt",
-		sessionScope: "none",
-		requiresReferences: false,
-		validateOutput: requireVerificationWhenCriteriaPresent
-	},
-	[RENDER_PACK_TYPE]: {
-		name: RENDER_PACK_TYPE,
-		inputSchema: RenderPackInput,
-		outputSchema: RenderPackOutput,
-		outputKind: "artifact",
-		workspaceScope: "attempt",
-		sessionScope: "none",
-		requiresReferences: false,
-		validateOutput: requireVerificationWhenCriteriaPresent,
-		validateInputAsync: validateRenderPackInputAsync
-	},
-	[JUDGE_PACK_TYPE]: {
-		name: JUDGE_PACK_TYPE,
-		inputSchema: JudgePackInput,
-		outputSchema: JudgePackOutput,
-		outputKind: "judgment",
-		workspaceScope: "attempt",
-		sessionScope: "none",
-		requiresReferences: true,
-		validateInput: validateJudgmentInput,
-		validateOutput: validateJudgePackOutput,
-		validateInputAsync: validateJudgePackInputAsync
-	},
-	[RUN_EVAL_TYPE]: {
-		name: RUN_EVAL_TYPE,
-		inputSchema: RunEvalInput,
-		outputSchema: RunEvalOutput,
-		submissionSchema: RunEvalSubmission,
-		outputKind: "artifact",
-		resumable: true,
-		workspaceScope: "session",
-		sessionScope: "custom",
-		acceptsInputWorkspaceOverride: true,
-		requiresReferences: false,
-		validateOutput: validateRunEvalOutput
-	},
-	[JUDGE_EVAL_ATTEMPT_TYPE]: {
-		name: JUDGE_EVAL_ATTEMPT_TYPE,
-		inputSchema: JudgeEvalAttemptInput,
-		outputSchema: JudgeEvalAttemptOutput,
-		submissionSchema: JudgeEvalAttemptSubmission,
-		outputKind: "judgment",
-		workspaceScope: "attempt",
-		sessionScope: "none",
-		requiresReferences: false,
-		validateInput: validateJudgeEvalAttemptInput,
-		validateOutput: validateJudgeEvalAttemptOutput,
-		validateInputAsync: validateJudgeEvalAttemptInputAsync,
-		onCreate: onCreateJudgeEvalAttempt
-	}
-};
-//#endregion
-//#region ../../libs/tasks/src/task-type-registry.ts
-var schemaCids = null;
-function getTaskTypeRegistry() {
-	if (!schemaCids) throw new Error("Task type registry not initialized. Call initTaskTypeRegistry() first.");
-	return schemaCids;
-}
-new Proxy({}, { get(_, prop) {
-	if (typeof prop !== "string") return void 0;
-	return getTaskTypeRegistry().get(prop);
-} });
 //#endregion
 //#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/schema/types/_refine.mjs
 /**
@@ -36700,6 +33340,3509 @@ Union([
 	})
 ]);
 //#endregion
+//#region ../../libs/runtime-profiles/src/context.ts
+/**
+* How an executor delivers a context entry to its underlying LLM.
+* V1 bindings only; Tier-2 (reference_file, mcp_resource, imported_file,
+* tool_response_seed, additional_context_hook) ship in a later slice.
+*/
+var CONTEXT_BINDINGS = [
+	"skill",
+	"context_inline",
+	"prompt_prefix",
+	"user_inline"
+];
+/** Maximum UTF-16 code units accepted in one ContextRef content field. */
+var CONTEXT_REF_MAX_CONTENT_LENGTH = 65536;
+var ContextBinding = Unsafe(Union(CONTEXT_BINDINGS.map((binding) => Literal(binding)), { $id: "ContextBinding" }));
+/** Reusable input fragment for any task type. Soft cap at 5 items. */
+var TaskContext = _Array_(_Object_({
+	slug: String$1({
+		minLength: 1,
+		maxLength: 64,
+		pattern: "^[a-zA-Z0-9_-]+$"
+	}),
+	binding: ContextBinding,
+	content: String$1({
+		minLength: 1,
+		maxLength: CONTEXT_REF_MAX_CONTENT_LENGTH
+	})
+}, {
+	$id: "ContextRef",
+	additionalProperties: false
+}), {
+	$id: "TaskContext",
+	maxItems: 5
+});
+//#endregion
+//#region ../../libs/runtime-profiles/src/runtime-models.ts
+/**
+* Runtime model catalog: a list of supported provider/model couples that
+* MoltNet daemons can target. Backed by the `runtime_models` table.
+*
+* Scope is intrinsic to the row:
+*   - `teamId == null`  => global entry (MoltNet-seeded, read-only to most callers)
+*   - `teamId != null`  => team-owned custom entry
+*
+* The REST API exposes a single shape regardless of scope; the team header
+* gates which rows are returned.
+*/
+var RuntimeModelProvider = String$1({
+	minLength: 1,
+	maxLength: 100,
+	pattern: "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}$"
+});
+var RuntimeModelName = String$1({
+	minLength: 1,
+	maxLength: 200,
+	pattern: "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,199}$"
+});
+var RuntimeModelCapabilities = Record(String$1({
+	minLength: 1,
+	maxLength: 64
+}), Union([
+	Boolean$1(),
+	Number$1(),
+	String$1({ maxLength: 256 })
+]));
+_Object_({
+	id: String$1({ format: "uuid" }),
+	teamId: Union([String$1({ format: "uuid" }), Null()]),
+	provider: RuntimeModelProvider,
+	model: RuntimeModelName,
+	displayName: Union([String$1({ maxLength: 200 }), Null()]),
+	description: Union([String$1({ maxLength: 4096 }), Null()]),
+	capabilities: RuntimeModelCapabilities,
+	isActive: Boolean$1(),
+	createdByAgentId: Union([String$1({ format: "uuid" }), Null()]),
+	createdByHumanId: Union([String$1({ format: "uuid" }), Null()]),
+	createdAt: String$1({ format: "date-time" }),
+	updatedAt: String$1({ format: "date-time" })
+}, {
+	$id: "RuntimeModel",
+	additionalProperties: false
+});
+//#endregion
+//#region ../../libs/runtime-profiles/src/runtime-profile-context-recipes.ts
+var RUNTIME_PROFILE_CONTEXT_CATALOGUE = {
+	version: 1,
+	fragments: {
+		"artifact-planner-v1": {
+			binding: "prompt_prefix",
+			content: "# Bounded artifact planner\n\n- The typed task facts, embedded bounded manifest, exact bound artifact references, registered tools, and runtime capability section are the complete contract. Do not search diaries, inspect a mounted repository, enumerate unrelated tasks or artifacts, modify a checkout, commit, branch, push, or contact GitHub.\n- Read only the exact artifact CIDs named by the task, and only when the embedded manifest does not provide enough evidence. Use the registered task-artifact tools for artifact access; never use shell or CLI wrappers to fetch artifacts, paginate, or discover them speculatively.\n- If the effective runtime exposes a local calculator or shell, use it only inside scratch for coverage accounting, budget arithmetic, and JSON validation. The runtime capability section and policy are authoritative; do not assume a static executable list.\n- Perform semantic classification and planning from supplied content and producer/consumer evidence. Do not substitute filename, directory, language, ecosystem, or repository-specific exclusion rules for evidence.\n- Write and upload exactly the requested versioned plan artifact, then reference its returned metadata through the registered submit-output tool. Do not emit a second prose or JSON representation.",
+			slug: "artifact-planner-v1"
+		},
+		"accountable-delivery-v1": {
+			binding: "prompt_prefix",
+			content: "# Accountable delivery\n\n- Pair every commit made during this task with a task-provenance diary entry created by the `moltnet_create_entry` custom tool. Put the returned id in a `MoltNet-Diary: <id>` commit trailer. The tool does not currently promise a content signature unless you pass `signed: true` while the runtime kernel declares the `agent-signing` host capability; never describe an entry as signed otherwise.\n- When the runtime kernel declares `agent-signing`, sign commits normally with `git commit -S`: the signature is brokered to the trusted host through `SSH_AUTH_SOCK` and no private key exists in the guest. Without that capability commits are unsigned; do not disable signing the runtime provides, and never try to obtain a key from host configuration.\n- Push a branch and open or update a pull request only when the task asks for it. Use a host-brokered GitHub placeholder only when the runtime kernel declares one; if no GitHub credential is active, the authenticated operation is unavailable.\n- Keep changes, commits, and any requested pull request coherent enough to review independently.",
+			slug: "accountable-delivery-v1"
+		},
+		"judgment-diary-v1": {
+			binding: "prompt_prefix",
+			content: "# Judgment diary discipline\n\n- For an `assess_brief`, `judge_pack`, or `pr_review` task, create a diary entry with the `moltnet_create_entry` custom tool before submitting the structured judgment. Capture the rationale and evidence that support the verdict. Do not claim a content signature unless you created the entry with `signed: true` under a runtime that declares the `agent-signing` host capability.\n- Add the `judgment` tag and the active task type tag (`assess_brief`, `judge_pack`, or `pr_review`). For `judge_pack`, also add `rubric:<rubricId>` from the task facts.\n- Do not use a shell `moltnet entry` command: task provenance is injected only by the custom tool.",
+			slug: "judgment-diary-v1"
+		},
+		"proactive-memory-v1": {
+			binding: "prompt_prefix",
+			content: "# Proactive memory use\n\n- Before non-trivial investigation, debugging, code changes, or review, check the task diary for relevant prior knowledge instead of waiting for a human to ask. Use `moltnet_diary_tags` for cheap reconnaissance, `moltnet_list_entries` when tags or task provenance are known, and `moltnet_search_entries` for semantic similarity. Do not search randomly: pass `taskFilter` for task-local or correlation-local queries, and pass `tags` / `entryTypes` for broader prior-knowledge queries using known tags such as `incident`, `decision`, or `scope:<area>`. Broaden only after constrained searches miss.\n- Before creating an `episodic` incident entry, search for similar incidents using the proposed title, root cause, error text, affected subsystem, and watch-for terms, filtered by `entryTypes: [\"episodic\", \"semantic\"]` and any known `scope:*` or task-provenance tags. If a close prior match exists, do not create an isolated duplicate: reference the prior entry in your response or diary content, update or link it when the new occurrence adds material evidence, or create a new recurrence entry only when the recurrence itself is important signal.\n- When you create a recurrence entry, include the prior matching entry id(s) in the content and explain what is new about this occurrence.",
+			slug: "proactive-memory-v1"
+		},
+		"run-eval-direct-v1": {
+			binding: "prompt_prefix",
+			content: "# Direct evaluation run\n\nThe supplied scenario, typed task facts, injected context, and registered submit-output tool are the complete task contract. Do not search diaries, create diary entries, modify a repository, commit, branch, push, or open a pull request unless a task fact explicitly requires it. Submit the agent-authored payload in the first turn; correction turns exist only to recover a rejected or missing submission.",
+			slug: "run-eval-direct-v1"
+		},
+		"task-diary-discipline-v1": {
+			binding: "prompt_prefix",
+			content: "# Task diary discipline\n\n- During a daemon task, create diary entries only through the `moltnet_create_entry` custom tool. It binds entries to the current task diary and injects task, type, attempt, and correlation provenance tags.\n- Do not shell out to `moltnet entry create`, `moltnet entry create-signed`, or any other `moltnet entry` subcommand from bash while a task is running. For a content-signed entry pass `signed: true` to the custom tool instead; it signs on the trusted host. Those shell paths bypass the custom tool's task-tag injection, so task-filtered diary queries cannot find the entry.\n- You may add useful tags, but do not try to replace task provenance supplied by the runtime.",
+			slug: "task-diary-discipline-v1"
+		},
+		"verification-and-artifacts-v1": {
+			binding: "prompt_prefix",
+			content: "# Verification and artifacts\n\n- Run relevant verification before submitting. When task facts include `successCriteria`, assess them honestly in the generated verification contract; a fail or skip with evidence is better than a fabricated pass.\n- The registered submit-output tool owns the exact agent submission schema and validation recovery. Use that schema; do not invent a JSON shape in prose.\n- Upload only task-relevant artifacts, and inspect each before uploading. Never upload secrets, credentials, API keys, auth tokens or headers, .env files, or personal or customer data; redact sensitive values, and prefer minimal, sanitized excerpts over whole logs, bundles, or datasets. Include artifact metadata only where the typed submit contract permits it.\n- If the task depends on prior artifacts, list and download the exact referenced artifact before judging or continuing that work.",
+			slug: "verification-and-artifacts-v1"
+		}
+	},
+	recipes: {
+		"artifact-planner@v1": {
+			description: "Minimal artifact-only context for bounded semantic classification and planning.",
+			fragments: ["artifact-planner-v1"]
+		},
+		"run-eval-direct@v1": {
+			description: "Minimal direct context for a short, isolated evaluation run.",
+			fragments: ["run-eval-direct-v1"]
+		},
+		"standard-engineering@v1": {
+			description: "Full opt-in operating guidance for engineering tasks that need diary research, accountable delivery, and verification discipline.",
+			fragments: [
+				"proactive-memory-v1",
+				"task-diary-discipline-v1",
+				"accountable-delivery-v1",
+				"judgment-diary-v1",
+				"verification-and-artifacts-v1"
+			]
+		}
+	}
+};
+function deepFreeze(value) {
+	if (value && typeof value === "object") {
+		for (const key of Object.keys(value)) deepFreeze(value[key]);
+		Object.freeze(value);
+	}
+	return value;
+}
+deepFreeze(RUNTIME_PROFILE_CONTEXT_CATALOGUE);
+Object.freeze(Object.keys(RUNTIME_PROFILE_CONTEXT_CATALOGUE.recipes));
+//#endregion
+//#region ../../libs/models/src/credential-scopes.ts
+var CREDENTIAL_SCOPES = {
+	AgentProfile: "agent:profile",
+	ConnectorInvoke: "connector:invoke",
+	CryptoSign: "crypto:sign",
+	DiaryManage: "diary:manage",
+	DiaryRead: "diary:read",
+	DiaryWrite: "diary:write",
+	HumanProfile: "human:profile",
+	KeyManage: "key:manage",
+	PackRead: "pack:read",
+	PackWrite: "pack:write",
+	RuntimeManage: "runtime:manage",
+	RuntimeRead: "runtime:read",
+	TaskClaim: "task:claim",
+	TaskExecute: "task:execute",
+	TaskManage: "task:manage",
+	TaskRead: "task:read",
+	TaskWrite: "task:write",
+	TeamJoin: "team:join",
+	TeamManage: "team:manage",
+	TeamRead: "team:read"
+};
+var ALL_CREDENTIAL_SCOPES = Object.freeze(Object.values(CREDENTIAL_SCOPES));
+/**
+* What the agent daemon cannot run without, checked against
+* `GET /agents/whoami` at startup. Task credentials attenuate it further to
+* `task:execute` alone.
+*
+* This is the **boot floor**, and deliberately not the same list as
+* `AGENT_CREDENTIAL_SCOPES`. A credential's scopes are fixed when it is minted
+* and `POST /agent-keys` caps a new key at the scopes of the credential
+* requesting it, so no key can ever widen itself. A scope added here therefore
+* stops every daemon already in the field, and only a human with a Console
+* session can mint the replacement. Add one only when the daemon genuinely
+* cannot work without it; anything a caller merely benefits from belongs in
+* `DAEMON_OPTIONAL_SCOPES`, where absence costs a capability instead.
+*
+* `crypto:sign` is part of the minimum because host-capability signing runs on
+* the daemon's own credential: the local seed signer calls the signing-request
+* endpoints, which require it. A grant without it produces a daemon that boots
+* cleanly and then fails the first time guest code signs a diary entry or a
+* commit.
+*/
+var DAEMON_MINIMUM_SCOPES = [
+	CREDENTIAL_SCOPES.AgentProfile,
+	CREDENTIAL_SCOPES.CryptoSign,
+	CREDENTIAL_SCOPES.RuntimeRead,
+	CREDENTIAL_SCOPES.TaskRead,
+	CREDENTIAL_SCOPES.TaskClaim,
+	CREDENTIAL_SCOPES.TaskExecute
+];
+/**
+* Read and enrollment authority a daemon uses when it has it, and runs without
+* when it does not: reading the teams it belongs to and their diaries, and
+* joining a team it is not yet a member of.
+*
+* Which product surface each one enables is deliberately not recorded here.
+* That mapping belongs to whatever consumes the scope and changes with it,
+* while the scope names are the contract and do not.
+*/
+var DAEMON_OPTIONAL_SCOPES = [
+	CREDENTIAL_SCOPES.DiaryRead,
+	CREDENTIAL_SCOPES.TeamRead,
+	CREDENTIAL_SCOPES.TeamJoin
+];
+[...[...DAEMON_MINIMUM_SCOPES, ...DAEMON_OPTIONAL_SCOPES], CREDENTIAL_SCOPES.DiaryWrite];
+CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TaskWrite;
+CREDENTIAL_SCOPES.AgentProfile, CREDENTIAL_SCOPES.DiaryRead, CREDENTIAL_SCOPES.PackRead, CREDENTIAL_SCOPES.RuntimeRead, CREDENTIAL_SCOPES.TaskRead, CREDENTIAL_SCOPES.TeamRead;
+/** Full grant ceiling for first-party agent OAuth2 clients. */
+var AGENT_OAUTH_SCOPES = Object.freeze(ALL_CREDENTIAL_SCOPES.filter((scope) => scope !== CREDENTIAL_SCOPES.HumanProfile));
+/**
+* REST capabilities exercised by the current MCP tool surface.
+*
+* Intentionally excludes connector invocation, key management, runtime
+* management/read, and task claiming because MCP exposes none of those
+* operations.
+*/
+var MCP_CLIENT_SCOPES = [
+	CREDENTIAL_SCOPES.AgentProfile,
+	CREDENTIAL_SCOPES.CryptoSign,
+	CREDENTIAL_SCOPES.DiaryManage,
+	CREDENTIAL_SCOPES.DiaryRead,
+	CREDENTIAL_SCOPES.DiaryWrite,
+	CREDENTIAL_SCOPES.HumanProfile,
+	CREDENTIAL_SCOPES.PackRead,
+	CREDENTIAL_SCOPES.PackWrite,
+	CREDENTIAL_SCOPES.TaskExecute,
+	CREDENTIAL_SCOPES.TaskManage,
+	CREDENTIAL_SCOPES.TaskRead,
+	CREDENTIAL_SCOPES.TaskWrite,
+	CREDENTIAL_SCOPES.TeamJoin,
+	CREDENTIAL_SCOPES.TeamManage,
+	CREDENTIAL_SCOPES.TeamRead
+];
+MCP_CLIENT_SCOPES.filter((scope) => scope !== CREDENTIAL_SCOPES.HumanProfile);
+/**
+* OIDC protocol scopes. Not MoltNet capabilities — they carry no REST
+* authorization — so every capability cap has to allow them through
+* explicitly rather than treating them as over-grants.
+*/
+var OIDC_PROTOCOL_SCOPES = [
+	"openid",
+	"offline",
+	"offline_access"
+];
+/** Optional OIDC identity claims requested by some interactive MCP clients. */
+var OIDC_IDENTITY_SCOPES = ["email", "profile"];
+/** Registration defaults do not grant identity claims unless requested. */
+var DCR_DEFAULT_SCOPES = Object.freeze([...OIDC_PROTOCOL_SCOPES, ...MCP_CLIENT_SCOPES]);
+Object.freeze([...DCR_DEFAULT_SCOPES, ...OIDC_IDENTITY_SCOPES]);
+Object.freeze({
+	protocolVersion: 2,
+	provisioningScope: "moltnet:provision",
+	localControlScope: "moltnet:local-control",
+	provisioningAudience: "moltnet:provisioning",
+	localControlAudience: "moltnet:agent-server",
+	/**
+	* Administratively registered public PKCE clients. The consent handler
+	* compares a token's `client_id` against these, so server and Desktop must
+	* agree: a mismatch rejects every approval with an opaque 403.
+	*/
+	nativeClientId: "moltnet-native",
+	approvalTransportGraceSeconds: 30,
+	callbackPort: 17375,
+	nativeLifetimeSeconds: 300,
+	serverPort: 17374
+});
+Object.freeze({
+	clientId: "tailscale-login",
+	redirectUri: "https://login.tailscale.com/a/oauth_response",
+	scopes: [
+		"openid",
+		"profile",
+		"email"
+	],
+	scope: "openid profile email"
+});
+//#endregion
+//#region ../../libs/models/src/preview-sign.ts
+function schemaRef$1(schema, id) {
+	return Unsafe(Ref$2(id));
+}
+var PreviewSignBase64UrlSchema = String$1({
+	$id: "PreviewSignBase64Url",
+	minLength: 1,
+	maxLength: 5462,
+	pattern: "^[A-Za-z0-9_-]+$"
+});
+var PreviewSignSha256Base64UrlSchema = String$1({
+	$id: "PreviewSignSha256Base64Url",
+	minLength: 43,
+	maxLength: 43,
+	pattern: "^[A-Za-z0-9_-]+$"
+});
+var PreviewSignP256DerSignatureBase64UrlSchema = String$1({
+	$id: "PreviewSignP256DerSignatureBase64Url",
+	minLength: 11,
+	maxLength: 96,
+	pattern: "^[A-Za-z0-9_-]+$"
+});
+var PreviewSignEs256PublicKeySchema = _Object_({
+	kty: Literal(2),
+	algorithm: Literal(-7),
+	curve: Literal(1),
+	x: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url"),
+	y: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url")
+}, {
+	$id: "PreviewSignEs256PublicKey",
+	additionalProperties: false
+});
+var PreviewSignEcdhEsHkdf256PublicKeySchema = _Object_({
+	kty: Literal(2),
+	algorithm: Literal(-25),
+	curve: Literal(1),
+	x: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url"),
+	y: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url")
+}, {
+	$id: "PreviewSignEcdhEsHkdf256PublicKey",
+	additionalProperties: false
+});
+var PreviewSignEsp256PublicKeySchema = _Object_({
+	kty: Literal(2),
+	algorithm: Literal(-9),
+	curve: Literal(1),
+	x: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url"),
+	y: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url")
+}, {
+	$id: "PreviewSignEsp256PublicKey",
+	additionalProperties: false
+});
+var PreviewSignArkgSeedPublicKeySchema = _Object_({
+	kty: Literal(-65537),
+	algorithm: Literal(-65700),
+	derivedAlgorithm: Literal(-9),
+	blindingKey: schemaRef$1(PreviewSignEs256PublicKeySchema, "PreviewSignEs256PublicKey"),
+	kemKey: schemaRef$1(PreviewSignEcdhEsHkdf256PublicKeySchema, "PreviewSignEcdhEsHkdf256PublicKey")
+}, {
+	$id: "PreviewSignArkgSeedPublicKey",
+	additionalProperties: false
+});
+var PreviewSignPublicMaterialSchema = _Object_({
+	version: Literal(1),
+	outerCredentialId: schemaRef$1(PreviewSignBase64UrlSchema, "PreviewSignBase64Url"),
+	outerPublicKey: schemaRef$1(PreviewSignEs256PublicKeySchema, "PreviewSignEs256PublicKey"),
+	previewKeyHandle: schemaRef$1(PreviewSignBase64UrlSchema, "PreviewSignBase64Url"),
+	seedPublicKey: schemaRef$1(PreviewSignArkgSeedPublicKeySchema, "PreviewSignArkgSeedPublicKey")
+}, {
+	$id: "PreviewSignPublicMaterial",
+	additionalProperties: false
+});
+var PreviewSignChallengeSchema = _Object_({
+	verificationMethod: Literal("human-hardware-previewsign"),
+	version: Literal(1),
+	envelope: schemaRef$1(PreviewSignBase64UrlSchema, "PreviewSignBase64Url"),
+	digest: schemaRef$1(PreviewSignSha256Base64UrlSchema, "PreviewSignSha256Base64Url"),
+	additionalArguments: schemaRef$1(PreviewSignBase64UrlSchema, "PreviewSignBase64Url"),
+	outerCredentialId: schemaRef$1(PreviewSignBase64UrlSchema, "PreviewSignBase64Url"),
+	outerPublicKey: schemaRef$1(PreviewSignEs256PublicKeySchema, "PreviewSignEs256PublicKey"),
+	previewKeyHandle: schemaRef$1(PreviewSignBase64UrlSchema, "PreviewSignBase64Url")
+}, {
+	$id: "PreviewSignChallenge",
+	additionalProperties: false
+});
+var PreviewSignChallengeValueSchema = _Object_({
+	verificationMethod: Literal("human-hardware-previewsign"),
+	value: schemaRef$1(PreviewSignChallengeSchema, "PreviewSignChallenge")
+}, {
+	$id: "PreviewSignChallengeValue",
+	additionalProperties: false
+});
+var PreviewSignChallengeOperationSchema = Union([Literal("credential-registration"), Literal("signing-request")], { $id: "PreviewSignChallengeOperation" });
+var PreviewSignReceiptSchema = _Object_({
+	version: Literal(1),
+	signature: schemaRef$1(PreviewSignP256DerSignatureBase64UrlSchema, "PreviewSignP256DerSignatureBase64Url")
+}, {
+	$id: "PreviewSignReceipt",
+	additionalProperties: false
+});
+var PreviewSignReceiptValueSchema = _Object_({
+	verificationMethod: Literal("human-hardware-previewsign"),
+	value: schemaRef$1(PreviewSignReceiptSchema, "PreviewSignReceipt")
+}, {
+	$id: "PreviewSignReceiptValue",
+	additionalProperties: false
+});
+var previewSignSchemaContext = {
+	PreviewSignBase64Url: PreviewSignBase64UrlSchema,
+	PreviewSignSha256Base64Url: PreviewSignSha256Base64UrlSchema,
+	PreviewSignP256DerSignatureBase64Url: PreviewSignP256DerSignatureBase64UrlSchema,
+	PreviewSignEs256PublicKey: PreviewSignEs256PublicKeySchema,
+	PreviewSignEcdhEsHkdf256PublicKey: PreviewSignEcdhEsHkdf256PublicKeySchema,
+	PreviewSignEsp256PublicKey: PreviewSignEsp256PublicKeySchema,
+	PreviewSignArkgSeedPublicKey: PreviewSignArkgSeedPublicKeySchema,
+	PreviewSignPublicMaterial: PreviewSignPublicMaterialSchema,
+	PreviewSignChallenge: PreviewSignChallengeSchema,
+	PreviewSignChallengeValue: PreviewSignChallengeValueSchema,
+	PreviewSignChallengeOperation: PreviewSignChallengeOperationSchema,
+	PreviewSignReceipt: PreviewSignReceiptSchema,
+	PreviewSignReceiptValue: PreviewSignReceiptValueSchema
+};
+//#endregion
+//#region ../../libs/models/src/verification-method.ts
+/**
+* Persisted and wire-level signing verification method identifiers.
+*
+* This vocabulary is append-only. Never rename, remove, or change an existing
+* value: PostgreSQL rows, workflow inputs, and API clients persist these exact
+* strings. Future signing methods must add a new property and value.
+*/
+var VERIFICATION_METHOD = {
+	AgentEd25519: "agent-ed25519",
+	HumanHardwarePreviewSign: "human-hardware-previewsign"
+};
+VERIFICATION_METHOD.AgentEd25519, VERIFICATION_METHOD.HumanHardwarePreviewSign;
+//#endregion
+//#region ../../libs/models/src/schemas.ts
+var UuidSchema = String$1({
+	format: "uuid",
+	description: "UUID v4 identifier"
+});
+var TimestampSchema = String$1({
+	format: "date-time",
+	description: "ISO 8601 timestamp"
+});
+Union([Literal(VERIFICATION_METHOD.AgentEd25519), Literal(VERIFICATION_METHOD.HumanHardwarePreviewSign)], { description: "Stable signing verification method identifier" });
+Union([
+	Literal("private"),
+	Literal("moltnet"),
+	Literal("public")
+], { description: "Entry visibility level" });
+var ENTRY_TYPE_VALUES = [
+	"episodic",
+	"semantic",
+	"procedural",
+	"reflection"
+];
+var EntryTypeSchema = Union([
+	Literal("episodic"),
+	Literal("semantic"),
+	Literal("procedural"),
+	Literal("reflection")
+], { description: "Entry memory type" });
+/** Regex fragment matching a single entry type value. */
+var ENTRY_TYPE_PATTERN = `(${ENTRY_TYPE_VALUES.join("|")})`;
+`${ENTRY_TYPE_PATTERN}${ENTRY_TYPE_PATTERN}`, ENTRY_TYPE_VALUES.length - 1;
+var PublicKeySchema = String$1({
+	pattern: "^ed25519:[A-Za-z0-9+/=]+$",
+	description: "Ed25519 public key with prefix"
+});
+var FingerprintSchema = String$1({
+	pattern: "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+	description: "Key fingerprint (A1B2-C3D4-E5F6-G7H8)"
+});
+var AgentAliasSchema = String$1({
+	pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$",
+	minLength: 1,
+	maxLength: 63,
+	description: "Case-preserving network alias; self-asserted, not unique, never used for authorization or lookup"
+});
+_Object_({
+	title: Optional(String$1({ maxLength: 255 })),
+	content: String$1({
+		minLength: 1,
+		maxLength: 1e5
+	}),
+	tags: Optional(_Array_(String$1({ maxLength: 128 }), { maxItems: 20 }))
+});
+_Object_({
+	title: Optional(String$1({ maxLength: 255 })),
+	content: Optional(String$1({
+		minLength: 1,
+		maxLength: 1e5
+	})),
+	tags: Optional(_Array_(String$1({ maxLength: 128 }), { maxItems: 20 }))
+});
+_Object_({
+	query: Optional(String$1({
+		minLength: 1,
+		maxLength: 500
+	})),
+	tags: Optional(_Array_(String$1({ maxLength: 128 }), {
+		minItems: 1,
+		maxItems: 20,
+		description: "Filter: entry must have ALL specified tags"
+	})),
+	limit: Optional(Number$1({
+		minimum: 1,
+		maximum: 100,
+		default: 20
+	})),
+	offset: Optional(Number$1({
+		minimum: 0,
+		default: 0
+	}))
+});
+_Object_({
+	identityId: UuidSchema,
+	publicKey: PublicKeySchema,
+	fingerprint: FingerprintSchema,
+	createdAt: TimestampSchema
+});
+_Object_({
+	publicKey: PublicKeySchema,
+	fingerprint: FingerprintSchema
+});
+_Object_({ message: String$1({
+	minLength: 1,
+	maxLength: 1e4
+}) });
+_Object_({
+	message: String$1(),
+	signature: String$1({ description: "Base64 encoded Ed25519 signature" }),
+	publicKey: PublicKeySchema
+});
+_Object_({
+	message: String$1({
+		minLength: 1,
+		maxLength: 1e4
+	}),
+	signature: String$1({ description: "Base64 encoded signature" }),
+	publicKey: PublicKeySchema
+});
+_Object_({
+	valid: Boolean$1(),
+	signer: Optional(_Object_({ fingerprint: FingerprintSchema }))
+});
+var BaseAuthContextSchema = _Object_({
+	identityId: UuidSchema,
+	scopes: _Array_(String$1()),
+	subjectType: Union([Literal("agent"), Literal("human")]),
+	currentTeamId: Union([UuidSchema, Null()])
+});
+Union([Intersect([BaseAuthContextSchema, _Object_({
+	subjectType: Literal("agent"),
+	publicKey: PublicKeySchema,
+	fingerprint: FingerprintSchema,
+	clientId: String$1()
+})]), Intersect([BaseAuthContextSchema, _Object_({
+	subjectType: Literal("human"),
+	clientId: Union([String$1(), Null()])
+})])]);
+_Object_({
+	success: Boolean$1(),
+	message: Optional(String$1())
+});
+_Object_({ diaryId: UuidSchema });
+_Object_({
+	diaryId: UuidSchema,
+	entryId: UuidSchema
+});
+_Object_({ entryId: UuidSchema });
+_Object_({ id: UuidSchema });
+_Object_({
+	publicKey: PublicKeySchema,
+	fingerprint: FingerprintSchema,
+	proof: String$1({
+		minLength: 1,
+		maxLength: 256
+	}),
+	credentialType: Literal("oauth2"),
+	agentName: String$1({
+		minLength: 1,
+		maxLength: 34
+	}),
+	org: Optional(String$1({
+		minLength: 1,
+		maxLength: 39,
+		pattern: "^[a-zA-Z0-9-]+$",
+		description: "GitHub organization name. When provided, the GitHub App will be created under this org instead of the personal account."
+	}))
+});
+_Object_({
+	workflowId: String$1(),
+	manifestFormUrl: String$1()
+});
+_Object_({
+	status: Union([
+		Literal("awaiting_github"),
+		Literal("github_code_ready"),
+		Literal("awaiting_installation"),
+		Literal("completed"),
+		Literal("failed")
+	]),
+	githubCode: Optional(String$1({ description: "GitHub manifest code sealed to the onboarding agent public key." })),
+	identityId: Optional(String$1()),
+	clientId: Optional(String$1()),
+	clientSecret: Optional(String$1({ description: "OAuth2 client secret sealed to the onboarding agent public key." })),
+	installationId: Optional(String$1())
+});
+_Object_({
+	wf: String$1({
+		minLength: 1,
+		description: "Workflow ID baked into setup_url"
+	}),
+	installation_id: String$1({ minLength: 1 }),
+	setup_action: Optional(String$1())
+});
+_Object_({ id: UuidSchema });
+_Object_({
+	id: UuidSchema,
+	subjectId: UuidSchema
+});
+_Object_({
+	id: UuidSchema,
+	inviteId: UuidSchema
+});
+_Object_({ name: String$1({
+	minLength: 1,
+	maxLength: 255
+}) });
+_Object_({
+	role: Optional(Union([
+		Literal("manager"),
+		Literal("executor"),
+		Literal("member")
+	])),
+	expiresInHours: Optional(Integer({
+		minimum: 1,
+		maximum: 720,
+		default: 168
+	}))
+});
+_Object_({
+	code: String$1({ minLength: 1 }),
+	issueAgentKey: Optional(Literal(true)),
+	expectedTeamId: Optional(UuidSchema)
+});
+_Object_({ role: Union([
+	Literal("manager"),
+	Literal("executor"),
+	Literal("member")
+]) });
+var TeamRoleSchema = Union([
+	Literal("owner"),
+	Literal("manager"),
+	Literal("executor"),
+	Literal("member")
+]);
+_Object_({
+	id: UuidSchema,
+	name: String$1()
+});
+var DateTimeUnsafe = Unsafe(String$1({ format: "date-time" }));
+_Object_({
+	id: UuidSchema,
+	code: String$1(),
+	role: Union([
+		Literal("manager"),
+		Literal("executor"),
+		Literal("member")
+	]),
+	usedAt: Union([String$1({ format: "date-time" }), Null()]),
+	expiresAt: DateTimeUnsafe,
+	createdAt: DateTimeUnsafe
+});
+var TeamMemberSchema = _Object_({
+	subjectId: UuidSchema,
+	subjectType: Union([Literal("agent"), Literal("human")]),
+	role: TeamRoleSchema,
+	displayName: String$1(),
+	alias: Optional(AgentAliasSchema),
+	fingerprint: Optional(String$1()),
+	email: Optional(String$1())
+});
+_Object_({
+	id: UuidSchema,
+	name: String$1(),
+	personal: Boolean$1(),
+	status: String$1(),
+	role: TeamRoleSchema
+});
+_Object_({
+	id: UuidSchema,
+	name: String$1(),
+	status: String$1(),
+	personal: Boolean$1(),
+	createdAt: DateTimeUnsafe,
+	updatedAt: DateTimeUnsafe,
+	members: _Array_(TeamMemberSchema)
+});
+_Object_({
+	teamId: UuidSchema,
+	role: TeamRoleSchema
+});
+_Object_({
+	updated: Boolean$1(),
+	role: Union([
+		Literal("manager"),
+		Literal("executor"),
+		Literal("member")
+	])
+});
+_Object_({ deleted: Boolean$1() });
+_Object_({ removed: Boolean$1() });
+var FoundingMemberSchema = _Object_({
+	subjectId: UuidSchema,
+	subjectNs: Union([Literal("Agent"), Literal("Human")]),
+	role: Union([
+		Literal("owner"),
+		Literal("manager"),
+		Literal("executor"),
+		Literal("member")
+	])
+});
+_Object_({
+	name: String$1({
+		minLength: 1,
+		maxLength: 255
+	}),
+	foundingMembers: Optional(_Array_(FoundingMemberSchema, { minItems: 1 }))
+});
+_Object_({
+	id: UuidSchema,
+	name: String$1(),
+	status: String$1(),
+	workflowId: Optional(String$1())
+});
+_Object_({});
+_Object_({
+	accepted: Boolean$1(),
+	teamStatus: String$1()
+});
+_Object_({ destinationTeamId: UuidSchema });
+_Object_({ transferId: UuidSchema });
+_Object_({ items: _Array_(_Object_({
+	id: UuidSchema,
+	diaryId: UuidSchema,
+	sourceTeamId: UuidSchema,
+	destinationTeamId: UuidSchema,
+	status: String$1(),
+	initiatedBy: UuidSchema,
+	expiresAt: Unsafe(String$1({ format: "date-time" })),
+	createdAt: Unsafe(String$1({ format: "date-time" }))
+})) });
+_Object_({ groupId: UuidSchema });
+_Object_({
+	groupId: UuidSchema,
+	subjectId: UuidSchema
+});
+_Object_({ name: String$1({
+	minLength: 1,
+	maxLength: 255
+}) });
+_Object_({
+	subjectId: UuidSchema,
+	subjectNs: Optional(Union([Literal("Agent"), Literal("Human")]))
+});
+_Object_({
+	id: UuidSchema,
+	name: String$1(),
+	teamId: UuidSchema
+});
+var GroupMemberResponseSchema = _Object_({
+	subjectId: UuidSchema,
+	subjectNs: String$1()
+});
+_Object_({
+	id: UuidSchema,
+	name: String$1(),
+	teamId: UuidSchema,
+	createdAt: DateTimeUnsafe,
+	members: _Array_(GroupMemberResponseSchema)
+});
+var DiaryGrantRoleSchema = Union([Literal("writer"), Literal("manager")]);
+var GrantSubjectNsSchema = Union([
+	Literal("Agent"),
+	Literal("Human"),
+	Literal("Group")
+]);
+_Object_({
+	subjectId: UuidSchema,
+	subjectNs: GrantSubjectNsSchema,
+	role: DiaryGrantRoleSchema
+});
+_Object_({
+	subjectId: UuidSchema,
+	subjectNs: GrantSubjectNsSchema,
+	role: DiaryGrantRoleSchema
+});
+_Object_({ grants: _Array_(_Object_({
+	subjectId: UuidSchema,
+	subjectNs: GrantSubjectNsSchema,
+	role: DiaryGrantRoleSchema
+})) });
+_Object_({ revoked: Boolean$1() });
+var TaskGrantRoleSchema = Union([Literal("writer"), Literal("manager")]);
+_Object_({
+	subjectId: UuidSchema,
+	subjectNs: GrantSubjectNsSchema,
+	role: TaskGrantRoleSchema
+});
+_Object_({
+	subjectId: UuidSchema,
+	subjectNs: GrantSubjectNsSchema,
+	role: TaskGrantRoleSchema
+});
+_Object_({ grants: _Array_(_Object_({
+	subjectId: UuidSchema,
+	subjectNs: GrantSubjectNsSchema,
+	role: TaskGrantRoleSchema
+})) });
+_Object_({ "x-moltnet-team-id": String$1({
+	format: "uuid",
+	description: "Team ID (UUID) that will own the resource. Required."
+}) });
+_Object_({ "x-moltnet-team-id": Optional(String$1({
+	format: "uuid",
+	description: "Team ID (UUID) for scoping the request. Optional."
+})) });
+_Object_({
+	kind: Literal("agent"),
+	/**
+	* Internal MoltNet agent ID — stable for the life of the agent and the
+	* value every agent foreign key and Keto tuple refers to.
+	*/
+	agentId: UuidSchema,
+	/**
+	* Ory Kratos identity bound to this agent, or null when it has none.
+	*
+	* Null is not a registration race (agents are created synchronously, with
+	* no webhook): it means the Kratos identity is gone or not yet
+	* reprovisioned. Keeping this nullable is what stops an identity loss from
+	* turning every read of that agent's resources into a serialization error.
+	*/
+	identityId: Union([UuidSchema, Null()]),
+	fingerprint: FingerprintSchema,
+	publicKey: PublicKeySchema
+}, {
+	$id: "AgentPrincipal",
+	additionalProperties: false
+});
+_Object_({
+	kind: Literal("human"),
+	humanId: UuidSchema,
+	identityId: Union([UuidSchema, Null()])
+}, {
+	$id: "HumanPrincipal",
+	additionalProperties: false
+});
+var principalUnionVariants = [_Object_({
+	kind: Literal("agent"),
+	agentId: UuidSchema,
+	identityId: Union([UuidSchema, Null()]),
+	fingerprint: FingerprintSchema,
+	publicKey: PublicKeySchema
+}, { additionalProperties: false }), _Object_({
+	kind: Literal("human"),
+	humanId: UuidSchema,
+	identityId: Union([UuidSchema, Null()])
+}, { additionalProperties: false })];
+Union(principalUnionVariants, {
+	$id: "PrincipalIdentity",
+	discriminator: { propertyName: "kind" }
+});
+/**
+* `$id`-less twin of `PrincipalIdentitySchema`. Required anywhere the
+* schema is **embedded** inline into another schema (MCP `outputSchema`
+* — every tool that returns a creator-bearing object embeds its own
+* copy; provenance-graph node `meta.creator`, etc.). Ajv 8 throws
+* `reference "PrincipalIdentity" resolves to more than one schema` if
+* the same `$id` appears twice in the same compilation pass, which is
+* exactly what happens when the MCP server lists tools and Ajv
+* traverses every advertised `outputSchema`.
+*
+* Structurally identical to `PrincipalIdentitySchema` (they share the
+* variants array); change one, change both.
+*/
+var PrincipalIdentitySchemaInline = Union(principalUnionVariants, { discriminator: { propertyName: "kind" } });
+//#endregion
+//#region ../../libs/models/src/problem-details.ts
+var ProblemCodeSchema = Union([
+	Literal("UNAUTHORIZED"),
+	Literal("FORBIDDEN"),
+	Literal("NOT_FOUND"),
+	Literal("CONFLICT"),
+	Literal("PROJECT_MISMATCH"),
+	Literal("UNSUPPORTED_MEDIA_TYPE"),
+	Literal("VALIDATION_FAILED"),
+	Literal("INVALID_CHALLENGE"),
+	Literal("INVALID_SIGNATURE"),
+	Literal("RATE_LIMIT_EXCEEDED"),
+	Literal("SERIALIZATION_EXHAUSTED"),
+	Literal("SIGNING_REQUEST_EXPIRED"),
+	Literal("SIGNING_REQUEST_ALREADY_COMPLETED"),
+	Literal("SIGNING_REQUEST_LIMIT_REACHED"),
+	Literal("REGISTRATION_FAILED"),
+	Literal("UPSTREAM_ERROR"),
+	Literal("SERVICE_UNAVAILABLE"),
+	Literal("INTERNAL_SERVER_ERROR"),
+	Literal("TEAM_PERSONAL_IMMUTABLE"),
+	Literal("TEAM_NOT_ACTIVE"),
+	Literal("INVITE_EXPIRED"),
+	Literal("INVITE_EXHAUSTED"),
+	Literal("TEAM_LAST_OWNER"),
+	Literal("TEAM_ALREADY_ACTIVE"),
+	Literal("TEAM_NOT_FOUNDING"),
+	Literal("FOUNDING_ALREADY_ACCEPTED"),
+	Literal("DIARY_TRANSFER_PENDING"),
+	Literal("DIARY_TRANSFER_NOT_FOUND"),
+	Literal("DIARY_TRANSFER_ALREADY_RESOLVED")
+]);
+var ProblemDetailsSchema = _Object_({
+	type: String$1({ format: "uri" }),
+	title: String$1(),
+	status: Integer({
+		minimum: 100,
+		maximum: 599
+	}),
+	code: ProblemCodeSchema,
+	detail: Optional(String$1()),
+	instance: Optional(String$1()),
+	retryAfter: Optional(Integer({
+		minimum: 0,
+		description: "Non-negative delay in seconds before retrying, matching the Retry-After response header when present."
+	}))
+}, {
+	$id: "ProblemDetails",
+	additionalProperties: true
+});
+_Object_({
+	field: String$1(),
+	message: String$1(),
+	/**
+	* Optional machine-readable code for branch-able client handling
+	* (e.g. `freeform.sourceTaskNotFound`). Free-form by convention:
+	* `<scope>.<failure>` with dot-namespacing. Absent when the producer
+	* didn't emit one — older code paths just send `field` + `message`.
+	*/
+	code: Optional(String$1())
+}, {
+	$id: "ValidationError",
+	additionalProperties: false
+});
+_Object_({
+	resource: String$1(),
+	id: Optional(String$1({ format: "uuid" })),
+	keys: Optional(Record(String$1(), String$1()))
+}, {
+	$id: "ConflictTarget",
+	additionalProperties: false
+});
+_Object_({
+	constraint: Optional(String$1()),
+	target: Optional(Ref$2("ConflictTarget"))
+}, {
+	$id: "ConflictError",
+	additionalProperties: false
+});
+var ConflictProblemDetailsSchema = Intersect([ProblemDetailsSchema, _Object_({ conflict: Ref$2("ConflictError") })], { $id: "ConflictProblemDetails" });
+_Object_({
+	type: String$1(),
+	severity: Number$1(),
+	match: String$1()
+}, {
+	$id: "InjectionThreat",
+	additionalProperties: false
+});
+Intersect([ConflictProblemDetailsSchema, _Object_({ flagged: Optional(_Array_(_Object_({
+	id: String$1({ format: "uuid" }),
+	threats: _Array_(Ref$2("InjectionThreat"))
+}, { additionalProperties: false }))) })], { $id: "InjectionConflictProblemDetails" });
+Intersect([ProblemDetailsSchema, _Object_({ errors: _Array_(Ref$2("ValidationError")) })], { $id: "ValidationProblemDetails" });
+_Object_({
+	id: String$1({ format: "uuid" }),
+	teamId: String$1({ format: "uuid" }),
+	creatorAgentId: Union([String$1({ format: "uuid" }), Null()]),
+	creatorHumanId: Union([String$1({ format: "uuid" }), Null()]),
+	name: String$1(),
+	description: Union([String$1(), Null()]),
+	defaultDiaryId: Union([String$1({ format: "uuid" }), Null()]),
+	archived: Boolean$1(),
+	createdAt: String$1({ format: "date-time" }),
+	updatedAt: String$1({ format: "date-time" })
+});
+_Object_({
+	...Partial(_Object_({
+		name: String$1({
+			minLength: 1,
+			maxLength: 255,
+			pattern: "\\S"
+		}),
+		description: Optional(Union([String$1({ maxLength: 1e4 }), Null()])),
+		defaultDiaryId: Optional(Union([String$1({ format: "uuid" }), Null()]))
+	}, { additionalProperties: false })).properties,
+	archived: Optional(Boolean$1())
+}, {
+	additionalProperties: false,
+	minProperties: 1
+});
+Union([
+	Literal("pack"),
+	Literal("entry"),
+	Literal("rendered_pack")
+]);
+var ProvenanceGraphEdgeKindSchema = Union([
+	Literal("includes"),
+	Literal("supersedes"),
+	Literal("rendered_from")
+]);
+var ProvenanceGraphPackMetaSchema = _Object_({
+	packId: UuidSchema,
+	diaryId: UuidSchema,
+	packCid: String$1(),
+	packType: String$1(),
+	packCodec: String$1(),
+	pinned: Boolean$1(),
+	createdAt: TimestampSchema,
+	expiresAt: Union([TimestampSchema, Null()]),
+	supersedesPackId: Union([UuidSchema, Null()])
+});
+/**
+* Discriminated creator embedded inside provenance-node response
+* payloads. Re-uses the shared `PrincipalIdentitySchemaInline` (the
+* `$id`-less twin) — embedding the named `PrincipalIdentitySchema`
+* here would clash with the top-level registration via @fastify/swagger
+* (`reference "PrincipalIdentity" resolves to more than one schema`).
+*/
+var ProvenanceGraphCreatorSchema = PrincipalIdentitySchemaInline;
+var ProvenanceGraphEntryMetaSchema = _Object_({
+	entryId: UuidSchema,
+	diaryId: UuidSchema,
+	entryType: EntryTypeSchema,
+	contentHash: Union([String$1(), Null()]),
+	createdAt: TimestampSchema,
+	updatedAt: TimestampSchema,
+	signed: Boolean$1(),
+	title: Union([String$1(), Null()]),
+	tags: _Array_(String$1()),
+	creator: Optional(ProvenanceGraphCreatorSchema)
+});
+var ProvenanceGraphPackNodeSchema = _Object_({
+	id: String$1(),
+	kind: Literal("pack"),
+	label: String$1(),
+	cid: Union([String$1(), Null()]),
+	meta: Intersect([ProvenanceGraphPackMetaSchema, _Object_({ creator: Optional(ProvenanceGraphCreatorSchema) })])
+});
+var ProvenanceGraphEntryNodeSchema = _Object_({
+	id: String$1(),
+	kind: Literal("entry"),
+	label: String$1(),
+	cid: Union([String$1(), Null()]),
+	meta: ProvenanceGraphEntryMetaSchema
+});
+var ProvenanceGraphRenderedPackMetaSchema = _Object_({
+	renderedPackId: UuidSchema,
+	sourcePackId: UuidSchema,
+	diaryId: UuidSchema,
+	packCid: String$1(),
+	renderMethod: String$1(),
+	totalTokens: Number$1(),
+	pinned: Boolean$1(),
+	createdAt: TimestampSchema,
+	expiresAt: Union([TimestampSchema, Null()]),
+	creator: Optional(ProvenanceGraphCreatorSchema)
+});
+var ProvenanceGraphNodeSchema = Union([
+	ProvenanceGraphPackNodeSchema,
+	ProvenanceGraphEntryNodeSchema,
+	_Object_({
+		id: String$1(),
+		kind: Literal("rendered_pack"),
+		label: String$1(),
+		cid: Union([String$1(), Null()]),
+		meta: ProvenanceGraphRenderedPackMetaSchema
+	})
+]);
+var ProvenanceGraphEdgeSchema = _Object_({
+	id: String$1(),
+	from: String$1(),
+	to: String$1(),
+	kind: ProvenanceGraphEdgeKindSchema,
+	label: Optional(String$1()),
+	meta: Optional(Record(String$1(), Union([
+		String$1(),
+		Number$1(),
+		Boolean$1(),
+		Null()
+	])))
+});
+_Object_({
+	metadata: _Object_({
+		format: Literal("moltnet.provenance-graph/v1"),
+		generatedAt: TimestampSchema,
+		rootNodeId: String$1(),
+		rootPackId: UuidSchema,
+		depth: Number$1({ minimum: 0 })
+	}),
+	nodes: _Array_(ProvenanceGraphNodeSchema),
+	edges: _Array_(ProvenanceGraphEdgeSchema)
+}, { $id: "ProvenanceGraph" });
+//#endregion
+//#region ../../libs/models/src/render-method.ts
+/**
+* The `renderMethod` convention for rendered packs (#1857).
+*
+* `renderedPacks.renderMethod` is a free-text `varchar(100)`. The server
+* bifurcates on exactly one thing — whether the label starts with `server:`
+* — and everything else is a caller-authored render whose markdown the
+* caller must supply. This module is the single owner of that convention:
+* the service, the API schemas, the runtime default and the console's
+* trust-tier derivation all read from here.
+*
+* The Go CLI (`apps/moltnet-cli/cobra_pack.go`) cannot import this module;
+* it carries a pointer comment and its default must be kept in sync with
+* `DEFAULT_SERVER_RENDER_METHOD` by hand.
+*
+* Values observed in production data and accepted unchanged:
+* `server:pack-to-docs-v1`, `agent:pack-to-docs-v1`, `agent-refined`.
+* `pi:pack-to-docs-v1` is the live pi-runtime default.
+*/
+/** Labels carrying this prefix are rendered deterministically by the server. */
+var SERVER_RENDER_PREFIX = "server:";
+/**
+* Prefixes that identify caller-authored markdown.
+*
+* `agent:` is the canonical documented label, `pi:` is what the pi-runtime
+* emits by default, and `agent-` covers the `agent-refined` family that is
+* live in production data.
+*/
+var CALLER_AUTHORED_PREFIXES = [
+	"agent:",
+	"pi:",
+	"agent-"
+];
+var DEFAULT_SERVER_RENDER_METHOD = "server:pack-to-docs-v1";
+var DEFAULT_AGENT_RENDER_METHOD = "agent:pack-to-docs-v1";
+var RenderMethodSchema = String$1({
+	minLength: 1,
+	maxLength: 100,
+	pattern: `^(${[SERVER_RENDER_PREFIX, ...CALLER_AUTHORED_PREFIXES].join("|")})\\S+$`,
+	description: "Render method label. Server render methods start with \"server:\" and must omit renderedMarkdown; caller-authored methods start with \"agent:\", \"pi:\" or \"agent-\" and require it.",
+	examples: [DEFAULT_SERVER_RENDER_METHOD, DEFAULT_AGENT_RENDER_METHOD]
+});
+//#endregion
+//#region ../../libs/models/src/signer-constraint.ts
+var SIGNER_CONSTRAINT_TYPE = {
+	Human: "human",
+	TeamRole: "team-role",
+	Group: "group"
+};
+Union([
+	_Object_({
+		type: Literal(SIGNER_CONSTRAINT_TYPE.Human),
+		id: String$1({ format: "uuid" })
+	}),
+	_Object_({
+		type: Literal(SIGNER_CONSTRAINT_TYPE.TeamRole),
+		id: TeamRoleSchema
+	}),
+	_Object_({
+		type: Literal(SIGNER_CONSTRAINT_TYPE.Group),
+		id: String$1({ format: "uuid" })
+	})
+]);
+//#endregion
+//#region ../../libs/models/src/signer-protocol.ts
+function schemaRef(schema) {
+	return Ref$2(schemaId(schema));
+}
+function schemaId(schema) {
+	const id = schema.$id;
+	if (typeof id !== "string" || id.length === 0) throw new Error("Signer protocol schemas must have an identifier");
+	return id;
+}
+var SignerBase64UrlSchema = PreviewSignBase64UrlSchema;
+var SignerUuidSchema = String$1({
+	$id: "SignerUuid",
+	pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+});
+var SignerOperationSchema = Union([
+	Literal("credential-enrollment"),
+	Literal("credential-registration"),
+	Literal("signing-request")
+], { $id: "SignerOperation" });
+var SignerChallengeOperationSchema = PreviewSignChallengeOperationSchema;
+var SignerPreviewSignPublicMaterialSchema = PreviewSignPublicMaterialSchema;
+var SignerPreviewSignChallengeValueSchema = PreviewSignChallengeValueSchema;
+var SignerProblemSchema = _Object_({
+	code: String$1({ minLength: 1 }),
+	message: String$1({ minLength: 1 })
+}, {
+	$id: "SignerProblem",
+	additionalProperties: false
+});
+var SignerCeremonyParamsSchema = _Object_({ ceremonyId: Unsafe(schemaRef(SignerBase64UrlSchema)) }, {
+	$id: "SignerCeremonyParams",
+	additionalProperties: false
+});
+var SignerSessionSchema = _Object_({
+	version: Literal(1),
+	token: Unsafe(schemaRef(SignerBase64UrlSchema)),
+	expiresAt: String$1()
+}, {
+	$id: "SignerSession",
+	additionalProperties: false
+});
+var SignerEnrollmentCeremonyRequestSchema = _Object_({
+	version: Literal(1),
+	operation: Literal("credential-enrollment"),
+	label: String$1({
+		minLength: 1,
+		maxLength: 255
+	}),
+	teamId: Unsafe(schemaRef(SignerUuidSchema))
+}, {
+	$id: "SignerEnrollmentCeremonyRequest",
+	additionalProperties: false
+});
+var SignerChallengeCeremonyRequestSchema = _Object_({
+	version: Literal(1),
+	operation: Unsafe(schemaRef(SignerChallengeOperationSchema)),
+	resourceId: Unsafe(schemaRef(SignerUuidSchema)),
+	challenge: Unsafe(schemaRef(SignerPreviewSignChallengeValueSchema))
+}, {
+	$id: "SignerChallengeCeremonyRequest",
+	additionalProperties: false
+});
+var SignerCeremonyRequestSchema = Union([Unsafe(schemaRef(SignerEnrollmentCeremonyRequestSchema)), Unsafe(schemaRef(SignerChallengeCeremonyRequestSchema))], { $id: "SignerCeremonyRequest" });
+var SignerCeremonySchema = _Object_({
+	version: Literal(1),
+	id: Unsafe(schemaRef(SignerBase64UrlSchema)),
+	operation: Unsafe(schemaRef(SignerOperationSchema)),
+	approvalUrl: String$1(),
+	expiresAt: String$1()
+}, {
+	$id: "SignerCeremony",
+	additionalProperties: false
+});
+var SignerPendingResultSchema = _Object_({
+	version: Literal(1),
+	status: Literal("pending"),
+	operation: Unsafe(schemaRef(SignerOperationSchema))
+}, {
+	$id: "SignerPendingResult",
+	additionalProperties: false
+});
+var SignerEnrollmentResultSchema = _Object_({
+	version: Literal(1),
+	status: Literal("completed"),
+	operation: Literal("credential-enrollment"),
+	publicMaterial: Unsafe(schemaRef(SignerPreviewSignPublicMaterialSchema))
+}, {
+	$id: "SignerEnrollmentResult",
+	additionalProperties: false
+});
+var SignerReceiptSchema = PreviewSignReceiptValueSchema;
+var SignerSignatureResultSchema = _Object_({
+	version: Literal(1),
+	status: Literal("completed"),
+	operation: Unsafe(schemaRef(SignerChallengeOperationSchema)),
+	receipt: Unsafe(schemaRef(SignerReceiptSchema))
+}, {
+	$id: "SignerSignatureResult",
+	additionalProperties: false
+});
+var SignerFailedResultSchema = _Object_({
+	version: Literal(1),
+	status: Literal("failed"),
+	operation: Unsafe(schemaRef(SignerOperationSchema)),
+	code: String$1(),
+	message: String$1()
+}, {
+	$id: "SignerFailedResult",
+	additionalProperties: false
+});
+var SignerCeremonyResultSchema = Union([
+	Unsafe(schemaRef(SignerPendingResultSchema)),
+	Unsafe(schemaRef(SignerEnrollmentResultSchema)),
+	Unsafe(schemaRef(SignerSignatureResultSchema)),
+	Unsafe(schemaRef(SignerFailedResultSchema))
+], { $id: "SignerCeremonyResult" });
+({ ...previewSignSchemaContext }), schemaId(SignerUuidSchema), schemaId(SignerOperationSchema), schemaId(SignerProblemSchema), schemaId(SignerCeremonyParamsSchema), schemaId(SignerSessionSchema), schemaId(SignerEnrollmentCeremonyRequestSchema), schemaId(SignerChallengeCeremonyRequestSchema), schemaId(SignerCeremonyRequestSchema), schemaId(SignerCeremonySchema), schemaId(SignerPendingResultSchema), schemaId(SignerEnrollmentResultSchema), schemaId(SignerSignatureResultSchema), schemaId(SignerFailedResultSchema), schemaId(SignerCeremonyResultSchema);
+//#endregion
+//#region ../../libs/models/src/tool-enforcement.ts
+var TOOL_ENFORCEMENT_VALUES = [
+	"off",
+	"watch",
+	"enforce"
+];
+var ToolEnforcementSchema = Union([
+	Literal(TOOL_ENFORCEMENT_VALUES[0]),
+	Literal(TOOL_ENFORCEMENT_VALUES[1]),
+	Literal(TOOL_ENFORCEMENT_VALUES[2])
+], { description: "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)." });
+//#endregion
+//#region ../../libs/runtime-profiles/src/runtime-profiles.ts
+var RuntimeProfileName = String$1({
+	minLength: 1,
+	maxLength: 100,
+	pattern: "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$"
+});
+var RuntimeProfileEnvName = String$1({
+	minLength: 1,
+	maxLength: 128,
+	pattern: "^[A-Z_][A-Z0-9_]*$"
+});
+var RuntimeProfileToolName = String$1({
+	minLength: 1,
+	maxLength: 128,
+	pattern: "^[a-zA-Z0-9._/-]+$"
+});
+var RUNTIME_PROFILE_RUNTIME_KIND_PATTERN = "^[a-z][a-z0-9._-]{0,99}$";
+new RegExp(RUNTIME_PROFILE_RUNTIME_KIND_PATTERN);
+var RuntimeProfileRuntimeKind = String$1({
+	minLength: 1,
+	maxLength: 100,
+	pattern: RUNTIME_PROFILE_RUNTIME_KIND_PATTERN
+});
+var RuntimeProfileWorkspaceMode = Union([
+	Literal("none"),
+	Literal("shared_mount"),
+	Literal("dedicated_worktree")
+]);
+/**
+* Tool-policy enforcement mode for the profile's runtime `tool_call` gate:
+* `off` (inert), `watch` (audit only), `enforce` (block disallowed tools,
+* fail-closed). Read by the daemon via `GET /runtime-profiles/:id/allowed-tools`.
+*/
+var RuntimeProfileToolEnforcement = ToolEnforcementSchema;
+var RuntimeProfileAllowedWorkspaceModes = _Array_(RuntimeProfileWorkspaceMode, {
+	minItems: 1,
+	maxItems: 3,
+	uniqueItems: true
+});
+var RuntimeProfileThinkingLevelOptions = [
+	Literal("off"),
+	Literal("minimal"),
+	Literal("low"),
+	Literal("medium"),
+	Literal("high"),
+	Literal("xhigh")
+];
+Union([...RuntimeProfileThinkingLevelOptions]);
+var RuntimeProfileNullableThinkingLevel = Union([...RuntimeProfileThinkingLevelOptions, Null()]);
+var RuntimeProfileNullableTemperature = Union([Null(), Number$1({
+	minimum: 0,
+	maximum: 2
+})]);
+var RuntimeProfileNullableTopP = Union([Null(), Number$1({
+	minimum: 0,
+	maximum: 1
+})]);
+var RuntimeProfileNullableTopK = Union([Integer({
+	minimum: 1,
+	maximum: 1e4
+}), Null()]);
+var RuntimeProfileNullableMaxOutputTokens = Union([Integer({
+	minimum: 1,
+	maximum: 1e6
+}), Null()]);
+var RuntimeProfileAllowedHost = String$1({
+	minLength: 1,
+	maxLength: 255,
+	pattern: "^(?:\\*\\.)?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$"
+});
+var RuntimeProfileSandbox = _Object_({
+	network: Optional(_Object_({
+		allowedHosts: Optional(_Array_(RuntimeProfileAllowedHost, { maxItems: 50 })),
+		allowedInternalHosts: Optional(_Array_(RuntimeProfileAllowedHost, { maxItems: 50 }))
+	}, { additionalProperties: false })),
+	vfs: Optional(_Object_({
+		shadow: Optional(_Array_(String$1({
+			minLength: 1,
+			maxLength: 255
+		}), { maxItems: 100 })),
+		shadowMode: Optional(Union([Literal("deny"), Literal("tmpfs")]))
+	}, { additionalProperties: false })),
+	env: Optional(Record(RuntimeProfileEnvName, String$1({ maxLength: 4096 }))),
+	hostExec: Optional(_Object_({ autoApprove: Optional(Literal(false)) }, { additionalProperties: false })),
+	resources: Optional(_Object_({
+		memory: Optional(String$1({
+			minLength: 2,
+			maxLength: 16,
+			pattern: "^[0-9]+[KMG]?$"
+		})),
+		cpus: Optional(Integer({
+			minimum: 1,
+			maximum: 32
+		}))
+	}, { additionalProperties: false }))
+}, {
+	$id: "RuntimeProfileSandbox",
+	additionalProperties: false
+});
+var RuntimeProfileContext = _Object_({
+	slug: String$1({
+		minLength: 1,
+		maxLength: 64,
+		pattern: "^[a-zA-Z0-9_-]+$"
+	}),
+	binding: Union([
+		Literal("skill"),
+		Literal("context_inline"),
+		Literal("prompt_prefix"),
+		Literal("user_inline")
+	]),
+	content: String$1({
+		minLength: 1,
+		maxLength: 65536
+	})
+}, {
+	$id: "RuntimeProfileContext",
+	additionalProperties: false
+});
+var RuntimeProfileRef = _Object_({ profileId: String$1({ format: "uuid" }) }, {
+	$id: "RuntimeProfileRef",
+	additionalProperties: false
+});
+var RuntimeProfileMaxTurns = Integer({
+	minimum: 0,
+	maximum: 1e4
+});
+var RuntimeProfileMaxBashTimeouts = Integer({
+	minimum: 0,
+	maximum: 1e3
+});
+_Object_({
+	id: String$1({ format: "uuid" }),
+	teamId: String$1({ format: "uuid" }),
+	name: RuntimeProfileName,
+	description: Union([String$1({ maxLength: 4096 }), Null()]),
+	provider: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	model: String$1({
+		minLength: 1,
+		maxLength: 200
+	}),
+	thinkingLevel: RuntimeProfileNullableThinkingLevel,
+	temperature: RuntimeProfileNullableTemperature,
+	topP: RuntimeProfileNullableTopP,
+	topK: RuntimeProfileNullableTopK,
+	maxOutputTokens: RuntimeProfileNullableMaxOutputTokens,
+	runtimeKind: RuntimeProfileRuntimeKind,
+	sandbox: RuntimeProfileSandbox,
+	defaultWorkspaceMode: Union([RuntimeProfileWorkspaceMode, Null()]),
+	allowedWorkspaceModes: RuntimeProfileAllowedWorkspaceModes,
+	maxTurns: RuntimeProfileMaxTurns,
+	maxBashTimeouts: RuntimeProfileMaxBashTimeouts,
+	toolEnforcement: RuntimeProfileToolEnforcement,
+	requiredEnv: _Array_(RuntimeProfileEnvName, { maxItems: 100 }),
+	requiredTools: _Array_(RuntimeProfileToolName, { maxItems: 100 }),
+	requiredExecutables: _Array_(RuntimeProfileToolName, { maxItems: 100 }),
+	context: _Array_(RuntimeProfileContext, { maxItems: 5 }),
+	revision: Integer({ minimum: 1 }),
+	definitionCid: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	createdByAgentId: Union([String$1({ format: "uuid" }), Null()]),
+	createdByHumanId: Union([String$1({ format: "uuid" }), Null()]),
+	createdAt: String$1({ format: "date-time" }),
+	updatedAt: String$1({ format: "date-time" })
+}, {
+	$id: "RuntimeProfile",
+	additionalProperties: false
+});
+//#endregion
+//#region ../../libs/runtime-profiles/src/runtime-sessions.ts
+var RuntimeSessionKind = Union([
+	Literal("root"),
+	Literal("extend"),
+	Literal("fork")
+]);
+var RuntimeSessionCheckpointKind = Union([Literal("attempt_final")]);
+_Object_({
+	id: String$1({ format: "uuid" }),
+	teamId: String$1({ format: "uuid" }),
+	taskId: String$1({ format: "uuid" }),
+	attemptN: Integer({ minimum: 1 }),
+	sourceSlotId: Union([String$1({ format: "uuid" }), Null()]),
+	sourceRuntimeProfileId: Union([String$1({ format: "uuid" }), Null()]),
+	sessionKind: RuntimeSessionKind,
+	parentSessionId: Union([String$1({ format: "uuid" }), Null()]),
+	contentType: String$1({
+		minLength: 1,
+		maxLength: 200
+	}),
+	contentEncoding: Union([String$1({
+		minLength: 1,
+		maxLength: 100
+	}), Null()]),
+	sizeBytes: Integer({ minimum: 0 }),
+	sha256: String$1({
+		minLength: 64,
+		maxLength: 64
+	}),
+	storageClass: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	checkpointKind: RuntimeSessionCheckpointKind,
+	uploadedAt: String$1({ format: "date-time" })
+}, { $id: "RuntimeSession" });
+_Object_({
+	sourceSlotId: Optional(String$1({ format: "uuid" })),
+	sourceRuntimeProfileId: Optional(String$1({ format: "uuid" })),
+	sessionKind: RuntimeSessionKind,
+	parentSessionId: Optional(String$1({ format: "uuid" }))
+}, {
+	$id: "UploadRuntimeSessionQuery",
+	additionalProperties: false
+});
+String$1({
+	$id: "RuntimeSessionContent",
+	description: "Runtime session content stream.",
+	format: "binary"
+});
+_Object_({
+	taskId: String$1({ format: "uuid" }),
+	attemptN: Integer({ minimum: 1 })
+}, {
+	$id: "RuntimeSessionAttemptParams",
+	additionalProperties: false
+});
+//#endregion
+//#region ../../libs/runtime-profiles/src/runtime-slots.ts
+var RuntimeWorkspaceKind = Union([
+	Literal("origin"),
+	Literal("fork"),
+	Literal("scratch")
+]);
+var RuntimeSlotState = Union([Literal("active"), Literal("idle")]);
+var RuntimeWorkspace = _Object_({
+	id: String$1({ format: "uuid" }),
+	teamId: String$1({ format: "uuid" }),
+	workspaceId: String$1({ minLength: 1 }),
+	worktreePath: String$1({ minLength: 1 }),
+	worktreeBranch: Union([String$1({ minLength: 1 }), Null()]),
+	kind: RuntimeWorkspaceKind,
+	createdAtMs: Integer({ minimum: 0 }),
+	lastUsedAtMs: Integer({ minimum: 0 })
+}, { $id: "RuntimeWorkspace" });
+_Object_({ items: _Array_(_Object_({
+	slot: _Object_({
+		id: String$1({ format: "uuid" }),
+		teamId: String$1({ format: "uuid" }),
+		agentName: String$1({
+			minLength: 1,
+			maxLength: 100
+		}),
+		runtimeProfileId: Union([String$1({ format: "uuid" }), Null()]),
+		provider: String$1({
+			minLength: 1,
+			maxLength: 100
+		}),
+		model: String$1({
+			minLength: 1,
+			maxLength: 200
+		}),
+		slotKey: String$1({ minLength: 1 }),
+		taskType: String$1({
+			minLength: 1,
+			maxLength: 100
+		}),
+		state: RuntimeSlotState,
+		lastTaskId: String$1({ format: "uuid" }),
+		lastAttemptN: Integer({ minimum: 1 }),
+		sessionDir: Union([String$1({ minLength: 1 }), Null()]),
+		sessionPath: Union([String$1({ minLength: 1 }), Null()]),
+		workspaceRowId: Union([String$1({ format: "uuid" }), Null()]),
+		createdAtMs: Integer({ minimum: 0 }),
+		lastUsedAtMs: Integer({ minimum: 0 }),
+		expiresAtMs: Integer({ minimum: 0 })
+	}, { $id: "RuntimeSlot" }),
+	workspace: Union([RuntimeWorkspace, Null()])
+}, { $id: "ResolvedRuntimeSlot" })) }, { $id: "RuntimeSlotListResponse" });
+var MAX_RUNTIME_WARM_RETENTION_SEC = 86400;
+_Object_({
+	agentName: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	runtimeProfileId: String$1({ format: "uuid" }),
+	provider: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	model: String$1({
+		minLength: 1,
+		maxLength: 200
+	}),
+	slotKey: String$1({ minLength: 1 }),
+	taskType: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	sessionDir: Optional(String$1({ minLength: 1 })),
+	sessionPath: Optional(String$1({ minLength: 1 })),
+	workspaceId: Optional(String$1({ minLength: 1 })),
+	worktreePath: Optional(String$1({ minLength: 1 })),
+	worktreeBranch: Optional(String$1({ minLength: 1 })),
+	workspaceKind: Optional(RuntimeWorkspaceKind),
+	lastTaskId: String$1({ format: "uuid" }),
+	lastAttemptN: Integer({ minimum: 1 }),
+	warmRetentionSec: Integer({
+		minimum: 0,
+		maximum: MAX_RUNTIME_WARM_RETENTION_SEC
+	})
+}, {
+	$id: "BeginRuntimeSlotBody",
+	additionalProperties: false
+});
+_Object_({
+	agentName: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	runtimeProfileId: String$1({ format: "uuid" }),
+	provider: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	model: String$1({
+		minLength: 1,
+		maxLength: 200
+	}),
+	slotKey: String$1({ minLength: 1 }),
+	taskId: String$1({ format: "uuid" }),
+	attemptN: Integer({ minimum: 1 }),
+	sessionPath: Optional(String$1({ minLength: 1 })),
+	warmRetentionSec: Integer({
+		minimum: 0,
+		maximum: MAX_RUNTIME_WARM_RETENTION_SEC
+	})
+}, {
+	$id: "FinishRuntimeSlotBody",
+	additionalProperties: false
+});
+_Object_({
+	taskId: String$1({ format: "uuid" }),
+	attemptN: Integer({ minimum: 1 })
+}, {
+	$id: "FindLatestRuntimeSlotForAttemptQuery",
+	additionalProperties: false
+});
+_Object_({
+	agentName: Optional(String$1({
+		minLength: 1,
+		maxLength: 100
+	})),
+	runtimeProfileId: Optional(String$1({ format: "uuid" })),
+	state: Optional(RuntimeSlotState),
+	limit: Optional(Integer({
+		minimum: 1,
+		maximum: 200
+	}))
+}, {
+	$id: "ListRuntimeSlotsQuery",
+	additionalProperties: false
+});
+//#endregion
+//#region ../../libs/tasks/src/rubric.ts
+/**
+* Rubric — structured acceptance criteria used by judgment tasks.
+*
+* Phase 1 (this PR): rubrics are embedded in task inputs. Their integrity
+* is pinned via the task's `input_cid` (which covers the whole input,
+* including the inline rubric). No separate storage, no CRUD.
+*
+* Phase 2 (see #881): rubrics become a first-class resource with their
+* own signed rows and CIDv1 lookup. The schema below is designed to
+* carry forward unchanged — only storage and addressing differ.
+*
+* Until Phase 2 lands, `rubricId` + `version` + `contentHash` are
+* informational fields the author fills in; no uniqueness is enforced.
+* `contentHash` is optional in Phase 1 because the *task*'s input_cid
+* is the authoritative commitment.
+*/
+/**
+* How a judge must score a single criterion.
+*
+* - `llm_score`: 0..1 continuous, `rationale` required. Smooths failures
+*   into the gradient — use `llm_checklist` instead for properties where
+*   a single failure is a real failure (grounding, faithfulness).
+* - `llm_checklist`: judge enumerates per-claim assertions with
+*   `{passed, evidence}`. The criterion's numeric `score` is derived:
+*   `1` iff every assertion passes, else `0`. Per-claim evidence is the
+*   dataset for cluster-analysis of failure modes. See #999.
+* - `boolean`: 0 or 1, `rationale` optional.
+* - `deterministic_signature_check`: judge runs a signature check;
+*   result is 0 or 1. No LLM discretion.
+* - `deterministic_coverage_check`: every referenced source entry
+*   appears in the rendered output; 0 or 1.
+*/
+var RubricScoringMode = Union([
+	Literal("llm_score"),
+	Literal("llm_checklist"),
+	Literal("boolean"),
+	Literal("deterministic_signature_check"),
+	Literal("deterministic_coverage_check")
+], { $id: "RubricScoringMode" });
+/**
+* One binary check produced by an `llm_checklist`-mode criterion.
+*
+* `evidence` is REQUIRED for both PASS and FAIL — agentskills.io grading
+* principle: \"Don't give the benefit of the doubt.\" A PASS without
+* concrete evidence (a quoted span, an entry id, a source location)
+* cannot be audited. A FAIL without evidence cannot be clustered into
+* structural fixes. The same shape is reused by `judge-eval-variant`
+* (#943) so tooling, dashboards, and analysis stay uniform.
+*/
+var AssertionResult = _Object_({
+	/** Stable id within a criterion, suitable for trend analysis across runs. */
+	id: String$1({ minLength: 1 }),
+	/** The assertion as authored or as enumerated by the judge. */
+	text: String$1({ minLength: 1 }),
+	passed: Boolean$1(),
+	/**
+	* Concrete reason — for PASS, point at the quoted span or source entry
+	* that satisfies the assertion; for FAIL, quote the offending claim or
+	* cite what is missing. Free-form prose intentionally; structured
+	* fields belong on the criterion `evidence` record.
+	*/
+	evidence: String$1({ minLength: 1 })
+}, {
+	$id: "AssertionResult",
+	additionalProperties: false
+});
+var RubricCriterion = _Object_({
+	/** Stable within a rubric (e.g. 'coverage'). Used as the score key. */
+	id: String$1({ minLength: 1 }),
+	description: String$1({ minLength: 1 }),
+	/** 0..1 inclusive. Weights across criteria should sum to 1 (checked client-side). */
+	weight: Number$1({
+		minimum: 0,
+		maximum: 1
+	}),
+	scoring: RubricScoringMode
+}, {
+	$id: "RubricCriterion",
+	additionalProperties: false
+});
+/**
+* A complete rubric. Same shape used in Phase 1 (inline) and Phase 2
+* (stored row `body`); only the addressing mechanism differs.
+*/
+var Rubric = _Object_({
+	/** Namespace within an author — e.g. 'pack-fidelity'. */
+	rubricId: String$1({ minLength: 1 }),
+	/** Monotonic version per `rubricId`. Prose like 'v1'. */
+	version: String$1({ minLength: 1 }),
+	/** Free-text preamble prepended to the judge's prompt. Kept short. */
+	preamble: Optional(String$1()),
+	/** Non-empty list of criteria. */
+	criteria: _Array_(RubricCriterion, { minItems: 1 }),
+	/**
+	* Applicability hint — e.g. 'packs', 'commits', 'briefs'.
+	* Purely documentary in Phase 1; used as a filter index in Phase 2.
+	*/
+	scope: Optional(String$1()),
+	/**
+	* Phase-2 artefact: CIDv1 of the canonical rubric body. Optional in
+	* Phase 1; when Phase 2 lands the server computes & enforces it.
+	*/
+	contentHash: Optional(String$1())
+}, {
+	$id: "Rubric",
+	additionalProperties: false
+});
+/**
+* Verify rubric criteria weights sum to 1.0 within floating-point tolerance.
+* The schema constrains each weight to [0,1] but can't express a cross-field
+* sum constraint, so this is enforced programmatically by callers that
+* accept rubrics (task input validators, server-side task creation).
+*
+* Returns null when valid; otherwise an error message suitable for surfacing
+* to the caller. Tolerance is 1e-6 to accommodate JSON round-tripping of
+* decimal fractions (e.g. 0.1 + 0.2 + 0.3 + 0.4 ≠ 1.0 exactly).
+*/
+function validateRubricWeights(rubric) {
+	const sum = rubric.criteria.reduce((acc, c) => acc + c.weight, 0);
+	if (Math.abs(sum - 1) > 1e-6) return `Rubric weights must sum to 1.0 (got ${sum.toFixed(6)})`;
+	return null;
+}
+//#endregion
+//#region ../../libs/tasks/src/success-criteria.ts
+/**
+* SuccessCriteria — proposer-stated acceptance criteria, evaluated in two
+* complementary places.
+*
+* Before this envelope existed, criteria were scattered: a vestigial
+* `criteriaCid` column nobody resolved, free-form prose on
+* `fulfill_brief.input`, and inline `rubric` / `criteria[]` fields on
+* judgment-task inputs. None of those were machine-verifiable
+* end-to-end.
+*
+* This module defines a single, content-addressable envelope a proposer
+* attaches to any task type. It has four orthogonal sections — pick
+* whichever apply per task type:
+*
+*   - `gates`        Promise-level structural/process checks
+*   - `assertions`   Declarative claims about output JSON
+*   - `rubric`       Weighted-criteria scoring instrument, reused
+*                    verbatim from `./rubric.ts`.
+*   - `sideEffects`  Required process side-effects (e.g. diary entry)
+*
+* ## Two roles, two task types
+*
+* **Producer self-assessment** (fulfillment tasks: `fulfill_brief`,
+* `curate_pack`, `render_pack`). The producer **LLM** evaluates the
+* criteria against its own output and emits a `VerificationRecord`
+* inside `output.verification`. The daemon is pure passthrough — it
+* does not run `evaluateAssertions`, does not inspect the verification
+* record. The REST API is dumb storage; it never re-runs assertions and
+* never runs LLMs. The cross-field rule
+* `requireVerificationWhenCriteriaPresent` enforces "verification
+* required iff successCriteria present" at task-output validation time
+* (server-side schema check). Self-assessment is a truthful self-rating,
+* NOT enforcement — `verification.passed=false` does not block /complete
+* and does not affect `acceptedAttemptN`. See
+* `docs/use/tasks-and-runtime.md` for the full producer/judge flow.
+*
+* **Binding evaluation** (judgment tasks: `assess_brief`, `judge_pack`).
+* A separate task whose IS the application of `successCriteria` to
+* someone else's output. Different agent (enforced at claim time), same
+* envelope. The judge's verdict is binding: this is the *gate* in the
+* MoltNet model. The rubric inside `successCriteria.rubric` IS the job
+* spec for the judge.
+*
+* The clean chain: producer task with `successCriteria` → producer
+* self-assesses honestly → proposer (or automation) creates a downstream
+* judgment task that references the same `successCriteria` (or a
+* stricter rubric) → judgment task delivers the binding verdict.
+*
+* Storage: SuccessCriteria lives inline at `task.input.successCriteria`,
+* pinned via the task's `inputCid`. No separate column or hash. When
+* #881 lands, the `rubric` field can graduate to `{ rubricCid }` lookup
+* without changing this envelope, and producer + judge tasks can pin
+* the SAME rubric across the chain for end-to-end auditability.
+*/
+var SchemaCheckSpec = _Object_({ 
+/**
+* CIDv1 of a stored TypeBox/JSON-schema document the producer LLM
+* resolves and runs `Value.Check` against its own output as part of
+* self-assessment.
+*/
+schemaCid: String$1({ minLength: 1 }) }, { additionalProperties: false });
+var CidEqualsSpec = _Object_({
+	/**
+	* Dotted path inside the verification context. `outputCid` is the
+	* common case (assert the attempt produced exactly this content).
+	*/
+	path: String$1({ minLength: 1 }),
+	expected: String$1({ minLength: 1 })
+}, { additionalProperties: false });
+var Gate = Union([
+	_Object_({
+		id: String$1({ minLength: 1 }),
+		kind: Literal("submit-tool-call"),
+		/**
+		* Human-readable contract text shown to the producer when it fetches
+		* `input.successCriteria`. This is a promise-level gate rather than a
+		* transport-level runtime hint.
+		*/
+		description: String$1({ minLength: 1 }),
+		required: Boolean$1()
+	}, { additionalProperties: false }),
+	_Object_({
+		id: String$1({ minLength: 1 }),
+		kind: Literal("schema-check"),
+		spec: SchemaCheckSpec,
+		required: Boolean$1()
+	}, { additionalProperties: false }),
+	_Object_({
+		id: String$1({ minLength: 1 }),
+		kind: Literal("cid-equals"),
+		spec: CidEqualsSpec,
+		required: Boolean$1()
+	}, { additionalProperties: false })
+], { $id: "Gate" });
+var AssertionOp = Union([
+	Literal("exists"),
+	Literal("equals"),
+	Literal("matches"),
+	Literal("in-range"),
+	Literal("min-length")
+], { $id: "AssertionOp" });
+var Assertion = _Object_({
+	id: String$1({ minLength: 1 }),
+	/** Dotted path; `*` expands over arrays. e.g. `commits.*.sha`. */
+	path: String$1({ minLength: 1 }),
+	op: AssertionOp,
+	/**
+	* Op-dependent literal. `exists` ignores it; `equals` compares with
+	* strict equality; `matches` is a regex source string (no flags);
+	* `in-range` is `[min, max]` inclusive; `min-length` is the minimum
+	* length for arrays or strings.
+	*/
+	value: Optional(Unknown())
+}, {
+	$id: "Assertion",
+	additionalProperties: false
+});
+var SideEffectsSpec = _Object_({
+	/** Executor must create at least one diary entry before completion. */
+	diaryEntryRequired: Optional(Boolean$1()),
+	/** Required tags on the diary entry (each must be present). */
+	diaryEntryTags: Optional(_Array_(String$1({ minLength: 1 }))),
+	/**
+	* Minimum number of source-entry references the output must cite.
+	* Per-task-type interpretation: e.g. `curate_pack` checks
+	* `output.entryRefs.length`; `fulfill_brief` checks `diaryEntryIds`.
+	*/
+	referencedEntries: Optional(Integer({ minimum: 0 }))
+}, {
+	$id: "SideEffectsSpec",
+	additionalProperties: false
+});
+var SuccessCriteria = _Object_({
+	/** Schema version. Bump on breaking changes. */
+	version: Literal(1),
+	gates: Optional(_Array_(Gate)),
+	assertions: Optional(_Array_(Assertion)),
+	rubric: Optional(Rubric),
+	/**
+	* Composite-score threshold. Only meaningful with `rubric`. Soft
+	* failure: an attempt with composite below this completes with
+	* `verification.passed=false` rather than failing outright.
+	*/
+	minComposite: Optional(Number$1({
+		minimum: 0,
+		maximum: 1
+	})),
+	sideEffects: Optional(SideEffectsSpec)
+}, {
+	$id: "SuccessCriteria",
+	additionalProperties: false
+});
+var VerificationResultStatus = Union([
+	Literal("pass"),
+	Literal("fail"),
+	Literal("skip")
+], { $id: "VerificationResultStatus" });
+var VerificationResultKind = Union([
+	Literal("gate"),
+	Literal("assertion"),
+	Literal("rubric"),
+	Literal("sideEffect")
+], { $id: "VerificationResultKind" });
+var VerificationResult = _Object_({
+	id: String$1({ minLength: 1 }),
+	kind: VerificationResultKind,
+	status: VerificationResultStatus,
+	detail: Optional(String$1())
+}, {
+	$id: "VerificationResult",
+	additionalProperties: false
+});
+var VerificationRecord = _Object_({
+	/**
+	* `inputCid` of the task this self-assessment was evaluated against.
+	* Pins the record to a specific input version so audit can confirm
+	* "this self-assessment was produced against this exact criteria
+	* document" (e.g. when comparing against a later judgment task that
+	* applied the same criteria).
+	*/
+	inputCid: String$1({ minLength: 1 }),
+	results: _Array_(VerificationResult),
+	/**
+	* True iff every result either passed or was skipped (no fail).
+	* Advisory only — does NOT gate /complete or affect
+	* `acceptedAttemptN`. Binding evaluation is the judge's role.
+	*/
+	passed: Boolean$1({ description: "True iff every verification result has status \"pass\" or \"skip\"; false when any result has status \"fail\"." })
+}, {
+	$id: "VerificationRecord",
+	additionalProperties: false
+});
+//#endregion
+//#region ../../libs/tasks/src/task-types/output-contract.ts
+/** Stored task field; the daemon validates the schema before execution. */
+var OutputContract = _Object_({
+	version: Literal(1),
+	schema: Unknown()
+}, {
+	$id: "OutputContract",
+	additionalProperties: false
+});
+//#endregion
+//#region ../../libs/tasks/src/task-types/freeform.ts
+var FREEFORM_TYPE = "freeform";
+var FreeformExecutionOptions = _Object_({
+	/**
+	* Workspace mode the proposer wants for this task. Matches the
+	* `run_eval` convention so the daemon's registry-level override
+	* resolution is uniform across task types.
+	*/
+	workspace: Optional(Union([
+		Literal("none"),
+		Literal("shared_mount"),
+		Literal("dedicated_worktree")
+	])),
+	/**
+	* Immutable commit expected in the selected repository workspace.
+	*
+	* The daemon verifies a shared mount against this revision, or creates a
+	* detached dedicated worktree at it, before the model starts. Requiring a
+	* full object id avoids branch drift between task creation and execution.
+	*/
+	revision: Optional(String$1({ pattern: "^[0-9a-fA-F]{40}$" }))
+}, {
+	$id: "FreeformExecutionOptions",
+	additionalProperties: false
+});
+var FreeformContinueFrom = _Object_({
+	taskId: String$1({ format: "uuid" }),
+	attemptN: Integer({ minimum: 1 }),
+	/**
+	* `'extend'` (default) continues the parent conversation and branch when
+	* branch metadata is available. `'fork'` cuts a new branch from the parent
+	* branch into a fresh worktree.
+	*/
+	mode: Optional(Union([Literal("extend"), Literal("fork")]))
+}, {
+	$id: "FreeformContinueFrom",
+	additionalProperties: false
+});
+var FreeformInput = _Object_({
+	/** Natural-language work request when no narrower task type fits yet. */
+	brief: String$1({ minLength: 1 }),
+	/**
+	* Optional expectation about the shape or destination of the answer.
+	* Kept as prose because this task type is the discovery lane.
+	*/
+	expectedOutput: Optional(String$1({ minLength: 1 })),
+	/** Typed result contract supplied by the task proposer. */
+	outputContract: Optional(OutputContract),
+	constraints: Optional(_Array_(String$1({ minLength: 1 }), { maxItems: 20 })),
+	/** Proposer's best guess; does not need to be registered yet. */
+	suggestedTaskType: Optional(String$1({ minLength: 1 })),
+	successCriteria: Optional(SuccessCriteria),
+	context: Optional(TaskContext),
+	/**
+	* Optional proposer-supplied execution hints. The `workspace` field
+	* mirrors run_eval's input.execution.workspace surface; the daemon
+	* honors it because the freeform registry entry sets
+	* acceptsInputWorkspaceOverride.
+	*/
+	execution: Optional(FreeformExecutionOptions),
+	/**
+	* When set, the daemon treats this task as a continuation of the named
+	* source attempt.
+	*/
+	continueFrom: Optional(FreeformContinueFrom)
+}, {
+	$id: "FreeformInput",
+	additionalProperties: false
+});
+var FreeformArtifact = _Object_({
+	kind: String$1({ minLength: 1 }),
+	title: String$1({ minLength: 1 }),
+	description: Optional(String$1({ minLength: 1 })),
+	url: Optional(String$1({ minLength: 1 })),
+	path: Optional(String$1({ minLength: 1 })),
+	/**
+	* Persistent task-artifact CID produced with `moltnet_upload_task_artifact`.
+	* Use this for large or binary bytes stored outside the structured output.
+	*/
+	cid: Optional(String$1({ minLength: 1 })),
+	contentType: Optional(String$1({ minLength: 1 })),
+	contentEncoding: Optional(String$1({ minLength: 1 })),
+	sizeBytes: Optional(Integer({ minimum: 0 })),
+	/**
+	* Inline artifact content, up to 64 KiB. Matches the diary-entry content
+	* cap so structured editors and renderers can handle either uniformly.
+	* For larger or binary content use `path` (worktree-ephemeral) or `url`
+	* (caller-managed); persistent file-backed artifacts are a follow-up.
+	*/
+	body: Optional(String$1({ maxLength: 65536 }))
+}, {
+	$id: "FreeformArtifact",
+	additionalProperties: false
+});
+var freeformOutputFields = {
+	/** 2-5 sentence result summary. */
+	summary: String$1({ minLength: 1 }),
+	/** Branch used for code-changing freeform work. */
+	branch: Optional(String$1({ minLength: 1 })),
+	artifacts: Optional(_Array_(FreeformArtifact, { maxItems: 20 })),
+	diaryEntryIds: Optional(_Array_(String$1({ format: "uuid" }))),
+	/** Required when input.successCriteria is set. */
+	verification: Optional(VerificationRecord)
+};
+var FreeformSubmission = _Object_(freeformOutputFields, {
+	$id: "FreeformSubmission",
+	additionalProperties: false
+});
+var FreeformOutput = _Object_({
+	...freeformOutputFields,
+	/** Agent-authored structured data. The daemon owns contract validation. */
+	result: Optional(Unknown())
+}, {
+	$id: "FreeformOutput",
+	additionalProperties: false
+});
+/**
+* Server-side preflight for `freeform` task-create. Runs after the
+* sync TypeBox check passes and only kicks in when
+* `input.continueFrom` is set — i.e. the proposer is asking to
+* continue from a prior freeform attempt (#1287).
+*
+* Failure modes, in evaluation order:
+*  1. `freeform.sourceTaskNotFound` — source task id does not resolve
+*     (does not exist OR caller can't read it; we don't distinguish).
+*  2. `freeform.sourceTaskTypeNotSupported` — source isn't `freeform`.
+*     v1 only supports freeform → freeform continuation.
+*  3. `freeform.sourceAttemptNotCompleted` — named attempt is missing
+*     or not in `completed` state; continuation only makes sense
+*     once the parent has produced a terminal output.
+*  4. `freeform.executionWorkspaceNotInheritable` — caller set
+*     `execution.workspace` together with `continueFrom`. Workspace
+*     mode for a continuation is derived by the daemon from parent runtime
+*     context (local slot first, durable session + source attempt branch
+*     second), so any caller-supplied override is silently dropped at the
+*     daemon plan stage. Reject explicitly so misconfiguration surfaces at
+*     create time.
+*
+* Returns on the first failure — the checks
+* are sequential preconditions, later ones presume earlier ones hold.
+*/
+async function validateFreeformInputAsync(input, ctx) {
+	const execution = input.execution;
+	if (execution?.revision && execution.workspace === "none") return [{
+		field: "input/execution/revision",
+		message: "execution.revision requires a repository workspace; use shared_mount or dedicated_worktree",
+		code: "freeform.executionRevisionRequiresRepository"
+	}];
+	const cf = input.continueFrom;
+	if (!cf) return [];
+	const source = await ctx.resolveTask(cf.taskId);
+	if (!source) return [{
+		field: "input/continueFrom/taskId",
+		message: `Source task ${cf.taskId} does not resolve to a task you can read`,
+		code: "freeform.sourceTaskNotFound"
+	}];
+	if (source.taskType !== "freeform") return [{
+		field: "input/continueFrom/taskId",
+		message: `Source task type '${source.taskType}' is not continuable; only freeform → freeform is supported in v1`,
+		code: "freeform.sourceTaskTypeNotSupported"
+	}];
+	if (execution?.workspace) return [{
+		field: "input/execution/workspace",
+		message: "execution.workspace is derived from parent runtime context when continueFrom is set; omit it",
+		code: "freeform.executionWorkspaceNotInheritable"
+	}];
+	if (execution?.revision) return [{
+		field: "input/execution/revision",
+		message: "execution.revision is derived from parent runtime context when continueFrom is set; omit it",
+		code: "freeform.executionRevisionNotInheritable"
+	}];
+	if (ctx.deferReadinessChecks) return [];
+	const attempt = (await ctx.listAttempts(cf.taskId)).find((a) => a.attemptN === cf.attemptN);
+	if (!attempt || attempt.status !== "completed") return [{
+		field: "input/continueFrom/attemptN",
+		message: `Source attempt ${cf.attemptN} on task ${cf.taskId} is not in 'completed' state`,
+		code: "freeform.sourceAttemptNotCompleted"
+	}];
+	return [];
+}
+//#endregion
+//#region ../../libs/tasks/src/output-contract-validation.ts
+/**
+* Proposer-supplied `freeform` output contracts. The server stores them
+* verbatim and never interprets them; executors and readers enforce them with
+* the functions below so every consumer applies the same rules.
+*/
+function getOutputContract(input) {
+	return input && typeof input === "object" && "outputContract" in input ? input.outputContract : void 0;
+}
+/** Validate the contract itself: version and supported JSON Schema subset. */
+function validateOutputContract(taskType, input) {
+	if (taskType !== "freeform") return [];
+	const contract = getOutputContract(input);
+	if (contract === void 0) return [];
+	if (!contract || typeof contract !== "object" || Array.isArray(contract)) return [{
+		field: "input/outputContract",
+		message: "must be an object"
+	}];
+	const value = contract;
+	if (value.version !== 1) return [{
+		field: "input/outputContract/version",
+		message: "must be 1"
+	}];
+	const error = validateOutputContractSchema(value.schema);
+	return error ? [{
+		field: "input/outputContract/schema",
+		message: error
+	}] : [];
+}
+/**
+* Validate `output.result` against the task's `input.outputContract`. A
+* contracted task must carry a conforming `result`; an uncontracted one must
+* not carry `result` at all. Non-freeform task types have no contract.
+*/
+function validateOutputContractResult(taskType, input, output) {
+	if (taskType !== "freeform") return [];
+	if (getOutputContract(input) === void 0) return output && typeof output === "object" && "result" in output ? [{
+		field: "output/result",
+		message: "requires input.outputContract"
+	}] : [];
+	const schema = outputContractResultSchema(input);
+	if (!schema) return validateOutputContract(taskType, input);
+	if (!output || typeof output !== "object" || !("result" in output)) return [{
+		field: "output/result",
+		message: "is required"
+	}];
+	return [...Errors(schema, output.result)].flatMap((rawError) => {
+		const error = rawError;
+		const field = `output/result${error.instancePath}`;
+		if (error.keyword === "required" && error.params?.requiredProperties) return error.params.requiredProperties.map((property) => ({
+			field: `${field}/${property}`,
+			message: `must have required property ${property}`
+		}));
+		if (error.keyword === "additionalProperties" && error.params?.additionalProperties) return error.params.additionalProperties.map((property) => ({
+			field: `${field}/${property}`,
+			message: error.message
+		}));
+		return [{
+			field,
+			message: error.message
+		}];
+	});
+}
+_Object_({
+	artifacts: _Array_(_Object_({
+		id: String$1({ format: "uuid" }),
+		teamId: String$1({ format: "uuid" }),
+		taskId: String$1({ format: "uuid" }),
+		attemptN: Union([Integer({ minimum: 1 }), Null()]),
+		kind: String$1({
+			minLength: 1,
+			maxLength: 100
+		}),
+		title: String$1({
+			minLength: 1,
+			maxLength: 255
+		}),
+		contentType: String$1({
+			minLength: 1,
+			maxLength: 200
+		}),
+		contentEncoding: Union([String$1({
+			minLength: 1,
+			maxLength: 100
+		}), Null()]),
+		sizeBytes: Integer({ minimum: 0 }),
+		cid: String$1({
+			minLength: 1,
+			maxLength: 100
+		}),
+		createdByAgentId: Union([String$1({ format: "uuid" }), Null()]),
+		expiresAt: Union([String$1({ format: "date-time" }), Null()]),
+		createdAt: String$1({ format: "date-time" })
+	}, { $id: "TaskArtifact" })),
+	nextCursor: Union([String$1({ minLength: 1 }), Null()])
+}, { $id: "TaskArtifactList" });
+_Object_({
+	limit: Optional(Integer({
+		minimum: 1,
+		maximum: 100
+	})),
+	cursor: Optional(String$1({ minLength: 1 }))
+}, {
+	$id: "ListTaskArtifactsQuery",
+	additionalProperties: false
+});
+var HeaderSafeContentType = String$1({
+	minLength: 1,
+	maxLength: 200,
+	pattern: "^[\\x21-\\x7e][\\x20-\\x7e]*$"
+});
+var HeaderSafeContentEncoding = String$1({
+	minLength: 1,
+	maxLength: 100,
+	pattern: "^[\\x21-\\x7e][\\x20-\\x7e]*$"
+});
+_Object_({
+	kind: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	title: String$1({
+		minLength: 1,
+		maxLength: 255
+	}),
+	contentType: Optional(HeaderSafeContentType),
+	contentEncoding: Optional(HeaderSafeContentEncoding)
+}, {
+	$id: "UploadTaskArtifactQuery",
+	additionalProperties: false
+});
+String$1({
+	$id: "TaskArtifactContent",
+	description: "Task artifact content stream.",
+	format: "binary"
+});
+_Object_({ taskId: String$1({ format: "uuid" }) }, {
+	$id: "TaskArtifactTaskParams",
+	additionalProperties: false
+});
+_Object_({
+	taskId: String$1({ format: "uuid" }),
+	attemptN: Integer({ minimum: 1 })
+}, {
+	$id: "TaskArtifactAttemptParams",
+	additionalProperties: false
+});
+_Object_({
+	taskId: String$1({ format: "uuid" }),
+	attemptN: Integer({ minimum: 1 }),
+	cid: String$1({
+		minLength: 1,
+		maxLength: 100
+	})
+}, {
+	$id: "TaskArtifactContentParams",
+	additionalProperties: false
+});
+_Object_({
+	contentType: Optional(HeaderSafeContentType),
+	contentEncoding: Optional(HeaderSafeContentEncoding)
+}, {
+	$id: "StageTaskArtifactQuery",
+	additionalProperties: false
+});
+_Object_({
+	cid: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	sizeBytes: Integer({ minimum: 0 }),
+	contentType: String$1({
+		minLength: 1,
+		maxLength: 200
+	})
+}, { $id: "StagedTaskArtifact" });
+_Object_({
+	taskId: String$1({ format: "uuid" }),
+	cid: String$1({
+		minLength: 1,
+		maxLength: 100
+	})
+}, {
+	$id: "TaskArtifactTaskContentParams",
+	additionalProperties: false
+});
+new TextEncoder();
+new TextDecoder();
+//#endregion
+//#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/hasher.js
+var DEFAULT_MIN_DIGEST_LENGTH = 20;
+function from({ name, code, encode, minDigestLength, maxDigestLength }) {
+	return new Hasher(name, code, encode, minDigestLength, maxDigestLength);
+}
+/**
+* Hasher represents a hashing algorithm implementation that produces as
+* `MultihashDigest`.
+*/
+var Hasher = class {
+	name;
+	code;
+	encode;
+	minDigestLength;
+	maxDigestLength;
+	constructor(name, code, encode, minDigestLength, maxDigestLength) {
+		this.name = name;
+		this.code = code;
+		this.encode = encode;
+		this.minDigestLength = minDigestLength ?? DEFAULT_MIN_DIGEST_LENGTH;
+		this.maxDigestLength = maxDigestLength;
+	}
+	digest(input, options) {
+		if (options?.truncate != null) {
+			if (options.truncate < this.minDigestLength) throw new Error(`Invalid truncate option, must be greater than or equal to ${this.minDigestLength}`);
+			if (this.maxDigestLength != null && options.truncate > this.maxDigestLength) throw new Error(`Invalid truncate option, must be less than or equal to ${this.maxDigestLength}`);
+		}
+		if (input instanceof Uint8Array) {
+			const result = this.encode(input);
+			if (result instanceof Uint8Array) return createDigest(result, this.code, options?.truncate);
+			return result.then((digest) => createDigest(digest, this.code, options?.truncate));
+		} else throw Error("Unknown type, must be binary type");
+	}
+};
+/**
+* Create a Digest from the passed uint8array and code, optionally truncating it
+* first.
+*/
+function createDigest(digest, code, truncate) {
+	if (truncate != null && truncate !== digest.byteLength) {
+		if (truncate > digest.byteLength) throw new Error(`Invalid truncate option, must be less than or equal to ${digest.byteLength}`);
+		digest = digest.subarray(0, truncate);
+	}
+	return create(code, digest);
+}
+from({
+	name: "sha2-256",
+	code: 18,
+	encode: (input) => coerce(crypto$1.createHash("sha256").update(input).digest())
+});
+from({
+	name: "sha2-512",
+	code: 19,
+	encode: (input) => coerce(crypto$1.createHash("sha512").update(input).digest())
+});
+//#endregion
+//#region ../../libs/tasks/src/task-types/assess-brief.ts
+/**
+* `assess_brief` — independently evaluate a fulfilled brief.
+*
+* output_kind: judgment
+* criteria: required (`successCriteria.rubric` — same envelope as
+*   `judge_pack`)
+* references: required (must reference the target `fulfill_brief` task)
+*
+* The assessor is a different agent from the producer (enforced by the
+* server / runtime at claim time — not in the wire schema).
+*
+* The rubric in `successCriteria` IS the job spec — the assessor applies
+* it to the target task's output and emits per-criterion scores. Other
+* sections (`assertions`, `gates`, `sideEffects`) MAY be present and are
+* evaluated against the *assessor's output*.
+*/
+var ASSESS_BRIEF_TYPE = "assess_brief";
+var AssessBriefInput = _Object_({
+	/**
+	* Task id of the `fulfill_brief` being judged. Also must appear in
+	* the Task's `references[]` with role='judged_work'.
+	*/
+	targetTaskId: String$1({ format: "uuid" }),
+	/**
+	* Required SuccessCriteria envelope. Must contain a `rubric` — that
+	* rubric IS the assessment job spec.
+	*/
+	successCriteria: SuccessCriteria
+}, {
+	$id: "AssessBriefInput",
+	additionalProperties: false
+});
+var AssessBriefOutput = _Object_({
+	/**
+	* Per-criterion scores, same order/length as
+	* `input.successCriteria.rubric.criteria`.
+	*/
+	scores: _Array_(_Object_({
+		criterionId: String$1({ minLength: 1 }),
+		score: Number$1({
+			minimum: 0,
+			maximum: 1
+		}),
+		/** Required for `llm_score`; optional for `boolean`/`deterministic_*`. */
+		rationale: Optional(String$1()),
+		/** Present only for `deterministic_signature_check`. */
+		evidence: Optional(_Object_({
+			commitsVerified: Number$1(),
+			commitsTotal: Number$1(),
+			signatureFailures: _Array_(String$1())
+		}, { additionalProperties: false }))
+	}, {
+		$id: "AssessBriefScore",
+		additionalProperties: false
+	}), { minItems: 1 }),
+	/** Σ(weight_i * score_i). Recomputed by the assessor and checked client-side. */
+	composite: Number$1({
+		minimum: 0,
+		maximum: 1
+	}),
+	/** 1–3 sentence overall verdict. */
+	verdict: String$1({ minLength: 1 }),
+	/** Model identifier used for `llm_score` criteria, for auditability. */
+	judgeModel: Optional(String$1())
+}, {
+	$id: "AssessBriefOutput",
+	additionalProperties: false
+});
+/**
+* Async preflight (#1096):
+*   - `targetTaskId` resolves to a real task the caller can see.
+*   - The target is a `fulfill_brief` (you cannot grade an arbitrary
+*     task type as if it were a brief fulfillment).
+*   - Unless readiness checks are explicitly deferred, the target is
+*     `completed` with an accepted attempt — grading an in-flight or
+*     failed task would either race or grade nothing.
+*
+* Agent-distinctness ("assessor ≠ producer") is a runtime / auth-
+* layer concern and intentionally NOT checked here. It belongs in
+* an auth-aware claim-time check.
+*/
+async function validateAssessBriefInputAsync(input, ctx) {
+	const { targetTaskId } = input;
+	const errors = [];
+	const target = await ctx.resolveTask(targetTaskId);
+	if (!target) {
+		errors.push({
+			field: "targetTaskId",
+			message: `targetTaskId ${targetTaskId} does not resolve to a task you can read`
+		});
+		return errors;
+	}
+	if (target.taskType !== "fulfill_brief") errors.push({
+		field: "targetTaskId",
+		message: `targetTaskId ${targetTaskId} is a ${target.taskType}, not a fulfill_brief`
+	});
+	if (!ctx.deferReadinessChecks && (target.status !== "completed" || target.acceptedAttemptN === null)) errors.push({
+		field: "targetTaskId",
+		message: `targetTaskId ${targetTaskId} is not completed with an accepted attempt (status=${target.status}, acceptedAttemptN=${target.acceptedAttemptN})`
+	});
+	return errors;
+}
+//#endregion
+//#region ../../libs/tasks/src/task-types/curate-pack.ts
+/**
+* `curate_pack` — select and rank diary entries into a context pack.
+*
+* output_kind: artifact
+* criteria: not required (rubric-less curation recipe)
+* references: optional (e.g. a prior rendered pack being re-curated)
+*
+* This is step 1 of the three-session attribution loop (#875). The agent
+* runs a structured exploration over a diary — tag inventory, hybrid
+* search, type/tag narrowing — and emits a ranked entry list via
+* `moltnet_pack_create`. The prompt is deterministic given the input
+* (no operator interaction), so two runs with the same input should
+* converge on similar packs.
+*
+* Related: `render_pack`, `judge_pack`.
+*/
+var CURATE_PACK_TYPE = "curate_pack";
+var EntryTypeFilter = Union([
+	Literal("episodic"),
+	Literal("semantic"),
+	Literal("procedural"),
+	Literal("reflection")
+]);
+var CuratePackInput = _Object_({
+	/** The diary to curate from. Usually the agent's session diary. */
+	diaryId: String$1({ format: "uuid" }),
+	/**
+	* Free-text prompt describing the desired pack. Seeds hybrid search
+	* and feeds the model's ranking reasoning. e.g.
+	* "incidents and workarounds related to CI pipelines".
+	*/
+	taskPrompt: String$1({ minLength: 1 }),
+	/**
+	* Restrict search to these entry types. When omitted, the curator
+	* agent picks per-search from the full taxonomy
+	* (`semantic` / `episodic` / `procedural`) based on what the prompt
+	* asks for — e.g. "failures and workarounds" should not return
+	* `procedural` entries (commit audit trails). Setting this field
+	* pins the search to the listed types and the curator may not
+	* widen.
+	*/
+	entryTypes: Optional(_Array_(EntryTypeFilter, { minItems: 1 })),
+	/**
+	* Tag filters applied after candidate discovery.
+	*  - `include`: candidate entries must carry ALL listed tags.
+	*  - `exclude`: drop entries carrying ANY listed tag.
+	*  - `prefix`: when listing tags via `moltnet_diary_tags`, narrow to
+	*    tags starting with this prefix (e.g. 'scope:').
+	*/
+	tagFilters: Optional(_Object_({
+		include: Optional(_Array_(String$1())),
+		exclude: Optional(_Array_(String$1())),
+		prefix: Optional(String$1())
+	}, { additionalProperties: false })),
+	/**
+	* Soft token budget passed through to `packs_create`. Acts as a
+	* constraint, not a target — the curator picks entry count such that
+	* the resulting pack fits under this budget.
+	*/
+	tokenBudget: Optional(Number$1({ minimum: 500 })),
+	/**
+	* Curation recipe identifier. Recorded on the pack's `params` for
+	* provenance. The runtime picks a prompt variant by recipe; unknown
+	* recipes fall back to the default.
+	*/
+	recipe: Optional(Union([Literal("topic-focused-v1"), Literal("scope-inventory-v1")])),
+	/**
+	* Proposer-stated, machine-verifiable success criteria. See
+	* `SuccessCriteria`. Pinned via `inputCid`. Optional.
+	*/
+	successCriteria: Optional(SuccessCriteria)
+}, {
+	$id: "CuratePackInput",
+	additionalProperties: false
+});
+/**
+* Index of the curated pack plus the reasoning trace. The pack itself
+* lives in the database (created via `moltnet_pack_create`); this output
+* is the receipt.
+*/
+var CuratePackOutput = _Object_({
+	/** UUID of the created pack row. */
+	packId: String$1({ format: "uuid" }),
+	/** CIDv1 of the pack's canonical content, as returned by the server. */
+	packCid: String$1({ minLength: 1 }),
+	/** Ordered entry selection (lowest rank = most prominent). */
+	entries: _Array_(_Object_({
+		entryId: String$1({ format: "uuid" }),
+		rank: Number$1({ minimum: 1 }),
+		/** Short phrase explaining why this entry earned its rank. */
+		rationale: String$1({ minLength: 1 })
+	}, { additionalProperties: false }), { minItems: 1 }),
+	/** Free-form recipe metadata mirrored onto the pack's `params`. */
+	recipeParams: Record(String$1(), Unknown()),
+	/**
+	* Intermediate exploration snapshots the curator chose to emit.
+	* Populated when the task runs a multi-phase exploration — each
+	* checkpoint compresses the state the curator carries into the next
+	* phase, so a follow-up session can resume from it without replaying
+	* the full tool-call history. Always safe to leave empty for small
+	* packs.
+	*/
+	checkpoints: Optional(_Array_(_Object_({
+		phase: String$1({ minLength: 1 }),
+		candidateIds: _Array_(String$1({ format: "uuid" })),
+		droppedIds: Optional(_Array_(String$1({ format: "uuid" }))),
+		notes: String$1({ minLength: 1 })
+	}, { additionalProperties: false }))),
+	/** 2–4 sentence narrative of the curation reasoning. */
+	summary: String$1({ minLength: 1 }),
+	/**
+	* Producer self-assessment against `input.successCriteria`. REQUIRED
+	* when `input.successCriteria` is set; MUST be omitted otherwise.
+	* See `SuccessCriteria` for the producer/judge model.
+	*/
+	verification: Optional(VerificationRecord)
+}, {
+	$id: "CuratePackOutput",
+	additionalProperties: false
+});
+//#endregion
+//#region ../../libs/tasks/src/task-types/fulfill-brief.ts
+/**
+* `fulfill_brief` — produce a signed change against a coding brief.
+*
+* output_kind: artifact
+* criteria: optional (assessment happens as a separate `assess_brief` task)
+* references: optional (external GitHub issue/PR is the typical seed)
+*/
+var FULFILL_BRIEF_TYPE = "fulfill_brief";
+var FulfillBriefInput = _Object_({
+	/** Human-readable problem statement. Rendered into the system prompt. */
+	brief: String$1({ minLength: 1 }),
+	/**
+	* Proposer-stated, machine-verifiable success criteria. Pinned via
+	* the task's `inputCid` (no separate hash needed — `successCriteria`
+	* is part of the input body). Optional: when omitted, completion is
+	* accepted on schema-valid output alone.
+	*/
+	successCriteria: Optional(SuccessCriteria),
+	/**
+	* Seed files the agent should read before starting. Paths relative
+	* to the repo root. Optional — the agent is free to explore.
+	*/
+	seedFiles: Optional(_Array_(String$1())),
+	/** Conventional commit scope hint (e.g. "tasks", "agent-runtime"). */
+	scopeHint: Optional(String$1())
+}, {
+	$id: "FulfillBriefInput",
+	additionalProperties: false
+});
+/**
+* Summary of the signed change. Individual commits / diary entries are
+* recoverable from git + the diary; this output is the index.
+*/
+var FulfillBriefOutput = _Object_({
+	/** Feature branch name the agent pushed to. */
+	branch: String$1({ minLength: 1 }),
+	/** Ordered list of commit SHAs produced by this attempt. */
+	commits: _Array_(_Object_({
+		sha: String$1({ minLength: 7 }),
+		message: String$1(),
+		diaryEntryId: Union([String$1({ format: "uuid" }), Null()])
+	}, { additionalProperties: false })),
+	/** PR URL if one was opened. Null if the attempt only pushed a branch. */
+	pullRequestUrl: Union([String$1(), Null()]),
+	/** Diary entries produced during the attempt (ordered). */
+	diaryEntryIds: _Array_(String$1({ format: "uuid" })),
+	/** 2–5 sentence summary the agent writes on completion. */
+	summary: String$1({ minLength: 1 }),
+	/**
+	* Producer self-assessment against `input.successCriteria`. The LLM
+	* is the sole author. REQUIRED when `input.successCriteria` is set
+	* (the per-type `validateOutput` enforces this); MUST be omitted
+	* otherwise. The daemon does not generate this — see
+	* `SuccessCriteria` for the producer/judge model.
+	*/
+	verification: Optional(VerificationRecord)
+}, {
+	$id: "FulfillBriefOutput",
+	additionalProperties: false
+});
+//#endregion
+//#region ../../libs/tasks/src/task-types/judge-pack.ts
+/**
+* `judge_pack` — independently score a rendered pack against a rubric.
+*
+* output_kind: judgment
+* criteria: required (`successCriteria.rubric` — see #852 amendment and
+*   Phase 2 issue #881)
+* references: required (must reference the `render_pack` task it judges,
+*   role='judged_work')
+*
+* Step 3 of the three-session attribution loop (#875). Mirrors
+* `assess_brief` in shape, but over a rendered context pack.
+*
+* Phase 1 rubric storage: the rubric body lives at
+* `input.successCriteria.rubric` and is pinned via the task's `inputCid`.
+* Phase 2 (#881) will replace the inline body with a `rubricCid`
+* referencing a stored `rubrics` row; the envelope stays the same.
+*
+* The judge MUST be a different agent from the renderer. Enforced at
+* claim time by the runtime, not in the wire schema.
+*/
+var JUDGE_PACK_TYPE = "judge_pack";
+var JudgePackInput = _Object_({
+	/** Rendered pack to judge. */
+	renderedPackId: String$1({ format: "uuid" }),
+	/**
+	* Pack the rendering came from. The judge reads source entries from
+	* here to ground grounding / coverage / faithfulness assessments.
+	*/
+	sourcePackId: String$1({ format: "uuid" }),
+	/**
+	* Required SuccessCriteria envelope. Must contain a `rubric` — that
+	* rubric IS the job spec for this judgment task (the judge applies
+	* it). Other sections (`assertions`, `gates`, `sideEffects`) MAY be
+	* present and are evaluated against the *judge's output* — e.g. an
+	* proposer can require the judge produce evidence-bearing assertions.
+	*/
+	successCriteria: SuccessCriteria
+}, {
+	$id: "JudgePackInput",
+	additionalProperties: false
+});
+/** One scored criterion. Mirrors `AssessBriefScore`. */
+var JudgePackScore = _Object_({
+	criterionId: String$1({ minLength: 1 }),
+	/**
+	* Per-criterion numeric score, 0..1.
+	* - `llm_score`: continuous 0..1 (smooths failures — see #999).
+	* - `llm_checklist`: derived — `1` iff every entry in `assertions`
+	*   has `passed: true`, else `0`. The judge MUST set this consistently
+	*   with the assertions array; the runtime rejects mismatches.
+	* - `boolean` / `deterministic_*`: exactly 0 or 1.
+	*/
+	score: Number$1({
+		minimum: 0,
+		maximum: 1
+	}),
+	/** Required for `llm_score`, optional otherwise. */
+	rationale: Optional(String$1()),
+	/**
+	* Per-claim binary results — REQUIRED when the criterion's `scoring`
+	* mode is `llm_checklist`, otherwise omitted. The list is the
+	* dataset for cluster-analysis of failure modes; every entry carries
+	* concrete `evidence` regardless of pass/fail. See #999 and the
+	* shared `AssertionResult` type in `../rubric.ts`.
+	*/
+	assertions: Optional(_Array_(AssertionResult, { minItems: 1 })),
+	/**
+	* Structured evidence for deterministic scorings. Shape depends on
+	* the criterion's `scoring` mode; stored as free-form JSON for
+	* forward compatibility.
+	*/
+	evidence: Optional(Record(String$1(), Unknown()))
+}, {
+	$id: "JudgePackScore",
+	additionalProperties: false
+});
+var JudgePackOutput = _Object_({
+	/**
+	* Per-criterion scores, same order/length as
+	* `input.successCriteria.rubric.criteria`.
+	*/
+	scores: _Array_(JudgePackScore, { minItems: 1 }),
+	/** Σ(weight_i × score_i). Server rejects mismatches against the rubric. */
+	composite: Number$1({
+		minimum: 0,
+		maximum: 1
+	}),
+	/** 1–3 sentence overall verdict. */
+	verdict: String$1({ minLength: 1 }),
+	/** Model id used for `llm_score` criteria. */
+	judgeModel: Optional(String$1()),
+	/**
+	* CIDv1 of the renderer binary the judge evaluated (when available
+	* via `moltnet_rendered_pack_get`). Carried forward for Promise
+	* Theory provenance — matches the `judgeBinaryCid` field on
+	* attestations. `null` is accepted and treated as "unavailable"
+	* equivalent to omission.
+	*/
+	rendererBinaryCid: Optional(Union([String$1(), Null()]))
+}, {
+	$id: "JudgePackOutput",
+	additionalProperties: false
+});
+/**
+* Cross-field validator for JudgePackOutput. Run after the TypeBox
+* schema check passes. Enforces invariants the schema can't express:
+*
+* 1. If a `JudgePackScore` carries an `assertions` array (i.e. the
+*    judge ran the criterion in `llm_checklist` mode), its numeric
+*    `score` MUST equal `1` if every `assertions[i].passed` is true,
+*    else `0`. The prompt instructs the judge to derive `score` from
+*    the array, but the LLM can drift — without this check, the
+*    runtime accepts inconsistent payloads and propagates them into
+*    composite scores and judge attestations (#999 P1).
+*
+* 2. If `score` is exactly `1` AND `assertions` is present, every
+*    assertion must have `passed: true`. Catches the failure mode in
+*    the issue: "score: 1 with a failing assertion accepted."
+*
+* Cross-rubric checks (e.g. "did the judge populate `assertions` for
+* every criterion the rubric marked `llm_checklist`?") require the
+* input rubric and live in a separate, runtime-side validator. This
+* one is rubric-agnostic on purpose — it catches within-score
+* inconsistency without needing the original task input.
+*/
+function validateJudgePackOutput(output) {
+	const scores = output.scores;
+	for (let i = 0; i < scores.length; i++) {
+		const s = scores[i];
+		if (!s.assertions) continue;
+		const allPassed = s.assertions.every((a) => a.passed);
+		const expected = allPassed ? 1 : 0;
+		if (s.score !== expected) return `scores[${i}] (criterionId="${s.criterionId}"): assertions ${allPassed ? "all pass" : "have at least one fail"} but score=${s.score}. Score must be derived: 1 iff every assertion passes, else 0 (#999 llm_checklist rule).`;
+	}
+	return null;
+}
+/**
+* Async preflight (#1096):
+*   - `renderedPackId` resolves to a rendered_packs row.
+*   - `sourcePackId` resolves to a context_packs row.
+*   - The rendered pack actually came from the claimed source pack —
+*     `renderedPack.sourcePackId === input.sourcePackId`. Without
+*     this check a judge can be tricked into grading rendering A as
+*     if it came from source B.
+*/
+async function validateJudgePackInputAsync(input, ctx) {
+	const { renderedPackId, sourcePackId } = input;
+	const errors = [];
+	const [rendered, source] = await Promise.all([ctx.resolveRenderedPack(renderedPackId), ctx.resolveContextPack(sourcePackId)]);
+	if (!rendered) errors.push({
+		field: "renderedPackId",
+		message: `renderedPackId ${renderedPackId} does not resolve to a rendered pack you can read`
+	});
+	if (!source) errors.push({
+		field: "sourcePackId",
+		message: `sourcePackId ${sourcePackId} does not resolve to a context pack you can read`
+	});
+	if (rendered && source && rendered.sourcePackId !== source.id) errors.push({
+		field: "sourcePackId",
+		message: `renderedPack ${renderedPackId} was produced from source ${rendered.sourcePackId}, not from sourcePackId=${sourcePackId}`
+	});
+	return errors;
+}
+//#endregion
+//#region ../../libs/tasks/src/task-types/judge-eval-attempt.ts
+/**
+* `judge_eval_attempt` — score one completed artifact-producing attempt
+* against a hidden judge rubric.
+*
+* output_kind: judgment
+* criteria: required (`successCriteria.rubric`)
+* references: not required at the input layer — `targetTaskId` +
+*   `targetAttemptN` pin the producer attempt being judged.
+*
+* This replaces the earlier parent/subagent `judge_eval_variant` design.
+* The unit of judgment is one producer attempt. Cross-variant deltas can be
+* computed later at read time from stored scores, rather than materialized as
+* their own task output.
+*/
+var JUDGE_EVAL_ATTEMPT_TYPE = "judge_eval_attempt";
+var JudgeEvalAttemptInput = _Object_({
+	targetTaskId: String$1({ format: "uuid" }),
+	targetAttemptN: Integer({ minimum: 1 }),
+	/**
+	* Hidden judge rubric. Producer tasks may carry their own rubric-free
+	* `successCriteria`, but only the judge sees this scoring key.
+	*/
+	successCriteria: SuccessCriteria
+}, {
+	$id: "JudgeEvalAttemptInput",
+	additionalProperties: false
+});
+/** Agent-authored part of a judge attempt's output. */
+var JudgeEvalAttemptSubmission = _Object_({
+	targetTaskId: String$1({ format: "uuid" }),
+	targetAttemptN: Integer({ minimum: 1 }),
+	variantLabel: String$1({
+		minLength: 1,
+		maxLength: 64,
+		pattern: "^(?!.* - ).*$"
+	}),
+	scores: _Array_(JudgePackScore, { minItems: 1 }),
+	composite: Number$1({
+		minimum: 0,
+		maximum: 1
+	}),
+	verdict: String$1({ minLength: 1 }),
+	judgeModel: Optional(String$1({ minLength: 1 }))
+}, {
+	$id: "JudgeEvalAttemptSubmission",
+	additionalProperties: false
+});
+/** Durable output after the executor stamps the claim trace context. */
+var JudgeEvalAttemptOutput = _Object_({
+	targetTaskId: String$1({ format: "uuid" }),
+	targetAttemptN: Integer({ minimum: 1 }),
+	variantLabel: String$1({
+		minLength: 1,
+		maxLength: 64,
+		pattern: "^(?!.* - ).*$"
+	}),
+	scores: _Array_(JudgePackScore, { minItems: 1 }),
+	composite: Number$1({
+		minimum: 0,
+		maximum: 1
+	}),
+	verdict: String$1({ minLength: 1 }),
+	judgeModel: Optional(String$1({ minLength: 1 })),
+	/** Stamped when the claim supplied a W3C trace context. */
+	traceparent: Optional(String$1({ minLength: 1 }))
+}, {
+	$id: "JudgeEvalAttemptOutput",
+	additionalProperties: false
+});
+function validateJudgeEvalAttemptInput(input) {
+	const sc = input.successCriteria;
+	if (!sc) return "successCriteria is required for judge_eval_attempt";
+	if (!sc.rubric) return "successCriteria.rubric is required for judge_eval_attempt";
+	return validateRubricWeights(sc.rubric);
+}
+function validateJudgeEvalAttemptOutput(output, input) {
+	const out = output;
+	const inp = input;
+	if (inp) {
+		if (out.targetTaskId !== inp.targetTaskId) return `output.targetTaskId (${out.targetTaskId}) does not match input.targetTaskId (${inp.targetTaskId})`;
+		if (out.targetAttemptN !== inp.targetAttemptN) return `output.targetAttemptN (${out.targetAttemptN}) does not match input.targetAttemptN (${inp.targetAttemptN})`;
+	}
+	for (let s = 0; s < out.scores.length; s++) {
+		const sc = out.scores[s];
+		if (!sc.assertions) continue;
+		const allPassed = sc.assertions.every((a) => a.passed);
+		const expected = allPassed ? 1 : 0;
+		if (sc.score !== expected) return `scores[${s}] (criterionId="${sc.criterionId}"): assertions ${allPassed ? "all pass" : "have at least one fail"} but score=${sc.score}. Score must be 1 iff every assertion passes, else 0.`;
+	}
+	if (inp?.successCriteria?.rubric) {
+		const criteria = inp.successCriteria.rubric.criteria;
+		const weightById = new Map(criteria.map((c) => [c.id, c.weight]));
+		let sum = 0;
+		for (const sc of out.scores) {
+			const w = weightById.get(sc.criterionId);
+			if (w === void 0) return `scores references unknown criterionId "${sc.criterionId}"`;
+			sum += w * sc.score;
+		}
+		const rounded = Math.round(sum * 1e3) / 1e3;
+		if (Math.abs(rounded - out.composite) > .001) return `composite (${out.composite}) does not match weighted rubric sum (${rounded})`;
+	}
+	return null;
+}
+async function validateJudgeEvalAttemptInputAsync(input, ctx) {
+	const inp = input;
+	const errors = [];
+	const target = await ctx.resolveTask(inp.targetTaskId);
+	if (!target) return [{
+		field: "targetTaskId",
+		message: `targetTaskId=${inp.targetTaskId} does not resolve to a task you can read`
+	}];
+	if (target.outputKind !== "artifact") errors.push({
+		field: "targetTaskId",
+		message: `targetTaskId=${inp.targetTaskId} has outputKind=${target.outputKind}; only artifact-producing tasks can be judged`
+	});
+	if (!ctx.deferReadinessChecks && (target.status !== "completed" || target.acceptedAttemptN === null)) errors.push({
+		field: "targetTaskId",
+		message: `targetTaskId=${inp.targetTaskId} is not completed with an accepted attempt (status=${target.status}, acceptedAttemptN=${target.acceptedAttemptN})`
+	});
+	else if (target.acceptedAttemptN !== null && target.acceptedAttemptN !== inp.targetAttemptN) errors.push({
+		field: "targetAttemptN",
+		message: `targetAttemptN=${inp.targetAttemptN} does not match the producer's acceptedAttemptN=${target.acceptedAttemptN}`
+	});
+	if (!target.correlationId) errors.push({
+		field: "targetTaskId",
+		message: "target producer has no correlation_id; cannot enforce duplicate-judge protection"
+	});
+	if (errors.length > 0 || !target.correlationId) return errors;
+	const rubric = inp.successCriteria.rubric;
+	const duplicate = (await ctx.listTasksByCorrelation(target.correlationId)).find((task) => {
+		if (task.id === ctx.currentTaskId) return false;
+		if (task.taskType !== "judge_eval_attempt") return false;
+		if (task.status === "failed" || task.status === "cancelled" || task.status === "expired") return false;
+		const existing = task.input;
+		const existingRubric = existing.successCriteria?.rubric;
+		return existing.targetTaskId === inp.targetTaskId && existing.targetAttemptN === inp.targetAttemptN && existingRubric?.rubricId === rubric?.rubricId && existingRubric?.version === rubric?.version;
+	});
+	if (duplicate) errors.push({
+		field: "targetTaskId",
+		message: `judge task ${duplicate.id} already exists for (${inp.targetTaskId}, attempt ${inp.targetAttemptN}, rubric ${rubric?.rubricId}@${rubric?.version})`
+	});
+	return errors;
+}
+async function onCreateJudgeEvalAttempt(input, _ctx) {
+	const judge = input;
+	const rubric = judge.successCriteria.rubric;
+	if (!rubric) return [];
+	return [{
+		kind: "guardTaskUniqueness",
+		taskType: JUDGE_EVAL_ATTEMPT_TYPE,
+		lockKey: [
+			JUDGE_EVAL_ATTEMPT_TYPE,
+			judge.targetTaskId,
+			String(judge.targetAttemptN),
+			rubric.rubricId,
+			rubric.version
+		].join(":"),
+		inputMatches: [
+			{
+				path: ["targetTaskId"],
+				value: judge.targetTaskId
+			},
+			{
+				path: ["targetAttemptN"],
+				value: judge.targetAttemptN
+			},
+			{
+				path: [
+					"successCriteria",
+					"rubric",
+					"rubricId"
+				],
+				value: rubric.rubricId
+			},
+			{
+				path: [
+					"successCriteria",
+					"rubric",
+					"version"
+				],
+				value: rubric.version
+			}
+		]
+	}];
+}
+//#endregion
+//#region ../../libs/tasks/src/task-types/pr-review.ts
+var PR_REVIEW_TYPE = "pr_review";
+var PrReviewInput = _Object_({
+	subject: _Object_({
+		title: String$1({ minLength: 1 }),
+		summary: String$1({ minLength: 1 }),
+		resourceUrls: Optional(_Array_(String$1({ minLength: 1 }))),
+		inspectionHints: Optional(_Array_(String$1({ minLength: 1 })))
+	}, {
+		$id: "PrReviewSubject",
+		additionalProperties: false
+	}),
+	taskPrompt: Optional(String$1({ minLength: 1 })),
+	successCriteria: SuccessCriteria,
+	context: Optional(TaskContext)
+}, {
+	$id: "PrReviewInput",
+	additionalProperties: false
+});
+var PrReviewOutput = _Object_({
+	scores: _Array_(_Object_({
+		criterionId: String$1({ minLength: 1 }),
+		score: Union([Literal(0), Literal(1)]),
+		rationale: String$1({ minLength: 1 })
+	}, {
+		$id: "PrReviewScore",
+		additionalProperties: false
+	}), { minItems: 1 }),
+	composite: Number$1({
+		minimum: 0,
+		maximum: 1
+	}),
+	verdict: String$1({ minLength: 1 })
+}, {
+	$id: "PrReviewOutput",
+	additionalProperties: false
+});
+function requireBooleanRubric(rubric) {
+	for (const criterion of rubric.criteria) if (criterion.scoring !== "boolean") return `pr_review requires boolean scoring for every rubric criterion; criterion "${criterion.id}" uses "${criterion.scoring}"`;
+	return null;
+}
+function validatePrReviewInput(input) {
+	const sc = input.successCriteria;
+	if (!sc) return "successCriteria is required for judgment tasks";
+	if (!sc.rubric) return "successCriteria.rubric is required for judgment tasks";
+	return validateRubricWeights(sc.rubric) ?? requireBooleanRubric(sc.rubric);
+}
+function validatePrReviewOutput(output, input) {
+	if (!input) return null;
+	const scores = output.scores;
+	const rubric = input.successCriteria.rubric;
+	if (!rubric) return null;
+	if (scores.length !== rubric.criteria.length) return `scores length ${scores.length} does not match rubric criteria length ${rubric.criteria.length}`;
+	let composite = 0;
+	for (let i = 0; i < rubric.criteria.length; i++) {
+		const criterion = rubric.criteria[i];
+		const score = scores[i];
+		if (score.criterionId !== criterion.id) return `scores[${i}] has criterionId "${score.criterionId}" but rubric expects "${criterion.id}" in that position`;
+		composite += criterion.weight * score.score;
+	}
+	const claimed = output.composite;
+	if (Math.abs(claimed - composite) > 1e-6) return `composite ${claimed} does not match weighted sum ${composite.toFixed(6)}`;
+	return null;
+}
+//#endregion
+//#region ../../libs/tasks/src/task-types/render-pack.ts
+/**
+* `render_pack` — turn a context pack into a signed rendered artefact.
+*
+* output_kind: artifact
+* criteria: not required
+* references: the `curate_pack` task that produced the pack (optional
+*   but recommended for provenance chaining).
+*
+* Step 2 of the three-session attribution loop (#875). Mechanical: wraps
+* `moltnet_pack_render`. The only reason this is a Task and not a direct
+* SDK call is attribution — the renderer identity is recorded on the task
+* attempt signature, independent from the curator and the judge.
+*
+* Related: `curate_pack`, `judge_pack`.
+*/
+var RENDER_PACK_TYPE = "render_pack";
+var RenderPackInput = _Object_({
+	/** Pack to render. Must exist and be readable by the renderer agent. */
+	packId: String$1({ format: "uuid" }),
+	/**
+	* Persist the rendered pack on the server. Default true. When false,
+	* the rendered content is returned in the task output only — useful
+	* for dry-runs.
+	*/
+	persist: Optional(Boolean$1()),
+	/**
+	* Pin the rendered pack so it is not eligible for expiry. Default
+	* false (attribution loop is ephemeral by design).
+	*/
+	pinned: Optional(Boolean$1()),
+	/**
+	* Proposer-stated, machine-verifiable success criteria. See
+	* `SuccessCriteria`. Pinned via `inputCid`. Optional.
+	*/
+	successCriteria: Optional(SuccessCriteria)
+}, {
+	$id: "RenderPackInput",
+	additionalProperties: false
+});
+var RenderPackOutput = _Object_({
+	/**
+	* UUID of the persisted rendered pack row. Null when `persist: false`
+	* or when the renderer chose not to persist (e.g. validation failure).
+	*/
+	renderedPackId: Union([String$1({ format: "uuid" }), Null()]),
+	/** CIDv1 of the canonical rendered content. Always present. */
+	renderedCid: String$1({ minLength: 1 }),
+	/**
+	* Label identifying the renderer implementation — e.g.
+	* `pi:pack-to-docs-v1`, `server:pack-to-docs-v1`. Recorded verbatim
+	* from the server's render response; validated against the convention
+	* owned by `@moltnet/models` (`RenderMethodSchema`).
+	*/
+	renderMethod: RenderMethodSchema,
+	/** Size in bytes of the rendered markdown. */
+	byteSize: Number$1({ minimum: 0 }),
+	/** Number of source entries represented in the rendering. */
+	entriesRendered: Number$1({ minimum: 0 }),
+	/** 1–3 sentence summary. */
+	summary: String$1({ minLength: 1 }),
+	/**
+	* Producer self-assessment against `input.successCriteria`. REQUIRED
+	* when `input.successCriteria` is set; MUST be omitted otherwise.
+	* See `SuccessCriteria` for the producer/judge model.
+	*/
+	verification: Optional(VerificationRecord)
+}, {
+	$id: "RenderPackOutput",
+	additionalProperties: false
+});
+/**
+* Async preflight (#1096): `packId` resolves to a context_packs row
+* the caller can read.
+*/
+async function validateRenderPackInputAsync(input, ctx) {
+	const { packId } = input;
+	if (!await ctx.resolveContextPack(packId)) return [{
+		field: "packId",
+		message: `packId ${packId} does not resolve to a context pack you can read`
+	}];
+	return [];
+}
+//#endregion
+//#region ../../libs/tasks/src/task-types/run-eval.ts
+/**
+* `run_eval` — execute a scenario prompt under a named variant for
+* later per-attempt grading by `judge_eval_attempt` tasks.
+*
+* output_kind: artifact
+* criteria: optional producer-only checks (when set,
+*   output.verification is required — the judge rubric remains hidden
+*   on downstream `judge_eval_attempt` tasks)
+* references: not required (scenario lives entirely in input)
+*/
+var RUN_EVAL_TYPE = "run_eval";
+var RunEvalExecution = _Object_({
+	/**
+	* `vitro` = proctored eval in an isolated runner context whose main
+	* comparison target is prompt/context behavior.
+	* `vivo` = live-repo eval against a real checkout/worktree.
+	*/
+	mode: Union([Literal("vitro"), Literal("vivo")], { $id: "RunEvalMode" }),
+	/**
+	* Workspace shape selected by the task creator for this variant run.
+	* `none` means the runner should not expose the repository checkout at
+	* all; it receives an empty scratch workspace instead.
+	*/
+	workspace: Union([
+		Literal("none"),
+		Literal("shared_mount"),
+		Literal("dedicated_worktree")
+	], { $id: "RunEvalWorkspace" })
+}, {
+	$id: "RunEvalExecution",
+	additionalProperties: false
+});
+/**
+* Producer-visible checks for `run_eval`. Deliberately forbids `rubric`
+* so the variant runner cannot see the downstream judge's answer key.
+* Keep the rest of the SuccessCriteria envelope available for generic
+* process / structure checks (`gates`, `assertions`, `sideEffects`).
+*/
+var RunEvalSuccessCriteria = _Object_({
+	version: Literal(1),
+	gates: Optional(SuccessCriteria.properties.gates),
+	assertions: Optional(SuccessCriteria.properties.assertions),
+	sideEffects: Optional(SuccessCriteria.properties.sideEffects)
+}, {
+	$id: "RunEvalSuccessCriteria",
+	additionalProperties: false
+});
+var RunEvalInput = _Object_({
+	scenario: _Object_({
+		prompt: String$1({ minLength: 1 }),
+		inputFiles: Optional(_Array_(String$1({ minLength: 1 })))
+	}, { additionalProperties: false }),
+	/** Variant identity. Joins variants under a correlation_id. */
+	variantLabel: String$1({
+		minLength: 1,
+		maxLength: 64
+	}),
+	/**
+	* Per-task execution shape. The task creator, not the task type
+	* registry, decides whether this eval runs in vitro or vivo and
+	* whether it needs no repo, the shared mount, or a dedicated worktree.
+	*/
+	execution: RunEvalExecution,
+	/** Empty array IS the baseline. */
+	context: TaskContext,
+	/**
+	* Optional producer-visible checks (advisory; the judge in Slice 2
+	* is the binding evaluator). Intentionally excludes `rubric` so the
+	* producer cannot read the downstream judge's scoring key. When
+	* present, `output.verification` MUST be supplied (see
+	* `validateRunEvalOutput`).
+	*/
+	successCriteria: Optional(RunEvalSuccessCriteria)
+}, {
+	$id: "RunEvalInput",
+	additionalProperties: false
+});
+var RunEvalArtifact = _Object_({
+	path: String$1({ minLength: 1 }),
+	cid: String$1({ minLength: 1 })
+}, { additionalProperties: false });
+/**
+* Fields the eval agent authors through its submit-output tool. Runtime
+* telemetry deliberately does not live here: an agent cannot truthfully
+* measure provider token usage, wall-clock duration, or the claim trace.
+*/
+var RunEvalSubmission = _Object_({
+	response: String$1({ minLength: 1 }),
+	artifacts: Optional(_Array_(RunEvalArtifact)),
+	/** Required iff input.successCriteria is set. */
+	verification: Optional(VerificationRecord)
+}, {
+	$id: "RunEvalSubmission",
+	additionalProperties: false
+});
+/**
+* Durable eval output. The daemon materializes this from RunEvalSubmission
+* and observed execution metadata before the task service accepts it.
+*/
+var RunEvalOutput = _Object_({
+	response: String$1({ minLength: 1 }),
+	artifacts: Optional(_Array_(RunEvalArtifact)),
+	/** Stamped by the executor from observed model usage. */
+	totalTokens: Integer({ minimum: 0 }),
+	/** Stamped by the executor from the attempt clock. */
+	durationMs: Integer({ minimum: 0 }),
+	/** Stamped when the claim supplied a W3C trace context. */
+	traceparent: Optional(String$1({ minLength: 1 })),
+	/** Required iff input.successCriteria is set. */
+	verification: Optional(VerificationRecord)
+}, {
+	$id: "RunEvalOutput",
+	additionalProperties: false
+});
+/**
+* Cross-field rule mirroring the `requireVerificationWhenCriteriaPresent`
+* rule used by the brief task types: when input declares
+* `successCriteria`, output MUST carry `verification`; when it doesn't,
+* output MUST NOT carry one.
+*/
+function validateRunEvalOutput(output, input) {
+	const hasCriteria = input !== null && input !== void 0 && input.successCriteria !== void 0;
+	const hasVerification = output !== null && output !== void 0 && output.verification !== void 0;
+	if (hasCriteria && !hasVerification) return "output.verification is required because input.successCriteria is set; the producer LLM must self-assess against the producer checks";
+	if (!hasCriteria && hasVerification) return "output.verification was supplied but input.successCriteria is unset; omit verification when there are no producer checks to assess against";
+	return null;
+}
+//#endregion
+//#region ../../libs/tasks/src/task-types/index.ts
+/**
+* Validate that a judgment-task input carries a rubric inside its
+* `successCriteria` envelope, and that the rubric's weights sum to 1.
+* Used for `assess_brief` and `judge_pack`.
+*/
+function validateJudgmentInput(input) {
+	const sc = input.successCriteria;
+	if (!sc) return "successCriteria is required for judgment tasks";
+	if (!sc.rubric) return "successCriteria.rubric is required for judgment tasks";
+	return validateRubricWeights(sc.rubric);
+}
+/**
+* Cross-field rule: when `input.successCriteria` is set, the producer's
+* output MUST carry a `verification` block (the LLM's self-assessment).
+* When it is unset, the output MUST NOT carry one (avoid garbage data).
+*
+* Used by all three fulfillment task types. Judgment task outputs do
+* NOT use this — their entire output IS a structured judgment, so a
+* separate self-assessment field would be circular.
+*/
+function requireVerificationWhenCriteriaPresent(output, input) {
+	const hasCriteria = input !== void 0 && input !== null && input.successCriteria !== void 0;
+	const hasVerification = output.verification !== void 0;
+	if (hasCriteria && !hasVerification) return "output.verification is required because input.successCriteria is set; the producer LLM must self-assess against the criteria";
+	if (!hasCriteria && hasVerification) return "output.verification was supplied but input.successCriteria is unset; omit verification when there are no criteria to assess against";
+	return null;
+}
+/**
+* Client-side task-type registry. Mirrors the server-owned DB registry
+* (PR 2). PR 0 shipped the two brief types; this PR adds the three
+* pack-pipeline types for the three-session attribution loop (#875).
+*
+* Consumers validate `Task.input` against
+* `BUILT_IN_TASK_TYPES[task.task_type].inputSchema` before creating
+* / claiming a task.
+*/
+var BUILT_IN_TASK_TYPES = {
+	[FREEFORM_TYPE]: {
+		name: FREEFORM_TYPE,
+		inputSchema: FreeformInput,
+		outputSchema: FreeformOutput,
+		submissionSchema: FreeformSubmission,
+		outputKind: "artifact",
+		resumable: true,
+		workspaceMode: "shared_mount",
+		workspaceScope: "attempt",
+		sessionScope: "correlation",
+		acceptsInputWorkspaceOverride: true,
+		requiresReferences: false,
+		validateOutput: requireVerificationWhenCriteriaPresent,
+		validateInputAsync: validateFreeformInputAsync
+	},
+	[FULFILL_BRIEF_TYPE]: {
+		name: FULFILL_BRIEF_TYPE,
+		inputSchema: FulfillBriefInput,
+		outputSchema: FulfillBriefOutput,
+		outputKind: "artifact",
+		resumable: true,
+		workspaceMode: "dedicated_worktree",
+		workspaceScope: "session",
+		sessionScope: "correlation",
+		requiresReferences: false,
+		validateOutput: requireVerificationWhenCriteriaPresent
+	},
+	[ASSESS_BRIEF_TYPE]: {
+		name: ASSESS_BRIEF_TYPE,
+		inputSchema: AssessBriefInput,
+		outputSchema: AssessBriefOutput,
+		outputKind: "judgment",
+		workspaceMode: "dedicated_worktree",
+		workspaceScope: "attempt",
+		sessionScope: "none",
+		requiresReferences: true,
+		validateInput: validateJudgmentInput,
+		validateInputAsync: validateAssessBriefInputAsync
+	},
+	[PR_REVIEW_TYPE]: {
+		name: PR_REVIEW_TYPE,
+		inputSchema: PrReviewInput,
+		outputSchema: PrReviewOutput,
+		outputKind: "judgment",
+		workspaceMode: "dedicated_worktree",
+		workspaceScope: "attempt",
+		sessionScope: "none",
+		requiresReferences: false,
+		validateInput: validatePrReviewInput,
+		validateOutput: validatePrReviewOutput
+	},
+	[CURATE_PACK_TYPE]: {
+		name: CURATE_PACK_TYPE,
+		inputSchema: CuratePackInput,
+		outputSchema: CuratePackOutput,
+		outputKind: "artifact",
+		workspaceScope: "attempt",
+		sessionScope: "none",
+		requiresReferences: false,
+		validateOutput: requireVerificationWhenCriteriaPresent
+	},
+	[RENDER_PACK_TYPE]: {
+		name: RENDER_PACK_TYPE,
+		inputSchema: RenderPackInput,
+		outputSchema: RenderPackOutput,
+		outputKind: "artifact",
+		workspaceScope: "attempt",
+		sessionScope: "none",
+		requiresReferences: false,
+		validateOutput: requireVerificationWhenCriteriaPresent,
+		validateInputAsync: validateRenderPackInputAsync
+	},
+	[JUDGE_PACK_TYPE]: {
+		name: JUDGE_PACK_TYPE,
+		inputSchema: JudgePackInput,
+		outputSchema: JudgePackOutput,
+		outputKind: "judgment",
+		workspaceScope: "attempt",
+		sessionScope: "none",
+		requiresReferences: true,
+		validateInput: validateJudgmentInput,
+		validateOutput: validateJudgePackOutput,
+		validateInputAsync: validateJudgePackInputAsync
+	},
+	[RUN_EVAL_TYPE]: {
+		name: RUN_EVAL_TYPE,
+		inputSchema: RunEvalInput,
+		outputSchema: RunEvalOutput,
+		submissionSchema: RunEvalSubmission,
+		outputKind: "artifact",
+		resumable: true,
+		workspaceScope: "session",
+		sessionScope: "custom",
+		acceptsInputWorkspaceOverride: true,
+		requiresReferences: false,
+		validateOutput: validateRunEvalOutput
+	},
+	[JUDGE_EVAL_ATTEMPT_TYPE]: {
+		name: JUDGE_EVAL_ATTEMPT_TYPE,
+		inputSchema: JudgeEvalAttemptInput,
+		outputSchema: JudgeEvalAttemptOutput,
+		submissionSchema: JudgeEvalAttemptSubmission,
+		outputKind: "judgment",
+		workspaceScope: "attempt",
+		sessionScope: "none",
+		requiresReferences: false,
+		validateInput: validateJudgeEvalAttemptInput,
+		validateOutput: validateJudgeEvalAttemptOutput,
+		validateInputAsync: validateJudgeEvalAttemptInputAsync,
+		onCreate: onCreateJudgeEvalAttempt
+	}
+};
+//#endregion
+//#region ../../libs/tasks/src/task-type-registry.ts
+var schemaCids = null;
+function getTaskTypeRegistry() {
+	if (!schemaCids) throw new Error("Task type registry not initialized. Call initTaskTypeRegistry() first.");
+	return schemaCids;
+}
+new Proxy({}, { get(_, prop) {
+	if (typeof prop !== "string") return void 0;
+	return getTaskTypeRegistry().get(prop);
+} });
+//#endregion
 //#region ../../libs/tasks/src/validation.ts
 var PRODUCER_TASK_TYPES_WITH_SUBMIT_GATE = new Set([
 	"freeform",
@@ -37871,6 +38014,10 @@ function buildPrReview(input) {
 }
 //#endregion
 //#region ../../libs/sdk/src/tasks/reader.ts
+/** JSON with object keys sorted, so stored and local schemas compare by value. */
+function canonicalJson(value) {
+	return JSON.stringify(value, (_key, node) => node && typeof node === "object" && !Array.isArray(node) ? Object.fromEntries(Object.entries(node).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) : node);
+}
 function matches(a, filter) {
 	if (filter === void 0) return true;
 	if (typeof filter === "string") return a.kind === filter;
@@ -37887,6 +38034,11 @@ function matches(a, filter) {
 * field (judgment types use `output.verdict` / `output.composite`).
 * `artifact*` accessors apply to `freeform` / `run_eval`; other types yield
 * `[]` / `undefined`.
+*
+* For a `freeform` task whose input carries an `outputContract`, construction
+* also validates `output.result` against that contract. The server stores the
+* contract without enforcing it, so this is the reader-side guarantee; use
+* {@link TaskResultReader.result} to read the validated value.
 */
 var TaskResultReader = class {
 	/** The validated, typed structured output of the accepted attempt. */
@@ -37901,6 +38053,7 @@ var TaskResultReader = class {
 	taskId;
 	/** CID of the accepted attempt output. */
 	outputCid;
+	#outputContract;
 	constructor(task, attempt) {
 		const errors = [];
 		if (task.acceptedAttemptN === null || task.acceptedAttemptN === void 0) errors.push({
@@ -37920,6 +38073,9 @@ var TaskResultReader = class {
 			const outErrors = validateTaskOutput(task.taskType, attempt.output, task.input);
 			if (outErrors.length > 0) throw new TaskResultError(outErrors);
 		}
+		const contractErrors = validateOutputContractResult(task.taskType, task.input, attempt.output);
+		if (contractErrors.length > 0) throw new TaskResultError(contractErrors);
+		this.#outputContract = getOutputContract(task.input);
 		this.output = attempt.output;
 		this.summary = attempt.output.summary;
 		this.taskId = task.id;
@@ -37930,6 +38086,17 @@ var TaskResultReader = class {
 			executorFingerprint: attempt.completedExecutorFingerprint ?? null
 		};
 		this.usage = attempt.usage;
+	}
+	result(schema) {
+		if (this.#outputContract === void 0) throw new TaskResultError([{
+			field: "input/outputContract",
+			message: "task has no output contract, so it has no typed result"
+		}]);
+		if (schema !== void 0 && canonicalJson(schema) !== canonicalJson(this.#outputContract.schema)) throw new TaskResultError([{
+			field: "input/outputContract/schema",
+			message: "does not match the schema passed to result()"
+		}]);
+		return this.output.result;
 	}
 	/**
 	* All artifacts (optionally filtered). Empty for output types without an
