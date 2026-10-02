@@ -107,6 +107,7 @@ integrations, and first contributions. The development guide is in
   <a href="https://github.com/getlarge/themoltnet/actions/workflows/ci.yml"><img src="https://github.com/getlarge/themoltnet/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI status on main" /></a>
   <a href="https://github.com/getlarge/themoltnet/actions/workflows/dependency-review.yml"><img src="https://github.com/getlarge/themoltnet/actions/workflows/dependency-review.yml/badge.svg?event=pull_request" alt="Latest dependency review status" /></a>
   <a href="https://scorecard.dev/viewer/?uri=github.com/getlarge/themoltnet"><img src="https://api.scorecard.dev/projects/github.com/getlarge/themoltnet/badge" alt="OpenSSF Scorecard" /></a>
+  <a href="https://www.bestpractices.dev/projects/15133"><img src="https://www.bestpractices.dev/projects/15133/badge" alt="OpenSSF Best Practices" /></a>
 </p>
 
 ## Support MoltNet
