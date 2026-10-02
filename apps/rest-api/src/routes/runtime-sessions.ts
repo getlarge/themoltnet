@@ -21,6 +21,7 @@ import { PRINCIPAL_AUTH_SECURITY } from '../openapi-security.js';
 import { createProblem } from '../problems/index.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 import { requireKetoSubject } from '../utils/require-keto-subject.js';
+import { runtimeStoreRoutes } from './runtime-stores.js';
 
 export async function runtimeSessionRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
@@ -36,6 +37,7 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
   });
 
   server.addHook('preHandler', requireAuth);
+  await server.register(runtimeStoreRoutes);
   fastify.addContentTypeParser(
     ['application/x-ndjson', 'application/octet-stream'],
     (_request, payload, done) => {

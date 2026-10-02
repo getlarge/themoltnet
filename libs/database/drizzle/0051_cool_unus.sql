@@ -1,0 +1,1 @@
+ALTER TABLE "runtime_stores" ALTER COLUMN "next_id" SET DEFAULT 2;

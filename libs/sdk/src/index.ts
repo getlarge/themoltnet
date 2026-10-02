@@ -118,6 +118,10 @@ export {
 export { info, type InfoOptions } from './info.js';
 export { SignedEntryCreateError } from './namespaces/entries.js';
 export type {
+  RuntimeStoreRequestOptions,
+  RuntimeStoresNamespace,
+} from './namespaces/runtime-stores.js';
+export type {
   RequiredTeamRequestOptions,
   TeamRequestOptions,
 } from './namespaces/team-headers.js';

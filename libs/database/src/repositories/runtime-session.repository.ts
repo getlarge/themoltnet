@@ -7,6 +7,7 @@ import {
   runtimeSessions,
 } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
+import { createRuntimeStoreRepository } from './runtime-store.repository.js';
 
 export type RuntimeSessionKind = 'root' | 'extend' | 'fork';
 export type RuntimeSessionCheckpointKind = 'attempt_final';
@@ -37,6 +38,7 @@ export interface RuntimeSessionCleanupRef {
 
 export function createRuntimeSessionRepository(db: Database) {
   return {
+    durable: createRuntimeStoreRepository(db),
     async upsertActive(
       input: UpsertRuntimeSessionInput,
     ): Promise<RuntimeSession> {
