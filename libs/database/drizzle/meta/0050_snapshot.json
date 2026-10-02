@@ -4311,7 +4311,7 @@
           "type": "bigint",
           "primaryKey": false,
           "notNull": true,
-          "default": 1
+          "default": 2
         },
         "writer_token": {
           "name": "writer_token",

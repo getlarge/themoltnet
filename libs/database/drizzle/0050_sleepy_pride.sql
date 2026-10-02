@@ -25,7 +25,7 @@ CREATE TABLE "runtime_stores" (
 	"team_id" uuid NOT NULL,
 	"format" text DEFAULT 'pi-durable.v1' NOT NULL,
 	"head_seq" integer DEFAULT 0 NOT NULL,
-	"next_id" bigint DEFAULT 1 NOT NULL,
+	"next_id" bigint DEFAULT 2 NOT NULL,
 	"writer_token" uuid,
 	"writer_agent_id" uuid,
 	"writer_task_id" uuid,
