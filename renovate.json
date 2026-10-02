@@ -9,6 +9,20 @@
       "matchStrings": [
         "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+renovate-version:\\s*(?<currentValue>\\S+)"
       ]
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "go",
+      "depNameTemplate": "{{#if depName}}{{{depName}}}{{else}}go.opentelemetry.io/collector/otelcol{{/if}}",
+      "description": "OCB manifest versions for the custom OTel Collector; excludes this repository's own modules",
+      "extractVersionTemplate": "{{#if depName}}^(?<version>.+)${{else}}^v(?<version>.+)${{/if}}",
+      "managerFilePatterns": [
+        "/^infra\\/otel\\/custom-collector\\/builder\\.yaml$/"
+      ],
+      "matchStrings": [
+        "-\\s+gomod:\\s+(?<depName>(?:go\\.opentelemetry\\.io|github\\.com\\/open-telemetry)\\/\\S+)\\s+(?<currentValue>v\\d\\S*)",
+        "otelcol_version:\\s+(?<currentValue>\\d\\S*)"
+      ]
     }
   ],
   "dependencyDashboard": true,
@@ -156,6 +170,56 @@
       "automerge": false,
       "description": "Require review for authentication and cryptography dependencies",
       "matchPackageNames": ["@ory/**", "@noble/**", "*sodium*", "jose"]
+    },
+    {
+      "description": "Move golang.org/x modules together; they are released as one wave",
+      "groupName": "golang.org/x",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": ["golang.org/x/**"]
+    },
+    {
+      "description": "Keep OTel Collector core, contrib and the OCB manifest on one version; builder.yaml requires every component at the same minor",
+      "groupName": "OTel Collector",
+      "matchManagers": ["gomod", "custom.regex"],
+      "matchPackageNames": [
+        "go.opentelemetry.io/collector",
+        "go.opentelemetry.io/collector/**",
+        "github.com/open-telemetry/opentelemetry-collector-contrib/**"
+      ]
+    },
+    {
+      "description": "Keep the OTel Go SDK packages on one version across modules",
+      "groupName": "OTel Go SDK",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": [
+        "go.opentelemetry.io/otel",
+        "go.opentelemetry.io/otel/**"
+      ]
+    },
+    {
+      "description": "ogen generates the Go API client; its runtime packages move with it and need regeneration",
+      "groupName": "ogen",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": [
+        "github.com/ogen-go/ogen",
+        "github.com/go-faster/**"
+      ]
+    },
+    {
+      "description": "IPFS CID and multiformats libraries used for content-addressed entries",
+      "groupName": "IPFS multiformats",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": ["github.com/ipfs/**", "github.com/multiformats/**"]
+    },
+    {
+      "description": "go-keyring and its platform backends are tested together",
+      "groupName": "OS keyring",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": [
+        "github.com/zalando/go-keyring",
+        "github.com/danieljoos/wincred",
+        "github.com/godbus/dbus/**"
+      ]
     }
   ],
   "postUpdateOptions": ["gomodTidy", "pnpmDedupe"],
@@ -166,6 +230,8 @@
   "vulnerabilityAlerts": {
     "draftPR": false,
     "enabled": true,
+    "groupName": "{{#if (containsString depName \"golang.org/x/\")}}golang.org/x{{else if (containsString depName \"go.opentelemetry.io/collector\")}}OTel Collector{{else if (containsString depName \"opentelemetry-collector-contrib\")}}OTel Collector{{else}}dependency {{{depName}}}{{/if}}",
+    "groupSlug": "{{#if (containsString depName \"golang.org/x/\")}}golang-org-x-vulnerability{{else if (containsString depName \"go.opentelemetry.io/collector\")}}otel-collector-vulnerability{{else if (containsString depName \"opentelemetry-collector-contrib\")}}otel-collector-vulnerability{{else}}{{{datasource}}}-{{{depNameSanitized}}}-vulnerability{{/if}}",
     "prConcurrentLimit": 2
   }
 }
