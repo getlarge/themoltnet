@@ -47,7 +47,7 @@ jobs:
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: 24
+          node-version-file: .tool-versions
           cache: pnpm
       # Only the root commitlint dev dependency is needed; the workspace
       # postinstall builds the Nx graph and is not worth paying for here.
@@ -264,7 +264,7 @@ jobs:
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: '24'
+          node-version-file: .tool-versions
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec nx run @moltnet/agent-desktop-e2e:e2e --configuration=chrome --excludeTaskDependencies
@@ -330,7 +330,7 @@ jobs:
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: 24
+          node-version-file: .tool-versions
           cache: pnpm
       # Every pull request: cheap, and a path gate would have to copy the
       # lock definitions. Files an action runs from outside its package are
@@ -741,7 +741,7 @@ jobs:
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: 24
+          node-version-file: .tool-versions
           cache: pnpm
       - name: Install native build tools
         run: |
@@ -818,7 +818,7 @@ jobs:
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: 24
+          node-version-file: .tool-versions
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Install plugin hosts
@@ -841,7 +841,7 @@ jobs:
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: 24
+          node-version-file: .tool-versions
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Run Knip (JSON report)
@@ -1052,7 +1052,7 @@ jobs:
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: 24
+          node-version-file: .tool-versions
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Run audit
@@ -1154,7 +1154,7 @@ jobs:
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          node-version: 24
+          node-version-file: .tool-versions
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Check override hygiene
@@ -1311,7 +1311,7 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         if: needs.affected.outputs.e2e-node == 'true'
         with:
-          node-version: 24
+          node-version-file: .tool-versions
           cache: pnpm
       - run: pnpm install --frozen-lockfile
         if: needs.affected.outputs.e2e-node == 'true'
@@ -1489,7 +1489,7 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
         with:
-          node-version: 24
+          node-version-file: .tool-versions
           cache: pnpm
       - run: pnpm install --frozen-lockfile
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
@@ -1599,7 +1599,7 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         if: needs.affected.outputs.e2e-browser == 'true'
         with:
-          node-version: 24
+          node-version-file: .tool-versions
           cache: pnpm
       - run: pnpm install --frozen-lockfile
         if: needs.affected.outputs.e2e-browser == 'true'
@@ -1689,7 +1689,7 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         if: needs.affected.outputs.e2e-mcp == 'true'
         with:
-          node-version: 24
+          node-version-file: .tool-versions
           cache: pnpm
       - run: pnpm install --frozen-lockfile
         if: needs.affected.outputs.e2e-mcp == 'true'
@@ -1844,7 +1844,7 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         if: needs.affected.outputs.e2e-cpp-sdk == 'true'
         with:
-          node-version: 24
+          node-version-file: .tool-versions
           cache: pnpm
       - name: Install native build tools
         if: needs.affected.outputs.e2e-cpp-sdk == 'true'
@@ -1903,7 +1903,7 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         if: needs.affected.outputs.e2e-orchestration == 'true'
         with:
-          node-version: 24
+          node-version-file: .tool-versions
           cache: pnpm
       - run: pnpm install --frozen-lockfile
         if: needs.affected.outputs.e2e-orchestration == 'true'

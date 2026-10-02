@@ -160,10 +160,10 @@
       "schedule": ["at any time"]
     },
     {
-      "description": "Keep Node.js tool-version files in one update",
+      "description": "Keep Node.js tool-version files and node Docker base images in one update",
       "groupName": "Node.js toolchain",
       "matchDepNames": ["node", "nodejs"],
-      "matchManagers": ["nvm", "asdf"]
+      "matchManagers": ["nvm", "asdf", "dockerfile"]
     },
     {
       "automerge": false,
