@@ -206,7 +206,7 @@ describe('Runtime Profiles API', () => {
       },
     });
     expect(registration.error).toBeUndefined();
-    expect(registration.response.status).toBe(200);
+    expect(registration.response?.status).toBe(200);
     return executorFingerprint;
   }
 
@@ -237,7 +237,7 @@ describe('Runtime Profiles API', () => {
       response: createResponse,
     } = await createProfile(name);
 
-    expect(createResponse.status).toBe(201);
+    expect(createResponse?.status).toBe(201);
     expect(createError).toBeUndefined();
     expect(created).toMatchObject({
       name,
@@ -343,14 +343,14 @@ describe('Runtime Profiles API', () => {
         path: { profileId: created!.id },
       });
     expect(deleteError).toBeUndefined();
-    expect(deleteResponse.status).toBe(204);
+    expect(deleteResponse?.status).toBe(204);
 
     const { response: getDeletedResponse } = await getRuntimeProfile({
       client,
       auth: () => owner.accessToken,
       path: { profileId: created!.id },
     });
-    expect(getDeletedResponse.status).toBe(404);
+    expect(getDeletedResponse?.status).toBe(404);
   });
 
   it('allows a team manager to create, update, and delete runtime profiles', async () => {
@@ -367,7 +367,7 @@ describe('Runtime Profiles API', () => {
     });
 
     expect(createError).toBeUndefined();
-    expect(createResponse.status).toBe(201);
+    expect(createResponse?.status).toBe(201);
     expect(created).toMatchObject({
       name,
       teamId: managedTeamId,
@@ -385,7 +385,7 @@ describe('Runtime Profiles API', () => {
     });
 
     expect(updateError).toBeUndefined();
-    expect(updateResponse.status).toBe(200);
+    expect(updateResponse?.status).toBe(200);
     expect(updated).toMatchObject({
       id: created!.id,
       model: 'claude-opus-4-1',
@@ -400,7 +400,7 @@ describe('Runtime Profiles API', () => {
       });
 
     expect(deleteError).toBeUndefined();
-    expect(deleteResponse.status).toBe(204);
+    expect(deleteResponse?.status).toBe(204);
   });
 
   it('does not leak profiles across team boundaries', async () => {
@@ -414,14 +414,14 @@ describe('Runtime Profiles API', () => {
       auth: () => outsider.accessToken,
       headers: { 'x-moltnet-team-id': owner.personalTeamId },
     });
-    expect(listResponse.status).toBe(403);
+    expect(listResponse?.status).toBe(403);
 
     const { response: getResponse } = await getRuntimeProfile({
       client,
       auth: () => outsider.accessToken,
       path: { profileId: profile!.id },
     });
-    expect(getResponse.status).toBe(404);
+    expect(getResponse?.status).toBe(404);
 
     const { response: createResponse } = await createRuntimeProfile({
       client,
@@ -429,7 +429,7 @@ describe('Runtime Profiles API', () => {
       headers: { 'x-moltnet-team-id': owner.personalTeamId },
       body: profileBody(`outsider-profile-${Date.now()}`),
     });
-    expect(createResponse.status).toBe(403);
+    expect(createResponse?.status).toBe(403);
   });
 
   it('routes task listing by allowedProfiles while keeping unrestricted tasks visible', async () => {
@@ -479,7 +479,7 @@ describe('Runtime Profiles API', () => {
       `unknown profile routing ${Date.now()}`,
       [{ profileId: '00000000-0000-0000-0000-000000000000' }],
     );
-    expect(unknownProfileResponse.status).toBe(400);
+    expect(unknownProfileResponse?.status).toBe(400);
   });
 
   it('enforces allowedProfiles when claiming tasks', async () => {
@@ -530,7 +530,7 @@ describe('Runtime Profiles API', () => {
       path: { id: task!.id },
       body: { leaseTtlSec: 30 },
     });
-    expect(missingProfileClaim.response.status).toBe(403);
+    expect(missingProfileClaim.response?.status).toBe(403);
 
     const wrongProfileClaim = await claimTask({
       client,
@@ -539,7 +539,7 @@ describe('Runtime Profiles API', () => {
       path: { id: task!.id },
       body: { leaseTtlSec: 30, profileId: otherProfile!.id },
     });
-    expect(wrongProfileClaim.response.status).toBe(403);
+    expect(wrongProfileClaim.response?.status).toBe(403);
 
     const missingExecutorClaim = await claimTask({
       client,
@@ -548,7 +548,7 @@ describe('Runtime Profiles API', () => {
       path: { id: task!.id },
       body: { leaseTtlSec: 30, profileId: allowedProfile!.id },
     });
-    expect(missingExecutorClaim.response.status).toBe(400);
+    expect(missingExecutorClaim.response?.status).toBe(400);
 
     const incompatibleFingerprint = await registerManifest(
       executorManifest(allowedProfile!, 'other_runtime'),
@@ -564,7 +564,7 @@ describe('Runtime Profiles API', () => {
         executorFingerprint: incompatibleFingerprint,
       },
     });
-    expect(incompatibleRuntimeClaim.response.status).toBe(403);
+    expect(incompatibleRuntimeClaim.response?.status).toBe(403);
 
     const staleRevisionManifest = executorManifest(
       allowedProfile!,
@@ -585,7 +585,7 @@ describe('Runtime Profiles API', () => {
         executorFingerprint: staleRevisionFingerprint,
       },
     });
-    expect(staleRevisionClaim.response.status).toBe(403);
+    expect(staleRevisionClaim.response?.status).toBe(403);
 
     const missingCapabilitiesManifest = {
       ...executorManifest(allowedProfile!, allowedProfile!.runtimeKind),
@@ -607,7 +607,7 @@ describe('Runtime Profiles API', () => {
         executorFingerprint: missingCapabilitiesFingerprint,
       },
     });
-    expect(missingCapabilitiesClaim.response.status).toBe(403);
+    expect(missingCapabilitiesClaim.response?.status).toBe(403);
     await expectTaskUnclaimed(task!.id);
 
     const compatibleFingerprint = await registerManifest(
@@ -625,7 +625,7 @@ describe('Runtime Profiles API', () => {
       },
     });
     expect(allowedProfileClaim.error).toBeUndefined();
-    expect(allowedProfileClaim.response.status).toBe(200);
+    expect(allowedProfileClaim.response?.status).toBe(200);
     expect(allowedProfileClaim.data!.task.id).toBe(task!.id);
     const pinnedAttempt = allowedProfileClaim.data!.attempt;
     expect(pinnedAttempt).toMatchObject({
@@ -691,14 +691,14 @@ describe('Runtime Profiles API', () => {
       client,
       auth: () => owner.accessToken,
     });
-    expect(listResponse.response.status).toBe(400);
+    expect(listResponse.response?.status).toBe(400);
 
     const createResponse = await createRuntimeProfile({
       client,
       auth: () => owner.accessToken,
       body: profileBody(`missing-team-${Date.now()}`),
     });
-    expect(createResponse.response.status).toBe(400);
+    expect(createResponse.response?.status).toBe(400);
   });
 
   it('rejects sandbox configs that request host exec auto-approval', async () => {
@@ -717,6 +717,6 @@ describe('Runtime Profiles API', () => {
       },
     });
 
-    expect(response.status).toBe(400);
+    expect(response?.status).toBe(400);
   });
 });

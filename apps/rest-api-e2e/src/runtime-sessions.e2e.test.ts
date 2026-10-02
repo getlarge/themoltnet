@@ -227,7 +227,7 @@ describe('Runtime sessions API', () => {
       content,
       taskId,
     });
-    expect(upload.response.status).toBe(200);
+    expect(upload.response?.status).toBe(200);
     expect(upload.error).toBeUndefined();
     const uploaded = upload.data!;
     expect(uploaded).toMatchObject({
@@ -247,7 +247,7 @@ describe('Runtime sessions API', () => {
       headers: { 'x-moltnet-team-id': teamId },
       path: { attemptN, taskId },
     });
-    expect(metadata.response.status).toBe(200);
+    expect(metadata.response?.status).toBe(200);
     expect(metadata.error).toBeUndefined();
     expect(metadata.data!.id).toBe(uploaded.id);
 
@@ -256,10 +256,10 @@ describe('Runtime sessions API', () => {
       attemptN,
       taskId,
     });
-    expect(downloaded.response.status).toBe(200);
+    expect(downloaded.response?.status).toBe(200);
     expect(downloaded.error).toBeUndefined();
     expect(
-      downloaded.response.headers.get('x-moltnet-runtime-session-id'),
+      downloaded.response?.headers.get('x-moltnet-runtime-session-id'),
     ).toBe(uploaded.id);
     expect(await downloaded.data!.text()).toBe(content);
 
@@ -268,7 +268,7 @@ describe('Runtime sessions API', () => {
       attemptN,
       taskId,
     });
-    expect(teammateDownload.response.status).toBe(200);
+    expect(teammateDownload.response?.status).toBe(200);
     expect(teammateDownload.error).toBeUndefined();
     expect(await teammateDownload.data!.text()).toBe(content);
   });
@@ -285,7 +285,7 @@ describe('Runtime sessions API', () => {
       taskId,
     });
 
-    expect(upload.response.status).toBe(403);
+    expect(upload.response?.status).toBe(403);
   });
 
   it('allows active DB claimant upload when Keto claimant tuple is missing', async () => {
@@ -302,7 +302,7 @@ describe('Runtime sessions API', () => {
       taskId,
     });
 
-    expect(upload.response.status).toBe(200);
+    expect(upload.response?.status).toBe(200);
     expect(upload.error).toBeUndefined();
   });
 
@@ -319,7 +319,7 @@ describe('Runtime sessions API', () => {
       teamId: otherTeamId,
     });
 
-    expect(upload.response.status).toBe(400);
+    expect(upload.response?.status).toBe(400);
     expect(upload.error).toBeDefined();
   });
 
@@ -333,7 +333,7 @@ describe('Runtime sessions API', () => {
       content: '{"role":"system"}\n',
       taskId,
     });
-    expect(upload.response.status).toBe(200);
+    expect(upload.response?.status).toBe(200);
     expect(upload.error).toBeUndefined();
 
     const outsiderRead = await getRuntimeSession({
@@ -342,14 +342,14 @@ describe('Runtime sessions API', () => {
       headers: { 'x-moltnet-team-id': teamId },
       path: { attemptN, taskId },
     });
-    expect([403, 404]).toContain(outsiderRead.response.status);
+    expect([403, 404]).toContain(outsiderRead.response?.status);
 
     const outsiderDownload = await downloadRuntimeSessionContent({
       accessToken: outsider.accessToken,
       attemptN,
       taskId,
     });
-    expect([403, 404]).toContain(outsiderDownload.response.status);
+    expect([403, 404]).toContain(outsiderDownload.response?.status);
 
     const outsiderUpload = await uploadRuntimeSessionContent({
       accessToken: outsider.accessToken,
@@ -357,7 +357,7 @@ describe('Runtime sessions API', () => {
       content: '{"role":"system","content":"overwrite"}\n',
       taskId,
     });
-    expect([403, 404]).toContain(outsiderUpload.response.status);
+    expect([403, 404]).toContain(outsiderUpload.response?.status);
   });
 
   it('allows the claiming agent to repair-upload after attempt finalization', async () => {
@@ -386,7 +386,7 @@ describe('Runtime sessions API', () => {
       taskId,
     });
 
-    expect(upload.response.status).toBe(200);
+    expect(upload.response?.status).toBe(200);
     expect(upload.error).toBeUndefined();
   });
 });

@@ -106,7 +106,7 @@ describe('Groups E2E', () => {
         });
 
         expect(error).toBeUndefined();
-        expect(response.status).toBe(201);
+        expect(response?.status).toBe(201);
         expect(data!.id).toBeDefined();
         expect(data!.name).toBe('engineering');
         expect(data!.teamId).toBe(projectTeamId);
@@ -124,7 +124,7 @@ describe('Groups E2E', () => {
         });
 
         expect(error).toBeUndefined();
-        expect(response.status).toBe(200);
+        expect(response?.status).toBe(200);
         expect(data!.items.length).toBeGreaterThanOrEqual(1);
 
         const found = data!.items.find((g) => g.id === groupId);
@@ -143,7 +143,7 @@ describe('Groups E2E', () => {
         });
 
         expect(error).toBeUndefined();
-        expect(response.status).toBe(200);
+        expect(response?.status).toBe(200);
         expect(data!.id).toBe(groupId);
         expect(data!.name).toBe('engineering');
         expect(data!.teamId).toBe(projectTeamId);
@@ -165,7 +165,7 @@ describe('Groups E2E', () => {
         });
 
         expect(error).toBeUndefined();
-        expect(response.status).toBe(201);
+        expect(response?.status).toBe(201);
         expect(data!.subjectId).toBe(agentB.agentId);
         expect(data!.subjectNs).toBeDefined();
       });
@@ -180,7 +180,7 @@ describe('Groups E2E', () => {
         });
 
         expect(error).toBeUndefined();
-        expect(response.status).toBe(200);
+        expect(response?.status).toBe(200);
         expect(data!.items).toBeInstanceOf(Array);
 
         const memberB = data!.items.find(
@@ -197,7 +197,7 @@ describe('Groups E2E', () => {
           auth: () => agentA.accessToken,
           path: { groupId, subjectId: agentB.agentId },
         });
-        expect(removeRes.status).toBe(200);
+        expect(removeRes?.status).toBe(200);
 
         // Verify member is gone
         const { data: afterData } = await listGroupMembers({
@@ -230,7 +230,7 @@ describe('Groups E2E', () => {
         });
 
         expect(error).toBeUndefined();
-        expect(response.status).toBe(200);
+        expect(response?.status).toBe(200);
         expect(data!.deleted).toBe(true);
 
         // Group should be gone
@@ -239,7 +239,7 @@ describe('Groups E2E', () => {
           auth: () => agentA.accessToken,
           path: { groupId: toDeleteId },
         });
-        expect(getRes.status).toBe(404);
+        expect(getRes?.status).toBe(404);
       });
     });
   });
@@ -276,7 +276,7 @@ describe('Groups E2E', () => {
           path: { id: projectTeamId },
           body: { name: 'forbidden-group' },
         });
-        expect(response.status).toBe(403);
+        expect(response?.status).toBe(403);
       });
 
       it('cannot list groups — 404 (access denied surfaced as not-found)', async () => {
@@ -285,7 +285,7 @@ describe('Groups E2E', () => {
           auth: () => agentC.accessToken,
           path: { id: projectTeamId },
         });
-        expect(response.status).toBe(404);
+        expect(response?.status).toBe(404);
       });
 
       it('cannot get group detail — 404', async () => {
@@ -294,7 +294,7 @@ describe('Groups E2E', () => {
           auth: () => agentC.accessToken,
           path: { groupId: permGroupId },
         });
-        expect(response.status).toBe(404);
+        expect(response?.status).toBe(404);
       });
 
       it('cannot delete group — 403', async () => {
@@ -304,7 +304,7 @@ describe('Groups E2E', () => {
           path: { groupId: permGroupId },
         });
         // Route checks group existence first; group exists but agentC can't manage
-        expect([403, 404]).toContain(response.status);
+        expect([403, 404]).toContain(response?.status);
       });
 
       it('cannot add member to group — 403', async () => {
@@ -314,7 +314,7 @@ describe('Groups E2E', () => {
           path: { groupId: permGroupId },
           body: { subjectId: agentB.agentId },
         });
-        expect([403, 404]).toContain(response.status);
+        expect([403, 404]).toContain(response?.status);
       });
 
       it('cannot list group members — 404', async () => {
@@ -323,7 +323,7 @@ describe('Groups E2E', () => {
           auth: () => agentC.accessToken,
           path: { groupId: permGroupId },
         });
-        expect(response.status).toBe(404);
+        expect(response?.status).toBe(404);
       });
 
       it('cannot remove member from group — 403', async () => {
@@ -332,7 +332,7 @@ describe('Groups E2E', () => {
           auth: () => agentC.accessToken,
           path: { groupId: permGroupId, subjectId: agentB.agentId },
         });
-        expect([403, 404]).toContain(response.status);
+        expect([403, 404]).toContain(response?.status);
       });
     });
 
@@ -344,7 +344,7 @@ describe('Groups E2E', () => {
           path: { id: projectTeamId },
           body: { name: 'member-cannot-create' },
         });
-        expect(response.status).toBe(403);
+        expect(response?.status).toBe(403);
       });
 
       it('cannot delete group — 403', async () => {
@@ -353,7 +353,7 @@ describe('Groups E2E', () => {
           auth: () => agentB.accessToken,
           path: { groupId: permGroupId },
         });
-        expect(response.status).toBe(403);
+        expect(response?.status).toBe(403);
       });
 
       it('cannot add member to group — 403', async () => {
@@ -363,7 +363,7 @@ describe('Groups E2E', () => {
           path: { groupId: permGroupId },
           body: { subjectId: agentA.agentId },
         });
-        expect(response.status).toBe(403);
+        expect(response?.status).toBe(403);
       });
 
       it('cannot remove member from group — 403', async () => {
@@ -372,7 +372,7 @@ describe('Groups E2E', () => {
           auth: () => agentB.accessToken,
           path: { groupId: permGroupId, subjectId: agentB.agentId },
         });
-        expect(response.status).toBe(403);
+        expect(response?.status).toBe(403);
       });
 
       it('CAN list groups — 200 (only needs team access)', async () => {
@@ -382,7 +382,7 @@ describe('Groups E2E', () => {
           path: { id: projectTeamId },
         });
         expect(error).toBeUndefined();
-        expect(response.status).toBe(200);
+        expect(response?.status).toBe(200);
         expect(data!.items).toBeInstanceOf(Array);
       });
 
@@ -393,7 +393,7 @@ describe('Groups E2E', () => {
           path: { groupId: permGroupId },
         });
         expect(error).toBeUndefined();
-        expect(response.status).toBe(200);
+        expect(response?.status).toBe(200);
         expect(data!.id).toBe(permGroupId);
       });
 
@@ -404,7 +404,7 @@ describe('Groups E2E', () => {
           path: { groupId: permGroupId },
         });
         expect(error).toBeUndefined();
-        expect(response.status).toBe(200);
+        expect(response?.status).toBe(200);
         expect(data!.items).toBeInstanceOf(Array);
       });
     });
@@ -416,7 +416,7 @@ describe('Groups E2E', () => {
           path: { id: projectTeamId },
           body: { name: 'no-auth' },
         });
-        expect(response.status).toBe(401);
+        expect(response?.status).toBe(401);
       });
 
       it('list groups rejects without auth — 401', async () => {
@@ -424,7 +424,7 @@ describe('Groups E2E', () => {
           client,
           path: { id: projectTeamId },
         });
-        expect(response.status).toBe(401);
+        expect(response?.status).toBe(401);
       });
 
       it('get group rejects without auth — 401', async () => {
@@ -432,7 +432,7 @@ describe('Groups E2E', () => {
           client,
           path: { groupId: permGroupId },
         });
-        expect(response.status).toBe(401);
+        expect(response?.status).toBe(401);
       });
 
       it('delete group rejects without auth — 401', async () => {
@@ -440,7 +440,7 @@ describe('Groups E2E', () => {
           client,
           path: { groupId: permGroupId },
         });
-        expect(response.status).toBe(401);
+        expect(response?.status).toBe(401);
       });
 
       it('add member rejects without auth — 401', async () => {
@@ -449,7 +449,7 @@ describe('Groups E2E', () => {
           path: { groupId: permGroupId },
           body: { subjectId: agentB.agentId },
         });
-        expect(response.status).toBe(401);
+        expect(response?.status).toBe(401);
       });
 
       it('list members rejects without auth — 401', async () => {
@@ -457,7 +457,7 @@ describe('Groups E2E', () => {
           client,
           path: { groupId: permGroupId },
         });
-        expect(response.status).toBe(401);
+        expect(response?.status).toBe(401);
       });
 
       it('remove member rejects without auth — 401', async () => {
@@ -465,7 +465,7 @@ describe('Groups E2E', () => {
           client,
           path: { groupId: permGroupId, subjectId: agentB.agentId },
         });
-        expect(response.status).toBe(401);
+        expect(response?.status).toBe(401);
       });
     });
   });
@@ -491,7 +491,7 @@ describe('Groups E2E', () => {
           path: { id: personalTeam!.id },
           body: { name: 'not-allowed' },
         });
-        expect(response.status).toBe(400);
+        expect(response?.status).toBe(400);
       });
     });
 
@@ -510,7 +510,7 @@ describe('Groups E2E', () => {
           path: { groupId: group!.id },
           body: { subjectId: agentC.agentId },
         });
-        expect(response.status).toBe(404);
+        expect(response?.status).toBe(404);
 
         // Cleanup
         await deleteGroup({
@@ -540,7 +540,7 @@ describe('Groups E2E', () => {
           path: { id: projectTeamId },
           body: { name: uniqueName },
         });
-        expect(response.status).toBe(409);
+        expect(response?.status).toBe(409);
 
         // Cleanup
         await deleteGroup({
@@ -582,7 +582,7 @@ describe('Groups E2E', () => {
           auth: () => agentA.accessToken,
           path: { groupId: gId },
         });
-        expect(response.status).toBe(404);
+        expect(response?.status).toBe(404);
       });
     });
   });

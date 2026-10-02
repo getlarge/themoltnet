@@ -125,16 +125,22 @@ export async function pollUntil<T>(
  * Returns the matching `{ data, response, error }` envelope. Throws on timeout
  * unless `throwOnTimeout: false` is passed.
  */
-export function pollUntilStatus<R extends { response: { status: number } }>(
+export function pollUntilStatus<R extends { response?: { status: number } }>(
   request: () => Promise<R>,
   targetStatus: number | readonly number[],
   options: PollOptions = {},
 ): Promise<R> {
   const targets = Array.isArray(targetStatus) ? targetStatus : [targetStatus];
-  return pollUntil(request, (r) => targets.includes(r.response.status), {
-    label: `pollUntilStatus(${targets.join('|')})`,
-    ...options,
-  });
+  // `response` is absent when a request fails before reaching the API; that
+  // never matches a target status, so polling continues.
+  return pollUntil(
+    request,
+    (r) => r.response !== undefined && targets.includes(r.response.status),
+    {
+      label: `pollUntilStatus(${targets.join('|')})`,
+      ...options,
+    },
+  );
 }
 
 /**

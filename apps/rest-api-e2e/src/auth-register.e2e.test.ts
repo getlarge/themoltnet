@@ -252,7 +252,7 @@ describe('proof-based registration', () => {
         credentialType: 'oauth2',
       },
     });
-    expect(enrolled.response.status).toBe(200);
+    expect(enrolled.response?.status).toBe(200);
     expect(enrolled.error).toBeUndefined();
     expect(enrolled.data?.credential.type).toBe('oauth2');
     if (enrolled.data?.credential.type !== 'oauth2') {
@@ -270,7 +270,7 @@ describe('proof-based registration', () => {
       client,
       auth: () => token.access_token,
     });
-    expect(whoami.response.status).toBe(200);
+    expect(whoami.response?.status).toBe(200);
     expect(whoami.data?.identityId).toBe(enrolled.data.identityId);
   });
 
@@ -288,7 +288,7 @@ describe('proof-based registration', () => {
       path: { id: team!.id },
       body: { role: 'member', expiresInHours: 1 },
     });
-    expect(invite.response.status).toBe(201);
+    expect(invite.response?.status).toBe(201);
     expect(invite.error).toBeUndefined();
     expect(invite.data?.code).toMatch(/^mlt_inv_[A-Za-z0-9_-]{22}$/);
 
@@ -303,7 +303,7 @@ describe('proof-based registration', () => {
         credentialType: 'oauth2',
       },
     });
-    expect(enrolled.response.status).toBe(200);
+    expect(enrolled.response?.status).toBe(200);
     expect(enrolled.error).toBeUndefined();
 
     const members = await listTeamMembers({
@@ -311,7 +311,7 @@ describe('proof-based registration', () => {
       auth: () => manager.accessToken,
       path: { id: team!.id },
     });
-    expect(members.response.status).toBe(200);
+    expect(members.response?.status).toBe(200);
     expect(
       members.data?.items.find(
         // The Keto subject is `agents.id`, which the enrollment response
@@ -349,14 +349,14 @@ describe('proof-based registration', () => {
         credentialType: 'oauth2',
       },
     });
-    expect(enrolled.response.status).toBe(200);
+    expect(enrolled.response?.status).toBe(200);
 
     const members = await listTeamMembers({
       client,
       auth: () => manager.accessToken,
       path: { id: team!.id },
     });
-    expect(members.response.status).toBe(200);
+    expect(members.response?.status).toBe(200);
     expect(
       members.data?.items.find(
         (member) => member.subjectId === enrolled.data?.agentId,
@@ -411,8 +411,8 @@ describe('proof-based registration', () => {
       { input: first, result: a },
       { input: second, result: b },
     ];
-    const winners = attempts.filter((x) => x.result.response.status === 200);
-    const losers = attempts.filter((x) => x.result.response.status !== 200);
+    const winners = attempts.filter((x) => x.result.response?.status === 200);
+    const losers = attempts.filter((x) => x.result.response?.status !== 200);
     expect(winners).toHaveLength(1);
     expect(losers).toHaveLength(1);
 
@@ -471,7 +471,7 @@ describe('proof-based registration', () => {
       auth: () => manager.accessToken,
       path: { id: team!.id, inviteId: invite!.id },
     });
-    expect(revoked.response.status).toBe(200);
+    expect(revoked.response?.status).toBe(200);
     expect(revoked.error).toBeUndefined();
 
     const input = await signedTeamRegistration(invite!.code);
@@ -485,7 +485,7 @@ describe('proof-based registration', () => {
         credentialType: 'oauth2',
       },
     });
-    expect(redemption.response.status).toBe(403);
+    expect(redemption.response?.status).toBe(403);
     expect(redemption.data).toBeUndefined();
   });
 
@@ -494,7 +494,7 @@ describe('proof-based registration', () => {
       client,
       auth: () => manager.accessToken,
     });
-    expect(rotated.response.status).toBe(200);
+    expect(rotated.response?.status).toBe(200);
     expect(rotated.error).toBeUndefined();
 
     const oldSecretResponse = await requestOAuthToken(

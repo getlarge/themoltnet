@@ -58,7 +58,7 @@ test.describe.serial('Kratos browser cookie auth', () => {
     const client = createCookieSessionApiClient(cookieHeader);
     const response = await listDiaries({ client });
 
-    expect(response.response.ok).toBe(true);
+    expect(response.response?.ok).toBe(true);
     expect(Array.isArray(response.data?.items)).toBe(true);
   });
 
@@ -82,6 +82,6 @@ test.describe.serial('Kratos browser cookie auth', () => {
     const client = createCookieSessionApiClient(cookieHeader);
     const response = await listDiaries({ client });
 
-    expect(response.response.status).toBe(401);
+    expect(response.response?.status).toBe(401);
   });
 });

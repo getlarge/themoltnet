@@ -438,13 +438,13 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     const unauthorized = await getAgentServerStatus({
       client: agentServerClient(NATIVE_ORIGIN, false),
     });
-    expect(unauthorized.response.status).toBe(401);
+    expect(unauthorized.response?.status).toBe(401);
     expect(unauthorized.error?.code).toBe('authorization_required');
 
     const foreign = await getAgentServerStatus({
       client: agentServerClient(OTHER_ORIGIN, false),
     });
-    expect(foreign.response.status).toBe(403);
+    expect(foreign.response?.status).toBe(403);
   });
 
   function authorizeNative() {
@@ -456,7 +456,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     const status = await getAgentServerStatus({
       client: agentServerClient(),
     });
-    expect(status.response.status).toBe(200);
+    expect(status.response?.status).toBe(200);
     expect(status.data).toMatchObject({
       agents: [],
       identities: [],
@@ -469,7 +469,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     const crossOrigin = await getAgentServerStatus({
       client: agentServerClient(BROWSER_ORIGIN),
     });
-    expect(crossOrigin.response.status).toBe(403);
+    expect(crossOrigin.response?.status).toBe(403);
   });
 
   it('discovers models from OpenAI-compatible and Ollama endpoints, failing closed otherwise', async () => {
@@ -485,12 +485,12 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         apiKey: 'unused',
       },
     });
-    expect(savedOpenai.response.status).toBe(200);
+    expect(savedOpenai.response?.status).toBe(200);
     const openai = await discoverAgentServerProviderModels({
       client: agentServerClient(),
       path: { providerId: openaiProvider },
     });
-    expect(openai.response.status).toBe(200);
+    expect(openai.response?.status).toBe(200);
     expect(openai.data).toEqual({
       models: [{ id: MODEL_ID }, { id: 'e2e-other' }],
       failures: [],
@@ -508,12 +508,12 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         models: [],
       },
     });
-    expect(savedOllama.response.status).toBe(200);
+    expect(savedOllama.response?.status).toBe(200);
     const ollama = await discoverAgentServerProviderModels({
       client: agentServerClient(),
       path: { providerId: ollamaProvider },
     });
-    expect(ollama.response.status).toBe(200);
+    expect(ollama.response?.status).toBe(200);
     // The stub serves only /api/tags: the OpenAI listing's 404 is reported,
     // and the tags answer still yields the model.
     expect(ollama.data).toEqual({
@@ -535,12 +535,12 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         models: [],
       },
     });
-    expect(savedDead.response.status).toBe(200);
+    expect(savedDead.response?.status).toBe(200);
     const dead = await discoverAgentServerProviderModels({
       client: agentServerClient(),
       path: { providerId: deadProvider },
     });
-    expect(dead.response.status).toBe(502);
+    expect(dead.response?.status).toBe(502);
     expect(dead.error?.code).toBe('discovery_unavailable');
 
     const bogus = await putAgentServerProvider({
@@ -553,7 +553,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         models: [],
       },
     });
-    expect(bogus.response.status).toBe(400);
+    expect(bogus.response?.status).toBe(400);
 
     const metadataAddress = await putAgentServerProvider({
       client: agentServerClient(),
@@ -565,7 +565,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         models: [],
       },
     });
-    expect(metadataAddress.response.status).toBe(400);
+    expect(metadataAddress.response?.status).toBe(400);
     expect(metadataAddress.error?.code).toBe('invalid_provider');
 
     let redirectedRequestReachedTarget = false;
@@ -605,12 +605,12 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
           apiKey: 'redirect-secret',
         },
       });
-      expect(redirected.response.status).toBe(200);
+      expect(redirected.response?.status).toBe(200);
       const redirectedDiscovery = await discoverAgentServerProviderModels({
         client: agentServerClient(),
         path: { providerId: 'e2e-discovery-redirect' },
       });
-      expect(redirectedDiscovery.response.status).toBe(502);
+      expect(redirectedDiscovery.response?.status).toBe(502);
       expect(redirectedDiscovery.error?.code).toBe('discovery_unavailable');
       expect(redirectedRequestReachedTarget).toBe(false);
     } finally {
@@ -639,7 +639,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         apiKey: RAW_API_KEY,
       },
     });
-    expect(saved.response.status).toBe(200);
+    expect(saved.response?.status).toBe(200);
     expect(saved.data).toMatchObject({
       api: 'openai-completions',
       envName: 'MOLTNET_PROVIDER_E2E_LOCAL_API_KEY',
@@ -659,7 +659,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         models: [{ id: MODEL_ID }, { id: 'e2e-other' }],
       },
     });
-    expect(updated.response.status).toBe(200);
+    expect(updated.response?.status).toBe(200);
     expect(updated.data).toMatchObject({ hasApiKey: true });
     expect(JSON.stringify(updated.data)).not.toContain(RAW_API_KEY);
 
@@ -668,13 +668,13 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         client: agentServerClient(),
         path: { providerId: PROVIDER_ID },
       });
-    expect(discoveredAfterKeylessUpdate.response.status).toBe(200);
+    expect(discoveredAfterKeylessUpdate.response?.status).toBe(200);
     expect(modelStubAuthorization).toBe(`Bearer ${RAW_API_KEY}`);
 
     const listed = await listAgentServerProviders({
       client: agentServerClient(),
     });
-    expect(listed.response.status).toBe(200);
+    expect(listed.response?.status).toBe(200);
     expect(JSON.stringify(listed.data)).not.toContain(RAW_API_KEY);
 
     expect(await configFilesContaining(agentServerRoot, RAW_API_KEY)).toEqual(
@@ -709,7 +709,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     const listedAfterCliSet = await listAgentServerProviders({
       client: agentServerClient(),
     });
-    expect(listedAfterCliSet.response.status).toBe(200);
+    expect(listedAfterCliSet.response?.status).toBe(200);
     expect(listedAfterCliSet.data?.[CLI_PROVIDER_ID]).toMatchObject({
       baseUrl: `${tagsStub.url}/v1`,
       hasApiKey: true,
@@ -753,7 +753,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         models: [{ id: 'http-updated' }],
       },
     });
-    expect(updatedOverHttp.response.status).toBe(200);
+    expect(updatedOverHttp.response?.status).toBe(200);
     expect(updatedOverHttp.data?.hasApiKey).toBe(true);
 
     const cliList = await runAgentCommand([
@@ -789,7 +789,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     const listedAfterRemove = await listAgentServerProviders({
       client: agentServerClient(),
     });
-    expect(listedAfterRemove.response.status).toBe(200);
+    expect(listedAfterRemove.response?.status).toBe(200);
     expect(listedAfterRemove.data).not.toHaveProperty(CLI_PROVIDER_ID);
     expect(
       await configFilesContaining(agentServerRoot, CLI_RAW_API_KEY),
@@ -805,7 +805,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         name: 'stranded',
       } as unknown as CreateAgentServerAgentData['body'],
     });
-    expect(result.response.status).toBe(400);
+    expect(result.response?.status).toBe(400);
   });
 
   it('creates a managed agent from a team invitation code and captures the team binding', async () => {
@@ -823,7 +823,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         enrollmentToken: invite.code,
       },
     });
-    expect(created.response.status).toBe(201);
+    expect(created.response?.status).toBe(201);
     expect(created.data).toMatchObject({
       kind: 'managed',
       agentName,
@@ -850,13 +850,13 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     const listed = await listAgentServerAgents({
       client: agentServerClient(),
     });
-    expect(listed.response.status).toBe(200);
+    expect(listed.response?.status).toBe(200);
     expect(listed.data).toEqual([expect.objectContaining({ agentName })]);
 
     const status = await getAgentServerStatus({
       client: agentServerClient(),
     });
-    expect(status.response.status).toBe(200);
+    expect(status.response?.status).toBe(200);
     expect(status.data?.identities).toContainEqual({
       alias: agentName,
       activated: true,
@@ -872,7 +872,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         enrollmentToken: invite.code,
       },
     });
-    expect(replay.response.status).toBe(400);
+    expect(replay.response?.status).toBe(400);
     expect(replay.error?.code).toBe('registration_failed');
   });
 
@@ -887,7 +887,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         mode: 'poll',
       },
     });
-    expect(result.response.status).toBe(400);
+    expect(result.response?.status).toBe(400);
     expect(result.error?.code).toBe('agent_key_missing');
     expect(result.error?.message).toBe(
       'No credential is indexed for this team.',
@@ -920,7 +920,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         mode: 'poll',
       },
     });
-    expect(started.response.status).toBe(201);
+    expect(started.response?.status).toBe(201);
     const record = started.data!;
     expect(record.status).toBe('running');
     runId = record.id;
@@ -971,7 +971,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       client: agentServerClient(),
       path: { runId },
     });
-    expect(stopped.response.status).toBe(200);
+    expect(stopped.response?.status).toBe(200);
     await waitFor(
       async () => {
         const runs =
@@ -994,7 +994,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       client: agentServerClient(),
       path: { runId: 'does-not-exist' },
     });
-    expect(unknown.response.status).toBe(404);
+    expect(unknown.response?.status).toBe(404);
   }, 120_000);
 
   async function enrollSecondTeam() {
@@ -1115,7 +1115,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
         start(otherTeam, otherProfile),
       ]);
       for (const response of responses)
-        expect(response.response.status, JSON.stringify(response.error)).toBe(
+        expect(response.response?.status, JSON.stringify(response.error)).toBe(
           201,
         );
       const runs = responses.map((response, index) => ({
@@ -1214,7 +1214,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     base = supervisor.baseUrl;
     // Native tokens are process-local; persisted agent credentials are not.
     const stale = await getAgentServerStatus({ client: agentServerClient() });
-    expect(stale.response.status).toBe(401);
+    expect(stale.response?.status).toBe(401);
     authorizeNative();
   }
 
@@ -1225,7 +1225,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       client: agentServerClient(),
       query: { identity: agentName },
     });
-    expect(catalogue.response.status).toBe(200);
+    expect(catalogue.response?.status).toBe(200);
     expect(catalogue.data?.teams).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ teamId, available: true }),
@@ -1276,7 +1276,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       subjectId: managedSubjectId,
     });
     const rejected = await lifecycle.start(teamId, profileName);
-    expect(rejected.response.status).toBe(400);
+    expect(rejected.response?.status).toBe(400);
     expect(rejected.error).toEqual({
       code: 'verification_failed',
       message: `Cannot start agent "${agentName}" for team "${teamId}": credential verification failed. Check the selected team key and activation.`,
@@ -1290,7 +1290,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       client: agentServerClient(),
       query: { identity: agentName },
     });
-    expect(afterRevocation.response.status).toBe(200);
+    expect(afterRevocation.response?.status).toBe(200);
     expect(afterRevocation.data?.teams).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -1374,7 +1374,7 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       credential: { keyId: aKeys.items[0].id },
     });
     const replacementRun = await lifecycle.start(teamB.id, profileB.id);
-    expect(replacementRun.response.status).toBe(201);
+    expect(replacementRun.response?.status).toBe(201);
     expect(replacementRun.data?.credential?.keyId).toBe(activeBKeyId);
     await stopAgentServerRun({
       client: agentServerClient(),

@@ -217,7 +217,7 @@ describe('Content-signed entries', () => {
     });
 
     expect(error).toBeDefined();
-    expect(response.status).toBe(409);
+    expect(response?.status).toBe(409);
   });
 
   // ── Unsigned entries remain mutable ──────────────────────────
@@ -282,7 +282,7 @@ describe('Content-signed entries', () => {
     });
 
     expect(error).toBeDefined();
-    expect(response.status).toBe(400);
+    expect(response?.status).toBe(400);
   });
 
   // ── CID mismatch detection ───────────────────────────────────
@@ -322,7 +322,7 @@ describe('Content-signed entries', () => {
     });
 
     expect(error).toBeDefined();
-    expect(response.status).toBe(400);
+    expect(response?.status).toBe(400);
   });
 
   // ── Read-back signed fields ──────────────────────────────────

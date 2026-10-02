@@ -325,10 +325,12 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
       const data = unwrapResult(result);
       rememberTask(data.task);
       const traceHeaders: Record<string, string> = {};
-      const traceparent = result.response.headers.get('traceparent');
+      // unwrapResult throws on failure, so a response is present here; the
+      // generated type keeps it optional for requests that never got one.
+      const traceparent = result.response?.headers.get('traceparent');
       if (traceparent) {
         traceHeaders['traceparent'] = traceparent;
-        const tracestate = result.response.headers.get('tracestate');
+        const tracestate = result.response?.headers.get('tracestate');
         if (tracestate) traceHeaders['tracestate'] = tracestate;
       }
       return { ...data, traceHeaders };

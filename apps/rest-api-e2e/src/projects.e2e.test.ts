@@ -46,7 +46,7 @@ describe('project catalogue and task routing', () => {
         defaultDiaryId: owner.privateDiaryId,
       },
     });
-    expect(created.response.status).toBe(201);
+    expect(created.response?.status).toBe(201);
     const projectId = created.data!.id;
     const projectPath = { projectId };
     const fetched = await getProject({
@@ -66,7 +66,7 @@ describe('project catalogue and task routing', () => {
       input: { brief: 'Verify project routing.' },
     };
     const task = await createTask({ client, auth, headers, body: taskBody });
-    expect(task.response.status).toBe(201);
+    expect(task.response?.status).toBe(201);
     expect(task.data!.projectId).toBe(projectId);
     const taskPath = { id: task.data!.id };
     for (const body of [{}, { projectId: null }, { projectId: randomUUID() }]) {
@@ -77,7 +77,7 @@ describe('project catalogue and task routing', () => {
         path: taskPath,
         body,
       });
-      expect(rejected.response.status).toBe(409);
+      expect(rejected.response?.status).toBe(409);
       expect(rejected.error).toMatchObject({
         code: 'PROJECT_MISMATCH',
         type: 'https://themolt.net/problems/project-mismatch',
@@ -103,7 +103,7 @@ describe('project catalogue and task routing', () => {
     });
     expect(all.data!.items.map((project) => project.id)).toContain(projectId);
     const newTask = await createTask({ client, auth, headers, body: taskBody });
-    expect(newTask.response.status).toBe(400);
+    expect(newTask.response?.status).toBe(400);
     expect(newTask.error).toMatchObject({ code: 'VALIDATION_FAILED' });
     const claimed = await claimTask({
       client,
@@ -112,7 +112,7 @@ describe('project catalogue and task routing', () => {
       path: taskPath,
       body: { projectId },
     });
-    expect(claimed.response.status).toBe(200);
+    expect(claimed.response?.status).toBe(200);
     expect(claimed.data!.task.projectId).toBe(projectId);
   });
   it('enforces non-member and member administration boundaries end to end', async () => {
@@ -132,7 +132,7 @@ describe('project catalogue and task routing', () => {
       auth: () => outsider.accessToken,
       headers: { 'x-moltnet-team-id': id },
     });
-    expect(deniedRead.response.status).toBe(404);
+    expect(deniedRead.response?.status).toBe(404);
     expect(deniedRead.error).toMatchObject({ code: 'NOT_FOUND' });
     const invite = await createTeamInvite({
       client,
@@ -145,14 +145,14 @@ describe('project catalogue and task routing', () => {
       auth: () => outsider.accessToken,
       body: { code: invite.data!.code },
     });
-    expect(joined.response.status).toBe(200);
+    expect(joined.response?.status).toBe(200);
     const rejected = await createProject({
       client,
       auth: () => outsider.accessToken,
       headers: { 'x-moltnet-team-id': id },
       body: { name: 'member-project' },
     });
-    expect(rejected.response.status).toBe(403);
+    expect(rejected.response?.status).toBe(403);
     expect(rejected.error).toMatchObject({ code: 'FORBIDDEN' });
   });
 
@@ -171,7 +171,7 @@ describe('project catalogue and task routing', () => {
         ttlDays: 1,
       },
     });
-    expect(issued.response.status).toBe(201);
+    expect(issued.response?.status).toBe(201);
     const team = await createTeam({
       client,
       auth: () => owner.accessToken,
@@ -182,7 +182,7 @@ describe('project catalogue and task routing', () => {
       auth: () => issued.data!.secret,
       body: { name: `inferred-${randomUUID()}` },
     });
-    expect(inferred.response.status).toBe(201);
+    expect(inferred.response?.status).toBe(201);
     expect(inferred.data!.teamId).toBe(owner.personalTeamId);
     const rejected = await createProject({
       client,
@@ -190,7 +190,7 @@ describe('project catalogue and task routing', () => {
       headers: { 'x-moltnet-team-id': team.data!.id },
       body: { name: 'bound-project' },
     });
-    expect(rejected.response.status).toBe(403);
+    expect(rejected.response?.status).toBe(403);
     expect(rejected.error).toMatchObject({ code: 'FORBIDDEN' });
   });
 
@@ -213,7 +213,7 @@ describe('project catalogue and task routing', () => {
       headers: { 'x-moltnet-team-id': id },
       body: { name: 'Human project' },
     });
-    expect(project.response.status).toBe(201);
+    expect(project.response?.status).toBe(201);
     expect(project.data).toMatchObject({
       creatorHumanId: human.humanId,
       creatorAgentId: null,

@@ -150,7 +150,8 @@ export async function handleCryptoSigningStatus(
       return errorResult(
         extractApiErrorMessage(
           error,
-          response.status === 404
+          // No response means the request failed before reaching the API.
+          response?.status === 404
             ? 'Signing request not found'
             : 'Failed to get signing request status',
         ),

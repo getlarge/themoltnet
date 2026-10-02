@@ -134,7 +134,7 @@ describe('Diary Grants E2E', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(201);
+      expect(response?.status).toBe(201);
       expect(data!.subjectId).toBe(agentC.agentId);
       expect(data!.role).toBe('writer');
 
@@ -168,7 +168,7 @@ describe('Diary Grants E2E', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(201);
+      expect(response?.status).toBe(201);
       expect(grantData!.role).toBe('manager');
     });
 
@@ -195,7 +195,7 @@ describe('Diary Grants E2E', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(201);
+      expect(response?.status).toBe(201);
 
       // agentB (group member) should be able to write to this diary
       const { data: entryData, error: entryError } = await createDiaryEntry({
@@ -220,7 +220,7 @@ describe('Diary Grants E2E', () => {
           role: 'writer',
         },
       });
-      expect(res1.status).toBe(201);
+      expect(res1?.status).toBe(201);
 
       // Same grant again
       const { response: res2 } = await createDiaryGrant({
@@ -233,7 +233,7 @@ describe('Diary Grants E2E', () => {
           role: 'writer',
         },
       });
-      expect(res2.status).toBe(201);
+      expect(res2?.status).toBe(201);
     });
 
     it('conflicting grant returns 409', async () => {
@@ -249,7 +249,7 @@ describe('Diary Grants E2E', () => {
         },
       });
 
-      expect(response.status).toBe(409);
+      expect(response?.status).toBe(409);
       expect(error).toBeDefined();
     });
 
@@ -288,8 +288,8 @@ describe('Diary Grants E2E', () => {
       ]);
 
       const statuses = [
-        writerResult.response.status,
-        managerResult.response.status,
+        writerResult.response?.status,
+        managerResult.response?.status,
       ].sort();
 
       // Exactly one should succeed (201) and the other should conflict (409).
@@ -312,7 +312,7 @@ describe('Diary Grants E2E', () => {
       // agentC has writer grant but not manager — should be forbidden
       // Note: after earlier test, agentC has writer but NOT manager
       expect(error).toBeDefined();
-      expect(response.status).toBe(403);
+      expect(response?.status).toBe(403);
     });
 
     it('grant to non-existent diary returns 403', async () => {
@@ -330,7 +330,7 @@ describe('Diary Grants E2E', () => {
 
       // Keto returns false for canManageDiary on non-existent diary
       expect(error).toBeDefined();
-      expect(response.status).toBe(403);
+      expect(response?.status).toBe(403);
     });
   });
 
@@ -345,7 +345,7 @@ describe('Diary Grants E2E', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       expect(data!.grants.length).toBeGreaterThanOrEqual(2);
 
       // Should contain agentC as writer and agentB as manager
@@ -369,7 +369,7 @@ describe('Diary Grants E2E', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
     });
 
     it('agent with writer grant can list grants', async () => {
@@ -381,7 +381,7 @@ describe('Diary Grants E2E', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
     });
   });
 
@@ -432,7 +432,7 @@ describe('Diary Grants E2E', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       expect(data!.revoked).toBe(true);
 
       // agentC should no longer be able to write
@@ -445,7 +445,7 @@ describe('Diary Grants E2E', () => {
         });
 
       expect(writeError2).toBeDefined();
-      expect(writeRes2.status).toBe(403);
+      expect(writeRes2?.status).toBe(403);
     });
 
     it('team member retains team-based access after direct grant revoked', async () => {
@@ -469,7 +469,7 @@ describe('Diary Grants E2E', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
     });
 
     it('non-manager gets 403 when revoking', async () => {
@@ -485,7 +485,7 @@ describe('Diary Grants E2E', () => {
       });
 
       expect(error).toBeDefined();
-      expect(response.status).toBe(403);
+      expect(response?.status).toBe(403);
     });
   });
 
@@ -527,7 +527,7 @@ describe('Diary Grants E2E', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(201);
+      expect(response?.status).toBe(201);
 
       // agentC should be able to write
       const { error: writeError } = await createDiaryEntry({

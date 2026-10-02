@@ -203,7 +203,7 @@ describe('Custom packs', () => {
       previewError,
       `previewDiaryCustomPack failed: ${JSON.stringify(previewError)}`,
     ).toBeUndefined();
-    expect(previewResponse.status).toBe(200);
+    expect(previewResponse?.status).toBe(200);
     expect(previewData!.packType).toBe('custom');
     expect(previewData!.entries.length).toBeGreaterThan(0);
     expect(previewData!.entries.map((entry) => entry.rank)).toEqual(
@@ -251,7 +251,7 @@ describe('Custom packs', () => {
       createError,
       `createDiaryCustomPack failed: ${JSON.stringify(createError)}`,
     ).toBeUndefined();
-    expect(createResponse.status).toBe(201);
+    expect(createResponse?.status).toBe(201);
     expect(createData!.packType).toBe('custom');
     expect(createData!.entries.length).toBeGreaterThan(0);
 
@@ -283,7 +283,7 @@ describe('Custom packs', () => {
       query: { expand: 'entries' },
     });
     expect(fetchedPackError).toBeUndefined();
-    expect(fetchedResponse.status).toBe(200);
+    expect(fetchedResponse?.status).toBe(200);
     expect(fetchedPack!.packType).toBe('custom');
     expect(
       fetchedPack!.entries?.every(
@@ -298,7 +298,7 @@ describe('Custom packs', () => {
         path: { id: persistedPack!.id },
       });
     expect(forbiddenReadError).toBeDefined();
-    expect(forbiddenReadResponse.status).toBe(403);
+    expect(forbiddenReadResponse?.status).toBe(403);
   }, 120_000);
 
   it('returns 404 when another agent targets a diary they cannot read', async () => {
@@ -319,7 +319,7 @@ describe('Custom packs', () => {
     });
 
     expect(error).toBeDefined();
-    expect(response.status).toBe(404);
+    expect(response?.status).toBe(404);
   });
 
   it('rejects entry selections that do not belong to the target diary', async () => {
@@ -349,7 +349,7 @@ describe('Custom packs', () => {
     });
 
     expect(error).toBeDefined();
-    expect(response.status).toBe(400);
+    expect(response?.status).toBe(400);
   });
 
   describe('GET /packs (team catalog)', () => {
@@ -367,7 +367,7 @@ describe('Custom packs', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       expect(Array.isArray(data!.items)).toBe(true);
       expect(typeof data!.total).toBe('number');
     });
@@ -379,7 +379,7 @@ describe('Custom packs', () => {
         query: { limit: 20, offset: 0 },
       });
 
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     });
 
     it('still supports containsEntry as a filter', async () => {
@@ -398,7 +398,7 @@ describe('Custom packs', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
     });
 
     it('rejects diaryId, which has its own route', async () => {
@@ -409,7 +409,7 @@ describe('Custom packs', () => {
         query: { diaryId: agentA.moltnetDiaryId },
       });
 
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     });
 
     it("does not leak another team's packs", async () => {
@@ -537,7 +537,7 @@ describe('Custom packs', () => {
       // client populates `error` for any non-2xx. The status is the assertion
       // that catches an untranslated PackServiceError.
       expect(error).toBeDefined();
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     }, 30_000);
 
     // No e2e for the read-check on the supersession target: the same-diary rule
@@ -551,7 +551,7 @@ describe('Custom packs', () => {
       // original would discard the pointer.
       const { response } = await makePack('supersede-base', olderPackId);
 
-      expect(response.status).toBe(409);
+      expect(response?.status).toBe(409);
     }, 30_000);
   });
 
@@ -614,7 +614,7 @@ describe('Custom packs', () => {
         body: { expiresAt: future.toISOString() },
       });
       expect(error).toBeDefined();
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     });
 
     it('unpins with new expiresAt', async () => {
@@ -681,7 +681,7 @@ describe('Custom packs', () => {
         body: { pinned: true },
       });
       expect(error).toBeDefined();
-      expect(response.status).toBe(403);
+      expect(response?.status).toBe(403);
     });
 
     it('rejects past expiresAt', async () => {
@@ -706,7 +706,7 @@ describe('Custom packs', () => {
         body: { expiresAt: past.toISOString() },
       });
       expect(error).toBeDefined();
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     });
   });
 });

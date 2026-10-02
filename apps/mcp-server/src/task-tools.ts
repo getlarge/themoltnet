@@ -607,7 +607,7 @@ export async function handleTaskArtifactDownload(
           path: { taskId: args.task_id, cid: args.cid },
         });
 
-  if (error || !data) {
+  if (error || !data || !response) {
     deps.logger.error(
       { tool: 'tasks_artifacts_download', err: error },
       'tool.error',

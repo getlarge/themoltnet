@@ -182,7 +182,7 @@ describe('team invitation process recovery', () => {
       client: createClient({ baseUrl: url(second) }),
       body: { code: invite.code },
     });
-    expect(pending.response.status).toBe(503);
+    expect(pending.response?.status).toBe(503);
     second.child.kill('SIGKILL');
     await second.closed;
     const third = start(input, undefined, true);
@@ -194,12 +194,12 @@ describe('team invitation process recovery', () => {
     });
     // The first retry can finish the pending workflow before its SUCCESS status
     // is visible. Once it returns, a further request is a completed replay.
-    expect([200, 409]).toContain(recovered.response.status);
+    expect([200, 409]).toContain(recovered.response?.status);
     const completed = await joinTeam({
       client: createClient({ baseUrl: url(third) }),
       body: { code: invite.code },
     });
-    expect(completed.response.status).toBe(409);
+    expect(completed.response?.status).toBe(409);
     expect(
       (first.output() + second.output() + third.output()).match(/GRANTED/g),
     ).toHaveLength(1);

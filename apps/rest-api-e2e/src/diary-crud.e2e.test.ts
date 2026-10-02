@@ -86,8 +86,8 @@ describe('Diary CRUD', () => {
 
     expect(data).toBeUndefined();
     expect(error).toBeDefined();
-    expect(response.status).toBe(401);
-    expect(response.headers.get('content-type')).toContain('application/json');
+    expect(response?.status).toBe(401);
+    expect(response?.headers.get('content-type')).toContain('application/json');
 
     const problem = error as Record<string, unknown>;
     expect(problem.type).toBe('https://themolt.net/problems/unauthorized');
@@ -106,7 +106,7 @@ describe('Diary CRUD', () => {
 
     expect(data).toBeUndefined();
     expect(error).toBeDefined();
-    expect(response.status).toBe(404);
+    expect(response?.status).toBe(404);
   });
 
   // ── Read ────────────────────────────────────────────────────
@@ -145,7 +145,7 @@ describe('Diary CRUD', () => {
 
     expect(data).toBeUndefined();
     expect(error).toBeDefined();
-    expect(response.status).toBe(401);
+    expect(response?.status).toBe(401);
   });
 
   it('reads an entry using entry-centric route (/entries/:entryId)', async () => {
@@ -295,7 +295,7 @@ describe('Diary CRUD', () => {
 
     expect(data).toBeUndefined();
     expect(error).toBeDefined();
-    expect(response.status).toBe(401);
+    expect(response?.status).toBe(401);
   });
 
   // ── Update ──────────────────────────────────────────────────
@@ -336,7 +336,7 @@ describe('Diary CRUD', () => {
 
     expect(data).toBeUndefined();
     expect(error).toBeDefined();
-    expect(response.status).toBe(401);
+    expect(response?.status).toBe(401);
   });
 
   // ── Delete ──────────────────────────────────────────────────
@@ -430,7 +430,7 @@ describe('Diary CRUD', () => {
           auth: () => agent.accessToken,
           path: { entryId: deletable.data!.id },
         })
-      ).response.status,
+      ).response?.status,
     ).toBe(404);
     expect(
       (
@@ -439,7 +439,7 @@ describe('Diary CRUD', () => {
           auth: () => agent.accessToken,
           path: { entryId: immutable.data!.id },
         })
-      ).response.status,
+      ).response?.status,
     ).toBe(200);
   });
 
@@ -458,7 +458,7 @@ describe('Diary CRUD', () => {
 
     expect(data).toBeUndefined();
     expect(error).toBeDefined();
-    expect(response.status).toBe(401);
+    expect(response?.status).toBe(401);
   });
 
   // ── Tags ────────────────────────────────────────────────────
@@ -581,7 +581,7 @@ describe('Diary CRUD', () => {
 
     expect(data).toBeUndefined();
     expect(error).toBeDefined();
-    expect(response.status).toBe(401);
+    expect(response?.status).toBe(401);
   });
 
   // ── Search ──────────────────────────────────────────────────
@@ -684,7 +684,7 @@ describe('Cross-agent Keto permissions', () => {
 
     expect(data).toBeUndefined();
     expect(error).toBeDefined();
-    expect(response.status).toBe(403);
+    expect(response?.status).toBe(403);
   });
 
   it('denies Agent B updating Agent A entry → 403', async () => {
@@ -704,7 +704,7 @@ describe('Cross-agent Keto permissions', () => {
 
     expect(data).toBeUndefined();
     expect(error).toBeDefined();
-    expect(response.status).toBe(403);
+    expect(response?.status).toBe(403);
   });
 
   it('denies Agent B deleting Agent A entry → 403', async () => {
@@ -723,7 +723,7 @@ describe('Cross-agent Keto permissions', () => {
 
     expect(data).toBeUndefined();
     expect(error).toBeDefined();
-    expect(response.status).toBe(403);
+    expect(response?.status).toBe(403);
   });
 });
 
@@ -757,7 +757,7 @@ describe('Unauthorized access (no token)', () => {
       body: { content: 'no-auth entry' },
     });
 
-    expect(response.status).toBe(401);
+    expect(response?.status).toBe(401);
   });
 
   it('GET /diaries/:id/entries → 401', async () => {
@@ -766,7 +766,7 @@ describe('Unauthorized access (no token)', () => {
       path: { diaryId: agent.privateDiaryId },
     });
 
-    expect(response.status).toBe(401);
+    expect(response?.status).toBe(401);
   });
 
   it('GET /diaries/:id/tags → 401', async () => {
@@ -775,7 +775,7 @@ describe('Unauthorized access (no token)', () => {
       path: { diaryId: agent.privateDiaryId },
     });
 
-    expect(response.status).toBe(401);
+    expect(response?.status).toBe(401);
   });
 
   it('GET /entries/:entryId → 401', async () => {
@@ -784,7 +784,7 @@ describe('Unauthorized access (no token)', () => {
       path: { entryId: FAKE_UUID },
     });
 
-    expect(response.status).toBe(401);
+    expect(response?.status).toBe(401);
   });
 
   it('PATCH /entries/:entryId → 401', async () => {
@@ -794,7 +794,7 @@ describe('Unauthorized access (no token)', () => {
       body: { content: 'no-auth update' },
     });
 
-    expect(response.status).toBe(401);
+    expect(response?.status).toBe(401);
   });
 
   it('DELETE /entries/:entryId → 401', async () => {
@@ -803,7 +803,7 @@ describe('Unauthorized access (no token)', () => {
       path: { entryId: FAKE_UUID },
     });
 
-    expect(response.status).toBe(401);
+    expect(response?.status).toBe(401);
   });
 
   it('POST /diaries/search → 401', async () => {
@@ -812,6 +812,6 @@ describe('Unauthorized access (no token)', () => {
       body: { query: 'test', diaryId: agent.privateDiaryId },
     });
 
-    expect(response.status).toBe(401);
+    expect(response?.status).toBe(401);
   });
 });

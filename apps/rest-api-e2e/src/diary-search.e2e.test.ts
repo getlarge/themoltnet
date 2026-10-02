@@ -301,7 +301,7 @@ describe('Diary hybrid search', () => {
       });
 
       expect(error).toBeDefined();
-      expect(response.status).toBe(404);
+      expect(response?.status).toBe(404);
     });
   });
 

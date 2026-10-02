@@ -167,7 +167,7 @@ describe('Signing credential and delegated request lifecycle', () => {
         ),
       },
     });
-    expect(privateMaterial.response.status).toBe(400);
+    expect(privateMaterial.response?.status).toBe(400);
 
     const completedEnrollment = await completeSigningCredentialRegistration({
       client: signerClient,
@@ -199,7 +199,7 @@ describe('Signing credential and delegated request lifecycle', () => {
         challenge: begun.data!.challenge,
       },
     });
-    expect(consumedRegistrationValidation.response.status).toBe(404);
+    expect(consumedRegistrationValidation.response?.status).toBe(404);
 
     const enrollmentReplay = await completeSigningCredentialRegistration({
       client: signerClient,
@@ -212,14 +212,14 @@ describe('Signing credential and delegated request lifecycle', () => {
         ),
       },
     });
-    expect(enrollmentReplay.response.status).toBe(409);
+    expect(enrollmentReplay.response?.status).toBe(409);
 
     const memberApproval = await approveSigningCredential({
       client: signerClient,
       headers: { 'x-moltnet-team-id': requester.personalTeamId },
       path: { id: completedEnrollment.data!.id },
     });
-    expect(memberApproval.response.status).toBe(403);
+    expect(memberApproval.response?.status).toBe(403);
 
     const approved = await approveSigningCredential({
       client: approverClient,
@@ -248,7 +248,7 @@ describe('Signing credential and delegated request lifecycle', () => {
       headers: { 'x-moltnet-team-id': otherTeamOwner.personalTeamId },
       path: { id: approved.data!.id },
     });
-    expect(crossTeam.response.status).toBe(404);
+    expect(crossTeam.response?.status).toBe(404);
 
     const created = await createSigningRequest({
       client,
@@ -290,7 +290,7 @@ describe('Signing credential and delegated request lifecycle', () => {
         body: { credentialId: approved.data!.id },
       }),
     ]);
-    expect(claims.map(({ response }) => response.status).sort()).toEqual([
+    expect(claims.map(({ response }) => response?.status).sort()).toEqual([
       200, 409,
     ]);
     const claimed = claims.find(({ data }) => data !== undefined)!.data!;
@@ -322,7 +322,7 @@ describe('Signing credential and delegated request lifecycle', () => {
         },
       },
     });
-    expect(mutatedValidation.response.status).toBe(404);
+    expect(mutatedValidation.response?.status).toBe(404);
     const receipt = signPreviewSignChallenge(challenge);
 
     const wrongMethod = await completeSigningRequest({
@@ -336,7 +336,7 @@ describe('Signing credential and delegated request lifecycle', () => {
         },
       } as never,
     });
-    expect(wrongMethod.response.status).toBe(400);
+    expect(wrongMethod.response?.status).toBe(400);
 
     const invalidReceipt = await completeSigningRequest({
       client: signerClient,
@@ -349,7 +349,7 @@ describe('Signing credential and delegated request lifecycle', () => {
         },
       },
     });
-    expect(invalidReceipt.response.status).toBe(400);
+    expect(invalidReceipt.response?.status).toBe(400);
 
     const completed = await completeSigningRequest({
       client: signerClient,
@@ -384,7 +384,7 @@ describe('Signing credential and delegated request lifecycle', () => {
         challenge: claimed.challenge!,
       },
     });
-    expect(completedValidation.response.status).toBe(404);
+    expect(completedValidation.response?.status).toBe(404);
 
     const retry = await completeSigningRequest({
       client: signerClient,
@@ -394,7 +394,7 @@ describe('Signing credential and delegated request lifecycle', () => {
         receipt,
       },
     });
-    expect(retry.response.status).toBe(200);
+    expect(retry.response?.status).toBe(200);
     expect(retry.data).toEqual(completed.data);
 
     const concurrentRequest = await createSigningRequest({
@@ -436,7 +436,8 @@ describe('Signing credential and delegated request lifecycle', () => {
     );
     expect(
       concurrentCompletions
-        .map(({ response }) => response.status)
+        // A missing response maps to 0, which fails the toEqual below.
+        .map(({ response }) => response?.status ?? 0)
         .sort((left, right) => left - right),
     ).toEqual([200, 409]);
 
@@ -461,7 +462,7 @@ describe('Signing credential and delegated request lifecycle', () => {
       path: { id: expiredBeforeClaim.data!.id },
       body: { credentialId: approved.data!.id },
     });
-    expect(expiredClaim.response.status).toBe(409);
+    expect(expiredClaim.response?.status).toBe(409);
 
     const expiresAfterClaim = await createSigningRequest({
       client,
@@ -494,7 +495,7 @@ describe('Signing credential and delegated request lifecycle', () => {
         ),
       },
     });
-    expect(expiredCompletion.response.status).toBe(409);
+    expect(expiredCompletion.response?.status).toBe(409);
 
     const revokedBeforeCompletion = await createSigningRequest({
       client,
@@ -539,7 +540,7 @@ describe('Signing credential and delegated request lifecycle', () => {
         challenge: revokedClaim.data!.challenge!,
       },
     });
-    expect(revokedValidation.response.status).toBe(404);
+    expect(revokedValidation.response?.status).toBe(404);
 
     const completionAfterRevoke = await completeSigningRequest({
       client: signerClient,
@@ -547,21 +548,21 @@ describe('Signing credential and delegated request lifecycle', () => {
       path: { id: revokedBeforeCompletion.data!.id },
       body: { receipt: revokedReceipt },
     });
-    expect(completionAfterRevoke.response.status).toBe(400);
+    expect(completionAfterRevoke.response?.status).toBe(400);
 
     const approveAfterRevoke = await approveSigningCredential({
       client: approverClient,
       headers: { 'x-moltnet-team-id': requester.personalTeamId },
       path: { id: approved.data!.id },
     });
-    expect(approveAfterRevoke.response.status).toBe(409);
+    expect(approveAfterRevoke.response?.status).toBe(409);
 
     const suspendAfterRevoke = await suspendSigningCredential({
       client: approverClient,
       headers: { 'x-moltnet-team-id': requester.personalTeamId },
       path: { id: approved.data!.id },
     });
-    expect(suspendAfterRevoke.response.status).toBe(409);
+    expect(suspendAfterRevoke.response?.status).toBe(409);
   });
 
   it('rejects self-approval against the real credential lifecycle SQL', async () => {
@@ -595,7 +596,7 @@ describe('Signing credential and delegated request lifecycle', () => {
       path: { id: completed.data!.id },
     });
 
-    expect(approval.response.status).toBe(409);
+    expect(approval.response?.status).toBe(409);
   });
 
   it('rejects unsupported constraints and allows an eligible signer to reject', async () => {
@@ -610,7 +611,7 @@ describe('Signing credential and delegated request lifecycle', () => {
         signerConstraint: { type: 'site', id: 'vienna' } as never,
       },
     });
-    expect(unsupported.response.status).toBe(400);
+    expect(unsupported.response?.status).toBe(400);
 
     const created = await createSigningRequest({
       client,
@@ -640,6 +641,6 @@ describe('Signing credential and delegated request lifecycle', () => {
       path: { id: created.data!.id },
       body: { reason: 'Again' },
     });
-    expect(duplicate.response.status).toBe(409);
+    expect(duplicate.response?.status).toBe(409);
   });
 });

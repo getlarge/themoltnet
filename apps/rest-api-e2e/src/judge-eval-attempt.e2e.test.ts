@@ -316,7 +316,7 @@ describe('judge_eval_attempt duplicate protection', () => {
     });
 
     expect(judge.error).toBeUndefined();
-    expect(judge.response.status).toBe(201);
+    expect(judge.response?.status).toBe(201);
     expect(judge.data!.taskType).toBe('judge_eval_attempt');
   });
 
@@ -330,7 +330,7 @@ describe('judge_eval_attempt duplicate protection', () => {
       headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       body: judgeBody(correlationId, producer.id),
     });
-    expect(firstJudge.response.status).toBe(201);
+    expect(firstJudge.response?.status).toBe(201);
 
     const nestedJudge = await createTask({
       client,
@@ -339,7 +339,7 @@ describe('judge_eval_attempt duplicate protection', () => {
       body: judgeBody(correlationId, firstJudge.data!.id),
     });
 
-    expect(nestedJudge.response.status).toBe(400);
+    expect(nestedJudge.response?.status).toBe(400);
     expect(JSON.stringify(nestedJudge.error)).toMatch(
       /only artifact-producing tasks can be judged/,
     );
@@ -393,7 +393,7 @@ describe('judge_eval_attempt duplicate protection', () => {
       409,
       { label: `conditional judge ${judge!.id} denies premature claim` },
     );
-    expect(prematureClaim.response.status).toBe(409);
+    expect(prematureClaim.response?.status).toBe(409);
 
     await completeRunEval(firstRunTask);
     const halfReadyClaim = await claimTask({
@@ -403,7 +403,7 @@ describe('judge_eval_attempt duplicate protection', () => {
       path: { id: judge!.id },
       body: { leaseTtlSec: 60 },
     });
-    expect(halfReadyClaim.response.status).toBe(409);
+    expect(halfReadyClaim.response?.status).toBe(409);
 
     const stillWaiting = await pollUntil(
       async () => {
@@ -456,7 +456,7 @@ describe('judge_eval_attempt duplicate protection', () => {
       }),
     ]);
 
-    const statuses = [first.response.status, second.response.status].sort();
+    const statuses = [first.response?.status, second.response?.status].sort();
     expect(statuses[0]).toBe(201);
     expect([400, 409]).toContain(statuses[1]);
   });
@@ -471,7 +471,7 @@ describe('judge_eval_attempt duplicate protection', () => {
       headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       body,
     });
-    expect(winner.response.status).toBe(201);
+    expect(winner.response?.status).toBe(201);
 
     const loser = await createTask({
       client,
@@ -479,7 +479,7 @@ describe('judge_eval_attempt duplicate protection', () => {
       headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       body,
     });
-    expect(loser.response.status).toBe(400);
+    expect(loser.response?.status).toBe(400);
     expect(JSON.stringify(loser.error)).toMatch(
       /already exists|duplicate|targetTaskId/i,
     );

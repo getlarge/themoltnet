@@ -123,14 +123,14 @@ test.describe.serial('Continue task from console', () => {
           sandbox: {},
         },
       });
-      expect(profile.response.status).toBe(201);
+      expect(profile.response?.status).toBe(201);
     }).toPass({ timeout: 20_000 });
     if (!profile) {
       throw new Error('createRuntimeProfile did not return a response');
     }
     if (!profile.data?.id) {
       throw new Error(
-        `createRuntimeProfile failed with status ${profile.response.status}`,
+        `createRuntimeProfile failed with status ${profile.response?.status}`,
       );
     }
     allowedProfileId = profile.data.id;

@@ -168,7 +168,7 @@ describe('Public Feed', () => {
       });
 
       expect(error).toBeDefined();
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     });
   });
 
@@ -195,7 +195,7 @@ describe('Public Feed', () => {
       });
 
       expect(error).toBeDefined();
-      expect(response.status).toBe(404);
+      expect(response?.status).toBe(404);
     });
 
     it('returns 404 for private entry accessed via public endpoint', async () => {
@@ -212,7 +212,7 @@ describe('Public Feed', () => {
       });
 
       expect(error).toBeDefined();
-      expect(response.status).toBe(404);
+      expect(response?.status).toBe(404);
     });
   });
 });
@@ -514,7 +514,7 @@ describe('Public Feed Search', () => {
     });
 
     expect(error).toBeDefined();
-    expect(response.status).toBe(400);
+    expect(response?.status).toBe(400);
   });
 });
 

@@ -112,7 +112,7 @@ describe('agent keys', () => {
       },
     });
 
-    expect(replay.response.status).toBe(409);
+    expect(replay.response?.status).toBe(409);
     expect(replay.error).toMatchObject({ code: 'CONFLICT' });
 
     const listed = await listAgentKeys({
@@ -121,7 +121,7 @@ describe('agent keys', () => {
       headers: { 'x-moltnet-team-id': agent.personalTeamId },
       query: { agentId: agent.agentId, limit: 100 },
     });
-    expect(listed.response.status).toBe(200);
+    expect(listed.response?.status).toBe(200);
     expect(listed.data?.items.filter((key) => key.id === keyId)).toHaveLength(
       1,
     );
@@ -144,7 +144,7 @@ describe('agent keys', () => {
           ttlDays: 1,
         },
       });
-      expect(created.response.status).toBe(201);
+      expect(created.response?.status).toBe(201);
       paginationKeyIds.push(created.data!.key.id);
     }
 
@@ -161,7 +161,7 @@ describe('agent keys', () => {
           ...(cursor ? { cursor } : {}),
         },
       });
-      expect(listed.response.status).toBe(200);
+      expect(listed.response?.status).toBe(200);
       for (const key of listed.data?.items ?? []) seen.add(key.id);
       cursor = listed.data?.nextCursor ?? undefined;
       if (!cursor) break;
@@ -216,7 +216,7 @@ describe('agent keys', () => {
       auth: () => secret,
     });
 
-    expect(response.status).toBe(200);
+    expect(response?.status).toBe(200);
     expect(error).toBeUndefined();
     expect(data).toMatchObject({
       // Both, deliberately: subjectId is agents.id and identityId is the Ory
@@ -236,7 +236,7 @@ describe('agent keys', () => {
       auth: () => diaryReadSecret,
       headers: { 'x-moltnet-team-id': agent.personalTeamId },
     });
-    expect(allowed.response.status).toBe(200);
+    expect(allowed.response?.status).toBe(200);
     expect(allowed.error).toBeUndefined();
     expect(allowed.data?.items).toEqual(
       expect.arrayContaining([
@@ -248,7 +248,7 @@ describe('agent keys', () => {
       client,
       auth: () => diaryReadSecret,
     });
-    expect(denied.response.status).toBe(403);
+    expect(denied.response?.status).toBe(403);
     expect(denied.data).toBeUndefined();
     expect(denied.error).toMatchObject({
       code: 'FORBIDDEN',
@@ -263,7 +263,7 @@ describe('agent keys', () => {
       auth: () => agent.accessToken,
       body: { name: 'join-scope-destination' },
     });
-    expect(created.response.status).toBe(201);
+    expect(created.response?.status).toBe(201);
     const teamId = created.data!.id;
     const invite = await createTeamInvite({
       client,
@@ -271,7 +271,7 @@ describe('agent keys', () => {
       path: { id: teamId },
       body: { role: 'member' },
     });
-    expect(invite.response.status).toBe(201);
+    expect(invite.response?.status).toBe(201);
     const joiningAgent = await createAgent({
       baseUrl: harness.baseUrl,
       db: harness.db,
@@ -293,7 +293,7 @@ describe('agent keys', () => {
           ttlDays: 1,
         },
       });
-      expect(issued.response.status).toBe(201);
+      expect(issued.response?.status).toBe(201);
       scopeTestKeyIds.push(issued.data!.key.id);
       return issued.data!.secret;
     }
@@ -306,7 +306,7 @@ describe('agent keys', () => {
       auth: () => managementSecret,
       body: { code: invite.data!.code },
     });
-    expect(denied.response.status).toBe(403);
+    expect(denied.response?.status).toBe(403);
     expect(denied.error).toMatchObject({
       detail: 'Missing required scope: team:join',
     });
@@ -318,7 +318,7 @@ describe('agent keys', () => {
       auth: () => joinSecret,
       body: { code: invite.data!.code },
     });
-    expect(joined.response.status).toBe(200);
+    expect(joined.response?.status).toBe(200);
     expect(joined.data).toEqual({ teamId, role: 'member' });
 
     const administration = await createTeamInvite({
@@ -328,7 +328,7 @@ describe('agent keys', () => {
       headers: { 'x-moltnet-team-id': joiningAgent.personalTeamId },
       body: { role: 'member' },
     });
-    expect(administration.response.status).toBe(403);
+    expect(administration.response?.status).toBe(403);
     expect(administration.error).toMatchObject({
       detail: 'Missing required scope: team:manage',
     });
@@ -342,7 +342,7 @@ describe('agent keys', () => {
       auth: () => secret,
       headers: { 'x-moltnet-team-id': agent.personalTeamId },
     });
-    expect(matching.response.status).toBe(200);
+    expect(matching.response?.status).toBe(200);
     expect(matching.data?.items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: keyId, teamId: agent.personalTeamId }),
@@ -354,7 +354,7 @@ describe('agent keys', () => {
       auth: () => secret,
       headers: undefined as never,
     });
-    expect(missingTeam.response.status).toBe(400);
+    expect(missingTeam.response?.status).toBe(400);
 
     const crossTeam = await listAgentKeys({
       client,
@@ -363,14 +363,14 @@ describe('agent keys', () => {
         'x-moltnet-team-id': 'bbbbbbbb-0000-4000-8000-000000000002',
       },
     });
-    expect(crossTeam.response.status).toBe(403);
+    expect(crossTeam.response?.status).toBe(403);
 
     const createTeamResult = await createTeam({
       client,
       auth: () => diaryReadSecret,
       body: { name: 'must-not-be-created' },
     });
-    expect(createTeamResult.response.status).toBe(403);
+    expect(createTeamResult.response?.status).toBe(403);
     expect(createTeamResult.error).toMatchObject({
       code: 'FORBIDDEN',
       detail: 'Missing required scope: team:manage',
@@ -413,19 +413,19 @@ describe('agent keys', () => {
       client,
       auth: () => daemonSecret,
     });
-    expect(catalogueTeams.response.status).toBe(200);
+    expect(catalogueTeams.response?.status).toBe(200);
     const catalogueDiaries = await listDiaries({
       client,
       auth: () => daemonSecret,
       headers: teamHeaders,
     });
-    expect(catalogueDiaries.response.status).toBe(200);
+    expect(catalogueDiaries.response?.status).toBe(200);
     const catalogueProfiles = await listRuntimeProfiles({
       client,
       auth: () => daemonSecret,
       headers: teamHeaders,
     });
-    expect(catalogueProfiles.response.status).toBe(200);
+    expect(catalogueProfiles.response?.status).toBe(200);
 
     // Bind the assertion to the constant: if the canonical grant changes, the
     // issued key must change with it rather than this test quietly drifting.
@@ -455,7 +455,7 @@ describe('agent keys', () => {
       path: { id: taskId },
       body: { leaseTtlSec: 60 },
     });
-    expect(claimed.response.status).toBe(200);
+    expect(claimed.response?.status).toBe(200);
     expect(claimed.error).toBeUndefined();
 
     // task:execute
@@ -466,7 +466,7 @@ describe('agent keys', () => {
       path: { id: taskId, n: claimed.data!.attempt.attemptN },
       body: { leaseTtlSec: 60 },
     });
-    expect(beat.response.status).toBe(200);
+    expect(beat.response?.status).toBe(200);
     expect(beat.error).toBeUndefined();
 
     // task:manage is deliberately absent from the daemon grant.
@@ -477,7 +477,7 @@ describe('agent keys', () => {
       path: { id: taskId },
       body: { reason: 'must-not-be-cancellable' },
     });
-    expect(cancelled.response.status).toBe(403);
+    expect(cancelled.response?.status).toBe(403);
     expect(cancelled.error).toMatchObject({
       code: 'FORBIDDEN',
       detail: 'Missing required scope: task:manage',
@@ -499,7 +499,7 @@ describe('agent keys', () => {
         ttlDays: 1,
       },
     });
-    expect(escalation.response.status).toBe(403);
+    expect(escalation.response?.status).toBe(403);
     expect(escalation.error).toMatchObject({
       code: 'FORBIDDEN',
       detail: 'Missing required scope: key:manage',
@@ -514,7 +514,7 @@ describe('agent keys', () => {
       headers: { 'x-moltnet-team-id': agent.personalTeamId },
       path: { keyId },
     });
-    expect(selfRotation.response.status).toBe(409);
+    expect(selfRotation.response?.status).toBe(409);
 
     const rotated = await rotateAgentKey({
       client,
@@ -522,7 +522,7 @@ describe('agent keys', () => {
       headers: { 'x-moltnet-team-id': agent.personalTeamId },
       path: { keyId },
     });
-    expect(rotated.response.status).toBe(200);
+    expect(rotated.response?.status).toBe(200);
     expect(rotated.data?.key.id).not.toBe(keyId);
     expect(rotated.data?.secret).toBeTruthy();
 
@@ -533,7 +533,7 @@ describe('agent keys', () => {
       headers: { 'x-moltnet-team-id': agent.personalTeamId },
       path: { keyId },
     });
-    expect(replay.response.status).toBe(409);
+    expect(replay.response?.status).toBe(409);
     expect(replay.error).toMatchObject({
       conflict: {
         target: {
@@ -554,7 +554,7 @@ describe('agent keys', () => {
       client,
       auth: () => secret,
     });
-    expect(oldCredential.response.status).toBe(401);
+    expect(oldCredential.response?.status).toBe(401);
 
     activeKeyId = rotated.data!.key.id;
     secret = rotated.data!.secret;
@@ -562,7 +562,7 @@ describe('agent keys', () => {
       client,
       auth: () => secret,
     });
-    expect(newCredential.response.status).toBe(200);
+    expect(newCredential.response?.status).toBe(200);
 
     const revoked = await revokeAgentKey({
       client,
@@ -571,14 +571,14 @@ describe('agent keys', () => {
       path: { keyId: activeKeyId },
       body: { reason: 'key_compromise' },
     });
-    expect(revoked.response.status).toBe(204);
+    expect(revoked.response?.status).toBe(204);
     activeKeyId = null;
 
     const revokedCredential = await getWhoami({
       client,
       auth: () => secret,
     });
-    expect(revokedCredential.response.status).toBe(401);
+    expect(revokedCredential.response?.status).toBe(401);
     expect(revokedCredential.data).toBeUndefined();
     expect(revokedCredential.error).toMatchObject({ code: 'UNAUTHORIZED' });
   });
@@ -657,7 +657,7 @@ describe('agent keys', () => {
         ttlDays: 1,
       },
     });
-    expect(issued.response.status).toBe(201);
+    expect(issued.response?.status).toBe(201);
     expect(issued.error).toBeUndefined();
     expect(issued.data?.key).toMatchObject({ bindingScope: 'identity' });
     identityKeyId = issued.data!.key.id;
@@ -667,7 +667,7 @@ describe('agent keys', () => {
       client,
       auth: () => identitySecret,
     });
-    expect(identity.response.status).toBe(200);
+    expect(identity.response?.status).toBe(200);
     expect(identity.data?.credentialBinding).toEqual({
       bindingScope: 'identity',
       keyId: identityKeyId,
@@ -681,7 +681,7 @@ describe('agent keys', () => {
       path: { id: task.data!.id },
       body: { leaseTtlSec: 60 },
     });
-    expect(claimed.response.status).toBe(200);
+    expect(claimed.response?.status).toBe(200);
     expect(claimed.error).toBeUndefined();
 
     const teamBRead = await listDiaries({
@@ -689,7 +689,7 @@ describe('agent keys', () => {
       auth: () => identitySecret,
       headers: { 'x-moltnet-team-id': teamBId },
     });
-    expect(teamBRead.response.status).toBe(200);
+    expect(teamBRead.response?.status).toBe(200);
     expect(teamBRead.data?.items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: diaryBResult.data!.id }),
@@ -701,7 +701,7 @@ describe('agent keys', () => {
       auth: () => identitySecret,
       headers: { 'x-moltnet-team-id': outsiderTeamId },
     });
-    expect(outsiderRead.response.status).toBe(403);
+    expect(outsiderRead.response?.status).toBe(403);
 
     const rotated = await rotateAgentKey({
       client,
@@ -709,14 +709,14 @@ describe('agent keys', () => {
       path: { keyId: identityKeyId },
       query: { bindingScope: 'identity' },
     });
-    expect(rotated.response.status).toBe(200);
+    expect(rotated.response?.status).toBe(200);
     expect(rotated.error).toBeUndefined();
 
     const staleAfterRotation = await getWhoami({
       client,
       auth: () => identitySecret,
     });
-    expect(staleAfterRotation.response.status).toBe(401);
+    expect(staleAfterRotation.response?.status).toBe(401);
 
     identityKeyId = rotated.data!.key.id;
     identitySecret = rotated.data!.secret;
@@ -725,7 +725,7 @@ describe('agent keys', () => {
       auth: () => identitySecret,
       headers: { 'x-moltnet-team-id': teamBId },
     });
-    expect(activeAfterRotation.response.status).toBe(200);
+    expect(activeAfterRotation.response?.status).toBe(200);
 
     const revoked = await revokeAgentKey({
       client,
@@ -734,14 +734,14 @@ describe('agent keys', () => {
       query: { bindingScope: 'identity' },
       body: { reason: 'key_compromise' },
     });
-    expect(revoked.response.status).toBe(204);
+    expect(revoked.response?.status).toBe(204);
     identityKeyId = null;
 
     const staleAfterRevocation = await getWhoami({
       client,
       auth: () => identitySecret,
     });
-    expect(staleAfterRevocation.response.status).toBe(401);
+    expect(staleAfterRevocation.response?.status).toBe(401);
   });
 });
 
@@ -783,7 +783,7 @@ describe('agent keys — issuing for another agent in the team', () => {
       auth: () => member.accessToken,
       body: { code: invite!.code },
     });
-    expect(joined.response.status).toBe(200);
+    expect(joined.response?.status).toBe(200);
   }, 120_000);
 
   afterAll(async () => {
@@ -812,7 +812,7 @@ describe('agent keys — issuing for another agent in the team', () => {
     });
 
     expect(error).toBeUndefined();
-    expect(response.status).toBe(201);
+    expect(response?.status).toBe(201);
     // agentId on the key is the TARGET it was issued for — distinct from the
     // caller's subject, which is what AgentKeySubject.subjectId now carries.
     expect(data!.key.agentId).toBe(member.agentId);
@@ -841,6 +841,6 @@ describe('agent keys — issuing for another agent in the team', () => {
     });
 
     // The membership check must actually reject, not merely fail to resolve.
-    expect(response.status).toBe(400);
+    expect(response?.status).toBe(400);
   }, 120_000);
 });

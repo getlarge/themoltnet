@@ -99,7 +99,7 @@ async function recoverCredentials(
     },
   });
   expect(error).toBeUndefined();
-  expect(response.status).toBe(200);
+  expect(response?.status).toBe(200);
   return {
     clientId: data!.clientId,
     clientSecret: openSealedEnvelope(
@@ -154,7 +154,7 @@ describe('Recovery Flow', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       expect(data!.challenge).toContain('moltnet:recovery:');
       expect(data!.hmac).toMatch(/^[a-f0-9]{64}$/);
     });
@@ -189,7 +189,7 @@ describe('Recovery Flow', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       expect(data!.recoveryCode).toBeDefined();
       expect(typeof data!.recoveryCode).toBe('string');
       expect(data!.recoveryCode.length).toBeGreaterThan(0);
@@ -311,7 +311,7 @@ describe('Recovery Flow', () => {
 
       expect(data).toBeUndefined();
       expect(error).toBeDefined();
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
 
       const problem = error as Record<string, unknown>;
       expect(problem.code).toBe('INVALID_SIGNATURE');
@@ -342,7 +342,7 @@ describe('Recovery Flow', () => {
 
       expect(data).toBeUndefined();
       expect(error).toBeDefined();
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
 
       const problem = error as Record<string, unknown>;
       expect(problem.code).toBe('INVALID_CHALLENGE');
@@ -370,7 +370,7 @@ describe('Recovery Flow', () => {
 
       expect(data).toBeUndefined();
       expect(error).toBeDefined();
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
 
       const problem = error as Record<string, unknown>;
       expect(problem.code).toBe('INVALID_CHALLENGE');
@@ -427,7 +427,7 @@ describe('Recovery Flow', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       expect(data).toBeDefined();
       const replacementSecret = openSealedEnvelope(
         data!.sealedClientSecret,

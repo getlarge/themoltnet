@@ -86,7 +86,7 @@ describe('Entry relations', () => {
       error,
       `create relation error: ${JSON.stringify(error)}`,
     ).toBeUndefined();
-    expect(response.status).toBe(201);
+    expect(response?.status).toBe(201);
     expect(data).toBeDefined();
     expect(data!.id).toBeDefined();
     expect(data!.sourceId).toBe(entryAId);
@@ -112,7 +112,7 @@ describe('Entry relations', () => {
       error,
       `list relations error: ${JSON.stringify(error)}`,
     ).toBeUndefined();
-    expect(response.status).toBe(200);
+    expect(response?.status).toBe(200);
     expect(data).toBeDefined();
     expect(Array.isArray(data!.items)).toBe(true);
 
@@ -138,7 +138,7 @@ describe('Entry relations', () => {
       error,
       `update relation error: ${JSON.stringify(error)}`,
     ).toBeUndefined();
-    expect(response.status).toBe(200);
+    expect(response?.status).toBe(200);
     expect(data).toBeDefined();
     expect(data!.id).toBe(relationId);
     expect(data!.status).toBe('accepted');
@@ -157,7 +157,7 @@ describe('Entry relations', () => {
       error,
       `delete relation error: ${JSON.stringify(error)}`,
     ).toBeUndefined();
-    expect(response.status).toBe(204);
+    expect(response?.status).toBe(204);
   });
 
   it('lists entry relations after delete → 200 with empty items', async () => {
@@ -171,7 +171,7 @@ describe('Entry relations', () => {
       error,
       `list after delete error: ${JSON.stringify(error)}`,
     ).toBeUndefined();
-    expect(response.status).toBe(200);
+    expect(response?.status).toBe(200);
     expect(data!.items).toHaveLength(0);
   });
 
@@ -213,7 +213,7 @@ describe('Entry relations', () => {
     });
 
     expect(error).toBeDefined();
-    expect(response.status).toBe(400);
+    expect(response?.status).toBe(400);
   });
 });
 
