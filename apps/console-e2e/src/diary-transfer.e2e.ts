@@ -95,7 +95,7 @@ test('owner can transfer a diary to another team owner who accepts it', async ({
     client: sourceClient,
     body: { code: invite.code },
   });
-  expect(joinResp.response.status).toBe(200);
+  expect(joinResp.response?.status).toBe(200);
 
   // Source owner: open the diary, click Transfer, pick destination team, submit.
   await sourcePage.goto(`${CONSOLE_URL}/diaries/${diary.id}`);
@@ -191,7 +191,7 @@ test('destination owner can reject a pending transfer and the diary stays on the
     path: { id: diary.id },
     body: { destinationTeamId: destTeam.id },
   });
-  expect(initiated.response.status).toBe(202);
+  expect(initiated.response?.status).toBe(202);
 
   // Destination owner navigates and rejects.
   await destPage.goto(`${CONSOLE_URL}/teams/${destTeam.id}?tab=diaries`);
@@ -273,7 +273,7 @@ test('initiating a transfer while one is already pending returns an error', asyn
     path: { id: diary.id },
     body: { destinationTeamId: destTeam.id },
   });
-  expect(initiated.response.status).toBe(202);
+  expect(initiated.response?.status).toBe(202);
 
   // Second attempt from the UI — REST rejects with 409 "diary-transfer-pending".
   // The dialog should surface the error inline (not crash, not close).

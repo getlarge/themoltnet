@@ -91,7 +91,7 @@ describe('Task input artifacts API', () => {
       query: { contentType: 'text/markdown' },
     });
 
-    expect(staged.response.status).toBe(200);
+    expect(staged.response?.status).toBe(200);
     expect(staged.error).toBeUndefined();
     expect(staged.data).toMatchObject({
       cid: inputCid,
@@ -127,7 +127,7 @@ describe('Task input artifacts API', () => {
     });
 
     expect(error).toBeUndefined();
-    expect(response.status).toBe(201);
+    expect(response?.status).toBe(201);
     taskId = data!.id;
 
     const list = await listTaskArtifacts({
@@ -136,7 +136,7 @@ describe('Task input artifacts API', () => {
       headers: { 'x-moltnet-team-id': teamId },
       path: { taskId },
     });
-    expect(list.response.status).toBe(200);
+    expect(list.response?.status).toBe(200);
     const bound = list.data!.artifacts.filter(
       (artifact) => artifact.cid === inputCid,
     );
@@ -157,9 +157,9 @@ describe('Task input artifacts API', () => {
       path: { cid: inputCid, taskId },
     });
 
-    expect(download.response.status).toBe(200);
+    expect(download.response?.status).toBe(200);
     expect(download.error).toBeUndefined();
-    expect(download.response.headers.get('x-moltnet-task-artifact-cid')).toBe(
+    expect(download.response?.headers.get('x-moltnet-task-artifact-cid')).toBe(
       inputCid,
     );
     expect(await download.data!.text()).toBe(inputText);
@@ -173,7 +173,7 @@ describe('Task input artifacts API', () => {
       path: { cid: inputCid, taskId },
     });
 
-    expect(download.response.status).toBe(404);
+    expect(download.response?.status).toBe(404);
   });
 
   it('rejects create referencing a valid-format but never-staged CID', async () => {
@@ -199,7 +199,7 @@ describe('Task input artifacts API', () => {
       },
     });
 
-    expect(response.status).toBe(400);
+    expect(response?.status).toBe(400);
     expect(error).toBeDefined();
   });
 });

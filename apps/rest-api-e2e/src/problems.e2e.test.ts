@@ -86,7 +86,7 @@ describe('Problem Types', () => {
 
       expect(data).toBeUndefined();
       expect(error).toBeDefined();
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     });
   });
 });

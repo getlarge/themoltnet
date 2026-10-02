@@ -140,7 +140,7 @@ describe('Identity key rotation', () => {
       body: { ...body, newKeySignature: forged.newKeySignature },
     });
 
-    expect(response.status).toBe(400);
+    expect(response?.status).toBe(400);
   });
 
   it('rotates the key everywhere and keeps old signatures verifiable', async () => {
@@ -153,7 +153,7 @@ describe('Identity key rotation', () => {
     });
 
     expect(error).toBeUndefined();
-    expect(response.status).toBe(200);
+    expect(response?.status).toBe(200);
     expect(data).toEqual({
       agentId: agent.agentId,
       publicKey: next.publicKey,
@@ -264,6 +264,6 @@ describe('Identity key rotation', () => {
       body: await signedProof(agent.agentId, next, agent.keyPair),
     });
 
-    expect(response.status).toBe(409);
+    expect(response?.status).toBe(409);
   });
 });

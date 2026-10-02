@@ -93,7 +93,7 @@ describe('Signing requests', () => {
     });
 
     expect(error).toBeDefined();
-    expect(response.status).toBe(401);
+    expect(response?.status).toBe(401);
   });
 
   it('enforces the pending cap across concurrent create requests', async () => {
@@ -114,9 +114,9 @@ describe('Signing requests', () => {
     );
 
     const successful = results.filter(
-      ({ response }) => response.status === 201,
+      ({ response }) => response?.status === 201,
     );
-    const rejected = results.filter(({ response }) => response.status === 429);
+    const rejected = results.filter(({ response }) => response?.status === 429);
     expect(successful).toHaveLength(MAX_PENDING_SIGNING_REQUESTS);
     expect(rejected).toHaveLength(1);
     expect(rejected[0].error).toEqual(
@@ -234,7 +234,7 @@ describe('Signing requests', () => {
     });
 
     expect(error).toBeDefined();
-    expect(response.status).toBe(404);
+    expect(response?.status).toBe(404);
   });
 
   // ── Sign (full workflow) ────────────────────────────────────
@@ -304,7 +304,7 @@ describe('Signing requests', () => {
     });
 
     expect(error).toBeDefined();
-    expect(response.status).toBe(409);
+    expect(response?.status).toBe(409);
   });
 
   // ── Adversarial message payloads ────────────────────────────

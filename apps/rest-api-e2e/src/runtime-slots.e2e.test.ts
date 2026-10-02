@@ -214,7 +214,7 @@ describe('Runtime slots API', () => {
       },
     });
     expect(error).toBeUndefined();
-    expect(response.status).toBe(200);
+    expect(response?.status).toBe(200);
     expect(data!.expiresAtMs).toBeGreaterThanOrEqual(beforeBeginMs + 599_000);
     expect(data!.expiresAtMs).toBeLessThanOrEqual(Date.now() + 601_000);
     return data!;
@@ -266,7 +266,7 @@ describe('Runtime slots API', () => {
     });
 
     expect(error).toBeUndefined();
-    expect(response.status).toBe(200);
+    expect(response?.status).toBe(200);
     expect(resolved!.slot.lastTaskId).toBe(taskId);
     expect(resolved!.slot.lastAttemptN).toBe(attemptN);
     expect(resolved!.slot.sessionPath).toBe(
@@ -293,7 +293,7 @@ describe('Runtime slots API', () => {
     });
 
     expect(error).toBeUndefined();
-    expect(response.status).toBe(200);
+    expect(response?.status).toBe(200);
     expect(
       data!.items.some(
         (item) =>
@@ -337,7 +337,7 @@ describe('Runtime slots API', () => {
       },
     });
 
-    expect(staleFinish.response.status).toBe(409);
+    expect(staleFinish.response?.status).toBe(409);
 
     const current = await findLatestRuntimeSlotForAttempt({
       client,
@@ -376,7 +376,7 @@ describe('Runtime slots API', () => {
       },
     });
 
-    expect(response.response.status).toBe(400);
+    expect(response.response?.status).toBe(400);
     expect(response.error).toMatchObject({
       code: 'VALIDATION_FAILED',
       errors: [{ field: 'attemptN' }],
@@ -399,7 +399,7 @@ describe('Runtime slots API', () => {
       headers: { 'x-moltnet-team-id': teamId },
       query: { attemptN, taskId },
     });
-    expect(notMemberFind.response.status).toBe(403);
+    expect(notMemberFind.response?.status).toBe(403);
 
     const notMemberList = await listRuntimeSlots({
       client,
@@ -407,7 +407,7 @@ describe('Runtime slots API', () => {
       headers: { 'x-moltnet-team-id': teamId },
       query: { agentName: 'legreffier', limit: 20 },
     });
-    expect(notMemberList.response.status).toBe(403);
+    expect(notMemberList.response?.status).toBe(403);
     expect(JSON.stringify(notMemberList.data ?? {})).not.toContain(taskId);
 
     const notMemberFinish = await finishRuntimeSlot({
@@ -426,7 +426,7 @@ describe('Runtime slots API', () => {
         warmRetentionSec: 600,
       },
     });
-    expect(notMemberFinish.response.status).toBe(403);
+    expect(notMemberFinish.response?.status).toBe(403);
 
     const current = await findLatestRuntimeSlotForAttempt({
       client,
@@ -464,7 +464,7 @@ describe('Runtime slots API', () => {
       },
     });
 
-    expect(response.response.status).toBe(400);
+    expect(response.response?.status).toBe(400);
     expect(response.error).toMatchObject({
       code: 'VALIDATION_FAILED',
       errors: [{ field: 'taskId' }],

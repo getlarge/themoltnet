@@ -126,7 +126,7 @@ describe('Runtime Tool Policies API', () => {
     ]);
 
     expect(createError).toBeUndefined();
-    expect(createResponse.status).toBe(201);
+    expect(createResponse?.status).toBe(201);
     expect(created).toMatchObject({ name, teamId: owner.personalTeamId });
     expect(created!.tools).toEqual(['git']);
     expect(created!.shellCommands).toEqual([
@@ -184,7 +184,7 @@ describe('Runtime Tool Policies API', () => {
         path: { policyId: created!.id },
       });
     expect(deleteError).toBeUndefined();
-    expect(deleteResponse.status).toBe(204);
+    expect(deleteResponse?.status).toBe(204);
 
     const { response: getDeleted } = await getRuntimePolicy({
       client,
@@ -192,7 +192,7 @@ describe('Runtime Tool Policies API', () => {
       headers: { 'x-moltnet-team-id': owner.personalTeamId },
       path: { policyId: created!.id },
     });
-    expect(getDeleted.status).toBe(404);
+    expect(getDeleted?.status).toBe(404);
   });
 
   it('binds policies to a profile and resolves the unioned allowed-tool set', async () => {
@@ -222,7 +222,7 @@ describe('Runtime Tool Policies API', () => {
         body: { policyIds: [p1!.id, p2!.id] },
       });
     expect(bindError).toBeUndefined();
-    expect(bindResponse.status).toBe(204);
+    expect(bindResponse?.status).toBe(204);
 
     const { data: allowed, error: allowedError } =
       await getRuntimeProfileAllowedTools({
@@ -299,7 +299,7 @@ describe('Runtime Tool Policies API', () => {
       ['customer_dynamic_tool'],
     );
 
-    expect(response.status).toBe(201);
+    expect(response?.status).toBe(201);
     expect(error).toBeUndefined();
     expect(data?.tools).toEqual(['customer_dynamic_tool']);
   });
@@ -307,10 +307,10 @@ describe('Runtime Tool Policies API', () => {
   it('rejects duplicate policy names within a team', async () => {
     const name = `dup-${Date.now()}`;
     const first = await createPolicy(name, ['git']);
-    expect(first.response.status).toBe(201);
+    expect(first.response?.status).toBe(201);
 
     const second = await createPolicy(name, ['gh']);
-    expect(second.response.status).toBe(409);
+    expect(second.response?.status).toBe(409);
   });
 
   it('lets a team manager manage policies', async () => {
@@ -320,7 +320,7 @@ describe('Runtime Tool Policies API', () => {
       manager,
       managedTeamId,
     );
-    expect(createResponse.status).toBe(201);
+    expect(createResponse?.status).toBe(201);
 
     const { response: deleteResponse } = await deleteRuntimePolicy({
       client,
@@ -328,7 +328,7 @@ describe('Runtime Tool Policies API', () => {
       headers: { 'x-moltnet-team-id': managedTeamId },
       path: { policyId: created!.id },
     });
-    expect(deleteResponse.status).toBe(204);
+    expect(deleteResponse?.status).toBe(204);
   });
 
   it('does not leak policies across team boundaries', async () => {
@@ -342,7 +342,7 @@ describe('Runtime Tool Policies API', () => {
       auth: () => outsider.accessToken,
       headers: { 'x-moltnet-team-id': owner.personalTeamId },
     });
-    expect(listResponse.status).toBe(403);
+    expect(listResponse?.status).toBe(403);
 
     const { response: getResponse } = await getRuntimePolicy({
       client,
@@ -350,7 +350,7 @@ describe('Runtime Tool Policies API', () => {
       headers: { 'x-moltnet-team-id': owner.personalTeamId },
       path: { policyId: secret!.id },
     });
-    expect(getResponse.status).toBe(403);
+    expect(getResponse?.status).toBe(403);
 
     const { response: createResponse } = await createPolicy(
       `outsider-${Date.now()}`,
@@ -358,6 +358,6 @@ describe('Runtime Tool Policies API', () => {
       outsider,
       owner.personalTeamId,
     );
-    expect(createResponse.status).toBe(403);
+    expect(createResponse?.status).toBe(403);
   });
 });

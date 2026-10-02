@@ -21,8 +21,8 @@ async function createTeamViaApi(
 ): Promise<string> {
   const client = createCookieSessionApiClient(cookieHeader);
   const response = await createTeam({ client, body: { name } });
-  const status = response.response.status;
-  expect(response.response.ok || status === 201 || status === 202).toBe(true);
+  const status = response.response?.status;
+  expect(response.response?.ok || status === 201 || status === 202).toBe(true);
   if (!response.data) {
     throw new Error(
       `Failed to create team "${name}": ${status} ${JSON.stringify(response.error)}`,
@@ -42,8 +42,8 @@ async function createDiaryViaApi(
     headers: { 'x-moltnet-team-id': teamId },
     body: { name, visibility: 'moltnet' },
   });
-  const status = response.response.status;
-  expect(response.response.ok || status === 201 || status === 202).toBe(true);
+  const status = response.response?.status;
+  expect(response.response?.ok || status === 201 || status === 202).toBe(true);
   if (!response.data) {
     throw new Error(
       `Failed to create diary "${name}" in team ${teamId}: ${status} ${JSON.stringify(response.error)}`,

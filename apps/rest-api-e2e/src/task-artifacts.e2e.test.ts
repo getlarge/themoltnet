@@ -193,7 +193,7 @@ describe('Task artifacts API', () => {
       },
     });
 
-    expect(upload.response.status).toBe(200);
+    expect(upload.response?.status).toBe(200);
     expect(upload.error).toBeUndefined();
     expect(upload.data).toMatchObject({
       attemptN,
@@ -212,7 +212,7 @@ describe('Task artifacts API', () => {
       headers: { 'x-moltnet-team-id': teamId },
       path: { taskId },
     });
-    expect(list.response.status).toBe(200);
+    expect(list.response?.status).toBe(200);
     expect(list.error).toBeUndefined();
     expect(list.data!.artifacts.map((artifact) => artifact.cid)).toContain(
       expectedCid,
@@ -224,9 +224,9 @@ describe('Task artifacts API', () => {
       headers: { 'x-moltnet-team-id': teamId },
       path: { attemptN, cid: expectedCid, taskId },
     });
-    expect(download.response.status).toBe(200);
+    expect(download.response?.status).toBe(200);
     expect(download.error).toBeUndefined();
-    expect(download.response.headers.get('x-moltnet-task-artifact-cid')).toBe(
+    expect(download.response?.headers.get('x-moltnet-task-artifact-cid')).toBe(
       expectedCid,
     );
     expect(await download.data!.text()).toBe(content);
@@ -249,7 +249,7 @@ describe('Task artifacts API', () => {
       query: { kind: 'text', title: 'not-claimant' },
     });
 
-    expect(upload.response.status).toBe(403);
+    expect(upload.response?.status).toBe(403);
     expect(upload.error).toBeDefined();
   });
 
@@ -274,7 +274,7 @@ describe('Task artifacts API', () => {
       query: { contentType: 'text/plain', kind: 'text', title: 'lease' },
     });
 
-    expect(upload.response.status).toBe(200);
+    expect(upload.response?.status).toBe(200);
     expect(upload.error).toBeUndefined();
   });
 
@@ -301,7 +301,7 @@ describe('Task artifacts API', () => {
       body: new Blob([content], { type: 'application/octet-stream' }),
       query: { contentType: 'text/plain', kind: 'text', title: 'same' },
     });
-    expect(first.response.status).toBe(200);
+    expect(first.response?.status).toBe(200);
     expect(first.data?.cid).toBe(expectedCid);
 
     const duplicate = await uploadTaskArtifact({
@@ -309,7 +309,7 @@ describe('Task artifacts API', () => {
       body: new Blob([content], { type: 'application/octet-stream' }),
       query: { contentType: 'text/plain', kind: 'text', title: 'same' },
     });
-    expect(duplicate.response.status).toBe(200);
+    expect(duplicate.response?.status).toBe(200);
     expect(duplicate.data?.id).toBe(first.data?.id);
 
     const conflict = await uploadTaskArtifact({
@@ -317,7 +317,7 @@ describe('Task artifacts API', () => {
       body: new Blob([content], { type: 'application/octet-stream' }),
       query: { contentType: 'text/plain', kind: 'log', title: 'same' },
     });
-    expect(conflict.response.status).toBe(409);
+    expect(conflict.response?.status).toBe(409);
   });
 
   it('paginates task artifact metadata without duplicates or skips', async () => {
@@ -341,7 +341,7 @@ describe('Task artifacts API', () => {
         path: { attemptN, taskId },
         query: { contentType: 'text/plain', kind: 'text', title: name },
       });
-      expect(upload.response.status).toBe(200);
+      expect(upload.response?.status).toBe(200);
       cids.push(expectedCid);
     }
 
@@ -352,7 +352,7 @@ describe('Task artifacts API', () => {
       path: { taskId },
       query: { limit: 2 },
     });
-    expect(firstPage.response.status).toBe(200);
+    expect(firstPage.response?.status).toBe(200);
     expect(firstPage.data?.artifacts).toHaveLength(2);
     expect(firstPage.data?.nextCursor).toBeTruthy();
 
@@ -363,7 +363,7 @@ describe('Task artifacts API', () => {
       path: { taskId },
       query: { cursor: firstPage.data!.nextCursor!, limit: 2 },
     });
-    expect(secondPage.response.status).toBe(200);
+    expect(secondPage.response?.status).toBe(200);
     expect(secondPage.data?.artifacts).toHaveLength(1);
     expect(secondPage.data?.nextCursor).toBeNull();
     const returnedCids = [
@@ -393,7 +393,7 @@ describe('Task artifacts API', () => {
       path: { attemptN, taskId },
       query: { kind: 'text', title: 'private' },
     });
-    expect(upload.response.status).toBe(200);
+    expect(upload.response?.status).toBe(200);
 
     const outsiderList = await listTaskArtifacts({
       client,
@@ -401,7 +401,7 @@ describe('Task artifacts API', () => {
       headers: { 'x-moltnet-team-id': teamId },
       path: { taskId },
     });
-    expect(outsiderList.response.status).toBe(404);
+    expect(outsiderList.response?.status).toBe(404);
 
     const outsiderDownload = await downloadTaskArtifact({
       client,
@@ -409,6 +409,6 @@ describe('Task artifacts API', () => {
       headers: { 'x-moltnet-team-id': teamId },
       path: { attemptN, cid: expectedCid, taskId },
     });
-    expect(outsiderDownload.response.status).toBe(404);
+    expect(outsiderDownload.response?.status).toBe(404);
   });
 });

@@ -247,9 +247,9 @@ describe('tasks_continue server-side validation matrix', () => {
     });
     expect(
       error,
-      `uploadDurableSession: ${response.status} ${JSON.stringify(error)}`,
+      `uploadDurableSession: ${response?.status} ${JSON.stringify(error)}`,
     ).toBeUndefined();
-    expect(response.status).toBe(200);
+    expect(response?.status).toBe(200);
   }
 
   function firstValidationMessage(error: unknown): string {
@@ -277,9 +277,9 @@ describe('tasks_continue server-side validation matrix', () => {
 
     expect(
       error,
-      `expected 201, got ${response.status} ${firstValidationMessage(error)}`,
+      `expected 201, got ${response?.status} ${firstValidationMessage(error)}`,
     ).toBeUndefined();
-    expect(response.status).toBe(201);
+    expect(response?.status).toBe(201);
     expect(data!.input).toMatchObject({
       continueFrom: { taskId: sourceId, attemptN },
     });
@@ -292,7 +292,7 @@ describe('tasks_continue server-side validation matrix', () => {
       attemptN: 1,
     });
 
-    expect(response.status).toBe(400);
+    expect(response?.status).toBe(400);
     expect(firstValidationMessage(error)).toMatch(
       /input\/continueFrom\/taskId.*does not resolve/i,
     );
@@ -327,7 +327,7 @@ describe('tasks_continue server-side validation matrix', () => {
         taskId: sourceId,
         attemptN,
       });
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
       expect(firstValidationMessage(error)).toMatch(
         /not continuable|only freeform/i,
       );
@@ -353,7 +353,7 @@ describe('tasks_continue server-side validation matrix', () => {
         taskId: sourceId,
         attemptN,
       });
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
       expect(firstValidationMessage(error)).toMatch(
         /input\/continueFrom\/attemptN.*not in 'completed' state/i,
       );
@@ -386,9 +386,9 @@ describe('tasks_continue server-side validation matrix', () => {
     // Fork is implemented (#1293): the continuation is accepted, not rejected.
     expect(
       error,
-      `expected 201, got ${response.status} ${firstValidationMessage(error)}`,
+      `expected 201, got ${response?.status} ${firstValidationMessage(error)}`,
     ).toBeUndefined();
-    expect(response.status).toBe(201);
+    expect(response?.status).toBe(201);
     expect(data!.input).toMatchObject({
       continueFrom: { taskId: sourceId, attemptN, mode: 'fork' },
     });
@@ -410,9 +410,9 @@ describe('tasks_continue server-side validation matrix', () => {
 
     expect(
       error,
-      `expected 201, got ${response.status} ${firstValidationMessage(error)}`,
+      `expected 201, got ${response?.status} ${firstValidationMessage(error)}`,
     ).toBeUndefined();
-    expect(response.status).toBe(201);
+    expect(response?.status).toBe(201);
     expect(data!.input).toMatchObject({
       continueFrom: { taskId: sourceId, attemptN },
     });
@@ -435,9 +435,9 @@ describe('tasks_continue server-side validation matrix', () => {
 
     expect(
       error,
-      `expected 201, got ${response.status} ${firstValidationMessage(error)}`,
+      `expected 201, got ${response?.status} ${firstValidationMessage(error)}`,
     ).toBeUndefined();
-    expect(response.status).toBe(201);
+    expect(response?.status).toBe(201);
     expect(data!.input).toMatchObject({
       continueFrom: { taskId: sourceId, attemptN },
     });
@@ -457,7 +457,7 @@ describe('tasks_continue server-side validation matrix', () => {
       attemptN,
     });
 
-    expect(response.status).toBe(201);
+    expect(response?.status).toBe(201);
     expect(data!.correlationId).toMatch(UUID_RE);
   }, 60_000);
 

@@ -96,7 +96,7 @@ test.describe.serial('Task analytics', () => {
     // before issuing the non-idempotent diary create request.
     await expect(async () => {
       const teams = await listTeams({ client: humanClient });
-      expect(teams.response.status).toBe(200);
+      expect(teams.response?.status).toBe(200);
       expect(teams.data?.items.some((team) => team.id === sharedTeamId)).toBe(
         true,
       );

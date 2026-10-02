@@ -94,7 +94,7 @@ async function seedDiaryFixtures(sessionToken: string) {
     });
     if (!createdTeam.data) {
       throw new Error(
-        `Failed to create a team for diary seeding: ${createdTeam.response.status} ${JSON.stringify(createdTeam.error)}`,
+        `Failed to create a team for diary seeding: ${createdTeam.response?.status} ${JSON.stringify(createdTeam.error)}`,
       );
     }
 

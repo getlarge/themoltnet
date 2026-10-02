@@ -85,7 +85,8 @@ test('seed shared team, diary, tasks, and agent invite', async ({ page }) => {
     client,
     body: { name: `the-foundry-${nonce}` },
   });
-  if (!team.data) throw new Error(`createTeam failed: ${team.response.status}`);
+  if (!team.data)
+    throw new Error(`createTeam failed: ${team.response?.status}`);
   const teamId = team.data.id;
 
   const diary = await createDiary({
@@ -94,7 +95,7 @@ test('seed shared team, diary, tasks, and agent invite', async ({ page }) => {
     body: { name: `foundry-diary-${nonce}`, visibility: 'private' },
   });
   if (!diary.data) {
-    throw new Error(`createDiary failed: ${diary.response.status}`);
+    throw new Error(`createDiary failed: ${diary.response?.status}`);
   }
   const diaryId = diary.data.id;
 
@@ -112,7 +113,7 @@ test('seed shared team, diary, tasks, and agent invite', async ({ page }) => {
     });
     if (!result.data) {
       throw new Error(
-        `createTask "${title}" failed: ${result.response.status}`,
+        `createTask "${title}" failed: ${result.response?.status}`,
       );
     }
   }
@@ -126,7 +127,7 @@ test('seed shared team, diary, tasks, and agent invite', async ({ page }) => {
     body: { role: 'manager' },
   });
   if (!invite.data) {
-    throw new Error(`createTeamInvite failed: ${invite.response.status}`);
+    throw new Error(`createTeamInvite failed: ${invite.response?.status}`);
   }
 
   writeFileSync(

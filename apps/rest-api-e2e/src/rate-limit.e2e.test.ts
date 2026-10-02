@@ -112,7 +112,7 @@ describe('Rate limiting (429 contract)', () => {
         challenge: UNKNOWN_CHALLENGE,
       },
     });
-    expect(validation.response.status).toBe(404);
+    expect(validation.response?.status).toBe(404);
 
     const redis = new Redis({ host: '127.0.0.1', port: REDIS_HOST_PORT });
     try {
@@ -132,8 +132,8 @@ describe('Rate limiting (429 contract)', () => {
       client,
       body: { signature: DUMMY_SIGNATURE },
     });
-    expect(crypto.response.status).toBe(200);
-    expect(crypto.response.headers.get('x-ratelimit-remaining')).toBe('0');
+    expect(crypto.response?.status).toBe(200);
+    expect(crypto.response?.headers.get('x-ratelimit-remaining')).toBe('0');
 
     // The agent lookup route must see the same exhausted counter.
     const throttled = await verifyAgentSignature({
@@ -141,9 +141,9 @@ describe('Rate limiting (429 contract)', () => {
       path: { fingerprint: UNKNOWN_FINGERPRINT },
       body: { signature: DUMMY_SIGNATURE },
     });
-    expect(throttled.response.status).toBe(429);
+    expect(throttled.response?.status).toBe(429);
     const throttledBody = throttled.error as Record<string, unknown>;
-    const throttledHeaders = throttled.response.headers;
+    const throttledHeaders = throttled.response?.headers;
 
     // RFC 9457 Problem Details body.
     expect(throttledBody).toMatchObject({
@@ -155,12 +155,12 @@ describe('Rate limiting (429 contract)', () => {
     expect(throttledBody.retryAfter).toBeTypeOf('number');
 
     // Standard rate-limit + retry-after headers so clients can back off.
-    expect(throttledHeaders.get('retry-after')).toBeTruthy();
-    expect(throttledHeaders.get('x-ratelimit-limit')).toBe(
+    expect(throttledHeaders?.get('retry-after')).toBeTruthy();
+    expect(throttledHeaders?.get('x-ratelimit-limit')).toBe(
       String(PUBLIC_VERIFY_LIMIT),
     );
-    expect(throttledHeaders.get('x-ratelimit-remaining')).toBe('0');
-    expect(throttledHeaders.get('x-ratelimit-reset')).toBeTruthy();
+    expect(throttledHeaders?.get('x-ratelimit-remaining')).toBe('0');
+    expect(throttledHeaders?.get('x-ratelimit-reset')).toBeTruthy();
   });
 
   it('never attaches rate limiting to allowlisted paths (/health)', async () => {
@@ -203,8 +203,8 @@ describe('Rate limiting read/write split (#1336 part 2)', () => {
       auth: () => agent.accessToken,
       headers: { 'x-moltnet-team-id': agent.personalTeamId },
     });
-    expect(readRes.response.status).toBe(200);
-    expect(readRes.response.headers.get('x-ratelimit-limit')).toBe(
+    expect(readRes.response?.status).toBe(200);
+    expect(readRes.response?.headers.get('x-ratelimit-limit')).toBe(
       String(READ_LIMIT),
     );
 
@@ -217,14 +217,14 @@ describe('Rate limiting read/write split (#1336 part 2)', () => {
       headers: { 'x-moltnet-team-id': agent.personalTeamId },
       body: {} as never,
     });
-    expect(writeRes.response.headers.get('x-ratelimit-limit')).toBe(
+    expect(writeRes.response?.headers.get('x-ratelimit-limit')).toBe(
       String(GLOBAL_AUTH_LIMIT),
     );
 
     // The two buckets are distinct — reads are not capped at the mutation limit.
     expect(READ_LIMIT).not.toBe(GLOBAL_AUTH_LIMIT);
-    expect(readRes.response.headers.get('x-ratelimit-limit')).not.toBe(
-      writeRes.response.headers.get('x-ratelimit-limit'),
+    expect(readRes.response?.headers.get('x-ratelimit-limit')).not.toBe(
+      writeRes.response?.headers.get('x-ratelimit-limit'),
     );
   });
 });
@@ -258,7 +258,7 @@ describe('Rate limiting Redis-backed store (#1336 part 3)', () => {
       auth: () => agent.accessToken,
       headers: { 'x-moltnet-team-id': agent.personalTeamId },
     });
-    expect(res.response.status).toBe(200);
+    expect(res.response?.status).toBe(200);
 
     // The @fastify/rate-limit RedisStore writes keys prefixed with our
     // nameSpace. If the limiter were still in-memory, none would exist.

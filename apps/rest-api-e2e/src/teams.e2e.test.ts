@@ -83,7 +83,7 @@ describe('Teams', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(201);
+      expect(response?.status).toBe(201);
       expect(data!.id).toBeDefined();
       expect(data!.name).toBe('e2e-test-team');
     });
@@ -95,7 +95,7 @@ describe('Teams', () => {
       });
 
       expect(error).toBeDefined();
-      expect(response.status).toBe(401);
+      expect(response?.status).toBe(401);
     });
   });
 
@@ -113,7 +113,7 @@ describe('Teams', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       expect(data!.items.length).toBeGreaterThanOrEqual(1);
 
       const team = data!.items.find(
@@ -139,7 +139,7 @@ describe('Teams', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       expect(data!.name).toBe('detail-test');
       expect(data!.members).toBeInstanceOf(Array);
       expect(data!.members.length).toBeGreaterThanOrEqual(1);
@@ -158,7 +158,7 @@ describe('Teams', () => {
         path: { id: created!.id },
       });
 
-      expect(response.status).toBe(404);
+      expect(response?.status).toBe(404);
     });
   });
 
@@ -198,7 +198,7 @@ describe('Teams', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       expect(data!.items.length).toBeGreaterThanOrEqual(1);
     });
 
@@ -209,7 +209,7 @@ describe('Teams', () => {
         path: { id: teamId },
       });
 
-      expect(response.status).toBe(403);
+      expect(response?.status).toBe(403);
     });
 
     it('agent B joins team with invite code', async () => {
@@ -220,7 +220,7 @@ describe('Teams', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       expect(data!.teamId).toBe(teamId);
       expect(data!.role).toBe('member');
     });
@@ -232,7 +232,7 @@ describe('Teams', () => {
         path: { id: teamId },
       });
 
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       const memberB = data!.items.find(
         (m: { subjectId: string }) => m.subjectId === agentB.agentId,
       );
@@ -247,7 +247,7 @@ describe('Teams', () => {
         path: { id: teamId },
       });
 
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       expect(data!.name).toBe('invite-flow-team');
     });
 
@@ -258,7 +258,7 @@ describe('Teams', () => {
         body: { code: inviteCode },
       });
 
-      expect(response.status).toBe(409);
+      expect(response?.status).toBe(409);
     });
     it('cannot reuse a consumed invite after membership is removed', async () => {
       const created = await createTeam({
@@ -279,7 +279,7 @@ describe('Teams', () => {
         auth: () => agentB.accessToken,
         body: { code: invitation.data!.code },
       });
-      expect(joined.response.status).toBe(200);
+      expect(joined.response?.status).toBe(200);
       const listed = await listTeamInvites({
         client,
         auth: () => agentA.accessToken,
@@ -294,13 +294,13 @@ describe('Teams', () => {
         auth: () => agentA.accessToken,
         path: { id: isolatedTeam, subjectId: agentB.agentId },
       });
-      expect(removed.response.status).toBe(200);
+      expect(removed.response?.status).toBe(200);
       const replay = await joinTeam({
         client,
         auth: () => agentB.accessToken,
         body: { code: invitation.data!.code },
       });
-      expect(replay.response.status).toBe(410);
+      expect(replay.response?.status).toBe(410);
     });
   });
 
@@ -344,7 +344,7 @@ describe('Teams', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       expect(data!.teamId).toBe(teamId);
       expect(data!.role).toBe('manager');
 
@@ -370,7 +370,7 @@ describe('Teams', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       expect(data!.role).toBe('member');
 
       const { data: members } = await listTeamMembers({
@@ -451,7 +451,7 @@ describe('Teams', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       expect(data!.teamId).toBe(teamId);
       expect(data!.role).toBe('member');
 
@@ -476,7 +476,7 @@ describe('Teams', () => {
         body: { role: 'manager' },
       });
 
-      expect(response.status).toBe(409);
+      expect(response?.status).toBe(409);
     });
   });
 
@@ -499,7 +499,7 @@ describe('Teams', () => {
         client: humanClient,
         body: { code: memberInvite!.code },
       });
-      expect(humanJoin.response.status).toBe(200);
+      expect(humanJoin.response?.status).toBe(200);
       expect(humanJoin.data).toEqual({ teamId, role: 'member' });
 
       // Enrichment, not just membership. The Keto subject is `humans.id`,
@@ -527,7 +527,7 @@ describe('Teams', () => {
         path: { id: teamId, subjectId: human.humanId },
         body: { role: 'executor' },
       });
-      expect(assignment.response.status).toBe(400);
+      expect(assignment.response?.status).toBe(400);
 
       const { data: executorInvite } = await createTeamInvite({
         client,
@@ -539,13 +539,13 @@ describe('Teams', () => {
         client: humanClient,
         body: { code: executorInvite!.code },
       });
-      expect(humanRedemption.response.status).toBe(403);
+      expect(humanRedemption.response?.status).toBe(403);
       const agentRedemption = await joinTeam({
         client,
         auth: () => agentB.accessToken,
         body: { code: executorInvite!.code },
       });
-      expect(agentRedemption.response.status).toBe(200);
+      expect(agentRedemption.response?.status).toBe(200);
       expect(agentRedemption.data!.role).toBe('executor');
 
       const founding = await createTeam({
@@ -562,7 +562,7 @@ describe('Teams', () => {
           ],
         },
       });
-      expect(founding.response.status).toBe(400);
+      expect(founding.response?.status).toBe(400);
     });
   });
 
@@ -601,7 +601,7 @@ describe('Teams', () => {
         path: { id: teamId, subjectId: agentB.agentId },
       });
 
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
     });
 
     it('cannot remove last owner', async () => {
@@ -611,7 +611,7 @@ describe('Teams', () => {
         path: { id: teamId, subjectId: agentA.agentId },
       });
 
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     });
   });
 
@@ -631,7 +631,7 @@ describe('Teams', () => {
         path: { id: created!.id },
       });
 
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
 
       // Verify it's gone
       const { response: getRes } = await getTeam({
@@ -639,7 +639,7 @@ describe('Teams', () => {
         auth: () => agentA.accessToken,
         path: { id: created!.id },
       });
-      expect(getRes.status).toBe(404);
+      expect(getRes?.status).toBe(404);
     });
 
     it('non-owner cannot delete team', async () => {
@@ -655,7 +655,7 @@ describe('Teams', () => {
         path: { id: created!.id },
       });
 
-      expect(response.status).toBe(403);
+      expect(response?.status).toBe(403);
     });
   });
 
@@ -680,7 +680,7 @@ describe('Teams', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
 
       const personal = data!.items.find(
         (t: { personal: boolean }) => t.personal,
@@ -719,7 +719,7 @@ describe('Teams', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(201);
+      expect(response?.status).toBe(201);
       expect(diary!.id).toBeDefined();
 
       // Add agent B to the team
@@ -742,7 +742,7 @@ describe('Teams', () => {
         path: { id: diary!.id },
       });
 
-      expect(getRes.status).toBe(200);
+      expect(getRes?.status).toBe(200);
       expect(fetchedDiary!.name).toBe('team-diary');
     });
   });

@@ -73,8 +73,8 @@ describe('Agents & Crypto', () => {
 
       expect(data).toBeUndefined();
       expect(error).toBeDefined();
-      expect(response.status).toBe(404);
-      expect(response.headers.get('content-type')).toContain(
+      expect(response?.status).toBe(404);
+      expect(response?.headers.get('content-type')).toContain(
         'application/json',
       );
 
@@ -166,8 +166,8 @@ describe('Agents & Crypto', () => {
 
       expect(data).toBeUndefined();
       expect(error).toBeDefined();
-      expect(response.status).toBe(401);
-      expect(response.headers.get('content-type')).toContain(
+      expect(response?.status).toBe(401);
+      expect(response?.headers.get('content-type')).toContain(
         'application/json',
       );
 
@@ -186,8 +186,8 @@ describe('Agents & Crypto', () => {
 
       expect(data).toBeUndefined();
       expect(error).toBeDefined();
-      expect(response.status).toBe(401);
-      expect(response.headers.get('content-type')).toContain(
+      expect(response?.status).toBe(401);
+      expect(response?.headers.get('content-type')).toContain(
         'application/json',
       );
 

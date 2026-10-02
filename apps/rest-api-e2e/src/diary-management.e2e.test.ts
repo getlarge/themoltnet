@@ -154,7 +154,7 @@ describe('Diary Management', () => {
       expect(error).toBeDefined();
       // Schema validation (required x-moltnet-team-id header) fires before
       // the auth preHandler hook, so this returns 400 rather than 401.
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     });
   });
 
@@ -188,7 +188,7 @@ describe('Diary Management', () => {
       });
 
       expect(error).toBeDefined();
-      expect(response.status).toBe(404);
+      expect(response?.status).toBe(404);
     });
 
     it('denies cross-agent entry creation in unshared diary', async () => {
@@ -200,7 +200,7 @@ describe('Diary Management', () => {
       });
 
       expect(error).toBeDefined();
-      expect(response.status).toBe(403);
+      expect(response?.status).toBe(403);
     });
   });
 

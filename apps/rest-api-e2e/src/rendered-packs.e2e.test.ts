@@ -186,7 +186,7 @@ describe('Rendered packs', () => {
     });
 
     expect(error, `preview failed: ${JSON.stringify(error)}`).toBeUndefined();
-    expect(response.status).toBe(200);
+    expect(response?.status).toBe(200);
     const preview = data as RenderedPackPreview;
     expect(preview.sourcePackId).toBe(sourcePackId);
     expect(preview.sourcePackCid).toBe(sourcePack.packCid);
@@ -206,7 +206,7 @@ describe('Rendered packs', () => {
     });
 
     expect(error, `render failed: ${JSON.stringify(error)}`).toBeUndefined();
-    expect(response.status).toBe(201);
+    expect(response?.status).toBe(201);
     const result = data as RenderedPackResult;
     expect(result.id).toBeDefined();
     expect(result.packCid).toMatch(/^bafyr/);
@@ -228,7 +228,7 @@ describe('Rendered packs', () => {
     });
 
     expect(error, `getLatest failed: ${JSON.stringify(error)}`).toBeUndefined();
-    expect(response.status).toBe(200);
+    expect(response?.status).toBe(200);
     const latest = data as RenderedPackWithContent;
     expect(latest.renderMethod).toBe('server:pack-to-docs-v1');
     expect(latest.content).toBe(expectedServerMarkdown);
@@ -298,7 +298,7 @@ describe('Rendered packs', () => {
     });
 
     expect(error, `getLatest failed: ${JSON.stringify(error)}`).toBeUndefined();
-    expect(response.status).toBe(200);
+    expect(response?.status).toBe(200);
     const latest = data as RenderedPackWithContent;
     expect(latest.id).toBeDefined();
     expect(latest.packCid).toBeDefined();
@@ -320,7 +320,7 @@ describe('Rendered packs', () => {
     });
 
     expect(error, `getById failed: ${JSON.stringify(error)}`).toBeUndefined();
-    expect(response.status).toBe(200);
+    expect(response?.status).toBe(200);
     const rendered = data as RenderedPackWithContent;
     expect(rendered.packCid).toBe(latest.packCid);
     assert(rendered.creator.kind === 'agent');
@@ -348,7 +348,7 @@ describe('Rendered packs', () => {
       createError,
       `render failed: ${JSON.stringify(createError)}`,
     ).toBeUndefined();
-    expect(createResponse.status).toBe(201);
+    expect(createResponse?.status).toBe(201);
     const created = createdData as RenderedPackResult;
 
     const { data: latestData } = await getLatestRenderedPack({
@@ -401,7 +401,7 @@ describe('Rendered packs', () => {
     });
 
     expect(error).toBeDefined();
-    expect(response.status).toBe(403);
+    expect(response?.status).toBe(403);
   });
 
   it('returns 403 when another agent tries to render a pack', async () => {
@@ -415,7 +415,7 @@ describe('Rendered packs', () => {
     });
 
     expect(error).toBeDefined();
-    expect(response.status).toBe(403);
+    expect(response?.status).toBe(403);
   });
 
   // Regression: persisting an agent-refined render is a derivation, not a
@@ -444,7 +444,7 @@ describe('Rendered packs', () => {
       grantError,
       `grant failed: ${JSON.stringify(grantError)}`,
     ).toBeUndefined();
-    expect(grantResponse.status).toBe(201);
+    expect(grantResponse?.status).toBe(201);
 
     const renderedMarkdown = '# agent-refined\n\nrefined body';
     const { data, error, response } = await renderContextPack({
@@ -458,7 +458,7 @@ describe('Rendered packs', () => {
     });
 
     expect(error, `render failed: ${JSON.stringify(error)}`).toBeUndefined();
-    expect(response.status).toBe(201);
+    expect(response?.status).toBe(201);
     const result = data as RenderedPackResult;
     expect(result.sourcePackId).toBe(sourcePackId);
     expect(result.renderMethod).toBe('agent-refined');
@@ -479,7 +479,7 @@ describe('Rendered packs', () => {
     });
 
     expect(error).toBeDefined();
-    expect(response.status).toBe(404);
+    expect(response?.status).toBe(404);
   });
 
   it('returns 400 when server render methods receive renderedMarkdown', async () => {
@@ -494,7 +494,7 @@ describe('Rendered packs', () => {
     });
 
     expect(error).toBeDefined();
-    expect(response.status).toBe(400);
+    expect(response?.status).toBe(400);
   });
 
   it('returns 400 when non-server render methods omit renderedMarkdown', async () => {
@@ -508,7 +508,7 @@ describe('Rendered packs', () => {
     });
 
     expect(error).toBeDefined();
-    expect(response.status).toBe(400);
+    expect(response?.status).toBe(400);
   });
 
   it('returns 404 for latest rendered of a pack with no renders', async () => {
@@ -547,7 +547,7 @@ describe('Rendered packs', () => {
     });
 
     expect(error).toBeDefined();
-    expect(response.status).toBe(404);
+    expect(response?.status).toBe(404);
   }, 30_000);
 
   describe('PATCH /rendered-packs/:id (pin/unpin/expiry)', () => {
@@ -584,7 +584,7 @@ describe('Rendered packs', () => {
         body: { expiresAt: future.toISOString() },
       });
       expect(error).toBeDefined();
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     });
 
     it('unpins with new expiresAt', async () => {
@@ -650,7 +650,7 @@ describe('Rendered packs', () => {
         body: { pinned: true },
       });
       expect(error).toBeDefined();
-      expect(response.status).toBe(403);
+      expect(response?.status).toBe(403);
     });
 
     it('returns 404 for non-existent rendered pack', async () => {
@@ -661,7 +661,7 @@ describe('Rendered packs', () => {
         body: { pinned: true },
       });
       expect(error).toBeDefined();
-      expect(response.status).toBe(404);
+      expect(response?.status).toBe(404);
     });
   });
 });

@@ -62,7 +62,7 @@ beforeAll(async () => {
     },
     body: { agentId: agent.agentId, name: 'join-only', scopes: ['team:join'] },
   });
-  expect(issued.response.status).toBe(201);
+  expect(issued.response?.status).toBe(201);
   joinSecret = issued.data!.secret;
 });
 afterAll(async () => {
@@ -75,14 +75,14 @@ async function invitation() {
     auth: () => owner.accessToken,
     body: { name: `Enrollment ${randomUUID()}` },
   });
-  expect(team.response.status).toBe(201);
+  expect(team.response?.status).toBe(201);
   const invite = await createTeamInvite({
     client,
     auth: () => owner.accessToken,
     path: { id: team.data!.id },
     body: { role: 'member' },
   });
-  expect(invite.response.status).toBe(201);
+  expect(invite.response?.status).toBe(201);
   return { teamId: team.data!.id, ...invite.data! };
 }
 function enroll(
@@ -168,8 +168,8 @@ describe('team enrollment', () => {
   it('enrolls the existing agent with a join-only key and isolates its destination grant', async () => {
     const invite = await invitation();
     const result = await enroll(invite.code);
-    expect(result.response.status).toBe(200);
-    expect(result.response.headers.get('cache-control')).toContain('no-store');
+    expect(result.response?.status).toBe(200);
+    expect(result.response?.headers.get('cache-control')).toContain('no-store');
     const key = result.data!.agentKey!;
     expect(key.key).toMatchObject({
       agentId: agent.agentId,
@@ -185,7 +185,7 @@ describe('team enrollment', () => {
           path: { id: invite.teamId },
           headers: { 'x-moltnet-team-id': invite.teamId },
         })
-      ).response.status,
+      ).response?.status,
     ).toBe(200);
     expect(
       (
@@ -195,7 +195,7 @@ describe('team enrollment', () => {
           path: { id: agent.personalTeamId },
           headers: { 'x-moltnet-team-id': agent.personalTeamId },
         })
-      ).response.status,
+      ).response?.status,
     ).toBe(403);
     expect(await usage(invite.id)).toBe(true);
     const checkpoints = await harness.db.execute(
@@ -217,14 +217,16 @@ describe('team enrollment', () => {
     const results = await Promise.all(
       Array.from({ length: 4 }, () => enroll(invite.code, idempotencyKey)),
     );
-    expect(results.map((r) => r.response.status).sort()).toEqual([
+    expect(results.map((r) => r.response?.status).sort()).toEqual([
       200, 409, 409, 409,
     ]);
     expect(await usage(invite.id)).toBe(true);
     expect(await talosKeys(agent.agentId, invite.teamId)).toHaveLength(1);
-    expect((await enroll(invite.code, randomUUID())).response.status).toBe(410);
+    expect((await enroll(invite.code, randomUUID())).response?.status).toBe(
+      410,
+    );
     const another = await invitation();
-    expect((await enroll(another.code, idempotencyKey)).response.status).toBe(
+    expect((await enroll(another.code, idempotencyKey)).response?.status).toBe(
       409,
     );
     expect(await usage(another.id)).toBe(false);
@@ -233,7 +235,7 @@ describe('team enrollment', () => {
       auth: () => owner.accessToken,
       path: { id: invite.teamId, inviteId: invite.id },
     });
-    expect((await enroll(invite.code, idempotencyKey)).response.status).toBe(
+    expect((await enroll(invite.code, idempotencyKey)).response?.status).toBe(
       409,
     );
   });
@@ -244,7 +246,7 @@ describe('team enrollment', () => {
       enroll(invite.code),
       enroll(invite.code),
     ]);
-    expect(results.map((result) => result.response.status).sort()).toEqual([
+    expect(results.map((result) => result.response?.status).sort()).toEqual([
       200, 410,
     ]);
     expect(await usage(invite.id)).toBe(true);
@@ -261,14 +263,14 @@ describe('team enrollment', () => {
       path: { id: invite.teamId, inviteId: invite.id },
     });
     const result = await enroll(invite.code, idempotencyKey, owner.accessToken);
-    expect(result.response.status).toBe(200);
+    expect(result.response?.status).toBe(200);
     expect(await talosKeys(owner.agentId, invite.teamId)).toHaveLength(1);
   });
 
   it('preserves an existing owner role while consuming a fresh invitation', async () => {
     const invite = await invitation();
     const result = await enroll(invite.code, randomUUID(), owner.accessToken);
-    expect(result.response.status).toBe(200);
+    expect(result.response?.status).toBe(200);
     expect(result.data!.role).toBe('owner');
     expect(await usage(invite.id)).toBe(true);
   });
@@ -280,7 +282,7 @@ describe('team enrollment', () => {
       auth: () => joinSecret,
       body: { code: invite.code, issueAgentKey: true },
     });
-    expect(missing.response.status).toBe(400);
+    expect(missing.response?.status).toBe(400);
     const humanClient = createClient({ baseUrl: harness.baseUrl });
     humanClient.interceptors.request.use((request) => {
       request.headers.set('X-Moltnet-Session-Token', human.sessionToken);
@@ -291,14 +293,14 @@ describe('team enrollment', () => {
       headers: { 'idempotency-key': randomUUID() },
       body: { code: invite.code, issueAgentKey: true },
     });
-    expect(denied.response.status).toBe(403);
+    expect(denied.response?.status).toBe(403);
     expect(await usage(invite.id)).toBe(false);
     expect(await talosKeys(agent.agentId, invite.teamId)).toHaveLength(0);
     const joined = await joinTeam({
       client: humanClient,
       body: { code: invite.code },
     });
-    expect(joined.response.status).toBe(200);
+    expect(joined.response?.status).toBe(200);
     expect(Object.keys(joined.data!).sort()).toEqual(['role', 'teamId']);
   });
 
@@ -330,7 +332,7 @@ describe('team enrollment', () => {
       const result = await enroll(
         kind === 'invalid' ? randomUUID() : invite.code,
       );
-      expect(result.response.status).toBe(
+      expect(result.response?.status).toBe(
         {
           invalid: 404,
           expired: 410,
@@ -382,11 +384,11 @@ describe('team enrollment', () => {
       idempotencyKey,
       owner.accessToken,
     );
-    expect(retried.response.status).toBe(200);
+    expect(retried.response?.status).toBe(200);
     expect(await talosKeys(owner.agentId, invite.teamId)).toHaveLength(1);
     expect(
       (await enroll(invite.code, idempotencyKey, owner.accessToken)).response
-        .status,
+        ?.status,
     ).toBe(409);
     expect(await talosKeys(owner.agentId, invite.teamId)).toHaveLength(1);
   });
@@ -427,7 +429,7 @@ describe('team enrollment', () => {
     const original = await talosKeys(owner.agentId, invite.teamId);
     expect(original).toHaveLength(1);
     const replay = await enroll(invite.code, idempotencyKey, owner.accessToken);
-    expect(replay.response.status).toBe(409);
+    expect(replay.response?.status).toBe(409);
     expect(replay.error).toMatchObject({
       conflict: {
         target: {
@@ -453,7 +455,7 @@ describe('team enrollment', () => {
       path: { keyId: keyId! },
       body: { reason: 'key_compromise' },
     });
-    expect(revoked.response.status).toBe(204);
+    expect(revoked.response?.status).toBe(204);
     expect(await usage(invite.id)).toBe(true);
   });
 });

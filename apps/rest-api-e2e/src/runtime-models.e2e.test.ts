@@ -125,7 +125,7 @@ describe('Runtime Models Catalog API', () => {
       error: createError,
       response: createResponse,
     } = await createWithOwner(tag);
-    expect(createResponse.status).toBe(201);
+    expect(createResponse?.status).toBe(201);
     expect(createError).toBeUndefined();
     expect(created).toMatchObject({
       teamId: owner.personalTeamId,
@@ -144,7 +144,7 @@ describe('Runtime Models Catalog API', () => {
       auth: () => owner.accessToken,
       headers: { 'x-moltnet-team-id': owner.personalTeamId },
     });
-    expect(listResponse.status).toBe(200);
+    expect(listResponse?.status).toBe(200);
     expect(listed!.items.map((i) => i.id)).toContain(created!.id);
 
     const { data: fetched, response: getResponse } = await getRuntimeModel({
@@ -152,7 +152,7 @@ describe('Runtime Models Catalog API', () => {
       auth: () => owner.accessToken,
       path: { modelId: created!.id },
     });
-    expect(getResponse.status).toBe(200);
+    expect(getResponse?.status).toBe(200);
     expect(fetched!.id).toBe(created!.id);
 
     const { data: updated, response: updateResponse } =
@@ -162,7 +162,7 @@ describe('Runtime Models Catalog API', () => {
         path: { modelId: created!.id },
         body: { displayName: `e2e ${tag} renamed` },
       });
-    expect(updateResponse.status).toBe(200);
+    expect(updateResponse?.status).toBe(200);
     expect(updated!.displayName).toBe(`e2e ${tag} renamed`);
 
     const { response: deleteResponse } = await deleteRuntimeModel({
@@ -170,14 +170,14 @@ describe('Runtime Models Catalog API', () => {
       auth: () => owner.accessToken,
       path: { modelId: created!.id },
     });
-    expect(deleteResponse.status).toBe(204);
+    expect(deleteResponse?.status).toBe(204);
 
     const { response: getAfterDelete } = await getRuntimeModel({
       client,
       auth: () => owner.accessToken,
       path: { modelId: created!.id },
     });
-    expect(getAfterDelete.status).toBe(404);
+    expect(getAfterDelete?.status).toBe(404);
   });
 
   it('lists the seeded global catalog when no team header is set', async () => {
@@ -185,7 +185,7 @@ describe('Runtime Models Catalog API', () => {
       client,
       auth: () => owner.accessToken,
     });
-    expect(response.status).toBe(200);
+    expect(response?.status).toBe(200);
     // The source-controlled catalog is reconciled at API bootstrap. We don't
     // assert a hard count because Pi's version-pinned static catalog evolves,
     // but do pin representatives from each catalog source.
@@ -229,7 +229,7 @@ describe('Runtime Models Catalog API', () => {
       auth: () => outsider.accessToken,
       path: { modelId: sonnet!.id },
     });
-    expect(response.status).toBe(200);
+    expect(response?.status).toBe(200);
     expect(data!.id).toBe(sonnet!.id);
     expect(data!.teamId).toBeNull();
   });
@@ -245,7 +245,7 @@ describe('Runtime Models Catalog API', () => {
       query: { provider: `e2e-${tag}` },
       headers: { 'x-moltnet-team-id': owner.personalTeamId },
     });
-    expect(response.status).toBe(200);
+    expect(response?.status).toBe(200);
     expect(data!.items.length).toBeGreaterThan(0);
     for (const item of data!.items) {
       expect(item.provider).toBe(`e2e-${tag}`);
@@ -267,7 +267,7 @@ describe('Runtime Models Catalog API', () => {
       });
 
       expect(createError).toBeUndefined();
-      expect(createResponse.status).toBe(201);
+      expect(createResponse?.status).toBe(201);
       expect(created).toMatchObject({
         teamId: managedTeamId,
         provider: `e2e-${tag}`,
@@ -285,7 +285,7 @@ describe('Runtime Models Catalog API', () => {
       });
 
       expect(updateError).toBeUndefined();
-      expect(updateResponse.status).toBe(200);
+      expect(updateResponse?.status).toBe(200);
       expect(updated!.displayName).toBe(`e2e ${tag} managed`);
 
       const { error: deleteError, response: deleteResponse } =
@@ -296,7 +296,7 @@ describe('Runtime Models Catalog API', () => {
         });
 
       expect(deleteError).toBeUndefined();
-      expect(deleteResponse.status).toBe(204);
+      expect(deleteResponse?.status).toBe(204);
     });
 
     it('rejects an outsider creating an entry in a team they do not belong to', async () => {
@@ -307,7 +307,7 @@ describe('Runtime Models Catalog API', () => {
         headers: { 'x-moltnet-team-id': owner.personalTeamId },
         body: createBody(tag),
       });
-      expect(response.status).toBe(403);
+      expect(response?.status).toBe(403);
     });
 
     it("rejects an outsider listing another team's catalog", async () => {
@@ -316,7 +316,7 @@ describe('Runtime Models Catalog API', () => {
         auth: () => outsider.accessToken,
         headers: { 'x-moltnet-team-id': owner.personalTeamId },
       });
-      expect(response.status).toBe(403);
+      expect(response?.status).toBe(403);
     });
 
     it('hides a team-scoped entry from non-members (404, not 403)', async () => {
@@ -329,7 +329,7 @@ describe('Runtime Models Catalog API', () => {
         auth: () => outsider.accessToken,
         path: { modelId: created!.id },
       });
-      expect(response.status).toBe(404);
+      expect(response?.status).toBe(404);
     });
 
     it('rejects an outsider updating or deleting a team-scoped entry', async () => {
@@ -346,14 +346,14 @@ describe('Runtime Models Catalog API', () => {
       // Runtime mutation requires the team-scoped runtime management permit.
       // An outsider is not a member, so the check fails with 403. The route
       // does not pre-check team membership for the PATCH path.
-      expect(updateResponse.status).toBe(403);
+      expect(updateResponse?.status).toBe(403);
 
       const { response: deleteResponse } = await deleteRuntimeModel({
         client,
         auth: () => outsider.accessToken,
         path: { modelId: created!.id },
       });
-      expect(deleteResponse.status).toBe(403);
+      expect(deleteResponse?.status).toBe(403);
     });
 
     it('refuses to mutate a global (seeded) entry through the public API', async () => {
@@ -370,14 +370,14 @@ describe('Runtime Models Catalog API', () => {
         path: { modelId: seed!.id },
         body: { displayName: 'tampered' },
       });
-      expect(updateResponse.status).toBe(403);
+      expect(updateResponse?.status).toBe(403);
 
       const { response: deleteResponse } = await deleteRuntimeModel({
         client,
         auth: () => owner.accessToken,
         path: { modelId: seed!.id },
       });
-      expect(deleteResponse.status).toBe(403);
+      expect(deleteResponse?.status).toBe(403);
     });
   });
 
@@ -389,7 +389,7 @@ describe('Runtime Models Catalog API', () => {
         auth: () => owner.accessToken,
         body: createBody(tag),
       });
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     });
 
     it('rejects a provider containing forbidden characters', async () => {
@@ -403,7 +403,7 @@ describe('Runtime Models Catalog API', () => {
           model: 'm',
         },
       });
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     });
 
     it('rejects a model name containing forbidden characters', async () => {
@@ -417,7 +417,7 @@ describe('Runtime Models Catalog API', () => {
           model: 'a/b',
         },
       });
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     });
 
     it('rejects an empty provider', async () => {
@@ -427,7 +427,7 @@ describe('Runtime Models Catalog API', () => {
         headers: { 'x-moltnet-team-id': owner.personalTeamId },
         body: { provider: '', model: 'm' },
       });
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     });
 
     it('rejects a PATCH with an empty body (minProperties: 1)', async () => {
@@ -441,7 +441,7 @@ describe('Runtime Models Catalog API', () => {
         path: { modelId: created!.id },
         body: {},
       });
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     });
 
     it('rejects a capabilities value that is not a primitive', async () => {
@@ -458,7 +458,7 @@ describe('Runtime Models Catalog API', () => {
           capabilities: { nested: { deep: 'value' } },
         },
       });
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     });
 
     it('maps a unique violation (same provider+model in same team) to 409', async () => {
@@ -467,7 +467,7 @@ describe('Runtime Models Catalog API', () => {
       expect(first).toBeDefined();
 
       const { response } = await createWithOwner(tag);
-      expect(response.status).toBe(409);
+      expect(response?.status).toBe(409);
     });
   });
 });

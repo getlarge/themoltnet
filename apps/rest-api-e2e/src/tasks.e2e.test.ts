@@ -67,8 +67,8 @@ const TASK_DELETION_POLL_OPTIONS = {
   intervalMs: 250,
 };
 
-function taskNoLongerVisible(result: { response: { status: number } }) {
-  return result.response.status === 403 || result.response.status === 404;
+function taskNoLongerVisible(result: { response?: { status: number } }) {
+  return result.response?.status === 403 || result.response?.status === 404;
 }
 
 describe('Tasks API', () => {
@@ -233,14 +233,14 @@ describe('Tasks API', () => {
         'executor agent-key proposal',
         () => executorTaskKey,
       );
-      expect(executorProposal.response.status).toBe(201);
+      expect(executorProposal.response?.status).toBe(201);
       expect(executorProposal.error).toBeUndefined();
 
       const manageOnlyProposal = await createPendingTask(
         'task manage without task write',
         () => executorManageKey,
       );
-      expect(manageOnlyProposal.response.status).toBe(403);
+      expect(manageOnlyProposal.response?.status).toBe(403);
       expect(manageOnlyProposal.error).toMatchObject({
         detail: 'Missing required scope: task:write',
       });
@@ -249,7 +249,7 @@ describe('Tasks API', () => {
         'member agent-key proposal',
         () => memberTaskKey,
       );
-      expect(memberProposal.response.status).toBe(403);
+      expect(memberProposal.response?.status).toBe(403);
       expect(memberProposal.error).toMatchObject({
         detail: 'Not authorized to create tasks for this team',
       });
@@ -274,7 +274,7 @@ describe('Tasks API', () => {
         path: { id: grantTask.id },
         body: { leaseTtlSec: 30 },
       });
-      expect(denied.response.status).toBe(403);
+      expect(denied.response?.status).toBe(403);
       await createTaskGrant({
         client,
         auth: () => proposer.accessToken,
@@ -305,7 +305,7 @@ describe('Tasks API', () => {
         'manager agent-key proposal',
         () => executorTaskKey,
       );
-      expect(managerProposal.response.status).toBe(201);
+      expect(managerProposal.response?.status).toBe(201);
       expect(managerProposal.error).toBeUndefined();
       const continuityTask = (await createPendingTask('claimant continuity'))
         .data!;
@@ -333,7 +333,7 @@ describe('Tasks API', () => {
         path: { id: postDowngradeTask.id },
         body: { leaseTtlSec: 30 },
       });
-      expect(postDowngradeClaim.response.status).toBe(403);
+      expect(postDowngradeClaim.response?.status).toBe(403);
       const heartbeat = await taskHeartbeat({
         client,
         auth: () => claimer.accessToken,
@@ -470,7 +470,7 @@ describe('Tasks API', () => {
         path: { id: task!.id },
         body: { tags: ['should-not-stick'] },
       });
-      expect(response.status).toBe(403);
+      expect(response?.status).toBe(403);
     });
   });
 
@@ -517,7 +517,7 @@ describe('Tasks API', () => {
         client,
         headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       });
-      expect(response.status).toBe(401);
+      expect(response?.status).toBe(401);
     });
 
     it('returns 400 when teamId is missing from list', async () => {
@@ -527,7 +527,7 @@ describe('Tasks API', () => {
         // @ts-expect-error intentionally omitting the required x-moltnet-team-id header
         headers: {},
       });
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     });
   });
 
@@ -568,8 +568,8 @@ describe('Tasks API', () => {
       const first = await createTask(request);
       const replay = await createTask(request);
 
-      expect(first.response.status).toBe(201);
-      expect(replay.response.status).toBe(201);
+      expect(first.response?.status).toBe(201);
+      expect(replay.response?.status).toBe(201);
       expect(replay.data?.id).toBe(first.data?.id);
     });
 
@@ -599,8 +599,8 @@ describe('Tasks API', () => {
         createTask(request),
       ]);
 
-      expect(left.response.status).toBe(201);
-      expect(right.response.status).toBe(201);
+      expect(left.response?.status).toBe(201);
+      expect(right.response?.status).toBe(201);
       expect(right.data?.id).toBe(left.data?.id);
       const [row] = await harness.db
         .select({ count: sql<number>`count(*)::int` })
@@ -643,7 +643,7 @@ describe('Tasks API', () => {
         },
       });
 
-      expect(changed.response.status).toBe(409);
+      expect(changed.response?.status).toBe(409);
     });
 
     it('returns 400 for unknown taskType', async () => {
@@ -657,7 +657,7 @@ describe('Tasks API', () => {
           input: {},
         },
       });
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     });
 
     it('returns 403 when proposing on a diary the caller cannot write', async () => {
@@ -675,7 +675,7 @@ describe('Tasks API', () => {
           },
         },
       });
-      expect(response.status).toBe(403);
+      expect(response?.status).toBe(403);
     });
 
     // Regression: a task_status claimCondition refs the TaskStatus schema by
@@ -703,7 +703,7 @@ describe('Tasks API', () => {
         },
       );
 
-      expect(response.status).toBe(201);
+      expect(response?.status).toBe(201);
       expect(error).toBeUndefined();
       expect(data).toBeDefined();
       // Prerequisite is still 'queued' (not 'completed'), so the dependent task
@@ -723,7 +723,7 @@ describe('Tasks API', () => {
           },
         },
       );
-      expect(response.status).toBe(201);
+      expect(response?.status).toBe(201);
       expect(data!.status).toBe('waiting');
     });
   });
@@ -759,7 +759,7 @@ describe('Tasks API', () => {
         path: { id: created.data!.id },
       });
 
-      expect(readable.response.status).toBe(403);
+      expect(readable.response?.status).toBe(403);
       expect(readable.data).toBeUndefined();
 
       const revokedDiaryGrant = await revokeDiaryGrant({
@@ -791,7 +791,7 @@ describe('Tasks API', () => {
         headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         path: { id: created.data!.id },
       });
-      expect(stillDetached.response.status).toBe(403);
+      expect(stillDetached.response?.status).toBe(403);
     });
 
     it('allows a non-team writer through the owning team context and revokes cleanly', async () => {
@@ -809,7 +809,7 @@ describe('Tasks API', () => {
             headers: { 'x-moltnet-team-id': proposer.personalTeamId },
             path: { id: taskId },
           }),
-        (result) => result.response.status === 200,
+        (result) => result.response?.status === 200,
         { label: 'explicit task writer reads task' },
       );
       expect(readable.data!.id).toBe(taskId);
@@ -820,7 +820,7 @@ describe('Tasks API', () => {
         headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         path: { id: taskId },
       });
-      expect(writerCannotInspectGrants.response.status).toBe(403);
+      expect(writerCannotInspectGrants.response?.status).toBe(403);
 
       const grants = await listTaskGrants({
         client,
@@ -841,7 +841,7 @@ describe('Tasks API', () => {
         headers: { 'x-moltnet-team-id': taskWriter.personalTeamId },
         path: { id: taskId },
       });
-      expect(mismatched.response.status).toBe(404);
+      expect(mismatched.response?.status).toBe(404);
 
       const revoked = await revokeTaskGrant({
         client,
@@ -864,7 +864,7 @@ describe('Tasks API', () => {
             headers: { 'x-moltnet-team-id': proposer.personalTeamId },
             path: { id: taskId },
           }),
-        (result) => result.response.status === 403,
+        (result) => result.response?.status === 403,
         { label: 'revoked task writer no longer reads task' },
       );
     });
@@ -1006,7 +1006,7 @@ describe('Tasks API', () => {
         auth: () => claimer.accessToken,
         headers: { 'x-moltnet-team-id': proposer.personalTeamId },
       });
-      expect(response.status).toBe(403);
+      expect(response?.status).toBe(403);
     });
 
     it('gets a task by id', async () => {
@@ -1142,7 +1142,7 @@ describe('Tasks API', () => {
         auth: () => proposer.accessToken,
         path: { id: '00000000-0000-0000-0000-000000000000' },
       });
-      expect(response.status).toBe(404);
+      expect(response?.status).toBe(404);
     });
   });
 
@@ -1174,7 +1174,7 @@ describe('Tasks API', () => {
 
     it('only one agent can claim a dispatched task', async () => {
       const { response } = await claim(taskId);
-      expect(response.status).toBe(409);
+      expect(response?.status).toBe(409);
     });
 
     it('heartbeat extends the lease', async () => {
@@ -1277,7 +1277,7 @@ describe('Tasks API', () => {
         },
       });
 
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
       expect(error?.code).toBe('VALIDATION_FAILED');
       const validationErrors = error?.errors as
         | Array<{ field?: string }>
@@ -1339,7 +1339,7 @@ describe('Tasks API', () => {
         },
       });
 
-      expect(response.status).toBe(409);
+      expect(response?.status).toBe(409);
       expect(error?.detail).toMatch(/heartbeat/i);
 
       // Task is still claimed; recovery path is to call /heartbeat then retry.
@@ -1372,7 +1372,7 @@ describe('Tasks API', () => {
         },
       });
 
-      expect(response.status).toBe(409);
+      expect(response?.status).toBe(409);
       expect(error?.detail).toMatch(/heartbeat/i);
     });
 
@@ -1453,7 +1453,7 @@ describe('Tasks API', () => {
         path: { id: taskId, n: attemptN },
         body: { leaseTtlSec: 30 },
       });
-      expect(heartbeat.response.status).toBe(200);
+      expect(heartbeat.response?.status).toBe(200);
       expect(heartbeat.error).toBeUndefined();
 
       const output = {
@@ -1482,7 +1482,7 @@ describe('Tasks API', () => {
           usage: { model: 'test-model', inputTokens: 1, outputTokens: 1 },
         },
       });
-      expect(complete.response.status).toBe(200);
+      expect(complete.response?.status).toBe(200);
       expect(complete.error).toBeUndefined();
     });
   });
@@ -1662,7 +1662,7 @@ describe('Tasks API', () => {
           ...claimAttestation,
         },
       });
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
 
       const { data: unchanged } = await getTask({
         client,
@@ -1767,7 +1767,7 @@ describe('Tasks API', () => {
         path: { id: data!.id },
         body: { reason: 'unauthorized cancel attempt' },
       });
-      expect(response.status).toBe(403);
+      expect(response?.status).toBe(403);
     });
   });
 
@@ -1832,7 +1832,7 @@ describe('Tasks API', () => {
         path: { id: taskId },
         body: { reason: 'walking away from this one' },
       });
-      expect(response.status).toBe(403);
+      expect(response?.status).toBe(403);
       expect(data).toBeUndefined();
       expect(error?.detail).toBe('Not authorized to cancel this task');
     });
@@ -1921,7 +1921,7 @@ describe('Tasks API', () => {
           usage: { model: 'test', inputTokens: 1, outputTokens: 1 },
         },
       });
-      expect(response.status).toBe(409);
+      expect(response?.status).toBe(409);
 
       // Status must still be cancelled — no silent revival to completed.
       const { data: still } = await getTask({
@@ -1963,7 +1963,7 @@ describe('Tasks API', () => {
           },
         },
       });
-      expect(response.status).toBe(409);
+      expect(response?.status).toBe(409);
 
       const { data: still } = await getTask({
         client,
@@ -2411,7 +2411,7 @@ describe('Tasks API', () => {
         path: { id: taskId, n: attemptN },
         body: { messages: [] },
       });
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     });
 
     it('returns only messages after given seq', async () => {
@@ -2498,7 +2498,7 @@ describe('Tasks API', () => {
         path: { id: taskId, n: attemptN },
         query: { kind: ['not_a_kind'] as never },
       });
-      expect(response.status).toBe(400);
+      expect(response?.status).toBe(400);
     });
 
     // Regression test for issue #921: concurrent appendMessages calls for the
@@ -2534,7 +2534,7 @@ describe('Tasks API', () => {
         ),
       );
 
-      const statuses = results.map((r) => r.response.status);
+      const statuses = results.map((r) => r.response?.status);
       expect(
         statuses,
         `expected all ${CONCURRENCY} concurrent appends to return 200, got ${JSON.stringify(statuses)}`,
@@ -2581,7 +2581,7 @@ describe('Tasks API', () => {
         },
       });
 
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       expect(error).toBeUndefined();
       expect(data!.count).toBe(1);
     });
@@ -2605,7 +2605,7 @@ describe('Tasks API', () => {
         },
       });
 
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       expect(error).toBeUndefined();
       expect(data!.count).toBe(1);
     });
@@ -2634,7 +2634,7 @@ describe('Tasks API', () => {
         }),
       ]);
 
-      const statuses = [r1.response.status, r2.response.status].sort();
+      const statuses = [r1.response?.status, r2.response?.status].sort();
       // Exactly one 200, one 409
       expect(statuses).toEqual([200, 409]);
     });
@@ -2756,7 +2756,7 @@ describe('Tasks API', () => {
         path: { id: taskId, n },
         body: {},
       });
-      expect(response.status).toBe(403);
+      expect(response?.status).toBe(403);
     });
 
     it('rejects aborting a not-yet-started attempt with 409', async () => {
@@ -2771,7 +2771,7 @@ describe('Tasks API', () => {
         path: { id: taskId, n },
         body: {},
       });
-      expect(response.status).toBe(409);
+      expect(response?.status).toBe(409);
     });
 
     it('blocks late complete and fail from the aborted attempt', async () => {
@@ -2818,7 +2818,7 @@ describe('Tasks API', () => {
           usage: { model: 'test-model', inputTokens: 1, outputTokens: 1 },
         },
       });
-      expect([403, 409]).toContain(completeRes.response.status);
+      expect([403, 409]).toContain(completeRes.response?.status);
 
       const failRes = await failTaskAttempt({
         client,
@@ -2826,7 +2826,7 @@ describe('Tasks API', () => {
         path: { id: taskId, n },
         body: { error: { code: 'late', message: 'late' } },
       });
-      expect([403, 409]).toContain(failRes.response.status);
+      expect([403, 409]).toContain(failRes.response?.status);
 
       const { data: still } = await getTask({
         client,
@@ -2875,7 +2875,7 @@ describe('Tasks API', () => {
         path: { id: taskId },
         body: { reason: 'claimant must not manage lifecycle' },
       });
-      expect(cancel.response.status).toBe(403);
+      expect(cancel.response?.status).toBe(403);
 
       const ownerCancel = await cancelTask({
         client,
@@ -2905,7 +2905,7 @@ describe('Tasks API', () => {
             auth: () => taskWriter.accessToken,
             path: { id: taskId },
           }),
-        (result) => result.response.status === 403,
+        (result) => result.response?.status === 403,
         { label: 'revoked task writer no longer reads task' },
       );
 
@@ -2918,7 +2918,7 @@ describe('Tasks API', () => {
           reason: 'try to escalate cancel into delete',
         },
       });
-      expect(claimantCleanup.response.status).toBe(403);
+      expect(claimantCleanup.response?.status).toBe(403);
       expect(claimantCleanup.data).toBeUndefined();
 
       const stillVisible = await getTask({
@@ -2926,7 +2926,7 @@ describe('Tasks API', () => {
         auth: () => proposer.accessToken,
         path: { id: taskId },
       });
-      expect(stillVisible.response.status).toBe(200);
+      expect(stillVisible.response?.status).toBe(200);
       expect(stillVisible.data!.status).toBe('cancelled');
 
       const ownerCleanup = await batchDeleteTasks({
@@ -2935,7 +2935,7 @@ describe('Tasks API', () => {
         body: { ids: [taskId] },
       });
       expect(ownerCleanup.error).toBeUndefined();
-      expect(ownerCleanup.response.status).toBe(202);
+      expect(ownerCleanup.response?.status).toBe(202);
       expect(ownerCleanup.data?.workflowId).toEqual(expect.any(String));
       expect(ownerCleanup.data?.accepted).toEqual([taskId]);
       expect(ownerCleanup.data?.skipped).toEqual([]);
@@ -2990,8 +2990,8 @@ describe('Tasks API', () => {
 
       expect(first.error).toBeUndefined();
       expect(second.error).toBeUndefined();
-      expect(first.response.status).toBe(202);
-      expect(second.response.status).toBe(202);
+      expect(first.response?.status).toBe(202);
+      expect(second.response?.status).toBe(202);
 
       const responses = [first.data!, second.data!];
       const queuedResponse = responses.find(
@@ -3091,7 +3091,7 @@ describe('Tasks API', () => {
         },
       });
       expect(safe.error).toBeUndefined();
-      expect(safe.response.status).toBe(202);
+      expect(safe.response?.status).toBe(202);
       expect(safe.data?.workflowId).toEqual(expect.any(String));
       expect(safe.data?.accepted).toEqual([terminal.data!.id, queued.data!.id]);
       expect(safe.data?.skipped).toEqual([sealed.data!.id, missingId]);
@@ -3127,7 +3127,7 @@ describe('Tasks API', () => {
         auth: () => proposer.accessToken,
         body: { ids: [sealed.data!.id], force: true },
       });
-      expect(rejected.response.status).toBe(400);
+      expect(rejected.response?.status).toBe(400);
 
       const accepted = await batchDeleteTasks({
         client,
@@ -3139,7 +3139,7 @@ describe('Tasks API', () => {
         },
       });
       expect(accepted.error).toBeUndefined();
-      expect(accepted.response.status).toBe(202);
+      expect(accepted.response?.status).toBe(202);
       expect(accepted.data?.workflowId).toEqual(expect.any(String));
       expect(accepted.data?.accepted).toEqual([sealed.data!.id]);
       expect(accepted.data?.skipped).toEqual([]);
@@ -3201,7 +3201,7 @@ describe('Tasks API', () => {
           },
         });
         expect(deletion.error).toBeUndefined();
-        expect(deletion.response.status).toBe(202);
+        expect(deletion.response?.status).toBe(202);
         expect(deletion.data?.accepted).toEqual([task.data!.id]);
         expect(deletion.data?.skipped).toEqual([]);
 
@@ -3229,7 +3229,7 @@ describe('Tasks API', () => {
             auth: () => proposer.accessToken,
             path: { id: task.data!.id },
           }),
-        (result) => result.response.status === 200,
+        (result) => result.response?.status === 200,
         {
           ...TASK_DELETION_POLL_OPTIONS,
           label: 'race-lost sealed task remains visible',
@@ -3240,7 +3240,7 @@ describe('Tasks API', () => {
         auth: () => proposer.accessToken,
         path: { id: task.data!.id },
       });
-      expect(stillVisible.response.status).toBe(200);
+      expect(stillVisible.response?.status).toBe(200);
       expect(stillVisible.data!.status).toBe('cancelled');
 
       const seals = await harness.db

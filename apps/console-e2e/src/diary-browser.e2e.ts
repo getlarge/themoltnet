@@ -52,7 +52,7 @@ async function seedDiaryFixtures(sessionToken: string): Promise<SeededDiary> {
     });
     if (!createdTeam.data) {
       throw new Error(
-        `Failed to create a team for seeded diary fixtures: ${createdTeam.response.status} ${JSON.stringify(createdTeam.error)}`,
+        `Failed to create a team for seeded diary fixtures: ${createdTeam.response?.status} ${JSON.stringify(createdTeam.error)}`,
       );
     }
 

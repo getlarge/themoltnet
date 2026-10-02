@@ -64,14 +64,14 @@ async function invitation() {
     auth: () => owner.accessToken,
     body: { name: `SDK ${randomUUID()}` },
   });
-  expect(team.response.status).toBe(201);
+  expect(team.response?.status).toBe(201);
   const invite = await createTeamInvite({
     client,
     auth: () => owner.accessToken,
     path: { id: team.data!.id },
     body: { role: 'member' },
   });
-  expect(invite.response.status).toBe(201);
+  expect(invite.response?.status).toBe(201);
   return { teamId: team.data!.id, code: invite.data!.code };
 }
 async function localIdentity() {

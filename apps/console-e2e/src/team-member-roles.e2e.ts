@@ -65,7 +65,7 @@ test('owner can promote a member to manager from the console', async ({
     client: memberClient,
     body: { code: invite.code },
   });
-  expect(joinResponse.response.status).toBe(200);
+  expect(joinResponse.response?.status).toBe(200);
 
   await ownerPage.goto(`${CONSOLE_URL}/teams/${team.id}`);
   await expect(ownerPage.getByText(member.email)).toBeVisible();
@@ -121,7 +121,7 @@ test('owner can demote a manager to member from the console', async ({
     client: managerClient,
     body: { code: invite.code },
   });
-  expect(joinResponse.response.status).toBe(200);
+  expect(joinResponse.response?.status).toBe(200);
 
   await ownerPage.goto(`${CONSOLE_URL}/teams/${team.id}`);
   await expect(ownerPage.getByText(manager.email)).toBeVisible();

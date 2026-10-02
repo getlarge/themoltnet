@@ -52,9 +52,9 @@ test.describe.serial('Task lanes board', () => {
         },
       });
       if (result.data) return result.data;
-      if (result.response.status !== 409 && result.response.status !== 403) {
+      if (result.response?.status !== 409 && result.response?.status !== 403) {
         throw new Error(
-          `createTask ${label} failed: ${result.response.status}`,
+          `createTask ${label} failed: ${result.response?.status}`,
         );
       }
       await new Promise((resolve) => {
@@ -103,7 +103,7 @@ test.describe.serial('Task lanes board', () => {
       body: { name: `task-lanes-diary-${nonce}`, visibility: 'private' },
     });
     if (!diary.data) {
-      throw new Error(`createDiary failed: ${diary.response.status}`);
+      throw new Error(`createDiary failed: ${diary.response?.status}`);
     }
     diaryId = diary.data.id;
 

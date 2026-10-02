@@ -86,7 +86,7 @@ describe('Team Governance', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(202);
+      expect(response?.status).toBe(202);
       const body = data as { id: string; status: string; workflowId: string };
       expect(body.status).toBe('founding');
       expect(body.id).toBeDefined();
@@ -101,7 +101,7 @@ describe('Team Governance', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(201);
+      expect(response?.status).toBe(201);
       expect(data!.id).toBeDefined();
       expect(data!.name).toBe('instant-team');
     });
@@ -123,7 +123,7 @@ describe('Team Governance', () => {
           ],
         },
       });
-      expect(response.status).toBe(202);
+      expect(response?.status).toBe(202);
       foundingTeamId = (data as { id: string }).id;
 
       // The team-founding workflow runs async: a single step grants Keto roles
@@ -155,7 +155,7 @@ describe('Team Governance', () => {
         body: {},
       });
 
-      expect(response.status).toBe(404);
+      expect(response?.status).toBe(404);
     });
 
     it('agentB (co-founder) can accept their founding role', async () => {
@@ -167,7 +167,7 @@ describe('Team Governance', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       expect(data!.accepted).toBe(true);
       // agentA (creator) hasn't accepted yet — still founding
       expect(data!.teamStatus).toBe('founding');
@@ -182,7 +182,7 @@ describe('Team Governance', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       expect(data!.accepted).toBe(true);
       // Route returns synthetic 'active' when all owners have accepted (single owner here)
       expect(data!.teamStatus).toBe('active');
@@ -197,7 +197,7 @@ describe('Team Governance', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       expect(data).toMatchObject({ accepted: true, teamStatus: 'active' });
     });
 
@@ -208,7 +208,7 @@ describe('Team Governance', () => {
         body: {},
       });
 
-      expect(response.status).toBe(401);
+      expect(response?.status).toBe(401);
     });
   });
 
@@ -222,7 +222,7 @@ describe('Team Governance', () => {
       });
 
       expect(error).toBeUndefined();
-      expect(response.status).toBe(200);
+      expect(response?.status).toBe(200);
       const personal = data!.items.find(
         (t: { personal: boolean }) => t.personal,
       );
@@ -244,7 +244,7 @@ describe('Team Governance', () => {
         auth: () => agentA.accessToken,
         body: { name: `source-team-${Date.now()}` },
       });
-      expect(srcRes.status).toBe(201);
+      expect(srcRes?.status).toBe(201);
       sourceTeamId = srcData!.id;
 
       const { data: dstData, response: dstRes } = await createTeam({
@@ -252,7 +252,7 @@ describe('Team Governance', () => {
         auth: () => agentB.accessToken,
         body: { name: `dest-team-${Date.now()}` },
       });
-      expect(dstRes.status).toBe(201);
+      expect(dstRes?.status).toBe(201);
       destTeamId = dstData!.id;
 
       const { data, error } = await createDiary({
@@ -274,7 +274,7 @@ describe('Team Governance', () => {
           path: { id: diaryId },
           body: { destinationTeamId: destTeamId },
         });
-        expect(response.status).toBe(401);
+        expect(response?.status).toBe(401);
       });
 
       it('non-diary-manager cannot initiate a transfer', async () => {
@@ -284,7 +284,7 @@ describe('Team Governance', () => {
           path: { id: diaryId },
           body: { destinationTeamId: destTeamId },
         });
-        expect(response.status).toBe(403);
+        expect(response?.status).toBe(403);
       });
 
       it('cannot transfer to a personal team', async () => {
@@ -294,7 +294,7 @@ describe('Team Governance', () => {
           path: { id: diaryId },
           body: { destinationTeamId: agentB.personalTeamId },
         });
-        expect(response.status).toBe(400);
+        expect(response?.status).toBe(400);
       });
 
       it('source team non-owner cannot initiate even with diary manage access', async () => {
@@ -304,7 +304,7 @@ describe('Team Governance', () => {
           path: { id: diaryId },
           body: { destinationTeamId: destTeamId },
         });
-        expect(response.status).toBe(403);
+        expect(response?.status).toBe(403);
       });
 
       it('agentA initiates a transfer — returns 202 with transfer record', async () => {
@@ -314,7 +314,7 @@ describe('Team Governance', () => {
           path: { id: diaryId },
           body: { destinationTeamId: destTeamId },
         });
-        expect(response.status).toBe(202);
+        expect(response?.status).toBe(202);
         expect(error).toBeUndefined();
         expect(data!.status).toBe('pending');
         expect(data!.diaryId).toBe(diaryId);
@@ -329,7 +329,7 @@ describe('Team Governance', () => {
           path: { id: diaryId },
           body: { destinationTeamId: destTeamId },
         });
-        expect(response.status).toBe(409);
+        expect(response?.status).toBe(409);
       });
     });
 
@@ -342,7 +342,7 @@ describe('Team Governance', () => {
           auth: () => agentB.accessToken,
         });
         expect(error).toBeUndefined();
-        expect(response.status).toBe(200);
+        expect(response?.status).toBe(200);
         const transfer = data!.items.find(
           (t: { diaryId: string }) => t.diaryId === diaryId,
         );
@@ -356,7 +356,7 @@ describe('Team Governance', () => {
           auth: () => agentA.accessToken,
         });
         expect(error).toBeUndefined();
-        expect(response.status).toBe(200);
+        expect(response?.status).toBe(200);
         const found = data!.items.find(
           (t: { diaryId: string }) => t.diaryId === diaryId,
         );
@@ -369,13 +369,13 @@ describe('Team Governance', () => {
           auth: () => agentC.accessToken,
         });
         expect(error).toBeUndefined();
-        expect(response.status).toBe(200);
+        expect(response?.status).toBe(200);
         expect(Array.isArray(data!.items)).toBe(true);
       });
 
       it('unauthenticated gets 401', async () => {
         const { response } = await listPendingTransfers({ client });
-        expect(response.status).toBe(401);
+        expect(response?.status).toBe(401);
       });
     });
 
@@ -403,7 +403,7 @@ describe('Team Governance', () => {
           path: { id: rejectDiaryId },
           body: { destinationTeamId: destTeamId },
         });
-        expect(response.status).toBe(202);
+        expect(response?.status).toBe(202);
         transferId = transferData!.id;
       });
 
@@ -413,7 +413,7 @@ describe('Team Governance', () => {
           auth: () => agentC.accessToken,
           path: { transferId },
         });
-        expect(response.status).toBe(403);
+        expect(response?.status).toBe(403);
       });
 
       it('agentB (destination owner) rejects — decision sent to workflow', async () => {
@@ -423,7 +423,7 @@ describe('Team Governance', () => {
           path: { transferId },
         });
         expect(error).toBeUndefined();
-        expect(response.status).toBe(200);
+        expect(response?.status).toBe(200);
         // Workflow updates status async; route returns original transfer
         expect(data!.id).toBe(transferId);
       });
@@ -435,7 +435,7 @@ describe('Team Governance', () => {
           path: { id: rejectDiaryId },
         });
         expect(error).toBeUndefined();
-        expect(response.status).toBe(200);
+        expect(response?.status).toBe(200);
         expect(data!.teamId).toBe(sourceTeamId);
       });
 
@@ -446,7 +446,7 @@ describe('Team Governance', () => {
           path: { transferId },
         });
         expect(error).toBeUndefined();
-        expect(response.status).toBe(200);
+        expect(response?.status).toBe(200);
         expect(data?.status).toBe('rejected');
       });
     });
@@ -475,7 +475,7 @@ describe('Team Governance', () => {
           path: { id: acceptDiaryId },
           body: { destinationTeamId: destTeamId },
         });
-        expect(response.status).toBe(202);
+        expect(response?.status).toBe(202);
         transferId = transferData!.id;
       });
 
@@ -485,7 +485,7 @@ describe('Team Governance', () => {
           auth: () => agentC.accessToken,
           path: { transferId },
         });
-        expect(response.status).toBe(403);
+        expect(response?.status).toBe(403);
       });
 
       it('agentB accepts — decision sent to workflow (async)', async () => {
@@ -495,7 +495,7 @@ describe('Team Governance', () => {
           path: { transferId },
         });
         expect(error).toBeUndefined();
-        expect(response.status).toBe(200);
+        expect(response?.status).toBe(200);
         // Workflow updates status async; route returns original transfer
         expect(data!.id).toBe(transferId);
       });
@@ -509,7 +509,7 @@ describe('Team Governance', () => {
               auth: () => agentB.accessToken,
               path: { id: acceptDiaryId },
             }),
-          (r) => r.response.ok && r.data?.teamId === destTeamId,
+          (r) => r.response?.ok === true && r.data?.teamId === destTeamId,
           {
             label: 'diary moved to destTeam',
             maxAttempts: 10,
@@ -526,7 +526,7 @@ describe('Team Governance', () => {
           path: { transferId },
         });
         expect(error).toBeUndefined();
-        expect(response.status).toBe(200);
+        expect(response?.status).toBe(200);
         expect(data?.status).toBe('accepted');
       });
     });
