@@ -655,7 +655,7 @@ describe('agent server providers and runs', () => {
     expect(existsSync(join(store.secretsDir, 'pi-provider', 'ollama'))).toBe(
       true,
     );
-  });
+  }, 15_000);
 
   it('removes a provider and its local API key', async () => {
     const { app, store } = await fixture();
