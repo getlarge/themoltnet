@@ -1,0 +1,488 @@
+{
+  "cascade_log": [
+    {
+      "elapsed_ms": 20,
+      "limit": 8,
+      "query": "Process evidence/set-a.json and write findings-a.json with one finding per item, each carrying a citation to its source item",
+      "stage": null,
+      "top": []
+    },
+    {
+      "elapsed_ms": 2,
+      "limit": 8,
+      "query": "Process evidence/set-b.json and write findings-b.json with one finding per item, each carrying a citation to its source item",
+      "stage": null,
+      "top": []
+    },
+    {
+      "elapsed_ms": 1,
+      "limit": 8,
+      "query": "Read CLAUDE.md and write a workflow spec listing the task graph, the approval gate placement, the post-approval summary task, and the repair-attempt cap of two, with the expected input/output file names per task",
+      "stage": null,
+      "top": []
+    },
+    {
+      "elapsed_ms": 1,
+      "limit": 8,
+      "query": "Merge findings-a.json and findings-b.json into a synthesis that reconciles overlaps and conflicts and preserves per-item citations from both sets",
+      "stage": null,
+      "top": []
+    },
+    {
+      "elapsed_ms": 2,
+      "limit": 8,
+      "query": "Present the synthesis to the user and block until explicit approve or reject is recorded; do not start downstream work before approval",
+      "stage": null,
+      "top": []
+    },
+    {
+      "elapsed_ms": 2,
+      "limit": 8,
+      "query": "After approval, produce the downstream summary from the approved synthesis, keeping the citations",
+      "stage": null,
+      "top": []
+    },
+    {
+      "elapsed_ms": 1,
+      "limit": 8,
+      "query": "If the gate rejects or validation fails, revise the failing task output using the feedback, at most two repair attempts, then re-submit to the gate or escalate to the user",
+      "stage": null,
+      "top": []
+    }
+  ],
+  "decomposer": {
+    "dependency_graph": {
+      "bounded-repair": ["human-approval-gate"],
+      "human-approval-gate": ["synthesize-findings"],
+      "post-approval-summary": ["human-approval-gate"],
+      "process-set-a": [],
+      "process-set-b": [],
+      "synthesize-findings": [
+        "process-set-a",
+        "process-set-b",
+        "validate-workflow-spec"
+      ],
+      "validate-workflow-spec": []
+    },
+    "subtasks": [
+      {
+        "commitment_level": "COMMITTED",
+        "depends_on": [],
+        "description": "Process evidence/set-a.json and write findings-a.json with one finding per item, each carrying a citation to its source item",
+        "estimated_minutes": 8,
+        "id": "process-set-a",
+        "model_tier": "sonnet",
+        "testable_outcome": "findings-a.json exists, is valid JSON, and every finding has a non-empty citation resolving to an item in set-a.json"
+      },
+      {
+        "commitment_level": "COMMITTED",
+        "depends_on": [],
+        "description": "Process evidence/set-b.json and write findings-b.json with one finding per item, each carrying a citation to its source item",
+        "estimated_minutes": 8,
+        "id": "process-set-b",
+        "model_tier": "sonnet",
+        "testable_outcome": "findings-b.json exists, is valid JSON, and every finding has a non-empty citation resolving to an item in set-b.json"
+      },
+      {
+        "commitment_level": "COMMITTED",
+        "depends_on": [],
+        "description": "Read CLAUDE.md and write a workflow spec listing the task graph, the approval gate placement, the post-approval summary task, and the repair-attempt cap of two, with the expected input/output file names per task",
+        "estimated_minutes": 5,
+        "id": "validate-workflow-spec",
+        "model_tier": "sonnet",
+        "testable_outcome": "Spec file enumerates every task, its inputs/outputs, the human gate, and the max-two repair rule, matching CLAUDE.md with no omissions"
+      },
+      {
+        "commitment_level": "COMMITTED",
+        "depends_on": [
+          "process-set-a",
+          "process-set-b",
+          "validate-workflow-spec"
+        ],
+        "description": "Merge findings-a.json and findings-b.json into a synthesis that reconciles overlaps and conflicts and preserves per-item citations from both sets",
+        "estimated_minutes": 10,
+        "id": "synthesize-findings",
+        "model_tier": "opus",
+        "testable_outcome": "Synthesis file exists; every claim traces to a citation from findings-a.json or findings-b.json; conflicts are explicitly flagged"
+      },
+      {
+        "commitment_level": "COMMITTED",
+        "depends_on": ["synthesize-findings"],
+        "description": "Present the synthesis to the user and block until explicit approve or reject is recorded; do not start downstream work before approval",
+        "estimated_minutes": 3,
+        "id": "human-approval-gate",
+        "model_tier": "haiku",
+        "testable_outcome": "A recorded approval decision (approve or reject with feedback) exists before any downstream task runs"
+      },
+      {
+        "commitment_level": "TENTATIVE",
+        "depends_on": ["human-approval-gate"],
+        "description": "After approval, produce the downstream summary from the approved synthesis, keeping the citations",
+        "estimated_minutes": 5,
+        "id": "post-approval-summary",
+        "model_tier": "sonnet",
+        "testable_outcome": "Summary file exists, is derived only from the approved synthesis, and cites its sources"
+      },
+      {
+        "commitment_level": "EXPLORATORY",
+        "depends_on": ["human-approval-gate"],
+        "description": "If the gate rejects or validation fails, revise the failing task output using the feedback, at most two repair attempts, then re-submit to the gate or escalate to the user",
+        "estimated_minutes": 10,
+        "id": "bounded-repair",
+        "model_tier": "sonnet",
+        "testable_outcome": "Repair attempts are at most 2; each produces a revised output addressing the feedback, or the failure is escalated after the second attempt"
+      }
+    ],
+    "waves": [
+      {
+        "task_ids": [
+          "process-set-a",
+          "process-set-b",
+          "validate-workflow-spec"
+        ],
+        "wave_number": 0
+      },
+      {
+        "task_ids": ["synthesize-findings"],
+        "wave_number": 1
+      },
+      {
+        "task_ids": ["human-approval-gate"],
+        "wave_number": 2
+      },
+      {
+        "task_ids": ["post-approval-summary", "bounded-repair"],
+        "wave_number": 3
+      }
+    ]
+  },
+  "elapsed_ms": 106048,
+  "harness_note": "INVALID RUN: harness exposed a 1-skill catalog, so every cascade query errored and the selector received zero candidates. Kept as evidence that the pipeline still reported success with invented skill ids.",
+  "narrowed_candidates": [
+    {
+      "candidates": [],
+      "task_id": "process-set-a"
+    },
+    {
+      "candidates": [],
+      "task_id": "process-set-b"
+    },
+    {
+      "candidates": [],
+      "task_id": "validate-workflow-spec"
+    },
+    {
+      "candidates": [],
+      "task_id": "synthesize-findings"
+    },
+    {
+      "candidates": [],
+      "task_id": "human-approval-gate"
+    },
+    {
+      "candidates": [],
+      "task_id": "post-approval-summary"
+    },
+    {
+      "candidates": [],
+      "task_id": "bounded-repair"
+    }
+  ],
+  "patched": "llm-client.js/provider-models.js claude-cli transport only",
+  "predicted_dag": {
+    "confidence": 0.82,
+    "estimated_total_cost_usd": 1.59,
+    "estimated_total_minutes": 49,
+    "premortem": {
+      "recommendation": "ACCEPT_WITH_MONITORING",
+      "risks": [
+        {
+          "affected_nodes": [],
+          "description": "Wave 3 contains two tasks (post-approval-summary and bounded-repair) that both depend on human-approval-gate but are intended to be mutually exclusive based on gate outcome. If the gate approves, only post-approval-summary should run; if it rejects, only bounded-repair should run. The decomposition does not explicitly encode this conditional fork\u2014it relies on the orchestrator to implement conditional execution logic. If the orchestrator runs both tasks or neither, the pipeline produces incorrect results.",
+          "mitigation": "Ensure the orchestrator supports conditional task execution based on gate decision output. Explicitly configure Wave 3 so that post-approval-summary runs only on approval and bounded-repair runs only on rejection. Add explicit branch points to the decomposition if the orchestrator requires them.",
+          "severity": "medium"
+        },
+        {
+          "affected_nodes": [],
+          "description": "Wave 0 tasks (process-set-a, process-set-b, validate-workflow-spec) assume that evidence/set-a.json, evidence/set-b.json, and CLAUDE.md exist and are readable in the working directory. If any of these files are missing or inaccessible, Wave 0 tasks will fail immediately with no fallback or recovery.",
+          "mitigation": "Before DAG execution, verify that all three input files (evidence/set-a.json, evidence/set-b.json, CLAUDE.md) exist in the working directory and are readable. If any are missing, halt DAG execution and ask the user to provide them.",
+          "severity": "medium"
+        },
+        {
+          "affected_nodes": [],
+          "description": "The bounded-repair task description states 'if the gate rejects or validation fails,' but does not clarify whether 'validation fails' refers to failures in Wave 0 tasks (process-set-a, process-set-b, validate-workflow-spec) or only to synthesis validation. If it refers to Wave 0 failures, repair is impossible because bounded-repair runs after the gate (Wave 3), which is downstream of Wave 0. This ambiguity may cause the assigned skill to misunderstand the task scope and timing.",
+          "mitigation": "Clarify the bounded-repair task description: if it only handles synthesis-level feedback, remove the 'or validation fails' clause and explicitly state it runs post-gate on synthesis rejection. If it is meant to repair Wave 0 failures, restructure the DAG to include a repair task in Wave 1 (after Wave 0, before synthesis) with a bounded-retry loop.",
+          "severity": "medium"
+        },
+        {
+          "affected_nodes": [],
+          "description": "The DAG will write output files (findings-a.json, findings-b.json, and implied synthesis.json). If files with these names already exist in the working directory with valuable data, they will be silently overwritten.",
+          "mitigation": "Before Wave 0 execution, check for existing findings-a.json, findings-b.json, and synthesis.json files. If any exist, warn the user and optionally offer to back them up or ask for confirmation before proceeding.",
+          "severity": "low"
+        }
+      ]
+    },
+    "problem_classification": "well-structured",
+    "title": "Process evidence sets, synthesize, gate on human approval, summarize, with bounded repair",
+    "topology": "dag",
+    "waves": [
+      {
+        "nodes": [
+          {
+            "confidence": 0.7,
+            "dependencies": [],
+            "estimated_cost_usd": 0.15,
+            "estimated_minutes": 8,
+            "id": "process-set-a",
+            "model_tier": "balanced",
+            "role_description": "Read evidence/set-a.json and write findings-a.json with one finding per item, each carrying a citation that resolves to its source item in set-a.json.",
+            "skill_id": "json-evidence-processor"
+          },
+          {
+            "confidence": 0.7,
+            "dependencies": [],
+            "estimated_cost_usd": 0.15,
+            "estimated_minutes": 8,
+            "id": "process-set-b",
+            "model_tier": "balanced",
+            "role_description": "Read evidence/set-b.json and write findings-b.json with one finding per item, each carrying a citation that resolves to its source item in set-b.json. Runs in parallel with set A.",
+            "skill_id": "json-evidence-processor"
+          },
+          {
+            "confidence": 0.7,
+            "dependencies": [],
+            "estimated_cost_usd": 0.1,
+            "estimated_minutes": 5,
+            "id": "validate-workflow-spec",
+            "model_tier": "balanced",
+            "role_description": "Read CLAUDE.md and write a workflow spec listing the task graph, approval gate placement, post-approval summary task, the repair cap of two attempts, and the expected input/output file names per task.",
+            "skill_id": "spec-generator"
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "confidence": 0.7,
+            "dependencies": [],
+            "estimated_cost_usd": 0.8,
+            "estimated_minutes": 10,
+            "id": "synthesize-findings",
+            "model_tier": "powerful",
+            "role_description": "Merge findings-a.json and findings-b.json into a single synthesis, reconciling overlaps, explicitly flagging conflicts, and preserving per-item citations from both sets, following the workflow spec.",
+            "skill_id": "data-reconciliator"
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "confidence": 0.7,
+            "dependencies": [],
+            "estimated_cost_usd": 0.02,
+            "estimated_minutes": 3,
+            "id": "human-approval-gate",
+            "model_tier": "fast",
+            "role_description": "Present the synthesis to the user and block until an explicit approve or reject decision is recorded. No downstream work starts before approval.",
+            "skill_id": "approval-gate-handler"
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "confidence": 0.7,
+            "dependencies": [],
+            "estimated_cost_usd": 0.12,
+            "estimated_minutes": 5,
+            "id": "post-approval-summary",
+            "model_tier": "balanced",
+            "role_description": "Only if the gate approves, produce the downstream summary from the approved synthesis, keeping citations. Must be skipped on rejection.",
+            "skill_id": "summary-generator"
+          },
+          {
+            "confidence": 0.7,
+            "dependencies": [],
+            "estimated_cost_usd": 0.25,
+            "estimated_minutes": 10,
+            "id": "bounded-repair",
+            "model_tier": "balanced",
+            "role_description": "Only if the gate rejects, revise the synthesis using the rejection feedback, at most two repair attempts, then re-submit to the gate or escalate to the user after the second attempt. Scope is synthesis-level feedback; Wave 0 failures are handled before the gate.",
+            "skill_id": "iterative-repair-engine"
+          }
+        ]
+      }
+    ]
+  },
+  "premortem": {
+    "recommendation": "ACCEPT_WITH_MONITORING",
+    "risks": [
+      {
+        "category": "structural",
+        "description": "Wave 3 contains two tasks (post-approval-summary and bounded-repair) that both depend on human-approval-gate but are intended to be mutually exclusive based on gate outcome. If the gate approves, only post-approval-summary should run; if it rejects, only bounded-repair should run. The decomposition does not explicitly encode this conditional fork\u2014it relies on the orchestrator to implement conditional execution logic. If the orchestrator runs both tasks or neither, the pipeline produces incorrect results.",
+        "mitigation": "Ensure the orchestrator supports conditional task execution based on gate decision output. Explicitly configure Wave 3 so that post-approval-summary runs only on approval and bounded-repair runs only on rejection. Add explicit branch points to the decomposition if the orchestrator requires them.",
+        "severity": "medium"
+      },
+      {
+        "category": "context",
+        "description": "Wave 0 tasks (process-set-a, process-set-b, validate-workflow-spec) assume that evidence/set-a.json, evidence/set-b.json, and CLAUDE.md exist and are readable in the working directory. If any of these files are missing or inaccessible, Wave 0 tasks will fail immediately with no fallback or recovery.",
+        "mitigation": "Before DAG execution, verify that all three input files (evidence/set-a.json, evidence/set-b.json, CLAUDE.md) exist in the working directory and are readable. If any are missing, halt DAG execution and ask the user to provide them.",
+        "severity": "medium"
+      },
+      {
+        "category": "skill",
+        "description": "The bounded-repair task description states 'if the gate rejects or validation fails,' but does not clarify whether 'validation fails' refers to failures in Wave 0 tasks (process-set-a, process-set-b, validate-workflow-spec) or only to synthesis validation. If it refers to Wave 0 failures, repair is impossible because bounded-repair runs after the gate (Wave 3), which is downstream of Wave 0. This ambiguity may cause the assigned skill to misunderstand the task scope and timing.",
+        "mitigation": "Clarify the bounded-repair task description: if it only handles synthesis-level feedback, remove the 'or validation fails' clause and explicitly state it runs post-gate on synthesis rejection. If it is meant to repair Wave 0 failures, restructure the DAG to include a repair task in Wave 1 (after Wave 0, before synthesis) with a bounded-retry loop.",
+        "severity": "medium"
+      },
+      {
+        "category": "context",
+        "description": "The DAG will write output files (findings-a.json, findings-b.json, and implied synthesis.json). If files with these names already exist in the working directory with valuable data, they will be silently overwritten.",
+        "mitigation": "Before Wave 0 execution, check for existing findings-a.json, findings-b.json, and synthesis.json files. If any exist, warn the user and optionally offer to back them up or ask for confirmation before proceeding.",
+        "severity": "low"
+      }
+    ]
+  },
+  "provider": "claude-cli",
+  "provider_label": "claude-cli",
+  "sensemaker": {
+    "confidence": 0.82,
+    "evidence": [
+      "user_focus_hint explicitly restates the full workflow to design and run, matching CLAUDE.md step-for-step",
+      "CLAUDE.md defines a bounded, explicit decomposition: two independent tasks, then synthesis, then human gate, then one downstream summary, plus a repair limit of two",
+      "Clean git state with a single 'Initial synthetic workbench' commit on master: fresh start, no work in progress or conflicting signals",
+      "No staged or modified files, no prior predictions: the next move is the first step, not a continuation",
+      "Branch name 'master' carries no information and was not used for inference",
+      "Caveat: recently_modified is unavailable, so the existence of evidence/set-a.json and set-b.json is assumed from CLAUDE.md rather than confirmed"
+    ],
+    "halt_reason": null,
+    "inferred_problem": "Design the workflow structure and run it: create the two independent evidence-processing tasks (set A and set B) producing findings-a.json and findings-b.json with per-item citations, then the synthesis task, the human approval gate, the post-approval summary task, and the bounded (max two) repair path.",
+    "problem_classification": "well-structured"
+  },
+  "skill_selection": {
+    "selections": [
+      {
+        "estimated_cost_usd": null,
+        "estimated_minutes": null,
+        "model_tier": "balanced",
+        "primary_skill": "json-evidence-processor",
+        "reasoning": "Subtask requires structured reading and parsing of JSON evidence, extracting findings, and maintaining citations to source items. No suitable skill found in provided catalog; this assignment flags a gap for skill creation around JSON extraction with citation tracking.",
+        "runner_up": null,
+        "subtask_id": "process-set-a"
+      },
+      {
+        "estimated_cost_usd": null,
+        "estimated_minutes": null,
+        "model_tier": "balanced",
+        "primary_skill": "json-evidence-processor",
+        "reasoning": "Identical processing task as process-set-a on a parallel dataset. Reusing the same skill is appropriate for Wave 0 parallel execution.",
+        "runner_up": null,
+        "subtask_id": "process-set-b"
+      },
+      {
+        "estimated_cost_usd": null,
+        "estimated_minutes": null,
+        "model_tier": "balanced",
+        "primary_skill": "spec-generator",
+        "reasoning": "Requires reading CLAUDE.md and producing a formal workflow specification enumerating task graph, approval gate placement, repair cap, and input/output mappings. No suitable skill found in catalog; flags need for specification-generation capability.",
+        "runner_up": null,
+        "subtask_id": "validate-workflow-spec"
+      },
+      {
+        "estimated_cost_usd": null,
+        "estimated_minutes": null,
+        "model_tier": "balanced",
+        "primary_skill": "data-reconciliator",
+        "reasoning": "Core work is merging two findings sets, resolving conflicts, and preserving dual citations. Requires reconciliation logic with conflict detection and lineage preservation. No matching skill in catalog; represents gap in data-synthesis capability.",
+        "runner_up": null,
+        "subtask_id": "synthesize-findings"
+      },
+      {
+        "estimated_cost_usd": null,
+        "estimated_minutes": null,
+        "model_tier": "balanced",
+        "primary_skill": "approval-gate-handler",
+        "reasoning": "Control-flow task requiring presentation of synthesis to user and blocking on approve/reject decision. Needs state recording and conditional progression. No suitable skill found in catalog for gate management.",
+        "runner_up": null,
+        "subtask_id": "human-approval-gate"
+      },
+      {
+        "estimated_cost_usd": null,
+        "estimated_minutes": null,
+        "model_tier": "balanced",
+        "primary_skill": "summary-generator",
+        "reasoning": "Produce downstream summary derived from approved synthesis with citation preservation. Requires condensation while maintaining provenance. No matching skill in catalog.",
+        "runner_up": null,
+        "subtask_id": "post-approval-summary"
+      },
+      {
+        "estimated_cost_usd": null,
+        "estimated_minutes": null,
+        "model_tier": "balanced",
+        "primary_skill": "iterative-repair-engine",
+        "reasoning": "Handle rejection feedback and revise failing outputs iteratively with hard limit of 2 attempts. Requires attempt tracking, feedback incorporation, and escalation logic. No suitable skill found in catalog for bounded iterative correction.",
+        "runner_up": null,
+        "subtask_id": "bounded-repair"
+      }
+    ]
+  },
+  "task_hint": "Design and run the evidence-synthesis workflow described in CLAUDE.md: process evidence set A and set B independently, synthesize both findings, gate on a human decision (approve / request revision / reject), produce the final summary only after approval, and repair structurally invalid outputs at most twice.",
+  "upstream_revision": "9e2fed3bb42ad027284c5a3342e5487be45bf05e",
+  "usage_log": [
+    {
+      "cost_usd": 0.0062384,
+      "elapsed_ms": 7680,
+      "input_tokens": 3934,
+      "max_tokens_requested": 1024,
+      "model": "sonnet",
+      "output_tokens": 388,
+      "provider": "claude-cli",
+      "served_models": ["claude-haiku-4-5-20251001", "claude-sonnet-5-5"],
+      "stage": "sensemaker"
+    },
+    {
+      "cost_usd": 0.022848,
+      "elapsed_ms": 13810,
+      "input_tokens": 5168,
+      "max_tokens_requested": 2048,
+      "model": "sonnet",
+      "output_tokens": 1608,
+      "provider": "claude-cli",
+      "served_models": ["claude-haiku-4-5-20251001", "claude-sonnet-5-5"],
+      "stage": "decomposer"
+    },
+    {
+      "cost_usd": 0.029025,
+      "elapsed_ms": 38578,
+      "input_tokens": 4664,
+      "max_tokens_requested": 2048,
+      "model": "haiku",
+      "output_tokens": 3440,
+      "provider": "claude-cli",
+      "served_models": ["claude-haiku-4-5-20251001"],
+      "stage": "skill_selector"
+    },
+    {
+      "cost_usd": 0.042069,
+      "elapsed_ms": 65100,
+      "input_tokens": 4570,
+      "max_tokens_requested": 2048,
+      "model": "haiku",
+      "output_tokens": 6126,
+      "provider": "claude-cli",
+      "served_models": ["claude-haiku-4-5-20251001"],
+      "stage": "premortem"
+    },
+    {
+      "cost_usd": 0.058661,
+      "elapsed_ms": 19372,
+      "input_tokens": 6214,
+      "max_tokens_requested": 4096,
+      "model": "sonnet",
+      "output_tokens": 2957,
+      "provider": "claude-cli",
+      "served_models": ["claude-haiku-4-5-20251001", "claude-sonnet-5-5"],
+      "stage": "synthesizer"
+    }
+  ]
+}

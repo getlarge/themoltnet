@@ -1,0 +1,133 @@
+{
+  "findings": {
+    "h1_dependencies_discarded": {
+      "after_postProcess_dependencies": null,
+      "after_validator_dependencies": [],
+      "confirmed": true,
+      "decomposer_depends_on": ["process-a", "process-b"],
+      "synthesizer_node_had_dependencies": ["process-a", "process-b"]
+    },
+    "h2_contracts_stripped": {
+      "after_postProcess_keys": [
+        "id",
+        "skill_id",
+        "role_description",
+        "why",
+        "input_contract",
+        "output_contract",
+        "commitment_level",
+        "model_tier",
+        "estimated_minutes",
+        "estimated_cost_usd",
+        "cascade_depth"
+      ],
+      "after_validator_keys": [
+        "id",
+        "skill_id",
+        "role_description",
+        "dependencies",
+        "estimated_minutes",
+        "estimated_cost_usd",
+        "confidence",
+        "model_tier"
+      ],
+      "after_validator_wave_keys": ["nodes"],
+      "commitment_level_survives": false,
+      "confirmed": true,
+      "input_contract_survives": false,
+      "output_contract_survives": false,
+      "topology_reason_survives": true,
+      "wave_number_survives": false,
+      "why_survives": false
+    },
+    "h3_schema_validator_disagree": {
+      "confirmed": true,
+      "json_schema_accepts_documented_shape": true,
+      "json_schema_accepts_postprocessed_shape": false,
+      "json_schema_errors_on_documented_shape": [],
+      "json_schema_errors_on_postprocessed_shape": [
+        "/waves/0/nodes/0/model_tier must be equal to one of the allowed values",
+        "/waves/0/nodes/1/model_tier must be equal to one of the allowed values",
+        "/waves/1/nodes/0/model_tier must be equal to one of the allowed values",
+        "/waves/2/nodes/0/model_tier must be equal to one of the allowed values",
+        "/waves/3/nodes/0/model_tier must be equal to one of the allowed values",
+        "/premortem/recommendation must be equal to one of the allowed values"
+      ],
+      "zod_accepts_documented_shape": false,
+      "zod_accepts_postprocessed_shape": true,
+      "zod_errors_on_documented_shape": [
+        "waves.0.nodes.0.model_tier: Invalid enum value. Expected 'fast' | 'balanced' | 'powerful', received 'sonnet'",
+        "waves.0.nodes.1.model_tier: Invalid enum value. Expected 'fast' | 'balanced' | 'powerful', received 'sonnet'",
+        "waves.1.nodes.0.model_tier: Invalid enum value. Expected 'fast' | 'balanced' | 'powerful', received 'sonnet'",
+        "waves.2.nodes.0.model_tier: Invalid enum value. Expected 'fast' | 'balanced' | 'powerful', received 'sonnet'",
+        "waves.3.nodes.0.model_tier: Invalid enum value. Expected 'fast' | 'balanced' | 'powerful', received 'sonnet'"
+      ]
+    },
+    "h4_defaults_conceal": {
+      "bare_id_errors": [
+        "waves.0.nodes.0.role_description: String must contain at least 1 character(s)"
+      ],
+      "bare_id_node_rejected_because_role_description_empty": true,
+      "confirmed": true,
+      "empty_object_accepted": true,
+      "empty_object_output": {
+        "confidence": 0.7,
+        "estimated_total_cost_usd": 0,
+        "estimated_total_minutes": 0,
+        "premortem": {
+          "recommendation": "ACCEPT_WITH_MONITORING",
+          "risks": []
+        },
+        "problem_classification": "well-structured",
+        "title": "Untitled prediction",
+        "topology": "dag",
+        "waves": []
+      },
+      "general_purpose_skill_exists_in_catalog": false,
+      "minimal_node_accepted": true,
+      "minimal_node_output": {
+        "confidence": 0.7,
+        "estimated_total_cost_usd": 0,
+        "estimated_total_minutes": 0,
+        "premortem": {
+          "recommendation": "ACCEPT_WITH_MONITORING",
+          "risks": []
+        },
+        "problem_classification": "well-structured",
+        "title": "Untitled prediction",
+        "topology": "dag",
+        "waves": [
+          {
+            "nodes": [
+              {
+                "confidence": 0.7,
+                "dependencies": [],
+                "estimated_cost_usd": 0,
+                "estimated_minutes": 0,
+                "id": "x",
+                "role_description": "z",
+                "skill_id": "y"
+              }
+            ]
+          }
+        ]
+      },
+      "skeletal_after_postprocess_accepted": true,
+      "skeletal_node_after_postprocess": {
+        "confidence": 0.7,
+        "dependencies": [],
+        "estimated_cost_usd": 0.02,
+        "estimated_minutes": 5,
+        "id": "n1",
+        "model_tier": "balanced",
+        "role_description": "only a role",
+        "skill_id": "general-purpose"
+      }
+    },
+    "h5_no_structural_checks": {
+      "duplicate_ids_self_cycle_and_dangling_ref_accepted": true,
+      "json_schema_accepts_duplicate_ids": true
+    }
+  },
+  "upstream_revision": "9e2fed3bb42ad027284c5a3342e5487be45bf05e"
+}

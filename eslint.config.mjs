@@ -220,6 +220,10 @@ export default tseslint.config(
       // Standalone node release script that assembles the moltnet-agent
       // bundle (#2063); same rationale as above.
       'tools/release/agent-bundle/build.mjs',
+      // Standalone node research-harness scripts that run against a pinned
+      // external checkout (windags-skills); recorded evidence, not part of
+      // the typed source graph. Same rationale as above.
+      '**/fixtures/harness/*.mjs',
     ],
   },
 

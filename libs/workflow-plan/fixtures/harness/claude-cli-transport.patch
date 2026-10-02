@@ -1,0 +1,98 @@
+--- windags-skills/mcp-server/llm-client.js	2026-10-02 18:54:09.054808467 +0000
++++ windags-patched/mcp-server/llm-client.js	2026-10-02 19:07:17.546682779 +0000
+@@ -25,6 +25,9 @@
+  * agree.
+  */
+ 
++import { execFile } from "node:child_process";
++import { promisify } from "node:util";
++const execFileAsync = promisify(execFile);
+ import {
+   PROVIDER_ENV_VARS,
+   PROVIDER_DISPLAY_NAMES,
+@@ -47,6 +50,9 @@
+   fireworks: { kind: "openai-compat", baseUrl: "https://api.fireworks.ai/inference/v1" },
+   cerebras: { kind: "openai-compat", baseUrl: "https://api.cerebras.ai/v1" },
+   grok: { kind: "openai-compat", baseUrl: "https://api.x.ai/v1" },
++  // MoltNet research patch: headless `claude -p` transport. Uses the session's
++  // existing Claude Code credentials; no API key is read or printed.
++  "claude-cli": { kind: "claude-cli", baseUrl: null },
+ };
+ 
+ // Inverted (provider, tier) → modelId map. Computed once.
+@@ -234,6 +240,34 @@
+   };
+ }
+ 
++async function callClaudeCli({ model, systemPrompt, userMessage, maxTokens }) {
++  const args = [
++    "-p", userMessage,
++    "--system-prompt", systemPrompt,
++    "--model", model,
++    "--output-format", "json",
++    "--max-turns", "1",
++    "--tools", "",
++  ];
++  const { stdout } = await execFileAsync(process.env.WINDAGS_CLAUDE_BIN ?? "claude", args, {
++    maxBuffer: 16 * 1024 * 1024,
++    env: { ...process.env, CLAUDECODE: undefined, CLAUDE_CODE_ENTRYPOINT: undefined },
++  });
++  const data = JSON.parse(stdout);
++  const text = typeof data.result === "string" ? data.result : "";
++  const servedModels = Object.keys(data.modelUsage ?? {});
++  return {
++    text,
++    usage: {
++      input_tokens: (data.usage?.input_tokens ?? 0) + (data.usage?.cache_creation_input_tokens ?? 0) + (data.usage?.cache_read_input_tokens ?? 0),
++      output_tokens: data.usage?.output_tokens ?? 0,
++      cost_usd: data.total_cost_usd ?? null,
++      served_models: servedModels,
++      max_tokens_requested: maxTokens,
++    },
++  };
++}
++
+ // =============================================================================
+ // PUBLIC ENTRY
+ // =============================================================================
+@@ -250,7 +284,7 @@
+   }
+ 
+   const envVar = PROVIDER_ENV_VARS[provider];
+-  const apiKey = process.env[envVar];
++  const apiKey = transport.kind === "claude-cli" ? "(cli-managed)" : process.env[envVar];
+   if (!apiKey) {
+     throw new Error(
+       `${envVar} is not set. Required for provider '${provider}'. ` +
+@@ -268,7 +302,9 @@
+ 
+   const startMs = Date.now();
+   let result;
+-  if (transport.kind === "anthropic") {
++  if (transport.kind === "claude-cli") {
++    result = await callClaudeCli({ model, systemPrompt, userMessage, maxTokens });
++  } else if (transport.kind === "anthropic") {
+     result = await callAnthropic({ apiKey, model, systemPrompt, userMessage, maxTokens, baseUrl: transport.baseUrl });
+   } else if (transport.kind === "google") {
+     result = await callGoogle({ apiKey, model, systemPrompt, userMessage, maxTokens, baseUrl: transport.baseUrl });
+--- windags-skills/mcp-server/provider-models.js	2026-10-02 18:54:09.054808467 +0000
++++ windags-patched/mcp-server/provider-models.js	2026-10-02 19:07:17.546880406 +0000
+@@ -44,6 +44,7 @@
+   fireworks: "FIREWORKS_API_KEY",
+   cerebras: "CEREBRAS_API_KEY",
+   "workers-ai": "CLOUDFLARE_API_TOKEN",
++  "claude-cli": "WINDAGS_CLAUDE_CLI",
+ };
+ 
+ /**
+@@ -115,6 +116,10 @@
+   tiers.fast.push({ provider: "anthropic", modelId: "claude-haiku-4-5-20251001", displayName: "Claude Haiku 4.5" });
+   tiers.balanced.push({ provider: "anthropic", modelId: "claude-sonnet-4-6", displayName: "Claude Sonnet 4.6" });
+   tiers.powerful.push({ provider: "anthropic", modelId: "claude-opus-4-7", displayName: "Claude Opus 4.7" });
++  // MoltNet research patch: tiers for the headless Claude Code CLI transport.
++  tiers.fast.push({ provider: "claude-cli", modelId: "haiku", displayName: "Claude Code CLI (haiku alias)" });
++  tiers.balanced.push({ provider: "claude-cli", modelId: "sonnet", displayName: "Claude Code CLI (sonnet alias)" });
++  tiers.powerful.push({ provider: "claude-cli", modelId: "opus", displayName: "Claude Code CLI (opus alias)" });
+ 
+   // Google — not in PROVIDER_MODELS
+   tiers.fast.push({ provider: "google", modelId: "gemini-2.5-flash", displayName: "Gemini 2.5 Flash" });
