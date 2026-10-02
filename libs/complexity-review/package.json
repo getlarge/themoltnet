@@ -27,6 +27,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@moltnet/task-schemas": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "@themoltnet/os-keyring": "workspace:*",
     "@themoltnet/sdk": "workspace:*",

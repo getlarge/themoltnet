@@ -53,6 +53,7 @@
   },
   "dependencies": {
     "@moltnet/api-client": "workspace:*",
+    "@moltnet/task-schemas": "workspace:*",
     "@themoltnet/os-keyring": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
     "@themoltnet/tasks-orchestrator": "workspace:*",

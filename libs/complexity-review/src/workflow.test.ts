@@ -56,7 +56,10 @@ const evidence: ReviewEvidence = {
   ],
   bytes: 100_000,
 };
-const summary = (value: unknown) => ({ summary: JSON.stringify(value) });
+const stageOutput = (value: unknown) => ({
+  summary: 'Review completed',
+  result: value,
+});
 
 describe('staged complexity review', () => {
   it('reads the complete pinned diff by changed path without rejecting oversized patches', () => {
@@ -112,17 +115,17 @@ describe('staged complexity review', () => {
         { id: 'app', nature: 'application behavior', fileIndexes: [0, 1] },
       ],
     };
-    const groups = parseChangeMap(summary(map), evidence);
+    const groups = parseChangeMap(stageOutput(map), evidence);
     expect(groups[0].paths).toEqual(['apps/a.ts', 'apps/a.test.ts']);
     expect(() =>
       parseChangeMap(
-        summary({ groups: [{ ...map.groups[0], fileIndexes: [0] }] }),
+        stageOutput({ groups: [{ ...map.groups[0], fileIndexes: [0] }] }),
         evidence,
       ),
     ).toThrow('omitted changed paths');
     expect(() =>
       parseChangeMap(
-        summary({
+        stageOutput({
           groups: [
             { ...map.groups[0], fileIndexes: [0] },
             { id: 'tests', nature: 'tests', fileIndexes: [0, 1] },
@@ -143,6 +146,10 @@ describe('staged complexity review', () => {
     const map = buildChangeMapTask(input, evidence);
     expect(map.input.brief).toContain('do not score the rubric yet');
     expect(map.input).not.toHaveProperty('successCriteria');
+    expect(map.input.outputContract?.schema).toMatchObject({
+      type: 'object',
+      required: ['groups'],
+    });
     const work = buildDomainWork(
       [
         {
@@ -155,6 +162,10 @@ describe('staged complexity review', () => {
     )[0];
     const domain = buildDomainTask(input, evidence, work);
     expect(domain.input.brief).toContain('<untrusted-file-diff');
+    expect(domain.input.outputContract?.schema).toMatchObject({
+      type: 'object',
+      required: ['paths', 'summary', 'signals'],
+    });
     expect(domain.input.brief).toContain('<untrusted-assigned-paths');
     expect(domain.input.brief).not.toContain('<untrusted-manifest');
     const result = {
@@ -170,7 +181,10 @@ describe('staged complexity review', () => {
     };
     expect(
       parseDomainResult(
-        summary({ ...result, workId: 'task-uuid' }),
+        {
+          summary: 'Review completed',
+          result: { ...result, workId: 'task-uuid' },
+        },
         work,
         rubric,
       ),
@@ -180,17 +194,7 @@ describe('staged complexity review', () => {
     });
     expect(
       parseDomainResult(
-        {
-          summary: 'Concise prose summary',
-          artifacts: [{ kind: 'note', body: JSON.stringify(result) }],
-        },
-        work,
-        rubric,
-      ),
-    ).toEqual({ ...result, workId: work.id });
-    expect(
-      parseDomainResult(
-        { summary: JSON.stringify(result) + '"' },
+        { summary: 'Concise prose summary', result },
         work,
         rubric,
       ),
@@ -198,20 +202,28 @@ describe('staged complexity review', () => {
     expect(() =>
       parseDomainResult(
         {
-          ...summary(result),
+          summary: JSON.stringify(result),
           artifacts: [{ kind: 'note', body: JSON.stringify(result) }],
         },
         work,
         rubric,
       ),
-    ).toThrow('exactly one JSON payload');
+    ).toThrow('invalid domain result');
     expect(() =>
-      parseDomainResult(summary({ ...result, paths: [] }), work, rubric),
+      parseDomainResult(
+        { summary: 'Review completed', result: { ...result, paths: [] } },
+        work,
+        rubric,
+      ),
     ).toThrow('omitted or added paths');
     const synthesis = buildSynthesisTask(input, evidence, [
       result as ReturnType<typeof parseDomainResult>,
     ]);
     expect(synthesis.input.brief).toContain('<untrusted-domain-observations');
+    expect(synthesis.input.outputContract?.schema).toMatchObject({
+      type: 'object',
+      required: ['scores', 'composite', 'verdict'],
+    });
   });
 
   it('rejects incomplete or arithmetically inconsistent final judgments', () => {
@@ -227,11 +239,12 @@ describe('staged complexity review', () => {
     expect(
       parseFreeformReviewOutput(
         {
-          summary: JSON.stringify({
+          result: {
             scores,
             composite: 1,
             verdict: 'Low burden',
-          }).replace(/"/g, '\\"'),
+          },
+          summary: 'Review completed',
         },
         rubric,
       ).composite,
@@ -304,7 +317,7 @@ describe('staged complexity review', () => {
           if (stage === 'map') {
             outputs.set(
               id,
-              summary({
+              stageOutput({
                 groups: [
                   {
                     id: 'app',
@@ -320,7 +333,7 @@ describe('staged complexity review', () => {
             )!;
             outputs.set(
               id,
-              summary({
+              stageOutput({
                 workId: stage.slice(7),
                 paths: assigned.files.map((file) => file.path),
                 summary: 'Reviewed the full patch',
@@ -336,7 +349,7 @@ describe('staged complexity review', () => {
           } else {
             outputs.set(
               id,
-              summary({ scores, composite: 1, verdict: 'Low burden' }),
+              stageOutput({ scores, composite: 1, verdict: 'Low burden' }),
             );
           }
           return Promise.resolve({ id } as Awaited<

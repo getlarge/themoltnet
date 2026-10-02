@@ -32,8 +32,8 @@ const context: StageContext = {
 const sourcePaths = new Set(['apps/cli/src/flags.ts']);
 const changedDocs = new Set(['docs/reference/cli.md']);
 
-function freeform(summary: unknown) {
-  return { summary: JSON.stringify(summary) };
+function freeform(result: unknown) {
+  return { summary: 'Review completed', result };
 }
 
 const change: ContractChange = {
@@ -54,17 +54,6 @@ describe('parseContractExtraction', () => {
 
     // Assert
     expect(parsed.changes).toEqual([change]);
-  });
-
-  it('defaults a missing version instead of voiding the review', () => {
-    // Act
-    const parsed = parseContractExtraction(
-      freeform({ changes: [change] }),
-      sourcePaths,
-    );
-
-    // Assert
-    expect(parsed).toEqual({ version: 1, changes: [change], dropped: [] });
   });
 
   it('drops fields the schema does not define and records the repair', () => {
@@ -110,52 +99,13 @@ describe('parseContractExtraction', () => {
     expect(repairs[0]).toMatch(/trimmed search terms .* from 7 to 5/);
   });
 
-  it('strips a Markdown code fence around the JSON', () => {
-    // Arrange
-    const repairs: string[] = [];
-
-    // Act
-    const parsed = parseContractExtraction(
-      {
-        summary: `\`\`\`json\n${JSON.stringify({ version: 1, changes: [] })}\n\`\`\``,
-      },
-      sourcePaths,
-      repairs,
-    );
-
-    // Assert
-    expect(parsed.changes).toEqual([]);
-    expect(repairs).toEqual(['stripped a Markdown code fence around the JSON']);
-  });
-
-  it('removes trailing commas outside strings', () => {
-    // Arrange: gemma closed the changes array with `}],}`.
-    const repairs: string[] = [];
-    const summary = `{"version":1,"changes":[{"id":"x-y","kind":"config","summary":"keeps ,} and ,] in text","evidence":[{"path":"apps/cli/src/flags.ts","detail":"d"}],"searchTerms":["T"]}],}`;
-
-    // Act
-    const parsed = parseContractExtraction({ summary }, sourcePaths, repairs);
-
-    // Assert
-    expect(parsed.changes[0].summary).toBe('keeps ,} and ,] in text');
-    expect(repairs).toEqual(['removed trailing commas']);
-  });
-
-  it('still rejects prose instead of JSON', () => {
-    // Act / Assert: the unrepairable gpt-oss case.
+  it('requires the contracted result instead of parsing summary text', () => {
     expect(() =>
       parseContractExtraction(
-        { summary: 'Documentation impact review: removed the eval command.' },
+        { summary: JSON.stringify({ version: 1, changes: [change] }) },
         sourcePaths,
       ),
-    ).toThrow(/strict JSON/);
-  });
-
-  it('rejects a summary that is not strict JSON', () => {
-    // Act / Assert
-    expect(() =>
-      parseContractExtraction({ summary: 'no changes found' }, sourcePaths),
-    ).toThrow(/strict JSON/);
+    ).toThrow(/output/);
   });
 
   it('drops evidence outside the changed source files and records it', () => {
@@ -396,6 +346,22 @@ describe('parseCoverageCheck', () => {
 });
 
 describe('repository guidance', () => {
+  it('contracts every result without adding a duplicate submit gate', () => {
+    const tasks = [
+      buildExtractTask(context, { manifest: '', diff: '' }),
+      buildCoverageTask(context, { changes: [], docs: [], docsDiff: '' }),
+      buildDocsCheckTask(context, []),
+    ];
+
+    for (const task of tasks) {
+      expect(task.input).not.toHaveProperty('successCriteria');
+      expect(task.input.outputContract).toMatchObject({
+        version: 1,
+        schema: { type: 'object', additionalProperties: false },
+      });
+    }
+  });
+
   it('adds maintainer guidance to every stage brief, before the output contract', () => {
     // Arrange
     const ctx = {
@@ -412,7 +378,7 @@ describe('repository guidance', () => {
     for (const brief of briefs) {
       const guidance = brief.indexOf('CLI reference lives in site/cli.md.');
       expect(guidance).toBeGreaterThan(-1);
-      expect(guidance).toBeLessThan(brief.indexOf('Return ONLY'));
+      expect(guidance).toBeLessThan(brief.indexOf('Put in result'));
     }
   });
 

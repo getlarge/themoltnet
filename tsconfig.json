@@ -216,6 +216,9 @@
       "path": "libs/tasks"
     },
     {
+      "path": "libs/task-schemas"
+    },
+    {
       "path": "libs/runtime-profiles"
     },
     {
