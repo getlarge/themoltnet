@@ -17,7 +17,6 @@ export * from './reporters/index.js';
 export * from './runtime.js';
 export * from './runtime-profile.js';
 export * from './sources/index.js';
-export { ResumeApiTaskSource } from './sources/resume-api.js';
 export {
   createSubagentContractRegistry,
   type SubagentContractRegistry,

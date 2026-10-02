@@ -154,8 +154,9 @@ export function createExecutionPlanCache(args: {
         args.workspacePolicy,
         claimedTask.attemptN,
       );
+      let plan: DaemonTaskExecutionPlan;
       if (args.sessionPersistence && args.sessionPersistence !== 'pi-jsonl') {
-        const plan: DaemonTaskExecutionPlan = {
+        plan = {
           ...basePlan,
           sessionPersistence: null,
           slotKey: null,
@@ -208,22 +209,16 @@ export function createExecutionPlanCache(args: {
           plan.workspaceScope = 'session';
           plan.sessionKey = `durable:${claimedTask.task.id}:${claimedTask.attemptN}`;
         }
-        assertPlanAllowedByWorkspacePolicy(
-          plan,
-          args.workspacePolicy,
-          args.slotIdentity.runtimeProfileId,
+      } else {
+        plan = await maybeAttachWarmSlotContext(
+          claimedTask,
+          basePlan,
+          args.stateDirs,
+          args.slotRegistry,
+          runtimeSessionStore,
+          sourceAttemptResolver,
         );
-        cache.set(key, plan);
-        return plan;
       }
-      const plan = await maybeAttachWarmSlotContext(
-        claimedTask,
-        basePlan,
-        args.stateDirs,
-        args.slotRegistry,
-        runtimeSessionStore,
-        sourceAttemptResolver,
-      );
       assertPlanAllowedByWorkspacePolicy(
         plan,
         args.workspacePolicy,

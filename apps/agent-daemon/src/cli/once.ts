@@ -6,7 +6,6 @@ import {
   ApiTaskReporter,
   createLocalSeedSigner,
   resolveRuntimeProfile,
-  ResumeApiTaskSource,
   type TaskExecutor,
 } from '@themoltnet/agent-runtime';
 import { findMainWorktree } from '@themoltnet/pi-runtime';
@@ -639,24 +638,14 @@ export async function runOnce(
 
     runtime = new AgentRuntime({
       logger: rootLogger,
-      source:
-        resumeAttempt !== undefined
-          ? new ResumeApiTaskSource({
-              agent: ctx.agent,
-              taskId,
-              attemptN: resumeAttempt,
-              teamId: profile.teamId,
-              profileId: profile.id,
-              executorFingerprint: preparedRuntime.attestor.fingerprint,
-              projectId: selection.projectId,
-            })
-          : createProjectOnceSource(selection, {
-              agent: ctx.agent,
-              taskId,
-              teamId: profile.teamId,
-              profileId: profile.id,
-              executorFingerprint: preparedRuntime.attestor.fingerprint,
-            }),
+      source: createProjectOnceSource(selection, {
+        agent: ctx.agent,
+        taskId,
+        teamId: profile.teamId,
+        profileId: profile.id,
+        executorFingerprint: preparedRuntime.attestor.fingerprint,
+        resumeAttempt,
+      }),
       makeReporter: () =>
         new ApiTaskReporter({
           tasks: ctx.agent.tasks,

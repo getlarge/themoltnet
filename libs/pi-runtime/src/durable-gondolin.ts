@@ -89,8 +89,7 @@ export function createGondolinDurableTaskExecutor(
         const storage = await ApiDurableStorage.open(
           lease.transport,
           withAbortSignal(lease.signal, BACKGROUND_CONTEXT),
-        ).catch(async (cause: unknown) => {
-          await lease.transport.close(BACKGROUND_CONTEXT);
+        ).catch((cause: unknown) => {
           throw new TaskExecutionInterrupted(
             'Unable to restore Durable state',
             { cause },

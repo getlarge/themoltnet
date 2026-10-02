@@ -19,8 +19,6 @@ export async function acquireDurableTransport(input: {
   transport: DurableStoreTransport;
   signal: AbortSignal;
   check(): void;
-  storeId: string;
-  lostSignal: AbortSignal;
 }> {
   const { stores, claimed } = input;
   const { leaseId, executorFingerprint } = claimed.claimAuthority ?? {};
@@ -134,7 +132,5 @@ export async function acquireDurableTransport(input: {
     transport,
     signal,
     check,
-    storeId: handle.storeId,
-    lostSignal: lost.signal,
   };
 }
