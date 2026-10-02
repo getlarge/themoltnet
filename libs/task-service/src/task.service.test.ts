@@ -1742,6 +1742,67 @@ describe('createTaskService.create — producer input normalization', () => {
     expect(mocks.taskRepository.create).toHaveBeenCalledOnce();
   });
 
+  it('re-asserts the ownership grant before returning a replay', async () => {
+    const input = {
+      ...fulfillCreateInput(),
+      idempotencyKey: 'absurd:execution-1:create-child',
+    };
+    const first = await service.create(input as never);
+    mocks.relationshipWriter.grantTaskOwnership.mockClear();
+
+    await service.create(input as never);
+
+    // A concurrent original create commits the row before granting; the
+    // replay must not hand back a task its caller cannot read yet.
+    expect(mocks.relationshipWriter.grantTaskOwnership).toHaveBeenCalledWith(
+      first.id,
+      input.teamId,
+    );
+  });
+
+  it('re-asserts the ownership grant on a replay after a unique violation', async () => {
+    const input = {
+      ...fulfillCreateInput(),
+      idempotencyKey: 'absurd:execution-1:create-child',
+    };
+    const first = await service.create(input as never);
+    // Simulate the race: the early lookup misses, the insert then collides.
+    mocks.taskRepository.findByIdempotencyKey.mockResolvedValueOnce(null);
+    mocks.taskRepository.create.mockRejectedValueOnce(
+      Object.assign(new Error('duplicate key'), {
+        code: '23505',
+        constraint: 'tasks_agent_idempotency_idx',
+      }),
+    );
+    mocks.relationshipWriter.grantTaskOwnership.mockClear();
+
+    const replay = await service.create(input as never);
+
+    expect(replay.id).toBe(first.id);
+    expect(mocks.relationshipWriter.grantTaskOwnership).toHaveBeenCalledWith(
+      first.id,
+      input.teamId,
+    );
+  });
+
+  it('fails a replay whose ownership grant cannot be written', async () => {
+    const input = {
+      ...fulfillCreateInput(),
+      idempotencyKey: 'absurd:execution-1:create-child',
+    };
+    await service.create(input as never);
+    mocks.relationshipWriter.grantTaskOwnership.mockRejectedValueOnce(
+      new Error('keto down'),
+    );
+
+    await expect(service.create(input as never)).rejects.toMatchObject({
+      code: 'conflict',
+    });
+    // The original task stays intact: no rollback on a replay.
+    expect(mocks.relationshipWriter.removeTaskRelations).not.toHaveBeenCalled();
+    expect(mocks.taskRepository.clearIdempotencyKey).not.toHaveBeenCalled();
+  });
+
   it('rejects an idempotency key reused with a changed body', async () => {
     const input = {
       ...fulfillCreateInput(),
