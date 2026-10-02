@@ -149,7 +149,7 @@ export function definePiTool(
   });
 }
 
-export type PiExtensionFactory = (pi: ExtensionAPI) => void;
+export type PiExtensionFactory = (pi: ExtensionAPI) => void | Promise<void>;
 
 export interface PiExtensionContribution {
   readonly kind: 'extension';
@@ -823,15 +823,18 @@ function wrapExtensionFactory(
         };
       },
     });
-    factory(proxy);
-    const missing = contribution.declaredTools.filter(
-      (name) => !registered.has(name),
-    );
-    if (missing.length > 0) {
-      throw new Error(
-        `Pi extension "${contribution.id}" did not register declared tools: ${missing.join(', ')}`,
+    const validate = () => {
+      const missing = contribution.declaredTools.filter(
+        (name) => !registered.has(name),
       );
-    }
+      if (missing.length > 0) {
+        throw new Error(
+          `Pi extension "${contribution.id}" did not register declared tools: ${missing.join(', ')}`,
+        );
+      }
+    };
+    const result = factory(proxy);
+    return result ? result.then(validate) : validate();
   };
 }
 

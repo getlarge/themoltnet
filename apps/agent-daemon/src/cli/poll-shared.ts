@@ -616,6 +616,27 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         // session is neither remotely durable nor locally available.
         slotRegistry,
         sessionRegistry: runtimeSessionStore,
+        isContinuationAvailable: async (task, profileId) => {
+          if (
+            !profileId ||
+            requireRuntime(runtimes, profileId).preparedRuntime
+              .sessionPersistence !== 'api'
+          )
+            return undefined;
+          const parent = (
+            task.input as {
+              continueFrom?: { taskId: string; attemptN: number };
+            }
+          ).continueFrom;
+          if (!parent) return true;
+          return Boolean(
+            await ctx.agent.runtimeStores.getForAttempt(
+              parent.taskId,
+              parent.attemptN,
+              { teamId: task.teamId },
+            ),
+          );
+        },
         sourceAttemptResolver,
       }),
       makeReporter: (claimedTask) => {

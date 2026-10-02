@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
@@ -126,6 +127,7 @@ export function createExecutionPlanCache(args: {
   workspacePolicy?: RuntimeProfileWorkspacePolicy;
   slotRegistry: RuntimeSlotStore;
   runtimeSessionStore?: RuntimeSessionStore;
+  sessionPersistence?: 'pi-jsonl' | 'api' | 'none';
   sourceAttemptResolver?: SourceAttemptResolver;
 }): ExecutionPlanCache {
   const cache = new Map<string, DaemonTaskExecutionPlan>();
@@ -146,10 +148,74 @@ export function createExecutionPlanCache(args: {
         claimedTask.task,
         args.stateDirs,
         args.slotIdentity,
-        args.warmRetentionSec,
+        args.sessionPersistence === 'api' || args.sessionPersistence === 'none'
+          ? 0
+          : args.warmRetentionSec,
         args.workspacePolicy,
         claimedTask.attemptN,
       );
+      if (args.sessionPersistence && args.sessionPersistence !== 'pi-jsonl') {
+        const plan: DaemonTaskExecutionPlan = {
+          ...basePlan,
+          sessionPersistence: null,
+          slotKey: null,
+          slotId: null,
+        };
+        if (args.sessionPersistence === 'api') {
+          const parent = (
+            claimedTask.task.input as {
+              continueFrom?: {
+                taskId: string;
+                attemptN: number;
+                mode?: string;
+              };
+            }
+          ).continueFrom;
+          if (parent) {
+            const source = {
+              teamId: claimedTask.task.teamId,
+              taskId: parent.taskId,
+              attemptN: parent.attemptN,
+            };
+            const branch = await sourceAttemptResolver.findOutputBranch(source);
+            const revision = branch
+              ? null
+              : await sourceAttemptResolver.findInputRevision(source);
+            if (branch || revision) {
+              plan.workspaceMode = 'dedicated_worktree';
+              if (parent.mode === 'fork') {
+                plan.worktreeBaseRef = branch ?? revision;
+                plan.worktreeBranch = buildForkBranch(
+                  branch ?? 'durable',
+                  claimedTask.task.id,
+                  claimedTask.attemptN,
+                );
+                plan.workspaceRevision = null;
+              } else {
+                plan.worktreeBranch = branch;
+                plan.workspaceRevision = revision;
+              }
+            }
+          }
+          // A retained branch has exactly one local Git worktree. Extend chains
+          // reuse it; forks have a different branch and therefore a different path.
+          if (plan.worktreeBranch) {
+            plan.workspaceId = `durable-branch-${createHash('sha256')
+              .update(`${claimedTask.task.teamId}:${plan.worktreeBranch}`)
+              .digest('hex')
+              .slice(0, 32)}`;
+          }
+          plan.workspaceScope = 'session';
+          plan.sessionKey = `durable:${claimedTask.task.id}:${claimedTask.attemptN}`;
+        }
+        assertPlanAllowedByWorkspacePolicy(
+          plan,
+          args.workspacePolicy,
+          args.slotIdentity.runtimeProfileId,
+        );
+        cache.set(key, plan);
+        return plan;
+      }
       const plan = await maybeAttachWarmSlotContext(
         claimedTask,
         basePlan,

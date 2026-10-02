@@ -750,3 +750,37 @@ describe('Pi runtime definitions', () => {
     );
   });
 });
+
+it('awaits asynchronous extension registration before validating its declared tools', async () => {
+  const runtime = definePiRuntime({
+    id: 'async-runtime',
+    version: '1',
+    vm: defineGondolinTemplate({
+      id: 'vm',
+      version: '1',
+      checkpointPath: '/tmp/checkpoint',
+    }),
+    extensions: [
+      definePiExtension({
+        id: 'async-extension',
+        declaredTools: ['review'],
+        factory: async (pi) => {
+          await Promise.resolve();
+          pi.registerTool({ name: 'review' } as never);
+        },
+      }),
+    ],
+  });
+  const [factory] = await materializePiExtensions({
+    runtime,
+    context: {} as never,
+    target: 'parent',
+  });
+  const registered: string[] = [];
+  await factory({
+    registerTool: (tool: { name: string }) => {
+      registered.push(tool.name);
+    },
+  } as never);
+  expect(registered).toEqual(['review']);
+});

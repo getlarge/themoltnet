@@ -735,7 +735,7 @@ describe('createGondolinToolDefinitions', () => {
         () => {},
         null as never,
       ),
-    ).toThrow(expect.objectContaining({ code: 'sandbox_retired' }));
+    ).toThrow(expect.objectContaining({ code: 'sandbox_retired' }) as Error);
     expect(readFile).not.toHaveBeenCalled();
   });
 });
@@ -1992,7 +1992,9 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
       {
         kind: 'error',
         payload: {
-          message: expect.stringContaining('could not be canonicalized'),
+          message: expect.stringContaining(
+            'could not be canonicalized',
+          ) as unknown,
           phase: 'output_validation',
         },
       },
@@ -2160,7 +2162,9 @@ describe('materializeCapturedAttemptOutput', () => {
     expect(emitted).toEqual([
       expect.objectContaining({
         kind: 'error',
-        payload: expect.objectContaining({ phase: 'output_validation' }),
+        payload: expect.objectContaining({
+          phase: 'output_validation',
+        }) as unknown,
       }),
     ]);
   });
@@ -2335,6 +2339,27 @@ describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
     expect(usage.outputTokens).toBe(6);
     expect(usage.cacheReadTokens).toBe(3);
     expect(usage.cacheWriteTokens).toBe(2);
+  });
+
+  it('counts aggregated codemode usage once at the completed turn', () => {
+    const { deps, usage } = makeDeps();
+    const handler = makeSessionEventHandler(deps);
+    handler({
+      type: 'tool_execution_end',
+      toolName: 'nested_classifier',
+      toolCallId: 'nested',
+      isError: false,
+      result: { usage: { input: 10, output: 2 } },
+    } as SessionSubscribeEvent);
+    handler({
+      ...turnEnd('end_turn', { usage: { input: 1, output: 1 } }),
+      toolResults: [
+        { usage: { input: 10, output: 2, cacheRead: 3, cacheWrite: 0 } },
+      ],
+    } as SessionSubscribeEvent);
+    expect(usage.inputTokens).toBe(11);
+    expect(usage.outputTokens).toBe(3);
+    expect(usage.cacheReadTokens).toBe(3);
   });
 
   it('applies last-turn-wins for the provider-error stop reason', () => {
@@ -2901,7 +2926,7 @@ describe('parseStructuredTaskOutput', () => {
     expect(result.outputCid).toBeNull();
     expect(result.error).toEqual({
       code: 'output_validation_failed',
-      message: expect.stringContaining('output/branch'),
+      message: expect.stringContaining('output/branch') as unknown,
     });
   });
 
@@ -2915,7 +2940,7 @@ describe('parseStructuredTaskOutput', () => {
     expect(result.outputCid).toBeNull();
     expect(result.error).toEqual({
       code: 'unknown_task_type',
-      message: expect.stringContaining('Unknown task type'),
+      message: expect.stringContaining('Unknown task type') as unknown,
     });
   });
 
@@ -2940,7 +2965,7 @@ describe('parseStructuredTaskOutput', () => {
     expect(result.outputCid).toBeNull();
     expect(result.error).toEqual({
       code: 'output_validation_failed',
-      message: expect.stringContaining('verification is required'),
+      message: expect.stringContaining('verification is required') as unknown,
     });
   });
 
@@ -3090,11 +3115,15 @@ describe('agent_runtime.task_output.parse_result counter', () => {
     expect(await telemetryAnomalies()).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          attributes: expect.objectContaining({ kind: 'zero_usage' }),
+          attributes: expect.objectContaining({
+            kind: 'zero_usage',
+          }) as unknown,
           value: 1,
         }),
         expect.objectContaining({
-          attributes: expect.objectContaining({ kind: 'zero_duration' }),
+          attributes: expect.objectContaining({
+            kind: 'zero_duration',
+          }) as unknown,
           value: 1,
         }),
       ]),

@@ -446,10 +446,12 @@ function guardGondolinExtensionFactories(
           };
         }
         const value = Reflect.get(target, property, receiver) as unknown;
-        return typeof value === 'function' ? value.bind(target) : value;
+        return typeof value === 'function'
+          ? (value.bind(target) as unknown)
+          : value;
       },
     });
-    factory(guardedPi);
+    return factory(guardedPi);
   });
 }
 
@@ -2378,6 +2380,19 @@ export function makeSessionEventHandler(
         }
       }
     } else if (event.type === 'turn_end') {
+      // Final top-level results already aggregate codemode's nested calls.
+      // Counting tool_execution_end would also count those nested events.
+      for (const result of event.toolResults ?? []) {
+        if (!result.usage) continue;
+        usage.inputTokens += Math.max(0, result.usage.input ?? 0);
+        usage.outputTokens += Math.max(0, result.usage.output ?? 0);
+        usage.cacheReadTokens =
+          (usage.cacheReadTokens ?? 0) +
+          Math.max(0, result.usage.cacheRead ?? 0);
+        usage.cacheWriteTokens =
+          (usage.cacheWriteTokens ?? 0) +
+          Math.max(0, result.usage.cacheWrite ?? 0);
+      }
       const msg = event.message as {
         role?: string;
         stopReason?: string;

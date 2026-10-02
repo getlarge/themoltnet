@@ -77,6 +77,14 @@
     "./testing": {
       "import": "./src/testing.ts",
       "types": "./src/testing.ts"
+    },
+    "./classification": {
+      "import": "./src/classification.ts",
+      "types": "./src/classification.ts"
+    },
+    "./durable": {
+      "types": "./src/durable.ts",
+      "import": "./src/durable.ts"
     }
   },
   "publishConfig": {
@@ -92,6 +100,14 @@
       "./pi": {
         "types": "./dist/pi.d.ts",
         "import": "./dist/pi.js"
+      },
+      "./classification": {
+        "types": "./dist/classification.d.ts",
+        "import": "./dist/classification.js"
+      },
+      "./durable": {
+        "types": "./dist/durable.d.ts",
+        "import": "./dist/durable.js"
       }
     }
   },
@@ -100,12 +116,17 @@
   },
   "files": [
     "dist/*.js",
+    "dist/assets/*.js",
     "dist/cli.d.ts",
     "dist/cli.d.ts.map",
     "dist/pi.d.ts",
     "dist/pi.d.ts.map",
     "dist/runtime.d.ts",
-    "dist/runtime.d.ts.map"
+    "dist/runtime.d.ts.map",
+    "dist/classification.d.ts",
+    "dist/classification.d.ts.map",
+    "dist/durable.d.ts",
+    "dist/durable.d.ts.map"
   ],
   "engines": {
     "node": ">=24"
@@ -117,7 +138,7 @@
     "build": "vite build",
     "generate:openapi": "tsx scripts/generate-openapi.ts",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
-    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --local-dependency ../../libs/sdk --local-dependency ../../libs/os-keyring --local-dependency ../../libs/agent-runtime --local-dependency ../../libs/shell-command-analyzer --local-dependency ../../libs/pi-runtime --copy-file test-fixtures/runtime-adapter.mjs runtime-adapter.mjs --probe-file test-fixtures/keyring-pack-probe.mjs keyring-pack-probe.mjs --bin moltnet-agent --args --runtime ./runtime-adapter.mjs --help --expect \"long-running task worker for MoltNet\""
+    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --local-dependency ../../libs/sdk --local-dependency ../../libs/os-keyring --local-dependency ../../libs/agent-runtime --local-dependency ../../libs/sandbox-gondolin --local-dependency ../../libs/shell-command-analyzer --local-dependency ../../libs/pi-runtime --copy-file test-fixtures/runtime-adapter.mjs runtime-adapter.mjs --probe-file test-fixtures/keyring-pack-probe.mjs keyring-pack-probe.mjs --bin moltnet-agent --args --runtime ./runtime-adapter.mjs --help --expect \"long-running task worker for MoltNet\""
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",

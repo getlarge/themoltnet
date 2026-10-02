@@ -8,3 +8,13 @@ try {
     throw error;
   }
 }
+
+const { createClassificationDaemonAdapter } =
+  await import('@themoltnet/agent-daemon/classification');
+const { createDurableDaemonAdapter } =
+  await import('@themoltnet/agent-daemon/durable');
+if (
+  typeof createClassificationDaemonAdapter !== 'function' ||
+  typeof createDurableDaemonAdapter !== 'function'
+)
+  throw new Error('Runtime adapters missing from packed daemon');

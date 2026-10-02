@@ -1535,3 +1535,54 @@ describe('createExecutionPlanCache', () => {
     expect(plan.worktreeBranch).toBeNull();
   });
 });
+
+it('keeps API-backed branch workspaces stable across processes and extend chains, with isolated forks', async () => {
+  const source = {
+    task: {
+      id: '11111111-1111-4111-8111-111111111111',
+      teamId: TEAM_ID,
+      taskType: 'freeform',
+      input: { brief: 'work', execution: { workspace: 'dedicated_worktree' } },
+    } as unknown as Task,
+    attemptN: 1,
+  };
+  const make = (runtimeInstanceId: string) =>
+    createExecutionPlanCache({
+      stateDirs: {
+        rootDir: '/tmp/durable-test',
+        piSessionsDir: '/tmp/durable-test/sessions',
+      },
+      slotIdentity: {
+        agentName: 'a',
+        runtimeInstanceId,
+        runtimeProfileId: PROFILE_ID,
+      },
+      warmRetentionSec: 300,
+      sessionPersistence: 'api',
+      slotRegistry: new InMemoryRuntimeSlotStore(),
+      sourceAttemptResolver: sourceAttemptResolverWithBranch(
+        'task/freeform-11111111',
+      ),
+    });
+  const initial = await make('first-process').getOrCreate(source);
+  const resumed = await make('second-process').getOrCreate(source);
+  expect(resumed.workspaceId).toBe(initial.workspaceId);
+  expect(resumed.sessionPersistence).toBeNull();
+  expect(resumed.slotKey).toBeNull();
+  const child = (mode: 'extend' | 'fork') => ({
+    ...source,
+    task: {
+      ...source.task,
+      id: '22222222-2222-4222-8222-222222222222',
+      input: {
+        brief: 'continue',
+        continueFrom: { taskId: source.task.id, attemptN: 1, mode },
+      },
+    },
+  });
+  const extended = await make('third-process').getOrCreate(child('extend'));
+  expect(extended.workspaceId).toBe(initial.workspaceId);
+  const forked = await make('fourth-process').getOrCreate(child('fork'));
+  expect(forked.workspaceId).not.toBe(initial.workspaceId);
+  expect(forked.worktreeBaseRef).toBe(initial.worktreeBranch);
+});

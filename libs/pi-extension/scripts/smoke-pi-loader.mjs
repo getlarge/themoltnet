@@ -10,12 +10,13 @@ import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
 import process from 'node:process';
 
+import { writePackedConsumerPolicy } from '../../../pack.shared.mjs';
+
 const required = process.env.MOLTNET_PI_LOADER_SMOKE === 'required';
 const packageDir = resolve(import.meta.dirname, '..');
 const repoRoot = resolve(packageDir, '../..');
 const localDistPath = join(packageDir, 'dist', 'index.js');
 const piBin = process.env.MOLTNET_PI_BIN || 'pi';
-const internalPackageReleaseAgeExclude = '@themoltnet/*';
 
 if (process.env.MOLTNET_SKIP_REGISTRY_SMOKE === '1') {
   process.stdout.write(
@@ -115,16 +116,13 @@ const tarballs = [
   pack('libs/pi-runtime'),
   pack('libs/pi-extension'),
 ];
+writePackedConsumerPolicy(repoRoot, installDir);
 const install = spawnSync('pnpm', ['add', ...tarballs, '--ignore-scripts'], {
   cwd: installDir,
   encoding: 'utf8',
   env: {
     ...process.env,
     npm_config_cache: npmCache,
-    // pnpm exports the scalar minimumReleaseAge setting to lifecycle scripts,
-    // but not its array-valued exclusions. Preserve the internal-package
-    // exception when this consumer install runs outside the workspace.
-    npm_config_minimum_release_age_exclude: internalPackageReleaseAgeExclude,
   },
 });
 if (install.status !== 0) {

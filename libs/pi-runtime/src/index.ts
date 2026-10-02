@@ -1,4 +1,20 @@
 export {
+  createClassificationTaskExecutor,
+  ollamaDecisionExtension,
+  type OllamaDecisionOptions,
+  piCodemode,
+  registerOllamaDecisionModels,
+} from './classification.js';
+export { createDurableTaskExecutor } from './durable-executor.js';
+export { createGondolinDurableTaskExecutor } from './durable-gondolin.js';
+export { GondolinDurableEnv } from './durable-gondolin-env.js';
+export {
+  ApiDurableStorage,
+  type DurableStoreTransport,
+  type RuntimeCommit,
+} from './durable-storage.js';
+export { acquireDurableTransport } from './durable-transport.js';
+export {
   agentSigningCapability,
   GUEST_ALLOWED_SIGNERS_PATH,
   GUEST_GITCONFIG_PATH,
