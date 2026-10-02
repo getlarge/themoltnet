@@ -22,3 +22,5 @@ libs/signer-api-client/src/generated/** linguist-generated=true
 libs/moltnet-api-client/*_gen.go linguist-generated=true
 
 *.sh text eol=lf
+# Read by setup-go, mise and tools/ci/wsl-agent-daemon.sh; keep LF on Windows.
+.tool-versions text eol=lf
