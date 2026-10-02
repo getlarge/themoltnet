@@ -1,7 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import process from 'node:process';
 import { setTimeout as delay } from 'node:timers/promises';
-import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
 const pinFile = 'libs/sandbox-gondolin/src/snapshot.ts';
@@ -72,35 +71,37 @@ export async function waitForPackages(
   }
 }
 
-export async function main() {
-  const manifest = JSON.parse(
-    await readFile('.release-please-manifest.json', 'utf8'),
+// The release PR's CLI version may not be published yet. Resolve npm's
+// stable dist-tag instead, and only advance after both Linux packages exist.
+export async function publishedPin(source, get = globalThis.fetch) {
+  const response = await get(
+    'https://registry.npmjs.org/@themoltnet%2fcli/latest',
   );
-  const version = (
-    process.env.CLI_VERSION || manifest['apps/moltnet-cli']
-  ).replace(/^cli-v/, '');
-  const source = await readFile(pinFile, 'utf8');
-  // An open automation PR may already carry a newer pin than main. Keep its
-  // version when an older release job is retried out of order.
-  let existingSource;
-  try {
-    existingSource = execFileSync(
-      'git',
-      ['show', `refs/remotes/origin/automation/gondolin-cli-pin:${pinFile}`],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
-    );
-  } catch {
-    // No prior automation branch.
-  }
-  if (
-    existingSource &&
-    advancePin(existingSource, version) === existingSource
-  ) {
-    return;
-  }
+  if (!response.ok)
+    throw new Error(`Cannot resolve published CLI (${response.status})`);
+  const { version } = await response.json();
   const updated = advancePin(source, version);
+  if (updated === source) return source;
+  try {
+    await verifyPackages(version, get);
+  } catch (error) {
+    if (error.status !== 404) throw error;
+    process.stderr.write(
+      `CLI ${version} is not available on both Linux platforms; retaining current pin\n`,
+    );
+    return source;
+  }
+  return updated;
+}
+
+export async function main() {
+  const source = await readFile(pinFile, 'utf8');
+  const updated = process.env.CLI_VERSION
+    ? advancePin(source, process.env.CLI_VERSION.replace(/^cli-v/, ''))
+    : await publishedPin(source);
   if (updated === source) return;
-  await waitForPackages(version);
+  if (process.env.CLI_VERSION)
+    await waitForPackages(process.env.CLI_VERSION.replace(/^cli-v/, ''));
   await writeFile(pinFile, updated);
 }
 

@@ -358,11 +358,21 @@ pnpm exec nx run moltnet-cli:nx-release-publish -- --skip-upload --verbose
 
 ## GitHub Actions
 
-GitHub Actions are not released by Nx. Release-please releases them as
-components (`agent-daemon-action`, `docs-impact-review-action`), and the matrix
-`publish-actions` job in `.github/workflows/release.yml` verifies the committed
-bundle at the release tag and moves the action's stable major tag. See the
-action README for the consumer-facing tags.
+Release Please releases the GitHub Actions components (`agent-daemon-action`,
+`docs-impact-review-action`, `complexity-review-action`). After creating or
+updating its PR, `release.yml` builds all action bundles from the proposed
+versions and commits them with refreshed runtime locks onto that same PR. There
+is no separate bundle maintenance PR. CI rebuilds every release PR's artifacts;
+`publish-actions` verifies them again at the immutable release tag before moving
+the stable major tags.
+
+Release PR preparation also advances Gondolin's guest CLI pin to npm's latest
+stable version, after checking that the wrapper and both Linux architecture
+packages expose that exact version. During partial publication it retains the
+current pin. The proposed CLI release itself cannot be pinned before
+publication: it becomes eligible during preparation of a later release PR. This
+preparation updates artifacts for the planned release; it does not add component
+releases.
 
 ## Docker Images
 
