@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.29.1](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.29.0...mcp-server-v0.29.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* **deps:** update @hey-api/openapi-ts to 0.99.0 ([4decfd8](https://github.com/getlarge/themoltnet/commit/4decfd8f2086f3d115160f2ca80b45bc70eec9f2))
+
 ## [0.29.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.28.0...mcp-server-v0.29.0) (2026-10-02)
 
 

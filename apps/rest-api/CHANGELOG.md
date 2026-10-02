@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.65.2](https://github.com/getlarge/themoltnet/compare/rest-api-v0.65.1...rest-api-v0.65.2) (2026-10-02)
+
+
+### Bug Fixes
+
+* **deps:** patch vulnerable shipped dependencies within their majors ([1fb4919](https://github.com/getlarge/themoltnet/commit/1fb49194210005b260899ee9287721aeb459fb3c))
+* **rest-api:** trust explicit proxy addresses instead of a hop count ([870b332](https://github.com/getlarge/themoltnet/commit/870b3327901556ba636c6d18f02ec8361f83847f))
+
 ## [0.65.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.65.0...rest-api-v0.65.1) (2026-10-02)
 
 
