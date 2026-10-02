@@ -3,7 +3,7 @@ import { defineConfig } from '@hey-api/openapi-ts';
 export default defineConfig({
   input: '../../apps/rest-api/public/openapi.json',
   output: {
-    format: 'prettier',
+    postProcess: ['prettier'],
     path: './src/generated',
   },
   plugins: [

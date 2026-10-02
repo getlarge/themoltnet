@@ -783,8 +783,8 @@ export const listAgentKeysInfiniteQueryKey = (
  */
 export const listAgentKeysInfiniteOptions = (
   options?: Options<ListAgentKeysData>,
-) =>
-  infiniteQueryOptions<
+) => {
+  const opts = infiniteQueryOptions<
     ListAgentKeysResponse,
     ListAgentKeysError,
     InfiniteData<ListAgentKeysResponse>,
@@ -822,6 +822,8 @@ export const listAgentKeysInfiniteOptions = (
       queryKey: listAgentKeysInfiniteQueryKey(options),
     },
   );
+  return opts as Omit<typeof opts, 'initialData'>;
+};
 
 /**
  * Issue a secret API key bound to one agent identity or, by default, the active team.
@@ -1231,8 +1233,8 @@ export const listSigningCredentialsInfiniteQueryKey = (
 
 export const listSigningCredentialsInfiniteOptions = (
   options: Options<ListSigningCredentialsData>,
-) =>
-  infiniteQueryOptions<
+) => {
+  const opts = infiniteQueryOptions<
     ListSigningCredentialsResponse,
     ListSigningCredentialsError,
     InfiniteData<ListSigningCredentialsResponse>,
@@ -1270,6 +1272,8 @@ export const listSigningCredentialsInfiniteOptions = (
       queryKey: listSigningCredentialsInfiniteQueryKey(options),
     },
   );
+  return opts as Omit<typeof opts, 'initialData'>;
+};
 
 export const beginSigningCredentialRegistrationMutation = (
   options?: Partial<Options<BeginSigningCredentialRegistrationData>>,
@@ -1454,8 +1458,8 @@ export const listSigningRequestsInfiniteQueryKey = (
  */
 export const listSigningRequestsInfiniteOptions = (
   options?: Options<ListSigningRequestsData>,
-) =>
-  infiniteQueryOptions<
+) => {
+  const opts = infiniteQueryOptions<
     ListSigningRequestsResponse,
     ListSigningRequestsError,
     InfiniteData<ListSigningRequestsResponse>,
@@ -1493,6 +1497,8 @@ export const listSigningRequestsInfiniteOptions = (
       queryKey: listSigningRequestsInfiniteQueryKey(options),
     },
   );
+  return opts as Omit<typeof opts, 'initialData'>;
+};
 
 /**
  * Create a signing request. The server generates a nonce and starts a DBOS workflow that waits for the agent to submit a signature.
@@ -1792,8 +1798,8 @@ export const listDiaryEntriesInfiniteQueryKey = (
  */
 export const listDiaryEntriesInfiniteOptions = (
   options: Options<ListDiaryEntriesData>,
-) =>
-  infiniteQueryOptions<
+) => {
+  const opts = infiniteQueryOptions<
     ListDiaryEntriesResponse,
     ListDiaryEntriesError,
     InfiniteData<ListDiaryEntriesResponse>,
@@ -1831,6 +1837,8 @@ export const listDiaryEntriesInfiniteOptions = (
       queryKey: listDiaryEntriesInfiniteQueryKey(options),
     },
   );
+  return opts as Omit<typeof opts, 'initialData'>;
+};
 
 /**
  * Create a new diary entry. Optionally sign it by providing contentHash (CIDv1) and signingRequestId.
@@ -2078,8 +2086,8 @@ export const listDiaryPacksInfiniteQueryKey = (
  */
 export const listDiaryPacksInfiniteOptions = (
   options: Options<ListDiaryPacksData>,
-) =>
-  infiniteQueryOptions<
+) => {
+  const opts = infiniteQueryOptions<
     ListDiaryPacksResponse,
     ListDiaryPacksError,
     InfiniteData<ListDiaryPacksResponse>,
@@ -2117,6 +2125,8 @@ export const listDiaryPacksInfiniteOptions = (
       queryKey: listDiaryPacksInfiniteQueryKey(options),
     },
   );
+  return opts as Omit<typeof opts, 'initialData'>;
+};
 
 /**
  * Create and persist a custom context pack from an explicit entry selection. Returns 409 if any selected entry is flagged as a prompt-injection risk; the response lists the flagged entries. Set `force: true` to override and persist anyway.
@@ -2210,8 +2220,8 @@ export const listDiaryRenderedPacksInfiniteQueryKey = (
  */
 export const listDiaryRenderedPacksInfiniteOptions = (
   options: Options<ListDiaryRenderedPacksData>,
-) =>
-  infiniteQueryOptions<
+) => {
+  const opts = infiniteQueryOptions<
     ListDiaryRenderedPacksResponse,
     ListDiaryRenderedPacksError,
     InfiniteData<ListDiaryRenderedPacksResponse>,
@@ -2249,6 +2259,8 @@ export const listDiaryRenderedPacksInfiniteOptions = (
       queryKey: listDiaryRenderedPacksInfiniteQueryKey(options),
     },
   );
+  return opts as Omit<typeof opts, 'initialData'>;
+};
 
 /**
  * Initiate a diary transfer to another team. Requires diary manage permission.
@@ -2424,8 +2436,8 @@ export const listEntryRelationsInfiniteQueryKey = (
  */
 export const listEntryRelationsInfiniteOptions = (
   options: Options<ListEntryRelationsData>,
-) =>
-  infiniteQueryOptions<
+) => {
+  const opts = infiniteQueryOptions<
     ListEntryRelationsResponse,
     ListEntryRelationsError,
     InfiniteData<ListEntryRelationsResponse>,
@@ -2463,6 +2475,8 @@ export const listEntryRelationsInfiniteOptions = (
       queryKey: listEntryRelationsInfiniteQueryKey(options),
     },
   );
+  return opts as Omit<typeof opts, 'initialData'>;
+};
 
 /**
  * Create a relation between two diary entries. Idempotent on (sourceId, targetId, relation) — returns 200 if the relation already exists.
@@ -2844,8 +2858,8 @@ export const listContextPacksInfiniteQueryKey = (
  */
 export const listContextPacksInfiniteOptions = (
   options?: Options<ListContextPacksData>,
-) =>
-  infiniteQueryOptions<
+) => {
+  const opts = infiniteQueryOptions<
     ListContextPacksResponse,
     ListContextPacksError,
     InfiniteData<ListContextPacksResponse>,
@@ -2883,6 +2897,8 @@ export const listContextPacksInfiniteOptions = (
       queryKey: listContextPacksInfiniteQueryKey(options),
     },
   );
+  return opts as Omit<typeof opts, 'initialData'>;
+};
 
 export const diffContextPacksByCidQueryKey = (
   options: Options<DiffContextPacksByCidData>,
@@ -3215,8 +3231,8 @@ export const listProjectsInfiniteQueryKey = (
 
 export const listProjectsInfiniteOptions = (
   options?: Options<ListProjectsData>,
-) =>
-  infiniteQueryOptions<
+) => {
+  const opts = infiniteQueryOptions<
     ListProjectsResponse,
     ListProjectsError,
     InfiniteData<ListProjectsResponse>,
@@ -3254,6 +3270,8 @@ export const listProjectsInfiniteOptions = (
       queryKey: listProjectsInfiniteQueryKey(options),
     },
   );
+  return opts as Omit<typeof opts, 'initialData'>;
+};
 
 export const createProjectMutation = (
   options?: Partial<Options<CreateProjectData>>,
@@ -3385,8 +3403,8 @@ export const getPublicFeedInfiniteQueryKey = (
  */
 export const getPublicFeedInfiniteOptions = (
   options?: Options<GetPublicFeedData>,
-) =>
-  infiniteQueryOptions<
+) => {
+  const opts = infiniteQueryOptions<
     GetPublicFeedResponse,
     GetPublicFeedError,
     InfiniteData<GetPublicFeedResponse>,
@@ -3424,6 +3442,8 @@ export const getPublicFeedInfiniteOptions = (
       queryKey: getPublicFeedInfiniteQueryKey(options),
     },
   );
+  return opts as Omit<typeof opts, 'initialData'>;
+};
 
 export const searchPublicFeedQueryKey = (
   options: Options<SearchPublicFeedData>,
@@ -4470,8 +4490,8 @@ export const listTasksInfiniteQueryKey = (
 /**
  * List tasks for a team with optional filters.
  */
-export const listTasksInfiniteOptions = (options: Options<ListTasksData>) =>
-  infiniteQueryOptions<
+export const listTasksInfiniteOptions = (options: Options<ListTasksData>) => {
+  const opts = infiniteQueryOptions<
     ListTasksResponse,
     ListTasksError,
     InfiniteData<ListTasksResponse>,
@@ -4509,6 +4529,8 @@ export const listTasksInfiniteOptions = (options: Options<ListTasksData>) =>
       queryKey: listTasksInfiniteQueryKey(options),
     },
   );
+  return opts as Omit<typeof opts, 'initialData'>;
+};
 
 /**
  * Create and enqueue a new task.
@@ -5007,8 +5029,8 @@ export const listTaskArtifactsInfiniteQueryKey = (
  */
 export const listTaskArtifactsInfiniteOptions = (
   options: Options<ListTaskArtifactsData>,
-) =>
-  infiniteQueryOptions<
+) => {
+  const opts = infiniteQueryOptions<
     ListTaskArtifactsResponse,
     ListTaskArtifactsError,
     InfiniteData<ListTaskArtifactsResponse>,
@@ -5046,6 +5068,8 @@ export const listTaskArtifactsInfiniteOptions = (
       queryKey: listTaskArtifactsInfiniteQueryKey(options),
     },
   );
+  return opts as Omit<typeof opts, 'initialData'>;
+};
 
 export const downloadTaskArtifactByCidQueryKey = (
   options: Options<DownloadTaskArtifactByCidData>,

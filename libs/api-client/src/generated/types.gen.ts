@@ -272,41 +272,7 @@ export type ConflictProblemDetails = {
   status: number;
   title: string;
   type: string;
-  [key: string]:
-    | unknown
-    | 'UNAUTHORIZED'
-    | 'FORBIDDEN'
-    | 'NOT_FOUND'
-    | 'CONFLICT'
-    | 'PROJECT_MISMATCH'
-    | 'UNSUPPORTED_MEDIA_TYPE'
-    | 'VALIDATION_FAILED'
-    | 'INVALID_CHALLENGE'
-    | 'INVALID_SIGNATURE'
-    | 'RATE_LIMIT_EXCEEDED'
-    | 'SERIALIZATION_EXHAUSTED'
-    | 'SIGNING_REQUEST_EXPIRED'
-    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-    | 'SIGNING_REQUEST_LIMIT_REACHED'
-    | 'REGISTRATION_FAILED'
-    | 'UPSTREAM_ERROR'
-    | 'SERVICE_UNAVAILABLE'
-    | 'INTERNAL_SERVER_ERROR'
-    | 'TEAM_PERSONAL_IMMUTABLE'
-    | 'TEAM_NOT_ACTIVE'
-    | 'INVITE_EXPIRED'
-    | 'INVITE_EXHAUSTED'
-    | 'TEAM_LAST_OWNER'
-    | 'TEAM_ALREADY_ACTIVE'
-    | 'TEAM_NOT_FOUNDING'
-    | 'FOUNDING_ALREADY_ACCEPTED'
-    | 'DIARY_TRANSFER_PENDING'
-    | 'DIARY_TRANSFER_NOT_FOUND'
-    | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-    | string
-    | number
-    | number
-    | undefined;
+  [key: string]: unknown;
 } & {
   conflict: ConflictError;
 };
@@ -1038,41 +1004,7 @@ export type InjectionConflictProblemDetails = {
   status: number;
   title: string;
   type: string;
-  [key: string]:
-    | unknown
-    | 'UNAUTHORIZED'
-    | 'FORBIDDEN'
-    | 'NOT_FOUND'
-    | 'CONFLICT'
-    | 'PROJECT_MISMATCH'
-    | 'UNSUPPORTED_MEDIA_TYPE'
-    | 'VALIDATION_FAILED'
-    | 'INVALID_CHALLENGE'
-    | 'INVALID_SIGNATURE'
-    | 'RATE_LIMIT_EXCEEDED'
-    | 'SERIALIZATION_EXHAUSTED'
-    | 'SIGNING_REQUEST_EXPIRED'
-    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-    | 'SIGNING_REQUEST_LIMIT_REACHED'
-    | 'REGISTRATION_FAILED'
-    | 'UPSTREAM_ERROR'
-    | 'SERVICE_UNAVAILABLE'
-    | 'INTERNAL_SERVER_ERROR'
-    | 'TEAM_PERSONAL_IMMUTABLE'
-    | 'TEAM_NOT_ACTIVE'
-    | 'INVITE_EXPIRED'
-    | 'INVITE_EXHAUSTED'
-    | 'TEAM_LAST_OWNER'
-    | 'TEAM_ALREADY_ACTIVE'
-    | 'TEAM_NOT_FOUNDING'
-    | 'FOUNDING_ALREADY_ACCEPTED'
-    | 'DIARY_TRANSFER_PENDING'
-    | 'DIARY_TRANSFER_NOT_FOUND'
-    | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-    | string
-    | number
-    | number
-    | undefined;
+  [key: string]: unknown;
 } & {
   conflict: ConflictError;
 } & {
@@ -1488,41 +1420,7 @@ export type ProblemDetails = {
   status: number;
   title: string;
   type: string;
-  [key: string]:
-    | unknown
-    | 'UNAUTHORIZED'
-    | 'FORBIDDEN'
-    | 'NOT_FOUND'
-    | 'CONFLICT'
-    | 'PROJECT_MISMATCH'
-    | 'UNSUPPORTED_MEDIA_TYPE'
-    | 'VALIDATION_FAILED'
-    | 'INVALID_CHALLENGE'
-    | 'INVALID_SIGNATURE'
-    | 'RATE_LIMIT_EXCEEDED'
-    | 'SERIALIZATION_EXHAUSTED'
-    | 'SIGNING_REQUEST_EXPIRED'
-    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-    | 'SIGNING_REQUEST_LIMIT_REACHED'
-    | 'REGISTRATION_FAILED'
-    | 'UPSTREAM_ERROR'
-    | 'SERVICE_UNAVAILABLE'
-    | 'INTERNAL_SERVER_ERROR'
-    | 'TEAM_PERSONAL_IMMUTABLE'
-    | 'TEAM_NOT_ACTIVE'
-    | 'INVITE_EXPIRED'
-    | 'INVITE_EXHAUSTED'
-    | 'TEAM_LAST_OWNER'
-    | 'TEAM_ALREADY_ACTIVE'
-    | 'TEAM_NOT_FOUNDING'
-    | 'FOUNDING_ALREADY_ACCEPTED'
-    | 'DIARY_TRANSFER_PENDING'
-    | 'DIARY_TRANSFER_NOT_FOUND'
-    | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-    | string
-    | number
-    | number
-    | undefined;
+  [key: string]: unknown;
 };
 
 export type ProvenanceGraph = {
@@ -2856,86 +2754,7 @@ export type TaskAttempt = {
     provider?: string;
     toolCalls?: number;
   } | null;
-  [key: string]:
-    | unknown
-    | number
-    | string
-    | string
-    | null
-    | {
-        [key: string]: unknown;
-      }
-    | null
-    | string
-    | null
-    | string
-    | null
-    | {
-        [key: string]: unknown;
-      }
-    | null
-    | string
-    | null
-    | {
-        reportedAt: string;
-        slotResumableUntil: string | null;
-      }
-    | null
-    | {
-        code: string;
-        message: string;
-        retry?: {
-          confidence?: 'low' | 'medium' | 'high';
-          decision?: 'retry' | 'do_not_retry';
-          reason?: string;
-          source:
-            | 'explicit'
-            | 'deterministic'
-            | 'attempts_exhausted'
-            | 'triage'
-            | 'triage_failed';
-        };
-        retryable?: boolean;
-        stack?: string;
-      }
-    | null
-    | string
-    | null
-    | {
-        [key: string]: unknown;
-      }
-    | null
-    | string
-    | null
-    | string
-    | null
-    | string
-    | null
-    | string
-    | null
-    | number
-    | null
-    | string
-    | null
-    | string
-    | null
-    | 'claimed'
-    | 'running'
-    | 'completed'
-    | 'failed'
-    | 'cancelled'
-    | 'aborted'
-    | 'timed_out'
-    | {
-        cacheReadTokens?: number;
-        cacheWriteTokens?: number;
-        inputTokens: number;
-        model?: string;
-        outputTokens: number;
-        provider?: string;
-        toolCalls?: number;
-      }
-    | null;
+  [key: string]: unknown;
 };
 
 export type TaskAttemptParams = {
@@ -3263,41 +3082,7 @@ export type ValidationProblemDetails = {
   status: number;
   title: string;
   type: string;
-  [key: string]:
-    | unknown
-    | 'UNAUTHORIZED'
-    | 'FORBIDDEN'
-    | 'NOT_FOUND'
-    | 'CONFLICT'
-    | 'PROJECT_MISMATCH'
-    | 'UNSUPPORTED_MEDIA_TYPE'
-    | 'VALIDATION_FAILED'
-    | 'INVALID_CHALLENGE'
-    | 'INVALID_SIGNATURE'
-    | 'RATE_LIMIT_EXCEEDED'
-    | 'SERIALIZATION_EXHAUSTED'
-    | 'SIGNING_REQUEST_EXPIRED'
-    | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-    | 'SIGNING_REQUEST_LIMIT_REACHED'
-    | 'REGISTRATION_FAILED'
-    | 'UPSTREAM_ERROR'
-    | 'SERVICE_UNAVAILABLE'
-    | 'INTERNAL_SERVER_ERROR'
-    | 'TEAM_PERSONAL_IMMUTABLE'
-    | 'TEAM_NOT_ACTIVE'
-    | 'INVITE_EXPIRED'
-    | 'INVITE_EXHAUSTED'
-    | 'TEAM_LAST_OWNER'
-    | 'TEAM_ALREADY_ACTIVE'
-    | 'TEAM_NOT_FOUNDING'
-    | 'FOUNDING_ALREADY_ACCEPTED'
-    | 'DIARY_TRANSFER_PENDING'
-    | 'DIARY_TRANSFER_NOT_FOUND'
-    | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-    | string
-    | number
-    | number
-    | undefined;
+  [key: string]: unknown;
 } & {
   errors: Array<ValidationError>;
 };
@@ -6962,7 +6747,7 @@ export type GetOAuth2TokenErrors = {
     error_description?: string;
     error_hint?: string;
     status_code?: number;
-    [key: string]: unknown | string | number | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -6973,7 +6758,7 @@ export type GetOAuth2TokenErrors = {
     error_description?: string;
     error_hint?: string;
     status_code?: number;
-    [key: string]: unknown | string | number | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -6984,7 +6769,7 @@ export type GetOAuth2TokenErrors = {
     error_description?: string;
     error_hint?: string;
     status_code?: number;
-    [key: string]: unknown | string | number | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -6995,7 +6780,7 @@ export type GetOAuth2TokenErrors = {
     error_description?: string;
     error_hint?: string;
     status_code?: number;
-    [key: string]: unknown | string | number | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -7006,7 +6791,7 @@ export type GetOAuth2TokenErrors = {
     error_description?: string;
     error_hint?: string;
     status_code?: number;
-    [key: string]: unknown | string | number | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -7017,7 +6802,7 @@ export type GetOAuth2TokenErrors = {
     error_description?: string;
     error_hint?: string;
     status_code?: number;
-    [key: string]: unknown | string | number | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -7028,7 +6813,7 @@ export type GetOAuth2TokenErrors = {
     error_description?: string;
     error_hint?: string;
     status_code?: number;
-    [key: string]: unknown | string | number | undefined;
+    [key: string]: unknown;
   };
 };
 
@@ -7046,7 +6831,7 @@ export type GetOAuth2TokenResponses = {
     refresh_token?: string;
     scope?: string;
     token_type: string;
-    [key: string]: unknown | string | number | undefined;
+    [key: string]: unknown;
   };
 };
 
@@ -9867,41 +9652,7 @@ export type GetRuntimeSessionErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   } & {
     errors: Array<ValidationError>;
   };
@@ -9948,41 +9699,7 @@ export type GetRuntimeSessionErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -10027,41 +9744,7 @@ export type GetRuntimeSessionErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -10106,41 +9789,7 @@ export type GetRuntimeSessionErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -10241,41 +9890,7 @@ export type DownloadRuntimeSessionErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   } & {
     errors: Array<ValidationError>;
   };
@@ -10322,41 +9937,7 @@ export type DownloadRuntimeSessionErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -10401,41 +9982,7 @@ export type DownloadRuntimeSessionErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -10480,41 +10027,7 @@ export type DownloadRuntimeSessionErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -10563,41 +10076,7 @@ export type DownloadRuntimeSessionErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
 };
 
@@ -10682,41 +10161,7 @@ export type UploadRuntimeSessionErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   } & {
     errors: Array<ValidationError>;
   };
@@ -10763,41 +10208,7 @@ export type UploadRuntimeSessionErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -10842,41 +10253,7 @@ export type UploadRuntimeSessionErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -10921,41 +10298,7 @@ export type UploadRuntimeSessionErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -11000,41 +10343,7 @@ export type UploadRuntimeSessionErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -11083,41 +10392,7 @@ export type UploadRuntimeSessionErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
 };
 
@@ -11212,41 +10487,7 @@ export type ListRuntimeSlotsErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   } & {
     errors: Array<ValidationError>;
   };
@@ -11293,41 +10534,7 @@ export type ListRuntimeSlotsErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -11372,41 +10579,7 @@ export type ListRuntimeSlotsErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -11451,41 +10624,7 @@ export type ListRuntimeSlotsErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -11615,41 +10754,7 @@ export type BeginRuntimeSlotErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   } & {
     errors: Array<ValidationError>;
   };
@@ -11696,41 +10801,7 @@ export type BeginRuntimeSlotErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -11775,41 +10846,7 @@ export type BeginRuntimeSlotErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -11854,41 +10891,7 @@ export type BeginRuntimeSlotErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -11933,41 +10936,7 @@ export type BeginRuntimeSlotErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   } & {
     conflict: ConflictError;
   };
@@ -12079,41 +11048,7 @@ export type FinishRuntimeSlotErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   } & {
     errors: Array<ValidationError>;
   };
@@ -12160,41 +11095,7 @@ export type FinishRuntimeSlotErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -12239,41 +11140,7 @@ export type FinishRuntimeSlotErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -12318,41 +11185,7 @@ export type FinishRuntimeSlotErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -12397,41 +11230,7 @@ export type FinishRuntimeSlotErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   } & {
     conflict: ConflictError;
   };
@@ -12536,41 +11335,7 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   } & {
     errors: Array<ValidationError>;
   };
@@ -12617,41 +11382,7 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -12696,41 +11427,7 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -12775,41 +11472,7 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -12927,41 +11590,7 @@ export type StageTaskArtifactErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   } & {
     errors: Array<ValidationError>;
   };
@@ -13008,41 +11637,7 @@ export type StageTaskArtifactErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -13087,41 +11682,7 @@ export type StageTaskArtifactErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -13166,41 +11727,7 @@ export type StageTaskArtifactErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -13249,41 +11776,7 @@ export type StageTaskArtifactErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
 };
 
@@ -14527,41 +13020,7 @@ export type ListTaskArtifactsErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   } & {
     errors: Array<ValidationError>;
   };
@@ -14608,41 +13067,7 @@ export type ListTaskArtifactsErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -14687,41 +13112,7 @@ export type ListTaskArtifactsErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -14766,41 +13157,7 @@ export type ListTaskArtifactsErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -14902,41 +13259,7 @@ export type DownloadTaskArtifactByCidErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   } & {
     errors: Array<ValidationError>;
   };
@@ -14983,41 +13306,7 @@ export type DownloadTaskArtifactByCidErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -15062,41 +13351,7 @@ export type DownloadTaskArtifactByCidErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -15141,41 +13396,7 @@ export type DownloadTaskArtifactByCidErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -15224,41 +13445,7 @@ export type DownloadTaskArtifactByCidErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
 };
 
@@ -15343,41 +13530,7 @@ export type UploadTaskArtifactErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   } & {
     errors: Array<ValidationError>;
   };
@@ -15424,41 +13577,7 @@ export type UploadTaskArtifactErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -15503,41 +13622,7 @@ export type UploadTaskArtifactErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -15582,41 +13667,7 @@ export type UploadTaskArtifactErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -15669,41 +13720,7 @@ export type UploadTaskArtifactErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
 };
 
@@ -15795,41 +13812,7 @@ export type DownloadTaskArtifactErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   } & {
     errors: Array<ValidationError>;
   };
@@ -15876,41 +13859,7 @@ export type DownloadTaskArtifactErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -15955,41 +13904,7 @@ export type DownloadTaskArtifactErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -16034,41 +13949,7 @@ export type DownloadTaskArtifactErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
   /**
    * Default Response
@@ -16117,41 +13998,7 @@ export type DownloadTaskArtifactErrors = {
     status: number;
     title: string;
     type: string;
-    [key: string]:
-      | unknown
-      | 'UNAUTHORIZED'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND'
-      | 'CONFLICT'
-      | 'PROJECT_MISMATCH'
-      | 'UNSUPPORTED_MEDIA_TYPE'
-      | 'VALIDATION_FAILED'
-      | 'INVALID_CHALLENGE'
-      | 'INVALID_SIGNATURE'
-      | 'RATE_LIMIT_EXCEEDED'
-      | 'SERIALIZATION_EXHAUSTED'
-      | 'SIGNING_REQUEST_EXPIRED'
-      | 'SIGNING_REQUEST_ALREADY_COMPLETED'
-      | 'SIGNING_REQUEST_LIMIT_REACHED'
-      | 'REGISTRATION_FAILED'
-      | 'UPSTREAM_ERROR'
-      | 'SERVICE_UNAVAILABLE'
-      | 'INTERNAL_SERVER_ERROR'
-      | 'TEAM_PERSONAL_IMMUTABLE'
-      | 'TEAM_NOT_ACTIVE'
-      | 'INVITE_EXPIRED'
-      | 'INVITE_EXHAUSTED'
-      | 'TEAM_LAST_OWNER'
-      | 'TEAM_ALREADY_ACTIVE'
-      | 'TEAM_NOT_FOUNDING'
-      | 'FOUNDING_ALREADY_ACCEPTED'
-      | 'DIARY_TRANSFER_PENDING'
-      | 'DIARY_TRANSFER_NOT_FOUND'
-      | 'DIARY_TRANSFER_ALREADY_RESOLVED'
-      | string
-      | number
-      | number
-      | undefined;
+    [key: string]: unknown;
   };
 };
 

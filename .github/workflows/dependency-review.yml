@@ -20,3 +20,11 @@ jobs:
       - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5
         with:
           fail-on-severity: high
+          # js-yaml 4.2.0 is pinned exactly by @hey-api/json-schema-ref-parser
+          # 1.4.4, which @hey-api/openapi-ts 0.99.0 pins in turn. It runs only
+          # at codegen time, parsing OpenAPI specs committed to this repository,
+          # and ships in no package or image. Every hey-api release pins an
+          # affected js-yaml, so this allowance is the only route to the
+          # generated-client fix in openapi-ts. Remove these entries once
+          # json-schema-ref-parser depends on js-yaml >=4.3.2.
+          allow-ghsas: GHSA-2883-xcg3-v3hh, GHSA-52cp-r559-cp3m, GHSA-5p4m-2wfm-xmqj
