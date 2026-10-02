@@ -55,7 +55,7 @@
           "thinkingLevelMap": {
             "high": "high",
             "low": "low",
-            "medium": "medium",
+            "medium": "low",
             "minimal": "low",
             "off": "none",
             "xhigh": "max"
@@ -69,7 +69,7 @@
           "thinkingLevelMap": {
             "high": "high",
             "low": "low",
-            "medium": "medium",
+            "medium": "low",
             "minimal": "low",
             "off": "none",
             "xhigh": "max"
@@ -90,19 +90,20 @@
           }
         },
         {
-          "contextWindow": 1000000,
+          "contextWindow": 1048576,
           "id": "glm-5.2",
           "reasoning": true,
           "thinkingLevelMap": {
             "high": "high",
-            "low": "low",
-            "medium": "medium",
-            "minimal": "low",
+            "low": "high",
+            "medium": "high",
+            "minimal": "high",
             "off": "none",
             "xhigh": "max"
           }
         },
         {
+          "contextWindow": 1048576,
           "id": "glm-5.3",
           "reasoning": true,
           "thinkingLevelMap": {
@@ -115,6 +116,7 @@
           }
         },
         {
+          "contextWindow": 1048576,
           "id": "glm-5.3-flash",
           "input": ["text", "image"],
           "reasoning": true,
@@ -135,8 +137,9 @@
             "high": "high",
             "low": "low",
             "medium": "medium",
-            "minimal": null,
-            "off": null
+            "minimal": "low",
+            "off": "low",
+            "xhigh": "high"
           }
         },
         {
@@ -147,8 +150,9 @@
             "high": "high",
             "low": "low",
             "medium": "medium",
-            "minimal": null,
-            "off": null
+            "minimal": "low",
+            "off": "low",
+            "xhigh": "high"
           }
         },
         {
@@ -187,14 +191,14 @@
           "thinkingLevelMap": {
             "high": "high",
             "low": "low",
-            "medium": "medium",
+            "medium": "low",
             "minimal": "low",
             "off": "none",
             "xhigh": "max"
           }
         },
         {
-          "contextWindow": 204800,
+          "contextWindow": 196608,
           "id": "minimax-m2.7",
           "reasoning": true,
           "thinkingLevelMap": {
@@ -202,30 +206,24 @@
             "low": "low",
             "medium": "medium",
             "minimal": "low",
-            "off": "none",
+            "off": "low",
             "xhigh": "max"
           }
         },
         {
-          "contextWindow": 524288,
+          "contextWindow": 512000,
           "id": "minimax-m3",
           "input": ["text", "image"],
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "low": "low",
-            "medium": "medium",
-            "minimal": "low",
-            "off": "none",
-            "xhigh": "max"
-          }
+          "reasoning": true
         },
         {
+          "contextWindow": 262144,
           "id": "mistral-large-3:675b",
           "input": ["text", "image"],
           "reasoning": false
         },
         {
+          "contextWindow": 262144,
           "id": "nemotron-3-nano:30b",
           "reasoning": true,
           "thinkingLevelMap": {
