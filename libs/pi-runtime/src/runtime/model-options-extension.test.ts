@@ -151,7 +151,7 @@ describe('applyPiModelOptions', () => {
     createPiModelOptionsExtension(
       { temperature: 0.2, topP: 0.9, topK: 40, maxOutputTokens: 4000 },
       'ollama-cloud',
-      'qwen3-coder:480b-cloud',
+      'gpt-oss:120b',
       warn,
     )({
       on: (_event: string, handler: (event: { payload: unknown }) => unknown) =>
@@ -160,10 +160,10 @@ describe('applyPiModelOptions', () => {
 
     expect(
       beforeRequest!({
-        payload: { model: 'qwen3-coder:480b-cloud', messages: [] },
+        payload: { model: 'gpt-oss:120b', messages: [] },
       }),
     ).toEqual({
-      model: 'qwen3-coder:480b-cloud',
+      model: 'gpt-oss:120b',
       messages: [],
       temperature: 0.2,
       top_p: 0.9,

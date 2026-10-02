@@ -47,6 +47,34 @@ describe('provider catalog', () => {
     ).toBe(globalRuntimeModelCatalog.length);
   });
 
+  it('uses Ollama Cloud API model ids, not local-proxy :cloud aliases', () => {
+    // `:cloud` / `-cloud` names only exist on a local Ollama server proxying
+    // cloud models; the ollama-cloud provider talks to https://ollama.com/v1.
+    const proxyAliases = ollamaCloudModels
+      .map((entry) => entry.model)
+      .filter((model) => /(:|-)cloud$/.test(model));
+
+    expect(proxyAliases).toEqual([]);
+  });
+
+  it('records generated Ollama Cloud model capabilities', () => {
+    for (const entry of ollamaCloudModels) {
+      const { capabilities } = entry;
+      expect(capabilities.supportsVision).toEqual(expect.any(Boolean));
+      expect(capabilities.supportsReasoning).toEqual(expect.any(Boolean));
+      expect(capabilities.supportsTools).toEqual(expect.any(Boolean));
+      expect(capabilities.contextWindow).toEqual(expect.any(Number));
+      if (capabilities.supportsReasoning) {
+        expect(capabilities.thinkingLevels).toMatch(/^[a-z]+(,[a-z]+)*$/);
+        expect(String(capabilities.thinkingLevels).split(',')).toContain(
+          capabilities.defaultThinkingLevel,
+        );
+      } else {
+        expect(capabilities.thinkingLevels).toBeUndefined();
+      }
+    }
+  });
+
   it('records request option support and leaves unknown providers undecided', () => {
     for (const entry of piRuntimeModels) {
       for (const option of [
