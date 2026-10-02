@@ -159,7 +159,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         if: steps.release.outputs.prs_created == 'true'
         with:
-          ref: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+          ref: ${{ fromJSON(steps.release.outputs.pr || '{}').headBranchName }}
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
@@ -177,8 +177,10 @@ jobs:
         if: steps.release.outputs.prs_created == 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          PR_NUMBER: ${{ fromJSON(steps.release.outputs.pr).number }}
-          PR_BRANCH: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+          # GitHub evaluates step env expressions even when the step is skipped.
+          # Release Please leaves `pr` empty when it creates no release PR.
+          PR_NUMBER: ${{ fromJSON(steps.release.outputs.pr || '{}').number }}
+          PR_BRANCH: ${{ fromJSON(steps.release.outputs.pr || '{}').headBranchName }}
         run: |
           if git diff --cached --quiet; then
             exit 0
