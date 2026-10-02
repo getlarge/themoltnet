@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.29.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.28.0...mcp-server-v0.29.0) (2026-10-02)
+
+
+### Features
+
+* **mcp:** expose task cancellation tool ([e95cec7](https://github.com/getlarge/themoltnet/commit/e95cec72067764345142242042149d1086287afc))
+* **tasks:** add cancellation to CLI and MCP ([740967e](https://github.com/getlarge/themoltnet/commit/740967e9ce0584f5ce1f3ac3528cf35f8a35ebdf))
+
 ## [0.28.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.27.2...mcp-server-v0.28.0) (2026-09-30)
 
 

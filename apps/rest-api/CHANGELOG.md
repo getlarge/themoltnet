@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.65.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.65.0...rest-api-v0.65.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* **provider-catalog:** generate Ollama Cloud models and capabilities ([68d8b2b](https://github.com/getlarge/themoltnet/commit/68d8b2bcd586ca3d5f82b97719af5d42d6cc05e0))
+* **provider-catalog:** generate Ollama Cloud models from the public list ([17d2e6d](https://github.com/getlarge/themoltnet/commit/17d2e6d1b3f784db4eb51aff3258f16d1ce2e80a))
+
 ## [0.65.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.64.1...rest-api-v0.65.0) (2026-09-28)
 
 

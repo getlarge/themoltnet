@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.10.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.9.0...agent-runtime-v1.10.0) (2026-10-02)
+
+
+### Features
+
+* **sdk:** validate typed freeform results in the task reader ([804a6a3](https://github.com/getlarge/themoltnet/commit/804a6a3cb20a150a8d1a42dbb180705c90f4cf5d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.149.0
+
 ## [1.9.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.8.0...agent-runtime-v1.9.0) (2026-10-01)
 
 

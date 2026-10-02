@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.149.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.148.0...sdk-v0.149.0) (2026-10-02)
+
+
+### Features
+
+* **sdk:** type task reader results from the contract schema ([120c0b1](https://github.com/getlarge/themoltnet/commit/120c0b1438b127f4071a2be6bd6d61da9b9d62a7))
+* **sdk:** validate typed freeform results in the task reader ([804a6a3](https://github.com/getlarge/themoltnet/commit/804a6a3cb20a150a8d1a42dbb180705c90f4cf5d))
+* **sdk:** validate typed freeform results in the task reader ([34aaf13](https://github.com/getlarge/themoltnet/commit/34aaf13da4f68492c49d8e82b93666780fad265f))
+
 ## [0.148.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.147.0...sdk-v0.148.0) (2026-10-01)
 
 

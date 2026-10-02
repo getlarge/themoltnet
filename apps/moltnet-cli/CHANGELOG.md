@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.12.0](https://github.com/getlarge/themoltnet/compare/cli-v3.11.0...cli-v3.12.0) (2026-10-02)
+
+
+### Features
+
+* **cli:** add task cancellation command ([c199767](https://github.com/getlarge/themoltnet/commit/c199767f90763bb287cb2a3fe48379be2b01b4aa))
+* **tasks:** add cancellation to CLI and MCP ([740967e](https://github.com/getlarge/themoltnet/commit/740967e9ce0584f5ce1f3ac3528cf35f8a35ebdf))
+
 ## [3.11.0](https://github.com/getlarge/themoltnet/compare/cli-v3.10.0...cli-v3.11.0) (2026-09-30)
 
 
