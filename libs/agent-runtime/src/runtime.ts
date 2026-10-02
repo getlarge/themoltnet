@@ -18,6 +18,7 @@ import {
 } from '@opentelemetry/api';
 import { pino } from 'pino';
 
+import { TaskExecutionInterrupted } from './interrupted.js';
 import type { TaskReporter } from './reporters/index.js';
 import type { ClaimedTask, TaskSource } from './sources/index.js';
 import { traceRuntimePhase } from './telemetry.js';
@@ -167,6 +168,14 @@ export class AgentRuntime {
             ),
           );
         } catch (err) {
+          if (err instanceof TaskExecutionInterrupted) {
+            await reporter.close();
+            taskLogger.warn(
+              { reason: err.message },
+              'agent-runtime.task_interrupted',
+            );
+            throw err;
+          }
           // Contract: executors resolve with `status: 'failed'` on agent
           // failure, but they may still throw on unrecoverable setup errors
           // (snapshot build, VM resume, unexpected bugs). Convert those into
@@ -255,6 +264,7 @@ export class AgentRuntime {
         this.currentReporter = null;
       }
     } finally {
+      this.status.currentTaskId = null;
       this.currentReporter = null;
       await this.opts.source.close();
       this.status.state = 'stopped';

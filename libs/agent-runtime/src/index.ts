@@ -9,6 +9,7 @@
  */
 export * from './context-bindings.js';
 export * from './host-capabilities/index.js';
+export { TaskExecutionInterrupted } from './interrupted.js';
 export * from './output-contract.js';
 export * from './output-tools.js';
 export * from './prompts/index.js';
@@ -16,6 +17,7 @@ export * from './reporters/index.js';
 export * from './runtime.js';
 export * from './runtime-profile.js';
 export * from './sources/index.js';
+export { ResumeApiTaskSource } from './sources/resume-api.js';
 export {
   createSubagentContractRegistry,
   type SubagentContractRegistry,
