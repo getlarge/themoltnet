@@ -119,7 +119,7 @@ async function main() {
       rateLimitPreResolveIp: 300,
       rateLimitOauthApprovalIp: 300,
       rateLimitAllowList: ['/health', '/problems'],
-      trustProxy: 0,
+      trustProxy: false,
       apiBaseUrl: 'http://localhost:8000',
     },
     hydraPublicUrl: 'http://hydra-mock:4444',

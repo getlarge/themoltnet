@@ -85,7 +85,7 @@ export const TEST_SECURITY_OPTIONS = {
   rateLimitPreResolveIp: 1000,
   rateLimitOauthApprovalIp: 1000,
   rateLimitAllowList: ['/health', '/problems'],
-  trustProxy: 0,
+  trustProxy: false,
   apiBaseUrl: 'http://localhost:8000',
 };
 export const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';

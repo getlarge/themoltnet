@@ -255,7 +255,7 @@ describe('POST /oauth2/token caching', () => {
       rateLimitTokenIp: 1,
       rateLimitClientIpHeader: 'x-client-ip',
       rateLimitTrustedProxyCidrs: ['172.16.0.0/12'],
-      trustProxy: 1,
+      trustProxy: ['172.16.0.0/12'],
     });
     fetchMock.mockResolvedValueOnce(tokenResponse());
     const from = (ip: string) =>
@@ -291,7 +291,7 @@ describe('POST /oauth2/token caching', () => {
       rateLimitTokenIp: 1,
       rateLimitClientIpHeader: 'x-client-ip',
       rateLimitTrustedProxyCidrs: ['172.16.0.0/12'],
-      trustProxy: 1,
+      trustProxy: ['172.16.0.0/12'],
     });
     fetchMock.mockResolvedValue(tokenResponse());
     const cases = [

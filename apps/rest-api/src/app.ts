@@ -160,9 +160,10 @@ export interface SecurityOptions {
    */
   rateLimitAllowList: string[];
   /**
-   * Number of trusted reverse-proxy hops for Fastify proxy metadata.
+   * Reverse-proxy IPs/CIDRs Fastify trusts for X-Forwarded-* metadata, or
+   * `false` to trust none (see parseTrustProxy).
    */
-  trustProxy: number;
+  trustProxy: string[] | false;
   /** Base URL for callback URLs in GitHub App manifests (e.g. http://localhost:8000 in dev) */
   apiBaseUrl: string;
 }
