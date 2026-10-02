@@ -50,12 +50,12 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: pnpm/action-setup@v6
-    - uses: actions/setup-node@v6
+    - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+    - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
       with:
         node-version-file: .tool-versions
         cache: ${{ inputs.pnpm-cache == 'true' && 'pnpm' || '' }}
-    - uses: actions/setup-go@v6
+    - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
       with:
         go-version-file: .tool-versions
         cache: ${{ inputs.go-cache }}

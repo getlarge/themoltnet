@@ -226,8 +226,7 @@ jobs:
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         if: ${{ matrix.project == 'otel-custom-collector' }}
         with:
-          go-version: '1.27'
-          check-latest: true
+          go-version-file: .tool-versions
           cache: true
 
       - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
@@ -663,7 +662,7 @@ jobs:
 
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
-          go-version-file: apps/moltnet-cli/go.mod
+          go-version-file: .tool-versions
           cache: true
 
       - if: ${{ !inputs.dry-run }}
@@ -1426,7 +1425,7 @@ jobs:
 
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
-          go-version: '1.27'
+          go-version-file: .tool-versions
 
       - name: Extract semver from tag
         id: tag
