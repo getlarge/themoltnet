@@ -125,14 +125,3 @@ export async function main() {
     `${JSON.stringify({ ...result, base: values.base, head: values.head, pr }, null, 2)}\n`,
   );
 }
-
-if (
-  process.argv[1] &&
-  import.meta.url === new URL(`file://${process.argv[1]}`).href
-)
-  main().catch((error: unknown) => {
-    process.stderr.write(
-      `[fatal] ${error instanceof Error ? error.message : String(error)}\n`,
-    );
-    process.exitCode = 1;
-  });
