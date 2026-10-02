@@ -214,13 +214,19 @@ describe('Nx release configuration', () => {
     );
   });
 
-  it('builds the collector release with the latest patch of a Go minor its go.mod accepts', () => {
-    // Renovate moves the pinned minor; the invariant is the shape (latest
-    // patch of one minor, cached) and that the minor meets go.mod's floor.
+  it('builds the collector release with the pinned Go toolchain its go.mod accepts', () => {
+    // .tool-versions is the single Go toolchain pin (Renovate moves it); the
+    // invariant is that the release step reads it and that its minor meets
+    // the collector go.mod floor.
     const step =
-      /- uses: actions\/setup-go@\S+(?: # \S+)?\n\s+if: \$\{\{ matrix\.project == 'otel-custom-collector' \}\}\n\s+with:\n\s+go-version: '1\.(\d+)'\n\s+check-latest: true\n\s+cache: true/.exec(
+      /- uses: actions\/setup-go@\S+(?: # \S+)?\n\s+if: \$\{\{ matrix\.project == 'otel-custom-collector' \}\}\n\s+with:\n\s+go-version-file: \.tool-versions\n\s+cache: true/.exec(
         workflow,
       );
+    const toolVersions = readFileSync(
+      join(workspaceRoot, '.tool-versions'),
+      'utf8',
+    );
+    const pinned = /^golang 1\.(\d+)\.\d+$/m.exec(toolVersions);
     const goMod = readFileSync(
       join(workspaceRoot, 'infra/otel/custom-collector/go.mod'),
       'utf8',
@@ -228,8 +234,9 @@ describe('Nx release configuration', () => {
     const floor = /^go 1\.(\d+)/m.exec(goMod);
 
     expect(step).not.toBeNull();
+    expect(pinned).not.toBeNull();
     expect(floor).not.toBeNull();
-    expect(Number(step?.[1])).toBeGreaterThanOrEqual(Number(floor?.[1]));
+    expect(Number(pinned?.[1])).toBeGreaterThanOrEqual(Number(floor?.[1]));
   });
 
   it.each(['mac-os', 'linux'])(

@@ -233,7 +233,7 @@ jobs:
           cache: pnpm
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
-          go-version: '1.27'
+          go-version-file: .tool-versions
           cache-dependency-path: |
             go.work.sum
             apps/moltnet-cli/go.sum
@@ -461,15 +461,18 @@ jobs:
             echo "e2e-mcp=false" >> "$GITHUB_OUTPUT"
           fi
 
-          # A workflow-only Go version update does not affect an Nx project.
-          # Exercise the Go CLI lane when its CI, release, or sync toolchain
-          # changes so its required check cannot pass through the early exit.
+          # A Go toolchain update does not affect an Nx project. Exercise the
+          # Go CLI lane when the pinned toolchain (.tool-versions) or a
+          # workflow's setup-go input changes, so its required check cannot
+          # pass through the early exit.
           if contains "moltnet-cli" "moltnet-api-client" ||
+            git diff --unified=0 "$NX_BASE" "$NX_HEAD" -- .tool-versions |
+              grep -Eq '^\+golang ' ||
             git diff --unified=0 "$NX_BASE" "$NX_HEAD" -- \
               .github/workflows/ci.yml \
               .github/workflows/release.yml \
               .github/workflows/sync-cli-go-mod.yml |
-              grep -Eq '^\+[^+].*go-version:'; then
+              grep -Eq '^\+[^+].*go-version(-file)?:'; then
             echo "e2e-go-cli=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-go-cli=false" >> "$GITHUB_OUTPUT"
@@ -574,7 +577,7 @@ jobs:
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         if: steps.matrix.outputs.has-agents == 'true'
         with:
-          go-version: '1.27'
+          go-version-file: .tool-versions
           # This job only installs golangci-lint, whose binary is cached below.
           # Restoring the full Go cache can exhaust its five-minute budget.
           cache: false
@@ -584,7 +587,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: .cache/golangci-lint/v2.5.0/bin
-          key: golangci-lint-${{ runner.os }}-${{ runner.arch }}-go1.26-v2.5.0
+          key: golangci-lint-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.tool-versions') }}-v2.5.0
       - name: Install golangci-lint
         if: steps.matrix.outputs.has-agents == 'true' && steps.golangci-lint-cache.outputs.cache-hit != 'true'
         run: |
@@ -665,7 +668,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: .cache/golangci-lint/v2.5.0/bin
-          key: golangci-lint-${{ runner.os }}-${{ runner.arch }}-go1.26-v2.5.0
+          key: golangci-lint-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.tool-versions') }}-v2.5.0
       - name: Install golangci-lint
         if: steps.golangci-lint-cache.outputs.cache-hit != 'true'
         run: |
@@ -1228,7 +1231,7 @@ jobs:
           cache: pnpm
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
-          go-version: '1.27'
+          go-version-file: .tool-versions
           # Explicit go.work modules, never **/go.mod: a ** glob walks every
           # file in the checkout, including node_modules, just to hash these.
           cache-dependency-path: |
@@ -1816,7 +1819,7 @@ jobs:
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         if: needs.affected.outputs.e2e-go-cli == 'true'
         with:
-          go-version: '1.27'
+          go-version-file: .tool-versions
           # Explicit go.work modules, never **/go.mod: a ** glob walks every
           # file in the checkout, including node_modules, just to hash these.
           cache-dependency-path: |

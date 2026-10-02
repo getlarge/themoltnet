@@ -528,6 +528,12 @@ these rules.
   `dtolnay/rust-toolchain` pins in `.github/actions/setup-workspace` and
   `.github/workflows/ci.yml`. Newer Tauri crates may require a newer Rust than
   the pin, and edition 2021 resolution does not respect `rust-version`.
+- **The Go toolchain is pinned once, in `.tool-versions`.** Every
+  `actions/setup-go` step uses `go-version-file: .tool-versions`; never
+  hardcode `go-version` in a workflow. The `go` line in each `go.mod` is the
+  minimum language version for that module, not the toolchain: raise it only
+  when a dependency requires it, and keep published libraries
+  (`libs/moltnet-api-client`) at the lowest version that works.
 - **Pin Docker base images by digest with a literal `FROM`** line
   (`FROM node:24.14.1-slim@sha256:…`). Renovate cannot pin or update a `FROM`
   that interpolates an `ARG`.

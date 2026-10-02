@@ -6,7 +6,9 @@ case "${1:-}" in
     sudo apt-get update -qq
     sudo apt-get install -y --no-install-recommends ca-certificates curl git qemu-utils qemu-system-x86
     sudo rm -rf /usr/local/go
-    curl -fsSL https://go.dev/dl/go1.25.0.linux-amd64.tar.gz | sudo tar -C /usr/local -xz
+    go_version=$(awk '$1 == "golang" { print $2 }' .tool-versions)
+    [ -n "$go_version" ] || { echo '.tool-versions declares no golang version' >&2; exit 1; }
+    curl -fsSL "https://go.dev/dl/go${go_version}.linux-amd64.tar.gz" | sudo tar -C /usr/local -xz
     sudo ln -sf /usr/local/go/bin/{go,gofmt} /usr/local/bin/
     go version
     curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -

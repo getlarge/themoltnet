@@ -133,11 +133,10 @@
       "matchManagers": ["github-actions"]
     },
     {
-      "description": "Validate Go toolchain changes with the Go CI lanes before merging",
-      "groupName": "GitHub Actions Go toolchain",
-      "matchDepTypes": ["uses-with"],
-      "matchManagers": ["github-actions"],
-      "matchPackageNames": ["go"]
+      "description": "Validate Go toolchain changes (.tool-versions, read by every setup-go step) with the Go CI lanes before merging",
+      "groupName": "Go toolchain",
+      "matchDepNames": ["golang"],
+      "matchManagers": ["asdf"]
     },
     {
       "description": "Validate Python toolchain changes with the skill checks before merging",
