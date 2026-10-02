@@ -6,7 +6,8 @@ case "${1:-}" in
     sudo apt-get update -qq
     sudo apt-get install -y --no-install-recommends ca-certificates curl git qemu-utils qemu-system-x86
     sudo rm -rf /usr/local/go
-    go_version=$(awk '$1 == "golang" { print $2 }' .tool-versions)
+    # The checkout is copied from a Windows runner, so strip a CRLF ending.
+    go_version=$(awk '$1 == "golang" { sub(/\r$/, "", $2); print $2 }' .tool-versions)
     [ -n "$go_version" ] || { echo '.tool-versions declares no golang version' >&2; exit 1; }
     curl -fsSL "https://go.dev/dl/go${go_version}.linux-amd64.tar.gz" | sudo tar -C /usr/local -xz
     sudo ln -sf /usr/local/go/bin/{go,gofmt} /usr/local/bin/
