@@ -749,7 +749,7 @@ Object.entries({
 });
 //#endregion
 //#region ../../libs/api-client/src/generated/core/serverSentEvents.gen.ts
-var createSseClient = ({ onRequest, onSseError, onSseEvent, responseTransformer, responseValidator, sseDefaultRetryDelay, sseMaxRetryAttempts, sseMaxRetryDelay, sseSleepFn, url, ...options }) => {
+function createSseClient({ onRequest, onSseError, onSseEvent, responseTransformer, responseValidator, sseDefaultRetryDelay, sseMaxRetryAttempts, sseMaxRetryDelay, sseSleepFn, url, ...options }) {
 	let lastEventId;
 	const sleep = sseSleepFn ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
 	const createStream = async function* () {
@@ -787,7 +787,7 @@ var createSseClient = ({ onRequest, onSseError, onSseEvent, responseTransformer,
 						const { done, value } = await reader.read();
 						if (done) break;
 						buffer += value;
-						buffer = buffer.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+						buffer = buffer.replace(/\r\n?/g, "\n");
 						const chunks = buffer.split("\n\n");
 						buffer = chunks.pop() ?? "";
 						for (const chunk of chunks) {
@@ -838,7 +838,7 @@ var createSseClient = ({ onRequest, onSseError, onSseEvent, responseTransformer,
 		}
 	};
 	return { stream: createStream() };
-};
+}
 //#endregion
 //#region ../../libs/api-client/src/generated/core/pathSerializer.gen.ts
 var separatorArrayExplode = (style) => {
@@ -1065,8 +1065,8 @@ var checkForExistence = (options, name) => {
 	if (options.headers.has(name) || options.query?.[name] || options.headers.get("Cookie")?.includes(`${name}=`)) return true;
 	return false;
 };
-var setAuthParams = async ({ security, ...options }) => {
-	for (const auth of security) {
+async function setAuthParams(options) {
+	for (const auth of options.security ?? []) {
 		if (checkForExistence(options, auth.name)) continue;
 		const token = await getAuthToken(auth, options.auth);
 		if (!token) continue;
@@ -1084,7 +1084,7 @@ var setAuthParams = async ({ security, ...options }) => {
 				break;
 		}
 	}
-};
+}
 var buildUrl = (options) => getUrl({
 	baseUrl: options.baseUrl,
 	path: options.path,
@@ -1191,109 +1191,106 @@ var createClient = (config = {}) => {
 			headers: mergeHeaders(_config.headers, options.headers),
 			serializedBody: void 0
 		};
-		if (opts.security) await setAuthParams({
-			...opts,
-			security: opts.security
-		});
+		if (opts.security) await setAuthParams(opts);
 		if (opts.requestValidator) await opts.requestValidator(opts);
 		if (opts.body !== void 0 && opts.bodySerializer) opts.serializedBody = opts.bodySerializer(opts.body);
 		if (opts.body === void 0 || opts.serializedBody === "") opts.headers.delete("Content-Type");
+		const resolvedOpts = opts;
 		return {
-			opts,
-			url: buildUrl(opts)
+			opts: resolvedOpts,
+			url: buildUrl(resolvedOpts)
 		};
 	};
 	const request = async (options) => {
-		const { opts, url } = await beforeRequest(options);
-		const requestInit = {
-			redirect: "follow",
-			...opts,
-			body: getValidRequestBody(opts)
-		};
-		let request = new Request(url, requestInit);
-		for (const fn of interceptors.request.fns) if (fn) request = await fn(request, opts);
-		const _fetch = opts.fetch;
+		const throwOnError = options.throwOnError ?? _config.throwOnError;
+		const responseStyle = options.responseStyle ?? _config.responseStyle;
+		let request;
 		let response;
 		try {
-			response = await _fetch(request);
-		} catch (error) {
-			let finalError = error;
-			for (const fn of interceptors.error.fns) if (fn) finalError = await fn(error, void 0, request, opts);
-			finalError = finalError || {};
-			if (opts.throwOnError) throw finalError;
-			return opts.responseStyle === "data" ? void 0 : {
-				error: finalError,
-				request,
-				response: void 0
+			const { opts, url } = await beforeRequest(options);
+			const requestInit = {
+				redirect: "follow",
+				...opts,
+				body: getValidRequestBody(opts)
 			};
-		}
-		for (const fn of interceptors.response.fns) if (fn) response = await fn(response, request, opts);
-		const result = {
-			request,
-			response
-		};
-		if (response.ok) {
-			const parseAs = (opts.parseAs === "auto" ? getParseAs(response.headers.get("Content-Type")) : opts.parseAs) ?? "json";
-			if (response.status === 204 || response.headers.get("Content-Length") === "0") {
-				let emptyData;
+			request = new Request(url, requestInit);
+			for (const fn of interceptors.request.fns) if (fn) request = await fn(request, opts);
+			const _fetch = opts.fetch;
+			response = await _fetch(request);
+			for (const fn of interceptors.response.fns) if (fn) response = await fn(response, request, opts);
+			const result = {
+				request,
+				response
+			};
+			if (response.ok) {
+				const parseAs = (opts.parseAs === "auto" ? getParseAs(response.headers.get("Content-Type")) : opts.parseAs) ?? "json";
+				if (response.status === 204 || response.headers.get("Content-Length") === "0") {
+					let emptyData;
+					switch (parseAs) {
+						case "arrayBuffer":
+						case "blob":
+						case "text":
+							emptyData = await response[parseAs]();
+							break;
+						case "formData":
+							emptyData = new FormData();
+							break;
+						case "stream":
+							emptyData = response.body;
+							break;
+						default:
+							emptyData = {};
+							break;
+					}
+					return opts.responseStyle === "data" ? emptyData : {
+						data: emptyData,
+						...result
+					};
+				}
+				let data;
 				switch (parseAs) {
 					case "arrayBuffer":
 					case "blob":
-					case "text":
-						emptyData = await response[parseAs]();
-						break;
 					case "formData":
-						emptyData = new FormData();
+					case "text":
+						data = await response[parseAs]();
 						break;
-					case "stream":
-						emptyData = response.body;
+					case "json": {
+						const text = await response.text();
+						data = text ? JSON.parse(text) : {};
 						break;
-					default:
-						emptyData = {};
-						break;
+					}
+					case "stream": return opts.responseStyle === "data" ? response.body : {
+						data: response.body,
+						...result
+					};
 				}
-				return opts.responseStyle === "data" ? emptyData : {
-					data: emptyData,
+				if (parseAs === "json") {
+					if (opts.responseValidator) await opts.responseValidator(data);
+					if (opts.responseTransformer) data = await opts.responseTransformer(data);
+				}
+				return opts.responseStyle === "data" ? data : {
+					data,
 					...result
 				};
 			}
-			let data;
-			switch (parseAs) {
-				case "arrayBuffer":
-				case "blob":
-				case "formData":
-				case "json":
-				case "text":
-					data = await response[parseAs]();
-					break;
-				case "stream": return opts.responseStyle === "data" ? response.body : {
-					data: response.body,
-					...result
-				};
-			}
-			if (parseAs === "json") {
-				if (opts.responseValidator) await opts.responseValidator(data);
-				if (opts.responseTransformer) data = await opts.responseTransformer(data);
-			}
-			return opts.responseStyle === "data" ? data : {
-				data,
-				...result
+			const textError = await response.text();
+			let jsonError;
+			try {
+				jsonError = JSON.parse(textError);
+			} catch {}
+			throw jsonError ?? textError;
+		} catch (error) {
+			let finalError = error;
+			for (const fn of interceptors.error.fns) if (fn) finalError = await fn(finalError, response, request, options);
+			finalError = finalError || {};
+			if (throwOnError) throw finalError;
+			return responseStyle === "data" ? void 0 : {
+				error: finalError,
+				request,
+				response
 			};
 		}
-		const textError = await response.text();
-		let jsonError;
-		try {
-			jsonError = JSON.parse(textError);
-		} catch {}
-		const error = jsonError ?? textError;
-		let finalError = error;
-		for (const fn of interceptors.error.fns) if (fn) finalError = await fn(error, response, request, opts);
-		finalError = finalError || {};
-		if (opts.throwOnError) throw finalError;
-		return opts.responseStyle === "data" ? void 0 : {
-			error: finalError,
-			...result
-		};
 	};
 	const makeMethodFn = (method) => (options) => request({
 		...options,
@@ -1304,18 +1301,22 @@ var createClient = (config = {}) => {
 		return createSseClient({
 			...opts,
 			body: opts.body,
-			headers: opts.headers,
 			method,
 			onRequest: async (url, init) => {
 				let request = new Request(url, init);
 				for (const fn of interceptors.request.fns) if (fn) request = await fn(request, opts);
 				return request;
 			},
+			serializedBody: getValidRequestBody(opts),
 			url
 		});
 	};
+	const _buildUrl = (options) => buildUrl({
+		..._config,
+		...options
+	});
 	return {
-		buildUrl,
+		buildUrl: _buildUrl,
 		connect: makeMethodFn("CONNECT"),
 		delete: makeMethodFn("DELETE"),
 		get: makeMethodFn("GET"),
@@ -1360,10 +1361,12 @@ var getNetworkInfo = (options) => (options?.client ?? client).get({
 var listAgentKeys = (options) => (options?.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -1386,10 +1389,12 @@ var listAgentKeys = (options) => (options?.client ?? client).get({
 var createAgentKey = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -1416,10 +1421,12 @@ var createAgentKey = (options) => (options.client ?? client).post({
 var revokeAgentKey = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -1446,10 +1453,12 @@ var revokeAgentKey = (options) => (options.client ?? client).post({
 var rotateAgentKey = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -1472,10 +1481,12 @@ var rotateAgentKey = (options) => (options.client ?? client).post({
 var getWhoami = (options) => (options?.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -1497,6 +1508,7 @@ var getWhoami = (options) => (options?.client ?? client).get({
 */
 var updateWhoami = (options) => (options.client ?? client).patch({
 	security: [{
+		key: "bearerAuth",
 		scheme: "bearer",
 		type: "http"
 	}],
@@ -1531,10 +1543,12 @@ var verifyAgentSignature = (options) => (options.client ?? client).post({
 var rotateClientSecret = (options) => (options?.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -1557,10 +1571,12 @@ var rotateClientSecret = (options) => (options?.client ?? client).post({
 var getCryptoIdentity = (options) => (options?.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -1580,10 +1596,12 @@ var getCryptoIdentity = (options) => (options?.client ?? client).get({
 var listSigningCredentials = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -1635,10 +1653,12 @@ var completeSigningCredentialRegistration = (options) => (options.client ?? clie
 var getSigningCredential = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -1658,10 +1678,12 @@ var getSigningCredential = (options) => (options.client ?? client).get({
 var approveSigningCredential = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -1685,10 +1707,12 @@ var approveSigningCredential = (options) => (options.client ?? client).post({
 var revokeSigningCredential = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -1712,10 +1736,12 @@ var revokeSigningCredential = (options) => (options.client ?? client).post({
 var suspendSigningCredential = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -1742,10 +1768,12 @@ var suspendSigningCredential = (options) => (options.client ?? client).post({
 var listSigningRequests = (options) => (options?.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -1768,10 +1796,12 @@ var listSigningRequests = (options) => (options?.client ?? client).get({
 var createSigningRequest = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -1798,10 +1828,12 @@ var createSigningRequest = (options) => (options.client ?? client).post({
 var getSigningRequest = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -1872,10 +1904,12 @@ var rejectSigningRequest = (options) => (options.client ?? client).post({
 var submitSignature = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -1913,10 +1947,12 @@ var verifyCryptoSignature = (options) => (options.client ?? client).post({
 var listDiaries = (options) => (options?.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -1939,10 +1975,12 @@ var listDiaries = (options) => (options?.client ?? client).get({
 var createDiary = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -1969,10 +2007,12 @@ var createDiary = (options) => (options.client ?? client).post({
 var searchDiary = (options) => (options?.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -1999,10 +2039,12 @@ var searchDiary = (options) => (options?.client ?? client).post({
 var listDiaryEntries = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2025,10 +2067,12 @@ var listDiaryEntries = (options) => (options.client ?? client).get({
 var createDiaryEntry = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2055,10 +2099,12 @@ var createDiaryEntry = (options) => (options.client ?? client).post({
 var listDiaryTags = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2081,10 +2127,12 @@ var listDiaryTags = (options) => (options.client ?? client).get({
 var deleteDiary = (options) => (options.client ?? client).delete({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2107,10 +2155,12 @@ var deleteDiary = (options) => (options.client ?? client).delete({
 var getDiary = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2133,10 +2183,12 @@ var getDiary = (options) => (options.client ?? client).get({
 var updateDiary = (options) => (options.client ?? client).patch({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2163,10 +2215,12 @@ var updateDiary = (options) => (options.client ?? client).patch({
 var revokeDiaryGrant = (options) => (options.client ?? client).delete({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2193,10 +2247,12 @@ var revokeDiaryGrant = (options) => (options.client ?? client).delete({
 var listDiaryGrants = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2219,10 +2275,12 @@ var listDiaryGrants = (options) => (options.client ?? client).get({
 var createDiaryGrant = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2249,10 +2307,12 @@ var createDiaryGrant = (options) => (options.client ?? client).post({
 var listDiaryPacks = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2275,10 +2335,12 @@ var listDiaryPacks = (options) => (options.client ?? client).get({
 var createDiaryCustomPack = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2305,10 +2367,12 @@ var createDiaryCustomPack = (options) => (options.client ?? client).post({
 var previewDiaryCustomPack = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2335,10 +2399,12 @@ var previewDiaryCustomPack = (options) => (options.client ?? client).post({
 var listDiaryRenderedPacks = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2361,10 +2427,12 @@ var listDiaryRenderedPacks = (options) => (options.client ?? client).get({
 var initiateTransfer = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2391,10 +2459,12 @@ var initiateTransfer = (options) => (options.client ?? client).post({
 var batchDeleteDiaryEntries = (options) => (options.client ?? client).delete({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2421,10 +2491,12 @@ var batchDeleteDiaryEntries = (options) => (options.client ?? client).delete({
 var deleteDiaryEntryById = (options) => (options.client ?? client).delete({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2447,10 +2519,12 @@ var deleteDiaryEntryById = (options) => (options.client ?? client).delete({
 var getDiaryEntryById = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2473,10 +2547,12 @@ var getDiaryEntryById = (options) => (options.client ?? client).get({
 var updateDiaryEntryById = (options) => (options.client ?? client).patch({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2503,10 +2579,12 @@ var updateDiaryEntryById = (options) => (options.client ?? client).patch({
 var verifyDiaryEntryById = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2528,9 +2606,11 @@ var verifyDiaryEntryById = (options) => (options.client ?? client).get({
 */
 var registerExecutorManifest = (options) => (options.client ?? client).post({
 	security: [{
+		key: "bearerAuth",
 		scheme: "bearer",
 		type: "http"
 	}, {
+		key: "agentKeyAuth",
 		scheme: "bearer",
 		type: "http"
 	}],
@@ -2561,10 +2641,12 @@ var getLlmsTxt = (options) => (options?.client ?? client).get({
 var listContextPacks = (options) => (options?.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2587,10 +2669,12 @@ var listContextPacks = (options) => (options?.client ?? client).get({
 var getContextPackProvenanceByCid = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2613,10 +2697,12 @@ var getContextPackProvenanceByCid = (options) => (options.client ?? client).get(
 var getContextPackById = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2639,10 +2725,12 @@ var getContextPackById = (options) => (options.client ?? client).get({
 var updateContextPack = (options) => (options.client ?? client).patch({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2669,10 +2757,12 @@ var updateContextPack = (options) => (options.client ?? client).patch({
 var getContextPackProvenanceById = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2695,10 +2785,12 @@ var getContextPackProvenanceById = (options) => (options.client ?? client).get({
 var renderContextPack = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2725,10 +2817,12 @@ var renderContextPack = (options) => (options.client ?? client).post({
 var previewRenderedPack = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2755,10 +2849,12 @@ var previewRenderedPack = (options) => (options.client ?? client).post({
 var getLatestRenderedPack = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2792,10 +2888,12 @@ var getProblemType = (options) => (options.client ?? client).get({
 var listProjects = (options) => (options?.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2815,10 +2913,12 @@ var listProjects = (options) => (options?.client ?? client).get({
 var createProject = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2842,10 +2942,12 @@ var createProject = (options) => (options.client ?? client).post({
 var getProject = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2865,10 +2967,12 @@ var getProject = (options) => (options.client ?? client).get({
 var updateProject = (options) => (options.client ?? client).patch({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2967,10 +3071,12 @@ var verifyRecoveryChallenge = (options) => (options.client ?? client).post({
 var getRenderedPackById = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -2993,10 +3099,12 @@ var getRenderedPackById = (options) => (options.client ?? client).get({
 var updateRenderedPack = (options) => (options.client ?? client).patch({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3023,10 +3131,12 @@ var updateRenderedPack = (options) => (options.client ?? client).patch({
 var listRuntimePolicies = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3049,10 +3159,12 @@ var listRuntimePolicies = (options) => (options.client ?? client).get({
 var createRuntimePolicy = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3079,10 +3191,12 @@ var createRuntimePolicy = (options) => (options.client ?? client).post({
 var deleteRuntimePolicy = (options) => (options.client ?? client).delete({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3105,10 +3219,12 @@ var deleteRuntimePolicy = (options) => (options.client ?? client).delete({
 var getRuntimePolicy = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3131,10 +3247,12 @@ var getRuntimePolicy = (options) => (options.client ?? client).get({
 var updateRuntimePolicy = (options) => (options.client ?? client).patch({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3161,10 +3279,12 @@ var updateRuntimePolicy = (options) => (options.client ?? client).patch({
 var listRuntimeProfiles = (options) => (options?.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3187,10 +3307,12 @@ var listRuntimeProfiles = (options) => (options?.client ?? client).get({
 var createRuntimeProfile = (options) => (options?.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3217,10 +3339,12 @@ var createRuntimeProfile = (options) => (options?.client ?? client).post({
 var deleteRuntimeProfile = (options) => (options.client ?? client).delete({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3243,10 +3367,12 @@ var deleteRuntimeProfile = (options) => (options.client ?? client).delete({
 var getRuntimeProfile = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3269,10 +3395,12 @@ var getRuntimeProfile = (options) => (options.client ?? client).get({
 var updateRuntimeProfile = (options) => (options.client ?? client).patch({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3299,10 +3427,12 @@ var updateRuntimeProfile = (options) => (options.client ?? client).patch({
 var getRuntimeProfileAllowedTools = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3325,10 +3455,12 @@ var getRuntimeProfileAllowedTools = (options) => (options.client ?? client).get(
 var getRuntimeProfilePolicies = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3351,10 +3483,12 @@ var getRuntimeProfilePolicies = (options) => (options.client ?? client).get({
 var setRuntimeProfilePolicies = (options) => (options.client ?? client).put({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3381,10 +3515,12 @@ var setRuntimeProfilePolicies = (options) => (options.client ?? client).put({
 var getRuntimeSession = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3408,10 +3544,12 @@ var uploadRuntimeSession = (options) => (options.client ?? client).put({
 	bodySerializer: null,
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3438,10 +3576,12 @@ var uploadRuntimeSession = (options) => (options.client ?? client).put({
 var listRuntimeSlots = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3464,10 +3604,12 @@ var listRuntimeSlots = (options) => (options.client ?? client).get({
 var beginRuntimeSlot = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3494,10 +3636,12 @@ var beginRuntimeSlot = (options) => (options.client ?? client).post({
 var finishRuntimeSlot = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3524,10 +3668,12 @@ var finishRuntimeSlot = (options) => (options.client ?? client).post({
 var findLatestRuntimeSlotForAttempt = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3551,10 +3697,12 @@ var stageTaskArtifact = (options) => (options.client ?? client).put({
 	bodySerializer: null,
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3581,10 +3729,12 @@ var stageTaskArtifact = (options) => (options.client ?? client).put({
 var batchDeleteTasks = (options) => (options.client ?? client).delete({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3611,10 +3761,12 @@ var batchDeleteTasks = (options) => (options.client ?? client).delete({
 var listTasks = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3637,10 +3789,12 @@ var listTasks = (options) => (options.client ?? client).get({
 var createTask = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3667,10 +3821,12 @@ var createTask = (options) => (options.client ?? client).post({
 var listTaskSchemas = (options) => (options?.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3693,10 +3849,12 @@ var listTaskSchemas = (options) => (options?.client ?? client).get({
 var getTask = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3719,10 +3877,12 @@ var getTask = (options) => (options.client ?? client).get({
 var listTaskAttempts = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3745,10 +3905,12 @@ var listTaskAttempts = (options) => (options.client ?? client).get({
 var abortTaskAttempt = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3775,10 +3937,12 @@ var abortTaskAttempt = (options) => (options.client ?? client).post({
 var completeTask = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3805,10 +3969,12 @@ var completeTask = (options) => (options.client ?? client).post({
 var failTaskAttempt = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3835,10 +4001,12 @@ var failTaskAttempt = (options) => (options.client ?? client).post({
 var taskHeartbeat = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3865,10 +4033,12 @@ var taskHeartbeat = (options) => (options.client ?? client).post({
 var listTaskMessages = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3891,10 +4061,12 @@ var listTaskMessages = (options) => (options.client ?? client).get({
 var appendTaskMessages = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3921,10 +4093,12 @@ var appendTaskMessages = (options) => (options.client ?? client).post({
 var cancelTask = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3951,10 +4125,12 @@ var cancelTask = (options) => (options.client ?? client).post({
 var claimTask = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -3981,10 +4157,12 @@ var claimTask = (options) => (options.client ?? client).post({
 var revokeTaskGrant = (options) => (options.client ?? client).delete({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -4011,10 +4189,12 @@ var revokeTaskGrant = (options) => (options.client ?? client).delete({
 var listTaskGrants = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -4037,10 +4217,12 @@ var listTaskGrants = (options) => (options.client ?? client).get({
 var createTaskGrant = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -4067,10 +4249,12 @@ var createTaskGrant = (options) => (options.client ?? client).post({
 var listTaskArtifacts = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -4094,10 +4278,12 @@ var uploadTaskArtifact = (options) => (options.client ?? client).put({
 	bodySerializer: null,
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -4124,10 +4310,12 @@ var uploadTaskArtifact = (options) => (options.client ?? client).put({
 var listTeams = (options) => (options?.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -4150,10 +4338,12 @@ var listTeams = (options) => (options?.client ?? client).get({
 var createTeam = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -4180,10 +4370,12 @@ var createTeam = (options) => (options.client ?? client).post({
 var joinTeam = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -4210,10 +4402,12 @@ var joinTeam = (options) => (options.client ?? client).post({
 var deleteTeam = (options) => (options.client ?? client).delete({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -4236,10 +4430,12 @@ var deleteTeam = (options) => (options.client ?? client).delete({
 var getTeam = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -4262,10 +4458,12 @@ var getTeam = (options) => (options.client ?? client).get({
 var listTeamInvites = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -4288,10 +4486,12 @@ var listTeamInvites = (options) => (options.client ?? client).get({
 var createTeamInvite = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -4318,10 +4518,12 @@ var createTeamInvite = (options) => (options.client ?? client).post({
 var deleteTeamInvite = (options) => (options.client ?? client).delete({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -4344,10 +4546,12 @@ var deleteTeamInvite = (options) => (options.client ?? client).delete({
 var listTeamMembers = (options) => (options.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -4370,10 +4574,12 @@ var listTeamMembers = (options) => (options.client ?? client).get({
 var removeTeamMember = (options) => (options.client ?? client).delete({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -4396,10 +4602,12 @@ var removeTeamMember = (options) => (options.client ?? client).delete({
 var updateTeamMemberRole = (options) => (options.client ?? client).patch({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -4426,10 +4634,12 @@ var updateTeamMemberRole = (options) => (options.client ?? client).patch({
 var listPendingTransfers = (options) => (options?.client ?? client).get({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -4452,10 +4662,12 @@ var listPendingTransfers = (options) => (options?.client ?? client).get({
 var acceptTransfer = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -4478,10 +4690,12 @@ var acceptTransfer = (options) => (options.client ?? client).post({
 var rejectTransfer = (options) => (options.client ?? client).post({
 	security: [
 		{
+			key: "bearerAuth",
 			scheme: "bearer",
 			type: "http"
 		},
 		{
+			key: "agentKeyAuth",
 			scheme: "bearer",
 			type: "http"
 		},
@@ -11935,10 +12149,10 @@ function createTasksNamespace(context) {
 			const data = unwrapResult(result);
 			rememberTask(data.task);
 			const traceHeaders = {};
-			const traceparent = result.response.headers.get("traceparent");
+			const traceparent = result.response?.headers.get("traceparent");
 			if (traceparent) {
 				traceHeaders["traceparent"] = traceparent;
-				const tracestate = result.response.headers.get("tracestate");
+				const tracestate = result.response?.headers.get("tracestate");
 				if (tracestate) traceHeaders["tracestate"] = tracestate;
 			}
 			return {
