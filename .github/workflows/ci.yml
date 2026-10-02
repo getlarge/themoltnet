@@ -658,15 +658,8 @@ jobs:
           rust-cache: ${{ needs.affected.outputs.agent-desktop == 'true' }}
           rust-cache-key: ci-registry
           rust-cache-targets: 'false'
-      - name: Install native build tools
-        run: |
-          if ! command -v cmake >/dev/null || ! command -v ninja >/dev/null; then
-            sudo apt-get update
-            sudo apt-get install -y cmake ninja-build
-          fi
-      - name: Install Agent desktop native dependencies
-        if: needs.affected.outputs.agent-desktop == 'true'
-        run: bash tools/release/agent-desktop/install-linux-build-dependencies.sh
+          native-build-tools: 'true'
+          agent-desktop-native: ${{ needs.affected.outputs.agent-desktop == 'true' }}
       - name: Restore golangci-lint
         id: golangci-lint-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
@@ -1398,14 +1391,13 @@ jobs:
       ORY_KRATOS_ADMIN_URL: http://localhost:4434
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Install Linux native dependencies
-        run: bash tools/release/agent-desktop/install-linux-build-dependencies.sh
       - uses: ./.github/actions/setup-workspace
         with:
           go-cache: 'true'
           rust: 'true'
           rust-cache: 'true'
           rust-cache-key: desktop-e2e
+          agent-desktop-native: 'true'
       - name: Log in to GHCR
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
