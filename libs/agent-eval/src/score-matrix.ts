@@ -27,6 +27,9 @@ export interface ScoreCell {
   composite: number;
   /** Whether the pinned judge actually ran (false when gates gated it out). */
   judged: boolean;
+  invalidSubmitCalls: number;
+  repairKinds: string[];
+  outputSource: 'tool' | 'parser' | null;
   /** Populated when the run threw before producing a gradable attempt. */
   error?: string;
   /** Terminal producer error code when the task ended without acceptance. */
@@ -59,6 +62,11 @@ export interface MatrixDeps {
     taskId: string;
     attemptN: number | null;
     failureCode?: string;
+    structure?: {
+      invalidSubmitCalls: number;
+      repairKinds: string[];
+      outputSource: 'tool' | 'parser' | null;
+    };
   }>;
   /**
    * Evaluate stage-1 deterministic gates for a producer attempt.
@@ -109,12 +117,20 @@ export async function runMatrix(
         gateFailures: [],
         composite: 0,
         judged: false,
+        invalidSubmitCalls: 0,
+        repairKinds: [],
+        outputSource: null,
       };
 
       try {
         const producer = await deps.runProducer(model, scenario);
         base.producerTaskId = producer.taskId;
         base.producerAttemptN = producer.attemptN;
+        if (producer.structure) {
+          base.invalidSubmitCalls = producer.structure.invalidSubmitCalls;
+          base.repairKinds = producer.structure.repairKinds;
+          base.outputSource = producer.structure.outputSource;
+        }
 
         if (producer.attemptN === null) {
           base.failureCode = producer.failureCode ?? 'unknown';
@@ -192,7 +208,18 @@ export function summarizeMatrix(matrix: ScoreMatrix): string {
           : cell.gatesPassed
             ? `composite ${cell.composite.toFixed(3)}`
             : `GATE FAIL [${cell.gateFailures.map((f) => f.gate).join(',')}]`;
-      lines.push(`  ${cell.scenario.padEnd(32)} ${status}`);
+      const submitClean =
+        cell.producerAttemptN === null
+          ? 'n/a'
+          : cell.gateFailures.some((failure) => failure.gate === 'submit_clean')
+            ? '0/1'
+            : '1/1';
+      lines.push(
+        `  ${cell.scenario.padEnd(32)} ${status} ` +
+          `submit-clean=${submitClean} invalid=${cell.invalidSubmitCalls} ` +
+          `source=${cell.outputSource ?? 'unknown'} ` +
+          `repairs=${cell.repairKinds.join(',') || 'none'}`,
+      );
     }
   }
   return lines.join('\n');

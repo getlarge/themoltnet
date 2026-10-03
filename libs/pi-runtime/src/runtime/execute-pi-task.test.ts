@@ -2883,6 +2883,7 @@ describe('parseStructuredTaskOutput', () => {
       output,
       outputCid: await computeJsonCid(output),
       error: null,
+      repairs: [],
     });
   });
 
@@ -2958,6 +2959,7 @@ describe('parseStructuredTaskOutput', () => {
       output,
       outputCid: await computeJsonCid(output),
       error: null,
+      repairs: [],
     });
   });
 });

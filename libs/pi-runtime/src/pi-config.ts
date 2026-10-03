@@ -66,6 +66,8 @@ export interface WriteSingleProviderPiConfigInput extends WritePiConfigBase {
    * `$OLLAMA_API_KEY`.
    */
   apiKeyEnvRef?: string;
+  /** Explicit provider claim that strict JSON-schema function tools work. */
+  supportsStrictMode?: boolean;
   providers?: never;
 }
 
@@ -126,7 +128,13 @@ export function writePiConfig(input: WritePiConfigInput): void {
           api: 'openai-completions',
           apiKey: input.apiKeyEnvRef ?? '$OLLAMA_API_KEY',
           baseUrl: input.baseUrl ?? 'https://ollama.com/v1',
-          models: [toPiModel({ id: input.model, input: input.input })],
+          models: [
+            toPiModel({
+              id: input.model,
+              input: input.input,
+              supportsStrictMode: input.supportsStrictMode,
+            }),
+          ],
         },
       };
   writeFileSync(

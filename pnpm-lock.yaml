@@ -315,6 +315,9 @@ catalogs:
     jsdom:
       specifier: ^25.0.0
       version: 25.0.1
+    json5:
+      specifier: ^2.2.3
+      version: 2.2.3
     jsonc-eslint-parser:
       specifier: ^2.1.0
       version: 2.4.2
@@ -2878,6 +2881,9 @@ importers:
       '@themoltnet/shell-command-analyzer':
         specifier: workspace:*
         version: link:../shell-command-analyzer
+      json5:
+        specifier: 'catalog:'
+        version: 2.2.3
       multiformats:
         specifier: 'catalog:'
         version: 13.4.2

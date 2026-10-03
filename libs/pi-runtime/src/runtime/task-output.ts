@@ -1,11 +1,18 @@
 import { computeJsonCid } from '@moltnet/crypto-service/json-cid';
 import { metrics } from '@opentelemetry/api';
-import { validateAgentTaskSubmission } from '@themoltnet/agent-runtime';
+import {
+  alignToSchema,
+  getAgentSubmissionSchema,
+  type SchemaAlignmentRepair,
+  validateAgentTaskSubmission,
+} from '@themoltnet/agent-runtime';
+import JSON5 from 'json5';
 
 export interface ParsedTaskOutputResult {
   output: Record<string, unknown> | null;
   outputCid: string | null;
   error: { code: string; message: string } | null;
+  repairs?: SchemaAlignmentRepair[];
 }
 
 export type TaskOutputParseCode =
@@ -22,6 +29,9 @@ let parseResultCounter: ReturnType<
   ReturnType<typeof metrics.getMeter>['createCounter']
 > | null = null;
 let telemetryAnomalyCounter: ReturnType<
+  ReturnType<typeof metrics.getMeter>['createCounter']
+> | null = null;
+let repairCounter: ReturnType<
   ReturnType<typeof metrics.getMeter>['createCounter']
 > | null = null;
 
@@ -57,6 +67,29 @@ function getTelemetryAnomalyCounter() {
 export function __resetTaskOutputCounterForTests(): void {
   parseResultCounter = null;
   telemetryAnomalyCounter = null;
+  repairCounter = null;
+}
+
+export function recordTaskOutputRepairs(args: {
+  taskType: string;
+  model?: string;
+  repairs: SchemaAlignmentRepair[];
+}): void {
+  if (args.repairs.length === 0) return;
+  repairCounter ??= metrics
+    .getMeter(METER_NAME)
+    .createCounter('agent_runtime.task_output.repair', {
+      description:
+        'Schema-alignment repairs, labelled by task_type, model, and kind.',
+      unit: '1',
+    });
+  for (const repair of args.repairs) {
+    repairCounter.add(1, {
+      task_type: args.taskType,
+      model: args.model ?? 'unknown',
+      kind: repair.kind,
+    });
+  }
 }
 
 /**
@@ -109,7 +142,7 @@ export async function parseStructuredTaskOutput(
   const record = (code: TaskOutputParseCode) =>
     recordTaskOutputParseResult({ taskType, model: opts.model, code });
 
-  const extracted = extractJsonObject(assistantText);
+  const extracted = extractJsonObjectWithRepairs(assistantText);
   if (!extracted) {
     record('output_missing');
     return {
@@ -123,9 +156,20 @@ export async function parseStructuredTaskOutput(
     };
   }
 
-  const errors = validateAgentTaskSubmission(taskType, extracted, opts.input, {
-    inputCid: opts.inputCid,
-  });
+  const schema = getAgentSubmissionSchema(taskType, opts.input);
+  const aligned = schema
+    ? alignToSchema(extracted.value, schema)
+    : { value: extracted.value, repairs: [] };
+  const repairs = [...extracted.repairs, ...aligned.repairs];
+  recordTaskOutputRepairs({ taskType, model: opts.model, repairs });
+  const errors = validateAgentTaskSubmission(
+    taskType,
+    aligned.value,
+    opts.input,
+    {
+      inputCid: opts.inputCid,
+    },
+  );
   if (errors.length > 0) {
     const details = errors
       .slice(0, 3)
@@ -143,16 +187,18 @@ export async function parseStructuredTaskOutput(
         code,
         message: `Output failed schema validation: ${details.join('; ')}`,
       },
+      repairs,
     };
   }
 
   try {
-    const outputCid = await computeJsonCid(extracted);
+    const outputCid = await computeJsonCid(aligned.value);
     record('success');
     return {
-      output: extracted as Record<string, unknown>,
+      output: aligned.value as Record<string, unknown>,
       outputCid,
       error: null,
+      repairs,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -164,15 +210,23 @@ export async function parseStructuredTaskOutput(
         code: 'output_cid_compute_failed',
         message: `Validated output could not be canonicalized: ${message}`,
       },
+      repairs,
     };
   }
 }
 
 /**
- * Find the last balanced top-level JSON object in `text` and parse it.
- * Tolerates markdown fences and leading prose. Returns null if parsing fails.
+ * Find the last complete top-level object in `text` and parse it as JSON or
+ * JSON5. Tolerates markdown fences and leading prose. Truncation returns null.
  */
 export function extractJsonObject(text: string): unknown {
+  return extractJsonObjectWithRepairs(text)?.value ?? null;
+}
+
+function extractJsonObjectWithRepairs(text: string): {
+  value: Record<string, unknown>;
+  repairs: SchemaAlignmentRepair[];
+} | null {
   if (!text) return null;
 
   const fenceMatch = /```(?:json)?\s*([\s\S]*?)```/gi;
@@ -185,18 +239,42 @@ export function extractJsonObject(text: string): unknown {
     let depth = 0;
     let start = -1;
     let lastComplete: string | null = null;
-    let inString = false;
+    let quote: '"' | "'" | null = null;
     let escape = false;
+    let lineComment = false;
+    let blockComment = false;
     for (let i = 0; i < s.length; i++) {
       const ch = s[i];
-      if (inString) {
-        if (escape) escape = false;
-        else if (ch === '\\') escape = true;
-        else if (ch === '"') inString = false;
+      const next = s[i + 1];
+      if (lineComment) {
+        if (ch === '\n') lineComment = false;
         continue;
       }
-      if (ch === '"') {
-        inString = true;
+      if (blockComment) {
+        if (ch === '*' && next === '/') {
+          blockComment = false;
+          i++;
+        }
+        continue;
+      }
+      if (quote) {
+        if (escape) escape = false;
+        else if (ch === '\\') escape = true;
+        else if (ch === quote) quote = null;
+        continue;
+      }
+      if (ch === '/' && next === '/') {
+        lineComment = true;
+        i++;
+        continue;
+      }
+      if (ch === '/' && next === '*') {
+        blockComment = true;
+        i++;
+        continue;
+      }
+      if (ch === '"' || ch === "'") {
+        quote = ch;
         continue;
       }
       if (ch === '{') {
@@ -210,6 +288,7 @@ export function extractJsonObject(text: string): unknown {
         }
       }
     }
+    if (depth !== 0 || quote || blockComment) return null;
     return lastComplete;
   };
 
@@ -219,9 +298,28 @@ export function extractJsonObject(text: string): unknown {
     const obj = scanForObject(candidates[i]);
     if (!obj) continue;
     try {
-      return JSON.parse(obj);
+      const parsed: unknown = JSON.parse(obj);
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        !Array.isArray(parsed)
+      )
+        return { value: parsed as Record<string, unknown>, repairs: [] };
     } catch {
-      /* try next */
+      try {
+        const parsed: unknown = JSON5.parse(obj);
+        if (
+          typeof parsed === 'object' &&
+          parsed !== null &&
+          !Array.isArray(parsed)
+        )
+          return {
+            value: parsed as Record<string, unknown>,
+            repairs: [{ kind: 'lenient_json', path: '' }],
+          };
+      } catch {
+        /* try next candidate */
+      }
     }
   }
   return null;

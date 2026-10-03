@@ -45,6 +45,30 @@ function deps(overrides: Partial<MatrixDeps> = {}): MatrixDeps {
 }
 
 describe('runMatrix', () => {
+  it('copies observed structure telemetry into the score cell', async () => {
+    const matrix = await runMatrix(
+      ['m'],
+      [scenario('s')],
+      'judge-x',
+      deps({
+        runProducer: () =>
+          Promise.resolve({
+            taskId: 'task-1',
+            attemptN: 1,
+            structure: {
+              invalidSubmitCalls: 2,
+              repairKinds: ['json_string'],
+              outputSource: 'tool',
+            },
+          }),
+      }),
+    );
+    expect(matrix.cells[0]).toMatchObject({
+      invalidSubmitCalls: 2,
+      repairKinds: ['json_string'],
+      outputSource: 'tool',
+    });
+  });
   it('sweeps every model x scenario and judges gate-passing attempts', async () => {
     // Arrange
     const models = ['model-a', 'model-b'];

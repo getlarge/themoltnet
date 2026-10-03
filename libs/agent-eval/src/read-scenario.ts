@@ -17,6 +17,7 @@ import { runtimeProfileContextRecipeIds } from '@moltnet/runtime-profiles';
 import {
   Rubric,
   RunEvalExecution,
+  validateOutputContract,
   validateRubricWeights,
 } from '@moltnet/tasks';
 import type { TSchema } from 'typebox';
@@ -264,6 +265,7 @@ export function readScenario(dir: string): Scenario {
     taskType: rawTaskType,
     contextRecipe: rawContextRecipe,
     fixtures: rawFixtures,
+    outputContract: rawOutputContract,
     ...execution
   } = evalJson as Record<string, unknown>;
   const taskType = rawTaskType ?? 'run_eval';
@@ -288,6 +290,23 @@ export function readScenario(dir: string): Scenario {
       slug,
       'eval.json contextRecipe is only supported for run_eval scenarios',
     );
+  }
+  if (rawOutputContract !== undefined) {
+    if (taskType !== 'freeform') {
+      throw new ScenarioError(
+        slug,
+        'eval.json outputContract requires freeform taskType',
+      );
+    }
+    const errors = validateOutputContract('freeform', {
+      outputContract: rawOutputContract,
+    });
+    if (errors.length > 0) {
+      throw new ScenarioError(
+        slug,
+        `eval.json outputContract: ${errors[0].message}`,
+      );
+    }
   }
   assertSchema(slug, 'eval.json', RunEvalExecution, execution);
   if (rawFixtures !== undefined) {
@@ -318,6 +337,7 @@ export function readScenario(dir: string): Scenario {
   return {
     slug,
     taskType: taskType as Scenario['taskType'],
+    outputContract: rawOutputContract as Scenario['outputContract'],
     contextRecipe: rawContextRecipe,
     prompt,
     execution: execution as Scenario['execution'],

@@ -44,6 +44,8 @@ import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const MATRIX_FLAG = 'MOLTNET_EVAL_MATRIX';
 const PROVIDER = 'ollama-cloud';
+// The submit tool requests strict JSON-schema sampling. Explicitly declare
+// Ollama's capability so Pi sends function.strict with the tool schema.
 const WARM_TTL_SEC = '1200';
 const CORPUS_ROOT = join(import.meta.dirname, '../../..', 'evals-v2');
 
@@ -60,6 +62,45 @@ function loadScenarios(): Scenario[] {
   return readdirSync(CORPUS_ROOT, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => readScenario(join(CORPUS_ROOT, entry.name)));
+}
+
+async function readSubmitStructure(
+  agent: Agent,
+  taskId: string,
+  attemptN: number | null,
+  taskType: string,
+): Promise<{
+  invalidSubmitCalls: number;
+  repairKinds: string[];
+  outputSource: 'tool' | 'parser' | null;
+}> {
+  const empty = { invalidSubmitCalls: 0, repairKinds: [], outputSource: null };
+  if (attemptN === null) return empty;
+  const messages = await agent.tasks.listMessages(taskId, attemptN);
+  const submitName = `submit_${taskType}_output`;
+  const invalidSubmitCalls = messages.filter(
+    (message) =>
+      message.kind === 'tool_call_end' &&
+      message.payload.tool_name === submitName &&
+      message.payload.is_error === true,
+  ).length;
+  const completion = messages.find(
+    (message) =>
+      message.kind === 'info' && message.payload.event === 'output_completion',
+  )?.payload;
+  const repairKinds = Array.isArray(completion?.repair_kinds)
+    ? completion.repair_kinds.filter(
+        (kind): kind is string => typeof kind === 'string',
+      )
+    : [];
+  const source = completion?.output_source;
+  const outputSource =
+    source === 'submit_tool'
+      ? ('tool' as const)
+      : source === 'legacy_parser'
+        ? ('parser' as const)
+        : null;
+  return { invalidSubmitCalls, repairKinds, outputSource };
 }
 
 async function createProfile(
@@ -179,13 +220,23 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
     judgeProfileId = judgeProfile.id;
     judgePiDir = mkdtempSync(join(tmpdir(), 'eval-matrix-judge-pi-'));
     tempRoots.push(judgePiDir);
-    writePiConfig({ piDir: judgePiDir, provider: PROVIDER, model: judgeModel });
+    writePiConfig({
+      piDir: judgePiDir,
+      provider: PROVIDER,
+      model: judgeModel,
+      supportsStrictMode: true,
+    });
 
     for (const model of models) {
       const profile = await createProfile(agent, teamId, model);
       const piDir = mkdtempSync(join(tmpdir(), 'eval-matrix-pi-'));
       tempRoots.push(piDir);
-      writePiConfig({ piDir, provider: PROVIDER, model });
+      writePiConfig({
+        piDir,
+        provider: PROVIDER,
+        model,
+        supportsStrictMode: true,
+      });
       perModel.set(model, { profileId: profile.id, piDir });
     }
   }, 300_000);
@@ -235,9 +286,24 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
             taskId: task.id,
             attemptN: null,
             failureCode: latest?.error?.code ?? `task_${final.status}`,
+            structure: await readSubmitStructure(
+              agent,
+              task.id,
+              latest?.attemptN ?? null,
+              scenario.taskType,
+            ),
           };
         }
-        return { taskId: task.id, attemptN: final.acceptedAttemptN };
+        return {
+          taskId: task.id,
+          attemptN: final.acceptedAttemptN,
+          structure: await readSubmitStructure(
+            agent,
+            task.id,
+            final.acceptedAttemptN,
+            scenario.taskType,
+          ),
+        };
       },
       runGates: (model, scenario, producer) =>
         checkGates(agent, producer.taskId, producer.attemptN, scenario.gates, {
@@ -245,6 +311,7 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
           workspace: scenario.execution.workspace,
           teamId,
           taskType: scenario.taskType,
+          outputContract: scenario.outputContract,
         }),
       runJudge: async (scenario, producer) => {
         const judgeTask = await agent.tasks.create(
