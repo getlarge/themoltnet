@@ -30,6 +30,8 @@ export default defineConfig({
         main: 'src/main.ts',
         cli: 'src/cli.ts',
         runtime: 'src/runtime.ts',
+        classification: 'src/classification.ts',
+        durable: 'src/durable.ts',
         pi: 'src/pi.ts',
       },
       external,

@@ -925,6 +925,152 @@ func (s *AppendMessagesResponse) SetCount(val int) {
 
 func (*AppendMessagesResponse) appendTaskMessagesRes() {}
 
+type AppendRuntimeStoreCommitBadRequest ProblemDetails
+
+func (*AppendRuntimeStoreCommitBadRequest) appendRuntimeStoreCommitRes() {}
+
+type AppendRuntimeStoreCommitConflict ProblemDetails
+
+func (*AppendRuntimeStoreCommitConflict) appendRuntimeStoreCommitRes() {}
+
+type AppendRuntimeStoreCommitForbidden ProblemDetails
+
+func (*AppendRuntimeStoreCommitForbidden) appendRuntimeStoreCommitRes() {}
+
+type AppendRuntimeStoreCommitNotFound ProblemDetails
+
+func (*AppendRuntimeStoreCommitNotFound) appendRuntimeStoreCommitRes() {}
+
+type AppendRuntimeStoreCommitOK struct {
+	Seq int `json:"seq"`
+}
+
+// GetSeq returns the value of Seq.
+func (s *AppendRuntimeStoreCommitOK) GetSeq() int {
+	return s.Seq
+}
+
+// SetSeq sets the value of Seq.
+func (s *AppendRuntimeStoreCommitOK) SetSeq(val int) {
+	s.Seq = val
+}
+
+func (*AppendRuntimeStoreCommitOK) appendRuntimeStoreCommitRes() {}
+
+type AppendRuntimeStoreCommitReq struct {
+	AttemptN            int                                     `json:"attemptN"`
+	CommitId            uuid.UUID                               `json:"commitId"`
+	ExecutorFingerprint string                                  `json:"executorFingerprint"`
+	ExpectedSeq         int                                     `json:"expectedSeq"`
+	LeaseId             uuid.UUID                               `json:"leaseId"`
+	TaskId              uuid.UUID                               `json:"taskId"`
+	WriterToken         uuid.UUID                               `json:"writerToken"`
+	Writes              []AppendRuntimeStoreCommitReqWritesItem `json:"writes"`
+}
+
+// GetAttemptN returns the value of AttemptN.
+func (s *AppendRuntimeStoreCommitReq) GetAttemptN() int {
+	return s.AttemptN
+}
+
+// GetCommitId returns the value of CommitId.
+func (s *AppendRuntimeStoreCommitReq) GetCommitId() uuid.UUID {
+	return s.CommitId
+}
+
+// GetExecutorFingerprint returns the value of ExecutorFingerprint.
+func (s *AppendRuntimeStoreCommitReq) GetExecutorFingerprint() string {
+	return s.ExecutorFingerprint
+}
+
+// GetExpectedSeq returns the value of ExpectedSeq.
+func (s *AppendRuntimeStoreCommitReq) GetExpectedSeq() int {
+	return s.ExpectedSeq
+}
+
+// GetLeaseId returns the value of LeaseId.
+func (s *AppendRuntimeStoreCommitReq) GetLeaseId() uuid.UUID {
+	return s.LeaseId
+}
+
+// GetTaskId returns the value of TaskId.
+func (s *AppendRuntimeStoreCommitReq) GetTaskId() uuid.UUID {
+	return s.TaskId
+}
+
+// GetWriterToken returns the value of WriterToken.
+func (s *AppendRuntimeStoreCommitReq) GetWriterToken() uuid.UUID {
+	return s.WriterToken
+}
+
+// GetWrites returns the value of Writes.
+func (s *AppendRuntimeStoreCommitReq) GetWrites() []AppendRuntimeStoreCommitReqWritesItem {
+	return s.Writes
+}
+
+// SetAttemptN sets the value of AttemptN.
+func (s *AppendRuntimeStoreCommitReq) SetAttemptN(val int) {
+	s.AttemptN = val
+}
+
+// SetCommitId sets the value of CommitId.
+func (s *AppendRuntimeStoreCommitReq) SetCommitId(val uuid.UUID) {
+	s.CommitId = val
+}
+
+// SetExecutorFingerprint sets the value of ExecutorFingerprint.
+func (s *AppendRuntimeStoreCommitReq) SetExecutorFingerprint(val string) {
+	s.ExecutorFingerprint = val
+}
+
+// SetExpectedSeq sets the value of ExpectedSeq.
+func (s *AppendRuntimeStoreCommitReq) SetExpectedSeq(val int) {
+	s.ExpectedSeq = val
+}
+
+// SetLeaseId sets the value of LeaseId.
+func (s *AppendRuntimeStoreCommitReq) SetLeaseId(val uuid.UUID) {
+	s.LeaseId = val
+}
+
+// SetTaskId sets the value of TaskId.
+func (s *AppendRuntimeStoreCommitReq) SetTaskId(val uuid.UUID) {
+	s.TaskId = val
+}
+
+// SetWriterToken sets the value of WriterToken.
+func (s *AppendRuntimeStoreCommitReq) SetWriterToken(val uuid.UUID) {
+	s.WriterToken = val
+}
+
+// SetWrites sets the value of Writes.
+func (s *AppendRuntimeStoreCommitReq) SetWrites(val []AppendRuntimeStoreCommitReqWritesItem) {
+	s.Writes = val
+}
+
+type AppendRuntimeStoreCommitReqWritesItem map[string]jx.Raw
+
+func (s *AppendRuntimeStoreCommitReqWritesItem) init() AppendRuntimeStoreCommitReqWritesItem {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type AppendRuntimeStoreCommitServiceUnavailable ProblemDetails
+
+func (*AppendRuntimeStoreCommitServiceUnavailable) appendRuntimeStoreCommitRes() {}
+
+type AppendRuntimeStoreCommitTooManyRequests ProblemDetails
+
+func (*AppendRuntimeStoreCommitTooManyRequests) appendRuntimeStoreCommitRes() {}
+
+type AppendRuntimeStoreCommitUnauthorized ProblemDetails
+
+func (*AppendRuntimeStoreCommitUnauthorized) appendRuntimeStoreCommitRes() {}
+
 type AppendTaskMessagesBadRequest ProblemDetails
 
 func (*AppendTaskMessagesBadRequest) appendTaskMessagesRes() {}
@@ -26302,6 +26448,104 @@ func (s *GetRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) error {
 	}
 }
 
+type GetRuntimeStoreForAttemptBadRequest ProblemDetails
+
+func (*GetRuntimeStoreForAttemptBadRequest) getRuntimeStoreForAttemptRes() {}
+
+type GetRuntimeStoreForAttemptConflict ProblemDetails
+
+func (*GetRuntimeStoreForAttemptConflict) getRuntimeStoreForAttemptRes() {}
+
+type GetRuntimeStoreForAttemptForbidden ProblemDetails
+
+func (*GetRuntimeStoreForAttemptForbidden) getRuntimeStoreForAttemptRes() {}
+
+type GetRuntimeStoreForAttemptNotFound ProblemDetails
+
+func (*GetRuntimeStoreForAttemptNotFound) getRuntimeStoreForAttemptRes() {}
+
+type GetRuntimeStoreForAttemptOK struct {
+	Format  GetRuntimeStoreForAttemptOKFormat `json:"format"`
+	HeadSeq int                               `json:"headSeq"`
+	StoreId uuid.UUID                         `json:"storeId"`
+}
+
+// GetFormat returns the value of Format.
+func (s *GetRuntimeStoreForAttemptOK) GetFormat() GetRuntimeStoreForAttemptOKFormat {
+	return s.Format
+}
+
+// GetHeadSeq returns the value of HeadSeq.
+func (s *GetRuntimeStoreForAttemptOK) GetHeadSeq() int {
+	return s.HeadSeq
+}
+
+// GetStoreId returns the value of StoreId.
+func (s *GetRuntimeStoreForAttemptOK) GetStoreId() uuid.UUID {
+	return s.StoreId
+}
+
+// SetFormat sets the value of Format.
+func (s *GetRuntimeStoreForAttemptOK) SetFormat(val GetRuntimeStoreForAttemptOKFormat) {
+	s.Format = val
+}
+
+// SetHeadSeq sets the value of HeadSeq.
+func (s *GetRuntimeStoreForAttemptOK) SetHeadSeq(val int) {
+	s.HeadSeq = val
+}
+
+// SetStoreId sets the value of StoreId.
+func (s *GetRuntimeStoreForAttemptOK) SetStoreId(val uuid.UUID) {
+	s.StoreId = val
+}
+
+type GetRuntimeStoreForAttemptOKFormat string
+
+const (
+	GetRuntimeStoreForAttemptOKFormatPiDurableV1 GetRuntimeStoreForAttemptOKFormat = "pi-durable.v1"
+)
+
+// AllValues returns all GetRuntimeStoreForAttemptOKFormat values.
+func (GetRuntimeStoreForAttemptOKFormat) AllValues() []GetRuntimeStoreForAttemptOKFormat {
+	return []GetRuntimeStoreForAttemptOKFormat{
+		GetRuntimeStoreForAttemptOKFormatPiDurableV1,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetRuntimeStoreForAttemptOKFormat) MarshalText() ([]byte, error) {
+	switch s {
+	case GetRuntimeStoreForAttemptOKFormatPiDurableV1:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetRuntimeStoreForAttemptOKFormat) UnmarshalText(data []byte) error {
+	switch GetRuntimeStoreForAttemptOKFormat(data) {
+	case GetRuntimeStoreForAttemptOKFormatPiDurableV1:
+		*s = GetRuntimeStoreForAttemptOKFormatPiDurableV1
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type GetRuntimeStoreForAttemptServiceUnavailable ProblemDetails
+
+func (*GetRuntimeStoreForAttemptServiceUnavailable) getRuntimeStoreForAttemptRes() {}
+
+type GetRuntimeStoreForAttemptTooManyRequests ProblemDetails
+
+func (*GetRuntimeStoreForAttemptTooManyRequests) getRuntimeStoreForAttemptRes() {}
+
+type GetRuntimeStoreForAttemptUnauthorized ProblemDetails
+
+func (*GetRuntimeStoreForAttemptUnauthorized) getRuntimeStoreForAttemptRes() {}
+
 type GetSigningCredentialForbidden ProblemDetails
 
 func (*GetSigningCredentialForbidden) getSigningCredentialRes() {}
@@ -30811,6 +31055,119 @@ func (s *ListRuntimeSlotsUnauthorizedCode) UnmarshalText(data []byte) error {
 	}
 }
 
+type ListRuntimeStoreCommitsBadRequest ProblemDetails
+
+func (*ListRuntimeStoreCommitsBadRequest) listRuntimeStoreCommitsRes() {}
+
+type ListRuntimeStoreCommitsConflict ProblemDetails
+
+func (*ListRuntimeStoreCommitsConflict) listRuntimeStoreCommitsRes() {}
+
+type ListRuntimeStoreCommitsForbidden ProblemDetails
+
+func (*ListRuntimeStoreCommitsForbidden) listRuntimeStoreCommitsRes() {}
+
+type ListRuntimeStoreCommitsNotFound ProblemDetails
+
+func (*ListRuntimeStoreCommitsNotFound) listRuntimeStoreCommitsRes() {}
+
+type ListRuntimeStoreCommitsOK struct {
+	HeadSeq int                                  `json:"headSeq"`
+	Items   []ListRuntimeStoreCommitsOKItemsItem `json:"items"`
+}
+
+// GetHeadSeq returns the value of HeadSeq.
+func (s *ListRuntimeStoreCommitsOK) GetHeadSeq() int {
+	return s.HeadSeq
+}
+
+// GetItems returns the value of Items.
+func (s *ListRuntimeStoreCommitsOK) GetItems() []ListRuntimeStoreCommitsOKItemsItem {
+	return s.Items
+}
+
+// SetHeadSeq sets the value of HeadSeq.
+func (s *ListRuntimeStoreCommitsOK) SetHeadSeq(val int) {
+	s.HeadSeq = val
+}
+
+// SetItems sets the value of Items.
+func (s *ListRuntimeStoreCommitsOK) SetItems(val []ListRuntimeStoreCommitsOKItemsItem) {
+	s.Items = val
+}
+
+func (*ListRuntimeStoreCommitsOK) listRuntimeStoreCommitsRes() {}
+
+type ListRuntimeStoreCommitsOKItemsItem struct {
+	CommitId uuid.UUID                                      `json:"commitId"`
+	Seq      int                                            `json:"seq"`
+	SHA256   string                                         `json:"sha256"`
+	Writes   []ListRuntimeStoreCommitsOKItemsItemWritesItem `json:"writes"`
+}
+
+// GetCommitId returns the value of CommitId.
+func (s *ListRuntimeStoreCommitsOKItemsItem) GetCommitId() uuid.UUID {
+	return s.CommitId
+}
+
+// GetSeq returns the value of Seq.
+func (s *ListRuntimeStoreCommitsOKItemsItem) GetSeq() int {
+	return s.Seq
+}
+
+// GetSHA256 returns the value of SHA256.
+func (s *ListRuntimeStoreCommitsOKItemsItem) GetSHA256() string {
+	return s.SHA256
+}
+
+// GetWrites returns the value of Writes.
+func (s *ListRuntimeStoreCommitsOKItemsItem) GetWrites() []ListRuntimeStoreCommitsOKItemsItemWritesItem {
+	return s.Writes
+}
+
+// SetCommitId sets the value of CommitId.
+func (s *ListRuntimeStoreCommitsOKItemsItem) SetCommitId(val uuid.UUID) {
+	s.CommitId = val
+}
+
+// SetSeq sets the value of Seq.
+func (s *ListRuntimeStoreCommitsOKItemsItem) SetSeq(val int) {
+	s.Seq = val
+}
+
+// SetSHA256 sets the value of SHA256.
+func (s *ListRuntimeStoreCommitsOKItemsItem) SetSHA256(val string) {
+	s.SHA256 = val
+}
+
+// SetWrites sets the value of Writes.
+func (s *ListRuntimeStoreCommitsOKItemsItem) SetWrites(val []ListRuntimeStoreCommitsOKItemsItemWritesItem) {
+	s.Writes = val
+}
+
+type ListRuntimeStoreCommitsOKItemsItemWritesItem map[string]jx.Raw
+
+func (s *ListRuntimeStoreCommitsOKItemsItemWritesItem) init() ListRuntimeStoreCommitsOKItemsItemWritesItem {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type ListRuntimeStoreCommitsServiceUnavailable ProblemDetails
+
+func (*ListRuntimeStoreCommitsServiceUnavailable) listRuntimeStoreCommitsRes() {}
+
+type ListRuntimeStoreCommitsTooManyRequests ProblemDetails
+
+func (*ListRuntimeStoreCommitsTooManyRequests) listRuntimeStoreCommitsRes() {}
+
+type ListRuntimeStoreCommitsUnauthorized ProblemDetails
+
+func (*ListRuntimeStoreCommitsUnauthorized) listRuntimeStoreCommitsRes() {}
+
 type ListSigningCredentialsForbidden ProblemDetails
 
 func (*ListSigningCredentialsForbidden) listSigningCredentialsRes() {}
@@ -33256,6 +33613,108 @@ type ListTeamsUnauthorized ProblemDetails
 
 func (*ListTeamsUnauthorized) listTeamsRes() {}
 
+type MintRuntimeStoreIdBadRequest ProblemDetails
+
+func (*MintRuntimeStoreIdBadRequest) mintRuntimeStoreIdRes() {}
+
+type MintRuntimeStoreIdConflict ProblemDetails
+
+func (*MintRuntimeStoreIdConflict) mintRuntimeStoreIdRes() {}
+
+type MintRuntimeStoreIdForbidden ProblemDetails
+
+func (*MintRuntimeStoreIdForbidden) mintRuntimeStoreIdRes() {}
+
+type MintRuntimeStoreIdNotFound ProblemDetails
+
+func (*MintRuntimeStoreIdNotFound) mintRuntimeStoreIdRes() {}
+
+type MintRuntimeStoreIdOK struct {
+	ID int `json:"id"`
+}
+
+// GetID returns the value of ID.
+func (s *MintRuntimeStoreIdOK) GetID() int {
+	return s.ID
+}
+
+// SetID sets the value of ID.
+func (s *MintRuntimeStoreIdOK) SetID(val int) {
+	s.ID = val
+}
+
+func (*MintRuntimeStoreIdOK) mintRuntimeStoreIdRes() {}
+
+type MintRuntimeStoreIdReq struct {
+	AttemptN            int       `json:"attemptN"`
+	ExecutorFingerprint string    `json:"executorFingerprint"`
+	LeaseId             uuid.UUID `json:"leaseId"`
+	TaskId              uuid.UUID `json:"taskId"`
+	WriterToken         uuid.UUID `json:"writerToken"`
+}
+
+// GetAttemptN returns the value of AttemptN.
+func (s *MintRuntimeStoreIdReq) GetAttemptN() int {
+	return s.AttemptN
+}
+
+// GetExecutorFingerprint returns the value of ExecutorFingerprint.
+func (s *MintRuntimeStoreIdReq) GetExecutorFingerprint() string {
+	return s.ExecutorFingerprint
+}
+
+// GetLeaseId returns the value of LeaseId.
+func (s *MintRuntimeStoreIdReq) GetLeaseId() uuid.UUID {
+	return s.LeaseId
+}
+
+// GetTaskId returns the value of TaskId.
+func (s *MintRuntimeStoreIdReq) GetTaskId() uuid.UUID {
+	return s.TaskId
+}
+
+// GetWriterToken returns the value of WriterToken.
+func (s *MintRuntimeStoreIdReq) GetWriterToken() uuid.UUID {
+	return s.WriterToken
+}
+
+// SetAttemptN sets the value of AttemptN.
+func (s *MintRuntimeStoreIdReq) SetAttemptN(val int) {
+	s.AttemptN = val
+}
+
+// SetExecutorFingerprint sets the value of ExecutorFingerprint.
+func (s *MintRuntimeStoreIdReq) SetExecutorFingerprint(val string) {
+	s.ExecutorFingerprint = val
+}
+
+// SetLeaseId sets the value of LeaseId.
+func (s *MintRuntimeStoreIdReq) SetLeaseId(val uuid.UUID) {
+	s.LeaseId = val
+}
+
+// SetTaskId sets the value of TaskId.
+func (s *MintRuntimeStoreIdReq) SetTaskId(val uuid.UUID) {
+	s.TaskId = val
+}
+
+// SetWriterToken sets the value of WriterToken.
+func (s *MintRuntimeStoreIdReq) SetWriterToken(val uuid.UUID) {
+	s.WriterToken = val
+}
+
+type MintRuntimeStoreIdServiceUnavailable ProblemDetails
+
+func (*MintRuntimeStoreIdServiceUnavailable) mintRuntimeStoreIdRes() {}
+
+type MintRuntimeStoreIdTooManyRequests ProblemDetails
+
+func (*MintRuntimeStoreIdTooManyRequests) mintRuntimeStoreIdRes() {}
+
+type MintRuntimeStoreIdUnauthorized ProblemDetails
+
+func (*MintRuntimeStoreIdUnauthorized) mintRuntimeStoreIdRes() {}
+
 // Ref: #/components/schemas/NetworkInfo
 type NetworkInfo struct {
 	Schema       string                  `json:"$schema"`
@@ -35015,6 +35474,53 @@ func (o NilFloat64) Or(d float64) float64 {
 	return d
 }
 
+// NewNilGetRuntimeStoreForAttemptOK returns new NilGetRuntimeStoreForAttemptOK with value set to v.
+func NewNilGetRuntimeStoreForAttemptOK(v GetRuntimeStoreForAttemptOK) NilGetRuntimeStoreForAttemptOK {
+	return NilGetRuntimeStoreForAttemptOK{
+		Value: v,
+	}
+}
+
+// NilGetRuntimeStoreForAttemptOK is nullable GetRuntimeStoreForAttemptOK.
+type NilGetRuntimeStoreForAttemptOK struct {
+	Value GetRuntimeStoreForAttemptOK
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilGetRuntimeStoreForAttemptOK) SetTo(v GetRuntimeStoreForAttemptOK) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilGetRuntimeStoreForAttemptOK) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilGetRuntimeStoreForAttemptOK) SetToNull() {
+	o.Null = true
+	var v GetRuntimeStoreForAttemptOK
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilGetRuntimeStoreForAttemptOK) Get() (v GetRuntimeStoreForAttemptOK, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilGetRuntimeStoreForAttemptOK) Or(d GetRuntimeStoreForAttemptOK) GetRuntimeStoreForAttemptOK {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+func (*NilGetRuntimeStoreForAttemptOK) getRuntimeStoreForAttemptRes() {}
+
 // NewNilInt returns new NilInt with value set to v.
 func NewNilInt(v int) NilInt {
 	return NilInt{
@@ -35715,6 +36221,175 @@ func (s *OAuth2RegistrationCredentialType) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type OpenRuntimeStoreBadRequest ProblemDetails
+
+func (*OpenRuntimeStoreBadRequest) openRuntimeStoreRes() {}
+
+type OpenRuntimeStoreConflict ProblemDetails
+
+func (*OpenRuntimeStoreConflict) openRuntimeStoreRes() {}
+
+type OpenRuntimeStoreForbidden ProblemDetails
+
+func (*OpenRuntimeStoreForbidden) openRuntimeStoreRes() {}
+
+type OpenRuntimeStoreNotFound ProblemDetails
+
+func (*OpenRuntimeStoreNotFound) openRuntimeStoreRes() {}
+
+type OpenRuntimeStoreOK struct {
+	Format          OpenRuntimeStoreOKFormat `json:"format"`
+	HeadSeq         int                      `json:"headSeq"`
+	StoreId         uuid.UUID                `json:"storeId"`
+	WriterExpiresAt time.Time                `json:"writerExpiresAt"`
+	WriterToken     uuid.UUID                `json:"writerToken"`
+}
+
+// GetFormat returns the value of Format.
+func (s *OpenRuntimeStoreOK) GetFormat() OpenRuntimeStoreOKFormat {
+	return s.Format
+}
+
+// GetHeadSeq returns the value of HeadSeq.
+func (s *OpenRuntimeStoreOK) GetHeadSeq() int {
+	return s.HeadSeq
+}
+
+// GetStoreId returns the value of StoreId.
+func (s *OpenRuntimeStoreOK) GetStoreId() uuid.UUID {
+	return s.StoreId
+}
+
+// GetWriterExpiresAt returns the value of WriterExpiresAt.
+func (s *OpenRuntimeStoreOK) GetWriterExpiresAt() time.Time {
+	return s.WriterExpiresAt
+}
+
+// GetWriterToken returns the value of WriterToken.
+func (s *OpenRuntimeStoreOK) GetWriterToken() uuid.UUID {
+	return s.WriterToken
+}
+
+// SetFormat sets the value of Format.
+func (s *OpenRuntimeStoreOK) SetFormat(val OpenRuntimeStoreOKFormat) {
+	s.Format = val
+}
+
+// SetHeadSeq sets the value of HeadSeq.
+func (s *OpenRuntimeStoreOK) SetHeadSeq(val int) {
+	s.HeadSeq = val
+}
+
+// SetStoreId sets the value of StoreId.
+func (s *OpenRuntimeStoreOK) SetStoreId(val uuid.UUID) {
+	s.StoreId = val
+}
+
+// SetWriterExpiresAt sets the value of WriterExpiresAt.
+func (s *OpenRuntimeStoreOK) SetWriterExpiresAt(val time.Time) {
+	s.WriterExpiresAt = val
+}
+
+// SetWriterToken sets the value of WriterToken.
+func (s *OpenRuntimeStoreOK) SetWriterToken(val uuid.UUID) {
+	s.WriterToken = val
+}
+
+func (*OpenRuntimeStoreOK) openRuntimeStoreRes() {}
+
+type OpenRuntimeStoreOKFormat string
+
+const (
+	OpenRuntimeStoreOKFormatPiDurableV1 OpenRuntimeStoreOKFormat = "pi-durable.v1"
+)
+
+// AllValues returns all OpenRuntimeStoreOKFormat values.
+func (OpenRuntimeStoreOKFormat) AllValues() []OpenRuntimeStoreOKFormat {
+	return []OpenRuntimeStoreOKFormat{
+		OpenRuntimeStoreOKFormatPiDurableV1,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s OpenRuntimeStoreOKFormat) MarshalText() ([]byte, error) {
+	switch s {
+	case OpenRuntimeStoreOKFormatPiDurableV1:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *OpenRuntimeStoreOKFormat) UnmarshalText(data []byte) error {
+	switch OpenRuntimeStoreOKFormat(data) {
+	case OpenRuntimeStoreOKFormatPiDurableV1:
+		*s = OpenRuntimeStoreOKFormatPiDurableV1
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type OpenRuntimeStoreReq struct {
+	AttemptN            int       `json:"attemptN"`
+	ExecutorFingerprint string    `json:"executorFingerprint"`
+	LeaseId             uuid.UUID `json:"leaseId"`
+	TaskId              uuid.UUID `json:"taskId"`
+}
+
+// GetAttemptN returns the value of AttemptN.
+func (s *OpenRuntimeStoreReq) GetAttemptN() int {
+	return s.AttemptN
+}
+
+// GetExecutorFingerprint returns the value of ExecutorFingerprint.
+func (s *OpenRuntimeStoreReq) GetExecutorFingerprint() string {
+	return s.ExecutorFingerprint
+}
+
+// GetLeaseId returns the value of LeaseId.
+func (s *OpenRuntimeStoreReq) GetLeaseId() uuid.UUID {
+	return s.LeaseId
+}
+
+// GetTaskId returns the value of TaskId.
+func (s *OpenRuntimeStoreReq) GetTaskId() uuid.UUID {
+	return s.TaskId
+}
+
+// SetAttemptN sets the value of AttemptN.
+func (s *OpenRuntimeStoreReq) SetAttemptN(val int) {
+	s.AttemptN = val
+}
+
+// SetExecutorFingerprint sets the value of ExecutorFingerprint.
+func (s *OpenRuntimeStoreReq) SetExecutorFingerprint(val string) {
+	s.ExecutorFingerprint = val
+}
+
+// SetLeaseId sets the value of LeaseId.
+func (s *OpenRuntimeStoreReq) SetLeaseId(val uuid.UUID) {
+	s.LeaseId = val
+}
+
+// SetTaskId sets the value of TaskId.
+func (s *OpenRuntimeStoreReq) SetTaskId(val uuid.UUID) {
+	s.TaskId = val
+}
+
+type OpenRuntimeStoreServiceUnavailable ProblemDetails
+
+func (*OpenRuntimeStoreServiceUnavailable) openRuntimeStoreRes() {}
+
+type OpenRuntimeStoreTooManyRequests ProblemDetails
+
+func (*OpenRuntimeStoreTooManyRequests) openRuntimeStoreRes() {}
+
+type OpenRuntimeStoreUnauthorized ProblemDetails
+
+func (*OpenRuntimeStoreUnauthorized) openRuntimeStoreRes() {}
 
 // NewOptAbortTaskAttemptReq returns new OptAbortTaskAttemptReq with value set to v.
 func NewOptAbortTaskAttemptReq(v AbortTaskAttemptReq) OptAbortTaskAttemptReq {
@@ -47168,6 +47843,97 @@ func (s *RelationType) UnmarshalText(data []byte) error {
 	}
 }
 
+type ReleaseRuntimeStoreBadRequest ProblemDetails
+
+func (*ReleaseRuntimeStoreBadRequest) releaseRuntimeStoreRes() {}
+
+type ReleaseRuntimeStoreConflict ProblemDetails
+
+func (*ReleaseRuntimeStoreConflict) releaseRuntimeStoreRes() {}
+
+type ReleaseRuntimeStoreForbidden ProblemDetails
+
+func (*ReleaseRuntimeStoreForbidden) releaseRuntimeStoreRes() {}
+
+// ReleaseRuntimeStoreNoContent is response for ReleaseRuntimeStore operation.
+type ReleaseRuntimeStoreNoContent struct{}
+
+func (*ReleaseRuntimeStoreNoContent) releaseRuntimeStoreRes() {}
+
+type ReleaseRuntimeStoreNotFound ProblemDetails
+
+func (*ReleaseRuntimeStoreNotFound) releaseRuntimeStoreRes() {}
+
+type ReleaseRuntimeStoreReq struct {
+	AttemptN            int       `json:"attemptN"`
+	ExecutorFingerprint string    `json:"executorFingerprint"`
+	LeaseId             uuid.UUID `json:"leaseId"`
+	TaskId              uuid.UUID `json:"taskId"`
+	WriterToken         uuid.UUID `json:"writerToken"`
+}
+
+// GetAttemptN returns the value of AttemptN.
+func (s *ReleaseRuntimeStoreReq) GetAttemptN() int {
+	return s.AttemptN
+}
+
+// GetExecutorFingerprint returns the value of ExecutorFingerprint.
+func (s *ReleaseRuntimeStoreReq) GetExecutorFingerprint() string {
+	return s.ExecutorFingerprint
+}
+
+// GetLeaseId returns the value of LeaseId.
+func (s *ReleaseRuntimeStoreReq) GetLeaseId() uuid.UUID {
+	return s.LeaseId
+}
+
+// GetTaskId returns the value of TaskId.
+func (s *ReleaseRuntimeStoreReq) GetTaskId() uuid.UUID {
+	return s.TaskId
+}
+
+// GetWriterToken returns the value of WriterToken.
+func (s *ReleaseRuntimeStoreReq) GetWriterToken() uuid.UUID {
+	return s.WriterToken
+}
+
+// SetAttemptN sets the value of AttemptN.
+func (s *ReleaseRuntimeStoreReq) SetAttemptN(val int) {
+	s.AttemptN = val
+}
+
+// SetExecutorFingerprint sets the value of ExecutorFingerprint.
+func (s *ReleaseRuntimeStoreReq) SetExecutorFingerprint(val string) {
+	s.ExecutorFingerprint = val
+}
+
+// SetLeaseId sets the value of LeaseId.
+func (s *ReleaseRuntimeStoreReq) SetLeaseId(val uuid.UUID) {
+	s.LeaseId = val
+}
+
+// SetTaskId sets the value of TaskId.
+func (s *ReleaseRuntimeStoreReq) SetTaskId(val uuid.UUID) {
+	s.TaskId = val
+}
+
+// SetWriterToken sets the value of WriterToken.
+func (s *ReleaseRuntimeStoreReq) SetWriterToken(val uuid.UUID) {
+	s.WriterToken = val
+}
+
+type ReleaseRuntimeStoreServiceUnavailable ProblemDetails
+
+func (*ReleaseRuntimeStoreServiceUnavailable) releaseRuntimeStoreRes() {}
+
+type ReleaseRuntimeStoreTooManyRequests ProblemDetails
+
+func (*ReleaseRuntimeStoreTooManyRequests) releaseRuntimeStoreRes() {}
+
+type ReleaseRuntimeStoreUnauthorized ProblemDetails
+
+func (*ReleaseRuntimeStoreUnauthorized) releaseRuntimeStoreRes() {}
+
 type RemoveGroupMemberForbidden ProblemDetails
 
 func (*RemoveGroupMemberForbidden) removeGroupMemberRes() {}
@@ -48053,6 +48819,186 @@ func NewHumanPrincipalRenderedPackWithContentCreator(v HumanPrincipal) RenderedP
 	s.SetHumanPrincipal(v)
 	return s
 }
+
+type RenewRuntimeStoreBadRequest ProblemDetails
+
+func (*RenewRuntimeStoreBadRequest) renewRuntimeStoreRes() {}
+
+type RenewRuntimeStoreConflict ProblemDetails
+
+func (*RenewRuntimeStoreConflict) renewRuntimeStoreRes() {}
+
+type RenewRuntimeStoreForbidden ProblemDetails
+
+func (*RenewRuntimeStoreForbidden) renewRuntimeStoreRes() {}
+
+type RenewRuntimeStoreNotFound ProblemDetails
+
+func (*RenewRuntimeStoreNotFound) renewRuntimeStoreRes() {}
+
+type RenewRuntimeStoreOK struct {
+	Format          RenewRuntimeStoreOKFormat `json:"format"`
+	HeadSeq         int                       `json:"headSeq"`
+	StoreId         uuid.UUID                 `json:"storeId"`
+	WriterExpiresAt time.Time                 `json:"writerExpiresAt"`
+	WriterToken     uuid.UUID                 `json:"writerToken"`
+}
+
+// GetFormat returns the value of Format.
+func (s *RenewRuntimeStoreOK) GetFormat() RenewRuntimeStoreOKFormat {
+	return s.Format
+}
+
+// GetHeadSeq returns the value of HeadSeq.
+func (s *RenewRuntimeStoreOK) GetHeadSeq() int {
+	return s.HeadSeq
+}
+
+// GetStoreId returns the value of StoreId.
+func (s *RenewRuntimeStoreOK) GetStoreId() uuid.UUID {
+	return s.StoreId
+}
+
+// GetWriterExpiresAt returns the value of WriterExpiresAt.
+func (s *RenewRuntimeStoreOK) GetWriterExpiresAt() time.Time {
+	return s.WriterExpiresAt
+}
+
+// GetWriterToken returns the value of WriterToken.
+func (s *RenewRuntimeStoreOK) GetWriterToken() uuid.UUID {
+	return s.WriterToken
+}
+
+// SetFormat sets the value of Format.
+func (s *RenewRuntimeStoreOK) SetFormat(val RenewRuntimeStoreOKFormat) {
+	s.Format = val
+}
+
+// SetHeadSeq sets the value of HeadSeq.
+func (s *RenewRuntimeStoreOK) SetHeadSeq(val int) {
+	s.HeadSeq = val
+}
+
+// SetStoreId sets the value of StoreId.
+func (s *RenewRuntimeStoreOK) SetStoreId(val uuid.UUID) {
+	s.StoreId = val
+}
+
+// SetWriterExpiresAt sets the value of WriterExpiresAt.
+func (s *RenewRuntimeStoreOK) SetWriterExpiresAt(val time.Time) {
+	s.WriterExpiresAt = val
+}
+
+// SetWriterToken sets the value of WriterToken.
+func (s *RenewRuntimeStoreOK) SetWriterToken(val uuid.UUID) {
+	s.WriterToken = val
+}
+
+func (*RenewRuntimeStoreOK) renewRuntimeStoreRes() {}
+
+type RenewRuntimeStoreOKFormat string
+
+const (
+	RenewRuntimeStoreOKFormatPiDurableV1 RenewRuntimeStoreOKFormat = "pi-durable.v1"
+)
+
+// AllValues returns all RenewRuntimeStoreOKFormat values.
+func (RenewRuntimeStoreOKFormat) AllValues() []RenewRuntimeStoreOKFormat {
+	return []RenewRuntimeStoreOKFormat{
+		RenewRuntimeStoreOKFormatPiDurableV1,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RenewRuntimeStoreOKFormat) MarshalText() ([]byte, error) {
+	switch s {
+	case RenewRuntimeStoreOKFormatPiDurableV1:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RenewRuntimeStoreOKFormat) UnmarshalText(data []byte) error {
+	switch RenewRuntimeStoreOKFormat(data) {
+	case RenewRuntimeStoreOKFormatPiDurableV1:
+		*s = RenewRuntimeStoreOKFormatPiDurableV1
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RenewRuntimeStoreReq struct {
+	AttemptN            int       `json:"attemptN"`
+	ExecutorFingerprint string    `json:"executorFingerprint"`
+	LeaseId             uuid.UUID `json:"leaseId"`
+	TaskId              uuid.UUID `json:"taskId"`
+	WriterToken         uuid.UUID `json:"writerToken"`
+}
+
+// GetAttemptN returns the value of AttemptN.
+func (s *RenewRuntimeStoreReq) GetAttemptN() int {
+	return s.AttemptN
+}
+
+// GetExecutorFingerprint returns the value of ExecutorFingerprint.
+func (s *RenewRuntimeStoreReq) GetExecutorFingerprint() string {
+	return s.ExecutorFingerprint
+}
+
+// GetLeaseId returns the value of LeaseId.
+func (s *RenewRuntimeStoreReq) GetLeaseId() uuid.UUID {
+	return s.LeaseId
+}
+
+// GetTaskId returns the value of TaskId.
+func (s *RenewRuntimeStoreReq) GetTaskId() uuid.UUID {
+	return s.TaskId
+}
+
+// GetWriterToken returns the value of WriterToken.
+func (s *RenewRuntimeStoreReq) GetWriterToken() uuid.UUID {
+	return s.WriterToken
+}
+
+// SetAttemptN sets the value of AttemptN.
+func (s *RenewRuntimeStoreReq) SetAttemptN(val int) {
+	s.AttemptN = val
+}
+
+// SetExecutorFingerprint sets the value of ExecutorFingerprint.
+func (s *RenewRuntimeStoreReq) SetExecutorFingerprint(val string) {
+	s.ExecutorFingerprint = val
+}
+
+// SetLeaseId sets the value of LeaseId.
+func (s *RenewRuntimeStoreReq) SetLeaseId(val uuid.UUID) {
+	s.LeaseId = val
+}
+
+// SetTaskId sets the value of TaskId.
+func (s *RenewRuntimeStoreReq) SetTaskId(val uuid.UUID) {
+	s.TaskId = val
+}
+
+// SetWriterToken sets the value of WriterToken.
+func (s *RenewRuntimeStoreReq) SetWriterToken(val uuid.UUID) {
+	s.WriterToken = val
+}
+
+type RenewRuntimeStoreServiceUnavailable ProblemDetails
+
+func (*RenewRuntimeStoreServiceUnavailable) renewRuntimeStoreRes() {}
+
+type RenewRuntimeStoreTooManyRequests ProblemDetails
+
+func (*RenewRuntimeStoreTooManyRequests) renewRuntimeStoreRes() {}
+
+type RenewRuntimeStoreUnauthorized ProblemDetails
+
+func (*RenewRuntimeStoreUnauthorized) renewRuntimeStoreRes() {}
 
 type RequestRecoveryChallengeBadRequest ProblemDetails
 

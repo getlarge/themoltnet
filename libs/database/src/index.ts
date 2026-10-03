@@ -173,6 +173,11 @@ export {
   type RuntimeSlotRepository,
 } from './repositories/runtime-slot.repository.js';
 export {
+  createRuntimeStoreRepository,
+  type RuntimeStoreAuthority,
+  type RuntimeStoreRepository,
+} from './repositories/runtime-store.repository.js';
+export {
   createSigningCredentialRepository,
   type SigningCredentialRepository,
   type SigningCredentialStatus,

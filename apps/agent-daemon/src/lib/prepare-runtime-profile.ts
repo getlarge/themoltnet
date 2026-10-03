@@ -94,6 +94,7 @@ export async function prepareRuntimeProfile(input: {
       allowedWorkspaceModes: profile.allowedWorkspaceModes,
     },
     slotRegistry: input.slotRegistry,
+    sessionPersistence: preparedRuntime.sessionPersistence,
     runtimeSessionStore: input.runtimeSessionStore,
     sourceAttemptResolver: input.sourceAttemptResolver,
   });

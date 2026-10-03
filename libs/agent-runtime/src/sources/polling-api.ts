@@ -284,6 +284,11 @@ export interface PollingApiTaskSourceOptions {
    * available, it supersedes local slot affinity for claim filtering.
    */
   sessionRegistry?: ContinuationSessionRegistry;
+  /** undefined delegates to the legacy local-session affinity policy. */
+  isContinuationAvailable?: (
+    task: Task,
+    profileId?: string,
+  ) => Promise<boolean | undefined>;
   /**
    * Source attempt lookup used to prove remote-only fork continuations can
    * recover a parent branch before this daemon claims them.
@@ -539,7 +544,10 @@ export class PollingApiTaskSource implements TaskSource {
           // task lingers queued until a daemon with that context polls or the
           // server's dispatch_timeout_sec fires. See #1287, #1299.
           const slotRegistry = this.opts.slotRegistry;
-          if (slotRegistry) {
+          const continuationAvailable =
+            await this.opts.isContinuationAvailable?.(item, profile.profileId);
+          if (continuationAvailable === false) continue;
+          if (slotRegistry && continuationAvailable === undefined) {
             const affinity = await traceRuntimePhase(
               'moltnet.task_source.affinity',
               { 'moltnet.task.id': item.id },

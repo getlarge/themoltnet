@@ -88,6 +88,7 @@ export async function runOnce(
       ...runtimeCommandOptionDefs(),
       ...projectRunOptionDefs(),
       'task-id': { type: 'string', short: 't' },
+      'resume-attempt': { type: 'string' },
       team: { type: 'string' },
       sandbox: { type: 'string' },
       profile: { type: 'string' },
@@ -101,6 +102,17 @@ export async function runOnce(
   }
 
   const taskId = values['task-id'];
+  const resumeAttempt =
+    values['resume-attempt'] === undefined
+      ? undefined
+      : Number(values['resume-attempt']);
+  if (
+    resumeAttempt !== undefined &&
+    (!Number.isSafeInteger(resumeAttempt) || resumeAttempt < 1)
+  ) {
+    console.error('--resume-attempt must be a positive integer');
+    return 1;
+  }
   if (!values.profile) {
     console.error('Missing required flag: --profile\n');
     console.error(ONCE_HELP);
@@ -310,6 +322,12 @@ export async function runOnce(
   });
   const { executionPlans, preparedRuntime, sandbox, slotIdentity, stateDirs } =
     prepared;
+  if (
+    resumeAttempt !== undefined &&
+    preparedRuntime.sessionPersistence !== 'api'
+  ) {
+    throw new Error('--resume-attempt requires an API-backed Durable runtime');
+  }
   const piAgentDir = await resolvePiAgentDir(cfg, sandbox.rootDir, [profile]);
   process.once('exit', piAgentDir.cleanup);
   activatePiCodingAgentDir(piAgentDir.path, piAgentDir.env);
@@ -626,6 +644,7 @@ export async function runOnce(
         teamId: profile.teamId,
         profileId: profile.id,
         executorFingerprint: preparedRuntime.attestor.fingerprint,
+        resumeAttempt,
       }),
       makeReporter: () =>
         new ApiTaskReporter({

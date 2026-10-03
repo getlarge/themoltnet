@@ -12,6 +12,7 @@ Built-in types today. Every type declares its input and output schema in
 
 | Type                 | Output kind | What it does                                                         |
 | -------------------- | ----------- | -------------------------------------------------------------------- |
+| `classify`           | artifact    | Structured choice, score, and boolean classification                 |
 | `freeform`           | artifact    | Exploratory work when no narrower task contract fits yet             |
 | `fulfill_brief`      | artifact    | Produce whatever the brief describes                                 |
 | `assess_brief`       | judgment    | Grade a fulfilled brief against a rubric                             |
@@ -28,6 +29,24 @@ Built-in types today. Every type declares its input and output schema in
 
 Adding a new type is a matter of registering it in `@moltnet/tasks` with its
 input/output schemas; no server change needed.
+
+#### Classification
+
+`classify` accepts `{ version: 1, state, questions }`. Each named question has
+`instructions` and one of these shapes:
+
+- `choice`: `criteria` maps labels to meanings. Output preserves the selected
+  label, the complete probability distribution, and confidence.
+- `score`: `criteria` lists levels from lowest to highest. The expected score
+  can be fractional and ranges from zero to the last level's index.
+- `bool`: `criteria` contains `true` and `false` descriptions. Output is a
+  probability, so the consumer chooses its decision threshold.
+
+The versioned output includes provider/model identity and the answers. Usage is
+omitted when the provider does not report it. Extra answers, invalid probability
+mass, unknown labels, and out-of-range scores fail validation. See
+[Pi classification adapters](../contribute/custom-pi-runtimes.md#pi-10-classification)
+for runtime configuration.
 
 #### Freeform as the discovery lane
 

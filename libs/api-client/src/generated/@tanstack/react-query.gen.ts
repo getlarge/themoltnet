@@ -14,6 +14,7 @@ import {
   acceptTeamFounding,
   acceptTransfer,
   addGroupMember,
+  appendRuntimeStoreCommit,
   appendTaskMessages,
   approveSigningCredential,
   batchDeleteDiaryEntries,
@@ -87,6 +88,7 @@ import {
   getRuntimeProfileAllowedTools,
   getRuntimeProfilePolicies,
   getRuntimeSession,
+  getRuntimeStoreForAttempt,
   getSigningCredential,
   getSigningRequest,
   getTask,
@@ -113,6 +115,7 @@ import {
   listRuntimePolicies,
   listRuntimeProfiles,
   listRuntimeSlots,
+  listRuntimeStoreCommits,
   listSigningCredentials,
   listSigningRequests,
   listTaskArtifacts,
@@ -124,6 +127,8 @@ import {
   listTeamInvites,
   listTeamMembers,
   listTeams,
+  mintRuntimeStoreId,
+  openRuntimeStore,
   type Options,
   previewDiaryCustomPack,
   previewRenderedPack,
@@ -133,9 +138,11 @@ import {
   registerExecutorManifest,
   rejectSigningRequest,
   rejectTransfer,
+  releaseRuntimeStore,
   removeGroupMember,
   removeTeamMember,
   renderContextPack,
+  renewRuntimeStore,
   requestRecoveryChallenge,
   revokeAgentKey,
   revokeDiaryGrant,
@@ -185,6 +192,9 @@ import type {
   AddGroupMemberData,
   AddGroupMemberError,
   AddGroupMemberResponse,
+  AppendRuntimeStoreCommitData,
+  AppendRuntimeStoreCommitError,
+  AppendRuntimeStoreCommitResponse,
   AppendTaskMessagesData,
   AppendTaskMessagesError,
   AppendTaskMessagesResponse,
@@ -399,6 +409,9 @@ import type {
   GetRuntimeSessionData,
   GetRuntimeSessionError,
   GetRuntimeSessionResponse,
+  GetRuntimeStoreForAttemptData,
+  GetRuntimeStoreForAttemptError,
+  GetRuntimeStoreForAttemptResponse,
   GetSigningCredentialData,
   GetSigningCredentialError,
   GetSigningCredentialResponse,
@@ -476,6 +489,9 @@ import type {
   ListRuntimeSlotsData,
   ListRuntimeSlotsError,
   ListRuntimeSlotsResponse,
+  ListRuntimeStoreCommitsData,
+  ListRuntimeStoreCommitsError,
+  ListRuntimeStoreCommitsResponse,
   ListSigningCredentialsData,
   ListSigningCredentialsError,
   ListSigningCredentialsResponse,
@@ -509,6 +525,12 @@ import type {
   ListTeamsData,
   ListTeamsError,
   ListTeamsResponse,
+  MintRuntimeStoreIdData,
+  MintRuntimeStoreIdError,
+  MintRuntimeStoreIdResponse,
+  OpenRuntimeStoreData,
+  OpenRuntimeStoreError,
+  OpenRuntimeStoreResponse,
   PreviewDiaryCustomPackData,
   PreviewDiaryCustomPackError,
   PreviewDiaryCustomPackResponse,
@@ -533,6 +555,9 @@ import type {
   RejectTransferData,
   RejectTransferError,
   RejectTransferResponse,
+  ReleaseRuntimeStoreData,
+  ReleaseRuntimeStoreError,
+  ReleaseRuntimeStoreResponse,
   RemoveGroupMemberData,
   RemoveGroupMemberError,
   RemoveGroupMemberResponse,
@@ -542,6 +567,9 @@ import type {
   RenderContextPackData,
   RenderContextPackError,
   RenderContextPackResponse,
+  RenewRuntimeStoreData,
+  RenewRuntimeStoreError,
+  RenewRuntimeStoreResponse,
   RequestRecoveryChallengeData,
   RequestRecoveryChallengeError,
   RequestRecoveryChallengeResponse,
@@ -4402,6 +4430,176 @@ export const findLatestRuntimeSlotForAttemptOptions = (
     },
     queryKey: findLatestRuntimeSlotForAttemptQueryKey(options),
   });
+
+export const getRuntimeStoreForAttemptQueryKey = (
+  options: Options<GetRuntimeStoreForAttemptData>,
+) => createQueryKey('getRuntimeStoreForAttempt', options);
+
+export const getRuntimeStoreForAttemptOptions = (
+  options: Options<GetRuntimeStoreForAttemptData>,
+) =>
+  queryOptions<
+    GetRuntimeStoreForAttemptResponse,
+    GetRuntimeStoreForAttemptError,
+    GetRuntimeStoreForAttemptResponse,
+    ReturnType<typeof getRuntimeStoreForAttemptQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getRuntimeStoreForAttempt({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getRuntimeStoreForAttemptQueryKey(options),
+  });
+
+export const openRuntimeStoreMutation = (
+  options?: Partial<Options<OpenRuntimeStoreData>>,
+): UseMutationOptions<
+  OpenRuntimeStoreResponse,
+  OpenRuntimeStoreError,
+  Options<OpenRuntimeStoreData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    OpenRuntimeStoreResponse,
+    OpenRuntimeStoreError,
+    Options<OpenRuntimeStoreData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await openRuntimeStore({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const listRuntimeStoreCommitsQueryKey = (
+  options: Options<ListRuntimeStoreCommitsData>,
+) => createQueryKey('listRuntimeStoreCommits', options);
+
+export const listRuntimeStoreCommitsOptions = (
+  options: Options<ListRuntimeStoreCommitsData>,
+) =>
+  queryOptions<
+    ListRuntimeStoreCommitsResponse,
+    ListRuntimeStoreCommitsError,
+    ListRuntimeStoreCommitsResponse,
+    ReturnType<typeof listRuntimeStoreCommitsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listRuntimeStoreCommits({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listRuntimeStoreCommitsQueryKey(options),
+  });
+
+export const appendRuntimeStoreCommitMutation = (
+  options?: Partial<Options<AppendRuntimeStoreCommitData>>,
+): UseMutationOptions<
+  AppendRuntimeStoreCommitResponse,
+  AppendRuntimeStoreCommitError,
+  Options<AppendRuntimeStoreCommitData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    AppendRuntimeStoreCommitResponse,
+    AppendRuntimeStoreCommitError,
+    Options<AppendRuntimeStoreCommitData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await appendRuntimeStoreCommit({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const mintRuntimeStoreIdMutation = (
+  options?: Partial<Options<MintRuntimeStoreIdData>>,
+): UseMutationOptions<
+  MintRuntimeStoreIdResponse,
+  MintRuntimeStoreIdError,
+  Options<MintRuntimeStoreIdData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    MintRuntimeStoreIdResponse,
+    MintRuntimeStoreIdError,
+    Options<MintRuntimeStoreIdData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await mintRuntimeStoreId({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const releaseRuntimeStoreMutation = (
+  options?: Partial<Options<ReleaseRuntimeStoreData>>,
+): UseMutationOptions<
+  ReleaseRuntimeStoreResponse,
+  ReleaseRuntimeStoreError,
+  Options<ReleaseRuntimeStoreData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    ReleaseRuntimeStoreResponse,
+    ReleaseRuntimeStoreError,
+    Options<ReleaseRuntimeStoreData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await releaseRuntimeStore({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const renewRuntimeStoreMutation = (
+  options?: Partial<Options<RenewRuntimeStoreData>>,
+): UseMutationOptions<
+  RenewRuntimeStoreResponse,
+  RenewRuntimeStoreError,
+  Options<RenewRuntimeStoreData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RenewRuntimeStoreResponse,
+    RenewRuntimeStoreError,
+    Options<RenewRuntimeStoreData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await renewRuntimeStore({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
 
 /**
  * Stage immutable content-addressed artifact bytes for later binding as task input artifacts via task creation references. Creates no metadata row; staged bytes are not downloadable until bound to a task, and unbound objects are garbage-collected after a grace window.

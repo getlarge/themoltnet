@@ -197,6 +197,10 @@ import { createRuntimePoliciesNamespace } from './namespaces/runtime-policies.js
 import { createRuntimeProfilesNamespace } from './namespaces/runtime-profiles.js';
 import { createRuntimeSessionsNamespace } from './namespaces/runtime-sessions.js';
 import { createRuntimeSlotsNamespace } from './namespaces/runtime-slots.js';
+import {
+  createRuntimeStoresNamespace,
+  type RuntimeStoresNamespace,
+} from './namespaces/runtime-stores.js';
 import { createSigningCredentialsNamespace } from './namespaces/signing-credentials.js';
 import { createSigningRequestsNamespace } from './namespaces/signing-requests.js';
 import { createTaskGrantsNamespace } from './namespaces/task-grants.js';
@@ -1083,6 +1087,7 @@ export interface Agent {
   taskGrants: TaskGrantsNamespace;
   runtimeSlots: RuntimeSlotsNamespace;
   runtimeSessions: RuntimeSessionsNamespace;
+  runtimeStores: RuntimeStoresNamespace;
 
   /** Return the underlying hey-api client for advanced use. */
   readonly client: Client;
@@ -1133,6 +1138,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
   const taskGrants = createTaskGrantsNamespace(context);
   const runtimeSlots = createRuntimeSlotsNamespace(context);
   const runtimeSessions = createRuntimeSessionsNamespace(context);
+  const runtimeStores = createRuntimeStoresNamespace(context);
 
   return {
     agentKeys,
@@ -1156,6 +1162,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
     taskGrants,
     runtimeSlots,
     runtimeSessions,
+    runtimeStores,
     client,
     getToken: () => {
       if (tokenManager) return tokenManager.getToken();

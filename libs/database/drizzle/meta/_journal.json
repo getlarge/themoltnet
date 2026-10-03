@@ -350,6 +350,13 @@
       "when": 1790582682048,
       "tag": "0049_agent_identity_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1790951378692,
+      "tag": "0050_sleepy_pride",
+      "breakpoints": true
     }
   ],
   "version": "7"

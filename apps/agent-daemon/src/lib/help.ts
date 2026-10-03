@@ -134,6 +134,7 @@ ${COMMON_OPTIONAL_FLAGS}
 Example:
   agent-daemon once \\
     --task-id 26004a77-bc10-43ef-a79f-c8e62faf59b1 \\
+  --resume-attempt <n>  Reattach a Durable attempt with this agent and its original valid lease
     --agent legreffier \\
     --profile github-linear
 

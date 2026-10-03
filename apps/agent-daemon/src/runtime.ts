@@ -3,6 +3,8 @@ import type { ExecutePiTaskOptions } from '@themoltnet/pi-runtime';
 
 export interface PreparedDaemonRuntime {
   readonly runtimeKind: string;
+  /** Persistence ownership; legacy adapters default to local Pi JSONL. */
+  readonly sessionPersistence?: 'pi-jsonl' | 'api' | 'none';
   readonly manifest: Record<string, unknown>;
   readonly tools: readonly string[];
   readonly executables: readonly string[];

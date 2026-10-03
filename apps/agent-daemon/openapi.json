@@ -1188,6 +1188,12 @@
           },
           {
             "enum": [
+              "classify"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
               "curate_pack"
             ],
             "type": "string"
@@ -2996,6 +3002,12 @@
                         {
                           "enum": [
                             "assess_brief"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "classify"
                           ],
                           "type": "string"
                         },
