@@ -399,12 +399,9 @@ jobs:
         env:
           HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
         run: git fetch --no-tags --depth=1 origin "$HEAD_SHA"
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+          go: 'false'
       - name: Drain this review run
         uses: ./packages/agent-daemon-action
         with:
