@@ -17,6 +17,8 @@ minimumReleaseAgeExclude:
   - vite@8.0.16
   # Renovate security update: pnpm@10.34.5
   - pnpm@10.34.5
+  # Renovate security update: vitest@4.1.11
+  - vitest@4.1.11
 allowBuilds:
   '@github/keytar': true
   cpu-features: false
@@ -165,7 +167,7 @@ catalog:
   vitepress: '^1.6.4'
   vitepress-mermaid-renderer: '^1.1.21'
   vitepress-plugin-llms: '^1.12.1'
-  vitest: '^3.2.6'
+  vitest: '^4.0.0'
   vitest-axe: '^0.1.0'
   vue: '^3.5.0'
   web-tree-sitter: '^0.26.11'
