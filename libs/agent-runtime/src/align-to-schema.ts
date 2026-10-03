@@ -1,0 +1,153 @@
+import type { TSchema } from 'typebox';
+import { Value } from 'typebox/value';
+
+export interface SchemaAlignmentRepair {
+  kind:
+    | 'output_envelope'
+    | 'json_string'
+    | 'single_to_array'
+    | 'case_insensitive_match'
+    | 'submit_gate_verification'
+    | 'pi_schema_coercion'
+    | 'lenient_json'
+    | 'optional_null';
+  /** JSON pointer to the value changed; the root is the empty string. */
+  path: string;
+}
+
+export interface SchemaAlignment {
+  value: unknown;
+  repairs: SchemaAlignmentRepair[];
+}
+
+function record(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function pointer(path: string, member: string | number): string {
+  return `${path}/${String(member).replace(/~/g, '~0').replace(/\//g, '~1')}`;
+}
+
+function valid(schema: TSchema, value: unknown): boolean {
+  try {
+    return Value.Check(schema, value);
+  } catch {
+    return false;
+  }
+}
+
+function align(value: unknown, schema: TSchema, path: string): SchemaAlignment {
+  if (valid(schema, value)) return { value, repairs: [] };
+  const shape = schema as Record<string, unknown>;
+
+  const alternatives = [shape.anyOf, shape.oneOf].find(Array.isArray) as
+    | TSchema[]
+    | undefined;
+  if (alternatives) {
+    const candidates = alternatives.map((member) => align(value, member, path));
+    const passing = candidates.filter((candidate) =>
+      valid(schema, candidate.value),
+    );
+    if (passing.length > 0) {
+      return passing.reduce((best, candidate) =>
+        candidate.repairs.length < best.repairs.length ? candidate : best,
+      );
+    }
+    return { value, repairs: [] };
+  }
+
+  const declared = Array.isArray(shape.type) ? shape.type : [shape.type];
+  const admitsString = declared.includes('string');
+  let current = value;
+  const repairs: SchemaAlignmentRepair[] = [];
+
+  if (typeof current === 'string' && !admitsString) {
+    try {
+      const parsed: unknown = JSON.parse(current);
+      if (typeof parsed !== 'string') {
+        current = parsed;
+        repairs.push({ kind: 'json_string', path });
+      }
+    } catch {
+      // Strict validation reports the original value.
+    }
+  }
+
+  if (shape.type === 'array') {
+    if (!Array.isArray(current)) {
+      current = [current];
+      repairs.push({ kind: 'single_to_array', path });
+    }
+    const items = shape.items as TSchema | undefined;
+    if (items) {
+      const aligned = (current as unknown[]).map((item, index) =>
+        align(item, items, pointer(path, index)),
+      );
+      current = aligned.map((item) => item.value);
+      repairs.push(...aligned.flatMap((item) => item.repairs));
+    }
+  } else if (shape.type === 'object' && record(current)) {
+    const properties = record(shape.properties) ? shape.properties : {};
+    if (
+      Object.keys(current).length === 1 &&
+      Object.hasOwn(current, 'output') &&
+      !Object.hasOwn(properties, 'output') &&
+      record(current.output)
+    ) {
+      current = current.output;
+      repairs.push({ kind: 'output_envelope', path });
+    }
+    if (record(current)) {
+      const result = { ...current };
+      const required = Array.isArray(shape.required) ? shape.required : [];
+      for (const [key, child] of Object.entries(result)) {
+        const property = properties[key];
+        if (!record(property)) continue;
+        if (
+          child === null &&
+          !required.includes(key) &&
+          !valid(property as TSchema, null)
+        ) {
+          delete result[key];
+          repairs.push({ kind: 'optional_null', path: pointer(path, key) });
+          continue;
+        }
+        const aligned = align(child, property as TSchema, pointer(path, key));
+        result[key] = aligned.value;
+        repairs.push(...aligned.repairs);
+      }
+      current = result;
+    }
+  }
+
+  if (typeof current === 'string') {
+    const stringValue = current;
+    const choices: unknown[] = Array.isArray(shape.enum)
+      ? (shape.enum as unknown[])
+      : Object.hasOwn(shape, 'const')
+        ? [shape.const]
+        : [];
+    const match = choices.find(
+      (choice) =>
+        typeof choice === 'string' &&
+        choice.toLowerCase() === stringValue.toLowerCase(),
+    );
+    if (match !== undefined && match !== current) {
+      current = match;
+      repairs.push({ kind: 'case_insensitive_match', path });
+    }
+  }
+
+  // Do not claim a repair that did not yield a schema-compatible value at this
+  // node. The caller still applies the task's strict cross-field validator.
+  if (!valid(schema, current)) return { value: current, repairs };
+  return { value: current, repairs };
+}
+
+/** Cheap, synchronous syntax alignment. Strict task validation remains final. */
+export function alignToSchema(
+  value: unknown,
+  schema: TSchema,
+): SchemaAlignment {
+  return align(value, schema, '');
+}

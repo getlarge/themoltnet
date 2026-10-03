@@ -245,6 +245,7 @@ import {
   type ParsedTaskOutputResult,
   parseStructuredTaskOutput,
   recordTaskOutputParseResult,
+  recordTaskOutputRepairs,
   recordTaskOutputTelemetryAnomaly,
 } from './task-output.js';
 import { prepareTaskWorkspace } from './task-workspace.js';
@@ -2065,18 +2066,23 @@ export async function executePiTask(
       }
       if (parsedOutput && !parseError) {
         const outputSource = submitToolHandle ? 'submit_tool' : 'legacy_parser';
-        const repairKinds = submitToolHandle?.getCapturedRepairKinds() ?? [];
+        const repairs = captured.repairs ?? [];
+        const repairKinds = repairs.map((repair) => repair.kind);
         await traceRuntimePhase(
           'moltnet.execution.output.complete',
           {
             'moltnet.task.output_source': outputSource,
             'moltnet.task.output_repair_kinds': repairKinds,
+            'moltnet.task.output_repairs': repairs.map((repair) =>
+              JSON.stringify(repair),
+            ),
           },
           () =>
             emit('info', {
               event: 'output_completion',
               output_source: outputSource,
               repair_kinds: repairKinds,
+              repairs,
             }),
         );
       }
@@ -2458,10 +2464,13 @@ export interface CaptureAttemptOutputDeps {
   /** Streamed assistant text, used only by the legacy parser fallback. */
   assistantText: string;
   /** Submit-output handle, or null for task types with no registered schema. */
-  submitToolHandle: Pick<
-    SubmitOutputToolHandle,
-    'getCaptured' | 'getLastValidationFailure'
-  > | null;
+  submitToolHandle:
+    | (Pick<
+        SubmitOutputToolHandle,
+        'getCaptured' | 'getLastValidationFailure'
+      > &
+        Partial<Pick<SubmitOutputToolHandle, 'getCapturedRepairs'>>)
+    | null;
   emit: (
     kind: TurnEventKind,
     payload: Record<string, unknown>,
@@ -2612,7 +2621,14 @@ export async function captureAttemptOutput(
         model,
         code: 'captured_via_tool',
       });
-      return { output: captured, outputCid, error: null };
+      const repairs = submitToolHandle?.getCapturedRepairs?.() ?? [];
+      recordTaskOutputRepairs({ taskType, model, repairs });
+      return {
+        output: captured,
+        outputCid,
+        error: null,
+        repairs,
+      };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       const error = {

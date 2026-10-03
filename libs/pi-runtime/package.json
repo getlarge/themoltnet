@@ -62,6 +62,7 @@
     "@themoltnet/os-keyring": "workspace:*",
     "@themoltnet/sandbox-gondolin": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
+    "json5": "catalog:",
     "@themoltnet/shell-command-analyzer": "workspace:*",
     "multiformats": "catalog:",
     "typebox": "catalog:"

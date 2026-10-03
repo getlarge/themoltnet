@@ -90,6 +90,56 @@ const submitOutputOnlyFreeformInput = {
 };
 
 describe('createSubmitOutputTool', () => {
+  it.each([
+    ['valid', validFulfillBriefOutput, true],
+    ['envelope', { output: validFulfillBriefOutput }, true],
+    ['stringified array', { ...validFulfillBriefOutput, commits: '[]' }, true],
+    [
+      'single commit',
+      {
+        ...validFulfillBriefOutput,
+        commits: { sha: 'abcdef123', message: 'm', diaryEntryId: null },
+      },
+      true,
+    ],
+    [
+      'bare diary id',
+      {
+        ...validFulfillBriefOutput,
+        diaryEntryIds: '11111111-1111-4111-8111-111111111111',
+      },
+      true,
+    ],
+    [
+      'stringified commit item',
+      {
+        ...validFulfillBriefOutput,
+        commits: [
+          JSON.stringify({
+            sha: 'abcdef123',
+            message: 'm',
+            diaryEntryId: null,
+          }),
+        ],
+      },
+      true,
+    ],
+    ['unknown key', { ...validFulfillBriefOutput, extra: true }, false],
+  ] as const)(
+    'aligns %s with the parser verdict',
+    async (_name, input, accepted) => {
+      const handle = createSubmitOutputTool('fulfill_brief');
+      let prepared: unknown;
+      try {
+        prepared = handle.tool.prepareArguments?.(input);
+      } catch {
+        expect(accepted).toBe(false);
+        return;
+      }
+      const result = await callExecute(handle)(prepared);
+      expect(!result.isError).toBe(accepted);
+    },
+  );
   it('throws UnknownTaskTypeForSubmitToolError on unknown task types', () => {
     expect(() => createSubmitOutputTool('not_a_real_type')).toThrow(
       UnknownTaskTypeForSubmitToolError,
@@ -224,7 +274,7 @@ describe('createSubmitOutputTool', () => {
     });
     await callExecute(repaired)(prepared);
     expect(repaired.getCapturedRepairKinds()).toEqual(
-      expect.arrayContaining(['output_envelope', 'json_string_fields']),
+      expect.arrayContaining(['output_envelope', 'json_string']),
     );
 
     const untouched = createSubmitOutputTool('fulfill_brief');
@@ -289,10 +339,7 @@ describe('createSubmitOutputTool', () => {
     });
     expect(handle.getCaptured()).not.toHaveProperty('branch');
     expect(handle.getCapturedRepairKinds()).toEqual(
-      expect.arrayContaining([
-        'submit_gate_verification',
-        'pi_schema_coercion',
-      ]),
+      expect.arrayContaining(['submit_gate_verification', 'optional_null']),
     );
   });
 
