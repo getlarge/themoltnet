@@ -11,7 +11,11 @@
  * lib carries no runtime SDK dependency. The real `Agent` structurally
  * satisfies `GateAgent`.
  */
-import { FreeformOutput, RunEvalOutput } from '@moltnet/tasks';
+import {
+  FreeformOutput,
+  RunEvalOutput,
+  validateOutputContractResult,
+} from '@moltnet/tasks';
 import type { TSchema } from 'typebox';
 import { Value } from 'typebox/value';
 
@@ -200,6 +204,7 @@ export async function checkGates(
     workspace: string;
     teamId?: string;
     taskType?: ScenarioTaskType;
+    outputContract?: { version: 1; schema: Record<string, unknown> };
   },
 ): Promise<GateResult> {
   const failures: GateFailure[] = [];
@@ -346,6 +351,18 @@ export async function checkGates(
       failures.push({
         gate: 'output_schema',
         detail: `captured output is not a valid ${schemaName}: ${errors}`,
+      });
+    } else if (
+      expected.outputContract &&
+      validateOutputContractResult(
+        'freeform',
+        { outputContract: expected.outputContract },
+        attempt.output,
+      ).length > 0
+    ) {
+      failures.push({
+        gate: 'output_contract',
+        detail: 'captured result does not satisfy the scenario output contract',
       });
     } else if (
       (attempt.output as { verification?: unknown }).verification === undefined

@@ -35,6 +35,16 @@ const VALID_EVAL = { mode: 'vitro', workspace: 'none' };
 const VALID_GATES = { requireCleanSubmit: true };
 
 describe('readScenario', () => {
+  it.each(['structure-release-risk', 'structure-signal-triage'])(
+    'loads the contracted %s corpus scenario',
+    (slug) => {
+      const scenario = readScenario(
+        join(import.meta.dirname, '../../../evals-v2', slug),
+      );
+      expect(scenario.taskType).toBe('freeform');
+      expect(scenario.outputContract?.schema).toMatchObject({ type: 'object' });
+    },
+  );
   let root: string;
 
   beforeEach(() => {
@@ -88,6 +98,30 @@ describe('readScenario', () => {
     expect(scenario.fixtures).toEqual({ inputArtifacts: [] });
     expect(scenario.rubric.criteria).toHaveLength(2);
     expect(scenario.gates.requireCleanSubmit).toBe(true);
+  });
+
+  it('accepts a freeform result contract and rejects it for run_eval', () => {
+    const outputContract = {
+      version: 1,
+      schema: {
+        type: 'object',
+        properties: { score: { type: 'number' } },
+        required: ['score'],
+        additionalProperties: false,
+      },
+    };
+    const dir = writeScenario({
+      prompt: 'Assess the signal.',
+      evalJson: { ...VALID_EVAL, taskType: 'freeform', outputContract },
+      rubric: VALID_RUBRIC,
+      gates: VALID_GATES,
+    });
+    expect(readScenario(dir).outputContract).toEqual(outputContract);
+    writeFileSync(
+      join(dir, 'eval.json'),
+      JSON.stringify({ ...VALID_EVAL, outputContract }),
+    );
+    expect(() => readScenario(dir)).toThrow(ScenarioError);
   });
 
   it('parses an explicit freeform taskType and keeps execution intact', () => {

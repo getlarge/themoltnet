@@ -1,0 +1,48 @@
+{
+  "mode": "vitro",
+  "outputContract": {
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "decision": { "enum": ["ship", "hold"], "type": "string" },
+        "groups": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "area": { "type": "string" },
+              "checks": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "confidence": {
+                      "maximum": 1,
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "name": { "type": "string" },
+                    "risk": {
+                      "enum": ["low", "medium", "high"],
+                      "type": "string"
+                    }
+                  },
+                  "required": ["name", "risk", "confidence"],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": ["area", "checks"],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "note": { "type": ["string", "null"] }
+      },
+      "required": ["groups", "decision"],
+      "type": "object"
+    },
+    "version": 1
+  },
+  "taskType": "freeform",
+  "workspace": "none"
+}

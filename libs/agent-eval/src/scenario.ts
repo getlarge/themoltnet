@@ -188,6 +188,8 @@ export interface Scenario {
    * rather than the `RunEvalInput.scenario.prompt`.
    */
   taskType: ScenarioTaskType;
+  /** Optional freeform result contract advertised to the producer. */
+  outputContract?: { version: 1; schema: Record<string, unknown> };
   /**
    * Optional versioned runtime-profile context recipe injected into a
    * `run_eval` producer. Declared in `eval.json`; unsupported for freeform

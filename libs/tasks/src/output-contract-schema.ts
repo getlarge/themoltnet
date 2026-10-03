@@ -23,13 +23,21 @@ export function validateOutputContractSchema(schema: unknown): string | null {
     if (!isObject(node) || depth > 10 || ++nodes > 200) {
       return `${path} must be a schema object within the depth and size limits`;
     }
-    const type = node.type;
+    const nullable =
+      Array.isArray(node.type) &&
+      node.type.length === 2 &&
+      node.type.includes('null') &&
+      node.type.filter((value) => value !== 'null').length === 1;
+    const type = nullable
+      ? (node.type as unknown[]).find((value) => value !== 'null')
+      : node.type;
     if (
       !['object', 'array', 'string', 'number', 'integer', 'boolean'].includes(
         type as string,
-      )
+      ) ||
+      (nullable && (type === 'object' || type === 'array'))
     ) {
-      return `${path}.type must be object, array, string, number, integer, or boolean`;
+      return `${path}.type must be object, array, string, number, integer, boolean, or a nullable primitive`;
     }
     const common = ['type', 'description', 'title', 'enum'];
     const specific =
@@ -62,7 +70,11 @@ export function validateOutputContractSchema(schema: unknown): string | null {
         !Array.isArray(node.enum) ||
         node.enum.length === 0 ||
         node.enum.some((value) =>
-          type === 'integer' ? !Number.isInteger(value) : typeof value !== type,
+          value === null && nullable
+            ? false
+            : type === 'integer'
+              ? !Number.isInteger(value)
+              : typeof value !== type,
         ))
     ) {
       return `${path}.enum must contain values of the declared primitive type`;
