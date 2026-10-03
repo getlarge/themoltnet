@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.2](https://github.com/getlarge/themoltnet/compare/complexity-review-action-v0.2.1...complexity-review-action-v0.2.2) (2026-10-02)
+
+
+### Bug Fixes
+
+* **complexity-review:** run each action entry point once ([74c0d0a](https://github.com/getlarge/themoltnet/commit/74c0d0a7ef17c35c40c4278f60e86c8d6ebb90c5))
+* **complexity-review:** run each action entry point once ([fc23f01](https://github.com/getlarge/themoltnet/commit/fc23f011d279a2d8e36403ad6b634950478cd4a5))
+
 ## [0.2.1](https://github.com/getlarge/themoltnet/compare/complexity-review-action-v0.2.0...complexity-review-action-v0.2.1) (2026-10-02)
 
 

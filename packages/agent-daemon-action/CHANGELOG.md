@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.4](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.3.3...agent-daemon-action-v0.3.4) (2026-10-02)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.149.1
+
 ## [0.3.3](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.3.2...agent-daemon-action-v0.3.3) (2026-10-02)
 
 

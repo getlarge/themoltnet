@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.149.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.149.0...sdk-v0.149.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* **deps:** update @hey-api/openapi-ts to 0.99.0 ([4decfd8](https://github.com/getlarge/themoltnet/commit/4decfd8f2086f3d115160f2ca80b45bc70eec9f2))
+
 ## [0.149.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.148.0...sdk-v0.149.0) (2026-10-02)
 
 

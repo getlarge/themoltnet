@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/getlarge/themoltnet/compare/otel-collector-v0.2.0...otel-collector-v0.2.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* **deps:** patch vulnerable golang.org/x modules ([f929f78](https://github.com/getlarge/themoltnet/commit/f929f7847f4e1b3c51cc7812f347db2abe9ec7e5))
+* **deps:** patch vulnerable golang.org/x modules ([db818b7](https://github.com/getlarge/themoltnet/commit/db818b711bf2ea4810c93250dd54f833dcfaa639))
+
 ## [0.2.0](https://github.com/getlarge/themoltnet/compare/otel-collector-v0.1.0...otel-collector-v0.2.0) (2026-08-09)
 
 
