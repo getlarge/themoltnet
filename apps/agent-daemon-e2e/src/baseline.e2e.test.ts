@@ -43,6 +43,7 @@ import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const BASELINE_FLAG = 'MOLTNET_BASELINE';
 const LIVE_PROVIDER = 'ollama-cloud';
+// Keep baseline sampling on the same strict tool path as the model matrix.
 const LIVE_MODEL =
   process.env.MOLTNET_AGENT_DAEMON_LIVE_MODEL ?? 'gpt-oss:120b-cloud';
 const REPEATS = Number(process.env.BASELINE_REPEATS ?? '4');
@@ -97,7 +98,12 @@ describeBaseline('Producer baseline (live Ollama, e2e)', () => {
       privateKey: creds.keyPair.privateKey,
       fingerprint: creds.keyPair.fingerprint,
     });
-    writePiConfig({ piDir, provider: LIVE_PROVIDER, model: LIVE_MODEL });
+    writePiConfig({
+      piDir,
+      provider: LIVE_PROVIDER,
+      model: LIVE_MODEL,
+      supportsStrictMode: true,
+    });
 
     const profile = await agent.runtimeProfiles.create(
       {

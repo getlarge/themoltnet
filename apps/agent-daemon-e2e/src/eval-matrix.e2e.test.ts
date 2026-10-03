@@ -44,6 +44,8 @@ import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const MATRIX_FLAG = 'MOLTNET_EVAL_MATRIX';
 const PROVIDER = 'ollama-cloud';
+// The submit tool requests strict JSON-schema sampling. Explicitly declare
+// Ollama's capability so Pi sends function.strict with the tool schema.
 const WARM_TTL_SEC = '1200';
 const CORPUS_ROOT = join(import.meta.dirname, '../../..', 'evals-v2');
 
@@ -218,13 +220,23 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
     judgeProfileId = judgeProfile.id;
     judgePiDir = mkdtempSync(join(tmpdir(), 'eval-matrix-judge-pi-'));
     tempRoots.push(judgePiDir);
-    writePiConfig({ piDir: judgePiDir, provider: PROVIDER, model: judgeModel });
+    writePiConfig({
+      piDir: judgePiDir,
+      provider: PROVIDER,
+      model: judgeModel,
+      supportsStrictMode: true,
+    });
 
     for (const model of models) {
       const profile = await createProfile(agent, teamId, model);
       const piDir = mkdtempSync(join(tmpdir(), 'eval-matrix-pi-'));
       tempRoots.push(piDir);
-      writePiConfig({ piDir, provider: PROVIDER, model });
+      writePiConfig({
+        piDir,
+        provider: PROVIDER,
+        model,
+        supportsStrictMode: true,
+      });
       perModel.set(model, { profileId: profile.id, piDir });
     }
   }, 300_000);
