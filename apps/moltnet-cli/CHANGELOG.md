@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.13.0](https://github.com/getlarge/themoltnet/compare/cli-v3.12.0...cli-v3.13.0) (2026-10-03)
+
+
+### Bug Fixes
+
+* **deps:** patch vulnerable golang.org/x modules ([f929f78](https://github.com/getlarge/themoltnet/commit/f929f7847f4e1b3c51cc7812f347db2abe9ec7e5))
+* **deps:** patch vulnerable golang.org/x modules ([db818b7](https://github.com/getlarge/themoltnet/commit/db818b711bf2ea4810c93250dd54f833dcfaa639))
+* **release:** recover cli v3.13.0 release cycle ([f0d27ec](https://github.com/getlarge/themoltnet/commit/f0d27ec40335f583e65b9df484ca0b2254b3da17))
+* **release:** recover cli v3.13.0 release cycle ([6604059](https://github.com/getlarge/themoltnet/commit/66040597f2f78a694d65b5219c99f06971b5ec7f))
+
 ## [3.12.0](https://github.com/getlarge/themoltnet/compare/cli-v3.11.0...cli-v3.12.0) (2026-10-02)
 
 
