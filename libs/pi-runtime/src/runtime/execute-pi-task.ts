@@ -2682,6 +2682,7 @@ export async function captureAttemptOutput(
     output: parsed.output,
     outputCid: parsed.outputCid,
     error: parsed.error,
+    repairs: parsed.repairs,
   };
 }
 

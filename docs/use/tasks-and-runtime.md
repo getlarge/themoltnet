@@ -918,6 +918,10 @@ open-ended records are rejected by the daemon before agent execution. A schema
 is limited to 16 KiB, ten levels of nesting, and 200 nodes. For uploaded files,
 the consumer still needs to validate the file contents separately.
 
+A primitive can be nullable with a two-item `type` array, such as
+`["string", "null"]`; its `enum` may also contain `null`. Objects and arrays
+cannot be nullable in an output contract.
+
 When a proposer includes `input.successCriteria`, producer task outputs must
 include an `output.verification` record. This is the producer's own assessment
 of whether it satisfied the criteria. It is required for audit consistency, but

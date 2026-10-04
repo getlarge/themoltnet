@@ -2079,6 +2079,22 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
     expect(result.output).toBeNull();
     expect(result.error).not.toBeNull();
   });
+
+  it('retains parser repairs for the completion event', async () => {
+    const { emit } = makeEmit();
+    const result = await captureAttemptOutput({
+      taskType: 'fulfill_brief',
+      model: 'm',
+      input: {},
+      assistantText:
+        '{"branch":"feat/x","commits":[],"pullRequestUrl":null,"diaryEntryIds":[],"summary":"Done.",}',
+      submitToolHandle: null,
+      emit: emit as never,
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.repairs).toEqual([{ kind: 'lenient_json', path: '' }]);
+  });
 });
 
 describe('materializeCapturedAttemptOutput', () => {
