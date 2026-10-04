@@ -42,6 +42,9 @@
       "path": "libs/complexity-review"
     },
     {
+      "path": "libs/pddl-designer"
+    },
+    {
       "path": "apps/orchestration-e2e"
     },
     {

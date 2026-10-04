@@ -2806,6 +2806,43 @@ importers:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.33.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
+  libs/pddl-designer:
+    dependencies:
+      '@moltnet/task-schemas':
+        specifier: workspace:*
+        version: link:../task-schemas
+      '@themoltnet/os-keyring':
+        specifier: workspace:*
+        version: link:../os-keyring
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      '@themoltnet/tasks-orchestrator':
+        specifier: workspace:*
+        version: link:../tasks-orchestrator
+      typebox:
+        specifier: 'catalog:'
+        version: 1.3.27
+    devDependencies:
+      '@moltnet/runtime-profiles':
+        specifier: workspace:*
+        version: link:../runtime-profiles
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../tasks
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.19
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.33.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+
   libs/pi-extension:
     dependencies:
       '@earendil-works/gondolin':
@@ -20675,7 +20712,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.17
       tinyrainbow: 2.0.0
-      vitest: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1)(lightningcss@1.33.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+      vitest: 3.2.7(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.7)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@1.8.0))(lightningcss@1.33.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
   '@vitest/utils@3.2.7':
     dependencies:

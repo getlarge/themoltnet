@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./out-tsc",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
+  },
+  "exclude": ["node_modules", "dist", "src/**/*.test.ts", "src/**/*.spec.ts"],
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts", "src/**/*.d.ts"],
+  "references": [
+    {
+      "path": "../tasks-orchestrator/tsconfig.lib.json"
+    },
+    {
+      "path": "../sdk/tsconfig.lib.json"
+    },
+    {
+      "path": "../os-keyring/tsconfig.lib.json"
+    },
+    {
+      "path": "../task-schemas/tsconfig.lib.json"
+    },
+    {
+      "path": "../tasks/tsconfig.lib.json"
+    },
+    {
+      "path": "../runtime-profiles/tsconfig.lib.json"
+    }
+  ]
+}
