@@ -4,6 +4,9 @@ inputs:
   install-dependencies:
     description: Run the frozen pnpm workspace install after toolchain setup.
     default: 'true'
+  registry-url:
+    description: npm registry for setup-node to configure auth against (publish jobs).
+    default: ''
   pnpm-cache:
     description: Restore and save the pnpm store cache.
     default: 'true'
@@ -58,6 +61,7 @@ runs:
       with:
         node-version-file: .tool-versions
         cache: ${{ inputs.pnpm-cache == 'true' && 'pnpm' || '' }}
+        registry-url: ${{ inputs.registry-url }}
     - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
       if: inputs.go == 'true'
       with:
