@@ -117,6 +117,20 @@ jobs:
             exit 1
           fi
 
+      # A library's `import.meta.url === argv[1]` self-run check is true once
+      # the library is inlined into a bundle, so the bundle runs its command
+      # once from the library and again from the action entry (#2633).
+      - name: Fail when a bundle inlines a self-run check
+        run: |
+          guarded="$(grep -rlE --include='*.js' \
+            'import\.meta\.url[[:space:]]*===|===[[:space:]]*import\.meta\.url' \
+            packages/*-action/dist | xargs -r grep -l 'process\.argv\[1\]' || true)"
+          if [ -n "$guarded" ]; then
+            printf '%s\n' "$guarded"
+            echo "::error::an action bundle contains an import.meta.url/process.argv[1] self-run check. Remove it from the bundled library; only the action entry may call main()."
+            exit 1
+          fi
+
       - run: node tools/src/release/action-runtime-lock.ts --check
 
   wsl-agent-daemon:
