@@ -1,0 +1,6 @@
+{
+  "description": "No inspection or shell tools; each PDDL designer stage carries its process description and earlier stage results in the brief.",
+  "name": "legreffier-pddl-designer-input-only-v1",
+  "shellCommands": [],
+  "tools": []
+}
