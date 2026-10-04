@@ -95,6 +95,29 @@ describe('getSubmitOutputContract', () => {
     );
   });
 
+  it('preserves a contracted field named $id while stripping schema IDs', () => {
+    const contract = getSubmitOutputContract('freeform', {
+      outputContract: {
+        version: 1,
+        schema: {
+          type: 'object',
+          properties: { $id: { type: 'string' } },
+          required: ['$id'],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    expect(contract?.parametersSchema).toHaveProperty(
+      'properties.result.properties.$id',
+      { type: 'string' },
+    );
+    expect(contract?.parametersSchema).toHaveProperty(
+      'properties.result.required',
+      ['$id'],
+    );
+  });
+
   it('makes the verification passed invariant visible in the submit schema', () => {
     const c = getSubmitOutputContract('run_eval');
 

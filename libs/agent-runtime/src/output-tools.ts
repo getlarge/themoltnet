@@ -86,13 +86,15 @@ export function getSubmitOutputContract(
 /** `$id` names TypeBox definitions; it does not constrain tool arguments.
  * Codex strict function tools can terminate before generation when nested
  * `$id` metadata is included. Keep the task schema intact for validation. */
-function stripSchemaIds<T>(value: T): T {
-  if (Array.isArray(value)) return value.map(stripSchemaIds) as T;
+function stripSchemaIds<T>(value: T, propertyMap = false): T {
+  if (Array.isArray(value))
+    return (value as unknown[]).map((child) => stripSchemaIds(child)) as T;
   if (value !== null && typeof value === 'object') {
     const copy = { ...value } as Record<string, unknown>;
-    delete copy.$id;
+    // In `properties`, keys are user field names rather than schema keywords.
+    if (!propertyMap) delete copy.$id;
     for (const [key, child] of Object.entries(copy)) {
-      copy[key] = stripSchemaIds(child);
+      copy[key] = stripSchemaIds(child, !propertyMap && key === 'properties');
     }
     return copy as T;
   }
