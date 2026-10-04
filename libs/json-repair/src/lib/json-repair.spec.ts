@@ -52,6 +52,11 @@ describe('parseCompleteJsonObject', () => {
     });
   });
 
+  it('handles a long unmatched fence prefix without changing the result', () => {
+    const text = `\`\`\`${' '.repeat(50_000)}`;
+    expect(parseCompleteJsonObject(text)).toBeNull();
+  });
+
   it.each([
     '{"a":1',
     '{"a":[1,2',

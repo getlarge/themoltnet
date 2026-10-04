@@ -225,8 +225,21 @@ export function parseCompleteJsonObject(
 ): ParsedCompleteObject | null {
   if (!text) return null;
   const candidates: string[] = [];
-  for (const fence of text.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi)) {
-    candidates.push(fence[1]);
+  let cursor = 0;
+  while (cursor < text.length) {
+    const open = text.indexOf('```', cursor);
+    if (open < 0) break;
+    const close = text.indexOf('```', open + 3);
+    if (close < 0) break;
+    let contentStart = open + 3;
+    if (text.slice(contentStart, contentStart + 4).toLowerCase() === 'json') {
+      contentStart += 4;
+    }
+    while (contentStart < close && /\s/.test(text[contentStart])) {
+      contentStart++;
+    }
+    candidates.push(text.slice(contentStart, close));
+    cursor = close + 3;
   }
   candidates.push(text);
   for (let i = candidates.length - 1; i >= 0; i--) {
