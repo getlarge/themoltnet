@@ -86,6 +86,11 @@ function align(value: unknown, schema: TSchema, path: string): SchemaAlignment {
       current = aligned.map((item) => item.value);
       repairs.push(...aligned.flatMap((item) => item.repairs));
     }
+    // A malformed scalar is not a repaired array merely because it was
+    // wrapped. Keep the original value for strict validation in that case.
+    if (!Array.isArray(value) && !valid(schema, current)) {
+      return { value, repairs: [] };
+    }
   } else if (shape.type === 'object' && record(current)) {
     const properties = record(shape.properties) ? shape.properties : {};
     if (
