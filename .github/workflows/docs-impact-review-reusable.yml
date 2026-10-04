@@ -9,9 +9,8 @@ name: Docs impact review (reusable)
 # packages/agent-daemon-action) is checked out from this workflow's own
 # commit, resolved once in `prepare` and pinned for every job, so the
 # reviewer and the workers' action always come from the same commit. The
-# workers run the signed agent-daemon release recorded at that commit
-# (apps/agent-daemon/package.json) unless `daemon-version` says otherwise, so
-# a pinned workflow reproduces its runs. The reviewed pull request head is
+# workers run the latest published signed agent-daemon release unless
+# `daemon-version` selects an exact version. The reviewed pull request head is
 # fetched as inert git data and never checked out or executed.
 
 on:
@@ -85,8 +84,7 @@ on:
       daemon-version:
         description: >
           agent-daemon release the workers run: an exact version or
-          `latest`. Empty (the default) means the release recorded at this
-          workflow's commit, so a pinned workflow tag reproduces its runs. The
+          `latest`. Empty (the default) uses the latest published release. The
           workers run the signed release bundle, never code from the checkout.
         type: string
         default: ''
@@ -283,8 +281,7 @@ jobs:
         with:
           ref: ${{ fromJSON(needs.prepare.outputs.prepared).baseSha }}
           persist-credentials: false
-      # agent-daemon-action reads the CLI version next to it, and the default
-      # daemon release is the one recorded at the runtime commit.
+      # agent-daemon-action reads the CLI version next to it.
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           repository: ${{ needs.prepare.outputs.runtime-repository }}
@@ -308,7 +305,7 @@ jobs:
         env:
           REQUESTED: ${{ inputs.daemon-version }}
         run: |
-          version="${REQUESTED:-$(jq -r .version .docs-impact-runtime/apps/agent-daemon/package.json)}"
+          version="${REQUESTED:-latest}"
           if [ "$version" != latest ] && ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "::error::agent-daemon release '$version' is not an exact version or latest" >&2
             exit 1
