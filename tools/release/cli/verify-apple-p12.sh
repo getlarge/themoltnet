@@ -28,6 +28,9 @@ done
   exit 1
 }
 
+# Every OpenSSL call goes through one resolved 3+ build; see resolve-openssl.sh.
+openssl=$(sh "$(dirname "$0")/resolve-openssl.sh")
+
 work=$(mktemp -d "${TMPDIR:-/tmp}/moltnet-p12-check.XXXXXX")
 cleanup() {
   rm -f "$work/bundle.pem" "$work/cert-1.pem" "$work/cert-2.pem" "$work/cert-3.pem"
@@ -36,10 +39,10 @@ cleanup() {
 trap cleanup EXIT HUP INT TERM
 
 openssl_pkcs12_decode() {
-  if openssl pkcs12 -help 2>&1 | grep -q -- '-legacy'; then
-    openssl pkcs12 -legacy "$@"
+  if "$openssl" pkcs12 -help 2>&1 | grep -q -- '-legacy'; then
+    "$openssl" pkcs12 -legacy "$@"
   else
-    openssl pkcs12 "$@"
+    "$openssl" pkcs12 "$@"
   fi
 }
 
@@ -49,7 +52,7 @@ openssl_pkcs12_decode() {
 # runner and a developer machine — without it a failure here is unactionable.
 # Bounded so a pathological error cannot bury the headline.
 openssl_diagnostics() {
-  echo "  openssl: $(openssl version 2>&1)" >&2
+  echo "  openssl: $("$openssl" version 2>&1)" >&2
   if [ -n "${1:-}" ]; then
     printf '%s\n' "$1" | head -10 | sed 's/^/  /' >&2
   fi
@@ -81,7 +84,7 @@ leaf=
 intermediate=
 root=
 for cert in "$work"/cert-*.pem; do
-  subject=$(openssl x509 -in "$cert" -noout -subject -nameopt RFC2253)
+  subject=$("$openssl" x509 -in "$cert" -noout -subject -nameopt RFC2253)
   case "$subject" in
     *"CN=Developer ID Application:"*) leaf=$cert ;;
     *"CN=Developer ID Certification Authority"*) intermediate=$cert ;;
@@ -93,8 +96,8 @@ done
 [ -n "$intermediate" ] || { echo "APPLE_CERT_P12 has no Developer ID Certification Authority intermediate" >&2; exit 1; }
 [ -n "$root" ] || { echo "APPLE_CERT_P12 has no Apple Root CA certificate" >&2; exit 1; }
 
-root_subject=$(openssl x509 -in "$root" -noout -subject -nameopt RFC2253 | sed 's/^subject=//')
-root_issuer=$(openssl x509 -in "$root" -noout -issuer -nameopt RFC2253 | sed 's/^issuer=//')
+root_subject=$("$openssl" x509 -in "$root" -noout -subject -nameopt RFC2253 | sed 's/^subject=//')
+root_issuer=$("$openssl" x509 -in "$root" -noout -issuer -nameopt RFC2253 | sed 's/^issuer=//')
 if [ "$root_subject" != "$root_issuer" ]; then
   echo "APPLE_CERT_P12 Apple root certificate is not self-signed" >&2
   exit 1
@@ -105,7 +108,7 @@ fi
 # -ignore_critical lets OpenSSL validate the cryptographic chain itself.
 # -trusted confines trust anchors to the root extracted from this P12, so a
 # runner's default CA store cannot substitute another Apple Root CA.
-if ! verify_error=$(openssl verify -ignore_critical -purpose any \
+if ! verify_error=$("$openssl" verify -ignore_critical -purpose any \
   -trusted "$root" -untrusted "$intermediate" "$leaf" 2>&1); then
   echo "APPLE_CERT_P12 does not contain a valid Developer ID leaf-to-root chain" >&2
   openssl_diagnostics "$verify_error"
