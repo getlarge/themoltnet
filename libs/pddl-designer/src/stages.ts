@@ -72,11 +72,11 @@ const json = (value: unknown) => JSON.stringify(value, null, 2);
 
 const MODELING_RULES = [
   'Modeling rules (classical PDDL with typing and negative preconditions):',
-  '- Names are lowercase and hyphenated: `pull-request`, `worktree-free`. Parameters start with `?`: `?c`, `?pr`.',
+  '- Names are lowercase and hyphenated: `parcel-label`, `truck-free`. Parameters start with `?`: `?t`, `?p`.',
   '- Do not define the root type `object`; omit `parent` for top-level types.',
-  '- Actions cannot create objects. Every object an action uses must already exist in the problem. To model something a step produces (a commit, a pull request), use a pool of objects and a fact such as `(unused ?x)` that the producing action requires and deletes.',
+  '- Actions cannot create objects. Every object an action uses must already exist in the problem. To model something a step produces (a receipt, a parcel label), use a pool of objects and a fact such as `(unused ?x)` that the producing action requires and deletes.',
   '- For every action, list what must stop being true (delete effects), not only what becomes true. A fact nobody deletes stays true forever and can be reused by later steps.',
-  '- No quantifiers, conditional effects, or numeric fluents. Express "only one at a time" with a fact such as `(idle ?c)` that the action requires and deletes.',
+  '- No quantifiers, conditional effects, or numeric fluents. Express "only one at a time" with a fact such as `(idle ?t)` that the action requires and deletes.',
 ];
 
 function correctionText(correction?: Correction): string[] {
@@ -119,7 +119,7 @@ function stageTask(
     input: {
       brief: brief.join('\n\n'),
       expectedOutput:
-        'Put the requested structured object in result and a one-sentence summary in summary.',
+        'Put the requested structured object in result and a one-sentence summary in summary. Omit branch: this task does no git work.',
       outputContract: {
         version: 1 as const,
         schema: toOutputContractSchema(resultSchema),
@@ -145,9 +145,9 @@ export function buildTypesTask(
     'types',
     [
       'Stage 1 of a planning-domain design: extract the object types.',
-      'A type is a kind of thing an action takes as a parameter: agents, work items, places, resources. Include a kind of thing a step produces (for example a pull request) only when later steps must refer to individual ones. Use a parent type when several kinds share behavior.',
+      'A type is a kind of thing an action takes as a parameter: agents, work items, places, resources. Include a kind of thing a step produces (for example a shipping label) only when later steps must refer to individual ones. Use a parent type when several kinds share behavior.',
       ...MODELING_RULES,
-      'Put in result {"types":[{"name":"coder","parent":"agent","description":"..."},{"name":"agent","description":"..."}]}.',
+      'The example below only shows the JSON shape, using an unrelated library domain; do not reuse its names. Put in result {"types":[{"name":"person","description":"..."},{"name":"member","parent":"person","description":"..."},{"name":"book","description":"..."}]}.',
       fence('process-description', input.description),
       ...correctionText(correction),
     ],
@@ -170,7 +170,7 @@ export function buildPredicatesTask(
       'Each parameter has exactly one type from the list. Use one predicate per distinct relation; do not merge unrelated relations. Include the facts needed to say when something is free, in use, or used up.',
       ...MODELING_RULES,
       'Types:\n' + json(types.types),
-      'Put in result {"predicates":[{"name":"assigned","parameters":[{"name":"?i","type":"issue"},{"name":"?c","type":"coder"}],"description":"issue ?i is claimed by coder ?c"}]}.',
+      'The example below only shows the JSON shape, using an unrelated library domain; do not reuse its names. Put in result {"predicates":[{"name":"borrowed-by","parameters":[{"name":"?b","type":"book"},{"name":"?m","type":"member"}],"description":"book ?b is borrowed by member ?m"}]}.',
       fence('process-description', input.description),
       ...correctionText(correction),
     ],
@@ -194,7 +194,7 @@ export function buildActionsTask(
       ...MODELING_RULES,
       'Types:\n' + json(types.types),
       'Predicates:\n' + json(predicates.predicates),
-      'Put in result {"actions":[{"name":"claim-issue","parameters":[{"name":"?c","type":"coder"},{"name":"?i","type":"issue"}],"preconditions":[{"predicate":"open","args":["?i"],"negated":false},{"predicate":"idle","args":["?c"],"negated":false}],"addEffects":[{"predicate":"assigned","args":["?i","?c"]}],"deleteEffects":[{"predicate":"open","args":["?i"]},{"predicate":"idle","args":["?c"]}],"source":"A coder can only work on an issue it has claimed."}]}.',
+      'The example below only shows the JSON shape, using an unrelated library domain; do not reuse its names. Put in result {"actions":[{"name":"borrow","parameters":[{"name":"?m","type":"member"},{"name":"?b","type":"book"}],"preconditions":[{"predicate":"on-shelf","args":["?b"],"negated":false},{"predicate":"suspended","args":["?m"],"negated":true}],"addEffects":[{"predicate":"borrowed-by","args":["?b","?m"]}],"deleteEffects":[{"predicate":"on-shelf","args":["?b"]}],"source":"A member who is not suspended may borrow a book from the shelf."}]}.',
       fence('process-description', input.description),
       ...correctionText(correction),
     ],
@@ -247,9 +247,9 @@ export function buildProblemTask(
     'problem',
     [
       'Stage 5: write the planning problem for this domain: objects, initial facts, and goal.',
-      `Declare at least one object for every type an action takes as a parameter (${parameterTypes.join(', ')}), even when the situation does not name it: actions cannot create objects. For things the process produces, declare a small pool (for example pr-1, pr-2) and mark each as available in the initial facts if the domain has a fact for that. List only facts that are true at the start; anything not listed is false.`,
+      `Declare at least one object for every type an action takes as a parameter (${parameterTypes.join(', ')}), even when the situation does not name it: actions cannot create objects. For things the process produces, declare a small pool (for example label-1, label-2) and mark each as available in the initial facts if the domain has a fact for that. List only facts that are true at the start; anything not listed is false.`,
       'Domain (generated from earlier stages):\n' + domainPddl,
-      'Put in result {"objects":[{"name":"issue-101","type":"issue"}],"init":[{"predicate":"open","args":["issue-101"]}],"goal":[{"predicate":"resolved","args":["issue-101"],"negated":false}]}.',
+      'The example below only shows the JSON shape, using an unrelated library domain; do not reuse its names. Put in result {"objects":[{"name":"book-1","type":"book"},{"name":"alice","type":"member"}],"init":[{"predicate":"on-shelf","args":["book-1"]}],"goal":[{"predicate":"borrowed-by","args":["book-1","alice"],"negated":false}]}.',
       fence('situation', input.problemDescription),
       ...correctionText(correction),
     ],
