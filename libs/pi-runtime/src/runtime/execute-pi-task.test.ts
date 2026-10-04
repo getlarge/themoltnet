@@ -2636,10 +2636,30 @@ describe('promptUntilSubmitted (submit-missing same-session recovery)', () => {
       runError: { code: 'model_output_length' },
       submitReprompts: 0,
     });
-    expect(result.runError?.message).toContain('maxTokens=1024');
+    expect(result.runError?.message).toContain('maxOutputTokens=1024');
     expect(result.runError?.message).toContain('0 submit reprompt(s)');
-    expect(result.runError?.message).toContain('Raise maxTokens');
+    expect(result.runError?.message).toContain('Raise maxOutputTokens');
     expect(prompts).toEqual(['extract']);
+  });
+
+  it('does not suggest raising an unset runtime output cap', async () => {
+    const result = await promptUntilSubmitted({
+      runPrompt: async () => ({ runError: null }),
+      initialPrompt: 'extract',
+      submitMissingPrompt: 'call submit now',
+      maxSubmitMissingReprompts: 3,
+      getSubmitState: () => ({
+        captured: false,
+        lastValidationFailure: null,
+      }),
+      getStopReason: () => 'length',
+      maxOutputTokens: null,
+      isStopped: () => false,
+    });
+
+    expect(result.runError?.code).toBe('model_output_length');
+    expect(result.runError?.message).toContain('maxOutputTokens=none');
+    expect(result.runError?.message).toContain('inspect the provider response');
   });
 
   it('keeps a valid submission when a final turn reports length', async () => {

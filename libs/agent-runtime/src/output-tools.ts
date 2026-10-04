@@ -20,8 +20,10 @@
  *   - Tool name shape: `submit_<task_type>_output` (e.g.
  *     `submit_fulfill_brief_output`). This is the string the model
  *     sees in the prompt's "preferred path" instruction.
- *   - Parameters schema: the task type's TypeBox submission schema
- *     **directly**, NOT wrapped in `{ output: <schema> }`. Tool args
+ *   - Parameters schema: the task type's submission shape **directly**,
+ *     NOT wrapped in `{ output: <schema> }`. TypeBox `$id` annotations are
+ *     removed from the advertised JSON Schema; runtime validation retains
+ *     the original task schema. Tool args
  *     ARE the agent-authored payload. Executor-observed fields are stamped
  *     after submission and never requested from the model.
  *   - Description text: shared across executors so the tool's
@@ -43,8 +45,8 @@ export interface SubmitOutputContract {
   /** Human-readable description shown to the model and any UI that
    * lists registered tools. */
   description: string;
-  /** TypeBox schema the tool's `parameters` MUST validate against. Pass it
-   * through verbatim to the executor's tool-definition factory. */
+  /** JSON Schema the tool's `parameters` MUST advertise. It preserves the
+   * task submission shape but omits TypeBox-only `$id` annotations. */
   parametersSchema: TSchema;
   /** Stable JSON rendering the executor must make visible to the model. */
   parametersSchemaJson: string;
@@ -60,8 +62,9 @@ export function getSubmitOutputContract(
   taskType: string,
   input?: unknown,
 ): SubmitOutputContract | null {
-  const schema = getAgentSubmissionSchema(taskType, input);
-  if (!schema) return null;
+  const taskSchema = getAgentSubmissionSchema(taskType, input);
+  if (!taskSchema) return null;
+  const schema = stripSchemaIds(taskSchema);
 
   return {
     toolName: submitOutputToolName(taskType),
@@ -78,6 +81,22 @@ export function getSubmitOutputContract(
     parametersSchema: schema,
     parametersSchemaJson: JSON.stringify(schema, null, 2),
   };
+}
+
+/** `$id` names TypeBox definitions; it does not constrain tool arguments.
+ * Codex strict function tools can terminate before generation when nested
+ * `$id` metadata is included. Keep the task schema intact for validation. */
+function stripSchemaIds<T>(value: T): T {
+  if (Array.isArray(value)) return value.map(stripSchemaIds) as T;
+  if (value !== null && typeof value === 'object') {
+    const copy = { ...value } as Record<string, unknown>;
+    delete copy.$id;
+    for (const [key, child] of Object.entries(copy)) {
+      copy[key] = stripSchemaIds(child);
+    }
+    return copy as T;
+  }
+  return value;
 }
 
 /**

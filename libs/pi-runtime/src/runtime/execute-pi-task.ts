@@ -3288,9 +3288,14 @@ export async function promptUntilSubmitted(
     if (args.getStopReason?.() !== 'length') return null;
     const state = args.getSubmitState();
     if (!state || state.captured) return null;
+    const configuredCap = args.maxOutputTokens;
+    const advice =
+      configuredCap === null || configuredCap === undefined
+        ? 'No runtime output cap was configured; inspect the provider response and tool schema.'
+        : 'Raise maxOutputTokens and retry the task.';
     return {
       code: 'model_output_length',
-      message: `The model reached its output token limit (maxTokens=${args.maxOutputTokens ?? 'provider default'}) after ${submitReprompts} submit reprompt(s) without valid task output. Raise maxTokens and retry the task.`,
+      message: `The provider ended the response at its output limit (configured maxOutputTokens=${configuredCap ?? 'none'}) after ${submitReprompts} submit reprompt(s) without valid task output. ${advice}`,
     };
   };
   const firstLimitError = outputLimitError();

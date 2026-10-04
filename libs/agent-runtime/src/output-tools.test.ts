@@ -30,10 +30,11 @@ describe('getSubmitOutputContract', () => {
       expect(c, `${t} contract`).not.toBeNull();
       expect(c!.taskType).toBe(t);
       expect(c!.toolName).toBe(`submit_${t}_output`);
-      // The schema is the task type's agent-submission TObject and is sent
-      // directly to Pi as the submit tool's parameter contract.
+      // The tool gets the task submission shape without TypeBox `$id`
+      // annotations, which Codex strict tools cannot consume.
       expect(c!.parametersSchema).toBeDefined();
-      expect(c!.parametersSchema).toBe(getTaskSubmissionSchema(t));
+      expect(c!.parametersSchema).not.toBe(getTaskSubmissionSchema(t));
+      expect(c!.parametersSchemaJson).not.toContain('"$id"');
       expect(
         (c!.parametersSchema as { type?: string }).type,
         `${t} parametersSchema is an object`,
@@ -45,6 +46,21 @@ describe('getSubmitOutputContract', () => {
       expect(c!.description).not.toMatch(/ends the session/);
       expect(JSON.parse(c!.parametersSchemaJson)).toEqual(c!.parametersSchema);
     }
+  });
+
+  it('removes nested schema IDs without changing the validation schema', () => {
+    const original = getTaskSubmissionSchema('freeform');
+    const originalJson = JSON.stringify(original);
+    const contract = getSubmitOutputContract('freeform');
+
+    expect(originalJson).toContain('"$id"');
+    expect(contract?.parametersSchemaJson).not.toContain('"$id"');
+    expect(JSON.parse(contract!.parametersSchemaJson)).toEqual(
+      JSON.parse(originalJson, (key: string, value: unknown): unknown =>
+        key === '$id' ? undefined : value,
+      ),
+    );
+    expect(JSON.stringify(original)).toBe(originalJson);
   });
 
   it('does not ask run_eval agents to fabricate runtime telemetry', () => {
