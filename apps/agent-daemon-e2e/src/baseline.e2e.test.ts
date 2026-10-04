@@ -246,6 +246,13 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
 
           const attemptsForStructure = await agent.tasks.listAttempts(task.id);
           const lastAttempt = attemptsForStructure.at(-1);
+          let structure:
+            | {
+                invalidSubmitCalls: number;
+                repairKinds: string[];
+                outputSource: 'tool' | 'parser' | null;
+              }
+            | undefined;
           if (lastAttempt) {
             const messages = await agent.tasks.listMessages(
               task.id,
@@ -257,10 +264,13 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
                 message.kind === 'info' &&
                 message.payload.event === 'output_completion',
             )?.payload;
-            structures.push({
-              scenario: scenario.slug,
-              taskId: task.id,
-              attemptN: lastAttempt.attemptN,
+            const outputSource =
+              completion?.output_source === 'submit_tool'
+                ? ('tool' as const)
+                : completion?.output_source === 'legacy_parser'
+                  ? ('parser' as const)
+                  : null;
+            structure = {
               invalidSubmitCalls: messages.filter(
                 (message) =>
                   message.kind === 'tool_call_end' &&
@@ -272,15 +282,22 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
                     (kind): kind is string => typeof kind === 'string',
                   )
                 : [],
-              outputSource:
-                typeof completion?.output_source === 'string'
-                  ? completion.output_source
-                  : null,
+              outputSource,
+            };
+            structures.push({
+              scenario: scenario.slug,
+              taskId: task.id,
+              attemptN: lastAttempt.attemptN,
+              ...structure,
             });
           }
           const final = await agent.tasks.get(task.id);
           if (final.status === 'completed' && final.acceptedAttemptN) {
-            return { taskId: task.id, attemptN: final.acceptedAttemptN };
+            return {
+              taskId: task.id,
+              attemptN: final.acceptedAttemptN,
+              structure,
+            };
           }
           // Not completed: surface the failed attempt's terminal error code so
           // the baseline histogram distinguishes submit-format failures

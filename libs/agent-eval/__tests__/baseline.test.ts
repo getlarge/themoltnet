@@ -58,6 +58,42 @@ function scriptedDeps(
 }
 
 describe('runBaseline', () => {
+  it('scores gate-only baselines by raw submit shape', async () => {
+    const shape = {
+      ...scenario('shape', 'freeform'),
+      scoring: 'gates_only' as const,
+    };
+    const repairs = [[], ['optional_null'], ['json_string']];
+    const report = await runBaseline([shape], 'm', 4, {
+      runProducer: (_scenario, run) =>
+        Promise.resolve({
+          taskId: `task-${run}`,
+          attemptN: 1,
+          structure:
+            run === 4
+              ? undefined
+              : {
+                  invalidSubmitCalls: 0,
+                  repairKinds: repairs[run - 1],
+                  outputSource: 'tool',
+                },
+        }),
+      runGates: () => Promise.resolve(PASS),
+    });
+
+    expect(report.scenarios[0]).toMatchObject({
+      passes: 2,
+      passRate: 0.5,
+      failureModes: { submit_shape: 2 },
+    });
+    expect(report.scenarios[0].cells.map((cell) => cell.shapePassed)).toEqual([
+      true,
+      true,
+      false,
+      false,
+    ]);
+  });
+
   it('counts every run and reports the raw pass rate (no retry-until-pass)', async () => {
     // 4 runs: pass, fail(submit), pass, not-completed → 2/4 = 50%.
     const deps = scriptedDeps({

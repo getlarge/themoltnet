@@ -15,6 +15,7 @@
  */
 import type { GateResult } from './check-gates.js';
 import type { Scenario, ScenarioTaskType } from './scenario.js';
+import { isCleanSubmitShape, type SubmitStructure } from './score-matrix.js';
 
 /** Non-gate failure-mode keys, alongside the per-gate keys from `GateFailure`. */
 export const NOT_COMPLETED = 'not_completed';
@@ -30,6 +31,8 @@ export interface BaselineRun {
   completed: boolean;
   /** Gates were evaluated AND all passed (only meaningful when completed). */
   gatesPassed: boolean;
+  /** Raw submit shape for gate-only scenarios after gates have passed. */
+  shapePassed?: boolean;
   gateFailures: GateResult['failures'];
   /**
    * When the task did not complete, the daemon's terminal error code (e.g.
@@ -46,7 +49,7 @@ export interface BaselineScenarioResult {
   scenario: string;
   taskType: ScenarioTaskType;
   runs: number;
-  /** Runs that completed AND passed every gate. */
+  /** Runs that passed every gate and, for gate-only scenarios, raw shape. */
   passes: number;
   /** `passes / runs` in [0,1]. */
   passRate: number;
@@ -81,6 +84,7 @@ export interface BaselineDeps {
     attemptN: number | null;
     /** The task's terminal error code when it did not complete (optional). */
     failureCode?: string;
+    structure?: SubmitStructure;
   }>;
   /** Evaluate stage-1 gates for a completed attempt. */
   runGates(
@@ -145,8 +149,14 @@ export async function runBaseline(
           cell.gatesPassed = gates.passed;
           cell.gateFailures = gates.failures;
           if (gates.passed) {
-            passes++;
-            log(`[${scenario.slug}] run ${run}/${repeats}: PASS`);
+            if (scenario.scoring === 'gates_only') {
+              cell.shapePassed = isCleanSubmitShape(producer.structure);
+              if (!cell.shapePassed) bump(failureModes, 'submit_shape');
+            }
+            if (cell.shapePassed !== false) passes++;
+            log(
+              `[${scenario.slug}] run ${run}/${repeats}: ${cell.shapePassed === false ? 'SHAPE FAIL' : 'PASS'}`,
+            );
           } else {
             for (const f of gates.failures) bump(failureModes, f.gate);
             log(

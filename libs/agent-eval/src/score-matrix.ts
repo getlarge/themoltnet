@@ -51,6 +51,23 @@ export interface ScoreMatrix {
 // change the model's output shape and must count against a shape-only score.
 const PROTOCOL_REPAIRS = new Set(['optional_null', 'submit_gate_verification']);
 
+export interface SubmitStructure {
+  invalidSubmitCalls: number;
+  repairKinds: string[];
+  outputSource: 'tool' | 'parser' | null;
+}
+
+/** Whether the model supplied a valid submit shape before runtime repair. */
+export function isCleanSubmitShape(
+  structure: SubmitStructure | undefined,
+): boolean {
+  return (
+    structure?.outputSource === 'tool' &&
+    structure.invalidSubmitCalls === 0 &&
+    structure.repairKinds.every((kind) => PROTOCOL_REPAIRS.has(kind))
+  );
+}
+
 /**
  * Effects the matrix runner needs, injected so the orchestration stays pure.
  */
@@ -67,11 +84,7 @@ export interface MatrixDeps {
     taskId: string;
     attemptN: number | null;
     failureCode?: string;
-    structure?: {
-      invalidSubmitCalls: number;
-      repairKinds: string[];
-      outputSource: 'tool' | 'parser' | null;
-    };
+    structure?: SubmitStructure;
   }>;
   /**
    * Evaluate stage-1 deterministic gates for a producer attempt.
@@ -168,14 +181,7 @@ export async function runMatrix(
         }
 
         if (scenario.scoring === 'gates_only') {
-          base.composite =
-            producer.structure?.outputSource === 'tool' &&
-            producer.structure.invalidSubmitCalls === 0 &&
-            producer.structure.repairKinds.every((kind) =>
-              PROTOCOL_REPAIRS.has(kind),
-            )
-              ? 1
-              : 0;
+          base.composite = isCleanSubmitShape(producer.structure) ? 1 : 0;
           log(
             `[${model}] ${scenario.slug}: shape ${base.composite === 1 ? 'pass' : 'fail'}, composite ${base.composite}`,
           );
