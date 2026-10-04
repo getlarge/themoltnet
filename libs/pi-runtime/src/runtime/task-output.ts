@@ -1,4 +1,5 @@
 import { computeJsonCid } from '@moltnet/crypto-service/json-cid';
+import { parseCompleteJsonObject } from '@moltnet/json-repair';
 import { metrics } from '@opentelemetry/api';
 import {
   alignToSchema,
@@ -6,7 +7,6 @@ import {
   type SchemaAlignmentRepair,
   validateAgentTaskSubmission,
 } from '@themoltnet/agent-runtime';
-import JSON5 from 'json5';
 
 export interface ParsedTaskOutputResult {
   output: Record<string, unknown> | null;
@@ -142,7 +142,7 @@ export async function parseStructuredTaskOutput(
   const record = (code: TaskOutputParseCode) =>
     recordTaskOutputParseResult({ taskType, model: opts.model, code });
 
-  const extracted = extractJsonObjectWithRepairs(assistantText);
+  const extracted = parseCompleteJsonObject(assistantText);
   if (!extracted) {
     record('output_missing');
     return {
@@ -160,7 +160,10 @@ export async function parseStructuredTaskOutput(
   const aligned = schema
     ? alignToSchema(extracted.value, schema)
     : { value: extracted.value, repairs: [] };
-  const repairs = [...extracted.repairs, ...aligned.repairs];
+  const repairs: SchemaAlignmentRepair[] = [
+    ...extracted.repairs.map((kind) => ({ kind, path: '' }) as const),
+    ...aligned.repairs,
+  ];
   recordTaskOutputRepairs({ taskType, model: opts.model, repairs });
   const errors = validateAgentTaskSubmission(
     taskType,
@@ -215,112 +218,7 @@ export async function parseStructuredTaskOutput(
   }
 }
 
-/**
- * Find the last complete top-level object in `text` and parse it as JSON or
- * JSON5. Tolerates markdown fences and leading prose. Truncation returns null.
- */
+/** Return the last complete final-message object, if one can be parsed. */
 export function extractJsonObject(text: string): unknown {
-  return extractJsonObjectWithRepairs(text)?.value ?? null;
-}
-
-function extractJsonObjectWithRepairs(text: string): {
-  value: Record<string, unknown>;
-  repairs: SchemaAlignmentRepair[];
-} | null {
-  if (!text) return null;
-
-  const fenceMatch = /```(?:json)?\s*([\s\S]*?)```/gi;
-  const candidates: string[] = [];
-  for (const m of text.matchAll(fenceMatch)) {
-    candidates.push(m[1]);
-  }
-
-  const scanForObject = (s: string): string | null => {
-    let depth = 0;
-    let start = -1;
-    let lastComplete: string | null = null;
-    let quote: '"' | "'" | null = null;
-    let escape = false;
-    let lineComment = false;
-    let blockComment = false;
-    for (let i = 0; i < s.length; i++) {
-      const ch = s[i];
-      const next = s[i + 1];
-      if (lineComment) {
-        if (ch === '\n') lineComment = false;
-        continue;
-      }
-      if (blockComment) {
-        if (ch === '*' && next === '/') {
-          blockComment = false;
-          i++;
-        }
-        continue;
-      }
-      if (quote) {
-        if (escape) escape = false;
-        else if (ch === '\\') escape = true;
-        else if (ch === quote) quote = null;
-        continue;
-      }
-      if (ch === '/' && next === '/') {
-        lineComment = true;
-        i++;
-        continue;
-      }
-      if (ch === '/' && next === '*') {
-        blockComment = true;
-        i++;
-        continue;
-      }
-      if (ch === '"' || ch === "'") {
-        quote = ch;
-        continue;
-      }
-      if (ch === '{') {
-        if (depth === 0) start = i;
-        depth++;
-      } else if (ch === '}') {
-        depth--;
-        if (depth === 0 && start !== -1) {
-          lastComplete = s.slice(start, i + 1);
-          start = -1;
-        }
-      }
-    }
-    if (depth !== 0 || quote || blockComment) return null;
-    return lastComplete;
-  };
-
-  candidates.push(text);
-
-  for (let i = candidates.length - 1; i >= 0; i--) {
-    const obj = scanForObject(candidates[i]);
-    if (!obj) continue;
-    try {
-      const parsed: unknown = JSON.parse(obj);
-      if (
-        typeof parsed === 'object' &&
-        parsed !== null &&
-        !Array.isArray(parsed)
-      )
-        return { value: parsed as Record<string, unknown>, repairs: [] };
-    } catch {
-      try {
-        const parsed: unknown = JSON5.parse(obj);
-        if (
-          typeof parsed === 'object' &&
-          parsed !== null &&
-          !Array.isArray(parsed)
-        )
-          return {
-            value: parsed as Record<string, unknown>,
-            repairs: [{ kind: 'lenient_json', path: '' }],
-          };
-      } catch {
-        /* try next candidate */
-      }
-    }
-  }
-  return null;
+  return parseCompleteJsonObject(text)?.value ?? null;
 }

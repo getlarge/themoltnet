@@ -83,6 +83,12 @@ describe('schema aligned final-message parsing', () => {
       true,
       ['lenient_json'],
     ],
+    [
+      'missing object comma',
+      '{"branch":"feat/x" "commits":[],"pullRequestUrl":null,"diaryEntryIds":[],"summary":"Done."}',
+      true,
+      ['missing_comma'],
+    ],
     ['truncated', '{"branch":"feat/x","commits":[]', false, []],
   ] as const)('%s', async (_name, text, accepted, kinds) => {
     const parsed = await parseStructuredTaskOutput(text, 'fulfill_brief');
