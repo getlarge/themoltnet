@@ -97,6 +97,7 @@ jobs:
             --jq '.[0].url // empty')
           if [ -z "$pr_url" ]; then
             gh pr create \
+              --draft \
               --repo "$GITHUB_REPOSITORY" \
               --base main \
               --head "$branch" \

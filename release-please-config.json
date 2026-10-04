@@ -3,6 +3,7 @@
   "commit-batch-size": 25,
   "commit-search-depth": 250,
   "draft": true,
+  "draft-pull-request": true,
   "force-tag-creation": true,
   "include-component-in-tag": true,
   "include-v-in-tag": true,
