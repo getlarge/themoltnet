@@ -28,15 +28,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          go: 'false'
 
       - name: Build docs
         env:
