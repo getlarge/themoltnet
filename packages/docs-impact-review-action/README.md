@@ -122,8 +122,8 @@ Call the reusable workflow. It runs `prepare` (collect facts, pin revisions,
 check eligibility), the review, and one worker per distinct profile. It checks
 out this action and `agent-daemon-action` from its own commit, pinned once in
 `prepare`, so the reviewer and the workers' action always match. The workers
-run the signed `agent-daemon` release recorded at that commit, so a pinned
-tag reproduces its runs; `daemon-version` overrides it.
+run the latest published signed `agent-daemon` release; `daemon-version`
+selects an exact version when a run needs to be reproducible.
 
 ```yaml
 name: Docs impact review
@@ -168,7 +168,7 @@ Useful inputs besides `profile` and `protected-paths`:
 | `environment`                                            | GitHub environment holding the secrets and `MOLTNET_*` variables.                                                                       |
 | `team-id`, `diary-id`, `agent-name`, `app-id`, `api-url` | Override the matching `MOLTNET_*` variables.                                                                                            |
 | `project-id`                                             | A MoltNet project whose binding supplies the repository to workers.                                                                     |
-| `daemon-version`                                         | The workers' `agent-daemon` release: an exact version or `latest`. Empty (default) means the release recorded at the workflow's commit. |
+| `daemon-version`                                         | The workers' `agent-daemon` release: an exact version or `latest`. Empty (default) uses the latest published release.                  |
 | `runtime-ref`                                            | Advanced: run the review from another revision of this repository. Leave empty.                                                         |
 | `providers`                                              | Model providers the workers configure by discovery (`id=… base-url=… key-env=…`, one per line).                                         |
 
