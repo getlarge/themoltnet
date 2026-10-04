@@ -53,7 +53,8 @@ import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const BASELINE_FLAG = 'MOLTNET_BASELINE';
 const LIVE_PROVIDER = process.env.MOLTNET_BASELINE_PROVIDER ?? 'ollama-cloud';
-// Keep baseline sampling on the same strict tool path as the model matrix.
+// Ollama Cloud baseline uses best-effort tool calling; Codex uses its built-in
+// provider definition and strict tool support.
 const LIVE_MODEL =
   process.env.MOLTNET_AGENT_DAEMON_LIVE_MODEL ??
   (LIVE_PROVIDER === 'openai-codex' ? 'gpt-6-sol' : 'gpt-oss:120b-cloud');
@@ -154,7 +155,7 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
         piDir,
         provider: LIVE_PROVIDER,
         model: LIVE_MODEL,
-        supportsStrictMode: true,
+        supportsStrictMode: false,
       });
     }
 

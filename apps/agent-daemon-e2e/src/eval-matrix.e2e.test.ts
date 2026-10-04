@@ -44,8 +44,8 @@ import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const MATRIX_FLAG = 'MOLTNET_EVAL_MATRIX';
 const PROVIDER = 'ollama-cloud';
-// The submit tool requests strict JSON-schema sampling. Explicitly declare
-// Ollama's capability so Pi sends function.strict with the tool schema.
+// Ollama Cloud does not currently support provider-enforced structured output.
+// These runs measure tool-call shape with runtime validation and repair.
 const WARM_TTL_SEC = '1200';
 const CORPUS_ROOT = join(import.meta.dirname, '../../..', 'evals-v2');
 
@@ -224,7 +224,7 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
       piDir: judgePiDir,
       provider: PROVIDER,
       model: judgeModel,
-      supportsStrictMode: true,
+      supportsStrictMode: false,
     });
 
     for (const model of models) {
@@ -235,7 +235,7 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
         piDir,
         provider: PROVIDER,
         model,
-        supportsStrictMode: true,
+        supportsStrictMode: false,
       });
       perModel.set(model, { profileId: profile.id, piDir });
     }

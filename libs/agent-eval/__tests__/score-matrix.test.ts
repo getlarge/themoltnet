@@ -38,7 +38,15 @@ function deps(overrides: Partial<MatrixDeps> = {}): MatrixDeps {
   return {
     runProducer: () => {
       n += 1;
-      return Promise.resolve({ taskId: `task-${n}`, attemptN: 1 });
+      return Promise.resolve({
+        taskId: `task-${n}`,
+        attemptN: 1,
+        structure: {
+          invalidSubmitCalls: 0,
+          repairKinds: [],
+          outputSource: 'tool' as const,
+        },
+      });
     },
     runGates: () => Promise.resolve(PASS),
     runJudge: () => Promise.resolve({ composite: 0.9 }),
@@ -78,6 +86,60 @@ describe('runMatrix', () => {
       composite: 0,
       judged: false,
     });
+  });
+  it.each([
+    { repairs: [], outputSource: 'tool' as const, expected: 1 },
+    {
+      repairs: ['optional_null', 'submit_gate_verification'],
+      outputSource: 'tool' as const,
+      expected: 1,
+    },
+    { repairs: ['json_string'], outputSource: 'tool' as const, expected: 0 },
+    {
+      repairs: ['single_to_array'],
+      outputSource: 'tool' as const,
+      expected: 0,
+    },
+    { repairs: [], outputSource: 'parser' as const, expected: 0 },
+  ])(
+    'scores raw model shape with repairs $repairs',
+    async ({ repairs, outputSource, expected }) => {
+      const shape = { ...scenario('shape'), scoring: 'gates_only' as const };
+      const matrix = await runMatrix(
+        ['m'],
+        [shape],
+        'judge-x',
+        deps({
+          runProducer: () =>
+            Promise.resolve({
+              taskId: 'task-1',
+              attemptN: 1,
+              structure: {
+                invalidSubmitCalls: 0,
+                repairKinds: repairs,
+                outputSource,
+              },
+            }),
+        }),
+      );
+      expect(matrix.cells[0].composite).toBe(expected);
+      expect(summarizeMatrix(matrix)).toContain(
+        expected === 1 ? 'SHAPE PASS [1/1]' : 'SHAPE FAIL [0/1]',
+      );
+    },
+  );
+
+  it('fails shape-only scoring when structure telemetry is absent', async () => {
+    const shape = { ...scenario('shape'), scoring: 'gates_only' as const };
+    const matrix = await runMatrix(
+      ['m'],
+      [shape],
+      'judge-x',
+      deps({
+        runProducer: () => Promise.resolve({ taskId: 'task-1', attemptN: 1 }),
+      }),
+    );
+    expect(matrix.cells[0].composite).toBe(0);
   });
   it('copies observed structure telemetry into the score cell', async () => {
     const matrix = await runMatrix(

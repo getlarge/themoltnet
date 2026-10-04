@@ -47,6 +47,10 @@ export interface ScoreMatrix {
   cells: ScoreCell[];
 }
 
+// These changes are made by the submit protocol itself. All other repairs
+// change the model's output shape and must count against a shape-only score.
+const PROTOCOL_REPAIRS = new Set(['optional_null', 'submit_gate_verification']);
+
 /**
  * Effects the matrix runner needs, injected so the orchestration stays pure.
  */
@@ -164,9 +168,16 @@ export async function runMatrix(
         }
 
         if (scenario.scoring === 'gates_only') {
-          base.composite = 1;
+          base.composite =
+            producer.structure?.outputSource === 'tool' &&
+            producer.structure.invalidSubmitCalls === 0 &&
+            producer.structure.repairKinds.every((kind) =>
+              PROTOCOL_REPAIRS.has(kind),
+            )
+              ? 1
+              : 0;
           log(
-            `[${model}] ${scenario.slug}: clean structured output, composite 1`,
+            `[${model}] ${scenario.slug}: shape ${base.composite === 1 ? 'pass' : 'fail'}, composite ${base.composite}`,
           );
           cells.push(base);
           continue;
@@ -226,7 +237,7 @@ export function summarizeMatrix(matrix: ScoreMatrix): string {
           ? `PRODUCER FAIL [${cell.failureCode}]`
           : cell.gatesPassed
             ? cell.scoring === 'gates_only'
-              ? 'SHAPE PASS [1/1]'
+              ? `SHAPE ${cell.composite === 1 ? 'PASS' : 'FAIL'} [${cell.composite}/1]`
               : `composite ${cell.composite.toFixed(3)}`
             : `GATE FAIL [${cell.gateFailures.map((f) => f.gate).join(',')}]`;
       const submitClean =
