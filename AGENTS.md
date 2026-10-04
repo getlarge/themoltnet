@@ -169,8 +169,9 @@ For a stack of PRs, open every layer as a draft. Mark ready the bottom layer
 early, the tip. After the bottom layer merges, mark the next one ready. Do not
 mark the whole stack ready at once.
 
-PRs opened by automation (release-please, workflow-created maintenance PRs)
-stay non-draft so their CI runs.
+Release Please and the CLI go.mod sync workflow open draft PRs. Mark them ready
+when their proposed changes should run CI and be reviewed. Other automation may
+open non-draft PRs when immediate validation is part of its workflow.
 
 ## This Repository Is Public
 
