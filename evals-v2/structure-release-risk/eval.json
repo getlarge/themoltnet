@@ -43,6 +43,7 @@
     },
     "version": 1
   },
+  "scoring": "gates_only",
   "taskType": "freeform",
   "workspace": "none"
 }

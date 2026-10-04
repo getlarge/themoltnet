@@ -5,15 +5,19 @@ semantic), different files. This is the map until the formats converge.
 
 ## A. Agent-runtime prompt/behavior — `evals-v2/<slug>/` (harness: `libs/agent-eval`)
 
-Four files, **all required**; `readScenario` fails loudly on any missing file,
-bad JSON, or rubric weights ≠ 1. Producer sees `prompt.md` + `eval.json`; the
-judge sees `rubric.json`; the harness owns `gates.json`.
+Three files for gate-only scenarios; judged scenarios also require
+`rubric.json`. `readScenario` fails loudly on malformed JSON, missing required
+files, or invalid rubric weights. Producer sees `prompt.md` + `eval.json`; the
+judge sees `rubric.json` when used; the harness owns `gates.json`.
 
 - **`prompt.md`** — the task, free-form Markdown, non-empty. Becomes
   `RunEvalInput.scenario.prompt`.
 - **`eval.json`** — `{ "mode": "vitro" | "vivo", "workspace": "none" |
 "shared_mount" | "dedicated_worktree", "taskType"?: "run_eval" | "freeform",
 "fixtures"?: { ... } }`. Unknown fields fail validation.
+  - `scoring?: "judge" | "gates_only"` defaults to `judge`. Gate-only scoring
+    requires a freeform `outputContract` and `requireCleanSubmit: true`; a clean
+    contracted submission scores 1, otherwise 0, with no judge task.
   - `fixtures.workspaceSeed?: string` names a scenario-relative directory whose
     contents are copied into a fresh `shared_mount` sandbox for every producer
     run. Seeds are rejected for other workspace modes. Absolute paths, path
@@ -30,7 +34,7 @@ contentType? }>` names scenario-relative regular files. Every producer run
     input artifacts when the behavior under test is artifact discovery or
     provenance; prefer a workspace seed when the behavior requires ordinary
     file editing or workspace tools.
-- **`rubric.json`** (hidden judge key) —
+- **`rubric.json`** (hidden judge key; judged scenarios only) —
   `{ "rubricId", "version", "preamble", "criteria": [ { "id", "description",
 "scoring": "llm_score" | "llm_checklist", "weight" } ] }`. **Weights sum to 1.**
   Grade _only_ semantic quality; the preamble should say the mechanics are

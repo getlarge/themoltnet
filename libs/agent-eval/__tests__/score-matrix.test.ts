@@ -11,6 +11,8 @@ import {
 function scenario(slug: string): Scenario {
   return {
     slug,
+    taskType: 'run_eval',
+    scoring: 'judge',
     prompt: 'do the thing',
     execution: { mode: 'vitro', workspace: 'none' },
     rubric: {
@@ -45,6 +47,38 @@ function deps(overrides: Partial<MatrixDeps> = {}): MatrixDeps {
 }
 
 describe('runMatrix', () => {
+  it('scores gate-only structure without calling the judge', async () => {
+    let judgeCalls = 0;
+    const shape = { ...scenario('shape'), scoring: 'gates_only' as const };
+    const matrix = await runMatrix(
+      ['m'],
+      [shape],
+      'judge-x',
+      deps({
+        runJudge: () => {
+          judgeCalls += 1;
+          return Promise.resolve({ composite: 0.2 });
+        },
+      }),
+    );
+    expect(judgeCalls).toBe(0);
+    expect(matrix.cells[0]).toMatchObject({
+      gatesPassed: true,
+      composite: 1,
+      judged: false,
+    });
+    const failed = await runMatrix(
+      ['m'],
+      [shape],
+      'judge-x',
+      deps({ runGates: () => Promise.resolve(FAIL) }),
+    );
+    expect(failed.cells[0]).toMatchObject({
+      gatesPassed: false,
+      composite: 0,
+      judged: false,
+    });
+  });
   it('copies observed structure telemetry into the score cell', async () => {
     const matrix = await runMatrix(
       ['m'],
@@ -178,7 +212,7 @@ describe('summarizeMatrix', () => {
 
     expect(summary).toContain('judge: judge-x');
     expect(summary).toContain('model-a');
-    expect(summary).toContain('mean composite 0.900');
+    expect(summary).toContain('mean judged 0.900');
     expect(summary).toContain('s1');
     expect(summary).toContain('s2');
   });

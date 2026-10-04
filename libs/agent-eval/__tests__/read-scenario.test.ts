@@ -42,6 +42,8 @@ describe('readScenario', () => {
         join(import.meta.dirname, '../../../evals-v2', slug),
       );
       expect(scenario.taskType).toBe('freeform');
+      expect(scenario.scoring).toBe('gates_only');
+      expect(scenario.rubric).toBeUndefined();
       expect(scenario.outputContract?.schema).toMatchObject({ type: 'object' });
     },
   );
@@ -122,6 +124,38 @@ describe('readScenario', () => {
       JSON.stringify({ ...VALID_EVAL, outputContract }),
     );
     expect(() => readScenario(dir)).toThrow(ScenarioError);
+  });
+
+  it('requires a clean submit gate for gate-only scoring', () => {
+    const dir = writeScenario({
+      prompt: 'Return a structured result.',
+      evalJson: {
+        ...VALID_EVAL,
+        taskType: 'freeform',
+        scoring: 'gates_only',
+        outputContract: {
+          version: 1,
+          schema: {
+            type: 'object',
+            properties: { answer: { type: 'string' } },
+            required: ['answer'],
+            additionalProperties: false,
+          },
+        },
+      },
+      gates: { requireCleanSubmit: false },
+    });
+    expect(() => readScenario(dir)).toThrow(/requires requireCleanSubmit/);
+    writeFileSync(
+      join(dir, 'gates.json'),
+      JSON.stringify({ requireCleanSubmit: true }),
+    );
+    expect(readScenario(dir)).toMatchObject({
+      scoring: 'gates_only',
+      rubric: undefined,
+    });
+    writeFileSync(join(dir, 'rubric.json'), JSON.stringify(VALID_RUBRIC));
+    expect(() => readScenario(dir)).toThrow(/rubric.json is not used/);
   });
 
   it('parses an explicit freeform taskType and keeps execution intact', () => {

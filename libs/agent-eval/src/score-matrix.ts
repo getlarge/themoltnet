@@ -18,12 +18,13 @@ import type { Scenario } from './scenario.js';
 export interface ScoreCell {
   model: string;
   scenario: string;
+  scoring: Scenario['scoring'];
   /** Producer task id (for traceability into the diary/telemetry). */
   producerTaskId: string | null;
   producerAttemptN: number | null;
   gatesPassed: boolean;
   gateFailures: GateResult['failures'];
-  /** Judge composite in [0,1]; 0 when gates failed or the judge was skipped. */
+  /** Judge score or gate-only shape score in [0,1]; 0 on gate failure. */
   composite: number;
   /** Whether the pinned judge actually ran (false when gates gated it out). */
   judged: boolean;
@@ -111,6 +112,7 @@ export async function runMatrix(
       const base: ScoreCell = {
         model,
         scenario: scenario.slug,
+        scoring: scenario.scoring,
         producerTaskId: null,
         producerAttemptN: null,
         gatesPassed: false,
@@ -161,6 +163,15 @@ export async function runMatrix(
           continue;
         }
 
+        if (scenario.scoring === 'gates_only') {
+          base.composite = 1;
+          log(
+            `[${model}] ${scenario.slug}: clean structured output, composite 1`,
+          );
+          cells.push(base);
+          continue;
+        }
+
         const judgment = await deps.runJudge(scenario, acceptedProducer);
         base.composite = judgment.composite;
         base.judged = true;
@@ -194,19 +205,29 @@ export function summarizeMatrix(matrix: ScoreMatrix): string {
   lines.push(`judge: ${matrix.judgeModel}`);
   for (const model of matrix.models) {
     const modelCells = matrix.cells.filter((c) => c.model === model);
+    const judgedCells = modelCells.filter((c) => c.scoring === 'judge');
+    const shapeCells = modelCells.filter((c) => c.scoring === 'gates_only');
     const mean =
-      modelCells.length === 0
+      judgedCells.length === 0
         ? 0
-        : modelCells.reduce((sum, c) => sum + c.composite, 0) /
-          modelCells.length;
-    lines.push(`\n${model}  (mean composite ${mean.toFixed(3)})`);
+        : judgedCells.reduce((sum, c) => sum + c.composite, 0) /
+          judgedCells.length;
+    const parts = [];
+    if (judgedCells.length > 0) parts.push(`mean judged ${mean.toFixed(3)}`);
+    if (shapeCells.length > 0) {
+      const passed = shapeCells.filter((c) => c.composite === 1).length;
+      parts.push(`shape ${passed}/${shapeCells.length}`);
+    }
+    lines.push(`\n${model}  (${parts.join(', ')})`);
     for (const cell of modelCells) {
       const status = cell.error
         ? `ERROR ${cell.error}`
         : cell.failureCode
           ? `PRODUCER FAIL [${cell.failureCode}]`
           : cell.gatesPassed
-            ? `composite ${cell.composite.toFixed(3)}`
+            ? cell.scoring === 'gates_only'
+              ? 'SHAPE PASS [1/1]'
+              : `composite ${cell.composite.toFixed(3)}`
             : `GATE FAIL [${cell.gateFailures.map((f) => f.gate).join(',')}]`;
       const submitClean =
         cell.producerAttemptN === null

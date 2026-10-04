@@ -216,6 +216,7 @@ describeBaseline('Producer baseline (live Ollama, e2e)', () => {
               workspace: scenario.execution.workspace,
               teamId,
               taskType: scenario.taskType,
+              outputContract: scenario.outputContract,
             },
           ),
       },

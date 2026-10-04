@@ -12,6 +12,7 @@ function scenario(slug: string, taskType: Scenario['taskType']): Scenario {
   return {
     slug,
     taskType,
+    scoring: 'judge',
     prompt: 'do the thing',
     execution: { mode: 'vitro', workspace: 'none' },
     rubric: { rubricId: slug, version: 'v1', criteria: [] },

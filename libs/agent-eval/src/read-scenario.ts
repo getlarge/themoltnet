@@ -5,6 +5,7 @@
  * orphaned `tools/src/tasks/scenario.ts`, which silently dropped fields.
  */
 import {
+  existsSync,
   lstatSync,
   readdirSync,
   readFileSync,
@@ -266,8 +267,16 @@ export function readScenario(dir: string): Scenario {
     contextRecipe: rawContextRecipe,
     fixtures: rawFixtures,
     outputContract: rawOutputContract,
+    scoring: rawScoring,
     ...execution
   } = evalJson as Record<string, unknown>;
+  const scoring = rawScoring ?? 'judge';
+  if (scoring !== 'judge' && scoring !== 'gates_only') {
+    throw new ScenarioError(
+      slug,
+      'eval.json scoring must be judge or gates_only',
+    );
+  }
   const taskType = rawTaskType ?? 'run_eval';
   if (!SCENARIO_TASK_TYPES.includes(taskType as ScenarioTaskType)) {
     throw new ScenarioError(
@@ -324,25 +333,49 @@ export function readScenario(dir: string): Scenario {
     (execution as Scenario['execution']).workspace,
   );
 
-  const rubric = readJson(dir, slug, 'rubric.json');
-  assertSchema(slug, 'rubric.json', Rubric, rubric);
-  const weightError = validateRubricWeights(rubric as Scenario['rubric']);
-  if (weightError !== null) {
-    throw new ScenarioError(slug, `rubric.json ${weightError}`);
+  let rubric: Scenario['rubric'];
+  if (scoring === 'judge') {
+    const parsed = readJson(dir, slug, 'rubric.json');
+    assertSchema(slug, 'rubric.json', Rubric, parsed);
+    rubric = parsed as NonNullable<Scenario['rubric']>;
+    const weightError = validateRubricWeights(rubric);
+    if (weightError !== null) {
+      throw new ScenarioError(slug, `rubric.json ${weightError}`);
+    }
+  } else if (rawOutputContract === undefined) {
+    throw new ScenarioError(
+      slug,
+      'eval.json gates_only requires outputContract',
+    );
+  } else if (existsSync(join(dir, 'rubric.json'))) {
+    throw new ScenarioError(
+      slug,
+      'rubric.json is not used by gates_only scoring',
+    );
   }
 
   const gates = readJson(dir, slug, 'gates.json');
   assertSchema(slug, 'gates.json', GateExpectations, gates);
+  if (
+    scoring === 'gates_only' &&
+    (gates as Scenario['gates']).requireCleanSubmit !== true
+  ) {
+    throw new ScenarioError(
+      slug,
+      'gates.json gate-only scoring requires requireCleanSubmit: true',
+    );
+  }
 
   return {
     slug,
     taskType: taskType as Scenario['taskType'],
+    scoring,
     outputContract: rawOutputContract as Scenario['outputContract'],
     contextRecipe: rawContextRecipe,
     prompt,
     execution: execution as Scenario['execution'],
     fixtures,
-    rubric: rubric as Scenario['rubric'],
+    rubric,
     gates: gates as Scenario['gates'],
   };
 }

@@ -33,11 +33,17 @@ describe('evals-v2 corpus', () => {
     // Assert — the reader already enforces schema + weight validity; assert a
     // few invariants explicitly for a clear failure message.
     expect(scenario.prompt.length).toBeGreaterThan(0);
-    const weightSum = scenario.rubric.criteria.reduce(
-      (sum, c) => sum + c.weight,
-      0,
-    );
-    expect(weightSum).toBeCloseTo(1, 5);
+    if (scenario.scoring === 'judge') {
+      expect(scenario.rubric).toBeDefined();
+      const weightSum = scenario.rubric!.criteria.reduce(
+        (sum, c) => sum + c.weight,
+        0,
+      );
+      expect(weightSum).toBeCloseTo(1, 5);
+    } else {
+      expect(scenario.rubric).toBeUndefined();
+      expect(scenario.outputContract).toBeDefined();
+    }
     // A gate scenario should assert at least one gate.
     expect(Object.keys(scenario.gates).length).toBeGreaterThan(0);
   });
