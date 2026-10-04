@@ -45,7 +45,7 @@ on:
         type: string
         required: true
       daemon-version:
-        description: Exact released daemon version; empty pins the release recorded at the runtime commit.
+        description: Exact released daemon version; empty uses the latest published release.
         type: string
         default: ''
       runtime-ref:
@@ -217,7 +217,7 @@ jobs:
         env:
           REQUESTED: ${{ inputs.daemon-version }}
         run: |
-          version="${REQUESTED:-$(jq -r .version .complexity-runtime/apps/agent-daemon/package.json)}"
+          version="${REQUESTED:-latest}"
           if [ "$version" != latest ] && ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo '::error::daemon-version must be an exact version or latest'; exit 1; fi
           echo "value=$version" >> "$GITHUB_OUTPUT"
       - name: Drain review tasks

@@ -22,7 +22,7 @@
 ARG PNPM_VERSION=10.29.3
 
 # ---------- base ----------
-FROM node:24.14.1-slim@sha256:b506e7321f176aae77317f99d67a24b272c1f09f1d10f1761f2773447d8da26c AS base
+FROM node:24.21.0-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS base
 ENV PNPM_HOME="/pnpm" \
     PATH="/pnpm/bin:$PATH" \
     HUSKY=0 \
@@ -48,7 +48,7 @@ RUN pnpm install --offline --frozen-lockfile --prod
 RUN pnpm --filter @moltnet/rest-api deploy --legacy --prod /out
 
 # ---------- production ----------
-FROM node:24.14.1-slim@sha256:b506e7321f176aae77317f99d67a24b272c1f09f1d10f1761f2773447d8da26c AS production
+FROM node:24.21.0-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS production
 
 # Set by buildx automatically (amd64 | arm64). Used to drop foreign-platform
 # native binaries from onnxruntime-node, which ships every os/arch combo in

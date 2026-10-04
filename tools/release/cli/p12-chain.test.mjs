@@ -11,15 +11,20 @@ const here = dirname(fileURLToPath(import.meta.url));
 const verifier = join(here, 'verify-apple-p12.sh');
 const fixture = mkdtempSync(join(tmpdir(), 'moltnet-p12-chain-test-'));
 const password = 'test-password';
+// Fixtures and the verifier must use the same OpenSSL 3 build: runners can put
+// OpenSSL 1.1.1 first on PATH, which builds and checks chains differently.
+const opensslBin = execFileSync('sh', [join(here, 'resolve-openssl.sh')], {
+  encoding: 'utf8',
+}).trim();
 const pkcs12LegacySupported = (() => {
-  const result = spawnSync('openssl', ['pkcs12', '-help'], {
+  const result = spawnSync(opensslBin, ['pkcs12', '-help'], {
     encoding: 'utf8',
   });
   return `${result.stdout}${result.stderr}`.includes('-legacy');
 })();
 
 function openssl(args) {
-  execFileSync('openssl', args, { cwd: fixture, stdio: 'ignore' });
+  execFileSync(opensslBin, args, { cwd: fixture, stdio: 'ignore' });
 }
 
 function exportPkcs12(args) {
@@ -31,11 +36,15 @@ function exportPkcs12(args) {
   ]);
 }
 
-function verify(p12, suppliedPassword = password) {
+function verify(p12, suppliedPassword = password, opensslPath = opensslBin) {
   return spawnSync('sh', [verifier, '--p12', join(fixture, p12)], {
     cwd: fixture,
     encoding: 'utf8',
-    env: { ...process.env, APPLE_CERT_PASSWORD: suppliedPassword },
+    env: {
+      ...process.env,
+      APPLE_CERT_PASSWORD: suppliedPassword,
+      OPENSSL: opensslPath,
+    },
   });
 }
 
@@ -200,6 +209,25 @@ after(() => {
 });
 
 describe('Apple signing P12 validation', () => {
+  it('refuses to run with an OpenSSL older than 3', () => {
+    // Arrange
+    const fakeOpenssl = join(fixture, 'openssl-1.1.1');
+    writeFileSync(
+      fakeOpenssl,
+      '#!/bin/sh\necho "OpenSSL 1.1.1w  11 Sep 2023"\n',
+      {
+        mode: 0o755,
+      },
+    );
+
+    // Act
+    const result = verify('full-chain.p12', password, fakeOpenssl);
+
+    // Assert
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /is not OpenSSL 3\+/);
+  });
+
   it('accepts a leaf, intermediate, and self-signed root chain', () => {
     const result = verify('full-chain.p12');
 

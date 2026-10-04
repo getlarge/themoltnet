@@ -652,18 +652,11 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          install-dependencies: 'false'
+          go-cache: 'true'
           registry-url: https://registry.npmjs.org
-
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
-        with:
-          go-version-file: .tool-versions
-          cache: true
 
       - if: ${{ !inputs.dry-run }}
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
@@ -731,15 +724,10 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
 
       # Nx walks the dep graph (build dependsOn ^build in nx.json), builds
       # @moltnet/api-client + @moltnet/crypto-service first, then the SDK,
@@ -775,15 +763,10 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
 
       - run: pnpm exec nx run-many -t build test check:pack --projects=@themoltnet/os-keyring
 
@@ -829,14 +812,9 @@ jobs:
           ref: ${{ matrix.tag }}
           persist-credentials: false
 
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
+          go: 'false'
 
       # Rebuilds dist/ and refuses to release when it differs from the
       # committed bundle or lacks an entry. Nothing is moved yet.
@@ -870,15 +848,10 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
 
       # Nx walks the dep graph (build dependsOn ^build); @moltnet/tasks is built
       # first, then the vite build inlines it into the package's dist.
@@ -913,15 +886,10 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
 
       - run: pnpm exec nx run @themoltnet/credentials:build
 
@@ -954,15 +922,10 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
 
       - run: pnpm exec nx run @themoltnet/credential-broker:build
 
@@ -995,13 +958,10 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-      - run: pnpm install --frozen-lockfile
       - run: pnpm exec nx run @themoltnet/ctap:build
       - run: pnpm exec nx run @themoltnet/ctap:test
       - run: pnpm exec nx run @themoltnet/ctap:check:pack
@@ -1032,13 +992,10 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-      - run: pnpm install --frozen-lockfile
       - run: pnpm exec nx run @themoltnet/yubikey-preview-sign:build
       - run: pnpm exec nx run @themoltnet/yubikey-preview-sign:test
       - run: pnpm exec nx run @themoltnet/yubikey-preview-sign:check:pack
@@ -1074,15 +1031,10 @@ jobs:
           persist-credentials: false
           ref: ${{ needs.resolve-publish.outputs.n8n-nodes-moltnet-tag }}
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
 
       - run: pnpm exec nx run @themoltnet/n8n-nodes-moltnet:lint
 
@@ -1255,15 +1207,10 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
 
       # The package externalizes @themoltnet/sdk; the build only bundles the
       # node runtime + copies editor HTML (no SDK inlining).
@@ -1299,15 +1246,10 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
 
       - run: pnpm exec nx run @themoltnet/node-red-theme:build
 
@@ -1340,15 +1282,10 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
 
       - run: pnpm exec nx run @themoltnet/github-agent:build
 
@@ -1794,15 +1731,10 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
 
       # pnpm publish rewrites workspace:* in optionalDependencies to the
       # concrete version so the published tarball resolves on npm.
@@ -1895,14 +1827,9 @@ jobs:
           fi
           echo "Building ${RELEASE_TAG} from ${CHECKOUT_SHA}"
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
+          go: 'false'
 
       - name: Build deterministic LeGreffier plugin archive
         id: package
@@ -2098,15 +2025,10 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
 
       - run: pnpm exec nx run @themoltnet/legreffier:build
 
@@ -2139,15 +2061,10 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
 
       - run: pnpm exec nx run @themoltnet/agent-runtime:build
 
@@ -2180,15 +2097,10 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
 
       - run: pnpm exec nx run @themoltnet/shell-command-analyzer:build
 
@@ -2221,15 +2133,10 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
 
       - run: pnpm exec nx run @themoltnet/sandbox-gondolin:build
 
@@ -2268,15 +2175,10 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
 
       - run: pnpm exec nx run @themoltnet/pi-runtime:build
 
@@ -2316,15 +2218,10 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
 
       - run: pnpm exec nx run @themoltnet/pi-extension:build
 
@@ -2393,15 +2290,10 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
 
       # Nx walks the dep graph (build dependsOn ^build in nx.json) and
       # builds @themoltnet/{sdk,agent-runtime,pi-extension} before the
@@ -2763,15 +2655,10 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
 
       - run: pnpm exec nx run @themoltnet/design-system:build
 
@@ -2808,15 +2695,10 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version-file: .tool-versions
-          cache: pnpm
+          go: 'false'
           registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
 
       - run: pnpm exec nx run @themoltnet/signer:build
 
