@@ -12,12 +12,21 @@
  * never fails on a low pass rate (that is the datum). It runs as a vitest e2e so
  * it uses the same workspace module resolution as the rest of the suite (a
  * standalone `tsx` script cannot resolve the source-direct workspace exports).
- * Needs the e2e stack up + `OLLAMA_API_KEY`. Configure via `BASELINE_REPEATS`
- * (default 4), `MOLTNET_AGENT_DAEMON_LIVE_MODEL` (default gpt-oss:120b-cloud),
- * `BASELINE_OUT` (default <cwd>/baseline-report.json).
+ * Needs the e2e stack up. Ollama uses `OLLAMA_API_KEY`; `openai-codex` uses
+ * the existing Pi OAuth login in the MoltNet store. Configure via
+ * `MOLTNET_BASELINE_PROVIDER`, `MOLTNET_AGENT_DAEMON_LIVE_MODEL`,
+ * `BASELINE_SCENARIOS` (comma-separated slugs), `BASELINE_REPEATS` (default 4),
+ * and `BASELINE_OUT` (default <cwd>/baseline-report.json).
  */
 import { randomUUID } from 'node:crypto';
-import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -33,6 +42,7 @@ import {
 import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 import { writePiConfig } from '@themoltnet/pi-runtime/pi-config';
 import { type Agent, connect } from '@themoltnet/sdk';
+import { resolveStoreRoot } from '@themoltnet/sdk/node';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
@@ -42,22 +52,27 @@ import {
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const BASELINE_FLAG = 'MOLTNET_BASELINE';
-const LIVE_PROVIDER = 'ollama-cloud';
+const LIVE_PROVIDER = process.env.MOLTNET_BASELINE_PROVIDER ?? 'ollama-cloud';
 // Keep baseline sampling on the same strict tool path as the model matrix.
 const LIVE_MODEL =
-  process.env.MOLTNET_AGENT_DAEMON_LIVE_MODEL ?? 'gpt-oss:120b-cloud';
+  process.env.MOLTNET_AGENT_DAEMON_LIVE_MODEL ??
+  (LIVE_PROVIDER === 'openai-codex' ? 'gpt-6-sol' : 'gpt-oss:120b-cloud');
 const REPEATS = Number(process.env.BASELINE_REPEATS ?? '4');
 
 const describeBaseline = describe.skipIf(process.env[BASELINE_FLAG] !== '1');
 const CORPUS_ROOT = join(import.meta.dirname, '../../..', 'evals-v2');
 
 function loadScenarios(): Scenario[] {
+  const selected = process.env.BASELINE_SCENARIOS?.split(',')
+    .map((slug) => slug.trim())
+    .filter(Boolean);
   return readdirSync(CORPUS_ROOT, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
-    .map((entry) => readScenario(join(CORPUS_ROOT, entry.name)));
+    .map((entry) => readScenario(join(CORPUS_ROOT, entry.name)))
+    .filter((scenario) => !selected || selected.includes(scenario.slug));
 }
 
-describeBaseline('Producer baseline (live Ollama, e2e)', () => {
+describeBaseline('Producer baseline (live model, e2e)', () => {
   let harness: DaemonTestHarness;
   let agent: Agent;
   let teamId: string;
@@ -68,9 +83,23 @@ describeBaseline('Producer baseline (live Ollama, e2e)', () => {
   let piDir: string;
   const tempRoots: string[] = [];
   const scenarios = loadScenarios();
+  const structures: Array<{
+    scenario: string;
+    taskId: string;
+    attemptN: number;
+    invalidSubmitCalls: number;
+    repairKinds: string[];
+    outputSource: string | null;
+  }> = [];
 
   beforeAll(async () => {
-    if (!process.env.OLLAMA_API_KEY) {
+    if (scenarios.length === 0) {
+      throw new Error('BASELINE_SCENARIOS matched no scenarios');
+    }
+    if (LIVE_PROVIDER !== 'ollama-cloud' && LIVE_PROVIDER !== 'openai-codex') {
+      throw new Error(`Unsupported baseline provider: ${LIVE_PROVIDER}`);
+    }
+    if (LIVE_PROVIDER === 'ollama-cloud' && !process.env.OLLAMA_API_KEY) {
       throw new Error(`${BASELINE_FLAG}=1 requires OLLAMA_API_KEY`);
     }
     harness = await createDaemonTestHarness();
@@ -98,12 +127,36 @@ describeBaseline('Producer baseline (live Ollama, e2e)', () => {
       privateKey: creds.keyPair.privateKey,
       fingerprint: creds.keyPair.fingerprint,
     });
-    writePiConfig({
-      piDir,
-      provider: LIVE_PROVIDER,
-      model: LIVE_MODEL,
-      supportsStrictMode: true,
-    });
+    if (LIVE_PROVIDER === 'openai-codex') {
+      const authPath = join(resolveStoreRoot(), 'pi', 'auth.json');
+      if (!existsSync(authPath)) {
+        throw new Error(
+          'OpenAI Codex login missing; run moltnet-agent providers login openai-codex',
+        );
+      }
+      symlinkSync(authPath, join(piDir, 'auth.json'));
+      // Pi already ships the Codex Responses provider and GPT-6 model catalog.
+      // An empty custom registry leaves those built-in definitions intact.
+      writePiConfig({
+        piDir,
+        providers: {},
+        settings: {
+          defaultProvider: LIVE_PROVIDER,
+          defaultModel: LIVE_MODEL,
+          enabledModels: [`${LIVE_PROVIDER}/${LIVE_MODEL}`],
+          packages: ['npm:@themoltnet/pi-extension'],
+          transport: 'sse',
+          treeFilterMode: 'default',
+        },
+      });
+    } else {
+      writePiConfig({
+        piDir,
+        provider: LIVE_PROVIDER,
+        model: LIVE_MODEL,
+        supportsStrictMode: true,
+      });
+    }
 
     const profile = await agent.runtimeProfiles.create(
       {
@@ -115,7 +168,7 @@ describeBaseline('Producer baseline (live Ollama, e2e)', () => {
         maxBashTimeouts: 1,
         defaultWorkspaceMode: 'shared_mount',
         allowedWorkspaceModes: ['none', 'shared_mount'],
-        requiredEnv: ['OLLAMA_API_KEY'],
+        requiredEnv: LIVE_PROVIDER === 'ollama-cloud' ? ['OLLAMA_API_KEY'] : [],
         requiredTools: [],
         sandbox: {
           env: { NODE_OPTIONS: '--dns-result-order=ipv4first' },
@@ -190,6 +243,40 @@ describeBaseline('Producer baseline (live Ollama, e2e)', () => {
             }
           }
 
+          const attemptsForStructure = await agent.tasks.listAttempts(task.id);
+          const lastAttempt = attemptsForStructure.at(-1);
+          if (lastAttempt) {
+            const messages = await agent.tasks.listMessages(
+              task.id,
+              lastAttempt.attemptN,
+            );
+            const submitName = `submit_${scenario.taskType}_output`;
+            const completion = messages.find(
+              (message) =>
+                message.kind === 'info' &&
+                message.payload.event === 'output_completion',
+            )?.payload;
+            structures.push({
+              scenario: scenario.slug,
+              taskId: task.id,
+              attemptN: lastAttempt.attemptN,
+              invalidSubmitCalls: messages.filter(
+                (message) =>
+                  message.kind === 'tool_call_end' &&
+                  message.payload.tool_name === submitName &&
+                  message.payload.is_error === true,
+              ).length,
+              repairKinds: Array.isArray(completion?.repair_kinds)
+                ? completion.repair_kinds.filter(
+                    (kind): kind is string => typeof kind === 'string',
+                  )
+                : [],
+              outputSource:
+                typeof completion?.output_source === 'string'
+                  ? completion.output_source
+                  : null,
+            });
+          }
           const final = await agent.tasks.get(task.id);
           if (final.status === 'completed' && final.acceptedAttemptN) {
             return { taskId: task.id, attemptN: final.acceptedAttemptN };
@@ -225,7 +312,11 @@ describeBaseline('Producer baseline (live Ollama, e2e)', () => {
     const outPath = resolve(
       process.env.BASELINE_OUT ?? join(process.cwd(), 'baseline-report.json'),
     );
-    writeFileSync(outPath, JSON.stringify(report, null, 2) + '\n', 'utf8');
+    writeFileSync(
+      outPath,
+      JSON.stringify({ ...report, structures }, null, 2) + '\n',
+      'utf8',
+    );
     console.log('\n' + summarizeBaseline(report) + `\n(wrote ${outPath})`);
 
     // This is a measurement, not a regression gate: assert only that every
