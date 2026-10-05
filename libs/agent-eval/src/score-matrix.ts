@@ -18,15 +18,19 @@ import type { Scenario } from './scenario.js';
 export interface ScoreCell {
   model: string;
   scenario: string;
+  scoring: Scenario['scoring'];
   /** Producer task id (for traceability into the diary/telemetry). */
   producerTaskId: string | null;
   producerAttemptN: number | null;
   gatesPassed: boolean;
   gateFailures: GateResult['failures'];
-  /** Judge composite in [0,1]; 0 when gates failed or the judge was skipped. */
+  /** Judge score or gate-only shape score in [0,1]; 0 on gate failure. */
   composite: number;
   /** Whether the pinned judge actually ran (false when gates gated it out). */
   judged: boolean;
+  invalidSubmitCalls: number;
+  repairKinds: string[];
+  outputSource: 'tool' | null;
   /** Populated when the run threw before producing a gradable attempt. */
   error?: string;
   /** Terminal producer error code when the task ended without acceptance. */
@@ -41,6 +45,27 @@ export interface ScoreMatrix {
   /** The pinned judge model held constant across the whole sweep. */
   judgeModel: string;
   cells: ScoreCell[];
+}
+
+// These changes are made by the submit protocol itself. All other repairs
+// change the model's output shape and must count against a shape-only score.
+const PROTOCOL_REPAIRS = new Set(['optional_null', 'submit_gate_verification']);
+
+export interface SubmitStructure {
+  invalidSubmitCalls: number;
+  repairKinds: string[];
+  outputSource: 'tool' | null;
+}
+
+/** Whether the model supplied a valid submit shape before runtime repair. */
+export function isCleanSubmitShape(
+  structure: SubmitStructure | undefined,
+): boolean {
+  return (
+    structure?.outputSource === 'tool' &&
+    structure.invalidSubmitCalls === 0 &&
+    structure.repairKinds.every((kind) => PROTOCOL_REPAIRS.has(kind))
+  );
 }
 
 /**
@@ -59,6 +84,7 @@ export interface MatrixDeps {
     taskId: string;
     attemptN: number | null;
     failureCode?: string;
+    structure?: SubmitStructure;
   }>;
   /**
    * Evaluate stage-1 deterministic gates for a producer attempt.
@@ -103,18 +129,27 @@ export async function runMatrix(
       const base: ScoreCell = {
         model,
         scenario: scenario.slug,
+        scoring: scenario.scoring,
         producerTaskId: null,
         producerAttemptN: null,
         gatesPassed: false,
         gateFailures: [],
         composite: 0,
         judged: false,
+        invalidSubmitCalls: 0,
+        repairKinds: [],
+        outputSource: null,
       };
 
       try {
         const producer = await deps.runProducer(model, scenario);
         base.producerTaskId = producer.taskId;
         base.producerAttemptN = producer.attemptN;
+        if (producer.structure) {
+          base.invalidSubmitCalls = producer.structure.invalidSubmitCalls;
+          base.repairKinds = producer.structure.repairKinds;
+          base.outputSource = producer.structure.outputSource;
+        }
 
         if (producer.attemptN === null) {
           base.failureCode = producer.failureCode ?? 'unknown';
@@ -140,6 +175,15 @@ export async function runMatrix(
             `[${model}] ${scenario.slug}: GATES FAILED (${gates.failures
               .map((f) => f.gate)
               .join(',')}) → composite 0, judge skipped`,
+          );
+          cells.push(base);
+          continue;
+        }
+
+        if (scenario.scoring === 'gates_only') {
+          base.composite = isCleanSubmitShape(producer.structure) ? 1 : 0;
+          log(
+            `[${model}] ${scenario.slug}: shape ${base.composite === 1 ? 'pass' : 'fail'}, composite ${base.composite}`,
           );
           cells.push(base);
           continue;
@@ -178,21 +222,42 @@ export function summarizeMatrix(matrix: ScoreMatrix): string {
   lines.push(`judge: ${matrix.judgeModel}`);
   for (const model of matrix.models) {
     const modelCells = matrix.cells.filter((c) => c.model === model);
+    const judgedCells = modelCells.filter((c) => c.scoring === 'judge');
+    const shapeCells = modelCells.filter((c) => c.scoring === 'gates_only');
     const mean =
-      modelCells.length === 0
+      judgedCells.length === 0
         ? 0
-        : modelCells.reduce((sum, c) => sum + c.composite, 0) /
-          modelCells.length;
-    lines.push(`\n${model}  (mean composite ${mean.toFixed(3)})`);
+        : judgedCells.reduce((sum, c) => sum + c.composite, 0) /
+          judgedCells.length;
+    const parts = [];
+    if (judgedCells.length > 0) parts.push(`mean judged ${mean.toFixed(3)}`);
+    if (shapeCells.length > 0) {
+      const passed = shapeCells.filter((c) => c.composite === 1).length;
+      parts.push(`shape ${passed}/${shapeCells.length}`);
+    }
+    lines.push(`\n${model}  (${parts.join(', ')})`);
     for (const cell of modelCells) {
       const status = cell.error
         ? `ERROR ${cell.error}`
         : cell.failureCode
           ? `PRODUCER FAIL [${cell.failureCode}]`
           : cell.gatesPassed
-            ? `composite ${cell.composite.toFixed(3)}`
+            ? cell.scoring === 'gates_only'
+              ? `SHAPE ${cell.composite === 1 ? 'PASS' : 'FAIL'} [${cell.composite}/1]`
+              : `composite ${cell.composite.toFixed(3)}`
             : `GATE FAIL [${cell.gateFailures.map((f) => f.gate).join(',')}]`;
-      lines.push(`  ${cell.scenario.padEnd(32)} ${status}`);
+      const submitClean =
+        cell.producerAttemptN === null
+          ? 'n/a'
+          : cell.gateFailures.some((failure) => failure.gate === 'submit_clean')
+            ? '0/1'
+            : '1/1';
+      lines.push(
+        `  ${cell.scenario.padEnd(32)} ${status} ` +
+          `submit-clean=${submitClean} invalid=${cell.invalidSubmitCalls} ` +
+          `source=${cell.outputSource ?? 'unknown'} ` +
+          `repairs=${cell.repairKinds.join(',') || 'none'}`,
+      );
     }
   }
   return lines.join('\n');

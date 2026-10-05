@@ -104,6 +104,9 @@ export function buildJudgeInput(
   scenario: Scenario,
   options: BuildJudgeOptions,
 ): JudgeEvalAttemptInput {
+  if (!scenario.rubric) {
+    throw new Error(`scenario ${scenario.slug} has no judge rubric`);
+  }
   const successCriteria: SuccessCriteria = {
     version: 1,
     rubric: scenario.rubric,

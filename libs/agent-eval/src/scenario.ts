@@ -1,17 +1,18 @@
 /**
  * `evals-v2` scenario format — the on-disk contract the harness reads.
  *
- * A scenario is a directory `evals-v2/<slug>/` with four files:
+ * A scenario is a directory `evals-v2/<slug>/` with three or four files:
  *
  * - `prompt.md`   — the scenario prompt (free-form Markdown). Becomes
  *                   `RunEvalInput.scenario.prompt`.
- * - `eval.json`   — `{ mode, workspace, contextRecipe?, fixtures? }`. A
+ * - `eval.json`   — `{ mode, workspace, scoring?, contextRecipe?, fixtures? }`. A
  *                   context recipe injects versioned producer guidance;
  *                   fixtures may seed a shared workspace and/or bind
  *                   scenario-local files as staged task input artifacts.
- * - `rubric.json` — a `Rubric` (see `@moltnet/tasks`): the HIDDEN judge key.
+ * - `rubric.json` — required for judged scenarios: the HIDDEN judge key.
  *                   Never handed to the producer; only the `judge_eval_attempt`
- *                   task sees it. Weights must sum to 1.
+ *                   task sees it. Weights must sum to 1. Gate-only scenarios
+ *                   omit this file and score clean output shape as 1 or 0.
  * - `gates.json`  — the deterministic stage-1 gate expectations (this file's
  *                   `GateExpectations`). Checked in code before any LLM judge
  *                   runs; a gate failure short-circuits scoring to composite 0.
@@ -188,6 +189,10 @@ export interface Scenario {
    * rather than the `RunEvalInput.scenario.prompt`.
    */
   taskType: ScenarioTaskType;
+  /** Gate-only scenarios score 1 for a clean, valid submission and 0 otherwise. */
+  scoring: 'judge' | 'gates_only';
+  /** Optional freeform result contract advertised to the producer. */
+  outputContract?: { version: 1; schema: Record<string, unknown> };
   /**
    * Optional versioned runtime-profile context recipe injected into a
    * `run_eval` producer. Declared in `eval.json`; unsupported for freeform
@@ -203,8 +208,8 @@ export interface Scenario {
    * callers must not construct them from untrusted task input.
    */
   fixtures?: ResolvedScenarioFixtures;
-  /** Parsed `rubric.json` — the hidden judge rubric (weights sum to 1). */
-  rubric: Static<typeof Rubric>;
+  /** Hidden judge rubric; absent for gate-only scenarios. */
+  rubric?: Static<typeof Rubric>;
   /** Parsed `gates.json` — deterministic stage-1 expectations. */
   gates: GateExpectations;
 }

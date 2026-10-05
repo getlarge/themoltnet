@@ -1,0 +1,49 @@
+{
+  "mode": "vitro",
+  "outputContract": {
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "note": { "type": ["string", "null"] },
+        "priority": { "enum": ["low", "medium", "high"], "type": "string" },
+        "signals": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "observations": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "classification": {
+                      "enum": ["actionable", "noise"],
+                      "type": "string"
+                    },
+                    "confidence": {
+                      "maximum": 1,
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "description": { "type": "string" }
+                  },
+                  "required": ["description", "classification", "confidence"],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "source": { "type": "string" }
+            },
+            "required": ["source", "observations"],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "required": ["signals", "priority"],
+      "type": "object"
+    },
+    "version": 1
+  },
+  "scoring": "gates_only",
+  "taskType": "freeform",
+  "workspace": "none"
+}

@@ -13,7 +13,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createSubmitOutputTool,
-  resolveSubmitTools,
   UnknownTaskTypeForSubmitToolError,
 } from './submit-output-tool.js';
 import {
@@ -90,6 +89,98 @@ const submitOutputOnlyFreeformInput = {
 };
 
 describe('createSubmitOutputTool', () => {
+  it.each([
+    ['valid', validFulfillBriefOutput, true],
+    ['envelope', { output: validFulfillBriefOutput }, true],
+    ['stringified array', { ...validFulfillBriefOutput, commits: '[]' }, true],
+    [
+      'JSON5 stringified array',
+      {
+        ...validFulfillBriefOutput,
+        commits: '[{sha:"abcdef123",message:"m",diaryEntryId:null,},]',
+      },
+      true,
+    ],
+    [
+      'single commit',
+      {
+        ...validFulfillBriefOutput,
+        commits: { sha: 'abcdef123', message: 'm', diaryEntryId: null },
+      },
+      true,
+    ],
+    [
+      'bare diary id',
+      {
+        ...validFulfillBriefOutput,
+        diaryEntryIds: '11111111-1111-4111-8111-111111111111',
+      },
+      true,
+    ],
+    [
+      'stringified commit item',
+      {
+        ...validFulfillBriefOutput,
+        commits: [
+          JSON.stringify({
+            sha: 'abcdef123',
+            message: 'm',
+            diaryEntryId: null,
+          }),
+        ],
+      },
+      true,
+    ],
+    ['unknown key', { ...validFulfillBriefOutput, extra: true }, false],
+  ] as const)(
+    'aligns %s with the schema verdict',
+    async (_name, input, accepted) => {
+      const handle = createSubmitOutputTool('fulfill_brief');
+      let prepared: unknown;
+      try {
+        prepared = handle.tool.prepareArguments?.(input);
+      } catch {
+        expect(accepted).toBe(false);
+        return;
+      }
+      const result = await callExecute(handle)(prepared);
+      expect(!result.isError).toBe(accepted);
+    },
+  );
+  it('records syntax repairs for JSON5 inside submitted tool arguments', async () => {
+    const handle = createSubmitOutputTool('fulfill_brief');
+    const prepared = handle.tool.prepareArguments?.({
+      ...validFulfillBriefOutput,
+      commits: '[{sha:"abcdef123",message:"m",diaryEntryId:null,},]',
+    });
+
+    const result = await callExecute(handle)(prepared);
+
+    expect(result.isError).not.toBe(true);
+    expect(handle.getCaptured()).toMatchObject({
+      commits: [{ sha: 'abcdef123', message: 'm', diaryEntryId: null }],
+    });
+    expect(handle.getCapturedRepairs()).toEqual([
+      { kind: 'json_string', path: '/commits' },
+      { kind: 'lenient_json', path: '/commits' },
+    ]);
+  });
+
+  it('repairs a missing comma in a stringified submitted object', async () => {
+    const handle = createSubmitOutputTool('fulfill_brief');
+    const prepared = handle.tool.prepareArguments?.({
+      ...validFulfillBriefOutput,
+      commits: '[{"sha":"abcdef123" "message":"m","diaryEntryId":null}]',
+    });
+
+    const result = await callExecute(handle)(prepared);
+
+    expect(result.isError).not.toBe(true);
+    expect(handle.getCapturedRepairs()).toEqual([
+      { kind: 'json_string', path: '/commits' },
+      { kind: 'missing_comma', path: '/commits' },
+    ]);
+  });
   it('throws UnknownTaskTypeForSubmitToolError on unknown task types', () => {
     expect(() => createSubmitOutputTool('not_a_real_type')).toThrow(
       UnknownTaskTypeForSubmitToolError,
@@ -224,7 +315,7 @@ describe('createSubmitOutputTool', () => {
     });
     await callExecute(repaired)(prepared);
     expect(repaired.getCapturedRepairKinds()).toEqual(
-      expect.arrayContaining(['output_envelope', 'json_string_fields']),
+      expect.arrayContaining(['output_envelope', 'json_string']),
     );
 
     const untouched = createSubmitOutputTool('fulfill_brief');
@@ -289,10 +380,7 @@ describe('createSubmitOutputTool', () => {
     });
     expect(handle.getCaptured()).not.toHaveProperty('branch');
     expect(handle.getCapturedRepairKinds()).toEqual(
-      expect.arrayContaining([
-        'submit_gate_verification',
-        'pi_schema_coercion',
-      ]),
+      expect.arrayContaining(['submit_gate_verification', 'optional_null']),
     );
   });
 
@@ -892,41 +980,5 @@ describe('submit-tool OTel counter recording', () => {
     await callExecute(handle)(validFulfillBriefOutput);
     expect(await dataPointsFor('captured_via_tool')).toHaveLength(0);
     expect(await dataPointsFor('output_validation_failed')).toHaveLength(0);
-  });
-});
-
-describe('resolveSubmitTools', () => {
-  it('returns a populated handle + tools array for known task types', () => {
-    const r = resolveSubmitTools('fulfill_brief');
-    expect(r.handle).not.toBeNull();
-    expect(r.tools).toHaveLength(1);
-  });
-
-  it('returns null handle + empty tools for unknown task types', () => {
-    const r = resolveSubmitTools('totally_made_up');
-    expect(r.handle).toBeNull();
-    expect(r.tools).toEqual([]);
-  });
-});
-
-describe('resolveSubmitTools error narrowing contract', () => {
-  // The catch block in resolveSubmitTools narrows on
-  // UnknownTaskTypeForSubmitToolError. Verifying that contract directly
-  // by re-implementing the catch shape in a test fixture: if the
-  // production catch ever broadened to `catch {}`, this assertion would
-  // still pass — so the real safety comes from the source review +
-  // typecheck (the production code uses `instanceof` narrowing, not a
-  // duck-type check).
-  //
-  // What this test pins: the sentinel class chain. If anyone renames or
-  // removes UnknownTaskTypeForSubmitToolError, every call site that
-  // depends on it (resolveSubmitTools, plus any future caller) breaks
-  // at compile time, not silently at runtime.
-  it('UnknownTaskTypeForSubmitToolError extends Error and carries the taskType', () => {
-    const err = new UnknownTaskTypeForSubmitToolError('weird');
-    expect(err).toBeInstanceOf(Error);
-    expect(err).toBeInstanceOf(UnknownTaskTypeForSubmitToolError);
-    expect(err.taskType).toBe('weird');
-    expect(err.name).toBe('UnknownTaskTypeForSubmitToolError');
   });
 });

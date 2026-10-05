@@ -161,6 +161,7 @@ export async function createScenarioProducerTask(args: {
           .buildFreeform({
             brief: scenario.prompt,
             execution: { workspace: scenario.execution.workspace },
+            outputContract: scenario.outputContract,
           })
           .title(title)
           .diary(diaryId)

@@ -849,10 +849,11 @@ a completed task attempt to verify both the wire flag and the accepted output.
 3. **Before execution, the agent daemon validates the contract definition.** An
    unsupported or malformed schema fails the attempt before the model runs.
 4. **At tool capture, Pi and the daemon runtime validate the arguments.** The
-   runtime repairs known transport quirks before Pi checks the tool schema, then
-   validates the custom result and standard cross-field rules. A rejected call
-   returns field errors for correction in the same session. Final-message
-   recovery and output materialization use the same daemon-owned validator.
+   runtime repairs complete JSON-like strings in submitted fields and known
+   shape quirks before Pi checks the tool schema, then validates the custom
+   result and standard cross-field rules. A rejected call returns field errors
+   for correction in the same session. Output materialization uses the same
+   daemon-owned validator.
 5. **At completion, the server checks standard task fields and stores the
    output.** It does not validate `result` against the custom schema. A direct
    `/complete` caller is responsible for the custom result it sends.
@@ -888,10 +889,10 @@ To require structured data from a `freeform` task, the task creator supplies
 
 The submit tool requires `result.category` and `result.confidence` with the
 declared types and limits. The daemon checks the same contract for tool
-submissions, final-message recovery, and output materialization. Invalid values
-return field-specific errors for correction. The contract is part of the task
-input and is pinned by its `inputCid`. The SDK builder offers
-`.outputSchema(schema)` for freeform tasks.
+submissions and output materialization. Invalid values return field-specific
+errors for correction. The contract is part of the task input and is pinned by
+its `inputCid`. The SDK builder offers `.outputSchema(schema)` for freeform
+tasks.
 
 The executing agent passes `result` as an object in the `submit_freeform_output`
 tool arguments, alongside the usual fields:
@@ -917,6 +918,10 @@ primitive enums, and basic length/range bounds. Object schemas must declare
 open-ended records are rejected by the daemon before agent execution. A schema
 is limited to 16 KiB, ten levels of nesting, and 200 nodes. For uploaded files,
 the consumer still needs to validate the file contents separately.
+
+A primitive can be nullable with a two-item `type` array, such as
+`["string", "null"]`; its `enum` may also contain `null`. Objects and arrays
+cannot be nullable in an output contract.
 
 When a proposer includes `input.successCriteria`, producer task outputs must
 include an `output.verification` record. This is the producer's own assessment

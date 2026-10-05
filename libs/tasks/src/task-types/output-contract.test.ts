@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  validateOutputContract,
+  validateOutputContractResult,
+} from '../output-contract-validation.js';
+import {
   getTaskSubmissionSchema,
   normalizeTaskInputForCreate,
   validateTaskInput,
@@ -15,6 +19,31 @@ const schema = {
 };
 
 describe('freeform contract storage shape', () => {
+  it('accepts an optional nullable primitive field in a result contract', () => {
+    const input = {
+      outputContract: {
+        version: 1,
+        schema: {
+          type: 'object',
+          properties: { note: { type: ['string', 'null'] } },
+          required: [],
+          additionalProperties: false,
+        },
+      },
+    };
+    expect(validateOutputContract('freeform', input)).toEqual([]);
+    expect(
+      validateOutputContractResult('freeform', input, {
+        result: { note: null },
+      }),
+    ).toEqual([]);
+    expect(
+      validateOutputContractResult('freeform', input, { result: {} }),
+    ).toEqual([]);
+    expect(
+      validateOutputContractResult('freeform', input, { result: { note: 1 } }),
+    ).not.toEqual([]);
+  });
   it('pins an inline contract without interpreting its custom schema', () => {
     const input = normalizeTaskInputForCreate('freeform', {
       brief: 'Classify the document.',

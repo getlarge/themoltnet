@@ -11,6 +11,8 @@ import {
 function scenario(slug: string): Scenario {
   return {
     slug,
+    taskType: 'run_eval',
+    scoring: 'judge',
     prompt: 'do the thing',
     execution: { mode: 'vitro', workspace: 'none' },
     rubric: {
@@ -36,7 +38,15 @@ function deps(overrides: Partial<MatrixDeps> = {}): MatrixDeps {
   return {
     runProducer: () => {
       n += 1;
-      return Promise.resolve({ taskId: `task-${n}`, attemptN: 1 });
+      return Promise.resolve({
+        taskId: `task-${n}`,
+        attemptN: 1,
+        structure: {
+          invalidSubmitCalls: 0,
+          repairKinds: [],
+          outputSource: 'tool' as const,
+        },
+      });
     },
     runGates: () => Promise.resolve(PASS),
     runJudge: () => Promise.resolve({ composite: 0.9 }),
@@ -45,6 +55,116 @@ function deps(overrides: Partial<MatrixDeps> = {}): MatrixDeps {
 }
 
 describe('runMatrix', () => {
+  it('scores gate-only structure without calling the judge', async () => {
+    let judgeCalls = 0;
+    const shape = { ...scenario('shape'), scoring: 'gates_only' as const };
+    const matrix = await runMatrix(
+      ['m'],
+      [shape],
+      'judge-x',
+      deps({
+        runJudge: () => {
+          judgeCalls += 1;
+          return Promise.resolve({ composite: 0.2 });
+        },
+      }),
+    );
+    expect(judgeCalls).toBe(0);
+    expect(matrix.cells[0]).toMatchObject({
+      gatesPassed: true,
+      composite: 1,
+      judged: false,
+    });
+    const failed = await runMatrix(
+      ['m'],
+      [shape],
+      'judge-x',
+      deps({ runGates: () => Promise.resolve(FAIL) }),
+    );
+    expect(failed.cells[0]).toMatchObject({
+      gatesPassed: false,
+      composite: 0,
+      judged: false,
+    });
+  });
+  it.each([
+    { repairs: [], outputSource: 'tool' as const, expected: 1 },
+    {
+      repairs: ['optional_null', 'submit_gate_verification'],
+      outputSource: 'tool' as const,
+      expected: 1,
+    },
+    { repairs: ['json_string'], outputSource: 'tool' as const, expected: 0 },
+    {
+      repairs: ['single_to_array'],
+      outputSource: 'tool' as const,
+      expected: 0,
+    },
+    { repairs: [], outputSource: null, expected: 0 },
+  ])(
+    'scores raw model shape with repairs $repairs',
+    async ({ repairs, outputSource, expected }) => {
+      const shape = { ...scenario('shape'), scoring: 'gates_only' as const };
+      const matrix = await runMatrix(
+        ['m'],
+        [shape],
+        'judge-x',
+        deps({
+          runProducer: () =>
+            Promise.resolve({
+              taskId: 'task-1',
+              attemptN: 1,
+              structure: {
+                invalidSubmitCalls: 0,
+                repairKinds: repairs,
+                outputSource,
+              },
+            }),
+        }),
+      );
+      expect(matrix.cells[0].composite).toBe(expected);
+      expect(summarizeMatrix(matrix)).toContain(
+        expected === 1 ? 'SHAPE PASS [1/1]' : 'SHAPE FAIL [0/1]',
+      );
+    },
+  );
+
+  it('fails shape-only scoring when structure telemetry is absent', async () => {
+    const shape = { ...scenario('shape'), scoring: 'gates_only' as const };
+    const matrix = await runMatrix(
+      ['m'],
+      [shape],
+      'judge-x',
+      deps({
+        runProducer: () => Promise.resolve({ taskId: 'task-1', attemptN: 1 }),
+      }),
+    );
+    expect(matrix.cells[0].composite).toBe(0);
+  });
+  it('copies observed structure telemetry into the score cell', async () => {
+    const matrix = await runMatrix(
+      ['m'],
+      [scenario('s')],
+      'judge-x',
+      deps({
+        runProducer: () =>
+          Promise.resolve({
+            taskId: 'task-1',
+            attemptN: 1,
+            structure: {
+              invalidSubmitCalls: 2,
+              repairKinds: ['json_string'],
+              outputSource: 'tool',
+            },
+          }),
+      }),
+    );
+    expect(matrix.cells[0]).toMatchObject({
+      invalidSubmitCalls: 2,
+      repairKinds: ['json_string'],
+      outputSource: 'tool',
+    });
+  });
   it('sweeps every model x scenario and judges gate-passing attempts', async () => {
     // Arrange
     const models = ['model-a', 'model-b'];
@@ -154,7 +274,7 @@ describe('summarizeMatrix', () => {
 
     expect(summary).toContain('judge: judge-x');
     expect(summary).toContain('model-a');
-    expect(summary).toContain('mean composite 0.900');
+    expect(summary).toContain('mean judged 0.900');
     expect(summary).toContain('s1');
     expect(summary).toContain('s2');
   });

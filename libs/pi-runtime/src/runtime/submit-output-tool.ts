@@ -29,7 +29,10 @@
 import { validateToolArguments } from '@earendil-works/pi-ai';
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
+import { parseCompleteJsonValue } from '@moltnet/json-repair';
+import type { SchemaAlignmentRepair } from '@themoltnet/agent-runtime';
 import {
+  alignToSchema,
   getSubmitOutputContract,
   SUBMIT_OUTPUT_GATE_ID,
   validateAgentTaskSubmission,
@@ -48,10 +51,7 @@ interface SubmitOutputDetails {
 export interface CreateSubmitOutputToolOptions {
   /**
    * Optional model identifier for the OTel counter labels. Mirrors the
-   * `model` opt threaded into `parseStructuredTaskOutput` so the
-   * submit-tool path's `output_validation_failed` and
-   * `captured_via_tool` observations carry the same `{task_type, model}`
-   * cardinality.
+   * `output_validation_failed` observations carry `{task_type, model}` labels.
    */
   model?: string;
   /**
@@ -86,7 +86,7 @@ export interface SubmitOutputToolHandle {
   /**
    * Latest validated payload submitted by the model, or `null` if the
    * model never produced a valid call. Read after `session.prompt()`
-   * resolves — the executor prefers this over `parseStructuredTaskOutput`.
+   * resolves.
    */
   getCaptured: () => Record<string, unknown> | null;
   /** Number of times the model called the tool with valid args. */
@@ -97,13 +97,12 @@ export interface SubmitOutputToolHandle {
   getLastValidationFailure: () => { code: string; message: string } | null;
   /** Normalizations applied to the accepted submit call; contains no payload. */
   getCapturedRepairKinds: () => string[];
+  getCapturedRepairs: () => SchemaAlignmentRepair[];
 }
 
 /**
  * Sentinel thrown when the requested task type has no registered output
- * schema. The executor recognises this specific error class and falls
- * back to the parser path; any other error from `createSubmitOutputTool`
- * is unexpected and must propagate.
+ * schema. The executor cannot run a task without a registered output schema.
  */
 export class UnknownTaskTypeForSubmitToolError extends Error {
   constructor(public readonly taskType: string) {
@@ -128,77 +127,6 @@ function requireObjectSchema(schema: TSchema): TObject {
     throw new Error('Submit-output schemas must be top-level objects');
   }
   return schema as unknown as TObject;
-}
-
-const JSON_TYPES = new Set([
-  'array',
-  'boolean',
-  'integer',
-  'null',
-  'number',
-  'object',
-  'string',
-]);
-
-/** JSON types a property schema admits, from `type` and `anyOf`/`oneOf`. */
-function schemaJsonTypes(schema: unknown): Set<string> {
-  const types = new Set<string>();
-  if (!isRecord(schema)) return types;
-  const declared = Array.isArray(schema.type) ? schema.type : [schema.type];
-  for (const type of declared) {
-    if (typeof type === 'string' && JSON_TYPES.has(type)) types.add(type);
-  }
-  for (const key of ['anyOf', 'oneOf'] as const) {
-    const members = schema[key];
-    if (!Array.isArray(members)) continue;
-    for (const member of members) {
-      for (const type of schemaJsonTypes(member)) types.add(type);
-    }
-  }
-  return types;
-}
-
-function jsonTypeOf(value: unknown): string {
-  if (value === null) return 'null';
-  if (Array.isArray(value)) return 'array';
-  if (typeof value === 'number') {
-    return Number.isInteger(value) ? 'integer' : 'number';
-  }
-  return typeof value;
-}
-
-function admitsJsonType(types: Set<string>, type: string): boolean {
-  return types.has(type) || (type === 'integer' && types.has('number'));
-}
-
-/**
- * Decodes top-level fields that arrive as JSON-encoded strings when the
- * schema does not admit a string there, e.g. `"scores": "[{...}]"` or
- * `"composite": "0.8"`. Only a parse whose result has an admitted type is
- * kept; everything else is left for strict validation to report.
- */
-function decodeStringifiedFields(params: unknown, schema: TSchema): unknown {
-  if (!isRecord(params)) return params;
-  const properties = requireObjectSchema(schema).properties as Record<
-    string,
-    unknown
-  >;
-  let decoded: Record<string, unknown> | null = null;
-  for (const [name, value] of Object.entries(params)) {
-    if (typeof value !== 'string' || !Object.hasOwn(properties, name)) continue;
-    const types = schemaJsonTypes(properties[name]);
-    if (types.size === 0 || types.has('string')) continue;
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(value);
-    } catch {
-      continue;
-    }
-    if (!admitsJsonType(types, jsonTypeOf(parsed))) continue;
-    decoded ??= { ...params };
-    decoded[name] = parsed;
-  }
-  return decoded ?? params;
 }
 
 function formatValidationErrors(
@@ -266,22 +194,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * Some providers synthesize a conventional `{ output: ... }` envelope even
- * when the tool contract says its arguments are the payload. Accept only that
- * exact, unambiguous wrapper, and only when `output` is not itself a legitimate
- * task field. The unwrapped value still goes through strict validation.
+ * Only the auto-injected submit-output gate may be verified mechanically.
  */
-function unwrapSoleOutputEnvelope(params: unknown, schema: TSchema): unknown {
-  if (!isRecord(params) || Object.keys(params).length !== 1) return params;
-  const objectSchema = requireObjectSchema(schema);
-  const properties: Record<string, unknown> = isRecord(objectSchema.properties)
-    ? (objectSchema.properties as Record<string, unknown>)
-    : {};
-  if (Object.hasOwn(properties, 'output') || !Object.hasOwn(params, 'output'))
-    return params;
-  return params.output;
-}
-
 function onlySubmitOutputGate(input: unknown): boolean {
   if (!isRecord(input) || !isRecord(input.successCriteria)) return false;
   const criteria = input.successCriteria;
@@ -306,9 +220,9 @@ function onlySubmitOutputGate(input: unknown): boolean {
  * any producer task type (freeform, run_eval, …), not just freeform: weaker
  * models mis-type or omit the nested `verification` object identically across
  * types, and previously only freeform was repaired, so run_eval attempts failed
- * `output_validation_failed` on verification alone. The freeform-only field
- * coercions below are guarded by field presence, so they no-op for other types,
- * and the caller re-validates the repaired payload against the type's schema.
+ * `output_validation_failed` on verification alone. Syntax alignment is
+ * handled separately by the shared schema normalizer, and the caller
+ * re-validates the stamped payload against the task contract.
  */
 function repairProducerSubmitOutput(
   taskType: string,
@@ -324,14 +238,6 @@ function repairProducerSubmitOutput(
   }
 
   const repaired: Record<string, unknown> = { ...params };
-
-  if ('artifacts' in repaired && !Array.isArray(repaired.artifacts)) {
-    if (isRecord(repaired.artifacts)) {
-      repaired.artifacts = [repaired.artifacts];
-    } else {
-      delete repaired.artifacts;
-    }
-  }
 
   repaired.verification = {
     inputCid: opts.inputCid,
@@ -349,13 +255,6 @@ function repairProducerSubmitOutput(
   return repaired;
 }
 
-type SubmitRepairKind =
-  | 'output_envelope'
-  | 'json_string_fields'
-  | 'artifact_shape'
-  | 'submit_gate_verification'
-  | 'pi_schema_coercion';
-
 function normalizeSubmitArguments(
   taskType: string,
   params: unknown,
@@ -363,25 +262,22 @@ function normalizeSubmitArguments(
   toolName: string,
   description: string,
   opts: CreateSubmitOutputToolOptions,
-): { candidate: unknown; repairKinds: SubmitRepairKind[] } {
-  const repairKinds: SubmitRepairKind[] = [];
-  const unwrapped = unwrapSoleOutputEnvelope(params, schema);
-  if (unwrapped !== params) repairKinds.push('output_envelope');
-  const decoded = decodeStringifiedFields(unwrapped, schema);
-  if (decoded !== unwrapped) repairKinds.push('json_string_fields');
+): { candidate: unknown; repairs: SchemaAlignmentRepair[] } {
+  const aligned = alignToSchema(params, schema, {
+    parseJsonString: parseCompleteJsonValue,
+  });
+  const repairs = [...aligned.repairs];
   // Producer repair is mechanical for a submit-only gate. Apply it before
   // Pi validation, which removes strict-mode null placeholders. Cross-field
   // task validation runs on Pi's cleaned value in execute().
-  const repaired = repairProducerSubmitOutput(taskType, decoded, opts);
-  const candidate = repaired ?? decoded;
-  if (repaired && isRecord(decoded)) {
-    if (repaired.artifacts !== decoded.artifacts)
-      repairKinds.push('artifact_shape');
+  const repaired = repairProducerSubmitOutput(taskType, aligned.value, opts);
+  const candidate = repaired ?? aligned.value;
+  if (repaired && isRecord(aligned.value)) {
     if (
       JSON.stringify(repaired.verification) !==
-      JSON.stringify(decoded.verification)
+      JSON.stringify(aligned.value.verification)
     )
-      repairKinds.push('submit_gate_verification');
+      repairs.push({ kind: 'submit_gate_verification', path: '/verification' });
   }
   const piNormalized = validateToolArguments(
     { name: toolName, description, parameters: schema },
@@ -393,9 +289,9 @@ function normalizeSubmitArguments(
     },
   ) as Record<string, unknown>;
   if (JSON.stringify(piNormalized) !== JSON.stringify(candidate)) {
-    repairKinds.push('pi_schema_coercion');
+    repairs.push({ kind: 'pi_schema_coercion', path: '' });
   }
-  return { candidate: piNormalized, repairKinds };
+  return { candidate: piNormalized, repairs };
 }
 
 export function createSubmitOutputTool(
@@ -415,8 +311,8 @@ export function createSubmitOutputTool(
   let callCount = 0;
   let invalidCallCount = 0;
   let lastValidationFailure: { code: string; message: string } | null = null;
-  let capturedRepairKinds: SubmitRepairKind[] = [];
-  const preparedRepairKinds = new Map<string, SubmitRepairKind[]>();
+  let capturedRepairs: SchemaAlignmentRepair[] = [];
+  const preparedRepairs = new Map<string, SchemaAlignmentRepair[]>();
 
   const schema = contract.parametersSchema;
 
@@ -481,10 +377,7 @@ export function createSubmitOutputTool(
           opts,
         );
         const prepared = normalized.candidate as Record<string, unknown>;
-        preparedRepairKinds.set(
-          JSON.stringify(prepared),
-          normalized.repairKinds,
-        );
+        preparedRepairs.set(JSON.stringify(prepared), normalized.repairs);
         return prepared;
       } catch (error) {
         throw new Error(recordInvalidCall(args, error));
@@ -521,12 +414,12 @@ export function createSubmitOutputTool(
       // re-call with a corrected payload mid-session — same recovery
       // affordance as a plain schema miss.
       const key = JSON.stringify(params);
-      const preparedKinds = preparedRepairKinds.get(key);
-      if (preparedKinds) preparedRepairKinds.delete(key);
-      let normalized: { candidate: unknown; repairKinds: SubmitRepairKind[] };
+      const prepared = preparedRepairs.get(key);
+      if (prepared) preparedRepairs.delete(key);
+      let normalized: { candidate: unknown; repairs: SchemaAlignmentRepair[] };
       try {
-        normalized = preparedKinds
-          ? { candidate: params, repairKinds: preparedKinds }
+        normalized = prepared
+          ? { candidate: params, repairs: prepared }
           : normalizeSubmitArguments(
               taskType,
               params,
@@ -576,8 +469,8 @@ export function createSubmitOutputTool(
       }
 
       captured = candidateParams as Record<string, unknown>;
-      capturedRepairKinds = normalized.repairKinds;
-      preparedRepairKinds.clear();
+      capturedRepairs = normalized.repairs;
+      preparedRepairs.clear();
       callCount += 1;
       await opts.onValidCapture?.();
       const details: SubmitOutputDetails = {
@@ -607,39 +500,7 @@ export function createSubmitOutputTool(
     getCallCount: () => callCount,
     getInvalidCallCount: () => invalidCallCount,
     getLastValidationFailure: () => lastValidationFailure,
-    getCapturedRepairKinds: () => [...capturedRepairKinds],
-  };
-}
-
-/**
- * Build the submit-tool wiring for one task attempt. Returns a handle
- * (or `null` if no submit-tool should be registered) plus the
- * `customTools`-shaped array ready to spread into the session config.
- *
- * The catch is **narrowed** to `UnknownTaskTypeForSubmitToolError` —
- * exporters/dependency-API drift would otherwise be silently degraded
- * to parser-only behaviour, which reintroduces the failure mode this
- * change is fixing. Any other error from the factory propagates.
- */
-export function resolveSubmitTools(
-  taskType: string,
-  opts: CreateSubmitOutputToolOptions = {},
-): {
-  handle: SubmitOutputToolHandle | null;
-  tools: ToolDefinition<any, any>[];
-} {
-  let handle: SubmitOutputToolHandle | null;
-  try {
-    handle = createSubmitOutputTool(taskType, opts);
-  } catch (err) {
-    if (err instanceof UnknownTaskTypeForSubmitToolError) {
-      handle = null;
-    } else {
-      throw err;
-    }
-  }
-  return {
-    handle,
-    tools: handle ? [handle.tool] : [],
+    getCapturedRepairKinds: () => capturedRepairs.map((repair) => repair.kind),
+    getCapturedRepairs: () => [...capturedRepairs],
   };
 }

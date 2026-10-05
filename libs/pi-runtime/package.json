@@ -63,6 +63,7 @@
     "@themoltnet/sandbox-gondolin": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
     "@themoltnet/shell-command-analyzer": "workspace:*",
+    "json5": "catalog:",
     "multiformats": "catalog:",
     "typebox": "catalog:"
   },
@@ -74,6 +75,7 @@
     "@earendil-works/pi-ai": "catalog:",
     "@earendil-works/pi-coding-agent": "catalog:",
     "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/json-repair": "workspace:*",
     "@moltnet/models": "workspace:*",
     "@moltnet/provider-catalog": "workspace:*",
     "@moltnet/runtime-profiles": "workspace:*",
