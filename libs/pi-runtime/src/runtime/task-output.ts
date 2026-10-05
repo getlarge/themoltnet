@@ -1,14 +1,7 @@
-import { computeJsonCid } from '@moltnet/crypto-service/json-cid';
-import { parseCompleteJsonObject } from '@moltnet/json-repair';
 import { metrics } from '@opentelemetry/api';
-import {
-  alignToSchema,
-  getAgentSubmissionSchema,
-  type SchemaAlignmentRepair,
-  validateAgentTaskSubmission,
-} from '@themoltnet/agent-runtime';
+import type { SchemaAlignmentRepair } from '@themoltnet/agent-runtime';
 
-export interface ParsedTaskOutputResult {
+export interface CapturedTaskOutputResult {
   output: Record<string, unknown> | null;
   outputCid: string | null;
   error: { code: string; message: string } | null;
@@ -16,10 +9,8 @@ export interface ParsedTaskOutputResult {
 }
 
 export type TaskOutputParseCode =
-  | 'success'
   | 'output_missing'
   | 'output_validation_failed'
-  | 'unknown_task_type'
   | 'output_cid_compute_failed'
   | 'captured_via_tool';
 
@@ -41,7 +32,7 @@ function getParseResultCounter() {
     .getMeter(METER_NAME)
     .createCounter('agent_runtime.task_output.parse_result', {
       description:
-        'Outcome of structured task-output capture, labelled by task_type, model, and code (success | output_missing | output_validation_failed | unknown_task_type | output_cid_compute_failed | captured_via_tool).',
+        'Outcome of submit-tool output capture, labelled by task_type, model, and code (output_missing | output_validation_failed | output_cid_compute_failed | captured_via_tool).',
       unit: '1',
     });
   return parseResultCounter;
@@ -93,9 +84,7 @@ export function recordTaskOutputRepairs(args: {
 }
 
 /**
- * Record one parse-result observation. Exposed so the executor can also
- * record the `captured_via_tool` outcome from the submit-tool path
- * without bouncing through the parser. Labels: `task_type`, `model`, `code`.
+ * Record one output-capture observation. Labels: `task_type`, `model`, `code`.
  */
 export function recordTaskOutputParseResult(args: {
   taskType: string;
@@ -120,105 +109,4 @@ export function recordTaskOutputTelemetryAnomaly(args: {
     model: args.model ?? 'unknown',
     kind: args.kind,
   });
-}
-
-export interface ParseStructuredTaskOutputOptions {
-  /** Model identifier for the OTel counter label, e.g. `claude-sonnet-4-6`. */
-  model?: string;
-  /**
-   * Original task input, when available. Required for task types whose
-   * output validation depends on input fields.
-   */
-  input?: unknown;
-  /** Canonical CID of the task input for verification cross-field checks. */
-  inputCid?: string;
-}
-
-export async function parseStructuredTaskOutput(
-  assistantText: string,
-  taskType: string,
-  opts: ParseStructuredTaskOutputOptions = {},
-): Promise<ParsedTaskOutputResult> {
-  const record = (code: TaskOutputParseCode) =>
-    recordTaskOutputParseResult({ taskType, model: opts.model, code });
-
-  const extracted = parseCompleteJsonObject(assistantText);
-  if (!extracted) {
-    record('output_missing');
-    return {
-      output: null,
-      outputCid: null,
-      error: {
-        code: 'output_missing',
-        message:
-          'Agent did not emit a parseable JSON object as its final message.',
-      },
-    };
-  }
-
-  const schema = getAgentSubmissionSchema(taskType, opts.input);
-  const aligned = schema
-    ? alignToSchema(extracted.value, schema)
-    : { value: extracted.value, repairs: [] };
-  const repairs: SchemaAlignmentRepair[] = [
-    ...extracted.repairs.map((kind) => ({ kind, path: '' }) as const),
-    ...aligned.repairs,
-  ];
-  recordTaskOutputRepairs({ taskType, model: opts.model, repairs });
-  const errors = validateAgentTaskSubmission(
-    taskType,
-    aligned.value,
-    opts.input,
-    {
-      inputCid: opts.inputCid,
-    },
-  );
-  if (errors.length > 0) {
-    const details = errors
-      .slice(0, 3)
-      .map((error) => `${error.field}: ${error.message}`);
-    const [firstError] = errors;
-    const code: TaskOutputParseCode =
-      firstError?.field === 'taskType'
-        ? 'unknown_task_type'
-        : 'output_validation_failed';
-    record(code);
-    return {
-      output: null,
-      outputCid: null,
-      error: {
-        code,
-        message: `Output failed schema validation: ${details.join('; ')}`,
-      },
-      repairs,
-    };
-  }
-
-  try {
-    const outputCid = await computeJsonCid(aligned.value);
-    record('success');
-    return {
-      output: aligned.value as Record<string, unknown>,
-      outputCid,
-      error: null,
-      repairs,
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    record('output_cid_compute_failed');
-    return {
-      output: null,
-      outputCid: null,
-      error: {
-        code: 'output_cid_compute_failed',
-        message: `Validated output could not be canonicalized: ${message}`,
-      },
-      repairs,
-    };
-  }
-}
-
-/** Return the last complete final-message object, if one can be parsed. */
-export function extractJsonObject(text: string): unknown {
-  return parseCompleteJsonObject(text)?.value ?? null;
 }

@@ -30,7 +30,7 @@ export interface ScoreCell {
   judged: boolean;
   invalidSubmitCalls: number;
   repairKinds: string[];
-  outputSource: 'tool' | 'parser' | null;
+  outputSource: 'tool' | null;
   /** Populated when the run threw before producing a gradable attempt. */
   error?: string;
   /** Terminal producer error code when the task ended without acceptance. */
@@ -54,7 +54,7 @@ const PROTOCOL_REPAIRS = new Set(['optional_null', 'submit_gate_verification']);
 export interface SubmitStructure {
   invalidSubmitCalls: number;
   repairKinds: string[];
-  outputSource: 'tool' | 'parser' | null;
+  outputSource: 'tool' | null;
 }
 
 /** Whether the model supplied a valid submit shape before runtime repair. */

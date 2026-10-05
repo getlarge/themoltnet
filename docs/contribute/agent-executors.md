@@ -152,35 +152,28 @@ The submit-tool path was added in
 parser-only design produced false-failed attempts when the agent did the work
 but reported it as prose ("ok", "done") instead of JSON. The strict closing
 block in every prompt builder (see
-`libs/agent-runtime/src/prompts/final-output.ts`) describes both affordances and
-why the tool path is preferred.
+`libs/agent-runtime/src/prompts/final-output.ts`) instructs the agent to call
+the submit tool.
 
 **Outcomes are instrumented** via the OTel counter
 `agent_runtime.task_output.parse_result` with labels `{task_type, model, code}`.
 Codes:
 
-- `success` — parser captured a valid payload.
 - `captured_via_tool` — submit-tool captured a valid payload.
-- `output_missing` — no JSON found in the assistant text and the submit-tool was
-  never called.
-- `output_validation_failed` — extracted JSON or submit-tool args failed schema
-  validation.
-- `unknown_task_type` — schema lookup failed (typically a transient registration
-  mismatch).
+- `output_missing` — the submit tool was never called.
+- `output_validation_failed` — submit-tool args failed schema validation.
 - `output_cid_compute_failed` — output validated but `computeJsonCid` threw.
 
 The counter resolves off the global `MeterProvider`, so the existing OTLP→Axiom
-pipeline picks it up without per-call wiring. Use it to monitor the
-prompt-tightening + submit-tool rollout: a healthy task type should be dominated
-by `captured_via_tool` with a long tail of `success` (parser fallback) and
+pipeline picks it up without per-call wiring. Use it to monitor the submit-tool
+flow: a healthy task type should be dominated by `captured_via_tool` with
 near-zero `output_missing`.
 
-**Capture is executor state, not session-control flow:** the submit tool stores
-validated args in the executor's handle. After `session.prompt()` resolves,
-`executePiTask` prefers that captured payload over the JSON parser fallback. The
-submit tool intentionally does not return Pi's `terminate` flag; valid capture
-and exhausted validation are represented by runtime state that the executor
-reads after the session ends.
+**Capture is executor state:** the submit tool stores validated args in the
+executor's handle. It returns Pi's `terminate` flag for a lone successful call;
+the executor coordinates completion for mixed tool batches. After
+`session.prompt()` resolves, `executePiTask` uses the captured payload as the
+task output.
 
 **Contract lives in `@themoltnet/agent-runtime`.** The (toolName, description,
 parametersSchema) triple is exposed by `getSubmitOutputContract(taskType)` in

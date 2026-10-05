@@ -9,8 +9,6 @@ export interface SchemaAlignmentRepair {
     | 'case_insensitive_match'
     | 'submit_gate_verification'
     | 'pi_schema_coercion'
-    | 'lenient_json'
-    | 'missing_comma'
     | 'optional_null';
   /** JSON pointer to the value changed; the root is the empty string. */
   path: string;

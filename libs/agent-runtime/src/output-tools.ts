@@ -54,9 +54,7 @@ export interface SubmitOutputContract {
 
 /**
  * Build the submit-output contract for a task type. Returns `null` if
- * no output schema is registered for that type — callers (executors)
- * decide whether that's a hard error, a fallback to the parser-only
- * path, or anything else.
+ * no output schema is registered for that type. Executors require a schema.
  */
 export function getSubmitOutputContract(
   taskType: string,

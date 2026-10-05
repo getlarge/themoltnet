@@ -13,7 +13,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createSubmitOutputTool,
-  resolveSubmitTools,
   UnknownTaskTypeForSubmitToolError,
 } from './submit-output-tool.js';
 import {
@@ -126,7 +125,7 @@ describe('createSubmitOutputTool', () => {
     ],
     ['unknown key', { ...validFulfillBriefOutput, extra: true }, false],
   ] as const)(
-    'aligns %s with the parser verdict',
+    'aligns %s with the schema verdict',
     async (_name, input, accepted) => {
       const handle = createSubmitOutputTool('fulfill_brief');
       let prepared: unknown;
@@ -939,41 +938,5 @@ describe('submit-tool OTel counter recording', () => {
     await callExecute(handle)(validFulfillBriefOutput);
     expect(await dataPointsFor('captured_via_tool')).toHaveLength(0);
     expect(await dataPointsFor('output_validation_failed')).toHaveLength(0);
-  });
-});
-
-describe('resolveSubmitTools', () => {
-  it('returns a populated handle + tools array for known task types', () => {
-    const r = resolveSubmitTools('fulfill_brief');
-    expect(r.handle).not.toBeNull();
-    expect(r.tools).toHaveLength(1);
-  });
-
-  it('returns null handle + empty tools for unknown task types', () => {
-    const r = resolveSubmitTools('totally_made_up');
-    expect(r.handle).toBeNull();
-    expect(r.tools).toEqual([]);
-  });
-});
-
-describe('resolveSubmitTools error narrowing contract', () => {
-  // The catch block in resolveSubmitTools narrows on
-  // UnknownTaskTypeForSubmitToolError. Verifying that contract directly
-  // by re-implementing the catch shape in a test fixture: if the
-  // production catch ever broadened to `catch {}`, this assertion would
-  // still pass — so the real safety comes from the source review +
-  // typecheck (the production code uses `instanceof` narrowing, not a
-  // duck-type check).
-  //
-  // What this test pins: the sentinel class chain. If anyone renames or
-  // removes UnknownTaskTypeForSubmitToolError, every call site that
-  // depends on it (resolveSubmitTools, plus any future caller) breaks
-  // at compile time, not silently at runtime.
-  it('UnknownTaskTypeForSubmitToolError extends Error and carries the taskType', () => {
-    const err = new UnknownTaskTypeForSubmitToolError('weird');
-    expect(err).toBeInstanceOf(Error);
-    expect(err).toBeInstanceOf(UnknownTaskTypeForSubmitToolError);
-    expect(err.taskType).toBe('weird');
-    expect(err.name).toBe('UnknownTaskTypeForSubmitToolError');
   });
 });

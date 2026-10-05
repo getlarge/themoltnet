@@ -50,10 +50,7 @@ interface SubmitOutputDetails {
 export interface CreateSubmitOutputToolOptions {
   /**
    * Optional model identifier for the OTel counter labels. Mirrors the
-   * `model` opt threaded into `parseStructuredTaskOutput` so the
-   * submit-tool path's `output_validation_failed` and
-   * `captured_via_tool` observations carry the same `{task_type, model}`
-   * cardinality.
+   * `output_validation_failed` observations carry `{task_type, model}` labels.
    */
   model?: string;
   /**
@@ -88,7 +85,7 @@ export interface SubmitOutputToolHandle {
   /**
    * Latest validated payload submitted by the model, or `null` if the
    * model never produced a valid call. Read after `session.prompt()`
-   * resolves — the executor prefers this over `parseStructuredTaskOutput`.
+   * resolves.
    */
   getCaptured: () => Record<string, unknown> | null;
   /** Number of times the model called the tool with valid args. */
@@ -104,9 +101,7 @@ export interface SubmitOutputToolHandle {
 
 /**
  * Sentinel thrown when the requested task type has no registered output
- * schema. The executor recognises this specific error class and falls
- * back to the parser path; any other error from `createSubmitOutputTool`
- * is unexpected and must propagate.
+ * schema. The executor cannot run a task without a registered output schema.
  */
 export class UnknownTaskTypeForSubmitToolError extends Error {
   constructor(public readonly taskType: string) {
@@ -504,38 +499,5 @@ export function createSubmitOutputTool(
     getLastValidationFailure: () => lastValidationFailure,
     getCapturedRepairKinds: () => capturedRepairs.map((repair) => repair.kind),
     getCapturedRepairs: () => [...capturedRepairs],
-  };
-}
-
-/**
- * Build the submit-tool wiring for one task attempt. Returns a handle
- * (or `null` if no submit-tool should be registered) plus the
- * `customTools`-shaped array ready to spread into the session config.
- *
- * The catch is **narrowed** to `UnknownTaskTypeForSubmitToolError` —
- * exporters/dependency-API drift would otherwise be silently degraded
- * to parser-only behaviour, which reintroduces the failure mode this
- * change is fixing. Any other error from the factory propagates.
- */
-export function resolveSubmitTools(
-  taskType: string,
-  opts: CreateSubmitOutputToolOptions = {},
-): {
-  handle: SubmitOutputToolHandle | null;
-  tools: ToolDefinition<any, any>[];
-} {
-  let handle: SubmitOutputToolHandle | null;
-  try {
-    handle = createSubmitOutputTool(taskType, opts);
-  } catch (err) {
-    if (err instanceof UnknownTaskTypeForSubmitToolError) {
-      handle = null;
-    } else {
-      throw err;
-    }
-  }
-  return {
-    handle,
-    tools: handle ? [handle.tool] : [],
   };
 }

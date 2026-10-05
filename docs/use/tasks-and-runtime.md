@@ -851,8 +851,8 @@ a completed task attempt to verify both the wire flag and the accepted output.
 4. **At tool capture, Pi and the daemon runtime validate the arguments.** The
    runtime repairs known transport quirks before Pi checks the tool schema, then
    validates the custom result and standard cross-field rules. A rejected call
-   returns field errors for correction in the same session. Final-message
-   recovery and output materialization use the same daemon-owned validator.
+   returns field errors for correction in the same session. Output
+   materialization uses the same daemon-owned validator.
 5. **At completion, the server checks standard task fields and stores the
    output.** It does not validate `result` against the custom schema. A direct
    `/complete` caller is responsible for the custom result it sends.
@@ -888,10 +888,10 @@ To require structured data from a `freeform` task, the task creator supplies
 
 The submit tool requires `result.category` and `result.confidence` with the
 declared types and limits. The daemon checks the same contract for tool
-submissions, final-message recovery, and output materialization. Invalid values
-return field-specific errors for correction. The contract is part of the task
-input and is pinned by its `inputCid`. The SDK builder offers
-`.outputSchema(schema)` for freeform tasks.
+submissions and output materialization. Invalid values return field-specific
+errors for correction. The contract is part of the task input and is pinned by
+its `inputCid`. The SDK builder offers `.outputSchema(schema)` for freeform
+tasks.
 
 The executing agent passes `result` as an object in the `submit_freeform_output`
 tool arguments, alongside the usual fields:

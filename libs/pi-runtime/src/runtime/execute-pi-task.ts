@@ -233,7 +233,7 @@ import {
 } from './subagent-tool.js';
 import { createSubmitCompletionCoordinator } from './submit-completion-coordinator.js';
 import {
-  resolveSubmitTools,
+  createSubmitOutputTool,
   type SubmitOutputToolHandle,
 } from './submit-output-tool.js';
 import {
@@ -242,8 +242,7 @@ import {
   type TurnEventKind,
 } from './task-event-emitter.js';
 import {
-  type ParsedTaskOutputResult,
-  parseStructuredTaskOutput,
+  type CapturedTaskOutputResult,
   recordTaskOutputParseResult,
   recordTaskOutputRepairs,
   recordTaskOutputTelemetryAnomaly,
@@ -1349,8 +1348,7 @@ export async function executePiTask(
     });
 
     // Per-task-type submit-output tool. A validated tool call is the
-    // authoritative output; a complete final-turn JSON object can recover a
-    // missing call after the same task submission validation.
+    // authoritative output.
     const submitCompletion = createSubmitCompletionCoordinator({
       // Pi's native terminate result ends a lone successful submit without
       // manufacturing an aborted provider turn. A mixed tool batch does not
@@ -1364,17 +1362,17 @@ export async function executePiTask(
         });
       },
     });
-    const { handle: submitToolHandle, tools: submitToolDefs } =
-      resolveSubmitTools(task.taskType, {
-        model: opts.model,
-        input: task.input,
-        inputCid: task.inputCid,
-        onValidCapture: () => {
-          submitCompletion.requestCompletion();
-        },
-      });
-    const submitTools: ToolDefinition[] =
-      submitToolDefs as unknown as ToolDefinition[];
+    const submitToolHandle = createSubmitOutputTool(task.taskType, {
+      model: opts.model,
+      input: task.input,
+      inputCid: task.inputCid,
+      onValidCapture: () => {
+        submitCompletion.requestCompletion();
+      },
+    });
+    const submitTools: ToolDefinition[] = [
+      submitToolHandle.tool as unknown as ToolDefinition,
+    ];
 
     try {
       const moltnetAgent = await getMoltNetAgent();
@@ -1846,7 +1844,7 @@ export async function executePiTask(
     }
 
     // Per-attempt scalars accumulated by the session event handler
-    // (assistantText, llmAbort, llmErrorMessage, turn/bash-timeout counters).
+    // (llmAbort, llmErrorMessage, turn/bash-timeout counters).
     // The diagnostic pi attaches to the final error turn flows into
     // `turnState.llmErrorMessage` so operators see things like
     // "Model 'gpt-5.4-codex' not found in registry" instead of the generic
@@ -1925,7 +1923,7 @@ export async function executePiTask(
         emitError,
         track,
         triggerCapAbort,
-        isSubmitCaptured: () => submitToolHandle?.getCaptured() !== null,
+        isSubmitCaptured: () => submitToolHandle.getCaptured() !== null,
       }),
     );
 
@@ -1933,7 +1931,7 @@ export async function executePiTask(
     const terminalProviderState = () =>
       resolveProviderStateAfterSubmit(
         turnState,
-        submitToolHandle?.getCaptured() !== null,
+        submitToolHandle.getCaptured() !== null,
       );
     // One provider-error-tolerant prompt pass. Reused for both the initial
     // task prompt and each submit-missing re-prompt so every pass inherits
@@ -1944,7 +1942,7 @@ export async function executePiTask(
         initialPrompt: promptText,
         cancelSignal: reporter.cancelSignal,
         isCapAborted: () => capAbort !== null,
-        hasValidatedSubmit: () => submitToolHandle?.getCaptured() !== null,
+        hasValidatedSubmit: () => submitToolHandle.getCaptured() !== null,
         getProviderErrorState: terminalProviderState,
         maxRetries:
           opts.maxProviderErrorRetries ?? DEFAULT_PROVIDER_ERROR_RETRIES,
@@ -1971,7 +1969,7 @@ export async function executePiTask(
     const promptResult = await promptUntilSubmitted({
       runPrompt,
       initialPrompt: taskPrompt,
-      submitToolName: submitToolHandle?.toolName,
+      submitToolName: submitToolHandle.toolName,
       submitMissingPrompt: submitMissingConfig.submitMissingPrompt,
       maxSubmitMissingReprompts: submitMissingConfig.maxSubmitMissingReprompts,
       getSubmitState: submitMissingConfig.getSubmitState,
@@ -1995,9 +1993,7 @@ export async function executePiTask(
       await emit('info', {
         event: 'submit_missing_summary',
         submitReprompts: promptResult.submitReprompts,
-        captured: submitToolHandle
-          ? submitToolHandle.getCaptured() !== null
-          : false,
+        captured: submitToolHandle.getCaptured() !== null,
       });
     }
 
@@ -2039,9 +2035,6 @@ export async function executePiTask(
       const captured = await captureAttemptOutput({
         taskType: task.taskType,
         model: opts.model,
-        input: task.input,
-        inputCid: task.inputCid,
-        assistantText: turnState.assistantText,
         submitToolHandle,
         emit,
       });
@@ -2065,7 +2058,7 @@ export async function executePiTask(
         parseError = materialized.error;
       }
       if (parsedOutput && !parseError) {
-        const outputSource = submitToolHandle ? 'submit_tool' : 'legacy_parser';
+        const outputSource = 'submit_tool';
         const repairs = captured.repairs ?? [];
         const repairKinds = repairs.map((repair) => repair.kind);
         await traceRuntimePhase(
@@ -2240,8 +2233,6 @@ export type SessionSubscribeEvent = Parameters<
  * `executePiTask` and unit-tested while still mutating shared attempt state.
  */
 export interface SessionTurnState {
-  /** Streamed assistant text, concatenated across `text_delta` events. */
-  assistantText: string;
   /** Stop reason of the latest completed assistant turn. */
   lastStopReason: string | null;
   /** Final turn ended with `stopReason: 'error'` (last-turn-wins). */
@@ -2256,7 +2247,6 @@ export interface SessionTurnState {
 
 export function createSessionTurnState(): SessionTurnState {
   return {
-    assistantText: '',
     lastStopReason: null,
     llmAbort: false,
     llmErrorMessage: null,
@@ -2342,7 +2332,6 @@ export function makeSessionEventHandler(
     if (event.type === 'message_update') {
       const ae = event.assistantMessageEvent;
       if (ae.type === 'text_delta') {
-        state.assistantText += ae.delta;
         track(emit('text_delta', { delta: ae.delta }));
       }
     } else if (event.type === 'tool_execution_start') {
@@ -2457,20 +2446,12 @@ export function makeSessionEventHandler(
 export interface CaptureAttemptOutputDeps {
   taskType: string;
   model?: string;
-  /** Original task input, threaded to the parser path for cross-field rules. */
-  input: unknown;
-  /** Canonical CID of input, used to validate an authored verification. */
-  inputCid?: string;
-  /** Streamed assistant text, used only by the legacy parser fallback. */
-  assistantText: string;
-  /** Submit-output handle, or null for task types with no registered schema. */
-  submitToolHandle:
-    | (Pick<
-        SubmitOutputToolHandle,
-        'getCaptured' | 'getLastValidationFailure'
-      > &
-        Partial<Pick<SubmitOutputToolHandle, 'getCapturedRepairs'>>)
-    | null;
+  /** Registered submit-output handle. */
+  submitToolHandle: Pick<
+    SubmitOutputToolHandle,
+    'getCaptured' | 'getLastValidationFailure'
+  > &
+    Partial<Pick<SubmitOutputToolHandle, 'getCapturedRepairs'>>;
   emit: (
     kind: TurnEventKind,
     payload: Record<string, unknown>,
@@ -2499,7 +2480,7 @@ export interface MaterializeCapturedAttemptOutputDeps {
  */
 export async function materializeCapturedAttemptOutput(
   deps: MaterializeCapturedAttemptOutputDeps,
-): Promise<ParsedTaskOutputResult> {
+): Promise<CapturedTaskOutputResult> {
   if (deps.usage.inputTokens === 0 && deps.usage.outputTokens === 0) {
     recordTaskOutputTelemetryAnomaly({
       taskType: deps.taskType,
@@ -2574,24 +2555,15 @@ export async function materializeCapturedAttemptOutput(
   }
 }
 
-// Same shape the parser path already returns; alias it so the submit-tool
-// and parser branches can't drift.
-export type CapturedAttemptOutput = ParsedTaskOutputResult;
+export type CapturedAttemptOutput = CapturedTaskOutputResult;
 
 /**
  * Resolve the attempt's structured output once the session has finished
- * cleanly (no run error / provider abort / cancel / cap). Three mutually
- * exclusive paths, in precedence order:
+ * cleanly (no run error / provider abort / cancel / cap). A captured submit
+ * payload is canonicalized; otherwise the latest validation failure wins, or
+ * `submit_output_missing` is reported when the tool was never called.
  *
- *   1. Submit tool captured a payload → trust it, compute its CID. A
- *      canonicalization failure becomes `output_cid_compute_failed`.
- *   2. Submit tool registered but nothing captured → the latest validation
- *      failure wins if present, else `submit_output_missing` (recording the
- *      `output_missing` counter so the never-called path is observable).
- *   3. No submit tool (legacy task type) → parse the trailing assistant text.
- *
- * Extracted from `executePiTask` so this precedence — the part a refactor is
- * most likely to silently reorder — is unit-tested directly. The caller
+ * Extracted from `executePiTask` so the capture boundary is unit-tested. The caller
  * still owns the guard deciding whether output capture runs at all.
  *
  * @internal Exported for unit testing; not part of the package's public API.
@@ -2599,20 +2571,8 @@ export type CapturedAttemptOutput = ParsedTaskOutputResult;
 export async function captureAttemptOutput(
   deps: CaptureAttemptOutputDeps,
 ): Promise<CapturedAttemptOutput> {
-  const {
-    taskType,
-    model,
-    input,
-    inputCid,
-    assistantText,
-    submitToolHandle,
-    emit,
-  } = deps;
-  // Prefer the submit-tool's captured payload over the parser path.
-  // The submit-tool already validated args against the task type's
-  // output schema; if the model called it successfully we trust the
-  // captured value and skip parsing the trailing assistant text.
-  const captured = submitToolHandle?.getCaptured() ?? null;
+  const { taskType, model, submitToolHandle, emit } = deps;
+  const captured = submitToolHandle.getCaptured();
   if (captured) {
     try {
       const outputCid = await computeJsonCid(captured);
@@ -2621,7 +2581,7 @@ export async function captureAttemptOutput(
         model,
         code: 'captured_via_tool',
       });
-      const repairs = submitToolHandle?.getCapturedRepairs?.() ?? [];
+      const repairs = submitToolHandle.getCapturedRepairs?.() ?? [];
       recordTaskOutputRepairs({ taskType, model, repairs });
       return {
         output: captured,
@@ -2648,42 +2608,22 @@ export async function captureAttemptOutput(
     }
   }
 
-  if (submitToolHandle) {
-    const validationFailure = submitToolHandle.getLastValidationFailure();
-    const error = validationFailure ?? {
-      code: 'submit_output_missing',
-      message:
-        'Agent did not satisfy the promised submit-output criterion: ' +
-        'no valid task submit tool call was captured before the session ended.',
-    };
-    // The invalid-args path already records `output_validation_failed`
-    // from inside the submit tool. The pure never-called path has no such
-    // record, so count it here (dimensioned by model) — otherwise
-    // submit-missing failures are invisible to the parse-result counter.
-    if (!validationFailure) {
-      recordTaskOutputParseResult({ taskType, model, code: 'output_missing' });
-    }
-    await emit('error', { message: error.message, phase: 'output_validation' });
-    return { output: null, outputCid: null, error };
-  }
-
-  const parsed = await parseStructuredTaskOutput(assistantText, taskType, {
-    model,
-    input,
-    inputCid,
-  });
-  if (parsed.error) {
-    await emit('error', {
-      message: parsed.error.message,
-      phase: 'output_validation',
-    });
-  }
-  return {
-    output: parsed.output,
-    outputCid: parsed.outputCid,
-    error: parsed.error,
-    repairs: parsed.repairs,
+  const validationFailure = submitToolHandle.getLastValidationFailure();
+  const error = validationFailure ?? {
+    code: 'submit_output_missing',
+    message:
+      'Agent did not satisfy the promised submit-output criterion: ' +
+      'no valid task submit tool call was captured before the session ended.',
   };
+  // The invalid-args path already records `output_validation_failed`
+  // from inside the submit tool. The pure never-called path has no such
+  // record, so count it here (dimensioned by model) — otherwise
+  // submit-missing failures are invisible to the parse-result counter.
+  if (!validationFailure) {
+    recordTaskOutputParseResult({ taskType, model, code: 'output_missing' });
+  }
+  await emit('error', { message: error.message, phase: 'output_validation' });
+  return { output: null, outputCid: null, error };
 }
 
 export interface BuildAttemptResultArgs {
@@ -3164,8 +3104,8 @@ export function submitRepromptStopped(state: {
 
 /**
  * Resolve the submit recovery config from the registered submit tool
- * (if any) plus caller overrides. Extracted as a pure function so the
- * default-budget / disable-when-no-tool / gate-mapping logic is unit-tested —
+ * plus caller overrides. Extracted as a pure function so the
+ * default-budget and gate-mapping logic is unit-tested —
  * `executePiTask` itself needs a booted VM and can't cover this seam.
  *
  * The default budget (3) bounds explicit continuation prompts after either a
@@ -3176,24 +3116,15 @@ export function resolveSubmitMissingConfig(args: {
   submitToolHandle: Pick<
     SubmitOutputToolHandle,
     'toolName' | 'getCaptured' | 'getLastValidationFailure'
-  > | null;
+  >;
   maxSubmitMissingReprompts?: number;
   submitMissingPrompt?: string;
 }): {
   maxSubmitMissingReprompts: number;
   submitMissingPrompt: string;
-  getSubmitState: () => SubmitGateState | null;
+  getSubmitState: () => SubmitGateState;
 } {
   const handle = args.submitToolHandle;
-  if (!handle) {
-    // No submit tool (legacy parser path): recovery is meaningless. The empty
-    // prompt is never sent because the budget is 0.
-    return {
-      maxSubmitMissingReprompts: 0,
-      submitMissingPrompt: '',
-      getSubmitState: () => null,
-    };
-  }
   return {
     maxSubmitMissingReprompts: args.maxSubmitMissingReprompts ?? 3,
     submitMissingPrompt:
@@ -3238,10 +3169,9 @@ export interface PromptUntilSubmittedArgs {
    */
   maxSubmitMissingReprompts: number;
   /**
-   * Reads the submit gate after each pass. Returns `null` when no submit
-   * tool is registered (legacy parser path) — recovery is skipped.
+   * Reads the submit gate after each pass.
    */
-  getSubmitState: () => SubmitGateState | null;
+  getSubmitState: () => SubmitGateState;
   /** Latest assistant stop reason; a length stop cannot satisfy a missing submit. */
   getStopReason?: () => string | null;
   /** Configured output cap, included in the length-stop diagnostic. */
@@ -3288,7 +3218,7 @@ export async function promptUntilSubmitted(
   const outputLimitError = () => {
     if (args.getStopReason?.() !== 'length') return null;
     const state = args.getSubmitState();
-    if (!state || state.captured) return null;
+    if (state.captured) return null;
     const configuredCap = args.maxOutputTokens;
     const advice =
       configuredCap === null || configuredCap === undefined
@@ -3307,8 +3237,7 @@ export async function promptUntilSubmitted(
   while (submitReprompts < args.maxSubmitMissingReprompts) {
     if (args.isStopped()) break;
     const state = args.getSubmitState();
-    // Nothing to recover: no submit tool or output already captured.
-    if (!state || state.captured) break;
+    if (state.captured) break;
 
     submitReprompts += 1;
     const reason = state.lastValidationFailure

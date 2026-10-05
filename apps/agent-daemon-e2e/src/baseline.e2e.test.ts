@@ -250,7 +250,7 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
             | {
                 invalidSubmitCalls: number;
                 repairKinds: string[];
-                outputSource: 'tool' | 'parser' | null;
+                outputSource: 'tool' | null;
               }
             | undefined;
           if (lastAttempt) {
@@ -267,9 +267,7 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
             const outputSource =
               completion?.output_source === 'submit_tool'
                 ? ('tool' as const)
-                : completion?.output_source === 'legacy_parser'
-                  ? ('parser' as const)
-                  : null;
+                : null;
             structure = {
               invalidSubmitCalls: messages.filter(
                 (message) =>

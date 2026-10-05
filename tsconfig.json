@@ -271,9 +271,6 @@
     },
     {
       "path": "./apps/agent-desktop-e2e"
-    },
-    {
-      "path": "libs/json-repair"
     }
   ]
 }

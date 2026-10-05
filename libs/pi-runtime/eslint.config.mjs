@@ -18,8 +18,6 @@ export default [
       '@noble/ed25519',
       '@noble/hashes',
       'multiformats',
-      // External runtime import from bundled @moltnet/json-repair.
-      'json5',
       // Dynamically imported by @themoltnet/sdk/node for OS keyring
       // secret resolution; not directly imported by this package.
       '@themoltnet/os-keyring',

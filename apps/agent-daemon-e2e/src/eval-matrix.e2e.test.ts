@@ -72,7 +72,7 @@ async function readSubmitStructure(
 ): Promise<{
   invalidSubmitCalls: number;
   repairKinds: string[];
-  outputSource: 'tool' | 'parser' | null;
+  outputSource: 'tool' | null;
 }> {
   const empty = { invalidSubmitCalls: 0, repairKinds: [], outputSource: null };
   if (attemptN === null) return empty;
@@ -94,12 +94,7 @@ async function readSubmitStructure(
       )
     : [];
   const source = completion?.output_source;
-  const outputSource =
-    source === 'submit_tool'
-      ? ('tool' as const)
-      : source === 'legacy_parser'
-        ? ('parser' as const)
-        : null;
+  const outputSource = source === 'submit_tool' ? ('tool' as const) : null;
   return { invalidSubmitCalls, repairKinds, outputSource };
 }
 

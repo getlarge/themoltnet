@@ -100,7 +100,7 @@ describe('runMatrix', () => {
       outputSource: 'tool' as const,
       expected: 0,
     },
-    { repairs: [], outputSource: 'parser' as const, expected: 0 },
+    { repairs: [], outputSource: null, expected: 0 },
   ])(
     'scores raw model shape with repairs $repairs',
     async ({ repairs, outputSource, expected }) => {
