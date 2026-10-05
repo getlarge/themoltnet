@@ -20,7 +20,7 @@ flowchart TD
   ingest -->|source changed| extract["Stage 1 · extract<br/>tool-less task<br/>contract changes, evidence, search terms"]
   ingest -->|docs changed only| retrieval
   extract -->|no contract change and no docs changed| nn1(["not-needed · 1 task"])
-  extract --> retrieval["Trusted retrieval — no model<br/>changed docs › routing map › search › nearest README<br/>at most 6 docs, excerpts at head"]
+  extract --> retrieval["Trusted retrieval — no model<br/>changed docs › routing map › search › nearest README<br/>at most maxDocs docs (6), excerpts at head"]
   retrieval --> coverage["Stage 2 · coverage<br/>worktree at head, ≤ 4 read-only tool calls<br/>missing or incorrect docs"]
   retrieval -->|PR adds docs text| check["Stage 3 · docs check<br/>tool-less task, runs beside coverage<br/>keep, rewrite, or remove each added hunk"]
   coverage --> resolve["Trusted resolution"]
@@ -31,8 +31,8 @@ flowchart TD
 
 Any coverage gap turns a clean outcome into `incomplete`; the report keeps
 the clean outcome as `reviewedOutcome` and the comment says what the review
-found for the part it read. A docs-check
-failure is recorded as a gap while the coverage result stands. Trusted code
+found for the part it read. A docs-check failure is recorded as a gap while
+the coverage result stands. Trusted code
 validates every stage output strictly: evidence must cite changed files,
 findings must reference a known change (or `docs:<changed doc>` for a
 contradiction in a doc the PR edits), and `incomplete` can only be decided by
