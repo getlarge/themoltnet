@@ -1,6 +1,7 @@
 import { validateOutputContract } from '@moltnet/tasks';
 import { describe, expect, it } from 'vitest';
 
+import { TypesResultSchema } from './ir.js';
 import {
   buildActionsTask,
   buildPredicatesTask,
@@ -8,6 +9,7 @@ import {
   buildRefineTask,
   buildTypesTask,
   type DesignInput,
+  namingIssues,
   parseActions,
   parseProblem,
   parseTypes,
@@ -105,22 +107,30 @@ describe('stage parsers', () => {
     );
   });
 
-  it('enforces naming patterns the contract transport cannot carry', () => {
-    expect(() =>
-      parseTypes(output({ types: [{ name: 'Robot Arm', description: 'x' }] })),
-    ).toThrow(/types result \/types\/0\/name/);
-    expect(() =>
-      parseActions(
-        output({
-          actions: [
-            {
-              ...blocksActions[0],
-              parameters: [{ name: 'a', type: 'robotic-arm' }],
-            },
-          ],
-        }),
-      ),
-    ).toThrow(/actions result \/actions\/0\/parameters\/0\/name/);
+  it('accepts naming violations and reports them for correction', () => {
+    // Arrange
+    const bad = { types: [{ name: 'Robot Arm', description: 'x' }] };
+
+    // Act
+    const parsed = parseTypes(output(bad));
+    const issues = namingIssues(TypesResultSchema, parsed);
+
+    // Assert
+    expect(parsed).toEqual(bad);
+    expect(issues).toEqual([
+      {
+        severity: 'error',
+        path: 'types/0/name',
+        message:
+          '"Robot Arm" is not a valid name: use lowercase letters, digits and hyphens, starting with a letter; parameters start with ?',
+      },
+    ]);
+  });
+
+  it('still rejects structural errors', () => {
+    expect(() => parseTypes(output({ types: 'arm' }))).toThrow(
+      /types result \/types/,
+    );
   });
 
   it('rejects a missing result', () => {

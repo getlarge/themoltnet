@@ -1,9 +1,15 @@
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 import {
   type FakeTaskOutput,
   FakeTasks,
 } from '@themoltnet/tasks-orchestrator/testing';
 import { describe, expect, it } from 'vitest';
 
+import type { Domain, Problem } from './ir.js';
 import type { DesignInput } from './stages.js';
 import {
   blocksActions,
@@ -157,6 +163,97 @@ describe('runPddlDesign', () => {
     expect(run.reviewPassed).toBe(false);
     expect(run.stages.filter((s) => s.stage === 'problem')).toHaveLength(1);
   });
+
+  it('sends badly named results back for correction', async () => {
+    // Arrange
+    const tasks = fakeTasks({
+      types: [ok({ types: [{ name: 'Robot Arm', description: 'x' }] })],
+    });
+
+    // Act
+    const run = await runPddlDesign(tasks, input);
+
+    // Assert
+    const typeAttempts = run.stages.filter((s) => s.stage === 'types');
+    expect(typeAttempts.map((s) => s.attempt)).toEqual([1, 2]);
+    expect(typeAttempts[1].brief).toContain('"Robot Arm" is not a valid name');
+    expect(run.status).toBe('planned');
+  });
+
+  it('fails fast when no worker claims a task', async () => {
+    // Arrange: every task stays queued
+    const tasks: TaskClient = {
+      createTask: () => Promise.resolve({ id: 'task-1' } as never),
+      getTask: () =>
+        Promise.resolve({ id: 'task-1', status: 'queued' } as never),
+      listAttempts: () => Promise.resolve([]),
+    };
+
+    // Act
+    const run = await runPddlDesign(tasks, input, {
+      claimTimeoutSec: 0,
+      pollIntervalSec: 0,
+    });
+
+    // Assert
+    expect(run.status).toBe('failed');
+    expect(run.failure?.reason).toMatch(
+      /no worker claimed task task-1 within 0s; check that a poller is running/,
+    );
+  });
+
+  it(
+    'routes shared work back through predicates and actions',
+    { timeout: 120_000 },
+    async () => {
+      // Arrange: a live-run domain where one issue's work serves the other
+      const { domain, problem } = JSON.parse(
+        readFileSync(
+          resolve(
+            dirname(fileURLToPath(import.meta.url)),
+            'fixtures',
+            'issue-explicit-run.json',
+          ),
+          'utf8',
+        ),
+      ) as { domain: Domain; problem: Problem };
+      const outputs: Record<string, FakeTaskOutput> = {
+        types: ok({ types: domain.types }),
+        predicates: ok({ predicates: domain.predicates }),
+        actions: ok({ actions: domain.actions }),
+        refine: ok({ actions: domain.actions, changes: [] }),
+        problem: ok({
+          objects: problem.objects,
+          init: problem.init,
+          goal: problem.goal,
+        }),
+      };
+      const tasks = new FakeTasks((body) => outputs[stageOf(body.tags)]);
+
+      // Act
+      const run = await runPddlDesign(tasks, input, { review: { rounds: 1 } });
+
+      // Assert
+      expect(run.stages.map((s) => `${s.stage}:${s.attempt}`)).toEqual([
+        'types:1',
+        'predicates:1',
+        'actions:1',
+        'refine:1',
+        'problem:1',
+        'predicates:2',
+        'actions:2',
+        'refine:2',
+      ]);
+      const predicates2 = run.stages.find(
+        (s) => s.stage === 'predicates' && s.attempt === 2,
+      );
+      expect(predicates2?.brief).toContain('Add predicates that name the item');
+      expect(run.review?.[0].findings.map((f) => f.code)).toContain(
+        'shared-work',
+      );
+      expect(run.reviewPassed).toBe(false);
+    },
+  );
 
   it('stops as invalid when corrections do not fix a stage', async () => {
     // Arrange: the problem never declares an arm

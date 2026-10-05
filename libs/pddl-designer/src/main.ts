@@ -12,7 +12,7 @@ import { runPddlDesign } from './workflow.js';
 const USAGE =
   'Usage: pddl-designer --description FILE --problem FILE [--domain-name NAME --problem-name NAME] ' +
   '[--team UUID --diary UUID --profile NAME|ID --correlation UUID --project UUID] [--out FILE] [--max-corrections N] ' +
-  '[--review [--decision-model nimble --ollama-url URL --review-threshold 0.9]] [--dry-run]';
+  '[--review [--decision-model nimble --ollama-url URL --review-threshold 0.9]] [--claim-timeout SEC] [--dry-run]';
 
 export async function main(argv = process.argv.slice(2)) {
   const { values } = parseArgs({
@@ -30,6 +30,7 @@ export async function main(argv = process.argv.slice(2)) {
       out: { type: 'string' },
       'max-corrections': { type: 'string', default: '1' },
       review: { type: 'boolean', default: false },
+      'claim-timeout': { type: 'string', default: '600' },
       'decision-model': { type: 'string', default: 'nimble' },
       'ollama-url': { type: 'string', default: 'http://localhost:11434' },
       'review-threshold': { type: 'string', default: '0.9' },
@@ -73,8 +74,12 @@ export async function main(argv = process.argv.slice(2)) {
   const threshold = Number(values['review-threshold']);
   if (!(threshold > 0 && threshold < 1))
     throw new Error('--review-threshold must be between 0 and 1');
+  const claimTimeoutSec = Number(values['claim-timeout']);
+  if (!Number.isInteger(claimTimeoutSec) || claimTimeoutSec < 0)
+    throw new Error('--claim-timeout must be a non-negative integer (seconds)');
   const run = await runPddlDesign(createSdkTaskClient(agent), input, {
     maxCorrections,
+    claimTimeoutSec,
     ...(values.review
       ? {
           review: {

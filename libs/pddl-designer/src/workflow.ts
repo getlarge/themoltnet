@@ -30,7 +30,16 @@ import {
   type Issue,
   REVIEW_ONLY_CODES,
 } from './check.js';
-import type { Domain, Problem, ProblemResult } from './ir.js';
+import {
+  ActionsResultSchema,
+  type Domain,
+  PredicatesResultSchema,
+  type Problem,
+  type ProblemResult,
+  ProblemResultSchema,
+  RefineResultSchema,
+  TypesResultSchema,
+} from './ir.js';
 import {
   checkPlan,
   DEFAULT_LIMITS,
@@ -50,6 +59,7 @@ import {
   buildTypesTask,
   type Correction,
   type DesignInput,
+  namingIssues,
   parseActions,
   parsePredicates,
   parseProblem,
@@ -111,10 +121,17 @@ export interface DesignOptions {
   /** Correction tasks allowed per stage after a result fails the checks. */
   maxCorrections?: number;
   pollIntervalSec?: number;
+  /**
+   * Fail the run when no worker claims a stage task within this many seconds
+   * (default 600), instead of waiting for the task to expire.
+   */
+  claimTimeoutSec?: number;
   limits?: PlannerLimits;
   /**
-   * Review a found plan for shortcuts and send findings back to the refine
-   * stage. `rounds` bounds how many review-and-refine rounds run (default 1).
+   * Review a found plan for shortcuts and send findings back for correction.
+   * `rounds` bounds how many review rounds may trigger a fix (default 1).
+   * Shared work needs item-specific facts, so it re-runs the predicates and
+   * actions stages; a skippable required step only re-runs refine.
    */
   review?: ReviewOptions & { rounds?: number };
 }
@@ -136,6 +153,9 @@ function idempotencyKey(input: DesignInput, stage: string, attempt: number) {
   return 'pddl:' + digest;
 }
 
+const reviewOnly = (issues: Issue[]) =>
+  issues.filter((i) => !REVIEW_ONLY_CODES.has(i.code ?? ''));
+
 export async function runPddlDesign(
   tasks: TaskClient,
   input: DesignInput,
@@ -143,6 +163,8 @@ export async function runPddlDesign(
 ): Promise<DesignRun> {
   const started = Date.now();
   const maxCorrections = options.maxCorrections ?? 1;
+  const pollIntervalSec = options.pollIntervalSec ?? 2;
+  const claimTimeoutSec = options.claimTimeoutSec ?? 600;
   const ctx = {
     ...createInlineContext(),
     sleepFor: (_name: string, seconds: number) =>
@@ -165,6 +187,22 @@ export async function runPddlDesign(
     durationMs: 0,
   };
 
+  /** Wait until a worker claims the task, or fail with a pointed reason. */
+  async function awaitClaim(name: StageName, taskId: string) {
+    const deadline = Date.now() + claimTimeoutSec * 1000;
+    for (;;) {
+      const task = await tasks.getTask(taskId);
+      if (task.status !== 'queued') return;
+      if (Date.now() >= deadline)
+        throw new StageStopped(
+          name,
+          'failed',
+          `no worker claimed task ${taskId} within ${claimTimeoutSec}s; check that a poller is running for this profile and correlation`,
+        );
+      await ctx.sleepFor(`claim.${taskId}`, pollIntervalSec);
+    }
+  }
+
   /** Run one stage, retrying with a correction while checks report errors. */
   async function stage<T>(
     name: StageName,
@@ -182,10 +220,11 @@ export async function runPddlDesign(
       const task = await tasks.createTask(body, {
         idempotencyKey: idempotencyKey(input, name, attempt),
       });
+      await awaitClaim(name, task.id);
       const outcome = await waitForTaskOutcome(task.id, {
         tasks,
         ctx,
-        pollIntervalSec: options.pollIntervalSec ?? 2,
+        pollIntervalSec,
         parse,
       });
       if (outcome.kind !== 'accepted')
@@ -219,47 +258,63 @@ export async function runPddlDesign(
       'types',
       (n, c) => buildTypesTask(input, n, c),
       parseTypes,
-      (r) => checkTypes(r.types),
+      (r) => [...namingIssues(TypesResultSchema, r), ...checkTypes(r.types)],
     );
-    const predicates = await stage(
-      'predicates',
-      (n, c) => buildPredicatesTask(input, types.result, n, c),
-      parsePredicates,
-      (r) => checkPredicates(types.result.types, r.predicates),
-    );
-    const draft = await stage(
-      'actions',
-      (n, c) => buildActionsTask(input, types.result, predicates.result, n, c),
-      parseActions,
-      (r) =>
-        checkActions(
-          types.result.types,
-          predicates.result.predicates,
-          r.actions,
-        ),
-    );
-    const refined = await stage(
-      'refine',
-      (n, c) =>
-        buildRefineTask(
-          input,
-          types.result,
-          predicates.result,
-          draft.result.actions,
-          draft.issues.filter((i) => !REVIEW_ONLY_CODES.has(i.code ?? '')),
-          n,
-          c,
-        ),
-      parseRefine,
-      (r) =>
-        checkActions(
-          types.result.types,
-          predicates.result.predicates,
-          r.actions,
-        ),
-    );
-    let refinedResult = refined.result;
-    let refinedIssues = refined.issues;
+    const runPredicates = (seed?: Correction) =>
+      stage(
+        'predicates',
+        (n, c) => buildPredicatesTask(input, types.result, n, c),
+        parsePredicates,
+        (r) => [
+          ...namingIssues(PredicatesResultSchema, r),
+          ...checkPredicates(types.result.types, r.predicates),
+        ],
+        seed,
+      );
+    let predicates = await runPredicates();
+    const runActions = (seed?: Correction) =>
+      stage(
+        'actions',
+        (n, c) =>
+          buildActionsTask(input, types.result, predicates.result, n, c),
+        parseActions,
+        (r) => [
+          ...namingIssues(ActionsResultSchema, r),
+          ...checkActions(
+            types.result.types,
+            predicates.result.predicates,
+            r.actions,
+          ),
+        ],
+        seed,
+      );
+    let draft = await runActions();
+    const runRefine = (seed?: Correction) =>
+      stage(
+        'refine',
+        (n, c) =>
+          buildRefineTask(
+            input,
+            types.result,
+            predicates.result,
+            draft.result.actions,
+            reviewOnly(draft.issues),
+            n,
+            c,
+          ),
+        parseRefine,
+        (r) => [
+          ...namingIssues(RefineResultSchema, r),
+          ...checkActions(
+            types.result.types,
+            predicates.result.predicates,
+            r.actions,
+          ),
+        ],
+        seed,
+      );
+    let refined = await runRefine();
+
     let problemResult: ProblemResult | undefined;
     const rounds = options.review ? (options.review.rounds ?? 1) : 0;
     for (let round = 0; ; round++) {
@@ -267,10 +322,10 @@ export async function runPddlDesign(
         name: input.domainName,
         types: types.result.types,
         predicates: predicates.result.predicates,
-        actions: refinedResult.actions,
+        actions: refined.result.actions,
       };
       run.domain = domain;
-      run.refinements = refinedResult.changes;
+      run.refinements = refined.result.changes;
       run.domainPddl = renderDomain(domain);
 
       // Keep the problem across review rounds unless the new domain rejects it.
@@ -289,7 +344,10 @@ export async function runPddlDesign(
           (n, c) =>
             buildProblemTask(input, run.domainPddl ?? '', parameterTypes, n, c),
           parseProblem,
-          (r) => checkProblemWithReachability(domain, r, input.problemName),
+          (r) => [
+            ...namingIssues(ProblemResultSchema, r),
+            ...checkProblemWithReachability(domain, r, input.problemName),
+          ],
           problemResult
             ? {
                 previous: problemResult,
@@ -303,7 +361,7 @@ export async function runPddlDesign(
       const problem: Problem = { name: input.problemName, ...problemResult };
       run.problem = problem;
       run.problemPddl = renderProblem(problem, domain.name);
-      run.issues = [...refinedIssues, ...problemIssues];
+      run.issues = [...refined.issues, ...problemIssues];
 
       const check = checkPlan(
         domain,
@@ -331,29 +389,36 @@ export async function runPddlDesign(
       run.reviewPassed = review.findings.length === 0;
       if (run.reviewPassed || round >= rounds) break;
 
-      const fixed = await stage(
-        'refine',
-        (n, c) =>
-          buildRefineTask(
-            input,
-            types.result,
-            predicates.result,
-            draft.result.actions,
-            draft.issues.filter((i) => !REVIEW_ONLY_CODES.has(i.code ?? '')),
-            n,
-            c,
-          ),
-        parseRefine,
-        (r) =>
-          checkActions(
-            types.result.types,
-            predicates.result.predicates,
-            r.actions,
-          ),
-        { previous: refinedResult, issues: review.findings },
-      );
-      refinedResult = fixed.result;
-      refinedIssues = fixed.issues;
+      const findings = review.findings;
+      if (findings.some((f) => f.code === 'shared-work')) {
+        // Item-specific facts may not exist yet: let the predicates stage add
+        // them, then rebuild the actions from the previous ones.
+        predicates = await runPredicates({
+          previous: predicates.result,
+          issues: [
+            {
+              severity: 'error',
+              path: 'predicates',
+              code: 'shared-work',
+              message:
+                "A plan check found that one item can reach its goal with another item's work. Add predicates that name the item a result belongs to (for example a fact relating a produced thing to its item), keeping every existing predicate the actions still need.",
+            },
+            ...findings,
+          ],
+        });
+        draft = await runActions({
+          previous: refined.result.actions.length
+            ? { actions: refined.result.actions }
+            : draft.result,
+          issues: findings,
+        });
+        refined = await runRefine();
+      } else {
+        refined = await runRefine({
+          previous: refined.result,
+          issues: findings,
+        });
+      }
     }
   } catch (error) {
     if (!(error instanceof StageStopped)) throw error;

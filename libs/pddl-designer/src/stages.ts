@@ -260,15 +260,41 @@ export function buildProblemTask(
 
 // ---- parsers ----------------------------------------------------------------
 
+/**
+ * Naming rules (`pattern`) cannot travel in the output contract, so the daemon
+ * accepts a result that breaks them. Treat those as correctable check errors
+ * rather than a failed task: the parser accepts a result whose only problems
+ * are patterns, and `namingIssues` reports them to the correction loop.
+ */
 function parseStage<T>(output: unknown, schema: TSchema, label: string): T {
   const value: unknown = (output as { result?: unknown } | null)?.result;
-  if (!Value.Check(schema, value)) {
-    const [first] = Value.Errors(schema, value);
+  const structural = [...Value.Errors(schema, value)].filter(
+    (error) => error.keyword !== 'pattern',
+  );
+  if (structural.length) {
+    const [first] = structural;
     throw new Error(
-      `${label} result ${first?.instancePath || '(root)'}: ${first?.message}`,
+      `${label} result ${first.instancePath || '(root)'}: ${first.message}`,
     );
   }
   return value as T;
+}
+
+export function namingIssues(schema: TSchema, value: unknown): Issue[] {
+  return [...Value.Errors(schema, value)]
+    .filter((error) => error.keyword === 'pattern')
+    .map((error) => {
+      const pointer = error.instancePath.split('/').slice(1);
+      const actual = pointer.reduce<unknown>(
+        (node, key) => (node as Record<string, unknown> | undefined)?.[key],
+        value,
+      );
+      return {
+        severity: 'error' as const,
+        path: error.instancePath.slice(1),
+        message: `${JSON.stringify(actual)} is not a valid name: use lowercase letters, digits and hyphens, starting with a letter; parameters start with ?`,
+      };
+    });
 }
 
 export const parseTypes = (output: unknown) =>
