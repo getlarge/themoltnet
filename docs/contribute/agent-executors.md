@@ -175,6 +175,12 @@ the executor coordinates completion for mixed tool batches. After
 `session.prompt()` resolves, `executePiTask` uses the captured payload as the
 task output.
 
+**Repair applies to submitted tool arguments:** when a value is a JSON string
+but its schema expects another type, pi-runtime tries strict JSON, then the
+private `@moltnet/json-repair` library's complete JSON5 and missing-object-comma
+repairs. The result still passes Pi's tool-schema check and MoltNet's task
+validator. Repair does not turn a final assistant message into a submit call.
+
 **Contract lives in `@themoltnet/agent-runtime`.** The (toolName, description,
 parametersSchema) triple is exposed by `getSubmitOutputContract(taskType)` in
 `libs/agent-runtime/src/output-tools.ts`. The prompt builder reads

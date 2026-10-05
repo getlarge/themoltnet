@@ -94,6 +94,14 @@ describe('createSubmitOutputTool', () => {
     ['envelope', { output: validFulfillBriefOutput }, true],
     ['stringified array', { ...validFulfillBriefOutput, commits: '[]' }, true],
     [
+      'JSON5 stringified array',
+      {
+        ...validFulfillBriefOutput,
+        commits: '[{sha:"abcdef123",message:"m",diaryEntryId:null,},]',
+      },
+      true,
+    ],
+    [
       'single commit',
       {
         ...validFulfillBriefOutput,
@@ -139,6 +147,40 @@ describe('createSubmitOutputTool', () => {
       expect(!result.isError).toBe(accepted);
     },
   );
+  it('records syntax repairs for JSON5 inside submitted tool arguments', async () => {
+    const handle = createSubmitOutputTool('fulfill_brief');
+    const prepared = handle.tool.prepareArguments?.({
+      ...validFulfillBriefOutput,
+      commits: '[{sha:"abcdef123",message:"m",diaryEntryId:null,},]',
+    });
+
+    const result = await callExecute(handle)(prepared);
+
+    expect(result.isError).not.toBe(true);
+    expect(handle.getCaptured()).toMatchObject({
+      commits: [{ sha: 'abcdef123', message: 'm', diaryEntryId: null }],
+    });
+    expect(handle.getCapturedRepairs()).toEqual([
+      { kind: 'json_string', path: '/commits' },
+      { kind: 'lenient_json', path: '/commits' },
+    ]);
+  });
+
+  it('repairs a missing comma in a stringified submitted object', async () => {
+    const handle = createSubmitOutputTool('fulfill_brief');
+    const prepared = handle.tool.prepareArguments?.({
+      ...validFulfillBriefOutput,
+      commits: '[{"sha":"abcdef123" "message":"m","diaryEntryId":null}]',
+    });
+
+    const result = await callExecute(handle)(prepared);
+
+    expect(result.isError).not.toBe(true);
+    expect(handle.getCapturedRepairs()).toEqual([
+      { kind: 'json_string', path: '/commits' },
+      { kind: 'missing_comma', path: '/commits' },
+    ]);
+  });
   it('throws UnknownTaskTypeForSubmitToolError on unknown task types', () => {
     expect(() => createSubmitOutputTool('not_a_real_type')).toThrow(
       UnknownTaskTypeForSubmitToolError,

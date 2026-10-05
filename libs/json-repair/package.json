@@ -1,0 +1,31 @@
+{
+  "name": "@moltnet/json-repair",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "description": "Conservative complete JSON value repair for agent tool arguments",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "nx": {
+    "name": "@moltnet/json-repair",
+    "sourceRoot": "libs/json-repair/src",
+    "projectType": "library",
+    "tags": [
+      "type:util",
+      "scope:agent",
+      "platform:isomorphic"
+    ]
+  },
+  "dependencies": {
+    "json5": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

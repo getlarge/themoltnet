@@ -29,6 +29,7 @@
 import { validateToolArguments } from '@earendil-works/pi-ai';
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
+import { parseCompleteJsonValue } from '@moltnet/json-repair';
 import type { SchemaAlignmentRepair } from '@themoltnet/agent-runtime';
 import {
   alignToSchema,
@@ -262,7 +263,9 @@ function normalizeSubmitArguments(
   description: string,
   opts: CreateSubmitOutputToolOptions,
 ): { candidate: unknown; repairs: SchemaAlignmentRepair[] } {
-  const aligned = alignToSchema(params, schema);
+  const aligned = alignToSchema(params, schema, {
+    parseJsonString: parseCompleteJsonValue,
+  });
   const repairs = [...aligned.repairs];
   // Producer repair is mechanical for a submit-only gate. Apply it before
   // Pi validation, which removes strict-mode null placeholders. Cross-field

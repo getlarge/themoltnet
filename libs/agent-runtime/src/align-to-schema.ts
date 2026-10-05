@@ -9,7 +9,9 @@ export interface SchemaAlignmentRepair {
     | 'case_insensitive_match'
     | 'submit_gate_verification'
     | 'pi_schema_coercion'
-    | 'optional_null';
+    | 'optional_null'
+    | 'lenient_json'
+    | 'missing_comma';
   /** JSON pointer to the value changed; the root is the empty string. */
   path: string;
 }
@@ -17,6 +19,14 @@ export interface SchemaAlignmentRepair {
 export interface SchemaAlignment {
   value: unknown;
   repairs: SchemaAlignmentRepair[];
+}
+
+export interface SchemaAlignmentOptions {
+  /** Optional syntax repair for complete JSON strings supplied as tool values. */
+  parseJsonString?: (text: string) => {
+    value: unknown;
+    repairs: Array<'lenient_json' | 'missing_comma'>;
+  } | null;
 }
 
 function record(value: unknown): value is Record<string, unknown> {
@@ -35,7 +45,12 @@ function valid(schema: TSchema, value: unknown): boolean {
   }
 }
 
-function align(value: unknown, schema: TSchema, path: string): SchemaAlignment {
+function align(
+  value: unknown,
+  schema: TSchema,
+  path: string,
+  options: SchemaAlignmentOptions,
+): SchemaAlignment {
   if (valid(schema, value)) return { value, repairs: [] };
   const shape = schema as Record<string, unknown>;
 
@@ -43,7 +58,9 @@ function align(value: unknown, schema: TSchema, path: string): SchemaAlignment {
     | TSchema[]
     | undefined;
   if (alternatives) {
-    const candidates = alternatives.map((member) => align(value, member, path));
+    const candidates = alternatives.map((member) =>
+      align(value, member, path, options),
+    );
     const passing = candidates.filter((candidate) =>
       valid(schema, candidate.value),
     );
@@ -62,10 +79,14 @@ function align(value: unknown, schema: TSchema, path: string): SchemaAlignment {
 
   if (typeof current === 'string' && !admitsString) {
     try {
-      const parsed: unknown = JSON.parse(current);
-      if (typeof parsed !== 'string') {
-        current = parsed;
+      const parsed = options.parseJsonString?.(current) ?? {
+        value: JSON.parse(current) as unknown,
+        repairs: [],
+      };
+      if (typeof parsed.value !== 'string') {
+        current = parsed.value;
         repairs.push({ kind: 'json_string', path });
+        repairs.push(...parsed.repairs.map((kind) => ({ kind, path })));
       }
     } catch {
       // Strict validation reports the original value.
@@ -80,7 +101,7 @@ function align(value: unknown, schema: TSchema, path: string): SchemaAlignment {
     const items = shape.items as TSchema | undefined;
     if (items) {
       const aligned = (current as unknown[]).map((item, index) =>
-        align(item, items, pointer(path, index)),
+        align(item, items, pointer(path, index), options),
       );
       current = aligned.map((item) => item.value);
       repairs.push(...aligned.flatMap((item) => item.repairs));
@@ -116,7 +137,12 @@ function align(value: unknown, schema: TSchema, path: string): SchemaAlignment {
           repairs.push({ kind: 'optional_null', path: pointer(path, key) });
           continue;
         }
-        const aligned = align(child, property as TSchema, pointer(path, key));
+        const aligned = align(
+          child,
+          property as TSchema,
+          pointer(path, key),
+          options,
+        );
         result[key] = aligned.value;
         repairs.push(...aligned.repairs);
       }
@@ -152,6 +178,7 @@ function align(value: unknown, schema: TSchema, path: string): SchemaAlignment {
 export function alignToSchema(
   value: unknown,
   schema: TSchema,
+  options: SchemaAlignmentOptions = {},
 ): SchemaAlignment {
-  return align(value, schema, '');
+  return align(value, schema, '', options);
 }

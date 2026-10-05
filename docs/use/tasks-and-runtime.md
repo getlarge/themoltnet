@@ -849,10 +849,11 @@ a completed task attempt to verify both the wire flag and the accepted output.
 3. **Before execution, the agent daemon validates the contract definition.** An
    unsupported or malformed schema fails the attempt before the model runs.
 4. **At tool capture, Pi and the daemon runtime validate the arguments.** The
-   runtime repairs known transport quirks before Pi checks the tool schema, then
-   validates the custom result and standard cross-field rules. A rejected call
-   returns field errors for correction in the same session. Output
-   materialization uses the same daemon-owned validator.
+   runtime repairs complete JSON-like strings in submitted fields and known
+   shape quirks before Pi checks the tool schema, then validates the custom
+   result and standard cross-field rules. A rejected call returns field errors
+   for correction in the same session. Output materialization uses the same
+   daemon-owned validator.
 5. **At completion, the server checks standard task fields and stores the
    output.** It does not validate `result` against the custom schema. A direct
    `/complete` caller is responsible for the custom result it sends.
