@@ -5,12 +5,14 @@ import { parseArgs } from 'node:util';
 import { connect } from '@themoltnet/sdk/node';
 import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 
+import { createOllamaDecisionClient } from './decision.js';
 import { buildTypesTask, type DesignInput } from './stages.js';
 import { runPddlDesign } from './workflow.js';
 
 const USAGE =
   'Usage: pddl-designer --description FILE --problem FILE [--domain-name NAME --problem-name NAME] ' +
-  '[--team UUID --diary UUID --profile NAME|ID --correlation UUID --project UUID] [--out FILE] [--max-corrections N] [--dry-run]';
+  '[--team UUID --diary UUID --profile NAME|ID --correlation UUID --project UUID] [--out FILE] [--max-corrections N] ' +
+  '[--review [--decision-model nimble --ollama-url URL --review-threshold 0.9]] [--dry-run]';
 
 export async function main(argv = process.argv.slice(2)) {
   const { values } = parseArgs({
@@ -27,6 +29,10 @@ export async function main(argv = process.argv.slice(2)) {
       correlation: { type: 'string' },
       out: { type: 'string' },
       'max-corrections': { type: 'string', default: '1' },
+      review: { type: 'boolean', default: false },
+      'decision-model': { type: 'string', default: 'nimble' },
+      'ollama-url': { type: 'string', default: 'http://localhost:11434' },
+      'review-threshold': { type: 'string', default: '0.9' },
       'dry-run': { type: 'boolean', default: false },
     },
   });
@@ -64,8 +70,22 @@ export async function main(argv = process.argv.slice(2)) {
   if (!profile) throw new Error(`runtime profile ${values.profile} not found`);
   input.profileId = profile.id;
 
+  const threshold = Number(values['review-threshold']);
+  if (!(threshold > 0 && threshold < 1))
+    throw new Error('--review-threshold must be between 0 and 1');
   const run = await runPddlDesign(createSdkTaskClient(agent), input, {
     maxCorrections,
+    ...(values.review
+      ? {
+          review: {
+            threshold,
+            decisions: createOllamaDecisionClient({
+              model: values['decision-model'],
+              baseUrl: values['ollama-url'],
+            }),
+          },
+        }
+      : {}),
   });
   const text = `${JSON.stringify(run, null, 2)}\n`;
   if (values.out) writeFileSync(values.out, text);
@@ -75,6 +95,9 @@ export async function main(argv = process.argv.slice(2)) {
       (run.plan?.status === 'found'
         ? ` plan=${run.plan.steps.length} steps`
         : '') +
+      (run.reviewPassed === undefined
+        ? ''
+        : ` review=${run.reviewPassed ? 'passed' : 'findings'} rounds=${run.review?.length ?? 0}`) +
       (run.failure
         ? ` failure=${run.failure.stage}: ${run.failure.reason}`
         : '') +

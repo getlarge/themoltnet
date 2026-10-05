@@ -134,6 +134,30 @@ describe('runPddlDesign', () => {
     expect(refine?.brief).toContain('Use only the predicates listed below');
   });
 
+  it('sends review findings back to refine for one round', async () => {
+    // Arrange: the decision model says the skippable put-down is required
+    const tasks = fakeTasks();
+    const decisions = {
+      yesNo: (state: unknown) =>
+        Promise.resolve(
+          (state as { step: string }).step === 'put-down' ? 0.95 : 0.1,
+        ),
+    };
+
+    // Act
+    const run = await runPddlDesign(tasks, input, {
+      review: { decisions, rounds: 1 },
+    });
+
+    // Assert
+    const refines = run.stages.filter((s) => s.stage === 'refine');
+    expect(refines.map((s) => s.attempt)).toEqual([1, 2]);
+    expect(refines[1].brief).toContain('the description requires put-down');
+    expect(run.review?.map((r) => r.round)).toEqual([1, 2]);
+    expect(run.reviewPassed).toBe(false);
+    expect(run.stages.filter((s) => s.stage === 'problem')).toHaveLength(1);
+  });
+
   it('stops as invalid when corrections do not fix a stage', async () => {
     // Arrange: the problem never declares an arm
     const noArm = ok({

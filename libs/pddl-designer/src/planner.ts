@@ -438,3 +438,72 @@ export function checkPlan(
     plan: search(grounded.actions, problem, limits),
   };
 }
+
+export interface SharedWork {
+  action: string;
+  /** Goal items that can each reach their goal without their own instance. */
+  items: string[];
+}
+
+export interface ForcedAnalysis {
+  /** Action schemas the goal cannot be reached without. */
+  forced: string[];
+  /** Action schemas every plan can do without. */
+  skippable: string[];
+  /** Forced schemas that no single goal item needs its own instance of. */
+  shared: SharedWork[];
+}
+
+/**
+ * Which steps does the goal force? Remove each action schema and re-plan; a
+ * schema the goal cannot do without is forced. Then, for goal items of the
+ * same type, remove only the instances that mention one item: if every item
+ * still reaches the goal, one item's step serves them all (work is shared).
+ */
+export function forcedAnalysis(
+  domain: Domain,
+  problem: Problem,
+  limits: PlannerLimits = DEFAULT_LIMITS,
+): ForcedAnalysis {
+  const { actions } = ground(domain, problem, limits);
+  const solvable = (ops: GroundAction[]) => search(ops, problem, limits).status;
+  const typeOf = new Map(problem.objects.map((o) => [o.name, o.type]));
+  const goalItems = [
+    ...new Set(problem.goal.filter((g) => !g.negated).flatMap((g) => g.args)),
+  ];
+  const byType = new Map<string, string[]>();
+  for (const item of goalItems) {
+    const t = typeOf.get(item) ?? '';
+    byType.set(t, [...(byType.get(t) ?? []), item]);
+  }
+  const peers = [...byType.values()].filter((items) => items.length > 1);
+  const mentions = (op: GroundAction, item: string) =>
+    op.label.slice(1, -1).split(' ').slice(1).includes(item);
+
+  const result: ForcedAnalysis = { forced: [], skippable: [], shared: [] };
+  for (const schema of domain.actions) {
+    if (
+      solvable(actions.filter((op) => op.action !== schema.name)) !==
+      'unsolvable'
+    ) {
+      result.skippable.push(schema.name);
+      continue;
+    }
+    result.forced.push(schema.name);
+    for (const items of peers) {
+      const verdicts = items.map((item) => {
+        const own = actions.filter(
+          (op) => op.action === schema.name && mentions(op, item),
+        );
+        if (!own.length) return null;
+        return solvable(actions.filter((op) => !own.includes(op)));
+      });
+      if (
+        verdicts.every((v) => v === 'found') &&
+        verdicts.length === items.length
+      )
+        result.shared.push({ action: schema.name, items });
+    }
+  }
+  return result;
+}
