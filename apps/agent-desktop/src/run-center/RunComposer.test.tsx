@@ -152,7 +152,9 @@ describe('run draft and preset operations', () => {
     ).toBeInTheDocument();
   });
   it('shows a captured unavailable team explicitly', async () => {
-    setup({ catalogue: { ...catalogue, teams: [] } });
+    setup({}, true, (mock) =>
+      mock.mockResolvedValue({ ...catalogue, teams: [] }),
+    );
     await screen.findByRole('option', { name: /team.*unavailable/i });
     expect(screen.getByRole('button', { name: 'Start run' })).toBeDisabled();
   });
@@ -303,6 +305,8 @@ describe('run again', () => {
   it('replays the request on the same team and clears hidden options on a team change', async () => {
     const previous = {
       ...status.runs[0],
+      presetName: null,
+      teamName: null,
       agent: 'first-agent',
       mode: 'drain' as const,
       diaryId: undefined,
@@ -321,7 +325,7 @@ describe('run again', () => {
         source: '/Users/me/old-checkout',
         strategy: 'git-worktree' as const,
       },
-    };
+    } satisfies DesktopRun;
     const withProject = {
       ...catalogue,
       teams: [
@@ -376,7 +380,6 @@ describe('run again', () => {
     const data: RunCenterData = {
       server: running,
       status,
-      catalogue: withProject,
       runs: [previous],
       presets: [],
       providers: {},
@@ -512,7 +515,6 @@ describe('project selection rules', () => {
           data={{
             server: running,
             status,
-            catalogue: withProject,
             runs: [],
             presets: [],
             providers: {},

@@ -4,6 +4,39 @@
   "include": [],
   "references": [
     {
+      "path": "../rest-api"
+    },
+    {
+      "path": "../../libs/sdk"
+    },
+    {
+      "path": "../../libs/models"
+    },
+    {
+      "path": "../../libs/database"
+    },
+    {
+      "path": "../../libs/crypto-service"
+    },
+    {
+      "path": "../../libs/bootstrap"
+    },
+    {
+      "path": "../../libs/auth"
+    },
+    {
+      "path": "../../libs/api-client"
+    },
+    {
+      "path": "../../libs/agent-key-service"
+    },
+    {
+      "path": "../../libs/yubikey-preview-sign"
+    },
+    {
+      "path": "../../libs/ctap"
+    },
+    {
       "path": "./tsconfig.spec.json"
     }
   ]

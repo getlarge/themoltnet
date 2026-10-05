@@ -30,7 +30,6 @@ const run: DesktopRun = {
   startedAt: '2026-09-18T00:00:00Z',
   teamName: 'Research',
   presetName: null,
-  credential: null,
 };
 
 function fixture(stopRun: RunCenterActions['stopRun']) {
@@ -42,6 +41,8 @@ function fixture(stopRun: RunCenterActions['stopRun']) {
     } as unknown as RunCenterData['status'],
     runs: [run],
     presets: [],
+    providers: {},
+    subscriptions: [],
   };
   const actions: RunCenterActions = {
     catalogue: vi.fn().mockResolvedValue(EMPTY_CATALOGUE),

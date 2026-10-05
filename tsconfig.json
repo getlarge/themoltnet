@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     "declaration": true,
     "declarationMap": true,
     "esModuleInterop": true,
@@ -21,259 +22,256 @@
       "path": "./libs/provider-catalog"
     },
     {
-      "path": "apps/moltnet-signer"
+      "path": "./apps/moltnet-signer"
     },
     {
-      "path": "apps/agent-daemon"
+      "path": "./apps/agent-daemon"
     },
     {
-      "path": "apps/agent-daemon-e2e"
+      "path": "./apps/agent-daemon-e2e"
     },
     {
-      "path": "apps/issue-lifecycle"
+      "path": "./apps/issue-lifecycle"
     },
     {
-      "path": "apps/multi-lens-review"
+      "path": "./apps/multi-lens-review"
     },
     {
-      "path": "libs/docs-impact-review"
+      "path": "./libs/docs-impact-review"
     },
     {
-      "path": "libs/complexity-review"
+      "path": "./libs/complexity-review"
     },
     {
-      "path": "apps/orchestration-e2e"
+      "path": "./apps/orchestration-e2e"
     },
     {
-      "path": "apps/console"
+      "path": "./apps/console-e2e"
     },
     {
-      "path": "apps/console-e2e"
+      "path": "./apps/mcp-host-e2e"
     },
     {
-      "path": "apps/mcp-host-e2e"
+      "path": "./apps/mcp-host"
     },
     {
-      "path": "apps/mcp-host"
+      "path": "./apps/mcp-server"
     },
     {
-      "path": "apps/mcp-server"
+      "path": "./apps/mcp-server-e2e"
     },
     {
-      "path": "apps/mcp-server-e2e"
+      "path": "./apps/rest-api"
     },
     {
-      "path": "apps/rest-api"
+      "path": "./apps/rest-api-e2e"
     },
     {
-      "path": "apps/rest-api-e2e"
+      "path": "./libs/agent-runtime"
     },
     {
-      "path": "libs/agent-runtime"
+      "path": "./libs/agent-config"
     },
     {
-      "path": "libs/agent-config"
+      "path": "./libs/loopback-companion"
     },
     {
-      "path": "libs/loopback-companion"
+      "path": "./libs/os-keyring"
     },
     {
-      "path": "libs/os-keyring"
+      "path": "./libs/agent-key-service"
     },
     {
-      "path": "libs/agent-key-service"
+      "path": "./libs/runtime-policy-service"
     },
     {
-      "path": "libs/runtime-policy-service"
+      "path": "./libs/api-client"
     },
     {
-      "path": "libs/api-client"
+      "path": "./libs/signer-api-client"
     },
     {
-      "path": "libs/signer-api-client"
+      "path": "./libs/agent-daemon-api-client"
     },
     {
-      "path": "libs/agent-daemon-api-client"
+      "path": "./libs/auth"
     },
     {
-      "path": "libs/auth"
+      "path": "./libs/blob-storage"
     },
     {
-      "path": "libs/blob-storage"
+      "path": "./libs/bootstrap"
     },
     {
-      "path": "libs/bootstrap"
+      "path": "./libs/context-distill"
     },
     {
-      "path": "libs/context-distill"
+      "path": "./libs/context-pack-service"
     },
     {
-      "path": "libs/context-pack-service"
+      "path": "./libs/credential-broker"
     },
     {
-      "path": "libs/credential-broker"
+      "path": "./libs/credentials"
     },
     {
-      "path": "libs/credentials"
+      "path": "./libs/crypto-service"
     },
     {
-      "path": "libs/crypto-service"
+      "path": "./libs/ctap"
     },
     {
-      "path": "libs/ctap"
+      "path": "./libs/database"
     },
     {
-      "path": "libs/database"
+      "path": "./libs/design-system"
     },
     {
-      "path": "libs/design-system"
+      "path": "./libs/diary-service"
     },
     {
-      "path": "libs/diary-service"
+      "path": "./libs/diary-ui"
     },
     {
-      "path": "libs/diary-ui"
+      "path": "./libs/discovery"
     },
     {
-      "path": "libs/discovery"
+      "path": "./libs/embedding-service"
     },
     {
-      "path": "libs/embedding-service"
+      "path": "./libs/entry-explore-mcp-app"
     },
     {
-      "path": "libs/entry-explore-mcp-app"
+      "path": "./libs/execution-plan"
     },
     {
-      "path": "libs/execution-plan"
+      "path": "./libs/mcp-auth-proxy"
     },
     {
-      "path": "libs/mcp-auth-proxy"
+      "path": "./libs/mcp-test-harness"
     },
     {
-      "path": "libs/mcp-test-harness"
+      "path": "./libs/models"
     },
     {
-      "path": "libs/models"
+      "path": "./libs/n8n-nodes-moltnet"
     },
     {
-      "path": "libs/n8n-nodes-moltnet"
+      "path": "./libs/node-red-contrib-core"
     },
     {
-      "path": "libs/node-red-contrib-core"
+      "path": "./libs/observability"
     },
     {
-      "path": "libs/observability"
+      "path": "./libs/tasks-orchestrator"
     },
     {
-      "path": "libs/tasks-orchestrator"
+      "path": "./libs/pi-extension"
     },
     {
-      "path": "libs/pi-extension"
+      "path": "./libs/pi-runtime"
     },
     {
-      "path": "libs/pi-runtime"
+      "path": "./libs/sandbox-gondolin"
     },
     {
-      "path": "libs/sandbox-gondolin"
+      "path": "./libs/runtime-session-service"
     },
     {
-      "path": "libs/runtime-session-service"
+      "path": "./libs/signing-service"
     },
     {
-      "path": "libs/signing-service"
+      "path": "./libs/signing-workflows"
     },
     {
-      "path": "libs/signing-workflows"
+      "path": "./libs/sdk"
     },
     {
-      "path": "libs/sdk"
+      "path": "./libs/shell-command-analyzer"
     },
     {
-      "path": "libs/shell-command-analyzer"
+      "path": "./libs/task-mcp-app"
     },
     {
-      "path": "libs/task-mcp-app"
+      "path": "./libs/task-analytics-service"
     },
     {
-      "path": "libs/task-analytics-service"
+      "path": "./libs/task-artifact-service"
     },
     {
-      "path": "libs/task-artifact-service"
+      "path": "./libs/task-service"
     },
     {
-      "path": "libs/task-service"
+      "path": "./libs/task-ui"
     },
     {
-      "path": "libs/task-ui"
+      "path": "./libs/provenance-ui"
     },
     {
-      "path": "libs/provenance-ui"
+      "path": "./libs/task-workflows"
     },
     {
-      "path": "libs/task-workflows"
+      "path": "./libs/tasks"
     },
     {
-      "path": "libs/tasks"
+      "path": "./libs/task-schemas"
     },
     {
-      "path": "libs/task-schemas"
+      "path": "./libs/runtime-profiles"
     },
     {
-      "path": "libs/runtime-profiles"
+      "path": "./libs/yubikey-preview-sign"
     },
     {
-      "path": "libs/yubikey-preview-sign"
+      "path": "./tools"
     },
     {
-      "path": "examples/custom-pi-runtime"
+      "path": "./packages/agent-daemon-action"
     },
     {
-      "path": "tools"
+      "path": "./packages/docs-impact-review-action"
     },
     {
-      "path": "packages/agent-daemon-action"
+      "path": "./packages/complexity-review-action"
     },
     {
-      "path": "packages/docs-impact-review-action"
+      "path": "./packages/github-agent"
     },
     {
-      "path": "packages/complexity-review-action"
+      "path": "./packages/legreffier-cli"
     },
     {
-      "path": "packages/github-agent"
+      "path": "./libs/node-red-theme"
     },
     {
-      "path": "packages/legreffier-cli"
+      "path": "./docs"
     },
     {
-      "path": "libs/node-red-theme"
+      "path": "./libs/agent-eval"
     },
     {
-      "path": "docs"
+      "path": "./libs/oauth-token-cache"
     },
     {
-      "path": "libs/agent-eval"
+      "path": "./libs/dts-entry-shims"
     },
     {
-      "path": "libs/oauth-token-cache"
+      "path": "./libs/runtime-execution"
     },
     {
-      "path": "libs/dts-entry-shims"
+      "path": "./libs/execution-integrations"
     },
     {
-      "path": "libs/runtime-execution"
-    },
-    {
-      "path": "libs/execution-integrations"
-    },
-    {
-      "path": "apps/agent-desktop"
+      "path": "./apps/agent-desktop"
     },
     {
       "path": "./apps/agent-desktop-e2e"
     },
     {
-      "path": "libs/json-repair"
+      "path": "./apps/console"
+    },
+    {
+      "path": "./libs/json-repair"
     }
   ]
 }
