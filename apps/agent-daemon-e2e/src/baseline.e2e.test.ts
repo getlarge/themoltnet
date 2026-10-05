@@ -34,8 +34,10 @@ import {
   type BaselineReport,
   checkGates,
   readScenario,
+  readSubmitStructure,
   runBaseline,
   type Scenario,
+  type SubmitStructure,
   summarizeBaseline,
 } from '@moltnet/agent-eval';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises the daemon app entry point.
@@ -84,14 +86,9 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
   let piDir: string;
   const tempRoots: string[] = [];
   const scenarios = loadScenarios();
-  const structures: Array<{
-    scenario: string;
-    taskId: string;
-    attemptN: number;
-    invalidSubmitCalls: number;
-    repairKinds: string[];
-    outputSource: string | null;
-  }> = [];
+  const structures: Array<
+    SubmitStructure & { scenario: string; taskId: string; attemptN: number }
+  > = [];
 
   beforeAll(async () => {
     if (scenarios.length === 0) {
@@ -246,42 +243,14 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
 
           const attemptsForStructure = await agent.tasks.listAttempts(task.id);
           const lastAttempt = attemptsForStructure.at(-1);
-          let structure:
-            | {
-                invalidSubmitCalls: number;
-                repairKinds: string[];
-                outputSource: 'tool' | null;
-              }
-            | undefined;
+          let structure: SubmitStructure | undefined;
           if (lastAttempt) {
-            const messages = await agent.tasks.listMessages(
+            structure = await readSubmitStructure(
+              agent,
               task.id,
               lastAttempt.attemptN,
+              scenario.taskType,
             );
-            const submitName = `submit_${scenario.taskType}_output`;
-            const completion = messages.find(
-              (message) =>
-                message.kind === 'info' &&
-                message.payload.event === 'output_completion',
-            )?.payload;
-            const outputSource =
-              completion?.output_source === 'submit_tool'
-                ? ('tool' as const)
-                : null;
-            structure = {
-              invalidSubmitCalls: messages.filter(
-                (message) =>
-                  message.kind === 'tool_call_end' &&
-                  message.payload.tool_name === submitName &&
-                  message.payload.is_error === true,
-              ).length,
-              repairKinds: Array.isArray(completion?.repair_kinds)
-                ? completion.repair_kinds.filter(
-                    (kind): kind is string => typeof kind === 'string',
-                  )
-                : [],
-              outputSource,
-            };
             structures.push({
               scenario: scenario.slug,
               taskId: task.id,

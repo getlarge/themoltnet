@@ -45,6 +45,25 @@ function valid(schema: TSchema, value: unknown): boolean {
   }
 }
 
+function admitsJsonType(declared: unknown[], value: unknown): boolean {
+  const types = declared.filter((type) => typeof type === 'string');
+  if (types.length === 0) return true;
+  return types.some((type) => {
+    switch (type) {
+      case 'null':
+        return value === null;
+      case 'array':
+        return Array.isArray(value);
+      case 'object':
+        return record(value);
+      case 'integer':
+        return Number.isInteger(value);
+      default:
+        return typeof value === type;
+    }
+  });
+}
+
 function align(
   value: unknown,
   schema: TSchema,
@@ -83,7 +102,13 @@ function align(
         value: JSON.parse(current) as unknown,
         repairs: [],
       };
-      if (typeof parsed.value !== 'string') {
+      // A decode must produce a value of a declared JSON type. Otherwise a
+      // string such as "null" becomes null and a later coercion step can turn
+      // it into 0, false or "". Array targets validate their own wrapping.
+      if (
+        typeof parsed.value !== 'string' &&
+        (shape.type === 'array' || admitsJsonType(declared, parsed.value))
+      ) {
         current = parsed.value;
         repairs.push({ kind: 'json_string', path });
         repairs.push(...parsed.repairs.map((kind) => ({ kind, path })));
@@ -168,9 +193,9 @@ function align(
     }
   }
 
-  // Do not claim a repair that did not yield a schema-compatible value at this
-  // node. The caller still applies the task's strict cross-field validator.
-  if (!valid(schema, current)) return { value: current, repairs };
+  // Partial repairs are kept even when the node is still invalid, so strict
+  // validation reports the remaining field-level error rather than the
+  // original encoding. Only accepted submissions emit repair telemetry.
   return { value: current, repairs };
 }
 

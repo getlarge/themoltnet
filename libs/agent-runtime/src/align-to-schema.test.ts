@@ -249,4 +249,28 @@ describe('alignToSchema', () => {
     ]);
     expect(Value.Check(nested, aligned.value)).toBe(false);
   });
+
+  it('keeps a decoded string only when it yields a declared JSON type', () => {
+    const scalars = Type.Object(
+      {
+        count: Type.Number(),
+        done: Type.Boolean(),
+        meta: Type.Object({ ok: Type.Boolean() }),
+        maybe: Type.Union([Type.Number(), Type.Null()]),
+      },
+      { additionalProperties: false },
+    );
+    const input = { count: 'null', done: 'null', meta: 'null', maybe: 'null' };
+
+    const aligned = alignToSchema(input, scalars);
+
+    expect(aligned.value).toEqual({
+      count: 'null',
+      done: 'null',
+      meta: 'null',
+      maybe: null,
+    });
+    expect(aligned.repairs).toEqual([{ kind: 'json_string', path: '/maybe' }]);
+    expect(Value.Check(scalars, aligned.value)).toBe(false);
+  });
 });

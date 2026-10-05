@@ -54,3 +54,8 @@ export {
   type SubmitStructure,
   summarizeMatrix,
 } from './score-matrix.js';
+export {
+  readSubmitStructure,
+  type SubmitStructureAgent,
+  type SubmitStructureMessage,
+} from './submit-structure.js';
