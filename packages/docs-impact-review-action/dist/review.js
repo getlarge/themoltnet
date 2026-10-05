@@ -1,6 +1,6 @@
 import { C as __exportAll, E as __toESM, S as __esmMin, T as __toCommonJS, _ as _Object_, a as Record, b as _Array_, c as Number$1, d as Integer, f as Boolean$1, g as Unknown, h as Cyclic, i as Partial, l as Null, m as Unsafe, n as Errors, o as Union, p as Intersect, r as Check, s as String$1, t as Clean, u as Literal, v as Optional, w as __require, x as __commonJSMin, y as Ref$1 } from "./assets/value-DmYVUS9b.js";
 import { t as runMain } from "./assets/run-BAJLqHWw.js";
-import { a as createRateLimitFetch, i as summarizeCorpus, r as renderComment } from "./assets/report-v9naF6qM.js";
+import { a as createRateLimitFetch, i as summarizeCorpus, r as renderComment } from "./assets/report-DJdZyA5m.js";
 import { i as requireFullOid, n as ensureRevisions, r as existsAt, t as createGit } from "./assets/git-vBoKCgzJ.js";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { constants, lstatSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
@@ -19716,6 +19716,78 @@ function createSdkTaskClient(agent) {
 	};
 }
 //#endregion
+//#region ../../libs/docs-impact-review/src/budgets.ts
+/**
+* Initial budgets sized for ~24k input tokens per stage (≈4 bytes/token):
+* extraction gets the diff; coverage gets docs diff plus six excerpts.
+*/
+var DEFAULT_BUDGETS = Object.freeze({
+	diffTotalBytes: 64e3,
+	diffPerFileBytes: 12e3,
+	diffDocsReserveBytes: 16e3,
+	docsDiffBytes: 16e3,
+	docExcerptBytes: 8e3,
+	maxDocs: 6,
+	manifestLines: 150,
+	maxDocsHunks: 12,
+	docsHunkBytes: 1500,
+	stageRunningTimeoutSec: 120
+});
+/** Budgets a repository may set in its configuration file. */
+var CONFIGURABLE_BUDGETS = [
+	"diffTotalBytes",
+	"diffPerFileBytes",
+	"diffDocsReserveBytes",
+	"docsDiffBytes",
+	"docExcerptBytes",
+	"maxDocs",
+	"maxDocsHunks",
+	"stageRunningTimeoutSec"
+];
+/**
+* Accepted range per configurable budget. Upper bounds keep a stage within
+* a model's context and the review job's timeout: two chained stages of at
+* most 300 s dispatch plus 240 s running stay under the 20-minute job.
+*/
+var BUDGET_LIMITS = Object.freeze({
+	diffTotalBytes: {
+		minimum: 8e3,
+		maximum: 256e3
+	},
+	diffPerFileBytes: {
+		minimum: 1e3,
+		maximum: 64e3
+	},
+	diffDocsReserveBytes: {
+		minimum: 0,
+		maximum: 128e3
+	},
+	docsDiffBytes: {
+		minimum: 1e3,
+		maximum: 64e3
+	},
+	docExcerptBytes: {
+		minimum: 1e3,
+		maximum: 32e3
+	},
+	maxDocs: {
+		minimum: 1,
+		maximum: 20
+	},
+	maxDocsHunks: {
+		minimum: 1,
+		maximum: 50
+	},
+	stageRunningTimeoutSec: {
+		minimum: 30,
+		maximum: 240
+	}
+});
+/** Defaults, then repository configuration, then caller overrides. */
+function resolveBudgets(...layers) {
+	return Object.assign({}, DEFAULT_BUDGETS, ...layers);
+}
+//#endregion
 //#region ../../libs/docs-impact-review/src/glob.ts
 /**
 * Globs in the repository configuration (`docs.exclude`, `docs.agentFacing`,
@@ -19787,14 +19859,22 @@ var GENERATED_PATTERNS = [
 	/_gen\.go$/
 ];
 var DOCS_PATTERN = /\.mdx?$/i;
+/**
+* Markdown is always documentation; `include` globs from the repository
+* configuration add other formats (reStructuredText, AsciiDoc, …).
+*/
+function isDocsPath(path, include) {
+	return DOCS_PATTERN.test(path) || matchesAny(path, include);
+}
 function basename$1(path) {
 	return path.slice(path.lastIndexOf("/") + 1);
 }
-function categorize(path, binary, baseGenerated, docsExclude) {
+function categorize(path, binary, baseGenerated, docs) {
 	if (binary) return "binary";
-	if (baseGenerated.has(path) || DOCS_PATTERN.test(path) && matchesAny(path, docsExclude) || GENERATED_BASENAMES.has(basename$1(path)) || GENERATED_PATTERNS.some((pattern) => pattern.test(path))) return "generated";
+	const docsPath = isDocsPath(path, docs.include);
+	if (baseGenerated.has(path) || docsPath && matchesAny(path, docs.exclude) || GENERATED_BASENAMES.has(basename$1(path)) || GENERATED_PATTERNS.some((pattern) => pattern.test(path))) return "generated";
 	if (TEST_PATTERNS.some((pattern) => pattern.test(path))) return "test";
-	if (DOCS_PATTERN.test(path)) return "docs";
+	if (docsPath) return "docs";
 	return "source";
 }
 function toStatus(code) {
@@ -19858,26 +19938,27 @@ function parseNameStatus(output) {
 */
 function generatedFromBaseAttributes(git, baseRevision, paths) {
 	if (paths.length === 0) return /* @__PURE__ */ new Set();
+	const up = git(["rev-parse", "--show-cdup"]).trim();
 	const fields = git([
 		"check-attr",
 		"-z",
 		`--source=${baseRevision}`,
 		"--stdin",
 		"linguist-generated"
-	], `${paths.join("\0")}\0`).split("\0");
+	], `${paths.map((path) => `${up}${path}`).join("\0")}\0`).split("\0");
 	if (fields.at(-1) === "") fields.pop();
 	const generated = /* @__PURE__ */ new Set();
 	for (let index = 0; index + 2 < fields.length; index += 3) {
 		const value = fields[index + 2];
-		if (value === "set" || value === "true") generated.add(fields[index]);
+		if (value === "set" || value === "true") generated.add(fields[index].slice(up.length));
 	}
 	return generated;
 }
 /**
-* `docsExclude` globs mark Markdown the repository does not want reviewed
+* `docs.exclude` marks documentation the repository does not want reviewed
 * (vendored or generated pages); it is categorized as generated.
 */
-function collectChangeSet(git, baseRevision, headRevision, docsExclude) {
+function collectChangeSet(git, baseRevision, headRevision, docs) {
 	requireFullOid(baseRevision, "base revision");
 	requireFullOid(headRevision, "head revision");
 	const range = `${baseRevision}...${headRevision}`;
@@ -19907,7 +19988,7 @@ function collectChangeSet(git, baseRevision, headRevision, docsExclude) {
 			status: statuses.get(record.path) ?? "modified",
 			additions: record.additions,
 			deletions: record.deletions,
-			category: categorize(record.path, record.binary, baseGenerated, docsExclude)
+			category: categorize(record.path, record.binary, baseGenerated, docs)
 		}))
 	};
 }
@@ -19915,20 +19996,18 @@ function collectChangeSet(git, baseRevision, headRevision, docsExclude) {
 * Builds the model-facing diff from source and docs files only. Every file
 * that does not fit is reported, so callers can emit `incomplete` instead of
 * silently reviewing a subset.
+*
+* Packing order, each step skipping what does not fit:
+* 1. changed docs, within `docsReserveBytes`, so a large source change
+*    cannot push the pull request's own docs out;
+* 2. source, `prioritySources` first;
+* 3. the remaining docs, in whatever budget is left.
+*
+* The text lists source before docs, each in packing order.
 */
 function boundDiff(git, changeSet, budget) {
 	const range = `${changeSet.baseRevision}...${changeSet.headRevision}`;
-	const eligible = changeSet.files.filter((file) => file.category === "source" || file.category === "docs").sort((a, b) => Number(a.category === "docs") - Number(b.category === "docs") || a.path.localeCompare(b.path));
-	const blocks = [];
-	const result = {
-		blocks,
-		text: "",
-		bytes: 0,
-		includedPaths: [],
-		truncatedPaths: [],
-		omittedPaths: []
-	};
-	for (const file of eligible) {
+	const toCandidate = (file) => {
 		let hunks = "";
 		let header;
 		if (file.status === "deleted") header = `### ${file.path} (deleted, -${file.deletions} lines)\n`;
@@ -19939,26 +20018,58 @@ function boundDiff(git, changeSet, budget) {
 				"-M",
 				range,
 				"--",
-				...file.previousPath ? [file.previousPath, file.path] : [file.path]
+				...(file.previousPath ? [file.previousPath, file.path] : [file.path]).map((path) => `:(top,literal)${path}`)
 			]);
 			hunks = patch.slice(Math.max(0, patch.indexOf("@@")));
 			header = `### ${file.path} (${file.status}${file.previousPath ? ` from ${file.previousPath}` : ""})\n`;
 		}
 		const body = truncateAtLine(hunks, budget.perFileBytes);
 		const block = `${header}${body}\n`;
-		const blockBytes = Buffer.byteLength(block, "utf8");
-		if (result.bytes + blockBytes > budget.totalBytes) {
+		return {
+			file,
+			block,
+			bytes: Buffer.byteLength(block, "utf8"),
+			truncated: body !== hunks
+		};
+	};
+	const byPath = (a, b) => a.path.localeCompare(b.path);
+	const priority = (file) => matchesAny(file.path, budget.prioritySources) ? 0 : 1;
+	const docs = changeSet.files.filter((file) => file.category === "docs").sort(byPath).map(toCandidate);
+	const source = changeSet.files.filter((file) => file.category === "source").sort((a, b) => priority(a) - priority(b) || byPath(a, b)).map(toCandidate);
+	const taken = /* @__PURE__ */ new Set();
+	let used = 0;
+	const pack = (candidates, limit) => {
+		for (const candidate of candidates) {
+			if (taken.has(candidate) || used + candidate.bytes > limit) continue;
+			taken.add(candidate);
+			used += candidate.bytes;
+		}
+	};
+	pack(docs, budget.docsReserveBytes);
+	pack(source, budget.totalBytes);
+	pack(docs, budget.totalBytes);
+	const blocks = [];
+	const result = {
+		blocks,
+		text: "",
+		bytes: used,
+		includedPaths: [],
+		truncatedPaths: [],
+		omittedPaths: []
+	};
+	for (const candidate of [...source, ...docs]) {
+		const { file } = candidate;
+		if (!taken.has(candidate)) {
 			result.omittedPaths.push(file.path);
 			continue;
 		}
 		blocks.push({
 			path: file.path,
 			category: file.category,
-			text: block
+			text: candidate.block
 		});
-		result.bytes += blockBytes;
 		result.includedPaths.push(file.path);
-		if (body !== hunks) result.truncatedPaths.push(file.path);
+		if (candidate.truncated) result.truncatedPaths.push(file.path);
 	}
 	result.text = blocks.map((entry) => entry.text).join("");
 	return result;
@@ -20010,17 +20121,40 @@ function routeDocs(files, map, readmeExists) {
 }
 var MIN_TERM_LENGTH = 3;
 var MAX_TERM_LENGTH = 80;
+/** Literal paths per `git grep`, far below any argument-length limit. */
+var PATHSPEC_CHUNK = 500;
 /**
-* One exact, fixed-string search over Markdown at the head revision. Model
-* proposed terms are data: they are passed to `git grep -F` as patterns and
-* never interpreted as regular expressions or shell.
+* Pathspec groups to search. Markdown alone is two git globs. Repository
+* `include` globs use minimatch syntax (braces, dot rules) that git
+* pathspecs do not share, so the documentation files are listed once and
+* passed as literal paths instead.
 */
-function searchDocsForTerms(git, headRevision, terms, exclude) {
+function docsPathspecs(git, headRevision, docs) {
+	if (docs.include.length === 0) return [[":(top)*.md", ":(top)*.mdx"]];
+	const paths = git([
+		"ls-tree",
+		"-r",
+		"-z",
+		"--full-tree",
+		"--name-only",
+		headRevision
+	]).split("\0").filter((path) => path !== "" && isDocsPath(path, docs.include) && !matchesAny(path, docs.exclude)).map((path) => `:(top,literal)${path}`);
+	const groups = [];
+	for (let start = 0; start < paths.length; start += PATHSPEC_CHUNK) groups.push(paths.slice(start, start + PATHSPEC_CHUNK));
+	return groups;
+}
+/**
+* One exact, fixed-string search over documentation at the head revision.
+* Model proposed terms are data: they are passed to `git grep -F` as
+* patterns and never interpreted as regular expressions or shell.
+*/
+function searchDocsForTerms(git, headRevision, terms, docs) {
 	const usable = [...new Set(terms.map((term) => term.trim()).filter((term) => term.length >= MIN_TERM_LENGTH && term.length <= MAX_TERM_LENGTH && !/[\r\n]/.test(term)))];
 	const hits = /* @__PURE__ */ new Map();
 	if (usable.length === 0) return hits;
 	const prefix = `${headRevision}:`;
-	for (const term of usable) {
+	const groups = docsPathspecs(git, headRevision, docs);
+	for (const term of usable) for (const pathspecs of groups) {
 		let output;
 		try {
 			output = git([
@@ -20028,12 +20162,12 @@ function searchDocsForTerms(git, headRevision, terms, exclude) {
 				"-I",
 				"-F",
 				"-l",
+				"--full-name",
 				"-e",
 				term,
 				headRevision,
 				"--",
-				"*.md",
-				"*.mdx"
+				...pathspecs
 			]);
 		} catch (error) {
 			if (error.status === 1) continue;
@@ -20042,7 +20176,7 @@ function searchDocsForTerms(git, headRevision, terms, exclude) {
 		for (const line of output.split("\n")) {
 			if (!line.startsWith(prefix)) continue;
 			const path = line.slice(prefix.length);
-			if (matchesAny(path, exclude)) continue;
+			if (matchesAny(path, docs.exclude)) continue;
 			const terms = hits.get(path) ?? [];
 			if (!terms.includes(term)) terms.push(term);
 			hits.set(path, terms);
@@ -20121,6 +20255,7 @@ var MAX_INSTRUCTIONS_LENGTH = 2e3;
 /** Schema errors reported at once, so one pass fixes several keys. */
 var MAX_REPORTED_ERRORS = 5;
 var GlobList = _Array_(String$1({ minLength: 1 }));
+var BudgetsSchema = _Object_(Object.fromEntries(CONFIGURABLE_BUDGETS.map((key) => [key, Optional(Integer(BUDGET_LIMITS[key]))])), { additionalProperties: false });
 /** JSON schema of `.github/docs-impact-review.json`, for editors and tools. */
 var ReviewConfigSchema = _Object_({
 	version: Literal(1),
@@ -20128,7 +20263,13 @@ var ReviewConfigSchema = _Object_({
 	routing: Optional(_Array_(RoutingRule)),
 	docs: Optional(_Object_({
 		/**
-		* Markdown never reviewed, searched, or selected. Added to the
+		* Files reviewed as documentation besides Markdown (`*.md`,
+		* `*.mdx`), e.g. `docs/**\/*.rst`. Added to the built-in
+		* patterns; `[]` adds nothing.
+		*/
+		include: Optional(GlobList),
+		/**
+		* Documentation never reviewed, searched, or selected. Added to the
 		* built-in exclusions; `[]` adds nothing.
 		*/
 		exclude: Optional(GlobList),
@@ -20139,6 +20280,11 @@ var ReviewConfigSchema = _Object_({
 		*/
 		agentFacing: Optional(GlobList)
 	}, { additionalProperties: false })),
+	/**
+	* Input and runtime limits; each key overrides one default. Read from
+	* the base revision like the rest, so a pull request cannot raise them.
+	*/
+	budgets: Optional(BudgetsSchema),
 	/** Repository-specific guidance added to every stage brief. */
 	instructions: Optional(String$1({
 		minLength: 1,
@@ -20159,8 +20305,10 @@ var DEFAULT_AGENT_FACING = Object.freeze([
 ]);
 var DEFAULT_REVIEW_CONFIG = Object.freeze({
 	routing: Object.freeze({ rules: [] }),
+	docsInclude: Object.freeze([]),
 	docsExclude: DEFAULT_DOCS_EXCLUDE,
-	agentFacing: DEFAULT_AGENT_FACING
+	agentFacing: DEFAULT_AGENT_FACING,
+	budgets: Object.freeze({})
 });
 /** An invalid or unreadable configuration; the message names what to fix. */
 var ReviewConfigError = class extends Error {
@@ -20210,6 +20358,7 @@ function describeContradictions(config) {
 	const problems = [];
 	const globs = [
 		...config.routing.rules.flatMap((rule) => rule.paths.map((glob) => [`routing ${rule.id} paths`, glob])),
+		...config.docsInclude.map((glob) => ["docs.include", glob]),
 		...config.docsExclude.map((glob) => ["docs.exclude", glob]),
 		...config.agentFacing.map((glob) => ["docs.agentFacing", glob])
 	];
@@ -20226,6 +20375,8 @@ function describeContradictions(config) {
 			if (matchesAny(doc, config.docsExclude)) problems.push(`routing ${rule.id} names ${doc}, which docs.exclude excludes`);
 		}
 	}
+	const budgets = resolveBudgets(config.budgets);
+	for (const key of ["diffPerFileBytes", "diffDocsReserveBytes"]) if (config.budgets[key] !== void 0 && budgets[key] > budgets.diffTotalBytes) problems.push(`budgets.${key} (${budgets[key]}) exceeds budgets.diffTotalBytes (${budgets.diffTotalBytes})`);
 	return problems;
 }
 /** `location` names the file in errors, e.g. `<path>@<revision>`. */
@@ -20233,9 +20384,11 @@ function parseReviewConfig(value, location = REVIEW_CONFIG_PATH) {
 	if (!Check(ReviewConfigSchema, value)) throw new ReviewConfigError(`invalid ${location}: ${describeErrors(value)}. Keys this reviewer does not know may need a newer docs impact review version.`);
 	const config = {
 		routing: { rules: value.routing ?? [] },
+		docsInclude: unique(value.docs?.include ?? []),
 		docsExclude: unique([...DEFAULT_DOCS_EXCLUDE, ...value.docs?.exclude ?? []]),
 		agentFacing: unique([...DEFAULT_AGENT_FACING, ...value.docs?.agentFacing ?? []]),
-		...value.instructions ? { instructions: value.instructions.trim() } : {}
+		...value.instructions ? { instructions: value.instructions.trim() } : {},
+		budgets: value.budgets ?? {}
 	};
 	const contradictions = describeContradictions(config);
 	if (contradictions.length > 0) throw new ReviewConfigError(`invalid ${location}: ${contradictions.join("; ")}`);
@@ -20531,6 +20684,11 @@ var TEXT_LIMITS = {
 	searchTerm: 80
 };
 var TASK_EXPIRES_IN_SEC = 3600;
+/**
+* Default runtime budget per stage, enforced server-side by the running
+* timeout; `StageContext.runningTimeoutSec` overrides it.
+*/
+var STAGE_RUNNING_TIMEOUT_SEC = DEFAULT_BUDGETS.stageRunningTimeoutSec;
 var EvidenceSchema = _Object_({
 	path: String$1({ minLength: 1 }),
 	detail: String$1({
@@ -20649,7 +20807,7 @@ function parseCoverageCheck(output, allowed, repairs = []) {
 		const docsChange = finding.changeId.startsWith("docs:") ? finding.changeId.slice(5) : void 0;
 		if (docsChange ? !allowed.changedDocs.has(docsChange) : !allowed.changeIds.has(finding.changeId)) throw new Error(`finding references unknown change ${finding.changeId}`);
 		if (!allowed.changedPaths.has(finding.evidence.path)) throw new Error(`finding evidence ${finding.evidence.path} is not a changed file`);
-		if (!allowed.selectedDocs.has(finding.docsPath) && !/\.mdx?$/i.test(finding.docsPath)) throw new Error(`finding docsPath ${finding.docsPath} is neither a selected doc nor a markdown location`);
+		if (!allowed.selectedDocs.has(finding.docsPath) && !isDocsPath(finding.docsPath, allowed.docsInclude ?? [])) throw new Error(`finding docsPath ${finding.docsPath} is neither a selected doc nor a documentation location`);
 	}
 	return parsed;
 }
@@ -20682,7 +20840,7 @@ function baseTask(ctx, stage, title) {
 		diaryId: ctx.diaryId,
 		correlationId: ctx.correlationId,
 		expiresInSec: TASK_EXPIRES_IN_SEC,
-		runningTimeoutSec: 120,
+		runningTimeoutSec: ctx.runningTimeoutSec ?? STAGE_RUNNING_TIMEOUT_SEC,
 		dispatchTimeoutSec: 300,
 		maxAttempts: 1,
 		allowedProfiles: [{ profileId: ctx.stageProfileIds?.[stage] ?? ctx.profileId }],
@@ -20899,20 +21057,6 @@ function stageTiming(args) {
 //#endregion
 //#region ../../libs/docs-impact-review/src/workflow.ts
 /**
-* Initial budgets sized for ~24k input tokens per stage (≈4 bytes/token):
-* extraction gets the diff; coverage gets docs diff plus six excerpts.
-*/
-var DEFAULT_BUDGETS = {
-	diffTotalBytes: 64e3,
-	diffPerFileBytes: 12e3,
-	docsDiffBytes: 16e3,
-	docExcerptBytes: 8e3,
-	maxDocs: 6,
-	manifestLines: 150,
-	maxDocsHunks: 12,
-	docsHunkBytes: 1500
-};
-/**
 * Inline context whose `sleepFor` really sleeps. The orchestrator's
 * `inlineContext` treats sleeps as no-ops, which would turn task polling
 * into a busy loop outside Absurd.
@@ -20968,11 +21112,14 @@ function withReadRetries(tasks, ctx, backoffSec, logger) {
 * infrastructure failure: the review reports `incomplete` with the stage as
 * the uncovered scope instead of `failed`.
 */
-/** Runtime error codes that mean a stage ran out of an enforced budget. */
-var BUDGET_ERROR_REASONS = {
-	running_total_exceeded: `exceeded the 120s running budget before producing output`,
-	max_turns_exceeded: "used its tool-turn budget without submitting output"
-};
+/** Why a runtime error code means a stage ran out of an enforced budget. */
+function budgetErrorReason(code, runningTimeoutSec) {
+	switch (code) {
+		case "running_total_exceeded": return `exceeded the ${runningTimeoutSec}s running budget before producing output`;
+		case "max_turns_exceeded": return "used its tool-turn budget without submitting output";
+		default: return;
+	}
+}
 var StageBudgetExceeded = class extends Error {
 	stage;
 	reason;
@@ -21015,7 +21162,7 @@ async function runStage(deps, input, body, stage, parse, timings) {
 		observedMs
 	});
 	if (outcome.kind === "accepted") return outcome.result.state;
-	const budgetReason = attempt?.error?.code ? BUDGET_ERROR_REASONS[attempt.error.code] : void 0;
+	const budgetReason = attempt?.error?.code ? budgetErrorReason(attempt.error.code, body.runningTimeoutSec ?? input.runningTimeoutSec ?? 0) : void 0;
 	if (budgetReason) throw new StageBudgetExceeded(stage, budgetReason);
 	throw new Error(`${stage} stage: ${outcome.reason}`);
 }
@@ -21049,7 +21196,7 @@ function retrieveDocs(deps, config, changeSet, changes, budgets, gaps, searchTer
 		return exists;
 	});
 	const terms = changes.flatMap((change) => change.searchTerms);
-	const search = dropGenericTerms(searchDocsForTerms(git, head, terms, config.docsExclude));
+	const search = dropGenericTerms(searchDocsForTerms(git, head, terms, docsGlobs(config)));
 	searchTermsDropped.push(...search.generic);
 	for (const path of search.hits.keys()) {
 		const reasons = routed.candidates.get(path) ?? [];
@@ -21077,6 +21224,25 @@ function retrieveDocs(deps, config, changeSet, changes, budgets, gaps, searchTer
 			excerpt: extractExcerpt(git(["show", `${head}:${path}`]), terms, budgets.docExcerptBytes)
 		};
 	});
+}
+/** The documentation globs a repository configuration declares. */
+function docsGlobs(config) {
+	return {
+		include: config.docsInclude,
+		exclude: config.docsExclude
+	};
+}
+/**
+* The extraction diff budget: changed docs keep a reserve, and source the
+* routing rules name goes before other source.
+*/
+function diffBudget(config, budgets) {
+	return {
+		totalBytes: budgets.diffTotalBytes,
+		perFileBytes: Math.min(budgets.diffPerFileBytes, budgets.diffTotalBytes),
+		docsReserveBytes: Math.min(budgets.diffDocsReserveBytes, budgets.diffTotalBytes),
+		prioritySources: config.routing.rules.flatMap((rule) => rule.paths)
+	};
 }
 /**
 * A review that could not run, e.g. because the repository configuration is
@@ -21114,17 +21280,15 @@ function failedReport(target, source, message) {
 }
 async function runDocsImpactReview(deps, reviewInput) {
 	const { config, configSource, ...rest } = reviewInput;
+	const budgets = resolveBudgets(config.budgets, rest.budgets);
 	const input = {
 		...rest,
 		config,
 		configSource,
+		runningTimeoutSec: budgets.stageRunningTimeoutSec,
 		...config.instructions ? { instructions: config.instructions } : {}
 	};
 	const now = deps.now ?? Date.now;
-	const budgets = {
-		...DEFAULT_BUDGETS,
-		...input.budgets
-	};
 	const started = now();
 	const timings = {
 		ingestMs: 0,
@@ -21168,15 +21332,15 @@ async function runDocsImpactReview(deps, reviewInput) {
 	};
 	const finish = () => {
 		timings.totalMs = now() - started;
-		if (report.status === "completed" && report.gaps.length > 0 && (report.outcome === "covered" || report.outcome === "not-needed")) report.outcome = "incomplete";
+		if (report.status === "completed" && report.gaps.length > 0 && (report.outcome === "covered" || report.outcome === "not-needed")) {
+			report.reviewedOutcome = report.outcome;
+			report.outcome = "incomplete";
+		}
 		return report;
 	};
 	try {
-		const changeSet = collectChangeSet(deps.git, input.baseRevision, input.headRevision, config.docsExclude);
-		const diff = boundDiff(deps.git, changeSet, {
-			totalBytes: budgets.diffTotalBytes,
-			perFileBytes: budgets.diffPerFileBytes
-		});
+		const changeSet = collectChangeSet(deps.git, input.baseRevision, input.headRevision, docsGlobs(config));
+		const diff = boundDiff(deps.git, changeSet, diffBudget(config, budgets));
 		report.manifest = {
 			files: changeSet.files.length,
 			byCategory: countByCategory(changeSet.files),
@@ -21246,7 +21410,8 @@ async function runDocsImpactReview(deps, reviewInput) {
 			changeIds: new Set(report.contractChanges.map((change) => change.id)),
 			changedPaths: new Set(changeSet.files.map((file) => file.path)),
 			changedDocs,
-			selectedDocs: new Set(docs.map((doc) => doc.path))
+			selectedDocs: new Set(docs.map((doc) => doc.path)),
+			docsInclude: config.docsInclude
 		}, repairs)), timings.stages), docsHunks.hunks.length > 0 ? runStage(deps, input, buildDocsCheckTask(input, docsHunks.hunks), "docs-check", withRepairs("docs-check", (output, repairs) => parseDocsCheck(output, docsHunks.hunks, repairs)), timings.stages) : Promise.resolve([])]);
 		if (coverageResult.status === "rejected") throw coverageResult.reason;
 		const coverage = coverageResult.value;
@@ -21451,9 +21616,11 @@ function describeConfig(config, source) {
 	return [
 		source.location,
 		`${config.routing.rules.length} routing rules`,
+		`${config.docsInclude.length} docs inclusions`,
 		`${config.docsExclude.length} exclusions`,
 		`${config.agentFacing.length} agent-facing globs`,
-		config.instructions ? `${config.instructions.length} characters of instructions` : "no instructions"
+		config.instructions ? `${config.instructions.length} characters of instructions` : "no instructions",
+		`${Object.keys(config.budgets).length} budget overrides`
 	].join(", ");
 }
 function positiveInt(value, label) {
@@ -21616,13 +21783,11 @@ function resolveRevisions(target, options) {
 */
 function dryRunSummary(git, target, config, source) {
 	const { baseRevision: base, headRevision: head } = target;
-	const changeSet = collectChangeSet(git, base, head, config.docsExclude);
-	const diff = boundDiff(git, changeSet, {
-		totalBytes: DEFAULT_BUDGETS.diffTotalBytes,
-		perFileBytes: DEFAULT_BUDGETS.diffPerFileBytes
-	});
+	const budgets = resolveBudgets(config.budgets);
+	const changeSet = collectChangeSet(git, base, head, docsGlobs(config));
+	const diff = boundDiff(git, changeSet, diffBudget(config, budgets));
 	const routed = routeDocs(changeSet.files, config.routing, (path) => existsAt(git, head, path));
-	const selection = selectCandidates(routed.candidates, config, DEFAULT_BUDGETS.maxDocs);
+	const selection = selectCandidates(routed.candidates, config, budgets.maxDocs);
 	return {
 		pr: target.pr,
 		config: source,
