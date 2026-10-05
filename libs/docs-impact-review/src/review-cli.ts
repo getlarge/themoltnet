@@ -8,6 +8,7 @@ import { parseArgs } from 'node:util';
 import { connect } from '@themoltnet/sdk/node';
 import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 
+import { resolveBudgets } from './budgets.js';
 import {
   createGit,
   ensureRevisions,
@@ -31,8 +32,9 @@ import { parseLabels, scoreReports } from './score.js';
 import type { DocsImpactReport, StageName } from './types.js';
 import {
   createSleepingContext,
-  DEFAULT_BUDGETS,
   DEFAULT_POLL_INTERVAL_SEC,
+  diffBudget,
+  docsGlobs,
   runDocsImpactReview,
 } from './workflow.js';
 
@@ -95,11 +97,13 @@ function describeConfig(
   return [
     source.location,
     `${config.routing.rules.length} routing rules`,
+    `${config.docsInclude.length} docs inclusions`,
     `${config.docsExclude.length} exclusions`,
     `${config.agentFacing.length} agent-facing globs`,
     config.instructions
       ? `${config.instructions.length} characters of instructions`
       : 'no instructions',
+    `${Object.keys(config.budgets).length} budget overrides`,
   ].join(', ');
 }
 
@@ -321,18 +325,16 @@ function dryRunSummary(
   source: ReviewConfigSource,
 ): unknown {
   const { baseRevision: base, headRevision: head } = target;
-  const changeSet = collectChangeSet(git, base, head, config.docsExclude);
-  const diff = boundDiff(git, changeSet, {
-    totalBytes: DEFAULT_BUDGETS.diffTotalBytes,
-    perFileBytes: DEFAULT_BUDGETS.diffPerFileBytes,
-  });
+  const budgets = resolveBudgets(config.budgets);
+  const changeSet = collectChangeSet(git, base, head, docsGlobs(config));
+  const diff = boundDiff(git, changeSet, diffBudget(config, budgets));
   const routed = routeDocs(changeSet.files, config.routing, (path) =>
     existsAt(git, head, path),
   );
   const selection = selectCandidates(
     routed.candidates,
     config,
-    DEFAULT_BUDGETS.maxDocs,
+    budgets.maxDocs,
   );
   return {
     pr: target.pr,

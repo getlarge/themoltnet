@@ -166,6 +166,11 @@ export interface DocsImpactReport {
   status: 'completed' | 'failed';
   /** Absent when status is `failed`: a failure never reads as a clean result. */
   outcome?: Outcome;
+  /**
+   * Set when gaps turned a clean result into `incomplete`: what the review
+   * found for the part it did cover.
+   */
+  reviewedOutcome?: 'covered' | 'not-needed';
   findings: DocsFinding[];
   gaps: CoverageGap[];
   /** Search terms dropped because they matched too many docs. */

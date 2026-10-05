@@ -33,6 +33,14 @@ const GENERATED_PATTERNS = [/(^|\/)generated\//, /\.gen\.[a-z]+$/, /_gen\.go$/];
 
 const DOCS_PATTERN = /\.mdx?$/i;
 
+/**
+ * Markdown is always documentation; `include` globs from the repository
+ * configuration add other formats (reStructuredText, AsciiDoc, …).
+ */
+export function isDocsPath(path: string, include: readonly string[]): boolean {
+  return DOCS_PATTERN.test(path) || matchesAny(path, include);
+}
+
 function basename(path: string): string {
   return path.slice(path.lastIndexOf('/') + 1);
 }
@@ -41,19 +49,20 @@ function categorize(
   path: string,
   binary: boolean,
   baseGenerated: ReadonlySet<string>,
-  docsExclude: readonly string[],
+  docs: DocsGlobs,
 ): FileCategory {
   if (binary) return 'binary';
+  const docsPath = isDocsPath(path, docs.include);
   if (
     baseGenerated.has(path) ||
-    (DOCS_PATTERN.test(path) && matchesAny(path, docsExclude)) ||
+    (docsPath && matchesAny(path, docs.exclude)) ||
     GENERATED_BASENAMES.has(basename(path)) ||
     GENERATED_PATTERNS.some((pattern) => pattern.test(path))
   ) {
     return 'generated';
   }
   if (TEST_PATTERNS.some((pattern) => pattern.test(path))) return 'test';
-  if (DOCS_PATTERN.test(path)) return 'docs';
+  if (docsPath) return 'docs';
   return 'source';
 }
 
@@ -137,6 +146,9 @@ function generatedFromBaseAttributes(
   paths: string[],
 ): Set<string> {
   if (paths.length === 0) return new Set();
+  // check-attr resolves paths from the working directory and takes no
+  // pathspec magic, so root-relative paths are prefixed with the way up.
+  const up = git(['rev-parse', '--show-cdup']).trim();
   const output = git(
     [
       'check-attr',
@@ -145,27 +157,37 @@ function generatedFromBaseAttributes(
       '--stdin',
       'linguist-generated',
     ],
-    `${paths.join('\0')}\0`,
+    `${paths.map((path) => `${up}${path}`).join('\0')}\0`,
   );
   const fields = output.split('\0');
   if (fields.at(-1) === '') fields.pop();
   const generated = new Set<string>();
   for (let index = 0; index + 2 < fields.length; index += 3) {
     const value = fields[index + 2];
-    if (value === 'set' || value === 'true') generated.add(fields[index]);
+    if (value === 'set' || value === 'true') {
+      generated.add(fields[index].slice(up.length));
+    }
   }
   return generated;
 }
 
+/** Repository globs that decide which changed files are documentation. */
+export interface DocsGlobs {
+  /** Reviewed as documentation besides Markdown. */
+  include: readonly string[];
+  /** Documentation the repository does not want reviewed. */
+  exclude: readonly string[];
+}
+
 /**
- * `docsExclude` globs mark Markdown the repository does not want reviewed
+ * `docs.exclude` marks documentation the repository does not want reviewed
  * (vendored or generated pages); it is categorized as generated.
  */
 export function collectChangeSet(
   git: Git,
   baseRevision: string,
   headRevision: string,
-  docsExclude: readonly string[],
+  docs: DocsGlobs,
 ): ChangeSet {
   requireFullOid(baseRevision, 'base revision');
   requireFullOid(headRevision, 'head revision');
@@ -187,12 +209,7 @@ export function collectChangeSet(
     status: statuses.get(record.path) ?? 'modified',
     additions: record.additions,
     deletions: record.deletions,
-    category: categorize(
-      record.path,
-      record.binary,
-      baseGenerated,
-      docsExclude,
-    ),
+    category: categorize(record.path, record.binary, baseGenerated, docs),
   }));
   return { baseRevision, headRevision, files };
 }
@@ -200,12 +217,34 @@ export function collectChangeSet(
 export interface DiffBudget {
   totalBytes: number;
   perFileBytes: number;
+  /** Part of `totalBytes` that changed docs fill before source does. */
+  docsReserveBytes: number;
+  /**
+   * Source globs to include before other source when the budget is short,
+   * e.g. the paths of the repository's routing rules.
+   */
+  prioritySources: readonly string[];
+}
+
+interface Candidate {
+  file: ChangedFile;
+  block: string;
+  bytes: number;
+  truncated: boolean;
 }
 
 /**
  * Builds the model-facing diff from source and docs files only. Every file
  * that does not fit is reported, so callers can emit `incomplete` instead of
  * silently reviewing a subset.
+ *
+ * Packing order, each step skipping what does not fit:
+ * 1. changed docs, within `docsReserveBytes`, so a large source change
+ *    cannot push the pull request's own docs out;
+ * 2. source, `prioritySources` first;
+ * 3. the remaining docs, in whatever budget is left.
+ *
+ * The text lists source before docs, each in packing order.
  */
 export function boundDiff(
   git: Git,
@@ -213,23 +252,7 @@ export function boundDiff(
   budget: DiffBudget,
 ): BoundedDiff {
   const range = `${changeSet.baseRevision}...${changeSet.headRevision}`;
-  const eligible = changeSet.files
-    .filter((file) => file.category === 'source' || file.category === 'docs')
-    .sort(
-      (a, b) =>
-        Number(a.category === 'docs') - Number(b.category === 'docs') ||
-        a.path.localeCompare(b.path),
-    );
-  const blocks: DiffBlock[] = [];
-  const result: BoundedDiff = {
-    blocks,
-    text: '',
-    bytes: 0,
-    includedPaths: [],
-    truncatedPaths: [],
-    omittedPaths: [],
-  };
-  for (const file of eligible) {
+  const toCandidate = (file: ChangedFile): Candidate => {
     let hunks = '';
     let header: string;
     if (file.status === 'deleted') {
@@ -240,7 +263,17 @@ export function boundDiff(
       const paths = file.previousPath
         ? [file.previousPath, file.path]
         : [file.path];
-      const patch = git(['diff', '--no-color', '-M', range, '--', ...paths]);
+      // `top`: changed paths are root-relative whatever the working
+      // directory; without it a subdirectory run reads empty patches.
+      // `literal`: a file name is never a glob.
+      const patch = git([
+        'diff',
+        '--no-color',
+        '-M',
+        range,
+        '--',
+        ...paths.map((path) => `:(top,literal)${path}`),
+      ]);
       hunks = patch.slice(Math.max(0, patch.indexOf('@@')));
       header = `### ${file.path} (${file.status}${
         file.previousPath ? ` from ${file.previousPath}` : ''
@@ -248,15 +281,61 @@ export function boundDiff(
     }
     const body = truncateAtLine(hunks, budget.perFileBytes);
     const block = `${header}${body}\n`;
-    const blockBytes = Buffer.byteLength(block, 'utf8');
-    if (result.bytes + blockBytes > budget.totalBytes) {
+    return {
+      file,
+      block,
+      bytes: Buffer.byteLength(block, 'utf8'),
+      truncated: body !== hunks,
+    };
+  };
+  const byPath = (a: ChangedFile, b: ChangedFile) =>
+    a.path.localeCompare(b.path);
+  const priority = (file: ChangedFile) =>
+    matchesAny(file.path, budget.prioritySources) ? 0 : 1;
+  const docs = changeSet.files
+    .filter((file) => file.category === 'docs')
+    .sort(byPath)
+    .map(toCandidate);
+  const source = changeSet.files
+    .filter((file) => file.category === 'source')
+    .sort((a, b) => priority(a) - priority(b) || byPath(a, b))
+    .map(toCandidate);
+
+  const taken = new Set<Candidate>();
+  let used = 0;
+  const pack = (candidates: Candidate[], limit: number) => {
+    for (const candidate of candidates) {
+      if (taken.has(candidate) || used + candidate.bytes > limit) continue;
+      taken.add(candidate);
+      used += candidate.bytes;
+    }
+  };
+  pack(docs, budget.docsReserveBytes);
+  pack(source, budget.totalBytes);
+  pack(docs, budget.totalBytes);
+
+  const blocks: DiffBlock[] = [];
+  const result: BoundedDiff = {
+    blocks,
+    text: '',
+    bytes: used,
+    includedPaths: [],
+    truncatedPaths: [],
+    omittedPaths: [],
+  };
+  for (const candidate of [...source, ...docs]) {
+    const { file } = candidate;
+    if (!taken.has(candidate)) {
       result.omittedPaths.push(file.path);
       continue;
     }
-    blocks.push({ path: file.path, category: file.category, text: block });
-    result.bytes += blockBytes;
+    blocks.push({
+      path: file.path,
+      category: file.category,
+      text: candidate.block,
+    });
     result.includedPaths.push(file.path);
-    if (body !== hunks) result.truncatedPaths.push(file.path);
+    if (candidate.truncated) result.truncatedPaths.push(file.path);
   }
   result.text = blocks.map((entry) => entry.text).join('');
   return result;

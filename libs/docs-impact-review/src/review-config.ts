@@ -1,6 +1,12 @@
 import { type Static, Type } from 'typebox';
 import { Value } from 'typebox/value';
 
+import {
+  BUDGET_LIMITS,
+  type Budgets,
+  CONFIGURABLE_BUDGETS,
+  resolveBudgets,
+} from './budgets.js';
 import { type Git, requireFullOid } from './git.js';
 import { matchesAny, validateGlob } from './glob.js';
 import { type RoutingMap, RoutingRule } from './routing.js';
@@ -16,6 +22,16 @@ const MAX_REPORTED_ERRORS = 5;
 
 const GlobList = Type.Array(Type.String({ minLength: 1 }));
 
+const BudgetsSchema = Type.Object(
+  Object.fromEntries(
+    CONFIGURABLE_BUDGETS.map((key) => [
+      key,
+      Type.Optional(Type.Integer(BUDGET_LIMITS[key])),
+    ]),
+  ),
+  { additionalProperties: false },
+);
+
 /** JSON schema of `.github/docs-impact-review.json`, for editors and tools. */
 export const ReviewConfigSchema = Type.Object(
   {
@@ -26,7 +42,13 @@ export const ReviewConfigSchema = Type.Object(
       Type.Object(
         {
           /**
-           * Markdown never reviewed, searched, or selected. Added to the
+           * Files reviewed as documentation besides Markdown (`*.md`,
+           * `*.mdx`), e.g. `docs/**\/*.rst`. Added to the built-in
+           * patterns; `[]` adds nothing.
+           */
+          include: Type.Optional(GlobList),
+          /**
+           * Documentation never reviewed, searched, or selected. Added to the
            * built-in exclusions; `[]` adds nothing.
            */
           exclude: Type.Optional(GlobList),
@@ -40,6 +62,11 @@ export const ReviewConfigSchema = Type.Object(
         { additionalProperties: false },
       ),
     ),
+    /**
+     * Input and runtime limits; each key overrides one default. Read from
+     * the base revision like the rest, so a pull request cannot raise them.
+     */
+    budgets: Type.Optional(BudgetsSchema),
     /** Repository-specific guidance added to every stage brief. */
     instructions: Type.Optional(
       Type.String({
@@ -55,9 +82,13 @@ export type ReviewConfigFile = Static<typeof ReviewConfigSchema>;
 
 export interface ReviewConfig {
   readonly routing: RoutingMap;
+  /** Globs reviewed as documentation besides `*.md` and `*.mdx`. */
+  readonly docsInclude: readonly string[];
   readonly docsExclude: readonly string[];
   readonly agentFacing: readonly string[];
   readonly instructions?: string;
+  /** Only the budgets the repository set; defaults fill the rest. */
+  readonly budgets: Readonly<Partial<Budgets>>;
 }
 
 /**
@@ -90,8 +121,10 @@ export const DEFAULT_AGENT_FACING: readonly string[] = Object.freeze([
 
 export const DEFAULT_REVIEW_CONFIG: ReviewConfig = Object.freeze({
   routing: Object.freeze({ rules: [] }),
+  docsInclude: Object.freeze([]),
   docsExclude: DEFAULT_DOCS_EXCLUDE,
   agentFacing: DEFAULT_AGENT_FACING,
+  budgets: Object.freeze({}),
 });
 
 /** An invalid or unreadable configuration; the message names what to fix. */
@@ -157,6 +190,7 @@ function describeContradictions(config: ReviewConfig): string[] {
     ...config.routing.rules.flatMap((rule) =>
       rule.paths.map((glob) => [`routing ${rule.id} paths`, glob] as const),
     ),
+    ...config.docsInclude.map((glob) => ['docs.include', glob] as const),
     ...config.docsExclude.map((glob) => ['docs.exclude', glob] as const),
     ...config.agentFacing.map((glob) => ['docs.agentFacing', glob] as const),
   ];
@@ -182,6 +216,19 @@ function describeContradictions(config: ReviewConfig): string[] {
       }
     }
   }
+  // Only a value the file sets is a contradiction; a default above a smaller
+  // configured total is clamped to it where the diff is built.
+  const budgets = resolveBudgets(config.budgets);
+  for (const key of ['diffPerFileBytes', 'diffDocsReserveBytes'] as const) {
+    if (
+      config.budgets[key] !== undefined &&
+      budgets[key] > budgets.diffTotalBytes
+    ) {
+      problems.push(
+        `budgets.${key} (${budgets[key]}) exceeds budgets.diffTotalBytes (${budgets.diffTotalBytes})`,
+      );
+    }
+  }
   return problems;
 }
 
@@ -197,6 +244,7 @@ export function parseReviewConfig(
   }
   const config: ReviewConfig = {
     routing: { rules: value.routing ?? [] },
+    docsInclude: unique(value.docs?.include ?? []),
     docsExclude: unique([
       ...DEFAULT_DOCS_EXCLUDE,
       ...(value.docs?.exclude ?? []),
@@ -206,6 +254,7 @@ export function parseReviewConfig(
       ...(value.docs?.agentFacing ?? []),
     ]),
     ...(value.instructions ? { instructions: value.instructions.trim() } : {}),
+    budgets: (value.budgets ?? {}) as Partial<Budgets>,
   };
   const contradictions = describeContradictions(config);
   if (contradictions.length > 0) {

@@ -559,11 +559,61 @@ describe('runDocsImpactReview', () => {
     // Assert
     const result = await report;
     expect(result.outcome).toBe('incomplete');
+    expect(result.reviewedOutcome).toBe('covered');
     expect(result.gaps).toEqual([
       {
         scope: 'apps/cli/src/other.ts',
         reason: 'omitted from model context by the diff budget',
       },
     ]);
+  });
+
+  it('applies budgets from the repository configuration', async () => {
+    // Arrange
+    const head = repo.commit({
+      'apps/cli/src/flags.ts': 'export const a = 1;\n'.repeat(200),
+      'apps/cli/src/other.ts': 'export const b = 1;\n'.repeat(200),
+    });
+    const configured = parseReviewConfig({
+      version: 1,
+      budgets: {
+        diffTotalBytes: 8_000,
+        diffPerFileBytes: 4_500,
+        stageRunningTimeoutSec: 200,
+      },
+    });
+
+    // Act
+    const { report, created } = run(head, [json({ version: 1, changes: [] })], {
+      config: configured,
+    });
+
+    // Assert
+    const result = await report;
+    expect(result.outcome).toBe('incomplete');
+    expect(result.reviewedOutcome).toBe('not-needed');
+    expect(result.gaps.map((gap) => gap.scope)).toEqual([
+      'apps/cli/src/other.ts',
+    ]);
+    expect(created[0].runningTimeoutSec).toBe(200);
+  });
+
+  it('names the configured timeout when a stage exceeds it', async () => {
+    // Arrange
+    const head = repo.commit({
+      'apps/cli/src/flags.ts': "export const flags = ['--dry-run'];\n",
+    });
+    const configured = parseReviewConfig({
+      version: 1,
+      budgets: { stageRunningTimeoutSec: 90 },
+    });
+
+    // Act
+    const { report } = run(head, ['timeout'], { config: configured });
+
+    // Assert
+    const result = await report;
+    expect(result.gaps[0].reason).toContain('90s running budget');
+    expect(result.reviewedOutcome).toBeUndefined();
   });
 });

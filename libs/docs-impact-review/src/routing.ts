@@ -4,6 +4,7 @@ import { type Static, Type } from 'typebox';
 
 import type { Git } from './git.js';
 import { matchesAny } from './glob.js';
+import { type DocsGlobs, isDocsPath } from './ingest.js';
 import type { ChangedFile, DocsSelectionReason } from './types.js';
 
 export const RoutingRule = Type.Object(
@@ -82,17 +83,55 @@ export function routeDocs(
 
 const MIN_TERM_LENGTH = 3;
 const MAX_TERM_LENGTH = 80;
+/** Literal paths per `git grep`, far below any argument-length limit. */
+const PATHSPEC_CHUNK = 500;
 
 /**
- * One exact, fixed-string search over Markdown at the head revision. Model
- * proposed terms are data: they are passed to `git grep -F` as patterns and
- * never interpreted as regular expressions or shell.
+ * Pathspec groups to search. Markdown alone is two git globs. Repository
+ * `include` globs use minimatch syntax (braces, dot rules) that git
+ * pathspecs do not share, so the documentation files are listed once and
+ * passed as literal paths instead.
+ */
+function docsPathspecs(
+  git: Git,
+  headRevision: string,
+  docs: DocsGlobs,
+): string[][] {
+  // `top`: search the whole tree whatever the working directory.
+  if (docs.include.length === 0) return [[':(top)*.md', ':(top)*.mdx']];
+  const paths = git([
+    'ls-tree',
+    '-r',
+    '-z',
+    '--full-tree',
+    '--name-only',
+    headRevision,
+  ])
+    .split('\0')
+    .filter(
+      (path) =>
+        path !== '' &&
+        isDocsPath(path, docs.include) &&
+        !matchesAny(path, docs.exclude),
+    )
+    .map((path) => `:(top,literal)${path}`);
+  const groups: string[][] = [];
+  for (let start = 0; start < paths.length; start += PATHSPEC_CHUNK) {
+    groups.push(paths.slice(start, start + PATHSPEC_CHUNK));
+  }
+  return groups;
+}
+
+/**
+ * One exact, fixed-string search over documentation at the head revision.
+ * Model proposed terms are data: they are passed to `git grep -F` as
+ * patterns and never interpreted as regular expressions or shell.
  */
 export function searchDocsForTerms(
   git: Git,
   headRevision: string,
   terms: readonly string[],
-  exclude: readonly string[],
+  docs: DocsGlobs,
 ): Map<string, string[]> {
   const usable = [
     ...new Set(
@@ -112,41 +151,45 @@ export function searchDocsForTerms(
   // stays small however often a term occurs, and per-term file counts (used
   // to drop generic terms) are exact.
   const prefix = `${headRevision}:`;
+  const groups = docsPathspecs(git, headRevision, docs);
   for (const term of usable) {
-    let output: string;
-    try {
-      output = git([
-        'grep',
-        '-I',
-        '-F',
-        '-l',
-        '-e',
-        term,
-        headRevision,
-        '--',
-        '*.md',
-        '*.mdx',
-      ]);
-    } catch (error) {
-      // `git grep` exits 1 when nothing matches.
-      if ((error as { status?: number }).status === 1) continue;
-      throw error;
-    }
-    for (const line of output.split('\n')) {
-      if (!line.startsWith(prefix)) continue;
-      const path = line.slice(prefix.length);
-      // Filtered here rather than with pathspec excludes, so search applies
-      // the same glob semantics as ingestion and selection.
-      if (matchesAny(path, exclude)) continue;
-      const terms = hits.get(path) ?? [];
-      if (!terms.includes(term)) terms.push(term);
-      hits.set(path, terms);
+    for (const pathspecs of groups) {
+      let output: string;
+      try {
+        output = git([
+          'grep',
+          '-I',
+          '-F',
+          '-l',
+          // Root-relative output, matching every other path in the review.
+          '--full-name',
+          '-e',
+          term,
+          headRevision,
+          '--',
+          ...pathspecs,
+        ]);
+      } catch (error) {
+        // `git grep` exits 1 when nothing matches.
+        if ((error as { status?: number }).status === 1) continue;
+        throw error;
+      }
+      for (const line of output.split('\n')) {
+        if (!line.startsWith(prefix)) continue;
+        const path = line.slice(prefix.length);
+        // Filtered here rather than with pathspec excludes, so search
+        // applies the same glob semantics as ingestion and selection.
+        if (matchesAny(path, docs.exclude)) continue;
+        const terms = hits.get(path) ?? [];
+        if (!terms.includes(term)) terms.push(term);
+        hits.set(path, terms);
+      }
     }
   }
   return hits;
 }
 
-/** A search term matching more Markdown files than this is too generic. */
+/** A search term matching more documentation files than this is too generic. */
 export const MAX_FILES_PER_TERM = 8;
 
 /**

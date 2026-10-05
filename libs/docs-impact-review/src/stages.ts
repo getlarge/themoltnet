@@ -5,11 +5,13 @@ import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 import { type TSchema, Type } from 'typebox';
 import { Value } from 'typebox/value';
 
+import { DEFAULT_BUDGETS } from './budgets.js';
 import {
   DOCS_CHECK_VERDICTS,
   type DocsCheckAnswer,
   type DocsHunk,
 } from './docs-check.js';
+import { isDocsPath } from './ingest.js';
 import {
   CONTRACT_KINDS,
   type ContractChange,
@@ -38,10 +40,11 @@ export const TEXT_LIMITS = {
   searchTerm: 80,
 } as const;
 const TASK_EXPIRES_IN_SEC = 60 * 60;
-/** Runtime budget per stage, enforced server-side by the running timeout. */
-// Sized for a 2–3 minute review: coverage on a larger PR can need more than
-// 90 s, and running out yields an honest `incomplete`, never a clean result.
-export const STAGE_RUNNING_TIMEOUT_SEC = 120;
+/**
+ * Default runtime budget per stage, enforced server-side by the running
+ * timeout; `StageContext.runningTimeoutSec` overrides it.
+ */
+export const STAGE_RUNNING_TIMEOUT_SEC = DEFAULT_BUDGETS.stageRunningTimeoutSec;
 /**
  * An unclaimed stage fails on the server after this long instead of waiting
  * for the review job's timeout, so a missing worker reads as unavailable.
@@ -75,6 +78,8 @@ export interface StageContext {
    * review inside the fixed scope and output contract.
    */
   instructions?: string;
+  /** Running timeout of each stage task; defaults to the shared budget. */
+  runningTimeoutSec?: number;
   tags: string[];
 }
 
@@ -258,6 +263,8 @@ export interface CoverageAllowlist {
   changedPaths: ReadonlySet<string>;
   changedDocs: ReadonlySet<string>;
   selectedDocs: ReadonlySet<string>;
+  /** Globs proposed docs locations may match besides Markdown. */
+  docsInclude?: readonly string[];
 }
 
 export function parseCoverageCheck(
@@ -300,10 +307,10 @@ export function parseCoverageCheck(
     }
     if (
       !allowed.selectedDocs.has(finding.docsPath) &&
-      !/\.mdx?$/i.test(finding.docsPath)
+      !isDocsPath(finding.docsPath, allowed.docsInclude ?? [])
     ) {
       throw new Error(
-        `finding docsPath ${finding.docsPath} is neither a selected doc nor a markdown location`,
+        `finding docsPath ${finding.docsPath} is neither a selected doc nor a documentation location`,
       );
     }
   }
@@ -348,7 +355,7 @@ function baseTask(
     diaryId: ctx.diaryId,
     correlationId: ctx.correlationId,
     expiresInSec: TASK_EXPIRES_IN_SEC,
-    runningTimeoutSec: STAGE_RUNNING_TIMEOUT_SEC,
+    runningTimeoutSec: ctx.runningTimeoutSec ?? STAGE_RUNNING_TIMEOUT_SEC,
     dispatchTimeoutSec: STAGE_DISPATCH_TIMEOUT_SEC,
     maxAttempts: 1,
     allowedProfiles: [

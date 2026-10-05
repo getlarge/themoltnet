@@ -8,9 +8,15 @@ import {
   type WorkflowContext,
 } from '@themoltnet/tasks-orchestrator';
 
+import { type Budgets, resolveBudgets } from './budgets.js';
 import { docsCheckFindings, extractDocsHunks } from './docs-check.js';
 import { existsAt, type Git } from './git.js';
-import { boundDiff, collectChangeSet } from './ingest.js';
+import {
+  boundDiff,
+  collectChangeSet,
+  type DiffBudget,
+  type DocsGlobs,
+} from './ingest.js';
 import type { ReviewConfig, ReviewConfigSource } from './review-config.js';
 import {
   dropGenericTerms,
@@ -28,7 +34,6 @@ import {
   parseContractExtraction,
   parseCoverageCheck,
   parseDocsCheck,
-  STAGE_RUNNING_TIMEOUT_SEC,
   type StageContext,
 } from './stages.js';
 import { truncateAtLine } from './text.js';
@@ -44,32 +49,6 @@ import type {
   SelectedDoc,
   StageName,
 } from './types.js';
-
-export interface Budgets {
-  diffTotalBytes: number;
-  diffPerFileBytes: number;
-  docsDiffBytes: number;
-  docExcerptBytes: number;
-  maxDocs: number;
-  manifestLines: number;
-  maxDocsHunks: number;
-  docsHunkBytes: number;
-}
-
-/**
- * Initial budgets sized for ~24k input tokens per stage (≈4 bytes/token):
- * extraction gets the diff; coverage gets docs diff plus six excerpts.
- */
-export const DEFAULT_BUDGETS: Budgets = {
-  diffTotalBytes: 64_000,
-  diffPerFileBytes: 12_000,
-  docsDiffBytes: 16_000,
-  docExcerptBytes: 8_000,
-  maxDocs: 6,
-  manifestLines: 150,
-  maxDocsHunks: 12,
-  docsHunkBytes: 1_500,
-};
 
 /**
  * Everything a review decides from. The repository configuration is part of
@@ -168,11 +147,20 @@ function withReadRetries(
  * infrastructure failure: the review reports `incomplete` with the stage as
  * the uncovered scope instead of `failed`.
  */
-/** Runtime error codes that mean a stage ran out of an enforced budget. */
-const BUDGET_ERROR_REASONS: Record<string, string> = {
-  running_total_exceeded: `exceeded the ${STAGE_RUNNING_TIMEOUT_SEC}s running budget before producing output`,
-  max_turns_exceeded: 'used its tool-turn budget without submitting output',
-};
+/** Why a runtime error code means a stage ran out of an enforced budget. */
+function budgetErrorReason(
+  code: string,
+  runningTimeoutSec: number,
+): string | undefined {
+  switch (code) {
+    case 'running_total_exceeded':
+      return `exceeded the ${runningTimeoutSec}s running budget before producing output`;
+    case 'max_turns_exceeded':
+      return 'used its tool-turn budget without submitting output';
+    default:
+      return undefined;
+  }
+}
 
 class StageBudgetExceeded extends Error {
   constructor(
@@ -200,7 +188,7 @@ async function transcriptHead(
 
 async function runStage<T>(
   deps: DocsImpactDeps,
-  input: DocsImpactInput,
+  input: DocsImpactInput & StageContext,
   body: CreateBody,
   stage: StageName,
   parse: (output: unknown) => T,
@@ -236,7 +224,10 @@ async function runStage<T>(
   });
   if (outcome.kind === 'accepted') return outcome.result.state;
   const budgetReason = attempt?.error?.code
-    ? BUDGET_ERROR_REASONS[attempt.error.code]
+    ? budgetErrorReason(
+        attempt.error.code,
+        body.runningTimeoutSec ?? input.runningTimeoutSec ?? 0,
+      )
     : undefined;
   if (budgetReason) throw new StageBudgetExceeded(stage, budgetReason);
   throw new Error(`${stage} stage: ${outcome.reason}`);
@@ -298,7 +289,7 @@ function retrieveDocs(
   });
   const terms = changes.flatMap((change) => change.searchTerms);
   const search = dropGenericTerms(
-    searchDocsForTerms(git, head, terms, config.docsExclude),
+    searchDocsForTerms(git, head, terms, docsGlobs(config)),
   );
   searchTermsDropped.push(...search.generic);
   for (const path of search.hits.keys()) {
@@ -331,6 +322,27 @@ function retrieveDocs(
       excerpt: extractExcerpt(markdown, terms, budgets.docExcerptBytes),
     };
   });
+}
+
+/** The documentation globs a repository configuration declares. */
+export function docsGlobs(config: ReviewConfig): DocsGlobs {
+  return { include: config.docsInclude, exclude: config.docsExclude };
+}
+
+/**
+ * The extraction diff budget: changed docs keep a reserve, and source the
+ * routing rules name goes before other source.
+ */
+export function diffBudget(config: ReviewConfig, budgets: Budgets): DiffBudget {
+  return {
+    totalBytes: budgets.diffTotalBytes,
+    perFileBytes: Math.min(budgets.diffPerFileBytes, budgets.diffTotalBytes),
+    docsReserveBytes: Math.min(
+      budgets.diffDocsReserveBytes,
+      budgets.diffTotalBytes,
+    ),
+    prioritySources: config.routing.rules.flatMap((rule) => rule.paths),
+  };
 }
 
 /**
@@ -371,14 +383,15 @@ export async function runDocsImpactReview(
   reviewInput: DocsImpactInput,
 ): Promise<DocsImpactReport> {
   const { config, configSource, ...rest } = reviewInput;
+  const budgets = resolveBudgets(config.budgets, rest.budgets);
   const input: StageContext & DocsImpactInput = {
     ...rest,
     config,
     configSource,
+    runningTimeoutSec: budgets.stageRunningTimeoutSec,
     ...(config.instructions ? { instructions: config.instructions } : {}),
   };
   const now = deps.now ?? Date.now;
-  const budgets = { ...DEFAULT_BUDGETS, ...input.budgets };
   const started = now();
   const timings: DocsImpactReport['timings'] = {
     ingestMs: 0,
@@ -423,6 +436,9 @@ export async function runDocsImpactReview(
       report.gaps.length > 0 &&
       (report.outcome === 'covered' || report.outcome === 'not-needed')
     ) {
+      // Keep what the reviewed part showed: the gaps make the result
+      // incomplete, they do not make that judgment wrong.
+      report.reviewedOutcome = report.outcome;
       report.outcome = 'incomplete';
     }
     return report;
@@ -433,12 +449,9 @@ export async function runDocsImpactReview(
       deps.git,
       input.baseRevision,
       input.headRevision,
-      config.docsExclude,
+      docsGlobs(config),
     );
-    const diff = boundDiff(deps.git, changeSet, {
-      totalBytes: budgets.diffTotalBytes,
-      perFileBytes: budgets.diffPerFileBytes,
-    });
+    const diff = boundDiff(deps.git, changeSet, diffBudget(config, budgets));
     report.manifest = {
       files: changeSet.files.length,
       byCategory: countByCategory(changeSet.files),
@@ -566,6 +579,7 @@ export async function runDocsImpactReview(
               changedPaths: new Set(changeSet.files.map((file) => file.path)),
               changedDocs,
               selectedDocs: new Set(docs.map((doc) => doc.path)),
+              docsInclude: config.docsInclude,
             },
             repairs,
           ),
@@ -635,3 +649,6 @@ export async function runDocsImpactReview(
     return finish();
   }
 }
+
+export type { Budgets } from './budgets.js';
+export { DEFAULT_BUDGETS } from './budgets.js';

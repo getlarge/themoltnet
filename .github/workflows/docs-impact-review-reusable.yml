@@ -217,7 +217,9 @@ jobs:
     if: needs.prepare.outputs.skip == 'false'
     runs-on: ubuntu-latest
     # Above the stage budgets: two chained stages of at most 300 s dispatch
-    # plus 120 s running each, so the reviewer reports before the job dies.
+    # plus a running timeout each (120 s by default; a repository may set up
+    # to 240 s, BUDGET_LIMITS in libs/docs-impact-review/src/budgets.ts), so
+    # the reviewer reports before the job dies.
     timeout-minutes: 20
     environment: ${{ inputs.environment }}
     # pull-requests: write is used only when no GitHub App writes the comment.

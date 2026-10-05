@@ -169,6 +169,29 @@ describe('renderComment', () => {
     expect(body).toContain('- `src/big.ts`: omitted');
   });
 
+  it('says what the review found for the part it read', () => {
+    // Act
+    const partial = renderComment(
+      report({
+        outcome: 'incomplete',
+        reviewedOutcome: 'not-needed',
+        gaps: [{ scope: 'docs/a.md', reason: 'omitted' }],
+      }),
+    );
+    const stageTimeout = renderComment(
+      report({
+        outcome: 'incomplete',
+        gaps: [{ scope: 'extract stage', reason: 'exceeded' }],
+      }),
+    );
+
+    // Assert
+    expect(partial).toContain(
+      'The changes this review read need no docs update',
+    );
+    expect(stageTimeout).not.toContain('this review read');
+  });
+
   it('says when a review ran without the repository configuration', () => {
     // Act
     const defaults = renderComment(

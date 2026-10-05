@@ -1,5 +1,8 @@
+import { join } from 'node:path';
+
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { createGit } from './git.js';
 import { DEFAULT_AGENT_FACING, DEFAULT_DOCS_EXCLUDE } from './review-config.js';
 import {
   dropGenericTerms,
@@ -186,12 +189,10 @@ describe('searchDocsForTerms', () => {
     });
 
     // Act
-    const hits = searchDocsForTerms(
-      repo.git,
-      head,
-      ['--dry-run', 'x'],
-      DEFAULT_DOCS_EXCLUDE,
-    );
+    const hits = searchDocsForTerms(repo.git, head, ['--dry-run', 'x'], {
+      include: [],
+      exclude: DEFAULT_DOCS_EXCLUDE,
+    });
 
     // Assert
     expect(Object.fromEntries(hits)).toEqual({
@@ -208,12 +209,10 @@ describe('searchDocsForTerms', () => {
     });
 
     // Act
-    const hits = searchDocsForTerms(
-      repo.git,
-      head,
-      ['--dry-run'],
-      ['**/CHANGELOG.md', '**/.*/**/CHANGELOG.md', 'vendor/**'],
-    );
+    const hits = searchDocsForTerms(repo.git, head, ['--dry-run'], {
+      include: [],
+      exclude: ['**/CHANGELOG.md', '**/.*/**/CHANGELOG.md', 'vendor/**'],
+    });
 
     // Assert: `vendor/**` excludes the directory, and the dot-directory
     // changelog is excluded by the pattern that names the dot.
@@ -225,14 +224,58 @@ describe('searchDocsForTerms', () => {
     const head = repo.commit({ 'docs/cli.md': 'nothing here\n' });
 
     // Act
-    const hits = searchDocsForTerms(
-      repo.git,
-      head,
-      ['MOLTNET_NEW_VAR'],
-      DEFAULT_DOCS_EXCLUDE,
-    );
+    const hits = searchDocsForTerms(repo.git, head, ['MOLTNET_NEW_VAR'], {
+      include: [],
+      exclude: DEFAULT_DOCS_EXCLUDE,
+    });
 
     // Assert
     expect(hits.size).toBe(0);
+  });
+
+  it.each([
+    ['Markdown only', []],
+    ['included formats', ['docs/**/*.rst']],
+  ])('searches the whole tree from a subdirectory (%s)', (_label, include) => {
+    // Arrange
+    const head = repo.commit({
+      'docs/cli.md': 'Pass `--dry-run` to preview.\n',
+      'sub/notes.md': 'nothing here\n',
+    });
+
+    // Act
+    const hits = searchDocsForTerms(
+      createGit(join(repo.dir, 'sub')),
+      head,
+      ['--dry-run'],
+      { include, exclude: [] },
+    );
+
+    // Assert
+    expect([...hits.keys()]).toEqual(['docs/cli.md']);
+  });
+
+  it('searches files the repository includes as documentation', () => {
+    // Arrange
+    const head = repo.commit({
+      'docs/cli.md': 'Pass `--dry-run` to preview.\n',
+      'docs/guide/cli.rst': 'Use ``--dry-run`` first.\n',
+      'docs/guide/cli.adoc': 'Use `--dry-run` first.\n',
+      'docs/vendor/cli.rst': 'Use ``--dry-run`` too.\n',
+      'src/cli.ts': 'const flag = "--dry-run";\n',
+    });
+
+    // Act: braces are minimatch syntax that git pathspecs do not support.
+    const hits = searchDocsForTerms(repo.git, head, ['--dry-run'], {
+      include: ['docs/**/*.{rst,adoc}'],
+      exclude: ['docs/vendor/**'],
+    });
+
+    // Assert
+    expect([...hits.keys()].sort()).toEqual([
+      'docs/cli.md',
+      'docs/guide/cli.adoc',
+      'docs/guide/cli.rst',
+    ]);
   });
 });
