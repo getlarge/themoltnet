@@ -28,6 +28,7 @@ import {
   checkTypes,
   hasErrors,
   type Issue,
+  REVIEW_ONLY_CODES,
 } from './check.js';
 import type { Domain, Problem } from './ir.js';
 import {
@@ -232,7 +233,7 @@ export async function runPddlDesign(
           types.result,
           predicates.result,
           draft.result.actions,
-          draft.issues,
+          draft.issues.filter((i) => !REVIEW_ONLY_CODES.has(i.code ?? '')),
           n,
           c,
         ),

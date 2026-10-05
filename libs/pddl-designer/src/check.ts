@@ -24,7 +24,12 @@ export interface Issue {
   severity: Severity;
   path: string;
   message: string;
+  /** Stable identifier for hints that callers filter, e.g. `unlinked-parameters`. */
+  code?: string;
 }
+
+/** Hints kept in the run record for reviewers but not sent to the refine stage. */
+export const REVIEW_ONLY_CODES = new Set(['unlinked-parameters']);
 
 const ROOT_TYPE = 'object';
 
@@ -315,12 +320,13 @@ export function unlinkedParameters(action: ActionDef): Issue[] {
   const typeOf = new Map(action.parameters.map((p) => [p.name, p.type]));
   const unused = action.parameters.filter((p) => !used.has(p.name));
   for (const p of unused)
-    issues.push(
-      warn(
+    issues.push({
+      ...warn(
         `actions/${action.name}`,
         `${p.name} - ${p.type} appears in no precondition, so the planner may pick any ${p.type}`,
       ),
-    );
+      code: 'unlinked-parameters',
+    });
   const groups = new Map<string, string[]>();
   for (const name of used) {
     const root = find(name);
@@ -331,12 +337,13 @@ export function unlinkedParameters(action: ActionDef): Issue[] {
       (names) =>
         '{' + names.map((n) => `${n} - ${typeOf.get(n)}`).join(', ') + '}',
     );
-    issues.push(
-      warn(
+    issues.push({
+      ...warn(
         `actions/${action.name}`,
         `no precondition links ${listed.join(' and ')}: any combination may be chosen. Add a precondition that ties them if only a specific one may act`,
       ),
-    );
+      code: 'unlinked-parameters',
+    });
   }
   return issues;
 }

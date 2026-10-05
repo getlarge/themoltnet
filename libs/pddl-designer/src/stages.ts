@@ -216,7 +216,7 @@ export function buildRefineTask(
     input,
     'refine',
     [
-      'Stage 4: refine the draft actions. Add preconditions and effects the description implies but the draft misses: ownership checks, resources released when work ends, facts that must stop being true, and single-use objects. Keep every action unless two are equivalent. Return the complete action list, and one line per change in `changes` citing the description or the finding it fixes.',
+      'Stage 4: refine the draft actions. Add preconditions and effects the description implies but the draft misses: ownership checks, resources released when work ends, facts that must stop being true, and single-use objects. Keep every action unless two are equivalent. Use only the predicates listed below: if a fix would need a new predicate, leave the action unchanged and name the missing fact in `changes`. Return the complete action list, and one line per change in `changes` citing the description or the finding it fixes.',
       ...MODELING_RULES,
       'Types:\n' + json(types.types),
       'Predicates:\n' + json(predicates.predicates),

@@ -117,6 +117,23 @@ describe('runPddlDesign', () => {
     );
   });
 
+  it('keeps unlinked-parameter hints out of the refine brief but in the record', async () => {
+    // Arrange: Blocks World draws unlinked hints (any arm may move any block)
+    const tasks = fakeTasks();
+
+    // Act
+    const run = await runPddlDesign(tasks, input);
+
+    // Assert
+    const actions = run.stages.find((s) => s.stage === 'actions');
+    const refine = run.stages.find((s) => s.stage === 'refine');
+    expect(actions?.issues.some((i) => i.code === 'unlinked-parameters')).toBe(
+      true,
+    );
+    expect(refine?.brief).not.toContain('no precondition links');
+    expect(refine?.brief).toContain('Use only the predicates listed below');
+  });
+
   it('stops as invalid when corrections do not fix a stage', async () => {
     // Arrange: the problem never declares an arm
     const noArm = ok({
