@@ -61,7 +61,6 @@ function fixture() {
       runs: [],
       runtimeSettings: { heartbeatIntervalMs: 1000, warmRetentionSec: 10 },
     },
-    catalogue: null,
     runs: [],
     presets: [],
     providers: {},
@@ -600,6 +599,7 @@ describe('desktop team enrollment', () => {
     show(data, actions);
     await screen.findByText('Expired');
     vi.mocked(actions.catalogue).mockResolvedValue({
+      hiddenTeamIds: [],
       teams: [
         {
           ...team,

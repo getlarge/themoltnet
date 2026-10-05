@@ -6,6 +6,7 @@ import {
   projectActions,
   runCenterActions,
 } from './run-center-bridge.js';
+import type { SavePresetInput } from './types.js';
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 
@@ -16,10 +17,12 @@ describe('native team enrollment bridge', () => {
   });
 
   it('isolates presets by the native environment and preserves the default key', async () => {
-    const input = {
+    const input: SavePresetInput = {
+      id: null,
       name: 'Repeat',
       agent: 'agent',
       teamId: 'team',
+      diaryId: null,
       profileIds: ['profile'],
       taskTypes: ['freeform'],
     };

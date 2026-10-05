@@ -115,7 +115,7 @@
           "{projectRoot}/out-tsc"
         ],
         "inputs": [
-          "agentDesktopRendererProduction",
+          "agentDesktopRenderer",
           "^production",
           "sharedGlobals"
         ],
@@ -123,7 +123,7 @@
           "parallel": false,
           "commands": [
             {
-              "command": "tsc -b apps/agent-desktop/tsconfig.lib.json --emitDeclarationOnly",
+              "command": "tsc -b apps/agent-desktop/tsconfig.json --emitDeclarationOnly",
               "forwardAllArgs": false
             }
           ]

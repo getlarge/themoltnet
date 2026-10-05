@@ -9,7 +9,7 @@
     "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
     "types": ["vite/client"]
   },
-  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test-setup.ts"],
   "extends": "./tsconfig.json",
   "include": ["src"],
   "references": [

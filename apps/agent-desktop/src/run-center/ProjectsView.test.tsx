@@ -45,6 +45,7 @@ const catalogue: AgentServerCatalogue = {
   projects: [],
   projectErrors: [],
   defaultTeamId: 'team',
+  hiddenTeamIds: [],
   teams: [
     {
       teamId: 'team',
@@ -83,7 +84,6 @@ function setup(locations: ProjectLocation[] = [], waitingForIdentity = false) {
     status: waitingForIdentity ? null : status,
     runs: [],
     presets: [],
-    catalogue: null,
     providers: {},
     subscriptions: [],
   };
