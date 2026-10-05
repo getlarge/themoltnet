@@ -4,6 +4,48 @@
   "include": [],
   "references": [
     {
+      "path": "../../libs/shell-command-analyzer"
+    },
+    {
+      "path": "../../libs/sdk"
+    },
+    {
+      "path": "../../libs/pi-extension"
+    },
+    {
+      "path": "../../libs/agent-runtime"
+    },
+    {
+      "path": "../agent-daemon"
+    },
+    {
+      "path": "../../libs/tasks"
+    },
+    {
+      "path": "../../libs/runtime-profiles"
+    },
+    {
+      "path": "../../libs/observability"
+    },
+    {
+      "path": "../../libs/crypto-service"
+    },
+    {
+      "path": "../../libs/bootstrap"
+    },
+    {
+      "path": "../../libs/agent-eval"
+    },
+    {
+      "path": "../../libs/agent-daemon-api-client"
+    },
+    {
+      "path": "../../libs/pi-runtime"
+    },
+    {
+      "path": "../../libs/models"
+    },
+    {
       "path": "./tsconfig.spec.json"
     }
   ]

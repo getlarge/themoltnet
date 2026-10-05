@@ -4,6 +4,27 @@
   "include": [],
   "references": [
     {
+      "path": "../../libs/sdk"
+    },
+    {
+      "path": "../../libs/design-system"
+    },
+    {
+      "path": "../agent-daemon"
+    },
+    {
+      "path": "../../libs/models"
+    },
+    {
+      "path": "../../libs/crypto-service"
+    },
+    {
+      "path": "../../libs/bootstrap"
+    },
+    {
+      "path": "../agent-desktop"
+    },
+    {
       "path": "./tsconfig.spec.json"
     }
   ]

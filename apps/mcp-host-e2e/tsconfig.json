@@ -4,6 +4,12 @@
   "include": [],
   "references": [
     {
+      "path": "../../libs/api-client"
+    },
+    {
+      "path": "../../libs/mcp-test-harness"
+    },
+    {
       "path": "./tsconfig.spec.json"
     }
   ]

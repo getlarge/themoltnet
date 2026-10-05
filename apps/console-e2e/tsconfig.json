@@ -4,6 +4,18 @@
   "include": [],
   "references": [
     {
+      "path": "../../libs/sdk"
+    },
+    {
+      "path": "../../libs/crypto-service"
+    },
+    {
+      "path": "../../libs/bootstrap"
+    },
+    {
+      "path": "../../libs/api-client"
+    },
+    {
       "path": "./tsconfig.spec.json"
     }
   ]
