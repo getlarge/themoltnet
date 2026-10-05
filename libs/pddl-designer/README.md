@@ -19,24 +19,37 @@ reproducing that pipeline:
 The planner check matters because every stage can return a schema-valid result
 while the domain is still wrong. In the reproduction, the generated problem
 declared no objects of the types the actions produce, so the goal was
-unreachable. With those objects added, the shortest plan merged a second issue
+unreachable. With those objects added, the planner's plan merged a second issue
 by reusing the first issue's pull request and approval.
 
 ## Stages
 
-| Stage        | Returns                                                  | Checked by                                                                              |
-| ------------ | -------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `types`      | Types, each with an optional parent                      | Undefined parents, cycles, the reserved root `object`                                   |
-| `predicates` | Facts with typed parameters                              | Unknown parameter types, duplicates                                                     |
-| `actions`    | Draft actions: parameters, preconditions, adds, deletes  | Unknown predicates, arity, non-parameter arguments, type mismatches                     |
-| `refine`     | Complete action list and one line per change             | Same as `actions`; warns about facts that no action deletes                             |
-| `problem`    | Objects, initial facts, and goal for the given situation | Undeclared objects, and actions whose parameter type has no object (they can never run) |
+| Stage        | Returns                                                  | Checked by                                                                                                                                              |
+| ------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `types`      | Types, each with an optional parent                      | Undefined parents, cycles, the reserved root `object`                                                                                                   |
+| `predicates` | Facts with typed parameters                              | Unknown parameter types, duplicates                                                                                                                     |
+| `actions`    | Draft actions: parameters, preconditions, adds, deletes  | Unknown predicates, arity, non-parameter arguments, type mismatches. Hints: facts no action deletes, parameters no precondition links                   |
+| `refine`     | Complete action list and one line per change             | Same as `actions`                                                                                                                                       |
+| `problem`    | Objects, initial facts, and goal for the given situation | Undeclared objects; actions whose parameter type has no object; goal facts that can never become true, with the initial facts each blocked action lacks |
 
 A result with errors gets one correction task listing the exact problems
 (`--max-corrections`, default 1). Warnings from the draft actions are passed to
-the refine stage as hints. After the last stage, the planner grounds every
-action with the problem's objects and runs breadth-first search, so a plan it
-finds is a shortest one.
+the refine stage as hints it applies only when the description supports them.
+
+After the last stage, the planner grounds every action with the problem's
+objects and runs two checks:
+
+1. **Reachability, ignoring delete effects.** If a goal fact cannot become true
+   even then, the problem is unsolvable. For each action that can never fire, it
+   reports the facts that only the initial state could provide, such as an agent
+   never marked free or a pool never made available. The problem stage gets the
+   same report as errors before the plan check runs.
+2. **Greedy best-first search** guided by the additive heuristic. It finds a
+   valid plan quickly, but not necessarily a shortest one. States from which the
+   goal is unreachable are pruned, so an exhausted search proves unsolvability.
+
+`validatePlan` replays a given plan step by step. Use it to assert that an
+intended plan works and that a known-bad plan is rejected.
 
 ## Output
 
@@ -56,7 +69,7 @@ A UI can render this record directly.
 ## Limits
 
 - The supported fragment is STRIPS with typing and negative preconditions. There are no quantifiers, conditional effects, or numeric fluents.
-- The built-in planner is a checker for small models. Its default limits are 50,000 concrete actions and 200,000 states. For larger models, give the rendered PDDL to Fast Downward.
+- The built-in planner is a checker for small models. Its default limits are 20,000 concrete actions and 100,000 states. For larger models, or for optimal plans, give the rendered PDDL to Fast Downward.
 - The output contract cannot carry `pattern`, so naming rules are checked by the stage parsers after the daemon accepts a result. A naming error fails that stage's task outcome; it does not trigger a correction.
 
 ## Runtime profile

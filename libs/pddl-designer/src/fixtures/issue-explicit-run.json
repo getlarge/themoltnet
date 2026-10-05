@@ -1,0 +1,1045 @@
+{
+  "domain": {
+    "actions": [
+      {
+        "addEffects": [
+          {
+            "args": ["?i", "?c"],
+            "predicate": "claimed"
+          },
+          {
+            "args": ["?c"],
+            "predicate": "busy"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?c"],
+            "predicate": "idle"
+          },
+          {
+            "args": ["?i"],
+            "predicate": "open"
+          }
+        ],
+        "name": "claim-issue",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          },
+          {
+            "name": "?i",
+            "type": "issue"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?c"],
+            "negated": false,
+            "predicate": "idle"
+          },
+          {
+            "args": ["?i"],
+            "negated": false,
+            "predicate": "open"
+          }
+        ],
+        "source": "An idle coder agent can claim one open issue; the issue is then claimed by that coder and no longer open, and the coder stays busy until that issue is merged."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?i", "?w"],
+            "predicate": "assigned-worktree"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?w"],
+            "predicate": "free-worktree"
+          }
+        ],
+        "name": "allocate-worktree",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          },
+          {
+            "name": "?i",
+            "type": "issue"
+          },
+          {
+            "name": "?w",
+            "type": "worktree"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?i", "?c"],
+            "negated": false,
+            "predicate": "claimed"
+          },
+          {
+            "args": ["?c"],
+            "negated": false,
+            "predicate": "busy"
+          },
+          {
+            "args": ["?w"],
+            "negated": false,
+            "predicate": "free-worktree"
+          }
+        ],
+        "source": "The coder takes one free worktree for its claimed issue; the worktree then belongs to that issue until the merge frees it."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?w", "?p"],
+            "predicate": "has-patch"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?w"],
+            "predicate": "tests-pass"
+          }
+        ],
+        "name": "write-patch",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          },
+          {
+            "name": "?i",
+            "type": "issue"
+          },
+          {
+            "name": "?w",
+            "type": "worktree"
+          },
+          {
+            "name": "?p",
+            "type": "patch"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?i", "?w"],
+            "negated": false,
+            "predicate": "assigned-worktree"
+          },
+          {
+            "args": ["?c"],
+            "negated": false,
+            "predicate": "busy"
+          }
+        ],
+        "source": "In its worktree the coder writes a patch for the issue, then runs the tests. Writing a new patch invalidates earlier passing tests."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?w"],
+            "predicate": "tests-pass"
+          }
+        ],
+        "deleteEffects": [],
+        "name": "run-tests",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          },
+          {
+            "name": "?i",
+            "type": "issue"
+          },
+          {
+            "name": "?w",
+            "type": "worktree"
+          },
+          {
+            "name": "?p",
+            "type": "patch"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?i", "?w"],
+            "negated": false,
+            "predicate": "assigned-worktree"
+          },
+          {
+            "args": ["?w", "?p"],
+            "negated": false,
+            "predicate": "has-patch"
+          },
+          {
+            "args": ["?c"],
+            "negated": false,
+            "predicate": "busy"
+          }
+        ],
+        "source": "After writing a patch, the coder runs the tests in the worktree."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?cmt", "?i"],
+            "predicate": "commit-for-issue"
+          },
+          {
+            "args": ["?cmt", "?ds"],
+            "predicate": "signed-with"
+          },
+          {
+            "args": ["?cs"],
+            "predicate": "used-commit-slot"
+          },
+          {
+            "args": ["?ds"],
+            "predicate": "used-diary-slot"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?cs"],
+            "predicate": "unused-commit-slot"
+          },
+          {
+            "args": ["?ds"],
+            "predicate": "unused-diary-slot"
+          }
+        ],
+        "name": "commit",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          },
+          {
+            "name": "?i",
+            "type": "issue"
+          },
+          {
+            "name": "?w",
+            "type": "worktree"
+          },
+          {
+            "name": "?cs",
+            "type": "commit-slot"
+          },
+          {
+            "name": "?ds",
+            "type": "diary-slot"
+          },
+          {
+            "name": "?cmt",
+            "type": "commit"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?i", "?c"],
+            "negated": false,
+            "predicate": "claimed"
+          },
+          {
+            "args": ["?i", "?w"],
+            "negated": false,
+            "predicate": "assigned-worktree"
+          },
+          {
+            "args": ["?w"],
+            "negated": false,
+            "predicate": "tests-pass"
+          },
+          {
+            "args": ["?cs"],
+            "negated": false,
+            "predicate": "unused-commit-slot"
+          },
+          {
+            "args": ["?ds"],
+            "negated": false,
+            "predicate": "unused-diary-slot"
+          },
+          {
+            "args": ["?c"],
+            "negated": false,
+            "predicate": "busy"
+          }
+        ],
+        "source": "To commit, the coder needs passing tests for the current patch, one available commit slot and one available diary entry; the commit then belongs to that issue and is signed with that diary entry."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?pr", "?cmt"],
+            "predicate": "draft-pr"
+          },
+          {
+            "args": ["?ps"],
+            "predicate": "used-pr-slot"
+          },
+          {
+            "args": ["?pr", "?c"],
+            "predicate": "author"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?ps"],
+            "predicate": "unused-pr-slot"
+          }
+        ],
+        "name": "open-pull-request",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          },
+          {
+            "name": "?i",
+            "type": "issue"
+          },
+          {
+            "name": "?cmt",
+            "type": "commit"
+          },
+          {
+            "name": "?ps",
+            "type": "pull-request-slot"
+          },
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?i", "?c"],
+            "negated": false,
+            "predicate": "claimed"
+          },
+          {
+            "args": ["?cmt", "?i"],
+            "negated": false,
+            "predicate": "commit-for-issue"
+          },
+          {
+            "args": ["?ps"],
+            "negated": false,
+            "predicate": "unused-pr-slot"
+          },
+          {
+            "args": ["?c"],
+            "negated": false,
+            "predicate": "busy"
+          }
+        ],
+        "source": "The coder opens one available pull request as a draft for the issue's signed commit."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?pr"],
+            "predicate": "ready-pr"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?pr", "?cmt"],
+            "predicate": "draft-pr"
+          }
+        ],
+        "name": "ready-pull-request",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          },
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?cmt",
+            "type": "commit"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?pr", "?cmt"],
+            "negated": false,
+            "predicate": "draft-pr"
+          },
+          {
+            "args": ["?pr", "?c"],
+            "negated": false,
+            "predicate": "author"
+          },
+          {
+            "args": ["?c"],
+            "negated": false,
+            "predicate": "busy"
+          }
+        ],
+        "source": "The coder marks the draft pull request ready for review."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?pr", "?r"],
+            "predicate": "reviewed-by"
+          },
+          {
+            "args": ["?pr"],
+            "predicate": "approved"
+          }
+        ],
+        "deleteEffects": [],
+        "name": "review-and-approve",
+        "parameters": [
+          {
+            "name": "?r",
+            "type": "reviewer"
+          },
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?c",
+            "type": "coder"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?pr"],
+            "negated": false,
+            "predicate": "ready-pr"
+          },
+          {
+            "args": ["?r"],
+            "negated": false,
+            "predicate": "idle-agent"
+          },
+          {
+            "args": ["?pr", "?c"],
+            "negated": false,
+            "predicate": "author"
+          }
+        ],
+        "source": "A free reviewer who is not the pull request's author reviews a ready pull request and approves it; the reviewer remains free afterwards."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?pr"],
+            "predicate": "merged"
+          },
+          {
+            "args": ["?i"],
+            "predicate": "resolved"
+          },
+          {
+            "args": ["?c"],
+            "predicate": "idle"
+          },
+          {
+            "args": ["?w"],
+            "predicate": "free-worktree"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?pr"],
+            "predicate": "ready-pr"
+          },
+          {
+            "args": ["?c"],
+            "predicate": "busy"
+          },
+          {
+            "args": ["?i", "?w"],
+            "predicate": "assigned-worktree"
+          },
+          {
+            "args": ["?w"],
+            "predicate": "tests-pass"
+          },
+          {
+            "args": ["?w", "?p"],
+            "predicate": "has-patch"
+          },
+          {
+            "args": ["?i", "?c"],
+            "predicate": "claimed"
+          },
+          {
+            "args": ["?pr", "?c"],
+            "predicate": "author"
+          },
+          {
+            "args": ["?pr"],
+            "predicate": "approved"
+          },
+          {
+            "args": ["?cmt", "?i"],
+            "predicate": "commit-for-issue"
+          }
+        ],
+        "name": "merge-pull-request",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          },
+          {
+            "name": "?i",
+            "type": "issue"
+          },
+          {
+            "name": "?w",
+            "type": "worktree"
+          },
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?p",
+            "type": "patch"
+          },
+          {
+            "name": "?cmt",
+            "type": "commit"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?pr", "?c"],
+            "negated": false,
+            "predicate": "author"
+          },
+          {
+            "args": ["?pr"],
+            "negated": false,
+            "predicate": "approved"
+          },
+          {
+            "args": ["?i", "?c"],
+            "negated": false,
+            "predicate": "claimed"
+          },
+          {
+            "args": ["?i", "?w"],
+            "negated": false,
+            "predicate": "assigned-worktree"
+          },
+          {
+            "args": ["?c"],
+            "negated": false,
+            "predicate": "busy"
+          },
+          {
+            "args": ["?cmt", "?i"],
+            "negated": false,
+            "predicate": "commit-for-issue"
+          }
+        ],
+        "source": "The author merges an approved pull request for its own issue, resolving the issue and freeing resources."
+      }
+    ],
+    "name": "issue-workflow-explicit",
+    "predicates": [
+      {
+        "description": "Issue ?i is open and unclaimed.",
+        "name": "open",
+        "parameters": [
+          {
+            "name": "?i",
+            "type": "issue"
+          }
+        ]
+      },
+      {
+        "description": "Issue ?i has been claimed by coder ?c.",
+        "name": "claimed",
+        "parameters": [
+          {
+            "name": "?i",
+            "type": "issue"
+          },
+          {
+            "name": "?c",
+            "type": "coder"
+          }
+        ]
+      },
+      {
+        "description": "Coder ?c is free and not currently working on an issue.",
+        "name": "idle",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          }
+        ]
+      },
+      {
+        "description": "Coder ?c is currently occupied with a claimed issue.",
+        "name": "busy",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          }
+        ]
+      },
+      {
+        "description": "Worktree ?w is not currently assigned to any issue.",
+        "name": "free-worktree",
+        "parameters": [
+          {
+            "name": "?w",
+            "type": "worktree"
+          }
+        ]
+      },
+      {
+        "description": "Worktree ?w is allocated to issue ?i.",
+        "name": "assigned-worktree",
+        "parameters": [
+          {
+            "name": "?i",
+            "type": "issue"
+          },
+          {
+            "name": "?w",
+            "type": "worktree"
+          }
+        ]
+      },
+      {
+        "description": "Patch ?p is present in worktree ?w.",
+        "name": "has-patch",
+        "parameters": [
+          {
+            "name": "?w",
+            "type": "worktree"
+          },
+          {
+            "name": "?p",
+            "type": "patch"
+          }
+        ]
+      },
+      {
+        "description": "The current patch in worktree ?w passes all tests.",
+        "name": "tests-pass",
+        "parameters": [
+          {
+            "name": "?w",
+            "type": "worktree"
+          }
+        ]
+      },
+      {
+        "description": "Commit slot ?cs is available for use.",
+        "name": "unused-commit-slot",
+        "parameters": [
+          {
+            "name": "?cs",
+            "type": "commit-slot"
+          }
+        ]
+      },
+      {
+        "description": "Commit slot ?cs has been consumed and cannot be reused.",
+        "name": "used-commit-slot",
+        "parameters": [
+          {
+            "name": "?cs",
+            "type": "commit-slot"
+          }
+        ]
+      },
+      {
+        "description": "Diary slot ?ds is available for signing a commit.",
+        "name": "unused-diary-slot",
+        "parameters": [
+          {
+            "name": "?ds",
+            "type": "diary-slot"
+          }
+        ]
+      },
+      {
+        "description": "Diary slot ?ds has been used and is no longer available.",
+        "name": "used-diary-slot",
+        "parameters": [
+          {
+            "name": "?ds",
+            "type": "diary-slot"
+          }
+        ]
+      },
+      {
+        "description": "Pull\u2011request slot ?ps is free for creating a new pull request.",
+        "name": "unused-pr-slot",
+        "parameters": [
+          {
+            "name": "?ps",
+            "type": "pull-request-slot"
+          }
+        ]
+      },
+      {
+        "description": "Pull\u2011request slot ?ps has been occupied and cannot be reused.",
+        "name": "used-pr-slot",
+        "parameters": [
+          {
+            "name": "?ps",
+            "type": "pull-request-slot"
+          }
+        ]
+      },
+      {
+        "description": "Commit ?cmt is associated with issue ?i.",
+        "name": "commit-for-issue",
+        "parameters": [
+          {
+            "name": "?cmt",
+            "type": "commit"
+          },
+          {
+            "name": "?i",
+            "type": "issue"
+          }
+        ]
+      },
+      {
+        "description": "Commit ?cmt is signed using diary entry ?ds.",
+        "name": "signed-with",
+        "parameters": [
+          {
+            "name": "?cmt",
+            "type": "commit"
+          },
+          {
+            "name": "?ds",
+            "type": "diary-slot"
+          }
+        ]
+      },
+      {
+        "description": "Pull\u2011request ?pr is a draft that contains commit ?cmt.",
+        "name": "draft-pr",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?cmt",
+            "type": "commit"
+          }
+        ]
+      },
+      {
+        "description": "Pull\u2011request ?pr has been marked ready for review.",
+        "name": "ready-pr",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          }
+        ]
+      },
+      {
+        "description": "Coder ?c is the author of pull\u2011request ?pr.",
+        "name": "author",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?c",
+            "type": "coder"
+          }
+        ]
+      },
+      {
+        "description": "Reviewer ?r has reviewed pull\u2011request ?pr.",
+        "name": "reviewed-by",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?r",
+            "type": "reviewer"
+          }
+        ]
+      },
+      {
+        "description": "Pull\u2011request ?pr has been approved by a reviewer.",
+        "name": "approved",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          }
+        ]
+      },
+      {
+        "description": "Pull\u2011request ?pr has been merged into the main branch.",
+        "name": "merged",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          }
+        ]
+      },
+      {
+        "description": "Issue ?i has been resolved (merged).",
+        "name": "resolved",
+        "parameters": [
+          {
+            "name": "?i",
+            "type": "issue"
+          }
+        ]
+      },
+      {
+        "description": "Agent ?a is not currently engaged in any task.",
+        "name": "idle-agent",
+        "parameters": [
+          {
+            "name": "?a",
+            "type": "agent"
+          }
+        ]
+      }
+    ],
+    "types": [
+      {
+        "description": "An autonomous entity that can perform actions.",
+        "name": "agent"
+      },
+      {
+        "description": "An agent that writes code and manages issues.",
+        "name": "coder",
+        "parent": "agent"
+      },
+      {
+        "description": "An agent that reviews pull requests.",
+        "name": "reviewer",
+        "parent": "agent"
+      },
+      {
+        "description": "A GitHub issue under development.",
+        "name": "issue"
+      },
+      {
+        "description": "A local checkout area used for developing a patch.",
+        "name": "worktree"
+      },
+      {
+        "description": "A produced object such as a patch, commit or pull request.",
+        "name": "artifact"
+      },
+      {
+        "description": "A code modification placed in a worktree.",
+        "name": "patch",
+        "parent": "artifact"
+      },
+      {
+        "description": "A signed commit associated with an issue and diary entry.",
+        "name": "commit",
+        "parent": "artifact"
+      },
+      {
+        "description": "A pull request draft or ready for review.",
+        "name": "pull-request",
+        "parent": "artifact"
+      },
+      {
+        "description": "A reusable numbered placeholder for resources.",
+        "name": "slot"
+      },
+      {
+        "description": "An available slot that can hold a commit.",
+        "name": "commit-slot",
+        "parent": "slot"
+      },
+      {
+        "description": "An available slot for a diary entry used to sign a commit.",
+        "name": "diary-slot",
+        "parent": "slot"
+      },
+      {
+        "description": "An available slot that can hold a pull request.",
+        "name": "pull-request-slot",
+        "parent": "slot"
+      }
+    ]
+  },
+  "problem": {
+    "goal": [
+      {
+        "args": ["issue-101"],
+        "negated": false,
+        "predicate": "resolved"
+      },
+      {
+        "args": ["issue-102"],
+        "negated": false,
+        "predicate": "resolved"
+      }
+    ],
+    "init": [
+      {
+        "args": ["issue-101"],
+        "predicate": "open"
+      },
+      {
+        "args": ["issue-102"],
+        "predicate": "open"
+      },
+      {
+        "args": ["coder-a"],
+        "predicate": "idle"
+      },
+      {
+        "args": ["coder-b"],
+        "predicate": "idle"
+      },
+      {
+        "args": ["wt-1"],
+        "predicate": "free-worktree"
+      },
+      {
+        "args": ["wt-2"],
+        "predicate": "free-worktree"
+      },
+      {
+        "args": ["cs-1"],
+        "predicate": "unused-commit-slot"
+      },
+      {
+        "args": ["cs-2"],
+        "predicate": "unused-commit-slot"
+      },
+      {
+        "args": ["ds-1"],
+        "predicate": "unused-diary-slot"
+      },
+      {
+        "args": ["ds-2"],
+        "predicate": "unused-diary-slot"
+      },
+      {
+        "args": ["ps-1"],
+        "predicate": "unused-pr-slot"
+      },
+      {
+        "args": ["ps-2"],
+        "predicate": "unused-pr-slot"
+      },
+      {
+        "args": ["reviewer-r"],
+        "predicate": "idle-agent"
+      }
+    ],
+    "name": "issue-explicit-1",
+    "objects": [
+      {
+        "name": "coder-a",
+        "type": "coder"
+      },
+      {
+        "name": "coder-b",
+        "type": "coder"
+      },
+      {
+        "name": "reviewer-r",
+        "type": "reviewer"
+      },
+      {
+        "name": "issue-101",
+        "type": "issue"
+      },
+      {
+        "name": "issue-102",
+        "type": "issue"
+      },
+      {
+        "name": "wt-1",
+        "type": "worktree"
+      },
+      {
+        "name": "wt-2",
+        "type": "worktree"
+      },
+      {
+        "name": "patch-1",
+        "type": "patch"
+      },
+      {
+        "name": "patch-2",
+        "type": "patch"
+      },
+      {
+        "name": "commit-1",
+        "type": "commit"
+      },
+      {
+        "name": "commit-2",
+        "type": "commit"
+      },
+      {
+        "name": "cs-1",
+        "type": "commit-slot"
+      },
+      {
+        "name": "cs-2",
+        "type": "commit-slot"
+      },
+      {
+        "name": "ds-1",
+        "type": "diary-slot"
+      },
+      {
+        "name": "ds-2",
+        "type": "diary-slot"
+      },
+      {
+        "name": "ps-1",
+        "type": "pull-request-slot"
+      },
+      {
+        "name": "ps-2",
+        "type": "pull-request-slot"
+      },
+      {
+        "name": "pr-1",
+        "type": "pull-request"
+      },
+      {
+        "name": "pr-2",
+        "type": "pull-request"
+      }
+    ]
+  },
+  "source": "live run issue-explicit-1, gpt-oss:120b, profile legreffier-pddl-designer-v1"
+}

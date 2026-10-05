@@ -1,0 +1,921 @@
+{
+  "domain": {
+    "actions": [
+      {
+        "addEffects": [
+          {
+            "args": ["?pr"],
+            "predicate": "pull-request-ingested"
+          },
+          {
+            "args": ["?tc"],
+            "predicate": "idle"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?tc"],
+            "predicate": "idle"
+          }
+        ],
+        "name": "ingest-diff",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?tc",
+            "type": "trusted-code"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?tc"],
+            "negated": false,
+            "predicate": "idle"
+          },
+          {
+            "args": ["?pr"],
+            "negated": true,
+            "predicate": "pull-request-ingested"
+          }
+        ],
+        "source": "Trusted code ingests the pull request's diff; this happens once per pull request."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?pr", "?cc"],
+            "predicate": "pr-has-contract-change"
+          },
+          {
+            "args": ["?cc"],
+            "predicate": "contract-change-extracted"
+          },
+          {
+            "args": ["?ea"],
+            "predicate": "idle"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?ea"],
+            "predicate": "idle"
+          },
+          {
+            "args": ["?cc"],
+            "predicate": "unused"
+          }
+        ],
+        "name": "extract-contract-changes",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?ea",
+            "type": "extractor-agent"
+          },
+          {
+            "name": "?cc",
+            "type": "contract-change"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?ea"],
+            "negated": false,
+            "predicate": "idle"
+          },
+          {
+            "args": ["?pr"],
+            "negated": false,
+            "predicate": "pull-request-ingested"
+          },
+          {
+            "args": ["?pr"],
+            "negated": false,
+            "predicate": "pull-request-source-changed"
+          },
+          {
+            "args": ["?cc"],
+            "negated": false,
+            "predicate": "unused"
+          }
+        ],
+        "source": "If the pull request changed source code, an extractor agent lists the contract changes; extraction needs an ingested pull request."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?pr", "?d"],
+            "predicate": "pr-has-document"
+          },
+          {
+            "args": ["?d"],
+            "predicate": "document-retrieved"
+          },
+          {
+            "args": ["?ra"],
+            "predicate": "idle"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?ra"],
+            "predicate": "idle"
+          },
+          {
+            "args": ["?d"],
+            "predicate": "unused"
+          }
+        ],
+        "name": "retrieve-documents-with-cc",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?ra",
+            "type": "retrieval-agent"
+          },
+          {
+            "name": "?cc",
+            "type": "contract-change"
+          },
+          {
+            "name": "?d",
+            "type": "document"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?ra"],
+            "negated": false,
+            "predicate": "idle"
+          },
+          {
+            "args": ["?pr", "?cc"],
+            "negated": false,
+            "predicate": "pr-has-contract-change"
+          },
+          {
+            "args": ["?d"],
+            "negated": false,
+            "predicate": "unused"
+          }
+        ],
+        "source": "The retrieval agent obtains documents relevant to a pull request when contract changes are present."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?pr", "?d"],
+            "predicate": "pr-has-document"
+          },
+          {
+            "args": ["?d"],
+            "predicate": "document-retrieved"
+          },
+          {
+            "args": ["?ra"],
+            "predicate": "idle"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?ra"],
+            "predicate": "idle"
+          },
+          {
+            "args": ["?d"],
+            "predicate": "unused"
+          }
+        ],
+        "name": "retrieve-documents-docs-only",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?ra",
+            "type": "retrieval-agent"
+          },
+          {
+            "name": "?d",
+            "type": "document"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?ra"],
+            "negated": false,
+            "predicate": "idle"
+          },
+          {
+            "args": ["?pr"],
+            "negated": false,
+            "predicate": "pull-request-docs-changed"
+          },
+          {
+            "args": ["?pr"],
+            "negated": true,
+            "predicate": "pull-request-source-changed"
+          },
+          {
+            "args": ["?d"],
+            "negated": false,
+            "predicate": "unused"
+          }
+        ],
+        "source": "When the pull request changes only documentation, the retrieval agent still obtains relevant documents."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?pr", "?cr"],
+            "predicate": "pr-has-coverage-report"
+          },
+          {
+            "args": ["?cr"],
+            "predicate": "coverage-report-produced"
+          },
+          {
+            "args": ["?pr"],
+            "predicate": "coverage-done"
+          },
+          {
+            "args": ["?ca"],
+            "predicate": "idle"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?ca"],
+            "predicate": "idle"
+          },
+          {
+            "args": ["?cr"],
+            "predicate": "unused"
+          }
+        ],
+        "name": "run-coverage",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?ca",
+            "type": "coverage-agent"
+          },
+          {
+            "name": "?d",
+            "type": "document"
+          },
+          {
+            "name": "?cr",
+            "type": "coverage-report"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?ca"],
+            "negated": false,
+            "predicate": "idle"
+          },
+          {
+            "args": ["?pr", "?d"],
+            "negated": false,
+            "predicate": "pr-has-document"
+          },
+          {
+            "args": ["?d"],
+            "negated": false,
+            "predicate": "document-retrieved"
+          },
+          {
+            "args": ["?cr"],
+            "negated": false,
+            "predicate": "unused"
+          }
+        ],
+        "source": "The coverage agent checks retrieved documents for missing or incorrect instructions."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?dp"],
+            "predicate": "docs-check-done"
+          },
+          {
+            "args": ["?da"],
+            "predicate": "idle"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?da"],
+            "predicate": "idle"
+          },
+          {
+            "args": ["?dp"],
+            "predicate": "unused"
+          }
+        ],
+        "name": "docs-check-passage",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?da",
+            "type": "docs-check-agent"
+          },
+          {
+            "name": "?dp",
+            "type": "doc-passage"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?da"],
+            "negated": false,
+            "predicate": "idle"
+          },
+          {
+            "args": ["?pr", "?dp"],
+            "negated": false,
+            "predicate": "pr-has-passage"
+          },
+          {
+            "args": ["?dp"],
+            "negated": false,
+            "predicate": "doc-passage-added"
+          },
+          {
+            "args": ["?dp"],
+            "negated": false,
+            "predicate": "unused"
+          },
+          {
+            "args": ["?pr"],
+            "negated": false,
+            "predicate": "pull-request-docs-changed"
+          }
+        ],
+        "source": "The docs\u2011check agent reviews each newly added documentation passage."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?pr"],
+            "predicate": "docs-check-complete"
+          },
+          {
+            "args": ["?tc"],
+            "predicate": "idle"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?tc"],
+            "predicate": "idle"
+          }
+        ],
+        "name": "mark-docs-check-complete",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?tc",
+            "type": "trusted-code"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?tc"],
+            "negated": false,
+            "predicate": "idle"
+          },
+          {
+            "args": ["?pr"],
+            "negated": false,
+            "predicate": "pull-request-docs-changed"
+          }
+        ],
+        "source": "After all required passages are checked, the docs\u2011check work for the pull request is marked complete."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?pr", "?rr"],
+            "predicate": "pr-has-review-result"
+          },
+          {
+            "args": ["?rr"],
+            "predicate": "review-result-published"
+          },
+          {
+            "args": ["?tc"],
+            "predicate": "idle"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?tc"],
+            "predicate": "idle"
+          },
+          {
+            "args": ["?rr"],
+            "predicate": "unused"
+          }
+        ],
+        "name": "resolve-outcome-no-docs",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?tc",
+            "type": "trusted-code"
+          },
+          {
+            "name": "?rr",
+            "type": "review-result"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?tc"],
+            "negated": false,
+            "predicate": "idle"
+          },
+          {
+            "args": ["?pr"],
+            "negated": false,
+            "predicate": "coverage-done"
+          },
+          {
+            "args": ["?pr"],
+            "negated": true,
+            "predicate": "pull-request-docs-changed"
+          },
+          {
+            "args": ["?rr"],
+            "negated": false,
+            "predicate": "unused"
+          }
+        ],
+        "source": "When coverage is done and no docs\u2011check is needed, trusted code resolves the outcome and publishes the review result."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?pr", "?rr"],
+            "predicate": "pr-has-review-result"
+          },
+          {
+            "args": ["?rr"],
+            "predicate": "review-result-published"
+          },
+          {
+            "args": ["?tc"],
+            "predicate": "idle"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?tc"],
+            "predicate": "idle"
+          },
+          {
+            "args": ["?rr"],
+            "predicate": "unused"
+          }
+        ],
+        "name": "resolve-outcome-with-docs",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?tc",
+            "type": "trusted-code"
+          },
+          {
+            "name": "?rr",
+            "type": "review-result"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?tc"],
+            "negated": false,
+            "predicate": "idle"
+          },
+          {
+            "args": ["?pr"],
+            "negated": false,
+            "predicate": "coverage-done"
+          },
+          {
+            "args": ["?pr"],
+            "negated": false,
+            "predicate": "docs-check-complete"
+          },
+          {
+            "args": ["?rr"],
+            "negated": false,
+            "predicate": "unused"
+          }
+        ],
+        "source": "When coverage is done and the docs\u2011check work is complete, trusted code resolves the outcome and publishes the review result."
+      }
+    ],
+    "name": "docs-review",
+    "predicates": [
+      {
+        "description": "Pull request ?pr has had its diff ingested by trusted code.",
+        "name": "pull-request-ingested",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          }
+        ]
+      },
+      {
+        "description": "Pull request ?pr includes changes to source code.",
+        "name": "pull-request-source-changed",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          }
+        ]
+      },
+      {
+        "description": "Pull request ?pr includes changes only to documentation.",
+        "name": "pull-request-docs-changed",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          }
+        ]
+      },
+      {
+        "description": "Contract change ?cc was extracted from pull request ?pr.",
+        "name": "pr-has-contract-change",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?cc",
+            "type": "contract-change"
+          }
+        ]
+      },
+      {
+        "description": "Contract change ?cc has been produced by the extractor agent.",
+        "name": "contract-change-extracted",
+        "parameters": [
+          {
+            "name": "?cc",
+            "type": "contract-change"
+          }
+        ]
+      },
+      {
+        "description": "Document ?d is relevant to pull request ?pr and has been retrieved.",
+        "name": "pr-has-document",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?d",
+            "type": "document"
+          }
+        ]
+      },
+      {
+        "description": "Document ?d has been obtained by the retrieval agent.",
+        "name": "document-retrieved",
+        "parameters": [
+          {
+            "name": "?d",
+            "type": "document"
+          }
+        ]
+      },
+      {
+        "description": "Coverage report ?cr has been generated by the coverage agent.",
+        "name": "coverage-report-produced",
+        "parameters": [
+          {
+            "name": "?cr",
+            "type": "coverage-report"
+          }
+        ]
+      },
+      {
+        "description": "Coverage report ?cr is associated with pull request ?pr.",
+        "name": "pr-has-coverage-report",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?cr",
+            "type": "coverage-report"
+          }
+        ]
+      },
+      {
+        "description": "Documentation passage ?dp was added by pull request ?pr.",
+        "name": "pr-has-passage",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?dp",
+            "type": "doc-passage"
+          }
+        ]
+      },
+      {
+        "description": "Documentation passage ?dp exists as newly added text.",
+        "name": "doc-passage-added",
+        "parameters": [
+          {
+            "name": "?dp",
+            "type": "doc-passage"
+          }
+        ]
+      },
+      {
+        "description": "Docs\u2011check agent has finished reviewing passage ?dp.",
+        "name": "docs-check-done",
+        "parameters": [
+          {
+            "name": "?dp",
+            "type": "doc-passage"
+          }
+        ]
+      },
+      {
+        "description": "Coverage analysis for pull request ?pr has completed.",
+        "name": "coverage-done",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          }
+        ]
+      },
+      {
+        "description": "All required docs\u2011check work for pull request ?pr is finished (or not needed).",
+        "name": "docs-check-complete",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          }
+        ]
+      },
+      {
+        "description": "Final review result ?rr has been published.",
+        "name": "review-result-published",
+        "parameters": [
+          {
+            "name": "?rr",
+            "type": "review-result"
+          }
+        ]
+      },
+      {
+        "description": "Review result ?rr corresponds to pull request ?pr.",
+        "name": "pr-has-review-result",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?rr",
+            "type": "review-result"
+          }
+        ]
+      },
+      {
+        "description": "Agent ?a is free and can start a new action.",
+        "name": "idle",
+        "parameters": [
+          {
+            "name": "?a",
+            "type": "agent"
+          }
+        ]
+      },
+      {
+        "description": "Artifact ?x is available in a pool and has not been used yet.",
+        "name": "unused",
+        "parameters": [
+          {
+            "name": "?x",
+            "type": "artifact"
+          }
+        ]
+      }
+    ],
+    "types": [
+      {
+        "description": "A code change submission that triggers the review workflow.",
+        "name": "pull-request"
+      },
+      {
+        "description": "A generic worker that can perform actions; specific agents inherit from this.",
+        "name": "agent"
+      },
+      {
+        "description": "Agent that extracts contract\u2011change objects from an ingested pull\u2011request when source code was modified.",
+        "name": "extractor-agent",
+        "parent": "agent"
+      },
+      {
+        "description": "Agent that retrieves documents relevant to a pull\u2011request, using either extracted contract\u2011changes or a docs\u2011only flag.",
+        "name": "retrieval-agent",
+        "parent": "agent"
+      },
+      {
+        "description": "Agent that analyses retrieved documents for missing or incorrect instructions, producing a coverage\u2011report.",
+        "name": "coverage-agent",
+        "parent": "agent"
+      },
+      {
+        "description": "Agent that reviews each newly added documentation passage when the pull\u2011request adds documentation.",
+        "name": "docs-check-agent",
+        "parent": "agent"
+      },
+      {
+        "description": "System component that performs safe, deterministic steps such as diff ingestion and final outcome resolution.",
+        "name": "trusted-code",
+        "parent": "agent"
+      },
+      {
+        "description": "A generic object that can be created, stored, and referenced by actions.",
+        "name": "artifact"
+      },
+      {
+        "description": "A representation of a change to the software contract extracted from a pull\u2011request.",
+        "name": "contract-change",
+        "parent": "artifact"
+      },
+      {
+        "description": "A documentation file that is relevant to a pull\u2011request and may be retrieved for analysis.",
+        "name": "document",
+        "parent": "artifact"
+      },
+      {
+        "description": "An individual added piece of documentation text that requires a docs\u2011check.",
+        "name": "doc-passage",
+        "parent": "artifact"
+      },
+      {
+        "description": "Result of the coverage\u2011agent indicating missing or incorrect instructions in the retrieved documents.",
+        "name": "coverage-report",
+        "parent": "artifact"
+      },
+      {
+        "description": "The final published review outcome for a pull\u2011request.",
+        "name": "review-result",
+        "parent": "artifact"
+      }
+    ]
+  },
+  "problem": {
+    "goal": [
+      {
+        "args": ["rr-1"],
+        "negated": false,
+        "predicate": "review-result-published"
+      },
+      {
+        "args": ["pr-42", "rr-1"],
+        "negated": false,
+        "predicate": "pr-has-review-result"
+      }
+    ],
+    "init": [
+      {
+        "args": ["pr-42"],
+        "predicate": "pull-request-source-changed"
+      },
+      {
+        "args": ["pr-42"],
+        "predicate": "pull-request-docs-changed"
+      },
+      {
+        "args": ["ea-1"],
+        "predicate": "idle"
+      },
+      {
+        "args": ["ca-1"],
+        "predicate": "idle"
+      },
+      {
+        "args": ["da-1"],
+        "predicate": "idle"
+      },
+      {
+        "args": ["tc-1"],
+        "predicate": "idle"
+      },
+      {
+        "args": ["cc-1"],
+        "predicate": "unused"
+      },
+      {
+        "args": ["doc-1"],
+        "predicate": "unused"
+      },
+      {
+        "args": ["dp-1"],
+        "predicate": "unused"
+      },
+      {
+        "args": ["cr-1"],
+        "predicate": "unused"
+      },
+      {
+        "args": ["rr-1"],
+        "predicate": "unused"
+      }
+    ],
+    "name": "docs-1",
+    "objects": [
+      {
+        "name": "pr-42",
+        "type": "pull-request"
+      },
+      {
+        "name": "ea-1",
+        "type": "extractor-agent"
+      },
+      {
+        "name": "ra-1",
+        "type": "retrieval-agent"
+      },
+      {
+        "name": "ca-1",
+        "type": "coverage-agent"
+      },
+      {
+        "name": "da-1",
+        "type": "docs-check-agent"
+      },
+      {
+        "name": "tc-1",
+        "type": "trusted-code"
+      },
+      {
+        "name": "cc-1",
+        "type": "contract-change"
+      },
+      {
+        "name": "doc-1",
+        "type": "document"
+      },
+      {
+        "name": "dp-1",
+        "type": "doc-passage"
+      },
+      {
+        "name": "cr-1",
+        "type": "coverage-report"
+      },
+      {
+        "name": "rr-1",
+        "type": "review-result"
+      }
+    ]
+  },
+  "source": "live run docs-1, gpt-oss:120b, profile legreffier-pddl-designer-v1"
+}

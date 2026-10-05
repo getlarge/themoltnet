@@ -6,6 +6,7 @@ import {
   checkProblem,
   checkTypes,
   permanentFacts,
+  unlinkedParameters,
 } from './check.js';
 import type { ActionDef } from './ir.js';
 import {
@@ -66,8 +67,17 @@ describe('checkPredicates', () => {
 });
 
 describe('checkActions', () => {
-  it('accepts the Blocks World actions', () => {
-    expect(checkActions(types, predicates, blocksActions)).toEqual([]);
+  it('accepts the Blocks World actions, with hints about unlinked parameters', () => {
+    // Act
+    const issues = checkActions(types, predicates, blocksActions);
+
+    // Assert: any arm may move any block, which is legitimate here
+    expect(issues.filter((i) => i.severity === 'error')).toEqual([]);
+    expect(issues.map((i) => i.path)).toEqual([
+      'actions/pick-up',
+      'actions/stack',
+      'actions/unstack',
+    ]);
   });
 
   it('rejects unknown predicates, wrong arity, non-parameters, and type mismatches', () => {
@@ -134,7 +144,7 @@ describe('permanentFacts', () => {
         severity: 'warning',
         path: 'predicates/clear',
         message:
-          'no action deletes clear: once added it stays true forever and can be reused by later steps',
+          'no action deletes clear: once added it stays true. Fine for a permanent milestone; a problem if a later step should not be able to reuse it',
       },
     ]);
   });
@@ -184,5 +194,40 @@ describe('checkProblem', () => {
         message: 'd is not a declared object',
       },
     ]);
+  });
+});
+
+describe('unlinkedParameters', () => {
+  it('flags parameters no precondition connects, and parameters in no precondition', () => {
+    // Arrange: any busy coder may test any worktree; ?p is never constrained
+    const runTests: ActionDef = {
+      name: 'run-tests',
+      parameters: [
+        { name: '?c', type: 'coder' },
+        { name: '?w', type: 'worktree' },
+        { name: '?i', type: 'issue' },
+        { name: '?p', type: 'patch' },
+      ],
+      preconditions: [
+        { predicate: 'busy', args: ['?c'], negated: false },
+        { predicate: 'assigned', args: ['?w', '?i'], negated: false },
+      ],
+      addEffects: [{ predicate: 'green', args: ['?w'] }],
+      deleteEffects: [],
+      source: 'x',
+    };
+
+    // Act
+    const messages = unlinkedParameters(runTests).map((i) => i.message);
+
+    // Assert
+    expect(messages).toEqual([
+      '?p - patch appears in no precondition, so the planner may pick any patch',
+      'no precondition links {?c - coder} and {?w - worktree, ?i - issue}: any combination may be chosen. Add a precondition that ties them if only a specific one may act',
+    ]);
+  });
+
+  it('is silent when one precondition ties all parameters', () => {
+    expect(unlinkedParameters(blocksActions[1])).toEqual([]);
   });
 });

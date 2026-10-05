@@ -1,0 +1,798 @@
+{
+  "domain": {
+    "actions": [
+      {
+        "addEffects": [
+          {
+            "args": ["?c", "?i"],
+            "predicate": "claimed"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?c"],
+            "predicate": "idle"
+          },
+          {
+            "args": ["?i"],
+            "predicate": "open"
+          }
+        ],
+        "name": "claim-issue",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          },
+          {
+            "name": "?i",
+            "type": "issue"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?c"],
+            "negated": false,
+            "predicate": "idle"
+          },
+          {
+            "args": ["?i"],
+            "negated": false,
+            "predicate": "open"
+          },
+          {
+            "args": ["?c", "?i"],
+            "negated": true,
+            "predicate": "claimed"
+          }
+        ],
+        "source": "A coder agent can only work on an issue it has claimed, and a coder works on one issue at a time; claiming an issue takes it out of the open backlog."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?c", "?wt"],
+            "predicate": "has-worktree"
+          },
+          {
+            "args": ["?wt", "?i"],
+            "predicate": "assigned"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?wt"],
+            "predicate": "free"
+          }
+        ],
+        "name": "acquire-worktree",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          },
+          {
+            "name": "?wt",
+            "type": "worktree"
+          },
+          {
+            "name": "?i",
+            "type": "issue"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?c", "?i"],
+            "negated": false,
+            "predicate": "claimed"
+          },
+          {
+            "args": ["?wt"],
+            "negated": false,
+            "predicate": "free"
+          },
+          {
+            "args": ["?c", "?wt"],
+            "negated": true,
+            "predicate": "has-worktree"
+          }
+        ],
+        "source": "Work happens in a dedicated git worktree, never in the shared checkout, and a worktree serves a single issue until its work is merged."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?wt"],
+            "predicate": "code-written"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?wt"],
+            "predicate": "green"
+          }
+        ],
+        "name": "write-code",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          },
+          {
+            "name": "?wt",
+            "type": "worktree"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?c", "?wt"],
+            "negated": false,
+            "predicate": "has-worktree"
+          }
+        ],
+        "source": "Inside its worktree the coder writes a patch and runs the test suite; writing new code invalidates any previous green test run."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?wt"],
+            "predicate": "green"
+          }
+        ],
+        "deleteEffects": [],
+        "name": "run-tests",
+        "parameters": [
+          {
+            "name": "?wt",
+            "type": "worktree"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?wt"],
+            "negated": false,
+            "predicate": "code-written"
+          }
+        ],
+        "source": "After writing code the coder runs the test suite; a passing suite yields a green state."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?cm", "?d"],
+            "predicate": "signed"
+          },
+          {
+            "args": ["?c", "?cm"],
+            "predicate": "has-commit"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?d"],
+            "predicate": "unused"
+          }
+        ],
+        "name": "sign-commit",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          },
+          {
+            "name": "?wt",
+            "type": "worktree"
+          },
+          {
+            "name": "?cm",
+            "type": "commit"
+          },
+          {
+            "name": "?d",
+            "type": "diary-entry"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?c", "?wt"],
+            "negated": false,
+            "predicate": "has-worktree"
+          },
+          {
+            "args": ["?wt"],
+            "negated": false,
+            "predicate": "green"
+          },
+          {
+            "args": ["?d"],
+            "negated": false,
+            "predicate": "unused"
+          }
+        ],
+        "source": "Every commit is accountable: before opening a pull request, the coder signs the commit with a diary entry, which requires green tests."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?pr"],
+            "predicate": "draft"
+          },
+          {
+            "args": ["?pr", "?c"],
+            "predicate": "author"
+          }
+        ],
+        "deleteEffects": [],
+        "name": "create-draft-pr",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          },
+          {
+            "name": "?cm",
+            "type": "commit"
+          },
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?c", "?cm"],
+            "negated": false,
+            "predicate": "has-commit"
+          }
+        ],
+        "source": "Pull requests are opened as drafts and later marked ready for review by their author."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?pr"],
+            "predicate": "ready"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?pr"],
+            "predicate": "draft"
+          }
+        ],
+        "name": "mark-pr-ready",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          },
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?pr"],
+            "negated": false,
+            "predicate": "draft"
+          },
+          {
+            "args": ["?pr", "?c"],
+            "negated": false,
+            "predicate": "author"
+          }
+        ],
+        "source": "The author marks the draft pull request ready for review."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?pr", "?r"],
+            "predicate": "reviewed"
+          },
+          {
+            "args": ["?pr"],
+            "predicate": "approved"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?r"],
+            "predicate": "idle"
+          }
+        ],
+        "name": "approve-pr",
+        "parameters": [
+          {
+            "name": "?r",
+            "type": "reviewer"
+          },
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?c",
+            "type": "coder"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?pr"],
+            "negated": false,
+            "predicate": "ready"
+          },
+          {
+            "args": ["?pr", "?c"],
+            "negated": false,
+            "predicate": "author"
+          },
+          {
+            "args": ["?r"],
+            "negated": false,
+            "predicate": "idle"
+          },
+          {
+            "args": ["?pr", "?r"],
+            "negated": true,
+            "predicate": "reviewed"
+          }
+        ],
+        "source": "A reviewer agent, who is never the author, reviews a ready pull request and approves it."
+      },
+      {
+        "addEffects": [
+          {
+            "args": ["?pr"],
+            "predicate": "merged"
+          },
+          {
+            "args": ["?i"],
+            "predicate": "resolved"
+          },
+          {
+            "args": ["?wt"],
+            "predicate": "free"
+          },
+          {
+            "args": ["?c"],
+            "predicate": "idle"
+          }
+        ],
+        "deleteEffects": [
+          {
+            "args": ["?pr"],
+            "predicate": "approved"
+          },
+          {
+            "args": ["?pr"],
+            "predicate": "ready"
+          },
+          {
+            "args": ["?c", "?wt"],
+            "predicate": "has-worktree"
+          },
+          {
+            "args": ["?wt", "?i"],
+            "predicate": "assigned"
+          },
+          {
+            "args": ["?c", "?i"],
+            "predicate": "claimed"
+          },
+          {
+            "args": ["?wt"],
+            "predicate": "code-written"
+          },
+          {
+            "args": ["?c", "?cm"],
+            "predicate": "has-commit"
+          },
+          {
+            "args": ["?pr", "?c"],
+            "predicate": "author"
+          }
+        ],
+        "name": "merge-pr",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          },
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?i",
+            "type": "issue"
+          },
+          {
+            "name": "?wt",
+            "type": "worktree"
+          },
+          {
+            "name": "?cm",
+            "type": "commit"
+          }
+        ],
+        "preconditions": [
+          {
+            "args": ["?pr"],
+            "negated": false,
+            "predicate": "approved"
+          },
+          {
+            "args": ["?pr", "?c"],
+            "negated": false,
+            "predicate": "author"
+          },
+          {
+            "args": ["?c", "?wt"],
+            "negated": false,
+            "predicate": "has-worktree"
+          },
+          {
+            "args": ["?wt", "?i"],
+            "negated": false,
+            "predicate": "assigned"
+          },
+          {
+            "args": ["?c", "?cm"],
+            "negated": false,
+            "predicate": "has-commit"
+          }
+        ],
+        "source": "An approved pull request is merged by its author, which resolves the issue, frees the worktree and lets the coder pick up the next issue."
+      }
+    ],
+    "name": "issue-workflow",
+    "predicates": [
+      {
+        "description": "agent ?a is not currently working on any issue",
+        "name": "idle",
+        "parameters": [
+          {
+            "name": "?a",
+            "type": "agent"
+          }
+        ]
+      },
+      {
+        "description": "coder ?c has claimed issue ?i",
+        "name": "claimed",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          },
+          {
+            "name": "?i",
+            "type": "issue"
+          }
+        ]
+      },
+      {
+        "description": "issue ?i is in the open backlog",
+        "name": "open",
+        "parameters": [
+          {
+            "name": "?i",
+            "type": "issue"
+          }
+        ]
+      },
+      {
+        "description": "worktree ?wt is not assigned to any issue",
+        "name": "free",
+        "parameters": [
+          {
+            "name": "?wt",
+            "type": "worktree"
+          }
+        ]
+      },
+      {
+        "description": "worktree ?wt is dedicated to issue ?i",
+        "name": "assigned",
+        "parameters": [
+          {
+            "name": "?wt",
+            "type": "worktree"
+          },
+          {
+            "name": "?i",
+            "type": "issue"
+          }
+        ]
+      },
+      {
+        "description": "coder ?c is using worktree ?wt",
+        "name": "has-worktree",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          },
+          {
+            "name": "?wt",
+            "type": "worktree"
+          }
+        ]
+      },
+      {
+        "description": "the test suite in worktree ?wt has passed (green)",
+        "name": "green",
+        "parameters": [
+          {
+            "name": "?wt",
+            "type": "worktree"
+          }
+        ]
+      },
+      {
+        "description": "coder has written new code/patch in worktree ?wt (invalidates previous green test run)",
+        "name": "code-written",
+        "parameters": [
+          {
+            "name": "?wt",
+            "type": "worktree"
+          }
+        ]
+      },
+      {
+        "description": "diary entry ?d has not been used to sign a commit",
+        "name": "unused",
+        "parameters": [
+          {
+            "name": "?d",
+            "type": "diary-entry"
+          }
+        ]
+      },
+      {
+        "description": "commit ?cm has been signed with diary entry ?d",
+        "name": "signed",
+        "parameters": [
+          {
+            "name": "?cm",
+            "type": "commit"
+          },
+          {
+            "name": "?d",
+            "type": "diary-entry"
+          }
+        ]
+      },
+      {
+        "description": "coder ?c has produced commit ?cm",
+        "name": "has-commit",
+        "parameters": [
+          {
+            "name": "?c",
+            "type": "coder"
+          },
+          {
+            "name": "?cm",
+            "type": "commit"
+          }
+        ]
+      },
+      {
+        "description": "pull request ?pr is in draft state",
+        "name": "draft",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          }
+        ]
+      },
+      {
+        "description": "pull request ?pr is marked ready for review",
+        "name": "ready",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          }
+        ]
+      },
+      {
+        "description": "coder ?c is the author of pull request ?pr",
+        "name": "author",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?c",
+            "type": "coder"
+          }
+        ]
+      },
+      {
+        "description": "reviewer ?r has reviewed pull request ?pr",
+        "name": "reviewed",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          },
+          {
+            "name": "?r",
+            "type": "reviewer"
+          }
+        ]
+      },
+      {
+        "description": "pull request ?pr has been approved by a reviewer",
+        "name": "approved",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          }
+        ]
+      },
+      {
+        "description": "pull request ?pr has been merged",
+        "name": "merged",
+        "parameters": [
+          {
+            "name": "?pr",
+            "type": "pull-request"
+          }
+        ]
+      },
+      {
+        "description": "issue ?i has been resolved",
+        "name": "resolved",
+        "parameters": [
+          {
+            "name": "?i",
+            "type": "issue"
+          }
+        ]
+      }
+    ],
+    "types": [
+      {
+        "description": "An entity that can perform actions in the workflow.",
+        "name": "agent"
+      },
+      {
+        "description": "A coder agent that works on issues and writes code.",
+        "name": "coder",
+        "parent": "agent"
+      },
+      {
+        "description": "A reviewer agent that reviews pull requests.",
+        "name": "reviewer",
+        "parent": "agent"
+      },
+      {
+        "description": "A GitHub issue to be resolved.",
+        "name": "issue"
+      },
+      {
+        "description": "A dedicated git worktree used by a coder for a single issue.",
+        "name": "worktree"
+      },
+      {
+        "description": "A commit object containing code changes, signed with a diary entry.",
+        "name": "commit"
+      },
+      {
+        "description": "A diary entry used to sign a commit; must be created before signing.",
+        "name": "diary-entry"
+      },
+      {
+        "description": "A pull request object created from a commit; may be draft or ready.",
+        "name": "pull-request"
+      }
+    ]
+  },
+  "problem": {
+    "goal": [
+      {
+        "args": ["issue-101"],
+        "negated": false,
+        "predicate": "resolved"
+      },
+      {
+        "args": ["issue-102"],
+        "negated": false,
+        "predicate": "resolved"
+      }
+    ],
+    "init": [
+      {
+        "args": ["coder-a"],
+        "predicate": "idle"
+      },
+      {
+        "args": ["coder-b"],
+        "predicate": "idle"
+      },
+      {
+        "args": ["reviewer-r"],
+        "predicate": "idle"
+      },
+      {
+        "args": ["issue-101"],
+        "predicate": "open"
+      },
+      {
+        "args": ["issue-102"],
+        "predicate": "open"
+      },
+      {
+        "args": ["wt-1"],
+        "predicate": "free"
+      },
+      {
+        "args": ["wt-2"],
+        "predicate": "free"
+      }
+    ],
+    "name": "two-issues",
+    "objects": [
+      {
+        "name": "coder-a",
+        "type": "coder"
+      },
+      {
+        "name": "coder-b",
+        "type": "coder"
+      },
+      {
+        "name": "reviewer-r",
+        "type": "reviewer"
+      },
+      {
+        "name": "issue-101",
+        "type": "issue"
+      },
+      {
+        "name": "issue-102",
+        "type": "issue"
+      },
+      {
+        "name": "wt-1",
+        "type": "worktree"
+      },
+      {
+        "name": "wt-2",
+        "type": "worktree"
+      },
+      {
+        "name": "commit-1",
+        "type": "commit"
+      },
+      {
+        "name": "commit-2",
+        "type": "commit"
+      },
+      {
+        "name": "diary-1",
+        "type": "diary-entry"
+      },
+      {
+        "name": "diary-2",
+        "type": "diary-entry"
+      },
+      {
+        "name": "pr-1",
+        "type": "pull-request"
+      },
+      {
+        "name": "pr-2",
+        "type": "pull-request"
+      }
+    ]
+  },
+  "source": "live run issue2, gpt-oss:120b, profile legreffier-pddl-designer-v1"
+}

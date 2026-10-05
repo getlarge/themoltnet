@@ -196,6 +196,7 @@ export function checkActions(
     a.deleteEffects.forEach((x, i) => issues.push(...atom('del')(x, i)));
     if (a.addEffects.length === 0 && a.deleteEffects.length === 0)
       issues.push(warn(base, 'action has no effects'));
+    issues.push(...unlinkedParameters(a));
   }
   issues.push(...permanentFacts(predicates, actions));
   return issues;
@@ -228,7 +229,7 @@ export function permanentFacts(
     .map((p) =>
       warn(
         `predicates/${p.name}`,
-        `no action deletes ${p.name}: once added it stays true forever and can be reused by later steps`,
+        `no action deletes ${p.name}: once added it stays true. Fine for a permanent milestone; a problem if a later step should not be able to reuse it`,
       ),
     );
 }
@@ -284,6 +285,58 @@ export function ungroundableActions(
           `no object can fill ${empty.map((p) => `${p.name} - ${p.type}`).join(', ')}; declare at least one object of that type (actions cannot create objects)`,
         ),
       );
+  }
+  return issues;
+}
+
+/**
+ * Parameters that no precondition connects. If `run-tests(?c, ?w)` only
+ * requires `(busy ?c)` and `(assigned ?w ?i)`, nothing says the worktree is
+ * the coder's own, so any busy coder may test any worktree. That is sometimes
+ * intended (any arm may pick up any block), so this is a hint for the refine
+ * stage, not an error.
+ */
+export function unlinkedParameters(action: ActionDef): Issue[] {
+  const parent = new Map(action.parameters.map((p) => [p.name, p.name]));
+  const find = (x: string): string => {
+    const up = parent.get(x) ?? x;
+    if (up === x) return x;
+    const root = find(up);
+    parent.set(x, root);
+    return root;
+  };
+  const used = new Set<string>();
+  for (const atom of action.preconditions) {
+    const params = atom.args.filter((arg) => parent.has(arg));
+    params.forEach((arg) => used.add(arg));
+    for (const arg of params.slice(1)) parent.set(find(arg), find(params[0]));
+  }
+  const issues: Issue[] = [];
+  const typeOf = new Map(action.parameters.map((p) => [p.name, p.type]));
+  const unused = action.parameters.filter((p) => !used.has(p.name));
+  for (const p of unused)
+    issues.push(
+      warn(
+        `actions/${action.name}`,
+        `${p.name} - ${p.type} appears in no precondition, so the planner may pick any ${p.type}`,
+      ),
+    );
+  const groups = new Map<string, string[]>();
+  for (const name of used) {
+    const root = find(name);
+    groups.set(root, [...(groups.get(root) ?? []), name]);
+  }
+  if (groups.size > 1) {
+    const listed = [...groups.values()].map(
+      (names) =>
+        '{' + names.map((n) => `${n} - ${typeOf.get(n)}`).join(', ') + '}',
+    );
+    issues.push(
+      warn(
+        `actions/${action.name}`,
+        `no precondition links ${listed.join(' and ')}: any combination may be chosen. Add a precondition that ties them if only a specific one may act`,
+      ),
+    );
   }
   return issues;
 }

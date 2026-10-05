@@ -25,7 +25,6 @@ import {
 import {
   checkActions,
   checkPredicates,
-  checkProblem,
   checkTypes,
   hasErrors,
   type Issue,
@@ -37,7 +36,9 @@ import {
   type GroundingRow,
   type PlannerLimits,
   type PlanResult,
+  type Reachability,
 } from './planner.js';
+import { checkProblemWithReachability } from './problem-check.js';
 import { renderDomain, renderProblem } from './render.js';
 import {
   buildActionsTask,
@@ -95,6 +96,7 @@ export interface DesignRun {
   /** Warnings that remain on the final domain and problem. */
   issues: Issue[];
   grounding?: GroundingRow[];
+  reachability?: Reachability;
   plan?: PlanResult;
   durationMs: number;
 }
@@ -262,7 +264,7 @@ export async function runPddlDesign(
       (n, c) =>
         buildProblemTask(input, run.domainPddl ?? '', parameterTypes, n, c),
       parseProblem,
-      (r) => checkProblem(domain.types, domain.predicates, domain.actions, r),
+      (r) => checkProblemWithReachability(domain, r, input.problemName),
     );
     const problem: Problem = {
       name: input.problemName,
@@ -274,6 +276,7 @@ export async function runPddlDesign(
 
     const check = checkPlan(domain, problem, options.limits ?? DEFAULT_LIMITS);
     run.grounding = check.grounding;
+    run.reachability = check.reachability;
     run.plan = check.plan;
     run.status =
       check.plan.status === 'found'

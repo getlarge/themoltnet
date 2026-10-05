@@ -2,10 +2,19 @@
  * A small classical planner over the typed IR: STRIPS with typing and negative
  * preconditions, the fragment the stages are allowed to produce.
  *
- * It is a checker, not a production planner. Breadth-first search returns a
- * shortest plan, and the grounding table explains a failure: an action with
- * zero concrete instances names the parameter type that has no objects.
- * Larger models should be handed to Fast Downward with the rendered PDDL.
+ * It is a checker, not a production planner:
+ *
+ * - `relaxedReachability` ignores delete effects. A goal fact it cannot reach
+ *   can never become true, so the problem is unsolvable; an action it never
+ *   fires names the facts that are missing.
+ * - `search` is greedy best-first search guided by the additive heuristic
+ *   (h_add). It finds a valid plan quickly but not necessarily a shortest one.
+ *   Pruning states with an infinite heuristic is sound, so an exhausted search
+ *   proves unsolvability.
+ * - `validatePlan` replays a plan step by step, for gold-plan tests.
+ *
+ * The grounding table explains a failure: an action with zero concrete
+ * instances names the parameter type that has no objects.
  */
 import { isSubtype } from './check.js';
 import type { Atom, Domain, Literal, Problem } from './ir.js';
@@ -27,13 +36,34 @@ export interface GroundingRow {
   emptyParameters: string[];
 }
 
+export interface BlockedAction {
+  action: string;
+  /** The instance missing the fewest facts, and those facts. */
+  example: string;
+  missing: string[];
+  /**
+   * Missing facts that no action can produce for the first time: they must
+   * come from the initial state. The others are produced only by actions that
+   * are blocked too.
+   */
+  rootMissing: string[];
+}
+
+export interface Reachability {
+  /** Positive goal facts that cannot become true even ignoring deletes. */
+  unreachableGoals: string[];
+  /** Actions with instances, none of which can ever fire. */
+  blocked: BlockedAction[];
+}
+
 export type PlanResult =
   | { status: 'found'; steps: string[]; explored: number }
-  | { status: 'unsolvable'; explored: number }
+  | { status: 'unsolvable'; explored: number; reason: string }
   | { status: 'limit'; explored: number; reason: string };
 
 export interface PlanCheck {
   grounding: GroundingRow[];
+  reachability?: Reachability;
   plan: PlanResult;
 }
 
@@ -45,12 +75,12 @@ export interface PlannerLimits {
 }
 
 export const DEFAULT_LIMITS: PlannerLimits = {
-  maxGroundActions: 50_000,
-  maxStates: 200_000,
+  maxGroundActions: 20_000,
+  maxStates: 100_000,
 };
 
-const key = (predicate: string, args: string[]) =>
-  [predicate, ...args].join(' ');
+export const factKey = (predicate: string, args: string[]) =>
+  `(${[predicate, ...args].join(' ')})`;
 
 class LimitExceeded extends Error {}
 
@@ -78,7 +108,7 @@ export function ground(
             `more than ${limits.maxGroundActions} concrete actions`,
           );
         const sub = (x: Atom | Literal) =>
-          key(
+          factKey(
             x.predicate,
             x.args.map((arg) => binding.get(arg) ?? arg),
           );
@@ -117,6 +147,151 @@ export function apply(state: Set<string>, op: GroundAction): Set<string> {
   return next;
 }
 
+const initialState = (problem: Problem) =>
+  new Set(problem.init.map((x) => factKey(x.predicate, x.args)));
+
+const goalFacts = (problem: Problem) => ({
+  pos: problem.goal
+    .filter((x) => !x.negated)
+    .map((x) => factKey(x.predicate, x.args)),
+  neg: problem.goal
+    .filter((x) => x.negated)
+    .map((x) => factKey(x.predicate, x.args)),
+});
+
+/** Facts reachable when delete effects and negative preconditions are ignored. */
+function relaxedClosure(state: Set<string>, actions: GroundAction[]) {
+  const facts = new Set(state);
+  const fired = new Set<number>();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    actions.forEach((op, i) => {
+      if (fired.has(i) || !op.pre.every((f) => facts.has(f))) return;
+      fired.add(i);
+      for (const f of op.add) {
+        if (!facts.has(f)) {
+          facts.add(f);
+          changed = true;
+        }
+      }
+    });
+  }
+  return { facts, fired };
+}
+
+export function relaxedReachability(
+  actions: GroundAction[],
+  problem: Problem,
+): Reachability {
+  const { facts, fired } = relaxedClosure(initialState(problem), actions);
+  const unreachableGoals = goalFacts(problem).pos.filter((f) => !facts.has(f));
+  const byAction = new Map<string, { label: string; missing: string[] }>();
+  const firedActions = new Set<string>();
+  actions.forEach((op, i) => {
+    if (fired.has(i)) {
+      firedActions.add(op.action);
+      return;
+    }
+    const missing = op.pre.filter((f) => !facts.has(f));
+    const best = byAction.get(op.action);
+    if (!best || missing.length < best.missing.length)
+      byAction.set(op.action, { label: op.label, missing });
+  });
+  // An action that needs a fact cannot produce it for the first time (an
+  // agent's `idle` that the action deletes and re-adds), so it does not count.
+  const producible = new Set(
+    actions.flatMap((op) => op.add.filter((f) => !op.pre.includes(f))),
+  );
+  const blocked = [...byAction]
+    .filter(([action]) => !firedActions.has(action))
+    .map(([action, best]) => ({
+      action,
+      example: best.label,
+      missing: best.missing,
+      rootMissing: best.missing.filter((f) => !producible.has(f)),
+    }));
+  return { unreachableGoals, blocked };
+}
+
+/** Additive heuristic: sum of relaxed costs of the goal facts. */
+function hAdd(state: Set<string>, actions: GroundAction[], goals: string[]) {
+  const cost = new Map<string, number>();
+  for (const f of state) cost.set(f, 0);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const op of actions) {
+      let c = 1;
+      for (const f of op.pre) {
+        const v = cost.get(f);
+        if (v === undefined) {
+          c = Infinity;
+          break;
+        }
+        c += v;
+      }
+      if (c === Infinity) continue;
+      for (const f of op.add) {
+        const v = cost.get(f);
+        if (v === undefined || c < v) {
+          cost.set(f, c);
+          changed = true;
+        }
+      }
+    }
+  }
+  let h = 0;
+  for (const g of goals) {
+    const v = cost.get(g);
+    if (v === undefined) return Infinity;
+    h += v;
+  }
+  return h;
+}
+
+/** Binary min-heap on [h, g, sequence]. */
+class Queue<T> {
+  private items: Array<{ k: [number, number, number]; v: T }> = [];
+  private less = (a: [number, number, number], b: [number, number, number]) =>
+    a[0] !== b[0] ? a[0] < b[0] : a[1] !== b[1] ? a[1] < b[1] : a[2] < b[2];
+  get size() {
+    return this.items.length;
+  }
+  push(k: [number, number, number], v: T) {
+    const items = this.items;
+    items.push({ k, v });
+    let i = items.length - 1;
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (!this.less(items[i].k, items[p].k)) break;
+      [items[i], items[p]] = [items[p], items[i]];
+      i = p;
+    }
+  }
+  pop(): T | undefined {
+    const items = this.items;
+    if (!items.length) return undefined;
+    const top = items[0].v;
+    const last = items.pop();
+    if (items.length && last) {
+      items[0] = last;
+      let i = 0;
+      for (;;) {
+        const l = 2 * i + 1;
+        const r = l + 1;
+        let m = i;
+        if (l < items.length && this.less(items[l].k, items[m].k)) m = l;
+        if (r < items.length && this.less(items[r].k, items[m].k)) m = r;
+        if (m === i) break;
+        [items[i], items[m]] = [items[m], items[i]];
+        i = m;
+      }
+    }
+    return top;
+  }
+}
+
 const stateKey = (state: Set<string>) => [...state].sort().join('|');
 
 export function search(
@@ -124,25 +299,28 @@ export function search(
   problem: Problem,
   limits: PlannerLimits = DEFAULT_LIMITS,
 ): PlanResult {
-  const start = new Set(problem.init.map((x) => key(x.predicate, x.args)));
-  const goalPos = problem.goal
-    .filter((x) => !x.negated)
-    .map((x) => key(x.predicate, x.args));
-  const goalNeg = problem.goal
-    .filter((x) => x.negated)
-    .map((x) => key(x.predicate, x.args));
+  const goals = goalFacts(problem);
   const isGoal = (s: Set<string>) =>
-    goalPos.every((f) => s.has(f)) && !goalNeg.some((f) => s.has(f));
-
+    goals.pos.every((f) => s.has(f)) && !goals.neg.some((f) => s.has(f));
+  const start = initialState(problem);
+  const startKey = stateKey(start);
   const parent = new Map<string, { prev: string; op: string } | null>([
-    [stateKey(start), null],
+    [startKey, null],
   ]);
-  const queue: Set<string>[] = [start];
-  for (let head = 0; head < queue.length; head++) {
-    const state = queue[head];
-    if (isGoal(state)) {
+  const queue = new Queue<{ state: Set<string>; key: string; g: number }>();
+  let sequence = 0;
+  const h0 = hAdd(start, actions, goals.pos);
+  if (h0 === Infinity)
+    return {
+      status: 'unsolvable',
+      explored: 1,
+      reason: 'a goal fact is unreachable even ignoring delete effects',
+    };
+  queue.push([h0, 0, sequence++], { state: start, key: startKey, g: 0 });
+  for (let node = queue.pop(); node !== undefined; node = queue.pop()) {
+    if (isGoal(node.state)) {
       const steps: string[] = [];
-      let cursor = stateKey(state);
+      let cursor = node.key;
       for (let link = parent.get(cursor); link; link = parent.get(cursor)) {
         steps.push(link.op);
         cursor = link.prev;
@@ -150,21 +328,82 @@ export function search(
       return { status: 'found', steps: steps.reverse(), explored: parent.size };
     }
     for (const op of actions) {
-      if (!applicable(state, op)) continue;
-      const next = apply(state, op);
-      const k = stateKey(next);
-      if (parent.has(k)) continue;
+      if (!applicable(node.state, op)) continue;
+      const next = apply(node.state, op);
+      const key = stateKey(next);
+      if (parent.has(key)) continue;
       if (parent.size >= limits.maxStates)
         return {
           status: 'limit',
           explored: parent.size,
           reason: `more than ${limits.maxStates} states`,
         };
-      parent.set(k, { prev: stateKey(state), op: op.label });
-      queue.push(next);
+      parent.set(key, { prev: node.key, op: op.label });
+      const h = hAdd(next, actions, goals.pos);
+      if (h === Infinity) continue; // dead end: the goal is unreachable from here
+      queue.push([h, node.g + 1, sequence++], {
+        state: next,
+        key,
+        g: node.g + 1,
+      });
     }
   }
-  return { status: 'unsolvable', explored: parent.size };
+  return {
+    status: 'unsolvable',
+    explored: parent.size,
+    reason: 'every reachable state was explored without reaching the goal',
+  };
+}
+
+export type PlanValidation =
+  | { valid: true; finalState: string[] }
+  | { valid: false; step: number; reason: string };
+
+/**
+ * Replay a plan from the initial state. Each step is a ground action label,
+ * e.g. `(stack arm b c)`. Use it to assert that intended plans work and that
+ * known-bad plans are rejected by a generated domain.
+ */
+export function validatePlan(
+  domain: Domain,
+  problem: Problem,
+  steps: string[],
+  limits: PlannerLimits = DEFAULT_LIMITS,
+): PlanValidation {
+  const { actions } = ground(domain, problem, limits);
+  const byLabel = new Map(actions.map((op) => [op.label, op]));
+  let state = initialState(problem);
+  for (const [i, label] of steps.entries()) {
+    const op = byLabel.get(label);
+    if (!op)
+      return { valid: false, step: i, reason: `unknown action ${label}` };
+    const missing = op.pre.filter((f) => !state.has(f));
+    const blocking = op.neg.filter((f) => state.has(f));
+    if (missing.length || blocking.length)
+      return {
+        valid: false,
+        step: i,
+        reason: [
+          missing.length ? `missing ${missing.join(' ')}` : '',
+          blocking.length ? `must be false: ${blocking.join(' ')}` : '',
+        ]
+          .filter(Boolean)
+          .join('; '),
+      };
+    state = apply(state, op);
+  }
+  const goals = goalFacts(problem);
+  const unmet = [
+    ...goals.pos.filter((f) => !state.has(f)),
+    ...goals.neg.filter((f) => state.has(f)).map((f) => `(not ${f})`),
+  ];
+  if (unmet.length)
+    return {
+      valid: false,
+      step: steps.length,
+      reason: `goal not reached: ${unmet.join(' ')}`,
+    };
+  return { valid: true, finalState: [...state].sort() };
 }
 
 export function checkPlan(
@@ -172,9 +411,9 @@ export function checkPlan(
   problem: Problem,
   limits: PlannerLimits = DEFAULT_LIMITS,
 ): PlanCheck {
+  let grounded: ReturnType<typeof ground>;
   try {
-    const { actions, rows } = ground(domain, problem, limits);
-    return { grounding: rows, plan: search(actions, problem, limits) };
+    grounded = ground(domain, problem, limits);
   } catch (error) {
     if (!(error instanceof LimitExceeded)) throw error;
     return {
@@ -182,4 +421,20 @@ export function checkPlan(
       plan: { status: 'limit', explored: 0, reason: error.message },
     };
   }
+  const reachability = relaxedReachability(grounded.actions, problem);
+  if (reachability.unreachableGoals.length)
+    return {
+      grounding: grounded.rows,
+      reachability,
+      plan: {
+        status: 'unsolvable',
+        explored: 0,
+        reason: `goal facts can never become true: ${reachability.unreachableGoals.join(' ')}`,
+      },
+    };
+  return {
+    grounding: grounded.rows,
+    reachability,
+    plan: search(grounded.actions, problem, limits),
+  };
 }

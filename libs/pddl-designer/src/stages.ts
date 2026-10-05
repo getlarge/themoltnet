@@ -222,7 +222,7 @@ export function buildRefineTask(
       'Predicates:\n' + json(predicates.predicates),
       'Draft actions:\n' + json(draft),
       findings.length
-        ? 'Deterministic checks on the draft found:\n' +
+        ? 'Deterministic checks on the draft found the following. Errors must be fixed. Warnings are hints: apply one only when the description supports it, and say so in changes.\n' +
           findings
             .map((i) => `- [${i.severity}] ${i.path}: ${i.message}`)
             .join('\n')
