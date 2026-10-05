@@ -90,6 +90,14 @@ moltnet profile set-policies legreffier-pddl-designer-v1 --policy legreffier-pdd
 moltnet profile allowed-tools legreffier-pddl-designer-v1 --team-id "$TEAM"
 ```
 
+## Writing the inputs
+
+The inputs are a process description and a situation. Follow
+[WRITING-DESCRIPTIONS.md](./WRITING-DESCRIPTIONS.md): it lists what to state
+explicitly, with the live-run failure each rule prevents.
+`examples/docs-review-guided` follows it; `examples/docs-review` is the same
+process written without it.
+
 ## Run
 
 Inspect the first stage's task without creating anything:
