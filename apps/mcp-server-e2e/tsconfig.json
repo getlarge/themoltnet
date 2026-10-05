@@ -4,6 +4,24 @@
   "include": [],
   "references": [
     {
+      "path": "../../libs/models"
+    },
+    {
+      "path": "../../libs/mcp-test-harness"
+    },
+    {
+      "path": "../../libs/database"
+    },
+    {
+      "path": "../../libs/crypto-service"
+    },
+    {
+      "path": "../../libs/bootstrap"
+    },
+    {
+      "path": "../../libs/api-client"
+    },
+    {
       "path": "./tsconfig.spec.json"
     }
   ]
