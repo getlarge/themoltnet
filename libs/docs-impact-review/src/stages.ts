@@ -44,7 +44,7 @@ const TASK_EXPIRES_IN_SEC = 60 * 60;
  * Default runtime budget per stage, enforced server-side by the running
  * timeout; `StageContext.runningTimeoutSec` overrides it.
  */
-export const STAGE_RUNNING_TIMEOUT_SEC = DEFAULT_BUDGETS.stageRunningTimeoutSec;
+const STAGE_RUNNING_TIMEOUT_SEC = DEFAULT_BUDGETS.stageRunningTimeoutSec;
 /**
  * An unclaimed stage fails on the server after this long instead of waiting
  * for the review job's timeout, so a missing worker reads as unavailable.

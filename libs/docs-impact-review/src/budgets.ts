@@ -50,7 +50,7 @@ export const CONFIGURABLE_BUDGETS = [
   'maxDocsHunks',
   'stageRunningTimeoutSec',
 ] as const satisfies ReadonlyArray<keyof Budgets>;
-export type ConfigurableBudget = (typeof CONFIGURABLE_BUDGETS)[number];
+type ConfigurableBudget = (typeof CONFIGURABLE_BUDGETS)[number];
 
 /**
  * Accepted range per configurable budget. Upper bounds keep a stage within

@@ -649,6 +649,3 @@ export async function runDocsImpactReview(
     return finish();
   }
 }
-
-export type { Budgets } from './budgets.js';
-export { DEFAULT_BUDGETS } from './budgets.js';
