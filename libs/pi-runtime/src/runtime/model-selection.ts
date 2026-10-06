@@ -1,7 +1,9 @@
 import { join } from 'node:path';
 
 import type { Api, Model } from '@earendil-works/pi-ai';
-import { ModelRuntime } from '@earendil-works/pi-coding-agent';
+import type { ModelRuntime } from '@earendil-works/pi-coding-agent';
+
+import { createRuntimeModels } from './model-runtime.js';
 
 export interface RuntimeModelSelection {
   modelHandle: Model<Api>;
@@ -30,10 +32,7 @@ export async function resolveRuntimeProfileModel(
   runtimeProfileId?: string,
 ): Promise<RuntimeModelSelection> {
   const modelsPath = join(piAuthDir, 'models.json');
-  const modelRuntime = await ModelRuntime.create({
-    authPath: join(piAuthDir, 'auth.json'),
-    modelsPath,
-  });
+  const modelRuntime = await createRuntimeModels(piAuthDir);
   const modelHandle = modelRuntime.getModel(provider, modelId);
 
   if (!modelHandle) {

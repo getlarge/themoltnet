@@ -882,7 +882,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           topP: taskGeneration?.topP ?? null,
           topK: taskGeneration?.topK ?? null,
           maxOutputTokens: taskGeneration?.maxOutputTokens ?? null,
-
+          classifier: profile.models.classification,
           providerFailureContext: {
             runtimeProfileId: profile.id,
             runtimeProfileName: profile.name,

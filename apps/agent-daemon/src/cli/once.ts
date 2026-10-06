@@ -482,6 +482,7 @@ export async function runOnce(
         topP: taskGeneration?.topP ?? null,
         topK: taskGeneration?.topK ?? null,
         maxOutputTokens: taskGeneration?.maxOutputTokens ?? null,
+        classifier: profile.models.classification,
 
         providerFailureContext: {
           runtimeProfileId: profile.id,

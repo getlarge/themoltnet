@@ -10,6 +10,8 @@ import type {
 export interface ApiTaskSourceOptions {
   agent: Agent;
   taskId: string;
+  /** Reattach to an existing valid attempt instead of creating a claim. */
+  resumeAttempt?: number;
   /** Owning team context. Falls back to SDK task context when already known. */
   teamId?: string;
   projectId?: string | null;
@@ -28,6 +30,25 @@ export class ApiTaskSource implements TaskSource {
   async claim(): Promise<ClaimedTask | null> {
     if (this.claimed) return null;
 
+    const result =
+      this.opts.resumeAttempt === undefined
+        ? await this.claimNew()
+        : await this.resume(this.opts.resumeAttempt);
+    const { profileId } = this.opts;
+
+    this.claimed = true;
+    const claimAuthority = claimAuthorityFromAttempt(result.attempt);
+
+    return {
+      task: result.task,
+      attemptN: result.attempt.attemptN,
+      ...(profileId ? { profileId } : {}),
+      ...(claimAuthority ? { claimAuthority } : {}),
+      traceHeaders: result.traceHeaders,
+    };
+  }
+
+  private async claimNew() {
     const {
       agent,
       taskId,
@@ -47,20 +68,50 @@ export class ApiTaskSource implements TaskSource {
       ...(profileId ? { profileId } : {}),
       ...attestation,
     };
-    const result = teamId
-      ? await agent.tasks.claim(taskId, claimBody, { teamId })
-      : await agent.tasks.claim(taskId, claimBody);
+    return teamId
+      ? agent.tasks.claim(taskId, claimBody, { teamId })
+      : agent.tasks.claim(taskId, claimBody);
+  }
 
-    this.claimed = true;
-    const claimAuthority = claimAuthorityFromAttempt(result.attempt);
-
-    return {
-      task: result.task,
-      attemptN: result.attempt.attemptN,
-      ...(profileId ? { profileId } : {}),
-      ...(claimAuthority ? { claimAuthority } : {}),
-      traceHeaders: result.traceHeaders,
-    };
+  /** Reattachment never mutates a claim; the server fences the task lease. */
+  private async resume(attemptN: number) {
+    const { agent, taskId, teamId, profileId, executorFingerprint, projectId } =
+      this.opts;
+    if (
+      !Number.isSafeInteger(attemptN) ||
+      attemptN < 1 ||
+      !teamId ||
+      !profileId ||
+      !executorFingerprint
+    ) {
+      throw new Error(
+        'Resume requires a positive attempt number, team, profile, and executor fingerprint',
+      );
+    }
+    const [identity, task, attempts] = await Promise.all([
+      agent.agents.whoami(),
+      agent.tasks.get(taskId, { teamId }),
+      agent.tasks.listAttempts(taskId, { teamId }),
+    ]);
+    const attempt = attempts.find((item) => item.attemptN === attemptN);
+    if (
+      identity.subjectType !== 'agent' ||
+      !attempt ||
+      task.teamId !== teamId ||
+      task.projectId !== (projectId ?? null) ||
+      !['dispatched', 'running'].includes(task.status) ||
+      !['claimed', 'running'].includes(attempt.status) ||
+      attempt.claimedByAgentId !== identity.subjectId ||
+      attempt.runtimeProfileId !== profileId ||
+      attempt.claimedExecutorFingerprint !== executorFingerprint ||
+      !attempt.leaseId ||
+      attempts.some((item) => item.attemptN > attemptN)
+    ) {
+      throw new Error(
+        'Resume requires this agent’s active attempt, original profile, project, and executor fingerprint',
+      );
+    }
+    return { task, attempt, traceHeaders: {} };
   }
 
   async close(): Promise<void> {

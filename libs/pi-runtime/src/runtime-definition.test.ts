@@ -750,3 +750,76 @@ describe('Pi runtime definitions', () => {
     );
   });
 });
+
+it('awaits asynchronous extension registration before validating its declared tools', async () => {
+  const runtime = definePiRuntime({
+    id: 'async-runtime',
+    version: '1',
+    vm: defineGondolinTemplate({
+      id: 'vm',
+      version: '1',
+      checkpointPath: '/tmp/checkpoint',
+    }),
+    extensions: [
+      definePiExtension({
+        id: 'async-extension',
+        declaredTools: ['review'],
+        factory: async (pi) => {
+          await Promise.resolve();
+          pi.registerTool({ name: 'review' } as never);
+        },
+      }),
+    ],
+  });
+  const [factory] = await materializePiExtensions({
+    runtime,
+    context: {} as never,
+    target: 'parent',
+  });
+  const registered: string[] = [];
+  await factory({
+    registerTool: (tool: { name: string }) => {
+      registered.push(tool.name);
+    },
+  } as never);
+  expect(registered).toEqual(['review']);
+});
+
+it('derives native extension tool declarations and reserves internal extension names', () => {
+  const extension = {
+    name: 'team-native',
+    tools: [
+      {
+        name: 'lookup',
+        description: 'Lookup',
+        parameters: { type: 'object' as const, properties: {} },
+        replay: 'safe' as const,
+        execute: async () => ({ content: [] }),
+      },
+    ],
+  };
+  expect(
+    definePiExtension({ extension, scope: 'parent_and_subagents' }),
+  ).toMatchObject({
+    kind: 'durable_extension',
+    id: 'team-native',
+    declaredTools: ['lookup'],
+    scope: 'parent_and_subagents',
+    extension,
+  });
+  expect(() =>
+    definePiExtension({ extension: { name: 'moltnet-attempt' } }),
+  ).toThrow('reserved');
+});
+
+it('rejects duplicate native extension identities even when they have no tools', () => {
+  const extension = definePiExtension({ extension: { name: 'team-hooks' } });
+  expect(() =>
+    definePiRuntime({
+      id: 'team',
+      version: '1',
+      vm: defineGondolinTemplate({ id: 'vm', version: '1' }),
+      extensions: [extension, extension],
+    }),
+  ).toThrow('Duplicate extension id');
+});

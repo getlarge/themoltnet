@@ -1,3 +1,7 @@
+import {
+  createPiDaemonAdapter,
+  defaultPiDaemonAdapter,
+} from '@themoltnet/agent-daemon/pi';
 import { OSKeyringSecretProvider } from '@themoltnet/sdk/node';
 
 try {
@@ -8,3 +12,9 @@ try {
     throw error;
   }
 }
+
+if (
+  typeof createPiDaemonAdapter !== 'function' ||
+  defaultPiDaemonAdapter.runtimeKind !== 'gondolin_pi'
+)
+  throw new Error('Pi adapter missing from packed daemon');

@@ -1,3 +1,5 @@
+import { redactRetryTriageSecrets } from './retry-triage.js';
+
 /**
  * Return true for provider messages that describe a request shape the
  * selected model cannot accept. These failures are deterministic until the
@@ -373,4 +375,14 @@ export function appendProviderFailureDiagnostics<
     ...error,
     message: `${error.message.slice(0, MAX_DIAGNOSTIC_LENGTH - suffix.length)}${suffix}`,
   };
+}
+
+export function sanitizeProviderDiagnostic(
+  value: string | null | undefined,
+): string {
+  const raw = value ?? 'Pi turn ended with stopReason=error';
+  const redacted = redactRetryTriageSecrets(raw);
+  return redacted.length <= 500
+    ? redacted
+    : `${redacted.slice(0, 240)}…${redacted.slice(-259)}`;
 }

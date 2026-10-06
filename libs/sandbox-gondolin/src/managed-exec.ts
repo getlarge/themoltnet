@@ -12,7 +12,7 @@ export interface ManagedExecOptions {
   env?: Record<string, string>;
   signal?: AbortSignal;
   timeoutMs?: number;
-  onData?: (data: Buffer, stream: 'stdout' | 'stderr') => void;
+  onData?: (data: Buffer, stream: 'stdout' | 'stderr') => void | Promise<void>;
   onDiagnostic?: (diagnostic: ManagedExecDiagnostic) => void;
   onStarted?: () => void;
 }
@@ -140,7 +140,7 @@ export async function execManagedCommand(
     const execution = (async () => {
       for await (const chunk of process.output()) {
         if (!acceptOutput) continue;
-        options.onData?.(chunkBuffer(chunk.data), chunk.stream);
+        await options.onData?.(chunkBuffer(chunk.data), chunk.stream);
       }
       return process;
     })();

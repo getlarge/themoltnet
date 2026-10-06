@@ -20,6 +20,9 @@ export type PiModelModality = (typeof PI_MODEL_MODALITIES)[number];
  */
 export interface PiModelSpec {
   id: string;
+  type?: 'chat' | 'classifier';
+  api?: string;
+  contextWindow?: number;
   input?: readonly PiModelModality[];
   reasoning?: boolean;
   thinkingLevelMap?: Readonly<Record<string, string>>;
@@ -92,6 +95,10 @@ export type WritePiConfigInput =
 function toPiModel(entry: PiModelSpec): PiStoredModelSpec {
   return {
     id: entry.id,
+    ...(entry.api ? { api: entry.api } : {}),
+    ...(entry.contextWindow !== undefined
+      ? { contextWindow: entry.contextWindow }
+      : {}),
     ...(entry.input && entry.input.length > 0
       ? { input: [...entry.input] }
       : {}),
@@ -119,7 +126,22 @@ export function writePiConfig(input: WritePiConfigInput): void {
             api: provider.api,
             ...(provider.apiKeyEnvRef ? { apiKey: provider.apiKeyEnvRef } : {}),
             baseUrl: provider.baseUrl,
-            models: provider.models.map(toPiModel),
+            models: provider.models
+              .filter((model) => model.type !== 'classifier')
+              .map(toPiModel),
+            ...(provider.models.some((model) => model.type === 'classifier')
+              ? {
+                  // Pi 1.0 models.json only constructs chat models. Our shared
+                  // ModelRuntime loader registers these under the same provider.
+                  classifierModels: provider.models
+                    .filter((model) => model.type === 'classifier')
+                    .map((model) => ({
+                      id: model.id,
+                      api: model.api ?? provider.api,
+                      contextWindow: model.contextWindow ?? 8192,
+                    })),
+                }
+              : {}),
           },
         ]),
       )

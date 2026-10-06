@@ -1,22 +1,37 @@
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { expect, it } from 'vitest';
 
-describe('packed analyzer smoke policy', () => {
-  it('allows freshly published internal packages in its isolated consumer', () => {
-    const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-    const smokeScript = readFileSync(
-      resolve(packageRoot, 'scripts/smoke-packed-analyzer.mjs'),
-      'utf8',
+it('copies release quarantine and exact exceptions into isolated consumers', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pack-policy-'));
+  try {
+    const consumer = join(dir, 'consumer');
+    mkdirSync(consumer);
+    writeFileSync(
+      join(dir, 'pnpm-workspace.yaml'),
+      "packages:\n  - libs/*\nminimumReleaseAge: 1440\nminimumReleaseAgeExclude:\n  - '@earendil-works/pi-ai@1.0.0'\n  - '@themoltnet/*'\nallowBuilds:\n  esbuild: true\n",
     );
-
-    expect(smokeScript).toContain(
-      "const internalPackageReleaseAgeExclude = '@themoltnet/*';",
+    const helper = new URL('../../../pack.shared.mjs', import.meta.url).href;
+    execFileSync(process.execPath, [
+      '--input-type=module',
+      '-e',
+      `import { writePackedConsumerPolicy } from ${JSON.stringify(helper)}; writePackedConsumerPolicy(process.argv[1], process.argv[2]);`,
+      dir,
+      consumer,
+    ]);
+    expect(readFileSync(join(consumer, 'pnpm-workspace.yaml'), 'utf8')).toBe(
+      "minimumReleaseAge: 1440\nminimumReleaseAgeExclude:\n  - '@earendil-works/pi-ai@1.0.0'\n  - '@themoltnet/*'\n",
     );
-    expect(smokeScript).toContain(
-      'npm_config_minimum_release_age_exclude: internalPackageReleaseAgeExclude',
-    );
-  });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

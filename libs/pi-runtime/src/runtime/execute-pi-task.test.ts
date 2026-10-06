@@ -23,6 +23,7 @@ import type { ClaimedTask, TaskReporter } from '@themoltnet/agent-runtime';
 import { createLocalSeedSigner } from '@themoltnet/agent-runtime';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createGondolinToolDefinitions } from '../gondolin-tools.js';
 import { agentSigningCapability } from '../host-capabilities/agent-signing.js';
 import {
   buildPiExecutorManifest,
@@ -31,6 +32,7 @@ import {
   definePiRuntime,
 } from '../runtime-definition.js';
 import { createGondolinToolLifecycle } from '../tool-operations.js';
+import { resolveAttemptBrokeredHttpSecrets } from './attempt-vm.js';
 import {
   assistantText,
   buildAttemptResult,
@@ -41,7 +43,6 @@ import {
   cleanupAttempt,
   computeProviderErrorRetryDelay,
   createGondolinRetirementCoordinator,
-  createGondolinToolDefinitions,
   createMoltNetAgentResolver,
   createSessionTurnState,
   DEFAULT_PROVIDER_ERROR_RETRIES,
@@ -57,7 +58,6 @@ import {
   postSubmitAbortDiagnostic,
   promptUntilSubmitted,
   promptWithProviderErrorRetries,
-  resolveAttemptBrokeredHttpSecrets,
   resolveHostExecBaseEnv,
   resolveProviderStateAfterSubmit,
   resolveSubmitMissingConfig,
@@ -684,7 +684,7 @@ describe('createGondolinToolDefinitions', () => {
         () => {},
         null as never,
       ),
-    ).toThrow(expect.objectContaining({ code: 'sandbox_retired' }));
+    ).toThrow(expect.objectContaining({ code: 'sandbox_retired' }) as Error);
     expect(readFile).not.toHaveBeenCalled();
   });
 });
@@ -1935,7 +1935,9 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
       {
         kind: 'error',
         payload: {
-          message: expect.stringContaining('could not be canonicalized'),
+          message: expect.stringContaining(
+            'could not be canonicalized',
+          ) as unknown,
           phase: 'output_validation',
         },
       },
@@ -2080,7 +2082,9 @@ describe('materializeCapturedAttemptOutput', () => {
     expect(emitted).toEqual([
       expect.objectContaining({
         kind: 'error',
-        payload: expect.objectContaining({ phase: 'output_validation' }),
+        payload: expect.objectContaining({
+          phase: 'output_validation',
+        }) as unknown,
       }),
     ]);
   });
@@ -2254,6 +2258,27 @@ describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
     expect(usage.outputTokens).toBe(6);
     expect(usage.cacheReadTokens).toBe(3);
     expect(usage.cacheWriteTokens).toBe(2);
+  });
+
+  it('counts aggregated codemode usage once at the completed turn', () => {
+    const { deps, usage } = makeDeps();
+    const handler = makeSessionEventHandler(deps);
+    handler({
+      type: 'tool_execution_end',
+      toolName: 'nested_classifier',
+      toolCallId: 'nested',
+      isError: false,
+      result: { usage: { input: 10, output: 2 } },
+    } as SessionSubscribeEvent);
+    handler({
+      ...turnEnd('end_turn', { usage: { input: 1, output: 1 } }),
+      toolResults: [
+        { usage: { input: 10, output: 2, cacheRead: 3, cacheWrite: 0 } },
+      ],
+    } as SessionSubscribeEvent);
+    expect(usage.inputTokens).toBe(11);
+    expect(usage.outputTokens).toBe(3);
+    expect(usage.cacheReadTokens).toBe(3);
   });
 
   it('applies last-turn-wins for the provider-error stop reason', () => {
@@ -2974,11 +2999,15 @@ describe('agent_runtime.task_output.parse_result counter', () => {
     expect(await telemetryAnomalies()).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          attributes: expect.objectContaining({ kind: 'zero_usage' }),
+          attributes: expect.objectContaining({
+            kind: 'zero_usage',
+          }) as unknown,
           value: 1,
         }),
         expect.objectContaining({
-          attributes: expect.objectContaining({ kind: 'zero_duration' }),
+          attributes: expect.objectContaining({
+            kind: 'zero_duration',
+          }) as unknown,
           value: 1,
         }),
       ]),

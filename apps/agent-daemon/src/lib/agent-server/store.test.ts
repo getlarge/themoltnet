@@ -371,6 +371,28 @@ describe('AgentServerStore', () => {
     );
   });
 
+  it('round-trips classifier metadata alongside chat models', () => {
+    const store = freshStore();
+    const providers = {
+      team: {
+        api: 'openai-completions',
+        baseUrl: 'https://example.test',
+        envName: 'MOLTNET_PROVIDER_TEAM_API_KEY',
+        models: [
+          { id: 'chat' },
+          {
+            id: 'decisions',
+            type: 'classifier' as const,
+            api: 'typesafe-system-one',
+            contextWindow: 4096,
+          },
+        ],
+      },
+    };
+    store.writeProviders(providers);
+    expect(store.readProviders()).toEqual(providers);
+  });
+
   it('revalidates provider env names loaded from disk', () => {
     const store = freshStore();
     writeFileSync(

@@ -100,6 +100,7 @@
   },
   "files": [
     "dist/*.js",
+    "dist/assets/*.js",
     "dist/cli.d.ts",
     "dist/cli.d.ts.map",
     "dist/pi.d.ts",
@@ -117,7 +118,7 @@
     "build": "vite build",
     "generate:openapi": "tsx scripts/generate-openapi.ts",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
-    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --local-dependency ../../libs/sdk --local-dependency ../../libs/os-keyring --local-dependency ../../libs/agent-runtime --local-dependency ../../libs/shell-command-analyzer --local-dependency ../../libs/pi-runtime --copy-file test-fixtures/runtime-adapter.mjs runtime-adapter.mjs --probe-file test-fixtures/keyring-pack-probe.mjs keyring-pack-probe.mjs --bin moltnet-agent --args --runtime ./runtime-adapter.mjs --help --expect \"long-running task worker for MoltNet\""
+    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --local-dependency ../../libs/sdk --local-dependency ../../libs/os-keyring --local-dependency ../../libs/agent-runtime --local-dependency ../../libs/sandbox-gondolin --local-dependency ../../libs/shell-command-analyzer --local-dependency ../../libs/pi-runtime --copy-file test-fixtures/runtime-adapter.mjs runtime-adapter.mjs --probe-file test-fixtures/keyring-pack-probe.mjs keyring-pack-probe.mjs --bin moltnet-agent --args --runtime ./runtime-adapter.mjs --help --expect \"long-running task worker for MoltNet\""
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",

@@ -14,21 +14,9 @@
  * Anthropic-SDK one) plug in via the `executeTask` function injected into
  * `AgentRuntime`.
  */
-import { isAbsolute, resolve } from 'node:path';
-
-import type { VM } from '@earendil-works/gondolin';
 import type {
   AgentSession,
   ToolDefinition,
-} from '@earendil-works/pi-coding-agent';
-import {
-  createBashToolDefinition,
-  createEditToolDefinition,
-  createFindToolDefinition,
-  createGrepToolDefinition,
-  createLsToolDefinition,
-  createReadToolDefinition,
-  createWriteToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import type {
   AgentIdentity,
@@ -44,7 +32,6 @@ import {
 import {
   buildTaskUserPrompt,
   type ClaimedTask,
-  createHostCapabilityRouter,
   FREEFORM_TYPE,
   type HostCapabilityEvidenceLogger,
   type HostCapabilityRouter,
@@ -72,15 +59,14 @@ import { connect } from '@themoltnet/sdk/node';
 import { ShellCommandAnalyzer } from '@themoltnet/shell-command-analyzer';
 
 import { resolvePiCodingAgentDir } from '../config.js';
+import { createGondolinToolDefinitions } from '../gondolin-tools.js';
 import {
-  createMoltNetTools,
-  HOST_EXEC_DEFAULT_BASE_ENV,
+  createAttemptMoltNetTools,
   type HostExecAutoApproveConfig,
 } from '../moltnet/tools.js';
 import {
   enabledPiToolNames,
   filterModelVisibleTools,
-  materializePiBrokeredHttpSecrets,
   materializePiExtensions,
   materializePiTools,
   modelVisiblePiToolNames,
@@ -90,18 +76,10 @@ import {
   type ResolvedGondolinTemplate,
 } from '../runtime-definition.js';
 import {
-  createGondolinBashOps,
-  createGondolinEditOps,
-  createGondolinFindOps,
-  createGondolinLsOps,
-  createGondolinReadOps,
   createGondolinToolLifecycle,
-  createGondolinWriteOps,
-  executeGondolinGrep,
   type GondolinToolLifecycle,
   type GondolinVmRetirement,
   guardGondolinToolDefinitions,
-  toGuestPath,
 } from '../tool-operations.js';
 import { createToolPolicyDecisionSink } from '../tool-policy/decision-sink.js';
 import type { ToolEnforcement } from '../tool-policy/gate.js';
@@ -114,12 +92,18 @@ import {
 import { recordToolPolicyDecisionSpan } from '../tool-policy/telemetry.js';
 import { resumeVm } from '../vm.js';
 import {
+  createClassifierTool,
+  executeProfileClassificationTask,
+  resolveClassifier,
+} from './model-runtime.js';
+import {
   appendProviderFailureDiagnostics,
   classifyProviderFailure,
   PROVIDER_FAILURE_CODES,
   type ProviderFailureCode,
   type ProviderFailureContext,
   type ProviderFailureVerdict,
+  sanitizeProviderDiagnostic,
 } from './provider-error-classification.js';
 
 export const GONDOLIN_TOOL_NAMES = [
@@ -131,12 +115,6 @@ export const GONDOLIN_TOOL_NAMES = [
   'find',
   'grep',
 ] as const;
-
-const HOST_AUTHENTICATED_HOST_EXEC_REFUSED_ENV = new Set([
-  'GIT_CONFIG_GLOBAL',
-  'MOLTNET_CREDENTIALS_PATH',
-  'SSH_AUTH_SOCK',
-]);
 
 export function warnUnsupportedThinkingLevel(
   logger: ToolPolicyLogger | undefined,
@@ -152,56 +130,13 @@ export function isHostCapabilityGrant(name: string): boolean {
   return name.startsWith('capability:');
 }
 
-/**
- * A signer whose every operation goes through the capability router, so a
- * tool cannot obtain a host signature the session policy would deny.
- */
-export function createPolicyCheckedSigner(
-  router: HostCapabilityRouter,
-  identity: AgentIdentity,
-): AgentSigningCapability {
-  async function call<O>(operation: string, input: unknown): Promise<O> {
-    const result = await router.invoke<O>('agent-signing', operation, input);
-    if (!result.ok) {
-      throw new Error(
-        `agent-signing/${operation} ${result.code}: ${result.message}`,
-      );
-    }
-    return result.output;
-  }
-  return {
-    identity,
-    async signDiaryEntry(input) {
-      return call<{ signingRequestId: string }>('sign-diary-entry', input);
-    },
-    async signGitCommit(input) {
-      const { signature } = await call<{ signature: string }>(
-        'sign-git-commit',
-        { sshsig: Buffer.from(input.sshsig).toString('base64') },
-      );
-      return { signature: new Uint8Array(Buffer.from(signature, 'base64')) };
-    },
-  };
-}
-
-export function resolveHostExecBaseEnv(
-  agentEnv: Readonly<Record<string, string | undefined>>,
-): Set<string> {
-  // Host-authenticated is the only boundary: MoltNet credential-bearing env
-  // never enters guest host-exec.
-  const names = new Set([
-    ...HOST_EXEC_DEFAULT_BASE_ENV,
-    ...Object.keys(agentEnv),
-  ]);
-  for (const name of HOST_AUTHENTICATED_HOST_EXEC_REFUSED_ENV) {
-    names.delete(name);
-  }
-  for (const name of names) {
-    if (name.startsWith('MOLTNET_')) names.delete(name);
-  }
-  return names;
-}
 import { buildAgentSession } from './agent-session-factory.js';
+import {
+  applyExecutionPlanSandboxOverrides,
+  createAttemptHostCapabilityRouter,
+  HostCapabilityContextMissingError,
+  resolveAttemptBrokeredHttpSecrets,
+} from './attempt-vm.js';
 import {
   discoverGuestExecutables,
   GuestExecutableProbeError,
@@ -216,7 +151,6 @@ import {
   type ContinueFromPointer,
   resolvePriorContext,
 } from './resolve-prior-context.js';
-import { redactRetryTriageSecrets } from './retry-triage.js';
 import { projectRuntimeCapabilities } from './runtime-capability-projection.js';
 import {
   type InjectedRuntimeContext,
@@ -291,82 +225,6 @@ export interface ProviderErrorRetryUi {
     message: string,
     level: ProviderErrorRetryLevel,
   ) => void | Promise<void>;
-}
-
-export async function openVmWorkspaceFileForRead(config: {
-  vm: VM;
-  cwdPath: string;
-  guestWorkspace: string;
-  filePath: string;
-}) {
-  const localPath = isAbsolute(config.filePath)
-    ? config.filePath
-    : resolve(config.cwdPath, config.filePath);
-  const guestPath = toGuestPath(
-    config.cwdPath,
-    localPath,
-    config.guestWorkspace,
-  );
-  const info = await config.vm.fs.stat(guestPath);
-  const stream = await config.vm.fs.readFileStream(guestPath);
-  return {
-    stream,
-    isFile: info.isFile(),
-    sizeBytes: typeof info.size === 'number' ? info.size : undefined,
-    displayPath: config.filePath,
-  };
-}
-
-export function createGondolinToolDefinitions(config: {
-  vm: VM;
-  cwdPath: string;
-  guestWorkspace: string;
-  lifecycle: GondolinToolLifecycle;
-  retireVm: (retirement: GondolinVmRetirement) => Promise<void>;
-}): ToolDefinition[] {
-  const { vm, cwdPath, guestWorkspace, lifecycle, retireVm } = config;
-  const grepTool = createGrepToolDefinition(cwdPath);
-  return guardGondolinToolDefinitions(
-    [
-      createReadToolDefinition(cwdPath, {
-        operations: createGondolinReadOps(vm, cwdPath, guestWorkspace),
-      }),
-      createWriteToolDefinition(cwdPath, {
-        operations: createGondolinWriteOps(vm, cwdPath, guestWorkspace),
-      }),
-      createEditToolDefinition(cwdPath, {
-        operations: createGondolinEditOps(vm, cwdPath, guestWorkspace),
-      }),
-      createBashToolDefinition(cwdPath, {
-        operations: createGondolinBashOps(vm, cwdPath, guestWorkspace, {
-          lifecycle,
-          retireVm,
-        }),
-      }),
-      createLsToolDefinition(cwdPath, {
-        operations: createGondolinLsOps(vm, cwdPath, guestWorkspace),
-      }),
-      createFindToolDefinition(cwdPath, {
-        operations: createGondolinFindOps(vm, cwdPath, guestWorkspace),
-      }),
-      {
-        ...grepTool,
-        async execute(
-          ...args: Parameters<typeof grepTool.execute>
-        ): ReturnType<typeof grepTool.execute> {
-          const [_id, params, signal] = args;
-          return executeGondolinGrep(
-            vm,
-            cwdPath,
-            guestWorkspace,
-            params,
-            signal,
-          );
-        },
-      },
-    ] as unknown as ToolDefinition[],
-    lifecycle,
-  );
 }
 
 export async function retireManagedGondolinVm(config: {
@@ -448,10 +306,12 @@ function guardGondolinExtensionFactories(
           };
         }
         const value = Reflect.get(target, property, receiver) as unknown;
-        return typeof value === 'function' ? value.bind(target) : value;
+        return typeof value === 'function'
+          ? (value.bind(target) as unknown)
+          : value;
       },
     });
-    factory(guardedPi);
+    return factory(guardedPi);
   });
 }
 
@@ -477,6 +337,7 @@ export interface ExecutePiTaskOptions {
   /** LLM selection. */
   provider: string;
   model: string;
+  classifier?: { provider: string; model: string } | null;
   /** Context used to enrich terminal permanent provider failures. */
   providerFailureContext?: ProviderFailureProfileContext;
   /**
@@ -671,28 +532,6 @@ export interface ExecutePiTaskOptions {
 
 export const DEFAULT_PROVIDER_ERROR_RETRIES = 4;
 
-/** Resolve one attempt's host-only HTTP credentials before VM resume. */
-export async function resolveAttemptBrokeredHttpSecrets(input: {
-  runtimeDefinition?: PiRuntimeDefinition;
-  agentName: string;
-  claimedTask: ClaimedTask;
-  cwdPath: string;
-  signal: AbortSignal;
-  timeoutMs?: number;
-}): Promise<BrokeredHttpSecretBinding[] | undefined> {
-  if (!input.runtimeDefinition) return undefined;
-  return materializePiBrokeredHttpSecrets({
-    runtime: input.runtimeDefinition,
-    context: {
-      agentName: input.agentName,
-      claimedTask: input.claimedTask,
-      cwdPath: input.cwdPath,
-    },
-    signal: input.signal,
-    timeoutMs: input.timeoutMs,
-  });
-}
-
 export function createMoltNetAgentResolver(input: {
   moltnetAgent?: Agent;
   configDir: string;
@@ -729,6 +568,12 @@ export function createPiTaskExecutor(
     opts.checkpointPath ?? cachedTemplate?.checkpointPath ?? null;
 
   return async (claimedTask, reporter) => {
+    if (claimedTask.task.taskType === 'classify')
+      return executeProfileClassificationTask(
+        opts.classifier,
+        claimedTask,
+        reporter,
+      );
     const reporterWasOpened = !reporter.cancelSignal.aborted;
     if (reporterWasOpened) {
       await reporter.open({
@@ -1061,66 +906,17 @@ export async function executePiTask(
       );
     }
 
-    // A runtime that attests host capabilities must be able to serve them:
-    // refuse to start a VM whose manifest would advertise a capability this
-    // execution cannot instantiate.
-    if (
-      (opts.runtimeDefinition?.hostCapabilities?.length ?? 0) > 0 &&
-      (!opts.agentIdentity || !opts.moltnetAgent)
-    ) {
-      const message =
-        'runtime declares host capabilities but no agent identity and ' +
-        'authenticated host Agent were injected';
-      await emitError('host_capabilities', message);
-      return makeFailedOutput(
-        'host_capability_context_missing',
-        message,
-        finalUsage,
-        false,
-      );
-    }
-
     try {
       brokeredSecretEnvNames = (brokeredSecrets ?? [])
         .filter(({ value }) => value !== undefined && value !== '')
         .map(({ guestEnv }) => guestEnv)
         .sort();
-      // Host capabilities are compiled before resume so their origins exist
-      // from the first guest request; policy is late-bound below (requests
-      // fail closed with policy_not_ready until then).
-      const hostCapabilities = opts.runtimeDefinition?.hostCapabilities ?? [];
-      if (hostCapabilities.length > 0) {
-        capabilityRouter = createHostCapabilityRouter({
-          capabilities: hostCapabilities,
-          context: {
-            taskId: task.id,
-            attemptN: claimedTask.attemptN,
-            teamId: task.teamId ?? '',
-            agent: opts.moltnetAgent as NonNullable<typeof opts.moltnetAgent>,
-            identity: opts.agentIdentity as NonNullable<
-              typeof opts.agentIdentity
-            >,
-          },
-          injected: {
-            ...(opts.hostCapabilitySigner && {
-              signer: opts.hostCapabilitySigner,
-            }),
-          },
-          paths: { mountPath },
-          // Never drop capability evidence: when no logger is injected, fall
-          // back to the same structured stderr sink the tool-policy path uses,
-          // not silent no-ops — authorization, rate-limit, timeout and signing
-          // decisions must remain auditable for direct/embedding consumers.
-          logger: opts.hostCapabilityLogger ??
-            opts.toolPolicyLogger ?? {
-              info: (obj: Record<string, unknown>, msg: string) =>
-                console.error(JSON.stringify({ level: 'info', msg, ...obj })),
-              warn: (obj: Record<string, unknown>, msg: string) =>
-                console.error(JSON.stringify({ level: 'warn', msg, ...obj })),
-            },
-          signal: reporter.cancelSignal,
-        });
-      }
+      capabilityRouter = createAttemptHostCapabilityRouter({
+        options: opts,
+        claimedTask,
+        mountPath,
+        signal: reporter.cancelSignal,
+      });
       managed = await traceRuntimePhase(
         'moltnet.execution.vm.resume',
         { 'moltnet.workspace.mode': preparedWorkspace.mode },
@@ -1149,6 +945,15 @@ export async function executePiTask(
         await emitError('vm_resume', message, { cancelled: true });
         return makeCancelledOutput(
           reporter.cancelReason ?? 'Task cancelled during VM resume.',
+        );
+      }
+      if (err instanceof HostCapabilityContextMissingError) {
+        await emitError('host_capabilities', message);
+        return makeFailedOutput(
+          'host_capability_context_missing',
+          message,
+          finalUsage,
+          false,
         );
       }
       await emitError('vm_resume', message);
@@ -1398,48 +1203,20 @@ export async function executePiTask(
 
     try {
       const moltnetAgent = await getMoltNetAgent();
-      // Build the host-exec env allowlist: default keys + all agent env keys
-      // (MOLTNET_*, GIT_CONFIG_GLOBAL, etc. set by activateAgentEnv).
-      const hostExecBaseEnv = resolveHostExecBaseEnv(
-        managed.credentials.agentEnv,
-      );
-      const moltnetTools = createMoltNetTools({
-        getAgent: () => moltnetAgent,
-        getSigner: () =>
-          capabilityRouter && opts.agentIdentity
-            ? createPolicyCheckedSigner(capabilityRouter, opts.agentIdentity)
-            : null,
-        getDiaryId: () => diaryId,
-        getTeamId: () => taskTeamId,
-        getSessionErrors: () => [],
-        clearSessionErrors: () => {
-          /* no-op in headless mode */
-        },
-        getHostCwd: () => cwdPath,
-        openWorkspaceFileForRead: (filePath) => {
-          gondolinLifecycle.assertActive();
-          return openVmWorkspaceFileForRead({
-            vm: activeManaged.vm,
-            cwdPath,
-            guestWorkspace: activeManaged.guestWorkspace,
-            filePath,
-          });
-        },
-        hostExecBaseEnv,
+      const moltnetTools = createAttemptMoltNetTools({
+        agent: moltnetAgent,
+        claimedTask,
+        vm: activeManaged.vm,
+        cwdPath,
+        guestWorkspace: activeManaged.guestWorkspace,
+        lifecycle: gondolinLifecycle,
+        capabilityRouter,
+        identity: opts.agentIdentity,
+        agentEnv: managed.credentials.agentEnv,
         hostExecAutoApprove:
           opts.hostExecAutoApprove ??
           opts.sandboxConfig?.hostExec?.autoApprove ??
           false,
-        // Daemon path is always inside an active task — wire the task
-        // context so moltnet_create_entry forces the task diary and
-        // injects provenance tags (issue #979).
-        getTaskContext: () => ({
-          taskId: task.id,
-          taskType: task.taskType,
-          attemptN,
-          diaryId,
-          correlationId: task.correlationId ?? null,
-        }),
         onTaskProvenanceEvent: (event, details) =>
           emit('info', { event, severity: 'warn', ...details }),
       });
@@ -1660,7 +1437,17 @@ export async function executePiTask(
           )
         : [];
       const visibleBaseTools = filterModelVisibleTools(
-        [...gondolinCustomTools, ...moltnetTools],
+        [
+          ...gondolinCustomTools,
+          ...moltnetTools,
+          ...(opts.classifier
+            ? [
+                createClassifierTool(
+                  resolveClassifier(modelRuntime, opts.classifier),
+                ),
+              ]
+            : []),
+        ],
         resolvedToolPolicy,
       );
       const plannedParentTools = [
@@ -2435,6 +2222,19 @@ export function makeSessionEventHandler(
         }
       }
     } else if (event.type === 'turn_end') {
+      // Final top-level results already aggregate codemode's nested calls.
+      // Counting tool_execution_end would also count those nested events.
+      for (const result of event.toolResults ?? []) {
+        if (!result.usage) continue;
+        usage.inputTokens += Math.max(0, result.usage.input ?? 0);
+        usage.outputTokens += Math.max(0, result.usage.output ?? 0);
+        usage.cacheReadTokens =
+          (usage.cacheReadTokens ?? 0) +
+          Math.max(0, result.usage.cacheRead ?? 0);
+        usage.cacheWriteTokens =
+          (usage.cacheWriteTokens ?? 0) +
+          Math.max(0, result.usage.cacheWrite ?? 0);
+      }
       const msg = event.message as {
         role?: string;
         stopReason?: string;
@@ -2871,27 +2671,6 @@ export async function cleanupAttempt(deps: CleanupAttemptDeps): Promise<void> {
       );
     }
   }
-}
-
-function applyExecutionPlanSandboxOverrides(
-  sandboxConfig: SandboxConfig | undefined,
-  executionPlan: Awaited<
-    ReturnType<NonNullable<ExecutePiTaskOptions['makeExecutionPlan']>>
-  >,
-): SandboxConfig | undefined {
-  const shadowWrites = executionPlan?.workspaceAttachment?.shadowWrites;
-  if (!shadowWrites) {
-    return sandboxConfig;
-  }
-
-  return {
-    ...sandboxConfig,
-    vfs: {
-      ...sandboxConfig?.vfs,
-      shadow: ['**'],
-      shadowMode: shadowWrites,
-    },
-  };
 }
 
 function emptyUsage(provider: string, model: string): TaskUsage {
@@ -3359,16 +3138,6 @@ export async function promptUntilSubmitted(
   return { runError: null, submitReprompts };
 }
 
-export function sanitizeProviderDiagnostic(
-  value: string | null | undefined,
-): string {
-  const raw = value ?? 'Pi turn ended with stopReason=error';
-  const redacted = redactRetryTriageSecrets(raw);
-  return redacted.length <= 500
-    ? redacted
-    : `${redacted.slice(0, 240)}…${redacted.slice(-259)}`;
-}
-
 async function sleepUnlessAborted(
   delayMs: number,
   signal: AbortSignal,
@@ -3465,3 +3234,10 @@ export function describeToolErrorMessage(result: unknown): string {
     return 'Tool call failed';
   }
 }
+
+export {
+  createPolicyCheckedSigner,
+  openVmWorkspaceFileForRead,
+  resolveHostExecBaseEnv,
+} from '../moltnet/tools.js';
+export { sanitizeProviderDiagnostic } from './provider-error-classification.js';

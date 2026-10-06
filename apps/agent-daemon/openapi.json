@@ -790,6 +790,14 @@
           "models": {
             "items": {
               "properties": {
+                "api": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "contextWindow": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
                 "id": {
                   "type": "string"
                 },
@@ -821,6 +829,22 @@
                     "type": "string"
                   },
                   "type": "object"
+                },
+                "type": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "chat"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "classifier"
+                      ],
+                      "type": "string"
+                    }
+                  ]
                 }
               },
               "required": [
@@ -1449,6 +1473,14 @@
           "models": {
             "items": {
               "properties": {
+                "api": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "contextWindow": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
                 "id": {
                   "type": "string"
                 },
@@ -1480,6 +1512,22 @@
                     "type": "string"
                   },
                   "type": "object"
+                },
+                "type": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "chat"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "classifier"
+                      ],
+                      "type": "string"
+                    }
+                  ]
                 }
               },
               "required": [
@@ -2845,6 +2893,14 @@
                   "models": {
                     "items": {
                       "properties": {
+                        "api": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "contextWindow": {
+                          "minimum": 1,
+                          "type": "integer"
+                        },
                         "id": {
                           "type": "string"
                         },
@@ -2876,6 +2932,22 @@
                             "type": "string"
                           },
                           "type": "object"
+                        },
+                        "type": {
+                          "anyOf": [
+                            {
+                              "enum": [
+                                "chat"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "classifier"
+                              ],
+                              "type": "string"
+                            }
+                          ]
                         }
                       },
                       "required": [

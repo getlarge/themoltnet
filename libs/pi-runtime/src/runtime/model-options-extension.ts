@@ -1,4 +1,7 @@
-import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
+import type {
+  ExtensionAPI,
+  ModelRuntime,
+} from '@earendil-works/pi-coding-agent';
 import { getUnsupportedRequestOptions } from '@moltnet/provider-catalog';
 
 export interface PiModelOptions {
@@ -45,6 +48,35 @@ export function createPiModelOptionsExtension(
       return applyPiModelOptions(event.payload, filtered);
     });
   };
+}
+
+/** Apply the same provider payload policy to Durable requests and child conversations. */
+export function configureDurableModelOptions(
+  models: ModelRuntime,
+  options: PiModelOptions,
+  provider: string,
+  model: string,
+  warn: (details: Record<string, unknown>, message: string) => void,
+): void {
+  if (!hasPiModelOptions(options)) return;
+  const filtered = { ...options };
+  for (const option of getUnsupportedRequestOptions(provider, model, options)) {
+    delete filtered[option];
+    warn(
+      { option, provider, model },
+      'Runtime profile model option is unsupported by the selected provider/model; omitting it',
+    );
+  }
+  const stream = models.streamSimple.bind(models);
+  models.streamSimple = (selected, context, request) =>
+    stream(selected, context, {
+      ...request,
+      onPayload: async (payload, selectedModel) => {
+        const previous = await request?.onPayload?.(payload, selectedModel);
+        const effective = previous ?? payload;
+        return applyPiModelOptions(effective, filtered) ?? effective;
+      },
+    });
 }
 
 export function applyPiModelOptions(

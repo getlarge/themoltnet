@@ -46,6 +46,25 @@ import {
   recordTaskOutputRepairs,
 } from './task-output.js';
 
+/** The submission contract must be visible in both coding and Durable prompts. */
+export function submitOutputGuidance(
+  taskType: string,
+  contract: NonNullable<ReturnType<typeof getSubmitOutputContract>>,
+) {
+  return {
+    promptSnippet:
+      `${contract.toolName}: submit the final structured ${taskType} ` +
+      'output. Use the agent submission schema below exactly; runtime-owned ' +
+      'telemetry fields are not yours to supply.\n\n' +
+      `Agent submission schema:\n\`\`\`json\n${contract.parametersSchemaJson}\n\`\`\``,
+    promptGuidelines: [
+      `Call \`${contract.toolName}\` with the exact ${taskType} agent submission shape shown above.`,
+      'If the submit tool returns a validation error, fix every listed field and call the same tool again.',
+      'The first valid submission is final and immediately ends the session.',
+    ],
+  };
+}
+
 interface SubmitOutputDetails {
   captured: boolean;
   callCount: number;
@@ -202,7 +221,7 @@ function requireObjectSchema(schema: TSchema): TObject {
   return schema as unknown as TObject;
 }
 
-function formatValidationErrors(
+export function formatValidationErrors(
   errors: ReturnType<typeof validateAgentTaskSubmission>,
 ): string {
   return errors.map((err) => `${err.field}: ${err.message}`).join('; ');
@@ -358,7 +377,7 @@ function rejectedPiError(error: unknown): unknown {
   return error instanceof SubmitArgumentsRejectedError ? error.piError : error;
 }
 
-function normalizeSubmitArguments(
+export function normalizeSubmitArguments(
   taskType: string,
   params: unknown,
   schema: TSchema,
@@ -481,16 +500,7 @@ export function createSubmitOutputTool(
     name: contract.toolName,
     label: `Submit ${taskType} output`,
     description: contract.description,
-    promptSnippet:
-      `${contract.toolName}: submit the final structured ${taskType} ` +
-      'output. Use the agent submission schema below exactly; runtime-owned ' +
-      'telemetry fields are not yours to supply.\n\n' +
-      `Agent submission schema:\n\`\`\`json\n${contract.parametersSchemaJson}\n\`\`\``,
-    promptGuidelines: [
-      `Call \`${contract.toolName}\` with the exact ${taskType} agent submission shape shown above.`,
-      'If the submit tool returns a validation error, fix every listed field and call the same tool again.',
-      'The first valid submission is final and immediately ends the session.',
-    ],
+    ...submitOutputGuidance(taskType, contract),
     parameters: schema,
     constrainedSampling: { type: 'json_schema', strict: 'prefer' },
     prepareArguments: (args) => {

@@ -164,6 +164,9 @@ export type ProviderModelModality = PiModelModality;
  */
 export interface ProviderModelEntry {
   id: string;
+  type?: 'chat' | 'classifier';
+  api?: string;
+  contextWindow?: number;
   input?: ProviderModelModality[];
   reasoning?: boolean;
   thinkingLevelMap?: Record<string, string>;
@@ -194,6 +197,11 @@ export function copyProviderModel(
 ): ProviderModelEntry {
   return {
     id: entry.id,
+    ...(entry.type ? { type: entry.type } : {}),
+    ...(entry.api ? { api: entry.api } : {}),
+    ...(entry.contextWindow !== undefined
+      ? { contextWindow: entry.contextWindow }
+      : {}),
     ...(entry.input && entry.input.length > 0
       ? { input: [...entry.input] }
       : {}),
@@ -630,6 +638,21 @@ export class AgentServerStore {
           throw new AgentServerStoreError(
             'invalid_state',
             `provider "${id}" has a model entry that is not { id, input? }; rewrite providers.json entries as objects`,
+          );
+        }
+        if (
+          (model.type !== undefined &&
+            model.type !== 'chat' &&
+            model.type !== 'classifier') ||
+          (model.api !== undefined &&
+            (typeof model.api !== 'string' || !model.api)) ||
+          (model.contextWindow !== undefined &&
+            (!Number.isSafeInteger(model.contextWindow) ||
+              model.contextWindow <= 0))
+        ) {
+          throw new AgentServerStoreError(
+            'invalid_state',
+            'Invalid provider model type, API, or context window',
           );
         }
       }
