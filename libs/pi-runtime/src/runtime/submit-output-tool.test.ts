@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createSubmitOutputTool,
+  extractFinalMessageJson,
   UnknownTaskTypeForSubmitToolError,
 } from './submit-output-tool.js';
 import {
@@ -920,6 +921,77 @@ describe('createSubmitOutputTool', () => {
     expect(result.terminate).not.toBe(true);
     expect(result.content[0].text).toMatch(/llm_checklist|score=1/i);
     expect(handle.getCaptured()).toBeNull();
+  });
+});
+
+describe('final-message submit', () => {
+  it.each([
+    ['bare object', '  {"summary":"done"}\n', '{"summary":"done"}'],
+    ['json fence', '```json\n{"summary":"done"}\n```', '{"summary":"done"}'],
+    ['plain fence', '```\n{"summary":"done"}\n```', '{"summary":"done"}'],
+    ['prose before', 'Here it is: {"summary":"done"}', null],
+    ['prose after fence', '```json\n{"a":1}\n```\nDone.', null],
+    ['array', '[{"summary":"done"}]', null],
+    ['prose only', 'done', null],
+  ])('extracts JSON only from a whole-message object: %s', (_, text, want) => {
+    expect(extractFinalMessageJson(text)).toBe(want);
+  });
+
+  it('captures a valid JSON-only final message through the submit pipeline', () => {
+    const handle = createSubmitOutputTool('freeform');
+
+    const result = handle.submitFinalMessage(
+      '```json\n{"summary": "done", "artifacts": "[]"}\n```',
+    );
+
+    expect(result).toBe('captured');
+    expect(handle.getCaptured()).toEqual({ summary: 'done', artifacts: [] });
+    expect(handle.getCapturedSource()).toBe('final_message');
+    expect(handle.getCapturedRepairKinds()).toEqual(['json_string']);
+    expect(handle.getCallCount()).toBe(1);
+    expect(handle.getInvalidCallCount()).toBe(0);
+  });
+
+  it('records lenient JSON syntax repairs on a final message', () => {
+    const handle = createSubmitOutputTool('freeform');
+
+    expect(handle.submitFinalMessage("{summary: 'done'}")).toBe('captured');
+    expect(handle.getCapturedRepairKinds()).toEqual(['lenient_json']);
+  });
+
+  it('records a validation failure for an invalid JSON-only final message', () => {
+    const handle = createSubmitOutputTool('freeform');
+
+    const result = handle.submitFinalMessage('{"artifacts": []}');
+
+    expect(result).toBe('invalid');
+    expect(handle.getCaptured()).toBeNull();
+    expect(handle.getCapturedSource()).toBeNull();
+    expect(handle.getInvalidCallCount()).toBe(1);
+    expect(handle.getLastValidationFailure()).toMatchObject({
+      code: 'output_validation_failed',
+    });
+    expect(handle.getLastValidationFailure()?.message).toContain('summary');
+  });
+
+  it('leaves state untouched for prose or unparseable text', () => {
+    const handle = createSubmitOutputTool('freeform');
+
+    expect(handle.submitFinalMessage('All done, see the PR.')).toBe('not_json');
+    expect(handle.submitFinalMessage('{"summary": "done"')).toBe('not_json');
+    expect(handle.getInvalidCallCount()).toBe(0);
+    expect(handle.getLastValidationFailure()).toBeNull();
+  });
+
+  it('keeps the first tool capture when a final message follows', async () => {
+    const handle = createSubmitOutputTool('freeform');
+    await callExecute(handle)({ summary: 'from tool' });
+
+    expect(handle.submitFinalMessage('{"summary":"from text"}')).toBe(
+      'captured',
+    );
+    expect(handle.getCaptured()).toEqual({ summary: 'from tool' });
+    expect(handle.getCapturedSource()).toBe('submit_tool');
   });
 });
 

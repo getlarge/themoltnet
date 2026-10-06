@@ -1974,6 +1974,17 @@ export async function executePiTask(
       maxSubmitMissingReprompts: submitMissingConfig.maxSubmitMissingReprompts,
       getSubmitState: submitMissingConfig.getSubmitState,
       getStopReason: () => turnState.lastStopReason,
+      tryFinalMessageSubmit: async () => {
+        if (!CLEAN_END_STOP_REASONS.has(turnState.lastStopReason ?? '')) {
+          return;
+        }
+        const result = submitToolHandle.submitFinalMessage(
+          turnState.lastAssistantText,
+        );
+        if (result !== 'not_json') {
+          await emit('info', { event: 'final_message_submit', result });
+        }
+      },
       maxOutputTokens: opts.maxOutputTokens,
       isStopped: () =>
         submitRepromptStopped({
@@ -1986,16 +1997,21 @@ export async function executePiTask(
       },
     });
     runError = promptResult.runError;
-    // Surface how many submit-missing nudges this attempt needed (0 when the
-    // model submitted on the first pass). Stream-visible counterpart to the
-    // `output_missing` OTel counter recorded below when recovery fails.
-    if (promptResult.submitReprompts > 0) {
-      await emit('info', {
-        event: 'submit_missing_summary',
-        submitReprompts: promptResult.submitReprompts,
-        captured: submitToolHandle.getCaptured() !== null,
-      });
-    }
+    // One terminal submit-protocol record per attempt, emitted whether or not
+    // recovery ran. The counts separate a model that never called the tool
+    // from one whose calls kept failing validation.
+    await emit('info', {
+      event: 'submit_outcome',
+      captured: submitToolHandle.getCaptured() !== null,
+      source: submitToolHandle.getCapturedSource(),
+      validCalls: submitToolHandle.getCallCount(),
+      invalidCalls: submitToolHandle.getInvalidCallCount(),
+      submitReprompts: promptResult.submitReprompts,
+      maxSubmitReprompts: submitMissingConfig.maxSubmitMissingReprompts,
+      stopReason: turnState.lastStopReason,
+      lastFailureCode:
+        submitToolHandle.getLastValidationFailure()?.code ?? null,
+    });
 
     // Emit a single summary line per task attempt that used the
     // subagent tool. Useful for spotting parents that delegate
@@ -2058,7 +2074,7 @@ export async function executePiTask(
         parseError = materialized.error;
       }
       if (parsedOutput && !parseError) {
-        const outputSource = 'submit_tool';
+        const outputSource = captured.source ?? 'submit_tool';
         const repairs = captured.repairs ?? [];
         const repairKinds = repairs.map((repair) => repair.kind);
         await traceRuntimePhase(
@@ -2235,6 +2251,8 @@ export type SessionSubscribeEvent = Parameters<
 export interface SessionTurnState {
   /** Stop reason of the latest completed assistant turn. */
   lastStopReason: string | null;
+  /** Text blocks of the latest completed assistant turn. */
+  lastAssistantText: string;
   /** Final turn ended with `stopReason: 'error'` (last-turn-wins). */
   llmAbort: boolean;
   /** Provider diagnostic from the final error turn, else null. */
@@ -2245,9 +2263,29 @@ export interface SessionTurnState {
   bashTimeoutCount: number;
 }
 
+/** Concatenate the text blocks of an assistant message's content. */
+export function assistantText(content: unknown): string {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+  return content
+    .map((block: unknown) =>
+      typeof block === 'object' &&
+      block !== null &&
+      (block as { type?: unknown }).type === 'text' &&
+      typeof (block as { text?: unknown }).text === 'string'
+        ? (block as { text: string }).text
+        : '',
+    )
+    .join('');
+}
+
+/** Stop reasons that mean the model chose to end its turn. */
+const CLEAN_END_STOP_REASONS = new Set(['stop', 'end_turn']);
+
 export function createSessionTurnState(): SessionTurnState {
   return {
     lastStopReason: null,
+    lastAssistantText: '',
     llmAbort: false,
     llmErrorMessage: null,
     toolUseTurnCount: 0,
@@ -2376,6 +2414,7 @@ export function makeSessionEventHandler(
       const msg = event.message as {
         role?: string;
         stopReason?: string;
+        content?: unknown;
         // pi-coding-agent attaches a human-readable diagnostic to the
         // final assistant message when stopReason === 'error'. See
         // @earendil-works/pi-coding-agent's `AssistantMessage`.
@@ -2400,7 +2439,10 @@ export function makeSessionEventHandler(
         if (cw) usage.cacheWriteTokens = (usage.cacheWriteTokens ?? 0) + cw;
       }
       const stopReason = msg?.stopReason ?? 'end_turn';
-      if (msg?.role === 'assistant') state.lastStopReason = stopReason;
+      if (msg?.role === 'assistant') {
+        state.lastStopReason = stopReason;
+        state.lastAssistantText = assistantText(msg.content);
+      }
       track(emit('turn_end', { stop_reason: stopReason }));
       // Tool-use turn counter for the max-turns cap. Anthropic SDK
       // semantics: count only tool-use turns (any turn whose
@@ -2451,7 +2493,9 @@ export interface CaptureAttemptOutputDeps {
     SubmitOutputToolHandle,
     'getCaptured' | 'getLastValidationFailure'
   > &
-    Partial<Pick<SubmitOutputToolHandle, 'getCapturedRepairs'>>;
+    Partial<
+      Pick<SubmitOutputToolHandle, 'getCapturedRepairs' | 'getCapturedSource'>
+    >;
   emit: (
     kind: TurnEventKind,
     payload: Record<string, unknown>,
@@ -2576,10 +2620,14 @@ export async function captureAttemptOutput(
   if (captured) {
     try {
       const outputCid = await computeJsonCid(captured);
+      const source = submitToolHandle.getCapturedSource?.() ?? 'submit_tool';
       recordTaskOutputParseResult({
         taskType,
         model,
-        code: 'captured_via_tool',
+        code:
+          source === 'final_message'
+            ? 'captured_via_final_message'
+            : 'captured_via_tool',
       });
       const repairs = submitToolHandle.getCapturedRepairs?.() ?? [];
       recordTaskOutputRepairs({ taskType, model, repairs });
@@ -2588,6 +2636,7 @@ export async function captureAttemptOutput(
         outputCid,
         error: null,
         repairs,
+        source,
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -3174,6 +3223,12 @@ export interface PromptUntilSubmittedArgs {
   getSubmitState: () => SubmitGateState;
   /** Latest assistant stop reason; a length stop cannot satisfy a missing submit. */
   getStopReason?: () => string | null;
+  /**
+   * Called after a pass that ended without a captured submit, before any
+   * reprompt. The executor uses it to accept a final message that is only a
+   * JSON object, which saves a turn when the model forgot the tool.
+   */
+  tryFinalMessageSubmit?: () => Promise<void> | void;
   /** Configured output cap, included in the length-stop diagnostic. */
   maxOutputTokens?: number | null;
   /** True when cancel or cap-abort fired; halts further re-prompts. */
@@ -3233,6 +3288,12 @@ export async function promptUntilSubmitted(
   if (firstLimitError) {
     return { runError: firstLimitError, submitReprompts: 0 };
   }
+  const tryFinalMessage = async () => {
+    const submit = args.tryFinalMessageSubmit;
+    if (!submit || args.isStopped() || args.getSubmitState().captured) return;
+    await submit();
+  };
+  await tryFinalMessage();
 
   while (submitReprompts < args.maxSubmitMissingReprompts) {
     if (args.isStopped()) break;
@@ -3263,6 +3324,7 @@ export async function promptUntilSubmitted(
     if (limitError) {
       return { runError: limitError, submitReprompts };
     }
+    await tryFinalMessage();
   }
 
   return { runError: null, submitReprompts };

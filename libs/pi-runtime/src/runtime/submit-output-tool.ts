@@ -98,6 +98,35 @@ export interface SubmitOutputToolHandle {
   /** Normalizations applied to the accepted submit call; contains no payload. */
   getCapturedRepairKinds: () => string[];
   getCapturedRepairs: () => SchemaAlignmentRepair[];
+  /** Where the accepted payload came from, or `null` before a capture. */
+  getCapturedSource: () => SubmitOutputSource | null;
+  /**
+   * Treat a final assistant message as a submit call when the whole message
+   * is one JSON object (bare, or a single fenced block). The payload goes
+   * through the same normalization and validation as a tool call. Returns
+   * `not_json` without side effects for anything else, so the caller falls
+   * back to the submit-missing reprompt.
+   */
+  submitFinalMessage: (text: string) => FinalMessageSubmitResult;
+}
+
+export type SubmitOutputSource = 'submit_tool' | 'final_message';
+
+export type FinalMessageSubmitResult = 'captured' | 'invalid' | 'not_json';
+
+const FENCED_JSON = /^```(?:json)?[ \t]*\r?\n([\s\S]*?)\r?\n?```$/;
+
+/**
+ * Return the JSON text of a final message that contains nothing but one JSON
+ * object. Prose around the object is rejected: models often echo the example
+ * shape from the prompt or draft a payload and keep writing.
+ */
+export function extractFinalMessageJson(text: string): string | null {
+  const trimmed = text.trim();
+  const fenced = FENCED_JSON.exec(trimmed);
+  const body = (fenced ? fenced[1] : trimmed).trim();
+  if (!body.startsWith('{') || !body.endsWith('}')) return null;
+  return body;
 }
 
 /**
@@ -312,6 +341,7 @@ export function createSubmitOutputTool(
   let invalidCallCount = 0;
   let lastValidationFailure: { code: string; message: string } | null = null;
   let capturedRepairs: SchemaAlignmentRepair[] = [];
+  let capturedSource: SubmitOutputSource | null = null;
   const preparedRepairs = new Map<string, SchemaAlignmentRepair[]>();
 
   const schema = contract.parametersSchema;
@@ -470,6 +500,7 @@ export function createSubmitOutputTool(
 
       captured = candidateParams as Record<string, unknown>;
       capturedRepairs = normalized.repairs;
+      capturedSource = 'submit_tool';
       preparedRepairs.clear();
       callCount += 1;
       await opts.onValidCapture?.();
@@ -493,6 +524,45 @@ export function createSubmitOutputTool(
     },
   }) as ToolDefinition<any, any>;
 
+  const submitFinalMessage = (text: string): FinalMessageSubmitResult => {
+    if (captured) return 'captured';
+    const json = extractFinalMessageJson(text);
+    const parsed = json === null ? null : parseCompleteJsonValue(json);
+    if (!parsed || !isRecord(parsed.value)) return 'not_json';
+    let normalized: { candidate: unknown; repairs: SchemaAlignmentRepair[] };
+    try {
+      normalized = normalizeSubmitArguments(
+        taskType,
+        parsed.value,
+        schema,
+        contract.toolName,
+        contract.description,
+        opts,
+      );
+    } catch (error) {
+      recordInvalidCall(parsed.value, error);
+      return 'invalid';
+    }
+    const errors = validateAgentTaskSubmission(
+      taskType,
+      normalized.candidate,
+      opts.input,
+      { inputCid: opts.inputCid },
+    );
+    if (errors.length > 0) {
+      recordInvalidCall(normalized.candidate);
+      return 'invalid';
+    }
+    captured = normalized.candidate as Record<string, unknown>;
+    capturedRepairs = [
+      ...parsed.repairs.map((kind) => ({ kind, path: '' })),
+      ...normalized.repairs,
+    ];
+    capturedSource = 'final_message';
+    callCount += 1;
+    return 'captured';
+  };
+
   return {
     tool,
     toolName: contract.toolName,
@@ -502,5 +572,7 @@ export function createSubmitOutputTool(
     getLastValidationFailure: () => lastValidationFailure,
     getCapturedRepairKinds: () => capturedRepairs.map((repair) => repair.kind),
     getCapturedRepairs: () => [...capturedRepairs],
+    getCapturedSource: () => capturedSource,
+    submitFinalMessage,
   };
 }

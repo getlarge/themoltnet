@@ -70,6 +70,10 @@ export async function readSubmitStructure(
       )
     : [];
   const outputSource =
-    completion?.output_source === 'submit_tool' ? ('tool' as const) : null;
+    completion?.output_source === 'submit_tool'
+      ? ('tool' as const)
+      : completion?.output_source === 'final_message'
+        ? ('final_message' as const)
+        : null;
   return { invalidSubmitCalls, repairKinds, outputSource };
 }

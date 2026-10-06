@@ -858,10 +858,13 @@ a completed task attempt to verify both the wire flag and the accepted output.
    output.** It does not validate `result` against the custom schema. A direct
    `/complete` caller is responsible for the custom result it sends.
 
-If the model does not call the tool, the executor makes bounded same-session
-retries. Assistant prose alone cannot complete a task with a registered submit
-tool. Provider enforcement helps the model produce a valid shape; MoltNet's
-validation determines whether the task output is accepted.
+If the model ends its turn without calling the tool, and its final message is
+nothing but one JSON object (bare, or a single fenced `json` block), the
+executor validates that object exactly like a submit call. A valid object
+completes the task with `output_source: final_message`. Prose, prose around
+JSON, or an invalid object gets bounded same-session retries instead. Provider
+enforcement helps the model produce a valid shape; MoltNet's validation
+determines whether the task output is accepted.
 
 To require structured data from a `freeform` task, the task creator supplies
 `input.outputContract`. For example, this input requires a classification:
