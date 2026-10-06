@@ -19715,16 +19715,14 @@ function createSdkTaskClient(agent) {
 		}
 	};
 }
-//#endregion
-//#region ../../libs/docs-impact-review/src/budgets.ts
 /**
 * Initial budgets sized for ~24k input tokens per stage (≈4 bytes/token):
-* extraction gets the diff; coverage gets docs diff plus six excerpts.
+* extraction gets the diff; coverage gets docs diff plus six excerpts. The
+* docs reserve has no fixed default: it follows `diffTotalBytes`.
 */
 var DEFAULT_BUDGETS = Object.freeze({
 	diffTotalBytes: 64e3,
 	diffPerFileBytes: 12e3,
-	diffDocsReserveBytes: 16e3,
 	docsDiffBytes: 16e3,
 	docExcerptBytes: 8e3,
 	maxDocs: 6,
@@ -19733,21 +19731,12 @@ var DEFAULT_BUDGETS = Object.freeze({
 	docsHunkBytes: 1500,
 	stageRunningTimeoutSec: 120
 });
-/** Budgets a repository may set in its configuration file. */
-var CONFIGURABLE_BUDGETS = [
-	"diffTotalBytes",
-	"diffPerFileBytes",
-	"diffDocsReserveBytes",
-	"docsDiffBytes",
-	"docExcerptBytes",
-	"maxDocs",
-	"maxDocsHunks",
-	"stageRunningTimeoutSec"
-];
 /**
 * Accepted range per configurable budget. Upper bounds keep a stage within
 * a model's context and the review job's timeout: two chained stages of at
-* most 300 s dispatch plus 240 s running stay under the 20-minute job.
+* most 300 s dispatch plus 180 s running take 16 minutes, leaving
+* `REVIEW_JOB_MARGIN_SEC` of the reusable workflow's 20-minute job (a test
+* holds the two together).
 */
 var BUDGET_LIMITS = Object.freeze({
 	diffTotalBytes: {
@@ -19780,12 +19769,24 @@ var BUDGET_LIMITS = Object.freeze({
 	},
 	stageRunningTimeoutSec: {
 		minimum: 30,
-		maximum: 240
+		maximum: 180
 	}
 });
-/** Defaults, then repository configuration, then caller overrides. */
-function resolveBudgets(...layers) {
-	return Object.assign({}, DEFAULT_BUDGETS, ...layers);
+/**
+* Defaults overlaid with the budgets a repository configured. A key set to
+* `undefined` keeps its default rather than erasing it. Without a configured
+* docs reserve, a quarter of the diff is reserved for changed docs.
+*/
+function resolveBudgets(configured = {}) {
+	const set = Object.fromEntries(Object.entries(configured).filter(([, value]) => value !== void 0));
+	const merged = {
+		...DEFAULT_BUDGETS,
+		...set
+	};
+	return {
+		...merged,
+		diffDocsReserveBytes: set.diffDocsReserveBytes ?? Math.floor(merged.diffTotalBytes * .25)
+	};
 }
 //#endregion
 //#region ../../libs/docs-impact-review/src/glob.ts
@@ -19820,6 +19821,28 @@ function matchesGlob(path, glob) {
 }
 function matchesAny(path, globs) {
 	return globs.some((glob) => matchesGlob(path, glob));
+}
+//#endregion
+//#region ../../libs/docs-impact-review/src/docs-paths.ts
+/** Markdown is always documentation, whatever the case of its extension. */
+var MARKDOWN = /\.mdx?$/i;
+/**
+* Git pathspecs for the built-in Markdown formats, matching `MARKDOWN`:
+* `top` searches the whole tree whatever the working directory, and `icase`
+* matches `GUIDE.MD` as the regular expression does.
+*/
+var MARKDOWN_PATHSPECS = Object.freeze([":(top,icase)*.md", ":(top,icase)*.mdx"]);
+/**
+* A documentation format: Markdown, or a path `include` globs from the
+* repository configuration add (reStructuredText, AsciiDoc, …). Says nothing
+* about exclusion; see `isReviewableDocsPath`.
+*/
+function isDocsPath(path, include) {
+	return MARKDOWN.test(path) || matchesAny(path, include);
+}
+/** Documentation the review may read, search, select, or point a finding at. */
+function isReviewableDocsPath(path, docs) {
+	return isDocsPath(path, docs.include) && !matchesAny(path, docs.exclude);
 }
 //#endregion
 //#region ../../libs/docs-impact-review/src/text.ts
@@ -19858,14 +19881,6 @@ var GENERATED_PATTERNS = [
 	/\.gen\.[a-z]+$/,
 	/_gen\.go$/
 ];
-var DOCS_PATTERN = /\.mdx?$/i;
-/**
-* Markdown is always documentation; `include` globs from the repository
-* configuration add other formats (reStructuredText, AsciiDoc, …).
-*/
-function isDocsPath(path, include) {
-	return DOCS_PATTERN.test(path) || matchesAny(path, include);
-}
 function basename$1(path) {
 	return path.slice(path.lastIndexOf("/") + 1);
 }
@@ -20023,7 +20038,8 @@ function boundDiff(git, changeSet, budget) {
 			hunks = patch.slice(Math.max(0, patch.indexOf("@@")));
 			header = `### ${file.path} (${file.status}${file.previousPath ? ` from ${file.previousPath}` : ""})\n`;
 		}
-		const body = truncateAtLine(hunks, budget.perFileBytes);
+		const room = Math.max(0, Math.min(budget.perFileBytes, budget.totalBytes) - Buffer.byteLength(header, "utf8") - 1);
+		const body = truncateAtLine(hunks, room);
 		const block = `${header}${body}\n`;
 		return {
 			file,
@@ -20124,13 +20140,27 @@ var MAX_TERM_LENGTH = 80;
 /** Literal paths per `git grep`, far below any argument-length limit. */
 var PATHSPEC_CHUNK = 500;
 /**
+* Included documentation files searched at most. The head tree is the pull
+* request's, so without a cap a PR adding thousands of matching files would
+* turn search into thousands of `git grep` calls instead of a coverage gap.
+*/
+var MAX_SEARCHED_INCLUDED_DOCS = 2e3;
+function literalChunks(paths) {
+	const chunks = [];
+	for (let start = 0; start < paths.length; start += PATHSPEC_CHUNK) chunks.push(paths.slice(start, start + PATHSPEC_CHUNK).map((path) => `:(top,literal)${path}`));
+	return chunks;
+}
+/**
 * Pathspec groups to search. Markdown alone is two git globs. Repository
 * `include` globs use minimatch syntax (braces, dot rules) that git
 * pathspecs do not share, so the documentation files are listed once and
-* passed as literal paths instead.
+* passed as literal paths instead, up to `MAX_SEARCHED_INCLUDED_DOCS`.
 */
-function docsPathspecs(git, headRevision, docs) {
-	if (docs.include.length === 0) return [[":(top)*.md", ":(top)*.mdx"]];
+function docsPathspecs(git, headRevision, docs, maxIncluded) {
+	if (docs.include.length === 0) return {
+		groups: [[...MARKDOWN_PATHSPECS]],
+		unsearched: 0
+	};
 	const paths = git([
 		"ls-tree",
 		"-r",
@@ -20138,51 +20168,66 @@ function docsPathspecs(git, headRevision, docs) {
 		"--full-tree",
 		"--name-only",
 		headRevision
-	]).split("\0").filter((path) => path !== "" && isDocsPath(path, docs.include) && !matchesAny(path, docs.exclude)).map((path) => `:(top,literal)${path}`);
-	const groups = [];
-	for (let start = 0; start < paths.length; start += PATHSPEC_CHUNK) groups.push(paths.slice(start, start + PATHSPEC_CHUNK));
-	return groups;
+	]).split("\0").filter((path) => path !== "" && isReviewableDocsPath(path, docs));
+	return {
+		groups: literalChunks(paths.slice(0, maxIncluded)),
+		unsearched: Math.max(0, paths.length - maxIncluded)
+	};
+}
+/** Files at `headRevision` holding any of `terms`, root-relative. */
+function grepFiles(git, headRevision, terms, pathspecs) {
+	let output;
+	try {
+		output = git([
+			"grep",
+			"-I",
+			"-F",
+			"-l",
+			"--full-name",
+			...terms.flatMap((term) => ["-e", term]),
+			headRevision,
+			"--",
+			...pathspecs
+		]);
+	} catch (error) {
+		if (error.status === 1) return [];
+		throw error;
+	}
+	const prefix = `${headRevision}:`;
+	return output.split("\n").filter((line) => line.startsWith(prefix)).map((line) => line.slice(prefix.length));
 }
 /**
-* One exact, fixed-string search over documentation at the head revision.
+* Exact, fixed-string search over documentation at the head revision.
 * Model proposed terms are data: they are passed to `git grep -F` as
 * patterns and never interpreted as regular expressions or shell.
+*
+* One search for all terms finds the candidate files; each term is then
+* searched in those candidates only, so per-term file counts (used to drop
+* generic terms) are exact without one full-tree search per term.
 */
-function searchDocsForTerms(git, headRevision, terms, docs) {
+function searchDocsForTerms(git, headRevision, terms, docs, maxIncluded = MAX_SEARCHED_INCLUDED_DOCS) {
 	const usable = [...new Set(terms.map((term) => term.trim()).filter((term) => term.length >= MIN_TERM_LENGTH && term.length <= MAX_TERM_LENGTH && !/[\r\n]/.test(term)))];
 	const hits = /* @__PURE__ */ new Map();
-	if (usable.length === 0) return hits;
-	const prefix = `${headRevision}:`;
-	const groups = docsPathspecs(git, headRevision, docs);
-	for (const term of usable) for (const pathspecs of groups) {
-		let output;
-		try {
-			output = git([
-				"grep",
-				"-I",
-				"-F",
-				"-l",
-				"--full-name",
-				"-e",
-				term,
-				headRevision,
-				"--",
-				...pathspecs
-			]);
-		} catch (error) {
-			if (error.status === 1) continue;
-			throw error;
-		}
-		for (const line of output.split("\n")) {
-			if (!line.startsWith(prefix)) continue;
-			const path = line.slice(prefix.length);
-			if (matchesAny(path, docs.exclude)) continue;
-			const terms = hits.get(path) ?? [];
-			if (!terms.includes(term)) terms.push(term);
-			hits.set(path, terms);
-		}
+	if (usable.length === 0) return {
+		hits,
+		unsearched: 0
+	};
+	const { groups, unsearched } = docsPathspecs(git, headRevision, docs, maxIncluded);
+	const candidates = [...new Set(groups.flatMap((pathspecs) => grepFiles(git, headRevision, usable, pathspecs)))].filter((path) => isReviewableDocsPath(path, docs)).sort();
+	if (candidates.length === 0) return {
+		hits,
+		unsearched
+	};
+	const candidateChunks = literalChunks(candidates);
+	for (const term of usable) for (const pathspecs of candidateChunks) for (const path of grepFiles(git, headRevision, [term], pathspecs)) {
+		const found = hits.get(path) ?? [];
+		if (!found.includes(term)) found.push(term);
+		hits.set(path, found);
 	}
-	return hits;
+	return {
+		hits,
+		unsearched
+	};
 }
 /**
 * Drops search terms that match too many files (e.g. `--help`): they flood
@@ -20255,7 +20300,17 @@ var MAX_INSTRUCTIONS_LENGTH = 2e3;
 /** Schema errors reported at once, so one pass fixes several keys. */
 var MAX_REPORTED_ERRORS = 5;
 var GlobList = _Array_(String$1({ minLength: 1 }));
-var BudgetsSchema = _Object_(Object.fromEntries(CONFIGURABLE_BUDGETS.map((key) => [key, Optional(Integer(BUDGET_LIMITS[key]))])), { additionalProperties: false });
+var budget = (key) => Optional(Integer(BUDGET_LIMITS[key]));
+var BudgetsSchema = _Object_({
+	diffTotalBytes: budget("diffTotalBytes"),
+	diffPerFileBytes: budget("diffPerFileBytes"),
+	diffDocsReserveBytes: budget("diffDocsReserveBytes"),
+	docsDiffBytes: budget("docsDiffBytes"),
+	docExcerptBytes: budget("docExcerptBytes"),
+	maxDocs: budget("maxDocs"),
+	maxDocsHunks: budget("maxDocsHunks"),
+	stageRunningTimeoutSec: budget("stageRunningTimeoutSec")
+}, { additionalProperties: false });
 /** JSON schema of `.github/docs-impact-review.json`, for editors and tools. */
 var ReviewConfigSchema = _Object_({
 	version: Literal(1),
@@ -20807,7 +20862,10 @@ function parseCoverageCheck(output, allowed, repairs = []) {
 		const docsChange = finding.changeId.startsWith("docs:") ? finding.changeId.slice(5) : void 0;
 		if (docsChange ? !allowed.changedDocs.has(docsChange) : !allowed.changeIds.has(finding.changeId)) throw new Error(`finding references unknown change ${finding.changeId}`);
 		if (!allowed.changedPaths.has(finding.evidence.path)) throw new Error(`finding evidence ${finding.evidence.path} is not a changed file`);
-		if (!allowed.selectedDocs.has(finding.docsPath) && !isDocsPath(finding.docsPath, allowed.docsInclude ?? [])) throw new Error(`finding docsPath ${finding.docsPath} is neither a selected doc nor a documentation location`);
+		if (!allowed.selectedDocs.has(finding.docsPath) && !isReviewableDocsPath(finding.docsPath, allowed.docs ?? {
+			include: [],
+			exclude: []
+		})) throw new Error(`finding docsPath ${finding.docsPath} is neither a selected doc nor a documentation location`);
 	}
 	return parsed;
 }
@@ -21162,7 +21220,7 @@ async function runStage(deps, input, body, stage, parse, timings) {
 		observedMs
 	});
 	if (outcome.kind === "accepted") return outcome.result.state;
-	const budgetReason = attempt?.error?.code ? budgetErrorReason(attempt.error.code, body.runningTimeoutSec ?? input.runningTimeoutSec ?? 0) : void 0;
+	const budgetReason = attempt?.error?.code ? budgetErrorReason(attempt.error.code, body.runningTimeoutSec ?? input.runningTimeoutSec ?? DEFAULT_BUDGETS.stageRunningTimeoutSec) : void 0;
 	if (budgetReason) throw new StageBudgetExceeded(stage, budgetReason);
 	throw new Error(`${stage} stage: ${outcome.reason}`);
 }
@@ -21196,7 +21254,12 @@ function retrieveDocs(deps, config, changeSet, changes, budgets, gaps, searchTer
 		return exists;
 	});
 	const terms = changes.flatMap((change) => change.searchTerms);
-	const search = dropGenericTerms(searchDocsForTerms(git, head, terms, docsGlobs(config)));
+	const found = searchDocsForTerms(git, head, terms, docsGlobs(config));
+	if (found.unsearched > 0) gaps.push({
+		scope: "documentation search",
+		reason: `${found.unsearched} included documentation files not searched: more than ${MAX_SEARCHED_INCLUDED_DOCS} match docs.include`
+	});
+	const search = dropGenericTerms(found.hits);
 	searchTermsDropped.push(...search.generic);
 	for (const path of search.hits.keys()) {
 		const reasons = routed.candidates.get(path) ?? [];
@@ -21208,7 +21271,7 @@ function retrieveDocs(deps, config, changeSet, changes, budgets, gaps, searchTer
 		if (!isRequiredCandidate(reasons)) continue;
 		gaps.push({
 			scope: path,
-			reason: `candidate doc not reviewed: more than ${budgets.maxDocs} docs matched`
+			reason: `candidate doc not reviewed: more than ${budgets.maxDocs} docs matched (budgets.maxDocs)`
 		});
 	}
 	return selection.selected.map(({ path, reasons }) => {
@@ -21239,7 +21302,7 @@ function docsGlobs(config) {
 function diffBudget(config, budgets) {
 	return {
 		totalBytes: budgets.diffTotalBytes,
-		perFileBytes: Math.min(budgets.diffPerFileBytes, budgets.diffTotalBytes),
+		perFileBytes: budgets.diffPerFileBytes,
 		docsReserveBytes: Math.min(budgets.diffDocsReserveBytes, budgets.diffTotalBytes),
 		prioritySources: config.routing.rules.flatMap((rule) => rule.paths)
 	};
@@ -21280,7 +21343,7 @@ function failedReport(target, source, message) {
 }
 async function runDocsImpactReview(deps, reviewInput) {
 	const { config, configSource, ...rest } = reviewInput;
-	const budgets = resolveBudgets(config.budgets, rest.budgets);
+	const budgets = resolveBudgets(config.budgets);
 	const input = {
 		...rest,
 		config,
@@ -21306,6 +21369,7 @@ async function runDocsImpactReview(deps, reviewInput) {
 			...configSource,
 			routingRules: config.routing.rules.length
 		},
+		budgets,
 		status: "completed",
 		findings: [],
 		gaps: [],
@@ -21348,11 +21412,11 @@ async function runDocsImpactReview(deps, reviewInput) {
 		};
 		for (const path of diff.omittedPaths) report.gaps.push({
 			scope: path,
-			reason: "omitted from model context by the diff budget"
+			reason: "omitted from model context by the diff budget (budgets.diffTotalBytes)"
 		});
 		for (const path of diff.truncatedPaths) report.gaps.push({
 			scope: path,
-			reason: "patch truncated at the per-file budget"
+			reason: "patch truncated at the per-file budget (budgets.diffPerFileBytes)"
 		});
 		timings.ingestMs = now() - started;
 		const sourcePaths = new Set(changeSet.files.filter((file) => file.category === "source").map((file) => file.path));
@@ -21391,7 +21455,7 @@ async function runDocsImpactReview(deps, reviewInput) {
 		const docsDiff = truncateAtLine(docsBlocks, budgets.docsDiffBytes);
 		if (docsDiff !== docsBlocks) report.gaps.push({
 			scope: "documentation diff",
-			reason: "truncated at the docs-diff budget"
+			reason: "truncated at the docs-diff budget (budgets.docsDiffBytes)"
 		});
 		timings.retrievalMs = now() - retrievalStarted;
 		const docsHunks = extractDocsHunks(diff.blocks, {
@@ -21400,7 +21464,7 @@ async function runDocsImpactReview(deps, reviewInput) {
 		});
 		for (const id of docsHunks.overflow) report.gaps.push({
 			scope: id,
-			reason: `docs hunk not checked: more than ${budgets.maxDocsHunks} hunks`
+			reason: `docs hunk not checked: more than ${budgets.maxDocsHunks} hunks (budgets.maxDocsHunks)`
 		});
 		const [coverageResult, docsCheckResult] = await Promise.allSettled([runStage(deps, input, buildCoverageTask(input, {
 			changes: report.contractChanges,
@@ -21411,7 +21475,7 @@ async function runDocsImpactReview(deps, reviewInput) {
 			changedPaths: new Set(changeSet.files.map((file) => file.path)),
 			changedDocs,
 			selectedDocs: new Set(docs.map((doc) => doc.path)),
-			docsInclude: config.docsInclude
+			docs: docsGlobs(config)
 		}, repairs)), timings.stages), docsHunks.hunks.length > 0 ? runStage(deps, input, buildDocsCheckTask(input, docsHunks.hunks), "docs-check", withRepairs("docs-check", (output, repairs) => parseDocsCheck(output, docsHunks.hunks, repairs)), timings.stages) : Promise.resolve([])]);
 		if (coverageResult.status === "rejected") throw coverageResult.reason;
 		const coverage = coverageResult.value;
@@ -21610,6 +21674,11 @@ function readPullRequest(repo, pr) {
 	});
 	return JSON.parse(raw);
 }
+/** The budgets a configuration overrides, with their values. */
+function describeBudgetOverrides(config) {
+	const overrides = Object.entries(config.budgets).filter(([, value]) => value !== void 0);
+	return overrides.length === 0 ? "default budgets" : `budgets ${overrides.map(([key, value]) => `${key}=${value}`).join(" ")}`;
+}
 /** One line naming the configuration and what it adds to the defaults. */
 function describeConfig(config, source) {
 	if (source.kind === "default") return `defaults (no ${REVIEW_CONFIG_PATH} at the base revision)`;
@@ -21620,7 +21689,7 @@ function describeConfig(config, source) {
 		`${config.docsExclude.length} exclusions`,
 		`${config.agentFacing.length} agent-facing globs`,
 		config.instructions ? `${config.instructions.length} characters of instructions` : "no instructions",
-		`${Object.keys(config.budgets).length} budget overrides`
+		describeBudgetOverrides(config)
 	].join(", ");
 }
 function positiveInt(value, label) {
@@ -21795,6 +21864,7 @@ function dryRunSummary(git, target, config, source) {
 			path,
 			category
 		})),
+		budgets,
 		diffBytes: diff.bytes,
 		omittedPaths: diff.omittedPaths,
 		truncatedPaths: diff.truncatedPaths,
