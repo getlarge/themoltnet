@@ -948,7 +948,7 @@ describe('final-message submit', () => {
     expect(handle.getCaptured()).toEqual({ summary: 'done', artifacts: [] });
     expect(handle.getCapturedSource()).toBe('final_message');
     expect(handle.getCapturedRepairKinds()).toEqual(['json_string']);
-    expect(handle.getCallCount()).toBe(1);
+    expect(handle.getCallCount()).toBe(0);
     expect(handle.getInvalidCallCount()).toBe(0);
   });
 
@@ -967,10 +967,14 @@ describe('final-message submit', () => {
     expect(result).toBe('invalid');
     expect(handle.getCaptured()).toBeNull();
     expect(handle.getCapturedSource()).toBeNull();
-    expect(handle.getInvalidCallCount()).toBe(1);
+    expect(handle.getInvalidCallCount()).toBe(0);
+    expect(handle.getInvalidFinalMessageCount()).toBe(1);
     expect(handle.getLastValidationFailure()).toMatchObject({
       code: 'output_validation_failed',
     });
+    expect(handle.getLastValidationFailure()?.message).toContain(
+      'invalid final message 1',
+    );
     expect(handle.getLastValidationFailure()?.message).toContain('summary');
   });
 

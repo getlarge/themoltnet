@@ -46,6 +46,8 @@ const TASK_TYPE_OUTPUT: Record<
 /** Minimal shape of a task message (a structural subset of the SDK's
  * `TaskMessage`). */
 export interface GateTaskMessage {
+  /** Server sequence number; enables paging past the first page. */
+  seq?: number;
   kind: string;
   payload: { [key: string]: unknown };
 }
@@ -77,7 +79,11 @@ export interface GateArtifactDownload {
  */
 export interface GateAgent {
   tasks: {
-    listMessages(taskId: string, attemptN: number): Promise<GateTaskMessage[]>;
+    listMessages(
+      taskId: string,
+      attemptN: number,
+      query?: { afterSeq?: number },
+    ): Promise<GateTaskMessage[]>;
     listAttempts(taskId: string): Promise<GateTaskAttempt[]>;
     artifacts: {
       list(
@@ -141,6 +147,53 @@ function toolNames(messages: GateTaskMessage[]): Set<string> {
     }
   }
   return names;
+}
+
+/** Read every message of an attempt. The API caps a page, and text deltas are
+ * stored one row per chunk, so terminal events are often past page one. Stops
+ * when a page is empty, lacks `seq`, or makes no progress. */
+async function listAllMessages(
+  agent: GateAgent,
+  taskId: string,
+  attemptN: number,
+): Promise<GateTaskMessage[]> {
+  const messages: GateTaskMessage[] = [];
+  let afterSeq: number | undefined;
+  for (;;) {
+    const page = await agent.tasks.listMessages(
+      taskId,
+      attemptN,
+      afterSeq === undefined ? undefined : { afterSeq },
+    );
+    const fresh =
+      afterSeq === undefined
+        ? page
+        : page.filter((m) => m.seq !== undefined && m.seq > afterSeq!);
+    if (fresh.length === 0) return messages;
+    messages.push(...fresh);
+    const last = fresh[fresh.length - 1].seq;
+    if (last === undefined) return messages;
+    afterSeq = last;
+  }
+}
+
+function finalMessageSubmits(messages: GateTaskMessage[]): {
+  captured: boolean;
+  invalid: number;
+} {
+  let captured = false;
+  let invalid = 0;
+  for (const message of messages) {
+    if (
+      message.kind !== 'info' ||
+      message.payload.event !== 'final_message_submit'
+    ) {
+      continue;
+    }
+    if (message.payload.result === 'captured') captured = true;
+    if (message.payload.result === 'invalid') invalid += 1;
+  }
+  return { captured, invalid };
 }
 
 function submitCallResults(
@@ -213,7 +266,7 @@ export async function checkGates(
     schemaName,
     responseField,
   } = TASK_TYPE_OUTPUT[expected.taskType ?? 'run_eval'];
-  const messages = await agent.tasks.listMessages(taskId, attemptN);
+  const messages = await listAllMessages(agent, taskId, attemptN);
 
   // Gate: a prompt_build_failure short-circuits everything else.
   const buildError = messages.find(
@@ -309,20 +362,31 @@ export async function checkGates(
     }
   }
 
-  // Gate: a clean submit — exactly one successful submit call and no invalid
-  // calls, plus a schema-valid accepted output. Runtime recovery deliberately
-  // permits invalid calls inside one session; this eval gate measures whether
-  // the model completed the protocol cleanly without needing that recovery.
+  // Gate: a clean submit — exactly one accepted payload and no invalid
+  // attempts, plus a schema-valid accepted output. Runtime recovery
+  // deliberately permits invalid calls inside one session; this eval gate
+  // measures whether the model completed the protocol without needing that
+  // recovery. A valid JSON-only final message counts as the one accepted
+  // payload; scoring gives it partial credit (`submitProtocolCredit`).
   if (gates.requireCleanSubmit ?? true) {
     const submitToolName = `submit_${expected.taskType ?? 'run_eval'}_output`;
     const submitCalls = submitCallResults(messages, submitToolName);
+    const finalMessage = finalMessageSubmits(messages);
     if (submitCalls.failed > 0) {
       failures.push({
         gate: 'submit_clean',
         detail: `${submitToolName} had ${submitCalls.failed} invalid call(s)`,
       });
     }
-    if (submitCalls.succeeded !== 1) {
+    if (finalMessage.invalid > 0) {
+      failures.push({
+        gate: 'submit_clean',
+        detail: `${finalMessage.invalid} JSON-only final message(s) failed validation`,
+      });
+    }
+    const acceptedViaFinalMessage =
+      submitCalls.succeeded === 0 && finalMessage.captured;
+    if (submitCalls.succeeded !== 1 && !acceptedViaFinalMessage) {
       failures.push({
         gate: 'submit_clean',
         detail: `${submitToolName} had ${submitCalls.succeeded} successful call(s), expected exactly 1`,

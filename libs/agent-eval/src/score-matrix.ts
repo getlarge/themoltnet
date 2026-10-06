@@ -57,15 +57,43 @@ export interface SubmitStructure {
   outputSource: 'tool' | 'final_message' | null;
 }
 
+/**
+ * Credit for a valid payload the model sent as a JSON-only final message
+ * instead of a submit tool call. The runtime recovered the output without a
+ * reprompt, which beats a failed or reprompted attempt, but the model still
+ * skipped the tool.
+ */
+export const FINAL_MESSAGE_SUBMIT_CREDIT = 0.5;
+
+/** Protocol credit in [0,1] by how the accepted payload reached the runtime. */
+export function submitProtocolCredit(
+  structure: SubmitStructure | undefined,
+): number {
+  return structure?.outputSource === 'final_message'
+    ? FINAL_MESSAGE_SUBMIT_CREDIT
+    : 1;
+}
+
+/** Raw submit-shape score in [0,1]: 1 for a clean submit tool call, partial
+ * credit for a clean JSON-only final message, 0 otherwise. */
+export function submitShapeScore(
+  structure: SubmitStructure | undefined,
+): number {
+  if (
+    !structure?.outputSource ||
+    structure.invalidSubmitCalls > 0 ||
+    !structure.repairKinds.every((kind) => PROTOCOL_REPAIRS.has(kind))
+  ) {
+    return 0;
+  }
+  return submitProtocolCredit(structure);
+}
+
 /** Whether the model supplied a valid submit shape before runtime repair. */
 export function isCleanSubmitShape(
   structure: SubmitStructure | undefined,
 ): boolean {
-  return (
-    structure?.outputSource === 'tool' &&
-    structure.invalidSubmitCalls === 0 &&
-    structure.repairKinds.every((kind) => PROTOCOL_REPAIRS.has(kind))
-  );
+  return submitShapeScore(structure) === 1;
 }
 
 /**
@@ -181,16 +209,17 @@ export async function runMatrix(
         }
 
         if (scenario.scoring === 'gates_only') {
-          base.composite = isCleanSubmitShape(producer.structure) ? 1 : 0;
+          base.composite = submitShapeScore(producer.structure);
           log(
-            `[${model}] ${scenario.slug}: shape ${base.composite === 1 ? 'pass' : 'fail'}, composite ${base.composite}`,
+            `[${model}] ${scenario.slug}: shape ${base.composite === 1 ? 'pass' : base.composite > 0 ? 'partial' : 'fail'}, composite ${base.composite}`,
           );
           cells.push(base);
           continue;
         }
 
         const judgment = await deps.runJudge(scenario, acceptedProducer);
-        base.composite = judgment.composite;
+        base.composite =
+          judgment.composite * submitProtocolCredit(producer.structure);
         base.judged = true;
         log(
           `[${model}] ${scenario.slug}: gates passed, composite ${judgment.composite.toFixed(3)}`,
@@ -232,8 +261,8 @@ export function summarizeMatrix(matrix: ScoreMatrix): string {
     const parts = [];
     if (judgedCells.length > 0) parts.push(`mean judged ${mean.toFixed(3)}`);
     if (shapeCells.length > 0) {
-      const passed = shapeCells.filter((c) => c.composite === 1).length;
-      parts.push(`shape ${passed}/${shapeCells.length}`);
+      const score = shapeCells.reduce((sum, c) => sum + c.composite, 0);
+      parts.push(`shape ${score}/${shapeCells.length}`);
     }
     lines.push(`\n${model}  (${parts.join(', ')})`);
     for (const cell of modelCells) {
@@ -243,7 +272,7 @@ export function summarizeMatrix(matrix: ScoreMatrix): string {
           ? `PRODUCER FAIL [${cell.failureCode}]`
           : cell.gatesPassed
             ? cell.scoring === 'gates_only'
-              ? `SHAPE ${cell.composite === 1 ? 'PASS' : 'FAIL'} [${cell.composite}/1]`
+              ? `SHAPE ${cell.composite === 1 ? 'PASS' : cell.composite > 0 ? 'PARTIAL' : 'FAIL'} [${cell.composite}/1]`
               : `composite ${cell.composite.toFixed(3)}`
             : `GATE FAIL [${cell.gateFailures.map((f) => f.gate).join(',')}]`;
       const submitClean =

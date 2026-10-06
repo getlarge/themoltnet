@@ -565,9 +565,9 @@ export interface ExecutePiTaskOptions {
    * Cap the number of tool-use turns per attempt. When the limit is
    * reached, the pi session is aborted and the attempt finalizes with
    * `error.code: max_turns_exceeded`. A tool-use turn = any `turn_end`
-   * whose `stopReason !== 'end_turn'` (matches the Anthropic SDK
-   * `max_turns` semantics: the model's final text-only response doesn't
-   * count). Default `0` = disabled. Recommended `30` for `fulfill_brief`.
+   * that is not a clean end (`stop` / `end_turn`), abort or error (matches
+   * the Anthropic SDK `max_turns` semantics: the model's final text-only
+   * response doesn't count). Default `0` = disabled. Recommended `30` for `fulfill_brief`.
    * Closes part of #1094.
    */
   maxTurns?: number;
@@ -2004,8 +2004,9 @@ export async function executePiTask(
       event: 'submit_outcome',
       captured: submitToolHandle.getCaptured() !== null,
       source: submitToolHandle.getCapturedSource(),
-      validCalls: submitToolHandle.getCallCount(),
-      invalidCalls: submitToolHandle.getInvalidCallCount(),
+      validToolCalls: submitToolHandle.getCallCount(),
+      invalidToolCalls: submitToolHandle.getInvalidCallCount(),
+      invalidFinalMessages: submitToolHandle.getInvalidFinalMessageCount(),
       submitReprompts: promptResult.submitReprompts,
       maxSubmitReprompts: submitMissingConfig.maxSubmitMissingReprompts,
       stopReason: turnState.lastStopReason,
@@ -2445,14 +2446,14 @@ export function makeSessionEventHandler(
       }
       track(emit('turn_end', { stop_reason: stopReason }));
       // Tool-use turn counter for the max-turns cap. Anthropic SDK
-      // semantics: count only tool-use turns (any turn whose
-      // stopReason !== 'end_turn'). The final text-only response
-      // does not consume a turn. 'aborted' turns (from our own
-      // session.abort, or proposer cancel) are also excluded; they
+      // semantics: a text-only response (Pi reports `stop`, other
+      // providers `end_turn`) does not consume a turn, so the final-message
+      // submit fallback can still read it at the cap. 'aborted' turns (from
+      // our own session.abort, or proposer cancel) are also excluded; they
       // don't represent forward progress against the cap.
       if (
         maxTurns > 0 &&
-        stopReason !== 'end_turn' &&
+        !CLEAN_END_STOP_REASONS.has(stopReason) &&
         stopReason !== 'aborted' &&
         stopReason !== 'error'
       ) {

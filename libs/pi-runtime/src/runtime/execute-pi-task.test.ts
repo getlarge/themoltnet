@@ -2273,6 +2273,7 @@ describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
     const { deps, caps, state } = makeDeps({ maxTurns: 2 });
     const handler = makeSessionEventHandler(deps);
     handler(turnEnd('end_turn')); // text-only: not counted
+    handler(turnEnd('stop')); // Pi's text-only stop: not counted
     handler(turnEnd('aborted')); // not counted
     handler(turnEnd('error')); // not counted
     expect(state.toolUseTurnCount).toBe(0);
@@ -2285,6 +2286,20 @@ describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
         message: 'Aborted after 2 tool-use turns (cap 2).',
       },
     ]);
+  });
+
+  it('leaves a text-only final turn at the cap for the final-message fallback', () => {
+    const { deps, caps, state } = makeDeps({ maxTurns: 1 });
+    const handler = makeSessionEventHandler(deps);
+
+    handler(
+      turnEnd('stop', { content: [{ type: 'text', text: '{"summary":"x"}' }] }),
+    );
+
+    expect(state.toolUseTurnCount).toBe(0);
+    expect(caps).toHaveLength(0);
+    expect(state.lastStopReason).toBe('stop');
+    expect(state.lastAssistantText).toBe('{"summary":"x"}');
   });
 
   it('allows a valid terminal submit-output call on the cap turn', () => {

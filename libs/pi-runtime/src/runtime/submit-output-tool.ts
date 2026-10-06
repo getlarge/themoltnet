@@ -91,8 +91,10 @@ export interface SubmitOutputToolHandle {
   getCaptured: () => Record<string, unknown> | null;
   /** Number of times the model called the tool with valid args. */
   getCallCount: () => number;
-  /** Number of invalid submit calls observed in this session. */
+  /** Number of invalid submit tool calls observed in this session. */
   getInvalidCallCount: () => number;
+  /** Number of JSON-only final messages that failed validation. */
+  getInvalidFinalMessageCount: () => number;
   /** Last validation failure, if the model submitted invalid args. */
   getLastValidationFailure: () => { code: string; message: string } | null;
   /** Normalizations applied to the accepted submit call; contains no payload. */
@@ -339,6 +341,7 @@ export function createSubmitOutputTool(
   let captured: Record<string, unknown> | null = null;
   let callCount = 0;
   let invalidCallCount = 0;
+  let invalidFinalMessageCount = 0;
   let lastValidationFailure: { code: string; message: string } | null = null;
   let capturedRepairs: SchemaAlignmentRepair[] = [];
   let capturedSource: SubmitOutputSource | null = null;
@@ -346,8 +349,15 @@ export function createSubmitOutputTool(
 
   const schema = contract.parametersSchema;
 
-  const recordInvalidCall = (candidate: unknown, piError?: unknown): string => {
-    invalidCallCount += 1;
+  const recordInvalidCall = (
+    candidate: unknown,
+    piError?: unknown,
+    source: SubmitOutputSource = 'submit_tool',
+  ): string => {
+    const label =
+      source === 'final_message'
+        ? `invalid final message ${(invalidFinalMessageCount += 1)}`
+        : `invalid call ${(invalidCallCount += 1)}`;
     const errors = validateAgentTaskSubmission(
       taskType,
       candidate,
@@ -363,7 +373,7 @@ export function createSubmitOutputTool(
           ? piError.message.split('\n\nReceived arguments:')[0]
           : 'Pi rejected arguments against the advertised tool schema';
     const message =
-      `Output failed validation (invalid call ${invalidCallCount}): ` +
+      `Output failed validation (${label}): ` +
       `${detailMsg}. ` +
       `${submitOutputRepairHint(taskType, errors, schema)} ` +
       'Re-call this tool with a corrected output in the current session.';
@@ -540,7 +550,7 @@ export function createSubmitOutputTool(
         opts,
       );
     } catch (error) {
-      recordInvalidCall(parsed.value, error);
+      recordInvalidCall(parsed.value, error, 'final_message');
       return 'invalid';
     }
     const errors = validateAgentTaskSubmission(
@@ -550,7 +560,7 @@ export function createSubmitOutputTool(
       { inputCid: opts.inputCid },
     );
     if (errors.length > 0) {
-      recordInvalidCall(normalized.candidate);
+      recordInvalidCall(normalized.candidate, undefined, 'final_message');
       return 'invalid';
     }
     captured = normalized.candidate as Record<string, unknown>;
@@ -559,7 +569,6 @@ export function createSubmitOutputTool(
       ...normalized.repairs,
     ];
     capturedSource = 'final_message';
-    callCount += 1;
     return 'captured';
   };
 
@@ -569,6 +578,7 @@ export function createSubmitOutputTool(
     getCaptured: () => captured,
     getCallCount: () => callCount,
     getInvalidCallCount: () => invalidCallCount,
+    getInvalidFinalMessageCount: () => invalidFinalMessageCount,
     getLastValidationFailure: () => lastValidationFailure,
     getCapturedRepairKinds: () => capturedRepairs.map((repair) => repair.kind),
     getCapturedRepairs: () => [...capturedRepairs],

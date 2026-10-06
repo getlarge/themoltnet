@@ -94,6 +94,40 @@ describe('runBaseline', () => {
     ]);
   });
 
+  it('gives a valid final-message submit partial credit', async () => {
+    const shape = {
+      ...scenario('shape', 'freeform'),
+      scoring: 'gates_only' as const,
+    };
+    const judged = scenario('judged', 'freeform');
+    const finalMessage = {
+      invalidSubmitCalls: 0,
+      repairKinds: ['submit_gate_verification'],
+      outputSource: 'final_message' as const,
+    };
+    const report = await runBaseline([shape, judged], 'm', 2, {
+      runProducer: (_scenario, run) =>
+        Promise.resolve({
+          taskId: `task-${run}`,
+          attemptN: 1,
+          structure:
+            run === 1
+              ? finalMessage
+              : { ...finalMessage, outputSource: 'tool' as const },
+        }),
+      runGates: () => Promise.resolve(PASS),
+    });
+
+    for (const result of report.scenarios) {
+      expect(result).toMatchObject({
+        passes: 1.5,
+        passRate: 0.75,
+        failureModes: { submit_final_message: 1 },
+      });
+      expect(result.cells.map((cell) => cell.credit)).toEqual([0.5, 1]);
+    }
+  });
+
   it('counts every run and reports the raw pass rate (no retry-until-pass)', async () => {
     // 4 runs: pass, fail(submit), pass, not-completed → 2/4 = 50%.
     const deps = scriptedDeps({

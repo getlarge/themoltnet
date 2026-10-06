@@ -191,11 +191,18 @@ is captured with `output_source: final_message` and the parse-result code
 `captured_via_final_message`; an invalid one records `output_validation_failed`
 and the reprompt carries its validation errors. Messages with any prose around
 the object, or turns stopped at the output limit, go straight to the reprompt.
-Eval structure scoring counts only `submit_tool` output as a clean submit.
+In evals, the `submit_clean` gate accepts either one valid tool call or one
+captured final message. Scoring gives the final message partial credit
+(`FINAL_MESSAGE_SUBMIT_CREDIT`, 0.5): it multiplies the judge composite and is
+the gate-only shape score, so a recovered final message grades above a failed or
+reprompted attempt and below a clean tool call.
 
 Each attempt emits one `submit_outcome` info event with `captured`, `source`,
-`validCalls`, `invalidCalls`, `submitReprompts`, `maxSubmitReprompts`,
-`stopReason` and `lastFailureCode`, whether or not recovery ran.
+`validToolCalls`, `invalidToolCalls`, `invalidFinalMessages`, `submitReprompts`,
+`maxSubmitReprompts`, `stopReason` and `lastFailureCode`, whether or not
+recovery ran. Tool-call counts never include final-message attempts. Text-only
+turns (`stop` / `end_turn`) do not count toward `maxTurns`, so the fallback can
+still read the final message at the cap.
 
 **Contract lives in `@themoltnet/agent-runtime`.** The (toolName, description,
 parametersSchema) triple is exposed by `getSubmitOutputContract(taskType)` in

@@ -15,7 +15,11 @@
  */
 import type { GateResult } from './check-gates.js';
 import type { Scenario, ScenarioTaskType } from './scenario.js';
-import { isCleanSubmitShape, type SubmitStructure } from './score-matrix.js';
+import {
+  submitProtocolCredit,
+  submitShapeScore,
+  type SubmitStructure,
+} from './score-matrix.js';
 
 /** Non-gate failure-mode keys, alongside the per-gate keys from `GateFailure`. */
 export const NOT_COMPLETED = 'not_completed';
@@ -33,6 +37,11 @@ export interface BaselineRun {
   gatesPassed: boolean;
   /** Raw submit shape for gate-only scenarios after gates have passed. */
   shapePassed?: boolean;
+  /**
+   * Credit in [0,1] this run adds to `passes`. Partial when the model sent a
+   * valid JSON-only final message instead of calling the submit tool.
+   */
+  credit?: number;
   gateFailures: GateResult['failures'];
   /**
    * When the task did not complete, the daemon's terminal error code (e.g.
@@ -149,13 +158,20 @@ export async function runBaseline(
           cell.gatesPassed = gates.passed;
           cell.gateFailures = gates.failures;
           if (gates.passed) {
+            cell.credit =
+              scenario.scoring === 'gates_only'
+                ? submitShapeScore(producer.structure)
+                : submitProtocolCredit(producer.structure);
             if (scenario.scoring === 'gates_only') {
-              cell.shapePassed = isCleanSubmitShape(producer.structure);
-              if (!cell.shapePassed) bump(failureModes, 'submit_shape');
+              cell.shapePassed = cell.credit === 1;
+              if (cell.credit === 0) bump(failureModes, 'submit_shape');
             }
-            if (cell.shapePassed !== false) passes++;
+            if (cell.credit > 0 && cell.credit < 1) {
+              bump(failureModes, 'submit_final_message');
+            }
+            passes += cell.credit;
             log(
-              `[${scenario.slug}] run ${run}/${repeats}: ${cell.shapePassed === false ? 'SHAPE FAIL' : 'PASS'}`,
+              `[${scenario.slug}] run ${run}/${repeats}: ${cell.credit === 1 ? 'PASS' : cell.credit > 0 ? `PARTIAL ${cell.credit} (final message)` : 'SHAPE FAIL'}`,
             );
           } else {
             for (const f of gates.failures) bump(failureModes, f.gate);
