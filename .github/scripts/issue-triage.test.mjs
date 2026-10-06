@@ -68,7 +68,10 @@ test('renders the verdict and per-criterion reasons', () => {
     /needs more detail/,
   );
   assert.match(
-    renderComment([{ ...criteria[0], reason: '<b>@user</b>' }, ...criteria.slice(1)]),
+    renderComment([
+      { ...criteria[0], reason: '<b>@user</b>' },
+      ...criteria.slice(1),
+    ]),
     /&lt;b>&#64;user&lt;\/b>/,
   );
 });
