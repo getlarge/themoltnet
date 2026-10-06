@@ -6,7 +6,14 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __esmMin = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
+var __esmMin = (fn, res, err) => () => {
+	if (err) throw err[0];
+	try {
+		return fn && (res = fn(fn = 0)), res;
+	} catch (e) {
+		throw err = [e], e;
+	}
+};
 var __commonJSMin = (cb, mod) => () => (mod || (cb((mod = { exports: {} }).exports, mod), cb = null), mod.exports);
 var __exportAll = (all, no_symbols) => {
 	let target = {};
@@ -27,12 +34,12 @@ var __copyProps = (to, from, except, desc) => {
 	}
 	return to;
 };
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", {
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule || !__hasOwnProp.call(mod, "default") ? __defProp(target, "default", {
 	value: mod,
 	enumerable: true
 }) : target, mod));
 var __toCommonJS = (mod) => __hasOwnProp.call(mod, "module.exports") ? mod["module.exports"] : __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-var __require = /* @__PURE__ */ createRequire(import.meta.url);
+var __require = /* #__PURE__ */ (() => createRequire(import.meta.url))();
 //#endregion
 //#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/system/memory/metrics.mjs
 /** TypeBox instantiation metrics */
@@ -893,7 +900,7 @@ var ByteMarker;
 var Accumulator = BigInt("14695981039346656037");
 var [Prime, Size] = [BigInt("1099511628211"), BigInt("18446744073709551616")];
 var Bytes = Array.from({ length: 256 }).map((_, i) => BigInt(i));
-var F64 = new Float64Array(1);
+var F64 = /* @__PURE__ */ new Float64Array(1);
 var F64In = new DataView(F64.buffer);
 var F64Out = new Uint8Array(F64.buffer);
 function FNV1A64_OP(byte) {
@@ -1021,11 +1028,6 @@ function Get$1() {
 	return locale;
 }
 //#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/type/types/_codec.mjs
-function IsCodec(value) {
-	return IsSchema$1(value) && HasPropertyKey(value, "~codec") && IsObject$1(value["~codec"]) && HasPropertyKey(value["~codec"], "encode") && HasPropertyKey(value["~codec"], "decode");
-}
-//#endregion
 //#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/type/types/_immutable.mjs
 /** Returns true if the given value is a TImmutable */
 function IsImmutable(value) {
@@ -1103,14 +1105,6 @@ function Literal(value, options) {
 /** Returns true if the given value is a TLiteralValue. */
 function IsLiteralValue(value) {
 	return IsBigInt$1(value) || IsBoolean$2(value) || IsNumber$2(value) || IsString$2(value);
-}
-/** Returns true if the given value is TLiteral<bigint>. */
-function IsLiteralBigInt(value) {
-	return IsLiteral(value) && IsBigInt$1(value.const);
-}
-/** Returns true if the given value is TLiteral<boolean>. */
-function IsLiteralBoolean(value) {
-	return IsLiteral(value) && IsBoolean$2(value.const);
 }
 /** Returns true if the given value is TLiteral<number>. */
 function IsLiteralNumber(value) {
@@ -1375,7 +1369,7 @@ function CompositePropertyKey(left, right, key) {
 	return key in left ? key in right ? CompositeProperty(left[key], right[key]) : left[key] : key in right ? right[key] : Never();
 }
 function CompositeProperties(left, right) {
-	return [...new Set([...Keys(left), ...Keys(right)])].reduce((result, key) => {
+	return [.../* @__PURE__ */ new Set([...Keys(left), ...Keys(right)])].reduce((result, key) => {
 		return {
 			...result,
 			[key]: CompositePropertyKey(left, right, key)
@@ -3553,15 +3547,6 @@ function IsContains(schema) {
 	return HasPropertyKey(schema, "contains") && IsSchema(schema.contains);
 }
 //#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/schema/types/default.mjs
-/**
-* Returns true if the schema contains a valid contentMediaType property
-* @specification Json Schema 7
-*/
-function IsDefault(schema) {
-	return HasPropertyKey(schema, "default");
-}
-//#endregion
 //#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/schema/types/dependencies.mjs
 /**
 * Returns true if the schema contains a valid dependencies property
@@ -4431,7 +4416,7 @@ function Adapt(delta, numPoints, firstTime) {
 	delta += Math.floor(delta / numPoints);
 	let k = 0;
 	while (delta > 455) {
-		delta = Math.floor(delta / (PUNYCODE_BASE - PUNYCODE_TMIN));
+		delta = Math.floor(delta / 35);
 		k += PUNYCODE_BASE;
 	}
 	return k + Math.floor(36 * delta / (delta + PUNYCODE_SKEW));
@@ -4595,10 +4580,7 @@ function IsUnicodeLabel(value) {
 			case 8204:
 				if (!prev || prev < 128 && !RE_VIRAMA.test(chars[i - 1])) return false;
 				break;
-			case 8205:
-				if (!prev || !RE_VIRAMA.test(chars[i - 1])) return false;
-				break;
-			case 12539: break;
+			case 8205: if (!prev || !RE_VIRAMA.test(chars[i - 1])) return false;
 		}
 	}
 	if (value.includes("・") && !hasJapanese) return false;
@@ -5596,7 +5578,21 @@ var __classPrivateFieldGet = function(receiver, state, kind, f) {
 	if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
 	return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 };
-var _Stack_instances, _Stack_StackFrame, _Stack_ApplyRefResult, _Stack_BuildBase, _Stack_ResourceBaseURL, _Stack_ReferenceBaseURL, _Stack_LexicalSchema, _Stack_RegisterResourceAnchorArray, _Stack_UnregisterResourceAnchorArray, _Stack_RegisterResourceAnchors, _Stack_UnregisterResourceAnchors, _Stack_RegisterResource, _Stack_UnregisterResource, _Stack_EnterResolvedResource, _Stack_ExitResolvedResource;
+var _Stack_instances;
+var _Stack_StackFrame;
+var _Stack_ApplyRefResult;
+var _Stack_BuildBase;
+var _Stack_ResourceBaseURL;
+var _Stack_ReferenceBaseURL;
+var _Stack_LexicalSchema;
+var _Stack_RegisterResourceAnchorArray;
+var _Stack_UnregisterResourceAnchorArray;
+var _Stack_RegisterResourceAnchors;
+var _Stack_UnregisterResourceAnchors;
+var _Stack_RegisterResource;
+var _Stack_UnregisterResource;
+var _Stack_EnterResolvedResource;
+var _Stack_ExitResolvedResource;
 var Stack = class {
 	constructor(context, schema) {
 		_Stack_instances.add(this);
@@ -5967,529 +5963,8 @@ function Clean(...args) {
 	});
 	return FromType$4(context, Get$2().unionPrioritySort ? UnionPrioritySort(type) : type, value);
 }
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/try/try_result.mjs
-function IsOk(value) {
-	return IsObject$1(value) && HasPropertyKey(value, "value");
-}
-function Ok(value) {
-	return { value };
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/try/try_array.mjs
-function TryArray(value) {
-	return IsArray$1(value) ? Ok(value) : Ok([value]);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/try/try_bigint.mjs
-function FromBoolean$4(value) {
-	return IsEqual(value, true) ? Ok(BigInt(1)) : Ok(BigInt(0));
-}
-var bigintPattern = /^-?(0|[1-9]\d*)n$/;
-var decimalPattern = /^-?(0|[1-9]\d*)\.\d+$/;
-var integerPattern = /^-?(0|[1-9]\d*)$/;
-function IsStringBigIntLike(value) {
-	return bigintPattern.test(value);
-}
-function IsStringDecimalLike(value) {
-	return decimalPattern.test(value);
-}
-function IsStringIntegerLike(value) {
-	return integerPattern.test(value);
-}
-function FromString$5(value) {
-	const lowercase = value.toLowerCase();
-	return IsStringBigIntLike(value) ? Ok(BigInt(value.slice(0, value.length - 1))) : IsStringDecimalLike(value) ? Ok(BigInt(value.split(".")[0])) : IsStringIntegerLike(value) ? Ok(BigInt(value)) : IsEqual(lowercase, "false") ? Ok(BigInt(0)) : IsEqual(lowercase, "true") ? Ok(BigInt(1)) : void 0;
-}
-function TryBigInt(value) {
-	return IsBigInt$1(value) ? Ok(value) : IsBoolean$2(value) ? FromBoolean$4(value) : IsNumber$2(value) ? Ok(BigInt(Math.trunc(value))) : IsNull$1(value) ? Ok(BigInt(0)) : IsString$2(value) ? FromString$5(value) : IsUndefined$1(value) ? Ok(BigInt(0)) : void 0;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/try/try_boolean.mjs
-function FromBigInt$4(value) {
-	return IsEqual(value, BigInt(0)) ? Ok(false) : IsEqual(value, BigInt(1)) ? Ok(true) : void 0;
-}
-function FromNumber$3(value) {
-	return IsEqual(value, 0) ? Ok(false) : IsEqual(value, 1) ? Ok(true) : void 0;
-}
-function FromString$4(value) {
-	return IsEqual(value.toLowerCase(), "false") ? Ok(false) : IsEqual(value.toLowerCase(), "true") ? Ok(true) : IsEqual(value, "0") ? Ok(false) : IsEqual(value, "1") ? Ok(true) : void 0;
-}
-function TryBoolean(value) {
-	return IsBigInt$1(value) ? FromBigInt$4(value) : IsBoolean$2(value) ? Ok(value) : IsNumber$2(value) ? FromNumber$3(value) : IsNull$1(value) ? Ok(false) : IsString$2(value) ? FromString$4(value) : IsUndefined$1(value) ? Ok(false) : void 0;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/try/try_null.mjs
-function FromBigInt$3(value) {
-	return IsEqual(value, BigInt(0)) ? Ok(null) : void 0;
-}
-function FromBoolean$3(value) {
-	return IsEqual(value, false) ? Ok(null) : void 0;
-}
-function FromNumber$2(value) {
-	return IsEqual(value, 0) ? Ok(null) : void 0;
-}
-function FromString$3(value) {
-	const lowercase = value.toLowerCase();
-	return IsEqual(lowercase, "undefined") || IsEqual(lowercase, "null") || IsEqual(value, "") || IsEqual(value, "0") ? Ok(null) : void 0;
-}
-function TryNull(value) {
-	return IsBigInt$1(value) ? FromBigInt$3(value) : IsBoolean$2(value) ? FromBoolean$3(value) : IsNumber$2(value) ? FromNumber$2(value) : IsNull$1(value) ? Ok(null) : IsString$2(value) ? FromString$3(value) : IsUndefined$1(value) ? Ok(null) : void 0;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/try/try_number.mjs
-var maxBigInt = BigInt(Number.MAX_SAFE_INTEGER);
-var minBigInt = BigInt(Number.MIN_SAFE_INTEGER);
-function FromBigInt$2(value) {
-	return value <= maxBigInt && value >= minBigInt ? Ok(Number(value)) : void 0;
-}
-function FromBoolean$2(value) {
-	return Ok(value ? 1 : 0);
-}
-function FromString$2(value) {
-	const coerced = +value;
-	if (IsNumber$2(coerced)) return Ok(coerced);
-	const lowercase = value.toLowerCase();
-	if (IsEqual(lowercase, "false")) return Ok(0);
-	if (IsEqual(lowercase, "true")) return Ok(1);
-	const result = TryBigInt(value);
-	if (IsOk(result)) return result.value <= maxBigInt && result.value >= minBigInt ? Ok(Number(result.value)) : void 0;
-}
-function TryNumber(value) {
-	return IsBigInt$1(value) ? FromBigInt$2(value) : IsBoolean$2(value) ? FromBoolean$2(value) : IsNumber$2(value) ? Ok(value) : IsNull$1(value) ? Ok(0) : IsString$2(value) ? FromString$2(value) : IsUndefined$1(value) ? Ok(0) : void 0;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/try/try_string.mjs
-function TryString(value) {
-	return IsBigInt$1(value) ? Ok(value.toString()) : IsBoolean$2(value) ? Ok(value.toString()) : IsNumber$2(value) ? Ok(value.toString()) : IsNull$1(value) ? Ok("null") : IsString$2(value) ? Ok(value) : IsUndefined$1(value) ? Ok("") : void 0;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/try/try_undefined.mjs
-function FromBigInt$1(value) {
-	return IsEqual(value, BigInt(0)) ? Ok(void 0) : void 0;
-}
-function FromBoolean$1(value) {
-	return IsEqual(value, false) ? Ok(void 0) : void 0;
-}
-function FromNumber$1(value) {
-	return IsEqual(value, 0) ? Ok(void 0) : void 0;
-}
-function FromString$1(value) {
-	const lowercase = value.toLowerCase();
-	return IsEqual(lowercase, "undefined") || IsEqual(lowercase, "null") || IsEqual(value, "") || IsEqual(value, "0") ? Ok(void 0) : void 0;
-}
-function TryUndefined(value) {
-	return IsBigInt$1(value) ? FromBigInt$1(value) : IsBoolean$2(value) ? FromBoolean$1(value) : IsNumber$2(value) ? FromNumber$1(value) : IsNull$1(value) ? Ok(void 0) : IsString$2(value) ? FromString$1(value) : IsUndefined$1(value) ? Ok(value) : void 0;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_array.mjs
-function FromArray$2(context, type, value) {
-	return TryArray(value).value.map((value) => FromType$2(context, type.items, value));
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_bigint.mjs
-function FromBigInt(_context, _type, value) {
-	const result = TryBigInt(value);
-	return IsOk(result) ? result.value : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_boolean.mjs
-function FromBoolean(_context, _type, value) {
-	const result = TryBoolean(value);
-	return IsOk(result) ? result.value : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_cyclic.mjs
-function FromCyclic$2(context, type, value) {
-	return FromType$2({
-		...context,
-		...type.$defs
-	}, Ref$1(type.$ref), value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_enum.mjs
-function FromEnum(context, type, value) {
-	return FromType$2(context, Evaluate(type), value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_integer.mjs
-function FromInteger(_context, _type, value) {
-	const result = TryNumber(value);
-	return IsOk(result) ? Math.trunc(result.value) : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_intersect.mjs
-function FromIntersect$2(context, type, value) {
-	return FromType$2(context, Evaluate(Instantiate(context, type)), value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_literal.mjs
-function FromLiteralBigInt(_context, type, value) {
-	const result = TryBigInt(value);
-	return IsOk(result) && IsEqual(type.const, result.value) ? result.value : value;
-}
-function FromLiteralBoolean(_context, type, value) {
-	const result = TryBoolean(value);
-	return IsOk(result) && IsEqual(type.const, result.value) ? result.value : value;
-}
-function FromLiteralNumber(_context, type, value) {
-	const result = TryNumber(value);
-	return IsOk(result) && IsEqual(type.const, result.value) ? result.value : value;
-}
-function FromLiteralString(_context, type, value) {
-	const result = TryString(value);
-	return IsOk(result) && IsEqual(type.const, result.value) ? result.value : value;
-}
-function FromLiteral(context, type, value) {
-	if (IsEqual(type.const, value)) return value;
-	return IsLiteralBigInt(type) ? FromLiteralBigInt(context, type, value) : IsLiteralBoolean(type) ? FromLiteralBoolean(context, type, value) : IsLiteralNumber(type) ? FromLiteralNumber(context, type, value) : IsLiteralString(type) ? FromLiteralString(context, type, value) : Unreachable();
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_null.mjs
-function FromNull(_context, _type, value) {
-	const result = TryNull(value);
-	return IsOk(result) ? result.value : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_number.mjs
-function FromNumber(_context, _type, value) {
-	const result = TryNumber(value);
-	return IsOk(result) ? result.value : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_additional.mjs
-/**
-* Used by Object and Record Types. The entries are derived from the known
-* properties obtained from 'properties' and 'patternProperties' respectively.
-*/
-function FromAdditionalProperties(context, entries, additionalProperties, value) {
-	const keys = Keys(value);
-	for (const [regexp, _] of entries) for (const key of keys) if (!regexp.test(key)) value[key] = FromType$2(context, additionalProperties, value[key]);
-	return value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/shared/optional_undefined.mjs
-function IsOptionalUndefined(property, key, value) {
-	return IsOptional(property) && IsUndefined$1(value[key]);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_object.mjs
-function FromProperties(context, type, value) {
-	const entries = EntriesRegExp(type.properties);
-	const keys = Keys(value);
-	for (const [regexp, property] of entries) for (const key of keys) {
-		if (!regexp.test(key) || IsOptionalUndefined(property, key, value)) continue;
-		value[key] = FromType$2(context, property, value[key]);
-	}
-	return HasPropertyKey(type, "additionalProperties") && IsObject$1(type.additionalProperties) ? FromAdditionalProperties(context, entries, type.additionalProperties, value) : value;
-}
-function FromObject$2(context, type, value) {
-	return IsObjectNotArray(value) ? FromProperties(context, type, value) : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_record.mjs
-function FromPatternProperties(context, type, value) {
-	const entries = EntriesRegExp(type.patternProperties);
-	const keys = Keys(value);
-	for (const [regexp, schema] of entries) for (const key of keys) if (regexp.test(key)) value[key] = FromType$2(context, schema, value[key]);
-	return HasPropertyKey(type, "additionalProperties") && IsObject$1(type.additionalProperties) ? FromAdditionalProperties(context, entries, type.additionalProperties, value) : value;
-}
-function FromRecord$2(context, type, value) {
-	return IsObjectNotArray(value) ? FromPatternProperties(context, type, value) : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_ref.mjs
-function FromRef$2(context, type, value) {
-	return HasPropertyKey(context, type.$ref) ? FromType$2(context, context[type.$ref], value) : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_string.mjs
-function FromString(_context, _type, value) {
-	const result = TryString(value);
-	return IsOk(result) ? result.value : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_template_literal.mjs
-function FromTemplateLiteral(context, type, value) {
-	return FromType$2(context, Evaluate(type), value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_tuple.mjs
-function FromTuple$2(context, type, value) {
-	if (!IsArray$1(value)) return value;
-	for (let index = 0; index < Math.min(type.items.length, value.length); index++) value[index] = FromType$2(context, type.items[index], value[index]);
-	return value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_undefined.mjs
-function FromUndefined(_context, _type, value) {
-	const result = TryUndefined(value);
-	return IsOk(result) ? result.value : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_union.mjs
-function FromUnion$2(context, type, value) {
-	if (type.anyOf.some((type) => Check(context, type, value))) return value;
-	const selected = type.anyOf.map((type) => FromType$2(context, type, Clone(value))).find((value) => Check(context, type, value));
-	return IsUndefined$1(selected) ? value : selected;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_void.mjs
-function FromVoid(_context, _type, value) {
-	return IsOk(TryUndefined(value)) ? void 0 : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_type.mjs
-function FromType$2(context, type, value) {
-	return IsArray(type) ? FromArray$2(context, type, value) : IsBigInt(type) ? FromBigInt(context, type, value) : IsBoolean(type) ? FromBoolean(context, type, value) : IsCyclic(type) ? FromCyclic$2(context, type, value) : IsEnum$1(type) ? FromEnum(context, type, value) : IsInteger(type) ? FromInteger(context, type, value) : IsIntersect(type) ? FromIntersect$2(context, type, value) : IsLiteral(type) ? FromLiteral(context, type, value) : IsNull(type) ? FromNull(context, type, value) : IsNumber(type) ? FromNumber(context, type, value) : IsObject(type) ? FromObject$2(context, type, value) : IsRecord(type) ? FromRecord$2(context, type, value) : IsRef$1(type) ? FromRef$2(context, type, value) : IsString(type) ? FromString(context, type, value) : IsTemplateLiteral(type) ? FromTemplateLiteral(context, type, value) : IsTuple(type) ? FromTuple$2(context, type, value) : IsUndefined(type) ? FromUndefined(context, type, value) : IsUnion(type) ? FromUnion$2(context, type, value) : IsVoid(type) ? FromVoid(context, type, value) : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_array.mjs
-function FromArray$1(context, type, value) {
-	if (!IsArray$1(value)) return value;
-	for (let i = 0; i < value.length; i++) value[i] = FromType$1(context, type.items, value[i]);
-	return value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_cyclic.mjs
-function FromCyclic$1(context, type, value) {
-	return FromType$1({
-		...context,
-		...type.$defs
-	}, Ref$1(type.$ref), value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_default.mjs
-function FromDefault(type, value) {
-	if (!IsUndefined$1(value)) return value;
-	return IsFunction$1(type.default) ? type.default() : Clone(type.default);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_intersect.mjs
-function FromIntersect$1(context, type, value) {
-	return FromType$1(context, Evaluate(Instantiate(context, type)), value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_object.mjs
-function FromObject$1(context, type, value) {
-	if (!IsObject$1(value)) return value;
-	const knownPropertyKeys = Keys(type.properties);
-	for (const key of knownPropertyKeys) {
-		const propertyValue = FromType$1(context, type.properties[key], value[key]);
-		if (IsUndefined$1(propertyValue) && (IsOptional(type.properties[key]) || !HasPropertyKey(type.properties[key], "default"))) continue;
-		value[key] = propertyValue;
-	}
-	if (!IsAdditionalProperties(type) || IsBoolean$2(type.additionalProperties)) return value;
-	for (const key of Keys(value)) {
-		if (knownPropertyKeys.includes(key)) continue;
-		value[key] = FromType$1(context, type.additionalProperties, value[key]);
-	}
-	return value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_record.mjs
-function FromRecord$1(context, type, value) {
-	if (!IsObject$1(value)) return value;
-	const [recordKey, recordValue] = [new RegExp(RecordPattern(type)), RecordValue(type)];
-	for (const key of Keys(value)) {
-		if (!(recordKey.test(key) && IsDefault(recordValue))) continue;
-		value[key] = FromType$1(context, recordValue, value[key]);
-	}
-	if (!IsAdditionalProperties(type)) return value;
-	for (const key of Keys(value)) {
-		if (recordKey.test(key)) continue;
-		value[key] = FromType$1(context, type.additionalProperties, value[key]);
-	}
-	return value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_ref.mjs
-function FromRef$1(context, type, value) {
-	return HasPropertyKey(context, type.$ref) ? FromType$1(context, context[type.$ref], value) : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_tuple.mjs
-function FromTuple$1(context, schema, value) {
-	if (!IsArray$1(value)) return value;
-	const [items, max] = [schema.items, Math.max(schema.items.length, value.length)];
-	for (let i = 0; i < max; i++) if (i < items.length) value[i] = FromType$1(context, items[i], value[i]);
-	return value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_union.mjs
-function FromUnion$1(context, schema, value) {
-	for (const inner of schema.anyOf) {
-		const result = FromType$1(context, inner, Clone(value));
-		if (Check(context, inner, result)) return result;
-	}
-	return value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_type.mjs
-function FromType$1(context, type, value) {
-	const defaulted = IsDefault(type) ? FromDefault(type, value) : value;
-	return IsArray(type) ? FromArray$1(context, type, defaulted) : IsCyclic(type) ? FromCyclic$1(context, type, defaulted) : IsIntersect(type) ? FromIntersect$1(context, type, defaulted) : IsObject(type) ? FromObject$1(context, type, defaulted) : IsRecord(type) ? FromRecord$1(context, type, defaulted) : IsRef$1(type) ? FromRef$1(context, type, defaulted) : IsTuple(type) ? FromTuple$1(context, type, defaulted) : IsUnion(type) ? FromUnion$1(context, type, defaulted) : defaulted;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/callback.mjs
-function Decode$6(_context, type, value) {
-	return type["~codec"].decode(value);
-}
-function Encode$6(_context, type, value) {
-	return type["~codec"].encode(value);
-}
-function Callback(direction, context, type, value) {
-	if (!IsCodec(type)) return value;
-	return IsEqual(direction, "Decode") ? Decode$6(context, type, value) : Encode$6(context, type, value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/from_array.mjs
-function Decode$5(direction, context, type, value) {
-	if (!IsArray$1(value)) return value;
-	for (let i = 0; i < value.length; i++) value[i] = FromType(direction, context, type.items, value[i]);
-	return Callback(direction, context, type, value);
-}
-function Encode$5(direction, context, type, value) {
-	const exterior = Callback(direction, context, type, value);
-	if (!IsArray$1(exterior)) return exterior;
-	for (let i = 0; i < exterior.length; i++) exterior[i] = FromType(direction, context, type.items, exterior[i]);
-	return exterior;
-}
-function FromArray(direction, context, type, value) {
-	return IsEqual(direction, "Decode") ? Decode$5(direction, context, type, value) : Encode$5(direction, context, type, value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/from_cyclic.mjs
-function FromCyclic(direction, context, type, value) {
-	value = FromType(direction, {
-		...context,
-		...type.$defs
-	}, Ref$1(type.$ref), value);
-	return Callback(direction, context, type, value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/from_intersect.mjs
-function MergeInteriors(interiors) {
-	return interiors.reduce((results, interior) => ({
-		...results,
-		...interior
-	}), {});
-}
-function NonMatchingInterior(value, interiors) {
-	for (const interior of interiors) if (!IsDeepEqual(value, interior)) return interior;
-	return value;
-}
-function Decode$4(direction, context, type, value) {
-	if (IsEqual(type.allOf.length, 0)) return Callback(direction, context, type, value);
-	const interiors = type.allOf.map((schema) => FromType(direction, context, schema, Clean(schema, Clone(value))));
-	return Callback(direction, context, type, interiors.every((result) => IsObject$1(result)) ? MergeInteriors(interiors) : NonMatchingInterior(value, interiors));
-}
-function Encode$4(direction, context, type, value) {
-	if (IsEqual(type.allOf.length, 0)) return Callback(direction, context, type, value);
-	const exterior = Callback(direction, context, type, value);
-	const interiors = type.allOf.map((schema) => FromType(direction, context, schema, Clean(schema, Clone(exterior))));
-	if (interiors.every((result) => IsObject$1(result))) return MergeInteriors(interiors);
-	return NonMatchingInterior(exterior, interiors);
-}
-function FromIntersect(direction, context, type, value) {
-	return IsEqual(direction, "Decode") ? Decode$4(direction, context, type, value) : Encode$4(direction, context, type, value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/from_object.mjs
-function Decode$3(direction, context, type, value) {
-	if (!IsObjectNotArray(value)) return value;
-	for (const key of Keys(type.properties)) {
-		if (!HasPropertyKey(value, key) || IsOptionalUndefined(type.properties[key], key, value)) continue;
-		value[key] = FromType(direction, context, type.properties[key], value[key]);
-	}
-	return Callback(direction, context, type, value);
-}
-function Encode$3(direction, context, type, value) {
-	const exterior = Callback(direction, context, type, value);
-	if (!IsObjectNotArray(exterior)) return exterior;
-	for (const key of Keys(type.properties)) {
-		if (!HasPropertyKey(exterior, key) || IsOptionalUndefined(type.properties[key], key, exterior)) continue;
-		exterior[key] = FromType(direction, context, type.properties[key], exterior[key]);
-	}
-	return exterior;
-}
-function FromObject(direction, context, type, value) {
-	return IsEqual(direction, "Decode") ? Decode$3(direction, context, type, value) : Encode$3(direction, context, type, value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/from_record.mjs
-function Decode$2(direction, context, type, value) {
-	if (!IsObjectNotArray(value)) return value;
-	const regexp = new RegExp(RecordPattern(type));
-	for (const key of Keys(value)) {
-		if (!regexp.test(key)) continue;
-		value[key] = FromType(direction, context, RecordValue(type), value[key]);
-	}
-	return Callback(direction, context, type, value);
-}
-function Encode$2(direction, context, type, value) {
-	const exterior = Callback(direction, context, type, value);
-	if (!IsObjectNotArray(exterior)) return exterior;
-	const regexp = new RegExp(RecordPattern(type));
-	for (const key of Keys(exterior)) {
-		if (!regexp.test(key)) continue;
-		exterior[key] = FromType(direction, context, RecordValue(type), exterior[key]);
-	}
-	return exterior;
-}
-function FromRecord(direction, context, type, value) {
-	return IsEqual(direction, "Decode") ? Decode$2(direction, context, type, value) : Encode$2(direction, context, type, value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/from_ref.mjs
-function ResolveRef(direction, context, type, value) {
-	return HasPropertyKey(context, type.$ref) ? FromType(direction, context, context[type.$ref], value) : value;
-}
-function FromRef(direction, context, type, value) {
-	return IsEqual(direction, "Decode") ? Callback(direction, context, type, ResolveRef(direction, context, type, value)) : ResolveRef(direction, context, type, Callback(direction, context, type, value));
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/from_tuple.mjs
-function Decode$1(direction, context, type, value) {
-	if (!IsArray$1(value)) return value;
-	for (let i = 0; i < Math.min(type.items.length, value.length); i++) value[i] = FromType(direction, context, type.items[i], value[i]);
-	return Callback(direction, context, type, value);
-}
-function Encode$1(direction, context, type, value) {
-	const exterior = Callback(direction, context, type, value);
-	if (!IsArray$1(exterior)) return value;
-	for (let i = 0; i < Math.min(type.items.length, exterior.length); i++) exterior[i] = FromType(direction, context, type.items[i], exterior[i]);
-	return exterior;
-}
-function FromTuple(direction, context, type, value) {
-	return IsEqual(direction, "Decode") ? Decode$1(direction, context, type, value) : Encode$1(direction, context, type, value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/from_union.mjs
-function Decode(direction, context, type, value) {
-	for (const schema of type.anyOf) {
-		if (!Check(context, schema, value)) continue;
-		return Callback(direction, context, type, FromType(direction, context, schema, value));
-	}
-	return value;
-}
-function Encode(direction, context, type, value) {
-	const exterior = Callback(direction, context, type, value);
-	for (const schema of type.anyOf) {
-		const variant = FromType(direction, context, schema, Clone(exterior));
-		if (!Check(context, schema, variant)) continue;
-		return variant;
-	}
-	return exterior;
-}
-function FromUnion(direction, context, type, value) {
-	return IsEqual(direction, "Decode") ? Decode(direction, context, type, value) : Encode(direction, context, type, value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/from_type.mjs
-function FromType(direction, context, type, value) {
-	return IsArray(type) ? FromArray(direction, context, type, value) : IsCyclic(type) ? FromCyclic(direction, context, type, value) : IsIntersect(type) ? FromIntersect(direction, context, type, value) : IsObject(type) ? FromObject(direction, context, type, value) : IsRecord(type) ? FromRecord(direction, context, type, value) : IsRef$1(type) ? FromRef(direction, context, type, value) : IsTuple(type) ? FromTuple(direction, context, type, value) : IsUnion(type) ? FromUnion(direction, context, type, value) : Callback(direction, context, type, value);
-}
+BigInt(Number.MAX_SAFE_INTEGER);
+BigInt(Number.MIN_SAFE_INTEGER);
 Union([
 	_Object_({
 		type: Literal("insert"),

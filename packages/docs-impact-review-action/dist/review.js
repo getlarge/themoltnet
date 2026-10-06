@@ -1,7 +1,7 @@
-import { C as __exportAll, E as __toESM, S as __esmMin, T as __toCommonJS, _ as _Object_, a as Record, b as _Array_, c as Number$1, d as Integer, f as Boolean$1, g as Unknown, h as Cyclic, i as Partial, l as Null, m as Unsafe, n as Errors, o as Union, p as Intersect, r as Check, s as String$1, t as Clean, u as Literal, v as Optional, w as __require, x as __commonJSMin, y as Ref$1 } from "./assets/value-DmYVUS9b.js";
+import { C as __exportAll, E as __toESM, S as __esmMin, T as __toCommonJS, _ as _Object_, a as Record, b as _Array_, c as Number$1, d as Integer, f as Boolean$1, g as Unknown, h as Cyclic, i as Partial, l as Null, m as Unsafe, n as Errors, o as Union, p as Intersect, r as Check, s as String$1, t as Clean, u as Literal, v as Optional, w as __require, x as __commonJSMin, y as Ref$1 } from "./assets/value-CDS208oC.js";
 import { t as runMain } from "./assets/run-BAJLqHWw.js";
 import { a as createRateLimitFetch, i as summarizeCorpus, r as renderComment } from "./assets/report-DJdZyA5m.js";
-import { i as requireFullOid, n as ensureRevisions, r as existsAt, t as createGit } from "./assets/git-vBoKCgzJ.js";
+import { i as requireFullOid, n as ensureRevisions, r as existsAt, t as createGit } from "./assets/git-D6Jflhap.js";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { constants, lstatSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -360,7 +360,8 @@ var Point = class Point {
 		const X3 = M(E * F);
 		const Y3 = M(G * H);
 		const T3 = M(E * H);
-		return new Point(X3, Y3, M(F * G), T3);
+		const Z3 = M(F * G);
+		return new Point(X3, Y3, Z3, T3);
 	}
 	/** Point addition. Complete formula. Cost: `8M + 1*k + 8add + 1*2`. */
 	add(other) {
@@ -379,7 +380,8 @@ var Point = class Point {
 		const X3 = M(E * F);
 		const Y3 = M(G * H);
 		const T3 = M(E * H);
-		return new Point(X3, Y3, M(F * G), T3);
+		const Z3 = M(F * G);
+		return new Point(X3, Y3, Z3, T3);
 	}
 	/**
 	* Point-by-scalar multiplication. Scalar must be in range 1 <= n < CURVE.n.
@@ -519,7 +521,8 @@ var _sign = (e, rBytes, msg) => {
 	const R = G.multiply(r).toBytes();
 	const hashable = concatBytes(R, P, msg);
 	const finish = (hashed) => {
-		return abytes$1(concatBytes(R, numTo32bLE(modN(r + modL_LE(hashed) * s))), L2);
+		const S = modN(r + modL_LE(hashed) * s);
+		return abytes$1(concatBytes(R, numTo32bLE(S)), L2);
 	};
 	return {
 		hashable,
@@ -552,7 +555,7 @@ var etc = {
 };
 var W = 8;
 var pwindows = Math.ceil(256 / W) + 1;
-var pwindowSize = 2 ** (W - 1);
+var pwindowSize = 128;
 var precompute = () => {
 	const points = [];
 	let p = G;
@@ -588,9 +591,8 @@ var wNAF = (n) => {
 	const comp = Gpows || (Gpows = precompute());
 	let p = I;
 	let f = G;
-	const pow_2_w = 2 ** W;
-	const maxNum = pow_2_w;
-	const mask = big(pow_2_w - 1);
+	const maxNum = 2 ** W;
+	const mask = big(255);
 	const shiftBy = big(W);
 	for (let w = 0; w < pwindows; w++) {
 		let wbits = Number(n & mask);
@@ -833,7 +835,8 @@ function createSseClient({ onRequest, onSseError, onSseEvent, responseTransforme
 			} catch (error) {
 				onSseError?.(error);
 				if (sseMaxRetryAttempts !== void 0 && attempt >= sseMaxRetryAttempts) break;
-				await sleep(Math.min(retryDelay * 2 ** (attempt - 1), sseMaxRetryDelay ?? 3e4));
+				const backoff = Math.min(retryDelay * 2 ** (attempt - 1), sseMaxRetryDelay ?? 3e4);
+				await sleep(backoff);
 			}
 		}
 	};
@@ -1079,9 +1082,7 @@ async function setAuthParams(options) {
 			case "cookie":
 				options.headers.append("Cookie", `${name}=${token}`);
 				break;
-			default:
-				options.headers.set(name, token);
-				break;
+			default: options.headers.set(name, token);
 		}
 	}
 }
@@ -1238,9 +1239,7 @@ var createClient = (config = {}) => {
 						case "stream":
 							emptyData = response.body;
 							break;
-						default:
-							emptyData = {};
-							break;
+						default: emptyData = {};
 					}
 					return opts.responseStyle === "data" ? emptyData : {
 						data: emptyData,
@@ -5365,7 +5364,8 @@ var SHA256 = class extends HashMD {
 			const W15 = SHA256_W[i - 15];
 			const W2 = SHA256_W[i - 2];
 			const s0 = rotr(W15, 7) ^ rotr(W15, 18) ^ W15 >>> 3;
-			SHA256_W[i] = (rotr(W2, 17) ^ rotr(W2, 19) ^ W2 >>> 10) + SHA256_W[i - 7] + s0 + SHA256_W[i - 16] | 0;
+			const s1 = rotr(W2, 17) ^ rotr(W2, 19) ^ W2 >>> 10;
+			SHA256_W[i] = s1 + SHA256_W[i - 7] + s0 + SHA256_W[i - 16] | 0;
 		}
 		let { A, B, C, D, E, F, G, H } = this;
 		for (let i = 0; i < 64; i++) {
@@ -5429,7 +5429,7 @@ function coerce(o) {
 */
 function base(ALPHABET, name) {
 	if (ALPHABET.length >= 255) throw new TypeError("Alphabet too long");
-	var BASE_MAP = new Uint8Array(256);
+	var BASE_MAP = /* @__PURE__ */ new Uint8Array(256);
 	for (var j = 0; j < BASE_MAP.length; j++) BASE_MAP[j] = 255;
 	for (var i = 0; i < ALPHABET.length; i++) {
 		var x = ALPHABET.charAt(i);
@@ -5483,7 +5483,7 @@ function base(ALPHABET, name) {
 	*/
 	function decodeUnsafe(source) {
 		if (typeof source !== "string") throw new TypeError("Expected String");
-		if (source.length === 0) return new Uint8Array();
+		if (source.length === 0) return /* @__PURE__ */ new Uint8Array();
 		var psz = 0;
 		if (source[psz] === " ") return;
 		var zeroes = 0;
@@ -5777,7 +5777,9 @@ baseX({
 //#endregion
 //#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/vendor/varint.js
 var encode_1 = encode;
-var MSB = 128, MSBALL = -128, INT = Math.pow(2, 31);
+var MSB = 128;
+var MSBALL = -128;
+var INT = Math.pow(2, 31);
 /**
 * @param {number} num
 * @param {number[]} out
@@ -5800,7 +5802,8 @@ function encode(num, out, offset) {
 	return out;
 }
 var decode$2 = read;
-var MSB$1 = 128, REST$1 = 127;
+var MSB$1 = 128;
+var REST$1 = 127;
 /**
 * @param {string | any[]} buf
 * @param {number} offset
@@ -6029,7 +6032,10 @@ var CID = class CID {
 		switch (version) {
 			case 0: if (code !== DAG_PB_CODE) throw new Error(`Version 0 CID must use dag-pb (code: ${DAG_PB_CODE}) block encoding`);
 			else return new CID(version, code, digest, digest.bytes);
-			case 1: return new CID(version, code, digest, encodeCID(version, code, digest.bytes));
+			case 1: {
+				const bytes = encodeCID(version, code, digest.bytes);
+				return new CID(version, code, digest, bytes);
+			}
 			default: throw new Error("Invalid version");
 		}
 	}
@@ -6250,11 +6256,12 @@ var SignedEntryCreateError = class extends Error {
 function createEntriesNamespace(context) {
 	const { client, auth } = context;
 	async function createSignedEntry(diaryId, body, sign) {
+		const contentCid = computeContentCid(body.entryType ?? "semantic", body.title ?? null, body.content, body.tags ?? null);
 		const signingRequest = unwrapResult(await createSigningRequest({
 			client,
 			auth,
 			body: {
-				message: computeContentCid(body.entryType ?? "semantic", body.title ?? null, body.content, body.tags ?? null),
+				message: contentCid,
 				verificationMethod: "agent-ed25519"
 			}
 		}));
@@ -7019,7 +7026,8 @@ function validateOutputContractSchema(schema) {
 	let nodes = 0;
 	const visit = (node, path, depth) => {
 		if (!isObject(node) || depth > 10 || ++nodes > 200) return `${path} must be a schema object within the depth and size limits`;
-		const type = node.type;
+		const nullable = Array.isArray(node.type) && node.type.length === 2 && node.type.includes("null") && node.type.filter((value) => value !== "null").length === 1;
+		const type = nullable ? node.type.find((value) => value !== "null") : node.type;
 		if (![
 			"object",
 			"array",
@@ -7027,7 +7035,7 @@ function validateOutputContractSchema(schema) {
 			"number",
 			"integer",
 			"boolean"
-		].includes(type)) return `${path}.type must be object, array, string, number, integer, or boolean`;
+		].includes(type) || nullable && (type === "object" || type === "array")) return `${path}.type must be object, array, string, number, integer, boolean, or a nullable primitive`;
 		const common = [
 			"type",
 			"description",
@@ -7047,7 +7055,7 @@ function validateOutputContractSchema(schema) {
 		if (unknownKey) return `${path}.${unknownKey} is not supported`;
 		if (node.description !== void 0 && typeof node.description !== "string") return `${path}.description must be a string`;
 		if (node.title !== void 0 && typeof node.title !== "string") return `${path}.title must be a string`;
-		if (node.enum !== void 0 && (type === "object" || type === "array" || !Array.isArray(node.enum) || node.enum.length === 0 || node.enum.some((value) => type === "integer" ? !Number.isInteger(value) : typeof value !== type))) return `${path}.enum must contain values of the declared primitive type`;
+		if (node.enum !== void 0 && (type === "object" || type === "array" || !Array.isArray(node.enum) || node.enum.length === 0 || node.enum.some((value) => value === null && nullable ? false : type === "integer" ? !Number.isInteger(value) : typeof value !== type))) return `${path}.enum must contain values of the declared primitive type`;
 		if (type === "object") {
 			if (!isObject(node.properties) || node.additionalProperties !== false) return `${path} needs properties and additionalProperties: false`;
 			const keys = Object.keys(node.properties);
@@ -7096,8 +7104,29 @@ var CONTEXT_BINDINGS = [
 /** Maximum UTF-16 code units accepted in one ContextRef content field. */
 var CONTEXT_REF_MAX_CONTENT_LENGTH = 65536;
 var ContextBinding = Unsafe(Union(CONTEXT_BINDINGS.map((binding) => Literal(binding)), { $id: "ContextBinding" }));
-/** Reusable input fragment for any task type. Soft cap at 5 items. */
-var TaskContext = _Array_(_Object_({
+/**
+* One context entry. Bytes are inlined: the proposer chose them, and the
+* task's `inputCid` already pins the entire input — including
+* `context[]` — so we don't need a separate per-entry hash, fetcher, or
+* flagged-content gate. Tasks reference rendered packs (or any other
+* external content) by copying their bytes into `content` at task
+* creation time.
+*
+* - `slug` — short identifier the daemon uses to disambiguate
+*            entries. For `skill` binding it becomes the directory
+*            name under the runtime's skill discovery path. Must be
+*            kebab-case-safe (alphanumeric + dashes/underscores).
+* - `binding` — how the bytes are delivered to the LLM (see above).
+* - `content` — UTF-8 text. Capped at 65,536 UTF-16 code units per
+*               entry; total per-task context bytes are bounded by the
+*               soft `maxItems` cap and per-binding daemon limits.
+*               Raised from 32 KiB in 2026-05 — protocol-heavy operator
+*               skills (e.g. `.claude/skills/legreffier/SKILL.md`) ship
+*               at ~35 KiB inline, and the original cap was sized for
+*               short example skills, not the kind of skill the eval
+*               substrate is dogfooded on (#943, #823).
+*/
+var ContextRef = _Object_({
 	slug: String$1({
 		minLength: 1,
 		maxLength: 64,
@@ -7111,7 +7140,9 @@ var TaskContext = _Array_(_Object_({
 }, {
 	$id: "ContextRef",
 	additionalProperties: false
-}), {
+});
+/** Reusable input fragment for any task type. Soft cap at 5 items. */
+var TaskContext = _Array_(ContextRef, {
 	$id: "TaskContext",
 	maxItems: 5
 });
@@ -7520,24 +7551,27 @@ var TimestampSchema = String$1({
 	format: "date-time",
 	description: "ISO 8601 timestamp"
 });
-Union([Literal(VERIFICATION_METHOD.AgentEd25519), Literal(VERIFICATION_METHOD.HumanHardwarePreviewSign)], { description: "Stable signing verification method identifier" });
-Union([
+var verificationMethodLiterals = [Literal(VERIFICATION_METHOD.AgentEd25519), Literal(VERIFICATION_METHOD.HumanHardwarePreviewSign)];
+Union(verificationMethodLiterals, { description: "Stable signing verification method identifier" });
+var visibilityLiterals = [
 	Literal("private"),
 	Literal("moltnet"),
 	Literal("public")
-], { description: "Entry visibility level" });
+];
+Union(visibilityLiterals, { description: "Entry visibility level" });
 var ENTRY_TYPE_VALUES = [
 	"episodic",
 	"semantic",
 	"procedural",
 	"reflection"
 ];
-var EntryTypeSchema = Union([
+var entryTypeLiterals = [
 	Literal("episodic"),
 	Literal("semantic"),
 	Literal("procedural"),
 	Literal("reflection")
-], { description: "Entry memory type" });
+];
+var EntryTypeSchema = Union(entryTypeLiterals, { description: "Entry memory type" });
 /** Regex fragment matching a single entry type value. */
 var ENTRY_TYPE_PATTERN = `(${ENTRY_TYPE_VALUES.join("|")})`;
 `${ENTRY_TYPE_PATTERN}${ENTRY_TYPE_PATTERN}`, ENTRY_TYPE_VALUES.length - 1;
@@ -7628,15 +7662,17 @@ var BaseAuthContextSchema = _Object_({
 	subjectType: Union([Literal("agent"), Literal("human")]),
 	currentTeamId: Union([UuidSchema, Null()])
 });
-Union([Intersect([BaseAuthContextSchema, _Object_({
+var AgentAuthContextSchema = Intersect([BaseAuthContextSchema, _Object_({
 	subjectType: Literal("agent"),
 	publicKey: PublicKeySchema,
 	fingerprint: FingerprintSchema,
 	clientId: String$1()
-})]), Intersect([BaseAuthContextSchema, _Object_({
+})]);
+var HumanAuthContextSchema = Intersect([BaseAuthContextSchema, _Object_({
 	subjectType: Literal("human"),
 	clientId: Union([String$1(), Null()])
-})])]);
+})]);
+Union([AgentAuthContextSchema, HumanAuthContextSchema]);
 _Object_({
 	success: Boolean$1(),
 	message: Optional(String$1())
@@ -7820,7 +7856,7 @@ _Object_({
 });
 _Object_({ destinationTeamId: UuidSchema });
 _Object_({ transferId: UuidSchema });
-_Object_({ items: _Array_(_Object_({
+var TransferResponseSchema = _Object_({
 	id: UuidSchema,
 	diaryId: UuidSchema,
 	sourceTeamId: UuidSchema,
@@ -7829,7 +7865,8 @@ _Object_({ items: _Array_(_Object_({
 	initiatedBy: UuidSchema,
 	expiresAt: Unsafe(String$1({ format: "date-time" })),
 	createdAt: Unsafe(String$1({ format: "date-time" }))
-})) });
+});
+_Object_({ items: _Array_(TransferResponseSchema) });
 _Object_({ groupId: UuidSchema });
 _Object_({
 	groupId: UuidSchema,
@@ -7875,11 +7912,12 @@ _Object_({
 	subjectNs: GrantSubjectNsSchema,
 	role: DiaryGrantRoleSchema
 });
-_Object_({ grants: _Array_(_Object_({
+var DiaryGrantResponseSchema = _Object_({
 	subjectId: UuidSchema,
 	subjectNs: GrantSubjectNsSchema,
 	role: DiaryGrantRoleSchema
-})) });
+});
+_Object_({ grants: _Array_(DiaryGrantResponseSchema) });
 _Object_({ revoked: Boolean$1() });
 var TaskGrantRoleSchema = Union([Literal("writer"), Literal("manager")]);
 _Object_({
@@ -7892,11 +7930,12 @@ _Object_({
 	subjectNs: GrantSubjectNsSchema,
 	role: TaskGrantRoleSchema
 });
-_Object_({ grants: _Array_(_Object_({
+var TaskGrantResponseSchema = _Object_({
 	subjectId: UuidSchema,
 	subjectNs: GrantSubjectNsSchema,
 	role: TaskGrantRoleSchema
-})) });
+});
+_Object_({ grants: _Array_(TaskGrantResponseSchema) });
 _Object_({ "x-moltnet-team-id": String$1({
 	format: "uuid",
 	description: "Team ID (UUID) that will own the resource. Required."
@@ -8070,16 +8109,17 @@ _Object_({
 	createdAt: String$1({ format: "date-time" }),
 	updatedAt: String$1({ format: "date-time" })
 });
+var CreateProjectSchema = _Object_({
+	name: String$1({
+		minLength: 1,
+		maxLength: 255,
+		pattern: "\\S"
+	}),
+	description: Optional(Union([String$1({ maxLength: 1e4 }), Null()])),
+	defaultDiaryId: Optional(Union([String$1({ format: "uuid" }), Null()]))
+}, { additionalProperties: false });
 _Object_({
-	...Partial(_Object_({
-		name: String$1({
-			minLength: 1,
-			maxLength: 255,
-			pattern: "\\S"
-		}),
-		description: Optional(Union([String$1({ maxLength: 1e4 }), Null()])),
-		defaultDiaryId: Optional(Union([String$1({ format: "uuid" }), Null()]))
-	}, { additionalProperties: false })).properties,
+	...Partial(CreateProjectSchema).properties,
 	archived: Optional(Boolean$1())
 }, {
 	additionalProperties: false,
@@ -8152,16 +8192,17 @@ var ProvenanceGraphRenderedPackMetaSchema = _Object_({
 	expiresAt: Union([TimestampSchema, Null()]),
 	creator: Optional(ProvenanceGraphCreatorSchema)
 });
+var ProvenanceGraphRenderedPackNodeSchema = _Object_({
+	id: String$1(),
+	kind: Literal("rendered_pack"),
+	label: String$1(),
+	cid: Union([String$1(), Null()]),
+	meta: ProvenanceGraphRenderedPackMetaSchema
+});
 var ProvenanceGraphNodeSchema = Union([
 	ProvenanceGraphPackNodeSchema,
 	ProvenanceGraphEntryNodeSchema,
-	_Object_({
-		id: String$1(),
-		kind: Literal("rendered_pack"),
-		label: String$1(),
-		cid: Union([String$1(), Null()]),
-		meta: ProvenanceGraphRenderedPackMetaSchema
-	})
+	ProvenanceGraphRenderedPackNodeSchema
 ]);
 var ProvenanceGraphEdgeSchema = _Object_({
 	id: String$1(),
@@ -8176,14 +8217,15 @@ var ProvenanceGraphEdgeSchema = _Object_({
 		Null()
 	])))
 });
+var ProvenanceGraphMetadataSchema = _Object_({
+	format: Literal("moltnet.provenance-graph/v1"),
+	generatedAt: TimestampSchema,
+	rootNodeId: String$1(),
+	rootPackId: UuidSchema,
+	depth: Number$1({ minimum: 0 })
+});
 _Object_({
-	metadata: _Object_({
-		format: Literal("moltnet.provenance-graph/v1"),
-		generatedAt: TimestampSchema,
-		rootNodeId: String$1(),
-		rootPackId: UuidSchema,
-		depth: Number$1({ minimum: 0 })
-	}),
+	metadata: ProvenanceGraphMetadataSchema,
 	nodes: _Array_(ProvenanceGraphNodeSchema),
 	edges: _Array_(ProvenanceGraphEdgeSchema)
 }, { $id: "ProvenanceGraph" });
@@ -8223,10 +8265,16 @@ var CALLER_AUTHORED_PREFIXES = [
 ];
 var DEFAULT_SERVER_RENDER_METHOD = "server:pack-to-docs-v1";
 var DEFAULT_AGENT_RENDER_METHOD = "agent:pack-to-docs-v1";
+/**
+* Write-side validation pattern: a known prefix followed by at least one
+* non-whitespace character. Stored rows are never re-validated against
+* this; it applies to new writes at the API boundary only.
+*/
+var RENDER_METHOD_PATTERN = `^(${[SERVER_RENDER_PREFIX, ...CALLER_AUTHORED_PREFIXES].join("|")})\\S+$`;
 var RenderMethodSchema = String$1({
 	minLength: 1,
 	maxLength: 100,
-	pattern: `^(${[SERVER_RENDER_PREFIX, ...CALLER_AUTHORED_PREFIXES].join("|")})\\S+$`,
+	pattern: RENDER_METHOD_PATTERN,
 	description: "Render method label. Server render methods start with \"server:\" and must omit renderedMarkdown; caller-authored methods start with \"agent:\", \"pi:\" or \"agent-\" and require it.",
 	examples: [DEFAULT_SERVER_RENDER_METHOD, DEFAULT_AGENT_RENDER_METHOD]
 });
@@ -8254,7 +8302,8 @@ Union([
 //#endregion
 //#region ../../libs/models/src/signer-protocol.ts
 function schemaRef(schema) {
-	return Ref$1(schemaId(schema));
+	const id = schemaId(schema);
+	return Ref$1(id);
 }
 function schemaId(schema) {
 	const id = schema.$id;
@@ -8376,11 +8425,12 @@ var TOOL_ENFORCEMENT_VALUES = [
 	"watch",
 	"enforce"
 ];
-var ToolEnforcementSchema = Union([
+var toolEnforcementLiterals = [
 	Literal(TOOL_ENFORCEMENT_VALUES[0]),
 	Literal(TOOL_ENFORCEMENT_VALUES[1]),
 	Literal(TOOL_ENFORCEMENT_VALUES[2])
-], { description: "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)." });
+];
+var ToolEnforcementSchema = Union(toolEnforcementLiterals, { description: "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)." });
 //#endregion
 //#region ../../libs/runtime-profiles/src/runtime-profiles.ts
 var RuntimeProfileName = String$1({
@@ -8631,40 +8681,42 @@ var RuntimeWorkspace = _Object_({
 	createdAtMs: Integer({ minimum: 0 }),
 	lastUsedAtMs: Integer({ minimum: 0 })
 }, { $id: "RuntimeWorkspace" });
-_Object_({ items: _Array_(_Object_({
-	slot: _Object_({
-		id: String$1({ format: "uuid" }),
-		teamId: String$1({ format: "uuid" }),
-		agentName: String$1({
-			minLength: 1,
-			maxLength: 100
-		}),
-		runtimeProfileId: Union([String$1({ format: "uuid" }), Null()]),
-		provider: String$1({
-			minLength: 1,
-			maxLength: 100
-		}),
-		model: String$1({
-			minLength: 1,
-			maxLength: 200
-		}),
-		slotKey: String$1({ minLength: 1 }),
-		taskType: String$1({
-			minLength: 1,
-			maxLength: 100
-		}),
-		state: RuntimeSlotState,
-		lastTaskId: String$1({ format: "uuid" }),
-		lastAttemptN: Integer({ minimum: 1 }),
-		sessionDir: Union([String$1({ minLength: 1 }), Null()]),
-		sessionPath: Union([String$1({ minLength: 1 }), Null()]),
-		workspaceRowId: Union([String$1({ format: "uuid" }), Null()]),
-		createdAtMs: Integer({ minimum: 0 }),
-		lastUsedAtMs: Integer({ minimum: 0 }),
-		expiresAtMs: Integer({ minimum: 0 })
-	}, { $id: "RuntimeSlot" }),
+var RuntimeSlot = _Object_({
+	id: String$1({ format: "uuid" }),
+	teamId: String$1({ format: "uuid" }),
+	agentName: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	runtimeProfileId: Union([String$1({ format: "uuid" }), Null()]),
+	provider: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	model: String$1({
+		minLength: 1,
+		maxLength: 200
+	}),
+	slotKey: String$1({ minLength: 1 }),
+	taskType: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	state: RuntimeSlotState,
+	lastTaskId: String$1({ format: "uuid" }),
+	lastAttemptN: Integer({ minimum: 1 }),
+	sessionDir: Union([String$1({ minLength: 1 }), Null()]),
+	sessionPath: Union([String$1({ minLength: 1 }), Null()]),
+	workspaceRowId: Union([String$1({ format: "uuid" }), Null()]),
+	createdAtMs: Integer({ minimum: 0 }),
+	lastUsedAtMs: Integer({ minimum: 0 }),
+	expiresAtMs: Integer({ minimum: 0 })
+}, { $id: "RuntimeSlot" });
+var ResolvedRuntimeSlot = _Object_({
+	slot: RuntimeSlot,
 	workspace: Union([RuntimeWorkspace, Null()])
-}, { $id: "ResolvedRuntimeSlot" })) }, { $id: "RuntimeSlotListResponse" });
+}, { $id: "ResolvedRuntimeSlot" });
+_Object_({ items: _Array_(ResolvedRuntimeSlot) }, { $id: "RuntimeSlotListResponse" });
 var MAX_RUNTIME_WARM_RETENTION_SEC = 86400;
 _Object_({
 	agentName: String$1({
@@ -8944,18 +8996,19 @@ var CidEqualsSpec = _Object_({
 	path: String$1({ minLength: 1 }),
 	expected: String$1({ minLength: 1 })
 }, { additionalProperties: false });
+var SubmitToolCallGate = _Object_({
+	id: String$1({ minLength: 1 }),
+	kind: Literal("submit-tool-call"),
+	/**
+	* Human-readable contract text shown to the producer when it fetches
+	* `input.successCriteria`. This is a promise-level gate rather than a
+	* transport-level runtime hint.
+	*/
+	description: String$1({ minLength: 1 }),
+	required: Boolean$1()
+}, { additionalProperties: false });
 var Gate = Union([
-	_Object_({
-		id: String$1({ minLength: 1 }),
-		kind: Literal("submit-tool-call"),
-		/**
-		* Human-readable contract text shown to the producer when it fetches
-		* `input.successCriteria`. This is a promise-level gate rather than a
-		* transport-level runtime hint.
-		*/
-		description: String$1({ minLength: 1 }),
-		required: Boolean$1()
-	}, { additionalProperties: false }),
+	SubmitToolCallGate,
 	_Object_({
 		id: String$1({ minLength: 1 }),
 		kind: Literal("schema-check"),
@@ -9322,37 +9375,40 @@ function validateOutputContractResult(taskType, input, output) {
 		}];
 	});
 }
+//#endregion
+//#region ../../libs/tasks/src/task-artifacts.ts
+var TaskArtifact = _Object_({
+	id: String$1({ format: "uuid" }),
+	teamId: String$1({ format: "uuid" }),
+	taskId: String$1({ format: "uuid" }),
+	attemptN: Union([Integer({ minimum: 1 }), Null()]),
+	kind: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	title: String$1({
+		minLength: 1,
+		maxLength: 255
+	}),
+	contentType: String$1({
+		minLength: 1,
+		maxLength: 200
+	}),
+	contentEncoding: Union([String$1({
+		minLength: 1,
+		maxLength: 100
+	}), Null()]),
+	sizeBytes: Integer({ minimum: 0 }),
+	cid: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	createdByAgentId: Union([String$1({ format: "uuid" }), Null()]),
+	expiresAt: Union([String$1({ format: "date-time" }), Null()]),
+	createdAt: String$1({ format: "date-time" })
+}, { $id: "TaskArtifact" });
 _Object_({
-	artifacts: _Array_(_Object_({
-		id: String$1({ format: "uuid" }),
-		teamId: String$1({ format: "uuid" }),
-		taskId: String$1({ format: "uuid" }),
-		attemptN: Union([Integer({ minimum: 1 }), Null()]),
-		kind: String$1({
-			minLength: 1,
-			maxLength: 100
-		}),
-		title: String$1({
-			minLength: 1,
-			maxLength: 255
-		}),
-		contentType: String$1({
-			minLength: 1,
-			maxLength: 200
-		}),
-		contentEncoding: Union([String$1({
-			minLength: 1,
-			maxLength: 100
-		}), Null()]),
-		sizeBytes: Integer({ minimum: 0 }),
-		cid: String$1({
-			minLength: 1,
-			maxLength: 100
-		}),
-		createdByAgentId: Union([String$1({ format: "uuid" }), Null()]),
-		expiresAt: Union([String$1({ format: "date-time" }), Null()]),
-		createdAt: String$1({ format: "date-time" })
-	}, { $id: "TaskArtifact" })),
+	artifacts: _Array_(TaskArtifact),
 	nextCursor: Union([String$1({ minLength: 1 }), Null()])
 }, { $id: "TaskArtifactList" });
 _Object_({
@@ -9537,29 +9593,31 @@ var AssessBriefInput = _Object_({
 	$id: "AssessBriefInput",
 	additionalProperties: false
 });
+/** One score line. */
+var AssessBriefScore = _Object_({
+	criterionId: String$1({ minLength: 1 }),
+	score: Number$1({
+		minimum: 0,
+		maximum: 1
+	}),
+	/** Required for `llm_score`; optional for `boolean`/`deterministic_*`. */
+	rationale: Optional(String$1()),
+	/** Present only for `deterministic_signature_check`. */
+	evidence: Optional(_Object_({
+		commitsVerified: Number$1(),
+		commitsTotal: Number$1(),
+		signatureFailures: _Array_(String$1())
+	}, { additionalProperties: false }))
+}, {
+	$id: "AssessBriefScore",
+	additionalProperties: false
+});
 var AssessBriefOutput = _Object_({
 	/**
 	* Per-criterion scores, same order/length as
 	* `input.successCriteria.rubric.criteria`.
 	*/
-	scores: _Array_(_Object_({
-		criterionId: String$1({ minLength: 1 }),
-		score: Number$1({
-			minimum: 0,
-			maximum: 1
-		}),
-		/** Required for `llm_score`; optional for `boolean`/`deterministic_*`. */
-		rationale: Optional(String$1()),
-		/** Present only for `deterministic_signature_check`. */
-		evidence: Optional(_Object_({
-			commitsVerified: Number$1(),
-			commitsTotal: Number$1(),
-			signatureFailures: _Array_(String$1())
-		}, { additionalProperties: false }))
-	}, {
-		$id: "AssessBriefScore",
-		additionalProperties: false
-	}), { minItems: 1 }),
+	scores: _Array_(AssessBriefScore, { minItems: 1 }),
 	/** Σ(weight_i * score_i). Recomputed by the assessor and checked client-side. */
 	composite: Number$1({
 		minimum: 0,
@@ -10146,16 +10204,17 @@ async function onCreateJudgeEvalAttempt(input, _ctx) {
 //#endregion
 //#region ../../libs/tasks/src/task-types/pr-review.ts
 var PR_REVIEW_TYPE = "pr_review";
+var PrReviewSubject = _Object_({
+	title: String$1({ minLength: 1 }),
+	summary: String$1({ minLength: 1 }),
+	resourceUrls: Optional(_Array_(String$1({ minLength: 1 }))),
+	inspectionHints: Optional(_Array_(String$1({ minLength: 1 })))
+}, {
+	$id: "PrReviewSubject",
+	additionalProperties: false
+});
 var PrReviewInput = _Object_({
-	subject: _Object_({
-		title: String$1({ minLength: 1 }),
-		summary: String$1({ minLength: 1 }),
-		resourceUrls: Optional(_Array_(String$1({ minLength: 1 }))),
-		inspectionHints: Optional(_Array_(String$1({ minLength: 1 })))
-	}, {
-		$id: "PrReviewSubject",
-		additionalProperties: false
-	}),
+	subject: PrReviewSubject,
 	taskPrompt: Optional(String$1({ minLength: 1 })),
 	successCriteria: SuccessCriteria,
 	context: Optional(TaskContext)
@@ -10163,15 +10222,16 @@ var PrReviewInput = _Object_({
 	$id: "PrReviewInput",
 	additionalProperties: false
 });
+var PrReviewScore = _Object_({
+	criterionId: String$1({ minLength: 1 }),
+	score: Union([Literal(0), Literal(1)]),
+	rationale: String$1({ minLength: 1 })
+}, {
+	$id: "PrReviewScore",
+	additionalProperties: false
+});
 var PrReviewOutput = _Object_({
-	scores: _Array_(_Object_({
-		criterionId: String$1({ minLength: 1 }),
-		score: Union([Literal(0), Literal(1)]),
-		rationale: String$1({ minLength: 1 })
-	}, {
-		$id: "PrReviewScore",
-		additionalProperties: false
-	}), { minItems: 1 }),
+	scores: _Array_(PrReviewScore, { minItems: 1 }),
 	composite: Number$1({
 		minimum: 0,
 		maximum: 1
@@ -10305,23 +10365,25 @@ async function validateRenderPackInputAsync(input, ctx) {
 * references: not required (scenario lives entirely in input)
 */
 var RUN_EVAL_TYPE = "run_eval";
+var RunEvalMode = Union([Literal("vitro"), Literal("vivo")], { $id: "RunEvalMode" });
+var RunEvalWorkspace = Union([
+	Literal("none"),
+	Literal("shared_mount"),
+	Literal("dedicated_worktree")
+], { $id: "RunEvalWorkspace" });
 var RunEvalExecution = _Object_({
 	/**
 	* `vitro` = proctored eval in an isolated runner context whose main
 	* comparison target is prompt/context behavior.
 	* `vivo` = live-repo eval against a real checkout/worktree.
 	*/
-	mode: Union([Literal("vitro"), Literal("vivo")], { $id: "RunEvalMode" }),
+	mode: RunEvalMode,
 	/**
 	* Workspace shape selected by the task creator for this variant run.
 	* `none` means the runner should not expose the repository checkout at
 	* all; it receives an empty scratch workspace instead.
 	*/
-	workspace: Union([
-		Literal("none"),
-		Literal("shared_mount"),
-		Literal("dedicated_worktree")
-	], { $id: "RunEvalWorkspace" })
+	workspace: RunEvalWorkspace
 }, {
 	$id: "RunEvalExecution",
 	additionalProperties: false
@@ -10585,7 +10647,7 @@ new Proxy({}, { get(_, prop) {
 } });
 //#endregion
 //#region ../../libs/tasks/src/validation.ts
-var PRODUCER_TASK_TYPES_WITH_SUBMIT_GATE = new Set([
+var PRODUCER_TASK_TYPES_WITH_SUBMIT_GATE = /* @__PURE__ */ new Set([
 	"freeform",
 	"fulfill_brief",
 	"curate_pack",
@@ -10842,7 +10904,7 @@ var DaemonState = _Object_({
 	$id: "DaemonState",
 	additionalProperties: false
 });
-Unsafe(Cyclic({ ClaimCondition: Unsafe(Union([
+var ClaimConditionSchema = Union([
 	_Object_({
 		op: Literal("all"),
 		conditions: _Array_(Ref$1("ClaimCondition"), {
@@ -10869,7 +10931,9 @@ Unsafe(Cyclic({ ClaimCondition: Unsafe(Union([
 		op: Literal("task_accepted"),
 		taskId: Uuid
 	}, { additionalProperties: false })
-], { $id: "ClaimCondition" })) }, "ClaimCondition", { $id: "ClaimCondition" }));
+], { $id: "ClaimCondition" });
+var ClaimConditionDefinition = Unsafe(ClaimConditionSchema);
+Unsafe(Cyclic({ ClaimCondition: ClaimConditionDefinition }, "ClaimCondition", { $id: "ClaimCondition" }));
 /**
 * Reference to another task's output or an external artifact.
 * Embedded in `tasks.references` JSONB array.
@@ -10938,14 +11002,15 @@ var TaskRetryConfidence = Union([
 	Literal("medium"),
 	Literal("high")
 ]);
+var TaskRetrySource = Union([
+	Literal("explicit"),
+	Literal("deterministic"),
+	Literal("attempts_exhausted"),
+	Literal("triage"),
+	Literal("triage_failed")
+]);
 var TaskRetryInfo = _Object_({
-	source: Union([
-		Literal("explicit"),
-		Literal("deterministic"),
-		Literal("attempts_exhausted"),
-		Literal("triage"),
-		Literal("triage_failed")
-	]),
+	source: TaskRetrySource,
 	decision: Optional(TaskRetryDecision),
 	confidence: Optional(TaskRetryConfidence),
 	reason: Optional(String$1())
@@ -11143,7 +11208,7 @@ var TaskResultError = class extends Error {
 * time. Mirrors `PRODUCER_TASK_TYPES_WITH_SUBMIT_GATE` in
 * `@moltnet/tasks`'s `normalizeTaskInputForCreate`.
 */
-var PRODUCER_TASK_TYPES = new Set([
+var PRODUCER_TASK_TYPES = /* @__PURE__ */ new Set([
 	"freeform",
 	"fulfill_brief",
 	"curate_pack",
@@ -11419,20 +11484,21 @@ var TaskBuilder = class {
 			field: "references/artifactSource",
 			message: "top-level artifact CID is ambiguous; use metadata returned by tasks.artifacts.stage()"
 		}]);
-		else if ("artifact" in source && source.artifact?.cid) if (source.taskId === null && source.artifact.attemptN === void 0) ref = {
-			taskId: null,
-			role,
-			artifact: { ...source.artifact }
-		};
-		else if (typeof source.artifact.attemptN !== "number" || !Number.isInteger(source.artifact.attemptN) || source.artifact.attemptN < 1) throw new TaskBuildError([{
-			field: "references/artifact/attemptN",
-			message: "artifact reference is missing required attemptN"
-		}]);
-		else ref = {
-			...source,
-			role
-		};
-		else {
+		else if ("artifact" in source && source.artifact?.cid) {
+			if (source.taskId === null && source.artifact.attemptN === void 0) ref = {
+				taskId: null,
+				role,
+				artifact: { ...source.artifact }
+			};
+			else if (typeof source.artifact.attemptN !== "number" || !Number.isInteger(source.artifact.attemptN) || source.artifact.attemptN < 1) throw new TaskBuildError([{
+				field: "references/artifact/attemptN",
+				message: "artifact reference is missing required attemptN"
+			}]);
+			else ref = {
+				...source,
+				role
+			};
+		} else {
 			const s = source;
 			const errors = [];
 			const inputArtifact = s.taskId === null && s.attemptN === void 0;
@@ -13243,7 +13309,7 @@ encodeUintValue.encodedSize = function encodedSize(uint) {
 * @returns {number}
 */
 encodeUint.compareTokens = function compareTokens(tok1, tok2) {
-	return tok1.value < tok2.value ? -1 : tok1.value > tok2.value ? 1 : 	/* c8 ignore next */ 0;
+	return tok1.value < tok2.value ? -1 : tok1.value > tok2.value ? 1 : /* c8 ignore next */ 0;
 };
 //#endregion
 //#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/1negint.js
@@ -13328,7 +13394,7 @@ encodeNegint.encodedSize = function encodedSize(token) {
 * @returns {number}
 */
 encodeNegint.compareTokens = function compareTokens(tok1, tok2) {
-	return tok1.value < tok2.value ? 1 : tok1.value > tok2.value ? -1 : 	/* c8 ignore next */ 0;
+	return tok1.value < tok2.value ? 1 : tok1.value > tok2.value ? -1 : /* c8 ignore next */ 0;
 };
 //#endregion
 //#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/2bytes.js
@@ -14109,7 +14175,7 @@ jump[255] = decodeBreak;
 var quick = [];
 for (let i = 0; i < 24; i++) quick[i] = new Token(Type.uint, i, 1);
 for (let i = -1; i >= -24; i--) quick[31 - i] = new Token(Type.negint, i, 1);
-quick[64] = new Token(Type.bytes, new Uint8Array(0), 1);
+quick[64] = new Token(Type.bytes, /* @__PURE__ */ new Uint8Array(0), 1);
 quick[96] = new Token(Type.string, "", 1);
 quick[128] = new Token(Type.array, 0, 1);
 quick[160] = new Token(Type.map, 0, 1);
@@ -15204,7 +15270,8 @@ function resolveFileSecretPath(root, key) {
 	const normalizedRoot = resolve(root);
 	const segments = key.split("/");
 	if (segments.length === 3 && segments[0] === "agent-key") segments[0] = "agent-key-teams";
-	const target = resolve(normalizedRoot, segments.map((segment) => basename(segment)).join(sep));
+	const safeKey = segments.map((segment) => basename(segment)).join(sep);
+	const target = resolve(normalizedRoot, safeKey);
 	assertStrictlyInsideRoot(normalizedRoot, target, key);
 	return target;
 }
@@ -15299,7 +15366,7 @@ var OSKeyringSecretProvider = class {
 	provider() {
 		this.providerPromise ??= Promise.resolve().then(() => {
 			const service = storeSecretService(this.storeOptions);
-			return import("./assets/src-BIfocAqU.js").then(({ OSKeyringSecretProvider: Provider }) => new Provider(this.platform, void 0, service)).catch((error) => {
+			return import("./assets/src-MWo9KHoI.js").then(({ OSKeyringSecretProvider: Provider }) => new Provider(this.platform, void 0, service)).catch((error) => {
 				throw new Error("OS keyring support requires @themoltnet/os-keyring; install it in this Node application", { cause: error });
 			});
 		});
@@ -16175,8 +16242,10 @@ var require_utils$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 				if (buf.length === val.byteLength) return buf;
 				return buf.slice(val.byteOffset, val.byteOffset + val.byteLength);
 			}
-			if (isDate(val)) if (defaults.parseInputDatesAsUTC) return dateToStringUTC(val);
-			else return dateToString(val);
+			if (isDate(val)) {
+				if (defaults.parseInputDatesAsUTC) return dateToStringUTC(val);
+				else return dateToString(val);
+			}
 			if (Array.isArray(val)) return arrayString(val);
 			return prepareObject(val, seen);
 		}
@@ -16216,8 +16285,10 @@ var require_utils$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	}
 	function normalizeQueryConfig(config, values, callback) {
 		config = typeof config === "string" ? { text: config } : config;
-		if (values) if (typeof values === "function") config.callback = values;
-		else config.values = values;
+		if (values) {
+			if (typeof values === "function") config.callback = values;
+			else config.values = values;
+		}
 		if (callback) config.callback = callback;
 		return config;
 	}
@@ -16682,8 +16753,6 @@ var require_pg_connection_string = /* @__PURE__ */ __commonJSMin(((exports, modu
 			case "verify-ca":
 				if (!config.ssl.ca) throw new Error("SECURITY WARNING: Using sslmode=verify-ca requires specifying a CA with sslrootcert. If a public CA is used, verify-ca allows connections to a server that somebody else may have registered with the CA, making you vulnerable to Man-in-the-Middle attacks. Either specify a custom CA certificate with sslrootcert parameter or use sslmode=verify-full for proper security.");
 				config.ssl.checkServerIdentity = function() {};
-				break;
-			case "verify-full": break;
 		}
 		else switch (config.sslmode) {
 			case "disable":
@@ -16695,9 +16764,7 @@ var require_pg_connection_string = /* @__PURE__ */ __commonJSMin(((exports, modu
 			case "verify-full":
 				if (config.sslmode !== "verify-full") deprecatedSslModeWarning(config.sslmode);
 				break;
-			case "no-verify":
-				config.ssl.rejectUnauthorized = false;
-				break;
+			case "no-verify": config.ssl.rejectUnauthorized = false;
 		}
 		return config;
 	}
@@ -16713,13 +16780,15 @@ var require_pg_connection_string = /* @__PURE__ */ __commonJSMin(((exports, modu
 				const sslConfig = value;
 				if (typeof sslConfig === "boolean") c[key] = sslConfig;
 				if (typeof sslConfig === "object") c[key] = toConnectionOptions(sslConfig);
-			} else if (value !== void 0 && value !== null) if (key === "port") {
-				if (value !== "") {
-					const v = parseInt(value, 10);
-					if (isNaN(v)) throw new Error(`Invalid ${key}: ${value}`);
-					c[key] = v;
-				}
-			} else c[key] = value;
+			} else if (value !== void 0 && value !== null) {
+				if (key === "port") {
+					if (value !== "") {
+						const v = parseInt(value, 10);
+						if (isNaN(v)) throw new Error(`Invalid ${key}: ${value}`);
+						c[key] = v;
+					}
+				} else c[key] = value;
+			}
 			return c;
 		}, {});
 	}
@@ -18147,8 +18216,17 @@ var require_split2 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#endregion
 //#region ../../node_modules/.pnpm/pgpass@1.0.5/node_modules/pgpass/lib/helper.js
 var require_helper = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var path = __require("path"), Stream = __require("stream").Stream, split = require_split2(), util$2 = __require("util"), defaultPort = 5432, isWin = process.platform === "win32", warnStream = process.stderr;
-	var S_IRWXG = 56, S_IRWXO = 7, S_IFMT = 61440, S_IFREG = 32768;
+	var path = __require("path");
+	var Stream = __require("stream").Stream;
+	var split = require_split2();
+	var util$2 = __require("util");
+	var defaultPort = 5432;
+	var isWin = process.platform === "win32";
+	var warnStream = process.stderr;
+	var S_IRWXG = 56;
+	var S_IRWXO = 7;
+	var S_IFMT = 61440;
+	var S_IFREG = 32768;
 	function isRegFile(mode) {
 		return (mode & S_IFMT) == S_IFREG;
 	}
@@ -18289,7 +18367,8 @@ var require_helper = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#region ../../node_modules/.pnpm/pgpass@1.0.5/node_modules/pgpass/lib/index.js
 var require_lib$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	__require("path");
-	var fs = __require("fs"), helper = require_helper();
+	var fs = __require("fs");
+	var helper = require_helper();
 	module.exports = function(connInfo, cb) {
 		var file = helper.getFileName();
 		fs.stat(file, function(err, stat) {
@@ -18419,9 +18498,10 @@ var require_client$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 				this._errorAllQueries(error);
 				this._ended = true;
 				if (!this._ending) {
-					if (this._connecting && !this._connectionError) if (this._connectionCallback) this._connectionCallback(error);
-					else this._handleErrorEvent(error);
-					else if (!this._connectionError) this._handleErrorEvent(error);
+					if (this._connecting && !this._connectionError) {
+						if (this._connectionCallback) this._connectionCallback(error);
+						else this._handleErrorEvent(error);
+					} else if (!this._connectionError) this._handleErrorEvent(error);
 				}
 				process.nextTick(() => {
 					this.emit("end");
@@ -18772,8 +18852,10 @@ var require_client$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		}
 		end(cb) {
 			this._ending = true;
-			if (!this.connection._connecting || this._ended) if (cb) cb();
-			else return this._Promise.resolve();
+			if (!this.connection._connecting || this._ended) {
+				if (cb) cb();
+				else return this._Promise.resolve();
+			}
 			if (this._getActiveQuery() || !this._queryable) this.connection.stream.destroy();
 			else this.connection.end();
 			if (cb) this.connection.once("end", cb);
@@ -18995,15 +19077,16 @@ var require_pg_pool = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			this.emit("acquire", client);
 			client.release = this._releaseOnce(client, idleListener);
 			client.removeListener("error", idleListener);
-			if (!pendingItem.timedOut) if (isNew && this.options.verify) this.options.verify(client, (err) => {
-				if (err) {
-					client.release(err);
-					return pendingItem.callback(err, void 0, NOOP);
-				}
-				pendingItem.callback(void 0, client, client.release);
-			});
-			else pendingItem.callback(void 0, client, client.release);
-			else if (isNew && this.options.verify) this.options.verify(client, client.release);
+			if (!pendingItem.timedOut) {
+				if (isNew && this.options.verify) this.options.verify(client, (err) => {
+					if (err) {
+						client.release(err);
+						return pendingItem.callback(err, void 0, NOOP);
+					}
+					pendingItem.callback(void 0, client, client.release);
+				});
+				else pendingItem.callback(void 0, client, client.release);
+			} else if (isNew && this.options.verify) this.options.verify(client, client.release);
 			else client.release();
 		}
 		_releaseOnce(client, idleListener) {
@@ -19189,14 +19272,16 @@ var require_query = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 				self.emit("_done");
 			});
 			if (err) return self.handleError(err);
-			if (self._emitRowEvents) if (results.length > 1) rows.forEach((rowOfRows, i) => {
-				rowOfRows.forEach((row) => {
-					self.emit("row", row, results[i]);
+			if (self._emitRowEvents) {
+				if (results.length > 1) rows.forEach((rowOfRows, i) => {
+					rowOfRows.forEach((row) => {
+						self.emit("row", row, results[i]);
+					});
 				});
-			});
-			else rows.forEach(function(row) {
-				self.emit("row", row, results);
-			});
+				else rows.forEach(function(row) {
+					self.emit("row", row, results);
+				});
+			}
 			self.state = "end";
 			self.emit("end", results);
 			if (self.callback) self.callback(null, results);
@@ -19860,7 +19945,7 @@ function truncateAtLine(text, maxBytes) {
 //#endregion
 //#region ../../libs/docs-impact-review/src/ingest.ts
 /** Machine-produced files that never count as documentation or contract. */
-var GENERATED_BASENAMES = new Set([
+var GENERATED_BASENAMES = /* @__PURE__ */ new Set([
 	"CHANGELOG.md",
 	"pnpm-lock.yaml",
 	"package-lock.json",
@@ -20027,13 +20112,14 @@ function boundDiff(git, changeSet, budget) {
 		let header;
 		if (file.status === "deleted") header = `### ${file.path} (deleted, -${file.deletions} lines)\n`;
 		else {
+			const paths = file.previousPath ? [file.previousPath, file.path] : [file.path];
 			const patch = git([
 				"diff",
 				"--no-color",
 				"-M",
 				range,
 				"--",
-				...(file.previousPath ? [file.previousPath, file.path] : [file.path]).map((path) => `:(top,literal)${path}`)
+				...paths.map((path) => `:(top,literal)${path}`)
 			]);
 			hunks = patch.slice(Math.max(0, patch.indexOf("@@")));
 			header = `### ${file.path} (${file.status}${file.previousPath ? ` from ${file.previousPath}` : ""})\n`;
@@ -21132,7 +21218,7 @@ function createSleepingContext() {
 * included only because production maps Keto 429s to a false 403 until the
 * 503 fix in libs/auth ships; drop it once deployed.
 */
-var RETRYABLE_READ_STATUSES = new Set([
+var RETRYABLE_READ_STATUSES = /* @__PURE__ */ new Set([
 	403,
 	429,
 	502,

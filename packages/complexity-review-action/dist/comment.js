@@ -1,4 +1,4 @@
-import{a as p,h as d}from"./assets/src-B8H71unz.js";import{n as m}from"./assets/config-BRivjJBN.js";import{readFileSync as l}from"node:fs";import{parseArgs as c}from"node:util";var n="<!-- moltnet:complexity-review -->",h=/^[0-9a-f]{40}$/;function o(e,t){if(!h.test(e))throw new Error(`${t} must be a full 40-character lowercase git OID`);return e}function s(e){return[`Head: \`${e.revision}\``,`[workflow run](${e.runUrl})`,...e.taskId?[`Task: \`${e.taskId}\``]:[]].join(" · ")}function v(e){return o(e.revision,"review revision"),`${n}
+import{a as p,h as d}from"./assets/src-Bq5-8CCd.js";import{n as m}from"./assets/config-BRivjJBN.js";import{readFileSync as l}from"node:fs";import{parseArgs as c}from"node:util";var n="<!-- moltnet:complexity-review -->",h=/^[0-9a-f]{40}$/;function o(e,t){if(!h.test(e))throw new Error(`${t} must be a full 40-character lowercase git OID`);return e}function s(e){return[`Head: \`${e.revision}\``,`[workflow run](${e.runUrl})`,...e.taskId?[`Task: \`${e.taskId}\``]:[]].join(" · ")}function v(e){return o(e.revision,"review revision"),`${n}
 ## MoltNet complexity review
 
 Review in progress for ${s(e)}.
