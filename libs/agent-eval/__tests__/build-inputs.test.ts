@@ -14,7 +14,9 @@ import {
 import type { Scenario } from '../src/scenario.js';
 
 const scenario: Scenario = {
+  scoring: 'judge',
   slug: 'submit-output-compliance',
+  taskType: 'run_eval',
   prompt: 'Call the submit tool exactly once with a short summary.',
   execution: { mode: 'vitro', workspace: 'none' },
   rubric: {

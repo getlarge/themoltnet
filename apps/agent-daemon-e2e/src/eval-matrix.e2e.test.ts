@@ -25,9 +25,11 @@ import {
   buildJudgeInput,
   checkGates,
   readScenario,
+  readSubmitStructure,
   runMatrix,
   type Scenario,
   type ScoreMatrix,
+  type SubmitStructure,
   summarizeMatrix,
 } from '@moltnet/agent-eval';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises the daemon app entry point.
@@ -44,8 +46,16 @@ import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const MATRIX_FLAG = 'MOLTNET_EVAL_MATRIX';
 const PROVIDER = 'ollama-cloud';
+// Ollama Cloud does not currently support provider-enforced structured output.
+// These runs measure tool-call shape with runtime validation and repair.
 const WARM_TTL_SEC = '1200';
 const CORPUS_ROOT = join(import.meta.dirname, '../../..', 'evals-v2');
+
+const NO_SUBMIT_STRUCTURE: SubmitStructure = {
+  invalidSubmitCalls: 0,
+  repairKinds: [],
+  outputSource: null,
+};
 
 const describeMatrix = describe.skipIf(process.env[MATRIX_FLAG] !== '1');
 
@@ -179,13 +189,23 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
     judgeProfileId = judgeProfile.id;
     judgePiDir = mkdtempSync(join(tmpdir(), 'eval-matrix-judge-pi-'));
     tempRoots.push(judgePiDir);
-    writePiConfig({ piDir: judgePiDir, provider: PROVIDER, model: judgeModel });
+    writePiConfig({
+      piDir: judgePiDir,
+      provider: PROVIDER,
+      model: judgeModel,
+      supportsStrictMode: false,
+    });
 
     for (const model of models) {
       const profile = await createProfile(agent, teamId, model);
       const piDir = mkdtempSync(join(tmpdir(), 'eval-matrix-pi-'));
       tempRoots.push(piDir);
-      writePiConfig({ piDir, provider: PROVIDER, model });
+      writePiConfig({
+        piDir,
+        provider: PROVIDER,
+        model,
+        supportsStrictMode: false,
+      });
       perModel.set(model, { profileId: profile.id, piDir });
     }
   }, 300_000);
@@ -235,9 +255,26 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
             taskId: task.id,
             attemptN: null,
             failureCode: latest?.error?.code ?? `task_${final.status}`,
+            structure: latest
+              ? await readSubmitStructure(
+                  agent,
+                  task.id,
+                  latest.attemptN,
+                  scenario.taskType,
+                )
+              : NO_SUBMIT_STRUCTURE,
           };
         }
-        return { taskId: task.id, attemptN: final.acceptedAttemptN };
+        return {
+          taskId: task.id,
+          attemptN: final.acceptedAttemptN,
+          structure: await readSubmitStructure(
+            agent,
+            task.id,
+            final.acceptedAttemptN,
+            scenario.taskType,
+          ),
+        };
       },
       runGates: (model, scenario, producer) =>
         checkGates(agent, producer.taskId, producer.attemptN, scenario.gates, {
@@ -245,6 +282,7 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
           workspace: scenario.execution.workspace,
           teamId,
           taskType: scenario.taskType,
+          outputContract: scenario.outputContract,
         }),
       runJudge: async (scenario, producer) => {
         const judgeTask = await agent.tasks.create(

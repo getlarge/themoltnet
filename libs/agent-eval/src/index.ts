@@ -46,9 +46,16 @@ export {
   stageScenarioInputArtifacts,
 } from './scenario-fixtures.js';
 export {
+  isCleanSubmitShape,
   type MatrixDeps,
   runMatrix,
   type ScoreCell,
   type ScoreMatrix,
+  type SubmitStructure,
   summarizeMatrix,
 } from './score-matrix.js';
+export {
+  readSubmitStructure,
+  type SubmitStructureAgent,
+  type SubmitStructureMessage,
+} from './submit-structure.js';

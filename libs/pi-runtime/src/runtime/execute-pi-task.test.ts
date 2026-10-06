@@ -11,7 +11,7 @@
  */
 import { Readable } from 'node:stream';
 
-import { computeJsonCid, cryptoService } from '@moltnet/crypto-service';
+import { cryptoService } from '@moltnet/crypto-service';
 import { type Context, metrics, ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import {
   AggregationTemporality,
@@ -621,8 +621,6 @@ describe('resolveHostExecBaseEnv', () => {
 });
 import {
   __resetTaskOutputCounterForTests,
-  extractJsonObject,
-  parseStructuredTaskOutput,
   recordTaskOutputParseResult,
   type TaskOutputParseCode,
 } from './task-output.js';
@@ -637,56 +635,6 @@ class CollectingReader extends MetricReader {
     return this.collect();
   }
 }
-
-describe('extractJsonObject', () => {
-  it('returns null for empty input', () => {
-    expect(extractJsonObject('')).toBeNull();
-  });
-
-  it('parses a bare JSON object', () => {
-    const txt = '{"branch":"feat/foo","summary":"hi"}';
-    expect(extractJsonObject(txt)).toEqual({
-      branch: 'feat/foo',
-      summary: 'hi',
-    });
-  });
-
-  it('prefers the last top-level object when prose precedes it', () => {
-    const txt = 'Here is my answer:\n\n{"ok":true,"n":2}';
-    expect(extractJsonObject(txt)).toEqual({ ok: true, n: 2 });
-  });
-
-  it('recovers an object inside a ```json code fence', () => {
-    const txt = 'done.\n\n```json\n{"a":1,"b":[1,2,3]}\n```\n';
-    expect(extractJsonObject(txt)).toEqual({ a: 1, b: [1, 2, 3] });
-  });
-
-  it('ignores braces inside strings', () => {
-    const txt = 'noise {"msg":"not {really} a nest","k":1}';
-    expect(extractJsonObject(txt)).toEqual({
-      msg: 'not {really} a nest',
-      k: 1,
-    });
-  });
-
-  it('handles nested objects', () => {
-    const txt = '{"outer":{"inner":{"x":1}},"arr":[{"y":2}]}';
-    expect(extractJsonObject(txt)).toEqual({
-      outer: { inner: { x: 1 } },
-      arr: [{ y: 2 }],
-    });
-  });
-
-  it('returns null when no complete object exists', () => {
-    expect(extractJsonObject('this is just text')).toBeNull();
-    expect(extractJsonObject('{"incomplete":')).toBeNull();
-  });
-
-  it('falls back from malformed fence to raw text scan', () => {
-    const txt = '```json\nnot json\n```\n\n{"real":true}';
-    expect(extractJsonObject(txt)).toEqual({ real: true });
-  });
-});
 
 describe('createGondolinToolDefinitions', () => {
   it('registers the full VM-routed built-in tool surface', () => {
@@ -1597,8 +1545,6 @@ describe('buildAttemptResult (result-construction characterization)', () => {
     const terminal = resolveProviderStateAfterSubmit(rawState, captured);
     const capturedOutput = await captureAttemptOutput({
       taskType: 'freeform',
-      input: {},
-      assistantText: '',
       submitToolHandle: {
         getCaptured: () => ({ summary: 'done', artifacts: [] }),
         getLastValidationFailure: () => null,
@@ -1962,8 +1908,6 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
     const result = await captureAttemptOutput({
       taskType: 'freeform',
       model: 'm',
-      input: {},
-      assistantText: 'ignored prose',
       submitToolHandle: fakeHandle({ captured: payload }),
       emit: emit as never,
     });
@@ -1980,8 +1924,6 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
     const result = await captureAttemptOutput({
       taskType: 'freeform',
       model: 'm',
-      input: {},
-      assistantText: '',
       submitToolHandle: fakeHandle({ captured: { n: 1n } as never }),
       emit: emit as never,
     });
@@ -2004,8 +1946,6 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
     const result = await captureAttemptOutput({
       taskType: 'freeform',
       model: 'm',
-      input: {},
-      assistantText: 'just prose, no tool call',
       submitToolHandle: fakeHandle({ captured: null, validationFailure: null }),
       emit: emit as never,
     });
@@ -2019,8 +1959,6 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
     const result = await captureAttemptOutput({
       taskType: 'freeform',
       model: 'm',
-      input: {},
-      assistantText: '{"summary":',
       submitToolHandle: fakeHandle({ captured: null }),
       emit: emit as never,
     });
@@ -2037,8 +1975,6 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
     const result = await captureAttemptOutput({
       taskType: 'freeform',
       model: 'm',
-      input: {},
-      assistantText: '',
       submitToolHandle: fakeHandle({ captured: null, validationFailure }),
       emit: emit as never,
     });
@@ -2055,29 +1991,12 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
     const result = await captureAttemptOutput({
       taskType: 'fulfill_brief',
       model: 'm',
-      input: {},
-      assistantText: '',
       submitToolHandle: handle,
       emit: emit as never,
     });
 
     expect(result.error?.code).toBe('output_validation_failed');
     expect(handle.getInvalidCallCount()).toBe(1);
-  });
-
-  it('falls back to parsing assistant text when no submit tool is registered', async () => {
-    const { emit } = makeEmit();
-    const result = await captureAttemptOutput({
-      taskType: 'freeform',
-      model: 'm',
-      input: {},
-      assistantText: 'no structured output here',
-      submitToolHandle: null,
-      emit: emit as never,
-    });
-    // Routed to the parser path, which rejects unparseable prose.
-    expect(result.output).toBeNull();
-    expect(result.error).not.toBeNull();
   });
 });
 
@@ -2221,8 +2140,8 @@ describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
     } as unknown as Ev;
   }
 
-  it('accumulates streamed assistant text and emits each delta', () => {
-    const { deps, state, emitted } = makeDeps();
+  it('emits each streamed assistant text delta', () => {
+    const { deps, emitted } = makeDeps();
     const handler = makeSessionEventHandler(deps);
     handler({
       type: 'message_update',
@@ -2232,7 +2151,6 @@ describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
       type: 'message_update',
       assistantMessageEvent: { type: 'text_delta', delta: 'world' },
     } as unknown as Ev);
-    expect(state.assistantText).toBe('Hello world');
     expect(emitted).toEqual([
       { kind: 'text_delta', payload: { delta: 'Hello ' } },
       { kind: 'text_delta', payload: { delta: 'world' } },
@@ -2467,13 +2385,6 @@ describe('resolveSubmitMissingConfig', () => {
     };
   }
 
-  it('disables recovery when no submit tool is registered', () => {
-    const config = resolveSubmitMissingConfig({ submitToolHandle: null });
-    expect(config.maxSubmitMissingReprompts).toBe(0);
-    expect(config.submitMissingPrompt).toBe('');
-    expect(config.getSubmitState()).toBeNull();
-  });
-
   it('defaults to 3 re-prompts and a tool-named prompt when a handle is present', () => {
     const config = resolveSubmitMissingConfig({
       submitToolHandle: fakeHandle({ toolName: 'submit_run_eval_output' }),
@@ -2636,10 +2547,30 @@ describe('promptUntilSubmitted (submit-missing same-session recovery)', () => {
       runError: { code: 'model_output_length' },
       submitReprompts: 0,
     });
-    expect(result.runError?.message).toContain('maxTokens=1024');
+    expect(result.runError?.message).toContain('maxOutputTokens=1024');
     expect(result.runError?.message).toContain('0 submit reprompt(s)');
-    expect(result.runError?.message).toContain('Raise maxTokens');
+    expect(result.runError?.message).toContain('Raise maxOutputTokens');
     expect(prompts).toEqual(['extract']);
+  });
+
+  it('does not suggest raising an unset runtime output cap', async () => {
+    const result = await promptUntilSubmitted({
+      runPrompt: async () => ({ runError: null }),
+      initialPrompt: 'extract',
+      submitMissingPrompt: 'call submit now',
+      maxSubmitMissingReprompts: 3,
+      getSubmitState: () => ({
+        captured: false,
+        lastValidationFailure: null,
+      }),
+      getStopReason: () => 'length',
+      maxOutputTokens: null,
+      isStopped: () => false,
+    });
+
+    expect(result.runError?.code).toBe('model_output_length');
+    expect(result.runError?.message).toContain('maxOutputTokens=none');
+    expect(result.runError?.message).toContain('inspect the provider response');
   });
 
   it('keeps a valid submission when a final turn reports length', async () => {
@@ -2652,19 +2583,6 @@ describe('promptUntilSubmitted (submit-missing same-session recovery)', () => {
         captured: true,
         lastValidationFailure: null,
       }),
-      getStopReason: () => 'length',
-      isStopped: () => false,
-    });
-    expect(result).toEqual({ runError: null, submitReprompts: 0 });
-  });
-
-  it('leaves a legacy task with no submit tool to its parser path', async () => {
-    const result = await promptUntilSubmitted({
-      runPrompt: async () => ({ runError: null }),
-      initialPrompt: 'extract',
-      submitMissingPrompt: '',
-      maxSubmitMissingReprompts: 0,
-      getSubmitState: () => null,
       getStopReason: () => 'length',
       isStopped: () => false,
     });
@@ -2807,24 +2725,6 @@ describe('promptUntilSubmitted (submit-missing same-session recovery)', () => {
     expect(result).toEqual({ runError: null, submitReprompts: 0 });
     expect(prompts).toEqual(['do the task']);
   });
-
-  it('runs a single pass with no re-prompt when no submit tool is registered', async () => {
-    const prompts: string[] = [];
-    const result = await promptUntilSubmitted({
-      runPrompt: async (text) => {
-        prompts.push(text);
-        return { runError: null };
-      },
-      initialPrompt: 'do the task',
-      submitMissingPrompt: 'call submit now',
-      maxSubmitMissingReprompts: 3,
-      getSubmitState: () => null,
-      isStopped: () => false,
-    });
-
-    expect(result).toEqual({ runError: null, submitReprompts: 0 });
-    expect(prompts).toEqual(['do the task']);
-  });
 });
 
 describe('openVmWorkspaceFileForRead', () => {
@@ -2858,110 +2758,6 @@ describe('openVmWorkspaceFileForRead', () => {
   });
 });
 
-describe('parseStructuredTaskOutput', () => {
-  it('returns validated output and canonical CID for a valid task payload', async () => {
-    const output = {
-      branch: 'feat/tasks-api-output-validation',
-      commits: [
-        {
-          sha: 'abcdef1',
-          message: 'fix(tasks): validate output locally',
-          diaryEntryId: '1851828e-b3a7-4130-a938-db6dd16477bd',
-        },
-      ],
-      pullRequestUrl: null,
-      diaryEntryIds: ['1851828e-b3a7-4130-a938-db6dd16477bd'],
-      summary: 'Validated output before sending completion payloads.',
-    };
-
-    const result = await parseStructuredTaskOutput(
-      JSON.stringify(output),
-      'fulfill_brief',
-    );
-
-    expect(result).toEqual({
-      output,
-      outputCid: await computeJsonCid(output),
-      error: null,
-    });
-  });
-
-  it('returns a schema validation error for the wrong output shape', async () => {
-    const result = await parseStructuredTaskOutput(
-      JSON.stringify({
-        branch: 123,
-        commits: [],
-        pullRequestUrl: null,
-        diaryEntryIds: [],
-      }),
-      'fulfill_brief',
-    );
-
-    expect(result.output).toBeNull();
-    expect(result.outputCid).toBeNull();
-    expect(result.error).toEqual({
-      code: 'output_validation_failed',
-      message: expect.stringContaining('output/branch'),
-    });
-  });
-
-  it('returns an unknown task type error when no schema is registered', async () => {
-    const result = await parseStructuredTaskOutput(
-      JSON.stringify({ anything: true }),
-      'unknown_task_type',
-    );
-
-    expect(result.output).toBeNull();
-    expect(result.outputCid).toBeNull();
-    expect(result.error).toEqual({
-      code: 'unknown_task_type',
-      message: expect.stringContaining('Unknown task type'),
-    });
-  });
-
-  it('enforces verification when the caller passes input.successCriteria', async () => {
-    const result = await parseStructuredTaskOutput(
-      JSON.stringify({
-        response: 'done',
-      }),
-      'run_eval',
-      {
-        input: {
-          scenario: { prompt: 'do it' },
-          variantLabel: 'baseline',
-          execution: { mode: 'vitro', workspace: 'none' },
-          context: [],
-          successCriteria: { version: 1 as const },
-        },
-      },
-    );
-
-    expect(result.output).toBeNull();
-    expect(result.outputCid).toBeNull();
-    expect(result.error).toEqual({
-      code: 'output_validation_failed',
-      message: expect.stringContaining('verification is required'),
-    });
-  });
-
-  it('still accepts the same payload when no input is available', async () => {
-    const output = {
-      response: 'done',
-    };
-
-    const result = await parseStructuredTaskOutput(
-      JSON.stringify(output),
-      'run_eval',
-    );
-
-    expect(result).toEqual({
-      output,
-      outputCid: await computeJsonCid(output),
-      error: null,
-    });
-  });
-});
-
 describe('agent_runtime.task_output.parse_result counter', () => {
   let provider: MeterProvider;
   let reader: CollectingReader;
@@ -2988,10 +2784,8 @@ describe('agent_runtime.task_output.parse_result counter', () => {
   async function snapshotByCode(): Promise<Snapshot> {
     const collected = await reader.snapshot();
     const out: Snapshot = {
-      success: [],
       output_missing: [],
       output_validation_failed: [],
-      unknown_task_type: [],
       output_cid_compute_failed: [],
       captured_via_tool: [],
     };
@@ -3034,36 +2828,6 @@ describe('agent_runtime.task_output.parse_result counter', () => {
     return points;
   }
 
-  it('increments `success` with task_type + model labels on a valid payload', async () => {
-    const output = {
-      branch: 'feat/x',
-      commits: [],
-      pullRequestUrl: null,
-      diaryEntryIds: [],
-      summary: 's',
-    };
-    await parseStructuredTaskOutput(JSON.stringify(output), 'fulfill_brief', {
-      model: 'claude-sonnet-4-6',
-    });
-    const snap = await snapshotByCode();
-    expect(snap.success).toHaveLength(1);
-    expect(snap.success[0].attributes).toMatchObject({
-      task_type: 'fulfill_brief',
-      model: 'claude-sonnet-4-6',
-      code: 'success',
-    });
-    expect(snap.success[0].value).toBe(1);
-  });
-
-  it('increments `output_missing` when no JSON is present', async () => {
-    await parseStructuredTaskOutput('ok done', 'fulfill_brief', {
-      model: 'm',
-    });
-    const snap = await snapshotByCode();
-    expect(snap.output_missing).toHaveLength(1);
-    expect(snap.output_missing[0].attributes.code).toBe('output_missing');
-  });
-
   it('records zero executor telemetry without changing durable output', async () => {
     const result = await materializeCapturedAttemptOutput({
       taskType: 'run_eval',
@@ -3099,28 +2863,6 @@ describe('agent_runtime.task_output.parse_result counter', () => {
         }),
       ]),
     );
-  });
-
-  it('increments `output_validation_failed` on schema mismatch', async () => {
-    await parseStructuredTaskOutput(
-      JSON.stringify({ branch: 123 }),
-      'fulfill_brief',
-      { model: 'm' },
-    );
-    const snap = await snapshotByCode();
-    expect(snap.output_validation_failed).toHaveLength(1);
-  });
-
-  it('increments `unknown_task_type` when the type is not registered', async () => {
-    await parseStructuredTaskOutput('{}', 'totally_made_up', { model: 'm' });
-    const snap = await snapshotByCode();
-    expect(snap.unknown_task_type).toHaveLength(1);
-  });
-
-  it('falls back to model="unknown" when the caller omits the label', async () => {
-    await parseStructuredTaskOutput('not json', 'fulfill_brief');
-    const snap = await snapshotByCode();
-    expect(snap.output_missing[0].attributes.model).toBe('unknown');
   });
 
   it('exposes recordTaskOutputParseResult for the captured_via_tool path', async () => {

@@ -69,6 +69,12 @@
             "env": "MOLTNET_BASELINE"
           },
           {
+            "env": "MOLTNET_BASELINE_PROVIDER"
+          },
+          {
+            "env": "BASELINE_SCENARIOS"
+          },
+          {
             "env": "BASELINE_REPEATS"
           },
           {
