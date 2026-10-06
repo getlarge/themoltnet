@@ -11,10 +11,11 @@ import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
 import process from 'node:process';
 
+import { writePackedConsumerPolicy } from '../../../pack.shared.mjs';
+
 const packageDir = resolve(import.meta.dirname, '..');
 const repoRoot = resolve(packageDir, '../..');
 const distPath = join(packageDir, 'dist', 'index.js');
-const internalPackageReleaseAgeExclude = '@themoltnet/*';
 
 function fail(message, output = '') {
   process.stderr.write(`FAIL: ${message}\n${output ? `\n${output}\n` : ''}`);
@@ -123,16 +124,13 @@ try {
     }),
   );
 
+  writePackedConsumerPolicy(repoRoot, installDir);
   const install = spawnSync('pnpm', ['add', ...tarballs, '--ignore-scripts'], {
     cwd: installDir,
     encoding: 'utf8',
     env: {
       ...process.env,
       npm_config_cache: npmCache,
-      // pnpm exports the scalar minimumReleaseAge setting to lifecycle scripts,
-      // but not its array-valued exclusions. Preserve the internal-package
-      // exception when this consumer install runs outside the workspace.
-      npm_config_minimum_release_age_exclude: internalPackageReleaseAgeExclude,
     },
   });
   if (install.status !== 0) {
@@ -143,28 +141,35 @@ try {
     );
   }
 
-  const run = spawnSync(
-    process.execPath,
+  const probePath = join(installDir, 'probe.mjs');
+  writeFileSync(
+    probePath,
     [
-      '--input-type=module',
-      '--eval',
-      [
-        "const runtime = await import('@themoltnet/pi-runtime');",
-        "if ('writePiConfig' in runtime || 'writeAgentCredentials' in runtime) throw new Error('root runtime leaked config writers');",
-        "const piConfig = await import('@themoltnet/pi-runtime/pi-config');",
-        "if (typeof piConfig.writePiConfig !== 'function' || 'writeAgentCredentials' in piConfig) throw new Error('focused pi-config exports are incorrect');",
-        "const { ShellCommandAnalyzer } = await import('@themoltnet/shell-command-analyzer');",
-        'const analyzer = await ShellCommandAnalyzer.create();',
-        "const analysis = analyzer.analyze('echo ready');",
-        "if (!analysis.ok || !analysis.tools.some(({ name }) => name === 'echo')) throw new Error('analyzer did not parse echo');",
-      ].join('\n'),
-    ],
-    { cwd: installDir, encoding: 'utf8', env: process.env },
+      "const runtime = await import('@themoltnet/pi-runtime');",
+      "if ('writePiConfig' in runtime || 'writeAgentCredentials' in runtime) throw new Error('root runtime leaked config writers');",
+      'let codemode;',
+      'const factory = await runtime.piCodemode().create({});',
+      'factory({ registerTool(tool) { codemode = tool; } });',
+      "const script = await codemode.execute('pack-smoke', { code: 'text(6 * 7)' });",
+      "if (!script.content.some(item => item.type === 'text' && item.text.includes('42'))) throw new Error('native codemode WASM failed: ' + JSON.stringify(script));",
+      "if (typeof runtime.createDurableTaskExecutor !== 'function') throw new Error('Durable executor missing');",
+      "const piConfig = await import('@themoltnet/pi-runtime/pi-config');",
+      "if (typeof piConfig.writePiConfig !== 'function' || 'writeAgentCredentials' in piConfig) throw new Error('focused pi-config exports are incorrect');",
+      "const { ShellCommandAnalyzer } = await import('@themoltnet/shell-command-analyzer');",
+      'const analyzer = await ShellCommandAnalyzer.create();',
+      "const analysis = analyzer.analyze('echo ready');",
+      "if (!analysis.ok || !analysis.tools.some(({ name }) => name === 'echo')) throw new Error('analyzer did not parse echo');",
+    ].join('\n'),
   );
+  const run = spawnSync(process.execPath, [probePath], {
+    cwd: installDir,
+    encoding: 'utf8',
+    env: process.env,
+  });
   if (run.status !== 0) {
     cleanup();
     fail(
-      'packed pi-runtime could not initialize ShellCommandAnalyzer',
+      'packed pi-runtime capability probe failed',
       `${run.stdout}${run.stderr}`,
     );
   }
@@ -173,5 +178,5 @@ try {
 }
 
 process.stdout.write(
-  'OK: packed pi-runtime exposes focused Pi config and initializes ShellCommandAnalyzer\n',
+  'OK: packed pi-runtime loads native codemode WASM, Durable, focused Pi config, and ShellCommandAnalyzer\n',
 );

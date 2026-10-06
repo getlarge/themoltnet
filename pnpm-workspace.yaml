@@ -9,6 +9,16 @@ enablePrePostScripts: true
 injectWorkspacePackages: false
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
+  # Explicit Pi 1.0 adoption; keep the quarantine for other versions.
+  - '@earendil-works/pi-ai@1.0.0'
+  - '@earendil-works/pi-mcp@1.0.0'
+  - '@earendil-works/pi-telemetry@1.0.0'
+  - '@earendil-works/pi-coding-agent@1.0.0'
+  - '@earendil-works/pi-codemode@1.0.0'
+  - '@earendil-works/pi-durable@1.0.0'
+  - '@earendil-works/pi-tui@1.0.0'
+  - '@earendil-works/pi-agent-core@1.0.0'
+  - '@earendil-works/chord@1.0.0'
   - '@getlarge/fastify-mcp'
   # Release jobs consume repository-owned packages published earlier in the
   # same run, before the external-package quarantine has elapsed.
@@ -51,8 +61,10 @@ catalog:
   '@getlarge/fastify-mcp': '^1.3.0-getlarge.6'
   '@hey-api/openapi-ts': '0.99.0'
   '@huggingface/transformers': '^3.4.0'
-  '@earendil-works/pi-ai': '0.87.1'
-  '@earendil-works/pi-coding-agent': '0.87.1'
+  '@earendil-works/chord': '1.0.0'
+  '@earendil-works/pi-durable': '1.0.0'
+  '@earendil-works/pi-ai': '1.0.0'
+  '@earendil-works/pi-coding-agent': '1.0.0'
   '@ipld/dag-cbor': '^9.2.5'
   '@modelcontextprotocol/sdk': '^1.29.0'
   '@modelcontextprotocol/ext-apps': '^1.7.1'

@@ -1,6 +1,8 @@
 import type { Task, TaskOutput } from '@moltnet/tasks';
 import { describe, expect, it, vi } from 'vitest';
 
+import { TaskExecutionInterrupted } from './interrupted.js';
+
 const runtimeTelemetry = vi.hoisted(() => ({
   attributes: new Map<string, unknown>(),
 }));
@@ -254,4 +256,22 @@ describe('AgentRuntime', () => {
       expect(outputs[0].status).toBe('completed');
     });
   });
+});
+
+it('does not finalize a durably interrupted attempt', async () => {
+  const source = new ArraySource([makeFulfillBriefTask()]);
+  const reporter = new RecordingReporter();
+  const onTaskFinished = vi.fn();
+  const runtime = new AgentRuntime({
+    source,
+    makeReporter: () => reporter,
+    onTaskFinished,
+    executeTask: async () => {
+      throw new TaskExecutionInterrupted('writer lost');
+    },
+  });
+  await expect(runtime.start()).rejects.toThrow('writer lost');
+  expect(onTaskFinished).not.toHaveBeenCalled();
+  expect(source.events).toContain('close');
+  expect(reporter.events).toContain('close');
 });

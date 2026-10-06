@@ -1,9 +1,11 @@
 import type { VM } from '@earendil-works/gondolin';
 import { VmCheckpoint } from '@earendil-works/gondolin';
-import type {
-  ExtensionAPI,
-  ToolDefinition,
+import {
+  createCodemodeExtension,
+  type ExtensionAPI,
+  type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
+import type { Extension as DurableExtension } from '@earendil-works/pi-durable';
 import { computeJsonCid } from '@moltnet/crypto-service/json-cid';
 import { RUNTIME_PROFILE_RUNTIME_KIND_REGEXP } from '@moltnet/runtime-profiles';
 import type {
@@ -149,9 +151,9 @@ export function definePiTool(
   });
 }
 
-export type PiExtensionFactory = (pi: ExtensionAPI) => void;
+export type PiExtensionFactory = (pi: ExtensionAPI) => void | Promise<void>;
 
-export interface PiExtensionContribution {
+export interface PiCodingExtensionContribution {
   readonly kind: 'extension';
   readonly id: string;
   readonly declaredTools: readonly string[];
@@ -159,6 +161,23 @@ export interface PiExtensionContribution {
   create: (
     context: PiToolContext,
   ) => PiExtensionFactory | Promise<PiExtensionFactory>;
+}
+
+export interface PiDurableExtensionContribution {
+  readonly kind: 'durable_extension';
+  readonly id: string;
+  readonly declaredTools: readonly string[];
+  readonly scope: PiToolScope;
+  readonly extension: DurableExtension;
+}
+
+export type PiExtensionContribution =
+  | PiCodingExtensionContribution
+  | PiDurableExtensionContribution;
+
+export interface PiDurableExtensionOptions {
+  extension: DurableExtension;
+  scope?: PiToolScope;
 }
 
 export interface PiExtensionOptions {
@@ -173,7 +192,30 @@ export interface PiExtensionOptions {
 
 export function definePiExtension(
   options: PiExtensionOptions,
+): PiCodingExtensionContribution;
+export function definePiExtension(
+  options: PiDurableExtensionOptions,
+): PiDurableExtensionContribution;
+export function definePiExtension(
+  options: PiExtensionOptions | PiDurableExtensionOptions,
 ): PiExtensionContribution {
+  if ('extension' in options) {
+    const { extension } = options;
+    assertStableId(extension.name, 'extension id');
+    if (extension.name.startsWith('moltnet-'))
+      throw new Error(
+        'Durable extension names beginning moltnet- are reserved',
+      );
+    const declaredTools = (extension.tools ?? []).map((tool) => tool.name);
+    declaredTools.forEach(assertToolName);
+    return Object.freeze({
+      kind: 'durable_extension',
+      id: extension.name,
+      declaredTools,
+      scope: options.scope ?? 'parent',
+      extension,
+    });
+  }
   assertStableId(options.id, 'extension id');
   const declaredTools = [...new Set(options.declaredTools ?? [])].sort();
   declaredTools.forEach((name) => assertToolName(name));
@@ -324,7 +366,11 @@ export function definePiRuntime(
   for (const tool of options.tools ?? []) {
     claimToolName(names, tool.descriptor.name, 'tool contribution');
   }
+  const extensionIds = new Set<string>();
   for (const extension of options.extensions ?? []) {
+    if (extensionIds.has(extension.id))
+      throw new Error(`Duplicate extension id "${extension.id}"`);
+    extensionIds.add(extension.id);
     for (const name of extension.declaredTools) {
       claimToolName(names, name, `extension "${extension.id}"`);
     }
@@ -729,16 +775,20 @@ export async function materializePiExtensions(input: {
   );
   return Promise.all(
     contributions.map(async (contribution) => {
+      if (contribution.kind !== 'extension')
+        throw new Error(
+          'Native Durable extensions require the Durable task executor',
+        );
       const factory = await contribution.create(input.context);
       return wrapExtensionFactory(factory, contribution, input.policy);
     }),
   );
 }
 
-export function filterModelVisibleTools(
-  tools: readonly ToolDefinition[],
+export function filterModelVisibleTools<T extends { name: string }>(
+  tools: readonly T[],
   policy?: ModelVisibleToolPolicy,
-): ToolDefinition[] {
+): T[] {
   return tools.filter(
     (tool) => isKernelTool(tool.name) || isToolVisible(tool.name, policy),
   );
@@ -800,7 +850,7 @@ export function isKernelTool(name: string): boolean {
 
 function wrapExtensionFactory(
   factory: PiExtensionFactory,
-  contribution: PiExtensionContribution,
+  contribution: PiCodingExtensionContribution,
   policy: ModelVisibleToolPolicy | undefined,
 ): PiExtensionFactory {
   return (pi) => {
@@ -823,15 +873,18 @@ function wrapExtensionFactory(
         };
       },
     });
-    factory(proxy);
-    const missing = contribution.declaredTools.filter(
-      (name) => !registered.has(name),
-    );
-    if (missing.length > 0) {
-      throw new Error(
-        `Pi extension "${contribution.id}" did not register declared tools: ${missing.join(', ')}`,
+    const validate = () => {
+      const missing = contribution.declaredTools.filter(
+        (name) => !registered.has(name),
       );
-    }
+      if (missing.length > 0) {
+        throw new Error(
+          `Pi extension "${contribution.id}" did not register declared tools: ${missing.join(', ')}`,
+        );
+      }
+    };
+    const result = factory(proxy);
+    return result ? result.then(validate) : validate();
   };
 }
 
@@ -868,4 +921,19 @@ function assertRuntimeKind(value: string): void {
   if (!RUNTIME_PROFILE_RUNTIME_KIND_REGEXP.test(value)) {
     throw new Error(`Invalid runtime kind "${value}"`);
   }
+}
+
+/** Explicit capability contribution: native codemode remains subject to tool policy. */
+export function piCodemode() {
+  return definePiExtension({
+    id: 'moltnet-codemode-v1',
+    declaredTools: ['codemode'],
+    factory: (pi) =>
+      createCodemodeExtension()({
+        ...pi,
+        // Installing this contribution is the operator's explicit activation.
+        registerTool: (tool) =>
+          pi.registerTool({ ...tool, defaultActive: true }),
+      }),
+  });
 }

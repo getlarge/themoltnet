@@ -47,12 +47,16 @@ export function createPiDaemonAdapter(
             `but this daemon adapter provides "${runtime.runtimeKind}".`,
         );
       }
+      const builtInToolNames = [
+        ...PI_KERNEL_TOOL_NAMES,
+        ...(input.profile.models.classification ? ['classify'] : []),
+      ];
       const resolvedTemplate = await resolveTemplate(input.onProgress);
       const manifest = await buildPiExecutorManifest({
         runtime,
         profile: input.profile,
         template: resolvedTemplate,
-        builtInToolNames: PI_KERNEL_TOOL_NAMES,
+        builtInToolNames,
       });
       const extensionTools = runtime.extensions.flatMap(
         (extension) => extension.declaredTools,
@@ -61,7 +65,7 @@ export function createPiDaemonAdapter(
         runtimeKind: runtime.runtimeKind,
         manifest: manifest as unknown as Record<string, unknown>,
         tools: [
-          ...PI_KERNEL_TOOL_NAMES,
+          ...builtInToolNames,
           ...runtime.tools.map((tool) => tool.descriptor.name),
           ...extensionTools,
         ],

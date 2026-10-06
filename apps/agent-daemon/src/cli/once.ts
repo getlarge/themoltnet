@@ -478,7 +478,7 @@ export async function runOnce(
       topP: generation?.topP ?? null,
       topK: generation?.topK ?? null,
       maxOutputTokens: generation?.maxOutputTokens ?? null,
-
+      classifier: profile.models.classification,
       providerFailureContext: {
         runtimeProfileId: profile.id,
         runtimeProfileName: profile.name,

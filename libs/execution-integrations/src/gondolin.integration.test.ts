@@ -212,7 +212,9 @@ echo governed-exec-done
 `,
             {
               timeoutMs: 120_000,
-              onData: (data) => chunks.push(data.toString()),
+              onData: (data) => {
+                chunks.push(data.toString());
+              },
             },
           );
           if (

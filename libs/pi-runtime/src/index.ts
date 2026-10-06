@@ -1,3 +1,4 @@
+export { createGondolinToolDefinitions } from './gondolin-tools.js';
 export {
   agentSigningCapability,
   GUEST_ALLOWED_SIGNERS_PATH,
@@ -14,7 +15,6 @@ export {
 export { createPiOtelExtension, type PiOtelOptions } from './otel/index.js';
 export { buildAgentSession } from './runtime/agent-session-factory.js';
 export {
-  createGondolinToolDefinitions,
   createPiTaskExecutor,
   executePiTask,
   type ExecutePiTaskOptions,
@@ -37,6 +37,7 @@ export {
   type InjectTaskContextArgs,
   type VmFsForContext,
 } from './runtime/inject-task-context.js';
+export { createClassificationTaskExecutor } from './runtime/model-runtime.js';
 export {
   resolveRuntimeProfileModel,
   type RuntimeModelSelection,
@@ -73,6 +74,7 @@ export type {
   TurnEventHandler,
   TurnEventKind,
 } from './runtime/task-event-emitter.js';
+export { piCodemode } from './runtime-definition.js';
 export {
   buildPiExecutorManifest,
   DEFAULT_BROKERED_HTTP_SECRET_RESOLUTION_TIMEOUT_MS,
@@ -99,6 +101,9 @@ export {
   type PiBrokeredHttpSecretContribution,
   PiBrokeredHttpSecretResolutionError,
   type PiBrokeredHttpSecretResolveContext,
+  type PiCodingExtensionContribution,
+  type PiDurableExtensionContribution,
+  type PiDurableExtensionOptions,
   type PiExecutorManifest,
   type PiExtensionContribution,
   type PiExtensionFactory,
