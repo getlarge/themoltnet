@@ -25,6 +25,7 @@ import type {
   SigningRequestRecord,
   SigningRequestRepository,
 } from '../src/types.js';
+import { createMockServices } from './helpers.js';
 
 function expectedSigningInput(message: string, nonce: string): string {
   return Buffer.from(buildSigningBytes(message, nonce)).toString('base64');
@@ -131,6 +132,8 @@ function createApp(
   } as unknown as OryClients['oauth2'];
 
   return buildApp({
+    runtimeSessionRepository: createMockServices()
+      .runtimeSessionRepository as never,
     diaryService: {
       create: vi.fn(),
       getById: vi.fn(),

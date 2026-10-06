@@ -26,6 +26,28 @@ describe('RuntimeProfile contract', () => {
     }
   });
 
+  it('preserves legacy definitions without a classifier and hashes explicit selection', () => {
+    const profile = {
+      name: 'reviewer',
+      provider: 'chat-provider',
+      model: 'chat',
+      sandbox: {},
+    };
+    const legacy = runtimeProfileDefinitionPayload(profile);
+    expect(
+      runtimeProfileDefinitionPayload({ ...profile, classifier: null }),
+    ).toEqual(legacy);
+    expect(legacy).not.toHaveProperty('classifier');
+    const selected = runtimeProfileDefinitionPayload({
+      ...profile,
+      classifier: { provider: 'Team', model: 'Decisions' },
+    });
+    expect(selected).toEqual({
+      ...legacy,
+      classifier: { provider: 'team', model: 'decisions' },
+    });
+  });
+
   it('hashes only the reduced behavioral definition', () => {
     const payload = runtimeProfileDefinitionPayload({
       name: 'reviewer',

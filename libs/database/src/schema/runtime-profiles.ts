@@ -40,6 +40,10 @@ export function defineRuntimeProfilesTable({
       description: text('description'),
       provider: varchar('provider', { length: 100 }).notNull(),
       model: varchar('model', { length: 200 }).notNull(),
+      classifier: jsonb('classifier').$type<{
+        provider: string;
+        model: string;
+      }>(),
       thinkingLevel: varchar('thinking_level', { length: 16 }),
       temperature: doublePrecision('temperature'),
       topP: doublePrecision('top_p'),

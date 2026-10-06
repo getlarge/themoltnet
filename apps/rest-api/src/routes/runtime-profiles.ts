@@ -174,6 +174,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function normalizeClassifier(
+  value: { provider: string; model: string } | null | undefined,
+) {
+  return value
+    ? {
+        provider: value.provider.toLowerCase(),
+        model: value.model.toLowerCase(),
+      }
+    : null;
+}
+
 function serializeProfile(
   row: RuntimeProfile,
 ): Static<typeof RuntimeProfileSchema> {
@@ -184,6 +195,7 @@ function serializeProfile(
     description: row.description ?? null,
     provider: row.provider,
     model: row.model,
+    classifier: row.classifier ?? null,
     thinkingLevel:
       (row.thinkingLevel as RuntimeProfileThinkingLevel | null) ?? null,
     temperature: row.temperature ?? null,
@@ -218,6 +230,7 @@ type ProfileDefinitionInput = {
   description?: string | null;
   provider: string;
   model: string;
+  classifier?: { provider: string; model: string } | null;
   thinkingLevel?: RuntimeProfileThinkingLevel | null;
   temperature?: number | null;
   topP?: number | null;
@@ -342,6 +355,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
           description: body.description ?? null,
           provider: body.provider.toLowerCase(),
           model: body.model.toLowerCase(),
+          classifier: normalizeClassifier(body.classifier),
           thinkingLevel: body.thinkingLevel ?? null,
           temperature: body.temperature ?? null,
           topP: body.topP ?? null,
@@ -467,6 +481,10 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
             : existing.description,
         provider: (body.provider ?? existing.provider).toLowerCase(),
         model: (body.model ?? existing.model).toLowerCase(),
+        classifier:
+          'classifier' in body
+            ? normalizeClassifier(body.classifier)
+            : (existing.classifier ?? null),
         thinkingLevel:
           'thinkingLevel' in body
             ? (body.thinkingLevel ?? null)

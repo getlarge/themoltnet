@@ -243,6 +243,7 @@ export type AgentServerSubscriptionLogin = {
 
 export type AgentServerTaskType =
   | 'assess_brief'
+  | 'classify'
   | 'curate_pack'
   | 'freeform'
   | 'fulfill_brief'
@@ -1000,6 +1001,7 @@ export type StartAgentServerRunData = {
     strategy?: 'none' | 'existing' | 'git-worktree' | 'isolated-directory';
     taskTypes: Array<
       | 'assess_brief'
+      | 'classify'
       | 'curate_pack'
       | 'freeform'
       | 'fulfill_brief'

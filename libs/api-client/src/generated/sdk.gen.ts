@@ -21,6 +21,9 @@ import type {
   AddGroupMemberData,
   AddGroupMemberErrors,
   AddGroupMemberResponses,
+  AppendRuntimeStoreCommitData,
+  AppendRuntimeStoreCommitErrors,
+  AppendRuntimeStoreCommitResponses,
   AppendTaskMessagesData,
   AppendTaskMessagesErrors,
   AppendTaskMessagesResponses,
@@ -236,6 +239,9 @@ import type {
   GetRuntimeSessionData,
   GetRuntimeSessionErrors,
   GetRuntimeSessionResponses,
+  GetRuntimeStoreForAttemptData,
+  GetRuntimeStoreForAttemptErrors,
+  GetRuntimeStoreForAttemptResponses,
   GetSigningCredentialData,
   GetSigningCredentialErrors,
   GetSigningCredentialResponses,
@@ -313,6 +319,9 @@ import type {
   ListRuntimeSlotsData,
   ListRuntimeSlotsErrors,
   ListRuntimeSlotsResponses,
+  ListRuntimeStoreCommitsData,
+  ListRuntimeStoreCommitsErrors,
+  ListRuntimeStoreCommitsResponses,
   ListSigningCredentialsData,
   ListSigningCredentialsErrors,
   ListSigningCredentialsResponses,
@@ -346,6 +355,12 @@ import type {
   ListTeamsData,
   ListTeamsErrors,
   ListTeamsResponses,
+  MintRuntimeStoreIdData,
+  MintRuntimeStoreIdErrors,
+  MintRuntimeStoreIdResponses,
+  OpenRuntimeStoreData,
+  OpenRuntimeStoreErrors,
+  OpenRuntimeStoreResponses,
   PreviewDiaryCustomPackData,
   PreviewDiaryCustomPackErrors,
   PreviewDiaryCustomPackResponses,
@@ -370,6 +385,9 @@ import type {
   RejectTransferData,
   RejectTransferErrors,
   RejectTransferResponses,
+  ReleaseRuntimeStoreData,
+  ReleaseRuntimeStoreErrors,
+  ReleaseRuntimeStoreResponses,
   RemoveGroupMemberData,
   RemoveGroupMemberErrors,
   RemoveGroupMemberResponses,
@@ -379,6 +397,9 @@ import type {
   RenderContextPackData,
   RenderContextPackErrors,
   RenderContextPackResponses,
+  RenewRuntimeStoreData,
+  RenewRuntimeStoreErrors,
+  RenewRuntimeStoreResponses,
   RequestRecoveryChallengeData,
   RequestRecoveryChallengeErrors,
   RequestRecoveryChallengeResponses,
@@ -4185,6 +4206,264 @@ export const setRuntimeProfilePolicies = <ThrowOnError extends boolean = false>(
       },
     ],
     url: '/runtime-profiles/{profileId}/policies',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+export const getRuntimeStoreForAttempt = <ThrowOnError extends boolean = false>(
+  options: Options<GetRuntimeStoreForAttemptData, ThrowOnError>,
+): RequestResult<
+  GetRuntimeStoreForAttemptResponses,
+  GetRuntimeStoreForAttemptErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).get<
+    GetRuntimeStoreForAttemptResponses,
+    GetRuntimeStoreForAttemptErrors,
+    ThrowOnError
+  >({
+    security: [
+      {
+        key: 'bearerAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      {
+        key: 'agentKeyAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-sessions/durable/attempt',
+    ...options,
+  });
+
+export const openRuntimeStore = <ThrowOnError extends boolean = false>(
+  options: Options<OpenRuntimeStoreData, ThrowOnError>,
+): RequestResult<
+  OpenRuntimeStoreResponses,
+  OpenRuntimeStoreErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).post<
+    OpenRuntimeStoreResponses,
+    OpenRuntimeStoreErrors,
+    ThrowOnError
+  >({
+    security: [
+      {
+        key: 'bearerAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      {
+        key: 'agentKeyAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-sessions/durable/open',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+export const listRuntimeStoreCommits = <ThrowOnError extends boolean = false>(
+  options: Options<ListRuntimeStoreCommitsData, ThrowOnError>,
+): RequestResult<
+  ListRuntimeStoreCommitsResponses,
+  ListRuntimeStoreCommitsErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).get<
+    ListRuntimeStoreCommitsResponses,
+    ListRuntimeStoreCommitsErrors,
+    ThrowOnError
+  >({
+    security: [
+      {
+        key: 'bearerAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      {
+        key: 'agentKeyAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-sessions/durable/{storeId}/commits',
+    ...options,
+  });
+
+export const appendRuntimeStoreCommit = <ThrowOnError extends boolean = false>(
+  options: Options<AppendRuntimeStoreCommitData, ThrowOnError>,
+): RequestResult<
+  AppendRuntimeStoreCommitResponses,
+  AppendRuntimeStoreCommitErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).post<
+    AppendRuntimeStoreCommitResponses,
+    AppendRuntimeStoreCommitErrors,
+    ThrowOnError
+  >({
+    security: [
+      {
+        key: 'bearerAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      {
+        key: 'agentKeyAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-sessions/durable/{storeId}/commits',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+export const mintRuntimeStoreId = <ThrowOnError extends boolean = false>(
+  options: Options<MintRuntimeStoreIdData, ThrowOnError>,
+): RequestResult<
+  MintRuntimeStoreIdResponses,
+  MintRuntimeStoreIdErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).post<
+    MintRuntimeStoreIdResponses,
+    MintRuntimeStoreIdErrors,
+    ThrowOnError
+  >({
+    security: [
+      {
+        key: 'bearerAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      {
+        key: 'agentKeyAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-sessions/durable/{storeId}/ids',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+export const releaseRuntimeStore = <ThrowOnError extends boolean = false>(
+  options: Options<ReleaseRuntimeStoreData, ThrowOnError>,
+): RequestResult<
+  ReleaseRuntimeStoreResponses,
+  ReleaseRuntimeStoreErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).post<
+    ReleaseRuntimeStoreResponses,
+    ReleaseRuntimeStoreErrors,
+    ThrowOnError
+  >({
+    security: [
+      {
+        key: 'bearerAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      {
+        key: 'agentKeyAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-sessions/durable/{storeId}/release',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+export const renewRuntimeStore = <ThrowOnError extends boolean = false>(
+  options: Options<RenewRuntimeStoreData, ThrowOnError>,
+): RequestResult<
+  RenewRuntimeStoreResponses,
+  RenewRuntimeStoreErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).post<
+    RenewRuntimeStoreResponses,
+    RenewRuntimeStoreErrors,
+    ThrowOnError
+  >({
+    security: [
+      {
+        key: 'bearerAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      {
+        key: 'agentKeyAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-sessions/durable/{storeId}/renew',
     ...options,
     headers: {
       'Content-Type': 'application/json',

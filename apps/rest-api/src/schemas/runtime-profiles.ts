@@ -1,6 +1,7 @@
 import {
   RuntimeProfile,
   RuntimeProfileAllowedWorkspaceModes,
+  RuntimeProfileClassifier,
   RuntimeProfileContext,
   RuntimeProfileEnvName,
   RuntimeProfileMaxBashTimeouts,
@@ -25,6 +26,9 @@ export const CreateRuntimeProfileBodySchema = Type.Object(
     description: Type.Optional(Type.String({ maxLength: 4096 })),
     provider: Type.String({ minLength: 1, maxLength: 100 }),
     model: Type.String({ minLength: 1, maxLength: 200 }),
+    classifier: Type.Optional(
+      Type.Union([RuntimeProfileClassifier, Type.Null()]),
+    ),
     thinkingLevel: Type.Optional(RuntimeProfileNullableThinkingLevel),
     temperature: Type.Optional(RuntimeProfileNullableTemperature),
     topP: Type.Optional(RuntimeProfileNullableTopP),

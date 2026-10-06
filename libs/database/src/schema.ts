@@ -1913,6 +1913,89 @@ export const runtimeSessions = pgTable(
 export type RuntimeSession = typeof runtimeSessions.$inferSelect;
 export type NewRuntimeSession = typeof runtimeSessions.$inferInsert;
 
+/** Team-owned Pi Durable log. Payloads live in object storage. */
+export const runtimeStores = pgTable(
+  'runtime_stores',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'restrict' }),
+    format: text('format').notNull().default('pi-durable.v1'),
+    headSeq: integer('head_seq').notNull().default(0),
+    nextId: bigint('next_id', { mode: 'number' }).notNull().default(2),
+    writerToken: uuid('writer_token'),
+    writerAgentId: uuid('writer_agent_id'),
+    writerTaskId: uuid('writer_task_id'),
+    writerAttemptN: integer('writer_attempt_n'),
+    writerExpiresAt: timestamp('writer_expires_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index('runtime_stores_team_idx').on(t.teamId),
+    check(
+      'runtime_stores_sequence_positive',
+      sql`${t.headSeq} >= 0 AND ${t.nextId} > 0 AND ${t.nextId} <= 9007199254740991`,
+    ),
+  ],
+);
+
+export const runtimeStoreAttempts = pgTable(
+  'runtime_store_attempts',
+  {
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'restrict' }),
+    taskId: uuid('task_id')
+      .notNull()
+      .references(() => tasks.id, { onDelete: 'cascade' }),
+    attemptN: integer('attempt_n').notNull(),
+    storeId: uuid('store_id')
+      .notNull()
+      .references(() => runtimeStores.id, { onDelete: 'cascade' }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.taskId, t.attemptN] }),
+    index('runtime_store_attempts_store_idx').on(t.storeId),
+    foreignKey({
+      columns: [t.taskId, t.attemptN],
+      foreignColumns: [taskAttempts.taskId, taskAttempts.attemptN],
+    }).onDelete('cascade'),
+  ],
+);
+
+export const runtimeStoreCommits = pgTable(
+  'runtime_store_commits',
+  {
+    storeId: uuid('store_id')
+      .notNull()
+      .references(() => runtimeStores.id, { onDelete: 'cascade' }),
+    seq: integer('seq').notNull(),
+    commitId: uuid('commit_id').notNull(),
+    sha256: varchar('sha256', { length: 64 }).notNull(),
+    objectKey: text('object_key').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    taskId: uuid('task_id').notNull(),
+    attemptN: integer('attempt_n').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.storeId, t.seq] }),
+    uniqueIndex('runtime_store_commits_request_idx').on(t.storeId, t.commitId),
+    check(
+      'runtime_store_commits_valid',
+      sql`${t.seq} > 0 AND ${t.sizeBytes} >= 0 AND ${t.sha256} ~ '^[0-9a-f]{64}$'`,
+    ),
+  ],
+);
+
+export type RuntimeStore = typeof runtimeStores.$inferSelect;
+export type RuntimeStoreCommit = typeof runtimeStoreCommits.$inferSelect;
+
 export const taskArtifacts = pgTable(
   'task_artifacts',
   {

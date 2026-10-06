@@ -34,6 +34,10 @@ type Handler interface {
 	//
 	// POST /groups/{groupId}/members
 	AddGroupMember(ctx context.Context, req *AddGroupMemberReq, params AddGroupMemberParams) (AddGroupMemberRes, error)
+	// AppendRuntimeStoreCommit implements appendRuntimeStoreCommit operation.
+	//
+	// POST /runtime-sessions/durable/{storeId}/commits
+	AppendRuntimeStoreCommit(ctx context.Context, req *AppendRuntimeStoreCommitReq, params AppendRuntimeStoreCommitParams) (AppendRuntimeStoreCommitRes, error)
 	// AppendTaskMessages implements appendTaskMessages operation.
 	//
 	// Append messages to a task attempt.
@@ -474,6 +478,10 @@ type Handler interface {
 	//
 	// GET /runtime-sessions/{taskId}/{attemptN}
 	GetRuntimeSession(ctx context.Context, params GetRuntimeSessionParams) (GetRuntimeSessionRes, error)
+	// GetRuntimeStoreForAttempt implements getRuntimeStoreForAttempt operation.
+	//
+	// GET /runtime-sessions/durable/attempt
+	GetRuntimeStoreForAttempt(ctx context.Context, params GetRuntimeStoreForAttemptParams) (GetRuntimeStoreForAttemptRes, error)
 	// GetSigningCredential implements getSigningCredential operation.
 	//
 	// GET /crypto/signing-credentials/{id}
@@ -636,6 +644,10 @@ type Handler interface {
 	//
 	// GET /runtime-slots
 	ListRuntimeSlots(ctx context.Context, params ListRuntimeSlotsParams) (ListRuntimeSlotsRes, error)
+	// ListRuntimeStoreCommits implements listRuntimeStoreCommits operation.
+	//
+	// GET /runtime-sessions/durable/{storeId}/commits
+	ListRuntimeStoreCommits(ctx context.Context, params ListRuntimeStoreCommitsParams) (ListRuntimeStoreCommitsRes, error)
 	// ListSigningCredentials implements listSigningCredentials operation.
 	//
 	// GET /crypto/signing-credentials
@@ -701,6 +713,14 @@ type Handler interface {
 	//
 	// GET /teams
 	ListTeams(ctx context.Context, params ListTeamsParams) (ListTeamsRes, error)
+	// MintRuntimeStoreId implements mintRuntimeStoreId operation.
+	//
+	// POST /runtime-sessions/durable/{storeId}/ids
+	MintRuntimeStoreId(ctx context.Context, req *MintRuntimeStoreIdReq, params MintRuntimeStoreIdParams) (MintRuntimeStoreIdRes, error)
+	// OpenRuntimeStore implements openRuntimeStore operation.
+	//
+	// POST /runtime-sessions/durable/open
+	OpenRuntimeStore(ctx context.Context, req *OpenRuntimeStoreReq, params OpenRuntimeStoreParams) (OpenRuntimeStoreRes, error)
 	// PreviewDiaryCustomPack implements previewDiaryCustomPack operation.
 	//
 	// Preview a custom context pack from an explicit entry selection without persisting it.
@@ -750,6 +770,10 @@ type Handler interface {
 	//
 	// POST /transfers/{transferId}/reject
 	RejectTransfer(ctx context.Context, params RejectTransferParams) (RejectTransferRes, error)
+	// ReleaseRuntimeStore implements releaseRuntimeStore operation.
+	//
+	// POST /runtime-sessions/durable/{storeId}/release
+	ReleaseRuntimeStore(ctx context.Context, req *ReleaseRuntimeStoreReq, params ReleaseRuntimeStoreParams) (ReleaseRuntimeStoreRes, error)
 	// RemoveGroupMember implements removeGroupMember operation.
 	//
 	// Remove a member from a group. Requires manage_members permission.
@@ -769,6 +793,10 @@ type Handler interface {
 	//
 	// POST /packs/{id}/render
 	RenderContextPack(ctx context.Context, req *RenderContextPackReq, params RenderContextPackParams) (RenderContextPackRes, error)
+	// RenewRuntimeStore implements renewRuntimeStore operation.
+	//
+	// POST /runtime-sessions/durable/{storeId}/renew
+	RenewRuntimeStore(ctx context.Context, req *RenewRuntimeStoreReq, params RenewRuntimeStoreParams) (RenewRuntimeStoreRes, error)
 	// RequestRecoveryChallenge implements requestRecoveryChallenge operation.
 	//
 	// Generate a recovery challenge for an agent to sign with their Ed25519 private key.

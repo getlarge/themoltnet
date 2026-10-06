@@ -5,7 +5,15 @@ import { gzip } from 'node:zlib';
 import type { RuntimeSession } from '@moltnet/database';
 import { MissingRuntimeSessionObjectError } from '@moltnet/runtime-session-service';
 import type { FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from 'vitest';
 
 import {
   createMockServices,
@@ -321,5 +329,182 @@ describe('runtime session routes', () => {
       code: 'NOT_FOUND',
       reason: 'missing_remote_session_object',
     });
+  });
+});
+
+describe('incremental runtime sessions', () => {
+  let app: FastifyInstance;
+  let mocks: ReturnType<typeof createMockServices>;
+
+  beforeEach(async () => {
+    mocks = createMockServices();
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
+    mocks.permissionChecker.canViewTask.mockResolvedValue(true);
+    mocks.runtimeSessionRepository.durable.findAttempt.mockResolvedValue({
+      storeId: SESSION_ID,
+      taskId: TASK_ID,
+      attemptN: 1,
+      teamId: TEAM_ID,
+    });
+    mocks.runtimeSessionRepository.durable.get.mockResolvedValue({
+      id: SESSION_ID,
+      format: 'pi-durable.v1',
+      headSeq: 3,
+    });
+    app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('resolves Durable state through runtime sessions with team and task authorization', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/runtime-sessions/durable/attempt?taskId=${TASK_ID}&attemptN=1`,
+      headers: TEAM_HEADERS,
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      storeId: SESSION_ID,
+      format: 'pi-durable.v1',
+      headSeq: 3,
+    });
+    expect(
+      mocks.runtimeSessionRepository.durable.findAttempt,
+    ).toHaveBeenCalledWith(TEAM_ID, TASK_ID, 1);
+    expect(mocks.permissionChecker.canViewTask).toHaveBeenCalledWith(
+      TASK_ID,
+      VALID_AUTH_CONTEXT.agentId,
+      expect.any(String),
+    );
+  });
+
+  it('persists ordered commits through the existing storage hook and fences released writers', async () => {
+    const repo = mocks.runtimeSessionRepository.durable;
+    const row = {
+      id: SESSION_ID,
+      teamId: TEAM_ID,
+      format: 'pi-durable.v1',
+      headSeq: 0,
+      nextId: 2,
+      writerToken: null,
+      writerExpiresAt: null,
+    };
+    const receipts: Array<Record<string, unknown>> = [];
+    let bytes = Buffer.alloc(0);
+    repo.lockAuthority.mockResolvedValue({
+      task: { input: {}, claimExpiresAt: new Date(Date.now() + 300_000) },
+    });
+    repo.lock.mockImplementation(async () => ({ ...row }));
+    repo.get.mockImplementation(async () => ({ ...row }));
+    repo.update.mockImplementation(async (_id, patch) => {
+      Object.assign(row, patch);
+    });
+    repo.findCommit.mockImplementation(async (_id, commitId) =>
+      receipts.find((receipt) => receipt.commitId === commitId),
+    );
+    repo.append.mockImplementation(async (receipt) => {
+      receipts.push(receipt);
+      row.headSeq = receipt.seq;
+    });
+    repo.listAttempts.mockResolvedValue([{ taskId: TASK_ID, attemptN: 1 }]);
+    repo.listCommits.mockImplementation(async (_id, afterSeq) =>
+      receipts.filter((receipt) => Number(receipt.seq) > afterSeq),
+    );
+    mocks.runtimeSessionStorage.putObject.mockImplementation(
+      async ({ body }) => {
+        const chunks: Buffer[] = [];
+        for await (const chunk of body) chunks.push(Buffer.from(chunk));
+        bytes = Buffer.concat(chunks);
+      },
+    );
+    mocks.runtimeSessionStorage.getObject.mockImplementation(async () => ({
+      body: Readable.from([bytes]),
+    }));
+    const authority = {
+      taskId: TASK_ID,
+      attemptN: 1,
+      leaseId: SLOT_ID,
+      executorFingerprint: 'executor',
+    };
+    const opened = await app.inject({
+      method: 'POST',
+      url: '/runtime-sessions/durable/open',
+      headers: TEAM_HEADERS,
+      payload: authority,
+    });
+    expect(opened.statusCode).toBe(200);
+    const writer = { ...authority, writerToken: opened.json().writerToken };
+    const commit = {
+      ...writer,
+      commitId: PROFILE_ID,
+      expectedSeq: 0,
+      writes: [
+        { type: 'entry', value: { id: 2, conversationId: 1, kind: 'message' } },
+      ],
+    };
+    const url = `/runtime-sessions/durable/${SESSION_ID}/commits`;
+    for (let retry = 0; retry < 2; retry++) {
+      const response = await app.inject({
+        method: 'POST',
+        url,
+        headers: TEAM_HEADERS,
+        payload: commit,
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ seq: 1 });
+    }
+    expect(repo.append).toHaveBeenCalledTimes(1);
+    expect(mocks.taskRepository.appendMessages).toHaveBeenCalledTimes(1);
+    expect(mocks.runtimeSessionStorage.putObject).toHaveBeenCalled();
+    const read = await app.inject({
+      method: 'GET',
+      url: `${url}?afterSeq=0`,
+      headers: TEAM_HEADERS,
+    });
+    expect(read.statusCode).toBe(200);
+    expect(read.json()).toMatchObject({
+      headSeq: 1,
+      items: [{ seq: 1, writes: commit.writes }],
+    });
+    expect(JSON.stringify(read.json())).not.toContain('objectKey');
+    const released = await app.inject({
+      method: 'POST',
+      url: `/runtime-sessions/durable/${SESSION_ID}/release`,
+      headers: TEAM_HEADERS,
+      payload: writer,
+    });
+    expect(released.statusCode).toBe(204);
+    const stale = await app.inject({
+      method: 'POST',
+      url,
+      headers: TEAM_HEADERS,
+      payload: commit,
+    });
+    expect(stale.statusCode).toBe(409);
+  });
+
+  it('does not reveal session state without source-task access', async () => {
+    mocks.permissionChecker.canViewTask.mockResolvedValue(false);
+    const response = await app.inject({
+      method: 'GET',
+      url: `/runtime-sessions/durable/attempt?taskId=${TASK_ID}&attemptN=1`,
+      headers: TEAM_HEADERS,
+    });
+    expect(response.statusCode).toBe(404);
+    expect(
+      mocks.runtimeSessionRepository.durable.findAttempt,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('does not expose the superseded pilot API', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/runtime-stores/open',
+      headers: TEAM_HEADERS,
+      payload: {},
+    });
+    expect(response.statusCode).toBe(404);
   });
 });

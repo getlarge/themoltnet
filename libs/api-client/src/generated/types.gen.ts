@@ -489,6 +489,10 @@ export type CreateRuntimePolicyBody = {
 
 export type CreateRuntimeProfileBody = {
   allowedWorkspaceModes?: Array<'none' | 'shared_mount' | 'dedicated_worktree'>;
+  classifier?: {
+    model: string;
+    provider: string;
+  } | null;
   context?: Array<{
     binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
     content: string;
@@ -2036,6 +2040,10 @@ export type RuntimePolicyWithTools = {
 
 export type RuntimeProfile = {
   allowedWorkspaceModes: Array<'none' | 'shared_mount' | 'dedicated_worktree'>;
+  classifier?: {
+    model: string;
+    provider: string;
+  } | null;
   context: Array<{
     binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
     content: string;
@@ -2102,6 +2110,10 @@ export type RuntimeProfileListResponse = {
     allowedWorkspaceModes: Array<
       'none' | 'shared_mount' | 'dedicated_worktree'
     >;
+    classifier?: {
+      model: string;
+      provider: string;
+    } | null;
     context: Array<{
       binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
       content: string;
@@ -2940,6 +2952,10 @@ export type UpdateRuntimePolicyBody = {
 
 export type UpdateRuntimeProfileBody = {
   allowedWorkspaceModes?: Array<'none' | 'shared_mount' | 'dedicated_worktree'>;
+  classifier?: {
+    model: string;
+    provider: string;
+  } | null;
   context?: Array<{
     binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
     content: string;
@@ -9591,6 +9607,485 @@ export type SetRuntimeProfilePoliciesResponses = {
 
 export type SetRuntimeProfilePoliciesResponse =
   SetRuntimeProfilePoliciesResponses[keyof SetRuntimeProfilePoliciesResponses];
+
+export type GetRuntimeStoreForAttemptData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path?: never;
+  query: {
+    taskId: string;
+    attemptN: number;
+  };
+  url: '/runtime-sessions/durable/attempt';
+};
+
+export type GetRuntimeStoreForAttemptErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type GetRuntimeStoreForAttemptError =
+  GetRuntimeStoreForAttemptErrors[keyof GetRuntimeStoreForAttemptErrors];
+
+export type GetRuntimeStoreForAttemptResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    format: 'pi-durable.v1';
+    headSeq: number;
+    storeId: string;
+  } | null;
+};
+
+export type GetRuntimeStoreForAttemptResponse =
+  GetRuntimeStoreForAttemptResponses[keyof GetRuntimeStoreForAttemptResponses];
+
+export type OpenRuntimeStoreData = {
+  body: {
+    attemptN: number;
+    executorFingerprint: string;
+    leaseId: string;
+    taskId: string;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path?: never;
+  query?: never;
+  url: '/runtime-sessions/durable/open';
+};
+
+export type OpenRuntimeStoreErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type OpenRuntimeStoreError =
+  OpenRuntimeStoreErrors[keyof OpenRuntimeStoreErrors];
+
+export type OpenRuntimeStoreResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    format: 'pi-durable.v1';
+    headSeq: number;
+    storeId: string;
+    writerExpiresAt: string;
+    writerToken: string;
+  };
+};
+
+export type OpenRuntimeStoreResponse =
+  OpenRuntimeStoreResponses[keyof OpenRuntimeStoreResponses];
+
+export type ListRuntimeStoreCommitsData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    storeId: string;
+  };
+  query?: {
+    afterSeq?: number;
+    limit?: number;
+  };
+  url: '/runtime-sessions/durable/{storeId}/commits';
+};
+
+export type ListRuntimeStoreCommitsErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type ListRuntimeStoreCommitsError =
+  ListRuntimeStoreCommitsErrors[keyof ListRuntimeStoreCommitsErrors];
+
+export type ListRuntimeStoreCommitsResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    headSeq: number;
+    items: Array<{
+      commitId: string;
+      seq: number;
+      sha256: string;
+      writes: Array<{
+        [key: string]: unknown;
+      }>;
+    }>;
+  };
+};
+
+export type ListRuntimeStoreCommitsResponse =
+  ListRuntimeStoreCommitsResponses[keyof ListRuntimeStoreCommitsResponses];
+
+export type AppendRuntimeStoreCommitData = {
+  body: {
+    attemptN: number;
+    commitId: string;
+    executorFingerprint: string;
+    expectedSeq: number;
+    leaseId: string;
+    taskId: string;
+    writerToken: string;
+    writes: Array<{
+      [key: string]: unknown;
+    }>;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    storeId: string;
+  };
+  query?: never;
+  url: '/runtime-sessions/durable/{storeId}/commits';
+};
+
+export type AppendRuntimeStoreCommitErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type AppendRuntimeStoreCommitError =
+  AppendRuntimeStoreCommitErrors[keyof AppendRuntimeStoreCommitErrors];
+
+export type AppendRuntimeStoreCommitResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    seq: number;
+  };
+};
+
+export type AppendRuntimeStoreCommitResponse =
+  AppendRuntimeStoreCommitResponses[keyof AppendRuntimeStoreCommitResponses];
+
+export type MintRuntimeStoreIdData = {
+  body: {
+    attemptN: number;
+    executorFingerprint: string;
+    leaseId: string;
+    taskId: string;
+    writerToken: string;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    storeId: string;
+  };
+  query?: never;
+  url: '/runtime-sessions/durable/{storeId}/ids';
+};
+
+export type MintRuntimeStoreIdErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type MintRuntimeStoreIdError =
+  MintRuntimeStoreIdErrors[keyof MintRuntimeStoreIdErrors];
+
+export type MintRuntimeStoreIdResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    id: number;
+  };
+};
+
+export type MintRuntimeStoreIdResponse =
+  MintRuntimeStoreIdResponses[keyof MintRuntimeStoreIdResponses];
+
+export type ReleaseRuntimeStoreData = {
+  body: {
+    attemptN: number;
+    executorFingerprint: string;
+    leaseId: string;
+    taskId: string;
+    writerToken: string;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    storeId: string;
+  };
+  query?: never;
+  url: '/runtime-sessions/durable/{storeId}/release';
+};
+
+export type ReleaseRuntimeStoreErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type ReleaseRuntimeStoreError =
+  ReleaseRuntimeStoreErrors[keyof ReleaseRuntimeStoreErrors];
+
+export type ReleaseRuntimeStoreResponses = {
+  /**
+   * Default Response
+   */
+  204: void;
+};
+
+export type ReleaseRuntimeStoreResponse =
+  ReleaseRuntimeStoreResponses[keyof ReleaseRuntimeStoreResponses];
+
+export type RenewRuntimeStoreData = {
+  body: {
+    attemptN: number;
+    executorFingerprint: string;
+    leaseId: string;
+    taskId: string;
+    writerToken: string;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    storeId: string;
+  };
+  query?: never;
+  url: '/runtime-sessions/durable/{storeId}/renew';
+};
+
+export type RenewRuntimeStoreErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type RenewRuntimeStoreError =
+  RenewRuntimeStoreErrors[keyof RenewRuntimeStoreErrors];
+
+export type RenewRuntimeStoreResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    format: 'pi-durable.v1';
+    headSeq: number;
+    storeId: string;
+    writerExpiresAt: string;
+    writerToken: string;
+  };
+};
+
+export type RenewRuntimeStoreResponse =
+  RenewRuntimeStoreResponses[keyof RenewRuntimeStoreResponses];
 
 export type GetRuntimeSessionData = {
   body?: never;
