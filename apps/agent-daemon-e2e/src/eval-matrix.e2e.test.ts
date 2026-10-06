@@ -25,9 +25,11 @@ import {
   buildJudgeInput,
   checkGates,
   readScenario,
+  readSubmitStructure,
   runMatrix,
   type Scenario,
   type ScoreMatrix,
+  type SubmitStructure,
   summarizeMatrix,
 } from '@moltnet/agent-eval';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises the daemon app entry point.
@@ -49,6 +51,12 @@ const PROVIDER = 'ollama-cloud';
 const WARM_TTL_SEC = '1200';
 const CORPUS_ROOT = join(import.meta.dirname, '../../..', 'evals-v2');
 
+const NO_SUBMIT_STRUCTURE: SubmitStructure = {
+  invalidSubmitCalls: 0,
+  repairKinds: [],
+  outputSource: null,
+};
+
 const describeMatrix = describe.skipIf(process.env[MATRIX_FLAG] !== '1');
 
 function parseModels(): string[] {
@@ -62,40 +70,6 @@ function loadScenarios(): Scenario[] {
   return readdirSync(CORPUS_ROOT, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => readScenario(join(CORPUS_ROOT, entry.name)));
-}
-
-async function readSubmitStructure(
-  agent: Agent,
-  taskId: string,
-  attemptN: number | null,
-  taskType: string,
-): Promise<{
-  invalidSubmitCalls: number;
-  repairKinds: string[];
-  outputSource: 'tool' | null;
-}> {
-  const empty = { invalidSubmitCalls: 0, repairKinds: [], outputSource: null };
-  if (attemptN === null) return empty;
-  const messages = await agent.tasks.listMessages(taskId, attemptN);
-  const submitName = `submit_${taskType}_output`;
-  const invalidSubmitCalls = messages.filter(
-    (message) =>
-      message.kind === 'tool_call_end' &&
-      message.payload.tool_name === submitName &&
-      message.payload.is_error === true,
-  ).length;
-  const completion = messages.find(
-    (message) =>
-      message.kind === 'info' && message.payload.event === 'output_completion',
-  )?.payload;
-  const repairKinds = Array.isArray(completion?.repair_kinds)
-    ? completion.repair_kinds.filter(
-        (kind): kind is string => typeof kind === 'string',
-      )
-    : [];
-  const source = completion?.output_source;
-  const outputSource = source === 'submit_tool' ? ('tool' as const) : null;
-  return { invalidSubmitCalls, repairKinds, outputSource };
 }
 
 async function createProfile(
@@ -281,12 +255,14 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
             taskId: task.id,
             attemptN: null,
             failureCode: latest?.error?.code ?? `task_${final.status}`,
-            structure: await readSubmitStructure(
-              agent,
-              task.id,
-              latest?.attemptN ?? null,
-              scenario.taskType,
-            ),
+            structure: latest
+              ? await readSubmitStructure(
+                  agent,
+                  task.id,
+                  latest.attemptN,
+                  scenario.taskType,
+                )
+              : NO_SUBMIT_STRUCTURE,
           };
         }
         return {
