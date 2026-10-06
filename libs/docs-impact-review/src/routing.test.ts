@@ -189,7 +189,7 @@ describe('searchDocsForTerms', () => {
     });
 
     // Act
-    const hits = searchDocsForTerms(repo.git, head, ['--dry-run', 'x'], {
+    const { hits } = searchDocsForTerms(repo.git, head, ['--dry-run', 'x'], {
       include: [],
       exclude: DEFAULT_DOCS_EXCLUDE,
     });
@@ -209,7 +209,7 @@ describe('searchDocsForTerms', () => {
     });
 
     // Act
-    const hits = searchDocsForTerms(repo.git, head, ['--dry-run'], {
+    const { hits } = searchDocsForTerms(repo.git, head, ['--dry-run'], {
       include: [],
       exclude: ['**/CHANGELOG.md', '**/.*/**/CHANGELOG.md', 'vendor/**'],
     });
@@ -224,7 +224,7 @@ describe('searchDocsForTerms', () => {
     const head = repo.commit({ 'docs/cli.md': 'nothing here\n' });
 
     // Act
-    const hits = searchDocsForTerms(repo.git, head, ['MOLTNET_NEW_VAR'], {
+    const { hits } = searchDocsForTerms(repo.git, head, ['MOLTNET_NEW_VAR'], {
       include: [],
       exclude: DEFAULT_DOCS_EXCLUDE,
     });
@@ -244,7 +244,7 @@ describe('searchDocsForTerms', () => {
     });
 
     // Act
-    const hits = searchDocsForTerms(
+    const { hits } = searchDocsForTerms(
       createGit(join(repo.dir, 'sub')),
       head,
       ['--dry-run'],
@@ -253,6 +253,42 @@ describe('searchDocsForTerms', () => {
 
     // Assert
     expect([...hits.keys()]).toEqual(['docs/cli.md']);
+  });
+
+  it('matches Markdown extensions in any case, as categorization does', () => {
+    // Arrange
+    const head = repo.commit({ 'docs/GUIDE.MD': 'Pass `--dry-run`.\n' });
+
+    // Act
+    const { hits } = searchDocsForTerms(repo.git, head, ['--dry-run'], {
+      include: [],
+      exclude: [],
+    });
+
+    // Assert
+    expect([...hits.keys()]).toEqual(['docs/GUIDE.MD']);
+  });
+
+  it('caps included files searched and counts the rest', () => {
+    // Arrange: more included files than the cap, every one a match.
+    const head = repo.commit({
+      'docs/a.rst': '--dry-run\n',
+      'docs/b.rst': '--dry-run\n',
+      'docs/c.rst': '--dry-run\n',
+    });
+
+    // Act
+    const search = searchDocsForTerms(
+      repo.git,
+      head,
+      ['--dry-run'],
+      { include: ['docs/**/*.rst'], exclude: [] },
+      2,
+    );
+
+    // Assert
+    expect([...search.hits.keys()]).toEqual(['docs/a.rst', 'docs/b.rst']);
+    expect(search.unsearched).toBe(1);
   });
 
   it('searches files the repository includes as documentation', () => {
@@ -266,7 +302,7 @@ describe('searchDocsForTerms', () => {
     });
 
     // Act: braces are minimatch syntax that git pathspecs do not support.
-    const hits = searchDocsForTerms(repo.git, head, ['--dry-run'], {
+    const { hits } = searchDocsForTerms(repo.git, head, ['--dry-run'], {
       include: ['docs/**/*.{rst,adoc}'],
       exclude: ['docs/vendor/**'],
     });

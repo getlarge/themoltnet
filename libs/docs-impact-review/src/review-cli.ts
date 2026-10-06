@@ -86,6 +86,16 @@ function readPullRequest(repo: string, pr: number): PullRequest {
   return JSON.parse(raw) as PullRequest;
 }
 
+/** The budgets a configuration overrides, with their values. */
+function describeBudgetOverrides(config: ReviewConfig): string {
+  const overrides = Object.entries(config.budgets).filter(
+    ([, value]) => value !== undefined,
+  );
+  return overrides.length === 0
+    ? 'default budgets'
+    : `budgets ${overrides.map(([key, value]) => `${key}=${value}`).join(' ')}`;
+}
+
 /** One line naming the configuration and what it adds to the defaults. */
 function describeConfig(
   config: ReviewConfig,
@@ -103,7 +113,7 @@ function describeConfig(
     config.instructions
       ? `${config.instructions.length} characters of instructions`
       : 'no instructions',
-    `${Object.keys(config.budgets).length} budget overrides`,
+    describeBudgetOverrides(config),
   ].join(', ');
 }
 
@@ -340,6 +350,7 @@ function dryRunSummary(
     pr: target.pr,
     config: source,
     files: changeSet.files.map(({ path, category }) => ({ path, category })),
+    budgets,
     diffBytes: diff.bytes,
     omittedPaths: diff.omittedPaths,
     truncatedPaths: diff.truncatedPaths,

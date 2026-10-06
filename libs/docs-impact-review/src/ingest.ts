@@ -1,3 +1,4 @@
+import { type DocsGlobs, isDocsPath } from './docs-paths.js';
 import { type Git, requireFullOid } from './git.js';
 import { matchesAny } from './glob.js';
 import { truncateAtLine } from './text.js';
@@ -30,16 +31,6 @@ const TEST_PATTERNS = [
 
 /** Conventional generated-output markers, beyond base `.gitattributes`. */
 const GENERATED_PATTERNS = [/(^|\/)generated\//, /\.gen\.[a-z]+$/, /_gen\.go$/];
-
-const DOCS_PATTERN = /\.mdx?$/i;
-
-/**
- * Markdown is always documentation; `include` globs from the repository
- * configuration add other formats (reStructuredText, AsciiDoc, …).
- */
-export function isDocsPath(path: string, include: readonly string[]): boolean {
-  return DOCS_PATTERN.test(path) || matchesAny(path, include);
-}
 
 function basename(path: string): string {
   return path.slice(path.lastIndexOf('/') + 1);
@@ -171,14 +162,6 @@ function generatedFromBaseAttributes(
   return generated;
 }
 
-/** Repository globs that decide which changed files are documentation. */
-export interface DocsGlobs {
-  /** Reviewed as documentation besides Markdown. */
-  include: readonly string[];
-  /** Documentation the repository does not want reviewed. */
-  exclude: readonly string[];
-}
-
 /**
  * `docs.exclude` marks documentation the repository does not want reviewed
  * (vendored or generated pages); it is categorized as generated.
@@ -216,6 +199,7 @@ export function collectChangeSet(
 
 export interface DiffBudget {
   totalBytes: number;
+  /** One file's block, header included; bounded by `totalBytes`. */
   perFileBytes: number;
   /** Part of `totalBytes` that changed docs fill before source does. */
   docsReserveBytes: number;
@@ -279,7 +263,16 @@ export function boundDiff(
         file.previousPath ? ` from ${file.previousPath}` : ''
       })\n`;
     }
-    const body = truncateAtLine(hunks, budget.perFileBytes);
+    // The cap bounds the whole block, header included, so a patch cut to a
+    // per-file cap as large as the total still fits instead of being
+    // omitted.
+    const room = Math.max(
+      0,
+      Math.min(budget.perFileBytes, budget.totalBytes) -
+        Buffer.byteLength(header, 'utf8') -
+        1,
+    );
+    const body = truncateAtLine(hunks, room);
     const block = `${header}${body}\n`;
     return {
       file,

@@ -553,7 +553,19 @@ describe('runDocsImpactReview', () => {
         json({ version: 1, changes: [cliChange] }),
         json({ version: 1, outcome: 'covered', findings: [] }),
       ],
-      { budgets: { diffTotalBytes: 5_000, diffPerFileBytes: 4_500 } },
+      {
+        config: parseReviewConfig({
+          version: 1,
+          routing: [
+            {
+              id: 'cli',
+              paths: ['apps/cli/src/**'],
+              docs: ['docs/reference/cli.md'],
+            },
+          ],
+          budgets: { diffTotalBytes: 8_000, diffPerFileBytes: 4_500 },
+        }),
+      },
     );
 
     // Assert
@@ -563,7 +575,8 @@ describe('runDocsImpactReview', () => {
     expect(result.gaps).toEqual([
       {
         scope: 'apps/cli/src/other.ts',
-        reason: 'omitted from model context by the diff budget',
+        reason:
+          'omitted from model context by the diff budget (budgets.diffTotalBytes)',
       },
     ]);
   });
@@ -579,7 +592,7 @@ describe('runDocsImpactReview', () => {
       budgets: {
         diffTotalBytes: 8_000,
         diffPerFileBytes: 4_500,
-        stageRunningTimeoutSec: 200,
+        stageRunningTimeoutSec: 150,
       },
     });
 
@@ -595,7 +608,7 @@ describe('runDocsImpactReview', () => {
     expect(result.gaps.map((gap) => gap.scope)).toEqual([
       'apps/cli/src/other.ts',
     ]);
-    expect(created[0].runningTimeoutSec).toBe(200);
+    expect(created[0].runningTimeoutSec).toBe(150);
   });
 
   it('names the configured timeout when a stage exceeds it', async () => {

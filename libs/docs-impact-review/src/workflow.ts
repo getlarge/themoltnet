@@ -8,19 +8,16 @@ import {
   type WorkflowContext,
 } from '@themoltnet/tasks-orchestrator';
 
-import { type Budgets, resolveBudgets } from './budgets.js';
+import { type Budgets, DEFAULT_BUDGETS, resolveBudgets } from './budgets.js';
 import { docsCheckFindings, extractDocsHunks } from './docs-check.js';
+import type { DocsGlobs } from './docs-paths.js';
 import { existsAt, type Git } from './git.js';
-import {
-  boundDiff,
-  collectChangeSet,
-  type DiffBudget,
-  type DocsGlobs,
-} from './ingest.js';
+import { boundDiff, collectChangeSet, type DiffBudget } from './ingest.js';
 import type { ReviewConfig, ReviewConfigSource } from './review-config.js';
 import {
   dropGenericTerms,
   isRequiredCandidate,
+  MAX_SEARCHED_INCLUDED_DOCS,
   routeDocs,
   searchDocsForTerms,
   selectCandidates,
@@ -55,11 +52,13 @@ import type {
  * the input, not a dependency, so it is recorded with the review; stage
  * guidance comes only from `config.instructions`.
  */
-export interface DocsImpactInput extends Omit<StageContext, 'instructions'> {
+export interface DocsImpactInput extends Omit<
+  StageContext,
+  'instructions' | 'runningTimeoutSec'
+> {
   config: ReviewConfig;
   configSource: ReviewConfigSource;
   pollIntervalSec?: number;
-  budgets?: Partial<Budgets>;
 }
 
 export interface DocsImpactDeps {
@@ -226,7 +225,9 @@ async function runStage<T>(
   const budgetReason = attempt?.error?.code
     ? budgetErrorReason(
         attempt.error.code,
-        body.runningTimeoutSec ?? input.runningTimeoutSec ?? 0,
+        body.runningTimeoutSec ??
+          input.runningTimeoutSec ??
+          DEFAULT_BUDGETS.stageRunningTimeoutSec,
       )
     : undefined;
   if (budgetReason) throw new StageBudgetExceeded(stage, budgetReason);
@@ -288,9 +289,14 @@ function retrieveDocs(
     return exists;
   });
   const terms = changes.flatMap((change) => change.searchTerms);
-  const search = dropGenericTerms(
-    searchDocsForTerms(git, head, terms, docsGlobs(config)),
-  );
+  const found = searchDocsForTerms(git, head, terms, docsGlobs(config));
+  if (found.unsearched > 0) {
+    gaps.push({
+      scope: 'documentation search',
+      reason: `${found.unsearched} included documentation files not searched: more than ${MAX_SEARCHED_INCLUDED_DOCS} match docs.include`,
+    });
+  }
+  const search = dropGenericTerms(found.hits);
   searchTermsDropped.push(...search.generic);
   for (const path of search.hits.keys()) {
     const reasons = routed.candidates.get(path) ?? [];
@@ -308,7 +314,7 @@ function retrieveDocs(
     if (!isRequiredCandidate(reasons)) continue;
     gaps.push({
       scope: path,
-      reason: `candidate doc not reviewed: more than ${budgets.maxDocs} docs matched`,
+      reason: `candidate doc not reviewed: more than ${budgets.maxDocs} docs matched (budgets.maxDocs)`,
     });
   }
   return selection.selected.map(({ path, reasons }) => {
@@ -336,7 +342,7 @@ export function docsGlobs(config: ReviewConfig): DocsGlobs {
 export function diffBudget(config: ReviewConfig, budgets: Budgets): DiffBudget {
   return {
     totalBytes: budgets.diffTotalBytes,
-    perFileBytes: Math.min(budgets.diffPerFileBytes, budgets.diffTotalBytes),
+    perFileBytes: budgets.diffPerFileBytes,
     docsReserveBytes: Math.min(
       budgets.diffDocsReserveBytes,
       budgets.diffTotalBytes,
@@ -383,7 +389,7 @@ export async function runDocsImpactReview(
   reviewInput: DocsImpactInput,
 ): Promise<DocsImpactReport> {
   const { config, configSource, ...rest } = reviewInput;
-  const budgets = resolveBudgets(config.budgets, rest.budgets);
+  const budgets = resolveBudgets(config.budgets);
   const input: StageContext & DocsImpactInput = {
     ...rest,
     config,
@@ -406,6 +412,7 @@ export async function runDocsImpactReview(
     baseRevision: input.baseRevision,
     headRevision: input.headRevision,
     config: { ...configSource, routingRules: config.routing.rules.length },
+    budgets,
     status: 'completed',
     findings: [],
     gaps: [],
@@ -460,13 +467,15 @@ export async function runDocsImpactReview(
     for (const path of diff.omittedPaths) {
       report.gaps.push({
         scope: path,
-        reason: 'omitted from model context by the diff budget',
+        reason:
+          'omitted from model context by the diff budget (budgets.diffTotalBytes)',
       });
     }
     for (const path of diff.truncatedPaths) {
       report.gaps.push({
         scope: path,
-        reason: 'patch truncated at the per-file budget',
+        reason:
+          'patch truncated at the per-file budget (budgets.diffPerFileBytes)',
       });
     }
     timings.ingestMs = now() - started;
@@ -542,7 +551,7 @@ export async function runDocsImpactReview(
     if (docsDiff !== docsBlocks) {
       report.gaps.push({
         scope: 'documentation diff',
-        reason: 'truncated at the docs-diff budget',
+        reason: 'truncated at the docs-diff budget (budgets.docsDiffBytes)',
       });
     }
     timings.retrievalMs = now() - retrievalStarted;
@@ -554,7 +563,7 @@ export async function runDocsImpactReview(
     for (const id of docsHunks.overflow) {
       report.gaps.push({
         scope: id,
-        reason: `docs hunk not checked: more than ${budgets.maxDocsHunks} hunks`,
+        reason: `docs hunk not checked: more than ${budgets.maxDocsHunks} hunks (budgets.maxDocsHunks)`,
       });
     }
     // Coverage and the docs check are independent: run them in parallel so
@@ -579,7 +588,7 @@ export async function runDocsImpactReview(
               changedPaths: new Set(changeSet.files.map((file) => file.path)),
               changedDocs,
               selectedDocs: new Set(docs.map((doc) => doc.path)),
-              docsInclude: config.docsInclude,
+              docs: docsGlobs(config),
             },
             repairs,
           ),

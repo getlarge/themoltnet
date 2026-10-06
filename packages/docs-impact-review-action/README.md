@@ -263,11 +263,11 @@ The comment's first line gives the outcome:
 | `not reviewed`   | The review failed; the comment gives the error. No judgment was made.                                                             |
 
 `incomplete` usually means the diff was larger than the review's input
-budget. Files are packed in this order: changed docs first (within a
-reserved share), then source the routing rules name, then other source.
-So the files left out are most likely unrouted source. Either read the
-listed files yourself, split the pull request, or raise the limits for
-the repository (below).
+budget. Files are packed in this order: changed docs within a reserved
+share of the budget, then source the routing rules name, then other source,
+then docs that did not fit the reserve. Each file left out is listed with
+the budget key it hit. Either read the listed files yourself, split the pull
+request, or raise that limit for the repository (below).
 
 ## Configure the review
 

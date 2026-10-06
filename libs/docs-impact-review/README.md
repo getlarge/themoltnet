@@ -47,13 +47,13 @@ configurable under `budgets` in its
 | Budget                               | Key                      | Default    | Configurable range |
 | ------------------------------------ | ------------------------ | ---------- | ------------------ |
 | Diff bytes (stage 1)                 | `diffTotalBytes`         | 64 000     | 8 000 – 256 000    |
-| Per-file patch bytes                 | `diffPerFileBytes`       | 12 000     | 1 000 – 64 000     |
-| Diff bytes reserved for changed docs | `diffDocsReserveBytes`   | 16 000     | 0 – 128 000        |
+| Per-file block bytes (header incl.)  | `diffPerFileBytes`       | 12 000     | 1 000 – 64 000     |
+| Diff bytes reserved for changed docs | `diffDocsReserveBytes`   | ¼ of total | 0 – 128 000        |
 | Docs-diff bytes (coverage stage)     | `docsDiffBytes`          | 16 000     | 1 000 – 64 000     |
 | Excerpt bytes per doc                | `docExcerptBytes`        | 8 000      | 1 000 – 32 000     |
 | Docs per review                      | `maxDocs`                | 6          | 1 – 20             |
 | Docs hunks checked                   | `maxDocsHunks`           | 12         | 1 – 50             |
-| Running timeout per stage (s)        | `stageRunningTimeoutSec` | 120        | 30 – 240           |
+| Running timeout per stage (s)        | `stageRunningTimeoutSec` | 120        | 30 – 180           |
 | Manifest lines, bytes per docs hunk  | —                        | 150, 1 500 | not configurable   |
 | Model turns / output tokens          | —                        | 6 / 4096   | runtime profile    |
 
@@ -61,10 +61,16 @@ The diff is packed in three steps, each skipping a file that does not fit:
 changed docs up to `diffDocsReserveBytes`, then source (files a routing rule
 names first), then the remaining docs in whatever budget is left. A large
 source change therefore cannot push the pull request's own docs out of the
-review. Every file left out is listed as a gap.
+review. Every file left out is listed as a gap that names the budget key it
+hit. The reserve defaults to a quarter of `diffTotalBytes` (16 000 bytes at
+the default total), so a smaller total keeps room for source. Set
+`diffDocsReserveBytes: 0` to pack source before docs as reviewers before
+this change did.
 
-The 240 s timeout ceiling keeps two chained stages (300 s dispatch plus the
-running timeout each) inside the reusable workflow's 20-minute job. A larger
+The 180 s timeout ceiling keeps two chained stages (300 s dispatch plus the
+running timeout each, 16 minutes at most) four minutes inside the reusable
+workflow's 20-minute job, for checkout, ingest, polling, and the comment; a
+test holds the limit and the workflow together. A larger
 diff takes longer to read, so raise `diffTotalBytes` together with the
 timeout, and check the run summary's per-stage timing first.
 

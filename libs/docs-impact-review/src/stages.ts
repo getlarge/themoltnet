@@ -11,7 +11,7 @@ import {
   type DocsCheckAnswer,
   type DocsHunk,
 } from './docs-check.js';
-import { isDocsPath } from './ingest.js';
+import { type DocsGlobs, isReviewableDocsPath } from './docs-paths.js';
 import {
   CONTRACT_KINDS,
   type ContractChange,
@@ -263,8 +263,11 @@ export interface CoverageAllowlist {
   changedPaths: ReadonlySet<string>;
   changedDocs: ReadonlySet<string>;
   selectedDocs: ReadonlySet<string>;
-  /** Globs proposed docs locations may match besides Markdown. */
-  docsInclude?: readonly string[];
+  /**
+   * Which paths are documentation, for a proposed location not among the
+   * selected docs. Defaults to Markdown with no exclusions.
+   */
+  docs?: DocsGlobs;
 }
 
 export function parseCoverageCheck(
@@ -307,7 +310,10 @@ export function parseCoverageCheck(
     }
     if (
       !allowed.selectedDocs.has(finding.docsPath) &&
-      !isDocsPath(finding.docsPath, allowed.docsInclude ?? [])
+      !isReviewableDocsPath(
+        finding.docsPath,
+        allowed.docs ?? { include: [], exclude: [] },
+      )
     ) {
       throw new Error(
         `finding docsPath ${finding.docsPath} is neither a selected doc nor a documentation location`,

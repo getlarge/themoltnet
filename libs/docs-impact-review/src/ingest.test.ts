@@ -261,19 +261,23 @@ describe('boundDiff', () => {
     // Act
     const withoutReserve = boundDiff(repo.git, changeSet, {
       totalBytes: 2_000,
-      perFileBytes: 1_950,
+      perFileBytes: 2_000,
       docsReserveBytes: 0,
       prioritySources: [],
     });
     const withReserve = boundDiff(repo.git, changeSet, {
       totalBytes: 2_000,
-      perFileBytes: 1_950,
+      perFileBytes: 2_000,
       docsReserveBytes: 500,
       prioritySources: [],
     });
 
-    // Assert: without a reserve the source patch crowds the docs out; the
-    // reserve keeps them and the source is dropped instead.
+    // Assert: a per-file cap equal to the total truncates the source patch
+    // (header included) rather than omitting it, so it crowds the docs out
+    // without a reserve; the reserve keeps them and drops the source.
+    expect(withoutReserve.includedPaths).toEqual(['src/big.ts']);
+    expect(withoutReserve.truncatedPaths).toEqual(['src/big.ts']);
+    expect(withoutReserve.bytes).toBeLessThanOrEqual(2_000);
     expect(withoutReserve.omittedPaths).toEqual(['README.md']);
     expect(withReserve.includedPaths).toEqual(['README.md']);
     expect(withReserve.omittedPaths).toEqual(['src/big.ts']);
@@ -356,5 +360,27 @@ describe('boundDiff', () => {
       changeSet.files.find((entry) => entry.path === 'gen/out.ts')?.category,
     ).toBe('generated');
     expect(diff.text).toContain('+export const a = 2;');
+  });
+
+  it('fits a doc larger than the reserve into budget the source leaves', () => {
+    // Arrange
+    const base = repo.commit({ 'docs/big.md': '', 'src/a.ts': '' });
+    const head = repo.commit({
+      'docs/big.md': 'A long paragraph of guidance.\n'.repeat(30),
+      'src/a.ts': 'export const a = 2;\n',
+    });
+    const changeSet = collectChangeSet(repo.git, base, head, NO_DOCS_GLOBS);
+
+    // Act: the doc (~1 KB) is over the reserve but under the total.
+    const diff = boundDiff(repo.git, changeSet, {
+      totalBytes: 10_000,
+      perFileBytes: 5_000,
+      docsReserveBytes: 200,
+      prioritySources: [],
+    });
+
+    // Assert
+    expect(diff.includedPaths).toEqual(['src/a.ts', 'docs/big.md']);
+    expect(diff.omittedPaths).toEqual([]);
   });
 });

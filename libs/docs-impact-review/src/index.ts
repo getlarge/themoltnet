@@ -1,19 +1,19 @@
 export {
   BUDGET_LIMITS,
   type Budgets,
-  CONFIGURABLE_BUDGETS,
+  type ConfigurableBudget,
   DEFAULT_BUDGETS,
+  DEFAULT_DOCS_RESERVE_SHARE,
   resolveBudgets,
 } from './budgets.js';
-export { createGit, type Git } from './git.js';
-export { matchesAny, matchesGlob, validateGlob } from './glob.js';
 export {
-  boundDiff,
-  collectChangeSet,
-  type DiffBudget,
   type DocsGlobs,
   isDocsPath,
-} from './ingest.js';
+  isReviewableDocsPath,
+} from './docs-paths.js';
+export { createGit, type Git } from './git.js';
+export { matchesAny, matchesGlob, validateGlob } from './glob.js';
+export { boundDiff, collectChangeSet, type DiffBudget } from './ingest.js';
 export {
   DOCS_IMPACT_COMMENT_MARKER,
   renderComment,

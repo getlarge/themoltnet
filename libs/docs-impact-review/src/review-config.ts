@@ -4,7 +4,7 @@ import { Value } from 'typebox/value';
 import {
   BUDGET_LIMITS,
   type Budgets,
-  CONFIGURABLE_BUDGETS,
+  type ConfigurableBudget,
   resolveBudgets,
 } from './budgets.js';
 import { type Git, requireFullOid } from './git.js';
@@ -22,13 +22,20 @@ const MAX_REPORTED_ERRORS = 5;
 
 const GlobList = Type.Array(Type.String({ minLength: 1 }));
 
+const budget = (key: ConfigurableBudget) =>
+  Type.Optional(Type.Integer(BUDGET_LIMITS[key]));
+
 const BudgetsSchema = Type.Object(
-  Object.fromEntries(
-    CONFIGURABLE_BUDGETS.map((key) => [
-      key,
-      Type.Optional(Type.Integer(BUDGET_LIMITS[key])),
-    ]),
-  ),
+  {
+    diffTotalBytes: budget('diffTotalBytes'),
+    diffPerFileBytes: budget('diffPerFileBytes'),
+    diffDocsReserveBytes: budget('diffDocsReserveBytes'),
+    docsDiffBytes: budget('docsDiffBytes'),
+    docExcerptBytes: budget('docExcerptBytes'),
+    maxDocs: budget('maxDocs'),
+    maxDocsHunks: budget('maxDocsHunks'),
+    stageRunningTimeoutSec: budget('stageRunningTimeoutSec'),
+  } satisfies Record<ConfigurableBudget, unknown>,
   { additionalProperties: false },
 );
 
@@ -216,8 +223,9 @@ function describeContradictions(config: ReviewConfig): string[] {
       }
     }
   }
-  // Only a value the file sets is a contradiction; a default above a smaller
-  // configured total is clamped to it where the diff is built.
+  // Only a value the file sets is a contradiction: the default reserve
+  // follows the total, and a default per-file cap above a smaller total is
+  // bounded where the diff is built.
   const budgets = resolveBudgets(config.budgets);
   for (const key of ['diffPerFileBytes', 'diffDocsReserveBytes'] as const) {
     if (
@@ -254,7 +262,7 @@ export function parseReviewConfig(
       ...(value.docs?.agentFacing ?? []),
     ]),
     ...(value.instructions ? { instructions: value.instructions.trim() } : {}),
-    budgets: (value.budgets ?? {}) as Partial<Budgets>,
+    budgets: value.budgets ?? {},
   };
   const contradictions = describeContradictions(config);
   if (contradictions.length > 0) {
