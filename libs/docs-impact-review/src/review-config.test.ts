@@ -56,11 +56,59 @@ describe('parseReviewConfig', () => {
     expect(config.agentFacing).toEqual([...DEFAULT_AGENT_FACING, 'prompts/**']);
   });
 
+  it('reads documentation inclusions and budget overrides', () => {
+    // Act
+    const config = parseReviewConfig({
+      version: 1,
+      docs: { include: ['docs/**/*.rst', 'docs/**/*.rst'] },
+      budgets: { diffTotalBytes: 96_000, stageRunningTimeoutSec: 180 },
+    });
+
+    // Assert: only the keys the file sets; defaults fill the rest later.
+    expect(config.docsInclude).toEqual(['docs/**/*.rst']);
+    expect(config.budgets).toEqual({
+      diffTotalBytes: 96_000,
+      stageRunningTimeoutSec: 180,
+    });
+  });
+
+  it.each([
+    ['a budget below its minimum', { diffTotalBytes: 100 }, /diffTotalBytes/],
+    [
+      'a stage timeout above the job timeout allows',
+      { stageRunningTimeoutSec: 600 },
+      /stageRunningTimeoutSec/,
+    ],
+    ['a fractional budget', { maxDocs: 2.5 }, /maxDocs/],
+    ['an unknown budget', { manifestLines: 10 }, /unknown key "manifestLines"/],
+    [
+      'a docs reserve larger than the diff',
+      { diffTotalBytes: 10_000, diffDocsReserveBytes: 12_000 },
+      /diffDocsReserveBytes \(12000\) exceeds budgets\.diffTotalBytes \(10000\)/,
+    ],
+    [
+      'a per-file cap larger than the diff',
+      { diffTotalBytes: 10_000, diffPerFileBytes: 12_000 },
+      /diffPerFileBytes/,
+    ],
+  ])('rejects %s', (_label, budgets, message) => {
+    // Act / Assert
+    expect(() => parseReviewConfig({ version: 1, budgets })).toThrow(message);
+  });
+
+  it('rejects an unusable docs.include glob', () => {
+    // Act / Assert
+    expect(() =>
+      parseReviewConfig({ version: 1, docs: { include: ['/docs/**'] } }),
+    ).toThrow(/docs\.include: "\/docs\/\*\*"/);
+  });
+
   it('treats empty lists as adding nothing', () => {
     // Act
     const config = parseReviewConfig({
       version: 1,
-      docs: { exclude: [], agentFacing: [] },
+      docs: { include: [], exclude: [], agentFacing: [] },
+      budgets: {},
     });
 
     // Assert

@@ -1,3 +1,4 @@
+import type { Budgets } from './budgets.js';
 import type { ReviewConfigSource } from './review-config.js';
 /** A MoltNet task stage in the review pipeline. */
 export type StageName = 'extract' | 'coverage' | 'docs-check';
@@ -163,9 +164,16 @@ export interface DocsImpactReport {
   headRevision: string;
   /** Where the repository configuration came from, and how many routes. */
   config?: ReviewConfigSource & { routingRules?: number };
+  /** The budgets the review ran with: defaults plus repository overrides. */
+  budgets?: Budgets;
   status: 'completed' | 'failed';
   /** Absent when status is `failed`: a failure never reads as a clean result. */
   outcome?: Outcome;
+  /**
+   * Set when gaps turned a clean result into `incomplete`: what the review
+   * found for the part it did cover.
+   */
+  reviewedOutcome?: 'covered' | 'not-needed';
   findings: DocsFinding[];
   gaps: CoverageGap[];
   /** Search terms dropped because they matched too many docs. */

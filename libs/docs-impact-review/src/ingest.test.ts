@@ -1,7 +1,12 @@
+import { join } from 'node:path';
+
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { createGit } from './git.js';
 import { boundDiff, collectChangeSet } from './ingest.js';
 import { createTestRepo, type TestRepo } from './test-repo.js';
+
+const NO_DOCS_GLOBS = { include: [], exclude: [] };
 
 describe('collectChangeSet', () => {
   let repo: TestRepo;
@@ -37,7 +42,7 @@ describe('collectChangeSet', () => {
     });
 
     // Act
-    const changeSet = collectChangeSet(repo.git, base, head, []);
+    const changeSet = collectChangeSet(repo.git, base, head, NO_DOCS_GLOBS);
 
     // Assert
     const byPath = Object.fromEntries(
@@ -68,7 +73,10 @@ describe('collectChangeSet', () => {
     const head = repo.commit({ 'vendor/lib/README.md': null });
 
     // Act
-    const changeSet = collectChangeSet(repo.git, base, head, ['vendor/**']);
+    const changeSet = collectChangeSet(repo.git, base, head, {
+      include: [],
+      exclude: ['vendor/**'],
+    });
 
     // Assert
     expect(changeSet.files).toMatchObject([
@@ -89,7 +97,10 @@ describe('collectChangeSet', () => {
     });
 
     // Act
-    const changeSet = collectChangeSet(repo.git, base, head, ['vendor/**']);
+    const changeSet = collectChangeSet(repo.git, base, head, {
+      include: [],
+      exclude: ['vendor/**'],
+    });
 
     // Assert
     expect(
@@ -108,12 +119,39 @@ describe('collectChangeSet', () => {
     });
 
     // Act
-    const changeSet = collectChangeSet(repo.git, base, head, []);
+    const changeSet = collectChangeSet(repo.git, base, head, NO_DOCS_GLOBS);
 
     // Assert
     expect(
       changeSet.files.find((file) => file.path === 'src/public.ts')?.category,
     ).toBe('source');
+  });
+
+  it('categorizes files the repository includes as documentation', () => {
+    // Arrange
+    const base = repo.commit({ 'src/a.ts': 'export const a = 1;\n' });
+    const head = repo.commit({
+      'docs/guide.rst': 'Guide\n=====\n',
+      'docs/generated/api.rst': 'API\n===\n',
+      'notes.txt': 'not docs\n',
+    });
+
+    // Act
+    const changeSet = collectChangeSet(repo.git, base, head, {
+      include: ['docs/**/*.rst'],
+      exclude: ['docs/generated/**'],
+    });
+
+    // Assert: exclusions apply to included formats as they do to Markdown.
+    expect(
+      Object.fromEntries(
+        changeSet.files.map((entry) => [entry.path, entry.category]),
+      ),
+    ).toEqual({
+      'docs/generated/api.rst': 'generated',
+      'docs/guide.rst': 'docs',
+      'notes.txt': 'source',
+    });
   });
 
   it('rejects abbreviated revisions', () => {
@@ -122,7 +160,7 @@ describe('collectChangeSet', () => {
 
     // Act / Assert
     expect(() =>
-      collectChangeSet(repo.git, base.slice(0, 7), base, []),
+      collectChangeSet(repo.git, base.slice(0, 7), base, NO_DOCS_GLOBS),
     ).toThrow(/full 40-character/);
   });
 });
@@ -147,12 +185,14 @@ describe('boundDiff', () => {
       'docs/a.md': '# A\n',
       'CHANGELOG.md': '## x\n',
     });
-    const changeSet = collectChangeSet(repo.git, base, head, []);
+    const changeSet = collectChangeSet(repo.git, base, head, NO_DOCS_GLOBS);
 
     // Act
     const diff = boundDiff(repo.git, changeSet, {
       totalBytes: 10_000,
       perFileBytes: 5_000,
+      docsReserveBytes: 0,
+      prioritySources: [],
     });
 
     // Assert
@@ -169,12 +209,14 @@ describe('boundDiff', () => {
       'src/retired.ts': 'export const retired = 1;\n'.repeat(300),
     });
     const head = repo.commit({ 'src/retired.ts': null });
-    const changeSet = collectChangeSet(repo.git, base, head, []);
+    const changeSet = collectChangeSet(repo.git, base, head, NO_DOCS_GLOBS);
 
     // Act
     const diff = boundDiff(repo.git, changeSet, {
       totalBytes: 10_000,
       perFileBytes: 5_000,
+      docsReserveBytes: 0,
+      prioritySources: [],
     });
 
     // Assert
@@ -189,12 +231,14 @@ describe('boundDiff', () => {
       'src/keep.ts': 'export const big = 1;\n'.repeat(400),
       'src/drop.ts': 'export const other = 1;\n'.repeat(400),
     });
-    const changeSet = collectChangeSet(repo.git, base, head, []);
+    const changeSet = collectChangeSet(repo.git, base, head, NO_DOCS_GLOBS);
 
     // Act
     const diff = boundDiff(repo.git, changeSet, {
       totalBytes: 1_500,
       perFileBytes: 1_000,
+      docsReserveBytes: 0,
+      prioritySources: [],
     });
 
     // Assert
@@ -203,5 +247,140 @@ describe('boundDiff', () => {
     expect(diff.omittedPaths).toHaveLength(1);
     expect(diff.text).toContain('[truncated');
     expect(diff.bytes).toBeLessThanOrEqual(1_500);
+  });
+
+  it('keeps changed docs within their reserve when source fills the budget', () => {
+    // Arrange
+    const base = repo.commit({ 'README.md': '', 'src/big.ts': '' });
+    const head = repo.commit({
+      'README.md': 'Run `tool --new`.\n',
+      'src/big.ts': 'export const big = 1;\n'.repeat(400),
+    });
+    const changeSet = collectChangeSet(repo.git, base, head, NO_DOCS_GLOBS);
+
+    // Act
+    const withoutReserve = boundDiff(repo.git, changeSet, {
+      totalBytes: 2_000,
+      perFileBytes: 2_000,
+      docsReserveBytes: 0,
+      prioritySources: [],
+    });
+    const withReserve = boundDiff(repo.git, changeSet, {
+      totalBytes: 2_000,
+      perFileBytes: 2_000,
+      docsReserveBytes: 500,
+      prioritySources: [],
+    });
+
+    // Assert: a per-file cap equal to the total truncates the source patch
+    // (header included) rather than omitting it, so it crowds the docs out
+    // without a reserve; the reserve keeps them and drops the source.
+    expect(withoutReserve.includedPaths).toEqual(['src/big.ts']);
+    expect(withoutReserve.truncatedPaths).toEqual(['src/big.ts']);
+    expect(withoutReserve.bytes).toBeLessThanOrEqual(2_000);
+    expect(withoutReserve.omittedPaths).toEqual(['README.md']);
+    expect(withReserve.includedPaths).toEqual(['README.md']);
+    expect(withReserve.omittedPaths).toEqual(['src/big.ts']);
+  });
+
+  it('fits docs beyond the reserve into budget the source leaves', () => {
+    // Arrange
+    const base = repo.commit({
+      'docs/a.md': '',
+      'docs/b.md': '',
+      'src/a.ts': '',
+    });
+    const head = repo.commit({
+      'docs/a.md': 'Alpha paragraph.\n'.repeat(10),
+      'docs/b.md': 'Beta paragraph.\n'.repeat(10),
+      'src/a.ts': 'export const a = 2;\n',
+    });
+    const changeSet = collectChangeSet(repo.git, base, head, NO_DOCS_GLOBS);
+
+    // Act: the reserve holds one doc; the total holds everything.
+    const diff = boundDiff(repo.git, changeSet, {
+      totalBytes: 10_000,
+      perFileBytes: 5_000,
+      docsReserveBytes: 250,
+      prioritySources: [],
+    });
+
+    // Assert: source is listed first, then docs.
+    expect(diff.includedPaths).toEqual(['src/a.ts', 'docs/a.md', 'docs/b.md']);
+    expect(diff.omittedPaths).toEqual([]);
+  });
+
+  it('includes priority source before other source when the budget is short', () => {
+    // Arrange
+    const base = repo.commit({ 'apps/cli/flags.ts': '', 'lib/util.ts': '' });
+    const head = repo.commit({
+      'apps/cli/flags.ts': 'export const flag = 1;\n'.repeat(40),
+      'lib/util.ts': 'export const util = 1;\n'.repeat(40),
+    });
+    const changeSet = collectChangeSet(repo.git, base, head, NO_DOCS_GLOBS);
+
+    // Act: alphabetically `apps/` comes first, so prioritize `lib/`.
+    const diff = boundDiff(repo.git, changeSet, {
+      totalBytes: 1_200,
+      perFileBytes: 1_100,
+      docsReserveBytes: 0,
+      prioritySources: ['lib/**'],
+    });
+
+    // Assert
+    expect(diff.includedPaths).toEqual(['lib/util.ts']);
+    expect(diff.omittedPaths).toEqual(['apps/cli/flags.ts']);
+  });
+
+  it('reads patches and generated attributes from a subdirectory working directory', () => {
+    // Arrange
+    const base = repo.commit({
+      '.gitattributes': 'gen/** linguist-generated\n',
+      'src/a.ts': 'export const a = 1;\n',
+      'gen/out.ts': 'export const out = 1;\n',
+      'sub/keep.txt': 'x\n',
+    });
+    const head = repo.commit({
+      'src/a.ts': 'export const a = 2;\n',
+      'gen/out.ts': 'export const out = 2;\n',
+    });
+    const git = createGit(join(repo.dir, 'sub'));
+
+    // Act
+    const changeSet = collectChangeSet(git, base, head, NO_DOCS_GLOBS);
+    const diff = boundDiff(git, changeSet, {
+      totalBytes: 10_000,
+      perFileBytes: 5_000,
+      docsReserveBytes: 0,
+      prioritySources: [],
+    });
+
+    // Assert
+    expect(
+      changeSet.files.find((entry) => entry.path === 'gen/out.ts')?.category,
+    ).toBe('generated');
+    expect(diff.text).toContain('+export const a = 2;');
+  });
+
+  it('fits a doc larger than the reserve into budget the source leaves', () => {
+    // Arrange
+    const base = repo.commit({ 'docs/big.md': '', 'src/a.ts': '' });
+    const head = repo.commit({
+      'docs/big.md': 'A long paragraph of guidance.\n'.repeat(30),
+      'src/a.ts': 'export const a = 2;\n',
+    });
+    const changeSet = collectChangeSet(repo.git, base, head, NO_DOCS_GLOBS);
+
+    // Act: the doc (~1 KB) is over the reserve but under the total.
+    const diff = boundDiff(repo.git, changeSet, {
+      totalBytes: 10_000,
+      perFileBytes: 5_000,
+      docsReserveBytes: 200,
+      prioritySources: [],
+    });
+
+    // Assert
+    expect(diff.includedPaths).toEqual(['src/a.ts', 'docs/big.md']);
+    expect(diff.omittedPaths).toEqual([]);
   });
 });

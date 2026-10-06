@@ -93,6 +93,7 @@ export function renderComplexityReviewResult(args: {
   durationMs: number;
   domainCount: number;
   summarizedPaths?: string[];
+  generatedPaths?: string[];
   output: PrReviewOutput;
 }): string {
   requireFullOid(args.revision, 'review revision');
@@ -121,10 +122,25 @@ export function renderComplexityReviewResult(args: {
     (args.summarizedPaths?.length
       ? `Generated lockfile contents summarized (change metadata only): ${args.summarizedPaths.map((path) => JSON.stringify(path)).join(', ')}.\n\n`
       : '') +
+    (args.generatedPaths?.length
+      ? `${describeGenerated(args.generatedPaths)}\n\n`
+      : '') +
     '_This advisory measures review burden, not correctness or code quality. ' +
     'Low scores are expected for deliberately broad or security-sensitive changes._\n\n' +
     runDetails(args)
   );
+}
+
+/** Generated files can number in the hundreds; name a few, count the rest. */
+const GENERATED_PATHS_SHOWN = 5;
+
+function describeGenerated(paths: string[]): string {
+  const shown = paths
+    .slice(0, GENERATED_PATHS_SHOWN)
+    .map((path) => JSON.stringify(path))
+    .join(', ');
+  const more = paths.length - GENERATED_PATHS_SHOWN;
+  return `Not reviewed, marked \`linguist-generated\` at the base revision (${paths.length} file${paths.length === 1 ? '' : 's'}): ${shown}${more > 0 ? ` and ${more} more` : ''}.`;
 }
 
 export function findComplexityReviewComment(
@@ -269,6 +285,7 @@ export async function updateComplexityReviewComment(args: {
     durationMs?: unknown;
     taskIds?: unknown;
     summarizedPaths?: unknown;
+    generatedPaths?: unknown;
   };
   const output = report.output;
   if (!Value.Check(PrReviewOutputSchema, output)) {
@@ -290,6 +307,13 @@ export async function updateComplexityReviewComment(args: {
   ) {
     throw new Error('invalid summarized evidence paths');
   }
+  if (
+    report.generatedPaths !== undefined &&
+    (!Array.isArray(report.generatedPaths) ||
+      report.generatedPaths.some((path) => typeof path !== 'string'))
+  ) {
+    throw new Error('invalid generated evidence paths');
+  }
   await github.upsertComment(
     args.prNumber,
     renderComplexityReviewResult({
@@ -299,6 +323,7 @@ export async function updateComplexityReviewComment(args: {
       durationMs: report.durationMs,
       domainCount: report.taskIds.length - 2,
       summarizedPaths: report.summarizedPaths as string[] | undefined,
+      generatedPaths: report.generatedPaths as string[] | undefined,
       output,
     }),
   );

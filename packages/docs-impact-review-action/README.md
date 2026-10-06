@@ -250,13 +250,53 @@ A private repository needs an authenticated fetch; the reusable workflow
 shows one that does not persist the token. See [`action.yml`](./action.yml)
 for every input.
 
+## Reading the comment
+
+The comment's first line gives the outcome:
+
+| Outcome          | Meaning                                                                                                                           |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `covered`        | The docs already describe the change.                                                                                             |
+| `updates-needed` | Findings, each naming a doc, its section, and the changed file that proves it. The comment shows three; the run report keeps all. |
+| `not-needed`     | Nothing in the change affects users, operators, or contributors.                                                                  |
+| `incomplete`     | Part of the pull request was not reviewed. The comment lists what was left out and what the review found for the rest.            |
+| `not reviewed`   | The review failed; the comment gives the error. No judgment was made.                                                             |
+
+`incomplete` usually means the diff was larger than the review's input
+budget. Files are packed in this order: changed docs within a reserved
+share of the budget, then source the routing rules name, then other source,
+then docs that did not fit the reserve. Each file left out is listed with
+the budget key it hit. Either read the listed files yourself, split the pull
+request, or raise that limit for the repository (below).
+
+## Configure the review
+
+A repository tunes the review in `.github/docs-impact-review.json`. Without
+it the defaults apply and the comment says so. The file can:
+
+- map code paths to the pages that document them (`routing`), which also
+  decides which source is reviewed first when the diff is too large;
+- exclude documentation (`docs.exclude`), mark instructions written for agents
+  (`docs.agentFacing`), and add documentation formats besides Markdown, such
+  as `docs/**/*.rst` (`docs.include`);
+- raise or lower input and runtime limits (`budgets`), for example
+  `"budgets": { "diffTotalBytes": 96000 }` for a repository with large pull
+  requests;
+- add up to 2,000 characters of guidance for every stage (`instructions`).
+
+See the
+[configuration reference](../../libs/docs-impact-review/README.md#repository-configuration)
+for every key and the
+[budgets table](../../libs/docs-impact-review/README.md#budgets) for defaults
+and allowed ranges.
+
 ## Trust
 
 - The review job checks out the **base** revision. The pull request head is
   fetched as git objects and never checked out or executed.
 - The repository configuration, `.github/docs-impact-review.json`, is read
   from the base revision, so a pull request cannot change the rules it is
-  reviewed by. See the
+  reviewed by, including its own budgets. See the
   [configuration reference](../../libs/docs-impact-review/README.md#repository-configuration).
 - `prepare` skips pull requests from forks, Dependabot pull requests, and
   pull requests that change a `protected-paths` prefix.

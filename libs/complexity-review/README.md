@@ -17,8 +17,15 @@ four and remain subject to the workflow timeout.
 Generated dependency lockfiles are represented by their diff headers, original
 patch size, added/deleted line counts, and patch digest. Their contents are not
 reviewed, and the final comment explicitly lists these summarized paths. Source
-patches retain complete coverage. Every changed path still appears in the change
-map and domain validation.
+patches retain complete coverage.
+
+Files marked `linguist-generated` in `.gitattributes` are not reviewed. The
+attributes are read from the pull request's **base** revision, so a pull request
+cannot hide its own files by editing `.gitattributes`. Generated files stay in
+the diff manifest, but they are left out of the change map, and the comment
+counts them and names the first few. When every changed file is generated, they
+are summarized like lockfiles instead, so the review still has evidence. Every
+other changed path appears in the change map and domain validation.
 
 Each task has one attempt and a 180-second running budget. Two drain workers
 claim focused tasks under one correlation ID. The final comment leads with a

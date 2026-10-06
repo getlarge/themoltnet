@@ -148,6 +148,10 @@ function codeSpan(text, max = Number.POSITIVE_INFINITY) {
 	const pad = flat.startsWith("`") || flat.endsWith("`") ? " " : "";
 	return `${fence}${pad}${flat}${pad}${fence}`;
 }
+var REVIEWED_OUTCOME_TEXT = {
+	covered: "The docs cover the changes this review read, but it could not read everything: see what is not covered below.",
+	"not-needed": "The changes this review read need no docs update, but it could not read everything: see what is not covered below."
+};
 /**
 * One concise PR comment body. Clean results stay on one line; a failed run
 * says so explicitly instead of looking like an empty clean result.
@@ -167,6 +171,7 @@ function renderComment(report) {
 		...count > 0 ? [`${count} finding${count === 1 ? "" : "s"}`] : [],
 		`reviewed in ${formatDuration(report.timings.totalMs)}`
 	].join(" · ")];
+	if (report.reviewedOutcome) lines.push("", REVIEWED_OUTCOME_TEXT[report.reviewedOutcome]);
 	if (report.config?.kind === "default") lines.push("", "_No `.github/docs-impact-review.json` at the base revision: reviewed with the default configuration, without routing rules._");
 	else if (report.config?.kind === "file") lines.push("", `_Reviewed with the configuration in ${codeSpan(report.config.location)}, not the base revision's._`);
 	else if (report.config?.kind === "base") lines.push("", `_Configuration: ${codeSpan(report.config.location)}._`);

@@ -6,7 +6,7 @@ import * as crypto$2 from "crypto";
 import crypto$1, { createHash } from "crypto";
 import * as fs from "fs";
 import { constants as constants$1, existsSync, promises, readFileSync as readFileSync$1 } from "fs";
-import * as path from "path";
+import "path";
 import * as events from "events";
 import "assert";
 import { Readable } from "node:stream";
@@ -25,15 +25,6 @@ var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __commonJSMin = (cb, mod) => () => (mod || (cb((mod = { exports: {} }).exports, mod), cb = null), mod.exports);
-var __exportAll = (all, no_symbols) => {
-	let target = {};
-	for (var name in all) __defProp(target, name, {
-		get: all[name],
-		enumerable: true
-	});
-	if (!no_symbols) __defProp(target, Symbol.toStringTag, { value: "Module" });
-	return target;
-};
 var __copyProps = (to, from, except, desc) => {
 	if (from && typeof from === "object" || typeof from === "function") for (var keys = __getOwnPropNames(from), i = 0, n = keys.length, key; i < n; i++) {
 		key = keys[i];
@@ -44,11 +35,11 @@ var __copyProps = (to, from, except, desc) => {
 	}
 	return to;
 };
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", {
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule || !__hasOwnProp.call(mod, "default") ? __defProp(target, "default", {
 	value: mod,
 	enumerable: true
 }) : target, mod));
-var __require = /* @__PURE__ */ createRequire(import.meta.url);
+var __require = /* #__PURE__ */ (() => createRequire(import.meta.url))();
 //#endregion
 //#region ../../node_modules/.pnpm/@actions+core@3.0.1/node_modules/@actions/core/lib/utils.js
 /**
@@ -949,20 +940,22 @@ var require_tree = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			while (true) {
 				const code = key.charCodeAt(index);
 				if (code > 127) throw new TypeError("key must be ascii string");
-				if (node.code === code) if (length === ++index) {
-					node.value = value;
-					break;
-				} else if (node.middle !== null) node = node.middle;
-				else {
-					node.middle = new TstNode(key, value, index);
-					break;
-				}
-				else if (node.code < code) if (node.left !== null) node = node.left;
-				else {
-					node.left = new TstNode(key, value, index);
-					break;
-				}
-				else if (node.right !== null) node = node.right;
+				if (node.code === code) {
+					if (length === ++index) {
+						node.value = value;
+						break;
+					} else if (node.middle !== null) node = node.middle;
+					else {
+						node.middle = new TstNode(key, value, index);
+						break;
+					}
+				} else if (node.code < code) {
+					if (node.left !== null) node = node.left;
+					else {
+						node.left = new TstNode(key, value, index);
+						break;
+					}
+				} else if (node.right !== null) node = node.right;
 				else {
 					node.right = new TstNode(key, value, index);
 					break;
@@ -1637,15 +1630,16 @@ var require_request$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			if (Array.isArray(headers)) {
 				if (headers.length % 2 !== 0) throw new InvalidArgumentError("headers array must be even");
 				for (let i = 0; i < headers.length; i += 2) processHeader(this, headers[i], headers[i + 1]);
-			} else if (headers && typeof headers === "object") if (headers[Symbol.iterator]) for (const header of headers) {
-				if (!Array.isArray(header) || header.length !== 2) throw new InvalidArgumentError("headers must be in key-value pair format");
-				processHeader(this, header[0], header[1]);
-			}
-			else {
-				const keys = Object.keys(headers);
-				for (let i = 0; i < keys.length; ++i) processHeader(this, keys[i], headers[keys[i]]);
-			}
-			else if (headers != null) throw new InvalidArgumentError("headers must be an object or an array");
+			} else if (headers && typeof headers === "object") {
+				if (headers[Symbol.iterator]) for (const header of headers) {
+					if (!Array.isArray(header) || header.length !== 2) throw new InvalidArgumentError("headers must be in key-value pair format");
+					processHeader(this, header[0], header[1]);
+				}
+				else {
+					const keys = Object.keys(headers);
+					for (let i = 0; i < keys.length; ++i) processHeader(this, keys[i], headers[keys[i]]);
+				}
+			} else if (headers != null) throw new InvalidArgumentError("headers must be an object or an array");
 			validateHandler(handler, method, upgrade);
 			this.servername = servername || getServerName(this.host);
 			this[kHandler] = handler;
@@ -1923,7 +1917,7 @@ var require_dispatcher_base = /* @__PURE__ */ __commonJSMin(((exports, module) =
 		get webSocketOptions() {
 			return {
 				maxFragments: this[kWebSocketOptions].maxFragments ?? 131072,
-				maxPayloadSize: this[kWebSocketOptions].maxPayloadSize ?? 128 * 1024 * 1024
+				maxPayloadSize: this[kWebSocketOptions].maxPayloadSize ?? 134217728
 			};
 		}
 		get destroyed() {
@@ -1975,7 +1969,7 @@ var require_dispatcher_base = /* @__PURE__ */ __commonJSMin(((exports, module) =
 			}
 			if (callback === void 0) return new Promise((resolve, reject) => {
 				this.destroy(err, (err, data) => {
-					return err ? reject(err) : resolve(data);
+					return err ? /* istanbul ignore next: should never error */ reject(err) : resolve(data);
 				});
 			});
 			if (typeof callback !== "function") throw new InvalidArgumentError("invalid callback");
@@ -2445,7 +2439,7 @@ var require_connect = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 				assert$24(!httpSocket, "httpSocket can only be sent on TLS update");
 				port = port || 80;
 				socket = net$1.connect({
-					highWaterMark: 64 * 1024,
+					highWaterMark: 65536,
 					...options,
 					localAddress,
 					port,
@@ -3924,10 +3918,7 @@ var require_util$6 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 				case "strict-origin-when-cross-origin":
 					if (request.origin && urlHasHttpsScheme(request.origin) && !urlHasHttpsScheme(requestCurrentURL(request))) serializedOrigin = null;
 					break;
-				case "same-origin":
-					if (!sameOrigin(request, requestCurrentURL(request))) serializedOrigin = null;
-					break;
-				default:
+				case "same-origin": if (!sameOrigin(request, requestCurrentURL(request))) serializedOrigin = null;
 			}
 			request.headersList.append("origin", serializedOrigin, true);
 		}
@@ -4059,8 +4050,10 @@ var require_util$6 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			const algorithm = item.algo;
 			const expectedValue = item.hash;
 			let actualValue = crypto.createHash(algorithm).update(bytes).digest("base64");
-			if (actualValue[actualValue.length - 1] === "=") if (actualValue[actualValue.length - 2] === "=") actualValue = actualValue.slice(0, -2);
-			else actualValue = actualValue.slice(0, -1);
+			if (actualValue[actualValue.length - 1] === "=") {
+				if (actualValue[actualValue.length - 2] === "=") actualValue = actualValue.slice(0, -2);
+				else actualValue = actualValue.slice(0, -1);
+			}
 			if (compareBase64Mixed(actualValue, expectedValue)) return true;
 		}
 		return false;
@@ -4209,9 +4202,7 @@ var require_util$6 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 					case "value":
 						result = value;
 						break;
-					case "key+value":
-						result = [key, value];
-						break;
+					case "key+value": result = [key, value];
 				}
 				return {
 					value: result,
@@ -4505,12 +4496,14 @@ var require_util$6 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		let temporaryValue = "";
 		while (position.position < input.length) {
 			temporaryValue += collectASequenceOfCodePoints((char) => char !== "\"" && char !== ",", input, position);
-			if (position.position < input.length) if (input.charCodeAt(position.position) === 34) {
-				temporaryValue += collectAnHTTPQuotedString(input, position);
-				if (position.position < input.length) continue;
-			} else {
-				assert$22(input.charCodeAt(position.position) === 44);
-				position.position++;
+			if (position.position < input.length) {
+				if (input.charCodeAt(position.position) === 34) {
+					temporaryValue += collectAnHTTPQuotedString(input, position);
+					if (position.position < input.length) continue;
+				} else {
+					assert$22(input.charCodeAt(position.position) === 44);
+					position.position++;
+				}
 			}
 			temporaryValue = removeChars(temporaryValue, true, true, (char) => char === 9 || char === 32);
 			values.push(temporaryValue);
@@ -4760,9 +4753,10 @@ var require_formdata = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		}
 		[nodeUtil$2.inspect.custom](depth, options) {
 			const state = this[kState].reduce((a, b) => {
-				if (a[b.name]) if (Array.isArray(a[b.name])) a[b.name].push(b.value);
-				else a[b.name] = [a[b.name], b.value];
-				else a[b.name] = b.value;
+				if (a[b.name]) {
+					if (Array.isArray(a[b.name])) a[b.name].push(b.value);
+					else a[b.name] = [a[b.name], b.value];
+				} else a[b.name] = b.value;
 				return a;
 			}, { __proto__: null });
 			options.depth ??= depth;
@@ -5377,10 +5371,12 @@ var require_client_h1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 					timers.clearTimeout(this.timeout);
 					this.timeout = null;
 				}
-				if (delay) if (type & USE_FAST_TIMER) this.timeout = timers.setFastTimeout(onParserTimeout, delay, new WeakRef(this));
-				else {
-					this.timeout = setTimeout(onParserTimeout, delay, new WeakRef(this));
-					this.timeout.unref();
+				if (delay) {
+					if (type & USE_FAST_TIMER) this.timeout = timers.setFastTimeout(onParserTimeout, delay, new WeakRef(this));
+					else {
+						this.timeout = setTimeout(onParserTimeout, delay, new WeakRef(this));
+						this.timeout.unref();
+					}
 				}
 				this.timeoutValue = delay;
 			} else if (this.timeout) {
@@ -5935,9 +5931,10 @@ var require_client_h1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		/* istanbul ignore else: assertion */
 		if (!body || bodyLength === 0) writeBuffer(abort, null, client, request, socket, contentLength, header, expectsPayload);
 		else if (util.isBuffer(body)) writeBuffer(abort, body, client, request, socket, contentLength, header, expectsPayload);
-		else if (util.isBlobLike(body)) if (typeof body.stream === "function") writeIterable(abort, body.stream(), client, request, socket, contentLength, header, expectsPayload);
-		else writeBlob(abort, body, client, request, socket, contentLength, header, expectsPayload);
-		else if (util.isStream(body)) writeStream(abort, body, client, request, socket, contentLength, header, expectsPayload);
+		else if (util.isBlobLike(body)) {
+			if (typeof body.stream === "function") writeIterable(abort, body.stream(), client, request, socket, contentLength, header, expectsPayload);
+			else writeBlob(abort, body, client, request, socket, contentLength, header, expectsPayload);
+		} else if (util.isStream(body)) writeStream(abort, body, client, request, socket, contentLength, header, expectsPayload);
 		else if (util.isIterable(body)) writeIterable(abort, body, client, request, socket, contentLength, header, expectsPayload);
 		else assert$19(false);
 		return true;
@@ -5999,12 +5996,13 @@ var require_client_h1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	}
 	function writeBuffer(abort, body, client, request, socket, contentLength, header, expectsPayload) {
 		try {
-			if (!body) if (contentLength === 0) socket.write(`${header}content-length: 0\r\n\r\n`, "latin1");
-			else {
-				assert$19(contentLength === null, "no body must not have content length");
-				socket.write(`${header}\r\n`, "latin1");
-			}
-			else if (util.isBuffer(body)) {
+			if (!body) {
+				if (contentLength === 0) socket.write(`${header}content-length: 0\r\n\r\n`, "latin1");
+				else {
+					assert$19(contentLength === null, "no body must not have content length");
+					socket.write(`${header}\r\n`, "latin1");
+				}
+			} else if (util.isBuffer(body)) {
 				assert$19(contentLength === body.byteLength, "buffer body must have content length");
 				socket.cork();
 				socket.write(`${header}content-length: ${contentLength}\r\n\r\n`, "latin1");
@@ -6120,11 +6118,14 @@ var require_client_h1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			socket[kWriting] = false;
 			if (socket[kError]) throw socket[kError];
 			if (socket.destroyed) return;
-			if (bytesWritten === 0) if (expectsPayload) socket.write(`${header}content-length: 0\r\n\r\n`, "latin1");
-			else socket.write(`${header}\r\n`, "latin1");
-			else if (contentLength === null) socket.write("\r\n0\r\n\r\n", "latin1");
-			if (contentLength !== null && bytesWritten !== contentLength) if (client[kStrictContentLength]) throw new RequestContentLengthMismatchError();
-			else process.emitWarning(new RequestContentLengthMismatchError());
+			if (bytesWritten === 0) {
+				if (expectsPayload) socket.write(`${header}content-length: 0\r\n\r\n`, "latin1");
+				else socket.write(`${header}\r\n`, "latin1");
+			} else if (contentLength === null) socket.write("\r\n0\r\n\r\n", "latin1");
+			if (contentLength !== null && bytesWritten !== contentLength) {
+				if (client[kStrictContentLength]) throw new RequestContentLengthMismatchError();
+				else process.emitWarning(new RequestContentLengthMismatchError());
+			}
 			if (socket[kParser].timeout && socket[kParser].timeoutType === TIMEOUT_HEADERS) {
 				// istanbul ignore else: only for jest
 				if (socket[kParser].timeout.refresh) socket[kParser].timeout.refresh();
@@ -6254,12 +6255,14 @@ var require_client_h2 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	}
 	function resumeH2(client) {
 		const socket = client[kSocket];
-		if (socket?.destroyed === false) if (client[kSize] === 0 && client[kMaxConcurrentStreams] === 0) {
-			socket.unref();
-			client[kHTTP2Session].unref();
-		} else {
-			socket.ref();
-			client[kHTTP2Session].ref();
+		if (socket?.destroyed === false) {
+			if (client[kSize] === 0 && client[kMaxConcurrentStreams] === 0) {
+				socket.unref();
+				client[kHTTP2Session].unref();
+			} else {
+				socket.ref();
+				client[kHTTP2Session].ref();
+			}
 		}
 	}
 	function onHttp2SessionError(err) {
@@ -6480,9 +6483,10 @@ var require_client_h2 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			/* istanbul ignore else: assertion */
 			if (!body || contentLength === 0) writeBuffer(abort, stream, null, client, request, client[kSocket], contentLength, expectsPayload);
 			else if (util.isBuffer(body)) writeBuffer(abort, stream, body, client, request, client[kSocket], contentLength, expectsPayload);
-			else if (util.isBlobLike(body)) if (typeof body.stream === "function") writeIterable(abort, stream, body.stream(), client, request, client[kSocket], contentLength, expectsPayload);
-			else writeBlob(abort, stream, body, client, request, client[kSocket], contentLength, expectsPayload);
-			else if (util.isStream(body)) writeStream(abort, client[kSocket], expectsPayload, stream, body, client, request, contentLength);
+			else if (util.isBlobLike(body)) {
+				if (typeof body.stream === "function") writeIterable(abort, stream, body.stream(), client, request, client[kSocket], contentLength, expectsPayload);
+				else writeBlob(abort, stream, body, client, request, client[kSocket], contentLength, expectsPayload);
+			} else if (util.isStream(body)) writeStream(abort, client[kSocket], expectsPayload, stream, body, client, request, contentLength);
 			else if (util.isIterable(body)) writeIterable(abort, stream, body, client, request, client[kSocket], contentLength, expectsPayload);
 			else assert$18(false);
 		}
@@ -7059,7 +7063,7 @@ var require_client = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#region ../../node_modules/.pnpm/undici@6.29.0/node_modules/undici/lib/dispatcher/fixed-queue.js
 var require_fixed_queue = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	var kSize = 2048;
-	var kMask = kSize - 1;
+	var kMask = 2047;
 	var FixedCircularBuffer = class {
 		constructor() {
 			this.bottom = 0;
@@ -7856,7 +7860,7 @@ var require_retry_handler = /* @__PURE__ */ __commonJSMin(((exports, module) => 
 			this.retryOpts = {
 				retry: retryFn ?? RetryHandler[kRetryHandlerDefaultRetry],
 				retryAfter: retryAfter ?? true,
-				maxTimeout: maxTimeout ?? 30 * 1e3,
+				maxTimeout: maxTimeout ?? 3e4,
 				minTimeout: minTimeout ?? 500,
 				timeoutFactor: timeoutFactor ?? 2,
 				maxRetries: maxRetries ?? 5,
@@ -7953,16 +7957,18 @@ var require_retry_handler = /* @__PURE__ */ __commonJSMin(((exports, module) => 
 		onHeaders(statusCode, rawHeaders, resume, statusMessage) {
 			const headers = parseHeaders(rawHeaders);
 			this.retryCount += 1;
-			if (statusCode >= 300) if (!this.headersSent && this.retryOpts.statusCodes.includes(statusCode) === false) {
-				this.headersSent = true;
-				this.checkpointResponseEnd(headers, resume);
-				return this.handler.onHeaders(statusCode, rawHeaders, resume, statusMessage);
-			} else {
-				this.abort(new RequestRetryError("Request failed", statusCode, {
-					headers,
-					data: { count: this.retryCount }
-				}));
-				return false;
+			if (statusCode >= 300) {
+				if (!this.headersSent && this.retryOpts.statusCodes.includes(statusCode) === false) {
+					this.headersSent = true;
+					this.checkpointResponseEnd(headers, resume);
+					return this.handler.onHeaders(statusCode, rawHeaders, resume, statusMessage);
+				} else {
+					this.abort(new RequestRetryError("Request failed", statusCode, {
+						headers,
+						data: { count: this.retryCount }
+					}));
+					return false;
+				}
 			}
 			if (this.resume != null) {
 				this.resume = null;
@@ -8131,7 +8137,7 @@ var require_readable = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	var kContentLength = Symbol("kContentLength");
 	var noop = () => {};
 	var BodyReadable = class extends Readable$3 {
-		constructor({ resume, abort, contentType = "", contentLength, highWaterMark = 64 * 1024 }) {
+		constructor({ resume, abort, contentType = "", contentLength, highWaterMark = 65536 }) {
 			super({
 				autoDestroy: true,
 				read: resume,
@@ -8210,7 +8216,7 @@ var require_readable = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			return this[kBody];
 		}
 		async dump(opts) {
-			let limit = Number.isFinite(opts?.limit) ? opts.limit : 128 * 1024;
+			let limit = Number.isFinite(opts?.limit) ? opts.limit : 131072;
 			const signal = opts?.signal;
 			if (signal != null && (typeof signal !== "object" || !("aborted" in signal))) throw new InvalidArgumentError("signal must be an AbortSignal");
 			signal?.throwIfAborted();
@@ -8299,7 +8305,7 @@ var require_readable = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	* @returns {Uint8Array}
 	*/
 	function chunksConcat(chunks, length) {
-		if (chunks.length === 0 || length === 0) return new Uint8Array(0);
+		if (chunks.length === 0 || length === 0) return /* @__PURE__ */ new Uint8Array(0);
 		if (chunks.length === 1) return new Uint8Array(chunks[0]);
 		const buffer = new Uint8Array(Buffer.allocUnsafeSlow(length).buffer);
 		let offset = 0;
@@ -8349,7 +8355,7 @@ var require_util$5 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	var assert$13 = __require("node:assert");
 	var { ResponseStatusCodeError } = require_errors();
 	var { chunksDecode } = require_readable();
-	var CHUNK_LIMIT = 128 * 1024;
+	var CHUNK_LIMIT = 131072;
 	async function getResolveErrorBodyCallback({ callback, body, contentType, statusCode, statusMessage, headers }) {
 		assert$13(body);
 		let chunks = [];
@@ -8438,17 +8444,19 @@ var require_api_request = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			if (util.isStream(body)) body.on("error", (err) => {
 				this.onError(err);
 			});
-			if (this.signal) if (this.signal.aborted) this.reason = this.signal.reason ?? new RequestAbortedError();
-			else this.removeAbortListener = util.addAbortListener(this.signal, () => {
-				this.reason = this.signal.reason ?? new RequestAbortedError();
-				if (this.res) util.destroy(this.res.on("error", util.nop), this.reason);
-				else if (this.abort) this.abort(this.reason);
-				if (this.removeAbortListener) {
-					this.res?.off("close", this.removeAbortListener);
-					this.removeAbortListener();
-					this.removeAbortListener = null;
-				}
-			});
+			if (this.signal) {
+				if (this.signal.aborted) this.reason = this.signal.reason ?? new RequestAbortedError();
+				else this.removeAbortListener = util.addAbortListener(this.signal, () => {
+					this.reason = this.signal.reason ?? new RequestAbortedError();
+					if (this.res) util.destroy(this.res.on("error", util.nop), this.reason);
+					else if (this.abort) this.abort(this.reason);
+					if (this.removeAbortListener) {
+						this.res?.off("close", this.removeAbortListener);
+						this.removeAbortListener();
+						this.removeAbortListener = null;
+					}
+				});
+			}
 		}
 		onConnect(abort, context) {
 			if (this.reason) {
@@ -8482,22 +8490,24 @@ var require_api_request = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			if (this.removeAbortListener) res.on("close", this.removeAbortListener);
 			this.callback = null;
 			this.res = res;
-			if (callback !== null) if (this.throwOnError && statusCode >= 400) this.runInAsyncScope(getResolveErrorBodyCallback, null, {
-				callback,
-				body: res,
-				contentType,
-				statusCode,
-				statusMessage,
-				headers
-			});
-			else this.runInAsyncScope(callback, null, null, {
-				statusCode,
-				headers,
-				trailers: this.trailers,
-				opaque,
-				body: res,
-				context
-			});
+			if (callback !== null) {
+				if (this.throwOnError && statusCode >= 400) this.runInAsyncScope(getResolveErrorBodyCallback, null, {
+					callback,
+					body: res,
+					contentType,
+					statusCode,
+					statusMessage,
+					headers
+				});
+				else this.runInAsyncScope(callback, null, null, {
+					statusCode,
+					headers,
+					trailers: this.trailers,
+					opaque,
+					body: res,
+					context
+				});
+			}
 		}
 		onData(chunk) {
 			return this.res.push(chunk);
@@ -9393,10 +9403,12 @@ var require_mock_interceptor = /* @__PURE__ */ __commonJSMin(((exports, module) 
 			if (typeof opts !== "object") throw new InvalidArgumentError("opts must be an object");
 			if (typeof opts.path === "undefined") throw new InvalidArgumentError("opts.path must be defined");
 			if (typeof opts.method === "undefined") opts.method = "GET";
-			if (typeof opts.path === "string") if (opts.query) opts.path = buildURL(opts.path, opts.query);
-			else {
-				const parsedURL = new URL(opts.path, "data://");
-				opts.path = parsedURL.pathname + parsedURL.search;
+			if (typeof opts.path === "string") {
+				if (opts.query) opts.path = buildURL(opts.path, opts.query);
+				else {
+					const parsedURL = new URL(opts.path, "data://");
+					opts.path = parsedURL.pathname + parsedURL.search;
+				}
 			}
 			if (typeof opts.method === "string") opts.method = opts.method.toUpperCase();
 			this[kDispatchKey] = buildKey(opts);
@@ -9687,9 +9699,10 @@ var require_mock_agent = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			this[kIsMockActive] = true;
 		}
 		enableNetConnect(matcher) {
-			if (typeof matcher === "string" || typeof matcher === "function" || matcher instanceof RegExp) if (Array.isArray(this[kNetConnect])) this[kNetConnect].push(matcher);
-			else this[kNetConnect] = [matcher];
-			else if (typeof matcher === "undefined") this[kNetConnect] = true;
+			if (typeof matcher === "string" || typeof matcher === "function" || matcher instanceof RegExp) {
+				if (Array.isArray(this[kNetConnect])) this[kNetConnect].push(matcher);
+				else this[kNetConnect] = [matcher];
+			} else if (typeof matcher === "undefined") this[kNetConnect] = true;
 			else throw new InvalidArgumentError("Unsupported matcher. Must be one of String|Function|RegExp.");
 		}
 		disableNetConnect() {
@@ -9845,7 +9858,7 @@ var require_dump = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	var { InvalidArgumentError, RequestAbortedError } = require_errors();
 	var DecoratorHandler = require_decorator_handler();
 	var DumpHandler = class extends DecoratorHandler {
-		#maxSize = 1024 * 1024;
+		#maxSize = 1048576;
 		#abort = null;
 		#dumped = false;
 		#aborted = false;
@@ -9895,7 +9908,7 @@ var require_dump = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			this.#handler.onComplete(trailers);
 		}
 	};
-	function createDumpInterceptor({ maxSize: defaultMaxSize } = { maxSize: 1024 * 1024 }) {
+	function createDumpInterceptor({ maxSize: defaultMaxSize } = { maxSize: 1048576 }) {
 		return (dispatch) => {
 			return function Intercept(opts, handler) {
 				const { dumpMaxSize = defaultMaxSize } = opts;
@@ -9992,12 +10005,14 @@ var require_dns = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			const { records, offset } = hostnameRecords;
 			let family;
 			if (this.dualStack) {
-				if (affinity == null) if (offset == null || offset === maxInt) {
-					hostnameRecords.offset = 0;
-					affinity = 4;
-				} else {
-					hostnameRecords.offset++;
-					affinity = (hostnameRecords.offset & 1) === 1 ? 6 : 4;
+				if (affinity == null) {
+					if (offset == null || offset === maxInt) {
+						hostnameRecords.offset = 0;
+						affinity = 4;
+					} else {
+						hostnameRecords.offset++;
+						affinity = (hostnameRecords.offset & 1) === 1 ? 6 : 4;
+					}
 				}
 				if (records[affinity] != null && records[affinity].ips.length > 0) family = records[affinity];
 				else family = records[affinity === 4 ? 6 : 4];
@@ -10066,9 +10081,7 @@ var require_dns = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 					this.#handler.onError(err);
 					return;
 				case "ENOTFOUND": this.#state.deleteRecord(this.#origin);
-				default:
-					this.#handler.onError(err);
-					break;
+				default: this.#handler.onError(err);
 			}
 		}
 	};
@@ -11493,8 +11506,10 @@ var require_fetch = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		assert$4(!request.body || request.body.stream);
 		if (request.window === "client") request.window = request.client?.globalObject?.constructor?.name === "Window" ? request.client : "no-window";
 		if (request.origin === "client") request.origin = request.client.origin;
-		if (request.policyContainer === "client") if (request.client != null) request.policyContainer = clonePolicyContainer(request.client.policyContainer);
-		else request.policyContainer = makePolicyContainer();
+		if (request.policyContainer === "client") {
+			if (request.client != null) request.policyContainer = clonePolicyContainer(request.client.policyContainer);
+			else request.policyContainer = makePolicyContainer();
+		}
 		if (!request.headersList.contains("accept", true)) request.headersList.append("accept", "*/*", true);
 		if (!request.headersList.contains("accept-language", true)) request.headersList.append("accept-language", "*", true);
 		if (request.priority === null) {}
@@ -11761,8 +11776,10 @@ var require_fetch = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			if (!httpRequest.headersList.contains("cache-control", true)) httpRequest.headersList.append("cache-control", "no-cache", true);
 		}
 		if (httpRequest.headersList.contains("range", true)) httpRequest.headersList.append("accept-encoding", "identity", true);
-		if (!httpRequest.headersList.contains("accept-encoding", true)) if (urlHasHttpsScheme(requestCurrentURL(httpRequest))) httpRequest.headersList.append("accept-encoding", "br, gzip, deflate", true);
-		else httpRequest.headersList.append("accept-encoding", "gzip, deflate", true);
+		if (!httpRequest.headersList.contains("accept-encoding", true)) {
+			if (urlHasHttpsScheme(requestCurrentURL(httpRequest))) httpRequest.headersList.append("accept-encoding", "br, gzip, deflate", true);
+			else httpRequest.headersList.append("accept-encoding", "gzip, deflate", true);
+		}
 		httpRequest.headersList.delete("host", true);
 		if (includeCredentials) {}
 		httpRequest.cache = "no-store";
@@ -14208,8 +14225,10 @@ var require_util$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			failWebsocketConnection(ws, "Received invalid UTF-8 in text frame.");
 			return;
 		}
-		else if (type === opcodes.BINARY) if (ws[kBinaryType] === "blob") dataForEvent = new Blob([data]);
-		else dataForEvent = toArrayBuffer(data);
+		else if (type === opcodes.BINARY) {
+			if (ws[kBinaryType] === "blob") dataForEvent = new Blob([data]);
+			else dataForEvent = toArrayBuffer(data);
+		}
 		fireEvent("message", ws, createFastMessageEvent, {
 			origin: ws[kWebSocketURL].origin,
 			data: dataForEvent
@@ -15865,13 +15884,15 @@ var require_eventsource = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			};
 			fetchParams.processResponseEndOfBody = processEventSourceEndOfBody;
 			fetchParams.processResponse = (response) => {
-				if (isNetworkError(response)) if (response.aborted) {
-					this.close();
-					this.dispatchEvent(new Event("error"));
-					return;
-				} else {
-					this.#reconnect();
-					return;
+				if (isNetworkError(response)) {
+					if (response.aborted) {
+						this.close();
+						this.dispatchEvent(new Event("error"));
+						return;
+					} else {
+						this.#reconnect();
+						return;
+					}
 				}
 				const contentType = response.headersList.get("content-type", true);
 				const mimeType = contentType !== null ? parseMIMEType(contentType) : "failure";
@@ -16452,188 +16473,9 @@ var Summary = class {
 	}
 };
 new Summary();
-//#endregion
-//#region ../../node_modules/.pnpm/@actions+io@3.0.2/node_modules/@actions/io/lib/io-util.js
-var __awaiter$6 = function(thisArg, _arguments, P, generator) {
-	function adopt(value) {
-		return value instanceof P ? value : new P(function(resolve) {
-			resolve(value);
-		});
-	}
-	return new (P || (P = Promise))(function(resolve, reject) {
-		function fulfilled(value) {
-			try {
-				step(generator.next(value));
-			} catch (e) {
-				reject(e);
-			}
-		}
-		function rejected(value) {
-			try {
-				step(generator["throw"](value));
-			} catch (e) {
-				reject(e);
-			}
-		}
-		function step(result) {
-			result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
-		}
-		step((generator = generator.apply(thisArg, _arguments || [])).next());
-	});
-};
 var { chmod, copyFile, lstat: lstat$1, mkdir: mkdir$1, open: open$1, readdir, rename: rename$1, rm: rm$1, rmdir, stat: stat$1, symlink, unlink: unlink$1 } = fs.promises;
-var IS_WINDOWS$1 = process.platform === "win32";
+process.platform;
 fs.constants.O_RDONLY;
-/**
-* On OSX/Linux, true if path starts with '/'. On Windows, true for paths like:
-* \, \hello, \\hello\share, C:, and C:\hello (and corresponding alternate separator cases).
-*/
-function isRooted(p) {
-	p = normalizeSeparators(p);
-	if (!p) throw new Error("isRooted() parameter \"p\" cannot be empty");
-	if (IS_WINDOWS$1) return p.startsWith("\\") || /^[A-Z]:/i.test(p);
-	return p.startsWith("/");
-}
-/**
-* Best effort attempt to determine whether a file exists and is executable.
-* @param filePath    file path to check
-* @param extensions  additional file extensions to try
-* @return if file exists and is executable, returns the file path. otherwise empty string.
-*/
-function tryGetExecutablePath(filePath, extensions) {
-	return __awaiter$6(this, void 0, void 0, function* () {
-		let stats = void 0;
-		try {
-			stats = yield stat$1(filePath);
-		} catch (err) {
-			if (err.code !== "ENOENT") console.log(`Unexpected error attempting to determine if executable file exists '${filePath}': ${err}`);
-		}
-		if (stats && stats.isFile()) {
-			if (IS_WINDOWS$1) {
-				const upperExt = path.extname(filePath).toUpperCase();
-				if (extensions.some((validExt) => validExt.toUpperCase() === upperExt)) return filePath;
-			} else if (isUnixExecutable(stats)) return filePath;
-		}
-		const originalFilePath = filePath;
-		for (const extension of extensions) {
-			filePath = originalFilePath + extension;
-			stats = void 0;
-			try {
-				stats = yield stat$1(filePath);
-			} catch (err) {
-				if (err.code !== "ENOENT") console.log(`Unexpected error attempting to determine if executable file exists '${filePath}': ${err}`);
-			}
-			if (stats && stats.isFile()) {
-				if (IS_WINDOWS$1) {
-					try {
-						const directory = path.dirname(filePath);
-						const upperName = path.basename(filePath).toUpperCase();
-						for (const actualName of yield readdir(directory)) if (upperName === actualName.toUpperCase()) {
-							filePath = path.join(directory, actualName);
-							break;
-						}
-					} catch (err) {
-						console.log(`Unexpected error attempting to determine the actual case of the file '${filePath}': ${err}`);
-					}
-					return filePath;
-				} else if (isUnixExecutable(stats)) return filePath;
-			}
-		}
-		return "";
-	});
-}
-function normalizeSeparators(p) {
-	p = p || "";
-	if (IS_WINDOWS$1) {
-		p = p.replace(/\//g, "\\");
-		return p.replace(/\\\\+/g, "\\");
-	}
-	return p.replace(/\/\/+/g, "/");
-}
-function isUnixExecutable(stats) {
-	return (stats.mode & 1) > 0 || (stats.mode & 8) > 0 && process.getgid !== void 0 && stats.gid === process.getgid() || (stats.mode & 64) > 0 && process.getuid !== void 0 && stats.uid === process.getuid();
-}
-//#endregion
-//#region ../../node_modules/.pnpm/@actions+io@3.0.2/node_modules/@actions/io/lib/io.js
-var __awaiter$5 = function(thisArg, _arguments, P, generator) {
-	function adopt(value) {
-		return value instanceof P ? value : new P(function(resolve) {
-			resolve(value);
-		});
-	}
-	return new (P || (P = Promise))(function(resolve, reject) {
-		function fulfilled(value) {
-			try {
-				step(generator.next(value));
-			} catch (e) {
-				reject(e);
-			}
-		}
-		function rejected(value) {
-			try {
-				step(generator["throw"](value));
-			} catch (e) {
-				reject(e);
-			}
-		}
-		function step(result) {
-			result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
-		}
-		step((generator = generator.apply(thisArg, _arguments || [])).next());
-	});
-};
-/**
-* Returns path of a tool had the tool actually been invoked.  Resolves via paths.
-* If you check and the tool does not exist, it will throw.
-*
-* @param     tool              name of the tool
-* @param     check             whether to check if tool exists
-* @returns   Promise<string>   path to tool
-*/
-function which(tool, check) {
-	return __awaiter$5(this, void 0, void 0, function* () {
-		if (!tool) throw new Error("parameter 'tool' is required");
-		if (check) {
-			const result = yield which(tool, false);
-			if (!result) if (IS_WINDOWS$1) throw new Error(`Unable to locate executable file: ${tool}. Please verify either the file path exists or the file can be found within a directory specified by the PATH environment variable. Also verify the file has a valid extension for an executable file.`);
-			else throw new Error(`Unable to locate executable file: ${tool}. Please verify either the file path exists or the file can be found within a directory specified by the PATH environment variable. Also check the file mode to verify the file is executable.`);
-			return result;
-		}
-		const matches = yield findInPath(tool);
-		if (matches && matches.length > 0) return matches[0];
-		return "";
-	});
-}
-/**
-* Returns a list of all occurrences of the given tool on the system path.
-*
-* @returns   Promise<string[]>  the paths of the tool
-*/
-function findInPath(tool) {
-	return __awaiter$5(this, void 0, void 0, function* () {
-		if (!tool) throw new Error("parameter 'tool' is required");
-		const extensions = [];
-		if (IS_WINDOWS$1 && process.env["PATHEXT"]) {
-			for (const extension of process.env["PATHEXT"].split(path.delimiter)) if (extension) extensions.push(extension);
-		}
-		if (isRooted(tool)) {
-			const filePath = yield tryGetExecutablePath(tool, extensions);
-			if (filePath) return [filePath];
-			return [];
-		}
-		if (tool.includes(path.sep)) return [];
-		const directories = [];
-		if (process.env.PATH) {
-			for (const p of process.env.PATH.split(path.delimiter)) if (p) directories.push(p);
-		}
-		const matches = [];
-		for (const directory of directories) {
-			const filePath = yield tryGetExecutablePath(path.join(directory, tool), extensions);
-			if (filePath) matches.push(filePath);
-		}
-		return matches;
-	});
-}
 process.platform;
 events.EventEmitter;
 events.EventEmitter;
@@ -16705,10 +16547,12 @@ var Context = class {
 	constructor() {
 		var _a, _b, _c;
 		this.payload = {};
-		if (process.env.GITHUB_EVENT_PATH) if (existsSync(process.env.GITHUB_EVENT_PATH)) this.payload = JSON.parse(readFileSync$1(process.env.GITHUB_EVENT_PATH, { encoding: "utf8" }));
-		else {
-			const path = process.env.GITHUB_EVENT_PATH;
-			process.stdout.write(`GITHUB_EVENT_PATH ${path} does not exist${EOL}`);
+		if (process.env.GITHUB_EVENT_PATH) {
+			if (existsSync(process.env.GITHUB_EVENT_PATH)) this.payload = JSON.parse(readFileSync$1(process.env.GITHUB_EVENT_PATH, { encoding: "utf8" }));
+			else {
+				const path = process.env.GITHUB_EVENT_PATH;
+				process.stdout.write(`GITHUB_EVENT_PATH ${path} does not exist${EOL}`);
+			}
 		}
 		this.eventName = process.env.GITHUB_EVENT_NAME;
 		this.sha = process.env.GITHUB_SHA;
@@ -17186,7 +17030,7 @@ var import_lib = /* @__PURE__ */ __toESM((/* @__PURE__ */ __commonJSMin(((export
 			req.on("socket", (sock) => {
 				socket = sock;
 			});
-			req.setTimeout(this._socketTimeout || 3 * 6e4, () => {
+			req.setTimeout(this._socketTimeout || 18e4, () => {
 				if (socket) socket.end();
 				handleResult(/* @__PURE__ */ new Error(`Request timeout: ${info.options.path}`));
 			});
@@ -17266,14 +17110,18 @@ var import_lib = /* @__PURE__ */ __toESM((/* @__PURE__ */ __commonJSMin(((export
 			let clientHeader;
 			if (this.requestOptions && this.requestOptions.headers) {
 				const headerValue = lowercaseKeys(this.requestOptions.headers)[Headers.ContentType];
-				if (headerValue) if (typeof headerValue === "number") clientHeader = String(headerValue);
-				else if (Array.isArray(headerValue)) clientHeader = headerValue.join(", ");
-				else clientHeader = headerValue;
+				if (headerValue) {
+					if (typeof headerValue === "number") clientHeader = String(headerValue);
+					else if (Array.isArray(headerValue)) clientHeader = headerValue.join(", ");
+					else clientHeader = headerValue;
+				}
 			}
 			const additionalValue = additionalHeaders[Headers.ContentType];
-			if (additionalValue !== void 0) if (typeof additionalValue === "number") return String(additionalValue);
-			else if (Array.isArray(additionalValue)) return additionalValue.join(", ");
-			else return additionalValue;
+			if (additionalValue !== void 0) {
+				if (typeof additionalValue === "number") return String(additionalValue);
+				else if (Array.isArray(additionalValue)) return additionalValue.join(", ");
+				else return additionalValue;
+			}
 			if (clientHeader !== void 0) return clientHeader;
 			return _default;
 		}
@@ -17569,9 +17417,10 @@ function isPlainObject$1(value) {
 function mergeDeep(defaults, options) {
 	const result = Object.assign({}, defaults);
 	Object.keys(options).forEach((key) => {
-		if (isPlainObject$1(options[key])) if (!(key in defaults)) Object.assign(result, { [key]: options[key] });
-		else result[key] = mergeDeep(defaults[key], options[key]);
-		else Object.assign(result, { [key]: options[key] });
+		if (isPlainObject$1(options[key])) {
+			if (!(key in defaults)) Object.assign(result, { [key]: options[key] });
+			else result[key] = mergeDeep(defaults[key], options[key]);
+		} else Object.assign(result, { [key]: options[key] });
 	});
 	return result;
 }
@@ -17644,31 +17493,33 @@ function isKeyOperator(operator) {
 }
 function getValues(context, operator, key, modifier) {
 	var value = context[key], result = [];
-	if (isDefined(value) && value !== "") if (typeof value === "string" || typeof value === "number" || typeof value === "bigint" || typeof value === "boolean") {
-		value = value.toString();
-		if (modifier && modifier !== "*") value = value.substring(0, parseInt(modifier, 10));
-		result.push(encodeValue(operator, value, isKeyOperator(operator) ? key : ""));
-	} else if (modifier === "*") if (Array.isArray(value)) value.filter(isDefined).forEach(function(value2) {
-		result.push(encodeValue(operator, value2, isKeyOperator(operator) ? key : ""));
-	});
-	else Object.keys(value).forEach(function(k) {
-		if (isDefined(value[k])) result.push(encodeValue(operator, value[k], k));
-	});
-	else {
-		const tmp = [];
-		if (Array.isArray(value)) value.filter(isDefined).forEach(function(value2) {
-			tmp.push(encodeValue(operator, value2));
-		});
-		else Object.keys(value).forEach(function(k) {
-			if (isDefined(value[k])) {
-				tmp.push(encodeUnreserved(k));
-				tmp.push(encodeValue(operator, value[k].toString()));
-			}
-		});
-		if (isKeyOperator(operator)) result.push(encodeUnreserved(key) + "=" + tmp.join(","));
-		else if (tmp.length !== 0) result.push(tmp.join(","));
-	}
-	else if (operator === ";") {
+	if (isDefined(value) && value !== "") {
+		if (typeof value === "string" || typeof value === "number" || typeof value === "bigint" || typeof value === "boolean") {
+			value = value.toString();
+			if (modifier && modifier !== "*") value = value.substring(0, parseInt(modifier, 10));
+			result.push(encodeValue(operator, value, isKeyOperator(operator) ? key : ""));
+		} else if (modifier === "*") {
+			if (Array.isArray(value)) value.filter(isDefined).forEach(function(value2) {
+				result.push(encodeValue(operator, value2, isKeyOperator(operator) ? key : ""));
+			});
+			else Object.keys(value).forEach(function(k) {
+				if (isDefined(value[k])) result.push(encodeValue(operator, value[k], k));
+			});
+		} else {
+			const tmp = [];
+			if (Array.isArray(value)) value.filter(isDefined).forEach(function(value2) {
+				tmp.push(encodeValue(operator, value2));
+			});
+			else Object.keys(value).forEach(function(k) {
+				if (isDefined(value[k])) {
+					tmp.push(encodeUnreserved(k));
+					tmp.push(encodeValue(operator, value[k].toString()));
+				}
+			});
+			if (isKeyOperator(operator)) result.push(encodeUnreserved(key) + "=" + tmp.join(","));
+			else if (tmp.length !== 0) result.push(tmp.join(","));
+		}
+	} else if (operator === ";") {
 		if (isDefined(value)) result.push(encodeUnreserved(key));
 	} else if (value === "" && (operator === "&" || operator === "?")) result.push(encodeUnreserved(key) + "=");
 	else if (value === "") result.push("");
@@ -17968,40 +17819,41 @@ var stringifyIteratively = (rootValue, replacer, spaceParam) => {
 			level++;
 		}
 		let isDone = false;
-		if (node.isArray) if (node.index < node.val.length) {
-			if (!node.first) chunks.push(",");
-			if (space) chunks.push("\n" + space.repeat(level));
-			const childRaw = node.val[node.index];
-			const childVal = prepareVal(node.val, String(node.index), childRaw);
-			if (isUnstringifiable(childVal)) {
-				chunks.push("null");
-				node.first = false;
-				node.index++;
-			} else {
-				const isComplexObject = childVal !== null && typeof childVal === "object";
-				const isNativeRaw = isRawJSON(childVal);
-				if (isComplexObject && !isNativeRaw) {
-					if (visited.has(childVal)) throw new TypeError("Converting circular structure to JSON");
-					visited.add(childVal);
-					stack.push({
-						parent: node.val,
-						key: String(node.index),
-						val: childVal,
-						isArray: Array.isArray(childVal),
-						keys: Array.isArray(childVal) ? null : Object.keys(childVal),
-						index: 0,
-						first: true
-					});
+		if (node.isArray) {
+			if (node.index < node.val.length) {
+				if (!node.first) chunks.push(",");
+				if (space) chunks.push("\n" + space.repeat(level));
+				const childRaw = node.val[node.index];
+				const childVal = prepareVal(node.val, String(node.index), childRaw);
+				if (isUnstringifiable(childVal)) {
+					chunks.push("null");
 					node.first = false;
 					node.index++;
 				} else {
-					chunks.push(originalStringify(childVal));
-					node.first = false;
-					node.index++;
+					const isComplexObject = childVal !== null && typeof childVal === "object";
+					const isNativeRaw = isRawJSON(childVal);
+					if (isComplexObject && !isNativeRaw) {
+						if (visited.has(childVal)) throw new TypeError("Converting circular structure to JSON");
+						visited.add(childVal);
+						stack.push({
+							parent: node.val,
+							key: String(node.index),
+							val: childVal,
+							isArray: Array.isArray(childVal),
+							keys: Array.isArray(childVal) ? null : Object.keys(childVal),
+							index: 0,
+							first: true
+						});
+						node.first = false;
+						node.index++;
+					} else {
+						chunks.push(originalStringify(childVal));
+						node.first = false;
+						node.index++;
+					}
 				}
-			}
-		} else isDone = true;
-		else {
+			} else isDone = true;
+		} else {
 			while (node.index < node.keys.length) {
 				const k = node.keys[node.index++];
 				if (propertyList && !propertyList.has(k)) continue;
@@ -18137,9 +17989,7 @@ var convertMarkedBigIntsReviver = (key, value, context, userReviver) => {
 */
 var JSONParseV2 = (text, reviver) => {
 	return JSON.parse(text, (key, value, context) => {
-		const isNumber = typeof value === "number";
-		const isOutOfBounds = value > Number.MAX_SAFE_INTEGER || value < Number.MIN_SAFE_INTEGER;
-		const isBigNumber = isNumber && isOutOfBounds;
+		const isBigNumber = typeof value === "number" && (value > Number.MAX_SAFE_INTEGER || value < Number.MIN_SAFE_INTEGER);
 		const isInt = context && intRegex.test(context.source);
 		if (isBigNumber && isInt) return BigInt(context.source);
 		if (!(typeof reviver === "function")) return value;
@@ -18591,13 +18441,14 @@ var Octokit = class {
 		this.graphql = withCustomRequest(this.request).defaults(requestDefaults);
 		this.log = createLogger(options.log);
 		this.hook = hook;
-		if (!options.authStrategy) if (!options.auth) this.auth = async () => ({ type: "unauthenticated" });
-		else {
-			const auth = createTokenAuth(options.auth);
-			hook.wrap("request", auth.hook);
-			this.auth = auth;
-		}
-		else {
+		if (!options.authStrategy) {
+			if (!options.auth) this.auth = async () => ({ type: "unauthenticated" });
+			else {
+				const auth = createTokenAuth(options.auth);
+				hook.wrap("request", auth.hook);
+				this.auth = auth;
+			}
+		} else {
 			const { authStrategy, ...otherOptions } = options;
 			const auth = authStrategy(Object.assign({
 				request: this.request,
@@ -20488,7 +20339,8 @@ var Point = class Point {
 		const X3 = M(E * F);
 		const Y3 = M(G * H);
 		const T3 = M(E * H);
-		return new Point(X3, Y3, M(F * G), T3);
+		const Z3 = M(F * G);
+		return new Point(X3, Y3, Z3, T3);
 	}
 	/** Point addition. Complete formula. Cost: `8M + 1*k + 8add + 1*2`. */
 	add(other) {
@@ -20507,7 +20359,8 @@ var Point = class Point {
 		const X3 = M(E * F);
 		const Y3 = M(G * H);
 		const T3 = M(E * H);
-		return new Point(X3, Y3, M(F * G), T3);
+		const Z3 = M(F * G);
+		return new Point(X3, Y3, Z3, T3);
 	}
 	/**
 	* Point-by-scalar multiplication. Scalar must be in range 1 <= n < CURVE.n.
@@ -20647,7 +20500,8 @@ var _sign = (e, rBytes, msg) => {
 	const R = G.multiply(r).toBytes();
 	const hashable = concatBytes(R, P, msg);
 	const finish = (hashed) => {
-		return abytes$1(concatBytes(R, numTo32bLE(modN(r + modL_LE(hashed) * s))), L2);
+		const S = modN(r + modL_LE(hashed) * s);
+		return abytes$1(concatBytes(R, numTo32bLE(S)), L2);
 	};
 	return {
 		hashable,
@@ -20680,7 +20534,7 @@ var etc = {
 };
 var W = 8;
 var pwindows = Math.ceil(256 / W) + 1;
-var pwindowSize = 2 ** (W - 1);
+var pwindowSize = 128;
 var precompute = () => {
 	const points = [];
 	let p = G;
@@ -20716,9 +20570,8 @@ var wNAF = (n) => {
 	const comp = Gpows || (Gpows = precompute());
 	let p = I;
 	let f = G;
-	const pow_2_w = 2 ** W;
-	const maxNum = pow_2_w;
-	const mask = big(pow_2_w - 1);
+	const maxNum = 2 ** W;
+	const mask = big(255);
 	const shiftBy = big(W);
 	for (let w = 0; w < pwindows; w++) {
 		let wbits = Number(n & mask);
@@ -20961,7 +20814,8 @@ function createSseClient({ onRequest, onSseError, onSseEvent, responseTransforme
 			} catch (error) {
 				onSseError?.(error);
 				if (sseMaxRetryAttempts !== void 0 && attempt >= sseMaxRetryAttempts) break;
-				await sleep(Math.min(retryDelay * 2 ** (attempt - 1), sseMaxRetryDelay ?? 3e4));
+				const backoff = Math.min(retryDelay * 2 ** (attempt - 1), sseMaxRetryDelay ?? 3e4);
+				await sleep(backoff);
 			}
 		}
 	};
@@ -21207,9 +21061,7 @@ async function setAuthParams(options) {
 			case "cookie":
 				options.headers.append("Cookie", `${name}=${token}`);
 				break;
-			default:
-				options.headers.set(name, token);
-				break;
+			default: options.headers.set(name, token);
 		}
 	}
 }
@@ -21366,9 +21218,7 @@ var createClient = (config = {}) => {
 						case "stream":
 							emptyData = response.body;
 							break;
-						default:
-							emptyData = {};
-							break;
+						default: emptyData = {};
 					}
 					return opts.responseStyle === "data" ? emptyData : {
 						data: emptyData,
@@ -25588,7 +25438,8 @@ var SHA256 = class extends HashMD {
 			const W15 = SHA256_W[i - 15];
 			const W2 = SHA256_W[i - 2];
 			const s0 = rotr(W15, 7) ^ rotr(W15, 18) ^ W15 >>> 3;
-			SHA256_W[i] = (rotr(W2, 17) ^ rotr(W2, 19) ^ W2 >>> 10) + SHA256_W[i - 7] + s0 + SHA256_W[i - 16] | 0;
+			const s1 = rotr(W2, 17) ^ rotr(W2, 19) ^ W2 >>> 10;
+			SHA256_W[i] = s1 + SHA256_W[i - 7] + s0 + SHA256_W[i - 16] | 0;
 		}
 		let { A, B, C, D, E, F, G, H } = this;
 		for (let i = 0; i < 64; i++) {
@@ -25652,7 +25503,7 @@ function coerce(o) {
 */
 function base(ALPHABET, name) {
 	if (ALPHABET.length >= 255) throw new TypeError("Alphabet too long");
-	var BASE_MAP = new Uint8Array(256);
+	var BASE_MAP = /* @__PURE__ */ new Uint8Array(256);
 	for (var j = 0; j < BASE_MAP.length; j++) BASE_MAP[j] = 255;
 	for (var i = 0; i < ALPHABET.length; i++) {
 		var x = ALPHABET.charAt(i);
@@ -25706,7 +25557,7 @@ function base(ALPHABET, name) {
 	*/
 	function decodeUnsafe(source) {
 		if (typeof source !== "string") throw new TypeError("Expected String");
-		if (source.length === 0) return new Uint8Array();
+		if (source.length === 0) return /* @__PURE__ */ new Uint8Array();
 		var psz = 0;
 		if (source[psz] === " ") return;
 		var zeroes = 0;
@@ -26000,7 +25851,9 @@ baseX({
 //#endregion
 //#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/vendor/varint.js
 var encode_1 = encode;
-var MSB = 128, MSBALL = -128, INT = Math.pow(2, 31);
+var MSB = 128;
+var MSBALL = -128;
+var INT = Math.pow(2, 31);
 /**
 * @param {number} num
 * @param {number[]} out
@@ -26023,7 +25876,8 @@ function encode(num, out, offset) {
 	return out;
 }
 var decode$2 = read;
-var MSB$1 = 128, REST$1 = 127;
+var MSB$1 = 128;
+var REST$1 = 127;
 /**
 * @param {string | any[]} buf
 * @param {number} offset
@@ -26252,7 +26106,10 @@ var CID = class CID {
 		switch (version) {
 			case 0: if (code !== DAG_PB_CODE) throw new Error(`Version 0 CID must use dag-pb (code: ${DAG_PB_CODE}) block encoding`);
 			else return new CID(version, code, digest, digest.bytes);
-			case 1: return new CID(version, code, digest, encodeCID(version, code, digest.bytes));
+			case 1: {
+				const bytes = encodeCID(version, code, digest.bytes);
+				return new CID(version, code, digest, bytes);
+			}
 			default: throw new Error("Invalid version");
 		}
 	}
@@ -26473,11 +26330,12 @@ var SignedEntryCreateError = class extends Error {
 function createEntriesNamespace(context) {
 	const { client, auth } = context;
 	async function createSignedEntry(diaryId, body, sign) {
+		const contentCid = computeContentCid(body.entryType ?? "semantic", body.title ?? null, body.content, body.tags ?? null);
 		const signingRequest = unwrapResult(await createSigningRequest({
 			client,
 			auth,
 			body: {
-				message: computeContentCid(body.entryType ?? "semantic", body.title ?? null, body.content, body.tags ?? null),
+				message: contentCid,
 				verificationMethod: "agent-ed25519"
 			}
 		}));
@@ -27280,16 +27138,6 @@ function NextGraphemeClusterIndex(value, clusterStart) {
 function IsGraphemeCodePoint(value) {
 	return value >= 768 && (IsHighSurrogate(value) || IsCombiningMark(value) || IsVariationSelector(value) || IsZeroWidthJoiner(value));
 }
-/** Returns the number of grapheme clusters in a string */
-function GraphemeCount$1(value) {
-	let count = 0;
-	let index = 0;
-	while (index < value.length) {
-		index = NextGraphemeClusterIndex(value, index);
-		count++;
-	}
-	return count;
-}
 /** Checks if a string has at least a minimum number of grapheme clusters */
 function IsMinLengthSegmented(value, minLength) {
 	let count = 0;
@@ -27329,48 +27177,6 @@ function IsMaxLength$2(value, maxLength) {
 		if (++index > maxLength) return false;
 	}
 }
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/guard/guard.mjs
-var guard_exports = /* @__PURE__ */ __exportAll({
-	Counted: () => Counted,
-	Entries: () => Entries,
-	EntriesRegExp: () => EntriesRegExp,
-	Every: () => Every,
-	EveryAll: () => EveryAll,
-	GraphemeCount: () => GraphemeCount,
-	HasPropertyKey: () => HasPropertyKey,
-	IsArray: () => IsArray$1,
-	IsBigInt: () => IsBigInt$1,
-	IsBoolean: () => IsBoolean$2,
-	IsClassInstance: () => IsClassInstance,
-	IsConstructor: () => IsConstructor$1,
-	IsDeepEqual: () => IsDeepEqual,
-	IsEqual: () => IsEqual,
-	IsFunction: () => IsFunction$1,
-	IsGreaterEqualThan: () => IsGreaterEqualThan,
-	IsGreaterThan: () => IsGreaterThan,
-	IsInteger: () => IsInteger$1,
-	IsLessEqualThan: () => IsLessEqualThan,
-	IsLessThan: () => IsLessThan,
-	IsMaxLength: () => IsMaxLength$1,
-	IsMinLength: () => IsMinLength$1,
-	IsMultipleOf: () => IsMultipleOf$1,
-	IsNull: () => IsNull$1,
-	IsNumber: () => IsNumber$2,
-	IsObject: () => IsObject$1,
-	IsObjectNotArray: () => IsObjectNotArray,
-	IsString: () => IsString$2,
-	IsSymbol: () => IsSymbol$1,
-	IsUndefined: () => IsUndefined$1,
-	IsUnsafePropertyKey: () => IsUnsafePropertyKey,
-	IsValueLike: () => IsValueLike,
-	Keys: () => Keys,
-	ShiftLeft: () => ShiftLeft,
-	Some: () => Some,
-	SomeAll: () => SomeAll,
-	Symbols: () => Symbols,
-	Values: () => Values
-});
 /** Returns true if this value is an array */
 function IsArray$1(value) {
 	return Array.isArray(value);
@@ -27460,10 +27266,6 @@ function IsClassInstance(value) {
 function IsValueLike(value) {
 	return IsBigInt$1(value) || IsBoolean$2(value) || IsNull$1(value) || IsNumber$2(value) || IsString$2(value) || IsUndefined$1(value);
 }
-/** Returns the number of grapheme clusters in the string */
-function GraphemeCount(value) {
-	return GraphemeCount$1(value);
-}
 /** Returns true if the string has at most the given number of graphemes */
 function IsMaxLength$1(value, length) {
 	return IsMaxLength$2(value, length);
@@ -27511,10 +27313,6 @@ function IsUnsafePropertyKey(key) {
 /** Returns true if this value has this property key */
 function HasPropertyKey(value, key) {
 	return IsUnsafePropertyKey(key) ? Object.prototype.hasOwnProperty.call(value, key) : key in value;
-}
-/** Returns object entries as `[RegExp, Value][]` */
-function EntriesRegExp(value) {
-	return Keys(value).map((key) => [new RegExp(`^${key}$`), value[key]]);
 }
 /** Returns object entries as `[string, Value][]` */
 function Entries(value) {
@@ -27574,9 +27372,6 @@ function IsSet(value) {
 function IsMap(value) {
 	return value instanceof globalThis.Map;
 }
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/guard/index.mjs
-var guard_default = guard_exports;
 //#endregion
 //#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/system/settings/settings.mjs
 var settings = {
@@ -28084,7 +27879,7 @@ var ByteMarker;
 var Accumulator = BigInt("14695981039346656037");
 var [Prime, Size] = [BigInt("1099511628211"), BigInt("18446744073709551616")];
 var Bytes = Array.from({ length: 256 }).map((_, i) => BigInt(i));
-var F64 = new Float64Array(1);
+var F64 = /* @__PURE__ */ new Float64Array(1);
 var F64In = new DataView(F64.buffer);
 var F64Out = new Uint8Array(F64.buffer);
 function FNV1A64_OP(byte) {
@@ -28212,11 +28007,6 @@ function Get$1() {
 	return locale;
 }
 //#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/type/types/_codec.mjs
-function IsCodec(value) {
-	return IsSchema$1(value) && HasPropertyKey(value, "~codec") && IsObject$1(value["~codec"]) && HasPropertyKey(value["~codec"], "encode") && HasPropertyKey(value["~codec"], "decode");
-}
-//#endregion
 //#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/type/types/_immutable.mjs
 /** Returns true if the given value is a TImmutable */
 function IsImmutable(value) {
@@ -28294,14 +28084,6 @@ function Literal(value, options) {
 /** Returns true if the given value is a TLiteralValue. */
 function IsLiteralValue(value) {
 	return IsBigInt$1(value) || IsBoolean$2(value) || IsNumber$2(value) || IsString$2(value);
-}
-/** Returns true if the given value is TLiteral<bigint>. */
-function IsLiteralBigInt(value) {
-	return IsLiteral(value) && IsBigInt$1(value.const);
-}
-/** Returns true if the given value is TLiteral<boolean>. */
-function IsLiteralBoolean(value) {
-	return IsLiteral(value) && IsBoolean$2(value.const);
 }
 /** Returns true if the given value is TLiteral<number>. */
 function IsLiteralNumber(value) {
@@ -28566,7 +28348,7 @@ function CompositePropertyKey(left, right, key) {
 	return key in left ? key in right ? CompositeProperty(left[key], right[key]) : left[key] : key in right ? right[key] : Never();
 }
 function CompositeProperties(left, right) {
-	return [...new Set([...Keys(left), ...Keys(right)])].reduce((result, key) => {
+	return [.../* @__PURE__ */ new Set([...Keys(left), ...Keys(right)])].reduce((result, key) => {
 		return {
 			...result,
 			[key]: CompositePropertyKey(left, right, key)
@@ -30545,10 +30327,6 @@ function ReturnTypeInstantiate(context, state, type, options = {}) {
 function WithDeferred(type, options) {
 	return Deferred("With", [type, options], {});
 }
-/** Applies annotation options to the given type. */
-function With(type, options) {
-	return WithAction(type, options);
-}
 //#endregion
 //#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/type/engine/with/instantiate.mjs
 function WithAction(type, options) {
@@ -30606,10 +30384,6 @@ function InstantiateImmediate(context, state, type) {
 function InstantiateType(context, state, type) {
 	return IsDeferred(type) ? InstantiateDeferred(context, state, type.action, type.parameters, type.options) : InstantiateImmediate(context, state, type);
 }
-/** Instantiates computed schematics using the given context and type. */
-function Instantiate(context, type) {
-	return InstantiateType(context, State([], []), type);
-}
 //#endregion
 //#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/type/engine/immutable/instantiate_add.mjs
 function AddImmutableOperation(type) {
@@ -30626,37 +30400,6 @@ function AddImmutableInstantiate(context, state, type, options) {
 /** Applies an AddImmutable action to a type. */
 function AddImmutable(type, options = {}) {
 	return AddImmutableAction(type, options);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/type/action/evaluate.mjs
-/** Applies an Evaluate action to a type. */
-function Evaluate(type, options = {}) {
-	return EvaluateAction(type, options);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/type/engine/priority/priority.mjs
-function Comparer(left, right) {
-	const compareResult = Compare(left, right);
-	return IsEqual(compareResult, 3) ? 1 : IsEqual(compareResult, 1) ? 1 : 0;
-}
-function Insert$1(type, types, result = []) {
-	return ShiftLeft(types, (left, right) => IsEqual(Comparer(type, left), 1) ? Insert$1(type, right, [...result, left]) : [
-		...result,
-		type,
-		...types
-	], () => [...result, type]);
-}
-function Sort(types, result = []) {
-	return ShiftLeft(types, (left, right) => Sort(right, Insert$1(left, result)), () => result);
-}
-/**
-* Priority sorts types in sequence of narrowest to broadest using an Insertion Sort
-* algorithm. This function is typically used to sequence types for union variant
-* checks to ensure that values are checked against the most narrow types before
-* the broadest, which in turn helps ensure order-independent Union checking.
-*/
-function Priority(types) {
-	return Sort(types);
 }
 //#endregion
 //#region ../../libs/tasks/src/output-contract-schema.ts
@@ -30676,7 +30419,8 @@ function validateOutputContractSchema(schema) {
 	let nodes = 0;
 	const visit = (node, path, depth) => {
 		if (!isObject(node) || depth > 10 || ++nodes > 200) return `${path} must be a schema object within the depth and size limits`;
-		const type = node.type;
+		const nullable = Array.isArray(node.type) && node.type.length === 2 && node.type.includes("null") && node.type.filter((value) => value !== "null").length === 1;
+		const type = nullable ? node.type.find((value) => value !== "null") : node.type;
 		if (![
 			"object",
 			"array",
@@ -30684,7 +30428,7 @@ function validateOutputContractSchema(schema) {
 			"number",
 			"integer",
 			"boolean"
-		].includes(type)) return `${path}.type must be object, array, string, number, integer, or boolean`;
+		].includes(type) || nullable && (type === "object" || type === "array")) return `${path}.type must be object, array, string, number, integer, boolean, or a nullable primitive`;
 		const common = [
 			"type",
 			"description",
@@ -30704,7 +30448,7 @@ function validateOutputContractSchema(schema) {
 		if (unknownKey) return `${path}.${unknownKey} is not supported`;
 		if (node.description !== void 0 && typeof node.description !== "string") return `${path}.description must be a string`;
 		if (node.title !== void 0 && typeof node.title !== "string") return `${path}.title must be a string`;
-		if (node.enum !== void 0 && (type === "object" || type === "array" || !Array.isArray(node.enum) || node.enum.length === 0 || node.enum.some((value) => type === "integer" ? !Number.isInteger(value) : typeof value !== type))) return `${path}.enum must contain values of the declared primitive type`;
+		if (node.enum !== void 0 && (type === "object" || type === "array" || !Array.isArray(node.enum) || node.enum.length === 0 || node.enum.some((value) => value === null && nullable ? false : type === "integer" ? !Number.isInteger(value) : typeof value !== type))) return `${path}.enum must contain values of the declared primitive type`;
 		if (type === "object") {
 			if (!isObject(node.properties) || node.additionalProperties !== false) return `${path} needs properties and additionalProperties: false`;
 			const keys = Object.keys(node.properties);
@@ -30821,15 +30565,6 @@ function IsConst(value) {
 */
 function IsContains(schema) {
 	return HasPropertyKey(schema, "contains") && IsSchema(schema.contains);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/schema/types/default.mjs
-/**
-* Returns true if the schema contains a valid contentMediaType property
-* @specification Json Schema 7
-*/
-function IsDefault(schema) {
-	return HasPropertyKey(schema, "default");
 }
 //#endregion
 //#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/schema/types/dependencies.mjs
@@ -31701,7 +31436,7 @@ function Adapt(delta, numPoints, firstTime) {
 	delta += Math.floor(delta / numPoints);
 	let k = 0;
 	while (delta > 455) {
-		delta = Math.floor(delta / (PUNYCODE_BASE - PUNYCODE_TMIN));
+		delta = Math.floor(delta / 35);
 		k += PUNYCODE_BASE;
 	}
 	return k + Math.floor(36 * delta / (delta + PUNYCODE_SKEW));
@@ -31865,10 +31600,7 @@ function IsUnicodeLabel(value) {
 			case 8204:
 				if (!prev || prev < 128 && !RE_VIRAMA.test(chars[i - 1])) return false;
 				break;
-			case 8205:
-				if (!prev || !RE_VIRAMA.test(chars[i - 1])) return false;
-				break;
-			case 12539: break;
+			case 8205: if (!prev || !RE_VIRAMA.test(chars[i - 1])) return false;
 		}
 	}
 	if (value.includes("・") && !hasJapanese) return false;
@@ -32866,7 +32598,21 @@ var __classPrivateFieldGet = function(receiver, state, kind, f) {
 	if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
 	return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 };
-var _Stack_instances, _Stack_StackFrame, _Stack_ApplyRefResult, _Stack_BuildBase, _Stack_ResourceBaseURL, _Stack_ReferenceBaseURL, _Stack_LexicalSchema, _Stack_RegisterResourceAnchorArray, _Stack_UnregisterResourceAnchorArray, _Stack_RegisterResourceAnchors, _Stack_UnregisterResourceAnchors, _Stack_RegisterResource, _Stack_UnregisterResource, _Stack_EnterResolvedResource, _Stack_ExitResolvedResource;
+var _Stack_instances;
+var _Stack_StackFrame;
+var _Stack_ApplyRefResult;
+var _Stack_BuildBase;
+var _Stack_ResourceBaseURL;
+var _Stack_ReferenceBaseURL;
+var _Stack_LexicalSchema;
+var _Stack_RegisterResourceAnchorArray;
+var _Stack_UnregisterResourceAnchorArray;
+var _Stack_RegisterResourceAnchors;
+var _Stack_UnregisterResourceAnchors;
+var _Stack_RegisterResource;
+var _Stack_UnregisterResource;
+var _Stack_EnterResolvedResource;
+var _Stack_ExitResolvedResource;
 var Stack = class {
 	constructor(context, schema) {
 		_Stack_instances.add(this);
@@ -33027,42 +32773,6 @@ function Errors$1(...args) {
 	}))];
 }
 //#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/schema/check.mjs
-/** Checks a value against the provided schema */
-function Check$1(...args) {
-	const [context, schema, value] = Match$3(args, {
-		3: (context, schema, value) => [
-			context,
-			schema,
-			value
-		],
-		2: (schema, value) => [
-			{},
-			schema,
-			value
-		]
-	});
-	return CheckSchema(new Stack(context, schema), new CheckContext(), schema, value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/check/check.mjs
-/** Checks a value matches the provided type. */
-function Check(...args) {
-	const [context, type, value] = Match$3(args, {
-		3: (context, type, value) => [
-			context,
-			type,
-			value
-		],
-		2: (type, value) => [
-			{},
-			type,
-			value
-		]
-	});
-	return Check$1(context, type, value);
-}
-//#endregion
 //#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/errors/errors.mjs
 /** Returns an array of validation errors for the given value. */
 function Errors(...args) {
@@ -33081,685 +32791,8 @@ function Errors(...args) {
 	const [_, errors] = Errors$1(context, type, value);
 	return errors;
 }
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/clean/from_array.mjs
-function FromArray$3(context, type, value) {
-	if (!IsArray$1(value)) return value;
-	return value.map((value) => FromType$4(context, type.items, value));
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/clean/from_cyclic.mjs
-function FromCyclic$3(context, type, value) {
-	return FromType$4({
-		...context,
-		...type.$defs
-	}, Ref$2(type.$ref), value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/clean/from_intersect.mjs
-function EvaluateIntersection(context, type) {
-	const additionalProperties = HasPropertyKey(type, "unevaluatedProperties") ? { additionalProperties: type.unevaluatedProperties } : {};
-	const evaluated = Evaluate(Instantiate(context, type));
-	return IsObject(evaluated) ? With(evaluated, additionalProperties) : evaluated;
-}
-function FromIntersect$3(context, type, value) {
-	return FromType$4(context, EvaluateIntersection(context, type), value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/clean/additional.mjs
-function GetAdditionalProperties(type) {
-	return HasPropertyKey(type, "additionalProperties") ? type.additionalProperties : void 0;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/clean/from_object.mjs
-function FromObject$3(context, type, value) {
-	if (!IsObject$1(value) || IsArray$1(value)) return value;
-	const additionalProperties = GetAdditionalProperties(type);
-	for (const key of Keys(value)) {
-		if (HasPropertyKey(type.properties, key)) {
-			value[key] = FromType$4(context, type.properties[key], value[key]);
-			continue;
-		}
-		if (IsBoolean$2(additionalProperties) && IsEqual(additionalProperties, true) || IsSchema$1(additionalProperties) && Check(context, additionalProperties, value[key])) {
-			value[key] = FromType$4(context, additionalProperties, value[key]);
-			continue;
-		}
-		delete value[key];
-	}
-	return value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/clean/from_record.mjs
-function FromRecord$3(context, type, value) {
-	if (!IsObject$1(value)) return value;
-	const additionalProperties = GetAdditionalProperties(type);
-	const [recordPattern, recordValue] = [new RegExp(RecordPattern(type)), RecordValue(type)];
-	for (const key of Keys(value)) {
-		if (recordPattern.test(key)) {
-			value[key] = FromType$4(context, recordValue, value[key]);
-			continue;
-		}
-		if (IsBoolean$2(additionalProperties) && IsEqual(additionalProperties, true) || IsSchema$1(additionalProperties) && Check(context, additionalProperties, value[key])) {
-			value[key] = FromType$4(context, additionalProperties, value[key]);
-			continue;
-		}
-		delete value[key];
-	}
-	return value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/clean/from_ref.mjs
-function FromRef$3(context, type, value) {
-	return HasPropertyKey(context, type.$ref) ? FromType$4(context, context[type.$ref], value) : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/clean/from_tuple.mjs
-function FromTuple$3(context, schema, value) {
-	if (!IsArray$1(value)) return value;
-	const length = Math.min(value.length, schema.items.length);
-	for (let index = 0; index < length; index++) value[index] = FromType$4(context, schema.items[index], value[index]);
-	return IsGreaterThan(value.length, length) ? value.slice(0, length) : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/clone/clone.mjs
-/**
-* Returns a Clone of the given value. This function is similar to structuredClone()
-* but also supports deep cloning instances of Map, Set and TypeArray.
-*/
-function Clone(value) {
-	return Clone$1(value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/clean/from_union.mjs
-function FromUnion$3(context, type, value) {
-	for (const schema of type.anyOf) {
-		const clean = FromType$4(context, schema, Clone(value));
-		if (Check(context, schema, clean)) return clean;
-	}
-	return value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/clean/from_type.mjs
-function FromType$4(context, type, value) {
-	return IsArray(type) ? FromArray$3(context, type, value) : IsCyclic(type) ? FromCyclic$3(context, type, value) : IsIntersect(type) ? FromIntersect$3(context, type, value) : IsObject(type) ? FromObject$3(context, type, value) : IsRecord(type) ? FromRecord$3(context, type, value) : IsRef$1(type) ? FromRef$3(context, type, value) : IsTuple(type) ? FromTuple$3(context, type, value) : IsUnion(type) ? FromUnion$3(context, type, value) : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/shared/union_priority_sort.mjs
-function Modifiers(type, next) {
-	for (const key of guard_default.Keys(type)) {
-		if (guard_default.HasPropertyKey(next, key)) continue;
-		next[key] = type[key];
-	}
-	return next;
-}
-function FromProperties$1(properties) {
-	const result = {};
-	for (const key of guard_default.Keys(properties)) result[key] = FromType$3(properties[key]);
-	return result;
-}
-function FromPriorityTypes(types) {
-	return FromTypes(Priority(types));
-}
-function FromTypes(types) {
-	return types.map((type) => FromType$3(type));
-}
-function FromType$3(type) {
-	return Modifiers(type, IsArray(type) ? _Array_(FromType$3(type.items), ArrayOptions(type)) : IsIntersect(type) ? Intersect(FromTypes(type.allOf)) : IsUnion(type) ? Union(FromPriorityTypes(type.anyOf)) : IsObject(type) ? _Object_(FromProperties$1(type.properties)) : IsRecord(type) ? Record(RecordKey(type), FromType$3(RecordValue(type))) : IsTuple(type) ? Tuple(FromTypes(type.items)) : type);
-}
-/**
-* (Type-Preprocessor) Recursively reorders Union variants from narrowest to broadest, ensuring
-* more specific types (e.g. Literal) are evaluated before broader types (e.g. String). Used
-* prior to Clean, Decode, and Encode operations.
-*/
-function UnionPrioritySort(type) {
-	return FromType$3(type);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/clean/clean.mjs
-/**
-* Cleans a value by removing non-evaluated properties and elements as derived from the provided type.
-* This function returns unknown so callers should Check the return value before use. This function
-* mutates the provided value. If mutation is not wanted, you should Clone the value before passing
-* to this function.
-*/
-function Clean(...args) {
-	const [context, type, value] = Match$3(args, {
-		3: (context, type, value) => [
-			context,
-			type,
-			value
-		],
-		2: (type, value) => [
-			{},
-			type,
-			value
-		]
-	});
-	return FromType$4(context, Get$2().unionPrioritySort ? UnionPrioritySort(type) : type, value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/try/try_result.mjs
-function IsOk(value) {
-	return IsObject$1(value) && HasPropertyKey(value, "value");
-}
-function Ok(value) {
-	return { value };
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/try/try_array.mjs
-function TryArray(value) {
-	return IsArray$1(value) ? Ok(value) : Ok([value]);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/try/try_bigint.mjs
-function FromBoolean$4(value) {
-	return IsEqual(value, true) ? Ok(BigInt(1)) : Ok(BigInt(0));
-}
-var bigintPattern = /^-?(0|[1-9]\d*)n$/;
-var decimalPattern = /^-?(0|[1-9]\d*)\.\d+$/;
-var integerPattern = /^-?(0|[1-9]\d*)$/;
-function IsStringBigIntLike(value) {
-	return bigintPattern.test(value);
-}
-function IsStringDecimalLike(value) {
-	return decimalPattern.test(value);
-}
-function IsStringIntegerLike(value) {
-	return integerPattern.test(value);
-}
-function FromString$5(value) {
-	const lowercase = value.toLowerCase();
-	return IsStringBigIntLike(value) ? Ok(BigInt(value.slice(0, value.length - 1))) : IsStringDecimalLike(value) ? Ok(BigInt(value.split(".")[0])) : IsStringIntegerLike(value) ? Ok(BigInt(value)) : IsEqual(lowercase, "false") ? Ok(BigInt(0)) : IsEqual(lowercase, "true") ? Ok(BigInt(1)) : void 0;
-}
-function TryBigInt(value) {
-	return IsBigInt$1(value) ? Ok(value) : IsBoolean$2(value) ? FromBoolean$4(value) : IsNumber$2(value) ? Ok(BigInt(Math.trunc(value))) : IsNull$1(value) ? Ok(BigInt(0)) : IsString$2(value) ? FromString$5(value) : IsUndefined$1(value) ? Ok(BigInt(0)) : void 0;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/try/try_boolean.mjs
-function FromBigInt$4(value) {
-	return IsEqual(value, BigInt(0)) ? Ok(false) : IsEqual(value, BigInt(1)) ? Ok(true) : void 0;
-}
-function FromNumber$3(value) {
-	return IsEqual(value, 0) ? Ok(false) : IsEqual(value, 1) ? Ok(true) : void 0;
-}
-function FromString$4(value) {
-	return IsEqual(value.toLowerCase(), "false") ? Ok(false) : IsEqual(value.toLowerCase(), "true") ? Ok(true) : IsEqual(value, "0") ? Ok(false) : IsEqual(value, "1") ? Ok(true) : void 0;
-}
-function TryBoolean(value) {
-	return IsBigInt$1(value) ? FromBigInt$4(value) : IsBoolean$2(value) ? Ok(value) : IsNumber$2(value) ? FromNumber$3(value) : IsNull$1(value) ? Ok(false) : IsString$2(value) ? FromString$4(value) : IsUndefined$1(value) ? Ok(false) : void 0;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/try/try_null.mjs
-function FromBigInt$3(value) {
-	return IsEqual(value, BigInt(0)) ? Ok(null) : void 0;
-}
-function FromBoolean$3(value) {
-	return IsEqual(value, false) ? Ok(null) : void 0;
-}
-function FromNumber$2(value) {
-	return IsEqual(value, 0) ? Ok(null) : void 0;
-}
-function FromString$3(value) {
-	const lowercase = value.toLowerCase();
-	return IsEqual(lowercase, "undefined") || IsEqual(lowercase, "null") || IsEqual(value, "") || IsEqual(value, "0") ? Ok(null) : void 0;
-}
-function TryNull(value) {
-	return IsBigInt$1(value) ? FromBigInt$3(value) : IsBoolean$2(value) ? FromBoolean$3(value) : IsNumber$2(value) ? FromNumber$2(value) : IsNull$1(value) ? Ok(null) : IsString$2(value) ? FromString$3(value) : IsUndefined$1(value) ? Ok(null) : void 0;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/try/try_number.mjs
-var maxBigInt = BigInt(Number.MAX_SAFE_INTEGER);
-var minBigInt = BigInt(Number.MIN_SAFE_INTEGER);
-function FromBigInt$2(value) {
-	return value <= maxBigInt && value >= minBigInt ? Ok(Number(value)) : void 0;
-}
-function FromBoolean$2(value) {
-	return Ok(value ? 1 : 0);
-}
-function FromString$2(value) {
-	const coerced = +value;
-	if (IsNumber$2(coerced)) return Ok(coerced);
-	const lowercase = value.toLowerCase();
-	if (IsEqual(lowercase, "false")) return Ok(0);
-	if (IsEqual(lowercase, "true")) return Ok(1);
-	const result = TryBigInt(value);
-	if (IsOk(result)) return result.value <= maxBigInt && result.value >= minBigInt ? Ok(Number(result.value)) : void 0;
-}
-function TryNumber(value) {
-	return IsBigInt$1(value) ? FromBigInt$2(value) : IsBoolean$2(value) ? FromBoolean$2(value) : IsNumber$2(value) ? Ok(value) : IsNull$1(value) ? Ok(0) : IsString$2(value) ? FromString$2(value) : IsUndefined$1(value) ? Ok(0) : void 0;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/try/try_string.mjs
-function TryString(value) {
-	return IsBigInt$1(value) ? Ok(value.toString()) : IsBoolean$2(value) ? Ok(value.toString()) : IsNumber$2(value) ? Ok(value.toString()) : IsNull$1(value) ? Ok("null") : IsString$2(value) ? Ok(value) : IsUndefined$1(value) ? Ok("") : void 0;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/try/try_undefined.mjs
-function FromBigInt$1(value) {
-	return IsEqual(value, BigInt(0)) ? Ok(void 0) : void 0;
-}
-function FromBoolean$1(value) {
-	return IsEqual(value, false) ? Ok(void 0) : void 0;
-}
-function FromNumber$1(value) {
-	return IsEqual(value, 0) ? Ok(void 0) : void 0;
-}
-function FromString$1(value) {
-	const lowercase = value.toLowerCase();
-	return IsEqual(lowercase, "undefined") || IsEqual(lowercase, "null") || IsEqual(value, "") || IsEqual(value, "0") ? Ok(void 0) : void 0;
-}
-function TryUndefined(value) {
-	return IsBigInt$1(value) ? FromBigInt$1(value) : IsBoolean$2(value) ? FromBoolean$1(value) : IsNumber$2(value) ? FromNumber$1(value) : IsNull$1(value) ? Ok(void 0) : IsString$2(value) ? FromString$1(value) : IsUndefined$1(value) ? Ok(value) : void 0;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_array.mjs
-function FromArray$2(context, type, value) {
-	return TryArray(value).value.map((value) => FromType$2(context, type.items, value));
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_bigint.mjs
-function FromBigInt(_context, _type, value) {
-	const result = TryBigInt(value);
-	return IsOk(result) ? result.value : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_boolean.mjs
-function FromBoolean(_context, _type, value) {
-	const result = TryBoolean(value);
-	return IsOk(result) ? result.value : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_cyclic.mjs
-function FromCyclic$2(context, type, value) {
-	return FromType$2({
-		...context,
-		...type.$defs
-	}, Ref$2(type.$ref), value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_enum.mjs
-function FromEnum(context, type, value) {
-	return FromType$2(context, Evaluate(type), value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_integer.mjs
-function FromInteger(_context, _type, value) {
-	const result = TryNumber(value);
-	return IsOk(result) ? Math.trunc(result.value) : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_intersect.mjs
-function FromIntersect$2(context, type, value) {
-	return FromType$2(context, Evaluate(Instantiate(context, type)), value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_literal.mjs
-function FromLiteralBigInt(_context, type, value) {
-	const result = TryBigInt(value);
-	return IsOk(result) && IsEqual(type.const, result.value) ? result.value : value;
-}
-function FromLiteralBoolean(_context, type, value) {
-	const result = TryBoolean(value);
-	return IsOk(result) && IsEqual(type.const, result.value) ? result.value : value;
-}
-function FromLiteralNumber(_context, type, value) {
-	const result = TryNumber(value);
-	return IsOk(result) && IsEqual(type.const, result.value) ? result.value : value;
-}
-function FromLiteralString(_context, type, value) {
-	const result = TryString(value);
-	return IsOk(result) && IsEqual(type.const, result.value) ? result.value : value;
-}
-function FromLiteral(context, type, value) {
-	if (IsEqual(type.const, value)) return value;
-	return IsLiteralBigInt(type) ? FromLiteralBigInt(context, type, value) : IsLiteralBoolean(type) ? FromLiteralBoolean(context, type, value) : IsLiteralNumber(type) ? FromLiteralNumber(context, type, value) : IsLiteralString(type) ? FromLiteralString(context, type, value) : Unreachable();
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_null.mjs
-function FromNull(_context, _type, value) {
-	const result = TryNull(value);
-	return IsOk(result) ? result.value : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_number.mjs
-function FromNumber(_context, _type, value) {
-	const result = TryNumber(value);
-	return IsOk(result) ? result.value : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_additional.mjs
-/**
-* Used by Object and Record Types. The entries are derived from the known
-* properties obtained from 'properties' and 'patternProperties' respectively.
-*/
-function FromAdditionalProperties(context, entries, additionalProperties, value) {
-	const keys = Keys(value);
-	for (const [regexp, _] of entries) for (const key of keys) if (!regexp.test(key)) value[key] = FromType$2(context, additionalProperties, value[key]);
-	return value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/shared/optional_undefined.mjs
-function IsOptionalUndefined(property, key, value) {
-	return IsOptional(property) && IsUndefined$1(value[key]);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_object.mjs
-function FromProperties(context, type, value) {
-	const entries = EntriesRegExp(type.properties);
-	const keys = Keys(value);
-	for (const [regexp, property] of entries) for (const key of keys) {
-		if (!regexp.test(key) || IsOptionalUndefined(property, key, value)) continue;
-		value[key] = FromType$2(context, property, value[key]);
-	}
-	return HasPropertyKey(type, "additionalProperties") && IsObject$1(type.additionalProperties) ? FromAdditionalProperties(context, entries, type.additionalProperties, value) : value;
-}
-function FromObject$2(context, type, value) {
-	return IsObjectNotArray(value) ? FromProperties(context, type, value) : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_record.mjs
-function FromPatternProperties(context, type, value) {
-	const entries = EntriesRegExp(type.patternProperties);
-	const keys = Keys(value);
-	for (const [regexp, schema] of entries) for (const key of keys) if (regexp.test(key)) value[key] = FromType$2(context, schema, value[key]);
-	return HasPropertyKey(type, "additionalProperties") && IsObject$1(type.additionalProperties) ? FromAdditionalProperties(context, entries, type.additionalProperties, value) : value;
-}
-function FromRecord$2(context, type, value) {
-	return IsObjectNotArray(value) ? FromPatternProperties(context, type, value) : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_ref.mjs
-function FromRef$2(context, type, value) {
-	return HasPropertyKey(context, type.$ref) ? FromType$2(context, context[type.$ref], value) : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_string.mjs
-function FromString(_context, _type, value) {
-	const result = TryString(value);
-	return IsOk(result) ? result.value : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_template_literal.mjs
-function FromTemplateLiteral(context, type, value) {
-	return FromType$2(context, Evaluate(type), value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_tuple.mjs
-function FromTuple$2(context, type, value) {
-	if (!IsArray$1(value)) return value;
-	for (let index = 0; index < Math.min(type.items.length, value.length); index++) value[index] = FromType$2(context, type.items[index], value[index]);
-	return value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_undefined.mjs
-function FromUndefined(_context, _type, value) {
-	const result = TryUndefined(value);
-	return IsOk(result) ? result.value : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_union.mjs
-function FromUnion$2(context, type, value) {
-	if (type.anyOf.some((type) => Check(context, type, value))) return value;
-	const selected = type.anyOf.map((type) => FromType$2(context, type, Clone(value))).find((value) => Check(context, type, value));
-	return IsUndefined$1(selected) ? value : selected;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_void.mjs
-function FromVoid(_context, _type, value) {
-	return IsOk(TryUndefined(value)) ? void 0 : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/convert/from_type.mjs
-function FromType$2(context, type, value) {
-	return IsArray(type) ? FromArray$2(context, type, value) : IsBigInt(type) ? FromBigInt(context, type, value) : IsBoolean(type) ? FromBoolean(context, type, value) : IsCyclic(type) ? FromCyclic$2(context, type, value) : IsEnum$1(type) ? FromEnum(context, type, value) : IsInteger(type) ? FromInteger(context, type, value) : IsIntersect(type) ? FromIntersect$2(context, type, value) : IsLiteral(type) ? FromLiteral(context, type, value) : IsNull(type) ? FromNull(context, type, value) : IsNumber(type) ? FromNumber(context, type, value) : IsObject(type) ? FromObject$2(context, type, value) : IsRecord(type) ? FromRecord$2(context, type, value) : IsRef$1(type) ? FromRef$2(context, type, value) : IsString(type) ? FromString(context, type, value) : IsTemplateLiteral(type) ? FromTemplateLiteral(context, type, value) : IsTuple(type) ? FromTuple$2(context, type, value) : IsUndefined(type) ? FromUndefined(context, type, value) : IsUnion(type) ? FromUnion$2(context, type, value) : IsVoid(type) ? FromVoid(context, type, value) : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_array.mjs
-function FromArray$1(context, type, value) {
-	if (!IsArray$1(value)) return value;
-	for (let i = 0; i < value.length; i++) value[i] = FromType$1(context, type.items, value[i]);
-	return value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_cyclic.mjs
-function FromCyclic$1(context, type, value) {
-	return FromType$1({
-		...context,
-		...type.$defs
-	}, Ref$2(type.$ref), value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_default.mjs
-function FromDefault(type, value) {
-	if (!IsUndefined$1(value)) return value;
-	return IsFunction$1(type.default) ? type.default() : Clone(type.default);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_intersect.mjs
-function FromIntersect$1(context, type, value) {
-	return FromType$1(context, Evaluate(Instantiate(context, type)), value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_object.mjs
-function FromObject$1(context, type, value) {
-	if (!IsObject$1(value)) return value;
-	const knownPropertyKeys = Keys(type.properties);
-	for (const key of knownPropertyKeys) {
-		const propertyValue = FromType$1(context, type.properties[key], value[key]);
-		if (IsUndefined$1(propertyValue) && (IsOptional(type.properties[key]) || !HasPropertyKey(type.properties[key], "default"))) continue;
-		value[key] = propertyValue;
-	}
-	if (!IsAdditionalProperties(type) || IsBoolean$2(type.additionalProperties)) return value;
-	for (const key of Keys(value)) {
-		if (knownPropertyKeys.includes(key)) continue;
-		value[key] = FromType$1(context, type.additionalProperties, value[key]);
-	}
-	return value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_record.mjs
-function FromRecord$1(context, type, value) {
-	if (!IsObject$1(value)) return value;
-	const [recordKey, recordValue] = [new RegExp(RecordPattern(type)), RecordValue(type)];
-	for (const key of Keys(value)) {
-		if (!(recordKey.test(key) && IsDefault(recordValue))) continue;
-		value[key] = FromType$1(context, recordValue, value[key]);
-	}
-	if (!IsAdditionalProperties(type)) return value;
-	for (const key of Keys(value)) {
-		if (recordKey.test(key)) continue;
-		value[key] = FromType$1(context, type.additionalProperties, value[key]);
-	}
-	return value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_ref.mjs
-function FromRef$1(context, type, value) {
-	return HasPropertyKey(context, type.$ref) ? FromType$1(context, context[type.$ref], value) : value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_tuple.mjs
-function FromTuple$1(context, schema, value) {
-	if (!IsArray$1(value)) return value;
-	const [items, max] = [schema.items, Math.max(schema.items.length, value.length)];
-	for (let i = 0; i < max; i++) if (i < items.length) value[i] = FromType$1(context, items[i], value[i]);
-	return value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_union.mjs
-function FromUnion$1(context, schema, value) {
-	for (const inner of schema.anyOf) {
-		const result = FromType$1(context, inner, Clone(value));
-		if (Check(context, inner, result)) return result;
-	}
-	return value;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/default/from_type.mjs
-function FromType$1(context, type, value) {
-	const defaulted = IsDefault(type) ? FromDefault(type, value) : value;
-	return IsArray(type) ? FromArray$1(context, type, defaulted) : IsCyclic(type) ? FromCyclic$1(context, type, defaulted) : IsIntersect(type) ? FromIntersect$1(context, type, defaulted) : IsObject(type) ? FromObject$1(context, type, defaulted) : IsRecord(type) ? FromRecord$1(context, type, defaulted) : IsRef$1(type) ? FromRef$1(context, type, defaulted) : IsTuple(type) ? FromTuple$1(context, type, defaulted) : IsUnion(type) ? FromUnion$1(context, type, defaulted) : defaulted;
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/callback.mjs
-function Decode$6(_context, type, value) {
-	return type["~codec"].decode(value);
-}
-function Encode$6(_context, type, value) {
-	return type["~codec"].encode(value);
-}
-function Callback(direction, context, type, value) {
-	if (!IsCodec(type)) return value;
-	return IsEqual(direction, "Decode") ? Decode$6(context, type, value) : Encode$6(context, type, value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/from_array.mjs
-function Decode$5(direction, context, type, value) {
-	if (!IsArray$1(value)) return value;
-	for (let i = 0; i < value.length; i++) value[i] = FromType(direction, context, type.items, value[i]);
-	return Callback(direction, context, type, value);
-}
-function Encode$5(direction, context, type, value) {
-	const exterior = Callback(direction, context, type, value);
-	if (!IsArray$1(exterior)) return exterior;
-	for (let i = 0; i < exterior.length; i++) exterior[i] = FromType(direction, context, type.items, exterior[i]);
-	return exterior;
-}
-function FromArray(direction, context, type, value) {
-	return IsEqual(direction, "Decode") ? Decode$5(direction, context, type, value) : Encode$5(direction, context, type, value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/from_cyclic.mjs
-function FromCyclic(direction, context, type, value) {
-	value = FromType(direction, {
-		...context,
-		...type.$defs
-	}, Ref$2(type.$ref), value);
-	return Callback(direction, context, type, value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/from_intersect.mjs
-function MergeInteriors(interiors) {
-	return interiors.reduce((results, interior) => ({
-		...results,
-		...interior
-	}), {});
-}
-function NonMatchingInterior(value, interiors) {
-	for (const interior of interiors) if (!IsDeepEqual(value, interior)) return interior;
-	return value;
-}
-function Decode$4(direction, context, type, value) {
-	if (IsEqual(type.allOf.length, 0)) return Callback(direction, context, type, value);
-	const interiors = type.allOf.map((schema) => FromType(direction, context, schema, Clean(schema, Clone(value))));
-	return Callback(direction, context, type, interiors.every((result) => IsObject$1(result)) ? MergeInteriors(interiors) : NonMatchingInterior(value, interiors));
-}
-function Encode$4(direction, context, type, value) {
-	if (IsEqual(type.allOf.length, 0)) return Callback(direction, context, type, value);
-	const exterior = Callback(direction, context, type, value);
-	const interiors = type.allOf.map((schema) => FromType(direction, context, schema, Clean(schema, Clone(exterior))));
-	if (interiors.every((result) => IsObject$1(result))) return MergeInteriors(interiors);
-	return NonMatchingInterior(exterior, interiors);
-}
-function FromIntersect(direction, context, type, value) {
-	return IsEqual(direction, "Decode") ? Decode$4(direction, context, type, value) : Encode$4(direction, context, type, value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/from_object.mjs
-function Decode$3(direction, context, type, value) {
-	if (!IsObjectNotArray(value)) return value;
-	for (const key of Keys(type.properties)) {
-		if (!HasPropertyKey(value, key) || IsOptionalUndefined(type.properties[key], key, value)) continue;
-		value[key] = FromType(direction, context, type.properties[key], value[key]);
-	}
-	return Callback(direction, context, type, value);
-}
-function Encode$3(direction, context, type, value) {
-	const exterior = Callback(direction, context, type, value);
-	if (!IsObjectNotArray(exterior)) return exterior;
-	for (const key of Keys(type.properties)) {
-		if (!HasPropertyKey(exterior, key) || IsOptionalUndefined(type.properties[key], key, exterior)) continue;
-		exterior[key] = FromType(direction, context, type.properties[key], exterior[key]);
-	}
-	return exterior;
-}
-function FromObject(direction, context, type, value) {
-	return IsEqual(direction, "Decode") ? Decode$3(direction, context, type, value) : Encode$3(direction, context, type, value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/from_record.mjs
-function Decode$2(direction, context, type, value) {
-	if (!IsObjectNotArray(value)) return value;
-	const regexp = new RegExp(RecordPattern(type));
-	for (const key of Keys(value)) {
-		if (!regexp.test(key)) continue;
-		value[key] = FromType(direction, context, RecordValue(type), value[key]);
-	}
-	return Callback(direction, context, type, value);
-}
-function Encode$2(direction, context, type, value) {
-	const exterior = Callback(direction, context, type, value);
-	if (!IsObjectNotArray(exterior)) return exterior;
-	const regexp = new RegExp(RecordPattern(type));
-	for (const key of Keys(exterior)) {
-		if (!regexp.test(key)) continue;
-		exterior[key] = FromType(direction, context, RecordValue(type), exterior[key]);
-	}
-	return exterior;
-}
-function FromRecord(direction, context, type, value) {
-	return IsEqual(direction, "Decode") ? Decode$2(direction, context, type, value) : Encode$2(direction, context, type, value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/from_ref.mjs
-function ResolveRef(direction, context, type, value) {
-	return HasPropertyKey(context, type.$ref) ? FromType(direction, context, context[type.$ref], value) : value;
-}
-function FromRef(direction, context, type, value) {
-	return IsEqual(direction, "Decode") ? Callback(direction, context, type, ResolveRef(direction, context, type, value)) : ResolveRef(direction, context, type, Callback(direction, context, type, value));
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/from_tuple.mjs
-function Decode$1(direction, context, type, value) {
-	if (!IsArray$1(value)) return value;
-	for (let i = 0; i < Math.min(type.items.length, value.length); i++) value[i] = FromType(direction, context, type.items[i], value[i]);
-	return Callback(direction, context, type, value);
-}
-function Encode$1(direction, context, type, value) {
-	const exterior = Callback(direction, context, type, value);
-	if (!IsArray$1(exterior)) return value;
-	for (let i = 0; i < Math.min(type.items.length, exterior.length); i++) exterior[i] = FromType(direction, context, type.items[i], exterior[i]);
-	return exterior;
-}
-function FromTuple(direction, context, type, value) {
-	return IsEqual(direction, "Decode") ? Decode$1(direction, context, type, value) : Encode$1(direction, context, type, value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/from_union.mjs
-function Decode(direction, context, type, value) {
-	for (const schema of type.anyOf) {
-		if (!Check(context, schema, value)) continue;
-		return Callback(direction, context, type, FromType(direction, context, schema, value));
-	}
-	return value;
-}
-function Encode(direction, context, type, value) {
-	const exterior = Callback(direction, context, type, value);
-	for (const schema of type.anyOf) {
-		const variant = FromType(direction, context, schema, Clone(exterior));
-		if (!Check(context, schema, variant)) continue;
-		return variant;
-	}
-	return exterior;
-}
-function FromUnion(direction, context, type, value) {
-	return IsEqual(direction, "Decode") ? Decode(direction, context, type, value) : Encode(direction, context, type, value);
-}
-//#endregion
-//#region ../../node_modules/.pnpm/typebox@1.3.27/node_modules/typebox/build/value/codec/from_type.mjs
-function FromType(direction, context, type, value) {
-	return IsArray(type) ? FromArray(direction, context, type, value) : IsCyclic(type) ? FromCyclic(direction, context, type, value) : IsIntersect(type) ? FromIntersect(direction, context, type, value) : IsObject(type) ? FromObject(direction, context, type, value) : IsRecord(type) ? FromRecord(direction, context, type, value) : IsRef$1(type) ? FromRef(direction, context, type, value) : IsTuple(type) ? FromTuple(direction, context, type, value) : IsUnion(type) ? FromUnion(direction, context, type, value) : Callback(direction, context, type, value);
-}
+BigInt(Number.MAX_SAFE_INTEGER);
+BigInt(Number.MIN_SAFE_INTEGER);
 Union([
 	_Object_({
 		type: Literal("insert"),
@@ -37281,7 +36314,7 @@ new Proxy({}, { get(_, prop) {
 } });
 //#endregion
 //#region ../../libs/tasks/src/validation.ts
-var PRODUCER_TASK_TYPES_WITH_SUBMIT_GATE = new Set([
+var PRODUCER_TASK_TYPES_WITH_SUBMIT_GATE = /* @__PURE__ */ new Set([
 	"freeform",
 	"fulfill_brief",
 	"curate_pack",
@@ -37839,7 +36872,7 @@ var TaskResultError = class extends Error {
 * time. Mirrors `PRODUCER_TASK_TYPES_WITH_SUBMIT_GATE` in
 * `@moltnet/tasks`'s `normalizeTaskInputForCreate`.
 */
-var PRODUCER_TASK_TYPES = new Set([
+var PRODUCER_TASK_TYPES = /* @__PURE__ */ new Set([
 	"freeform",
 	"fulfill_brief",
 	"curate_pack",
@@ -38115,20 +37148,21 @@ var TaskBuilder = class {
 			field: "references/artifactSource",
 			message: "top-level artifact CID is ambiguous; use metadata returned by tasks.artifacts.stage()"
 		}]);
-		else if ("artifact" in source && source.artifact?.cid) if (source.taskId === null && source.artifact.attemptN === void 0) ref = {
-			taskId: null,
-			role,
-			artifact: { ...source.artifact }
-		};
-		else if (typeof source.artifact.attemptN !== "number" || !Number.isInteger(source.artifact.attemptN) || source.artifact.attemptN < 1) throw new TaskBuildError([{
-			field: "references/artifact/attemptN",
-			message: "artifact reference is missing required attemptN"
-		}]);
-		else ref = {
-			...source,
-			role
-		};
-		else {
+		else if ("artifact" in source && source.artifact?.cid) {
+			if (source.taskId === null && source.artifact.attemptN === void 0) ref = {
+				taskId: null,
+				role,
+				artifact: { ...source.artifact }
+			};
+			else if (typeof source.artifact.attemptN !== "number" || !Number.isInteger(source.artifact.attemptN) || source.artifact.attemptN < 1) throw new TaskBuildError([{
+				field: "references/artifact/attemptN",
+				message: "artifact reference is missing required attemptN"
+			}]);
+			else ref = {
+				...source,
+				role
+			};
+		} else {
 			const s = source;
 			const errors = [];
 			const inputArtifact = s.taskId === null && s.attemptN === void 0;
@@ -39939,7 +38973,7 @@ encodeUintValue.encodedSize = function encodedSize(uint) {
 * @returns {number}
 */
 encodeUint.compareTokens = function compareTokens(tok1, tok2) {
-	return tok1.value < tok2.value ? -1 : tok1.value > tok2.value ? 1 : 	/* c8 ignore next */ 0;
+	return tok1.value < tok2.value ? -1 : tok1.value > tok2.value ? 1 : /* c8 ignore next */ 0;
 };
 //#endregion
 //#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/1negint.js
@@ -40024,7 +39058,7 @@ encodeNegint.encodedSize = function encodedSize(token) {
 * @returns {number}
 */
 encodeNegint.compareTokens = function compareTokens(tok1, tok2) {
-	return tok1.value < tok2.value ? 1 : tok1.value > tok2.value ? -1 : 	/* c8 ignore next */ 0;
+	return tok1.value < tok2.value ? 1 : tok1.value > tok2.value ? -1 : /* c8 ignore next */ 0;
 };
 //#endregion
 //#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/2bytes.js
@@ -40805,7 +39839,7 @@ jump[255] = decodeBreak;
 var quick = [];
 for (let i = 0; i < 24; i++) quick[i] = new Token(Type.uint, i, 1);
 for (let i = -1; i >= -24; i--) quick[31 - i] = new Token(Type.negint, i, 1);
-quick[64] = new Token(Type.bytes, new Uint8Array(0), 1);
+quick[64] = new Token(Type.bytes, /* @__PURE__ */ new Uint8Array(0), 1);
 quick[96] = new Token(Type.string, "", 1);
 quick[128] = new Token(Type.array, 0, 1);
 quick[160] = new Token(Type.map, 0, 1);
@@ -41900,7 +40934,8 @@ function resolveFileSecretPath(root, key) {
 	const normalizedRoot = resolve(root);
 	const segments = key.split("/");
 	if (segments.length === 3 && segments[0] === "agent-key") segments[0] = "agent-key-teams";
-	const target = resolve(normalizedRoot, segments.map((segment) => basename(segment)).join(sep));
+	const safeKey = segments.map((segment) => basename(segment)).join(sep);
+	const target = resolve(normalizedRoot, safeKey);
 	assertStrictlyInsideRoot(normalizedRoot, target, key);
 	return target;
 }
@@ -41995,7 +41030,7 @@ var OSKeyringSecretProvider = class {
 	provider() {
 		this.providerPromise ??= Promise.resolve().then(() => {
 			const service = storeSecretService(this.storeOptions);
-			return import("./assets/src-RUyI_pCT.js").then(({ OSKeyringSecretProvider: Provider }) => new Provider(this.platform, void 0, service)).catch((error) => {
+			return import("./assets/src-D25CIB96.js").then(({ OSKeyringSecretProvider: Provider }) => new Provider(this.platform, void 0, service)).catch((error) => {
 				throw new Error("OS keyring support requires @themoltnet/os-keyring; install it in this Node application", { cause: error });
 			});
 		});
