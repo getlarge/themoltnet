@@ -80,6 +80,25 @@ describe('complexity review comment lifecycle', () => {
     expect(body).toContain('examples/custom-pi-runtime/pnpm-lock.yaml');
   });
 
+  it('counts the generated files the review skipped', () => {
+    const body = renderComplexityReviewResult({
+      revision: OLD_HEAD,
+      runUrl: RUN_URL,
+      taskId: 'task',
+      durationMs: 1000,
+      domainCount: 1,
+      output,
+      generatedPaths: Array.from(
+        { length: 7 },
+        (_, index) => `packages/a-action/dist/chunk-${index}.js`,
+      ),
+    });
+    expect(body).toContain(
+      'Not reviewed, marked `linguist-generated` at the base revision (7 files)',
+    );
+    expect(body).toContain('"packages/a-action/dist/chunk-4.js" and 2 more.');
+  });
+
   it('does not publish a task result when a push arrives during review', async () => {
     const github = fakeGitHub({
       currentHead: NEW_HEAD,

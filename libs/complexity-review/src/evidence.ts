@@ -16,6 +16,11 @@ export interface ReviewEvidence {
   manifest: string;
   files: ChangedFile[];
   bytes: number;
+  /**
+   * Changed files marked `linguist-generated` at the base revision. They stay
+   * in the manifest but are not reviewed or mapped.
+   */
+  generatedPaths: string[];
 }
 
 const FULL_OID = /^[0-9a-f]{40}$/;
@@ -30,6 +35,44 @@ const LOCKFILES = new Set([
   'Cargo.lock',
   'go.sum',
 ]);
+
+/** Paths per `git check-attr` call, far below any argument-length limit. */
+const CHECK_ATTR_CHUNK = 500;
+
+/**
+ * Changed paths marked `linguist-generated` in the base revision's
+ * attributes, never the head's, so a pull request cannot hide its own files
+ * from review by editing `.gitattributes`.
+ */
+function generatedAtBase(
+  git: Git,
+  base: string,
+  paths: readonly string[],
+): Set<string> {
+  const generated = new Set<string>();
+  if (paths.length === 0) return generated;
+  // check-attr resolves paths from the working directory and takes no
+  // pathspec magic, so root-relative paths are prefixed with the way up.
+  const up = git(['rev-parse', '--show-cdup']).trim();
+  for (let start = 0; start < paths.length; start += CHECK_ATTR_CHUNK) {
+    const chunk = paths.slice(start, start + CHECK_ATTR_CHUNK);
+    const fields = git([
+      'check-attr',
+      '-z',
+      `--source=${base}`,
+      'linguist-generated',
+      '--',
+      ...chunk.map((path) => `${up}${path}`),
+    ]).split('\0');
+    for (let index = 0; index + 2 < fields.length; index += 3) {
+      const value = fields[index + 2];
+      if (value === 'set' || value === 'true') {
+        generated.add(fields[index].slice(up.length));
+      }
+    }
+  }
+  return generated;
+}
 
 export function buildEvidence(
   git: Git,
@@ -48,13 +91,21 @@ export function buildEvidence(
   if (patches.length !== paths.length) {
     throw new Error('changed-file manifest does not match diff sections');
   }
-  const files = paths.map((path, index) => {
+  const generated = generatedAtBase(git, base, paths);
+  // When nothing else changed, generated files are summarized instead, so
+  // the review still has evidence to map.
+  const skipGenerated = generated.size > 0 && generated.size < paths.length;
+  const files = paths.flatMap((path, index): ChangedFile[] => {
+    if (skipGenerated && generated.has(path)) return [];
     const patch = patches[index];
     const bytes = Buffer.byteLength(patch);
     if (bytes === 0) {
       throw new Error(`complexity patch for ${path} is empty`);
     }
-    if (LOCKFILES.has(path.slice(path.lastIndexOf('/') + 1))) {
+    if (
+      LOCKFILES.has(path.slice(path.lastIndexOf('/') + 1)) ||
+      generated.has(path)
+    ) {
       const lines = patch.split('\n');
       const hunkStart = lines.findIndex((line) => line.startsWith('@@'));
       const header = lines
@@ -64,19 +115,24 @@ export function buildEvidence(
       const additions = payload.filter((line) => line.startsWith('+')).length;
       const deletions = payload.filter((line) => line.startsWith('-')).length;
       const summary = `${header}\nGenerated lockfile payload summarized: ${bytes} original patch bytes, ${additions} added lines, ${deletions} deleted lines.\nPatch SHA-256: ${createHash('sha256').update(patch).digest('hex')}\nLockfile contents are not reviewed; assess review burden from this metadata and related manifest changes.\n`;
-      return {
-        path,
-        patch: summary,
-        bytes: Buffer.byteLength(summary),
-        summarized: true,
-      };
+      return [
+        {
+          path,
+          patch: summary,
+          bytes: Buffer.byteLength(summary),
+          summarized: true,
+        },
+      ];
     }
-    return { path, patch, bytes };
+    return [{ path, patch, bytes }];
   });
   return {
     manifest: git(['diff', '--no-ext-diff', '--stat', range]),
     files,
     bytes: files.reduce((sum, file) => sum + file.bytes, 0),
+    generatedPaths: skipGenerated
+      ? paths.filter((path) => generated.has(path))
+      : [],
   };
 }
 

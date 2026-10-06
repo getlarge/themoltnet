@@ -4,10 +4,25 @@ import { buildDomainWork, buildEvidence, MAX_PATCH_BYTES } from './evidence.js';
 
 const base = 'a'.repeat(40);
 const head = 'b'.repeat(40);
-function evidenceFor(files: Array<{ path: string; patch: string }>) {
+function evidenceFor(
+  files: Array<{ path: string; patch: string }>,
+  generated: readonly string[] = [],
+  calls: string[][] = [],
+) {
   return buildEvidence(
-    (args) =>
-      args.includes('--name-only')
+    (args) => {
+      calls.push(args);
+      if (args[0] === 'rev-parse') return '\n';
+      if (args[0] === 'check-attr') {
+        const paths = args.slice(args.indexOf('--') + 1);
+        return paths
+          .map(
+            (path) =>
+              `${path}\0linguist-generated\0${generated.includes(path) ? 'set' : 'unspecified'}\0`,
+          )
+          .join('');
+      }
+      return args.includes('--name-only')
         ? files.map((file) => file.path).join('\0') + '\0'
         : args.includes('--stat')
           ? `${files.length} files changed`
@@ -16,7 +31,8 @@ function evidenceFor(files: Array<{ path: string; patch: string }>) {
                 (file) =>
                   `diff --git a/${file.path} b/${file.path}\n${file.patch}`,
               )
-              .join(''),
+              .join('');
+    },
     base,
     head,
   );
@@ -35,6 +51,41 @@ function packetize(evidence: ReturnType<typeof buildEvidence>) {
 }
 
 describe('complexity evidence packets', () => {
+  it('skips files the base revision marks linguist-generated', () => {
+    // Arrange
+    const calls: string[][] = [];
+
+    // Act
+    const evidence = evidenceFor(
+      [
+        { path: 'src/a.ts', patch: '@@ -1 +1 @@\n-a\n+b\n' },
+        { path: 'dist/a.js', patch: '@@ -1 +1 @@\n-x\n+y\n' },
+      ],
+      ['dist/a.js'],
+      calls,
+    );
+
+    // Assert: attributes come from the base, never the reviewed head.
+    expect(evidence.files.map((file) => file.path)).toEqual(['src/a.ts']);
+    expect(evidence.generatedPaths).toEqual(['dist/a.js']);
+    expect(calls.find((args) => args[0] === 'check-attr')).toContain(
+      `--source=${base}`,
+    );
+  });
+
+  it('summarizes generated files when nothing else changed', () => {
+    // Act
+    const evidence = evidenceFor(
+      [{ path: 'dist/a.js', patch: '@@ -1 +1 @@\n-x\n+y\n' }],
+      ['dist/a.js'],
+    );
+
+    // Assert
+    expect(evidence.files).toHaveLength(1);
+    expect(evidence.files[0].summarized).toBe(true);
+    expect(evidence.generatedPaths).toEqual([]);
+  });
+
   it('summarizes an oversized nested lockfile deletion while preserving its status and size', () => {
     const evidence = evidenceFor([
       {
