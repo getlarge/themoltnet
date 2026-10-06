@@ -116,14 +116,13 @@ pnpm exec nx run @themoltnet/agent-daemon:cli -- server \
 
 Subcommands:
 
-| Command         | Purpose                                                             |
-| --------------- | ------------------------------------------------------------------- |
-| `server`        | Run the standalone loopback Agent Server API.                       |
-| `providers`     | Manage local provider endpoints and subscription sign-ins.          |
-| `poll`          | Long-running worker that claims tasks as they appear.               |
-| `once`          | Claim and execute one known task id, then exit.                     |
-| `drain`         | Claim currently available work until the queue is empty, then exit. |
-| `sync-sessions` | Repair durable runtime-session uploads from local daemon slots.     |
+| Command     | Purpose                                                             |
+| ----------- | ------------------------------------------------------------------- |
+| `server`    | Run the standalone loopback Agent Server API.                       |
+| `providers` | Manage local provider endpoints and subscription sign-ins.          |
+| `poll`      | Long-running worker that claims tasks as they appear.               |
+| `once`      | Claim and execute one known task id, then exit.                     |
+| `drain`     | Claim currently available work until the queue is empty, then exit. |
 
 Required flags:
 
@@ -496,12 +495,13 @@ MoltNet change.
 
 ## Execution And Shutdown
 
-The daemon uses the task type's execution policy to plan local state:
-
-- resumable task types may reuse Pi sessions under daemon-managed slots
-- `dedicated_worktree` + session scope reuses a stable worktree per slot
-- runtime-session objects are uploaded at finalization for continuation recovery
-- non-resumable task types cold-start attempt-scoped sessions
+Pi Durable persists each task attempt incrementally through the MoltNet API.
+Continuations reference the source attempt's committed conversation. Runtime
+slots track retained workspaces and cleanup; they do not select conversation
+history. Git continuations reproduce the source branch or pinned revision when
+available. See
+[Durable execution](../contribute/custom-pi-runtimes.md#pi-durable-execution)
+for recovery requirements and native extension configuration.
 
 On `SIGINT` or `SIGTERM`, the daemon aborts the active attempt instead of
 cancelling the user's task. The task only requeues when the proposer set

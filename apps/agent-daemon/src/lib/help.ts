@@ -56,8 +56,6 @@ Commands:
             processes. Binds 127.0.0.1 or a private native socket.
   providers Manage configured endpoints and Pi OAuth subscriptions without
             starting the Agent Server. See \`agent-daemon providers --help\`.
-  sync-sessions
-            Repair durable runtime-session checkpoints from local slot files.
   update check
             Check the stable MoltNet agent release without reading credentials.
 
@@ -134,6 +132,7 @@ ${COMMON_OPTIONAL_FLAGS}
 Example:
   agent-daemon once \\
     --task-id 26004a77-bc10-43ef-a79f-c8e62faf59b1 \\
+  --resume-attempt <n>  Reattach a Durable attempt with this agent and its original valid lease
     --agent legreffier \\
     --profile github-linear
 
@@ -173,36 +172,6 @@ Example:
     --task-types judge_pack \\
     --agent legreffier \\
     --profile eval-judge`;
-
-export const SYNC_SESSIONS_HELP = `\
-agent-daemon sync-sessions — repair durable runtime-session checkpoints.
-
-Usage:
-  agent-daemon sync-sessions --team <uuid> --agent <name> [...]
-
-Scans this daemon's team-scoped runtime slots, compares local Pi session files
-with durable runtime-session metadata, and uploads missing or stale checkpoints.
-
-Required:
-  --team <uuid>               Team whose runtime slots to inspect.
-  -a, --agent <name>          MoltNet agent identity. Reads credentials
-                              from <agent-root>/.moltnet/<name>/moltnet.json.
-
-Optional:
-  --runtime-profile-id <uuid> Limit repair to one runtime profile.
-  --state <active|idle>       Limit scanned slots by state. Default: all.
-  --limit <n>                 Max slots to scan, 1..200. Default: 100.
-  --dry-run                   Report missing/stale sessions without uploading.
-  --agent-root <path>         Explicit legacy identity bundle location.
-                              Omitted: use the central identity store.
-${PROJECT_RUN_FLAGS}
-  --debug                     Accepted for consistency; no extra output yet.
-
-Example:
-  agent-daemon sync-sessions \\
-    --team 6743b4b1-6b93-46e2-a048-19490f04f91a \\
-    --agent legreffier \\
-    --state idle`;
 
 export function isHelpFlag(args: readonly string[]): boolean {
   const separator = args.indexOf('--');

@@ -12,14 +12,12 @@ import {
 import type { DaemonSlotIdentity } from './daemon-slot-identity.js';
 import {
   createExecutionPlanCache,
-  type RuntimeSlotStore,
   type SourceAttemptResolver,
 } from './execution-plan-cache.js';
 import {
   type AttestedDaemonRuntime,
   attestPreparedRuntime,
 } from './executor-attestation.js';
-import type { RuntimeSessionStore } from './runtime-sessions.js';
 import { ensureDaemonStateDirs } from './state-dir.js';
 
 export interface PreparedRuntimeProfile {
@@ -46,10 +44,7 @@ export async function prepareRuntimeProfile(input: {
   runtimeAdapter: DaemonRuntimeAdapter;
   runtimeInstanceId: string;
   signingPrivateKey: string;
-  slotRegistry: RuntimeSlotStore;
-  runtimeSessionStore: RuntimeSessionStore;
   sourceAttemptResolver: SourceAttemptResolver;
-  warmRetentionSec: number;
 }): Promise<PreparedRuntimeProfile> {
   const { profile } = input;
   assertRuntimeAdapterSupportsProfile(input.runtimeAdapter, profile);
@@ -84,17 +79,13 @@ export async function prepareRuntimeProfile(input: {
     runtimeInstanceId: input.runtimeInstanceId,
   };
   const executionPlans = createExecutionPlanCache({
-    stateDirs,
     slotIdentity,
-    warmRetentionSec: input.warmRetentionSec,
     workspacePolicy: {
       workspaceExplicit: input.workspaceExplicit,
       profileName: profile.name,
       defaultWorkspaceMode: profile.defaultWorkspaceMode,
       allowedWorkspaceModes: profile.allowedWorkspaceModes,
     },
-    slotRegistry: input.slotRegistry,
-    runtimeSessionStore: input.runtimeSessionStore,
     sourceAttemptResolver: input.sourceAttemptResolver,
   });
 

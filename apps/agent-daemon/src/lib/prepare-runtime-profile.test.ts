@@ -84,10 +84,7 @@ function prepare(
     runtimeAdapter,
     runtimeInstanceId: 'worker-1',
     signingPrivateKey: 'unused-by-mock',
-    slotRegistry: {} as never,
-    runtimeSessionStore: {} as never,
     sourceAttemptResolver: {} as never,
-    warmRetentionSec: 1800,
   });
 }
 

@@ -3,273 +3,60 @@ import { describe, expect, it } from 'vitest';
 import { buildDaemonTaskExecutionPlan } from './task-execution-plan.js';
 
 describe('buildDaemonTaskExecutionPlan', () => {
-  const identity = {
-    agentName: 'legreffier',
-    runtimeProfileId: 'dddddddd-0000-4000-8000-000000000004',
-  } as const;
-
-  it('disables warm slots and persistent sessions at zero retention', () => {
-    const out = buildDaemonTaskExecutionPlan(
-      {
-        id: '11111111-1111-4111-8111-111111111111',
-        taskType: 'fulfill_brief',
-        title: null,
-        correlationId: '22222222-2222-4222-8222-222222222222',
-        input: { brief: 'Run cold' },
-      },
-      {
-        rootDir: '/repo/.moltnet/d',
-        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-      },
-      identity,
-      0,
-      {},
-      1,
-    );
-
-    expect(out.slotKey).toBeNull();
-    expect(out.slotId).toBeNull();
-    expect(out.sessionPersistence).toBeNull();
-    expect(out.workspaceScope).toBe('attempt');
-  });
-
-  it('isolates concurrent workers while keeping the logical correlation key', () => {
-    const task = {
-      id: '11111111-1111-4111-8111-111111111111',
-      taskType: 'freeform',
-      title: null,
-      correlationId: '22222222-2222-4222-8222-222222222222',
-      input: {
-        brief: 'Fix the daemon',
-        execution: { workspace: 'dedicated_worktree' },
-      },
-    } as const;
-    const state = {
-      rootDir: '/repo/.moltnet/d',
-      piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-    };
-
-    const workerA = buildDaemonTaskExecutionPlan(
-      task,
-      state,
-      { ...identity, runtimeInstanceId: 'worker-a' },
-      1800,
-      {},
-      1,
-    );
-    const workerB = buildDaemonTaskExecutionPlan(
-      task,
-      state,
-      { ...identity, runtimeInstanceId: 'worker-b' },
-      1800,
-      {},
-      1,
-    );
-
-    expect(workerA.descriptor.sessionKey).toBe(workerB.descriptor.sessionKey);
-    expect(workerA.slotKey).not.toBe(workerB.slotKey);
-    expect(workerA.slotKey).toContain(':worker:worker-a');
-    expect(workerA.slotId).toContain(':key:');
-    expect(workerA.slotId?.match(/worker-a/g)).toHaveLength(1);
-    expect(workerA.sessionPersistence?.sessionDir).not.toBe(
-      workerB.sessionPersistence?.sessionDir,
-    );
-    expect(workerA.workspaceScope).toBe('attempt');
-    expect(workerA.workspaceId).toBe(
-      'daemon-task-11111111-1111-4111-8111-111111111111-attempt-1',
-    );
-  });
-
-  it('maps resumable fulfill_brief tasks to a persistent Pi session dir', () => {
-    const out = buildDaemonTaskExecutionPlan(
-      {
-        id: '11111111-1111-4111-8111-111111111111',
-        taskType: 'fulfill_brief',
-        title: 'Warm sessions',
-        correlationId: '22222222-2222-4222-8222-222222222222',
-        input: { brief: 'Fix the daemon' },
-      },
-      {
-        rootDir: '/repo/.moltnet/d',
-        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-      },
-      identity,
-      1800,
-    );
-
-    expect(out.slotKey).toBe(
-      'fulfill_brief:correlation:22222222-2222-4222-8222-222222222222',
-    );
-    expect(out.slotId).toBe(
-      'agent:legreffier:profile:dddddddd-0000-4000-8000-000000000004:key:fulfill_brief:correlation:22222222-2222-4222-8222-222222222222',
-    );
-    expect(out.workspaceScope).toBe('session');
-    expect(out.workspaceId).toBe(
-      'session-agent%3Alegreffier%3Aprofile%3Adddddddd-0000-4000-8000-000000000004%3Akey%3Afulfill_brief%3Acorrelation%3A22222222-2222-4222-8222-222222222222',
-    );
-    expect(out.sessionPersistence).toEqual({
-      sessionDir:
-        '/repo/.moltnet/d/pi-sessions/agent%3Alegreffier%3Aprofile%3Adddddddd-0000-4000-8000-000000000004%3Akey%3Afulfill_brief%3Acorrelation%3A22222222-2222-4222-8222-222222222222',
-    });
-  });
-
-  it('keeps cold-started task types in-memory', () => {
-    const out = buildDaemonTaskExecutionPlan(
-      {
-        id: '33333333-3333-4333-8333-333333333333',
-        taskType: 'assess_brief',
-        title: null,
-        correlationId: '22222222-2222-4222-8222-222222222222',
-        input: {
-          targetTaskId: '44444444-4444-4444-8444-444444444444',
-          successCriteria: {
-            version: 1,
-            rubric: {
-              rubricId: 'r',
-              version: 'v1',
-              scope: 'brief',
-              preamble: 'p',
-              criteria: [
-                { id: 'c1', description: 'd', weight: 1, scoring: 'llm_score' },
-              ],
-            },
-          },
-        },
-      },
-      {
-        rootDir: '/repo/.moltnet/d',
-        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-      },
-      identity,
-      1800,
-    );
-
-    expect(out.descriptor.sessionKey).toBeNull();
-    expect(out.workspaceScope).toBe('attempt');
-    expect(out.sessionPersistence).toBeNull();
-  });
-
-  it('downgrades resumable policy to attempt-scoped when warm retention is disabled', () => {
-    const out = buildDaemonTaskExecutionPlan(
-      {
-        id: '11111111-1111-4111-8111-111111111111',
-        taskType: 'fulfill_brief',
-        title: 'Warm sessions',
-        correlationId: '22222222-2222-4222-8222-222222222222',
-        input: { brief: 'Fix the daemon' },
-      },
-      {
-        rootDir: '/repo/.moltnet/d',
-        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-      },
-      identity,
-      0,
-    );
-
-    expect(out.descriptor.policy.workspaceScope).toBe('session');
-    expect(out.sessionKey).toBeNull();
-    expect(out.slotKey).toBeNull();
-    expect(out.slotId).toBeNull();
-    expect(out.workspaceScope).toBe('attempt');
-    expect(out.workspaceId).toBe('task-11111111-1111-4111-8111-111111111111');
-  });
-
   it('honors run_eval dedicated_worktree requested by the task creator', () => {
-    const out = buildDaemonTaskExecutionPlan(
-      {
-        id: '55555555-5555-4555-8555-555555555555',
-        taskType: 'run_eval',
-        title: null,
-        correlationId: '66666666-6666-4666-8666-666666666666',
-        input: {
-          scenario: { prompt: 'Evaluate this' },
-          variantLabel: 'With Skill',
-          execution: {
-            mode: 'vivo',
-            workspace: 'dedicated_worktree',
-          },
-          context: [],
+    const out = buildDaemonTaskExecutionPlan({
+      id: '55555555-5555-4555-8555-555555555555',
+      taskType: 'run_eval',
+      title: null,
+      correlationId: '66666666-6666-4666-8666-666666666666',
+      input: {
+        scenario: { prompt: 'Evaluate this' },
+        variantLabel: 'With Skill',
+        execution: {
+          mode: 'vivo',
+          workspace: 'dedicated_worktree',
         },
+        context: [],
       },
-      {
-        rootDir: '/repo/.moltnet/d',
-        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-      },
-      identity,
-      1800,
-    );
-
-    expect(out.slotKey).toBe(
-      'run_eval:correlation:66666666-6666-4666-8666-666666666666:variant:with-skill',
-    );
-    expect(out.sessionPersistence).toEqual({
-      sessionDir:
-        '/repo/.moltnet/d/pi-sessions/agent%3Alegreffier%3Aprofile%3Adddddddd-0000-4000-8000-000000000004%3Akey%3Arun_eval%3Acorrelation%3A66666666-6666-4666-8666-666666666666%3Avariant%3Awith-skill',
     });
+
+    expect(out.slotKey).toBeNull();
     expect(out.workspaceMode).toBe('dedicated_worktree');
-    expect(out.workspaceId).toBe(
-      'session-agent%3Alegreffier%3Aprofile%3Adddddddd-0000-4000-8000-000000000004%3Akey%3Arun_eval%3Acorrelation%3A66666666-6666-4666-8666-666666666666%3Avariant%3Awith-skill',
-    );
     expect(out.worktreeBranch).toBe('task/run-eval-55555555');
-    expect(out.workspaceScope).toBe('session');
+    expect(out.workspaceScope).toBe('attempt');
   });
 
   it('maps run_eval workspace:none to a scratch mount instead of the repo', () => {
-    const out = buildDaemonTaskExecutionPlan(
-      {
-        id: '77777777-7777-4777-8777-777777777777',
-        taskType: 'run_eval',
-        title: null,
-        correlationId: '88888888-8888-4888-8888-888888888888',
-        input: {
-          scenario: { prompt: 'Evaluate this' },
-          variantLabel: 'Baseline',
-          execution: {
-            mode: 'vitro',
-            workspace: 'none',
-          },
-          context: [],
+    const out = buildDaemonTaskExecutionPlan({
+      id: '77777777-7777-4777-8777-777777777777',
+      taskType: 'run_eval',
+      title: null,
+      correlationId: '88888888-8888-4888-8888-888888888888',
+      input: {
+        scenario: { prompt: 'Evaluate this' },
+        variantLabel: 'Baseline',
+        execution: {
+          mode: 'vitro',
+          workspace: 'none',
         },
+        context: [],
       },
-      {
-        rootDir: '/repo/.moltnet/d',
-        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-      },
-      identity,
-      1800,
-    );
-
-    expect(out.slotKey).toBe(
-      'run_eval:correlation:88888888-8888-4888-8888-888888888888:variant:baseline',
-    );
-    expect(out.sessionPersistence).toEqual({
-      sessionDir:
-        '/repo/.moltnet/d/pi-sessions/agent%3Alegreffier%3Aprofile%3Adddddddd-0000-4000-8000-000000000004%3Akey%3Arun_eval%3Acorrelation%3A88888888-8888-4888-8888-888888888888%3Avariant%3Abaseline',
     });
+
+    expect(out.slotKey).toBeNull();
     expect(out.workspaceMode).toBe('scratch_mount');
-    expect(out.workspaceId).toBe(
-      'session-agent%3Alegreffier%3Aprofile%3Adddddddd-0000-4000-8000-000000000004%3Akey%3Arun_eval%3Acorrelation%3A88888888-8888-4888-8888-888888888888%3Avariant%3Abaseline',
-    );
     expect(out.worktreeBranch).toBeNull();
-    expect(out.workspaceScope).toBe('session');
+    expect(out.workspaceScope).toBe('attempt');
   });
 
   it('defaults freeform tasks to shared_mount when no override is supplied', () => {
-    const out = buildDaemonTaskExecutionPlan(
-      {
-        id: '99999999-9999-4999-8999-999999999999',
-        taskType: 'freeform',
-        title: null,
-        correlationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-        input: { brief: 'probe' },
-      },
-      {
-        rootDir: '/repo/.moltnet/d',
-        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-      },
-      identity,
-      1800,
-    );
+    const out = buildDaemonTaskExecutionPlan({
+      id: '99999999-9999-4999-8999-999999999999',
+      taskType: 'freeform',
+      title: null,
+      correlationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      input: { brief: 'probe' },
+    });
 
     expect(out.workspaceMode).toBe('shared_mount');
     // shared_mount keeps workspaceId null per the existing daemon contract.
@@ -288,12 +75,7 @@ describe('buildDaemonTaskExecutionPlan', () => {
           execution: { workspace: 'dedicated_worktree' },
         },
       },
-      {
-        rootDir: '/repo/.moltnet/d',
-        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-      },
-      identity,
-      1800,
+
       {},
       1,
     );
@@ -322,12 +104,7 @@ describe('buildDaemonTaskExecutionPlan', () => {
           },
         },
       },
-      {
-        rootDir: '/repo/.moltnet/d',
-        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-      },
-      identity,
-      1800,
+
       {},
       1,
     );
@@ -349,12 +126,7 @@ describe('buildDaemonTaskExecutionPlan', () => {
           execution: { workspace: 'none' },
         },
       },
-      {
-        rootDir: '/repo/.moltnet/d',
-        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-      },
-      identity,
-      1800,
+
       {},
       1,
     );
@@ -377,12 +149,7 @@ describe('buildDaemonTaskExecutionPlan', () => {
         correlationId: '11111111-2222-4333-8444-555555555555',
         input: { brief: 'read task context only' },
       },
-      {
-        rootDir: '/repo/.moltnet/d',
-        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-      },
-      identity,
-      1800,
+
       {
         defaultWorkspaceMode: 'none',
         allowedWorkspaceModes: ['none', 'shared_mount'],
@@ -408,12 +175,7 @@ describe('buildDaemonTaskExecutionPlan', () => {
           execution: { workspace: 'dedicated_worktree' },
         },
       },
-      {
-        rootDir: '/repo/.moltnet/d',
-        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-      },
-      identity,
-      1800,
+
       {
         defaultWorkspaceMode: 'none',
         allowedWorkspaceModes: ['none', 'dedicated_worktree'],
@@ -437,12 +199,7 @@ describe('buildDaemonTaskExecutionPlan', () => {
             execution: { workspace: 'shared_mount' },
           },
         },
-        {
-          rootDir: '/repo/.moltnet/d',
-          piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-        },
-        identity,
-        1800,
+
         {
           workspaceExplicit: true,
           defaultWorkspaceMode: 'none',
@@ -464,12 +221,7 @@ describe('buildDaemonTaskExecutionPlan', () => {
             execution: { workspace: 'shared_mount' },
           },
         },
-        {
-          rootDir: '/repo/.moltnet/d',
-          piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-        },
-        identity,
-        1800,
+
         {
           workspaceExplicit: false,
           defaultWorkspaceMode: 'none',
@@ -488,12 +240,7 @@ describe('buildDaemonTaskExecutionPlan', () => {
         correlationId: '67676767-6767-4676-8676-676767676767',
         input: { brief: 'default shared_mount is not allowed' },
       },
-      {
-        rootDir: '/repo/.moltnet/d',
-        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
-      },
-      identity,
-      1800,
+
       {
         allowedWorkspaceModes: ['dedicated_worktree'],
       },
