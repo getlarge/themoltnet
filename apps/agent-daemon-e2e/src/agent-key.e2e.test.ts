@@ -16,13 +16,7 @@
  */
 
 import { randomBytes, randomUUID } from 'node:crypto';
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -52,19 +46,19 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildProducerVerification } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
-const { createPiTaskExecutorMock } = vi.hoisted(() => ({
-  createPiTaskExecutorMock: vi.fn(),
+const { createDurableExecutorMock } = vi.hoisted(() => ({
+  createDurableExecutorMock: vi.fn(),
 }));
 
 vi.mock('@themoltnet/pi-runtime', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
-    createPiTaskExecutor: createPiTaskExecutorMock,
+    createGondolinDurableTaskExecutor: createDurableExecutorMock,
   };
 });
 
-createPiTaskExecutorMock.mockImplementation(
+createDurableExecutorMock.mockImplementation(
   (options: ExecutePiTaskOptions) =>
     async (claimedTask: ClaimedTask, reporter: TaskReporter) => {
       await reporter.open({
@@ -79,27 +73,46 @@ createPiTaskExecutorMock.mockImplementation(
         },
       });
 
-      const executionPlan = await options.makeExecutionPlan?.(claimedTask);
-      if (executionPlan?.sessionPersistence?.sessionDir) {
-        mkdirSync(executionPlan.sessionPersistence.sessionDir, {
-          recursive: true,
-        });
-        writeFileSync(
-          join(
-            executionPlan.sessionPersistence.sessionDir,
-            '20260812T000000.jsonl',
-          ),
-          JSON.stringify({
-            type: 'session',
-            taskId: claimedTask.task.id,
-            attemptN: claimedTask.attemptN,
-          }) + '\n',
-          'utf8',
-        );
-      }
-
       const agent = options.moltnetAgent;
       if (!agent) throw new Error('daemon did not supply its connected Agent');
+      const { leaseId, executorFingerprint } = claimedTask.claimAuthority ?? {};
+      if (!leaseId || !executorFingerprint)
+        throw new Error('missing attested attempt authority');
+      const authority = {
+        taskId: claimedTask.task.id,
+        attemptN: claimedTask.attemptN,
+        leaseId,
+        executorFingerprint,
+      };
+      const request = { teamId: claimedTask.task.teamId };
+      const writer = await agent.runtimeSessions.open(authority, request);
+      await agent.runtimeSessions.append(
+        writer.storeId,
+        {
+          ...authority,
+          writerToken: writer.writerToken,
+          commitId: randomUUID(),
+          expectedSeq: 0,
+          writes: [
+            {
+              type: 'entry',
+              value: {
+                id: 2,
+                conversationId: 1,
+                kind: 'pi.user',
+                model: [{ role: 'user', content: claimedTask.task.id }],
+              },
+            },
+          ],
+        },
+        request,
+      );
+      await agent.runtimeSessions.release(
+        writer.storeId,
+        { ...authority, writerToken: writer.writerToken },
+        request,
+      );
+
       const artifactBytes = new TextEncoder().encode(
         `configless artifact for ${claimedTask.task.id}`,
       );
@@ -427,7 +440,7 @@ describe('Agent daemon agent-key auth (e2e)', () => {
       },
       { teamId },
     );
-    createPiTaskExecutorMock.mockClear();
+    createDurableExecutorMock.mockClear();
 
     try {
       process.chdir(root);
@@ -455,12 +468,12 @@ describe('Agent daemon agent-key auth (e2e)', () => {
             `(acceptedAttemptN=${String(final.acceptedAttemptN)})`,
         );
       }
-      const executorOptions = createPiTaskExecutorMock.mock.calls[0]?.[0] as
+      const executorOptions = createDurableExecutorMock.mock.calls[0]?.[0] as
         | ExecutePiTaskOptions
         | undefined;
       if (
         !executorOptions ||
-        createPiTaskExecutorMock.mock.calls.length !== 1
+        createDurableExecutorMock.mock.calls.length !== 1
       ) {
         throw new Error(
           'configless fixture did not create exactly one Pi task executor',
@@ -685,23 +698,17 @@ describe('Agent daemon agent-key auth (e2e)', () => {
       collectStreamText(downloadedArtifact.stream),
     ).resolves.toContain('configless artifact');
 
-    const slot = await keyAgent.runtimeSlots.findLatestForAttempt(
-      { taskId, attemptN },
-      { teamId },
-    );
-    expect(slot?.slot.sessionDir).toBeTruthy();
-    const session = await keyAgent.runtimeSessions.getForAttempt(
-      { taskId, attemptN },
+    const session = await keyAgent.runtimeSessions.getDurableForAttempt(
+      taskId,
+      attemptN,
       { teamId },
     );
     expect(session).toBeTruthy();
-    const downloadedSession = await keyAgent.runtimeSessions.download(
-      { taskId, attemptN },
-      { teamId },
-    );
-    await expect(collectStreamText(downloadedSession)).resolves.toContain(
-      taskId,
-    );
+    const commits = await keyAgent.runtimeSessions.read(session!.storeId, 0, {
+      teamId,
+    });
+    expect(commits.headSeq).toBe(1);
+    expect(JSON.stringify(commits.items)).toContain(taskId);
 
     expect(existsSync(join(root, '.moltnet', AGENT_NAME, 'moltnet.json'))).toBe(
       false,
@@ -751,11 +758,9 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     [
       'runtime sessions',
       () =>
-        keyAgent.runtimeSessions.getForAttempt(
-          {
-            taskId: completedConfiglessFixture.taskId,
-            attemptN: completedConfiglessFixture.attemptN,
-          },
+        keyAgent.runtimeSessions.getDurableForAttempt(
+          completedConfiglessFixture.taskId,
+          completedConfiglessFixture.attemptN,
           { teamId },
         ),
     ],

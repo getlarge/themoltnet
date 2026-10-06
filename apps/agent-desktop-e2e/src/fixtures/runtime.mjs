@@ -1,6 +1,3 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-
 import { computeJsonCid } from '@moltnet/crypto-service';
 
 // Deterministic execution only; claiming, authorization and reporting use the
@@ -23,19 +20,7 @@ export default {
             taskId: claimed.task.id,
             attemptN: claimed.attemptN,
           });
-          const plan = await options.makeExecutionPlan(claimed);
-          const sessionDir = plan.sessionPersistence?.sessionDir;
-          if (!sessionDir)
-            throw new Error('Desktop executor requires a persisted session');
-          mkdirSync(sessionDir, { recursive: true });
-          writeFileSync(
-            join(sessionDir, 'desktop.jsonl'),
-            JSON.stringify({
-              type: 'session',
-              taskId: claimed.task.id,
-              attemptN: claimed.attemptN,
-            }) + '\n',
-          );
+          await options.makeExecutionPlan(claimed);
           const output = {
             summary: 'Desktop personal journey completed.',
             verification: {

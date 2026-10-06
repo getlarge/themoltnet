@@ -25,7 +25,6 @@ import {
   makePrBodyAnchorWriter,
 } from '../lib/correlation.js';
 import { createRuntimeInstanceId } from '../lib/daemon-slot-identity.js';
-import { ProducerContextResolutionError } from '../lib/execution-plan-cache.js';
 import {
   resolveExecutorSigningPrivateKey,
   validateDaemonScopes,
@@ -59,15 +58,8 @@ import { runWithDaemonRuntimeContext } from '../lib/runtime-context.js';
 import { runtimeExecutionOffer } from '../lib/runtime-governance.js';
 import { createRuntimeProfileRetryTriage } from '../lib/runtime-profile-retry-triage.js';
 import { reapRuntimeSlotResources } from '../lib/runtime-resource-reaper.js';
-import {
-  applyRuntimeSessionUploadFailure,
-  createApiRuntimeSessionStore,
-  resolveParentRuntimeSession,
-  resolveRuntimeSessionKind,
-} from '../lib/runtime-sessions.js';
 import { createApiRuntimeSlotStore } from '../lib/runtime-slots.js';
 import { redactRequiredEnvValues } from '../lib/secret-redaction.js';
-import { resolveLatestPiSessionPath } from '../lib/session-files.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 import { createApiSourceAttemptResolver } from '../lib/source-attempts.js';
 import { makeTurnEventHandler } from '../lib/turn-event-logger.js';
@@ -89,6 +81,7 @@ export async function runOnce(
       ...runtimeCommandOptionDefs(),
       ...projectRunOptionDefs(),
       'task-id': { type: 'string', short: 't' },
+      'resume-attempt': { type: 'string' },
       team: { type: 'string' },
       sandbox: { type: 'string' },
       profile: { type: 'string' },
@@ -102,6 +95,17 @@ export async function runOnce(
   }
 
   const taskId = values['task-id'];
+  const resumeAttempt =
+    values['resume-attempt'] === undefined
+      ? undefined
+      : Number(values['resume-attempt']);
+  if (
+    resumeAttempt !== undefined &&
+    (!Number.isSafeInteger(resumeAttempt) || resumeAttempt < 1)
+  ) {
+    console.error('--resume-attempt must be a positive integer');
+    return 1;
+  }
   if (!values.profile) {
     console.error('Missing required flag: --profile\n');
     console.error(ONCE_HELP);
@@ -286,12 +290,6 @@ export async function runOnce(
     runtimeProfileName: profile.name,
   });
   const slotRegistry = createApiRuntimeSlotStore({ agent: ctx.agent });
-  const runtimeSessionStore = createApiRuntimeSessionStore({
-    agent: ctx.agent,
-    logger: {
-      warn: (context, message) => rootLogger.warn(context, message),
-    },
-  });
   const sourceAttemptResolver = createApiSourceAttemptResolver({
     agent: ctx.agent,
   });
@@ -306,10 +304,7 @@ export async function runOnce(
     runtimeAdapter,
     runtimeInstanceId,
     signingPrivateKey,
-    slotRegistry,
-    runtimeSessionStore,
     sourceAttemptResolver,
-    warmRetentionSec: operations.warmRetentionSec,
   });
   const { executionPlans, preparedRuntime, sandbox, slotIdentity, stateDirs } =
     prepared;
@@ -563,16 +558,13 @@ export async function runOnce(
           usage: { inputTokens: 0, outputTokens: 0 },
           durationMs: 0,
           error: {
-            code:
-              err instanceof ProducerContextResolutionError
-                ? 'producer_context_missing'
-                : 'execution_plan_failed',
+            code: 'execution_plan_failed',
             message,
             retryable: false,
           },
         };
       }
-      if (executionPlan.slotKey && executionPlan.sessionPersistence) {
+      if (executionPlan.slotKey) {
         await slotRegistry.beginSlot({
           ...slotIdentity,
           runtimeProfileId: profile.id,
@@ -581,10 +573,8 @@ export async function runOnce(
           teamId: claimedTask.task.teamId,
           slotKey: executionPlan.slotKey,
           taskType: claimedTask.task.taskType,
-          sessionDir: executionPlan.sessionPersistence.sessionDir,
-          sessionPath: resolveLatestPiSessionPath(
-            executionPlan.sessionPersistence.sessionDir,
-          ),
+          sessionDir: null,
+          sessionPath: null,
           workspaceId: executionPlan.workspaceId,
           worktreePath: resolveRecordedWorkspacePath(
             stateDirs.rootDir,
@@ -603,7 +593,7 @@ export async function runOnce(
       // signal arriving after the executor returns finds no live attempt.
       activeAttemptN = claimedTask.attemptN;
       try {
-        return await runWithDaemonRuntimeContext(
+        const output = await runWithDaemonRuntimeContext(
           {
             profileId: profile.id,
             profileName: profile.name,
@@ -617,9 +607,6 @@ export async function runOnce(
           },
           () => rawExecuteTask(claimedTask, reporter),
         );
-      } finally {
-        activeAttemptN = null;
-        executionPlans.delete(claimedTask);
         if (executionPlan.slotKey) {
           await slotRegistry.finishSlot(
             claimedTask.task.teamId,
@@ -629,14 +616,14 @@ export async function runOnce(
             executionPlan.slotKey,
             taskModel.provider,
             taskModel.model,
-            executionPlan.sessionPersistence
-              ? resolveLatestPiSessionPath(
-                  executionPlan.sessionPersistence.sessionDir,
-                )
-              : null,
+            null,
             operations.warmRetentionSec,
           );
         }
+        return output;
+      } finally {
+        activeAttemptN = null;
+        executionPlans.delete(claimedTask);
       }
     };
 
@@ -656,6 +643,7 @@ export async function runOnce(
         assertTaskEligible: (task) => {
           runtimeProfileModel(profile.models, task.taskType);
         },
+        resumeAttempt,
       }),
       makeReporter: () =>
         new ApiTaskReporter({
@@ -678,42 +666,11 @@ export async function runOnce(
           claimedTask.task.id,
           claimedTask.attemptN,
         );
-        let terminalOutput = redactRequiredEnvValues(
+        const terminalOutput = redactRequiredEnvValues(
           output,
           profile.requiredEnv,
           cfg.profilePrerequisiteEnv,
         );
-        if (resolved?.session?.sessionDir) {
-          try {
-            const parentSession = await resolveParentRuntimeSession(
-              runtimeSessionStore,
-              claimedTask,
-            );
-            await runtimeSessionStore.uploadAttemptFinal({
-              attemptN: claimedTask.attemptN,
-              parentSessionId: parentSession?.id ?? null,
-              sessionDir: resolved.session.sessionDir,
-              sessionKind: resolveRuntimeSessionKind(claimedTask),
-              sourceRuntimeProfileId: resolved.slot.runtimeProfileId,
-              sourceSlotId: resolved.slot.id,
-              taskId: claimedTask.task.id,
-              teamId: claimedTask.task.teamId,
-            });
-          } catch (err) {
-            rootLogger.error(
-              {
-                err,
-                taskId: claimedTask.task.id,
-                attemptN: claimedTask.attemptN,
-              },
-              'agent-daemon.runtime_session_upload_failed',
-            );
-            terminalOutput = applyRuntimeSessionUploadFailure(
-              terminalOutput,
-              err,
-            );
-          }
-        }
         return finalizeTask(ctx.agent, terminalOutput, {
           task: claimedTask.task,
           slot: resolved ? { expiresAtMs: resolved.slot.expiresAtMs } : null,

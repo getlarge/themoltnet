@@ -90,19 +90,17 @@ and the [standalone example](../../examples/custom-pi-runtime).
 
 ## Modes
 
-| Mode            | Purpose                                                                       |
-| --------------- | ----------------------------------------------------------------------------- |
-| `once`          | Claim a single task by id and exit. Use this in CI.                           |
-| `poll`          | Long-running loop that claims tasks as they appear. Local/long-running hosts. |
-| `drain`         | Finalize any tasks already claimed by this agent and exit.                    |
-| `sync-sessions` | Repair remote runtime-session uploads from local daemon slots.                |
+| Mode    | Purpose                                                                       |
+| ------- | ----------------------------------------------------------------------------- |
+| `once`  | Claim a single task by id and exit. Use this in CI.                           |
+| `poll`  | Long-running loop that claims tasks as they appear. Local/long-running hosts. |
+| `drain` | Finalize any tasks already claimed by this agent and exit.                    |
 
 ```bash
 moltnet-agent once --task-id <uuid>
 moltnet-agent poll  --task-types fulfill_brief,assess_brief
 moltnet-agent poll  --task-types freeform
 moltnet-agent drain
-moltnet-agent sync-sessions --team <uuid> --agent <name> --dry-run
 ```
 
 ## Configuration
@@ -195,9 +193,6 @@ an `SSH_AUTH_SOCK` service, and `MOLTNET_SIGNER_URL`). Grant
 in the tool policy. `--git-author "Name <email>"` / `MOLTNET_GIT_AUTHOR`
 overrides the projected git identity. See
 [Host capabilities](../../docs/operate/running-agents.md#host-capabilities).
-
-`sync-sessions` does not prepare or attest executors, so it remains independent
-of `MOLTNET_PRIVATE_KEY`.
 
 An agent key used by the daemon needs this least-privilege scope set:
 
@@ -349,33 +344,24 @@ This matters for evals in particular. `run_eval` tasks declare their intended
 workspace shape in `input.execution.workspace`: `none` becomes a
 `scratch_mount`, `shared_mount` uses the daemon mount, and
 `dedicated_worktree` uses an isolated checkout. Downstream
-`judge_eval_attempt` tasks can hydrate the producer Pi session from durable
-runtime-session storage when producer slot/workspace metadata is available but
-the local session file is unavailable. Workspace copying still depends on
-producer slot/workspace metadata; if the daemon cannot resolve the required
-producer context, the judge fails with `producer_context_missing`.
-Repo-specific template resume commands that should not run in scratch mode must
-still be guarded with `when.workspaceMode`.
+`judge_eval_attempt` tasks inspect producer outputs, Durable conversation
+entries, and uploaded artifacts. When the producer records a Git branch or
+pinned revision, the judge gets a separate checkout based on that source.
+Uncommitted files in a different worker's scratch workspace must be uploaded as
+artifacts to make them available to the judge.
 
 ### Runtime resource lifecycle
 
-Each daemon process creates a unique runtime lane. Two polling processes using
-the same agent, runtime profile, and task correlation therefore write to
-different local Pi session directories and cannot race on the same slot.
+Pi Durable commits conversation state incrementally through the API. Each task
+attempt has a persisted identity; sharing a correlation ID does not implicitly
+reuse conversation history. Use `continueFrom` to extend or fork a source attempt.
 
-`freeform` Pi context remains correlation-scoped, but its checkout is
-attempt-scoped. Every attempt gets a fresh `daemon-task-<id>-attempt-<n>`
-workspace; retries and explicit continuations fork the previous checkpointed
-Pi session into that new workspace. The executor removes attempt workspaces on
-normal completion. At startup, and once per minute while polling, the daemon
-also reaps expired idle slots and terminal crash-orphans. Cleanup is restricted
-to daemon-owned session, scratch, and `.worktrees` roots.
-
-Provider failures are retried in the active Pi session before the daemon spends
-a task attempt. The default is four same-session retries. If those fail,
-deterministic retry classification runs before attempt-budget handling;
-`executor_threw` is always treated as an implementation/setup failure and is
-never promoted to another task attempt.
+Slots record retained workspaces for cleanup. Completed workspaces expire after
+the configured retention period; an interrupted, nonterminal attempt retains its
+workspace for recovery. Cleanup checks other workers' references before removing
+a shared checkout. A workspace expiration does not expire its conversation.
+See [Durable execution](../../docs/contribute/custom-pi-runtimes.md#pi-durable-execution)
+for reattachment and volume requirements.
 
 ### 1. Start the local stack
 
@@ -648,13 +634,10 @@ state is moved automatically. `--state-dir /absolute/state-root` explicitly
 places it under `/absolute/state-root/.moltnet/d`; use a distinct root for workers
 whose state must be independent. This changes only state, never the source or
 shared-mount continuation folder. To move state, stop the worker, copy its
-`.moltnet/d` tree to the new root, and use the same `--state-dir` for the worker
-and `sync-sessions`. To revert, stop it and copy updated state back before
+`.moltnet/d` tree to the new root, and use the same `--state-dir` for the worker. To revert, stop it and copy updated state back before
 removing the flag. Do not run two workers against the same copied state.
 
-`sync-sessions` accepts the same selection and state flags. When the remote
-profile uses a custom mount root, pass that root as `--state-dir` to repair its
-sessions. Local startup logs show the selected project, binding, endpoint,
+Local startup logs show the selected project, binding, endpoint,
 strategy, source and state root. Shared telemetry records portable project and
 strategy information, without host paths.
 

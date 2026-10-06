@@ -63,13 +63,16 @@ interface PiView {
   modalities: Record<string, readonly string[]>;
 }
 
-const { createPiTaskExecutorMock } = vi.hoisted(() => ({
-  createPiTaskExecutorMock: vi.fn(),
+const { createDurableExecutorMock } = vi.hoisted(() => ({
+  createDurableExecutorMock: vi.fn(),
 }));
 
 vi.mock('@themoltnet/pi-runtime', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
-  return { ...actual, createPiTaskExecutor: createPiTaskExecutorMock };
+  return {
+    ...actual,
+    createGondolinDurableTaskExecutor: createDurableExecutorMock,
+  };
 });
 
 /** Runs `moltnet-agent <args>` from source, like an operator would. */
@@ -151,6 +154,7 @@ describe('Agent daemon provider store for direct runs (e2e)', () => {
   it('runs once with store providers layered over repo .pi, no PI_CODING_AGENT_DIR', async () => {
     // Arrange: provider store written by the real CLI.
     const storeRoot = tempDir('daemon-provider-store-');
+    vi.stubEnv('MOLTNET_HOME', storeRoot);
     vi.stubEnv('MOLTNET_AGENT_SERVER_ROOT', storeRoot);
     const set = await runAgentCommand(
       [
@@ -202,20 +206,14 @@ describe('Agent daemon provider store for direct runs (e2e)', () => {
     );
 
     let view: PiView | undefined;
-    createPiTaskExecutorMock.mockImplementation(
+    createDurableExecutorMock.mockImplementation(
       (options: ExecutePiTaskOptions) =>
         async (claimedTask: ClaimedTask, reporter: TaskReporter) => {
           await reporter.open({
             taskId: claimedTask.task.id,
             attemptN: claimedTask.attemptN,
           });
-          // The daemon uploads the Pi session after execution; leave one behind.
-          const plan = await options.makeExecutionPlan?.(claimedTask);
-          const sessionDir = plan?.sessionPersistence?.sessionDir;
-          if (sessionDir) {
-            mkdirSync(sessionDir, { recursive: true });
-            writeFileSync(join(sessionDir, '20260914T000000.jsonl'), '{}\n');
-          }
+          await options.makeExecutionPlan?.(claimedTask);
           const piAgentDir = process.env.PI_CODING_AGENT_DIR;
           const resolvable: string[] = [];
           const modalities: Record<string, readonly string[]> = {};
@@ -305,7 +303,7 @@ describe('Agent daemon provider store for direct runs (e2e)', () => {
 
     // Assert
     expect(exitCode).toBe(0);
-    expect(createPiTaskExecutorMock).toHaveBeenCalledTimes(1);
+    expect(createDurableExecutorMock).toHaveBeenCalledTimes(1);
     expect((await agent.tasks.get(task.id)).status).toBe('completed');
     expect(view).toBeDefined();
     expect(view!.piAgentDir).toBeTruthy();

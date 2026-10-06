@@ -66,6 +66,7 @@ export interface RuntimeResourceReaperResult {
 }
 
 interface OwnedSlotPage {
+  allItems: ListedRuntimeSlotContext[];
   items: ListedRuntimeSlotContext[];
   truncated: boolean;
 }
@@ -92,6 +93,7 @@ export async function reapRuntimeSlotResources(
   const active = activePage.items;
   const idle = idlePage.items;
   const slots = [...active, ...idle];
+  const allSlots = [...activePage.allItems, ...idlePage.allItems];
   const result: RuntimeResourceReaperResult = {
     failed: 0,
     failures: [],
@@ -112,14 +114,14 @@ export async function reapRuntimeSlotResources(
   }
 
   const retainedSessionDirs = new Set(
-    slots
+    allSlots
       .filter((item) => !reaped.has(item.slot.id))
       .flatMap((item) =>
         item.session?.sessionDir ? [resolve(item.session.sessionDir)] : [],
       ),
   );
   const retainedWorkspacePaths = new Set(
-    slots
+    allSlots
       .filter((item) => !reaped.has(item.slot.id))
       .flatMap((item) =>
         item.workspace?.worktreePath
@@ -132,6 +134,7 @@ export async function reapRuntimeSlotResources(
     : { kind: 'ready' as const, paths: new Set<string>() };
 
   for (const item of slots) {
+    if (result.truncated) break;
     if (!reaped.has(item.slot.id)) continue;
     if (!(await slotStillQualifiesForReaping(deps, input, item, now, result))) {
       continue;
@@ -223,6 +226,7 @@ async function listOwnedSlots(
     teamId: input.teamId,
   });
   return {
+    allItems: listed,
     items: listed.filter((item) =>
       runtimeSlotKeyBelongsToInstance(
         item.slot.slotKey,

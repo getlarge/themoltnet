@@ -1,18 +1,11 @@
-import { createHash } from 'node:crypto';
-
 import type { RuntimeProfileWorkspaceMode } from '@moltnet/runtime-profiles';
+import { getTaskExecutionPolicy } from '@moltnet/tasks';
 import type { ClaimedTask } from '@themoltnet/agent-runtime';
 
 import type { DaemonSlotIdentity } from './daemon-slot-identity.js';
-import {
-  deriveTaskSessionDescriptor,
-  type TaskSessionDescriptor,
-} from './session-policy.js';
 import { slugifyAsciiLower } from './slugify.js';
-import type { DaemonStateDirs } from './state-dir.js';
 
 export interface DaemonTaskExecutionPlan {
-  descriptor: TaskSessionDescriptor;
   workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
   slotKey: string | null;
   slotId: string | null;
@@ -40,10 +33,6 @@ export interface DaemonTaskExecutionPlan {
     copyFromPath: string;
     source: 'producer';
   } | null;
-  sessionPersistence?: {
-    sessionDir: string;
-    forkFromSessionPath?: string | null;
-  } | null;
 }
 
 export class WorkspaceModeMismatchError extends Error {}
@@ -60,49 +49,33 @@ export function buildDaemonTaskExecutionPlan(
     ClaimedTask['task'],
     'id' | 'taskType' | 'title' | 'correlationId' | 'input'
   >,
-  stateDirs: DaemonStateDirs,
-  identity: DaemonSlotIdentity,
-  warmRetentionSec: number,
   runtimeProfileWorkspacePolicy: RuntimeProfileWorkspacePolicy = {},
   attemptN?: number,
 ): DaemonTaskExecutionPlan {
-  const descriptor = deriveTaskSessionDescriptor(task);
   const workspaceMode = resolveTaskWorkspaceMode(
     task,
-    descriptor.policy,
+    getTaskExecutionPolicy(task.taskType),
     runtimeProfileWorkspacePolicy,
   );
-  const slotKey =
-    warmRetentionSec > 0 && descriptor.sessionKey
-      ? buildRuntimeSlotKey(descriptor.sessionKey, identity.runtimeInstanceId)
-      : null;
-  const workspaceScope =
-    slotKey !== null ? descriptor.policy.workspaceScope : 'attempt';
-  const slotId = slotKey ? buildDaemonSlotId(identity, slotKey) : null;
-  const sessionDir = slotId
-    ? `${stateDirs.piSessionsDir}/${boundedKeyDirComponent(slotId)}`
-    : null;
+  const slotKey = null;
+  const slotId = null;
+  const workspaceScope = 'attempt' as const;
   const worktreeBranch = resolveTaskWorktreeBranch(task, workspaceMode);
   const workspaceRevision = resolveTaskWorkspaceRevision(task.input);
   const workspaceId =
-    workspaceMode !== 'shared_mount'
-      ? resolveTaskWorkspaceId(task, {
-          sessionKey: slotId,
-          workspaceScope,
-          sessionPersistence: sessionDir ? { sessionDir } : null,
-          attemptN,
-        })
-      : null;
+    workspaceMode === 'shared_mount'
+      ? null
+      : attemptN
+        ? `daemon-task-${task.id}-attempt-${attemptN}`
+        : `task-${task.id}`;
 
   return {
-    descriptor,
     workspaceMode,
     workspaceKind: workspaceMode === 'scratch_mount' ? 'scratch' : undefined,
     sessionKey: slotId,
     slotKey,
     slotId,
     workspaceScope,
-    sessionPersistence: sessionDir ? { sessionDir } : null,
     workspaceId,
     worktreeBranch,
     workspaceRevision,
@@ -131,7 +104,7 @@ export function buildDaemonSlotId(
   ].join(':');
 }
 
-function buildRuntimeSlotKey(
+export function buildRuntimeSlotKey(
   logicalSessionKey: string,
   runtimeInstanceId: string | undefined,
 ): string {
@@ -283,47 +256,4 @@ function toDaemonWorkspaceMode(
   mode: RuntimeProfileWorkspaceMode,
 ): 'shared_mount' | 'dedicated_worktree' | 'scratch_mount' {
   return mode === 'none' ? 'scratch_mount' : mode;
-}
-
-/**
- * URL-encode a slot/session key for use as a single filesystem directory
- * component, bounded to stay under the 255-byte per-component filename limit.
- * A long key (e.g. `run_eval`'s custom key, which embeds the variant label +
- * agent name + worker id) otherwise crashes `mkdir` with `ENAMETOOLONG`.
- *
- * Additive by design: keys short enough today keep their exact encoded form (so
- * existing warm dirs are byte-identical), and only over-long keys get a readable
- * prefix + a collision-resistant sha256 suffix. The component is never decoded
- * back to the key anywhere, so hashing the tail is safe. Used for BOTH the
- * pi-sessions dir and the session workspace dir so the two names derive
- * consistently from the same slot id.
- */
-function boundedKeyDirComponent(key: string): string {
-  const encoded = encodeURIComponent(key);
-  // A parent may add a short prefix (`session-` = 8); 200 leaves margin < 255.
-  if (encoded.length <= 200) {
-    return encoded;
-  }
-  const hash = createHash('sha256').update(key).digest('hex').slice(0, 16);
-  return `${encoded.slice(0, 180)}-${hash}`;
-}
-
-function resolveTaskWorkspaceId(
-  task: Pick<ClaimedTask['task'], 'id'>,
-  executionPlan: {
-    sessionKey: string | null;
-    workspaceScope: 'attempt' | 'session';
-    sessionPersistence?: { sessionDir: string } | null;
-    attemptN?: number;
-  },
-): string {
-  if (
-    executionPlan.workspaceScope === 'session' &&
-    executionPlan.sessionKey !== null
-  ) {
-    return `session-${boundedKeyDirComponent(executionPlan.sessionKey)}`;
-  }
-  return executionPlan.attemptN
-    ? `daemon-task-${task.id}-attempt-${executionPlan.attemptN}`
-    : `task-${task.id}`;
 }

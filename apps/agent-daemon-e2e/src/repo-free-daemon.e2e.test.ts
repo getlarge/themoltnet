@@ -1,11 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -32,12 +26,11 @@ import {
 } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
-const { createPiTaskExecutorMock, observeGovernancePlanSafelySpy } = vi.hoisted(
-  () => ({
-    createPiTaskExecutorMock: vi.fn(),
+const { createDurableExecutorMock, observeGovernancePlanSafelySpy } =
+  vi.hoisted(() => ({
+    createDurableExecutorMock: vi.fn(),
     observeGovernancePlanSafelySpy: vi.fn(),
-  }),
-);
+  }));
 
 // Spy-passthrough on the REAL observer so the governance e2e can assert on
 // the compiled plan without scraping pino's fd-1 output.
@@ -59,38 +52,21 @@ vi.mock('@themoltnet/pi-runtime', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
-    createPiTaskExecutor: createPiTaskExecutorMock,
+    createGondolinDurableTaskExecutor: createDurableExecutorMock,
     findMainWorktree: vi.fn(() => {
       throw new Error('findMainWorktree must not run for repo-free tasks');
     }),
   };
 });
 
-createPiTaskExecutorMock.mockImplementation(
+createDurableExecutorMock.mockImplementation(
   (options: ExecutePiTaskOptions) =>
     async (claimedTask: ClaimedTask, reporter: TaskReporter) => {
       await reporter.open({
         taskId: claimedTask.task.id,
         attemptN: claimedTask.attemptN,
       });
-      const executionPlan = await options.makeExecutionPlan?.(claimedTask);
-      if (executionPlan?.sessionPersistence?.sessionDir) {
-        mkdirSync(executionPlan.sessionPersistence.sessionDir, {
-          recursive: true,
-        });
-        writeFileSync(
-          join(
-            executionPlan.sessionPersistence.sessionDir,
-            '20260625T000000.jsonl',
-          ),
-          JSON.stringify({
-            taskId: claimedTask.task.id,
-            attemptN: claimedTask.attemptN,
-            message: 'repo-free daemon e2e session checkpoint',
-          }) + '\n',
-          'utf8',
-        );
-      }
+      await options.makeExecutionPlan?.(claimedTask);
 
       const payload = {
         summary: 'Repo-free daemon e2e completed a non-coding task.',
@@ -115,7 +91,7 @@ createPiTaskExecutorMock.mockImplementation(
 );
 
 /**
- * The executor options the daemon hands to `createPiTaskExecutor`, narrowed to
+ * The executor options the daemon hands to `createGondolinDurableTaskExecutor`, narrowed to
  * the fields these assertions rely on being present.
  */
 type CapturedExecutorOptions = ExecutePiTaskOptions &
@@ -246,8 +222,8 @@ describe('Agent daemon repo-free execution (e2e)', () => {
       await agent.runtimeProfiles.delete(profile.id);
     }
 
-    expect(createPiTaskExecutorMock).toHaveBeenCalledTimes(1);
-    const executorOptions = createPiTaskExecutorMock.mock
+    expect(createDurableExecutorMock).toHaveBeenCalledTimes(1);
+    const executorOptions = createDurableExecutorMock.mock
       .calls[0]?.[0] as CapturedExecutorOptions;
     expect(executorOptions).toMatchObject({
       agentName,

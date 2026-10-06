@@ -3,7 +3,7 @@ import {
   agentSigningCapability,
   buildPiClassifierExecutorManifest,
   buildPiExecutorManifest,
-  createPiTaskExecutor,
+  createGondolinDurableTaskExecutor,
   defineGondolinTemplate,
   definePiRuntime,
   GONDOLIN_BASE_EXECUTABLES,
@@ -49,6 +49,15 @@ export function createPiDaemonAdapter(
             `but this daemon adapter provides "${runtime.runtimeKind}".`,
         );
       }
+      if (
+        runtime.extensions.some(
+          (extension) => extension.kind !== 'durable_extension',
+        )
+      ) {
+        throw new Error(
+          'Migrate coding-agent session extensions to definePiExtension({ extension: nativeDurableExtension })',
+        );
+      }
       const builtInToolNames = [
         ...(input.profile.models.generation ? PI_KERNEL_TOOL_NAMES : []),
         ...(input.profile.models.generation &&
@@ -81,7 +90,14 @@ export function createPiDaemonAdapter(
         : [];
       const prepared: PreparedDaemonRuntime = {
         runtimeKind: runtime.runtimeKind,
-        manifest: manifest as unknown as Record<string, unknown>,
+        manifest: {
+          ...manifest,
+          durability: {
+            format: 'pi-durable.v1',
+            recovery: 'same-agent-valid-lease',
+            workspace: 'persistent-mount',
+          },
+        },
         tools: [
           ...builtInToolNames,
           ...(resolvedTemplate
@@ -91,17 +107,11 @@ export function createPiDaemonAdapter(
         ],
         executables: resolvedTemplate?.executables ?? [],
         createTaskExecutor: (options) =>
-          createPiTaskExecutor({
+          createGondolinDurableTaskExecutor({
             ...options,
-            sandboxConfig: {
-              ...options.sandboxConfig,
-              // VM construction and resume provisioning are operator-owned.
-              // Never execute legacy profile-supplied provisioning fields.
-              snapshot: undefined,
-              resumeCommands: undefined,
-            },
             runtimeDefinition: runtime,
-            resolvedVmTemplate: resolvedTemplate ?? undefined,
+            template: resolvedTemplate,
+            runtimeKind: runtime.runtimeKind,
           }),
       };
       registerRuntimeExecutionOffer(prepared, (executorFingerprint) =>
@@ -116,7 +126,7 @@ export function createPiDaemonAdapter(
 
 export const defaultPiRuntimeDefinition = definePiRuntime({
   id: 'moltnet-default-pi',
-  version: '1',
+  version: '2',
   vm: defineGondolinTemplate({
     id: 'moltnet-default-gondolin',
     version: '1',

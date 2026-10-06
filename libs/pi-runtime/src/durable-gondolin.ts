@@ -66,7 +66,7 @@ import { resumeVm } from './vm.js';
 /** Mounted workspaces remain available independently of the daemon process. */
 export function createGondolinDurableTaskExecutor(
   options: ExecutePiTaskOptions & {
-    template: ResolvedGondolinTemplate;
+    template: ResolvedGondolinTemplate | null;
     runtimeKind: string;
   },
 ) {
@@ -75,6 +75,9 @@ export function createGondolinDurableTaskExecutor(
   ) => {
     if (args[0].task.taskType === 'classify')
       return executeProfileClassificationTask(options.classifier, ...args);
+    const template = options.template;
+    if (!template)
+      throw new Error('Generation task requires a Gondolin template');
     const agent = options.moltnetAgent;
     if (!agent || !options.runtimeProfileId)
       throw new Error(
@@ -228,7 +231,7 @@ export function createGondolinDurableTaskExecutor(
             });
             capabilityRouter?.setPolicy(policy);
             const managed = await (options.resumeVm ?? resumeVm)({
-              checkpointPath: options.template.checkpointPath,
+              checkpointPath: template.checkpointPath,
               agentName: options.agentName,
               agentRootDir: options.agentRootDir,
               mountPath: workspace.mountPath,
@@ -237,7 +240,7 @@ export function createGondolinDurableTaskExecutor(
                 {
                   ...options.sandboxConfig,
                   snapshot: undefined,
-                  resumeCommands: [...options.template.resumeCommands],
+                  resumeCommands: [...template.resumeCommands],
                 },
                 plan,
               ),
