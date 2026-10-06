@@ -1,4 +1,6 @@
 export { createDurableTaskExecutor } from './durable-executor.js';
+export { createGondolinDurableTaskExecutor } from './durable-gondolin.js';
+export { GondolinDurableEnv } from './durable-gondolin-env.js';
 export {
   ApiDurableStorage,
   type DurableStoreTransport,

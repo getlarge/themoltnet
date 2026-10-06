@@ -6,6 +6,7 @@ import { classify } from '@earendil-works/pi-ai/api/typesafe-system-one';
 import type { ClaimedTask } from '@themoltnet/agent-runtime';
 import { afterEach, expect, it, vi } from 'vitest';
 
+import { createGondolinDurableTaskExecutor } from '../durable-gondolin.js';
 import { writePiConfig } from '../pi-config.js';
 import { createPiTaskExecutor } from './execute-pi-task.js';
 import { createRuntimeModels } from './model-runtime.js';
@@ -80,7 +81,10 @@ it.each(['environment', 'auth', 'classifier-only'])(
   },
 );
 
-it.each([['Pi', createPiTaskExecutor]] as const)(
+it.each([
+  ['Pi', createPiTaskExecutor],
+  ['Durable', createGondolinDurableTaskExecutor],
+] as const)(
   'dispatches a standalone classifier through %s without a coding VM',
   async (_name, factory) => {
     const piDir = mkdtempSync(join(tmpdir(), 'classifier-task-'));
@@ -110,7 +114,7 @@ it.each([['Pi', createPiTaskExecutor]] as const)(
     const execute = factory({
       classifier: { provider: 'team', model: 'decisions' },
       resumeVm,
-    } as unknown as Parameters<typeof createPiTaskExecutor>[0]);
+    } as unknown as Parameters<typeof createGondolinDurableTaskExecutor>[0]);
     const reporter = {
       open: vi.fn(),
       record: vi.fn(),
