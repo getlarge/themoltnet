@@ -578,9 +578,11 @@ describe('createSubmitOutputTool', () => {
 
   it('adds repair guidance for invalid freeform artifacts and verification', async () => {
     const handle = createSubmitOutputTool('freeform');
+    // A single artifact object would be aligned into an array, so use a value
+    // alignment cannot repair; feedback describes the aligned arguments.
     const result = await callExecute(handle)({
       summary: 'done',
-      artifacts: { kind: 'note', title: 'Result' },
+      artifacts: 42,
       verification: 'submit-output passed',
     });
 
@@ -985,6 +987,121 @@ describe('final-message submit', () => {
     expect(handle.submitFinalMessage('{"summary": "done"')).toBe('not_json');
     expect(handle.getInvalidCallCount()).toBe(0);
     expect(handle.getLastValidationFailure()).toBeNull();
+  });
+
+  describe('replays a contracted task whose model skipped the tool', () => {
+    // Trimmed from a production freeform task (gpt-oss:120b on Ollama Cloud)
+    // whose model ended four turns with JSON-only messages. The contract and
+    // gate match the task; the payloads keep the observed shapes.
+    const input = {
+      ...submitOutputOnlyFreeformInput,
+      outputContract: {
+        version: 1 as const,
+        schema: {
+          type: 'object',
+          required: ['paths', 'summary', 'signals'],
+          properties: {
+            paths: { type: 'array', items: { type: 'string' } },
+            signals: {
+              type: 'array',
+              minItems: 1,
+              items: {
+                type: 'object',
+                required: ['criterionId', 'evidence', 'impact'],
+                properties: {
+                  criterionId: { type: 'string' },
+                  evidence: { type: 'string' },
+                  impact: {
+                    type: 'string',
+                    enum: ['raises', 'reduces', 'neutral'],
+                  },
+                },
+                additionalProperties: false,
+              },
+            },
+            summary: { type: 'string' },
+          },
+          additionalProperties: false,
+        },
+      },
+    };
+    const paths = ['packages/docs-impact-review-action/dist/review.js'];
+    const signals = [
+      {
+        criterionId: 'cognitive_load',
+        evidence: 'Added budget definitions across several files.',
+        impact: 'raises',
+      },
+    ];
+    const summary = 'The PR updates the docs-impact-review action.';
+    const modelVerification = { cid: 'bagaaiera-model-supplied' };
+    const tool = () =>
+      createSubmitOutputTool('freeform', { input, inputCid: 'bafy-input' });
+
+    it('reports only the misplaced result fields for the flat first turn', () => {
+      const handle = tool();
+
+      const result = handle.submitFinalMessage(
+        JSON.stringify({
+          paths,
+          summary,
+          signals,
+          artifacts: [],
+          branch: 'action-bundle-1',
+          diaryEntryIds: [],
+          verification: modelVerification,
+        }),
+      );
+
+      const message = handle.getLastValidationFailure()?.message ?? '';
+      expect(result).toBe('invalid');
+      expect(message).toContain('output/result: is required');
+      expect(message).toContain('output/paths');
+      expect(message).toContain('output/signals');
+      // The runtime stamps verification for a submit-only gate; feedback must
+      // not ask the model to fix it.
+      expect(message).not.toContain('output/verification');
+    });
+
+    it('reports the missing result summary without verification noise', () => {
+      const handle = tool();
+
+      handle.submitFinalMessage(
+        JSON.stringify({
+          summary,
+          result: { paths, signals },
+          verification: modelVerification,
+        }),
+      );
+
+      const message = handle.getLastValidationFailure()?.message ?? '';
+      expect(message).toContain('output/result/summary');
+      expect(message).not.toContain('output/verification');
+    });
+
+    it('captures the corrected turn with a stamped verification', () => {
+      const handle = tool();
+
+      const result = handle.submitFinalMessage(
+        JSON.stringify({
+          artifacts: [],
+          branch: 'action-bundle-1',
+          diaryEntryIds: [],
+          summary,
+          result: { paths, summary, signals },
+          verification: modelVerification,
+        }),
+      );
+
+      expect(result).toBe('captured');
+      expect(handle.getCapturedRepairKinds()).toEqual([
+        'submit_gate_verification',
+      ]);
+      expect(handle.getCaptured()).toMatchObject({
+        result: { paths, summary, signals },
+        verification: { inputCid: 'bafy-input', passed: true },
+      });
+    });
   });
 
   it('keeps the first tool capture when a final message follows', async () => {

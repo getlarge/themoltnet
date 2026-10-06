@@ -286,6 +286,31 @@ function repairProducerSubmitOutput(
   return repaired;
 }
 
+/**
+ * Pi rejected the aligned and stamped arguments. Carries that candidate so
+ * validation feedback describes what the runtime actually checked, not the
+ * raw arguments: a runtime-stamped `verification` must not be reported as a
+ * model error.
+ */
+class SubmitArgumentsRejectedError extends Error {
+  constructor(
+    readonly candidate: unknown,
+    readonly piError: unknown,
+  ) {
+    super(piError instanceof Error ? piError.message : String(piError));
+    this.name = 'SubmitArgumentsRejectedError';
+  }
+}
+
+/** The value validation feedback should describe after a normalization throw. */
+function rejectedCandidate(error: unknown, raw: unknown): unknown {
+  return error instanceof SubmitArgumentsRejectedError ? error.candidate : raw;
+}
+
+function rejectedPiError(error: unknown): unknown {
+  return error instanceof SubmitArgumentsRejectedError ? error.piError : error;
+}
+
 function normalizeSubmitArguments(
   taskType: string,
   params: unknown,
@@ -310,15 +335,20 @@ function normalizeSubmitArguments(
     )
       repairs.push({ kind: 'submit_gate_verification', path: '/verification' });
   }
-  const piNormalized = validateToolArguments(
-    { name: toolName, description, parameters: schema },
-    {
-      type: 'toolCall',
-      id: 'submit-prepare',
-      name: toolName,
-      arguments: candidate as Record<string, never>,
-    },
-  ) as Record<string, unknown>;
+  let piNormalized: Record<string, unknown>;
+  try {
+    piNormalized = validateToolArguments(
+      { name: toolName, description, parameters: schema },
+      {
+        type: 'toolCall',
+        id: 'submit-prepare',
+        name: toolName,
+        arguments: candidate as Record<string, never>,
+      },
+    ) as Record<string, unknown>;
+  } catch (error) {
+    throw new SubmitArgumentsRejectedError(candidate, error);
+  }
   if (JSON.stringify(piNormalized) !== JSON.stringify(candidate)) {
     repairs.push({ kind: 'pi_schema_coercion', path: '' });
   }
@@ -420,7 +450,12 @@ export function createSubmitOutputTool(
         preparedRepairs.set(JSON.stringify(prepared), normalized.repairs);
         return prepared;
       } catch (error) {
-        throw new Error(recordInvalidCall(args, error));
+        throw new Error(
+          recordInvalidCall(
+            rejectedCandidate(error, args),
+            rejectedPiError(error),
+          ),
+        );
       }
     },
     async execute(_id, params) {
@@ -469,7 +504,10 @@ export function createSubmitOutputTool(
               opts,
             );
       } catch (error) {
-        const message = recordInvalidCall(params, error);
+        const message = recordInvalidCall(
+          rejectedCandidate(error, params),
+          rejectedPiError(error),
+        );
         return {
           content: [{ type: 'text' as const, text: message }],
           details: {
@@ -550,7 +588,11 @@ export function createSubmitOutputTool(
         opts,
       );
     } catch (error) {
-      recordInvalidCall(parsed.value, error, 'final_message');
+      recordInvalidCall(
+        rejectedCandidate(error, parsed.value),
+        rejectedPiError(error),
+        'final_message',
+      );
       return 'invalid';
     }
     const errors = validateAgentTaskSubmission(
