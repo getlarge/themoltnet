@@ -36,10 +36,10 @@ import { type Static, Type } from 'typebox';
 export const GateExpectations = Type.Object(
   {
     /**
-     * The `submit_<type>_output` tool must have captured a schema-valid
-     * payload exactly once, with zero invalid submit attempts. Maps to the
-     * `parse_result` OTel code `captured_via_tool` and the absence of
-     * `output_validation_failed`. Default (when omitted): true — every
+     * Exactly one schema-valid payload must be captured, with zero invalid
+     * submit attempts. The payload comes from the `submit_<type>_output` tool
+     * (`captured_via_tool`) or a JSON-only final message
+     * (`captured_via_final_message`, which scores partial credit). Default (when omitted): true — every
      * runtime-prompt-compliance scenario expects a clean submit.
      */
     requireCleanSubmit: Type.Optional(Type.Boolean()),

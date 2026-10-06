@@ -77,4 +77,25 @@ describe('readSubmitStructure', () => {
       outputSource: null,
     });
   });
+
+  it('keeps final-message output distinct from a tool submit', async () => {
+    const { agent } = pagedAgent(
+      [
+        {
+          seq: 1,
+          kind: 'info',
+          payload: {
+            event: 'output_completion',
+            output_source: 'final_message',
+            repair_kinds: [],
+          },
+        },
+      ],
+      50,
+    );
+
+    const structure = await readSubmitStructure(agent, 'task', 1, 'freeform');
+
+    expect(structure.outputSource).toBe('final_message');
+  });
 });

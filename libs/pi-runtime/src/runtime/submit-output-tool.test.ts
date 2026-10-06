@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createSubmitOutputTool,
+  extractFinalMessageJson,
   UnknownTaskTypeForSubmitToolError,
 } from './submit-output-tool.js';
 import {
@@ -577,9 +578,11 @@ describe('createSubmitOutputTool', () => {
 
   it('adds repair guidance for invalid freeform artifacts and verification', async () => {
     const handle = createSubmitOutputTool('freeform');
+    // A single artifact object would be aligned into an array, so use a value
+    // alignment cannot repair; feedback describes the aligned arguments.
     const result = await callExecute(handle)({
       summary: 'done',
-      artifacts: { kind: 'note', title: 'Result' },
+      artifacts: 42,
       verification: 'submit-output passed',
     });
 
@@ -920,6 +923,196 @@ describe('createSubmitOutputTool', () => {
     expect(result.terminate).not.toBe(true);
     expect(result.content[0].text).toMatch(/llm_checklist|score=1/i);
     expect(handle.getCaptured()).toBeNull();
+  });
+});
+
+describe('final-message submit', () => {
+  it.each([
+    ['bare object', '  {"summary":"done"}\n', '{"summary":"done"}'],
+    ['json fence', '```json\n{"summary":"done"}\n```', '{"summary":"done"}'],
+    ['plain fence', '```\n{"summary":"done"}\n```', '{"summary":"done"}'],
+    ['prose before', 'Here it is: {"summary":"done"}', null],
+    ['prose after fence', '```json\n{"a":1}\n```\nDone.', null],
+    ['array', '[{"summary":"done"}]', null],
+    ['prose only', 'done', null],
+  ])('extracts JSON only from a whole-message object: %s', (_, text, want) => {
+    expect(extractFinalMessageJson(text)).toBe(want);
+  });
+
+  it('captures a valid JSON-only final message through the submit pipeline', () => {
+    const handle = createSubmitOutputTool('freeform');
+
+    const result = handle.submitFinalMessage(
+      '```json\n{"summary": "done", "artifacts": "[]"}\n```',
+    );
+
+    expect(result).toBe('captured');
+    expect(handle.getCaptured()).toEqual({ summary: 'done', artifacts: [] });
+    expect(handle.getCapturedSource()).toBe('final_message');
+    expect(handle.getCapturedRepairKinds()).toEqual(['json_string']);
+    expect(handle.getCallCount()).toBe(0);
+    expect(handle.getInvalidCallCount()).toBe(0);
+  });
+
+  it('records lenient JSON syntax repairs on a final message', () => {
+    const handle = createSubmitOutputTool('freeform');
+
+    expect(handle.submitFinalMessage("{summary: 'done'}")).toBe('captured');
+    expect(handle.getCapturedRepairKinds()).toEqual(['lenient_json']);
+  });
+
+  it('records a validation failure for an invalid JSON-only final message', () => {
+    const handle = createSubmitOutputTool('freeform');
+
+    const result = handle.submitFinalMessage('{"artifacts": []}');
+
+    expect(result).toBe('invalid');
+    expect(handle.getCaptured()).toBeNull();
+    expect(handle.getCapturedSource()).toBeNull();
+    expect(handle.getInvalidCallCount()).toBe(0);
+    expect(handle.getInvalidFinalMessageCount()).toBe(1);
+    expect(handle.getLastValidationFailure()).toMatchObject({
+      code: 'output_validation_failed',
+    });
+    expect(handle.getLastValidationFailure()?.message).toContain(
+      'invalid final message 1',
+    );
+    expect(handle.getLastValidationFailure()?.message).toContain('summary');
+  });
+
+  it('leaves state untouched for prose or unparseable text', () => {
+    const handle = createSubmitOutputTool('freeform');
+
+    expect(handle.submitFinalMessage('All done, see the PR.')).toBe('not_json');
+    expect(handle.submitFinalMessage('{"summary": "done"')).toBe('not_json');
+    expect(handle.getInvalidCallCount()).toBe(0);
+    expect(handle.getLastValidationFailure()).toBeNull();
+  });
+
+  describe('replays a contracted task whose model skipped the tool', () => {
+    // Trimmed from a production freeform task (gpt-oss:120b on Ollama Cloud)
+    // whose model ended four turns with JSON-only messages. The contract and
+    // gate match the task; the payloads keep the observed shapes.
+    const input = {
+      ...submitOutputOnlyFreeformInput,
+      outputContract: {
+        version: 1 as const,
+        schema: {
+          type: 'object',
+          required: ['paths', 'summary', 'signals'],
+          properties: {
+            paths: { type: 'array', items: { type: 'string' } },
+            signals: {
+              type: 'array',
+              minItems: 1,
+              items: {
+                type: 'object',
+                required: ['criterionId', 'evidence', 'impact'],
+                properties: {
+                  criterionId: { type: 'string' },
+                  evidence: { type: 'string' },
+                  impact: {
+                    type: 'string',
+                    enum: ['raises', 'reduces', 'neutral'],
+                  },
+                },
+                additionalProperties: false,
+              },
+            },
+            summary: { type: 'string' },
+          },
+          additionalProperties: false,
+        },
+      },
+    };
+    const paths = ['packages/docs-impact-review-action/dist/review.js'];
+    const signals = [
+      {
+        criterionId: 'cognitive_load',
+        evidence: 'Added budget definitions across several files.',
+        impact: 'raises',
+      },
+    ];
+    const summary = 'The PR updates the docs-impact-review action.';
+    const modelVerification = { cid: 'bagaaiera-model-supplied' };
+    const tool = () =>
+      createSubmitOutputTool('freeform', { input, inputCid: 'bafy-input' });
+
+    it('reports only the misplaced result fields for the flat first turn', () => {
+      const handle = tool();
+
+      const result = handle.submitFinalMessage(
+        JSON.stringify({
+          paths,
+          summary,
+          signals,
+          artifacts: [],
+          branch: 'action-bundle-1',
+          diaryEntryIds: [],
+          verification: modelVerification,
+        }),
+      );
+
+      const message = handle.getLastValidationFailure()?.message ?? '';
+      expect(result).toBe('invalid');
+      expect(message).toContain('output/result: is required');
+      expect(message).toContain('output/paths');
+      expect(message).toContain('output/signals');
+      // The runtime stamps verification for a submit-only gate; feedback must
+      // not ask the model to fix it.
+      expect(message).not.toContain('output/verification');
+    });
+
+    it('reports the missing result summary without verification noise', () => {
+      const handle = tool();
+
+      handle.submitFinalMessage(
+        JSON.stringify({
+          summary,
+          result: { paths, signals },
+          verification: modelVerification,
+        }),
+      );
+
+      const message = handle.getLastValidationFailure()?.message ?? '';
+      expect(message).toContain('output/result/summary');
+      expect(message).not.toContain('output/verification');
+    });
+
+    it('captures the corrected turn with a stamped verification', () => {
+      const handle = tool();
+
+      const result = handle.submitFinalMessage(
+        JSON.stringify({
+          artifacts: [],
+          branch: 'action-bundle-1',
+          diaryEntryIds: [],
+          summary,
+          result: { paths, summary, signals },
+          verification: modelVerification,
+        }),
+      );
+
+      expect(result).toBe('captured');
+      expect(handle.getCapturedRepairKinds()).toEqual([
+        'submit_gate_verification',
+      ]);
+      expect(handle.getCaptured()).toMatchObject({
+        result: { paths, summary, signals },
+        verification: { inputCid: 'bafy-input', passed: true },
+      });
+    });
+  });
+
+  it('keeps the first tool capture when a final message follows', async () => {
+    const handle = createSubmitOutputTool('freeform');
+    await callExecute(handle)({ summary: 'from tool' });
+
+    expect(handle.submitFinalMessage('{"summary":"from text"}')).toBe(
+      'captured',
+    );
+    expect(handle.getCaptured()).toEqual({ summary: 'from tool' });
+    expect(handle.getCapturedSource()).toBe('submit_tool');
   });
 });
 

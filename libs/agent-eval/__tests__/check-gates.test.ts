@@ -183,6 +183,59 @@ describe('checkGates', () => {
     });
   });
 
+  it('accepts a valid JSON-only final message as the one submit', async () => {
+    const msgs = [
+      ...messages({ submitResults: [] }),
+      {
+        kind: 'info',
+        payload: { event: 'final_message_submit', result: 'captured' },
+      },
+    ];
+    const agent = fakeAgent(msgs, completedAttempt);
+
+    const result = await checkGates(agent, 't1', 1, {}, EXPECTED);
+
+    expect(result.passed).toBe(true);
+  });
+
+  it('fails the clean-submit gate after an invalid final message', async () => {
+    const msgs = [
+      ...messages(),
+      {
+        kind: 'info',
+        payload: { event: 'final_message_submit', result: 'invalid' },
+      },
+    ];
+    const agent = fakeAgent(msgs, completedAttempt);
+
+    const result = await checkGates(agent, 't1', 1, {}, EXPECTED);
+
+    expect(result.failures).toContainEqual({
+      gate: 'submit_clean',
+      detail: '1 JSON-only final message(s) failed validation',
+    });
+  });
+
+  it('pages past the first page of messages', async () => {
+    const all = messages().map((m, index) => ({ ...m, seq: index + 1 }));
+    const submit = all.pop()!;
+    const deltas = Array.from({ length: 60 }, (_, index) => ({
+      seq: all.length + index + 1,
+      kind: 'text_delta',
+      payload: { delta: '.' },
+    }));
+    const ordered = [...all, ...deltas, { ...submit, seq: all.length + 61 }];
+    const agent = fakeAgent([], completedAttempt);
+    agent.tasks.listMessages = (_t, _n, query) =>
+      Promise.resolve(
+        ordered.filter((m) => m.seq > (query?.afterSeq ?? 0)).slice(0, 50),
+      );
+
+    const result = await checkGates(agent, 't1', 1, {}, EXPECTED);
+
+    expect(result.passed).toBe(true);
+  });
+
   it('fails when execute_start is absent', async () => {
     const agent = fakeAgent(messages({ executeStart: null }), completedAttempt);
 
