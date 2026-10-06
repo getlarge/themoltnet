@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.0](https://github.com/getlarge/themoltnet/compare/complexity-review-action-v0.2.2...complexity-review-action-v0.3.0) (2026-10-06)
+
+
+### Features
+
+* **complexity-review-action:** skip linguist-generated files ([927545b](https://github.com/getlarge/themoltnet/commit/927545b11048d9cb85a066f923782496af07f0df))
+* **docs-impact-review:** configurable budgets and docs-first diff packing ([33ea6a5](https://github.com/getlarge/themoltnet/commit/33ea6a5d2a689ac6ef77e9a8f37e85246dbaf5d0))
+
+
+### Bug Fixes
+
+* **actions:** rebuild action bundles against main ([7d4aa1d](https://github.com/getlarge/themoltnet/commit/7d4aa1d7b4c739b0a73ef201d601f5d66b8aca23))
+* **review:** refresh action runtime locks ([7032b80](https://github.com/getlarge/themoltnet/commit/7032b80eeba14707f06bdcc8fc4117ca9fcd5c89))
+* **review:** select published daemon release for workers ([863935c](https://github.com/getlarge/themoltnet/commit/863935c54a7da5a71c40a1b38cd058756ad2eda7))
+
 ## [0.2.2](https://github.com/getlarge/themoltnet/compare/complexity-review-action-v0.2.1...complexity-review-action-v0.2.2) (2026-10-02)
 
 

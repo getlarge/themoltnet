@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.12.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.11.0...agent-runtime-v1.12.0) (2026-10-06)
+
+
+### Features
+
+* **pi-runtime:** repair JSON strings in submit arguments ([df59568](https://github.com/getlarge/themoltnet/commit/df59568ed479ae78056f40fee0b1114d2932c13e))
+* **runtime:** add private complete JSON repair library ([9e26705](https://github.com/getlarge/themoltnet/commit/9e26705d79694f117f3c89bfcef653753238feb1))
+* **runtime:** align submit output against task schema ([f2db13e](https://github.com/getlarge/themoltnet/commit/f2db13e8bb28e1aac3530054d878aad95dac768f))
+* **runtime:** align submit output and measure model structure ([9a3e848](https://github.com/getlarge/themoltnet/commit/9a3e848326e42aab459090d958c5af62be5c734f))
+
+
+### Bug Fixes
+
+* **runtime:** omit TypeBox IDs from strict submit schema ([d2b13f9](https://github.com/getlarge/themoltnet/commit/d2b13f9b7c1c2978b681d1c444b4f3afc10d5507))
+* **runtime:** preserve contracted id property ([bbf934f](https://github.com/getlarge/themoltnet/commit/bbf934fde7c63556190253153757cf9636b3d325))
+* **runtime:** reject mistyped submit decodes and page structure reads ([bbd9339](https://github.com/getlarge/themoltnet/commit/bbd933937476805f88bf1c8d6e990933ec8066dd))
+* **runtime:** reject mistyped submit decodes and page structure reads ([edd3632](https://github.com/getlarge/themoltnet/commit/edd363241b2ae9961323fc30313f43924ac2d5c8))
+
 ## [1.11.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.10.0...agent-runtime-v1.11.0) (2026-10-02)
 
 

@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.22.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.21.2...pi-runtime-v0.22.0) (2026-10-06)
+
+
+### Features
+
+* **pi-runtime:** repair JSON strings in submit arguments ([df59568](https://github.com/getlarge/themoltnet/commit/df59568ed479ae78056f40fee0b1114d2932c13e))
+* **runtime:** accept a JSON-only final message as the submit payload ([b2dd221](https://github.com/getlarge/themoltnet/commit/b2dd221f22aa1f2dfa9670eb8242708f8cb7cb93))
+* **runtime:** accept a JSON-only final message as the submit payload ([53bc181](https://github.com/getlarge/themoltnet/commit/53bc181f787fb1a730ed12aaea2f29f0c412240b))
+* **runtime:** add private complete JSON repair library ([9e26705](https://github.com/getlarge/themoltnet/commit/9e26705d79694f117f3c89bfcef653753238feb1))
+* **runtime:** align submit output against task schema ([f2db13e](https://github.com/getlarge/themoltnet/commit/f2db13e8bb28e1aac3530054d878aad95dac768f))
+* **runtime:** align submit output and measure model structure ([9a3e848](https://github.com/getlarge/themoltnet/commit/9a3e848326e42aab459090d958c5af62be5c734f))
+
+
+### Bug Fixes
+
+* **eval:** enable strict Pi tools for Ollama Cloud ([c911b7c](https://github.com/getlarge/themoltnet/commit/c911b7c71d85006c8a87ed48f0ec1af0ac905a39))
+* **runtime:** describe the checked submit candidate in validation feedback ([787a088](https://github.com/getlarge/themoltnet/commit/787a08854da808b411f064220c48a4d3b60e252c))
+* **runtime:** keep text-only turns off the turn cap and grade final-message submits ([5191340](https://github.com/getlarge/themoltnet/commit/51913401d467e92d490ba0a06af61bd25964d3c1))
+* **runtime:** omit TypeBox IDs from strict submit schema ([d2b13f9](https://github.com/getlarge/themoltnet/commit/d2b13f9b7c1c2978b681d1c444b4f3afc10d5507))
+* **runtime:** preserve parser repair completion telemetry ([7b06d9f](https://github.com/getlarge/themoltnet/commit/7b06d9f58ed11c38ae9805416d1c2e52e857f818))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.12.0
+
 ## [0.21.2](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.21.1...pi-runtime-v0.21.2) (2026-10-02)
 
 

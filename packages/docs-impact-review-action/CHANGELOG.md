@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.3.0](https://github.com/getlarge/themoltnet/compare/docs-impact-review-action-v0.2.3...docs-impact-review-action-v0.3.0) (2026-10-06)
+
+
+### Features
+
+* **docs-impact-review-action:** ship configurable budgets and docs-first packing ([04d95c9](https://github.com/getlarge/themoltnet/commit/04d95c976c3a0f0162e8a3a216ef36729a37efbc))
+* **docs-impact-review:** configurable budgets and docs-first diff packing ([33ea6a5](https://github.com/getlarge/themoltnet/commit/33ea6a5d2a689ac6ef77e9a8f37e85246dbaf5d0))
+
+
+### Bug Fixes
+
+* **actions:** rebuild action bundles against main ([7d4aa1d](https://github.com/getlarge/themoltnet/commit/7d4aa1d7b4c739b0a73ef201d601f5d66b8aca23))
+* **docs-impact-review-action:** ship review fixes for budgets and packing ([256f4f3](https://github.com/getlarge/themoltnet/commit/256f4f3ad22fcae822ea89a9fc807b957d08b0a9))
+* **docs-impact-review:** address review of budgets and docs-first packing ([5ed821f](https://github.com/getlarge/themoltnet/commit/5ed821f3e2ea50b3eb69f4cc3ff3df949f0ff861))
+* **review:** refresh action runtime locks ([7032b80](https://github.com/getlarge/themoltnet/commit/7032b80eeba14707f06bdcc8fc4117ca9fcd5c89))
+* **review:** select published daemon release for workers ([863935c](https://github.com/getlarge/themoltnet/commit/863935c54a7da5a71c40a1b38cd058756ad2eda7))
+* **review:** select published daemon release for workers ([f17dc8c](https://github.com/getlarge/themoltnet/commit/f17dc8c368a9b7bd5871ec72d256d97dfeb57fd3))
+
 ## [0.2.3](https://github.com/getlarge/themoltnet/compare/docs-impact-review-action-v0.2.2...docs-impact-review-action-v0.2.3) (2026-10-02)
 
 

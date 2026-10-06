@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.3.4...agent-daemon-action-v0.4.0) (2026-10-06)
+
+
+### Features
+
+* **docs-impact-review:** configurable budgets and docs-first diff packing ([33ea6a5](https://github.com/getlarge/themoltnet/commit/33ea6a5d2a689ac6ef77e9a8f37e85246dbaf5d0))
+
+
+### Bug Fixes
+
+* **actions:** rebuild action bundles against main ([7d4aa1d](https://github.com/getlarge/themoltnet/commit/7d4aa1d7b4c739b0a73ef201d601f5d66b8aca23))
+
 ## [0.3.4](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.3.3...agent-daemon-action-v0.3.4) (2026-10-02)
 
 
