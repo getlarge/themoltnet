@@ -1,0 +1,6 @@
+{
+  "description": "No tools; the triage task carries the issue title and body as evidence.",
+  "name": "legreffier-issue-triage-input-only-v1",
+  "shellCommands": [],
+  "tools": []
+}
