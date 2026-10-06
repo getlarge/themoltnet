@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.2](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.11.1...agent-desktop-v0.11.2) (2026-10-06)
+
+
+### Bug Fixes
+
+* **agent-desktop:** typecheck spec config and repair drifted test fixtures ([ccdfbe2](https://github.com/getlarge/themoltnet/commit/ccdfbe272d20c2ed41aeb8833083cab62252814f))
+* **nx:** stop nx sync collapsing root tsconfig references ([dccd27d](https://github.com/getlarge/themoltnet/commit/dccd27d1bcaea3a9bfb3886cd30be78ead6fc02e))
+
 ## [0.11.1](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.11.0...agent-desktop-v0.11.1) (2026-09-27)
 
 
