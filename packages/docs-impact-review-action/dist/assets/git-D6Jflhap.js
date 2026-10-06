@@ -7,8 +7,8 @@ function requireFullOid(value, label) {
 	return value;
 }
 /** Long enough for a cold fetch of a large pull request. */
-var GIT_TIMEOUT_MS = 5 * 6e4;
-var MAX_OUTPUT_BYTES = 64 * 1024 * 1024;
+var GIT_TIMEOUT_MS = 3e5;
+var MAX_OUTPUT_BYTES = 67108864;
 /**
 * A `git` command that exited with a status. Timeouts, signals and output
 * limits are thrown as plain errors instead, so callers can tell "git said

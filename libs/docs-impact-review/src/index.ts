@@ -1,6 +1,19 @@
+export {
+  BUDGET_LIMITS,
+  type Budgets,
+  type ConfigurableBudget,
+  DEFAULT_BUDGETS,
+  DEFAULT_DOCS_RESERVE_SHARE,
+  resolveBudgets,
+} from './budgets.js';
+export {
+  type DocsGlobs,
+  isDocsPath,
+  isReviewableDocsPath,
+} from './docs-paths.js';
 export { createGit, type Git } from './git.js';
 export { matchesAny, matchesGlob, validateGlob } from './glob.js';
-export { boundDiff, collectChangeSet } from './ingest.js';
+export { boundDiff, collectChangeSet, type DiffBudget } from './ingest.js';
 export {
   DOCS_IMPACT_COMMENT_MARKER,
   renderComment,
@@ -24,8 +37,9 @@ export { stageTiming } from './timing.js';
 export type * from './types.js';
 export {
   createSleepingContext,
-  DEFAULT_BUDGETS,
   DEFAULT_POLL_INTERVAL_SEC,
+  diffBudget,
+  docsGlobs,
   type DocsImpactDeps,
   type DocsImpactInput,
   failedReport,

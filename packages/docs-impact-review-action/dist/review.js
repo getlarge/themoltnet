@@ -1,7 +1,7 @@
-import { C as __exportAll, E as __toESM, S as __esmMin, T as __toCommonJS, _ as _Object_, a as Record, b as _Array_, c as Number$1, d as Integer, f as Boolean$1, g as Unknown, h as Cyclic, i as Partial, l as Null, m as Unsafe, n as Errors, o as Union, p as Intersect, r as Check, s as String$1, t as Clean, u as Literal, v as Optional, w as __require, x as __commonJSMin, y as Ref$1 } from "./assets/value-DmYVUS9b.js";
+import { C as __exportAll, E as __toESM, S as __esmMin, T as __toCommonJS, _ as _Object_, a as Record, b as _Array_, c as Number$1, d as Integer, f as Boolean$1, g as Unknown, h as Cyclic, i as Partial, l as Null, m as Unsafe, n as Errors, o as Union, p as Intersect, r as Check, s as String$1, t as Clean, u as Literal, v as Optional, w as __require, x as __commonJSMin, y as Ref$1 } from "./assets/value-CDS208oC.js";
 import { t as runMain } from "./assets/run-BAJLqHWw.js";
-import { a as createRateLimitFetch, i as summarizeCorpus, r as renderComment } from "./assets/report-v9naF6qM.js";
-import { i as requireFullOid, n as ensureRevisions, r as existsAt, t as createGit } from "./assets/git-vBoKCgzJ.js";
+import { a as createRateLimitFetch, i as summarizeCorpus, r as renderComment } from "./assets/report-DJdZyA5m.js";
+import { i as requireFullOid, n as ensureRevisions, r as existsAt, t as createGit } from "./assets/git-D6Jflhap.js";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { constants, lstatSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -360,7 +360,8 @@ var Point = class Point {
 		const X3 = M(E * F);
 		const Y3 = M(G * H);
 		const T3 = M(E * H);
-		return new Point(X3, Y3, M(F * G), T3);
+		const Z3 = M(F * G);
+		return new Point(X3, Y3, Z3, T3);
 	}
 	/** Point addition. Complete formula. Cost: `8M + 1*k + 8add + 1*2`. */
 	add(other) {
@@ -379,7 +380,8 @@ var Point = class Point {
 		const X3 = M(E * F);
 		const Y3 = M(G * H);
 		const T3 = M(E * H);
-		return new Point(X3, Y3, M(F * G), T3);
+		const Z3 = M(F * G);
+		return new Point(X3, Y3, Z3, T3);
 	}
 	/**
 	* Point-by-scalar multiplication. Scalar must be in range 1 <= n < CURVE.n.
@@ -519,7 +521,8 @@ var _sign = (e, rBytes, msg) => {
 	const R = G.multiply(r).toBytes();
 	const hashable = concatBytes(R, P, msg);
 	const finish = (hashed) => {
-		return abytes$1(concatBytes(R, numTo32bLE(modN(r + modL_LE(hashed) * s))), L2);
+		const S = modN(r + modL_LE(hashed) * s);
+		return abytes$1(concatBytes(R, numTo32bLE(S)), L2);
 	};
 	return {
 		hashable,
@@ -552,7 +555,7 @@ var etc = {
 };
 var W = 8;
 var pwindows = Math.ceil(256 / W) + 1;
-var pwindowSize = 2 ** (W - 1);
+var pwindowSize = 128;
 var precompute = () => {
 	const points = [];
 	let p = G;
@@ -588,9 +591,8 @@ var wNAF = (n) => {
 	const comp = Gpows || (Gpows = precompute());
 	let p = I;
 	let f = G;
-	const pow_2_w = 2 ** W;
-	const maxNum = pow_2_w;
-	const mask = big(pow_2_w - 1);
+	const maxNum = 2 ** W;
+	const mask = big(255);
 	const shiftBy = big(W);
 	for (let w = 0; w < pwindows; w++) {
 		let wbits = Number(n & mask);
@@ -833,7 +835,8 @@ function createSseClient({ onRequest, onSseError, onSseEvent, responseTransforme
 			} catch (error) {
 				onSseError?.(error);
 				if (sseMaxRetryAttempts !== void 0 && attempt >= sseMaxRetryAttempts) break;
-				await sleep(Math.min(retryDelay * 2 ** (attempt - 1), sseMaxRetryDelay ?? 3e4));
+				const backoff = Math.min(retryDelay * 2 ** (attempt - 1), sseMaxRetryDelay ?? 3e4);
+				await sleep(backoff);
 			}
 		}
 	};
@@ -1079,9 +1082,7 @@ async function setAuthParams(options) {
 			case "cookie":
 				options.headers.append("Cookie", `${name}=${token}`);
 				break;
-			default:
-				options.headers.set(name, token);
-				break;
+			default: options.headers.set(name, token);
 		}
 	}
 }
@@ -1238,9 +1239,7 @@ var createClient = (config = {}) => {
 						case "stream":
 							emptyData = response.body;
 							break;
-						default:
-							emptyData = {};
-							break;
+						default: emptyData = {};
 					}
 					return opts.responseStyle === "data" ? emptyData : {
 						data: emptyData,
@@ -5365,7 +5364,8 @@ var SHA256 = class extends HashMD {
 			const W15 = SHA256_W[i - 15];
 			const W2 = SHA256_W[i - 2];
 			const s0 = rotr(W15, 7) ^ rotr(W15, 18) ^ W15 >>> 3;
-			SHA256_W[i] = (rotr(W2, 17) ^ rotr(W2, 19) ^ W2 >>> 10) + SHA256_W[i - 7] + s0 + SHA256_W[i - 16] | 0;
+			const s1 = rotr(W2, 17) ^ rotr(W2, 19) ^ W2 >>> 10;
+			SHA256_W[i] = s1 + SHA256_W[i - 7] + s0 + SHA256_W[i - 16] | 0;
 		}
 		let { A, B, C, D, E, F, G, H } = this;
 		for (let i = 0; i < 64; i++) {
@@ -5429,7 +5429,7 @@ function coerce(o) {
 */
 function base(ALPHABET, name) {
 	if (ALPHABET.length >= 255) throw new TypeError("Alphabet too long");
-	var BASE_MAP = new Uint8Array(256);
+	var BASE_MAP = /* @__PURE__ */ new Uint8Array(256);
 	for (var j = 0; j < BASE_MAP.length; j++) BASE_MAP[j] = 255;
 	for (var i = 0; i < ALPHABET.length; i++) {
 		var x = ALPHABET.charAt(i);
@@ -5483,7 +5483,7 @@ function base(ALPHABET, name) {
 	*/
 	function decodeUnsafe(source) {
 		if (typeof source !== "string") throw new TypeError("Expected String");
-		if (source.length === 0) return new Uint8Array();
+		if (source.length === 0) return /* @__PURE__ */ new Uint8Array();
 		var psz = 0;
 		if (source[psz] === " ") return;
 		var zeroes = 0;
@@ -5777,7 +5777,9 @@ baseX({
 //#endregion
 //#region ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/vendor/varint.js
 var encode_1 = encode;
-var MSB = 128, MSBALL = -128, INT = Math.pow(2, 31);
+var MSB = 128;
+var MSBALL = -128;
+var INT = Math.pow(2, 31);
 /**
 * @param {number} num
 * @param {number[]} out
@@ -5800,7 +5802,8 @@ function encode(num, out, offset) {
 	return out;
 }
 var decode$2 = read;
-var MSB$1 = 128, REST$1 = 127;
+var MSB$1 = 128;
+var REST$1 = 127;
 /**
 * @param {string | any[]} buf
 * @param {number} offset
@@ -6029,7 +6032,10 @@ var CID = class CID {
 		switch (version) {
 			case 0: if (code !== DAG_PB_CODE) throw new Error(`Version 0 CID must use dag-pb (code: ${DAG_PB_CODE}) block encoding`);
 			else return new CID(version, code, digest, digest.bytes);
-			case 1: return new CID(version, code, digest, encodeCID(version, code, digest.bytes));
+			case 1: {
+				const bytes = encodeCID(version, code, digest.bytes);
+				return new CID(version, code, digest, bytes);
+			}
 			default: throw new Error("Invalid version");
 		}
 	}
@@ -6250,11 +6256,12 @@ var SignedEntryCreateError = class extends Error {
 function createEntriesNamespace(context) {
 	const { client, auth } = context;
 	async function createSignedEntry(diaryId, body, sign) {
+		const contentCid = computeContentCid(body.entryType ?? "semantic", body.title ?? null, body.content, body.tags ?? null);
 		const signingRequest = unwrapResult(await createSigningRequest({
 			client,
 			auth,
 			body: {
-				message: computeContentCid(body.entryType ?? "semantic", body.title ?? null, body.content, body.tags ?? null),
+				message: contentCid,
 				verificationMethod: "agent-ed25519"
 			}
 		}));
@@ -7019,7 +7026,8 @@ function validateOutputContractSchema(schema) {
 	let nodes = 0;
 	const visit = (node, path, depth) => {
 		if (!isObject(node) || depth > 10 || ++nodes > 200) return `${path} must be a schema object within the depth and size limits`;
-		const type = node.type;
+		const nullable = Array.isArray(node.type) && node.type.length === 2 && node.type.includes("null") && node.type.filter((value) => value !== "null").length === 1;
+		const type = nullable ? node.type.find((value) => value !== "null") : node.type;
 		if (![
 			"object",
 			"array",
@@ -7027,7 +7035,7 @@ function validateOutputContractSchema(schema) {
 			"number",
 			"integer",
 			"boolean"
-		].includes(type)) return `${path}.type must be object, array, string, number, integer, or boolean`;
+		].includes(type) || nullable && (type === "object" || type === "array")) return `${path}.type must be object, array, string, number, integer, boolean, or a nullable primitive`;
 		const common = [
 			"type",
 			"description",
@@ -7047,7 +7055,7 @@ function validateOutputContractSchema(schema) {
 		if (unknownKey) return `${path}.${unknownKey} is not supported`;
 		if (node.description !== void 0 && typeof node.description !== "string") return `${path}.description must be a string`;
 		if (node.title !== void 0 && typeof node.title !== "string") return `${path}.title must be a string`;
-		if (node.enum !== void 0 && (type === "object" || type === "array" || !Array.isArray(node.enum) || node.enum.length === 0 || node.enum.some((value) => type === "integer" ? !Number.isInteger(value) : typeof value !== type))) return `${path}.enum must contain values of the declared primitive type`;
+		if (node.enum !== void 0 && (type === "object" || type === "array" || !Array.isArray(node.enum) || node.enum.length === 0 || node.enum.some((value) => value === null && nullable ? false : type === "integer" ? !Number.isInteger(value) : typeof value !== type))) return `${path}.enum must contain values of the declared primitive type`;
 		if (type === "object") {
 			if (!isObject(node.properties) || node.additionalProperties !== false) return `${path} needs properties and additionalProperties: false`;
 			const keys = Object.keys(node.properties);
@@ -7096,8 +7104,29 @@ var CONTEXT_BINDINGS = [
 /** Maximum UTF-16 code units accepted in one ContextRef content field. */
 var CONTEXT_REF_MAX_CONTENT_LENGTH = 65536;
 var ContextBinding = Unsafe(Union(CONTEXT_BINDINGS.map((binding) => Literal(binding)), { $id: "ContextBinding" }));
-/** Reusable input fragment for any task type. Soft cap at 5 items. */
-var TaskContext = _Array_(_Object_({
+/**
+* One context entry. Bytes are inlined: the proposer chose them, and the
+* task's `inputCid` already pins the entire input — including
+* `context[]` — so we don't need a separate per-entry hash, fetcher, or
+* flagged-content gate. Tasks reference rendered packs (or any other
+* external content) by copying their bytes into `content` at task
+* creation time.
+*
+* - `slug` — short identifier the daemon uses to disambiguate
+*            entries. For `skill` binding it becomes the directory
+*            name under the runtime's skill discovery path. Must be
+*            kebab-case-safe (alphanumeric + dashes/underscores).
+* - `binding` — how the bytes are delivered to the LLM (see above).
+* - `content` — UTF-8 text. Capped at 65,536 UTF-16 code units per
+*               entry; total per-task context bytes are bounded by the
+*               soft `maxItems` cap and per-binding daemon limits.
+*               Raised from 32 KiB in 2026-05 — protocol-heavy operator
+*               skills (e.g. `.claude/skills/legreffier/SKILL.md`) ship
+*               at ~35 KiB inline, and the original cap was sized for
+*               short example skills, not the kind of skill the eval
+*               substrate is dogfooded on (#943, #823).
+*/
+var ContextRef = _Object_({
 	slug: String$1({
 		minLength: 1,
 		maxLength: 64,
@@ -7111,7 +7140,9 @@ var TaskContext = _Array_(_Object_({
 }, {
 	$id: "ContextRef",
 	additionalProperties: false
-}), {
+});
+/** Reusable input fragment for any task type. Soft cap at 5 items. */
+var TaskContext = _Array_(ContextRef, {
 	$id: "TaskContext",
 	maxItems: 5
 });
@@ -7520,24 +7551,27 @@ var TimestampSchema = String$1({
 	format: "date-time",
 	description: "ISO 8601 timestamp"
 });
-Union([Literal(VERIFICATION_METHOD.AgentEd25519), Literal(VERIFICATION_METHOD.HumanHardwarePreviewSign)], { description: "Stable signing verification method identifier" });
-Union([
+var verificationMethodLiterals = [Literal(VERIFICATION_METHOD.AgentEd25519), Literal(VERIFICATION_METHOD.HumanHardwarePreviewSign)];
+Union(verificationMethodLiterals, { description: "Stable signing verification method identifier" });
+var visibilityLiterals = [
 	Literal("private"),
 	Literal("moltnet"),
 	Literal("public")
-], { description: "Entry visibility level" });
+];
+Union(visibilityLiterals, { description: "Entry visibility level" });
 var ENTRY_TYPE_VALUES = [
 	"episodic",
 	"semantic",
 	"procedural",
 	"reflection"
 ];
-var EntryTypeSchema = Union([
+var entryTypeLiterals = [
 	Literal("episodic"),
 	Literal("semantic"),
 	Literal("procedural"),
 	Literal("reflection")
-], { description: "Entry memory type" });
+];
+var EntryTypeSchema = Union(entryTypeLiterals, { description: "Entry memory type" });
 /** Regex fragment matching a single entry type value. */
 var ENTRY_TYPE_PATTERN = `(${ENTRY_TYPE_VALUES.join("|")})`;
 `${ENTRY_TYPE_PATTERN}${ENTRY_TYPE_PATTERN}`, ENTRY_TYPE_VALUES.length - 1;
@@ -7628,15 +7662,17 @@ var BaseAuthContextSchema = _Object_({
 	subjectType: Union([Literal("agent"), Literal("human")]),
 	currentTeamId: Union([UuidSchema, Null()])
 });
-Union([Intersect([BaseAuthContextSchema, _Object_({
+var AgentAuthContextSchema = Intersect([BaseAuthContextSchema, _Object_({
 	subjectType: Literal("agent"),
 	publicKey: PublicKeySchema,
 	fingerprint: FingerprintSchema,
 	clientId: String$1()
-})]), Intersect([BaseAuthContextSchema, _Object_({
+})]);
+var HumanAuthContextSchema = Intersect([BaseAuthContextSchema, _Object_({
 	subjectType: Literal("human"),
 	clientId: Union([String$1(), Null()])
-})])]);
+})]);
+Union([AgentAuthContextSchema, HumanAuthContextSchema]);
 _Object_({
 	success: Boolean$1(),
 	message: Optional(String$1())
@@ -7820,7 +7856,7 @@ _Object_({
 });
 _Object_({ destinationTeamId: UuidSchema });
 _Object_({ transferId: UuidSchema });
-_Object_({ items: _Array_(_Object_({
+var TransferResponseSchema = _Object_({
 	id: UuidSchema,
 	diaryId: UuidSchema,
 	sourceTeamId: UuidSchema,
@@ -7829,7 +7865,8 @@ _Object_({ items: _Array_(_Object_({
 	initiatedBy: UuidSchema,
 	expiresAt: Unsafe(String$1({ format: "date-time" })),
 	createdAt: Unsafe(String$1({ format: "date-time" }))
-})) });
+});
+_Object_({ items: _Array_(TransferResponseSchema) });
 _Object_({ groupId: UuidSchema });
 _Object_({
 	groupId: UuidSchema,
@@ -7875,11 +7912,12 @@ _Object_({
 	subjectNs: GrantSubjectNsSchema,
 	role: DiaryGrantRoleSchema
 });
-_Object_({ grants: _Array_(_Object_({
+var DiaryGrantResponseSchema = _Object_({
 	subjectId: UuidSchema,
 	subjectNs: GrantSubjectNsSchema,
 	role: DiaryGrantRoleSchema
-})) });
+});
+_Object_({ grants: _Array_(DiaryGrantResponseSchema) });
 _Object_({ revoked: Boolean$1() });
 var TaskGrantRoleSchema = Union([Literal("writer"), Literal("manager")]);
 _Object_({
@@ -7892,11 +7930,12 @@ _Object_({
 	subjectNs: GrantSubjectNsSchema,
 	role: TaskGrantRoleSchema
 });
-_Object_({ grants: _Array_(_Object_({
+var TaskGrantResponseSchema = _Object_({
 	subjectId: UuidSchema,
 	subjectNs: GrantSubjectNsSchema,
 	role: TaskGrantRoleSchema
-})) });
+});
+_Object_({ grants: _Array_(TaskGrantResponseSchema) });
 _Object_({ "x-moltnet-team-id": String$1({
 	format: "uuid",
 	description: "Team ID (UUID) that will own the resource. Required."
@@ -8070,16 +8109,17 @@ _Object_({
 	createdAt: String$1({ format: "date-time" }),
 	updatedAt: String$1({ format: "date-time" })
 });
+var CreateProjectSchema = _Object_({
+	name: String$1({
+		minLength: 1,
+		maxLength: 255,
+		pattern: "\\S"
+	}),
+	description: Optional(Union([String$1({ maxLength: 1e4 }), Null()])),
+	defaultDiaryId: Optional(Union([String$1({ format: "uuid" }), Null()]))
+}, { additionalProperties: false });
 _Object_({
-	...Partial(_Object_({
-		name: String$1({
-			minLength: 1,
-			maxLength: 255,
-			pattern: "\\S"
-		}),
-		description: Optional(Union([String$1({ maxLength: 1e4 }), Null()])),
-		defaultDiaryId: Optional(Union([String$1({ format: "uuid" }), Null()]))
-	}, { additionalProperties: false })).properties,
+	...Partial(CreateProjectSchema).properties,
 	archived: Optional(Boolean$1())
 }, {
 	additionalProperties: false,
@@ -8152,16 +8192,17 @@ var ProvenanceGraphRenderedPackMetaSchema = _Object_({
 	expiresAt: Union([TimestampSchema, Null()]),
 	creator: Optional(ProvenanceGraphCreatorSchema)
 });
+var ProvenanceGraphRenderedPackNodeSchema = _Object_({
+	id: String$1(),
+	kind: Literal("rendered_pack"),
+	label: String$1(),
+	cid: Union([String$1(), Null()]),
+	meta: ProvenanceGraphRenderedPackMetaSchema
+});
 var ProvenanceGraphNodeSchema = Union([
 	ProvenanceGraphPackNodeSchema,
 	ProvenanceGraphEntryNodeSchema,
-	_Object_({
-		id: String$1(),
-		kind: Literal("rendered_pack"),
-		label: String$1(),
-		cid: Union([String$1(), Null()]),
-		meta: ProvenanceGraphRenderedPackMetaSchema
-	})
+	ProvenanceGraphRenderedPackNodeSchema
 ]);
 var ProvenanceGraphEdgeSchema = _Object_({
 	id: String$1(),
@@ -8176,14 +8217,15 @@ var ProvenanceGraphEdgeSchema = _Object_({
 		Null()
 	])))
 });
+var ProvenanceGraphMetadataSchema = _Object_({
+	format: Literal("moltnet.provenance-graph/v1"),
+	generatedAt: TimestampSchema,
+	rootNodeId: String$1(),
+	rootPackId: UuidSchema,
+	depth: Number$1({ minimum: 0 })
+});
 _Object_({
-	metadata: _Object_({
-		format: Literal("moltnet.provenance-graph/v1"),
-		generatedAt: TimestampSchema,
-		rootNodeId: String$1(),
-		rootPackId: UuidSchema,
-		depth: Number$1({ minimum: 0 })
-	}),
+	metadata: ProvenanceGraphMetadataSchema,
 	nodes: _Array_(ProvenanceGraphNodeSchema),
 	edges: _Array_(ProvenanceGraphEdgeSchema)
 }, { $id: "ProvenanceGraph" });
@@ -8223,10 +8265,16 @@ var CALLER_AUTHORED_PREFIXES = [
 ];
 var DEFAULT_SERVER_RENDER_METHOD = "server:pack-to-docs-v1";
 var DEFAULT_AGENT_RENDER_METHOD = "agent:pack-to-docs-v1";
+/**
+* Write-side validation pattern: a known prefix followed by at least one
+* non-whitespace character. Stored rows are never re-validated against
+* this; it applies to new writes at the API boundary only.
+*/
+var RENDER_METHOD_PATTERN = `^(${[SERVER_RENDER_PREFIX, ...CALLER_AUTHORED_PREFIXES].join("|")})\\S+$`;
 var RenderMethodSchema = String$1({
 	minLength: 1,
 	maxLength: 100,
-	pattern: `^(${[SERVER_RENDER_PREFIX, ...CALLER_AUTHORED_PREFIXES].join("|")})\\S+$`,
+	pattern: RENDER_METHOD_PATTERN,
 	description: "Render method label. Server render methods start with \"server:\" and must omit renderedMarkdown; caller-authored methods start with \"agent:\", \"pi:\" or \"agent-\" and require it.",
 	examples: [DEFAULT_SERVER_RENDER_METHOD, DEFAULT_AGENT_RENDER_METHOD]
 });
@@ -8254,7 +8302,8 @@ Union([
 //#endregion
 //#region ../../libs/models/src/signer-protocol.ts
 function schemaRef(schema) {
-	return Ref$1(schemaId(schema));
+	const id = schemaId(schema);
+	return Ref$1(id);
 }
 function schemaId(schema) {
 	const id = schema.$id;
@@ -8376,11 +8425,12 @@ var TOOL_ENFORCEMENT_VALUES = [
 	"watch",
 	"enforce"
 ];
-var ToolEnforcementSchema = Union([
+var toolEnforcementLiterals = [
 	Literal(TOOL_ENFORCEMENT_VALUES[0]),
 	Literal(TOOL_ENFORCEMENT_VALUES[1]),
 	Literal(TOOL_ENFORCEMENT_VALUES[2])
-], { description: "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)." });
+];
+var ToolEnforcementSchema = Union(toolEnforcementLiterals, { description: "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)." });
 //#endregion
 //#region ../../libs/runtime-profiles/src/runtime-profiles.ts
 var RuntimeProfileName = String$1({
@@ -8631,40 +8681,42 @@ var RuntimeWorkspace = _Object_({
 	createdAtMs: Integer({ minimum: 0 }),
 	lastUsedAtMs: Integer({ minimum: 0 })
 }, { $id: "RuntimeWorkspace" });
-_Object_({ items: _Array_(_Object_({
-	slot: _Object_({
-		id: String$1({ format: "uuid" }),
-		teamId: String$1({ format: "uuid" }),
-		agentName: String$1({
-			minLength: 1,
-			maxLength: 100
-		}),
-		runtimeProfileId: Union([String$1({ format: "uuid" }), Null()]),
-		provider: String$1({
-			minLength: 1,
-			maxLength: 100
-		}),
-		model: String$1({
-			minLength: 1,
-			maxLength: 200
-		}),
-		slotKey: String$1({ minLength: 1 }),
-		taskType: String$1({
-			minLength: 1,
-			maxLength: 100
-		}),
-		state: RuntimeSlotState,
-		lastTaskId: String$1({ format: "uuid" }),
-		lastAttemptN: Integer({ minimum: 1 }),
-		sessionDir: Union([String$1({ minLength: 1 }), Null()]),
-		sessionPath: Union([String$1({ minLength: 1 }), Null()]),
-		workspaceRowId: Union([String$1({ format: "uuid" }), Null()]),
-		createdAtMs: Integer({ minimum: 0 }),
-		lastUsedAtMs: Integer({ minimum: 0 }),
-		expiresAtMs: Integer({ minimum: 0 })
-	}, { $id: "RuntimeSlot" }),
+var RuntimeSlot = _Object_({
+	id: String$1({ format: "uuid" }),
+	teamId: String$1({ format: "uuid" }),
+	agentName: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	runtimeProfileId: Union([String$1({ format: "uuid" }), Null()]),
+	provider: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	model: String$1({
+		minLength: 1,
+		maxLength: 200
+	}),
+	slotKey: String$1({ minLength: 1 }),
+	taskType: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	state: RuntimeSlotState,
+	lastTaskId: String$1({ format: "uuid" }),
+	lastAttemptN: Integer({ minimum: 1 }),
+	sessionDir: Union([String$1({ minLength: 1 }), Null()]),
+	sessionPath: Union([String$1({ minLength: 1 }), Null()]),
+	workspaceRowId: Union([String$1({ format: "uuid" }), Null()]),
+	createdAtMs: Integer({ minimum: 0 }),
+	lastUsedAtMs: Integer({ minimum: 0 }),
+	expiresAtMs: Integer({ minimum: 0 })
+}, { $id: "RuntimeSlot" });
+var ResolvedRuntimeSlot = _Object_({
+	slot: RuntimeSlot,
 	workspace: Union([RuntimeWorkspace, Null()])
-}, { $id: "ResolvedRuntimeSlot" })) }, { $id: "RuntimeSlotListResponse" });
+}, { $id: "ResolvedRuntimeSlot" });
+_Object_({ items: _Array_(ResolvedRuntimeSlot) }, { $id: "RuntimeSlotListResponse" });
 var MAX_RUNTIME_WARM_RETENTION_SEC = 86400;
 _Object_({
 	agentName: String$1({
@@ -8944,18 +8996,19 @@ var CidEqualsSpec = _Object_({
 	path: String$1({ minLength: 1 }),
 	expected: String$1({ minLength: 1 })
 }, { additionalProperties: false });
+var SubmitToolCallGate = _Object_({
+	id: String$1({ minLength: 1 }),
+	kind: Literal("submit-tool-call"),
+	/**
+	* Human-readable contract text shown to the producer when it fetches
+	* `input.successCriteria`. This is a promise-level gate rather than a
+	* transport-level runtime hint.
+	*/
+	description: String$1({ minLength: 1 }),
+	required: Boolean$1()
+}, { additionalProperties: false });
 var Gate = Union([
-	_Object_({
-		id: String$1({ minLength: 1 }),
-		kind: Literal("submit-tool-call"),
-		/**
-		* Human-readable contract text shown to the producer when it fetches
-		* `input.successCriteria`. This is a promise-level gate rather than a
-		* transport-level runtime hint.
-		*/
-		description: String$1({ minLength: 1 }),
-		required: Boolean$1()
-	}, { additionalProperties: false }),
+	SubmitToolCallGate,
 	_Object_({
 		id: String$1({ minLength: 1 }),
 		kind: Literal("schema-check"),
@@ -9322,37 +9375,40 @@ function validateOutputContractResult(taskType, input, output) {
 		}];
 	});
 }
+//#endregion
+//#region ../../libs/tasks/src/task-artifacts.ts
+var TaskArtifact = _Object_({
+	id: String$1({ format: "uuid" }),
+	teamId: String$1({ format: "uuid" }),
+	taskId: String$1({ format: "uuid" }),
+	attemptN: Union([Integer({ minimum: 1 }), Null()]),
+	kind: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	title: String$1({
+		minLength: 1,
+		maxLength: 255
+	}),
+	contentType: String$1({
+		minLength: 1,
+		maxLength: 200
+	}),
+	contentEncoding: Union([String$1({
+		minLength: 1,
+		maxLength: 100
+	}), Null()]),
+	sizeBytes: Integer({ minimum: 0 }),
+	cid: String$1({
+		minLength: 1,
+		maxLength: 100
+	}),
+	createdByAgentId: Union([String$1({ format: "uuid" }), Null()]),
+	expiresAt: Union([String$1({ format: "date-time" }), Null()]),
+	createdAt: String$1({ format: "date-time" })
+}, { $id: "TaskArtifact" });
 _Object_({
-	artifacts: _Array_(_Object_({
-		id: String$1({ format: "uuid" }),
-		teamId: String$1({ format: "uuid" }),
-		taskId: String$1({ format: "uuid" }),
-		attemptN: Union([Integer({ minimum: 1 }), Null()]),
-		kind: String$1({
-			minLength: 1,
-			maxLength: 100
-		}),
-		title: String$1({
-			minLength: 1,
-			maxLength: 255
-		}),
-		contentType: String$1({
-			minLength: 1,
-			maxLength: 200
-		}),
-		contentEncoding: Union([String$1({
-			minLength: 1,
-			maxLength: 100
-		}), Null()]),
-		sizeBytes: Integer({ minimum: 0 }),
-		cid: String$1({
-			minLength: 1,
-			maxLength: 100
-		}),
-		createdByAgentId: Union([String$1({ format: "uuid" }), Null()]),
-		expiresAt: Union([String$1({ format: "date-time" }), Null()]),
-		createdAt: String$1({ format: "date-time" })
-	}, { $id: "TaskArtifact" })),
+	artifacts: _Array_(TaskArtifact),
 	nextCursor: Union([String$1({ minLength: 1 }), Null()])
 }, { $id: "TaskArtifactList" });
 _Object_({
@@ -9537,29 +9593,31 @@ var AssessBriefInput = _Object_({
 	$id: "AssessBriefInput",
 	additionalProperties: false
 });
+/** One score line. */
+var AssessBriefScore = _Object_({
+	criterionId: String$1({ minLength: 1 }),
+	score: Number$1({
+		minimum: 0,
+		maximum: 1
+	}),
+	/** Required for `llm_score`; optional for `boolean`/`deterministic_*`. */
+	rationale: Optional(String$1()),
+	/** Present only for `deterministic_signature_check`. */
+	evidence: Optional(_Object_({
+		commitsVerified: Number$1(),
+		commitsTotal: Number$1(),
+		signatureFailures: _Array_(String$1())
+	}, { additionalProperties: false }))
+}, {
+	$id: "AssessBriefScore",
+	additionalProperties: false
+});
 var AssessBriefOutput = _Object_({
 	/**
 	* Per-criterion scores, same order/length as
 	* `input.successCriteria.rubric.criteria`.
 	*/
-	scores: _Array_(_Object_({
-		criterionId: String$1({ minLength: 1 }),
-		score: Number$1({
-			minimum: 0,
-			maximum: 1
-		}),
-		/** Required for `llm_score`; optional for `boolean`/`deterministic_*`. */
-		rationale: Optional(String$1()),
-		/** Present only for `deterministic_signature_check`. */
-		evidence: Optional(_Object_({
-			commitsVerified: Number$1(),
-			commitsTotal: Number$1(),
-			signatureFailures: _Array_(String$1())
-		}, { additionalProperties: false }))
-	}, {
-		$id: "AssessBriefScore",
-		additionalProperties: false
-	}), { minItems: 1 }),
+	scores: _Array_(AssessBriefScore, { minItems: 1 }),
 	/** Σ(weight_i * score_i). Recomputed by the assessor and checked client-side. */
 	composite: Number$1({
 		minimum: 0,
@@ -10146,16 +10204,17 @@ async function onCreateJudgeEvalAttempt(input, _ctx) {
 //#endregion
 //#region ../../libs/tasks/src/task-types/pr-review.ts
 var PR_REVIEW_TYPE = "pr_review";
+var PrReviewSubject = _Object_({
+	title: String$1({ minLength: 1 }),
+	summary: String$1({ minLength: 1 }),
+	resourceUrls: Optional(_Array_(String$1({ minLength: 1 }))),
+	inspectionHints: Optional(_Array_(String$1({ minLength: 1 })))
+}, {
+	$id: "PrReviewSubject",
+	additionalProperties: false
+});
 var PrReviewInput = _Object_({
-	subject: _Object_({
-		title: String$1({ minLength: 1 }),
-		summary: String$1({ minLength: 1 }),
-		resourceUrls: Optional(_Array_(String$1({ minLength: 1 }))),
-		inspectionHints: Optional(_Array_(String$1({ minLength: 1 })))
-	}, {
-		$id: "PrReviewSubject",
-		additionalProperties: false
-	}),
+	subject: PrReviewSubject,
 	taskPrompt: Optional(String$1({ minLength: 1 })),
 	successCriteria: SuccessCriteria,
 	context: Optional(TaskContext)
@@ -10163,15 +10222,16 @@ var PrReviewInput = _Object_({
 	$id: "PrReviewInput",
 	additionalProperties: false
 });
+var PrReviewScore = _Object_({
+	criterionId: String$1({ minLength: 1 }),
+	score: Union([Literal(0), Literal(1)]),
+	rationale: String$1({ minLength: 1 })
+}, {
+	$id: "PrReviewScore",
+	additionalProperties: false
+});
 var PrReviewOutput = _Object_({
-	scores: _Array_(_Object_({
-		criterionId: String$1({ minLength: 1 }),
-		score: Union([Literal(0), Literal(1)]),
-		rationale: String$1({ minLength: 1 })
-	}, {
-		$id: "PrReviewScore",
-		additionalProperties: false
-	}), { minItems: 1 }),
+	scores: _Array_(PrReviewScore, { minItems: 1 }),
 	composite: Number$1({
 		minimum: 0,
 		maximum: 1
@@ -10305,23 +10365,25 @@ async function validateRenderPackInputAsync(input, ctx) {
 * references: not required (scenario lives entirely in input)
 */
 var RUN_EVAL_TYPE = "run_eval";
+var RunEvalMode = Union([Literal("vitro"), Literal("vivo")], { $id: "RunEvalMode" });
+var RunEvalWorkspace = Union([
+	Literal("none"),
+	Literal("shared_mount"),
+	Literal("dedicated_worktree")
+], { $id: "RunEvalWorkspace" });
 var RunEvalExecution = _Object_({
 	/**
 	* `vitro` = proctored eval in an isolated runner context whose main
 	* comparison target is prompt/context behavior.
 	* `vivo` = live-repo eval against a real checkout/worktree.
 	*/
-	mode: Union([Literal("vitro"), Literal("vivo")], { $id: "RunEvalMode" }),
+	mode: RunEvalMode,
 	/**
 	* Workspace shape selected by the task creator for this variant run.
 	* `none` means the runner should not expose the repository checkout at
 	* all; it receives an empty scratch workspace instead.
 	*/
-	workspace: Union([
-		Literal("none"),
-		Literal("shared_mount"),
-		Literal("dedicated_worktree")
-	], { $id: "RunEvalWorkspace" })
+	workspace: RunEvalWorkspace
 }, {
 	$id: "RunEvalExecution",
 	additionalProperties: false
@@ -10585,7 +10647,7 @@ new Proxy({}, { get(_, prop) {
 } });
 //#endregion
 //#region ../../libs/tasks/src/validation.ts
-var PRODUCER_TASK_TYPES_WITH_SUBMIT_GATE = new Set([
+var PRODUCER_TASK_TYPES_WITH_SUBMIT_GATE = /* @__PURE__ */ new Set([
 	"freeform",
 	"fulfill_brief",
 	"curate_pack",
@@ -10842,7 +10904,7 @@ var DaemonState = _Object_({
 	$id: "DaemonState",
 	additionalProperties: false
 });
-Unsafe(Cyclic({ ClaimCondition: Unsafe(Union([
+var ClaimConditionSchema = Union([
 	_Object_({
 		op: Literal("all"),
 		conditions: _Array_(Ref$1("ClaimCondition"), {
@@ -10869,7 +10931,9 @@ Unsafe(Cyclic({ ClaimCondition: Unsafe(Union([
 		op: Literal("task_accepted"),
 		taskId: Uuid
 	}, { additionalProperties: false })
-], { $id: "ClaimCondition" })) }, "ClaimCondition", { $id: "ClaimCondition" }));
+], { $id: "ClaimCondition" });
+var ClaimConditionDefinition = Unsafe(ClaimConditionSchema);
+Unsafe(Cyclic({ ClaimCondition: ClaimConditionDefinition }, "ClaimCondition", { $id: "ClaimCondition" }));
 /**
 * Reference to another task's output or an external artifact.
 * Embedded in `tasks.references` JSONB array.
@@ -10938,14 +11002,15 @@ var TaskRetryConfidence = Union([
 	Literal("medium"),
 	Literal("high")
 ]);
+var TaskRetrySource = Union([
+	Literal("explicit"),
+	Literal("deterministic"),
+	Literal("attempts_exhausted"),
+	Literal("triage"),
+	Literal("triage_failed")
+]);
 var TaskRetryInfo = _Object_({
-	source: Union([
-		Literal("explicit"),
-		Literal("deterministic"),
-		Literal("attempts_exhausted"),
-		Literal("triage"),
-		Literal("triage_failed")
-	]),
+	source: TaskRetrySource,
 	decision: Optional(TaskRetryDecision),
 	confidence: Optional(TaskRetryConfidence),
 	reason: Optional(String$1())
@@ -11143,7 +11208,7 @@ var TaskResultError = class extends Error {
 * time. Mirrors `PRODUCER_TASK_TYPES_WITH_SUBMIT_GATE` in
 * `@moltnet/tasks`'s `normalizeTaskInputForCreate`.
 */
-var PRODUCER_TASK_TYPES = new Set([
+var PRODUCER_TASK_TYPES = /* @__PURE__ */ new Set([
 	"freeform",
 	"fulfill_brief",
 	"curate_pack",
@@ -11419,20 +11484,21 @@ var TaskBuilder = class {
 			field: "references/artifactSource",
 			message: "top-level artifact CID is ambiguous; use metadata returned by tasks.artifacts.stage()"
 		}]);
-		else if ("artifact" in source && source.artifact?.cid) if (source.taskId === null && source.artifact.attemptN === void 0) ref = {
-			taskId: null,
-			role,
-			artifact: { ...source.artifact }
-		};
-		else if (typeof source.artifact.attemptN !== "number" || !Number.isInteger(source.artifact.attemptN) || source.artifact.attemptN < 1) throw new TaskBuildError([{
-			field: "references/artifact/attemptN",
-			message: "artifact reference is missing required attemptN"
-		}]);
-		else ref = {
-			...source,
-			role
-		};
-		else {
+		else if ("artifact" in source && source.artifact?.cid) {
+			if (source.taskId === null && source.artifact.attemptN === void 0) ref = {
+				taskId: null,
+				role,
+				artifact: { ...source.artifact }
+			};
+			else if (typeof source.artifact.attemptN !== "number" || !Number.isInteger(source.artifact.attemptN) || source.artifact.attemptN < 1) throw new TaskBuildError([{
+				field: "references/artifact/attemptN",
+				message: "artifact reference is missing required attemptN"
+			}]);
+			else ref = {
+				...source,
+				role
+			};
+		} else {
 			const s = source;
 			const errors = [];
 			const inputArtifact = s.taskId === null && s.attemptN === void 0;
@@ -13243,7 +13309,7 @@ encodeUintValue.encodedSize = function encodedSize(uint) {
 * @returns {number}
 */
 encodeUint.compareTokens = function compareTokens(tok1, tok2) {
-	return tok1.value < tok2.value ? -1 : tok1.value > tok2.value ? 1 : 	/* c8 ignore next */ 0;
+	return tok1.value < tok2.value ? -1 : tok1.value > tok2.value ? 1 : /* c8 ignore next */ 0;
 };
 //#endregion
 //#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/1negint.js
@@ -13328,7 +13394,7 @@ encodeNegint.encodedSize = function encodedSize(token) {
 * @returns {number}
 */
 encodeNegint.compareTokens = function compareTokens(tok1, tok2) {
-	return tok1.value < tok2.value ? 1 : tok1.value > tok2.value ? -1 : 	/* c8 ignore next */ 0;
+	return tok1.value < tok2.value ? 1 : tok1.value > tok2.value ? -1 : /* c8 ignore next */ 0;
 };
 //#endregion
 //#region ../../node_modules/.pnpm/cborg@4.5.8/node_modules/cborg/lib/2bytes.js
@@ -14109,7 +14175,7 @@ jump[255] = decodeBreak;
 var quick = [];
 for (let i = 0; i < 24; i++) quick[i] = new Token(Type.uint, i, 1);
 for (let i = -1; i >= -24; i--) quick[31 - i] = new Token(Type.negint, i, 1);
-quick[64] = new Token(Type.bytes, new Uint8Array(0), 1);
+quick[64] = new Token(Type.bytes, /* @__PURE__ */ new Uint8Array(0), 1);
 quick[96] = new Token(Type.string, "", 1);
 quick[128] = new Token(Type.array, 0, 1);
 quick[160] = new Token(Type.map, 0, 1);
@@ -15204,7 +15270,8 @@ function resolveFileSecretPath(root, key) {
 	const normalizedRoot = resolve(root);
 	const segments = key.split("/");
 	if (segments.length === 3 && segments[0] === "agent-key") segments[0] = "agent-key-teams";
-	const target = resolve(normalizedRoot, segments.map((segment) => basename(segment)).join(sep));
+	const safeKey = segments.map((segment) => basename(segment)).join(sep);
+	const target = resolve(normalizedRoot, safeKey);
 	assertStrictlyInsideRoot(normalizedRoot, target, key);
 	return target;
 }
@@ -15299,7 +15366,7 @@ var OSKeyringSecretProvider = class {
 	provider() {
 		this.providerPromise ??= Promise.resolve().then(() => {
 			const service = storeSecretService(this.storeOptions);
-			return import("./assets/src-BIfocAqU.js").then(({ OSKeyringSecretProvider: Provider }) => new Provider(this.platform, void 0, service)).catch((error) => {
+			return import("./assets/src-MWo9KHoI.js").then(({ OSKeyringSecretProvider: Provider }) => new Provider(this.platform, void 0, service)).catch((error) => {
 				throw new Error("OS keyring support requires @themoltnet/os-keyring; install it in this Node application", { cause: error });
 			});
 		});
@@ -16175,8 +16242,10 @@ var require_utils$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 				if (buf.length === val.byteLength) return buf;
 				return buf.slice(val.byteOffset, val.byteOffset + val.byteLength);
 			}
-			if (isDate(val)) if (defaults.parseInputDatesAsUTC) return dateToStringUTC(val);
-			else return dateToString(val);
+			if (isDate(val)) {
+				if (defaults.parseInputDatesAsUTC) return dateToStringUTC(val);
+				else return dateToString(val);
+			}
 			if (Array.isArray(val)) return arrayString(val);
 			return prepareObject(val, seen);
 		}
@@ -16216,8 +16285,10 @@ var require_utils$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	}
 	function normalizeQueryConfig(config, values, callback) {
 		config = typeof config === "string" ? { text: config } : config;
-		if (values) if (typeof values === "function") config.callback = values;
-		else config.values = values;
+		if (values) {
+			if (typeof values === "function") config.callback = values;
+			else config.values = values;
+		}
 		if (callback) config.callback = callback;
 		return config;
 	}
@@ -16682,8 +16753,6 @@ var require_pg_connection_string = /* @__PURE__ */ __commonJSMin(((exports, modu
 			case "verify-ca":
 				if (!config.ssl.ca) throw new Error("SECURITY WARNING: Using sslmode=verify-ca requires specifying a CA with sslrootcert. If a public CA is used, verify-ca allows connections to a server that somebody else may have registered with the CA, making you vulnerable to Man-in-the-Middle attacks. Either specify a custom CA certificate with sslrootcert parameter or use sslmode=verify-full for proper security.");
 				config.ssl.checkServerIdentity = function() {};
-				break;
-			case "verify-full": break;
 		}
 		else switch (config.sslmode) {
 			case "disable":
@@ -16695,9 +16764,7 @@ var require_pg_connection_string = /* @__PURE__ */ __commonJSMin(((exports, modu
 			case "verify-full":
 				if (config.sslmode !== "verify-full") deprecatedSslModeWarning(config.sslmode);
 				break;
-			case "no-verify":
-				config.ssl.rejectUnauthorized = false;
-				break;
+			case "no-verify": config.ssl.rejectUnauthorized = false;
 		}
 		return config;
 	}
@@ -16713,13 +16780,15 @@ var require_pg_connection_string = /* @__PURE__ */ __commonJSMin(((exports, modu
 				const sslConfig = value;
 				if (typeof sslConfig === "boolean") c[key] = sslConfig;
 				if (typeof sslConfig === "object") c[key] = toConnectionOptions(sslConfig);
-			} else if (value !== void 0 && value !== null) if (key === "port") {
-				if (value !== "") {
-					const v = parseInt(value, 10);
-					if (isNaN(v)) throw new Error(`Invalid ${key}: ${value}`);
-					c[key] = v;
-				}
-			} else c[key] = value;
+			} else if (value !== void 0 && value !== null) {
+				if (key === "port") {
+					if (value !== "") {
+						const v = parseInt(value, 10);
+						if (isNaN(v)) throw new Error(`Invalid ${key}: ${value}`);
+						c[key] = v;
+					}
+				} else c[key] = value;
+			}
 			return c;
 		}, {});
 	}
@@ -18147,8 +18216,17 @@ var require_split2 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#endregion
 //#region ../../node_modules/.pnpm/pgpass@1.0.5/node_modules/pgpass/lib/helper.js
 var require_helper = /* @__PURE__ */ __commonJSMin(((exports, module) => {
-	var path = __require("path"), Stream = __require("stream").Stream, split = require_split2(), util$2 = __require("util"), defaultPort = 5432, isWin = process.platform === "win32", warnStream = process.stderr;
-	var S_IRWXG = 56, S_IRWXO = 7, S_IFMT = 61440, S_IFREG = 32768;
+	var path = __require("path");
+	var Stream = __require("stream").Stream;
+	var split = require_split2();
+	var util$2 = __require("util");
+	var defaultPort = 5432;
+	var isWin = process.platform === "win32";
+	var warnStream = process.stderr;
+	var S_IRWXG = 56;
+	var S_IRWXO = 7;
+	var S_IFMT = 61440;
+	var S_IFREG = 32768;
 	function isRegFile(mode) {
 		return (mode & S_IFMT) == S_IFREG;
 	}
@@ -18289,7 +18367,8 @@ var require_helper = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#region ../../node_modules/.pnpm/pgpass@1.0.5/node_modules/pgpass/lib/index.js
 var require_lib$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 	__require("path");
-	var fs = __require("fs"), helper = require_helper();
+	var fs = __require("fs");
+	var helper = require_helper();
 	module.exports = function(connInfo, cb) {
 		var file = helper.getFileName();
 		fs.stat(file, function(err, stat) {
@@ -18419,9 +18498,10 @@ var require_client$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 				this._errorAllQueries(error);
 				this._ended = true;
 				if (!this._ending) {
-					if (this._connecting && !this._connectionError) if (this._connectionCallback) this._connectionCallback(error);
-					else this._handleErrorEvent(error);
-					else if (!this._connectionError) this._handleErrorEvent(error);
+					if (this._connecting && !this._connectionError) {
+						if (this._connectionCallback) this._connectionCallback(error);
+						else this._handleErrorEvent(error);
+					} else if (!this._connectionError) this._handleErrorEvent(error);
 				}
 				process.nextTick(() => {
 					this.emit("end");
@@ -18772,8 +18852,10 @@ var require_client$1 = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 		}
 		end(cb) {
 			this._ending = true;
-			if (!this.connection._connecting || this._ended) if (cb) cb();
-			else return this._Promise.resolve();
+			if (!this.connection._connecting || this._ended) {
+				if (cb) cb();
+				else return this._Promise.resolve();
+			}
 			if (this._getActiveQuery() || !this._queryable) this.connection.stream.destroy();
 			else this.connection.end();
 			if (cb) this.connection.once("end", cb);
@@ -18995,15 +19077,16 @@ var require_pg_pool = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 			this.emit("acquire", client);
 			client.release = this._releaseOnce(client, idleListener);
 			client.removeListener("error", idleListener);
-			if (!pendingItem.timedOut) if (isNew && this.options.verify) this.options.verify(client, (err) => {
-				if (err) {
-					client.release(err);
-					return pendingItem.callback(err, void 0, NOOP);
-				}
-				pendingItem.callback(void 0, client, client.release);
-			});
-			else pendingItem.callback(void 0, client, client.release);
-			else if (isNew && this.options.verify) this.options.verify(client, client.release);
+			if (!pendingItem.timedOut) {
+				if (isNew && this.options.verify) this.options.verify(client, (err) => {
+					if (err) {
+						client.release(err);
+						return pendingItem.callback(err, void 0, NOOP);
+					}
+					pendingItem.callback(void 0, client, client.release);
+				});
+				else pendingItem.callback(void 0, client, client.release);
+			} else if (isNew && this.options.verify) this.options.verify(client, client.release);
 			else client.release();
 		}
 		_releaseOnce(client, idleListener) {
@@ -19189,14 +19272,16 @@ var require_query = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 				self.emit("_done");
 			});
 			if (err) return self.handleError(err);
-			if (self._emitRowEvents) if (results.length > 1) rows.forEach((rowOfRows, i) => {
-				rowOfRows.forEach((row) => {
-					self.emit("row", row, results[i]);
+			if (self._emitRowEvents) {
+				if (results.length > 1) rows.forEach((rowOfRows, i) => {
+					rowOfRows.forEach((row) => {
+						self.emit("row", row, results[i]);
+					});
 				});
-			});
-			else rows.forEach(function(row) {
-				self.emit("row", row, results);
-			});
+				else rows.forEach(function(row) {
+					self.emit("row", row, results);
+				});
+			}
 			self.state = "end";
 			self.emit("end", results);
 			if (self.callback) self.callback(null, results);
@@ -19715,6 +19800,79 @@ function createSdkTaskClient(agent) {
 		}
 	};
 }
+/**
+* Initial budgets sized for ~24k input tokens per stage (≈4 bytes/token):
+* extraction gets the diff; coverage gets docs diff plus six excerpts. The
+* docs reserve has no fixed default: it follows `diffTotalBytes`.
+*/
+var DEFAULT_BUDGETS = Object.freeze({
+	diffTotalBytes: 64e3,
+	diffPerFileBytes: 12e3,
+	docsDiffBytes: 16e3,
+	docExcerptBytes: 8e3,
+	maxDocs: 6,
+	manifestLines: 150,
+	maxDocsHunks: 12,
+	docsHunkBytes: 1500,
+	stageRunningTimeoutSec: 120
+});
+/**
+* Accepted range per configurable budget. Upper bounds keep a stage within
+* a model's context and the review job's timeout: two chained stages of at
+* most 300 s dispatch plus 180 s running take 16 minutes, leaving
+* `REVIEW_JOB_MARGIN_SEC` of the reusable workflow's 20-minute job (a test
+* holds the two together).
+*/
+var BUDGET_LIMITS = Object.freeze({
+	diffTotalBytes: {
+		minimum: 8e3,
+		maximum: 256e3
+	},
+	diffPerFileBytes: {
+		minimum: 1e3,
+		maximum: 64e3
+	},
+	diffDocsReserveBytes: {
+		minimum: 0,
+		maximum: 128e3
+	},
+	docsDiffBytes: {
+		minimum: 1e3,
+		maximum: 64e3
+	},
+	docExcerptBytes: {
+		minimum: 1e3,
+		maximum: 32e3
+	},
+	maxDocs: {
+		minimum: 1,
+		maximum: 20
+	},
+	maxDocsHunks: {
+		minimum: 1,
+		maximum: 50
+	},
+	stageRunningTimeoutSec: {
+		minimum: 30,
+		maximum: 180
+	}
+});
+/**
+* Defaults overlaid with the budgets a repository configured. A key set to
+* `undefined` keeps its default rather than erasing it. Without a configured
+* docs reserve, a quarter of the diff is reserved for changed docs.
+*/
+function resolveBudgets(configured = {}) {
+	const set = Object.fromEntries(Object.entries(configured).filter(([, value]) => value !== void 0));
+	const merged = {
+		...DEFAULT_BUDGETS,
+		...set
+	};
+	return {
+		...merged,
+		diffDocsReserveBytes: set.diffDocsReserveBytes ?? Math.floor(merged.diffTotalBytes * .25)
+	};
+}
 //#endregion
 //#region ../../libs/docs-impact-review/src/glob.ts
 /**
@@ -19750,6 +19908,28 @@ function matchesAny(path, globs) {
 	return globs.some((glob) => matchesGlob(path, glob));
 }
 //#endregion
+//#region ../../libs/docs-impact-review/src/docs-paths.ts
+/** Markdown is always documentation, whatever the case of its extension. */
+var MARKDOWN = /\.mdx?$/i;
+/**
+* Git pathspecs for the built-in Markdown formats, matching `MARKDOWN`:
+* `top` searches the whole tree whatever the working directory, and `icase`
+* matches `GUIDE.MD` as the regular expression does.
+*/
+var MARKDOWN_PATHSPECS = Object.freeze([":(top,icase)*.md", ":(top,icase)*.mdx"]);
+/**
+* A documentation format: Markdown, or a path `include` globs from the
+* repository configuration add (reStructuredText, AsciiDoc, …). Says nothing
+* about exclusion; see `isReviewableDocsPath`.
+*/
+function isDocsPath(path, include) {
+	return MARKDOWN.test(path) || matchesAny(path, include);
+}
+/** Documentation the review may read, search, select, or point a finding at. */
+function isReviewableDocsPath(path, docs) {
+	return isDocsPath(path, docs.include) && !matchesAny(path, docs.exclude);
+}
+//#endregion
 //#region ../../libs/docs-impact-review/src/text.ts
 /** Cuts `text` to at most `maxBytes` UTF-8 bytes at a line boundary. */
 function truncateAtLine(text, maxBytes) {
@@ -19765,7 +19945,7 @@ function truncateAtLine(text, maxBytes) {
 //#endregion
 //#region ../../libs/docs-impact-review/src/ingest.ts
 /** Machine-produced files that never count as documentation or contract. */
-var GENERATED_BASENAMES = new Set([
+var GENERATED_BASENAMES = /* @__PURE__ */ new Set([
 	"CHANGELOG.md",
 	"pnpm-lock.yaml",
 	"package-lock.json",
@@ -19786,15 +19966,15 @@ var GENERATED_PATTERNS = [
 	/\.gen\.[a-z]+$/,
 	/_gen\.go$/
 ];
-var DOCS_PATTERN = /\.mdx?$/i;
 function basename$1(path) {
 	return path.slice(path.lastIndexOf("/") + 1);
 }
-function categorize(path, binary, baseGenerated, docsExclude) {
+function categorize(path, binary, baseGenerated, docs) {
 	if (binary) return "binary";
-	if (baseGenerated.has(path) || DOCS_PATTERN.test(path) && matchesAny(path, docsExclude) || GENERATED_BASENAMES.has(basename$1(path)) || GENERATED_PATTERNS.some((pattern) => pattern.test(path))) return "generated";
+	const docsPath = isDocsPath(path, docs.include);
+	if (baseGenerated.has(path) || docsPath && matchesAny(path, docs.exclude) || GENERATED_BASENAMES.has(basename$1(path)) || GENERATED_PATTERNS.some((pattern) => pattern.test(path))) return "generated";
 	if (TEST_PATTERNS.some((pattern) => pattern.test(path))) return "test";
-	if (DOCS_PATTERN.test(path)) return "docs";
+	if (docsPath) return "docs";
 	return "source";
 }
 function toStatus(code) {
@@ -19858,26 +20038,27 @@ function parseNameStatus(output) {
 */
 function generatedFromBaseAttributes(git, baseRevision, paths) {
 	if (paths.length === 0) return /* @__PURE__ */ new Set();
+	const up = git(["rev-parse", "--show-cdup"]).trim();
 	const fields = git([
 		"check-attr",
 		"-z",
 		`--source=${baseRevision}`,
 		"--stdin",
 		"linguist-generated"
-	], `${paths.join("\0")}\0`).split("\0");
+	], `${paths.map((path) => `${up}${path}`).join("\0")}\0`).split("\0");
 	if (fields.at(-1) === "") fields.pop();
 	const generated = /* @__PURE__ */ new Set();
 	for (let index = 0; index + 2 < fields.length; index += 3) {
 		const value = fields[index + 2];
-		if (value === "set" || value === "true") generated.add(fields[index]);
+		if (value === "set" || value === "true") generated.add(fields[index].slice(up.length));
 	}
 	return generated;
 }
 /**
-* `docsExclude` globs mark Markdown the repository does not want reviewed
+* `docs.exclude` marks documentation the repository does not want reviewed
 * (vendored or generated pages); it is categorized as generated.
 */
-function collectChangeSet(git, baseRevision, headRevision, docsExclude) {
+function collectChangeSet(git, baseRevision, headRevision, docs) {
 	requireFullOid(baseRevision, "base revision");
 	requireFullOid(headRevision, "head revision");
 	const range = `${baseRevision}...${headRevision}`;
@@ -19907,7 +20088,7 @@ function collectChangeSet(git, baseRevision, headRevision, docsExclude) {
 			status: statuses.get(record.path) ?? "modified",
 			additions: record.additions,
 			deletions: record.deletions,
-			category: categorize(record.path, record.binary, baseGenerated, docsExclude)
+			category: categorize(record.path, record.binary, baseGenerated, docs)
 		}))
 	};
 }
@@ -19915,50 +20096,82 @@ function collectChangeSet(git, baseRevision, headRevision, docsExclude) {
 * Builds the model-facing diff from source and docs files only. Every file
 * that does not fit is reported, so callers can emit `incomplete` instead of
 * silently reviewing a subset.
+*
+* Packing order, each step skipping what does not fit:
+* 1. changed docs, within `docsReserveBytes`, so a large source change
+*    cannot push the pull request's own docs out;
+* 2. source, `prioritySources` first;
+* 3. the remaining docs, in whatever budget is left.
+*
+* The text lists source before docs, each in packing order.
 */
 function boundDiff(git, changeSet, budget) {
 	const range = `${changeSet.baseRevision}...${changeSet.headRevision}`;
-	const eligible = changeSet.files.filter((file) => file.category === "source" || file.category === "docs").sort((a, b) => Number(a.category === "docs") - Number(b.category === "docs") || a.path.localeCompare(b.path));
-	const blocks = [];
-	const result = {
-		blocks,
-		text: "",
-		bytes: 0,
-		includedPaths: [],
-		truncatedPaths: [],
-		omittedPaths: []
-	};
-	for (const file of eligible) {
+	const toCandidate = (file) => {
 		let hunks = "";
 		let header;
 		if (file.status === "deleted") header = `### ${file.path} (deleted, -${file.deletions} lines)\n`;
 		else {
+			const paths = file.previousPath ? [file.previousPath, file.path] : [file.path];
 			const patch = git([
 				"diff",
 				"--no-color",
 				"-M",
 				range,
 				"--",
-				...file.previousPath ? [file.previousPath, file.path] : [file.path]
+				...paths.map((path) => `:(top,literal)${path}`)
 			]);
 			hunks = patch.slice(Math.max(0, patch.indexOf("@@")));
 			header = `### ${file.path} (${file.status}${file.previousPath ? ` from ${file.previousPath}` : ""})\n`;
 		}
-		const body = truncateAtLine(hunks, budget.perFileBytes);
+		const room = Math.max(0, Math.min(budget.perFileBytes, budget.totalBytes) - Buffer.byteLength(header, "utf8") - 1);
+		const body = truncateAtLine(hunks, room);
 		const block = `${header}${body}\n`;
-		const blockBytes = Buffer.byteLength(block, "utf8");
-		if (result.bytes + blockBytes > budget.totalBytes) {
+		return {
+			file,
+			block,
+			bytes: Buffer.byteLength(block, "utf8"),
+			truncated: body !== hunks
+		};
+	};
+	const byPath = (a, b) => a.path.localeCompare(b.path);
+	const priority = (file) => matchesAny(file.path, budget.prioritySources) ? 0 : 1;
+	const docs = changeSet.files.filter((file) => file.category === "docs").sort(byPath).map(toCandidate);
+	const source = changeSet.files.filter((file) => file.category === "source").sort((a, b) => priority(a) - priority(b) || byPath(a, b)).map(toCandidate);
+	const taken = /* @__PURE__ */ new Set();
+	let used = 0;
+	const pack = (candidates, limit) => {
+		for (const candidate of candidates) {
+			if (taken.has(candidate) || used + candidate.bytes > limit) continue;
+			taken.add(candidate);
+			used += candidate.bytes;
+		}
+	};
+	pack(docs, budget.docsReserveBytes);
+	pack(source, budget.totalBytes);
+	pack(docs, budget.totalBytes);
+	const blocks = [];
+	const result = {
+		blocks,
+		text: "",
+		bytes: used,
+		includedPaths: [],
+		truncatedPaths: [],
+		omittedPaths: []
+	};
+	for (const candidate of [...source, ...docs]) {
+		const { file } = candidate;
+		if (!taken.has(candidate)) {
 			result.omittedPaths.push(file.path);
 			continue;
 		}
 		blocks.push({
 			path: file.path,
 			category: file.category,
-			text: block
+			text: candidate.block
 		});
-		result.bytes += blockBytes;
 		result.includedPaths.push(file.path);
-		if (body !== hunks) result.truncatedPaths.push(file.path);
+		if (candidate.truncated) result.truncatedPaths.push(file.path);
 	}
 	result.text = blocks.map((entry) => entry.text).join("");
 	return result;
@@ -20010,45 +20223,97 @@ function routeDocs(files, map, readmeExists) {
 }
 var MIN_TERM_LENGTH = 3;
 var MAX_TERM_LENGTH = 80;
+/** Literal paths per `git grep`, far below any argument-length limit. */
+var PATHSPEC_CHUNK = 500;
 /**
-* One exact, fixed-string search over Markdown at the head revision. Model
-* proposed terms are data: they are passed to `git grep -F` as patterns and
-* never interpreted as regular expressions or shell.
+* Included documentation files searched at most. The head tree is the pull
+* request's, so without a cap a PR adding thousands of matching files would
+* turn search into thousands of `git grep` calls instead of a coverage gap.
 */
-function searchDocsForTerms(git, headRevision, terms, exclude) {
+var MAX_SEARCHED_INCLUDED_DOCS = 2e3;
+function literalChunks(paths) {
+	const chunks = [];
+	for (let start = 0; start < paths.length; start += PATHSPEC_CHUNK) chunks.push(paths.slice(start, start + PATHSPEC_CHUNK).map((path) => `:(top,literal)${path}`));
+	return chunks;
+}
+/**
+* Pathspec groups to search. Markdown alone is two git globs. Repository
+* `include` globs use minimatch syntax (braces, dot rules) that git
+* pathspecs do not share, so the documentation files are listed once and
+* passed as literal paths instead, up to `MAX_SEARCHED_INCLUDED_DOCS`.
+*/
+function docsPathspecs(git, headRevision, docs, maxIncluded) {
+	if (docs.include.length === 0) return {
+		groups: [[...MARKDOWN_PATHSPECS]],
+		unsearched: 0
+	};
+	const paths = git([
+		"ls-tree",
+		"-r",
+		"-z",
+		"--full-tree",
+		"--name-only",
+		headRevision
+	]).split("\0").filter((path) => path !== "" && isReviewableDocsPath(path, docs));
+	return {
+		groups: literalChunks(paths.slice(0, maxIncluded)),
+		unsearched: Math.max(0, paths.length - maxIncluded)
+	};
+}
+/** Files at `headRevision` holding any of `terms`, root-relative. */
+function grepFiles(git, headRevision, terms, pathspecs) {
+	let output;
+	try {
+		output = git([
+			"grep",
+			"-I",
+			"-F",
+			"-l",
+			"--full-name",
+			...terms.flatMap((term) => ["-e", term]),
+			headRevision,
+			"--",
+			...pathspecs
+		]);
+	} catch (error) {
+		if (error.status === 1) return [];
+		throw error;
+	}
+	const prefix = `${headRevision}:`;
+	return output.split("\n").filter((line) => line.startsWith(prefix)).map((line) => line.slice(prefix.length));
+}
+/**
+* Exact, fixed-string search over documentation at the head revision.
+* Model proposed terms are data: they are passed to `git grep -F` as
+* patterns and never interpreted as regular expressions or shell.
+*
+* One search for all terms finds the candidate files; each term is then
+* searched in those candidates only, so per-term file counts (used to drop
+* generic terms) are exact without one full-tree search per term.
+*/
+function searchDocsForTerms(git, headRevision, terms, docs, maxIncluded = MAX_SEARCHED_INCLUDED_DOCS) {
 	const usable = [...new Set(terms.map((term) => term.trim()).filter((term) => term.length >= MIN_TERM_LENGTH && term.length <= MAX_TERM_LENGTH && !/[\r\n]/.test(term)))];
 	const hits = /* @__PURE__ */ new Map();
-	if (usable.length === 0) return hits;
-	const prefix = `${headRevision}:`;
-	for (const term of usable) {
-		let output;
-		try {
-			output = git([
-				"grep",
-				"-I",
-				"-F",
-				"-l",
-				"-e",
-				term,
-				headRevision,
-				"--",
-				"*.md",
-				"*.mdx"
-			]);
-		} catch (error) {
-			if (error.status === 1) continue;
-			throw error;
-		}
-		for (const line of output.split("\n")) {
-			if (!line.startsWith(prefix)) continue;
-			const path = line.slice(prefix.length);
-			if (matchesAny(path, exclude)) continue;
-			const terms = hits.get(path) ?? [];
-			if (!terms.includes(term)) terms.push(term);
-			hits.set(path, terms);
-		}
+	if (usable.length === 0) return {
+		hits,
+		unsearched: 0
+	};
+	const { groups, unsearched } = docsPathspecs(git, headRevision, docs, maxIncluded);
+	const candidates = [...new Set(groups.flatMap((pathspecs) => grepFiles(git, headRevision, usable, pathspecs)))].filter((path) => isReviewableDocsPath(path, docs)).sort();
+	if (candidates.length === 0) return {
+		hits,
+		unsearched
+	};
+	const candidateChunks = literalChunks(candidates);
+	for (const term of usable) for (const pathspecs of candidateChunks) for (const path of grepFiles(git, headRevision, [term], pathspecs)) {
+		const found = hits.get(path) ?? [];
+		if (!found.includes(term)) found.push(term);
+		hits.set(path, found);
 	}
-	return hits;
+	return {
+		hits,
+		unsearched
+	};
 }
 /**
 * Drops search terms that match too many files (e.g. `--help`): they flood
@@ -20121,6 +20386,17 @@ var MAX_INSTRUCTIONS_LENGTH = 2e3;
 /** Schema errors reported at once, so one pass fixes several keys. */
 var MAX_REPORTED_ERRORS = 5;
 var GlobList = _Array_(String$1({ minLength: 1 }));
+var budget = (key) => Optional(Integer(BUDGET_LIMITS[key]));
+var BudgetsSchema = _Object_({
+	diffTotalBytes: budget("diffTotalBytes"),
+	diffPerFileBytes: budget("diffPerFileBytes"),
+	diffDocsReserveBytes: budget("diffDocsReserveBytes"),
+	docsDiffBytes: budget("docsDiffBytes"),
+	docExcerptBytes: budget("docExcerptBytes"),
+	maxDocs: budget("maxDocs"),
+	maxDocsHunks: budget("maxDocsHunks"),
+	stageRunningTimeoutSec: budget("stageRunningTimeoutSec")
+}, { additionalProperties: false });
 /** JSON schema of `.github/docs-impact-review.json`, for editors and tools. */
 var ReviewConfigSchema = _Object_({
 	version: Literal(1),
@@ -20128,7 +20404,13 @@ var ReviewConfigSchema = _Object_({
 	routing: Optional(_Array_(RoutingRule)),
 	docs: Optional(_Object_({
 		/**
-		* Markdown never reviewed, searched, or selected. Added to the
+		* Files reviewed as documentation besides Markdown (`*.md`,
+		* `*.mdx`), e.g. `docs/**\/*.rst`. Added to the built-in
+		* patterns; `[]` adds nothing.
+		*/
+		include: Optional(GlobList),
+		/**
+		* Documentation never reviewed, searched, or selected. Added to the
 		* built-in exclusions; `[]` adds nothing.
 		*/
 		exclude: Optional(GlobList),
@@ -20139,6 +20421,11 @@ var ReviewConfigSchema = _Object_({
 		*/
 		agentFacing: Optional(GlobList)
 	}, { additionalProperties: false })),
+	/**
+	* Input and runtime limits; each key overrides one default. Read from
+	* the base revision like the rest, so a pull request cannot raise them.
+	*/
+	budgets: Optional(BudgetsSchema),
 	/** Repository-specific guidance added to every stage brief. */
 	instructions: Optional(String$1({
 		minLength: 1,
@@ -20159,8 +20446,10 @@ var DEFAULT_AGENT_FACING = Object.freeze([
 ]);
 var DEFAULT_REVIEW_CONFIG = Object.freeze({
 	routing: Object.freeze({ rules: [] }),
+	docsInclude: Object.freeze([]),
 	docsExclude: DEFAULT_DOCS_EXCLUDE,
-	agentFacing: DEFAULT_AGENT_FACING
+	agentFacing: DEFAULT_AGENT_FACING,
+	budgets: Object.freeze({})
 });
 /** An invalid or unreadable configuration; the message names what to fix. */
 var ReviewConfigError = class extends Error {
@@ -20210,6 +20499,7 @@ function describeContradictions(config) {
 	const problems = [];
 	const globs = [
 		...config.routing.rules.flatMap((rule) => rule.paths.map((glob) => [`routing ${rule.id} paths`, glob])),
+		...config.docsInclude.map((glob) => ["docs.include", glob]),
 		...config.docsExclude.map((glob) => ["docs.exclude", glob]),
 		...config.agentFacing.map((glob) => ["docs.agentFacing", glob])
 	];
@@ -20226,6 +20516,8 @@ function describeContradictions(config) {
 			if (matchesAny(doc, config.docsExclude)) problems.push(`routing ${rule.id} names ${doc}, which docs.exclude excludes`);
 		}
 	}
+	const budgets = resolveBudgets(config.budgets);
+	for (const key of ["diffPerFileBytes", "diffDocsReserveBytes"]) if (config.budgets[key] !== void 0 && budgets[key] > budgets.diffTotalBytes) problems.push(`budgets.${key} (${budgets[key]}) exceeds budgets.diffTotalBytes (${budgets.diffTotalBytes})`);
 	return problems;
 }
 /** `location` names the file in errors, e.g. `<path>@<revision>`. */
@@ -20233,9 +20525,11 @@ function parseReviewConfig(value, location = REVIEW_CONFIG_PATH) {
 	if (!Check(ReviewConfigSchema, value)) throw new ReviewConfigError(`invalid ${location}: ${describeErrors(value)}. Keys this reviewer does not know may need a newer docs impact review version.`);
 	const config = {
 		routing: { rules: value.routing ?? [] },
+		docsInclude: unique(value.docs?.include ?? []),
 		docsExclude: unique([...DEFAULT_DOCS_EXCLUDE, ...value.docs?.exclude ?? []]),
 		agentFacing: unique([...DEFAULT_AGENT_FACING, ...value.docs?.agentFacing ?? []]),
-		...value.instructions ? { instructions: value.instructions.trim() } : {}
+		...value.instructions ? { instructions: value.instructions.trim() } : {},
+		budgets: value.budgets ?? {}
 	};
 	const contradictions = describeContradictions(config);
 	if (contradictions.length > 0) throw new ReviewConfigError(`invalid ${location}: ${contradictions.join("; ")}`);
@@ -20531,6 +20825,11 @@ var TEXT_LIMITS = {
 	searchTerm: 80
 };
 var TASK_EXPIRES_IN_SEC = 3600;
+/**
+* Default runtime budget per stage, enforced server-side by the running
+* timeout; `StageContext.runningTimeoutSec` overrides it.
+*/
+var STAGE_RUNNING_TIMEOUT_SEC = DEFAULT_BUDGETS.stageRunningTimeoutSec;
 var EvidenceSchema = _Object_({
 	path: String$1({ minLength: 1 }),
 	detail: String$1({
@@ -20649,7 +20948,10 @@ function parseCoverageCheck(output, allowed, repairs = []) {
 		const docsChange = finding.changeId.startsWith("docs:") ? finding.changeId.slice(5) : void 0;
 		if (docsChange ? !allowed.changedDocs.has(docsChange) : !allowed.changeIds.has(finding.changeId)) throw new Error(`finding references unknown change ${finding.changeId}`);
 		if (!allowed.changedPaths.has(finding.evidence.path)) throw new Error(`finding evidence ${finding.evidence.path} is not a changed file`);
-		if (!allowed.selectedDocs.has(finding.docsPath) && !/\.mdx?$/i.test(finding.docsPath)) throw new Error(`finding docsPath ${finding.docsPath} is neither a selected doc nor a markdown location`);
+		if (!allowed.selectedDocs.has(finding.docsPath) && !isReviewableDocsPath(finding.docsPath, allowed.docs ?? {
+			include: [],
+			exclude: []
+		})) throw new Error(`finding docsPath ${finding.docsPath} is neither a selected doc nor a documentation location`);
 	}
 	return parsed;
 }
@@ -20682,7 +20984,7 @@ function baseTask(ctx, stage, title) {
 		diaryId: ctx.diaryId,
 		correlationId: ctx.correlationId,
 		expiresInSec: TASK_EXPIRES_IN_SEC,
-		runningTimeoutSec: 120,
+		runningTimeoutSec: ctx.runningTimeoutSec ?? STAGE_RUNNING_TIMEOUT_SEC,
 		dispatchTimeoutSec: 300,
 		maxAttempts: 1,
 		allowedProfiles: [{ profileId: ctx.stageProfileIds?.[stage] ?? ctx.profileId }],
@@ -20899,20 +21201,6 @@ function stageTiming(args) {
 //#endregion
 //#region ../../libs/docs-impact-review/src/workflow.ts
 /**
-* Initial budgets sized for ~24k input tokens per stage (≈4 bytes/token):
-* extraction gets the diff; coverage gets docs diff plus six excerpts.
-*/
-var DEFAULT_BUDGETS = {
-	diffTotalBytes: 64e3,
-	diffPerFileBytes: 12e3,
-	docsDiffBytes: 16e3,
-	docExcerptBytes: 8e3,
-	maxDocs: 6,
-	manifestLines: 150,
-	maxDocsHunks: 12,
-	docsHunkBytes: 1500
-};
-/**
 * Inline context whose `sleepFor` really sleeps. The orchestrator's
 * `inlineContext` treats sleeps as no-ops, which would turn task polling
 * into a busy loop outside Absurd.
@@ -20930,7 +21218,7 @@ function createSleepingContext() {
 * included only because production maps Keto 429s to a false 403 until the
 * 503 fix in libs/auth ships; drop it once deployed.
 */
-var RETRYABLE_READ_STATUSES = new Set([
+var RETRYABLE_READ_STATUSES = /* @__PURE__ */ new Set([
 	403,
 	429,
 	502,
@@ -20968,11 +21256,14 @@ function withReadRetries(tasks, ctx, backoffSec, logger) {
 * infrastructure failure: the review reports `incomplete` with the stage as
 * the uncovered scope instead of `failed`.
 */
-/** Runtime error codes that mean a stage ran out of an enforced budget. */
-var BUDGET_ERROR_REASONS = {
-	running_total_exceeded: `exceeded the 120s running budget before producing output`,
-	max_turns_exceeded: "used its tool-turn budget without submitting output"
-};
+/** Why a runtime error code means a stage ran out of an enforced budget. */
+function budgetErrorReason(code, runningTimeoutSec) {
+	switch (code) {
+		case "running_total_exceeded": return `exceeded the ${runningTimeoutSec}s running budget before producing output`;
+		case "max_turns_exceeded": return "used its tool-turn budget without submitting output";
+		default: return;
+	}
+}
 var StageBudgetExceeded = class extends Error {
 	stage;
 	reason;
@@ -21015,7 +21306,7 @@ async function runStage(deps, input, body, stage, parse, timings) {
 		observedMs
 	});
 	if (outcome.kind === "accepted") return outcome.result.state;
-	const budgetReason = attempt?.error?.code ? BUDGET_ERROR_REASONS[attempt.error.code] : void 0;
+	const budgetReason = attempt?.error?.code ? budgetErrorReason(attempt.error.code, body.runningTimeoutSec ?? input.runningTimeoutSec ?? DEFAULT_BUDGETS.stageRunningTimeoutSec) : void 0;
 	if (budgetReason) throw new StageBudgetExceeded(stage, budgetReason);
 	throw new Error(`${stage} stage: ${outcome.reason}`);
 }
@@ -21049,7 +21340,12 @@ function retrieveDocs(deps, config, changeSet, changes, budgets, gaps, searchTer
 		return exists;
 	});
 	const terms = changes.flatMap((change) => change.searchTerms);
-	const search = dropGenericTerms(searchDocsForTerms(git, head, terms, config.docsExclude));
+	const found = searchDocsForTerms(git, head, terms, docsGlobs(config));
+	if (found.unsearched > 0) gaps.push({
+		scope: "documentation search",
+		reason: `${found.unsearched} included documentation files not searched: more than ${MAX_SEARCHED_INCLUDED_DOCS} match docs.include`
+	});
+	const search = dropGenericTerms(found.hits);
 	searchTermsDropped.push(...search.generic);
 	for (const path of search.hits.keys()) {
 		const reasons = routed.candidates.get(path) ?? [];
@@ -21061,7 +21357,7 @@ function retrieveDocs(deps, config, changeSet, changes, budgets, gaps, searchTer
 		if (!isRequiredCandidate(reasons)) continue;
 		gaps.push({
 			scope: path,
-			reason: `candidate doc not reviewed: more than ${budgets.maxDocs} docs matched`
+			reason: `candidate doc not reviewed: more than ${budgets.maxDocs} docs matched (budgets.maxDocs)`
 		});
 	}
 	return selection.selected.map(({ path, reasons }) => {
@@ -21077,6 +21373,25 @@ function retrieveDocs(deps, config, changeSet, changes, budgets, gaps, searchTer
 			excerpt: extractExcerpt(git(["show", `${head}:${path}`]), terms, budgets.docExcerptBytes)
 		};
 	});
+}
+/** The documentation globs a repository configuration declares. */
+function docsGlobs(config) {
+	return {
+		include: config.docsInclude,
+		exclude: config.docsExclude
+	};
+}
+/**
+* The extraction diff budget: changed docs keep a reserve, and source the
+* routing rules name goes before other source.
+*/
+function diffBudget(config, budgets) {
+	return {
+		totalBytes: budgets.diffTotalBytes,
+		perFileBytes: budgets.diffPerFileBytes,
+		docsReserveBytes: Math.min(budgets.diffDocsReserveBytes, budgets.diffTotalBytes),
+		prioritySources: config.routing.rules.flatMap((rule) => rule.paths)
+	};
 }
 /**
 * A review that could not run, e.g. because the repository configuration is
@@ -21114,17 +21429,15 @@ function failedReport(target, source, message) {
 }
 async function runDocsImpactReview(deps, reviewInput) {
 	const { config, configSource, ...rest } = reviewInput;
+	const budgets = resolveBudgets(config.budgets);
 	const input = {
 		...rest,
 		config,
 		configSource,
+		runningTimeoutSec: budgets.stageRunningTimeoutSec,
 		...config.instructions ? { instructions: config.instructions } : {}
 	};
 	const now = deps.now ?? Date.now;
-	const budgets = {
-		...DEFAULT_BUDGETS,
-		...input.budgets
-	};
 	const started = now();
 	const timings = {
 		ingestMs: 0,
@@ -21142,6 +21455,7 @@ async function runDocsImpactReview(deps, reviewInput) {
 			...configSource,
 			routingRules: config.routing.rules.length
 		},
+		budgets,
 		status: "completed",
 		findings: [],
 		gaps: [],
@@ -21168,15 +21482,15 @@ async function runDocsImpactReview(deps, reviewInput) {
 	};
 	const finish = () => {
 		timings.totalMs = now() - started;
-		if (report.status === "completed" && report.gaps.length > 0 && (report.outcome === "covered" || report.outcome === "not-needed")) report.outcome = "incomplete";
+		if (report.status === "completed" && report.gaps.length > 0 && (report.outcome === "covered" || report.outcome === "not-needed")) {
+			report.reviewedOutcome = report.outcome;
+			report.outcome = "incomplete";
+		}
 		return report;
 	};
 	try {
-		const changeSet = collectChangeSet(deps.git, input.baseRevision, input.headRevision, config.docsExclude);
-		const diff = boundDiff(deps.git, changeSet, {
-			totalBytes: budgets.diffTotalBytes,
-			perFileBytes: budgets.diffPerFileBytes
-		});
+		const changeSet = collectChangeSet(deps.git, input.baseRevision, input.headRevision, docsGlobs(config));
+		const diff = boundDiff(deps.git, changeSet, diffBudget(config, budgets));
 		report.manifest = {
 			files: changeSet.files.length,
 			byCategory: countByCategory(changeSet.files),
@@ -21184,11 +21498,11 @@ async function runDocsImpactReview(deps, reviewInput) {
 		};
 		for (const path of diff.omittedPaths) report.gaps.push({
 			scope: path,
-			reason: "omitted from model context by the diff budget"
+			reason: "omitted from model context by the diff budget (budgets.diffTotalBytes)"
 		});
 		for (const path of diff.truncatedPaths) report.gaps.push({
 			scope: path,
-			reason: "patch truncated at the per-file budget"
+			reason: "patch truncated at the per-file budget (budgets.diffPerFileBytes)"
 		});
 		timings.ingestMs = now() - started;
 		const sourcePaths = new Set(changeSet.files.filter((file) => file.category === "source").map((file) => file.path));
@@ -21227,7 +21541,7 @@ async function runDocsImpactReview(deps, reviewInput) {
 		const docsDiff = truncateAtLine(docsBlocks, budgets.docsDiffBytes);
 		if (docsDiff !== docsBlocks) report.gaps.push({
 			scope: "documentation diff",
-			reason: "truncated at the docs-diff budget"
+			reason: "truncated at the docs-diff budget (budgets.docsDiffBytes)"
 		});
 		timings.retrievalMs = now() - retrievalStarted;
 		const docsHunks = extractDocsHunks(diff.blocks, {
@@ -21236,7 +21550,7 @@ async function runDocsImpactReview(deps, reviewInput) {
 		});
 		for (const id of docsHunks.overflow) report.gaps.push({
 			scope: id,
-			reason: `docs hunk not checked: more than ${budgets.maxDocsHunks} hunks`
+			reason: `docs hunk not checked: more than ${budgets.maxDocsHunks} hunks (budgets.maxDocsHunks)`
 		});
 		const [coverageResult, docsCheckResult] = await Promise.allSettled([runStage(deps, input, buildCoverageTask(input, {
 			changes: report.contractChanges,
@@ -21246,7 +21560,8 @@ async function runDocsImpactReview(deps, reviewInput) {
 			changeIds: new Set(report.contractChanges.map((change) => change.id)),
 			changedPaths: new Set(changeSet.files.map((file) => file.path)),
 			changedDocs,
-			selectedDocs: new Set(docs.map((doc) => doc.path))
+			selectedDocs: new Set(docs.map((doc) => doc.path)),
+			docs: docsGlobs(config)
 		}, repairs)), timings.stages), docsHunks.hunks.length > 0 ? runStage(deps, input, buildDocsCheckTask(input, docsHunks.hunks), "docs-check", withRepairs("docs-check", (output, repairs) => parseDocsCheck(output, docsHunks.hunks, repairs)), timings.stages) : Promise.resolve([])]);
 		if (coverageResult.status === "rejected") throw coverageResult.reason;
 		const coverage = coverageResult.value;
@@ -21445,15 +21760,22 @@ function readPullRequest(repo, pr) {
 	});
 	return JSON.parse(raw);
 }
+/** The budgets a configuration overrides, with their values. */
+function describeBudgetOverrides(config) {
+	const overrides = Object.entries(config.budgets).filter(([, value]) => value !== void 0);
+	return overrides.length === 0 ? "default budgets" : `budgets ${overrides.map(([key, value]) => `${key}=${value}`).join(" ")}`;
+}
 /** One line naming the configuration and what it adds to the defaults. */
 function describeConfig(config, source) {
 	if (source.kind === "default") return `defaults (no ${REVIEW_CONFIG_PATH} at the base revision)`;
 	return [
 		source.location,
 		`${config.routing.rules.length} routing rules`,
+		`${config.docsInclude.length} docs inclusions`,
 		`${config.docsExclude.length} exclusions`,
 		`${config.agentFacing.length} agent-facing globs`,
-		config.instructions ? `${config.instructions.length} characters of instructions` : "no instructions"
+		config.instructions ? `${config.instructions.length} characters of instructions` : "no instructions",
+		describeBudgetOverrides(config)
 	].join(", ");
 }
 function positiveInt(value, label) {
@@ -21616,13 +21938,11 @@ function resolveRevisions(target, options) {
 */
 function dryRunSummary(git, target, config, source) {
 	const { baseRevision: base, headRevision: head } = target;
-	const changeSet = collectChangeSet(git, base, head, config.docsExclude);
-	const diff = boundDiff(git, changeSet, {
-		totalBytes: DEFAULT_BUDGETS.diffTotalBytes,
-		perFileBytes: DEFAULT_BUDGETS.diffPerFileBytes
-	});
+	const budgets = resolveBudgets(config.budgets);
+	const changeSet = collectChangeSet(git, base, head, docsGlobs(config));
+	const diff = boundDiff(git, changeSet, diffBudget(config, budgets));
 	const routed = routeDocs(changeSet.files, config.routing, (path) => existsAt(git, head, path));
-	const selection = selectCandidates(routed.candidates, config, DEFAULT_BUDGETS.maxDocs);
+	const selection = selectCandidates(routed.candidates, config, budgets.maxDocs);
 	return {
 		pr: target.pr,
 		config: source,
@@ -21630,6 +21950,7 @@ function dryRunSummary(git, target, config, source) {
 			path,
 			category
 		})),
+		budgets,
 		diffBytes: diff.bytes,
 		omittedPaths: diff.omittedPaths,
 		truncatedPaths: diff.truncatedPaths,

@@ -32,6 +32,7 @@ import {
 } from '../runtime-definition.js';
 import { createGondolinToolLifecycle } from '../tool-operations.js';
 import {
+  assistantText,
   buildAttemptResult,
   buildSubmitMissingPrompt,
   buildSubmitValidationPrompt,
@@ -2272,6 +2273,7 @@ describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
     const { deps, caps, state } = makeDeps({ maxTurns: 2 });
     const handler = makeSessionEventHandler(deps);
     handler(turnEnd('end_turn')); // text-only: not counted
+    handler(turnEnd('stop')); // Pi's text-only stop: not counted
     handler(turnEnd('aborted')); // not counted
     handler(turnEnd('error')); // not counted
     expect(state.toolUseTurnCount).toBe(0);
@@ -2284,6 +2286,20 @@ describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
         message: 'Aborted after 2 tool-use turns (cap 2).',
       },
     ]);
+  });
+
+  it('leaves a text-only final turn at the cap for the final-message fallback', () => {
+    const { deps, caps, state } = makeDeps({ maxTurns: 1 });
+    const handler = makeSessionEventHandler(deps);
+
+    handler(
+      turnEnd('stop', { content: [{ type: 'text', text: '{"summary":"x"}' }] }),
+    );
+
+    expect(state.toolUseTurnCount).toBe(0);
+    expect(caps).toHaveLength(0);
+    expect(state.lastStopReason).toBe('stop');
+    expect(state.lastAssistantText).toBe('{"summary":"x"}');
   });
 
   it('allows a valid terminal submit-output call on the cap turn', () => {
@@ -2324,6 +2340,21 @@ describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
         message: 'Aborted after 2 bash timeouts in this attempt (cap 2).',
       },
     ]);
+  });
+});
+
+describe('assistantText', () => {
+  it('joins text blocks and ignores thinking and tool-call blocks', () => {
+    expect(
+      assistantText([
+        { type: 'thinking', thinking: 'plan' },
+        { type: 'text', text: '{"summary":' },
+        { type: 'toolCall', name: 'bash' },
+        { type: 'text', text: '"done"}' },
+      ]),
+    ).toBe('{"summary":"done"}');
+    expect(assistantText('plain')).toBe('plain');
+    expect(assistantText(undefined)).toBe('');
   });
 });
 
@@ -2501,6 +2532,94 @@ describe('promptUntilSubmitted (submit-missing same-session recovery)', () => {
       'call submit_freeform_output now',
     ]);
     expect(events).toEqual([1, 2]);
+  });
+
+  it('accepts a final-message submit before sending any reprompt', async () => {
+    const prompts: string[] = [];
+    let captured = false;
+    const result = await promptUntilSubmitted({
+      runPrompt: async (text) => {
+        prompts.push(text);
+        return { runError: null };
+      },
+      initialPrompt: 'do the task',
+      submitMissingPrompt: 'call submit now',
+      maxSubmitMissingReprompts: 3,
+      getSubmitState: () => ({ captured, lastValidationFailure: null }),
+      tryFinalMessageSubmit: () => {
+        captured = true;
+      },
+      isStopped: () => false,
+    });
+
+    expect(result).toEqual({ runError: null, submitReprompts: 0 });
+    expect(prompts).toEqual(['do the task']);
+  });
+
+  it('reprompts with validation feedback when the final message is invalid', async () => {
+    const prompts: string[] = [];
+    let attempts = 0;
+    let failure: { code: string; message: string } | null = null;
+    let captured = false;
+    const result = await promptUntilSubmitted({
+      runPrompt: async (text) => {
+        prompts.push(text);
+        return { runError: null };
+      },
+      initialPrompt: 'do the task',
+      submitToolName: 'submit_freeform_output',
+      submitMissingPrompt: 'call submit now',
+      maxSubmitMissingReprompts: 3,
+      getSubmitState: () => ({ captured, lastValidationFailure: failure }),
+      tryFinalMessageSubmit: () => {
+        attempts += 1;
+        if (attempts === 1) {
+          failure = {
+            code: 'output_validation_failed',
+            message: 'summary: required',
+          };
+        } else {
+          captured = true;
+        }
+      },
+      isStopped: () => false,
+    });
+
+    expect(result).toEqual({ runError: null, submitReprompts: 1 });
+    expect(prompts).toHaveLength(2);
+    expect(prompts[1]).toContain('summary: required');
+    expect(attempts).toBe(2);
+  });
+
+  it('does not try the final message after a stop or an output limit', async () => {
+    let attempts = 0;
+    const stopped = await promptUntilSubmitted({
+      runPrompt: async () => ({ runError: null }),
+      initialPrompt: 'do the task',
+      submitMissingPrompt: 'call submit now',
+      maxSubmitMissingReprompts: 0,
+      getSubmitState: () => ({ captured: false, lastValidationFailure: null }),
+      tryFinalMessageSubmit: () => {
+        attempts += 1;
+      },
+      isStopped: () => true,
+    });
+    const limited = await promptUntilSubmitted({
+      runPrompt: async () => ({ runError: null }),
+      initialPrompt: 'do the task',
+      submitMissingPrompt: 'call submit now',
+      maxSubmitMissingReprompts: 0,
+      getSubmitState: () => ({ captured: false, lastValidationFailure: null }),
+      getStopReason: () => 'length',
+      tryFinalMessageSubmit: () => {
+        attempts += 1;
+      },
+      isStopped: () => false,
+    });
+
+    expect(stopped.runError).toBeNull();
+    expect(limited.runError?.code).toBe('model_output_length');
+    expect(attempts).toBe(0);
   });
 
   it('does not re-prompt when the first pass already captured output', async () => {
@@ -2788,6 +2907,7 @@ describe('agent_runtime.task_output.parse_result counter', () => {
       output_validation_failed: [],
       output_cid_compute_failed: [],
       captured_via_tool: [],
+      captured_via_final_message: [],
     };
     for (const sm of collected.resourceMetrics.scopeMetrics) {
       for (const m of sm.metrics) {

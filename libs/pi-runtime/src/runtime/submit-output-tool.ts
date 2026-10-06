@@ -91,13 +91,44 @@ export interface SubmitOutputToolHandle {
   getCaptured: () => Record<string, unknown> | null;
   /** Number of times the model called the tool with valid args. */
   getCallCount: () => number;
-  /** Number of invalid submit calls observed in this session. */
+  /** Number of invalid submit tool calls observed in this session. */
   getInvalidCallCount: () => number;
+  /** Number of JSON-only final messages that failed validation. */
+  getInvalidFinalMessageCount: () => number;
   /** Last validation failure, if the model submitted invalid args. */
   getLastValidationFailure: () => { code: string; message: string } | null;
   /** Normalizations applied to the accepted submit call; contains no payload. */
   getCapturedRepairKinds: () => string[];
   getCapturedRepairs: () => SchemaAlignmentRepair[];
+  /** Where the accepted payload came from, or `null` before a capture. */
+  getCapturedSource: () => SubmitOutputSource | null;
+  /**
+   * Treat a final assistant message as a submit call when the whole message
+   * is one JSON object (bare, or a single fenced block). The payload goes
+   * through the same normalization and validation as a tool call. Returns
+   * `not_json` without side effects for anything else, so the caller falls
+   * back to the submit-missing reprompt.
+   */
+  submitFinalMessage: (text: string) => FinalMessageSubmitResult;
+}
+
+export type SubmitOutputSource = 'submit_tool' | 'final_message';
+
+export type FinalMessageSubmitResult = 'captured' | 'invalid' | 'not_json';
+
+const FENCED_JSON = /^```(?:json)?[ \t]*\r?\n([\s\S]*?)\r?\n?```$/;
+
+/**
+ * Return the JSON text of a final message that contains nothing but one JSON
+ * object. Prose around the object is rejected: models often echo the example
+ * shape from the prompt or draft a payload and keep writing.
+ */
+export function extractFinalMessageJson(text: string): string | null {
+  const trimmed = text.trim();
+  const fenced = FENCED_JSON.exec(trimmed);
+  const body = (fenced ? fenced[1] : trimmed).trim();
+  if (!body.startsWith('{') || !body.endsWith('}')) return null;
+  return body;
 }
 
 /**
@@ -255,6 +286,31 @@ function repairProducerSubmitOutput(
   return repaired;
 }
 
+/**
+ * Pi rejected the aligned and stamped arguments. Carries that candidate so
+ * validation feedback describes what the runtime actually checked, not the
+ * raw arguments: a runtime-stamped `verification` must not be reported as a
+ * model error.
+ */
+class SubmitArgumentsRejectedError extends Error {
+  constructor(
+    readonly candidate: unknown,
+    readonly piError: unknown,
+  ) {
+    super(piError instanceof Error ? piError.message : String(piError));
+    this.name = 'SubmitArgumentsRejectedError';
+  }
+}
+
+/** The value validation feedback should describe after a normalization throw. */
+function rejectedCandidate(error: unknown, raw: unknown): unknown {
+  return error instanceof SubmitArgumentsRejectedError ? error.candidate : raw;
+}
+
+function rejectedPiError(error: unknown): unknown {
+  return error instanceof SubmitArgumentsRejectedError ? error.piError : error;
+}
+
 function normalizeSubmitArguments(
   taskType: string,
   params: unknown,
@@ -279,15 +335,20 @@ function normalizeSubmitArguments(
     )
       repairs.push({ kind: 'submit_gate_verification', path: '/verification' });
   }
-  const piNormalized = validateToolArguments(
-    { name: toolName, description, parameters: schema },
-    {
-      type: 'toolCall',
-      id: 'submit-prepare',
-      name: toolName,
-      arguments: candidate as Record<string, never>,
-    },
-  ) as Record<string, unknown>;
+  let piNormalized: Record<string, unknown>;
+  try {
+    piNormalized = validateToolArguments(
+      { name: toolName, description, parameters: schema },
+      {
+        type: 'toolCall',
+        id: 'submit-prepare',
+        name: toolName,
+        arguments: candidate as Record<string, never>,
+      },
+    ) as Record<string, unknown>;
+  } catch (error) {
+    throw new SubmitArgumentsRejectedError(candidate, error);
+  }
   if (JSON.stringify(piNormalized) !== JSON.stringify(candidate)) {
     repairs.push({ kind: 'pi_schema_coercion', path: '' });
   }
@@ -310,14 +371,23 @@ export function createSubmitOutputTool(
   let captured: Record<string, unknown> | null = null;
   let callCount = 0;
   let invalidCallCount = 0;
+  let invalidFinalMessageCount = 0;
   let lastValidationFailure: { code: string; message: string } | null = null;
   let capturedRepairs: SchemaAlignmentRepair[] = [];
+  let capturedSource: SubmitOutputSource | null = null;
   const preparedRepairs = new Map<string, SchemaAlignmentRepair[]>();
 
   const schema = contract.parametersSchema;
 
-  const recordInvalidCall = (candidate: unknown, piError?: unknown): string => {
-    invalidCallCount += 1;
+  const recordInvalidCall = (
+    candidate: unknown,
+    piError?: unknown,
+    source: SubmitOutputSource = 'submit_tool',
+  ): string => {
+    const label =
+      source === 'final_message'
+        ? `invalid final message ${(invalidFinalMessageCount += 1)}`
+        : `invalid call ${(invalidCallCount += 1)}`;
     const errors = validateAgentTaskSubmission(
       taskType,
       candidate,
@@ -333,7 +403,7 @@ export function createSubmitOutputTool(
           ? piError.message.split('\n\nReceived arguments:')[0]
           : 'Pi rejected arguments against the advertised tool schema';
     const message =
-      `Output failed validation (invalid call ${invalidCallCount}): ` +
+      `Output failed validation (${label}): ` +
       `${detailMsg}. ` +
       `${submitOutputRepairHint(taskType, errors, schema)} ` +
       'Re-call this tool with a corrected output in the current session.';
@@ -380,7 +450,12 @@ export function createSubmitOutputTool(
         preparedRepairs.set(JSON.stringify(prepared), normalized.repairs);
         return prepared;
       } catch (error) {
-        throw new Error(recordInvalidCall(args, error));
+        throw new Error(
+          recordInvalidCall(
+            rejectedCandidate(error, args),
+            rejectedPiError(error),
+          ),
+        );
       }
     },
     async execute(_id, params) {
@@ -429,7 +504,10 @@ export function createSubmitOutputTool(
               opts,
             );
       } catch (error) {
-        const message = recordInvalidCall(params, error);
+        const message = recordInvalidCall(
+          rejectedCandidate(error, params),
+          rejectedPiError(error),
+        );
         return {
           content: [{ type: 'text' as const, text: message }],
           details: {
@@ -470,6 +548,7 @@ export function createSubmitOutputTool(
 
       captured = candidateParams as Record<string, unknown>;
       capturedRepairs = normalized.repairs;
+      capturedSource = 'submit_tool';
       preparedRepairs.clear();
       callCount += 1;
       await opts.onValidCapture?.();
@@ -493,14 +572,59 @@ export function createSubmitOutputTool(
     },
   }) as ToolDefinition<any, any>;
 
+  const submitFinalMessage = (text: string): FinalMessageSubmitResult => {
+    if (captured) return 'captured';
+    const json = extractFinalMessageJson(text);
+    const parsed = json === null ? null : parseCompleteJsonValue(json);
+    if (!parsed || !isRecord(parsed.value)) return 'not_json';
+    let normalized: { candidate: unknown; repairs: SchemaAlignmentRepair[] };
+    try {
+      normalized = normalizeSubmitArguments(
+        taskType,
+        parsed.value,
+        schema,
+        contract.toolName,
+        contract.description,
+        opts,
+      );
+    } catch (error) {
+      recordInvalidCall(
+        rejectedCandidate(error, parsed.value),
+        rejectedPiError(error),
+        'final_message',
+      );
+      return 'invalid';
+    }
+    const errors = validateAgentTaskSubmission(
+      taskType,
+      normalized.candidate,
+      opts.input,
+      { inputCid: opts.inputCid },
+    );
+    if (errors.length > 0) {
+      recordInvalidCall(normalized.candidate, undefined, 'final_message');
+      return 'invalid';
+    }
+    captured = normalized.candidate as Record<string, unknown>;
+    capturedRepairs = [
+      ...parsed.repairs.map((kind) => ({ kind, path: '' })),
+      ...normalized.repairs,
+    ];
+    capturedSource = 'final_message';
+    return 'captured';
+  };
+
   return {
     tool,
     toolName: contract.toolName,
     getCaptured: () => captured,
     getCallCount: () => callCount,
     getInvalidCallCount: () => invalidCallCount,
+    getInvalidFinalMessageCount: () => invalidFinalMessageCount,
     getLastValidationFailure: () => lastValidationFailure,
     getCapturedRepairKinds: () => capturedRepairs.map((repair) => repair.kind),
     getCapturedRepairs: () => [...capturedRepairs],
+    getCapturedSource: () => capturedSource,
+    submitFinalMessage,
   };
 }

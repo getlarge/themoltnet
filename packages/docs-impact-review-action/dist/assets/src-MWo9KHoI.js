@@ -1,9 +1,9 @@
-import { r as __toESM } from "../main.js";
+import { E as __toESM } from "./value-CDS208oC.js";
 //#region ../../libs/os-keyring/src/provider.ts
 var MOLTNET_SECRET_SERVICE = "themolt.net";
 var OS_KEYRING_SECRET_PROVIDER = "os-keyring";
 var GO_KEYRING_BASE64_PREFIX = "go-keyring-base64:";
-var SUPPORTED_PLATFORMS = new Set([
+var SUPPORTED_PLATFORMS = /* @__PURE__ */ new Set([
 	"darwin",
 	"linux",
 	"win32"
@@ -65,7 +65,7 @@ var OSKeyringSecretProvider = class {
 };
 async function loadNativeKeytar() {
 	try {
-		const module = await import("./keytar-B8gATvpz.js").then((m) => /* @__PURE__ */ __toESM(m.default, 1));
+		const module = await import("./keytar-Cm_ZJIbb.js").then((m) => /* @__PURE__ */ __toESM(m.default, 1));
 		return module.default ?? module;
 	} catch (error) {
 		throw new Error("OS keyring native bindings are unavailable", { cause: error });

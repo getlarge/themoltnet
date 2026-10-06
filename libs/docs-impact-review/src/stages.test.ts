@@ -272,6 +272,35 @@ describe('parseCoverageCheck', () => {
     expect(parsed.findings[0].docsPath).toBe('docs/reference/dry-run.md');
   });
 
+  it('accepts a proposed location the repository includes as documentation', () => {
+    // Act
+    const parsed = parseCoverageCheck(
+      freeform({
+        version: 1,
+        outcome: 'updates-needed',
+        findings: [{ ...finding, docsPath: 'docs/guide/dry-run.rst' }],
+      }),
+      { ...allowed, docs: { include: ['docs/**/*.rst'], exclude: [] } },
+    );
+
+    // Assert
+    expect(parsed.findings[0].docsPath).toBe('docs/guide/dry-run.rst');
+  });
+
+  it('rejects a proposed location the repository excludes', () => {
+    // Act / Assert
+    expect(() =>
+      parseCoverageCheck(
+        freeform({
+          version: 1,
+          outcome: 'updates-needed',
+          findings: [{ ...finding, docsPath: 'vendor/tool/dry-run.md' }],
+        }),
+        { ...allowed, docs: { include: [], exclude: ['vendor/**'] } },
+      ),
+    ).toThrow(/docsPath/);
+  });
+
   it('accepts a contradiction in a doc changed by the PR', () => {
     // Act
     const parsed = parseCoverageCheck(

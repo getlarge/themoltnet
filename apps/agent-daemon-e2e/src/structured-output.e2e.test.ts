@@ -464,7 +464,51 @@ describe('structured task submission through Pi (e2e)', () => {
     expect(attempt?.output).toBeNull();
   }, 600_000);
 
-  it('requires a submit-tool call even when final text contains structured JSON', async () => {
+  it('accepts a valid JSON-only final message without a reprompt', async () => {
+    const validPage = {
+      rooms: {
+        livingRoom: { widthM: 4, lengthM: 5 },
+        bedroom: { widthM: 3, lengthM: 4 },
+      },
+      circulation: 'A doorway connects the rooms.',
+    };
+    const finalText = [
+      '```json',
+      JSON.stringify({ summary: 'Drafted a page.', result: validPage }),
+      '```',
+    ].join('\n');
+    const { task, taskRequests } = await runFixtureTask(
+      [{ finalText }],
+      'freeform',
+      { outputContract: { version: 1, schema: PAGE_SCHEMA } },
+    );
+
+    expect(taskRequests).toHaveLength(1);
+    const final = await agent.tasks.get(task.id);
+    expect(final.status).toBe('completed');
+    const attempt = (await agent.tasks.listAttempts(task.id))[0];
+    expect(attempt?.output).toHaveProperty('result', validPage);
+    expect(attempt?.output).toHaveProperty(
+      'verification.inputCid',
+      final.inputCid,
+    );
+    const info = await agent.tasks.listMessages(task.id, 1, { kind: ['info'] });
+    const events = info.map((message) => message.payload);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        event: 'final_message_submit',
+        result: 'captured',
+      }),
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        event: 'output_completion',
+        output_source: 'final_message',
+      }),
+    );
+  }, 600_000);
+
+  it('reprompts with validation errors when a JSON-only final message is invalid', async () => {
     const invalidFinal = JSON.stringify({
       summary: 'Drafted a page.',
       result: { rooms: {}, circulation: 'Hall.' },
@@ -476,16 +520,21 @@ describe('structured task submission through Pi (e2e)', () => {
       1,
     );
 
-    expect(taskRequests.length).toBeGreaterThan(1);
+    // Initial prompt plus the default three validation reprompts. Text-only
+    // turns do not count toward the profile's maxTurns cap.
+    expect(taskRequests).toHaveLength(4);
+    expect(JSON.stringify(taskRequests[1]?.messages)).toContain(
+      'invalid final message 1',
+    );
+    expect(JSON.stringify(taskRequests[1]?.messages)).toContain(
+      'output/result/rooms/livingRoom',
+    );
     const final = await agent.tasks.get(task.id);
     expect(final.status).not.toBe('completed');
     expect(final.acceptedAttemptN).toBeNull();
     const attempt = (await agent.tasks.listAttempts(task.id))[0];
     expect(attempt?.output).toBeNull();
-    expect(attempt?.error?.code).toBe('max_turns_exceeded');
-    expect(JSON.stringify(taskRequests[1]?.messages)).toContain(
-      'the only way to finish is to call the tool',
-    );
+    expect(attempt?.error?.code).toBe('output_validation_failed');
   }, 600_000);
 
   it('rejects an unsupported contract before calling the provider', async () => {

@@ -1,7 +1,7 @@
 import { n as actionEnv, t as runMain } from "./assets/run-BAJLqHWw.js";
-import { n as codeSpan } from "./assets/report-v9naF6qM.js";
-import { t as GitHubApi } from "./assets/github-api-CCXuPPqb.js";
-import { t as workflowCommandValue } from "./assets/workflow-command-UvtADBsB.js";
+import { n as codeSpan } from "./assets/report-DJdZyA5m.js";
+import { t as GitHubApi } from "./assets/github-api-Ch9U5VTr.js";
+import { t as workflowCommandValue } from "./assets/workflow-command-DAfRW_6B.js";
 import { createHash } from "node:crypto";
 import { appendFileSync, readFileSync } from "node:fs";
 //#region ../../libs/docs-impact-review/src/eligibility.ts
@@ -88,7 +88,7 @@ async function preparePullRequestReview(options) {
 				coverage,
 				docsCheck
 			},
-			workerProfiles: [...new Set([
+			workerProfiles: [.../* @__PURE__ */ new Set([
 				options.profile,
 				coverage,
 				docsCheck
@@ -129,7 +129,8 @@ async function runPrepareCli(env, fetchImpl) {
 		docsCheckProfile: env.DOCS_CHECK_PROFILE,
 		protectedPaths
 	});
-	appendFileSync(required(env, "GITHUB_OUTPUT"), [
+	const output = required(env, "GITHUB_OUTPUT");
+	appendFileSync(output, [
 		`skip=${result.skip}`,
 		`reason=${result.reason.replace(/[\r\n]+/g, " ")}`,
 		`correlation-id=${result.prepared.correlationId}`,

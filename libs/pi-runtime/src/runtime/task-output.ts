@@ -6,13 +6,16 @@ export interface CapturedTaskOutputResult {
   outputCid: string | null;
   error: { code: string; message: string } | null;
   repairs?: SchemaAlignmentRepair[];
+  /** Where an accepted payload came from. */
+  source?: 'submit_tool' | 'final_message';
 }
 
 export type TaskOutputParseCode =
   | 'output_missing'
   | 'output_validation_failed'
   | 'output_cid_compute_failed'
-  | 'captured_via_tool';
+  | 'captured_via_tool'
+  | 'captured_via_final_message';
 
 const METER_NAME = '@themoltnet/pi-extension/task-output';
 
@@ -32,7 +35,7 @@ function getParseResultCounter() {
     .getMeter(METER_NAME)
     .createCounter('agent_runtime.task_output.parse_result', {
       description:
-        'Outcome of submit-tool output capture, labelled by task_type, model, and code (output_missing | output_validation_failed | output_cid_compute_failed | captured_via_tool).',
+        'Outcome of submit-tool output capture, labelled by task_type, model, and code (output_missing | output_validation_failed | output_cid_compute_failed | captured_via_tool | captured_via_final_message).',
       unit: '1',
     });
   return parseResultCounter;

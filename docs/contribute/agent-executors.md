@@ -160,6 +160,8 @@ the submit tool.
 Codes:
 
 - `captured_via_tool` — submit-tool captured a valid payload.
+- `captured_via_final_message` — a JSON-only final message validated as the
+  payload after the model skipped the tool.
 - `output_missing` — the submit tool was never called.
 - `output_validation_failed` — submit-tool args failed schema validation.
 - `output_cid_compute_failed` — output validated but `computeJsonCid` threw.
@@ -179,7 +181,28 @@ task output.
 but its schema expects another type, pi-runtime tries strict JSON, then the
 private `@moltnet/json-repair` library's complete JSON5 and missing-object-comma
 repairs. The result still passes Pi's tool-schema check and MoltNet's task
-validator. Repair does not turn a final assistant message into a submit call.
+validator.
+
+**A JSON-only final message counts as a submit call.** When a clean turn ends
+without a captured submit, the executor checks the last assistant message. If
+the whole message is one JSON object, bare or in a single fenced block, it goes
+through the same normalization and validation as tool arguments. A valid object
+is captured with `output_source: final_message` and the parse-result code
+`captured_via_final_message`; an invalid one records `output_validation_failed`
+and the reprompt carries its validation errors. Messages with any prose around
+the object, or turns stopped at the output limit, go straight to the reprompt.
+In evals, the `submit_clean` gate accepts either one valid tool call or one
+captured final message. Scoring gives the final message partial credit
+(`FINAL_MESSAGE_SUBMIT_CREDIT`, 0.5): it multiplies the judge composite and is
+the gate-only shape score, so a recovered final message grades above a failed or
+reprompted attempt and below a clean tool call.
+
+Each attempt emits one `submit_outcome` info event with `captured`, `source`,
+`validToolCalls`, `invalidToolCalls`, `invalidFinalMessages`, `submitReprompts`,
+`maxSubmitReprompts`, `stopReason` and `lastFailureCode`, whether or not
+recovery ran. Tool-call counts never include final-message attempts. Text-only
+turns (`stop` / `end_turn`) do not count toward `maxTurns`, so the fallback can
+still read the final message at the cap.
 
 **Contract lives in `@themoltnet/agent-runtime`.** The (toolName, description,
 parametersSchema) triple is exposed by `getSubmitOutputContract(taskType)` in

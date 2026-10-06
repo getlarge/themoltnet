@@ -55,6 +55,7 @@ const evidence: ReviewEvidence = {
     { path: 'apps/a.test.ts', patch: '+expect(a).toBe(1)', bytes: 50_000 },
   ],
   bytes: 100_000,
+  generatedPaths: [],
 };
 const stageOutput = (value: unknown) => ({
   summary: 'Review completed',
@@ -275,6 +276,7 @@ describe('staged complexity review', () => {
         },
       ],
       bytes: MAX_PATCH_BYTES * 2 + 1,
+      generatedPaths: [],
     },
     {
       manifest: 'lockfile deletion',
@@ -287,8 +289,9 @@ describe('staged complexity review', () => {
         },
       ],
       bytes: 36,
+      generatedPaths: [],
     },
-  ])(
+  ] satisfies ReviewEvidence[])(
     'maps, reviews each packet, and synthesizes with explicit coverage',
     async (evidence) => {
       const work = buildDomainWork(

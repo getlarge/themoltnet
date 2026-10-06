@@ -101,6 +101,7 @@ describe('runMatrix', () => {
       expected: 0,
     },
     { repairs: [], outputSource: null, expected: 0 },
+    { repairs: [], outputSource: 'final_message' as const, expected: 0.5 },
   ])(
     'scores raw model shape with repairs $repairs',
     async ({ repairs, outputSource, expected }) => {
@@ -124,7 +125,11 @@ describe('runMatrix', () => {
       );
       expect(matrix.cells[0].composite).toBe(expected);
       expect(summarizeMatrix(matrix)).toContain(
-        expected === 1 ? 'SHAPE PASS [1/1]' : 'SHAPE FAIL [0/1]',
+        expected === 1
+          ? 'SHAPE PASS [1/1]'
+          : expected > 0
+            ? `SHAPE PARTIAL [${expected}/1]`
+            : 'SHAPE FAIL [0/1]',
       );
     },
   );
@@ -178,6 +183,29 @@ describe('runMatrix', () => {
     expect(matrix.judgeModel).toBe('judge-x');
     expect(matrix.cells.every((c) => c.judged)).toBe(true);
     expect(matrix.cells.every((c) => c.composite === 0.9)).toBe(true);
+  });
+
+  it('scales the judge composite by final-message submit credit', async () => {
+    const matrix = await runMatrix(
+      ['model-a'],
+      [scenario('s1')],
+      'judge-x',
+      deps({
+        runProducer: () =>
+          Promise.resolve({
+            taskId: 'task-1',
+            attemptN: 1,
+            structure: {
+              invalidSubmitCalls: 0,
+              repairKinds: [],
+              outputSource: 'final_message' as const,
+            },
+          }),
+      }),
+    );
+
+    expect(matrix.cells[0].judged).toBe(true);
+    expect(matrix.cells[0].composite).toBeCloseTo(0.45);
   });
 
   it('skips the judge and scores composite 0 when gates fail (anti-inception)', async () => {

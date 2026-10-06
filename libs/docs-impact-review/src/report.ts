@@ -89,6 +89,16 @@ export function codeSpan(text: string, max = Number.POSITIVE_INFINITY): string {
   return `${fence}${pad}${flat}${pad}${fence}`;
 }
 
+const REVIEWED_OUTCOME_TEXT: Record<
+  NonNullable<DocsImpactReport['reviewedOutcome']>,
+  string
+> = {
+  covered:
+    'The docs cover the changes this review read, but it could not read everything: see what is not covered below.',
+  'not-needed':
+    'The changes this review read need no docs update, but it could not read everything: see what is not covered below.',
+};
+
 /**
  * One concise PR comment body. Clean results stay on one line; a failed run
  * says so explicitly instead of looking like an empty clean result.
@@ -113,6 +123,10 @@ export function renderComment(report: DocsImpactReport): string {
     `reviewed in ${formatDuration(report.timings.totalMs)}`,
   ];
   const lines = [DOCS_IMPACT_COMMENT_MARKER, context.join(' · ')];
+  // Without this, an `incomplete` with no findings reads as unexplained.
+  if (report.reviewedOutcome) {
+    lines.push('', REVIEWED_OUTCOME_TEXT[report.reviewedOutcome]);
+  }
   // A review without the repository's own configuration has no routing rules,
   // so it may miss docs the maintainers mapped; say so where it is read.
   if (report.config?.kind === 'default') {

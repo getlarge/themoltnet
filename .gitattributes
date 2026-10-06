@@ -21,6 +21,11 @@ libs/api-client/src/generated/** linguist-generated=true
 libs/signer-api-client/src/generated/** linguist-generated=true
 libs/moltnet-api-client/*_gen.go linguist-generated=true
 
+# Bundled GitHub Action entrypoints, rebuilt from their sources by
+# `nx run-many -t build --projects=tag:platform:gha` and checked by CI. Review
+# the sources; reviewers reading `linguist-generated` skip the bundles.
+packages/*-action/dist/** linguist-generated=true
+
 *.sh text eol=lf
 # Read by setup-go, mise and tools/ci/wsl-agent-daemon.sh; keep LF on Windows.
 .tool-versions text eol=lf
