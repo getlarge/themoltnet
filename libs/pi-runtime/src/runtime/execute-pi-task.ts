@@ -234,6 +234,7 @@ import {
 import { createSubmitCompletionCoordinator } from './submit-completion-coordinator.js';
 import {
   createSubmitOutputTool,
+  resolveSubmitContractFailure,
   type SubmitOutputToolHandle,
 } from './submit-output-tool.js';
 import {
@@ -818,6 +819,26 @@ export async function executePiTask(
           reporter.cancelReason ?? 'Task cancelled before pi executor started.',
         retryable: false,
       },
+    };
+  }
+
+  // Resolve the submit contract before any workspace or VM work. Without it
+  // the attempt cannot complete, and failing here gives the task a specific
+  // code instead of an unexpected error after the VM has booted.
+  const contractFailure = resolveSubmitContractFailure(
+    task.taskType,
+    task.input,
+  );
+  if (contractFailure) {
+    return {
+      taskId: task.id,
+      attemptN,
+      status: 'failed',
+      output: null,
+      outputCid: null,
+      usage: emptyUsage(opts.provider, opts.model),
+      durationMs: Date.now() - startTime,
+      error: { ...contractFailure, retryable: false },
     };
   }
 

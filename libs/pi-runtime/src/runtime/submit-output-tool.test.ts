@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createSubmitOutputTool,
   extractFinalMessageJson,
+  resolveSubmitContractFailure,
   UnknownTaskTypeForSubmitToolError,
 } from './submit-output-tool.js';
 import {
@@ -1248,5 +1249,32 @@ describe('summarizeRepairs', () => {
       repairs,
       truncated: 0,
     });
+  });
+});
+
+describe('resolveSubmitContractFailure', () => {
+  it('rejects a task type with no registered submission schema', () => {
+    expect(resolveSubmitContractFailure('not_a_task_type', {})).toMatchObject({
+      code: 'unknown_task_type',
+    });
+  });
+
+  it('rejects an output contract the runtime cannot build', () => {
+    const failure = resolveSubmitContractFailure('freeform', {
+      brief: 'x',
+      outputContract: {
+        version: 1,
+        schema: { type: 'object', $ref: '#/missing' },
+      },
+    });
+
+    expect(failure?.code).toBe('invalid_output_contract');
+    expect(failure?.message).toContain('$ref');
+  });
+
+  it('accepts every built-in task type without a contract', () => {
+    for (const taskType of Object.keys(BUILT_IN_TASK_TYPES)) {
+      expect(resolveSubmitContractFailure(taskType, {})).toBeNull();
+    }
   });
 });

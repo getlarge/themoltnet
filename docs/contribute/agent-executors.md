@@ -241,6 +241,13 @@ once. `repairs` keeps at most 20 entries (`MAX_REPORTED_REPAIRS`), and
 `repairs_truncated` (span attribute `moltnet.task.output_repairs_truncated`)
 counts the rest, because a long array can produce one repair per element.
 
+**The contract is checked before the VM starts.** `executePiTask` resolves the
+submit contract before preparing a workspace or booting a VM. A task type with
+no registered submission schema fails with `unknown_task_type`, and an output
+contract the runtime cannot build fails with `invalid_output_contract`; both are
+non-retryable. The daemon runs the same contract check right after claiming a
+task.
+
 **Contract lives in `@themoltnet/agent-runtime`.** The (toolName, description,
 parametersSchema) triple is exposed by `getSubmitOutputContract(taskType)` in
 `libs/agent-runtime/src/output-tools.ts`. The prompt builder reads

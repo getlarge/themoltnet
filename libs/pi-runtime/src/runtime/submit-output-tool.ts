@@ -34,7 +34,9 @@ import type { SubmitRepair } from '@themoltnet/agent-runtime';
 import {
   alignToSchema,
   getSubmitOutputContract,
+  getTaskSubmissionSchema,
   SUBMIT_OUTPUT_GATE_ID,
+  validateAgentOutputContract,
   validateAgentTaskSubmission,
 } from '@themoltnet/agent-runtime';
 import { type TObject, type TSchema } from 'typebox';
@@ -145,6 +147,43 @@ export class UnknownTaskTypeForSubmitToolError extends Error {
     );
     this.name = 'UnknownTaskTypeForSubmitToolError';
   }
+}
+
+/**
+ * Check that a task can be given a submit tool, before any workspace or VM
+ * work. Returns a coded, non-retryable failure for a task type with no
+ * registered submission schema or an output contract the runtime cannot
+ * build, and `null` when `createSubmitOutputTool` will succeed.
+ */
+export function resolveSubmitContractFailure(
+  taskType: string,
+  input: unknown,
+): {
+  code: 'unknown_task_type' | 'invalid_output_contract';
+  message: string;
+} | null {
+  if (!getTaskSubmissionSchema(taskType)) {
+    return {
+      code: 'unknown_task_type',
+      message: `No output schema is registered for task type "${taskType}".`,
+    };
+  }
+  const errors = validateAgentOutputContract(taskType, input);
+  if (errors.length > 0) {
+    return {
+      code: 'invalid_output_contract',
+      message: errors
+        .map(({ field, message }) => `${field}: ${message}`)
+        .join('; '),
+    };
+  }
+  if (!getSubmitOutputContract(taskType, input)) {
+    return {
+      code: 'invalid_output_contract',
+      message: `The output contract for task type "${taskType}" could not be built into a submit schema.`,
+    };
+  }
+  return null;
 }
 
 /**
