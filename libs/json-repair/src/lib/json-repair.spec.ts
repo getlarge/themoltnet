@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseCompleteJsonValue } from './json-repair.js';
+import {
+  MAX_COMMA_REPAIR_CHARS,
+  parseCompleteJsonValue,
+} from './json-repair.js';
 
 describe('parseCompleteJsonValue', () => {
   it.each([
@@ -70,5 +73,26 @@ describe('parseCompleteJsonValue object repairs', () => {
       value: { unknown: true },
       repairs: [],
     });
+  });
+});
+
+describe('parseCompleteJsonValue missing-comma bounds', () => {
+  const objectWithoutCommas = (keys: number) =>
+    `{${Array.from({ length: keys }, (_, i) => `k${i}: ${i}`).join(' ')}}`;
+
+  it('repairs many missing commas in one pass', () => {
+    const parsed = parseCompleteJsonValue(objectWithoutCommas(5000));
+
+    expect(parsed?.repairs).toEqual(['missing_comma']);
+    expect(Object.keys(parsed?.value as object)).toHaveLength(5000);
+    expect((parsed?.value as Record<string, number>).k4999).toBe(4999);
+  });
+
+  it('skips the comma repair above the size cap', () => {
+    const keys = Math.ceil(MAX_COMMA_REPAIR_CHARS / 8) + 1;
+    const source = objectWithoutCommas(keys);
+    expect(source.length).toBeGreaterThan(MAX_COMMA_REPAIR_CHARS);
+
+    expect(parseCompleteJsonValue(source)).toBeNull();
   });
 });

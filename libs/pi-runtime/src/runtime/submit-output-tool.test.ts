@@ -14,10 +14,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createSubmitOutputTool,
   extractFinalMessageJson,
+  resolveSubmitContractFailure,
   UnknownTaskTypeForSubmitToolError,
 } from './submit-output-tool.js';
 import {
   __resetTaskOutputCounterForTests,
+  MAX_REPORTED_REPAIRS,
+  summarizeRepairs,
   type TaskOutputParseCode,
 } from './task-output.js';
 
@@ -1173,5 +1176,105 @@ describe('submit-tool OTel counter recording', () => {
     await callExecute(handle)(validFulfillBriefOutput);
     expect(await dataPointsFor('captured_via_tool')).toHaveLength(0);
     expect(await dataPointsFor('output_validation_failed')).toHaveLength(0);
+    expect(await repairPoints()).toHaveLength(0);
+  });
+
+  async function repairPoints() {
+    const collected = await reader.snapshot();
+    const out: Array<Record<string, unknown>> = [];
+    for (const sm of collected.resourceMetrics.scopeMetrics) {
+      for (const m of sm.metrics) {
+        if (m.descriptor.name !== 'agent_runtime.task_output.repair') continue;
+        for (const dp of m.dataPoints) out.push({ ...dp.attributes });
+      }
+    }
+    return out;
+  }
+
+  it('counts repairs on a call that still fails validation as rejected', async () => {
+    const handle = createSubmitOutputTool('fulfill_brief', { model: 'm' });
+
+    const { summary: _missing, ...withoutSummary } = validFulfillBriefOutput;
+    const result = await callExecute(handle)({
+      ...withoutSummary,
+      commits: '[]',
+    });
+
+    expect(result.isError).toBe(true);
+
+    expect(await repairPoints()).toEqual([
+      {
+        task_type: 'fulfill_brief',
+        model: 'm',
+        kind: 'json_string',
+        outcome: 'rejected',
+      },
+    ]);
+  });
+
+  it('counts repairs on an invalid JSON-only final message as rejected', async () => {
+    const handle = createSubmitOutputTool('freeform', { model: 'm' });
+
+    expect(handle.submitFinalMessage("{artifacts: '[]'}")).toBe('invalid');
+
+    const kinds = (await repairPoints()).map((point) => point.kind).sort();
+    expect(kinds).toEqual(['json_string', 'lenient_json']);
+    expect(
+      (await repairPoints()).every((point) => point.outcome === 'rejected'),
+    ).toBe(true);
+  });
+});
+
+describe('summarizeRepairs', () => {
+  it('deduplicates kinds and caps reported entries', () => {
+    const repairs = Array.from({ length: 25 }, (_, index) => ({
+      kind:
+        index === 0 ? ('output_envelope' as const) : ('json_string' as const),
+      path: `/items/${index}`,
+    }));
+
+    const summary = summarizeRepairs(repairs);
+
+    expect(summary.kinds).toEqual(['output_envelope', 'json_string']);
+    expect(summary.repairs).toHaveLength(MAX_REPORTED_REPAIRS);
+    expect(summary.repairs[0]).toEqual(repairs[0]);
+    expect(summary.truncated).toBe(25 - MAX_REPORTED_REPAIRS);
+  });
+
+  it('reports nothing truncated for a short list', () => {
+    const repairs = [{ kind: 'optional_null' as const, path: '/branch' }];
+
+    expect(summarizeRepairs(repairs)).toEqual({
+      kinds: ['optional_null'],
+      repairs,
+      truncated: 0,
+    });
+  });
+});
+
+describe('resolveSubmitContractFailure', () => {
+  it('rejects a task type with no registered submission schema', () => {
+    expect(resolveSubmitContractFailure('not_a_task_type', {})).toMatchObject({
+      code: 'unknown_task_type',
+    });
+  });
+
+  it('rejects an output contract the runtime cannot build', () => {
+    const failure = resolveSubmitContractFailure('freeform', {
+      brief: 'x',
+      outputContract: {
+        version: 1,
+        schema: { type: 'object', $ref: '#/missing' },
+      },
+    });
+
+    expect(failure?.code).toBe('invalid_output_contract');
+    expect(failure?.message).toContain('$ref');
+  });
+
+  it('accepts every built-in task type without a contract', () => {
+    for (const taskType of Object.keys(BUILT_IN_TASK_TYPES)) {
+      expect(resolveSubmitContractFailure(taskType, {})).toBeNull();
+    }
   });
 });

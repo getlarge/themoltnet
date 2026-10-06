@@ -273,4 +273,64 @@ describe('alignToSchema', () => {
     expect(aligned.repairs).toEqual([{ kind: 'json_string', path: '/maybe' }]);
     expect(Value.Check(scalars, aligned.value)).toBe(false);
   });
+
+  it('decodes scalar targets strictly and structured targets leniently', () => {
+    const lenient = (text: string) =>
+      text === '0x10'
+        ? { value: 16, repairs: ['lenient_json' as const] }
+        : text === '{a: 1}'
+          ? { value: { a: 1 }, repairs: ['lenient_json' as const] }
+          : null;
+    const mixed = Type.Object(
+      {
+        count: Type.Number(),
+        meta: Type.Object({ a: Type.Number() }),
+      },
+      { additionalProperties: false },
+    );
+
+    const aligned = alignToSchema({ count: '0x10', meta: '{a: 1}' }, mixed, {
+      parseJsonString: lenient,
+    });
+
+    expect(aligned.value).toEqual({ count: '0x10', meta: { a: 1 } });
+    expect(aligned.repairs).toEqual([
+      { kind: 'json_string', path: '/meta' },
+      { kind: 'lenient_json', path: '/meta' },
+    ]);
+  });
+
+  it.each([
+    ['123', ['123']],
+    ['true', ['true']],
+    ['null', ['null']],
+    ['abc', ['abc']],
+  ])('wraps string %s into array<string> as written', (input, expected) => {
+    const tags = Type.Object(
+      { tags: Type.Array(Type.String()) },
+      { additionalProperties: false },
+    );
+
+    const aligned = alignToSchema({ tags: input }, tags);
+
+    expect(aligned.value).toEqual({ tags: expected });
+    expect(aligned.repairs).toEqual([
+      { kind: 'single_to_array', path: '/tags' },
+    ]);
+  });
+
+  it('still decodes a numeric string for array<number>', () => {
+    const counts = Type.Object(
+      { counts: Type.Array(Type.Number()) },
+      { additionalProperties: false },
+    );
+
+    const aligned = alignToSchema({ counts: '5' }, counts);
+
+    expect(aligned.value).toEqual({ counts: [5] });
+    expect(aligned.repairs.map((repair) => repair.kind)).toEqual([
+      'json_string',
+      'single_to_array',
+    ]);
+  });
 });

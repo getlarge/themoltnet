@@ -2,6 +2,7 @@ export * from './async-validation.js';
 export { outputContractResultSchema } from './output-contract-schema.js';
 export * from './output-contract-validation.js';
 export * from './rubric.js';
+export * from './submit-repairs.js';
 export * from './success-criteria.js';
 export * from './task-artifacts.js';
 export * from './task-type-registry.js';

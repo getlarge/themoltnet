@@ -204,6 +204,44 @@ recovery ran. Tool-call counts never include final-message attempts. Text-only
 turns (`stop` / `end_turn`) do not count toward `maxTurns`, so the fallback can
 still read the final message at the cap.
 
+**Repairs are counted by kind and outcome.** The OTel counter
+`agent_runtime.task_output.repair` has labels
+`{task_type, model, kind, outcome}`. `outcome` is `accepted` for repairs on the
+captured payload and `rejected` for repairs on a payload that still failed
+validation, so failed repairs are visible and repair rates have a denominator.
+JSON pointer paths stay out of metric labels.
+
+The repair kinds are defined once in `@moltnet/tasks`
+(`libs/tasks/src/submit-repairs.ts`), which executors and eval scoring share:
+
+| Kind                       | Made by                                                     |
+| -------------------------- | ----------------------------------------------------------- |
+| `output_envelope`          | Alignment: unwrapped a sole `{ output: ... }` wrapper       |
+| `json_string`              | Alignment: decoded a JSON string sent for a structured type |
+| `single_to_array`          | Alignment: wrapped a single value into an array             |
+| `case_insensitive_match`   | Alignment: matched an enum or const ignoring case           |
+| `optional_null`            | Alignment: dropped a null placeholder for an optional field |
+| `lenient_json`             | JSON repair: parsed JSON5 syntax                            |
+| `missing_comma`            | JSON repair: inserted missing object commas                 |
+| `submit_gate_verification` | Executor: stamped runtime-owned verification                |
+| `pi_schema_coercion`       | Executor: Pi's tool-schema validator coerced the value      |
+
+`optional_null` and `submit_gate_verification` are protocol repairs and do not
+count against a model's submit shape in evals.
+
+The `moltnet.execution.output.complete` span and the `output_completion` task
+message report the accepted payload's repairs. `repair_kinds` lists each kind
+once. `repairs` keeps at most 20 entries (`MAX_REPORTED_REPAIRS`), and
+`repairs_truncated` (span attribute `moltnet.task.output_repairs_truncated`)
+counts the rest, because a long array can produce one repair per element.
+
+**The contract is checked before the VM starts.** `executePiTask` resolves the
+submit contract before preparing a workspace or booting a VM. A task type with
+no registered submission schema fails with `unknown_task_type`, and an output
+contract the runtime cannot build fails with `invalid_output_contract`; both are
+non-retryable. The daemon runs the same contract check right after claiming a
+task.
+
 **Contract lives in `@themoltnet/agent-runtime`.** The (toolName, description,
 parametersSchema) triple is exposed by `getSubmitOutputContract(taskType)` in
 `libs/agent-runtime/src/output-tools.ts`. The prompt builder reads
