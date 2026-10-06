@@ -30,7 +30,7 @@ import { validateToolArguments } from '@earendil-works/pi-ai';
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { parseCompleteJsonValue } from '@moltnet/json-repair';
-import type { SchemaAlignmentRepair } from '@themoltnet/agent-runtime';
+import type { SubmitRepair } from '@themoltnet/agent-runtime';
 import {
   alignToSchema,
   getSubmitOutputContract,
@@ -99,7 +99,7 @@ export interface SubmitOutputToolHandle {
   getLastValidationFailure: () => { code: string; message: string } | null;
   /** Normalizations applied to the accepted submit call; contains no payload. */
   getCapturedRepairKinds: () => string[];
-  getCapturedRepairs: () => SchemaAlignmentRepair[];
+  getCapturedRepairs: () => SubmitRepair[];
   /** Where the accepted payload came from, or `null` before a capture. */
   getCapturedSource: () => SubmitOutputSource | null;
   /**
@@ -318,11 +318,11 @@ function normalizeSubmitArguments(
   toolName: string,
   description: string,
   opts: CreateSubmitOutputToolOptions,
-): { candidate: unknown; repairs: SchemaAlignmentRepair[] } {
+): { candidate: unknown; repairs: SubmitRepair[] } {
   const aligned = alignToSchema(params, schema, {
     parseJsonString: parseCompleteJsonValue,
   });
-  const repairs = [...aligned.repairs];
+  const repairs: SubmitRepair[] = [...aligned.repairs];
   // Producer repair is mechanical for a submit-only gate. Apply it before
   // Pi validation, which removes strict-mode null placeholders. Cross-field
   // task validation runs on Pi's cleaned value in execute().
@@ -373,9 +373,9 @@ export function createSubmitOutputTool(
   let invalidCallCount = 0;
   let invalidFinalMessageCount = 0;
   let lastValidationFailure: { code: string; message: string } | null = null;
-  let capturedRepairs: SchemaAlignmentRepair[] = [];
+  let capturedRepairs: SubmitRepair[] = [];
   let capturedSource: SubmitOutputSource | null = null;
-  const preparedRepairs = new Map<string, SchemaAlignmentRepair[]>();
+  const preparedRepairs = new Map<string, SubmitRepair[]>();
 
   const schema = contract.parametersSchema;
 
@@ -491,7 +491,7 @@ export function createSubmitOutputTool(
       const key = JSON.stringify(params);
       const prepared = preparedRepairs.get(key);
       if (prepared) preparedRepairs.delete(key);
-      let normalized: { candidate: unknown; repairs: SchemaAlignmentRepair[] };
+      let normalized: { candidate: unknown; repairs: SubmitRepair[] };
       try {
         normalized = prepared
           ? { candidate: params, repairs: prepared }
@@ -577,7 +577,7 @@ export function createSubmitOutputTool(
     const json = extractFinalMessageJson(text);
     const parsed = json === null ? null : parseCompleteJsonValue(json);
     if (!parsed || !isRecord(parsed.value)) return 'not_json';
-    let normalized: { candidate: unknown; repairs: SchemaAlignmentRepair[] };
+    let normalized: { candidate: unknown; repairs: SubmitRepair[] };
     try {
       normalized = normalizeSubmitArguments(
         taskType,

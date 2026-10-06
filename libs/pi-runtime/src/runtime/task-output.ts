@@ -1,11 +1,11 @@
 import { metrics } from '@opentelemetry/api';
-import type { SchemaAlignmentRepair } from '@themoltnet/agent-runtime';
+import type { SubmitRepair } from '@themoltnet/agent-runtime';
 
 export interface CapturedTaskOutputResult {
   output: Record<string, unknown> | null;
   outputCid: string | null;
   error: { code: string; message: string } | null;
-  repairs?: SchemaAlignmentRepair[];
+  repairs?: SubmitRepair[];
   /** Where an accepted payload came from. */
   source?: 'submit_tool' | 'final_message';
 }
@@ -67,7 +67,7 @@ export function __resetTaskOutputCounterForTests(): void {
 export function recordTaskOutputRepairs(args: {
   taskType: string;
   model?: string;
-  repairs: SchemaAlignmentRepair[];
+  repairs: SubmitRepair[];
 }): void {
   if (args.repairs.length === 0) return;
   repairCounter ??= metrics

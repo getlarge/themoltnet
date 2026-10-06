@@ -1,3 +1,4 @@
+import type { SubmitRepairKind } from '@moltnet/tasks';
 import { describe, expect, it } from 'vitest';
 
 import type { GateResult } from '../src/check-gates.js';
@@ -102,9 +103,28 @@ describe('runMatrix', () => {
     },
     { repairs: [], outputSource: null, expected: 0 },
     { repairs: [], outputSource: 'final_message' as const, expected: 0.5 },
-  ])(
-    'scores raw model shape with repairs $repairs',
-    async ({ repairs, outputSource, expected }) => {
+    { repairs: [], outputSource: 'tool' as const, invalid: 1, expected: 0 },
+    {
+      repairs: [],
+      outputSource: 'final_message' as const,
+      invalid: 1,
+      expected: 0,
+    },
+    {
+      repairs: [],
+      outputSource: 'tool' as const,
+      unknown: ['renamed_kind'],
+      expected: 0,
+    },
+  ] as Array<{
+    repairs: SubmitRepairKind[];
+    outputSource: 'tool' | 'final_message' | null;
+    invalid?: number;
+    unknown?: string[];
+    expected: number;
+  }>)(
+    'scores raw model shape with repairs $repairs, invalid $invalid, unknown $unknown',
+    async ({ repairs, outputSource, invalid, unknown, expected }) => {
       const shape = { ...scenario('shape'), scoring: 'gates_only' as const };
       const matrix = await runMatrix(
         ['m'],
@@ -116,8 +136,9 @@ describe('runMatrix', () => {
               taskId: 'task-1',
               attemptN: 1,
               structure: {
-                invalidSubmitCalls: 0,
+                invalidSubmitCalls: invalid ?? 0,
                 repairKinds: repairs,
+                ...(unknown ? { unknownRepairKinds: unknown } : {}),
                 outputSource,
               },
             }),

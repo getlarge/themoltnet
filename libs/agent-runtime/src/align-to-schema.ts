@@ -1,17 +1,13 @@
+import type {
+  JsonSyntaxRepairKind,
+  SchemaAlignmentRepairKind,
+} from '@moltnet/tasks';
 import type { TSchema } from 'typebox';
 import { Value } from 'typebox/value';
 
+/** A repair `alignToSchema` made. Executors report a wider `SubmitRepair`. */
 export interface SchemaAlignmentRepair {
-  kind:
-    | 'output_envelope'
-    | 'json_string'
-    | 'single_to_array'
-    | 'case_insensitive_match'
-    | 'submit_gate_verification'
-    | 'pi_schema_coercion'
-    | 'optional_null'
-    | 'lenient_json'
-    | 'missing_comma';
+  kind: SchemaAlignmentRepairKind;
   /** JSON pointer to the value changed; the root is the empty string. */
   path: string;
 }
@@ -25,7 +21,7 @@ export interface SchemaAlignmentOptions {
   /** Optional syntax repair for complete JSON strings supplied as tool values. */
   parseJsonString?: (text: string) => {
     value: unknown;
-    repairs: Array<'lenient_json' | 'missing_comma'>;
+    repairs: JsonSyntaxRepairKind[];
   } | null;
 }
 

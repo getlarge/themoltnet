@@ -11,6 +11,11 @@
  * fakes and carries no runtime dependency on the daemon or SDK. The thin
  * runner that wires the real effects lives with the e2e project.
  */
+import {
+  SUBMIT_PROTOCOL_REPAIR_KINDS,
+  type SubmitRepairKind,
+} from '@moltnet/tasks';
+
 import type { GateResult } from './check-gates.js';
 import type { Scenario } from './scenario.js';
 
@@ -29,7 +34,8 @@ export interface ScoreCell {
   /** Whether the pinned judge actually ran (false when gates gated it out). */
   judged: boolean;
   invalidSubmitCalls: number;
-  repairKinds: string[];
+  repairKinds: SubmitRepairKind[];
+  unknownRepairKinds?: string[];
   outputSource: 'tool' | 'final_message' | null;
   /** Populated when the run threw before producing a gradable attempt. */
   error?: string;
@@ -47,13 +53,20 @@ export interface ScoreMatrix {
   cells: ScoreCell[];
 }
 
-// These changes are made by the submit protocol itself. All other repairs
-// change the model's output shape and must count against a shape-only score.
-const PROTOCOL_REPAIRS = new Set(['optional_null', 'submit_gate_verification']);
+// Protocol repairs do not change the model's output shape. Every other repair
+// counts against a shape-only score.
+const PROTOCOL_REPAIRS: ReadonlySet<SubmitRepairKind> = new Set(
+  SUBMIT_PROTOCOL_REPAIR_KINDS,
+);
 
 export interface SubmitStructure {
   invalidSubmitCalls: number;
-  repairKinds: string[];
+  repairKinds: SubmitRepairKind[];
+  /**
+   * Reported kinds outside the shared vocabulary. A non-empty list means the
+   * executor and this scorer disagree; such runs score as repaired.
+   */
+  unknownRepairKinds?: string[];
   outputSource: 'tool' | 'final_message' | null;
 }
 
@@ -82,6 +95,7 @@ export function submitShapeScore(
   if (
     !structure?.outputSource ||
     structure.invalidSubmitCalls > 0 ||
+    (structure.unknownRepairKinds?.length ?? 0) > 0 ||
     !structure.repairKinds.every((kind) => PROTOCOL_REPAIRS.has(kind))
   ) {
     return 0;
@@ -176,6 +190,7 @@ export async function runMatrix(
         if (producer.structure) {
           base.invalidSubmitCalls = producer.structure.invalidSubmitCalls;
           base.repairKinds = producer.structure.repairKinds;
+          base.unknownRepairKinds = producer.structure.unknownRepairKinds;
           base.outputSource = producer.structure.outputSource;
         }
 
@@ -285,7 +300,11 @@ export function summarizeMatrix(matrix: ScoreMatrix): string {
         `  ${cell.scenario.padEnd(32)} ${status} ` +
           `submit-clean=${submitClean} invalid=${cell.invalidSubmitCalls} ` +
           `source=${cell.outputSource ?? 'unknown'} ` +
-          `repairs=${cell.repairKinds.join(',') || 'none'}`,
+          `repairs=${
+            [...cell.repairKinds, ...(cell.unknownRepairKinds ?? [])].join(
+              ',',
+            ) || 'none'
+          }`,
       );
     }
   }

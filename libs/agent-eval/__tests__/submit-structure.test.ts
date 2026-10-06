@@ -98,4 +98,26 @@ describe('readSubmitStructure', () => {
 
     expect(structure.outputSource).toBe('final_message');
   });
+
+  it('separates repair kinds outside the shared vocabulary', async () => {
+    const { agent } = pagedAgent(
+      [
+        {
+          seq: 1,
+          kind: 'info',
+          payload: {
+            event: 'output_completion',
+            output_source: 'submit_tool',
+            repair_kinds: ['optional_null', 'renamed_kind'],
+          },
+        },
+      ],
+      50,
+    );
+
+    const structure = await readSubmitStructure(agent, 'task', 1, 'freeform');
+
+    expect(structure.repairKinds).toEqual(['optional_null']);
+    expect(structure.unknownRepairKinds).toEqual(['renamed_kind']);
+  });
 });

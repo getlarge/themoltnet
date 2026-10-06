@@ -1,4 +1,12 @@
+import { SUBMIT_REPAIR_KINDS, type SubmitRepairKind } from '@moltnet/tasks';
+
 import type { SubmitStructure } from './score-matrix.js';
+
+const KNOWN_REPAIR_KINDS: ReadonlySet<string> = new Set(SUBMIT_REPAIR_KINDS);
+
+function isSubmitRepairKind(kind: string): kind is SubmitRepairKind {
+  return KNOWN_REPAIR_KINDS.has(kind);
+}
 
 /** Minimal shape of a paged task message (a structural subset of the SDK's
  * `TaskMessage`). */
@@ -64,16 +72,25 @@ export async function readSubmitStructure(
     (message) =>
       message.kind === 'info' && message.payload.event === 'output_completion',
   )?.payload;
-  const repairKinds = Array.isArray(completion?.repair_kinds)
+  const reported = Array.isArray(completion?.repair_kinds)
     ? completion.repair_kinds.filter(
         (kind): kind is string => typeof kind === 'string',
       )
     : [];
+  const repairKinds = reported.filter(isSubmitRepairKind);
+  const unknownRepairKinds = reported.filter(
+    (kind) => !isSubmitRepairKind(kind),
+  );
   const outputSource =
     completion?.output_source === 'submit_tool'
       ? ('tool' as const)
       : completion?.output_source === 'final_message'
         ? ('final_message' as const)
         : null;
-  return { invalidSubmitCalls, repairKinds, outputSource };
+  return {
+    invalidSubmitCalls,
+    repairKinds,
+    ...(unknownRepairKinds.length > 0 ? { unknownRepairKinds } : {}),
+    outputSource,
+  };
 }
