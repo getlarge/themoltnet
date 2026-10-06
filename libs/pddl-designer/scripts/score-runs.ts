@@ -13,9 +13,14 @@
  * A step belongs to the first goal item among its arguments; a step that names
  * no item belongs to the item its objects were first seen with.
  *
- *   pnpm exec tsx scripts/score-runs.ts <runs-dir> <label-prefix> [--json out.json]
+ * Optional rules for problems with item-level exceptions and problem-wide
+ * steps: `skip` (items that must not take a step), `global_steps` and their
+ * orderings, and `agent_pattern`.
+ *
+ *   pnpm exec tsx scripts/score-runs.ts <runs-dir> <label-prefix>
+ *     [--json out.json] [--examples <dir>]
  */
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { Domain, Problem } from '../src/ir.js';
@@ -34,6 +39,18 @@ interface Required {
   global_order: Array<[string, string]>;
   actor_type: string | null;
   produced_types: string[];
+  /** Steps that occur once for the whole problem rather than per item. */
+  global_steps?: StepRule[];
+  /** Per step id, items that must NOT take that step (and need not cover it). */
+  skip?: Record<string, string[]>;
+  /** [item step, global step]: every item's step precedes the global step. */
+  item_before_global?: Array<[string, string]>;
+  /** [global step, item step]: the global step precedes every item's step. */
+  global_before_item?: Array<[string, string]>;
+  /** [global step, global step]: first occurrences in this order. */
+  global_steps_order?: Array<[string, string]>;
+  /** Types (or ancestors) matching this pattern are agents. */
+  agent_pattern?: string;
 }
 interface Run {
   status: string;
@@ -42,13 +59,7 @@ interface Run {
   plan?: { status: string; steps?: string[] };
 }
 
-const EXAMPLES = new URL('../examples/', import.meta.url).pathname;
-const EXAMPLE_NAMES = [
-  'issue-workflow-explicit',
-  'docs-review-guided',
-  'docs-review',
-  'blocks-world',
-];
+const DEFAULT_EXAMPLES = new URL('../examples/', import.meta.url).pathname;
 
 export function scoreRun(
   run: Run,
@@ -82,10 +93,13 @@ export function scoreRun(
   // ancestor type names an agent role.
   const isActor = (o: string) =>
     !!req.actor_type && (typeOf.get(o) ?? '').includes(req.actor_type);
+  const agentPattern = new RegExp(
+    req.agent_pattern ?? 'agent|coder|reviewer|arm|robot',
+  );
   const parentOf = new Map(run.domain.types.map((t) => [t.name, t.parent]));
   const isAgent = (o: string) => {
     for (let t: string | undefined = typeOf.get(o); t; t = parentOf.get(t))
-      if (/agent|coder|reviewer|arm|robot/.test(t)) return true;
+      if (agentPattern.test(t)) return true;
     return false;
   };
   const objectItem = new Map<string, string>();
@@ -109,10 +123,15 @@ export function scoreRun(
   // 1. coverage and 2. order, per item.
   const firstIndex = (item: string, rule: StepRule) =>
     steps.findIndex((s, i) => owner[i] === item && matches(rule, s.action));
+  const skipped = (id: string, item: string) =>
+    req.skip?.[id]?.includes(item) ?? false;
   for (const item of req.items) {
-    for (const rule of req.steps)
-      if (firstIndex(item, rule) < 0)
-        reasons.push(`${item}: no ${rule.id} step`);
+    for (const rule of req.steps) {
+      const found = firstIndex(item, rule) >= 0;
+      if (skipped(rule.id, item)) {
+        if (found) reasons.push(`${item}: takes ${rule.id}, which it must not`);
+      } else if (!found) reasons.push(`${item}: no ${rule.id} step`);
+    }
     for (const [a, b] of req.order) {
       const ra = req.steps.find((r) => r.id === a);
       const rb = req.steps.find((r) => r.id === b);
@@ -132,6 +151,39 @@ export function scoreRun(
     const ia = firstIndex(itema, ra);
     const ib = firstIndex(itemb, rb);
     if (ia >= 0 && ib >= 0 && ia > ib) reasons.push(`${b} before ${a}`);
+  }
+
+  // Global steps: once for the whole problem, in their own order and relative
+  // to every item's steps.
+  const globalIndex = (id: string) => {
+    const rule = req.global_steps?.find((r) => r.id === id);
+    return rule ? steps.findIndex((s) => matches(rule, s.action)) : -1;
+  };
+  for (const rule of req.global_steps ?? [])
+    if (globalIndex(rule.id) < 0) reasons.push(`no ${rule.id} step`);
+  for (const [a, b] of req.global_steps_order ?? []) {
+    const ia = globalIndex(a);
+    const ib = globalIndex(b);
+    if (ia >= 0 && ib >= 0 && ia > ib) reasons.push(`${b} before ${a}`);
+  }
+  for (const [itemStep, globalStep] of req.item_before_global ?? []) {
+    const rule = req.steps.find((r) => r.id === itemStep);
+    const ig = globalIndex(globalStep);
+    if (!rule || ig < 0) continue;
+    for (const item of req.items) {
+      const ii = firstIndex(item, rule);
+      if (ii > ig) reasons.push(`${globalStep} before ${item}: ${itemStep}`);
+    }
+  }
+  for (const [globalStep, itemStep] of req.global_before_item ?? []) {
+    const rule = req.steps.find((r) => r.id === itemStep);
+    const ig = globalIndex(globalStep);
+    if (!rule || ig < 0) continue;
+    for (const item of req.items) {
+      const ii = firstIndex(item, rule);
+      if (ii >= 0 && ii < ig)
+        reasons.push(`${item}: ${itemStep} before ${globalStep}`);
+    }
   }
 
   // 3. owner: the actor of the item's first step (its claim) does all its work.
@@ -181,7 +233,18 @@ if (
   process.argv[1] &&
   import.meta.url.endsWith(process.argv[1].split('/').pop() ?? '')
 ) {
-  const [dir, prefix, flag, out] = process.argv.slice(2);
+  const args = process.argv.slice(2);
+  const option = (name: string) => {
+    const i = args.indexOf(name);
+    return i >= 0 ? args.splice(i, 2)[1] : undefined;
+  };
+  const out = option('--json');
+  const examples = option('--examples') ?? DEFAULT_EXAMPLES;
+  const [dir, prefix] = args;
+  // Longest name first, so `docs-review-guided` wins over `docs-review`.
+  const exampleNames = readdirSync(examples)
+    .filter((e) => existsSync(join(examples, e, 'required.json')))
+    .sort((a, b) => b.length - a.length);
   const rows: Array<{
     label: string;
     example: string;
@@ -192,10 +255,10 @@ if (
     .filter((f) => f.startsWith(`run-${prefix}`) && f.endsWith('.json'))
     .sort()) {
     const label = file.slice(4, -5);
-    const example = EXAMPLE_NAMES.find((e) => label.includes(`-${e}-`));
+    const example = exampleNames.find((e) => label.includes(`-${e}-`));
     if (!example) continue;
     const req = JSON.parse(
-      readFileSync(join(EXAMPLES, example, 'required.json'), 'utf8'),
+      readFileSync(join(examples, example, 'required.json'), 'utf8'),
     ) as Required;
     const run = JSON.parse(readFileSync(join(dir, file), 'utf8')) as Run;
     const { pass, reasons } = scoreRun(run, req);
@@ -204,6 +267,5 @@ if (
       `${pass ? 'PASS' : 'fail'}  ${label.padEnd(34)} ${reasons.slice(0, 3).join(' | ')}\n`,
     );
   }
-  if (flag === '--json' && out)
-    writeFileSync(out, JSON.stringify(rows, null, 2));
+  if (out) writeFileSync(out, JSON.stringify(rows, null, 2));
 }
