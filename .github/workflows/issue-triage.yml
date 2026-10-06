@@ -1,103 +1,113 @@
 name: Issue Triage
 
+# The issue text is passed as inert evidence to a tool-free MoltNet task. Only
+# this trusted workflow changes labels or comments after validating its result.
 on:
   issues:
     types: [opened, edited, labeled]
   schedule:
-    # Periodic sweep for issues updated outside standard events
     - cron: '0 */6 * * *'
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
-  triage-single:
-    if: github.event_name == 'issues'
+  discover:
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'issues' &&
+       (github.event.action != 'labeled' ||
+        (github.event.label.name != 'needs-spec' &&
+         github.event.label.name != 'ready-for-agent')))
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read
+    outputs:
+      issues: ${{ steps.issues.outputs.issues }}
+    steps:
+      - name: Select issues
+        id: issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = schedule ]; then
+            issues=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+              --label needs-spec --limit 20 --json number | jq -c 'map(.number)')
+          else
+            issues=$(jq -cn --argjson number "$ISSUE_NUMBER" '[$number]')
+          fi
+          echo "issues=$issues" >> "$GITHUB_OUTPUT"
+
+  triage:
+    needs: discover
+    if: needs.discover.outputs.issues != '[]'
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        issue: ${{ fromJSON(needs.discover.outputs.issues) }}
+    concurrency:
+      group: issue-triage-${{ matrix.issue }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    environment: legreffier
     permissions:
       contents: read
-      issues: write
-      pull-requests: read
-      id-token: write
+      issues: read
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          fetch-depth: 1
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
 
-      - name: Triage issue
-        uses: anthropics/claude-code-action@86d88e619d8e6caf07b5c3944dd14f441c533718 # v1
+      - name: Prepare issue evidence and task contract
+        id: prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ matrix.issue }}
+          SWEEP: ${{ github.event_name == 'schedule' }}
+        run: node .github/scripts/issue-triage.mjs prepare
+
+      # Register the profile and its input-only policy on the team before use.
+      - name: Assess the issue with MoltNet
+        id: task
+        if: steps.prepare.outputs.eligible == 'true'
+        uses: ./packages/agent-daemon-action
+        env:
+          MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+          MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
+          MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
+          MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
+          MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
+          MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
         with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          allowed_bots: 'claude[bot]'
-          additional_permissions: |
-            issues: write
-          claude_args: |
-            --max-turns 6 --allowedTools "Bash(gh issue edit*),Bash(gh issue view*),Bash(gh issue comment*)"
-          prompt: |
-            Triage issue #${{ github.event.issue.number }}.
+          task-spec-path: ${{ steps.prepare.outputs.spec }}
+          profile: legreffier-issue-triage-v1
+          providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
+          running-timeout-sec: '240'
+          max-attempts: '1'
 
-            Step 1: Fetch the issue (one call only):
-            gh issue view ${{ github.event.issue.number }}
-
-            Step 2: Evaluate these 5 quality criteria as pass/fail:
-            1. Acceptance criteria — has "Done when", checklist, or acceptance criteria section
-            2. Context files — references specific repo paths (e.g. `libs/auth/`, `apps/rest-api/src/`)
-            3. Dependencies declared — lists deps (e.g. "Depends on #42") or states "No dependencies"
-            4. Single responsibility — one coherent task, not multiple unrelated changes
-            5. Scoped effort — achievable in one agent session (1-4 hours)
-
-            Step 3: Apply labels and comment based on results.
-
-            If ALL 5 pass, run these commands:
-            gh issue edit ${{ github.event.issue.number }} --add-label "ready-for-agent" --remove-label "needs-spec"
-            gh issue comment ${{ github.event.issue.number }} --body "Triage: all quality criteria pass. Ready for agent pickup. <criteria results>"
-
-            If ANY fail, run these commands:
-            gh issue edit ${{ github.event.issue.number }} --add-label "needs-spec" --remove-label "ready-for-agent"
-            gh issue comment ${{ github.event.issue.number }} --body "Triage: this issue needs more detail. <criteria results with what's missing>"
-
-  triage-sweep:
-    if: github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-      issues: write
-      pull-requests: read
-      id-token: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Mint issue-writing App token
+        id: app-token
+        if: steps.task.outputs.task-id != ''
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          fetch-depth: 1
+          client-id: ${{ vars.MOLTNET_GITHUB_APP_ID }}
+          private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
+          repositories: ${{ github.event.repository.name }}
+          permission-issues: write
 
-      - name: Sweep issues needing re-triage
-        uses: anthropics/claude-code-action@86d88e619d8e6caf07b5c3944dd14f441c533718 # v1
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          allowed_bots: 'claude[bot]'
-          additional_permissions: |
-            issues: write
-          claude_args: |
-            --max-turns 10 --allowedTools "Bash(gh issue list*),Bash(gh issue edit*),Bash(gh issue view*),Bash(gh issue comment*)"
-          prompt: |
-            Periodic sweep of issues needing re-triage.
-
-            Step 1: List open issues with needs-spec label:
-            gh issue list --state open --label "needs-spec" --limit 20 --json number,title,updatedAt
-
-            Step 2: For each issue, run: gh issue view <number>
-            Check if it now meets all 5 quality criteria:
-            1. Acceptance criteria (has "Done when" / checklist)
-            2. Context files (references repo paths)
-            3. Dependencies declared
-            4. Single responsibility
-            5. Scoped effort (1-4 hours)
-
-            Step 3: For issues that now pass all criteria:
-            gh issue edit <number> --add-label "ready-for-agent" --remove-label "needs-spec"
-            gh issue comment <number> --body "Re-triage: all criteria now pass. Ready for agent pickup."
-
-            Skip issues that still fail criteria. Only re-check needs-spec issues.
+      - name: Apply validated result
+        if: steps.task.outputs.task-id != ''
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          SNAPSHOT: ${{ steps.prepare.outputs.snapshot }}
+          TASK_ID: ${{ steps.task.outputs.task-id }}
+          SWEEP: ${{ github.event_name == 'schedule' }}
+          MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+          MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
+          MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
+        run: node .github/scripts/issue-triage.mjs publish
