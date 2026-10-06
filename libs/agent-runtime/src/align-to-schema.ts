@@ -41,6 +41,8 @@ function valid(schema: TSchema, value: unknown): boolean {
   }
 }
 
+const SCALAR_TYPES = new Set(['number', 'integer', 'boolean', 'null']);
+
 function admitsJsonType(declared: unknown[], value: unknown): boolean {
   const types = declared.filter((type) => typeof type === 'string');
   if (types.length === 0) return true;
@@ -93,11 +95,22 @@ function align(
   const repairs: SchemaAlignmentRepair[] = [];
 
   if (typeof current === 'string' && !admitsString) {
+    // Lenient JSON syntax repair is for structured values. A scalar target
+    // decodes strictly, so JSON5-only forms such as "0x10" or "+.5" stay
+    // invalid instead of silently becoming numbers.
+    const scalarOnly =
+      declared.length > 0 &&
+      declared.every(
+        (type) => typeof type === 'string' && SCALAR_TYPES.has(type),
+      );
+    const strict = () => ({
+      value: JSON.parse(current as string) as unknown,
+      repairs: [] as JsonSyntaxRepairKind[],
+    });
     try {
-      const parsed = options.parseJsonString?.(current) ?? {
-        value: JSON.parse(current) as unknown,
-        repairs: [],
-      };
+      const parsed = scalarOnly
+        ? strict()
+        : (options.parseJsonString?.(current) ?? strict());
       // A decode must produce a value of a declared JSON type. Otherwise a
       // string such as "null" becomes null and a later coercion step can turn
       // it into 0, false or "". Array targets validate their own wrapping.
@@ -115,6 +128,16 @@ function align(
   }
 
   if (shape.type === 'array') {
+    // A string the items accept as written beats its JSON decode: for
+    // array<string>, "123" means ["123"], not [123].
+    if (
+      typeof value === 'string' &&
+      current !== value &&
+      !Array.isArray(current) &&
+      valid(schema, [value])
+    ) {
+      return { value: [value], repairs: [{ kind: 'single_to_array', path }] };
+    }
     if (!Array.isArray(current)) {
       current = [current];
       repairs.push({ kind: 'single_to_array', path });

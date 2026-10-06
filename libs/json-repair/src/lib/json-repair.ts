@@ -74,6 +74,13 @@ function tokenize(source: string): Token[] | null {
   return tokens;
 }
 
+/**
+ * Largest input the missing-comma repair scans. Strict JSON and JSON5 parsing
+ * still run on larger input; only the structural repair is skipped, so model
+ * output cannot make it hold the event loop.
+ */
+export const MAX_COMMA_REPAIR_CHARS = 256 * 1024;
+
 /** Insert a comma only between a completed object value and the next key. */
 function insertMissingObjectCommas(source: string): string | null {
   const tokens = tokenize(source);
@@ -121,11 +128,15 @@ function insertMissingObjectCommas(source: string): string | null {
     }
   }
   if (insertAt.length === 0) return null;
-  let repaired = source;
-  for (const position of insertAt.reverse()) {
-    repaired = `${repaired.slice(0, position)},${repaired.slice(position)}`;
+  // One pass over ascending insertion points keeps the rebuild linear.
+  const parts: string[] = [];
+  let from = 0;
+  for (const position of insertAt) {
+    parts.push(source.slice(from, position), ',');
+    from = position;
   }
-  return repaired;
+  parts.push(source.slice(from));
+  return parts.join('');
 }
 
 function parseCandidate(source: string): ParsedCompleteValue | null {
@@ -141,6 +152,7 @@ function parseCandidate(source: string): ParsedCompleteValue | null {
   } catch {
     // Try one conservative structural repair next.
   }
+  if (source.length > MAX_COMMA_REPAIR_CHARS) return null;
   const withCommas = insertMissingObjectCommas(source);
   if (!withCommas) return null;
   try {
