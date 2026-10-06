@@ -39,7 +39,10 @@ import {
 } from '@themoltnet/agent-runtime';
 import { type TObject, type TSchema } from 'typebox';
 
-import { recordTaskOutputParseResult } from './task-output.js';
+import {
+  recordTaskOutputParseResult,
+  recordTaskOutputRepairs,
+} from './task-output.js';
 
 interface SubmitOutputDetails {
   captured: boolean;
@@ -296,6 +299,7 @@ class SubmitArgumentsRejectedError extends Error {
   constructor(
     readonly candidate: unknown,
     readonly piError: unknown,
+    readonly repairs: SubmitRepair[],
   ) {
     super(piError instanceof Error ? piError.message : String(piError));
     this.name = 'SubmitArgumentsRejectedError';
@@ -305,6 +309,10 @@ class SubmitArgumentsRejectedError extends Error {
 /** The value validation feedback should describe after a normalization throw. */
 function rejectedCandidate(error: unknown, raw: unknown): unknown {
   return error instanceof SubmitArgumentsRejectedError ? error.candidate : raw;
+}
+
+function rejectedRepairs(error: unknown): SubmitRepair[] {
+  return error instanceof SubmitArgumentsRejectedError ? error.repairs : [];
 }
 
 function rejectedPiError(error: unknown): unknown {
@@ -347,7 +355,7 @@ function normalizeSubmitArguments(
       },
     ) as Record<string, unknown>;
   } catch (error) {
-    throw new SubmitArgumentsRejectedError(candidate, error);
+    throw new SubmitArgumentsRejectedError(candidate, error, repairs);
   }
   if (JSON.stringify(piNormalized) !== JSON.stringify(candidate)) {
     repairs.push({ kind: 'pi_schema_coercion', path: '' });
@@ -381,9 +389,23 @@ export function createSubmitOutputTool(
 
   const recordInvalidCall = (
     candidate: unknown,
-    piError?: unknown,
-    source: SubmitOutputSource = 'submit_tool',
+    {
+      piError,
+      source = 'submit_tool',
+      repairs = [],
+    }: {
+      piError?: unknown;
+      source?: SubmitOutputSource;
+      /** Repairs applied before validation still failed. */
+      repairs?: SubmitRepair[];
+    } = {},
   ): string => {
+    recordTaskOutputRepairs({
+      taskType,
+      model: opts.model,
+      repairs,
+      outcome: 'rejected',
+    });
     const label =
       source === 'final_message'
         ? `invalid final message ${(invalidFinalMessageCount += 1)}`
@@ -451,10 +473,10 @@ export function createSubmitOutputTool(
         return prepared;
       } catch (error) {
         throw new Error(
-          recordInvalidCall(
-            rejectedCandidate(error, args),
-            rejectedPiError(error),
-          ),
+          recordInvalidCall(rejectedCandidate(error, args), {
+            piError: rejectedPiError(error),
+            repairs: rejectedRepairs(error),
+          }),
         );
       }
     },
@@ -504,10 +526,10 @@ export function createSubmitOutputTool(
               opts,
             );
       } catch (error) {
-        const message = recordInvalidCall(
-          rejectedCandidate(error, params),
-          rejectedPiError(error),
-        );
+        const message = recordInvalidCall(rejectedCandidate(error, params), {
+          piError: rejectedPiError(error),
+          repairs: rejectedRepairs(error),
+        });
         return {
           content: [{ type: 'text' as const, text: message }],
           details: {
@@ -527,7 +549,9 @@ export function createSubmitOutputTool(
         { inputCid: opts.inputCid },
       );
       if (errors.length > 0) {
-        const message = recordInvalidCall(candidateParams);
+        const message = recordInvalidCall(candidateParams, {
+          repairs: normalized.repairs,
+        });
         const details: SubmitOutputDetails = {
           captured: false,
           callCount,
@@ -577,6 +601,10 @@ export function createSubmitOutputTool(
     const json = extractFinalMessageJson(text);
     const parsed = json === null ? null : parseCompleteJsonValue(json);
     if (!parsed || !isRecord(parsed.value)) return 'not_json';
+    const syntaxRepairs: SubmitRepair[] = parsed.repairs.map((kind) => ({
+      kind,
+      path: '',
+    }));
     let normalized: { candidate: unknown; repairs: SubmitRepair[] };
     try {
       normalized = normalizeSubmitArguments(
@@ -588,11 +616,11 @@ export function createSubmitOutputTool(
         opts,
       );
     } catch (error) {
-      recordInvalidCall(
-        rejectedCandidate(error, parsed.value),
-        rejectedPiError(error),
-        'final_message',
-      );
+      recordInvalidCall(rejectedCandidate(error, parsed.value), {
+        piError: rejectedPiError(error),
+        source: 'final_message',
+        repairs: [...syntaxRepairs, ...rejectedRepairs(error)],
+      });
       return 'invalid';
     }
     const errors = validateAgentTaskSubmission(
@@ -602,14 +630,14 @@ export function createSubmitOutputTool(
       { inputCid: opts.inputCid },
     );
     if (errors.length > 0) {
-      recordInvalidCall(normalized.candidate, undefined, 'final_message');
+      recordInvalidCall(normalized.candidate, {
+        source: 'final_message',
+        repairs: [...syntaxRepairs, ...normalized.repairs],
+      });
       return 'invalid';
     }
     captured = normalized.candidate as Record<string, unknown>;
-    capturedRepairs = [
-      ...parsed.repairs.map((kind) => ({ kind, path: '' })),
-      ...normalized.repairs,
-    ];
+    capturedRepairs = [...syntaxRepairs, ...normalized.repairs];
     capturedSource = 'final_message';
     return 'captured';
   };

@@ -246,6 +246,7 @@ import {
   recordTaskOutputParseResult,
   recordTaskOutputRepairs,
   recordTaskOutputTelemetryAnomaly,
+  summarizeRepairs,
 } from './task-output.js';
 import { prepareTaskWorkspace } from './task-workspace.js';
 
@@ -2076,23 +2077,24 @@ export async function executePiTask(
       }
       if (parsedOutput && !parseError) {
         const outputSource = captured.source ?? 'submit_tool';
-        const repairs = captured.repairs ?? [];
-        const repairKinds = repairs.map((repair) => repair.kind);
+        const summary = summarizeRepairs(captured.repairs ?? []);
         await traceRuntimePhase(
           'moltnet.execution.output.complete',
           {
             'moltnet.task.output_source': outputSource,
-            'moltnet.task.output_repair_kinds': repairKinds,
-            'moltnet.task.output_repairs': repairs.map((repair) =>
+            'moltnet.task.output_repair_kinds': summary.kinds,
+            'moltnet.task.output_repairs': summary.repairs.map((repair) =>
               JSON.stringify(repair),
             ),
+            'moltnet.task.output_repairs_truncated': summary.truncated,
           },
           () =>
             emit('info', {
               event: 'output_completion',
               output_source: outputSource,
-              repair_kinds: repairKinds,
-              repairs,
+              repair_kinds: summary.kinds,
+              repairs: summary.repairs,
+              repairs_truncated: summary.truncated,
             }),
         );
       }
@@ -2631,7 +2633,12 @@ export async function captureAttemptOutput(
             : 'captured_via_tool',
       });
       const repairs = submitToolHandle.getCapturedRepairs?.() ?? [];
-      recordTaskOutputRepairs({ taskType, model, repairs });
+      recordTaskOutputRepairs({
+        taskType,
+        model,
+        repairs,
+        outcome: 'accepted',
+      });
       return {
         output: captured,
         outputCid,
