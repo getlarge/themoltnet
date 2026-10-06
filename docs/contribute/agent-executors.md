@@ -166,10 +166,6 @@ Codes:
 - `output_validation_failed` — submit-tool args failed schema validation.
 - `output_cid_compute_failed` — output validated but `computeJsonCid` threw.
 
-#2641 removed the `success` and `unknown_task_type` codes. A query or monitor
-that divides by `code="success"` now reads zero; use `captured_via_tool` and
-`captured_via_final_message` as the success signal.
-
 The counter resolves off the global `MeterProvider`, so the existing OTLP→Axiom
 pipeline picks it up without per-call wiring. Use it to monitor the submit-tool
 flow: a healthy task type should be dominated by `captured_via_tool` with
@@ -231,9 +227,7 @@ The repair kinds are defined once in `@moltnet/tasks`
 | `pi_schema_coercion`       | Executor: Pi's tool-schema validator coerced the value      |
 
 `optional_null` and `submit_gate_verification` are protocol repairs and do not
-count against a model's submit shape in evals. #2641 renamed
-`json_string_fields` to `json_string` and `artifact_shape` to `single_to_array`;
-update queries keyed on the old values.
+count against a model's submit shape in evals.
 
 The `moltnet.execution.output.complete` span and the `output_completion` task
 message report the accepted payload's repairs. `repair_kinds` lists each kind
