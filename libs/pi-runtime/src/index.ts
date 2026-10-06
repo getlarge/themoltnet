@@ -1,3 +1,10 @@
+export { createDurableTaskExecutor } from './durable-executor.js';
+export {
+  ApiDurableStorage,
+  type DurableStoreTransport,
+  type RuntimeCommit,
+} from './durable-storage.js';
+export { acquireDurableTransport } from './durable-transport.js';
 export { createGondolinToolDefinitions } from './gondolin-tools.js';
 export {
   agentSigningCapability,
