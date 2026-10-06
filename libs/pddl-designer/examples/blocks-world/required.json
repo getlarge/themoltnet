@@ -1,0 +1,17 @@
+{
+  "actor_type": null,
+  "global_order": [["stack:b", "stack:a"]],
+  "items": ["a", "b"],
+  "note": "Pre-registered before the gpt-oss vs Codex eval. Steps match action names (case-insensitive regex). Blocks are judged per moved block; block c never moves.",
+  "order": [["pick-up", "stack"]],
+  "produced_types": [],
+  "steps": [
+    { "id": "pick-up", "match": "pick|lift|unstack|take", "sentences": [3] },
+    {
+      "exclude": "unstack",
+      "id": "stack",
+      "match": "stack|place-on-block|put-down-on-block|put-on-block|onto",
+      "sentences": [1, 3]
+    }
+  ]
+}

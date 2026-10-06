@@ -1,0 +1,64 @@
+{
+  "actor_type": "coder",
+  "global_order": [],
+  "items": ["issue-101", "issue-102"],
+  "note": "Pre-registered before the gpt-oss vs Codex eval. Every step is required once per issue, by the coder that claimed it. Patches are not described as single-use, so only commits and pull requests count as produced objects that must not serve two issues.",
+  "order": [
+    ["claim", "worktree"],
+    ["worktree", "patch"],
+    ["patch", "tests"],
+    ["tests", "commit"],
+    ["commit", "open-pr"],
+    ["open-pr", "ready"],
+    ["ready", "approve"],
+    ["approve", "merge"]
+  ],
+  "produced_types": ["commit", "pull-request", "pr"],
+  "steps": [
+    {
+      "id": "claim",
+      "match": "claim",
+      "sentences": [2]
+    },
+    {
+      "id": "worktree",
+      "match": "worktree",
+      "sentences": [3]
+    },
+    {
+      "id": "patch",
+      "match": "patch",
+      "sentences": [4]
+    },
+    {
+      "id": "tests",
+      "match": "test",
+      "sentences": [4, 5]
+    },
+    {
+      "id": "commit",
+      "match": "commit",
+      "sentences": [7]
+    },
+    {
+      "id": "open-pr",
+      "match": "open|draft",
+      "sentences": [8]
+    },
+    {
+      "id": "ready",
+      "match": "ready",
+      "sentences": [8]
+    },
+    {
+      "id": "approve",
+      "match": "approve|review",
+      "sentences": [9]
+    },
+    {
+      "id": "merge",
+      "match": "merge",
+      "sentences": [10]
+    }
+  ]
+}

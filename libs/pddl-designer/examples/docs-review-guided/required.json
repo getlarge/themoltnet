@@ -1,0 +1,51 @@
+{
+  "actor_type": null,
+  "forbidden": "only|after-ingest|no-docs|no-passage|no-docs-check|without-docs",
+  "global_order": [],
+  "items": ["pr-42"],
+  "note": "Pre-registered before the gpt-oss vs Codex eval. pr-42 changed source code and adds documentation, so the docs-only and no-docs branches must not be used.",
+  "order": [
+    ["ingest", "extract"],
+    ["extract", "retrieve"],
+    ["retrieve", "coverage"],
+    ["retrieve", "docs-check"],
+    ["coverage", "publish"],
+    ["docs-check", "publish"]
+  ],
+  "produced_types": [],
+  "steps": [
+    {
+      "id": "ingest",
+      "match": "ingest",
+      "sentences": [2]
+    },
+    {
+      "id": "extract",
+      "match": "extract",
+      "sentences": [3]
+    },
+    {
+      "exclude": "only|after-ingest|no-changes",
+      "id": "retrieve",
+      "match": "retriev",
+      "sentences": [4]
+    },
+    {
+      "id": "coverage",
+      "match": "coverage",
+      "sentences": [5]
+    },
+    {
+      "exclude": "no-docs|no-passage|not-needed|complete|finish|finalize|mark",
+      "id": "docs-check",
+      "match": "docs?-check|check-docs|passage",
+      "sentences": [6]
+    },
+    {
+      "exclude": "no-docs|no-passage|no-docs-check|without",
+      "id": "publish",
+      "match": "publish|resolve",
+      "sentences": [9]
+    }
+  ]
+}
