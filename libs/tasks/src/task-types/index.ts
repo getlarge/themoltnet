@@ -15,6 +15,12 @@ import {
   validateAssessBriefInputAsync,
 } from './assess-brief.js';
 import {
+  CLASSIFY_TYPE,
+  ClassifyInput,
+  ClassifyOutput,
+  validateClassifyOutput,
+} from './classify.js';
+import {
   CURATE_PACK_TYPE,
   CuratePackInput,
   CuratePackOutput,
@@ -70,6 +76,7 @@ import {
 } from './run-eval.js';
 
 export * from './assess-brief.js';
+export * from './classify.js';
 export * from './curate-pack.js';
 export * from './freeform.js';
 export * from './fulfill-brief.js';
@@ -259,6 +266,15 @@ function requireVerificationWhenCriteriaPresent(
  * / claiming a task.
  */
 export const BUILT_IN_TASK_TYPES = {
+  [CLASSIFY_TYPE]: {
+    name: CLASSIFY_TYPE,
+    inputSchema: ClassifyInput,
+    outputSchema: ClassifyOutput,
+    outputKind: 'artifact',
+    sessionScope: 'none',
+    requiresReferences: false,
+    validateOutput: validateClassifyOutput,
+  },
   [FREEFORM_TYPE]: {
     name: FREEFORM_TYPE,
     inputSchema: FreeformInput,

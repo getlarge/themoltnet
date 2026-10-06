@@ -142,6 +142,8 @@ export interface SecurityOptions {
   rateLimitTaskArtifactUpload: number;
   /** Shared per-identity budget for authenticated GET reads (default: 150). */
   rateLimitGlobalRead: number;
+  rateLimitRuntimeStore?: number;
+  rateLimitRuntimeStoreIp?: number;
   /**
    * Coarse per-IP ceiling applied before auth-context resolution (anti-
    * amplification guard for Hydra/Kratos). Generous; not the per-principal
@@ -348,6 +350,7 @@ export async function registerApiRoutes(
   // the identity limiter (which runs after resolution) can throttle it.
   registerPreResolveThrottle(app, {
     preResolveIpLimit: options.security.rateLimitPreResolveIp,
+    runtimeStoreIpLimit: options.security.rateLimitRuntimeStoreIp,
     oauthApprovalIpLimit: options.security.rateLimitOauthApprovalIp,
     allowList: options.security.rateLimitAllowList,
     clientIpHeader: options.security.rateLimitClientIpHeader,
@@ -429,6 +432,7 @@ export async function registerApiRoutes(
     readinessLimit: options.security.rateLimitReadiness,
     taskArtifactUploadLimit: options.security.rateLimitTaskArtifactUpload,
     readLimit: options.security.rateLimitGlobalRead,
+    runtimeStoreLimit: options.security.rateLimitRuntimeStore,
     redis: options.rateLimitRedis,
     allowList: options.security.rateLimitAllowList,
     clientIpHeader: options.security.rateLimitClientIpHeader,

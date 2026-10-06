@@ -230,6 +230,15 @@ export type RuntimeProfileMaxBashTimeouts = Static<
   typeof RuntimeProfileMaxBashTimeouts
 >;
 
+export const RuntimeProfileClassifier = Type.Object(
+  {
+    provider: Type.String({ minLength: 1, maxLength: 100 }),
+    model: Type.String({ minLength: 1, maxLength: 200 }),
+  },
+  { additionalProperties: false },
+);
+export type RuntimeProfileClassifier = Static<typeof RuntimeProfileClassifier>;
+
 export const RuntimeProfile = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
@@ -238,6 +247,9 @@ export const RuntimeProfile = Type.Object(
     description: Type.Union([Type.String({ maxLength: 4096 }), Type.Null()]),
     provider: Type.String({ minLength: 1, maxLength: 100 }),
     model: Type.String({ minLength: 1, maxLength: 200 }),
+    classifier: Type.Optional(
+      Type.Union([RuntimeProfileClassifier, Type.Null()]),
+    ),
     thinkingLevel: RuntimeProfileNullableThinkingLevel,
     temperature: RuntimeProfileNullableTemperature,
     topP: RuntimeProfileNullableTopP,
@@ -279,6 +291,7 @@ export interface RuntimeProfileDefinitionInput {
   description?: string | null;
   provider: string;
   model: string;
+  classifier?: RuntimeProfileClassifier | null;
   thinkingLevel?: string | null;
   temperature?: number | null;
   topP?: number | null;
@@ -311,6 +324,14 @@ export function runtimeProfileDefinitionPayload(
     description: input.description ?? null,
     provider: input.provider.toLowerCase(),
     model: input.model.toLowerCase(),
+    ...(input.classifier
+      ? {
+          classifier: {
+            provider: input.classifier.provider.toLowerCase(),
+            model: input.classifier.model.toLowerCase(),
+          },
+        }
+      : {}),
     thinkingLevel: input.thinkingLevel ?? null,
     temperature: input.temperature ?? null,
     topP: input.topP ?? null,

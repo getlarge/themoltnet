@@ -21,6 +21,7 @@ export type UpdateRuntimeProfileInput = Partial<
     | 'description'
     | 'provider'
     | 'model'
+    | 'classifier'
     | 'runtimeKind'
     | 'sandbox'
     | 'defaultWorkspaceMode'

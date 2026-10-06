@@ -25,6 +25,7 @@ function mockProfile(overrides: Partial<RuntimeProfile> = {}): RuntimeProfile {
     description: 'Linear triage and GitHub implementation profile',
     provider: 'anthropic',
     model: 'claude-sonnet-4-5',
+    classifier: null,
     thinkingLevel: null,
     temperature: null,
     topP: null,
@@ -561,6 +562,38 @@ describe('runtime profile routes', () => {
       }),
     );
   });
+
+  it.each([
+    [
+      { classifier: { provider: 'Team', model: 'Decisions' } },
+      { provider: 'team', model: 'decisions' },
+    ],
+    [{ classifier: null }, null],
+    [{ description: 'Updated' }, { provider: 'team', model: 'old' }],
+  ])(
+    'updates or preserves classifier selection with %j',
+    async (payload, classifier) => {
+      mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
+      mocks.runtimeProfileRepository.findById.mockResolvedValue(
+        mockProfile({ classifier: { provider: 'team', model: 'old' } }),
+      );
+      mocks.runtimeProfileRepository.update.mockResolvedValue(
+        mockProfile({ classifier }),
+      );
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/runtime-profiles/${PROFILE_ID}`,
+        headers: { authorization: 'Bearer test-token' },
+        payload,
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json().classifier).toEqual(classifier);
+      expect(mocks.runtimeProfileRepository.update).toHaveBeenCalledWith(
+        PROFILE_ID,
+        expect.objectContaining({ classifier, model: 'claude-sonnet-4-5' }),
+      );
+    },
+  );
 
   it('preserves model options when update omits them', async () => {
     mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);

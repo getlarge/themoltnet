@@ -295,7 +295,15 @@ export interface MockServices {
     [K in keyof RuntimeProfileRepository]: ReturnType<typeof vi.fn>;
   };
   runtimeSessionRepository: {
-    [K in keyof RuntimeSessionRepository]: ReturnType<typeof vi.fn>;
+    [K in Exclude<keyof RuntimeSessionRepository, 'durable'>]: ReturnType<
+      typeof vi.fn
+    >;
+  } & {
+    durable: {
+      [K in keyof RuntimeSessionRepository['durable']]: ReturnType<
+        typeof vi.fn
+      >;
+    };
   };
   runtimeSessionStorage: {
     [K in keyof RuntimeSessionStorage]: ReturnType<typeof vi.fn>;
@@ -691,6 +699,19 @@ export function createMockServices(): MockServices {
       findByIdInTeam: vi.fn(),
     },
     runtimeSessionRepository: {
+      durable: {
+        lockAuthority: vi.fn(),
+        findAttempt: vi.fn(),
+        listAttempts: vi.fn(),
+        bindAttempt: vi.fn(),
+        create: vi.fn(),
+        lock: vi.fn(),
+        get: vi.fn(),
+        update: vi.fn(),
+        findCommit: vi.fn(),
+        append: vi.fn(),
+        listCommits: vi.fn(),
+      },
       upsertActive: vi.fn(),
       findActiveByTaskAttempt: vi.fn(),
       findByIdInTeam: vi.fn(),
