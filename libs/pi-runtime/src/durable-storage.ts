@@ -21,7 +21,10 @@ export interface DurableStoreTransport {
     this: void,
     afterSeq: number,
     context: Context,
-  ): Promise<{ headSeq: number; items: readonly RuntimeCommit[] }>;
+  ): Promise<{
+    headSeq: number;
+    items: Iterable<RuntimeCommit> | AsyncIterable<RuntimeCommit>;
+  }>;
   append(
     this: void,
     input: {
@@ -63,7 +66,8 @@ export class ApiDurableStorage extends MemoryStorage {
     try {
       for (;;) {
         const page = await transport.read(storage.head, context);
-        for (const commit of page.items) {
+        const previousHead = storage.head;
+        for await (const commit of page.items) {
           if (
             commit.seq !== storage.head + 1 ||
             digest(commit.writes) !== commit.sha256
@@ -73,7 +77,7 @@ export class ApiDurableStorage extends MemoryStorage {
           storage.head = commit.seq;
         }
         if (storage.head === page.headSeq) return storage;
-        if (page.items.length === 0 || storage.head > page.headSeq)
+        if (storage.head === previousHead || storage.head > page.headSeq)
           throw new Error('Incomplete runtime commit log');
       }
     } catch (error) {
@@ -110,9 +114,10 @@ export class ApiDurableStorage extends MemoryStorage {
         // A dropped acknowledgment may follow a successful commit. Inspect the
         // immutable log before deciding whether this process can continue.
         const page = await this.transport.read(this.head, context);
-        const committed = page.items.find(
-          (entry) => entry.commitId === request.commitId,
-        );
+        let committed: RuntimeCommit | undefined;
+        for await (const entry of page.items) {
+          if (entry.commitId === request.commitId) committed = entry;
+        }
         if (!committed || committed.sha256 !== digest(prepared.writes))
           throw error;
         seq = committed.seq;

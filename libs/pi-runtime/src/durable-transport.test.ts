@@ -62,3 +62,39 @@ it('does not turn a competing writer into a terminal task failure', async () => 
     }),
   ).rejects.toBeInstanceOf(TaskExecutionInterrupted);
 });
+
+it('fences the writer when a read body fails after headers', async () => {
+  const release = vi.fn(async () => {});
+  const writer = await acquireDurableTransport({
+    stores: {
+      open: async () => ({
+        storeId: 'store',
+        writerToken: 'writer',
+        writerExpiresAt: new Date(Date.now() + 30_000).toISOString(),
+      }),
+      read: async () => ({
+        headSeq: 1,
+        items: (async function* () {
+          yield { seq: 1, writes: [] };
+          throw new Error('truncated stream');
+        })(),
+      }),
+      release,
+    } as unknown as RuntimeSessionsNamespace,
+    claimed,
+    signal: new AbortController().signal,
+  });
+  try {
+    const page = await writer.transport.read(0, BACKGROUND_CONTEXT);
+    await expect(
+      (async () => {
+        for await (const _ of page.items) {
+          /* consume */
+        }
+      })(),
+    ).rejects.toBeInstanceOf(TaskExecutionInterrupted);
+    expect(writer.signal.aborted).toBe(true);
+  } finally {
+    await writer.transport.close(BACKGROUND_CONTEXT);
+  }
+});

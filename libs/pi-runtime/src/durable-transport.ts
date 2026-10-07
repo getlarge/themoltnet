@@ -88,7 +88,18 @@ export async function acquireDurableTransport(input: {
           fail(error);
           throw lost.signal.reason;
         });
-      return { ...page, items: page.items as unknown as RuntimeCommit[] };
+      async function* items(): AsyncGenerator<RuntimeCommit> {
+        try {
+          for await (const commit of page.items) {
+            check();
+            yield commit as unknown as RuntimeCommit;
+          }
+        } catch (error) {
+          fail(error);
+          throw lost.signal.reason;
+        }
+      }
+      return { headSeq: page.headSeq, items: items() };
     },
     async append(commit, context) {
       check();

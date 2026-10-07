@@ -88,4 +88,36 @@ describe('remote commit recovery', () => {
     expect(transport.onUncertainCommit).toHaveBeenCalledOnce();
     await storage.close(BACKGROUND_CONTEXT);
   });
+  it('replays an asynchronous page and rejects a stream interrupted after a commit', async () => {
+    const { transport, commits } = remoteLog();
+    const first = await ApiDurableStorage.open(transport, BACKGROUND_CONTEXT);
+    const id = await first.mintId<ConversationId>();
+    await first.commit(
+      [{ type: 'conversation', value: { id } }],
+      BACKGROUND_CONTEXT,
+    );
+    await first.close(BACKGROUND_CONTEXT);
+    transport.read = async () => ({
+      headSeq: 1,
+      items: (async function* () {
+        yield commits[0];
+      })(),
+    });
+    const replayed = await ApiDurableStorage.open(
+      transport,
+      BACKGROUND_CONTEXT,
+    );
+    expect(await replayed.conversation(id, BACKGROUND_CONTEXT)).toEqual({ id });
+    await replayed.close(BACKGROUND_CONTEXT);
+    transport.read = async () => ({
+      headSeq: 1,
+      items: (async function* () {
+        yield commits[0];
+        throw new Error('truncated stream');
+      })(),
+    });
+    await expect(
+      ApiDurableStorage.open(transport, BACKGROUND_CONTEXT),
+    ).rejects.toThrow('truncated stream');
+  });
 });
