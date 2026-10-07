@@ -4,10 +4,28 @@ import { describe, expect, it } from 'vitest';
 import {
   RuntimeProfile,
   runtimeProfileDefinitionPayload,
+  runtimeProfileModel,
+  RuntimeProfileModels,
   RuntimeProfileSandbox,
 } from './runtime-profiles.js';
 
 describe('RuntimeProfile contract', () => {
+  it('supports classification alone and rejects empty or legacy model configurations', () => {
+    const classification = { provider: 'team', model: 'decisions' };
+    expect(Value.Check(RuntimeProfileModels, { classification })).toBe(true);
+    expect(Value.Check(RuntimeProfileModels, {})).toBe(false);
+    expect(
+      Value.Check(RuntimeProfileModels, { provider: 'team', model: 'chat' }),
+    ).toBe(false);
+    expect(runtimeProfileModel({ classification }, 'classify')).toEqual(
+      classification,
+    );
+    expect(() => runtimeProfileModel({ classification }, 'judge')).toThrow();
+    expect(() =>
+      runtimeProfileModel({ generation: classification }, 'classify'),
+    ).toThrow();
+  });
+
   it('excludes local runtime-operation and storage fields', () => {
     expect(
       (RuntimeProfile as unknown as { additionalProperties: boolean })
@@ -29,18 +47,24 @@ describe('RuntimeProfile contract', () => {
   it('preserves legacy definitions without a classifier and hashes explicit selection', () => {
     const profile = {
       name: 'reviewer',
-      provider: 'chat-provider',
-      model: 'chat',
+      models: { generation: { provider: 'chat-provider', model: 'chat' } },
+
       sandbox: {},
     };
     const legacy = runtimeProfileDefinitionPayload(profile);
     expect(
-      runtimeProfileDefinitionPayload({ ...profile, classifier: null }),
+      runtimeProfileDefinitionPayload({
+        ...profile,
+        models: { ...profile.models },
+      }),
     ).toEqual(legacy);
     expect(legacy).not.toHaveProperty('classifier');
     const selected = runtimeProfileDefinitionPayload({
       ...profile,
-      classifier: { provider: 'Team', model: 'Decisions' },
+      models: {
+        ...profile.models,
+        classification: { provider: 'Team', model: 'Decisions' },
+      },
     });
     expect(selected).toEqual({
       ...legacy,
@@ -51,8 +75,10 @@ describe('RuntimeProfile contract', () => {
   it('hashes only the reduced behavioral definition', () => {
     const payload = runtimeProfileDefinitionPayload({
       name: 'reviewer',
-      provider: 'Anthropic',
-      model: 'Claude-Sonnet-4-5',
+      models: {
+        generation: { provider: 'Anthropic', model: 'Claude-Sonnet-4-5' },
+      },
+
       sandbox: {},
       maxTurns: 20,
       maxBashTimeouts: 2,

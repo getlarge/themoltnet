@@ -2,8 +2,8 @@ import { resolve } from 'node:path';
 
 import {
   type RuntimeProfileContext,
+  type RuntimeProfileModels,
   RuntimeProfileSandbox,
-  type RuntimeProfileThinkingLevel,
   type RuntimeProfileToolEnforcement,
   type RuntimeProfileWorkspaceMode,
 } from '@moltnet/runtime-profiles';
@@ -18,13 +18,7 @@ export interface ResolvedRuntimeProfile {
   teamId: string;
   runtimeKind: string;
   definitionCid: string;
-  provider: string;
-  model: string;
-  thinkingLevel: RuntimeProfileThinkingLevel | null;
-  temperature: number | null;
-  topP: number | null;
-  topK: number | null;
-  maxOutputTokens: number | null;
+  models: RuntimeProfileModels;
   maxTurns: number;
   maxBashTimeouts: number;
   defaultWorkspaceMode: RuntimeProfileWorkspaceMode | null;
@@ -97,13 +91,7 @@ export async function resolveRuntimeProfile(options: {
     teamId: profile.teamId,
     runtimeKind: profile.runtimeKind,
     definitionCid: profile.definitionCid,
-    provider: profile.provider,
-    model: profile.model,
-    thinkingLevel: profile.thinkingLevel ?? null,
-    temperature: profile.temperature ?? null,
-    topP: profile.topP ?? null,
-    topK: profile.topK ?? null,
-    maxOutputTokens: profile.maxOutputTokens ?? null,
+    models: profile.models,
     maxTurns: profile.maxTurns,
     maxBashTimeouts: profile.maxBashTimeouts,
     defaultWorkspaceMode: profile.defaultWorkspaceMode ?? null,
@@ -204,19 +192,5 @@ async function resolveProfileByName(options: {
         'Use the profile UUID instead.',
     );
   }
-  const profile = matches[0] as RuntimeProfile & {
-    thinkingLevel?: RuntimeProfileThinkingLevel | null;
-    temperature?: number | null;
-    topP?: number | null;
-    topK?: number | null;
-    maxOutputTokens?: number | null;
-  };
-  return {
-    ...profile,
-    thinkingLevel: profile.thinkingLevel ?? null,
-    temperature: profile.temperature ?? null,
-    topP: profile.topP ?? null,
-    topK: profile.topK ?? null,
-    maxOutputTokens: profile.maxOutputTokens ?? null,
-  };
+  return matches[0];
 }

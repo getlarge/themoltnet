@@ -66,15 +66,21 @@ function makeProfile(
     id,
     teamId: 'team-1',
     name,
-    provider: 'anthropic',
-    model: 'claude-opus',
+    models: {
+      generation: {
+        provider: 'anthropic',
+        model: 'claude-opus',
+        thinkingLevel: null,
+        temperature: null,
+        topP: null,
+        topK: null,
+        maxOutputTokens: null,
+      },
+    },
+
     runtimeKind: 'gondolin_pi',
     description: null,
-    thinkingLevel: null,
-    temperature: null,
-    topP: null,
-    topK: null,
-    maxOutputTokens: null,
+
     sandbox: {},
     defaultWorkspaceMode: null,
     allowedWorkspaceModes: ['none', 'shared_mount', 'dedicated_worktree'],
@@ -190,7 +196,7 @@ describe('ProfilesPage context editor', () => {
       ).map((option) => option.getAttribute('value')),
     ).toEqual(['anthropic', 'ollama', 'ollama-cloud']);
 
-    fireEvent.change(screen.getByLabelText('Provider'), {
+    fireEvent.change(screen.getByLabelText('Generation provider'), {
       target: { value: 'ollama-cloud' },
     });
     expect(
@@ -240,6 +246,36 @@ describe('ProfilesPage context editor', () => {
     expect(screen.getByText(/No context entries yet\./)).toBeInTheDocument();
   });
 
+  it('creates a classification-only profile without a generation model', async () => {
+    createRuntimeProfile.mockImplementation(
+      async ({ body }: { body: Record<string, unknown> }) => ({
+        data: { ...body, id: 'classifier-profile', revision: 1 },
+        error: null,
+      }),
+    );
+    renderPage();
+    fireEvent.change(await screen.findByLabelText('Name'), {
+      target: { value: 'classifier' },
+    });
+    fireEvent.change(screen.getByLabelText('Generation provider'), {
+      target: { value: '' },
+    });
+    fireEvent.change(screen.getByLabelText('Generation model'), {
+      target: { value: '' },
+    });
+    fireEvent.change(screen.getByLabelText('Classification provider'), {
+      target: { value: 'team' },
+    });
+    fireEvent.change(screen.getByLabelText('Classification model'), {
+      target: { value: 'decisions' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create profile' }));
+    await waitFor(() => expect(createRuntimeProfile).toHaveBeenCalledTimes(1));
+    expect(createRuntimeProfile.mock.calls[0][0].body.models).toEqual({
+      classification: { provider: 'team', model: 'decisions' },
+    });
+  });
+
   it('edits an entry and submits it in the create body', async () => {
     createRuntimeProfile.mockImplementation(
       async ({ body }: { body: Record<string, unknown> }) => ({
@@ -257,10 +293,10 @@ describe('ProfilesPage context editor', () => {
     fireEvent.change(screen.getByLabelText('Name'), {
       target: { value: 'eval-runner' },
     });
-    fireEvent.change(screen.getByLabelText('Provider'), {
+    fireEvent.change(screen.getByLabelText('Generation provider'), {
       target: { value: 'anthropic' },
     });
-    fireEvent.change(screen.getByLabelText('Model'), {
+    fireEvent.change(screen.getByLabelText('Generation model'), {
       target: { value: 'claude-opus' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Create profile' }));

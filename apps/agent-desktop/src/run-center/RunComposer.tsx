@@ -1188,8 +1188,11 @@ function ProfileInspector({
           columns={3}
           compact
           items={[
-            { label: 'Provider', value: profile.provider, mono: true },
-            { label: 'Model', value: profile.model, mono: true },
+            ...Object.entries(profile.models).map(([kind, model]) => ({
+              label: kind,
+              value: `${model.provider}/${model.model}`,
+              mono: true,
+            })),
             { label: 'Runtime', value: profile.runtimeKind, mono: true },
             {
               label: 'Tool policy',
@@ -1312,7 +1315,9 @@ function FallbackList({
                   </Text>
                   <Text as="span" variant="caption" color="muted" mono>
                     {profile
-                      ? `${profile.provider} · ${profile.model}`
+                      ? Object.values(profile.models)
+                          .map((model) => `${model.provider}/${model.model}`)
+                          .join(' · ')
                       : 'unknown profile'}
                   </Text>
                 </Stack>

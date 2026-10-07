@@ -10,6 +10,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import type { RuntimeProfileModels } from '@moltnet/runtime-profiles';
 import type { ProviderFailureProfileContext } from '@themoltnet/pi-runtime';
 import {
   parseSecretReferenceString,
@@ -68,7 +69,7 @@ export async function resolvePiAgentDir(
     'piCodingAgentDir' | 'agentServerRoot' | 'profilePrerequisiteEnv'
   >,
   agentRoot: string,
-  profiles: ReadonlyArray<{ provider: string }>,
+  profiles: ReadonlyArray<{ models: RuntimeProfileModels }>,
   options: ResolvePiAgentDirOptions = {},
 ): Promise<PiAgentDir> {
   const noop = () => undefined;
@@ -128,7 +129,11 @@ export async function resolvePiAgentDir(
         new FileSecretProvider({ root: store.secretsDir }),
       );
     const env: Record<string, string> = {};
-    for (const providerId of new Set(profiles.map((p) => p.provider))) {
+    for (const providerId of new Set(
+      profiles.flatMap((p) =>
+        Object.values(p.models).map((model) => model.provider),
+      ),
+    )) {
       const provider = providers[providerId];
       if (!provider?.apiKeyRef) continue;
       if (cfg.profilePrerequisiteEnv[provider.envName]) continue;

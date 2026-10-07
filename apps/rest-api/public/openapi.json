@@ -1941,33 +1941,6 @@
             "type": "array",
             "uniqueItems": true
           },
-          "classifier": {
-            "anyOf": [
-              {
-                "additionalProperties": false,
-                "properties": {
-                  "model": {
-                    "maxLength": 200,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "provider": {
-                    "maxLength": 100,
-                    "minLength": 1,
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "provider",
-                  "model"
-                ],
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "context": {
             "items": {
               "additionalProperties": false,
@@ -2060,37 +2033,153 @@
             "minimum": 0,
             "type": "integer"
           },
-          "maxOutputTokens": {
-            "anyOf": [
-              {
-                "maximum": 1000000,
-                "minimum": 1,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "maxTurns": {
             "maximum": 10000,
             "minimum": 0,
             "type": "integer"
           },
-          "model": {
-            "maxLength": 200,
-            "minLength": 1,
-            "type": "string"
+          "models": {
+            "additionalProperties": false,
+            "minProperties": 1,
+            "properties": {
+              "classification": {
+                "additionalProperties": false,
+                "properties": {
+                  "model": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "provider": {
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "provider",
+                  "model"
+                ],
+                "type": "object"
+              },
+              "generation": {
+                "additionalProperties": false,
+                "properties": {
+                  "maxOutputTokens": {
+                    "anyOf": [
+                      {
+                        "maximum": 1000000,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "model": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "provider": {
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "temperature": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "maximum": 2,
+                        "minimum": 0,
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "thinkingLevel": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "off"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "minimal"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "low"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "medium"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "high"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "xhigh"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "topK": {
+                    "anyOf": [
+                      {
+                        "maximum": 10000,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "topP": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "maximum": 1,
+                        "minimum": 0,
+                        "type": "number"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "provider",
+                  "model"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
           },
           "name": {
             "maxLength": 100,
             "minLength": 1,
             "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$",
-            "type": "string"
-          },
-          "provider": {
-            "maxLength": 100,
-            "minLength": 1,
             "type": "string"
           },
           "requiredEnv": {
@@ -2228,61 +2317,6 @@
             },
             "type": "object"
           },
-          "temperature": {
-            "anyOf": [
-              {
-                "type": "null"
-              },
-              {
-                "maximum": 2,
-                "minimum": 0,
-                "type": "number"
-              }
-            ]
-          },
-          "thinkingLevel": {
-            "anyOf": [
-              {
-                "enum": [
-                  "off"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "minimal"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "low"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "medium"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "high"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "xhigh"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "toolEnforcement": {
             "anyOf": [
               {
@@ -2305,36 +2339,11 @@
               }
             ],
             "description": "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)."
-          },
-          "topK": {
-            "anyOf": [
-              {
-                "maximum": 10000,
-                "minimum": 1,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "topP": {
-            "anyOf": [
-              {
-                "type": "null"
-              },
-              {
-                "maximum": 1,
-                "minimum": 0,
-                "type": "number"
-              }
-            ]
           }
         },
         "required": [
           "name",
-          "provider",
-          "model",
+          "models",
           "sandbox"
         ],
         "type": "object"
@@ -8864,33 +8873,6 @@
             "type": "array",
             "uniqueItems": true
           },
-          "classifier": {
-            "anyOf": [
-              {
-                "additionalProperties": false,
-                "properties": {
-                  "model": {
-                    "maxLength": 200,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "provider": {
-                    "maxLength": 100,
-                    "minLength": 1,
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "provider",
-                  "model"
-                ],
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "context": {
             "items": {
               "additionalProperties": false,
@@ -9025,37 +9007,153 @@
             "minimum": 0,
             "type": "integer"
           },
-          "maxOutputTokens": {
-            "anyOf": [
-              {
-                "maximum": 1000000,
-                "minimum": 1,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "maxTurns": {
             "maximum": 10000,
             "minimum": 0,
             "type": "integer"
           },
-          "model": {
-            "maxLength": 200,
-            "minLength": 1,
-            "type": "string"
+          "models": {
+            "additionalProperties": false,
+            "minProperties": 1,
+            "properties": {
+              "classification": {
+                "additionalProperties": false,
+                "properties": {
+                  "model": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "provider": {
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "provider",
+                  "model"
+                ],
+                "type": "object"
+              },
+              "generation": {
+                "additionalProperties": false,
+                "properties": {
+                  "maxOutputTokens": {
+                    "anyOf": [
+                      {
+                        "maximum": 1000000,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "model": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "provider": {
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "temperature": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "maximum": 2,
+                        "minimum": 0,
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "thinkingLevel": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "off"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "minimal"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "low"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "medium"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "high"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "xhigh"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "topK": {
+                    "anyOf": [
+                      {
+                        "maximum": 10000,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "topP": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "maximum": 1,
+                        "minimum": 0,
+                        "type": "number"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "provider",
+                  "model"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
           },
           "name": {
             "maxLength": 100,
             "minLength": 1,
             "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$",
-            "type": "string"
-          },
-          "provider": {
-            "maxLength": 100,
-            "minLength": 1,
             "type": "string"
           },
           "requiredEnv": {
@@ -9201,61 +9299,6 @@
             "format": "uuid",
             "type": "string"
           },
-          "temperature": {
-            "anyOf": [
-              {
-                "type": "null"
-              },
-              {
-                "maximum": 2,
-                "minimum": 0,
-                "type": "number"
-              }
-            ]
-          },
-          "thinkingLevel": {
-            "anyOf": [
-              {
-                "enum": [
-                  "off"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "minimal"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "low"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "medium"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "high"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "xhigh"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "toolEnforcement": {
             "anyOf": [
               {
@@ -9279,30 +9322,6 @@
             ],
             "description": "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)."
           },
-          "topK": {
-            "anyOf": [
-              {
-                "maximum": 10000,
-                "minimum": 1,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "topP": {
-            "anyOf": [
-              {
-                "type": "null"
-              },
-              {
-                "maximum": 1,
-                "minimum": 0,
-                "type": "number"
-              }
-            ]
-          },
           "updatedAt": {
             "format": "date-time",
             "type": "string"
@@ -9313,13 +9332,7 @@
           "teamId",
           "name",
           "description",
-          "provider",
-          "model",
-          "thinkingLevel",
-          "temperature",
-          "topP",
-          "topK",
-          "maxOutputTokens",
+          "models",
           "runtimeKind",
           "sandbox",
           "defaultWorkspaceMode",
@@ -9423,33 +9436,6 @@
                   "minItems": 1,
                   "type": "array",
                   "uniqueItems": true
-                },
-                "classifier": {
-                  "anyOf": [
-                    {
-                      "additionalProperties": false,
-                      "properties": {
-                        "model": {
-                          "maxLength": 200,
-                          "minLength": 1,
-                          "type": "string"
-                        },
-                        "provider": {
-                          "maxLength": 100,
-                          "minLength": 1,
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "provider",
-                        "model"
-                      ],
-                      "type": "object"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
                 },
                 "context": {
                   "items": {
@@ -9585,37 +9571,153 @@
                   "minimum": 0,
                   "type": "integer"
                 },
-                "maxOutputTokens": {
-                  "anyOf": [
-                    {
-                      "maximum": 1000000,
-                      "minimum": 1,
-                      "type": "integer"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
                 "maxTurns": {
                   "maximum": 10000,
                   "minimum": 0,
                   "type": "integer"
                 },
-                "model": {
-                  "maxLength": 200,
-                  "minLength": 1,
-                  "type": "string"
+                "models": {
+                  "additionalProperties": false,
+                  "minProperties": 1,
+                  "properties": {
+                    "classification": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "model": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "provider": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "provider",
+                        "model"
+                      ],
+                      "type": "object"
+                    },
+                    "generation": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "maxOutputTokens": {
+                          "anyOf": [
+                            {
+                              "maximum": 1000000,
+                              "minimum": 1,
+                              "type": "integer"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "model": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "provider": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "temperature": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "maximum": 2,
+                              "minimum": 0,
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        "thinkingLevel": {
+                          "anyOf": [
+                            {
+                              "enum": [
+                                "off"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "minimal"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "low"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "medium"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "high"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "xhigh"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "topK": {
+                          "anyOf": [
+                            {
+                              "maximum": 10000,
+                              "minimum": 1,
+                              "type": "integer"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "topP": {
+                          "anyOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "maximum": 1,
+                              "minimum": 0,
+                              "type": "number"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "provider",
+                        "model"
+                      ],
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
                 },
                 "name": {
                   "maxLength": 100,
                   "minLength": 1,
                   "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$",
-                  "type": "string"
-                },
-                "provider": {
-                  "maxLength": 100,
-                  "minLength": 1,
                   "type": "string"
                 },
                 "requiredEnv": {
@@ -9761,61 +9863,6 @@
                   "format": "uuid",
                   "type": "string"
                 },
-                "temperature": {
-                  "anyOf": [
-                    {
-                      "type": "null"
-                    },
-                    {
-                      "maximum": 2,
-                      "minimum": 0,
-                      "type": "number"
-                    }
-                  ]
-                },
-                "thinkingLevel": {
-                  "anyOf": [
-                    {
-                      "enum": [
-                        "off"
-                      ],
-                      "type": "string"
-                    },
-                    {
-                      "enum": [
-                        "minimal"
-                      ],
-                      "type": "string"
-                    },
-                    {
-                      "enum": [
-                        "low"
-                      ],
-                      "type": "string"
-                    },
-                    {
-                      "enum": [
-                        "medium"
-                      ],
-                      "type": "string"
-                    },
-                    {
-                      "enum": [
-                        "high"
-                      ],
-                      "type": "string"
-                    },
-                    {
-                      "enum": [
-                        "xhigh"
-                      ],
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
                 "toolEnforcement": {
                   "anyOf": [
                     {
@@ -9839,30 +9886,6 @@
                   ],
                   "description": "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)."
                 },
-                "topK": {
-                  "anyOf": [
-                    {
-                      "maximum": 10000,
-                      "minimum": 1,
-                      "type": "integer"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "topP": {
-                  "anyOf": [
-                    {
-                      "type": "null"
-                    },
-                    {
-                      "maximum": 1,
-                      "minimum": 0,
-                      "type": "number"
-                    }
-                  ]
-                },
                 "updatedAt": {
                   "format": "date-time",
                   "type": "string"
@@ -9873,13 +9896,7 @@
                 "teamId",
                 "name",
                 "description",
-                "provider",
-                "model",
-                "thinkingLevel",
-                "temperature",
-                "topP",
-                "topK",
-                "maxOutputTokens",
+                "models",
                 "runtimeKind",
                 "sandbox",
                 "defaultWorkspaceMode",
@@ -14100,33 +14117,6 @@
             "type": "array",
             "uniqueItems": true
           },
-          "classifier": {
-            "anyOf": [
-              {
-                "additionalProperties": false,
-                "properties": {
-                  "model": {
-                    "maxLength": 200,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "provider": {
-                    "maxLength": 100,
-                    "minLength": 1,
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "provider",
-                  "model"
-                ],
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "context": {
             "items": {
               "additionalProperties": false,
@@ -14219,37 +14209,153 @@
             "minimum": 0,
             "type": "integer"
           },
-          "maxOutputTokens": {
-            "anyOf": [
-              {
-                "maximum": 1000000,
-                "minimum": 1,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "maxTurns": {
             "maximum": 10000,
             "minimum": 0,
             "type": "integer"
           },
-          "model": {
-            "maxLength": 200,
-            "minLength": 1,
-            "type": "string"
+          "models": {
+            "additionalProperties": false,
+            "minProperties": 1,
+            "properties": {
+              "classification": {
+                "additionalProperties": false,
+                "properties": {
+                  "model": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "provider": {
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "provider",
+                  "model"
+                ],
+                "type": "object"
+              },
+              "generation": {
+                "additionalProperties": false,
+                "properties": {
+                  "maxOutputTokens": {
+                    "anyOf": [
+                      {
+                        "maximum": 1000000,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "model": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "provider": {
+                    "maxLength": 100,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "temperature": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "maximum": 2,
+                        "minimum": 0,
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "thinkingLevel": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "off"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "minimal"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "low"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "medium"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "high"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "xhigh"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "topK": {
+                    "anyOf": [
+                      {
+                        "maximum": 10000,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "topP": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "maximum": 1,
+                        "minimum": 0,
+                        "type": "number"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "provider",
+                  "model"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "object"
           },
           "name": {
             "maxLength": 100,
             "minLength": 1,
             "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$",
-            "type": "string"
-          },
-          "provider": {
-            "maxLength": 100,
-            "minLength": 1,
             "type": "string"
           },
           "requiredEnv": {
@@ -14387,61 +14493,6 @@
             },
             "type": "object"
           },
-          "temperature": {
-            "anyOf": [
-              {
-                "type": "null"
-              },
-              {
-                "maximum": 2,
-                "minimum": 0,
-                "type": "number"
-              }
-            ]
-          },
-          "thinkingLevel": {
-            "anyOf": [
-              {
-                "enum": [
-                  "off"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "minimal"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "low"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "medium"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "high"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "xhigh"
-                ],
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "toolEnforcement": {
             "anyOf": [
               {
@@ -14464,30 +14515,6 @@
               }
             ],
             "description": "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)."
-          },
-          "topK": {
-            "anyOf": [
-              {
-                "maximum": 10000,
-                "minimum": 1,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "topP": {
-            "anyOf": [
-              {
-                "type": "null"
-              },
-              {
-                "maximum": 1,
-                "minimum": 0,
-                "type": "number"
-              }
-            ]
           }
         },
         "type": "object"

@@ -234,8 +234,8 @@ describe('structured task submission through Pi (e2e)', () => {
       {
         name: `structured-output-${randomUUID()}`,
         runtimeKind: 'gondolin_pi',
-        provider: PROVIDER,
-        model: MODEL,
+        models: { generation: { provider: PROVIDER, model: MODEL } },
+
         maxTurns: 3,
         defaultWorkspaceMode: 'shared_mount',
         allowedWorkspaceModes: ['shared_mount'],

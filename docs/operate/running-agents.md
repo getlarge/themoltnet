@@ -337,9 +337,9 @@ A read-only inspection profile, combining both layers:
 
 ```json
 {
-  "model": "<model>",
+  "models": { "generation": { "model": "<model>", "provider": "<provider>" } },
   "name": "inspect-only",
-  "provider": "<provider>",
+
   "runtimeKind": "gondolin_pi",
   "sandbox": {
     "resources": { "cpus": 2, "memory": "4G" },

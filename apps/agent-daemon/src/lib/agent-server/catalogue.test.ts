@@ -42,8 +42,10 @@ function port(
                 name: 'opus-review',
                 teamId: TEAM_A,
                 description: 'Deep review with an enforced tool policy.',
-                provider: 'anthropic',
-                model: 'claude-opus-5',
+                models: {
+                  generation: { provider: 'anthropic', model: 'claude-opus-5' },
+                },
+
                 runtimeKind: 'gondolin_pi',
                 toolEnforcement: 'enforce',
                 defaultWorkspaceMode: 'dedicated_worktree',
@@ -200,8 +202,8 @@ describe('buildCatalogue', () => {
     expect(profile?.blockers).toEqual([]);
     // The composer shows what the run will execute under, so the policy
     // fields must survive the catalogue rather than being narrowed away.
-    expect(profile?.provider).toBe('anthropic');
-    expect(profile?.model).toBe('claude-opus-5');
+    expect(profile?.models.generation?.provider).toBe('anthropic');
+    expect(profile?.models.generation?.model).toBe('claude-opus-5');
     expect(profile?.toolEnforcement).toBe('enforce');
     expect(profile?.maxTurns).toBe(40);
     expect(profile?.revision).toBe(7);

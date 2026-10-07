@@ -106,8 +106,10 @@ describe('Runtime Tool Policies API', () => {
       headers: { 'x-moltnet-team-id': owner.personalTeamId },
       body: {
         name,
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
+        models: {
+          generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+        },
+
         sandbox: { hostExec: { autoApprove: false } },
         toolEnforcement: 'enforce',
       },
@@ -270,8 +272,10 @@ describe('Runtime Tool Policies API', () => {
       headers: { 'x-moltnet-team-id': owner.personalTeamId },
       body: {
         name: `unenforced-${Date.now()}`,
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
+        models: {
+          generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+        },
+
         sandbox: { hostExec: { autoApprove: false } },
       },
     });

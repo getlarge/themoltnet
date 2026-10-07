@@ -82,8 +82,7 @@ async function createProfile(
       // Model ids contain ':' / '.' which the profile-name pattern rejects.
       name: `matrix-${model.replace(/[^a-zA-Z0-9_-]/g, '-')}-${randomUUID()}`,
       runtimeKind: 'gondolin_pi',
-      provider: PROVIDER,
-      model,
+      models: { generation: { provider: PROVIDER, model } },
       maxTurns: 14,
       maxBashTimeouts: 1,
       defaultWorkspaceMode: 'shared_mount',

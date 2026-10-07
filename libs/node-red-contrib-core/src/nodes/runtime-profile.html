@@ -59,7 +59,16 @@
               select.append(
                 $('<option>')
                   .val(p.id)
-                  .text(p.name + ' (' + p.provider + '/' + p.model + ')'),
+                  .text(
+                    p.name +
+                      ' (' +
+                      Object.values(p.models)
+                        .map(function (m) {
+                          return m.provider + '/' + m.model;
+                        })
+                        .join(', ') +
+                      ')',
+                  ),
               );
             });
             if (current) select.val(current);

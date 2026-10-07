@@ -250,6 +250,14 @@ export function createTaskService(deps: TaskServiceDeps) {
             'Runtime profile does not resolve in the task team',
           );
         }
+        const capability =
+          row.taskType === 'classify' ? 'classification' : 'generation';
+        if (!selectedProfile.models[capability]) {
+          throw new TaskServiceError(
+            'forbidden',
+            `Runtime profile has no ${capability} model configured`,
+          );
+        }
       }
       if (allowedProfiles.length > 0) {
         if (

@@ -117,8 +117,10 @@ describe('Runtime slots API', () => {
       body: {
         name: `runtime-slots-${randomUUID()}`,
         description: 'Runtime slot e2e profile',
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
+        models: {
+          generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+        },
+
         sandbox: {
           hostExec: { autoApprove: false },
           resources: { cpus: 2, memory: '2G' },

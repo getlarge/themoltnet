@@ -1904,8 +1904,10 @@ describe('Agent facade', () => {
       name: 'linear-github',
       description: null,
       runtimeKind: 'gondolin_pi',
-      provider: 'anthropic',
-      model: 'claude-sonnet-4-5',
+      models: {
+        generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+      },
+
       sandbox: {
         snapshot: {
           allowedHosts: ['api.github.com'],
@@ -1975,8 +1977,10 @@ describe('Agent facade', () => {
       const body = {
         name: 'linear-github',
         runtimeKind: 'gondolin_pi' as const,
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
+        models: {
+          generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+        },
+
         sandbox: {
           snapshot: { allowedHosts: ['api.github.com'] },
           network: {

@@ -45,3 +45,25 @@ CREATE INDEX "runtime_store_attempts_store_idx" ON "runtime_store_attempts" USIN
 CREATE UNIQUE INDEX "runtime_store_commits_request_idx" ON "runtime_store_commits" USING btree ("store_id","commit_id");--> statement-breakpoint
 CREATE INDEX "runtime_stores_team_idx" ON "runtime_stores" USING btree ("team_id");--> statement-breakpoint
 ALTER TABLE "runtime_profiles" ADD COLUMN "classifier" jsonb;
+
+--> statement-breakpoint
+ALTER TABLE "runtime_profiles" DROP CONSTRAINT "runtime_profiles_thinking_level_valid";--> statement-breakpoint
+ALTER TABLE "runtime_profiles" DROP CONSTRAINT "runtime_profiles_temperature_range";--> statement-breakpoint
+ALTER TABLE "runtime_profiles" DROP CONSTRAINT "runtime_profiles_top_p_range";--> statement-breakpoint
+ALTER TABLE "runtime_profiles" DROP CONSTRAINT "runtime_profiles_top_k_positive";--> statement-breakpoint
+ALTER TABLE "runtime_profiles" DROP CONSTRAINT "runtime_profiles_max_output_tokens_positive";--> statement-breakpoint
+ALTER TABLE "runtime_profiles" ADD COLUMN "models" jsonb;--> statement-breakpoint
+UPDATE "runtime_profiles" SET "models" = jsonb_build_object('generation', jsonb_build_object(
+  'provider', provider, 'model', model, 'thinkingLevel', thinking_level,
+  'temperature', temperature, 'topP', top_p, 'topK', top_k, 'maxOutputTokens', max_output_tokens
+)) || CASE WHEN classifier IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('classification', classifier) END;--> statement-breakpoint
+ALTER TABLE "runtime_profiles" ALTER COLUMN "models" SET NOT NULL;--> statement-breakpoint
+ALTER TABLE "runtime_profiles" DROP COLUMN "provider";--> statement-breakpoint
+ALTER TABLE "runtime_profiles" DROP COLUMN "model";--> statement-breakpoint
+ALTER TABLE "runtime_profiles" DROP COLUMN "classifier";--> statement-breakpoint
+ALTER TABLE "runtime_profiles" DROP COLUMN "thinking_level";--> statement-breakpoint
+ALTER TABLE "runtime_profiles" DROP COLUMN "temperature";--> statement-breakpoint
+ALTER TABLE "runtime_profiles" DROP COLUMN "top_p";--> statement-breakpoint
+ALTER TABLE "runtime_profiles" DROP COLUMN "top_k";--> statement-breakpoint
+ALTER TABLE "runtime_profiles" DROP COLUMN "max_output_tokens";--> statement-breakpoint
+ALTER TABLE "runtime_profiles" ADD CONSTRAINT "runtime_profiles_models_nonempty" CHECK (jsonb_typeof(models) = 'object' AND (models ? 'generation' OR models ? 'classification'));

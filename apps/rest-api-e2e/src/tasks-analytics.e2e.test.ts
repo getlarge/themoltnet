@@ -325,8 +325,10 @@ describe('Task Analytics API', () => {
           body: {
             name: `task-analytics-${randomUUID()}`,
             description: 'Task analytics e2e profile',
-            provider: 'anthropic',
-            model: 'claude-sonnet-4-5',
+            models: {
+              generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+            },
+
             sandbox: {
               hostExec: { autoApprove: false },
               resources: { cpus: 2, memory: '2G' },
@@ -591,8 +593,10 @@ describe('Task Analytics API', () => {
         body: {
           name: `task-analytics-failed-${randomUUID()}`,
           description: 'Task analytics failed-attempt profile',
-          provider: 'anthropic',
-          model: 'claude-haiku-3-5',
+          models: {
+            generation: { provider: 'anthropic', model: 'claude-haiku-3-5' },
+          },
+
           sandbox: {
             hostExec: { autoApprove: false },
             resources: { cpus: 1, memory: '1G' },
@@ -608,8 +612,10 @@ describe('Task Analytics API', () => {
         body: {
           name: `task-analytics-accepted-${randomUUID()}`,
           description: 'Task analytics accepted-attempt profile',
-          provider: 'anthropic',
-          model: 'claude-sonnet-4-5',
+          models: {
+            generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+          },
+
           sandbox: {
             hostExec: { autoApprove: false },
             resources: { cpus: 2, memory: '2G' },

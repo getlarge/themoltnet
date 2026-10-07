@@ -118,8 +118,10 @@ test.describe.serial('Continue task from console', () => {
         body: {
           name: `task-continue-profile-${nonce}`,
           runtimeKind: 'gondolin_pi',
-          provider: 'anthropic',
-          model: 'claude-sonnet-4-5',
+          models: {
+            generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+          },
+
           sandbox: {},
         },
       });

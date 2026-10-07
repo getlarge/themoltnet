@@ -419,8 +419,10 @@ describe('Agent daemon agent-key auth (e2e)', () => {
       {
         name: `configless-${randomUUID()}`,
         runtimeKind: 'gondolin_pi',
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
+        models: {
+          generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+        },
+
         sandbox: {},
       },
       { teamId },

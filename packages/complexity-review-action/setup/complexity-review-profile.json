@@ -10,11 +10,16 @@
   "defaultWorkspaceMode": "none",
   "description": "Bounded, input-only GPT-OSS 120B runtime for PR complexity review.",
   "maxBashTimeouts": 1,
-  "maxOutputTokens": 4096,
   "maxTurns": 8,
-  "model": "gpt-oss:120b",
+  "models": {
+    "generation": {
+      "maxOutputTokens": 4096,
+      "model": "gpt-oss:120b",
+      "provider": "ollama-cloud",
+      "temperature": 0.1
+    }
+  },
   "name": "legreffier-complexity-review-v2",
-  "provider": "ollama-cloud",
   "requiredEnv": [],
   "runtimeKind": "gondolin_pi",
   "sandbox": {
@@ -38,6 +43,5 @@
       "shadowMode": "deny"
     }
   },
-  "temperature": 0.1,
   "toolEnforcement": "enforce"
 }

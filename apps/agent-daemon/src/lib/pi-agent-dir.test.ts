@@ -11,6 +11,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import type { RuntimeProfileModels } from '@moltnet/runtime-profiles';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { ProvidersState } from './agent-server/store.js';
@@ -46,7 +47,9 @@ const REPO_MODELS = {
   },
 };
 
-const OLLAMA_CLOUD_PROFILE = [{ provider: 'ollama-cloud' }];
+const OLLAMA_CLOUD_PROFILE = [
+  { models: { generation: { provider: 'ollama-cloud', model: 'test' } } },
+];
 
 describe('resolvePiAgentDir', () => {
   const tempRoots: string[] = [];
@@ -103,7 +106,7 @@ describe('resolvePiAgentDir', () => {
     storeRoot: string;
     piCodingAgentDir?: string;
     env?: NodeJS.ProcessEnv;
-    profiles?: ReadonlyArray<{ provider: string }>;
+    profiles?: ReadonlyArray<{ models: RuntimeProfileModels }>;
     secrets?: Record<string, string>;
     tempRoot?: string;
   }): Promise<PiAgentDir> {
@@ -200,6 +203,47 @@ describe('resolvePiAgentDir', () => {
       MOLTNET_PROVIDER_OLLAMA_CLOUD_API_KEY: 'sk-store',
     });
   });
+
+  it.each([false, true])(
+    'resolves classification credentials with generation=%s',
+    async (withGeneration) => {
+      const storeRoot = tempDir();
+      writeStore(storeRoot, {
+        providers: {
+          ...STORE_OLLAMA,
+          decisions: {
+            ...STORE_OLLAMA['ollama-cloud'],
+            envName: 'MOLTNET_PROVIDER_DECISIONS_API_KEY',
+            apiKeyRef: 'file:providers/decisions/api-key',
+          },
+        },
+      });
+      const result = await resolve({
+        agentRoot: tempDir(),
+        storeRoot,
+        profiles: [
+          {
+            models: {
+              ...(withGeneration
+                ? { generation: { provider: 'ollama-cloud', model: 'chat' } }
+                : {}),
+              classification: { provider: 'decisions', model: 'classifier' },
+            },
+          },
+        ],
+        secrets: {
+          'providers/ollama-cloud/api-key': 'chat-key',
+          'providers/decisions/api-key': 'classifier-key',
+        },
+      });
+      expect(result.env).toEqual({
+        ...(withGeneration
+          ? { MOLTNET_PROVIDER_OLLAMA_CLOUD_API_KEY: 'chat-key' }
+          : {}),
+        MOLTNET_PROVIDER_DECISIONS_API_KEY: 'classifier-key',
+      });
+    },
+  );
 
   it('layers repo models and settings under the store catalog', async () => {
     // Arrange
