@@ -6,7 +6,6 @@ import {
   type AppendRuntimeStoreCommitData,
   getRuntimeSession,
   getRuntimeStoreForAttempt,
-  listRuntimeStoreCommits,
   mintRuntimeStoreId,
   openRuntimeStore,
   type OpenRuntimeStoreData,
@@ -16,6 +15,8 @@ import {
   uploadRuntimeSession,
   type UploadRuntimeSessionData,
 } from '@moltnet/api-client';
+import { RuntimeStoreCommit } from '@moltnet/runtime-profiles';
+import { Value } from 'typebox/value';
 
 import type {
   RuntimeSessionRequestOptions,
@@ -120,13 +121,66 @@ export function createRuntimeSessionsNamespace(
       afterSeq: number,
       options: RuntimeSessionRequestOptions,
     ) {
-      return unwrapResult(
-        await listRuntimeStoreCommits({
+      const body = unwrapResult(
+        await client.request({
           ...request(options),
+          method: 'GET',
+          parseAs: 'stream',
+          security: [{ scheme: 'bearer', type: 'http' }],
+          url: '/runtime-sessions/durable/{storeId}/commits',
           path: { storeId },
           query: { afterSeq },
         }),
       );
+      const stream =
+        body instanceof Readable
+          ? body
+          : body instanceof ReadableStream
+            ? Readable.fromWeb(body as NodeReadableStream)
+            : null;
+      if (!stream) throw invalidStoreResponse();
+      const lines = storeLines(stream);
+      try {
+        const first = await lines.next();
+        if (first.done) throw invalidStoreResponse();
+        const header = JSON.parse(first.value) as {
+          headSeq: number;
+          count: number;
+        };
+        if (
+          !Number.isSafeInteger(header.headSeq) ||
+          header.headSeq < afterSeq ||
+          !Number.isSafeInteger(header.count) ||
+          header.count < 0 ||
+          header.count > 100 ||
+          header.count > header.headSeq - afterSeq
+        )
+          throw invalidStoreResponse();
+        async function* items() {
+          let count = 0;
+          try {
+            for await (const line of lines) {
+              const commit: unknown = JSON.parse(line);
+              if (
+                !Value.Check(RuntimeStoreCommit, commit) ||
+                commit.seq !== afterSeq + count + 1 ||
+                count >= header.count
+              )
+                throw invalidStoreResponse();
+              count++;
+              yield commit;
+            }
+            if (count !== header.count) throw invalidStoreResponse();
+          } finally {
+            stream!.destroy();
+          }
+        }
+        return { headSeq: header.headSeq, items: items() };
+      } catch (error) {
+        await lines.return(undefined);
+        stream.destroy();
+        throw error;
+      }
     },
     async getForAttempt(path, options) {
       try {
@@ -182,4 +236,33 @@ export function createRuntimeSessionsNamespace(
       );
     },
   };
+}
+
+function invalidStoreResponse() {
+  return new MoltNetError('Invalid or incomplete runtime store stream', {
+    code: 'INVALID_RESPONSE',
+  });
+}
+
+/** Bound unfinished records and preserve UTF-8 across arbitrary network chunks. */
+async function* storeLines(stream: Readable): AsyncGenerator<string> {
+  const decoder = new TextDecoder('utf-8', { fatal: true });
+  let pending = '';
+  try {
+    for await (const chunk of stream) {
+      pending += decoder.decode(chunk as Uint8Array, { stream: true });
+      let newline: number;
+      while ((newline = pending.indexOf('\n')) !== -1) {
+        if (newline > 2 * 1024 * 1024) throw invalidStoreResponse();
+        const line = pending.slice(0, newline);
+        pending = pending.slice(newline + 1);
+        yield line;
+      }
+      if (pending.length > 2 * 1024 * 1024) throw invalidStoreResponse();
+    }
+    pending += decoder.decode();
+    if (pending.length) throw invalidStoreResponse();
+  } finally {
+    stream.destroy();
+  }
 }

@@ -31108,89 +31108,20 @@ type ListRuntimeStoreCommitsNotFound ProblemDetails
 func (*ListRuntimeStoreCommitsNotFound) listRuntimeStoreCommitsRes() {}
 
 type ListRuntimeStoreCommitsOK struct {
-	HeadSeq int                                  `json:"headSeq"`
-	Items   []ListRuntimeStoreCommitsOKItemsItem `json:"items"`
+	Data io.Reader
 }
 
-// GetHeadSeq returns the value of HeadSeq.
-func (s *ListRuntimeStoreCommitsOK) GetHeadSeq() int {
-	return s.HeadSeq
-}
-
-// GetItems returns the value of Items.
-func (s *ListRuntimeStoreCommitsOK) GetItems() []ListRuntimeStoreCommitsOKItemsItem {
-	return s.Items
-}
-
-// SetHeadSeq sets the value of HeadSeq.
-func (s *ListRuntimeStoreCommitsOK) SetHeadSeq(val int) {
-	s.HeadSeq = val
-}
-
-// SetItems sets the value of Items.
-func (s *ListRuntimeStoreCommitsOK) SetItems(val []ListRuntimeStoreCommitsOKItemsItem) {
-	s.Items = val
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s ListRuntimeStoreCommitsOK) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
 }
 
 func (*ListRuntimeStoreCommitsOK) listRuntimeStoreCommitsRes() {}
-
-type ListRuntimeStoreCommitsOKItemsItem struct {
-	CommitId uuid.UUID                                      `json:"commitId"`
-	Seq      int                                            `json:"seq"`
-	SHA256   string                                         `json:"sha256"`
-	Writes   []ListRuntimeStoreCommitsOKItemsItemWritesItem `json:"writes"`
-}
-
-// GetCommitId returns the value of CommitId.
-func (s *ListRuntimeStoreCommitsOKItemsItem) GetCommitId() uuid.UUID {
-	return s.CommitId
-}
-
-// GetSeq returns the value of Seq.
-func (s *ListRuntimeStoreCommitsOKItemsItem) GetSeq() int {
-	return s.Seq
-}
-
-// GetSHA256 returns the value of SHA256.
-func (s *ListRuntimeStoreCommitsOKItemsItem) GetSHA256() string {
-	return s.SHA256
-}
-
-// GetWrites returns the value of Writes.
-func (s *ListRuntimeStoreCommitsOKItemsItem) GetWrites() []ListRuntimeStoreCommitsOKItemsItemWritesItem {
-	return s.Writes
-}
-
-// SetCommitId sets the value of CommitId.
-func (s *ListRuntimeStoreCommitsOKItemsItem) SetCommitId(val uuid.UUID) {
-	s.CommitId = val
-}
-
-// SetSeq sets the value of Seq.
-func (s *ListRuntimeStoreCommitsOKItemsItem) SetSeq(val int) {
-	s.Seq = val
-}
-
-// SetSHA256 sets the value of SHA256.
-func (s *ListRuntimeStoreCommitsOKItemsItem) SetSHA256(val string) {
-	s.SHA256 = val
-}
-
-// SetWrites sets the value of Writes.
-func (s *ListRuntimeStoreCommitsOKItemsItem) SetWrites(val []ListRuntimeStoreCommitsOKItemsItemWritesItem) {
-	s.Writes = val
-}
-
-type ListRuntimeStoreCommitsOKItemsItemWritesItem map[string]jx.Raw
-
-func (s *ListRuntimeStoreCommitsOKItemsItemWritesItem) init() ListRuntimeStoreCommitsOKItemsItemWritesItem {
-	m := *s
-	if m == nil {
-		m = map[string]jx.Raw{}
-		*s = m
-	}
-	return m
-}
 
 type ListRuntimeStoreCommitsServiceUnavailable ProblemDetails
 

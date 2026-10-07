@@ -139,7 +139,7 @@ describe('runtime store publication', () => {
       ...authority,
       storeId: handle.storeId,
     });
-    expect(page.items[0].writes).toEqual(writes);
+    expect((await collect(page.items))[0].writes).toEqual(writes);
     await expect(f.service.append({ ...commit, writes: [] })).rejects.toThrow(
       'Commit ID',
     );
@@ -204,9 +204,42 @@ describe('runtime store publication', () => {
     });
     for (const key of f.objects.keys())
       f.objects.set(key, Buffer.from('corrupt'));
-    await expect(
-      f.service.read({ ...authority, storeId: handle.storeId }),
-    ).rejects.toThrow('checksum');
+    const page = await f.service.read({
+      ...authority,
+      storeId: handle.storeId,
+    });
+    expect(f.storage.getObject).not.toHaveBeenCalled();
+    await expect(collect(page.items)).rejects.toThrow('checksum');
     expect(f.repository.listCommits).toHaveBeenCalledWith('store', 0, 50, 1);
   });
+  it('fetches one verified commit at a time and stops on early return', async () => {
+    const f = setup();
+    const handle = await f.service.open(authority);
+    for (let i = 0; i < 3; i++)
+      await f.service.append({
+        ...authority,
+        ...handle,
+        commitId: `commit-${i}`,
+        expectedSeq: i,
+        writes,
+      });
+    const page = await f.service.read({
+      ...authority,
+      storeId: handle.storeId,
+    });
+    expect(page.count).toBe(3);
+    expect(f.storage.getObject).not.toHaveBeenCalled();
+    for await (const commit of page.items) {
+      expect(commit.seq).toBe(1);
+      expect(commit.writes).toEqual(writes);
+      break;
+    }
+    expect(f.storage.getObject).toHaveBeenCalledTimes(1);
+  });
 });
+
+async function collect<T>(items: AsyncIterable<T>): Promise<T[]> {
+  const result: T[] = [];
+  for await (const item of items) result.push(item);
+  return result;
+}

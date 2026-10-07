@@ -464,11 +464,17 @@ describe('incremental runtime sessions', () => {
       headers: TEAM_HEADERS,
     });
     expect(read.statusCode).toBe(200);
-    expect(read.json()).toMatchObject({
-      headSeq: 1,
-      items: [{ seq: 1, writes: commit.writes }],
-    });
-    expect(JSON.stringify(read.json())).not.toContain('objectKey');
+    expect(read.headers['content-type']).toContain('application/x-ndjson');
+    expect(
+      read.body
+        .trim()
+        .split('\n')
+        .map((line) => JSON.parse(line)),
+    ).toMatchObject([
+      { headSeq: 1, count: 1 },
+      { seq: 1, writes: commit.writes },
+    ]);
+    expect(read.body).not.toContain('objectKey');
     const released = await app.inject({
       method: 'POST',
       url: `/runtime-sessions/durable/${SESSION_ID}/release`,

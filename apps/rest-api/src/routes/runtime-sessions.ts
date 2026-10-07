@@ -1,3 +1,5 @@
+import { Readable } from 'node:stream';
+
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import {
@@ -13,7 +15,6 @@ import {
   RuntimeStoreAttemptQuery,
   RuntimeStoreAttemptResponse,
   RuntimeStoreAuthority,
-  RuntimeStoreCommitPage,
   RuntimeStoreCommitReceipt,
   RuntimeStoreHandle,
   RuntimeStoreIdAllocation,
@@ -356,14 +357,35 @@ async function registerDurableSessionRoutes(fastify: FastifyInstance) {
         operationId: 'listRuntimeStoreCommits',
         params: RuntimeStoreParams,
         querystring: RuntimeStoreReadQuery,
-        response: { ...errors, 200: RuntimeStoreCommitPage },
+        response: {
+          ...errors,
+          200: {
+            description:
+              'Ordered NDJSON commits. The first line contains headSeq and count; exactly count commit lines follow. A truncated stream must not be treated as a complete page.',
+            content: {
+              'application/x-ndjson': {
+                schema: Type.String({ format: 'binary' }),
+              },
+            },
+          },
+        },
       },
     },
-    (request) =>
-      service.read({
+    async (request, reply) => {
+      const page = await service.read({
         ...request.query,
         ...request.params,
         ...subject(request),
-      }),
+      });
+      async function* lines() {
+        yield JSON.stringify({ headSeq: page.headSeq, count: page.count }) +
+          '\n';
+        for await (const commit of page.items)
+          yield JSON.stringify(commit) + '\n';
+      }
+      return reply
+        .type('application/x-ndjson')
+        .send(Readable.from(lines(), { highWaterMark: 1 }) as never);
+    },
   );
 }

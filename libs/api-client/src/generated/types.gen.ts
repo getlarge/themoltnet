@@ -9794,19 +9794,9 @@ export type ListRuntimeStoreCommitsError =
 
 export type ListRuntimeStoreCommitsResponses = {
   /**
-   * Default Response
+   * Ordered NDJSON commits. The first line contains headSeq and count; exactly count commit lines follow. A truncated stream must not be treated as a complete page.
    */
-  200: {
-    headSeq: number;
-    items: Array<{
-      commitId: string;
-      seq: number;
-      sha256: string;
-      writes: Array<{
-        [key: string]: unknown;
-      }>;
-    }>;
-  };
+  200: Blob | File;
 };
 
 export type ListRuntimeStoreCommitsResponse =

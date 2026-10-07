@@ -27,7 +27,10 @@ function setup(response: () => Response) {
 
 describe('runtime session persistence', () => {
   it('uses the same authenticated namespace for incremental commits and existing artifacts', async () => {
-    const { sessions, requests } = setup(() => Response.json({ seq: 1 }));
+    const { sessions, requests } = setup(
+      () =>
+        new Response(JSON.stringify({ seq: 1, headSeq: 1, count: 0 }) + '\n'),
+    );
     await sessions.getDurableForAttempt('task', 1, options);
     await sessions.open(authority, options);
     await sessions.renew('store', writer, options);
@@ -88,7 +91,9 @@ describe('runtime session persistence', () => {
   });
 
   it('forwards cancellation to incremental and artifact reads', async () => {
-    const { sessions, requests } = setup(() => Response.json(null));
+    const { sessions, requests } = setup(
+      () => new Response('{"headSeq":0,"count":0}\n'),
+    );
     const controller = new AbortController();
     const requestOptions = { ...options, signal: controller.signal };
     await sessions.read('store', 0, requestOptions);
@@ -99,4 +104,55 @@ describe('runtime session persistence', () => {
     controller.abort();
     expect(requests.every((request) => request.signal.aborted)).toBe(true);
   });
+  const commit = {
+    seq: 1,
+    commitId: '11111111-1111-4111-8111-111111111111',
+    sha256: 'a'.repeat(64),
+    writes: [{ value: 'été' }],
+  };
+  it('yields records before EOF and cancels the body on early return', async () => {
+    let controller!: ReadableStreamDefaultController<Uint8Array>;
+    const cancel = vi.fn();
+    const body = new ReadableStream<Uint8Array>({
+      start(value) {
+        controller = value;
+      },
+      cancel,
+    });
+    const { sessions } = setup(() => new Response(body));
+    const bytes = new TextEncoder().encode(
+      JSON.stringify({ headSeq: 2, count: 2 }) +
+        '\n' +
+        JSON.stringify(commit) +
+        '\n',
+    );
+    // Split within a UTF-8 character, and leave the second commit unavailable.
+    const split = bytes.indexOf(0xc3) + 1;
+    controller.enqueue(bytes.slice(0, split));
+    controller.enqueue(bytes.slice(split));
+    const page = await sessions.read('store', 0, options);
+    for await (const value of page.items) {
+      expect(value).toEqual(commit);
+      break;
+    }
+    expect(cancel).toHaveBeenCalledTimes(1);
+  });
+  it.each([
+    JSON.stringify({ headSeq: 1, count: 1 }) + '\n',
+    JSON.stringify({ headSeq: 1, count: 1 }) + '\n' + JSON.stringify(commit),
+    JSON.stringify({ headSeq: 2, count: 1 }) +
+      '\n' +
+      JSON.stringify({ ...commit, seq: 2 }) +
+      '\n',
+  ])('rejects incomplete or out-of-order streams', async (body) => {
+    const { sessions } = setup(() => new Response(body));
+    const page = await sessions.read('store', 0, options);
+    await expect(collect(page.items)).rejects.toThrow('runtime store stream');
+  });
 });
+
+async function collect<T>(items: AsyncIterable<T>): Promise<T[]> {
+  const result: T[] = [];
+  for await (const item of items) result.push(item);
+  return result;
+}
