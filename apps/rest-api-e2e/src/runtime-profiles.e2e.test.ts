@@ -99,13 +99,18 @@ describe('Runtime Profiles API', () => {
     return {
       name,
       description: `${name} profile for e2e`,
-      provider: 'Anthropic',
-      model: 'Claude-Sonnet-4-5',
-      thinkingLevel: 'high' as const,
-      temperature: 0.2,
-      topP: 0.9,
-      topK: 40,
-      maxOutputTokens: 12_000,
+      models: {
+        generation: {
+          provider: 'Anthropic',
+          model: 'Claude-Sonnet-4-5',
+          thinkingLevel: 'high' as const,
+          temperature: 0.2,
+          topP: 0.9,
+          topK: 40,
+          maxOutputTokens: 12_000,
+        },
+      },
+
       sandbox: {
         resumeCommands: [
           {
@@ -242,13 +247,18 @@ describe('Runtime Profiles API', () => {
     expect(created).toMatchObject({
       name,
       teamId: owner.personalTeamId,
-      provider: 'anthropic',
-      model: 'claude-sonnet-4-5',
-      thinkingLevel: 'high',
-      temperature: 0.2,
-      topP: 0.9,
-      topK: 40,
-      maxOutputTokens: 12_000,
+      models: {
+        generation: {
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-5',
+          thinkingLevel: 'high',
+          temperature: 0.2,
+          topP: 0.9,
+          topK: 40,
+          maxOutputTokens: 12_000,
+        },
+      },
+
       runtimeKind: 'gondolin_pi',
       defaultWorkspaceMode: 'dedicated_worktree',
       allowedWorkspaceModes: ['none', 'dedicated_worktree'],
@@ -286,18 +296,28 @@ describe('Runtime Profiles API', () => {
         auth: () => owner.accessToken,
         path: { profileId: created!.id },
         body: {
-          model: 'Claude-Opus-4-1',
+          models: {
+            generation: {
+              ...created!.models.generation!,
+              model: 'Claude-Opus-4-1',
+            },
+          },
         },
       });
     expect(preserveError).toBeUndefined();
     expect(preserved).toMatchObject({
       id: created!.id,
-      model: 'claude-opus-4-1',
-      thinkingLevel: 'high',
-      temperature: 0.2,
-      topP: 0.9,
-      topK: 40,
-      maxOutputTokens: 12_000,
+      models: {
+        generation: {
+          provider: 'anthropic',
+          model: 'claude-opus-4-1',
+          thinkingLevel: 'high',
+          temperature: 0.2,
+          topP: 0.9,
+          topK: 40,
+          maxOutputTokens: 12_000,
+        },
+      },
       revision: 2,
     });
 
@@ -306,12 +326,17 @@ describe('Runtime Profiles API', () => {
       auth: () => owner.accessToken,
       path: { profileId: created!.id },
       body: {
-        model: 'Claude-Opus-4-1',
-        thinkingLevel: 'medium',
-        temperature: null,
-        topP: null,
-        topK: null,
-        maxOutputTokens: null,
+        models: {
+          generation: {
+            provider: 'anthropic',
+            model: 'Claude-Opus-4-1',
+            thinkingLevel: 'medium',
+            temperature: null,
+            topP: null,
+            topK: null,
+            maxOutputTokens: null,
+          },
+        },
         defaultWorkspaceMode: null,
         allowedWorkspaceModes: ['none'],
         maxTurns: 12,
@@ -321,12 +346,17 @@ describe('Runtime Profiles API', () => {
     expect(updateError).toBeUndefined();
     expect(updated).toMatchObject({
       id: created!.id,
-      model: 'claude-opus-4-1',
-      thinkingLevel: 'medium',
-      temperature: null,
-      topP: null,
-      topK: null,
-      maxOutputTokens: null,
+      models: {
+        generation: {
+          provider: 'anthropic',
+          model: 'claude-opus-4-1',
+          thinkingLevel: 'medium',
+          temperature: null,
+          topP: null,
+          topK: null,
+          maxOutputTokens: null,
+        },
+      },
       defaultWorkspaceMode: null,
       allowedWorkspaceModes: ['none'],
       maxTurns: 12,
@@ -381,14 +411,21 @@ describe('Runtime Profiles API', () => {
       client,
       auth: () => manager.accessToken,
       path: { profileId: created!.id },
-      body: { model: 'Claude-Opus-4-1' },
+      body: {
+        models: {
+          generation: {
+            ...created!.models.generation!,
+            model: 'Claude-Opus-4-1',
+          },
+        },
+      },
     });
 
     expect(updateError).toBeUndefined();
     expect(updateResponse?.status).toBe(200);
     expect(updated).toMatchObject({
       id: created!.id,
-      model: 'claude-opus-4-1',
+      models: { generation: { model: 'claude-opus-4-1' } },
       revision: 2,
     });
 
@@ -646,7 +683,14 @@ describe('Runtime Profiles API', () => {
         client,
         auth: () => owner.accessToken,
         path: { profileId: allowedProfile!.id },
-        body: { model: 'claude-opus-4-1' },
+        body: {
+          models: {
+            generation: {
+              ...allowedProfile!.models.generation!,
+              model: 'claude-opus-4-1',
+            },
+          },
+        },
       });
     expect(updateError).toBeUndefined();
     expect(updatedProfile!.revision).toBe(2);
@@ -708,8 +752,10 @@ describe('Runtime Profiles API', () => {
       headers: { 'x-moltnet-team-id': owner.personalTeamId },
       body: {
         name: `unsafe-profile-${Date.now()}`,
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
+        models: {
+          generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+        },
+
         sandbox: {
           // @ts-expect-error exercising runtime validation for an unsafe config
           hostExec: { autoApprove: true },

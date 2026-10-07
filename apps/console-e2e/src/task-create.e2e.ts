@@ -68,8 +68,10 @@ test.describe.serial('Create task from console', () => {
       body: {
         name: runtimeProfileName,
         runtimeKind: 'gondolin_pi',
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
+        models: {
+          generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+        },
+
         sandbox: {},
       },
     });

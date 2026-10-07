@@ -42,8 +42,10 @@ describe('run catalogue', () => {
           name: 'opus-review',
           teamId: TEAM,
           description: null,
-          provider: 'anthropic',
-          model: 'claude-opus-5',
+          models: {
+            generation: { provider: 'anthropic', model: 'claude-opus-5' },
+          },
+
           runtimeKind: 'gondolin_pi',
           toolEnforcement: 'enforce',
           defaultWorkspaceMode: 'dedicated_worktree',
@@ -141,8 +143,10 @@ describe('run catalogue', () => {
           name: 'opus-review',
           teamId: TEAM,
           description: null,
-          provider: 'anthropic',
-          model: 'claude-opus-5',
+          models: {
+            generation: { provider: 'anthropic', model: 'claude-opus-5' },
+          },
+
           runtimeKind: 'gondolin_pi',
           toolEnforcement: 'enforce',
           defaultWorkspaceMode: 'dedicated_worktree',

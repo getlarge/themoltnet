@@ -108,8 +108,10 @@ const agent = await connect({ configDir: '.moltnet/local-dev' });
 const profile = await agent.runtimeProfiles.create(
   {
     name: 'local-ollama',
-    provider: 'ollama-cloud',
-    model: 'gemma4:31b-cloud',
+    models: {
+      generation: { provider: 'ollama-cloud', model: 'gemma4:31b-cloud' },
+    },
+
     runtimeKind: 'gondolin_pi',
     maxTurns: 30,
     maxBashTimeouts: 3,

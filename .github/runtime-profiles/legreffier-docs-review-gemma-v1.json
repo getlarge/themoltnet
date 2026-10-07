@@ -10,11 +10,17 @@
   "defaultWorkspaceMode": "none",
   "description": "Read-only Ollama Cloud gemma4:31b runtime (low thinking) for the experimental docs-impact review stages.",
   "maxBashTimeouts": 1,
-  "maxOutputTokens": 4096,
   "maxTurns": 15,
-  "model": "gemma4:31b",
+  "models": {
+    "generation": {
+      "maxOutputTokens": 4096,
+      "model": "gemma4:31b",
+      "provider": "ollama-cloud",
+      "temperature": 0.1,
+      "thinkingLevel": "low"
+    }
+  },
   "name": "legreffier-docs-review-gemma-v1",
-  "provider": "ollama-cloud",
   "requiredEnv": [],
   "runtimeKind": "gondolin_pi",
   "sandbox": {
@@ -38,7 +44,5 @@
       "shadowMode": "deny"
     }
   },
-  "temperature": 0.1,
-  "thinkingLevel": "low",
   "toolEnforcement": "enforce"
 }

@@ -23,14 +23,18 @@ function mockProfile(overrides: Partial<RuntimeProfile> = {}): RuntimeProfile {
     teamId: TEAM_ID,
     name: 'linear-github',
     description: 'Linear triage and GitHub implementation profile',
-    provider: 'anthropic',
-    model: 'claude-sonnet-4-5',
-    classifier: null,
-    thinkingLevel: null,
-    temperature: null,
-    topP: null,
-    topK: null,
-    maxOutputTokens: null,
+    models: {
+      generation: {
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        thinkingLevel: null,
+        temperature: null,
+        topP: null,
+        topK: null,
+        maxOutputTokens: null,
+      },
+    },
+
     runtimeKind: 'gondolin_pi',
     sandbox: {},
     defaultWorkspaceMode: null,
@@ -106,11 +110,18 @@ describe('runtime profile routes', () => {
     mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
     mocks.runtimeProfileRepository.create.mockResolvedValue(
       mockProfile({
-        thinkingLevel: 'high',
-        temperature: 0.2,
-        topP: 0.9,
-        topK: 40,
-        maxOutputTokens: 12_000,
+        models: {
+          generation: {
+            provider: 'anthropic',
+            model: 'claude-sonnet-4-5',
+            thinkingLevel: 'high',
+            temperature: 0.2,
+            topP: 0.9,
+            topK: 40,
+            maxOutputTokens: 12_000,
+          },
+        },
+
         sandbox: {
           network: {
             allowedHosts: ['api.linear.app'],
@@ -130,13 +141,18 @@ describe('runtime profile routes', () => {
       payload: {
         name: 'linear-github',
         description: 'Linear triage and GitHub implementation profile',
-        provider: 'Anthropic',
-        model: 'Claude-Sonnet-4-5',
-        thinkingLevel: 'high',
-        temperature: 0.2,
-        topP: 0.9,
-        topK: 40,
-        maxOutputTokens: 12_000,
+        models: {
+          generation: {
+            provider: 'Anthropic',
+            model: 'Claude-Sonnet-4-5',
+            thinkingLevel: 'high',
+            temperature: 0.2,
+            topP: 0.9,
+            topK: 40,
+            maxOutputTokens: 12_000,
+          },
+        },
+
         sandbox: {
           network: {
             allowedHosts: ['api.linear.app'],
@@ -170,13 +186,18 @@ describe('runtime profile routes', () => {
     expect(response.json()).toMatchObject({
       id: PROFILE_ID,
       name: 'linear-github',
-      provider: 'anthropic',
-      model: 'claude-sonnet-4-5',
-      thinkingLevel: 'high',
-      temperature: 0.2,
-      topP: 0.9,
-      topK: 40,
-      maxOutputTokens: 12_000,
+      models: {
+        generation: {
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-5',
+          thinkingLevel: 'high',
+          temperature: 0.2,
+          topP: 0.9,
+          topK: 40,
+          maxOutputTokens: 12_000,
+        },
+      },
+
       sandbox: {
         network: {
           allowedHosts: ['api.linear.app'],
@@ -192,13 +213,18 @@ describe('runtime profile routes', () => {
     expect(mocks.runtimeProfileRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         teamId: TEAM_ID,
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
-        thinkingLevel: 'high',
-        temperature: 0.2,
-        topP: 0.9,
-        topK: 40,
-        maxOutputTokens: 12_000,
+        models: {
+          generation: {
+            provider: 'anthropic',
+            model: 'claude-sonnet-4-5',
+            thinkingLevel: 'high',
+            temperature: 0.2,
+            topP: 0.9,
+            topK: 40,
+            maxOutputTokens: 12_000,
+          },
+        },
+
         maxTurns: 30,
         maxBashTimeouts: 2,
         sandbox: expect.objectContaining({
@@ -230,8 +256,10 @@ describe('runtime profile routes', () => {
       },
       payload: {
         name: 'repo-less',
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
+        models: {
+          generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+        },
+
         sandbox: {},
         defaultWorkspaceMode: 'shared_mount',
         allowedWorkspaceModes: ['none'],
@@ -258,13 +286,69 @@ describe('runtime profile routes', () => {
     mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
 
     const cases = [
-      { temperature: -0.1 },
-      { temperature: 2.1 },
-      { topP: -0.1 },
-      { topP: 1.1 },
-      { topK: 0 },
-      { maxOutputTokens: 0 },
-      { thinkingLevel: 'extreme' },
+      {
+        models: {
+          generation: {
+            provider: 'anthropic',
+            model: 'claude-sonnet-4-5',
+            temperature: -0.1,
+          },
+        },
+      },
+      {
+        models: {
+          generation: {
+            provider: 'anthropic',
+            model: 'claude-sonnet-4-5',
+            temperature: 2.1,
+          },
+        },
+      },
+      {
+        models: {
+          generation: {
+            provider: 'anthropic',
+            model: 'claude-sonnet-4-5',
+            topP: -0.1,
+          },
+        },
+      },
+      {
+        models: {
+          generation: {
+            provider: 'anthropic',
+            model: 'claude-sonnet-4-5',
+            topP: 1.1,
+          },
+        },
+      },
+      {
+        models: {
+          generation: {
+            provider: 'anthropic',
+            model: 'claude-sonnet-4-5',
+            topK: 0,
+          },
+        },
+      },
+      {
+        models: {
+          generation: {
+            provider: 'anthropic',
+            model: 'claude-sonnet-4-5',
+            maxOutputTokens: 0,
+          },
+        },
+      },
+      {
+        models: {
+          generation: {
+            provider: 'anthropic',
+            model: 'claude-sonnet-4-5',
+            thinkingLevel: 'extreme',
+          },
+        },
+      },
     ];
 
     for (const modelOptions of cases) {
@@ -277,8 +361,10 @@ describe('runtime profile routes', () => {
         },
         payload: {
           name: `invalid-${Object.keys(modelOptions)[0]}`,
-          provider: 'anthropic',
-          model: 'claude-sonnet-4-5',
+          models: {
+            generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+          },
+
           sandbox: {},
           ...modelOptions,
         },
@@ -327,10 +413,15 @@ describe('runtime profile routes', () => {
       },
       payload: {
         name: 'codex-invalid',
-        provider: 'openai-codex',
-        model: 'gpt-5.6-terra',
+        models: {
+          generation: {
+            provider: 'openai-codex',
+            model: 'gpt-5.6-terra',
+            maxOutputTokens: 4000,
+          },
+        },
+
         sandbox: {},
-        maxOutputTokens: 4000,
       },
     });
     expect(create.statusCode).toBe(400);
@@ -338,13 +429,25 @@ describe('runtime profile routes', () => {
     expect(mocks.runtimeProfileRepository.create).not.toHaveBeenCalled();
 
     mocks.runtimeProfileRepository.findById.mockResolvedValue(
-      mockProfile({ provider: 'openai-codex', model: 'gpt-5.6-terra' }),
+      mockProfile({
+        models: {
+          generation: { provider: 'openai-codex', model: 'gpt-5.6-terra' },
+        },
+      }),
     );
     const update = await app.inject({
       method: 'PATCH',
       url: `/runtime-profiles/${PROFILE_ID}`,
       headers: { authorization: 'Bearer test-token' },
-      payload: { topP: 0.9 },
+      payload: {
+        models: {
+          generation: {
+            provider: 'openai-codex',
+            model: 'gpt-5.6-terra',
+            topP: 0.9,
+          },
+        },
+      },
     });
     expect(update.statusCode).toBe(400);
     expect(update.body).toContain('topP');
@@ -357,18 +460,24 @@ describe('runtime profile routes', () => {
     mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
     mocks.runtimeProfileRepository.create.mockResolvedValue(
       mockProfile({
-        provider: 'ollama-cloud',
-        model: 'gpt-oss:120b',
+        models: {
+          generation: { provider: 'ollama-cloud', model: 'gpt-oss:120b' },
+        },
       }),
     );
     const payload = {
       name: 'ollama-options',
-      provider: 'ollama-cloud',
-      model: 'gpt-oss:120b',
+      models: {
+        generation: {
+          provider: 'ollama-cloud',
+          model: 'gpt-oss:120b',
+          temperature: 0.2,
+          topP: 0.9,
+          maxOutputTokens: 4000,
+        },
+      },
+
       sandbox: {},
-      temperature: 0.2,
-      topP: 0.9,
-      maxOutputTokens: 4000,
     };
     const headers = {
       authorization: 'Bearer test-token',
@@ -384,9 +493,13 @@ describe('runtime profile routes', () => {
     expect(accepted.statusCode).toBe(201);
     expect(mocks.runtimeProfileRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        maxOutputTokens: 4000,
-        temperature: 0.2,
-        topP: 0.9,
+        models: {
+          generation: {
+            ...payload.models.generation,
+            thinkingLevel: null,
+            topK: null,
+          },
+        },
       }),
     );
 
@@ -394,7 +507,10 @@ describe('runtime profile routes', () => {
       method: 'POST',
       url: '/runtime-profiles',
       headers,
-      payload: { ...payload, topK: 40 },
+      payload: {
+        ...payload,
+        models: { generation: { ...payload.models.generation, topK: 40 } },
+      },
     });
     expect(rejected.statusCode).toBe(400);
     expect(rejected.body).toContain('topK');
@@ -415,8 +531,10 @@ describe('runtime profile routes', () => {
       },
       payload: {
         name: 'unsafe',
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
+        models: {
+          generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+        },
+
         sandbox: {
           hostExec: { autoApprove: true },
         },
@@ -445,8 +563,10 @@ describe('runtime profile routes', () => {
         },
         payload: {
           name: 'unsafe-network',
-          provider: 'anthropic',
-          model: 'claude-sonnet-4-5',
+          models: {
+            generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+          },
+
           sandbox: {
             network: { [field]: ['https://example.com'] },
           },
@@ -486,8 +606,10 @@ describe('runtime profile routes', () => {
       payload: {
         name: 'linear-github',
         description: 'Linear triage and GitHub implementation profile',
-        provider: 'Anthropic',
-        model: 'Claude-Sonnet-4-5',
+        models: {
+          generation: { provider: 'Anthropic', model: 'Claude-Sonnet-4-5' },
+        },
+
         sandbox: {
           resumeCommands: [
             {
@@ -563,57 +685,99 @@ describe('runtime profile routes', () => {
     );
   });
 
-  it.each([
-    [
-      { classifier: { provider: 'Team', model: 'Decisions' } },
-      { provider: 'team', model: 'decisions' },
-    ],
-    [{ classifier: null }, null],
-    [{ description: 'Updated' }, { provider: 'team', model: 'old' }],
-  ])(
-    'updates or preserves classifier selection with %j',
-    async (payload, classifier) => {
-      mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
-      mocks.runtimeProfileRepository.findById.mockResolvedValue(
-        mockProfile({ classifier: { provider: 'team', model: 'old' } }),
-      );
-      mocks.runtimeProfileRepository.update.mockResolvedValue(
-        mockProfile({ classifier }),
-      );
-      const response = await app.inject({
-        method: 'PATCH',
-        url: `/runtime-profiles/${PROFILE_ID}`,
-        headers: { authorization: 'Bearer test-token' },
-        payload,
-      });
-      expect(response.statusCode).toBe(200);
-      expect(response.json().classifier).toEqual(classifier);
-      expect(mocks.runtimeProfileRepository.update).toHaveBeenCalledWith(
-        PROFILE_ID,
-        expect.objectContaining({ classifier, model: 'claude-sonnet-4-5' }),
-      );
-    },
-  );
+  it('creates a classification-only profile without a generation model', async () => {
+    const models = { classification: { provider: 'team', model: 'decisions' } };
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
+    mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
+    mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
+    mocks.runtimeProfileRepository.create.mockResolvedValue(
+      mockProfile({ models }),
+    );
+    const response = await app.inject({
+      method: 'POST',
+      url: '/runtime-profiles',
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+      payload: {
+        name: 'classifier',
+        sandbox: {},
+        models: { classification: { provider: 'Team', model: 'Decisions' } },
+      },
+    });
+    expect(response.statusCode, response.body).toBe(201);
+    expect(response.json().models).toEqual(models);
+    expect(mocks.runtimeProfileRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ models }),
+    );
+  });
+
+  it('replaces model capabilities atomically while unrelated updates preserve them', async () => {
+    const models = { classification: { provider: 'team', model: 'decisions' } };
+    mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
+    mocks.runtimeProfileRepository.findById.mockResolvedValue(mockProfile());
+    mocks.runtimeProfileRepository.update.mockResolvedValue(
+      mockProfile({ models }),
+    );
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/runtime-profiles/${PROFILE_ID}`,
+      headers: { authorization: 'Bearer test-token' },
+      payload: { models },
+    });
+    expect(response.statusCode, response.body).toBe(200);
+    expect(mocks.runtimeProfileRepository.update).toHaveBeenCalledWith(
+      PROFILE_ID,
+      expect.objectContaining({ models }),
+    );
+    mocks.runtimeProfileRepository.findById.mockResolvedValue(
+      mockProfile({ models }),
+    );
+    const omitted = await app.inject({
+      method: 'PATCH',
+      url: `/runtime-profiles/${PROFILE_ID}`,
+      headers: { authorization: 'Bearer test-token' },
+      payload: { description: 'Updated' },
+    });
+    expect(omitted.statusCode, omitted.body).toBe(200);
+    expect(mocks.runtimeProfileRepository.update).toHaveBeenLastCalledWith(
+      PROFILE_ID,
+      expect.objectContaining({ models }),
+    );
+  });
 
   it('preserves model options when update omits them', async () => {
     mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
     mocks.runtimeProfileRepository.findById.mockResolvedValue(
       mockProfile({
-        thinkingLevel: 'medium',
-        temperature: 0.3,
-        topP: 0.8,
-        topK: 32,
-        maxOutputTokens: 16_000,
+        models: {
+          generation: {
+            provider: 'anthropic',
+            model: 'claude-sonnet-4-5',
+            thinkingLevel: 'medium',
+            temperature: 0.3,
+            topP: 0.8,
+            topK: 32,
+            maxOutputTokens: 16_000,
+          },
+        },
       }),
     );
     mocks.runtimeProfileRepository.update.mockResolvedValue(
       mockProfile({
-        model: 'claude-opus-4-1',
-        thinkingLevel: 'medium',
-        temperature: 0.3,
-        topP: 0.8,
-        topK: 32,
-        maxOutputTokens: 16_000,
+        models: {
+          generation: {
+            provider: 'anthropic',
+            model: 'claude-sonnet-4-5',
+            thinkingLevel: 'medium',
+            temperature: 0.3,
+            topP: 0.8,
+            topK: 32,
+            maxOutputTokens: 16_000,
+          },
+        },
+
         revision: 2,
       }),
     );
@@ -623,29 +787,40 @@ describe('runtime profile routes', () => {
       url: `/runtime-profiles/${PROFILE_ID}`,
       headers: { authorization: 'Bearer test-token' },
       payload: {
-        model: 'Claude-Opus-4-1',
+        description: 'Updated description',
       },
     });
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
-      model: 'claude-opus-4-1',
-      thinkingLevel: 'medium',
-      temperature: 0.3,
-      topP: 0.8,
-      topK: 32,
-      maxOutputTokens: 16_000,
+      models: {
+        generation: {
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-5',
+          thinkingLevel: 'medium',
+          temperature: 0.3,
+          topP: 0.8,
+          topK: 32,
+          maxOutputTokens: 16_000,
+        },
+      },
+
       revision: 2,
     });
     expect(mocks.runtimeProfileRepository.update).toHaveBeenCalledWith(
       PROFILE_ID,
       expect.objectContaining({
-        model: 'claude-opus-4-1',
-        thinkingLevel: 'medium',
-        temperature: 0.3,
-        topP: 0.8,
-        topK: 32,
-        maxOutputTokens: 16_000,
+        models: {
+          generation: {
+            provider: 'anthropic',
+            model: 'claude-sonnet-4-5',
+            thinkingLevel: 'medium',
+            temperature: 0.3,
+            topP: 0.8,
+            topK: 32,
+            maxOutputTokens: 16_000,
+          },
+        },
       }),
     );
   });

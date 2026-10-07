@@ -34,18 +34,14 @@ type stubProfileHandler struct {
 
 func newTestRuntimeProfile(name string) *moltnetapi.RuntimeProfile {
 	return &moltnetapi.RuntimeProfile{
-		ID:       testProfileID,
-		TeamId:   testProfileTeam,
-		Name:     name,
-		Provider: "anthropic",
-		Model:    "claude-opus",
+		ID:     testProfileID,
+		TeamId: testProfileTeam,
+		Name:   name,
+		Models: moltnetapi.RuntimeProfileModels{Generation: moltnetapi.NewOptRuntimeProfileModelsGeneration(moltnetapi.RuntimeProfileModelsGeneration{Provider: "anthropic", Model: "claude-opus"})},
 		AllowedWorkspaceModes: []moltnetapi.RuntimeProfileAllowedWorkspaceModesItem{
 			moltnetapi.RuntimeProfileAllowedWorkspaceModesItemDedicatedWorktree,
 		},
 		DefaultWorkspaceMode: moltnetapi.NilRuntimeProfileDefaultWorkspaceMode{Null: true},
-		ThinkingLevel:        moltnetapi.NilRuntimeProfileThinkingLevel{Null: true},
-		MaxOutputTokens:      moltnetapi.NilInt{Null: true},
-		TopK:                 moltnetapi.NilInt{Null: true},
 		RuntimeKind:          "gondolin_pi",
 		Sandbox:              moltnetapi.RuntimeProfileSandbox{},
 		ToolEnforcement:      moltnetapi.RuntimeProfileToolEnforcementOff,
@@ -58,18 +54,14 @@ func newTestRuntimeProfile(name string) *moltnetapi.RuntimeProfile {
 
 func newTestRuntimeProfileListItem(id uuid.UUID, name string) moltnetapi.RuntimeProfileListResponseItemsItem {
 	return moltnetapi.RuntimeProfileListResponseItemsItem{
-		ID:       id,
-		TeamId:   testProfileTeam,
-		Name:     name,
-		Provider: "anthropic",
-		Model:    "claude-opus",
+		ID:     id,
+		TeamId: testProfileTeam,
+		Name:   name,
+		Models: moltnetapi.RuntimeProfileListResponseItemsItemModels{Generation: moltnetapi.NewOptRuntimeProfileListResponseItemsItemModelsGeneration(moltnetapi.RuntimeProfileListResponseItemsItemModelsGeneration{Provider: "anthropic", Model: "claude-opus"})},
 		AllowedWorkspaceModes: []moltnetapi.RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItem{
 			moltnetapi.RuntimeProfileListResponseItemsItemAllowedWorkspaceModesItemDedicatedWorktree,
 		},
 		DefaultWorkspaceMode: moltnetapi.NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode{Null: true},
-		ThinkingLevel:        moltnetapi.NilRuntimeProfileListResponseItemsItemThinkingLevel{Null: true},
-		MaxOutputTokens:      moltnetapi.NilInt{Null: true},
-		TopK:                 moltnetapi.NilInt{Null: true},
 		RuntimeKind:          "gondolin_pi",
 		Sandbox:              moltnetapi.RuntimeProfileListResponseItemsItemSandbox{},
 		ToolEnforcement:      moltnetapi.RuntimeProfileListResponseItemsItemToolEnforcementOff,
@@ -237,8 +229,7 @@ func TestProfileCreateFromFile(t *testing.T) {
 	apiSrv, credPath := newCLICommandTestServer(t, handler)
 	file := writeTempProfileFile(t, `{
 	  "name": "standard-engineering",
-	  "provider": "anthropic",
-	  "model": "claude-opus",
+	  "models": {"generation": {"provider": "anthropic", "model": "claude-opus"}},
 	  "sandbox": {}
 	}`)
 
@@ -255,8 +246,8 @@ func TestProfileCreateFromFile(t *testing.T) {
 	if handler.createBody.Value.Name != testProfileName {
 		t.Fatalf("expected name %q, got %q", testProfileName, handler.createBody.Value.Name)
 	}
-	if handler.createBody.Value.Provider != "anthropic" || handler.createBody.Value.Model != "claude-opus" {
-		t.Fatalf("unexpected provider/model: %q/%q", handler.createBody.Value.Provider, handler.createBody.Value.Model)
+	if handler.createBody.Value.Models.Generation.Value.Provider != "anthropic" || handler.createBody.Value.Models.Generation.Value.Model != "claude-opus" {
+		t.Fatalf("unexpected provider/model: %q/%q", handler.createBody.Value.Models.Generation.Value.Provider, handler.createBody.Value.Models.Generation.Value.Model)
 	}
 	if !handler.createParams.XMoltnetTeamID.Set || handler.createParams.XMoltnetTeamID.Value != testProfileTeam {
 		t.Fatalf("expected team header %s, got %#v", testProfileTeam, handler.createParams.XMoltnetTeamID)
@@ -281,7 +272,7 @@ func TestProfileUpdateFromFile(t *testing.T) {
 	// Arrange
 	handler := &stubProfileHandler{}
 	apiSrv, credPath := newCLICommandTestServer(t, handler)
-	file := writeTempProfileFile(t, `{"model": "claude-sonnet"}`)
+	file := writeTempProfileFile(t, `{"models":{"generation":{"provider":"anthropic","model":"claude-sonnet"}}}`)
 
 	// Act
 	err := runProfileUpdateCmd(io.Discard, apiSrv.URL, credPath, testProfileID.String(), file, "")
@@ -293,8 +284,8 @@ func TestProfileUpdateFromFile(t *testing.T) {
 	if handler.updateParams.ProfileId != testProfileID {
 		t.Fatalf("expected profile id %s, got %s", testProfileID, handler.updateParams.ProfileId)
 	}
-	if !handler.updateBody.Set || !handler.updateBody.Value.Model.Set || handler.updateBody.Value.Model.Value != "claude-sonnet" {
-		t.Fatalf("expected patched model, got %#v", handler.updateBody.Value.Model)
+	if !handler.updateBody.Set || !handler.updateBody.Value.Models.Set || !handler.updateBody.Value.Models.Value.Generation.Set || handler.updateBody.Value.Models.Value.Generation.Value.Model != "claude-sonnet" {
+		t.Fatalf("expected patched model, got %#v", handler.updateBody.Value.Models)
 	}
 }
 
@@ -339,7 +330,7 @@ func TestProfileCreateFromStdin(t *testing.T) {
 	// Arrange
 	handler := &stubProfileHandler{}
 	apiSrv, credPath := newCLICommandTestServer(t, handler)
-	setStdin(t, `{"name":"standard-engineering","provider":"anthropic","model":"claude-opus","sandbox":{}}`)
+	setStdin(t, `{"name":"standard-engineering","models":{"generation":{"provider":"anthropic","model":"claude-opus"}},"sandbox":{}}`)
 
 	// Act
 	err := runProfileCreateCmd(io.Discard, io.Discard, apiSrv.URL, credPath, "-", "")
@@ -357,7 +348,7 @@ func TestProfileUpdateFromStdin(t *testing.T) {
 	// Arrange
 	handler := &stubProfileHandler{}
 	apiSrv, credPath := newCLICommandTestServer(t, handler)
-	setStdin(t, `{"model":"claude-sonnet"}`)
+	setStdin(t, `{"models":{"generation":{"provider":"anthropic","model":"claude-sonnet"}}}`)
 
 	// Act
 	err := runProfileUpdateCmd(io.Discard, apiSrv.URL, credPath, testProfileID.String(), "-", "")
@@ -366,8 +357,8 @@ func TestProfileUpdateFromStdin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("runProfileUpdateCmd(io.Discard, ) error: %v", err)
 	}
-	if !handler.updateBody.Set || !handler.updateBody.Value.Model.Set || handler.updateBody.Value.Model.Value != "claude-sonnet" {
-		t.Fatalf("expected patched model, got %#v", handler.updateBody.Value.Model)
+	if !handler.updateBody.Set || !handler.updateBody.Value.Models.Set || !handler.updateBody.Value.Models.Value.Generation.Set || handler.updateBody.Value.Models.Value.Generation.Value.Model != "claude-sonnet" {
+		t.Fatalf("expected patched model, got %#v", handler.updateBody.Value.Models)
 	}
 }
 
@@ -409,7 +400,7 @@ func TestProfileRootGetDispatches(t *testing.T) {
 
 func TestProfileRootCreateDispatches(t *testing.T) {
 	handler := &stubProfileHandler{}
-	file := writeTempProfileFile(t, `{"name":"standard-engineering","provider":"anthropic","model":"claude-opus","sandbox":{}}`)
+	file := writeTempProfileFile(t, `{"name":"standard-engineering","models":{"generation":{"provider":"anthropic","model":"claude-opus"}},"sandbox":{}}`)
 	if err := runProfileRoot(t, handler, "create", "--from-file", file, "--team-id", testProfileTeam.String()); err != nil {
 		t.Fatalf("profile create via root: %v", err)
 	}
@@ -420,7 +411,7 @@ func TestProfileRootCreateDispatches(t *testing.T) {
 
 func TestProfileRootUpdateDispatches(t *testing.T) {
 	handler := &stubProfileHandler{}
-	file := writeTempProfileFile(t, `{"model":"claude-sonnet"}`)
+	file := writeTempProfileFile(t, `{"models":{"generation":{"provider":"anthropic","model":"claude-sonnet"}}}`)
 	if err := runProfileRoot(t, handler, "update", testProfileID.String(), "--from-file", file); err != nil {
 		t.Fatalf("profile update via root: %v", err)
 	}

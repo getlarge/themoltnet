@@ -10,17 +10,28 @@
   "defaultWorkspaceMode": "none",
   "description": "Bounded input-only issue quality review.",
   "maxBashTimeouts": 1,
-  "maxOutputTokens": 2048,
   "maxTurns": 8,
-  "model": "gpt-oss:120b",
+  "models": {
+    "generation": {
+      "maxOutputTokens": 2048,
+      "model": "gpt-oss:120b",
+      "provider": "ollama-cloud",
+      "temperature": 0.1
+    }
+  },
   "name": "legreffier-issue-triage-v1",
-  "provider": "ollama-cloud",
   "requiredEnv": [],
   "runtimeKind": "gondolin_pi",
   "sandbox": {
     "env": {},
-    "network": { "allowedHosts": [], "allowedInternalHosts": [] },
-    "resources": { "cpus": 2, "memory": "4G" },
+    "network": {
+      "allowedHosts": [],
+      "allowedInternalHosts": []
+    },
+    "resources": {
+      "cpus": 2,
+      "memory": "4G"
+    },
     "vfs": {
       "shadow": [
         ".moltnet",
@@ -32,6 +43,5 @@
       "shadowMode": "deny"
     }
   },
-  "temperature": 0.1,
   "toolEnforcement": "enforce"
 }

@@ -35,8 +35,8 @@ export const catalogue: AgentServerCatalogue = {
     definitionCid: 'fixture-cid',
     description: null,
     maxTurns: 10,
-    model: 'fixture-model',
-    provider: 'fixture',
+    models: { generation: { model: 'fixture-model', provider: 'fixture' } },
+
     requiredEnv: [],
     requiredExecutables: [],
     requiredTools: [],

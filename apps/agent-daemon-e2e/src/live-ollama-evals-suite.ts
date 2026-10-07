@@ -108,8 +108,10 @@ export function defineLiveOllamaEvalSuite(partitionIndex: number): void {
           {
             name: `evals-v2-${randomUUID()}`,
             runtimeKind: 'gondolin_pi',
-            provider: LIVE_PROVIDER,
-            model: LIVE_MODEL,
+            models: {
+              generation: { provider: LIVE_PROVIDER, model: LIVE_MODEL },
+            },
+
             maxTurns: 14,
             maxBashTimeouts: 1,
             defaultWorkspaceMode: 'shared_mount',

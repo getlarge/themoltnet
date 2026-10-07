@@ -230,14 +230,82 @@ export type RuntimeProfileMaxBashTimeouts = Static<
   typeof RuntimeProfileMaxBashTimeouts
 >;
 
-export const RuntimeProfileClassifier = Type.Object(
+export const RuntimeProfileModelSelection = Type.Object(
   {
     provider: Type.String({ minLength: 1, maxLength: 100 }),
     model: Type.String({ minLength: 1, maxLength: 200 }),
   },
   { additionalProperties: false },
 );
-export type RuntimeProfileClassifier = Static<typeof RuntimeProfileClassifier>;
+export type RuntimeProfileModelSelection = Static<
+  typeof RuntimeProfileModelSelection
+>;
+
+export const RuntimeProfileGeneration = Type.Object(
+  {
+    ...RuntimeProfileModelSelection.properties,
+    thinkingLevel: Type.Optional(RuntimeProfileNullableThinkingLevel),
+    temperature: Type.Optional(RuntimeProfileNullableTemperature),
+    topP: Type.Optional(RuntimeProfileNullableTopP),
+    topK: Type.Optional(RuntimeProfileNullableTopK),
+    maxOutputTokens: Type.Optional(RuntimeProfileNullableMaxOutputTokens),
+  },
+  { additionalProperties: false },
+);
+export type RuntimeProfileGeneration = Static<typeof RuntimeProfileGeneration>;
+
+export const RuntimeProfileModels = Type.Object(
+  {
+    generation: Type.Optional(RuntimeProfileGeneration),
+    classification: Type.Optional(RuntimeProfileModelSelection),
+  },
+  { additionalProperties: false, minProperties: 1 },
+);
+export type RuntimeProfileModels = Static<typeof RuntimeProfileModels>;
+
+/** Select a task capability, or describe a profile before a task is selected. */
+export function runtimeProfileModel(
+  models: RuntimeProfileModels,
+  taskType?: string,
+): RuntimeProfileModelSelection {
+  const model =
+    taskType === undefined
+      ? (models.generation ?? models.classification)
+      : taskType === 'classify'
+        ? models.classification
+        : models.generation;
+  if (!model)
+    throw new Error(
+      `Runtime profile has no ${taskType === 'classify' ? 'classification' : 'generation'} model configured`,
+    );
+  return model;
+}
+
+export function normalizeRuntimeProfileModels(
+  models: RuntimeProfileModels,
+): RuntimeProfileModels {
+  const selection = (value: RuntimeProfileModelSelection) => ({
+    provider: value.provider.toLowerCase(),
+    model: value.model.toLowerCase(),
+  });
+  return {
+    ...(models.generation
+      ? {
+          generation: {
+            ...selection(models.generation),
+            thinkingLevel: models.generation.thinkingLevel ?? null,
+            temperature: models.generation.temperature ?? null,
+            topP: models.generation.topP ?? null,
+            topK: models.generation.topK ?? null,
+            maxOutputTokens: models.generation.maxOutputTokens ?? null,
+          },
+        }
+      : {}),
+    ...(models.classification
+      ? { classification: selection(models.classification) }
+      : {}),
+  };
+}
 
 export const RuntimeProfile = Type.Object(
   {
@@ -245,16 +313,7 @@ export const RuntimeProfile = Type.Object(
     teamId: Type.String({ format: 'uuid' }),
     name: RuntimeProfileName,
     description: Type.Union([Type.String({ maxLength: 4096 }), Type.Null()]),
-    provider: Type.String({ minLength: 1, maxLength: 100 }),
-    model: Type.String({ minLength: 1, maxLength: 200 }),
-    classifier: Type.Optional(
-      Type.Union([RuntimeProfileClassifier, Type.Null()]),
-    ),
-    thinkingLevel: RuntimeProfileNullableThinkingLevel,
-    temperature: RuntimeProfileNullableTemperature,
-    topP: RuntimeProfileNullableTopP,
-    topK: RuntimeProfileNullableTopK,
-    maxOutputTokens: RuntimeProfileNullableMaxOutputTokens,
+    models: RuntimeProfileModels,
     runtimeKind: RuntimeProfileRuntimeKind,
     sandbox: RuntimeProfileSandbox,
     defaultWorkspaceMode: Type.Union([
@@ -289,21 +348,14 @@ export type RuntimeProfile = Static<typeof RuntimeProfile>;
 export interface RuntimeProfileDefinitionInput {
   name: string;
   description?: string | null;
-  provider: string;
-  model: string;
-  classifier?: RuntimeProfileClassifier | null;
-  thinkingLevel?: string | null;
-  temperature?: number | null;
-  topP?: number | null;
-  topK?: number | null;
-  maxOutputTokens?: number | null;
+  models: RuntimeProfileModels;
   runtimeKind?: string;
   sandbox: unknown;
-  defaultWorkspaceMode?: string | null;
-  allowedWorkspaceModes?: string[];
+  defaultWorkspaceMode?: RuntimeProfileWorkspaceMode | null;
+  allowedWorkspaceModes?: RuntimeProfileWorkspaceMode[];
   maxTurns?: number;
   maxBashTimeouts?: number;
-  toolEnforcement?: string;
+  toolEnforcement?: RuntimeProfileToolEnforcement;
   requiredEnv?: string[];
   requiredTools?: string[];
   requiredExecutables?: string[];
@@ -318,25 +370,22 @@ export function runtimeProfileDefinitionPayload(
     [
       ...new Set((values ?? []).map((value) => value.trim()).filter(Boolean)),
     ].sort();
+  const models = normalizeRuntimeProfileModels(input.models);
+  // Preserve the v1 behavioral hash when only the public configuration shape changes.
+  // Existing task/slot references must retain their profile identity after migration.
+  const generation = models.generation;
   return {
     kind: 'moltnet:runtime-profile',
     name: input.name,
     description: input.description ?? null,
-    provider: input.provider.toLowerCase(),
-    model: input.model.toLowerCase(),
-    ...(input.classifier
-      ? {
-          classifier: {
-            provider: input.classifier.provider.toLowerCase(),
-            model: input.classifier.model.toLowerCase(),
-          },
-        }
-      : {}),
-    thinkingLevel: input.thinkingLevel ?? null,
-    temperature: input.temperature ?? null,
-    topP: input.topP ?? null,
-    topK: input.topK ?? null,
-    maxOutputTokens: input.maxOutputTokens ?? null,
+    provider: generation?.provider,
+    model: generation?.model,
+    ...(models.classification ? { classifier: models.classification } : {}),
+    thinkingLevel: generation?.thinkingLevel ?? null,
+    temperature: generation?.temperature ?? null,
+    topP: generation?.topP ?? null,
+    topK: generation?.topK ?? null,
+    maxOutputTokens: generation?.maxOutputTokens ?? null,
     runtimeKind: input.runtimeKind ?? 'gondolin_pi',
     sandbox: input.sandbox,
     defaultWorkspaceMode: input.defaultWorkspaceMode ?? null,

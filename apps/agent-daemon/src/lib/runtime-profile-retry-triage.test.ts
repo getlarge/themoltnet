@@ -21,6 +21,18 @@ describe('createRuntimeProfileRetryTriage', () => {
     runPiRetryTriage.mockReset();
   });
 
+  it('leaves model-assisted triage unconfigured without generation', () => {
+    expect(
+      createRuntimeProfileRetryTriage({
+        runtimeProfile: {
+          models: { classification: { provider: 'team', model: 'classifier' } },
+        },
+        piAgentDir: '/agent',
+      }),
+    ).toBeUndefined();
+    expect(resolveRuntimeProfileModel).not.toHaveBeenCalled();
+  });
+
   it('shares the resolved model runtime with the retry-triage session', async () => {
     const modelHandle = { id: 'planner-fast' };
     const modelRuntime = { kind: 'runtime' };
@@ -39,15 +51,19 @@ describe('createRuntimeProfileRetryTriage', () => {
 
     const triage = createRuntimeProfileRetryTriage({
       runtimeProfile: {
-        provider: 'custom-cloud',
-        model: 'planner-fast',
-        thinkingLevel: 'high',
+        models: {
+          generation: {
+            provider: 'custom-cloud',
+            model: 'planner-fast',
+            thinkingLevel: 'high',
+          },
+        },
       },
       piAgentDir: '/agent',
       timeoutMs: 12_000,
       cwd: '/workspace',
     });
-    await expect(triage(input as never)).resolves.toEqual(result);
+    await expect(triage!(input as never)).resolves.toEqual(result);
 
     expect(resolveRuntimeProfileModel).toHaveBeenCalledWith(
       '/agent',

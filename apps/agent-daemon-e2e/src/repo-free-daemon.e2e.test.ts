@@ -218,8 +218,10 @@ describe('Agent daemon repo-free execution (e2e)', () => {
       {
         name: `repo-free-daemon-${randomUUID()}`,
         runtimeKind: 'gondolin_pi',
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
+        models: {
+          generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+        },
+
         sandbox: {},
       },
       { teamId },
@@ -336,8 +338,10 @@ describe('Agent daemon repo-free execution (e2e)', () => {
       {
         name: `governance-watch-${randomUUID()}`,
         runtimeKind: 'gondolin_pi',
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
+        models: {
+          generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+        },
+
         sandbox: {},
       },
       { teamId },

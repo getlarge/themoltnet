@@ -35,8 +35,10 @@ export interface DiaryOption {
 export interface RuntimeProfileOption {
   id: string;
   name: string;
-  provider: string;
-  model: string;
+  models: {
+    generation?: { provider: string; model: string };
+    classification?: { provider: string; model: string };
+  };
 }
 
 /**
@@ -408,7 +410,10 @@ export function CreateTaskDialog({
               <option value="">Any compatible runtime profile</option>
               {runtimeProfiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>
-                  {profile.name} — {profile.provider}/{profile.model}
+                  {profile.name} —{' '}
+                  {Object.values(profile.models)
+                    .map((model) => `${model.provider}/${model.model}`)
+                    .join(' · ')}
                 </option>
               ))}
             </select>

@@ -10,11 +10,16 @@
   "defaultWorkspaceMode": "none",
   "description": "Low-latency read-only glm-5.3-flash runtime for the experimental LeGreffier docs-impact review stages.",
   "maxBashTimeouts": 1,
-  "maxOutputTokens": 4096,
   "maxTurns": 6,
-  "model": "glm-5.3-flash",
+  "models": {
+    "generation": {
+      "maxOutputTokens": 4096,
+      "model": "glm-5.3-flash",
+      "provider": "ollama-cloud",
+      "temperature": 0.1
+    }
+  },
   "name": "legreffier-docs-review-v1",
-  "provider": "ollama-cloud",
   "requiredEnv": [],
   "runtimeKind": "gondolin_pi",
   "sandbox": {
@@ -38,6 +43,5 @@
       "shadowMode": "deny"
     }
   },
-  "temperature": 0.1,
   "toolEnforcement": "enforce"
 }

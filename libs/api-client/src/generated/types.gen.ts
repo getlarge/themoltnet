@@ -489,10 +489,6 @@ export type CreateRuntimePolicyBody = {
 
 export type CreateRuntimeProfileBody = {
   allowedWorkspaceModes?: Array<'none' | 'shared_mount' | 'dedicated_worktree'>;
-  classifier?: {
-    model: string;
-    provider: string;
-  } | null;
   context?: Array<{
     binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
     content: string;
@@ -501,11 +497,30 @@ export type CreateRuntimeProfileBody = {
   defaultWorkspaceMode?: 'none' | 'shared_mount' | 'dedicated_worktree' | null;
   description?: string;
   maxBashTimeouts?: number;
-  maxOutputTokens?: number | null;
   maxTurns?: number;
-  model: string;
+  models: {
+    classification?: {
+      model: string;
+      provider: string;
+    };
+    generation?: {
+      maxOutputTokens?: number | null;
+      model: string;
+      provider: string;
+      temperature?: null | number;
+      thinkingLevel?:
+        | 'off'
+        | 'minimal'
+        | 'low'
+        | 'medium'
+        | 'high'
+        | 'xhigh'
+        | null;
+      topK?: number | null;
+      topP?: null | number;
+    };
+  };
   name: string;
-  provider: string;
   requiredEnv?: Array<string>;
   requiredExecutables?: Array<string>;
   requiredTools?: Array<string>;
@@ -530,21 +545,10 @@ export type CreateRuntimeProfileBody = {
       shadowMode?: 'deny' | 'tmpfs';
     };
   };
-  temperature?: null | number;
-  thinkingLevel?:
-    | 'off'
-    | 'minimal'
-    | 'low'
-    | 'medium'
-    | 'high'
-    | 'xhigh'
-    | null;
   /**
    * Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed).
    */
   toolEnforcement?: 'off' | 'watch' | 'enforce';
-  topK?: number | null;
-  topP?: null | number;
 };
 
 export type CreateTaskBody = {
@@ -2040,10 +2044,6 @@ export type RuntimePolicyWithTools = {
 
 export type RuntimeProfile = {
   allowedWorkspaceModes: Array<'none' | 'shared_mount' | 'dedicated_worktree'>;
-  classifier?: {
-    model: string;
-    provider: string;
-  } | null;
   context: Array<{
     binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
     content: string;
@@ -2057,11 +2057,30 @@ export type RuntimeProfile = {
   description: string | null;
   id: string;
   maxBashTimeouts: number;
-  maxOutputTokens: number | null;
   maxTurns: number;
-  model: string;
+  models: {
+    classification?: {
+      model: string;
+      provider: string;
+    };
+    generation?: {
+      maxOutputTokens?: number | null;
+      model: string;
+      provider: string;
+      temperature?: null | number;
+      thinkingLevel?:
+        | 'off'
+        | 'minimal'
+        | 'low'
+        | 'medium'
+        | 'high'
+        | 'xhigh'
+        | null;
+      topK?: number | null;
+      topP?: null | number;
+    };
+  };
   name: string;
-  provider: string;
   requiredEnv: Array<string>;
   requiredExecutables: Array<string>;
   requiredTools: Array<string>;
@@ -2088,14 +2107,10 @@ export type RuntimeProfile = {
     };
   };
   teamId: string;
-  temperature: null | number;
-  thinkingLevel: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | null;
   /**
    * Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed).
    */
   toolEnforcement: 'off' | 'watch' | 'enforce';
-  topK: number | null;
-  topP: null | number;
   updatedAt: string;
 };
 
@@ -2110,10 +2125,6 @@ export type RuntimeProfileListResponse = {
     allowedWorkspaceModes: Array<
       'none' | 'shared_mount' | 'dedicated_worktree'
     >;
-    classifier?: {
-      model: string;
-      provider: string;
-    } | null;
     context: Array<{
       binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
       content: string;
@@ -2127,11 +2138,30 @@ export type RuntimeProfileListResponse = {
     description: string | null;
     id: string;
     maxBashTimeouts: number;
-    maxOutputTokens: number | null;
     maxTurns: number;
-    model: string;
+    models: {
+      classification?: {
+        model: string;
+        provider: string;
+      };
+      generation?: {
+        maxOutputTokens?: number | null;
+        model: string;
+        provider: string;
+        temperature?: null | number;
+        thinkingLevel?:
+          | 'off'
+          | 'minimal'
+          | 'low'
+          | 'medium'
+          | 'high'
+          | 'xhigh'
+          | null;
+        topK?: number | null;
+        topP?: null | number;
+      };
+    };
     name: string;
-    provider: string;
     requiredEnv: Array<string>;
     requiredExecutables: Array<string>;
     requiredTools: Array<string>;
@@ -2158,21 +2188,10 @@ export type RuntimeProfileListResponse = {
       };
     };
     teamId: string;
-    temperature: null | number;
-    thinkingLevel:
-      | 'off'
-      | 'minimal'
-      | 'low'
-      | 'medium'
-      | 'high'
-      | 'xhigh'
-      | null;
     /**
      * Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed).
      */
     toolEnforcement: 'off' | 'watch' | 'enforce';
-    topK: number | null;
-    topP: null | number;
     updatedAt: string;
   }>;
 };
@@ -2952,10 +2971,6 @@ export type UpdateRuntimePolicyBody = {
 
 export type UpdateRuntimeProfileBody = {
   allowedWorkspaceModes?: Array<'none' | 'shared_mount' | 'dedicated_worktree'>;
-  classifier?: {
-    model: string;
-    provider: string;
-  } | null;
   context?: Array<{
     binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
     content: string;
@@ -2964,11 +2979,30 @@ export type UpdateRuntimeProfileBody = {
   defaultWorkspaceMode?: 'none' | 'shared_mount' | 'dedicated_worktree' | null;
   description?: string;
   maxBashTimeouts?: number;
-  maxOutputTokens?: number | null;
   maxTurns?: number;
-  model?: string;
+  models?: {
+    classification?: {
+      model: string;
+      provider: string;
+    };
+    generation?: {
+      maxOutputTokens?: number | null;
+      model: string;
+      provider: string;
+      temperature?: null | number;
+      thinkingLevel?:
+        | 'off'
+        | 'minimal'
+        | 'low'
+        | 'medium'
+        | 'high'
+        | 'xhigh'
+        | null;
+      topK?: number | null;
+      topP?: null | number;
+    };
+  };
   name?: string;
-  provider?: string;
   requiredEnv?: Array<string>;
   requiredExecutables?: Array<string>;
   requiredTools?: Array<string>;
@@ -2993,21 +3027,10 @@ export type UpdateRuntimeProfileBody = {
       shadowMode?: 'deny' | 'tmpfs';
     };
   };
-  temperature?: null | number;
-  thinkingLevel?:
-    | 'off'
-    | 'minimal'
-    | 'low'
-    | 'medium'
-    | 'high'
-    | 'xhigh'
-    | null;
   /**
    * Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed).
    */
   toolEnforcement?: 'off' | 'watch' | 'enforce';
-  topK?: number | null;
-  topP?: null | number;
 };
 
 export type UpdateTaskMetadataBody = {

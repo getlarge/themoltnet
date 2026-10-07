@@ -48,12 +48,12 @@ type RuntimeProfileThinkingLevel =
   | 'medium'
   | 'high'
   | 'xhigh';
-type RuntimeProfileListItem = Omit<RuntimeProfile, 'thinkingLevel'> &
-  Partial<Pick<RuntimeProfile, 'thinkingLevel'>>;
 
 interface ProfileFormState {
   name: string;
   description: string;
+  classificationProvider: string;
+  classificationModel: string;
   provider: string;
   model: string;
   runtimeKind: string;
@@ -83,6 +83,8 @@ const CONTEXT_BINDING_DEFAULT: RuntimeProfileContext['binding'] =
 const EMPTY_FORM: ProfileFormState = {
   name: '',
   description: '',
+  classificationProvider: '',
+  classificationModel: '',
   provider: '',
   model: '',
   runtimeKind: 'gondolin_pi',
@@ -191,7 +193,7 @@ export function ProfilesPage() {
   });
 
   const profiles = useMemo(
-    () => (profilesQuery.data?.items ?? []).map(normalizeRuntimeProfile),
+    () => profilesQuery.data?.items ?? [],
     [profilesQuery.data],
   );
   const runtimeModels = useMemo(
@@ -461,7 +463,12 @@ export function ProfilesPage() {
                   <Stack gap={1}>
                     <Text variant="h4">{profile.name}</Text>
                     <Text variant="caption" color="muted">
-                      {profile.provider}/{profile.model}
+                      {Object.entries(profile.models)
+                        .map(
+                          ([kind, model]) =>
+                            `${kind}: ${model.provider}/${model.model}`,
+                        )
+                        .join(' · ')}
                     </Text>
                     <Text variant="caption" color="muted">
                       revision {profile.revision}
@@ -511,18 +518,28 @@ export function ProfilesPage() {
                 required
               />
               <LabeledInput
-                label="Provider"
+                label="Generation provider"
                 value={form.provider}
                 onChange={(value) => updateField('provider', value)}
                 list="runtime-profile-provider-options"
-                required
               />
               <LabeledInput
-                label="Model"
+                label="Generation model"
                 value={form.model}
                 onChange={(value) => updateField('model', value)}
                 list="runtime-profile-model-options"
-                required
+              />
+              <LabeledInput
+                label="Classification provider"
+                value={form.classificationProvider}
+                onChange={(value) =>
+                  updateField('classificationProvider', value)
+                }
+              />
+              <LabeledInput
+                label="Classification model"
+                value={form.classificationModel}
+                onChange={(value) => updateField('classificationModel', value)}
               />
               <LabeledInput
                 label="Runtime kind"
@@ -1495,16 +1512,28 @@ function profileToForm(profile: RuntimeProfile): ProfileFormState {
   return {
     name: profile.name,
     description: profile.description ?? '',
-    provider: profile.provider,
-    model: profile.model,
+    provider: profile.models.generation?.provider ?? '',
+    classificationProvider: profile.models.classification?.provider ?? '',
+    classificationModel: profile.models.classification?.model ?? '',
+    model: profile.models.generation?.model ?? '',
     runtimeKind: profile.runtimeKind,
-    thinkingLevel: profile.thinkingLevel ?? '',
+    thinkingLevel: profile.models.generation?.thinkingLevel ?? '',
     temperature:
-      profile.temperature === null ? '' : String(profile.temperature),
-    topP: profile.topP === null ? '' : String(profile.topP),
-    topK: profile.topK === null ? '' : String(profile.topK),
+      (profile.models.generation?.temperature ?? null) === null
+        ? ''
+        : String(profile.models.generation?.temperature),
+    topP:
+      (profile.models.generation?.topP ?? null) === null
+        ? ''
+        : String(profile.models.generation?.topP),
+    topK:
+      (profile.models.generation?.topK ?? null) === null
+        ? ''
+        : String(profile.models.generation?.topK),
     maxOutputTokens:
-      profile.maxOutputTokens === null ? '' : String(profile.maxOutputTokens),
+      (profile.models.generation?.maxOutputTokens ?? null) === null
+        ? ''
+        : String(profile.models.generation?.maxOutputTokens),
     runtimeAllowedHosts:
       profile.sandbox.network?.allowedHosts?.join(', ') ?? '',
     runtimeAllowedInternalHosts:
@@ -1521,20 +1550,16 @@ function profileToForm(profile: RuntimeProfile): ProfileFormState {
   };
 }
 
-function normalizeRuntimeProfile(
-  profile: RuntimeProfileListItem,
-): RuntimeProfile {
-  return {
-    ...profile,
-    thinkingLevel: profile.thinkingLevel ?? null,
-    temperature: profile.temperature ?? null,
-    topP: profile.topP ?? null,
-    topK: profile.topK ?? null,
-    maxOutputTokens: profile.maxOutputTokens ?? null,
-  };
-}
-
 function buildProfileBody(form: ProfileFormState): CreateRuntimeProfileBody {
+  if (
+    ![
+      form.provider,
+      form.model,
+      form.classificationProvider,
+      form.classificationModel,
+    ].some((value) => value.trim())
+  )
+    throw new Error('Configure a generation or classification model.');
   const sandbox = parseJson<RuntimeProfileSandbox>(
     form.sandboxJson,
     'Sandbox JSON',
@@ -1580,19 +1605,45 @@ function buildProfileBody(form: ProfileFormState): CreateRuntimeProfileBody {
     ...(form.description.trim()
       ? { description: form.description.trim() }
       : {}),
-    provider: requireText(form.provider, 'Provider'),
-    model: requireText(form.model, 'Model'),
-    thinkingLevel: form.thinkingLevel || null,
-    temperature: parseOptionalNumber(form.temperature, 'Temperature', {
-      min: 0,
-      max: 2,
-    }),
-    topP: parseOptionalNumber(form.topP, 'Top-p', { min: 0, max: 1 }),
-    topK: parseOptionalPositiveInt(form.topK, 'Top-k'),
-    maxOutputTokens: parseOptionalPositiveInt(
-      form.maxOutputTokens,
-      'Max output tokens',
-    ),
+    models: {
+      ...(form.provider.trim() || form.model.trim()
+        ? {
+            generation: {
+              provider: requireText(form.provider, 'Provider'),
+              model: requireText(form.model, 'Model'),
+              thinkingLevel: form.thinkingLevel || null,
+              temperature: parseOptionalNumber(
+                form.temperature,
+                'Temperature',
+                {
+                  min: 0,
+                  max: 2,
+                },
+              ),
+              topP: parseOptionalNumber(form.topP, 'Top-p', { min: 0, max: 1 }),
+              topK: parseOptionalPositiveInt(form.topK, 'Top-k'),
+              maxOutputTokens: parseOptionalPositiveInt(
+                form.maxOutputTokens,
+                'Max output tokens',
+              ),
+            },
+          }
+        : {}),
+      ...(form.classificationProvider.trim() || form.classificationModel.trim()
+        ? {
+            classification: {
+              provider: requireText(
+                form.classificationProvider,
+                'Classification provider',
+              ),
+              model: requireText(
+                form.classificationModel,
+                'Classification model',
+              ),
+            },
+          }
+        : {}),
+    },
     runtimeKind: requireText(form.runtimeKind, 'Runtime kind'),
     sandbox: sandboxWithNetwork,
     defaultWorkspaceMode: form.defaultWorkspaceMode || null,
