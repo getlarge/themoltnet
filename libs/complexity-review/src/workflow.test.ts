@@ -27,7 +27,7 @@ const rubric = JSON.parse(
   readFileSync(
     resolve(
       import.meta.dirname,
-      '../../../rubrics/pr-complexity-binary-v1.json',
+      '../../../rubrics/pr-complexity-tristate-v2.json',
     ),
     'utf8',
   ),
@@ -163,6 +163,9 @@ describe('staged complexity review', () => {
     )[0];
     const domain = buildDomainTask(input, evidence, work);
     expect(domain.input.brief).toContain('<untrusted-file-diff');
+    expect(domain.input.brief).toContain(
+      'Check each suspected impact against the assigned diff',
+    );
     expect(domain.input.outputContract?.schema).toMatchObject({
       type: 'object',
       required: ['paths', 'summary', 'signals'],
@@ -221,16 +224,17 @@ describe('staged complexity review', () => {
       result as ReturnType<typeof parseDomainResult>,
     ]);
     expect(synthesis.input.brief).toContain('<untrusted-domain-observations');
+    expect(synthesis.input.brief).toContain('exclude unclear weight');
     expect(synthesis.input.outputContract?.schema).toMatchObject({
       type: 'object',
-      required: ['scores', 'composite', 'verdict'],
+      required: ['scores', 'verdict'],
     });
   });
 
   it('rejects incomplete or arithmetically inconsistent final judgments', () => {
     const scores = rubric.criteria.map((criterion) => ({
       criterionId: criterion.id,
-      score: 1 as const,
+      status: 'pass' as const,
       rationale: 'reviewable',
     }));
     expect(
@@ -262,6 +266,49 @@ describe('staged complexity review', () => {
         rubric,
       ),
     ).toThrow();
+  });
+
+  it('excludes unclear criteria from the composite and rejects uncertainty scored as failure', () => {
+    const scores = rubric.criteria.map((criterion, index) => ({
+      criterionId: criterion.id,
+      status: index === 0 ? ('unclear' as const) : ('pass' as const),
+      rationale:
+        index === 0
+          ? 'The evidence does not settle scope.'
+          : 'Observed in diff.',
+    }));
+    expect(
+      parseReviewOutput(
+        { scores, composite: 1, verdict: 'Assessed criteria pass.' },
+        rubric,
+      ).composite,
+    ).toBe(1);
+    expect(() =>
+      parseReviewOutput(
+        { scores, composite: 0.75, verdict: 'Incorrectly penalized.' },
+        rubric,
+      ),
+    ).toThrow('assessed-weight score');
+    const allUnclear = scores.map((score) => ({
+      ...score,
+      status: 'unclear' as const,
+    }));
+    expect(
+      parseReviewOutput(
+        { scores: allUnclear, verdict: 'Undetermined.' },
+        rubric,
+      ).composite,
+    ).toBeUndefined();
+    const mixed = scores.map((score, index) => ({
+      ...score,
+      status: index === 1 ? ('fail' as const) : score.status,
+    }));
+    expect(
+      parseReviewOutput(
+        { scores: mixed, composite: 0.666667, verdict: 'Mixed burden.' },
+        rubric,
+      ).composite,
+    ).toBe(0.666667);
   });
 
   it.each([
@@ -307,7 +354,7 @@ describe('staged complexity review', () => {
       const created: Array<{ id: string; stage: string; key: string }> = [];
       const scores = rubric.criteria.map((criterion) => ({
         criterionId: criterion.id,
-        score: 1 as const,
+        status: 'pass' as const,
         rationale: 'Reviewable change',
       }));
       const outputs = new Map<string, unknown>();

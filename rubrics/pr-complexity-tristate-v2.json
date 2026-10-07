@@ -31,8 +31,8 @@
       "weight": 0.1
     }
   ],
-  "preamble": "You are reviewing a change artifact for complexity: how hard it is to review safely, not whether the feature is desirable. Use binary scoring only. When evidence is ambiguous, fail the criterion and explain why.",
-  "rubricId": "pr-complexity-binary-v1",
+  "preamble": "Review how hard the change is to review safely, not whether the feature is desirable. Check suspected impacts against the diff, including the scope of guards and branches. Mark unresolved criteria unclear rather than failing them; exclude unclear criteria from the weighted composite.",
+  "rubricId": "pr-complexity-tristate-v2",
   "scope": "change_review",
-  "version": "v1"
+  "version": "v2"
 }
