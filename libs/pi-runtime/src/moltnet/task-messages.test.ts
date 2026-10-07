@@ -10,14 +10,13 @@ function setup(missing = false) {
   }));
   const read = vi.fn().mockResolvedValue({
     headSeq: 4,
-    items: missing
-      ? []
-      : [
-          {
-            seq: 4,
-            writes: entries.map((value) => ({ type: 'entry', value })),
-          },
-        ],
+    items: (async function* () {
+      if (!missing)
+        yield {
+          seq: 4,
+          writes: entries.map((value) => ({ type: 'entry', value })),
+        };
+    })(),
   });
   const listMessages = vi.fn().mockResolvedValue([
     { seq: 1, payload: { event: 'other', text: 'legacy event' } },
