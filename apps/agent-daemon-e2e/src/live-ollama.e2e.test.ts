@@ -657,7 +657,12 @@ async function expectRuntimeState(input: {
     teamId: input.teamId,
   });
   expect(commits.headSeq).toBeGreaterThan(0);
-  expect(commits.items.length).toBeGreaterThan(0);
+  let count = 0;
+  for await (const commit of commits.items) {
+    expect(commit.seq).toBeGreaterThan(0);
+    count++;
+  }
+  expect(count).toBeGreaterThan(0);
   const messages = await input.agent.tasks.listMessages(
     input.taskId,
     input.attemptN,

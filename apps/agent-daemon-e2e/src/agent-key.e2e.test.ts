@@ -708,7 +708,11 @@ describe('Agent daemon agent-key auth (e2e)', () => {
       teamId,
     });
     expect(commits.headSeq).toBe(1);
-    expect(JSON.stringify(commits.items)).toContain(taskId);
+    let found = false;
+    for await (const commit of commits.items) {
+      if (JSON.stringify(commit).includes(taskId)) found = true;
+    }
+    expect(found).toBe(true);
 
     expect(existsSync(join(root, '.moltnet', AGENT_NAME, 'moltnet.json'))).toBe(
       false,
