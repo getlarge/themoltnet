@@ -199,4 +199,44 @@ describe('Runtime store authority and serialization (PostgreSQL)', () => {
     expect(await repo.listCommits(store.id, 0, 100, 100)).toEqual([]);
     await db.delete(runtimeStores).where(eq(runtimeStores.id, store.id));
   });
+  it('forks commit history without sharing subsequent writes', async () => {
+    const source = await runner.runInTransaction(async () => {
+      const store = await repo.create(teamId);
+      await repo.append({
+        storeId: store.id,
+        seq: 1,
+        commitId: randomUUID(),
+        sha256: 'a'.repeat(64),
+        objectKey: 'original-commit',
+        sizeBytes: 5,
+        taskId,
+        attemptN: 1,
+      });
+      await repo.update(store.id, { nextId: 12 });
+      return repo.lock(teamId, store.id);
+    });
+    const fork = await runner.runInTransaction(() => repo.fork(source!));
+    expect(fork.id).not.toBe(source!.id);
+    expect(fork.headSeq).toBe(1);
+    expect(fork.nextId).toBe(12);
+    expect(await repo.listCommits(fork.id, 0, 10, fork.headSeq)).toEqual([
+      expect.objectContaining({ seq: 1, objectKey: 'original-commit' }),
+    ]);
+    await runner.runInTransaction(() =>
+      repo.append({
+        storeId: fork.id,
+        seq: 2,
+        commitId: randomUUID(),
+        sha256: 'b'.repeat(64),
+        objectKey: 'fork-only-commit',
+        sizeBytes: 6,
+        taskId,
+        attemptN: 1,
+      }),
+    );
+    expect((await repo.get(teamId, source!.id))?.headSeq).toBe(1);
+    expect(await repo.listCommits(source!.id, 0, 10, 2)).toHaveLength(1);
+    await db.delete(runtimeStores).where(eq(runtimeStores.id, fork.id));
+    await db.delete(runtimeStores).where(eq(runtimeStores.id, source!.id));
+  });
 });

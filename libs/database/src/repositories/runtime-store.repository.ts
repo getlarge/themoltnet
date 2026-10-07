@@ -98,6 +98,26 @@ export function createRuntimeStoreRepository(db: Database) {
         .returning();
       return row;
     },
+    async fork(source: RuntimeStore): Promise<RuntimeStore> {
+      transactionRequired();
+      const [row] = await getExecutor(db)
+        .insert(runtimeStores)
+        .values({
+          teamId: source.teamId,
+          format: source.format,
+          headSeq: source.headSeq,
+          nextId: source.nextId,
+        })
+        .returning();
+      await getExecutor(db).execute(sql`
+        INSERT INTO runtime_store_commits
+          (store_id, seq, commit_id, sha256, object_key, size_bytes, task_id, attempt_n, created_at)
+        SELECT ${row.id}, seq, commit_id, sha256, object_key, size_bytes, task_id, attempt_n, created_at
+        FROM runtime_store_commits
+        WHERE store_id = ${source.id}
+      `);
+      return row;
+    },
     async lock(teamId: string, id: string) {
       transactionRequired();
       const [row] = await getExecutor(db)

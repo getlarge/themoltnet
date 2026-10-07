@@ -118,7 +118,11 @@ export function createRuntimeStoreService(deps: {
           else {
             const parent = (
               binding.task.input as {
-                continueFrom?: { taskId: string; attemptN: number };
+                continueFrom?: {
+                  taskId: string;
+                  attemptN: number;
+                  mode?: 'extend' | 'fork';
+                };
               }
             ).continueFrom;
             if (parent) {
@@ -140,7 +144,12 @@ export function createRuntimeStoreService(deps: {
                   'conflict',
                   'Parent attempt has no Durable store',
                 );
-              store = await repo.lock(input.teamId, source.storeId);
+              const sourceStore = await repo.lock(input.teamId, source.storeId);
+              if (!sourceStore) throw createProblem('not-found');
+              store =
+                parent.mode === 'fork'
+                  ? await repo.fork(sourceStore)
+                  : sourceStore;
             } else store = await repo.create(input.teamId);
             if (!store) throw createProblem('not-found');
             attached = {
@@ -350,16 +359,14 @@ export function createRuntimeStoreService(deps: {
       if (!store) throw createProblem('not-found');
       const bindings = await repo.listAttempts(input.teamId, input.storeId);
       if (bindings.length === 0) throw createProblem('not-found');
-      for (const binding of bindings) {
-        if (
-          !(await deps.permissionChecker.canViewTask(
-            binding.taskId,
-            input.subjectId,
-            input.subjectNs,
-          ))
-        )
-          throw createProblem('not-found');
-      }
+      const taskIds = [...new Set(bindings.map((binding) => binding.taskId))];
+      const permissions = await deps.permissionChecker.canViewTasks(
+        taskIds,
+        input.subjectId,
+        input.subjectNs,
+      );
+      if (taskIds.some((taskId) => permissions.get(taskId) !== true))
+        throw createProblem('not-found');
       const rows = await repo.listCommits(
         store.id,
         input.afterSeq ?? 0,

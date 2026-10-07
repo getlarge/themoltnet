@@ -45,8 +45,8 @@ test.describe.serial('Runtime profiles console', () => {
     ).toBeVisible();
     await page.getByRole('button', { name: /new profile/i }).click();
     await page.getByLabel(/^name$/i).fill(profileName);
-    await page.getByLabel(/^provider$/i).fill('anthropic');
-    await page.getByLabel(/^model$/i).fill('claude-sonnet-4-5');
+    await page.getByLabel('Generation provider').fill('anthropic');
+    await page.getByLabel('Generation model').fill('claude-sonnet-4-5');
     await page
       .getByLabel('Default workspace mode', { exact: true })
       .selectOption('dedicated_worktree');
@@ -84,8 +84,8 @@ test.describe.serial('Runtime profiles console', () => {
       page.getByRole('button', { name: /create profile/i }),
     ).toBeVisible();
     await page.getByLabel(/^name$/i).fill(secondProfileName);
-    await page.getByLabel(/^provider$/i).fill('anthropic');
-    await page.getByLabel(/^model$/i).fill('claude-sonnet-4-5');
+    await page.getByLabel('Generation provider').fill('anthropic');
+    await page.getByLabel('Generation model').fill('claude-sonnet-4-5');
     await page.getByLabel('Sandbox JSON', { exact: true }).fill('{}');
     await page.getByRole('button', { name: /create profile/i }).click();
 

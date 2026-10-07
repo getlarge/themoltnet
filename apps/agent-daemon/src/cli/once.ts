@@ -463,53 +463,57 @@ export async function runOnce(
   });
 
   try {
-    const rawExecuteTask = preparedRuntime.createTaskExecutor({
-      agentName: identity.agent,
-      moltnetAgent: ctx.agent,
-      agentIdentity,
-      hostCapabilitySigner,
-      hostCapabilityLogger: rootLogger,
-      agentRootDir: ctx.agentRootDir,
-      mountPath: sandbox.rootDir,
-      provider: primaryModel.provider,
-      model: primaryModel.model,
-      thinkingLevel: generation?.thinkingLevel ?? null,
-      temperature: generation?.temperature ?? null,
-      topP: generation?.topP ?? null,
-      topK: generation?.topK ?? null,
-      maxOutputTokens: generation?.maxOutputTokens ?? null,
+    const createRawExecuteTask = (taskModel: {
+      provider: string;
+      model: string;
+    }) =>
+      preparedRuntime.createTaskExecutor({
+        agentName: identity.agent,
+        moltnetAgent: ctx.agent,
+        agentIdentity,
+        hostCapabilitySigner,
+        hostCapabilityLogger: rootLogger,
+        agentRootDir: ctx.agentRootDir,
+        mountPath: sandbox.rootDir,
+        provider: taskModel.provider,
+        model: taskModel.model,
+        thinkingLevel: generation?.thinkingLevel ?? null,
+        temperature: generation?.temperature ?? null,
+        topP: generation?.topP ?? null,
+        topK: generation?.topK ?? null,
+        maxOutputTokens: generation?.maxOutputTokens ?? null,
 
-      providerFailureContext: {
+        providerFailureContext: {
+          runtimeProfileId: profile.id,
+          runtimeProfileName: profile.name,
+          piAgentDirSource: piAgentDir.source,
+        },
+
+        sandboxConfig: sandbox.config,
+        forwardEnv: profile.requiredEnv,
+        onVmDiagnostic: (diagnostic) => {
+          const fields = {
+            event: diagnostic.event,
+            ...(diagnostic.brokeredSecretCount !== undefined && {
+              brokeredSecretCount: diagnostic.brokeredSecretCount,
+            }),
+          };
+          if (diagnostic.level === 'warning') {
+            rootLogger.warn(fields, diagnostic.message);
+          } else {
+            rootLogger.info(fields, diagnostic.message);
+          }
+        },
+        runtimeProfileContext: profile.context,
         runtimeProfileId: profile.id,
-        runtimeProfileName: profile.name,
-        piAgentDirSource: piAgentDir.source,
-      },
-
-      sandboxConfig: sandbox.config,
-      forwardEnv: profile.requiredEnv,
-      onVmDiagnostic: (diagnostic) => {
-        const fields = {
-          event: diagnostic.event,
-          ...(diagnostic.brokeredSecretCount !== undefined && {
-            brokeredSecretCount: diagnostic.brokeredSecretCount,
-          }),
-        };
-        if (diagnostic.level === 'warning') {
-          rootLogger.warn(fields, diagnostic.message);
-        } else {
-          rootLogger.info(fields, diagnostic.message);
-        }
-      },
-      runtimeProfileContext: profile.context,
-      runtimeProfileId: profile.id,
-      toolEnforcement: profile.toolEnforcement,
-      makeExecutionPlan: (claimedTask) =>
-        executionPlans.getOrCreate(claimedTask),
-      onTurnEvent: makeTurnEventHandler(rootLogger, { taskId }),
-      toolPolicyLogger: rootLogger,
-      maxTurns: profile.maxTurns,
-      maxBashTimeouts: profile.maxBashTimeouts,
-    });
+        toolEnforcement: profile.toolEnforcement,
+        makeExecutionPlan: (claimedTask) =>
+          executionPlans.getOrCreate(claimedTask),
+        onTurnEvent: makeTurnEventHandler(rootLogger, { taskId }),
+        toolPolicyLogger: rootLogger,
+        maxTurns: profile.maxTurns,
+        maxBashTimeouts: profile.maxBashTimeouts,
+      });
     const executeTask: TaskExecutor = async (claimedTask, reporter) => {
       const taskModel = runtimeProfileModel(
         profile.models,
@@ -517,6 +521,7 @@ export async function runOnce(
       );
       const contractFailure = preflightOutputContract(claimedTask);
       if (contractFailure) return contractFailure;
+      const rawExecuteTask = createRawExecuteTask(taskModel);
       if (runtimeCredentialConfig) {
         await observeGovernancePlanSafely({
           config: runtimeCredentialConfig,

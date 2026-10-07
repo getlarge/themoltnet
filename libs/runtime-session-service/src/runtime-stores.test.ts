@@ -42,6 +42,9 @@ function setup() {
     })),
     findAttempt: vi.fn(async () => binding),
     listAttempts: vi.fn(async () => [binding]),
+    bindAttempt: vi.fn(),
+    create: vi.fn(async () => ({ ...row })),
+    fork: vi.fn(async () => ({ ...row, id: 'fork-store' })),
     lock: vi.fn(async (team: string) => (team === 'team' ? { ...row } : null)),
     get: vi.fn(async () => ({ ...row })),
     update: vi.fn(async (_id: string, patch: object) => {
@@ -77,6 +80,10 @@ function setup() {
   const permissionChecker = {
     canAccessTeam: vi.fn(async () => true),
     canViewTask: vi.fn(async () => true),
+    canViewTasks: vi.fn(
+      async (taskIds: string[]) =>
+        new Map(taskIds.map((taskId) => [taskId, true])),
+    ),
   };
   const appendMessages = vi.fn();
   const deps = {
@@ -117,6 +124,34 @@ const writes = [
 ];
 
 describe('runtime store publication', () => {
+  it('forks the parent commit head into an independent store', async () => {
+    const f = setup();
+    f.repository.lockAuthority.mockResolvedValueOnce({
+      task: {
+        input: {
+          continueFrom: { taskId: 'parent', attemptN: 1, mode: 'fork' },
+        },
+        claimExpiresAt: new Date(Date.now() + 300_000),
+      },
+      attempt: {},
+    });
+    f.repository.findAttempt
+      .mockResolvedValueOnce(null as never)
+      .mockResolvedValueOnce({
+        teamId: 'team',
+        taskId: 'parent',
+        attemptN: 1,
+        storeId: 'store',
+      });
+    const handle = await f.service.open(authority);
+    expect(handle.storeId).toBe('fork-store');
+    expect(f.repository.fork).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'store' }),
+    );
+    expect(f.repository.bindAttempt).toHaveBeenCalledWith(
+      expect.objectContaining({ storeId: 'fork-store' }),
+    );
+  });
   it('returns one receipt and one slim projection for repeated acknowledgment retries', async () => {
     const f = setup();
     const handle = await f.service.open(authority);
@@ -186,10 +221,24 @@ describe('runtime store publication', () => {
     await expect(
       f.service.mintId({ ...authority, ...handle, teamId: 'other' }),
     ).rejects.toThrow();
-    f.permissionChecker.canViewTask.mockResolvedValue(false);
+    f.repository.listAttempts.mockResolvedValueOnce([
+      { teamId: 'team', taskId: 'task', attemptN: 1, storeId: 'store' },
+      { teamId: 'team', taskId: 'ancestor', attemptN: 1, storeId: 'store' },
+    ]);
+    f.permissionChecker.canViewTasks.mockResolvedValue(
+      new Map([
+        ['task', true],
+        ['ancestor', false],
+      ]),
+    );
     await expect(
       f.service.read({ ...authority, storeId: handle.storeId }),
     ).rejects.toThrow();
+    expect(f.permissionChecker.canViewTasks).toHaveBeenCalledWith(
+      ['task', 'ancestor'],
+      authority.subjectId,
+      authority.subjectNs,
+    );
     expect(f.storage.getObject).not.toHaveBeenCalled();
   });
   it('detects corrupt object payloads and reads only through the captured head', async () => {
