@@ -366,43 +366,44 @@ export function createRuntimeStoreService(deps: {
         Math.min(input.limit ?? 50, 100),
         store.headSeq,
       );
-      const items: RuntimeStoreCommit[] = [];
-      for (const row of rows) {
-        const object = await deps.storage.getObject(row.objectKey);
-        const chunks: Buffer[] = [];
-        let size = 0;
-        for await (const chunk of object.body) {
-          const bytes = Buffer.from(chunk as Uint8Array);
-          size += bytes.length;
-          if (size > deps.maxBytes) {
-            object.body.destroy();
+      async function* items(): AsyncGenerator<RuntimeStoreCommit> {
+        for (const row of rows) {
+          const object = await deps.storage.getObject(row.objectKey);
+          const chunks: Buffer[] = [];
+          let size = 0;
+          for await (const chunk of object.body) {
+            const bytes = Buffer.from(chunk as Uint8Array);
+            size += bytes.length;
+            if (size > deps.maxBytes) {
+              object.body.destroy();
+              throw createProblem(
+                'service-unavailable',
+                'Stored runtime commit exceeds size limit',
+              );
+            }
+            chunks.push(bytes);
+          }
+          const bytes = Buffer.concat(chunks);
+          if (createHash('sha256').update(bytes).digest('hex') !== row.sha256)
             throw createProblem(
               'service-unavailable',
-              'Stored runtime commit exceeds size limit',
+              'Runtime commit checksum mismatch',
             );
-          }
-          chunks.push(bytes);
+          const payload = JSON.parse(bytes.toString()) as {
+            format: string;
+            writes: RuntimeStoreCommit['writes'];
+          };
+          if (payload.format !== FORMAT)
+            throw createProblem('conflict', 'Unsupported runtime store format');
+          yield {
+            seq: row.seq,
+            commitId: row.commitId,
+            sha256: row.sha256,
+            writes: payload.writes,
+          };
         }
-        const bytes = Buffer.concat(chunks);
-        if (createHash('sha256').update(bytes).digest('hex') !== row.sha256)
-          throw createProblem(
-            'service-unavailable',
-            'Runtime commit checksum mismatch',
-          );
-        const payload = JSON.parse(bytes.toString()) as {
-          format: string;
-          writes: RuntimeStoreCommit['writes'];
-        };
-        if (payload.format !== FORMAT)
-          throw createProblem('conflict', 'Unsupported runtime store format');
-        items.push({
-          seq: row.seq,
-          commitId: row.commitId,
-          sha256: row.sha256,
-          writes: payload.writes,
-        });
       }
-      return { headSeq: store.headSeq, items };
+      return { headSeq: store.headSeq, count: rows.length, items: items() };
     },
   };
 }

@@ -9420,12 +9420,14 @@ func encodeListRuntimeSlotsResponse(response ListRuntimeSlotsRes, w http.Respons
 func encodeListRuntimeStoreCommitsResponse(response ListRuntimeStoreCommitsRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
 	case *ListRuntimeStoreCommitsOK:
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Header().Set("Content-Type", "application/x-ndjson")
 		w.WriteHeader(200)
 
-		e := new(jx.Encoder)
-		response.Encode(e)
-		if _, err := e.WriteTo(w); err != nil {
+		writer := w
+		if closer, ok := response.Data.(io.Closer); ok {
+			defer closer.Close()
+		}
+		if _, err := io.Copy(writer, response); err != nil {
 			return errors.Wrap(err, "write")
 		}
 

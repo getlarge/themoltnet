@@ -54,13 +54,6 @@ export const RuntimeStoreCommit = Type.Object(
   { $id: 'RuntimeStoreCommit', ...strict },
 );
 export type RuntimeStoreCommit = Static<typeof RuntimeStoreCommit>;
-export const RuntimeStoreCommitPage = Type.Object(
-  {
-    items: Type.Array(RuntimeStoreCommit),
-    headSeq: integer,
-  },
-  { $id: 'RuntimeStoreCommitPage', ...strict },
-);
 export const RuntimeStoreCommitReceipt = Type.Object({ seq: integer }, strict);
 export const RuntimeStoreIdAllocation = Type.Object({ id: integer }, strict);
 export const RuntimeStoreReadQuery = Type.Object(

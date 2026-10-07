@@ -23,7 +23,6 @@ var regexMap = map[string]ogenregex.Regexp{
 	"^(?:\\*\\.)?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$": ogenregex.MustCompile("^(?:\\*\\.)?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$"),
 	"^(server:|agent:|pi:|agent-)\\S+$": ogenregex.MustCompile("^(server:|agent:|pi:|agent-)\\S+$"),
 	"^[0-9]+[KMG]?$":                    ogenregex.MustCompile("^[0-9]+[KMG]?$"),
-	"^[0-9a-f]{64}$":                    ogenregex.MustCompile("^[0-9a-f]{64}$"),
 	"^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$": ogenregex.MustCompile("^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$"),
 	"^[A-Z_][A-Z0-9_]*$":                  ogenregex.MustCompile("^[A-Z_][A-Z0-9_]*$"),
 	"^[A-Za-z0-9+/]{86}==$":               ogenregex.MustCompile("^[A-Za-z0-9+/]{86}==$"),

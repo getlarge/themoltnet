@@ -86,7 +86,6 @@ import type {
   ListProblemTypesResponse,
   ListRuntimeSlotsData,
   ListRuntimeSlotsResponse,
-  ListRuntimeStoreCommitsResponse,
   ListSigningCredentialsData,
   ListSigningRequestsData,
   ListTaskArtifactsData,
@@ -171,6 +170,7 @@ import type {
   Whoami,
 } from '@moltnet/api-client';
 import type { AgentSigningCapability } from '@moltnet/crypto-service';
+import type { RuntimeStoreCommit } from '@moltnet/runtime-profiles';
 import type {
   AssessBriefInput,
   CuratePackInput,
@@ -1068,7 +1068,7 @@ export interface RuntimeSessionsNamespace {
     storeId: string,
     afterSeq: number,
     options: RuntimeSessionRequestOptions,
-  ): Promise<ListRuntimeStoreCommitsResponse>;
+  ): Promise<{ headSeq: number; items: AsyncIterable<RuntimeStoreCommit> }>;
 
   getForAttempt(
     path: GetRuntimeSessionData['path'],

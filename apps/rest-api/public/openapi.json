@@ -31733,60 +31733,14 @@
         "responses": {
           "200": {
             "content": {
-              "application/json": {
+              "application/x-ndjson": {
                 "schema": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "headSeq": {
-                      "maximum": 9007199254740991,
-                      "minimum": 0,
-                      "type": "integer"
-                    },
-                    "items": {
-                      "items": {
-                        "additionalProperties": false,
-                        "properties": {
-                          "commitId": {
-                            "format": "uuid",
-                            "type": "string"
-                          },
-                          "seq": {
-                            "maximum": 9007199254740991,
-                            "minimum": 0,
-                            "type": "integer"
-                          },
-                          "sha256": {
-                            "pattern": "^[0-9a-f]{64}$",
-                            "type": "string"
-                          },
-                          "writes": {
-                            "items": {
-                              "additionalProperties": {},
-                              "type": "object"
-                            },
-                            "type": "array"
-                          }
-                        },
-                        "required": [
-                          "seq",
-                          "commitId",
-                          "sha256",
-                          "writes"
-                        ],
-                        "type": "object"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "items",
-                    "headSeq"
-                  ],
-                  "type": "object"
+                  "format": "binary",
+                  "type": "string"
                 }
               }
             },
-            "description": "Default Response"
+            "description": "Ordered NDJSON commits. The first line contains headSeq and count; exactly count commit lines follow. A truncated stream must not be treated as a complete page."
           },
           "400": {
             "content": {
