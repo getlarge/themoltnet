@@ -84,7 +84,7 @@ export interface GateAgent {
       afterSeq: number,
       options: { teamId: string },
     ): Promise<{
-      items: Array<{ seq: number; writes: Record<string, unknown>[] }>;
+      items: AsyncIterable<{ seq: number; writes: Record<string, unknown>[] }>;
     }>;
   };
   tasks: {
@@ -271,9 +271,13 @@ async function durableToolEvents(
         ref.commitSeq - 1,
         { teamId },
       );
-      const commit = page.items.find((item) => item.seq === ref.commitSeq);
-      if (!commit) throw new Error('Durable evidence commit is unavailable');
-      writes = commit.writes;
+      for await (const commit of page.items) {
+        if (commit.seq === ref.commitSeq) {
+          writes = commit.writes;
+          break;
+        }
+      }
+      if (!writes) throw new Error('Durable evidence commit is unavailable');
       commits.set(key, writes);
     }
     const entry = writes.find(

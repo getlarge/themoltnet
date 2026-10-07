@@ -186,12 +186,12 @@ describe('checkGates', () => {
         completedAttempt,
       );
       const read = vi.fn().mockResolvedValue({
-        items: [
-          {
+        items: (async function* () {
+          yield {
             seq: 4,
             writes: entries.map((value) => ({ type: 'entry', value })),
-          },
-        ],
+          };
+        })(),
       });
       agent.runtimeSessions = { read };
       const result = await checkGates(
