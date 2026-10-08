@@ -175,7 +175,11 @@ export function createRuntimeSessionsNamespace(
             stream!.destroy();
           }
         }
-        return { headSeq: header.headSeq, items: items() };
+        return {
+          headSeq: header.headSeq,
+          items: items(),
+          close: () => stream.destroy(),
+        };
       } catch (error) {
         await lines.return(undefined);
         stream.destroy();

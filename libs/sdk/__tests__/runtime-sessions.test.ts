@@ -45,7 +45,8 @@ describe('runtime session persistence', () => {
       },
       options,
     );
-    await sessions.read('store', 1, options);
+    const page = await sessions.read('store', 1, options);
+    page.close();
     await sessions.getForAttempt({ taskId: 'task', attemptN: 1 }, options);
 
     expect(
@@ -96,7 +97,8 @@ describe('runtime session persistence', () => {
     );
     const controller = new AbortController();
     const requestOptions = { ...options, signal: controller.signal };
-    await sessions.read('store', 0, requestOptions);
+    const page = await sessions.read('store', 0, requestOptions);
+    page.close();
     await sessions.getForAttempt(
       { taskId: 'task', attemptN: 1 },
       requestOptions,
@@ -136,6 +138,23 @@ describe('runtime session persistence', () => {
       break;
     }
     expect(cancel).toHaveBeenCalledTimes(1);
+  });
+  it('closes a page whose items are never iterated', async () => {
+    let controller!: ReadableStreamDefaultController<Uint8Array>;
+    const cancel = vi.fn();
+    const body = new ReadableStream<Uint8Array>({
+      start(value) {
+        controller = value;
+      },
+      cancel,
+    });
+    const { sessions } = setup(() => new Response(body));
+    controller.enqueue(new TextEncoder().encode('{"headSeq":0,"count":0}\n'));
+
+    const page = await sessions.read('store', 0, options);
+    page.close();
+
+    await vi.waitFor(() => expect(cancel).toHaveBeenCalledTimes(1));
   });
   it.each([
     JSON.stringify({ headSeq: 1, count: 1 }) + '\n',

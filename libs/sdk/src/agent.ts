@@ -1068,7 +1068,12 @@ export interface RuntimeSessionsNamespace {
     storeId: string,
     afterSeq: number,
     options: RuntimeSessionRequestOptions,
-  ): Promise<{ headSeq: number; items: AsyncIterable<RuntimeStoreCommit> }>;
+  ): Promise<{
+    headSeq: number;
+    items: AsyncIterable<RuntimeStoreCommit>;
+    /** Release the response when items are not fully consumed. */
+    close(): void;
+  }>;
 
   getForAttempt(
     path: GetRuntimeSessionData['path'],
