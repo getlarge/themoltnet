@@ -56,6 +56,29 @@ export function createRuntimeStoreService(deps: {
       throw createProblem('conflict', 'Attempt authority is no longer active');
     return binding;
   }
+  async function reader(
+    input: Subject,
+    storeId: string,
+    commitTaskIds: string[],
+  ) {
+    const bindings = await repo.listAttempts(input.teamId, storeId);
+    if (bindings.length === 0) throw createProblem('not-found');
+    // Forks copy commits, not attempt bindings. Retain authorization for every
+    // task that contributed content on the page being read.
+    const taskIds = [
+      ...new Set([
+        ...bindings.map((binding) => binding.taskId),
+        ...commitTaskIds,
+      ]),
+    ];
+    const permissions = await deps.permissionChecker.canViewTasks(
+      taskIds,
+      input.subjectId,
+      input.subjectNs,
+    );
+    if (taskIds.some((taskId) => permissions.get(taskId) !== true))
+      throw createProblem('not-found');
+  }
   async function writer(input: Writer) {
     await authority(input);
     const store = await repo.lock(input.teamId, input.storeId);
@@ -146,6 +169,11 @@ export function createRuntimeStoreService(deps: {
                 );
               const sourceStore = await repo.lock(input.teamId, source.storeId);
               if (!sourceStore) throw createProblem('not-found');
+              await reader(
+                input,
+                sourceStore.id,
+                await repo.listCommitTaskIds(sourceStore.id),
+              );
               store =
                 parent.mode === 'fork'
                   ? await repo.fork(sourceStore)
@@ -357,21 +385,16 @@ export function createRuntimeStoreService(deps: {
       await team(input);
       const store = await repo.get(input.teamId, input.storeId);
       if (!store) throw createProblem('not-found');
-      const bindings = await repo.listAttempts(input.teamId, input.storeId);
-      if (bindings.length === 0) throw createProblem('not-found');
-      const taskIds = [...new Set(bindings.map((binding) => binding.taskId))];
-      const permissions = await deps.permissionChecker.canViewTasks(
-        taskIds,
-        input.subjectId,
-        input.subjectNs,
-      );
-      if (taskIds.some((taskId) => permissions.get(taskId) !== true))
-        throw createProblem('not-found');
       const rows = await repo.listCommits(
         store.id,
         input.afterSeq ?? 0,
         Math.min(input.limit ?? 50, 100),
         store.headSeq,
+      );
+      await reader(
+        input,
+        input.storeId,
+        rows.map((row) => row.taskId),
       );
       async function* items(): AsyncGenerator<RuntimeStoreCommit> {
         for (const row of rows) {

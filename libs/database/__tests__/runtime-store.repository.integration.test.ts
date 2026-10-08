@@ -222,6 +222,7 @@ describe('Runtime store authority and serialization (PostgreSQL)', () => {
     expect(await repo.listCommits(fork.id, 0, 10, fork.headSeq)).toEqual([
       expect.objectContaining({ seq: 1, objectKey: 'original-commit' }),
     ]);
+    expect(await repo.listCommitTaskIds(fork.id)).toEqual([taskId]);
     await runner.runInTransaction(() =>
       repo.append({
         storeId: fork.id,

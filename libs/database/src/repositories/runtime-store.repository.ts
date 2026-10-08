@@ -86,6 +86,13 @@ export function createRuntimeStoreRepository(db: Database) {
           ),
         );
     },
+    async listCommitTaskIds(storeId: string) {
+      const rows = await getExecutor(db)
+        .selectDistinct({ taskId: runtimeStoreCommits.taskId })
+        .from(runtimeStoreCommits)
+        .where(eq(runtimeStoreCommits.storeId, storeId));
+      return rows.map((row) => row.taskId);
+    },
     async bindAttempt(input: typeof runtimeStoreAttempts.$inferInsert) {
       transactionRequired();
       await getExecutor(db).insert(runtimeStoreAttempts).values(input);
