@@ -165,6 +165,7 @@ function asMetadata(value: object | undefined): Record<string, unknown> {
 function summarizeOryError(error: unknown): {
   errorType: string;
   status?: number;
+  causeType?: string;
   causeCode?: string;
 } {
   if (typeof error !== 'object' || error === null) {
@@ -174,17 +175,23 @@ function summarizeOryError(error: unknown): {
   const candidate = error as {
     name?: unknown;
     response?: { status?: unknown };
-    cause?: { code?: unknown };
+    cause?: { name?: unknown; code?: unknown; cause?: { code?: unknown } };
   };
+  const cause = candidate.cause;
+  const causeCode =
+    typeof cause?.code === 'string'
+      ? cause.code
+      : typeof cause?.cause?.code === 'string'
+        ? cause.cause.code
+        : undefined;
   return {
     errorType:
       typeof candidate.name === 'string' ? candidate.name : 'UnknownError',
     ...(typeof candidate.response?.status === 'number'
       ? { status: candidate.response.status }
       : {}),
-    ...(typeof candidate.cause?.code === 'string'
-      ? { causeCode: candidate.cause.code }
-      : {}),
+    ...(typeof cause?.name === 'string' ? { causeType: cause.name } : {}),
+    ...(causeCode ? { causeCode } : {}),
   };
 }
 
@@ -528,6 +535,7 @@ export function createTokenValidator(
       let result: Awaited<
         ReturnType<Pick<ApiKeysApi, 'adminVerifyApiKey'>['adminVerifyApiKey']>
       >;
+      const startedAt = performance.now();
       try {
         result = await talosApi.adminVerifyApiKey({
           verifyApiKeyRequest: { credential: token },
@@ -539,6 +547,7 @@ export function createTokenValidator(
           {
             credentialType: 'talos-api-key',
             reason: 'verifier_request_failed',
+            requestDurationMs: Math.round(performance.now() - startedAt),
             ...summarizeOryError(error),
           },
           'Talos API key validation unavailable',
