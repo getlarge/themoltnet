@@ -87,6 +87,51 @@ it('migrates existing model selections and settings without changing profile ide
       await expect(
         client.query("INSERT INTO runtime_profiles(models) VALUES ('{}')"),
       ).rejects.toThrow('runtime_profiles_models_nonempty');
+      for (const models of [
+        { generation: null },
+        { classification: { provider: '', model: 'labels' } },
+        { classification: { provider: 'provider' } },
+        { generation: { provider: 'provider', model: 42 } },
+      ]) {
+        await expect(
+          client.query('INSERT INTO runtime_profiles(models) VALUES ($1)', [
+            models,
+          ]),
+        ).rejects.toThrow('runtime_profiles_model_selections_valid');
+      }
+      const selection = { provider: 'provider', model: 'model' };
+      for (const settings of [
+        { thinkingLevel: 'unsupported' },
+        { temperature: -0.1 },
+        { topP: 1.1 },
+        { topK: 1.5 },
+        { maxOutputTokens: 0 },
+      ]) {
+        await expect(
+          client.query('INSERT INTO runtime_profiles(models) VALUES ($1)', [
+            { generation: { ...selection, ...settings } },
+          ]),
+        ).rejects.toThrow('runtime_profiles_generation_settings_valid');
+      }
+      await expect(
+        client.query('INSERT INTO runtime_profiles(models) VALUES ($1)', [
+          { classification: selection },
+        ]),
+      ).resolves.toBeDefined();
+      await expect(
+        client.query('INSERT INTO runtime_profiles(models) VALUES ($1)', [
+          {
+            generation: {
+              ...selection,
+              thinkingLevel: null,
+              temperature: 2,
+              topP: 1,
+              topK: 10_000,
+              maxOutputTokens: 1_000_000,
+            },
+          },
+        ]),
+      ).resolves.toBeDefined();
     } finally {
       client.release();
     }

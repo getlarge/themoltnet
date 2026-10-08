@@ -24,6 +24,38 @@ const toolEnforcementSqlArray = sql.raw(
   `ARRAY[${TOOL_ENFORCEMENT_VALUES.map((mode) => `'${mode}'`).join(',')}]::text[]`,
 );
 
+const modelSelectionValid = (capability: 'generation' | 'classification') => {
+  const key = sql.raw(`'${capability}'`);
+  return sql`CASE WHEN models ? ${key} THEN COALESCE(
+    jsonb_typeof(models -> ${key}) = 'object'
+    AND jsonb_typeof(models -> ${key} -> 'provider') = 'string'
+    AND length(models -> ${key} ->> 'provider') BETWEEN 1 AND 100
+    AND jsonb_typeof(models -> ${key} -> 'model') = 'string'
+    AND length(models -> ${key} ->> 'model') BETWEEN 1 AND 200,
+    false
+  ) ELSE true END`;
+};
+
+const optionalGenerationNumberValid = (
+  keyName: 'temperature' | 'topP' | 'topK' | 'maxOutputTokens',
+  maximum: number,
+  integerOnly = false,
+) => {
+  const key = sql.raw(`'${keyName}'`);
+  const value = sql`(models -> 'generation' ->> ${key})::numeric`;
+  const minimum = sql.raw(
+    keyName === 'temperature' || keyName === 'topP' ? '0' : '1',
+  );
+  const range = sql`${value} BETWEEN ${minimum} AND ${sql.raw(String(maximum))}`;
+  return sql`CASE WHEN models -> 'generation' ? ${key} THEN
+    CASE jsonb_typeof(models -> 'generation' -> ${key})
+      WHEN 'null' THEN true
+      WHEN 'number' THEN ${integerOnly ? sql`${range} AND mod(${value}, 1) = 0` : range}
+      ELSE false
+    END
+  ELSE true END`;
+};
+
 export function defineRuntimeProfilesTable({
   agents,
   humans,
@@ -110,6 +142,26 @@ export function defineRuntimeProfilesTable({
       check(
         'runtime_profiles_models_nonempty',
         sql`jsonb_typeof(models) = 'object' AND (models ? 'generation' OR models ? 'classification')`,
+      ),
+      check(
+        'runtime_profiles_model_selections_valid',
+        sql`${modelSelectionValid('generation')} AND ${modelSelectionValid('classification')}`,
+      ),
+      check(
+        'runtime_profiles_generation_settings_valid',
+        sql`CASE WHEN models ? 'generation' AND jsonb_typeof(models -> 'generation') = 'object' THEN
+          (CASE WHEN models -> 'generation' ? 'thinkingLevel' THEN
+            CASE jsonb_typeof(models -> 'generation' -> 'thinkingLevel')
+              WHEN 'null' THEN true
+              WHEN 'string' THEN models -> 'generation' ->> 'thinkingLevel' = ANY(ARRAY['off','minimal','low','medium','high','xhigh']::text[])
+              ELSE false
+            END
+          ELSE true END)
+          AND ${optionalGenerationNumberValid('temperature', 2)}
+          AND ${optionalGenerationNumberValid('topP', 1)}
+          AND ${optionalGenerationNumberValid('topK', 10_000, true)}
+          AND ${optionalGenerationNumberValid('maxOutputTokens', 1_000_000, true)}
+        ELSE true END`,
       ),
       check(
         'runtime_profiles_default_workspace_mode_valid',

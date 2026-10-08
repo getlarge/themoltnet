@@ -67,3 +67,56 @@ ALTER TABLE "runtime_profiles" DROP COLUMN "top_p";--> statement-breakpoint
 ALTER TABLE "runtime_profiles" DROP COLUMN "top_k";--> statement-breakpoint
 ALTER TABLE "runtime_profiles" DROP COLUMN "max_output_tokens";--> statement-breakpoint
 ALTER TABLE "runtime_profiles" ADD CONSTRAINT "runtime_profiles_models_nonempty" CHECK (jsonb_typeof(models) = 'object' AND (models ? 'generation' OR models ? 'classification'));
+--> statement-breakpoint
+ALTER TABLE "runtime_profiles" ADD CONSTRAINT "runtime_profiles_model_selections_valid" CHECK (CASE WHEN models ? 'generation' THEN COALESCE(
+    jsonb_typeof(models -> 'generation') = 'object'
+    AND jsonb_typeof(models -> 'generation' -> 'provider') = 'string'
+    AND length(models -> 'generation' ->> 'provider') BETWEEN 1 AND 100
+    AND jsonb_typeof(models -> 'generation' -> 'model') = 'string'
+    AND length(models -> 'generation' ->> 'model') BETWEEN 1 AND 200,
+    false
+  ) ELSE true END AND CASE WHEN models ? 'classification' THEN COALESCE(
+    jsonb_typeof(models -> 'classification') = 'object'
+    AND jsonb_typeof(models -> 'classification' -> 'provider') = 'string'
+    AND length(models -> 'classification' ->> 'provider') BETWEEN 1 AND 100
+    AND jsonb_typeof(models -> 'classification' -> 'model') = 'string'
+    AND length(models -> 'classification' ->> 'model') BETWEEN 1 AND 200,
+    false
+  ) ELSE true END);--> statement-breakpoint
+ALTER TABLE "runtime_profiles" ADD CONSTRAINT "runtime_profiles_generation_settings_valid" CHECK (CASE WHEN models ? 'generation' AND jsonb_typeof(models -> 'generation') = 'object' THEN
+          (CASE WHEN models -> 'generation' ? 'thinkingLevel' THEN
+            CASE jsonb_typeof(models -> 'generation' -> 'thinkingLevel')
+              WHEN 'null' THEN true
+              WHEN 'string' THEN models -> 'generation' ->> 'thinkingLevel' = ANY(ARRAY['off','minimal','low','medium','high','xhigh']::text[])
+              ELSE false
+            END
+          ELSE true END)
+          AND CASE WHEN models -> 'generation' ? 'temperature' THEN
+    CASE jsonb_typeof(models -> 'generation' -> 'temperature')
+      WHEN 'null' THEN true
+      WHEN 'number' THEN (models -> 'generation' ->> 'temperature')::numeric BETWEEN 0 AND 2
+      ELSE false
+    END
+  ELSE true END
+          AND CASE WHEN models -> 'generation' ? 'topP' THEN
+    CASE jsonb_typeof(models -> 'generation' -> 'topP')
+      WHEN 'null' THEN true
+      WHEN 'number' THEN (models -> 'generation' ->> 'topP')::numeric BETWEEN 0 AND 1
+      ELSE false
+    END
+  ELSE true END
+          AND CASE WHEN models -> 'generation' ? 'topK' THEN
+    CASE jsonb_typeof(models -> 'generation' -> 'topK')
+      WHEN 'null' THEN true
+      WHEN 'number' THEN (models -> 'generation' ->> 'topK')::numeric BETWEEN 1 AND 10000 AND mod((models -> 'generation' ->> 'topK')::numeric, 1) = 0
+      ELSE false
+    END
+  ELSE true END
+          AND CASE WHEN models -> 'generation' ? 'maxOutputTokens' THEN
+    CASE jsonb_typeof(models -> 'generation' -> 'maxOutputTokens')
+      WHEN 'null' THEN true
+      WHEN 'number' THEN (models -> 'generation' ->> 'maxOutputTokens')::numeric BETWEEN 1 AND 1000000 AND mod((models -> 'generation' ->> 'maxOutputTokens')::numeric, 1) = 0
+      ELSE false
+    END
+  ELSE true END
+        ELSE true END);
