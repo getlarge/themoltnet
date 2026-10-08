@@ -7,6 +7,7 @@ deb=$(find "$bundle/deb" -maxdepth 1 -name '*.deb' -print -quit)
 appimage=$(find "$bundle/appimage" -maxdepth 1 -name '*.AppImage' -print -quit)
 [ -s "$deb" ] && [ -s "$appimage" ]
 [ "$(dpkg-deb -f "$deb" Architecture)" = amd64 ]
+sudo apt-get update -qq
 sudo apt-get install -y "$(realpath "$deb")"
 # These must arrive through Desktop's package dependency installation.
 command -v qemu-img
