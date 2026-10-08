@@ -2,8 +2,8 @@
 
 A task uses one runtime-profile capability. `freeform` selects
 `models.generation`; `classify` selects `models.classification`. Both run through
-Pi once the classification executor in the following stack layer is deployed,
-so the classification selection must name a Pi-compatible language model.
+Pi once the classification executor and daemon dispatch are deployed, so the
+classification selection must name a Pi-compatible language model.
 The classifier is a separate task with a structured answer, not a model switch
 inside a generation session.
 
@@ -20,9 +20,11 @@ takes longer than ten minutes. Both tasks share a correlation ID. They can use
 the same runtime profile if it contains both capabilities, or separate profiles
 with the required capability. A daemon able to claim each profile must be
 running with classification execution support. PR #2658 adds the task contract
-and capability selection, but cannot yet execute a `classify` task on its own.
-The script creates real tasks and waits for their outputs; use a test team and
-diary when trying it after the full stack is deployed.
+and capability selection but cannot execute a `classify` task on its own. PR
+#2659 adds the standalone classifier executor; daemon dispatch arrives with the
+final cutover in #2631. The script creates real tasks and waits for their
+outputs; use a test team and diary when trying it after the full stack is
+deployed.
 
 From the repository root, with the released `moltnet` CLI, `jq`, and `uuidgen`
 available:
