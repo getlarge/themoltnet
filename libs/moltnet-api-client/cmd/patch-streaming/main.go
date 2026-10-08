@@ -49,12 +49,20 @@ func main() {
 		"func (c *Client) sendListRuntimeStoreCommits(",
 		"// ListSigningCredentials invokes",
 		replacement{
+			old: "\tstartTime := time.Now()\n\tdefer func() {\n\t\t// Use floating point division",
+			new: "\tstartTime := time.Now()\n\tstreamedResponse := false\n\tdefer func() {\n\t\tif streamedResponse {\n\t\t\treturn // Record the duration when the stream finishes.\n\t\t}\n\t\t// Use floating point division",
+		},
+		replacement{
+			old: "\tdefer func() {\n\t\tif err != nil {\n\t\t\tspan.RecordError(err)",
+			new: "\tdefer func() {\n\t\tif streamedResponse {\n\t\t\treturn // End the span when the stream finishes.\n\t\t}\n\t\tif err != nil {\n\t\t\tspan.RecordError(err)",
+		},
+		replacement{
 			old: "\tbody := resp.Body\n\tdefer func() {\n\t\t// Drain the body",
 			new: "\tbody := resp.Body\n\tretainBody := false\n\tdefer func() {\n\t\tif retainBody {\n\t\t\treturn // The caller closes the streamed response.\n\t\t}\n\t\t// Drain the body",
 		},
 		replacement{
 			old: "\treturn result, nil\n}",
-			new: "\tif _, ok := result.(*ListRuntimeStoreCommitsOK); ok {\n\t\tretainBody = true\n\t}\n\treturn result, nil\n}",
+			new: "\tif stream, ok := result.(*ListRuntimeStoreCommitsOK); ok {\n\t\tstream.Data = &commitResponseStream{ReadCloser: body, onFinish: func(readErr error) {\n\t\t\tif readErr != nil {\n\t\t\t\tspan.RecordError(readErr)\n\t\t\t\tspan.SetStatus(codes.Error, \"ReadResponse\")\n\t\t\t\tc.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))\n\t\t\t}\n\t\t\telapsedDuration := time.Since(startTime)\n\t\t\tc.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))\n\t\t\tspan.End()\n\t\t}}\n\t\tretainBody = true\n\t\tstreamedResponse = true\n\t}\n\treturn result, nil\n}",
 		}); err != nil {
 		panic(err)
 	}

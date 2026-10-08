@@ -19355,7 +19355,11 @@ func (c *Client) sendListRuntimeStoreCommits(ctx context.Context, params ListRun
 
 	// Run stopwatch.
 	startTime := time.Now()
+	streamedResponse := false
 	defer func() {
+		if streamedResponse {
+			return // Record the duration when the stream finishes.
+		}
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
 		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
@@ -19372,6 +19376,9 @@ func (c *Client) sendListRuntimeStoreCommits(ctx context.Context, params ListRun
 	// Track stage for error reporting.
 	var stage string
 	defer func() {
+		if streamedResponse {
+			return // End the span when the stream finishes.
+		}
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, stage)
@@ -19556,8 +19563,19 @@ func (c *Client) sendListRuntimeStoreCommits(ctx context.Context, params ListRun
 		return res, errors.Wrap(err, "decode response")
 	}
 
-	if _, ok := result.(*ListRuntimeStoreCommitsOK); ok {
+	if stream, ok := result.(*ListRuntimeStoreCommitsOK); ok {
+		stream.Data = &commitResponseStream{ReadCloser: body, onFinish: func(readErr error) {
+			if readErr != nil {
+				span.RecordError(readErr)
+				span.SetStatus(codes.Error, "ReadResponse")
+				c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+			}
+			elapsedDuration := time.Since(startTime)
+			c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+			span.End()
+		}}
 		retainBody = true
+		streamedResponse = true
 	}
 	return result, nil
 }

@@ -2,6 +2,7 @@ package moltnetapi
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -99,5 +100,42 @@ func TestListRuntimeStoreCommitsClosesInvalidResponse(t *testing.T) {
 	_, err = client.ListRuntimeStoreCommits(context.Background(), ListRuntimeStoreCommitsParams{StoreId: uuid.New(), XMoltnetTeamID: uuid.New()})
 	if err == nil || !body.closed {
 		t.Fatalf("invalid response: err=%v, body closed=%v", err, body.closed)
+	}
+}
+
+func TestCommitResponseStreamFinishesAtEOF(t *testing.T) {
+	body := &trackedCommitBody{reader: strings.NewReader("commit")}
+	finishes := 0
+	stream := &commitResponseStream{ReadCloser: body, onFinish: func(err error) {
+		finishes++
+		if err != nil {
+			t.Errorf("unexpected finish error: %v", err)
+		}
+	}}
+	if _, err := io.ReadAll(stream); err != nil {
+		t.Fatal(err)
+	}
+	if !body.closed || finishes != 1 {
+		t.Fatalf("EOF did not finish stream: closed=%v finishes=%d", body.closed, finishes)
+	}
+	if err := stream.Close(); err != nil || finishes != 1 {
+		t.Fatalf("close after EOF: err=%v finishes=%d", err, finishes)
+	}
+}
+
+type failingCommitReader struct{ err error }
+
+func (r failingCommitReader) Read([]byte) (int, error) { return 0, r.err }
+
+func TestCommitResponseStreamReportsLateReadError(t *testing.T) {
+	readErr := errors.New("stream interrupted")
+	body := &trackedCommitBody{reader: failingCommitReader{err: readErr}}
+	var finishedErr error
+	stream := &commitResponseStream{ReadCloser: body, onFinish: func(err error) { finishedErr = err }}
+	if _, err := stream.Read(make([]byte, 8)); !errors.Is(err, readErr) {
+		t.Fatalf("read error: %v", err)
+	}
+	if !body.closed || !errors.Is(finishedErr, readErr) {
+		t.Fatalf("late read error was not reported: closed=%v finish=%v", body.closed, finishedErr)
 	}
 }
