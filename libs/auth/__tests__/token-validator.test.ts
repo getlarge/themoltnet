@@ -151,6 +151,32 @@ describe('TokenValidator', () => {
         expect(serializedLogs).not.toContain('never-log-this-upstream-error');
       });
 
+      it('identifies a wrapped Hydra timeout without logging its message', async () => {
+        const logger = createMockLogger();
+        validator = createTokenValidator(mockOAuth2Api as any, { logger });
+        mockOAuth2Api.introspectOAuth2Token.mockRejectedValue(
+          Object.assign(new Error('SDK request failed'), {
+            name: 'FetchError',
+            cause: new DOMException('private detail', 'TimeoutError'),
+          }),
+        );
+
+        await expect(validator.introspect(OPAQUE_TOKEN)).rejects.toMatchObject({
+          kind: 'unavailable',
+          operation: 'oauth2.introspect',
+        });
+        expect(logger.warn).toHaveBeenCalledWith(
+          expect.objectContaining({
+            errorType: 'FetchError',
+            causeType: 'TimeoutError',
+          }),
+          'Ory token introspection unavailable',
+        );
+        expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
+          'private detail',
+        );
+      });
+
       it('preserves provider throttling and Retry-After', async () => {
         mockOAuth2Api.introspectOAuth2Token.mockRejectedValue(
           Object.assign(new Error('Too many requests'), {

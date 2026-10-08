@@ -33,6 +33,38 @@ export function remoteErrorStatus(error: unknown): number | undefined {
     : undefined;
 }
 
+/** Safe, bounded details from an Ory SDK error. Never log its message or body. */
+export function summarizeOryError(error: unknown): {
+  errorType: string;
+  status?: number;
+  causeType?: string;
+  causeCode?: string;
+} {
+  if (typeof error !== 'object' || error === null) {
+    return { errorType: 'UnknownError' };
+  }
+
+  const candidate = error as {
+    name?: unknown;
+    cause?: { name?: unknown; code?: unknown; cause?: { code?: unknown } };
+  };
+  const cause = candidate.cause;
+  const causeCode =
+    typeof cause?.code === 'string'
+      ? cause.code
+      : typeof cause?.cause?.code === 'string'
+        ? cause.cause.code
+        : undefined;
+  const status = remoteErrorStatus(error);
+  return {
+    errorType:
+      typeof candidate.name === 'string' ? candidate.name : 'UnknownError',
+    ...(status !== undefined ? { status } : {}),
+    ...(typeof cause?.name === 'string' ? { causeType: cause.name } : {}),
+    ...(causeCode ? { causeCode } : {}),
+  };
+}
+
 export function parseRetryAfter(
   error: unknown,
   nowMs = Date.now(),

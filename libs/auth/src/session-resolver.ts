@@ -21,6 +21,7 @@ import {
 import {
   asRemoteAuthenticationError,
   remoteErrorStatus,
+  summarizeOryError,
 } from './remote-auth-error.js';
 import { HUMAN_SESSION_SCOPES } from './scopes.js';
 import type { HumanAuthContext } from './types.js';
@@ -171,6 +172,7 @@ export function createSessionResolver(
       if (!credential) return null;
 
       const load = async () => {
+        const startedAt = performance.now();
         try {
           const session = await frontendApi.toSession(toSessionRequest, {
             signal: AbortSignal.timeout(requestTimeoutMs),
@@ -262,7 +264,8 @@ export function createSessionResolver(
             const cookieSummary = summarizeCookieHeader(cookie);
             logger.warn(
               {
-                status,
+                ...summarizeOryError(err),
+                requestDurationMs: Math.round(performance.now() - startedAt),
                 authTransport: sessionToken ? 'x-session-token' : 'cookie',
                 sessionTokenPresent: Boolean(sessionToken),
                 cookie: cookieSummary,

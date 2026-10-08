@@ -22,6 +22,7 @@ import {
 import {
   asRemoteAuthenticationError,
   remoteErrorStatus,
+  summarizeOryError,
 } from './remote-auth-error.js';
 import type {
   AgentAuthContext,
@@ -160,39 +161,6 @@ function isTalosApiKey(token: string): boolean {
 function asMetadata(value: object | undefined): Record<string, unknown> {
   if (!value || Array.isArray(value)) return {};
   return value as Record<string, unknown>;
-}
-
-function summarizeOryError(error: unknown): {
-  errorType: string;
-  status?: number;
-  causeType?: string;
-  causeCode?: string;
-} {
-  if (typeof error !== 'object' || error === null) {
-    return { errorType: 'UnknownError' };
-  }
-
-  const candidate = error as {
-    name?: unknown;
-    response?: { status?: unknown };
-    cause?: { name?: unknown; code?: unknown; cause?: { code?: unknown } };
-  };
-  const cause = candidate.cause;
-  const causeCode =
-    typeof cause?.code === 'string'
-      ? cause.code
-      : typeof cause?.cause?.code === 'string'
-        ? cause.cause.code
-        : undefined;
-  return {
-    errorType:
-      typeof candidate.name === 'string' ? candidate.name : 'UnknownError',
-    ...(typeof candidate.response?.status === 'number'
-      ? { status: candidate.response.status }
-      : {}),
-    ...(typeof cause?.name === 'string' ? { causeType: cause.name } : {}),
-    ...(causeCode ? { causeCode } : {}),
-  };
 }
 
 type JwtFailureSummary = {
