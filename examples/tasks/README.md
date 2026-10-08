@@ -36,6 +36,9 @@ server owns queue metadata such as status, timestamps, attempt numbers,
 
 ## Task recipes
 
+For two-stage examples that select different runtime-profile model capabilities,
+see [generation and classification workflows](./workflows/README.md).
+
 Reusable one-off task patterns live in [`recipes/`](./recipes/). They are
 plain `moltnet task create` examples, not CLI presets: the task-type `input`
 JSON stays in a file, while envelope metadata such as `--title`, `--tags`,
