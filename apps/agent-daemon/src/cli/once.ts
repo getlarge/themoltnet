@@ -463,10 +463,10 @@ export async function runOnce(
   });
 
   try {
-    const createRawExecuteTask = (taskModel: {
-      provider: string;
-      model: string;
-    }) =>
+    const createRawExecuteTask = (
+      taskModel: { provider: string; model: string },
+      taskGeneration: typeof generation,
+    ) =>
       preparedRuntime.createTaskExecutor({
         agentName: identity.agent,
         moltnetAgent: ctx.agent,
@@ -477,11 +477,11 @@ export async function runOnce(
         mountPath: sandbox.rootDir,
         provider: taskModel.provider,
         model: taskModel.model,
-        thinkingLevel: generation?.thinkingLevel ?? null,
-        temperature: generation?.temperature ?? null,
-        topP: generation?.topP ?? null,
-        topK: generation?.topK ?? null,
-        maxOutputTokens: generation?.maxOutputTokens ?? null,
+        thinkingLevel: taskGeneration?.thinkingLevel ?? null,
+        temperature: taskGeneration?.temperature ?? null,
+        topP: taskGeneration?.topP ?? null,
+        topK: taskGeneration?.topK ?? null,
+        maxOutputTokens: taskGeneration?.maxOutputTokens ?? null,
 
         providerFailureContext: {
           runtimeProfileId: profile.id,
@@ -519,9 +519,11 @@ export async function runOnce(
         profile.models,
         claimedTask.task.taskType,
       );
+      const taskGeneration =
+        claimedTask.task.taskType === 'classify' ? undefined : generation;
       const contractFailure = preflightOutputContract(claimedTask);
       if (contractFailure) return contractFailure;
-      const rawExecuteTask = createRawExecuteTask(taskModel);
+      const rawExecuteTask = createRawExecuteTask(taskModel, taskGeneration);
       if (runtimeCredentialConfig) {
         await observeGovernancePlanSafely({
           config: runtimeCredentialConfig,
@@ -606,11 +608,11 @@ export async function runOnce(
             profileName: profile.name,
             provider: taskModel.provider,
             model: taskModel.model,
-            thinkingLevel: generation?.thinkingLevel ?? null,
-            temperature: generation?.temperature ?? null,
-            topP: generation?.topP ?? null,
-            topK: generation?.topK ?? null,
-            maxOutputTokens: generation?.maxOutputTokens ?? null,
+            thinkingLevel: taskGeneration?.thinkingLevel ?? null,
+            temperature: taskGeneration?.temperature ?? null,
+            topP: taskGeneration?.topP ?? null,
+            topK: taskGeneration?.topK ?? null,
+            maxOutputTokens: taskGeneration?.maxOutputTokens ?? null,
           },
           () => rawExecuteTask(claimedTask, reporter),
         );

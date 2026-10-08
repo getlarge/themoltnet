@@ -13,8 +13,11 @@ pnpm run generate
 That command regenerates the REST OpenAPI document, the TypeScript API client,
 the normalized OpenAPI document consumed by `ogen`, and the generated Go client.
 
-Do not edit generated `oas_*_gen.go` files by hand. Put generator compatibility
-fixes in `cmd/normalize-spec` and regenerate.
+Do not edit generated `oas_*_gen.go` files by hand. Put spec compatibility fixes
+in `cmd/normalize-spec` and regenerate. The final generation step runs
+`cmd/patch-streaming` to keep the Durable commit NDJSON response incremental.
+Call `Close()` on a successful `ListRuntimeStoreCommitsOK` response after reading
+its `Data` stream, including when stopping before EOF.
 
 ## OpenAPI Normalizer Workarounds
 

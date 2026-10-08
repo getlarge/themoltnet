@@ -727,16 +727,20 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           profile.models,
           claimedTask.task.taskType,
         );
+        const taskGeneration =
+          claimedTask.task.taskType === 'classify'
+            ? undefined
+            : profile.models.generation;
         const taskLogger = rootLogger.child({
           runtimeProfileId: profile.id,
           runtimeProfileName: profile.name,
           provider: taskModel.provider,
           model: taskModel.model,
-          thinkingLevel: profile.models.generation?.thinkingLevel ?? null,
-          temperature: profile.models.generation?.temperature ?? null,
-          topP: profile.models.generation?.topP ?? null,
-          topK: profile.models.generation?.topK ?? null,
-          maxOutputTokens: profile.models.generation?.maxOutputTokens ?? null,
+          thinkingLevel: taskGeneration?.thinkingLevel ?? null,
+          temperature: taskGeneration?.temperature ?? null,
+          topP: taskGeneration?.topP ?? null,
+          topK: taskGeneration?.topK ?? null,
+          maxOutputTokens: taskGeneration?.maxOutputTokens ?? null,
         });
         let executionPlan: Awaited<
           ReturnType<typeof executionPlans.getOrCreate>
@@ -873,11 +877,11 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           mountPath: sandbox.rootDir,
           provider: taskModel.provider,
           model: taskModel.model,
-          thinkingLevel: profile.models.generation?.thinkingLevel ?? null,
-          temperature: profile.models.generation?.temperature ?? null,
-          topP: profile.models.generation?.topP ?? null,
-          topK: profile.models.generation?.topK ?? null,
-          maxOutputTokens: profile.models.generation?.maxOutputTokens ?? null,
+          thinkingLevel: taskGeneration?.thinkingLevel ?? null,
+          temperature: taskGeneration?.temperature ?? null,
+          topP: taskGeneration?.topP ?? null,
+          topK: taskGeneration?.topK ?? null,
+          maxOutputTokens: taskGeneration?.maxOutputTokens ?? null,
 
           providerFailureContext: {
             runtimeProfileId: profile.id,
@@ -920,12 +924,11 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
               profileName: profile.name,
               provider: taskModel.provider,
               model: taskModel.model,
-              thinkingLevel: profile.models.generation?.thinkingLevel ?? null,
-              temperature: profile.models.generation?.temperature ?? null,
-              topP: profile.models.generation?.topP ?? null,
-              topK: profile.models.generation?.topK ?? null,
-              maxOutputTokens:
-                profile.models.generation?.maxOutputTokens ?? null,
+              thinkingLevel: taskGeneration?.thinkingLevel ?? null,
+              temperature: taskGeneration?.temperature ?? null,
+              topP: taskGeneration?.topP ?? null,
+              topK: taskGeneration?.topK ?? null,
+              maxOutputTokens: taskGeneration?.maxOutputTokens ?? null,
             },
             () => rawExecuteTask(claimedTask, reporter),
           );

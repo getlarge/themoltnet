@@ -8,4 +8,5 @@
 //
 //go:generate go run ./cmd/normalize-spec ../../apps/rest-api/public/openapi.json openapi-normalized.json
 //go:generate go run github.com/ogen-go/ogen/cmd/ogen --target . --package moltnetapi --config ogen.yml --clean openapi-normalized.json
+//go:generate go run ./cmd/patch-streaming
 package moltnetapi

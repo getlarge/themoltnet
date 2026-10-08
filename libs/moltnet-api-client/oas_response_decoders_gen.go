@@ -31439,13 +31439,7 @@ func decodeListRuntimeStoreCommitsResponse(resp *http.Response) (res ListRuntime
 		}
 		switch {
 		case ct == "application/x-ndjson":
-			reader := resp.Body
-			b, err := io.ReadAll(reader)
-			if err != nil {
-				return res, err
-			}
-
-			response := ListRuntimeStoreCommitsOK{Data: bytes.NewReader(b)}
+			response := ListRuntimeStoreCommitsOK{Data: resp.Body}
 			return &response, nil
 		default:
 			return res, validate.InvalidContentType(ct)
