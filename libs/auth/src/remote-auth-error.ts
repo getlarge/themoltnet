@@ -33,7 +33,53 @@ export function remoteErrorStatus(error: unknown): number | undefined {
     : undefined;
 }
 
-/** Safe, bounded details from an Ory SDK error. Never log its message or body. */
+const ORY_ERROR_TYPES = new Set([
+  'AbortError',
+  'AggregateError',
+  'BodyTimeoutError',
+  'ConnectTimeoutError',
+  'Error',
+  'FetchError',
+  'HeadersTimeoutError',
+  'RequiredError',
+  'ResponseError',
+  'SocketError',
+  'SyntaxError',
+  'TimeoutError',
+  'TypeError',
+]);
+
+const TRANSPORT_ERROR_CODES = new Set([
+  'ABORT_ERR',
+  'EAI_AGAIN',
+  'ECONNABORTED',
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'EHOSTUNREACH',
+  'ENETUNREACH',
+  'ENOTFOUND',
+  'EPIPE',
+  'EPROTO',
+  'ETIMEDOUT',
+  'UND_ERR_BODY_TIMEOUT',
+  'UND_ERR_CONNECT_TIMEOUT',
+  'UND_ERR_HEADERS_TIMEOUT',
+  'UND_ERR_SOCKET',
+]);
+
+function knownErrorType(value: unknown): string | undefined {
+  return typeof value === 'string' && ORY_ERROR_TYPES.has(value)
+    ? value
+    : undefined;
+}
+
+function knownTransportCode(value: unknown): string | undefined {
+  return typeof value === 'string' && TRANSPORT_ERROR_CODES.has(value)
+    ? value
+    : undefined;
+}
+
+/** Bounded Ory SDK error details; unknown strings and raw messages stay out. */
 export function summarizeOryError(error: unknown): {
   errorType: string;
   status?: number;
@@ -46,21 +92,24 @@ export function summarizeOryError(error: unknown): {
 
   const candidate = error as {
     name?: unknown;
-    cause?: { name?: unknown; code?: unknown; cause?: { code?: unknown } };
+    code?: unknown;
+    cause?: {
+      name?: unknown;
+      code?: unknown;
+      cause?: { code?: unknown };
+    };
   };
   const cause = candidate.cause;
   const causeCode =
-    typeof cause?.code === 'string'
-      ? cause.code
-      : typeof cause?.cause?.code === 'string'
-        ? cause.cause.code
-        : undefined;
+    knownTransportCode(cause?.code) ??
+    knownTransportCode(cause?.cause?.code) ??
+    knownTransportCode(candidate.code);
+  const causeType = knownErrorType(cause?.name);
   const status = remoteErrorStatus(error);
   return {
-    errorType:
-      typeof candidate.name === 'string' ? candidate.name : 'UnknownError',
+    errorType: knownErrorType(candidate.name) ?? 'UnknownError',
     ...(status !== undefined ? { status } : {}),
-    ...(typeof cause?.name === 'string' ? { causeType: cause.name } : {}),
+    ...(causeType ? { causeType } : {}),
     ...(causeCode ? { causeCode } : {}),
   };
 }
