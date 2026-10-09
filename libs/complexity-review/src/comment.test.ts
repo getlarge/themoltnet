@@ -2,7 +2,6 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import type { PrReviewOutput } from '@moltnet/tasks';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
@@ -11,6 +10,7 @@ import {
   renderComplexityReviewResult,
   updateComplexityReviewComment,
 } from './comment.js';
+import type { ComplexityReviewOutput } from './result.js';
 
 const OLD_HEAD = 'a'.repeat(40);
 const NEW_HEAD = 'b'.repeat(40);
@@ -51,11 +51,11 @@ function fakeGitHub(args: {
   return { calls, fetchImpl };
 }
 
-const output: PrReviewOutput = {
+const output: ComplexityReviewOutput = {
   scores: [
     {
       criterionId: 'cognitive-load',
-      score: 1,
+      status: 'pass',
       rationale: 'The change is narrowly scoped.',
     },
   ],
@@ -64,6 +64,30 @@ const output: PrReviewOutput = {
 };
 
 describe('complexity review comment lifecycle', () => {
+  it('shows uncertainty separately when no criteria can be assessed', () => {
+    const body = renderComplexityReviewResult({
+      revision: OLD_HEAD,
+      runUrl: RUN_URL,
+      taskId: 'task',
+      durationMs: 1000,
+      domainCount: 1,
+      output: {
+        scores: [
+          {
+            criterionId: 'cognitive-load',
+            status: 'unclear',
+            rationale: 'Diff evidence is insufficient.',
+          },
+        ],
+        verdict: 'Burden undetermined.',
+      },
+    });
+    expect(body).toContain('Complexity: undetermined burden');
+    expect(body).toContain('assessed criteria only):** N/A');
+    expect(body).toContain('Assessed criteria: 0/1.');
+    expect(body).toContain('cognitive-load: unclear');
+  });
+
   it('discloses generated lockfile summary coverage in the published result', () => {
     const body = renderComplexityReviewResult({
       revision: OLD_HEAD,
@@ -208,7 +232,9 @@ describe('complexity review comment lifecycle', () => {
     const post = github.calls.find((call) => call.init?.method === 'POST');
     const body = JSON.parse(String(post?.init?.body)) as { body: string };
     expect(body.body).toContain(COMPLEXITY_REVIEW_COMMENT_MARKER);
-    expect(body.body).toContain('Weighted composite:** 1.00');
+    expect(body.body).toContain(
+      'Weighted composite (assessed criteria only):** 1.00',
+    );
     expect(body.body).toContain(
       `Complexity: low burden · head ${NEW_HEAD.slice(0, 7)} · reviewed in 55s`,
     );

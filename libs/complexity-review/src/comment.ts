@@ -1,13 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 
-import {
-  type PrReviewOutput,
-  PrReviewOutput as PrReviewOutputSchema,
-} from '@moltnet/tasks';
 import { Value } from 'typebox/value';
 
 import { githubToken } from './config.js';
+import {
+  type ComplexityReviewOutput,
+  ComplexityReviewOutput as ComplexityReviewOutputSchema,
+} from './result.js';
 
 export const COMPLEXITY_REVIEW_COMMENT_MARKER =
   '<!-- moltnet:complexity-review -->';
@@ -94,29 +94,34 @@ export function renderComplexityReviewResult(args: {
   domainCount: number;
   summarizedPaths?: string[];
   generatedPaths?: string[];
-  output: PrReviewOutput;
+  output: ComplexityReviewOutput;
 }): string {
   requireFullOid(args.revision, 'review revision');
   const burden =
-    args.output.composite >= 0.8
-      ? 'low'
-      : args.output.composite >= 0.5
-        ? 'moderate'
-        : 'high';
+    args.output.composite === undefined
+      ? 'undetermined'
+      : args.output.composite >= 0.8
+        ? 'low'
+        : args.output.composite >= 0.5
+          ? 'moderate'
+          : 'high';
   const criteria = args.output.scores
     .map(
       (score) =>
-        `- **${score.criterionId}: ${score.score === 1 ? 'pass' : 'fail'}** — ` +
-        score.rationale,
+        `- **${score.criterionId}: ${score.status}** — ` + score.rationale,
     )
     .join('\n');
+  const assessedCount = args.output.scores.filter(
+    (score) => score.status !== 'unclear',
+  ).length;
 
   return (
     `${COMPLEXITY_REVIEW_COMMENT_MARKER}\n` +
     '## MoltNet complexity review\n\n' +
     `Complexity: ${burden} burden · head ${args.revision.slice(0, 7)} · reviewed in ${Math.round(args.durationMs / 1000)}s\n\n` +
     `Stages: change map → ${args.domainCount} focused review${args.domainCount === 1 ? '' : 's'} → synthesis.\n\n` +
-    `**Weighted composite:** ${args.output.composite.toFixed(2)}\n\n` +
+    `**Weighted composite (assessed criteria only):** ${args.output.composite === undefined ? 'N/A' : args.output.composite.toFixed(2)}\n\n` +
+    `Assessed criteria: ${assessedCount}/${args.output.scores.length}.\n\n` +
     `**Verdict:** ${args.output.verdict}\n\n` +
     `${criteria}\n\n` +
     (args.summarizedPaths?.length
@@ -288,8 +293,10 @@ export async function updateComplexityReviewComment(args: {
     generatedPaths?: unknown;
   };
   const output = report.output;
-  if (!Value.Check(PrReviewOutputSchema, output)) {
-    throw new Error('accepted task output is not a valid PrReviewOutput');
+  if (!Value.Check(ComplexityReviewOutputSchema, output)) {
+    throw new Error(
+      'accepted task output is not a valid ComplexityReviewOutput',
+    );
   }
   if (
     typeof report.durationMs !== 'number' ||

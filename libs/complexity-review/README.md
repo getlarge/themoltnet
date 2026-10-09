@@ -4,8 +4,9 @@ This library owns the LeGreffier PR complexity review. The reusable GitHub workf
 base and head, then runs trusted code from the base revision. The library reads the
 immutable diff and runs three stages: a change-map task groups every changed
 file by domain, focused domain tasks review the full patches in parallel, and
-a synthesis task scores the binary rubric. Trusted code validates file coverage,
-stage output, and score arithmetic before the workflow publishes a
+a synthesis task marks each criterion pass, fail, or unclear. The composite
+uses only assessed criteria. Trusted code validates file coverage, stage output,
+and score arithmetic before the workflow publishes a
 revision-aware comment with the LeGreffier GitHub App token.
 
 Focused tasks receive evidence packets of at most 96 KB and have no optional

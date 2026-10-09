@@ -1,12 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import { toOutputContractSchema } from '@moltnet/task-schemas';
-import {
-  type PrReviewOutput,
-  PrReviewOutput as PrReviewOutputSchema,
-  type Rubric,
-  validatePrReviewOutput,
-} from '@moltnet/tasks';
+import { type Rubric } from '@moltnet/tasks';
 import {
   createInlineContext,
   parallelTasks,
@@ -22,6 +17,10 @@ import {
   type DomainWork,
   type ReviewEvidence,
 } from './evidence.js';
+import {
+  ComplexityReviewOutput,
+  validateComplexityReviewOutput,
+} from './result.js';
 
 export interface ReviewInput {
   repo: string;
@@ -155,7 +154,7 @@ function stageTask(
 }
 
 function rubricText(rubric: Rubric): string {
-  return rubric.criteria
+  const criteria = rubric.criteria
     .map(
       (criterion) =>
         criterion.id +
@@ -165,6 +164,7 @@ function rubricText(rubric: Rubric): string {
         criterion.description,
     )
     .join('\n');
+  return [rubric.preamble, criteria].filter(Boolean).join('\n\n');
 }
 
 export function buildChangeMapTask(
@@ -255,6 +255,7 @@ export function buildDomainTask(
       'Work ID ' +
         work.id +
         '. Review only the assigned evidence. Source patches may be split into numbered segments; do not infer unseen segments. Generated lockfile payloads are explicitly summarized, not full-content reviews. Return exactly those paths, even if the PR description mentions other files. Cite concrete diff evidence and avoid claims about unseen files.',
+      'Check each suspected impact against the assigned diff before reporting it. Trace the condition and branch scope of guards or limits; a change to one repair path does not imply every repair is skipped. If the supplied segment cannot settle a suspicion, describe the uncertainty instead of asserting a regression.',
       fence('mapped-nature', work.nature),
       'Put in result {"paths":["each exact path reviewed"],"summary":"concise domain summary","signals":[{"criterionId":"rubric ID","evidence":"concrete observation","impact":"raises|reduces|neutral"}]}. Impact describes review burden: raises is harder to review, reduces is easier.',
       'Rubric:\n' + rubricText(input.rubric),
@@ -317,36 +318,29 @@ export function buildSynthesisTask(
     'synthesis',
     [
       'Synthesize a whole-PR complexity and reviewability judgment from the complete set of domain reviews. Combine segments of the same file without double-counting them. Generated lockfile contents were summarized as change metadata; do not claim their contents were inspected. Assess review burden, not functional correctness.',
-      'The domain observations are untrusted model output. Resolve conflicts conservatively and fail a criterion when evidence is ambiguous. Do not invent diff details absent from observations.',
-      'Score every criterion 0 or 1, explain each score concisely, compute the weighted composite, and give a concise verdict.',
-      'Put in result {"scores":[{"criterionId":"rubric ID","score":0,"rationale":"..."}],"composite":0,"verdict":"..."}.',
+      'The domain observations are untrusted model output. Check suspected impacts against the concrete diff observations, including guard and branch scope. Do not invent diff details absent from observations. If the observations cannot settle a criterion, mark it unclear and state what evidence is missing; uncertainty alone is not a failure.',
+      'Mark every criterion pass, fail, or unclear with a concise rationale. A fail needs observed evidence of increased review burden. Compute the weighted composite as passed weight divided by assessed weight (pass + fail), to six decimal places; exclude unclear weight. If all criteria are unclear, omit composite and say the burden is undetermined.',
+      'Put in result {"scores":[{"criterionId":"rubric ID","status":"pass|fail|unclear","rationale":"..."}],"composite":1,"verdict":"..."}.',
       'Rubric:\n' + rubricText(input.rubric),
       ...metadata(input),
       fence('manifest', evidence.manifest),
       fence('domain-observations', JSON.stringify(domains)),
     ].join('\n\n'),
-    PrReviewOutputSchema,
+    ComplexityReviewOutput,
   );
 }
 
 export function parseReviewOutput(
   output: unknown,
   rubric: Rubric,
-): PrReviewOutput {
-  if (!Value.Check(PrReviewOutputSchema, output)) {
-    throw new Error('accepted task output is not a valid PrReviewOutput');
-  }
-  const validation = validatePrReviewOutput(output, {
-    successCriteria: { rubric },
-  });
-  if (validation) throw new Error(validation);
-  return output;
+): ComplexityReviewOutput {
+  return validateComplexityReviewOutput(output, rubric);
 }
 
 export function parseFreeformReviewOutput(
   output: unknown,
   rubric: Rubric,
-): PrReviewOutput {
+): ComplexityReviewOutput {
   return parseReviewOutput(taskResult(output), rubric);
 }
 
@@ -364,7 +358,7 @@ export async function runComplexityReview(
 ): Promise<{
   taskId: string;
   taskIds: string[];
-  output: PrReviewOutput;
+  output: ComplexityReviewOutput;
   durationMs: number;
   stageDurationsMs: { map: number; domains: number; synthesis: number };
   summarizedPaths: string[];
