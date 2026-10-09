@@ -76,6 +76,7 @@ export type {
 } from './runtime/task-event-emitter.js';
 export { piCodemode } from './runtime-definition.js';
 export {
+  buildPiClassifierExecutorManifest,
   buildPiExecutorManifest,
   DEFAULT_BROKERED_HTTP_SECRET_RESOLUTION_TIMEOUT_MS,
   defineGondolinTemplate,

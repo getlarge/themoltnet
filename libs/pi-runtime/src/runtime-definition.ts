@@ -417,17 +417,18 @@ export interface PiExecutorManifest {
   runtime: {
     kind: string;
     engine: 'pi';
-    sandbox: 'gondolin';
+    sandbox: 'gondolin' | 'host';
     id: string;
     version: string;
   };
   profile: { id: string; definitionCid: string };
-  vm: {
+  vm?: {
     templateId: string;
     templateVersion: string;
     templateFingerprint: string;
     guestAssetBuildId: string;
   };
+  classifier?: { provider: string; model: string };
   /** Optional v1 extension, emitted only when requirements are declared. */
   brokeredHttpSecrets?: {
     id: string;
@@ -450,6 +451,29 @@ export interface PiExecutorManifest {
     scope: PiToolScope;
   }[];
   executables: readonly string[];
+}
+
+/** Direct classification has no guest tools, VM, or brokered guest secrets. */
+export function buildPiClassifierExecutorManifest(input: {
+  runtime: PiRuntimeDefinition;
+  profile: { id: string; definitionCid: string };
+  classifier: { provider: string; model: string };
+}): PiExecutorManifest {
+  return {
+    schemaVersion: PI_EXECUTOR_MANIFEST_VERSION,
+    runtime: {
+      kind: input.runtime.runtimeKind,
+      engine: 'pi',
+      sandbox: 'host',
+      id: input.runtime.id,
+      version: input.runtime.version,
+    },
+    profile: input.profile,
+    classifier: input.classifier,
+    tools: [],
+    extensions: [],
+    executables: [],
+  };
 }
 
 export async function buildPiExecutorManifest(input: {
