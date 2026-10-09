@@ -26,7 +26,10 @@ import { Type } from 'typebox';
 import { Value } from 'typebox/value';
 
 import { resolvePiCodingAgentDir } from '../config.js';
-import { sanitizeProviderDiagnostic } from './provider-error-classification.js';
+import {
+  classifyProviderFailure,
+  sanitizeProviderDiagnostic,
+} from './provider-error-classification.js';
 
 const Classifiers = Type.Array(
   Type.Object(
@@ -210,6 +213,7 @@ export function createClassificationTaskExecutor(options: {
     };
     const base = { taskId: claimed.task.id, attemptN: claimed.attemptN };
     let outcome: TaskOutput;
+    let providerFailure: ReturnType<typeof classifyProviderFailure> | undefined;
     try {
       await reporter.open(base);
       reporter.cancelSignal.throwIfAborted();
@@ -220,11 +224,23 @@ export function createClassificationTaskExecutor(options: {
         throw new Error('Expected a valid classify task');
       }
       const input = claimed.task.input;
-      const result = await options.models.classify(
-        options.model,
-        { state: input.state, questions: input.questions } as ClassifierContext,
-        { signal: reporter.cancelSignal },
-      );
+      let result: ClassifierResult;
+      try {
+        result = await options.models.classify(
+          options.model,
+          {
+            state: input.state,
+            questions: input.questions,
+          } as ClassifierContext,
+          { signal: reporter.cancelSignal },
+        );
+      } catch (error) {
+        if (!reporter.cancelSignal.aborted)
+          providerFailure = classifyProviderFailure(
+            error instanceof Error ? error.message : undefined,
+          );
+        throw error;
+      }
       if (result.usage) {
         usage.inputTokens = result.usage.input;
         usage.outputTokens = result.usage.output;
@@ -232,6 +248,10 @@ export function createClassificationTaskExecutor(options: {
         usage.cacheWriteTokens = result.usage.cacheWrite;
       }
       if (result.stopReason !== 'stop') {
+        const failure =
+          result.stopReason === 'aborted'
+            ? undefined
+            : classifyProviderFailure(result.errorMessage ?? result.stopReason);
         outcome = {
           ...base,
           status: result.stopReason === 'aborted' ? 'cancelled' : 'failed',
@@ -240,11 +260,11 @@ export function createClassificationTaskExecutor(options: {
           usage,
           durationMs: Date.now() - started,
           error: {
-            code: 'classification_failed',
+            code: failure?.code ?? 'classification_failed',
             message: sanitizeProviderDiagnostic(
               result.errorMessage ?? result.stopReason,
             ),
-            retryable: false,
+            retryable: failure?.retryable ?? false,
           },
         };
       } else {
@@ -270,11 +290,11 @@ export function createClassificationTaskExecutor(options: {
         usage,
         durationMs: Date.now() - started,
         error: {
-          code: 'classification_failed',
+          code: providerFailure?.code ?? 'classification_failed',
           message: sanitizeProviderDiagnostic(
             error instanceof Error ? error.message : 'Classification failed',
           ),
-          retryable: false,
+          retryable: providerFailure?.retryable ?? false,
         },
       };
     } finally {

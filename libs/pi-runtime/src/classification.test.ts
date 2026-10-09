@@ -95,13 +95,39 @@ describe('direct classification task', () => {
       expect(output.outputCid).toBeNull();
     },
   );
+  it.each(['result', 'throw'] as const)(
+    'retries a transient provider %s',
+    async (failureMode) => {
+      const classify =
+        failureMode === 'result'
+          ? vi.fn(async () => ({
+              ...answer,
+              stopReason: 'error' as const,
+              errorMessage: 'HTTP 500: server error',
+            }))
+          : vi.fn(async (): Promise<ClassifierResult> => {
+              throw new Error('HTTP 500: server error');
+            });
+      const output = await createClassificationTaskExecutor({
+        models: { classify },
+        model,
+      })(claimed, reporter());
+      expect(output).toMatchObject({
+        status: 'failed',
+        error: { code: 'llm_api_error', retryable: true },
+      });
+    },
+  );
   it('rejects incomplete responses and prevents requests after cancellation', async () => {
     const classify = vi.fn(async () => ({ ...answer, answers: {} }));
     const execute = createClassificationTaskExecutor({
       models: { classify },
       model,
     });
-    expect((await execute(claimed, reporter())).status).toBe('failed');
+    expect(await execute(claimed, reporter())).toMatchObject({
+      status: 'failed',
+      error: { code: 'classification_failed', retryable: false },
+    });
     classify.mockClear();
     expect((await execute(claimed, reporter(AbortSignal.abort()))).status).toBe(
       'cancelled',
