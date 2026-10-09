@@ -16,7 +16,9 @@
     "@moltnet/database": "workspace:*",
     "@moltnet/models": "workspace:*",
     "@moltnet/runtime-profiles": "workspace:*",
-    "@moltnet/tasks": "workspace:*"
+    "@moltnet/tasks": "workspace:*",
+    "@earendil-works/pi-durable": "catalog:",
+    "@earendil-works/chord": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

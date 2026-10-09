@@ -505,6 +505,10 @@ type Handler interface {
 	//
 	// GET /tasks/analytics/activity
 	GetTaskActivityAnalytics(ctx context.Context, params GetTaskActivityAnalyticsParams) (GetTaskActivityAnalyticsRes, error)
+	// GetTaskConversation implements getTaskConversation operation.
+	//
+	// GET /tasks/{id}/attempts/{n}/conversations/{conversationId}
+	GetTaskConversation(ctx context.Context, params GetTaskConversationParams) (GetTaskConversationRes, error)
 	// GetTeam implements getTeam operation.
 	//
 	// Get team details. Requires team access.
@@ -670,6 +674,10 @@ type Handler interface {
 	//
 	// GET /tasks/{id}/attempts
 	ListTaskAttempts(ctx context.Context, params ListTaskAttemptsParams) (ListTaskAttemptsRes, error)
+	// ListTaskConversations implements listTaskConversations operation.
+	//
+	// GET /tasks/{id}/attempts/{n}/conversations
+	ListTaskConversations(ctx context.Context, params ListTaskConversationsParams) (ListTaskConversationsRes, error)
 	// ListTaskGrants implements listTaskGrants operation.
 	//
 	// List explicit writer and manager grants for a task.

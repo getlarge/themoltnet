@@ -66,6 +66,7 @@
     "moltnet_list_task_artifacts",
     "moltnet_list_task_attempts",
     "moltnet_list_task_messages",
+    "moltnet_read_task_conversation",
     "moltnet_pack_get",
     "moltnet_pack_provenance",
     "moltnet_pack_render",

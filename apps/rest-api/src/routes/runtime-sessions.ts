@@ -214,7 +214,6 @@ async function registerDurableSessionRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   const service = createRuntimeStoreService({
     repository: fastify.runtimeSessionRepository.durable,
-    taskRepository: fastify.taskRepository,
     transactionRunner: fastify.transactionRunner,
     storage: fastify.runtimeSessionStorage,
     permissionChecker: fastify.permissionChecker,

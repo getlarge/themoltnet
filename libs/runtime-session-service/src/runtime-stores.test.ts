@@ -78,7 +78,6 @@ function setup() {
     canAccessTeam: vi.fn(async () => true),
     canViewTask: vi.fn(async () => true),
   };
-  const appendMessages = vi.fn();
   const deps = {
     repository,
     storage,
@@ -88,7 +87,6 @@ function setup() {
     transactionRunner: {
       runInTransaction: async (fn: () => Promise<unknown>) => fn(),
     },
-    taskRepository: { appendMessages },
   } as unknown as Dependencies;
   return {
     service: createRuntimeStoreService(deps),
@@ -98,7 +96,6 @@ function setup() {
     row,
     commits,
     objects,
-    appendMessages,
     advance: (ms: number) => {
       now += ms;
     },
@@ -117,7 +114,7 @@ const writes = [
 ];
 
 describe('runtime store publication', () => {
-  it('returns one receipt and one slim projection for repeated acknowledgment retries', async () => {
+  it('returns one receipt without task-message projection for repeated acknowledgment retries', async () => {
     const f = setup();
     const handle = await f.service.open(authority);
     const commit = {
@@ -130,10 +127,6 @@ describe('runtime store publication', () => {
     expect(await f.service.append(commit)).toEqual({ seq: 1 });
     expect(await f.service.append(commit)).toEqual({ seq: 1 });
     expect(f.commits).toHaveLength(1);
-    expect(f.appendMessages).toHaveBeenCalledTimes(1);
-    expect(JSON.stringify(f.appendMessages.mock.calls)).not.toContain(
-      'large private content',
-    );
     expect(f.row.nextId).toBe(11);
     const page = await f.service.read({
       ...authority,

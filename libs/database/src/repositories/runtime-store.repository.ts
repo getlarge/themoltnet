@@ -144,6 +144,22 @@ export function createRuntimeStoreRepository(db: Database) {
         .set({ headSeq: input.seq })
         .where(eq(runtimeStores.id, input.storeId));
     },
+    async attemptBounds(storeId: string, taskId: string, attemptN: number) {
+      const [row] = await getExecutor(db)
+        .select({
+          firstSeq: sql<number>`coalesce(min(${runtimeStoreCommits.seq}), 0)::integer`,
+          lastSeq: sql<number>`coalesce(max(${runtimeStoreCommits.seq}), 0)::integer`,
+        })
+        .from(runtimeStoreCommits)
+        .where(
+          and(
+            eq(runtimeStoreCommits.storeId, storeId),
+            eq(runtimeStoreCommits.taskId, taskId),
+            eq(runtimeStoreCommits.attemptN, attemptN),
+          ),
+        );
+      return row;
+    },
     async listCommits(
       storeId: string,
       afterSeq: number,

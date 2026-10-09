@@ -139,7 +139,7 @@ describe('buildTaskUserPrompt', () => {
     });
     const prompt = buildTaskUserPrompt(task, ctx).text;
     expect(prompt).toContain('moltnet_list_task_attempts');
-    expect(prompt).toContain('moltnet_list_task_messages');
+    expect(prompt).toContain('moltnet_read_task_conversation');
     expect(prompt).toContain('Do not delegate');
   });
 

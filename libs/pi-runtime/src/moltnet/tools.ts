@@ -52,6 +52,7 @@ export const MOLTNET_TOOL_NAMES = [
   'moltnet_get_task',
   'moltnet_list_task_attempts',
   'moltnet_list_task_messages',
+  'moltnet_read_task_conversation',
   'moltnet_upload_task_artifact',
   'moltnet_list_task_artifacts',
   'moltnet_download_task_artifact',
@@ -1134,9 +1135,7 @@ export function createMoltNetTools(
     label: 'List MoltNet Task Attempt Messages',
     description:
       'List messages for a specific task attempt. Use this when you need ' +
-      'the turn-by-turn execution record behind an accepted attempt — ' +
-      'tool calls, text deltas, and error/info events that do not appear ' +
-      'in the attempt output alone.',
+      'operational error/info events. Use moltnet_read_task_conversation for assistant replies and tool calls.',
     parameters: Type.Object({
       taskId: Type.String({ description: 'Task ID (UUID).' }),
       attemptN: Type.Integer({
@@ -1159,8 +1158,8 @@ export function createMoltNetTools(
         }),
       ),
     }),
-    async execute(_id, params, signal) {
-      const { agent, teamId } = ensureConnected(config);
+    async execute(_id, params) {
+      const { agent } = ensureConnected(config);
       const messages = await agent.tasks.listMessages(
         params.taskId,
         params.attemptN,
@@ -1169,52 +1168,49 @@ export function createMoltNetTools(
           limit: params.limit,
         },
       );
-      const commits = new Map<string, Record<string, unknown>[]>();
-      for (const message of messages) {
-        const ref = message.payload as Record<string, unknown>;
-        if (ref.event !== 'runtime_entry' || ref.format !== 'pi-durable.v1')
-          continue;
-        if (!teamId)
-          throw new Error(
-            'A team is required to read Durable conversation entries',
-          );
-        if (
-          typeof ref.storeId !== 'string' ||
-          typeof ref.commitSeq !== 'number' ||
-          typeof ref.entryId !== 'number'
-        )
-          throw new Error('Invalid Durable entry reference');
-        const key = `${ref.storeId}:${ref.commitSeq}`;
-        let writes = commits.get(key);
-        if (!writes) {
-          const page = await agent.runtimeSessions.read(
-            ref.storeId,
-            ref.commitSeq - 1,
-            { teamId, signal },
-          );
-          for await (const commit of page.items) {
-            if (commit.seq === ref.commitSeq) {
-              writes = commit.writes;
-              break;
-            }
-          }
-          if (!writes) throw new Error('Durable entry commit is unavailable');
-          commits.set(key, writes);
-        }
-        const entry = writes.find(
-          (write) =>
-            write.type === 'entry' &&
-            (write.value as { id?: number } | undefined)?.id === ref.entryId,
-        )?.value;
-        if (!entry) throw new Error('Durable entry is unavailable');
-        message.payload = { ...ref, entry };
-      }
       return {
         content: [
           {
             type: 'text' as const,
             text: JSON.stringify(messages, null, 2),
           },
+        ],
+        details: {},
+      };
+    },
+  });
+
+  const readTaskConversation = defineTool({
+    name: 'moltnet_read_task_conversation',
+    label: 'Read MoltNet Task Conversation',
+    description:
+      'Read persisted assistant replies and tool calls for an attempt. Omit conversationId to list its main and subagent conversations. Follow nextBeforeEntryId for older history. Inherited messages are prior context, not work performed by this attempt.',
+    parameters: Type.Object({
+      taskId: Type.String(),
+      attemptN: Type.Integer({ minimum: 1 }),
+      conversationId: Type.Optional(Type.String()),
+      beforeEntryId: Type.Optional(Type.String()),
+      limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100 })),
+    }),
+    async execute(_id, params, signal) {
+      const { agent, teamId } = ensureConnected(config);
+      if (!teamId)
+        throw new Error('A team is required to read task conversations');
+      const result = params.conversationId
+        ? await agent.tasks.conversations.get(
+            params.taskId,
+            params.attemptN,
+            params.conversationId,
+            { teamId, signal },
+            { beforeEntryId: params.beforeEntryId, limit: params.limit },
+          )
+        : await agent.tasks.conversations.list(params.taskId, params.attemptN, {
+            teamId,
+            signal,
+          });
+      return {
+        content: [
+          { type: 'text' as const, text: JSON.stringify(result, null, 2) },
         ],
         details: {},
       };
@@ -1632,6 +1628,7 @@ export function createMoltNetTools(
     getTask,
     listTaskAttempts,
     listTaskMessages,
+    readTaskConversation,
     uploadTaskArtifact,
     listTaskArtifacts,
     downloadTaskArtifact,

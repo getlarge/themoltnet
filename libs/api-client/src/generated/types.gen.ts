@@ -12911,6 +12911,215 @@ export type CompleteTaskResponses = {
 export type CompleteTaskResponse =
   CompleteTaskResponses[keyof CompleteTaskResponses];
 
+export type ListTaskConversationsData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    id: string;
+    n: number;
+  };
+  query?: never;
+  url: '/tasks/{id}/attempts/{n}/conversations';
+};
+
+export type ListTaskConversationsErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type ListTaskConversationsError =
+  ListTaskConversationsErrors[keyof ListTaskConversationsErrors];
+
+export type ListTaskConversationsResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    items: Array<{
+      conversationId: string;
+      kind: 'main' | 'subagent';
+      parentConversationId: string | null;
+    }>;
+  };
+};
+
+export type ListTaskConversationsResponse =
+  ListTaskConversationsResponses[keyof ListTaskConversationsResponses];
+
+export type GetTaskConversationData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    id: string;
+    n: number;
+    conversationId: string;
+  };
+  query?: {
+    beforeEntryId?: string;
+    limit?: number;
+  };
+  url: '/tasks/{id}/attempts/{n}/conversations/{conversationId}';
+};
+
+export type GetTaskConversationErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type GetTaskConversationError =
+  GetTaskConversationErrors[keyof GetTaskConversationErrors];
+
+export type GetTaskConversationResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    attemptStatus: string;
+    conversationId: string;
+    cursor: string;
+    live: {
+      [key: string]: unknown;
+    };
+    messages: Array<{
+      entryId: string | null;
+      entryKind: string;
+      id: string;
+      inherited: boolean;
+      message: {
+        [key: string]: unknown;
+      };
+      status: 'completed' | 'streaming' | 'interrupted' | 'failed';
+    }>;
+    nextBeforeEntryId: string | null;
+  };
+};
+
+export type GetTaskConversationResponse =
+  GetTaskConversationResponses[keyof GetTaskConversationResponses];
+
+export type WatchTaskConversationData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    id: string;
+    n: number;
+    conversationId: string;
+  };
+  query?: never;
+  url: '/tasks/{id}/attempts/{n}/conversations/{conversationId}/events';
+};
+
+export type WatchTaskConversationErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type WatchTaskConversationError =
+  WatchTaskConversationErrors[keyof WatchTaskConversationErrors];
+
+export type WatchTaskConversationResponses = {
+  /**
+   * conversation.snapshot events; subsequent failure terminates the stream. Reconnect to reauthorize and refresh.
+   */
+  200: Blob | File;
+};
+
+export type WatchTaskConversationResponse =
+  WatchTaskConversationResponses[keyof WatchTaskConversationResponses];
+
 export type FailTaskAttemptData = {
   body: {
     error: TaskError;

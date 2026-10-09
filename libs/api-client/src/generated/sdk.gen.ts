@@ -5,6 +5,7 @@ import type {
   ClientMeta,
   Options as Options2,
   RequestResult,
+  ServerSentEventsResult,
   TDataShape,
 } from './client';
 import { client } from './client.gen';
@@ -251,6 +252,9 @@ import type {
   GetTaskActivityAnalyticsData,
   GetTaskActivityAnalyticsErrors,
   GetTaskActivityAnalyticsResponses,
+  GetTaskConversationData,
+  GetTaskConversationErrors,
+  GetTaskConversationResponses,
   GetTaskData,
   GetTaskErrors,
   GetTaskResponses,
@@ -334,6 +338,9 @@ import type {
   ListTaskAttemptsData,
   ListTaskAttemptsErrors,
   ListTaskAttemptsResponses,
+  ListTaskConversationsData,
+  ListTaskConversationsErrors,
+  ListTaskConversationsResponses,
   ListTaskGrantsData,
   ListTaskGrantsErrors,
   ListTaskGrantsResponses,
@@ -505,6 +512,10 @@ import type {
   VerifyRecoveryChallengeData,
   VerifyRecoveryChallengeErrors,
   VerifyRecoveryChallengeResponses,
+  WatchTaskConversationData,
+  WatchTaskConversationErrors,
+  WatchTaskConversationResponse,
+  WatchTaskConversationResponses,
 } from './types.gen';
 
 export type Options<
@@ -5157,6 +5168,111 @@ export const completeTask = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+export const listTaskConversations = <ThrowOnError extends boolean = false>(
+  options: Options<ListTaskConversationsData, ThrowOnError>,
+): RequestResult<
+  ListTaskConversationsResponses,
+  ListTaskConversationsErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).get<
+    ListTaskConversationsResponses,
+    ListTaskConversationsErrors,
+    ThrowOnError
+  >({
+    security: [
+      {
+        key: 'bearerAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      {
+        key: 'agentKeyAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{id}/attempts/{n}/conversations',
+    ...options,
+  });
+
+export const getTaskConversation = <ThrowOnError extends boolean = false>(
+  options: Options<GetTaskConversationData, ThrowOnError>,
+): RequestResult<
+  GetTaskConversationResponses,
+  GetTaskConversationErrors,
+  ThrowOnError
+> =>
+  (options.client ?? client).get<
+    GetTaskConversationResponses,
+    GetTaskConversationErrors,
+    ThrowOnError
+  >({
+    security: [
+      {
+        key: 'bearerAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      {
+        key: 'agentKeyAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{id}/attempts/{n}/conversations/{conversationId}',
+    ...options,
+  });
+
+/**
+ * SSE replacement snapshots of the latest 100 entries plus partial response. Each connection, including reconnects, starts with a fresh snapshot; replace prior state. IDs are opaque revision tokens, not replay offsets. Stream closes after five minutes; reconnect to continue. Reading never starts execution.
+ */
+export const watchTaskConversation = <ThrowOnError extends boolean = false>(
+  options: Options<
+    WatchTaskConversationData,
+    ThrowOnError,
+    WatchTaskConversationResponse
+  >,
+): Promise<ServerSentEventsResult<WatchTaskConversationResponses>> =>
+  (options.client ?? client).sse.get<
+    WatchTaskConversationResponses,
+    WatchTaskConversationErrors,
+    ThrowOnError
+  >({
+    security: [
+      {
+        key: 'bearerAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      {
+        key: 'agentKeyAuth',
+        scheme: 'bearer',
+        type: 'http',
+      },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{id}/attempts/{n}/conversations/{conversationId}/events',
+    ...options,
   });
 
 /**
