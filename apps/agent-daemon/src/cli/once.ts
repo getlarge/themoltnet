@@ -653,6 +653,9 @@ export async function runOnce(
         teamId: profile.teamId,
         profileId: profile.id,
         executorFingerprint: preparedRuntime.attestor.fingerprint,
+        assertTaskEligible: (task) => {
+          runtimeProfileModel(profile.models, task.taskType);
+        },
       }),
       makeReporter: () =>
         new ApiTaskReporter({

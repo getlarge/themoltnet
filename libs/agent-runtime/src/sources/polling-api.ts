@@ -232,7 +232,10 @@ export interface PollingApiTaskSourceOptions {
    * that sees a task wins, so unrestricted tasks use the first profile and
    * profile-pinned tasks use the first configured allowed profile.
    */
-  profiles?: { profileId: string }[];
+  profiles?: {
+    profileId: string;
+    acceptsTaskType?: (taskType: string) => boolean;
+  }[];
   /**
    * Optional further filter applied client-side after listing. Useful when
    * an agent should only act on tasks tied to specific diaries. Server has
@@ -511,6 +514,11 @@ export class PollingApiTaskSource implements TaskSource {
         for (const item of result.items) {
           if ((item.projectId ?? null) !== (this.opts.projectId ?? null))
             continue;
+          if (
+            profile.acceptsTaskType &&
+            !profile.acceptsTaskType(item.taskType)
+          )
+            continue;
           if (this.opts.isTaskEligible && !this.opts.isTaskEligible(item)) {
             this.logger.debug(
               { taskId: item.id },
@@ -727,6 +735,7 @@ export class PollingApiTaskSource implements TaskSource {
 
 interface CandidateProfile {
   profileId?: string;
+  acceptsTaskType?: (taskType: string) => boolean;
 }
 
 interface CandidateTask {

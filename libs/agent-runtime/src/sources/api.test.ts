@@ -83,6 +83,28 @@ describe('ApiTaskSource', () => {
     await expect(src.claim()).rejects.toThrow(/409 Conflict/);
   });
 
+  it.each(['classify', 'fulfill_brief'])(
+    'rejects an incompatible %s task before claiming',
+    async (taskType) => {
+      const task = { ...makeFulfillBriefTask(), taskType };
+      const get = vi.fn<TasksNamespace['get']>().mockResolvedValue(task);
+      const claim = vi.fn<TasksNamespace['claim']>();
+      const src = new ApiTaskSource({
+        agent: { tasks: { get, claim } } as unknown as Agent,
+        taskId: task.id,
+        teamId: 'team-1',
+        assertTaskEligible: (candidate) => {
+          if (candidate.taskType === taskType)
+            throw new Error('Incompatible model');
+        },
+      });
+
+      await expect(src.claim()).rejects.toThrow('Incompatible model');
+      expect(get).toHaveBeenCalledWith(task.id, { teamId: 'team-1' });
+      expect(claim).not.toHaveBeenCalled();
+    },
+  );
+
   it('keeps legacy claim responses compatible when authority is absent', async () => {
     const task = makeFulfillBriefTask({ status: 'dispatched' });
     const claimMock = vi.fn<TasksNamespace['claim']>().mockResolvedValue({

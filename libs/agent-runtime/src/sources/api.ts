@@ -1,3 +1,4 @@
+import type { Task } from '@moltnet/tasks';
 import type { Agent } from '@themoltnet/sdk';
 
 import { claimAuthorityFromAttempt } from './claim-authority.js';
@@ -20,6 +21,8 @@ export interface ApiTaskSourceOptions {
   executorFingerprint?: string;
   /** Legacy inline attestation hook for callers without registration support. */
   createClaimAttestation?: CreateClaimAttestation;
+  /** Reject incompatible tasks before a new claim consumes an attempt. */
+  assertTaskEligible?: (task: Task) => void;
 }
 
 export class ApiTaskSource implements TaskSource {
@@ -57,6 +60,12 @@ export class ApiTaskSource implements TaskSource {
       createClaimAttestation,
       teamId,
     } = this.opts;
+    if (this.opts.assertTaskEligible) {
+      const task = teamId
+        ? await agent.tasks.get(taskId, { teamId })
+        : await agent.tasks.get(taskId);
+      this.opts.assertTaskEligible(task);
+    }
     const attestation = executorFingerprint
       ? { executorFingerprint }
       : await createClaimAttestation?.({
@@ -93,6 +102,7 @@ export class ApiTaskSource implements TaskSource {
       agent.tasks.get(taskId, { teamId }),
       agent.tasks.listAttempts(taskId, { teamId }),
     ]);
+    this.opts.assertTaskEligible?.(task);
     const attempt = attempts.find((item) => item.attemptN === attemptN);
     if (
       identity.subjectType !== 'agent' ||

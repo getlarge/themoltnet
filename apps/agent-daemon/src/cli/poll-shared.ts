@@ -595,6 +595,10 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         correlationId: values['correlation-id'],
         profiles: profiles.map((profile) => ({
           profileId: profile.id,
+          acceptsTaskType: (taskType) =>
+            taskType === 'classify'
+              ? Boolean(profile.models.classification)
+              : Boolean(profile.models.generation),
         })),
         diaryIds: diaryIds.length > 0 ? diaryIds : undefined,
         listLimit,
