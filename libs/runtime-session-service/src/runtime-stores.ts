@@ -6,7 +6,6 @@ import type {
   RuntimeStore,
   RuntimeStoreAuthority,
   RuntimeStoreRepository,
-  TaskRepository,
   TransactionRunner,
 } from '@moltnet/database';
 import type {
@@ -28,7 +27,6 @@ type Writer = Authority & RuntimeStoreWriter & { storeId: string };
 
 export function createRuntimeStoreService(deps: {
   repository: RuntimeStoreRepository;
-  taskRepository: Pick<TaskRepository, 'appendMessages'>;
   transactionRunner: TransactionRunner;
   storage: RuntimeSessionStorage;
   permissionChecker: PermissionChecker;
@@ -281,45 +279,6 @@ export function createRuntimeStoreService(deps: {
             taskId: input.taskId,
             attemptN: input.attemptN,
           });
-          const messages = input.writes.flatMap((write) => {
-            if (
-              write.type !== 'entry' ||
-              !write.value ||
-              typeof write.value !== 'object'
-            )
-              return [];
-            const entry = write.value as {
-              id?: unknown;
-              conversationId?: unknown;
-              kind?: unknown;
-            };
-            if (
-              !Number.isSafeInteger(entry.id) ||
-              !Number.isSafeInteger(entry.conversationId) ||
-              typeof entry.kind !== 'string'
-            )
-              return [];
-            return [
-              {
-                taskId: input.taskId,
-                attemptN: input.attemptN,
-                kind: 'info' as const,
-                timestamp: new Date(now()),
-                payload: {
-                  event: 'runtime_entry',
-                  format: FORMAT,
-                  storeId: store.id,
-                  commitSeq: seq,
-                  entryId: entry.id,
-                  conversationId: entry.conversationId,
-                  entryKind: entry.kind.slice(0, 128),
-                },
-              },
-            ];
-          });
-          // Same database transaction as the commit receipt: acknowledgment retries
-          // cannot duplicate this slim index. Canonical content stays in object storage.
-          await deps.taskRepository.appendMessages(messages);
           let nextId = store.nextId;
           for (const write of input.writes) {
             const record = (write.value ?? write.record) as
@@ -343,7 +302,12 @@ export function createRuntimeStoreService(deps: {
       );
     },
     async read(
-      input: Subject & { storeId: string; afterSeq?: number; limit?: number },
+      input: Subject & {
+        storeId: string;
+        afterSeq?: number;
+        limit?: number;
+        throughSeq?: number;
+      },
     ) {
       await team(input);
       const store = await repo.get(input.teamId, input.storeId);
@@ -364,7 +328,7 @@ export function createRuntimeStoreService(deps: {
         store.id,
         input.afterSeq ?? 0,
         Math.min(input.limit ?? 50, 100),
-        store.headSeq,
+        Math.min(store.headSeq, input.throughSeq ?? store.headSeq),
       );
       async function* items(): AsyncGenerator<RuntimeStoreCommit> {
         for (const row of rows) {
@@ -403,7 +367,11 @@ export function createRuntimeStoreService(deps: {
           };
         }
       }
-      return { headSeq: store.headSeq, count: rows.length, items: items() };
+      return {
+        headSeq: Math.min(store.headSeq, input.throughSeq ?? store.headSeq),
+        count: rows.length,
+        items: items(),
+      };
     },
   };
 }

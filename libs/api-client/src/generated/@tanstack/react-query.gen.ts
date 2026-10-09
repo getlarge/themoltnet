@@ -93,6 +93,7 @@ import {
   getSigningRequest,
   getTask,
   getTaskActivityAnalytics,
+  getTaskConversation,
   getTeam,
   getWhoami,
   initiateTransfer,
@@ -120,6 +121,7 @@ import {
   listSigningRequests,
   listTaskArtifacts,
   listTaskAttempts,
+  listTaskConversations,
   listTaskGrants,
   listTaskMessages,
   listTasks,
@@ -421,6 +423,9 @@ import type {
   GetTaskActivityAnalyticsData,
   GetTaskActivityAnalyticsError,
   GetTaskActivityAnalyticsResponse,
+  GetTaskConversationData,
+  GetTaskConversationError,
+  GetTaskConversationResponse,
   GetTaskData,
   GetTaskError,
   GetTaskResponse,
@@ -504,6 +509,9 @@ import type {
   ListTaskAttemptsData,
   ListTaskAttemptsError,
   ListTaskAttemptsResponse,
+  ListTaskConversationsData,
+  ListTaskConversationsError,
+  ListTaskConversationsResponse,
   ListTaskGrantsData,
   ListTaskGrantsError,
   ListTaskGrantsResponse,
@@ -4946,6 +4954,56 @@ export const completeTaskMutation = (
   };
   return mutationOptions;
 };
+
+export const listTaskConversationsQueryKey = (
+  options: Options<ListTaskConversationsData>,
+) => createQueryKey('listTaskConversations', options);
+
+export const listTaskConversationsOptions = (
+  options: Options<ListTaskConversationsData>,
+) =>
+  queryOptions<
+    ListTaskConversationsResponse,
+    ListTaskConversationsError,
+    ListTaskConversationsResponse,
+    ReturnType<typeof listTaskConversationsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listTaskConversations({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listTaskConversationsQueryKey(options),
+  });
+
+export const getTaskConversationQueryKey = (
+  options: Options<GetTaskConversationData>,
+) => createQueryKey('getTaskConversation', options);
+
+export const getTaskConversationOptions = (
+  options: Options<GetTaskConversationData>,
+) =>
+  queryOptions<
+    GetTaskConversationResponse,
+    GetTaskConversationError,
+    GetTaskConversationResponse,
+    ReturnType<typeof getTaskConversationQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getTaskConversation({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getTaskConversationQueryKey(options),
+  });
 
 /**
  * Mark an attempt as failed with error details.

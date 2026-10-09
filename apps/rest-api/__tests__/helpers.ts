@@ -711,6 +711,7 @@ export function createMockServices(): MockServices {
         findCommit: vi.fn(),
         append: vi.fn(),
         listCommits: vi.fn(),
+        attemptBounds: vi.fn(),
       },
       upsertActive: vi.fn(),
       findActiveByTaskAttempt: vi.fn(),

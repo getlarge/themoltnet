@@ -456,7 +456,7 @@ describe('incremental runtime sessions', () => {
       expect(response.json()).toEqual({ seq: 1 });
     }
     expect(repo.append).toHaveBeenCalledTimes(1);
-    expect(mocks.taskRepository.appendMessages).toHaveBeenCalledTimes(1);
+    expect(mocks.taskRepository.appendMessages).not.toHaveBeenCalled();
     expect(mocks.runtimeSessionStorage.putObject).toHaveBeenCalled();
     const read = await app.inject({
       method: 'GET',

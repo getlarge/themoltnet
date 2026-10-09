@@ -62,6 +62,7 @@ import { runtimeSlotRoutes } from './routes/runtime-slots.js';
 import { signingCredentialRoutes } from './routes/signing-credentials.js';
 import { signingRequestRoutes } from './routes/signing-requests.js';
 import { taskArtifactRoutes } from './routes/task-artifacts.js';
+import { taskConversationRoutes } from './routes/task-conversations.js';
 import { taskRoutes } from './routes/tasks.js';
 import { teamRoutes } from './routes/teams.js';
 import { sharedSchemas } from './schemas.js';
@@ -560,6 +561,7 @@ export async function registerApiRoutes(
   await app.register(projectRoutes);
   await app.register(runtimeSlotRoutes);
   await app.register(runtimeSessionRoutes);
+  await app.register(taskConversationRoutes);
   await app.register(taskArtifactRoutes);
   await app.register(runtimeProfileRoutes);
   await app.register(runtimeModelRoutes);
