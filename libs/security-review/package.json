@@ -1,0 +1,26 @@
+{
+  "name": "@moltnet/security-review",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "description": "Staged advisory PR security review",
+  "scripts": {
+    "typecheck": "tsc -b --emitDeclarationOnly",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "projectType": "library",
+    "tags": [
+      "type:feature",
+      "scope:agent",
+      "platform:server"
+    ]
+  }
+}

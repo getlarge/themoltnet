@@ -2,7 +2,6 @@ import {
   ASSESS_BRIEF_TYPE,
   FREEFORM_TYPE,
   JUDGE_EVAL_ATTEMPT_TYPE,
-  PR_REVIEW_TYPE,
   RUN_EVAL_TYPE,
 } from '@moltnet/tasks';
 import { describe, expect, it } from 'vitest';
@@ -214,46 +213,6 @@ describe('buildTaskUserPrompt', () => {
     expect(prompt).toContain('dedicated disposable git');
     expect(prompt).toContain('If you need to check out the target');
     expect(prompt).toContain('task/assess-brief-11111111');
-  });
-
-  it('builds a generic pr_review prompt without GitHub-specific runtime assumptions', () => {
-    const task = makeFulfillBriefTask({
-      taskType: PR_REVIEW_TYPE,
-      input: {
-        subject: {
-          title: 'Generated change review',
-          summary: 'Review this change artifact for complexity.',
-          resourceUrls: ['https://example.test/review/123'],
-          inspectionHints: ['Inspect the local checkout before scoring.'],
-        },
-        taskPrompt:
-          'Use the consumer-supplied review flow and publish the review before final output.',
-        successCriteria: {
-          version: 1,
-          rubric: {
-            rubricId: 'pr-complexity-binary',
-            version: 'v1',
-            criteria: [
-              {
-                id: 'c1',
-                description: 'Works',
-                weight: 1,
-                scoring: 'boolean',
-              },
-            ],
-          },
-        },
-      },
-    });
-    const prompt = buildTaskUserPrompt(task, ctx).text;
-    expect(prompt).toContain('Generated change review');
-    expect(prompt).toContain('https://example.test/review/123');
-    expect(prompt).toContain('task-specific instructions');
-    expect(prompt).toContain(
-      'Use the consumer-supplied review flow and publish the review before final output.',
-    );
-    expect(prompt).not.toContain('gh pr diff');
-    expect(prompt).not.toContain('submit_pr_review_output');
   });
 
   it('embeds correlation branch + trailer instructions when correlationId is set', () => {

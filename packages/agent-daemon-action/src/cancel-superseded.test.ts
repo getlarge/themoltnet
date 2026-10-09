@@ -17,14 +17,14 @@ describe('cancelSupersededTasks', () => {
     const cancelled = await cancelSupersededTasks({
       agent,
       teamId: 'team-id',
-      taskType: 'pr_review',
+      taskType: 'freeform',
       correlationId: 'correlation-id',
       selectorTags: ['workflow:legreffier-complexity-review', 'pr:1810'],
     });
 
     expect(list).toHaveBeenCalledWith(
       {
-        taskTypes: ['pr_review'],
+        taskTypes: ['freeform'],
         statuses: ['waiting', 'queued', 'dispatched', 'running'],
         correlationId: 'correlation-id',
         tags: ['workflow:legreffier-complexity-review', 'pr:1810'],
@@ -38,7 +38,7 @@ describe('cancelSupersededTasks', () => {
       'old-running',
       {
         reason:
-          'Superseded by a newer pr_review task in correlation correlation-id',
+          'Superseded by a newer freeform task in correlation correlation-id',
       },
       { teamId: 'team-id' },
     );
@@ -47,7 +47,7 @@ describe('cancelSupersededTasks', () => {
       'old-queued',
       {
         reason:
-          'Superseded by a newer pr_review task in correlation correlation-id',
+          'Superseded by a newer freeform task in correlation correlation-id',
       },
       { teamId: 'team-id' },
     );

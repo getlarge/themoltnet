@@ -204,7 +204,7 @@ describe('createSubmitOutputTool', () => {
   });
 
   it('advertises the task schema and requests constrained sampling', () => {
-    const handle = createSubmitOutputTool('pr_review');
+    const handle = createSubmitOutputTool('assess_brief');
     const tool = handle.tool as unknown as {
       parameters: {
         type?: string;
@@ -221,6 +221,7 @@ describe('createSubmitOutputTool', () => {
       'scores',
       'composite',
       'verdict',
+      'judgeModel',
     ]);
     expect(tool.parameters.required).toEqual([
       'scores',
@@ -232,7 +233,7 @@ describe('createSubmitOutputTool', () => {
       type: 'json_schema',
       strict: 'prefer',
     });
-    expect(tool.promptSnippet).toContain('submit_pr_review_output');
+    expect(tool.promptSnippet).toContain('submit_assess_brief_output');
     expect(tool.promptSnippet).toContain('Agent submission schema');
     expect(tool.promptSnippet).toContain('"scores"');
     expect(tool.promptSnippet).toContain('"composite"');
@@ -276,7 +277,7 @@ describe('createSubmitOutputTool', () => {
 
   it('prepares stringified values before Pi validates the tool call', () => {
     // Arrange
-    const handle = createSubmitOutputTool('pr_review');
+    const handle = createSubmitOutputTool('assess_brief');
     const tool = handle.tool as unknown as {
       prepareArguments: (args: unknown) => unknown;
     };
@@ -420,7 +421,7 @@ describe('createSubmitOutputTool', () => {
 
   it('decodes array and number fields sent as JSON strings', async () => {
     // Arrange
-    const handle = createSubmitOutputTool('pr_review');
+    const handle = createSubmitOutputTool('assess_brief');
     const scores = [{ criterionId: 'c1', score: 1, rationale: 'ok' }];
 
     // Act
@@ -441,7 +442,7 @@ describe('createSubmitOutputTool', () => {
 
   it('keeps string fields verbatim even when they parse as JSON', async () => {
     // Arrange
-    const handle = createSubmitOutputTool('pr_review');
+    const handle = createSubmitOutputTool('assess_brief');
 
     // Act
     await callExecute(handle)({
@@ -456,7 +457,7 @@ describe('createSubmitOutputTool', () => {
 
   it('reports a stringified field that decodes to the wrong type', async () => {
     // Arrange
-    const handle = createSubmitOutputTool('pr_review');
+    const handle = createSubmitOutputTool('assess_brief');
 
     // Act
     const result = await callExecute(handle)({
@@ -782,7 +783,7 @@ describe('createSubmitOutputTool', () => {
   });
 
   it('accepts a valid call after repeated invalid calls in the same session', async () => {
-    const handle = createSubmitOutputTool('pr_review');
+    const handle = createSubmitOutputTool('assess_brief');
     const exec = callExecute(handle);
     for (let call = 0; call < 3; call += 1) {
       const invalid = await exec({ output: {} });

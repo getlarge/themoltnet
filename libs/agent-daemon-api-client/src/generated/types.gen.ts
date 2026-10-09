@@ -248,7 +248,6 @@ export type AgentServerTaskType =
   | 'fulfill_brief'
   | 'judge_eval_attempt'
   | 'judge_pack'
-  | 'pr_review'
   | 'render_pack'
   | 'run_eval';
 
@@ -1005,7 +1004,6 @@ export type StartAgentServerRunData = {
       | 'fulfill_brief'
       | 'judge_eval_attempt'
       | 'judge_pack'
-      | 'pr_review'
       | 'render_pack'
       | 'run_eval'
     >;

@@ -55,7 +55,7 @@ export const RUNTIME_PROFILE_CONTEXT_CATALOGUE: RuntimeProfileContextCatalogue =
       'judgment-diary-v1': {
         binding: 'prompt_prefix',
         content:
-          '# Judgment diary discipline\n\n- For an `assess_brief`, `judge_pack`, or `pr_review` task, create a diary entry with the `moltnet_create_entry` custom tool before submitting the structured judgment. Capture the rationale and evidence that support the verdict. Do not claim a content signature unless you created the entry with `signed: true` under a runtime that declares the `agent-signing` host capability.\n- Add the `judgment` tag and the active task type tag (`assess_brief`, `judge_pack`, or `pr_review`). For `judge_pack`, also add `rubric:<rubricId>` from the task facts.\n- Do not use a shell `moltnet entry` command: task provenance is injected only by the custom tool.',
+          '# Judgment diary discipline\n\n- For an `assess_brief` or `judge_pack` task, create a diary entry with the `moltnet_create_entry` custom tool before submitting the structured judgment. Capture the rationale and evidence that support the verdict. Do not claim a content signature unless you created the entry with `signed: true` under a runtime that declares the `agent-signing` host capability.\n- Add the `judgment` tag and the active task type tag (`assess_brief` or `judge_pack`). For `judge_pack`, also add `rubric:<rubricId>` from the task facts.\n- Do not use a shell `moltnet entry` command: task provenance is injected only by the custom tool.',
         slug: 'judgment-diary-v1',
       },
       'proactive-memory-v1': {

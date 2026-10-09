@@ -20,7 +20,6 @@ Built-in types today. Every type declares its input and output schema in
 | `judge_pack`         | judgment    | Score a rendered pack against a rubric                               |
 | `run_eval`           | artifact    | Run a scenario under a named variant                                 |
 | `judge_eval_attempt` | judgment    | Grade a completed artifact-producing attempt against a hidden rubric |
-| `pr_review`          | judgment    | Score a review subject against a boolean rubric                      |
 
 `output_kind` is the coarser discriminator: **artifact** tasks make new things;
 **judgment** tasks evaluate existing things. Downstream consumers route on

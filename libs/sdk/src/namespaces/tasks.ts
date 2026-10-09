@@ -42,7 +42,6 @@ import {
   buildJudgeEvalAttempt,
   buildJudgeEvalAttemptForRunEval,
   buildJudgePack,
-  buildPrReview,
   buildRenderPack,
   buildRunEval,
   buildTask,
@@ -251,7 +250,6 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
     buildJudgePack,
     buildJudgeEvalAttempt,
     buildJudgeEvalAttemptForRunEval,
-    buildPrReview,
 
     async readResult(taskOrId: string | Task, options?: TaskRequestOptions) {
       const task =

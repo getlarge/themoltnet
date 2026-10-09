@@ -9,7 +9,6 @@ import {
   buildJudgeEvalAttempt,
   buildJudgeEvalAttemptForRunEval,
   buildJudgePack,
-  buildPrReview,
   buildRenderPack,
   buildRubricSuccessCriteria,
   buildRunEval,
@@ -32,20 +31,6 @@ const llmRubric = {
       description: 'Overall quality',
       weight: 1,
       scoring: 'llm_score' as const,
-    },
-  ],
-};
-
-/** Rubric using boolean scoring (required by pr_review). */
-const booleanRubric = {
-  rubricId: 'test-rubric',
-  version: 'v1',
-  criteria: [
-    {
-      id: 'overall',
-      description: 'Overall quality',
-      weight: 1,
-      scoring: 'boolean' as const,
     },
   ],
 };
@@ -251,20 +236,6 @@ describe('typed per-type factories produce validator-passing bodies', () => {
             ],
           },
         )
-          .team(TEAM)
-          .diary(DIARY)
-          .build(),
-      ),
-    ).toEqual([]);
-  });
-
-  it('buildPrReview', () => {
-    expect(
-      ok(
-        buildPrReview({
-          subject: { title: 't', summary: 's' },
-          successCriteria: { version: 1, rubric: booleanRubric },
-        })
           .team(TEAM)
           .diary(DIARY)
           .build(),

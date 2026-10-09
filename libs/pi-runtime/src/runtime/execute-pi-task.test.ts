@@ -2482,10 +2482,10 @@ describe('buildSubmitMissingPrompt', () => {
 
   it('builds a validation-specific correction without repeating task work', () => {
     const prompt = buildSubmitValidationPrompt(
-      'submit_pr_review_output',
+      'submit_assess_brief_output',
       'scores is required',
     );
-    expect(prompt).toContain('submit_pr_review_output');
+    expect(prompt).toContain('submit_assess_brief_output');
     expect(prompt).toContain('scores is required');
     expect(prompt).toContain('current');
     expect(prompt).toContain('Do not');
@@ -2718,7 +2718,7 @@ describe('promptUntilSubmitted (submit-missing same-session recovery)', () => {
         return { runError: null };
       },
       initialPrompt: 'do the task',
-      submitToolName: 'submit_pr_review_output',
+      submitToolName: 'submit_assess_brief_output',
       submitMissingPrompt: 'call submit now',
       maxSubmitMissingReprompts: 3,
       getSubmitState: () => {
@@ -2741,7 +2741,7 @@ describe('promptUntilSubmitted (submit-missing same-session recovery)', () => {
 
     expect(result).toEqual({ runError: null, submitReprompts: 1 });
     expect(prompts).toHaveLength(2);
-    expect(prompts[1]).toContain('submit_pr_review_output');
+    expect(prompts[1]).toContain('submit_assess_brief_output');
     expect(prompts[1]).toContain('scores, composite, and verdict');
     expect(prompts[1]).toContain('Do not reply with prose');
     expect(reasons).toEqual(['validation_failed']);

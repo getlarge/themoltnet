@@ -207,7 +207,6 @@ export {
   buildJudgeEvalAttempt,
   buildJudgeEvalAttemptForRunEval,
   buildJudgePack,
-  buildPrReview,
   buildRenderPack,
   buildRubricSuccessCriteria,
   type BuildRubricSuccessCriteriaOptions,

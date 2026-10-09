@@ -79,20 +79,19 @@ describe('buildTask (generic core)', () => {
   });
 
   it('does NOT inject a gate for non-producer (judgment) types', () => {
-    const { body } = buildTask('pr_review', {
-      subject: { title: 't', summary: 's' },
+    const { body } = buildTask('assess_brief', {
+      targetTaskId: '11111111-1111-4111-8111-111111111111',
       successCriteria: {
         version: 1,
         rubric: {
           rubricId: 'test-rubric',
           version: 'v1',
-          // pr_review requires boolean scoring for every criterion.
           criteria: [
             {
               id: 'overall',
               description: 'Overall quality',
               weight: 1,
-              scoring: 'boolean',
+              scoring: 'llm_score',
             },
           ],
         },
@@ -100,6 +99,13 @@ describe('buildTask (generic core)', () => {
     })
       .team(TEAM)
       .diary(DIARY)
+      .references(
+        {
+          taskId: '11111111-1111-4111-8111-111111111111',
+          outputCid: 'bafy',
+        },
+        'judged_work',
+      )
       .build();
     const gates = (
       body.input as { successCriteria?: { gates?: { id: string }[] } }

@@ -8,7 +8,6 @@ import {
   type JudgeEvalAttemptInput,
   type JudgePackInput,
   normalizeTaskInputForCreate,
-  type PrReviewInput,
   type RenderPackInput,
   type Rubric,
   type RubricCriterion,
@@ -875,17 +874,4 @@ export function buildJudgeEvalAttemptForRunEval(
     ...resolveJudgeEvalAttemptTarget(target),
     successCriteria: buildRubricSuccessCriteria(options),
   });
-}
-
-/**
- * Build a `pr_review` task. Requires `subject` + `successCriteria`. Note the
- * rubric criteria must use `boolean` scoring for this task type.
- *
- * @param input - PR-review input; `subject` + `successCriteria` mandatory.
- * @returns A typed {@link TaskBuilder}.
- */
-export function buildPrReview(
-  input: WithRequired<PrReviewInput, 'subject' | 'successCriteria'>,
-): TaskBuilder<PrReviewInput> {
-  return buildTask('pr_review', input as PrReviewInput);
 }

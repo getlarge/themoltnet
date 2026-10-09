@@ -1,0 +1,6 @@
+{
+  "description": "Repository inspection only for staged security review tasks; the pinned diff is supplied in the task brief.",
+  "name": "legreffier-security-review-readonly-v1",
+  "shellCommands": [],
+  "tools": ["find", "grep", "ls", "read"]
+}

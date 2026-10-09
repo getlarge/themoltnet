@@ -72,7 +72,7 @@ export const status: AgentServerStatus = {
       teamId: 'team',
       diaryId: 'diary',
       profiles: ['quick', 'careful'],
-      taskTypes: ['pr_review'],
+      taskTypes: ['freeform'],
       mode: 'poll',
       active: false,
       status: 'stopped',

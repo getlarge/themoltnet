@@ -125,7 +125,7 @@ func TestE2E_CLI_TaskSchemas_ListsBuiltInTypes(t *testing.T) {
 	}
 	want := []string{
 		"fulfill_brief", "assess_brief", "curate_pack", "render_pack",
-		"judge_pack", "run_eval", "judge_eval_attempt", "pr_review",
+		"judge_pack", "run_eval", "judge_eval_attempt",
 	}
 	for _, name := range want {
 		if !got[name] {

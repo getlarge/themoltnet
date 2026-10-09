@@ -209,54 +209,6 @@ export const RUBRIC_TEMPLATES: RubricTemplate[] = [
     },
   },
   {
-    id: 'pr-security-v1',
-    label: 'Security review',
-    rubric: {
-      rubricId: 'pr-security-v1',
-      version: 'v1',
-      preamble:
-        'Evaluate security-sensitive behavior and require concrete evidence for every pass or fail.',
-      minCompositePercent: '95',
-      criteria: [
-        {
-          name: 'injection_safety',
-          weightPercent: '15',
-          scoring: 'llm_checklist',
-          description:
-            'Check user-controlled strings, query construction, command execution, and template rendering for injection paths.',
-        },
-        {
-          name: 'authz_integrity',
-          weightPercent: '20',
-          scoring: 'llm_checklist',
-          description:
-            'Check authentication, authorization, team scoping, and object ownership boundaries.',
-        },
-        {
-          name: 'secret_hygiene',
-          weightPercent: '15',
-          scoring: 'llm_checklist',
-          description:
-            'Check that secrets are not logged, committed, exposed to clients, or passed to untrusted tools.',
-        },
-        {
-          name: 'input_validation',
-          weightPercent: '20',
-          scoring: 'llm_checklist',
-          description:
-            'Check runtime validation, error handling, bounds, and rejected malformed input.',
-        },
-        {
-          name: 'safe_failure_modes',
-          weightPercent: '30',
-          scoring: 'llm_score',
-          description:
-            'Score whether failures deny by default, preserve auditability, and avoid partial privileged side effects.',
-        },
-      ],
-    },
-  },
-  {
     id: 'research-report',
     label: 'Research/report',
     rubric: {

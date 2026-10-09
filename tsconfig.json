@@ -272,6 +272,9 @@
     },
     {
       "path": "./libs/json-repair"
+    },
+    {
+      "path": "./libs/security-review"
     }
   ]
 }
