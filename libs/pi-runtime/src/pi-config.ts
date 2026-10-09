@@ -8,6 +8,7 @@ import { join } from 'node:path';
  * this list so they cannot drift from what Pi actually accepts.
  */
 export const PI_MODEL_MODALITIES = ['text', 'image'] as const;
+export const PI_CLASSIFIER_API = 'typesafe-system-one' as const;
 
 /** Input modalities Pi understands for a model entry. */
 export type PiModelModality = (typeof PI_MODEL_MODALITIES)[number];
@@ -137,7 +138,7 @@ export function writePiConfig(input: WritePiConfigInput): void {
                     .filter((model) => model.type === 'classifier')
                     .map((model) => ({
                       id: model.id,
-                      api: model.api ?? provider.api,
+                      api: model.api ?? PI_CLASSIFIER_API,
                       contextWindow: model.contextWindow ?? 8192,
                     })),
                 }

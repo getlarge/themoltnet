@@ -1,4 +1,4 @@
-import { mkdtempSync, realpathSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -7,6 +7,7 @@ import { SecretProviderRegistry } from '@themoltnet/sdk';
 import { FileSecretProvider } from '@themoltnet/sdk/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { writeStorePiConfig } from '../lib/agent-server/pi-store-config.js';
 import { AgentServerStore } from '../lib/agent-server/store.js';
 import { OAuthProviderService } from '../lib/oauth-provider.js';
 import { ProviderConfigurationService } from '../lib/provider-configuration.js';
@@ -70,6 +71,89 @@ async function fixture(
 }
 
 describe('moltnet-agent providers', () => {
+  it('configures classifier and chat models on one provider', async () => {
+    const test = await fixture();
+    expect(
+      await runProviders(
+        [
+          'set',
+          'remote',
+          '--base-url',
+          'https://provider.example/v1',
+          '--model',
+          'chat',
+          '--classifier-model',
+          'decisions=4096',
+        ],
+        test.dependencies,
+      ),
+    ).toBe(0);
+    expect(test.configuration.list().remote.models).toEqual([
+      { id: 'chat' },
+      {
+        id: 'decisions',
+        type: 'classifier',
+        api: 'typesafe-system-one',
+        contextWindow: 4096,
+      },
+    ]);
+    writeStorePiConfig(test.root, test.store.readProviders());
+    const pi = JSON.parse(
+      readFileSync(join(test.root, 'models.json'), 'utf8'),
+    ) as {
+      providers: Record<string, { models: unknown; classifierModels: unknown }>;
+    };
+    expect(pi.providers.remote).toMatchObject({
+      models: [{ id: 'chat' }],
+      classifierModels: [
+        { id: 'decisions', api: 'typesafe-system-one', contextWindow: 4096 },
+      ],
+    });
+
+    expect(
+      await runProviders(
+        ['set', 'remote', '--classifier-model', 'second'],
+        test.dependencies,
+      ),
+    ).toBe(0);
+    expect(
+      test.configuration.list().remote.models?.map((model) => model.id),
+    ).toEqual(['chat', 'decisions', 'second']);
+    expect(
+      await runProviders(
+        ['set', 'remote', '--model-strict-mode', 'decisions=true'],
+        test.dependencies,
+      ),
+    ).toBe(1);
+    expect(
+      await runProviders(
+        ['set', 'remote', '--classifier-model', 'chat'],
+        test.dependencies,
+      ),
+    ).toBe(1);
+    expect(
+      await runProviders(
+        ['set', 'remote', '--model-input', 'decisions=text'],
+        test.dependencies,
+      ),
+    ).toBe(1);
+  });
+
+  it('rejects conflicting or malformed classifier declarations', async () => {
+    const test = await fixture();
+    for (const args of [
+      ['--classifier-model', 'decisions=0'],
+      ['--classifier-model', 'decisions=1.5'],
+      ['--model', 'decisions', '--classifier-model', 'decisions'],
+      ['--classifier-model', 'decisions', '--clear-models'],
+    ]) {
+      expect(
+        await runProviders(['set', 'remote', ...args], test.dependencies),
+      ).toBe(1);
+    }
+    expect(test.configuration.list()).not.toHaveProperty('remote');
+  });
+
   it('stores explicit reasoning metadata and shows it in JSON output', async () => {
     const test = await fixture();
     expect(
@@ -159,7 +243,7 @@ describe('moltnet-agent providers', () => {
         test.dependencies,
       ),
     ).toBe(1);
-    expect(test.stderr.at(-1)).toContain('existing model "model-typo"');
+    expect(test.stderr.at(-1)).toContain('existing chat model "model-typo"');
     expect(test.configuration.list().remote.models).toHaveLength(2);
   });
   it.each([
@@ -376,7 +460,10 @@ describe('moltnet-agent providers', () => {
     const test = await fixture({ fetchImpl });
     await test.configuration.set('ollama-cloud', {
       baseUrl: 'https://ollama.com/v1',
-      models: [{ id: 'existing' }],
+      models: [
+        { id: 'existing' },
+        { id: 'decisions', type: 'classifier', api: 'typesafe-system-one' },
+      ],
     });
 
     expect(
@@ -395,6 +482,7 @@ describe('moltnet-agent providers', () => {
     });
     expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
       { id: 'existing', reasoning: false },
+      { id: 'decisions', type: 'classifier', api: 'typesafe-system-one' },
     ]);
 
     expect(
@@ -406,6 +494,7 @@ describe('moltnet-agent providers', () => {
     expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
       { id: 'gemma4:31b-cloud', input: ['text', 'image'], reasoning: false },
       { id: 'local-model', reasoning: false },
+      { id: 'decisions', type: 'classifier', api: 'typesafe-system-one' },
     ]);
   });
 

@@ -283,6 +283,49 @@ describe('resolvePiAgentDir', () => {
     });
   });
 
+  it('appends repo classifier models under an existing store provider', async () => {
+    const agentRoot = tempDir();
+    const storeRoot = tempDir();
+    writeStore(storeRoot, {
+      providers: {
+        'ollama-cloud': {
+          ...STORE_OLLAMA['ollama-cloud'],
+          models: [
+            { id: 'chat' },
+            { id: 'stored', type: 'classifier', api: 'typesafe-system-one' },
+          ],
+        },
+      },
+    });
+    writeRepoPi(agentRoot, {
+      models: {
+        providers: {
+          'ollama-cloud': {
+            api: 'openai-completions',
+            baseUrl: 'https://ollama.com/v1',
+            models: [],
+            classifierModels: [
+              { id: 'stored', api: 'typesafe-system-one', contextWindow: 1000 },
+              { id: 'repo', api: 'typesafe-system-one', contextWindow: 2000 },
+            ],
+          },
+        },
+      },
+    });
+
+    const result = await resolve({ agentRoot, storeRoot });
+    expect(
+      (
+        readJson(join(result.path, 'models.json')) as {
+          providers: Record<string, { classifierModels: unknown }>;
+        }
+      ).providers['ollama-cloud'].classifierModels,
+    ).toEqual([
+      { id: 'stored', api: 'typesafe-system-one', contextWindow: 8192 },
+      { id: 'repo', api: 'typesafe-system-one', contextWindow: 2000 },
+    ]);
+  });
+
   it.each([
     { storeLogin: true, expected: { codex: { access: 'store' } } },
     { storeLogin: false, expected: { anthropic: { access: 'repo' } } },

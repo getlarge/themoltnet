@@ -27,7 +27,10 @@ import {
 import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 
-import type { PiModelModality } from '@themoltnet/pi-runtime/pi-config';
+import {
+  PI_CLASSIFIER_API,
+  type PiModelModality,
+} from '@themoltnet/pi-runtime/pi-config';
 import {
   assertIdentityAlias,
   getConfigDir,
@@ -646,6 +649,9 @@ export class AgentServerStore {
             model.type !== 'classifier') ||
           (model.api !== undefined &&
             (typeof model.api !== 'string' || !model.api)) ||
+          (model.type === 'classifier' &&
+            model.api !== undefined &&
+            model.api !== PI_CLASSIFIER_API) ||
           (model.contextWindow !== undefined &&
             (!Number.isSafeInteger(model.contextWindow) ||
               model.contextWindow <= 0))

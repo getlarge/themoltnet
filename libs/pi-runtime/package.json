@@ -66,8 +66,7 @@
     "json5": "catalog:",
     "multiformats": "catalog:",
     "typebox": "catalog:",
-    "@earendil-works/pi-durable": "catalog:",
-    "@earendil-works/chord": "catalog:"
+    "@earendil-works/pi-durable": "catalog:"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "1.0.0",

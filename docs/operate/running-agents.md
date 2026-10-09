@@ -189,6 +189,28 @@ capabilities were recorded. If `/api/show` is unavailable, the model remains
 usable; configure its reasoning support explicitly with `--model-reasoning` and
 `--model-thinking-map` when needed.
 
+### Classifier models
+
+Declare a classifier on a provider whose endpoint supports Pi's
+`typesafe-system-one` classification API:
+
+```bash
+moltnet-agent providers set decisions \
+  --base-url "$CLASSIFIER_BASE_URL" \
+  --classifier-model urgency=4096
+```
+
+Set the provider's API key with `--api-key-stdin` when required. The classifier
+uses that provider's existing credentials. The optional context window defaults
+to 8192. A provider can list chat and classifier models together when its
+endpoint supports both; `--classifier-model` adds to its model list, while
+`--model` replaces the list. `providers discover --save` retains classifier
+declarations because ordinary model discovery does not identify them.
+
+Select the exact provider and model in a runtime profile's
+`models.classification`. A `classify` task uses that selection after daemon
+classifier dispatch is deployed.
+
 ### Ollama Cloud
 
 Cloud uses a separate provider id and endpoint:

@@ -246,7 +246,8 @@ moltnet-agent providers — manage local model providers.
 Usage:
   moltnet-agent providers list [--json] [--root <path>]
   moltnet-agent providers set <id> [--base-url <url>] [--api <pi-api-kind>]
-    [--model <id> ... | --clear-models]
+    [--model <id> ...] [--classifier-model <id>[=<context-window>] ...]
+    [--clear-models]
     [--model-input <id>=text,image ...]
     [--model-reasoning <id> ...]
     [--model-thinking-map <id>=off:none,low:low,... ...]
@@ -266,13 +267,17 @@ are stored separately and providers.json contains only a secret reference.
 with the input modalities it accepts, and is what makes a vision model usable:
 a model with no declared modalities is text-only to Pi, which drops image
 content parts before the request leaves the runtime.
+--classifier-model declares a typesafe-system-one classifier. The optional
+positive context window defaults to 8192. A classifier can share a provider
+and credentials with chat models when the endpoint supports both APIs.
 --model-reasoning marks a model as supporting reasoning. --model-thinking-map
 sets its Pi thinking-level to provider effort mapping and implies reasoning.
 --model-strict-mode explicitly sets Pi's strict JSON-schema tool mode for an
 existing model after confirming the provider accepts strict function
 definitions. Use =default to remove the override.
 Model capability flags update existing model metadata; --model replaces the
-model list.
+model list, including any classifiers. --classifier-model alone adds to the
+existing list. Discovery preserves declared classifiers.
 For existing Ollama providers, run providers discover <id> --save to detect
 thinking support from Ollama capabilities and refresh saved model metadata.
 `;

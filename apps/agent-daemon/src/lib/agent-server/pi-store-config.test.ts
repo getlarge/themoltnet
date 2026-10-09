@@ -32,6 +32,7 @@ describe('writeStorePiConfig', () => {
         apiKeyRef: 'file:providers/ollama-cloud/api-key',
         models: [
           { id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
+          { id: 'decisions', type: 'classifier' },
           {
             id: 'glm-5.2:cloud',
             reasoning: true,
@@ -60,6 +61,9 @@ describe('writeStorePiConfig', () => {
           thinkingLevelMap: { off: 'none', low: 'low' },
           compat: { supportsStrictMode: true },
         },
+      ],
+      classifierModels: [
+        { id: 'decisions', api: 'typesafe-system-one', contextWindow: 8192 },
       ],
     });
   });
