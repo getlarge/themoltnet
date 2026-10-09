@@ -1,6 +1,10 @@
+import { ApiKeysApi, Configuration } from '@ory/client-fetch';
 import { describe, expect, it } from 'vitest';
 
-import { parseRetryAfter } from '../src/remote-auth-error.js';
+import {
+  parseRetryAfter,
+  summarizeOryError,
+} from '../src/remote-auth-error.js';
 
 function providerError(headers?: unknown): unknown {
   return { response: { headers } };
@@ -40,5 +44,85 @@ describe('parseRetryAfter', () => {
         Date.parse('Wed, 21 Oct 2015 07:28:00 GMT'),
       ),
     ).toBeUndefined();
+  });
+});
+
+function verifierWithFetch(fetchApi: NonNullable<Configuration['fetchApi']>) {
+  return new ApiKeysApi(
+    new Configuration({ basePath: 'https://ory.example.test', fetchApi }),
+  );
+}
+
+async function verify(api: ApiKeysApi) {
+  return api.adminVerifyApiKey({
+    verifyApiKeyRequest: { credential: 'redacted-test-key' },
+  });
+}
+
+describe('summarizeOryError', () => {
+  it('recognizes the installed Ory SDK timeout wrapper', async () => {
+    const api = verifierWithFetch(async () => {
+      throw new DOMException('private timeout detail', 'TimeoutError');
+    });
+
+    try {
+      await verify(api);
+      expect.fail('verification should fail');
+    } catch (error) {
+      expect(summarizeOryError(error)).toEqual({
+        errorType: 'FetchError',
+        causeType: 'TimeoutError',
+      });
+    }
+  });
+
+  it('recognizes a nested fetch transport code', async () => {
+    const api = verifierWithFetch(async () => {
+      throw new TypeError('fetch failed', {
+        cause: Object.assign(new Error('private socket detail'), {
+          code: 'ECONNRESET',
+        }),
+      });
+    });
+
+    try {
+      await verify(api);
+      expect.fail('verification should fail');
+    } catch (error) {
+      expect(summarizeOryError(error)).toEqual({
+        errorType: 'FetchError',
+        causeType: 'TypeError',
+        causeCode: 'ECONNRESET',
+      });
+    }
+  });
+
+  it('keeps HTTP response errors distinct from fetch failures', async () => {
+    const api = verifierWithFetch(
+      async () => new Response('{}', { status: 503 }),
+    );
+
+    try {
+      await verify(api);
+      expect.fail('verification should fail');
+    } catch (error) {
+      expect(summarizeOryError(error)).toEqual({
+        errorType: 'ResponseError',
+        status: 503,
+      });
+    }
+  });
+
+  it('does not copy arbitrary error names or codes into logs', () => {
+    const error = Object.assign(new Error('private message'), {
+      name: 'private_name',
+      cause: {
+        name: 'private_cause',
+        code: 'private_code',
+        cause: { code: 'private_nested_code' },
+      },
+    });
+
+    expect(summarizeOryError(error)).toEqual({ errorType: 'UnknownError' });
   });
 });

@@ -370,7 +370,12 @@ describe('createSessionResolver', () => {
       const loggingResolver = createSessionResolver(mockFrontendApi as never, {
         logger: { warn },
       });
-      mockFrontendApi.toSession.mockRejectedValue(new Error('ECONNREFUSED'));
+      mockFrontendApi.toSession.mockRejectedValue(
+        Object.assign(new Error('SDK request failed'), {
+          name: 'FetchError',
+          cause: new DOMException('private detail', 'TimeoutError'),
+        }),
+      );
 
       await expect(
         loggingResolver.resolveSession({
@@ -381,6 +386,15 @@ describe('createSessionResolver', () => {
         operation: 'kratos.session',
       });
       expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          errorType: 'FetchError',
+          causeType: 'TimeoutError',
+          requestDurationMs: expect.any(Number),
+        }),
+        'session-resolver: Kratos toSession error',
+      );
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('private detail');
     });
 
     it('summarizes cookie transport details in warning logs', async () => {

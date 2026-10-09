@@ -22,6 +22,7 @@ import {
 import {
   asRemoteAuthenticationError,
   remoteErrorStatus,
+  summarizeOryError,
 } from './remote-auth-error.js';
 import type {
   AgentAuthContext,
@@ -160,32 +161,6 @@ function isTalosApiKey(token: string): boolean {
 function asMetadata(value: object | undefined): Record<string, unknown> {
   if (!value || Array.isArray(value)) return {};
   return value as Record<string, unknown>;
-}
-
-function summarizeOryError(error: unknown): {
-  errorType: string;
-  status?: number;
-  causeCode?: string;
-} {
-  if (typeof error !== 'object' || error === null) {
-    return { errorType: 'UnknownError' };
-  }
-
-  const candidate = error as {
-    name?: unknown;
-    response?: { status?: unknown };
-    cause?: { code?: unknown };
-  };
-  return {
-    errorType:
-      typeof candidate.name === 'string' ? candidate.name : 'UnknownError',
-    ...(typeof candidate.response?.status === 'number'
-      ? { status: candidate.response.status }
-      : {}),
-    ...(typeof candidate.cause?.code === 'string'
-      ? { causeCode: candidate.cause.code }
-      : {}),
-  };
 }
 
 type JwtFailureSummary = {
@@ -528,6 +503,7 @@ export function createTokenValidator(
       let result: Awaited<
         ReturnType<Pick<ApiKeysApi, 'adminVerifyApiKey'>['adminVerifyApiKey']>
       >;
+      const startedAt = performance.now();
       try {
         result = await talosApi.adminVerifyApiKey({
           verifyApiKeyRequest: { credential: token },
@@ -539,6 +515,7 @@ export function createTokenValidator(
           {
             credentialType: 'talos-api-key',
             reason: 'verifier_request_failed',
+            requestDurationMs: Math.round(performance.now() - startedAt),
             ...summarizeOryError(error),
           },
           'Talos API key validation unavailable',
