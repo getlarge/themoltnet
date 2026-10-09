@@ -41,6 +41,14 @@ func main() {
 		log.Fatalf("parse JSON: %v", err)
 	}
 
+	// ogen v1.21 cannot emit SSE server responses (even with the ignore option).
+	// Keep JSON conversation reads generated; SSE consumers use the HTTP API.
+	if root, ok := spec.(map[string]any); ok {
+		if paths, ok := root["paths"].(map[string]any); ok {
+			delete(paths, "/tasks/{id}/attempts/{n}/conversations/{conversationId}/events")
+		}
+	}
+
 	normalized := normalize(spec)
 	convertReferencedDiscriminatedUnions(normalized)
 

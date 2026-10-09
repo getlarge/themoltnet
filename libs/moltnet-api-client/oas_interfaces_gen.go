@@ -313,6 +313,10 @@ type GetTaskActivityAnalyticsRes interface {
 	getTaskActivityAnalyticsRes()
 }
 
+type GetTaskConversationRes interface {
+	getTaskConversationRes()
+}
+
 type GetTaskRes interface {
 	getTaskRes()
 }
@@ -419,6 +423,10 @@ type ListTaskArtifactsRes interface {
 
 type ListTaskAttemptsRes interface {
 	listTaskAttemptsRes()
+}
+
+type ListTaskConversationsRes interface {
+	listTaskConversationsRes()
 }
 
 type ListTaskGrantsRes interface {

@@ -26753,6 +26753,251 @@ type GetTaskActivityAnalyticsUnauthorized ProblemDetails
 
 func (*GetTaskActivityAnalyticsUnauthorized) getTaskActivityAnalyticsRes() {}
 
+type GetTaskConversationBadRequest ProblemDetails
+
+func (*GetTaskConversationBadRequest) getTaskConversationRes() {}
+
+type GetTaskConversationConflict ProblemDetails
+
+func (*GetTaskConversationConflict) getTaskConversationRes() {}
+
+type GetTaskConversationForbidden ProblemDetails
+
+func (*GetTaskConversationForbidden) getTaskConversationRes() {}
+
+type GetTaskConversationNotFound ProblemDetails
+
+func (*GetTaskConversationNotFound) getTaskConversationRes() {}
+
+type GetTaskConversationOK struct {
+	AttemptStatus     string                              `json:"attemptStatus"`
+	ConversationId    string                              `json:"conversationId"`
+	Cursor            string                              `json:"cursor"`
+	Live              GetTaskConversationOKLive           `json:"live"`
+	Messages          []GetTaskConversationOKMessagesItem `json:"messages"`
+	NextBeforeEntryId NilString                           `json:"nextBeforeEntryId"`
+}
+
+// GetAttemptStatus returns the value of AttemptStatus.
+func (s *GetTaskConversationOK) GetAttemptStatus() string {
+	return s.AttemptStatus
+}
+
+// GetConversationId returns the value of ConversationId.
+func (s *GetTaskConversationOK) GetConversationId() string {
+	return s.ConversationId
+}
+
+// GetCursor returns the value of Cursor.
+func (s *GetTaskConversationOK) GetCursor() string {
+	return s.Cursor
+}
+
+// GetLive returns the value of Live.
+func (s *GetTaskConversationOK) GetLive() GetTaskConversationOKLive {
+	return s.Live
+}
+
+// GetMessages returns the value of Messages.
+func (s *GetTaskConversationOK) GetMessages() []GetTaskConversationOKMessagesItem {
+	return s.Messages
+}
+
+// GetNextBeforeEntryId returns the value of NextBeforeEntryId.
+func (s *GetTaskConversationOK) GetNextBeforeEntryId() NilString {
+	return s.NextBeforeEntryId
+}
+
+// SetAttemptStatus sets the value of AttemptStatus.
+func (s *GetTaskConversationOK) SetAttemptStatus(val string) {
+	s.AttemptStatus = val
+}
+
+// SetConversationId sets the value of ConversationId.
+func (s *GetTaskConversationOK) SetConversationId(val string) {
+	s.ConversationId = val
+}
+
+// SetCursor sets the value of Cursor.
+func (s *GetTaskConversationOK) SetCursor(val string) {
+	s.Cursor = val
+}
+
+// SetLive sets the value of Live.
+func (s *GetTaskConversationOK) SetLive(val GetTaskConversationOKLive) {
+	s.Live = val
+}
+
+// SetMessages sets the value of Messages.
+func (s *GetTaskConversationOK) SetMessages(val []GetTaskConversationOKMessagesItem) {
+	s.Messages = val
+}
+
+// SetNextBeforeEntryId sets the value of NextBeforeEntryId.
+func (s *GetTaskConversationOK) SetNextBeforeEntryId(val NilString) {
+	s.NextBeforeEntryId = val
+}
+
+func (*GetTaskConversationOK) getTaskConversationRes() {}
+
+type GetTaskConversationOKLive map[string]jx.Raw
+
+func (s *GetTaskConversationOKLive) init() GetTaskConversationOKLive {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type GetTaskConversationOKMessagesItem struct {
+	EntryId   NilString                                `json:"entryId"`
+	EntryKind string                                   `json:"entryKind"`
+	ID        string                                   `json:"id"`
+	Inherited bool                                     `json:"inherited"`
+	Message   GetTaskConversationOKMessagesItemMessage `json:"message"`
+	Status    GetTaskConversationOKMessagesItemStatus  `json:"status"`
+}
+
+// GetEntryId returns the value of EntryId.
+func (s *GetTaskConversationOKMessagesItem) GetEntryId() NilString {
+	return s.EntryId
+}
+
+// GetEntryKind returns the value of EntryKind.
+func (s *GetTaskConversationOKMessagesItem) GetEntryKind() string {
+	return s.EntryKind
+}
+
+// GetID returns the value of ID.
+func (s *GetTaskConversationOKMessagesItem) GetID() string {
+	return s.ID
+}
+
+// GetInherited returns the value of Inherited.
+func (s *GetTaskConversationOKMessagesItem) GetInherited() bool {
+	return s.Inherited
+}
+
+// GetMessage returns the value of Message.
+func (s *GetTaskConversationOKMessagesItem) GetMessage() GetTaskConversationOKMessagesItemMessage {
+	return s.Message
+}
+
+// GetStatus returns the value of Status.
+func (s *GetTaskConversationOKMessagesItem) GetStatus() GetTaskConversationOKMessagesItemStatus {
+	return s.Status
+}
+
+// SetEntryId sets the value of EntryId.
+func (s *GetTaskConversationOKMessagesItem) SetEntryId(val NilString) {
+	s.EntryId = val
+}
+
+// SetEntryKind sets the value of EntryKind.
+func (s *GetTaskConversationOKMessagesItem) SetEntryKind(val string) {
+	s.EntryKind = val
+}
+
+// SetID sets the value of ID.
+func (s *GetTaskConversationOKMessagesItem) SetID(val string) {
+	s.ID = val
+}
+
+// SetInherited sets the value of Inherited.
+func (s *GetTaskConversationOKMessagesItem) SetInherited(val bool) {
+	s.Inherited = val
+}
+
+// SetMessage sets the value of Message.
+func (s *GetTaskConversationOKMessagesItem) SetMessage(val GetTaskConversationOKMessagesItemMessage) {
+	s.Message = val
+}
+
+// SetStatus sets the value of Status.
+func (s *GetTaskConversationOKMessagesItem) SetStatus(val GetTaskConversationOKMessagesItemStatus) {
+	s.Status = val
+}
+
+type GetTaskConversationOKMessagesItemMessage map[string]jx.Raw
+
+func (s *GetTaskConversationOKMessagesItemMessage) init() GetTaskConversationOKMessagesItemMessage {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type GetTaskConversationOKMessagesItemStatus string
+
+const (
+	GetTaskConversationOKMessagesItemStatusCompleted   GetTaskConversationOKMessagesItemStatus = "completed"
+	GetTaskConversationOKMessagesItemStatusStreaming   GetTaskConversationOKMessagesItemStatus = "streaming"
+	GetTaskConversationOKMessagesItemStatusInterrupted GetTaskConversationOKMessagesItemStatus = "interrupted"
+	GetTaskConversationOKMessagesItemStatusFailed      GetTaskConversationOKMessagesItemStatus = "failed"
+)
+
+// AllValues returns all GetTaskConversationOKMessagesItemStatus values.
+func (GetTaskConversationOKMessagesItemStatus) AllValues() []GetTaskConversationOKMessagesItemStatus {
+	return []GetTaskConversationOKMessagesItemStatus{
+		GetTaskConversationOKMessagesItemStatusCompleted,
+		GetTaskConversationOKMessagesItemStatusStreaming,
+		GetTaskConversationOKMessagesItemStatusInterrupted,
+		GetTaskConversationOKMessagesItemStatusFailed,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetTaskConversationOKMessagesItemStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case GetTaskConversationOKMessagesItemStatusCompleted:
+		return []byte(s), nil
+	case GetTaskConversationOKMessagesItemStatusStreaming:
+		return []byte(s), nil
+	case GetTaskConversationOKMessagesItemStatusInterrupted:
+		return []byte(s), nil
+	case GetTaskConversationOKMessagesItemStatusFailed:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetTaskConversationOKMessagesItemStatus) UnmarshalText(data []byte) error {
+	switch GetTaskConversationOKMessagesItemStatus(data) {
+	case GetTaskConversationOKMessagesItemStatusCompleted:
+		*s = GetTaskConversationOKMessagesItemStatusCompleted
+		return nil
+	case GetTaskConversationOKMessagesItemStatusStreaming:
+		*s = GetTaskConversationOKMessagesItemStatusStreaming
+		return nil
+	case GetTaskConversationOKMessagesItemStatusInterrupted:
+		*s = GetTaskConversationOKMessagesItemStatusInterrupted
+		return nil
+	case GetTaskConversationOKMessagesItemStatusFailed:
+		*s = GetTaskConversationOKMessagesItemStatusFailed
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type GetTaskConversationServiceUnavailable ProblemDetails
+
+func (*GetTaskConversationServiceUnavailable) getTaskConversationRes() {}
+
+type GetTaskConversationTooManyRequests ProblemDetails
+
+func (*GetTaskConversationTooManyRequests) getTaskConversationRes() {}
+
+type GetTaskConversationUnauthorized ProblemDetails
+
+func (*GetTaskConversationUnauthorized) getTaskConversationRes() {}
+
 type GetTaskForbidden ProblemDetails
 
 func (*GetTaskForbidden) getTaskRes() {}
@@ -32862,6 +33107,127 @@ func (*ListTaskAttemptsTooManyRequests) listTaskAttemptsRes() {}
 type ListTaskAttemptsUnauthorized ProblemDetails
 
 func (*ListTaskAttemptsUnauthorized) listTaskAttemptsRes() {}
+
+type ListTaskConversationsBadRequest ProblemDetails
+
+func (*ListTaskConversationsBadRequest) listTaskConversationsRes() {}
+
+type ListTaskConversationsConflict ProblemDetails
+
+func (*ListTaskConversationsConflict) listTaskConversationsRes() {}
+
+type ListTaskConversationsForbidden ProblemDetails
+
+func (*ListTaskConversationsForbidden) listTaskConversationsRes() {}
+
+type ListTaskConversationsNotFound ProblemDetails
+
+func (*ListTaskConversationsNotFound) listTaskConversationsRes() {}
+
+type ListTaskConversationsOK struct {
+	Items []ListTaskConversationsOKItemsItem `json:"items"`
+}
+
+// GetItems returns the value of Items.
+func (s *ListTaskConversationsOK) GetItems() []ListTaskConversationsOKItemsItem {
+	return s.Items
+}
+
+// SetItems sets the value of Items.
+func (s *ListTaskConversationsOK) SetItems(val []ListTaskConversationsOKItemsItem) {
+	s.Items = val
+}
+
+func (*ListTaskConversationsOK) listTaskConversationsRes() {}
+
+type ListTaskConversationsOKItemsItem struct {
+	ConversationId       string                               `json:"conversationId"`
+	Kind                 ListTaskConversationsOKItemsItemKind `json:"kind"`
+	ParentConversationId NilString                            `json:"parentConversationId"`
+}
+
+// GetConversationId returns the value of ConversationId.
+func (s *ListTaskConversationsOKItemsItem) GetConversationId() string {
+	return s.ConversationId
+}
+
+// GetKind returns the value of Kind.
+func (s *ListTaskConversationsOKItemsItem) GetKind() ListTaskConversationsOKItemsItemKind {
+	return s.Kind
+}
+
+// GetParentConversationId returns the value of ParentConversationId.
+func (s *ListTaskConversationsOKItemsItem) GetParentConversationId() NilString {
+	return s.ParentConversationId
+}
+
+// SetConversationId sets the value of ConversationId.
+func (s *ListTaskConversationsOKItemsItem) SetConversationId(val string) {
+	s.ConversationId = val
+}
+
+// SetKind sets the value of Kind.
+func (s *ListTaskConversationsOKItemsItem) SetKind(val ListTaskConversationsOKItemsItemKind) {
+	s.Kind = val
+}
+
+// SetParentConversationId sets the value of ParentConversationId.
+func (s *ListTaskConversationsOKItemsItem) SetParentConversationId(val NilString) {
+	s.ParentConversationId = val
+}
+
+type ListTaskConversationsOKItemsItemKind string
+
+const (
+	ListTaskConversationsOKItemsItemKindMain     ListTaskConversationsOKItemsItemKind = "main"
+	ListTaskConversationsOKItemsItemKindSubagent ListTaskConversationsOKItemsItemKind = "subagent"
+)
+
+// AllValues returns all ListTaskConversationsOKItemsItemKind values.
+func (ListTaskConversationsOKItemsItemKind) AllValues() []ListTaskConversationsOKItemsItemKind {
+	return []ListTaskConversationsOKItemsItemKind{
+		ListTaskConversationsOKItemsItemKindMain,
+		ListTaskConversationsOKItemsItemKindSubagent,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListTaskConversationsOKItemsItemKind) MarshalText() ([]byte, error) {
+	switch s {
+	case ListTaskConversationsOKItemsItemKindMain:
+		return []byte(s), nil
+	case ListTaskConversationsOKItemsItemKindSubagent:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListTaskConversationsOKItemsItemKind) UnmarshalText(data []byte) error {
+	switch ListTaskConversationsOKItemsItemKind(data) {
+	case ListTaskConversationsOKItemsItemKindMain:
+		*s = ListTaskConversationsOKItemsItemKindMain
+		return nil
+	case ListTaskConversationsOKItemsItemKindSubagent:
+		*s = ListTaskConversationsOKItemsItemKindSubagent
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListTaskConversationsServiceUnavailable ProblemDetails
+
+func (*ListTaskConversationsServiceUnavailable) listTaskConversationsRes() {}
+
+type ListTaskConversationsTooManyRequests ProblemDetails
+
+func (*ListTaskConversationsTooManyRequests) listTaskConversationsRes() {}
+
+type ListTaskConversationsUnauthorized ProblemDetails
+
+func (*ListTaskConversationsUnauthorized) listTaskConversationsRes() {}
 
 type ListTaskGrantsForbidden ProblemDetails
 

@@ -761,6 +761,13 @@ func (UnimplementedHandler) GetTaskActivityAnalytics(ctx context.Context, params
 	return r, ht.ErrNotImplemented
 }
 
+// GetTaskConversation implements getTaskConversation operation.
+//
+// GET /tasks/{id}/attempts/{n}/conversations/{conversationId}
+func (UnimplementedHandler) GetTaskConversation(ctx context.Context, params GetTaskConversationParams) (r GetTaskConversationRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetTeam implements getTeam operation.
 //
 // Get team details. Requires team access.
@@ -1004,6 +1011,13 @@ func (UnimplementedHandler) ListTaskArtifacts(ctx context.Context, params ListTa
 //
 // GET /tasks/{id}/attempts
 func (UnimplementedHandler) ListTaskAttempts(ctx context.Context, params ListTaskAttemptsParams) (r ListTaskAttemptsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListTaskConversations implements listTaskConversations operation.
+//
+// GET /tasks/{id}/attempts/{n}/conversations
+func (UnimplementedHandler) ListTaskConversations(ctx context.Context, params ListTaskConversationsParams) (r ListTaskConversationsRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
