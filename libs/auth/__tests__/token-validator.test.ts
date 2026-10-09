@@ -151,6 +151,32 @@ describe('TokenValidator', () => {
         expect(serializedLogs).not.toContain('never-log-this-upstream-error');
       });
 
+      it('identifies a wrapped Hydra timeout without logging its message', async () => {
+        const logger = createMockLogger();
+        validator = createTokenValidator(mockOAuth2Api as any, { logger });
+        mockOAuth2Api.introspectOAuth2Token.mockRejectedValue(
+          Object.assign(new Error('SDK request failed'), {
+            name: 'FetchError',
+            cause: new DOMException('private detail', 'TimeoutError'),
+          }),
+        );
+
+        await expect(validator.introspect(OPAQUE_TOKEN)).rejects.toMatchObject({
+          kind: 'unavailable',
+          operation: 'oauth2.introspect',
+        });
+        expect(logger.warn).toHaveBeenCalledWith(
+          expect.objectContaining({
+            errorType: 'FetchError',
+            causeType: 'TimeoutError',
+          }),
+          'Ory token introspection unavailable',
+        );
+        expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
+          'private detail',
+        );
+      });
+
       it('preserves provider throttling and Retry-After', async () => {
         mockOAuth2Api.introspectOAuth2Token.mockRejectedValue(
           Object.assign(new Error('Too many requests'), {
@@ -645,16 +671,85 @@ describe('TokenValidator', () => {
       });
       expect(mockOAuth2Api.introspectOAuth2Token).not.toHaveBeenCalled();
       expect(logger.warn).toHaveBeenCalledWith(
-        {
+        expect.objectContaining({
           credentialType: 'talos-api-key',
           reason: 'verifier_request_failed',
           errorType: 'ResponseError',
           status: 503,
-        },
+          requestDurationMs: expect.any(Number),
+        }),
         'Talos API key validation unavailable',
       );
       expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
         'ory_ak_secret',
+      );
+    });
+
+    it('logs the SDK timeout cause without exposing error messages or credentials', async () => {
+      const talosApi = createMockTalosApi();
+      const logger = createMockLogger();
+      const validator = createTokenValidator(mockOAuth2Api as any, {
+        talosApi,
+        resolveTalosAgent: createMockTalosAgentResolver(),
+        logger,
+      });
+      talosApi.adminVerifyApiKey.mockRejectedValue(
+        Object.assign(new Error('SDK request failed'), {
+          name: 'FetchError',
+          cause: new DOMException('secret timeout detail', 'TimeoutError'),
+        }),
+      );
+
+      await expect(
+        validator.resolveAuthContext('ory_ak_secret'),
+      ).rejects.toMatchObject({
+        kind: 'unavailable',
+        operation: 'talos.verify',
+      });
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reason: 'verifier_request_failed',
+          errorType: 'FetchError',
+          causeType: 'TimeoutError',
+          requestDurationMs: expect.any(Number),
+        }),
+        'Talos API key validation unavailable',
+      );
+      expect(JSON.stringify(logger.warn.mock.calls)).not.toContain('secret');
+    });
+
+    it('logs a nested transport cause code from the SDK', async () => {
+      const talosApi = createMockTalosApi();
+      const logger = createMockLogger();
+      const validator = createTokenValidator(mockOAuth2Api as any, {
+        talosApi,
+        resolveTalosAgent: createMockTalosAgentResolver(),
+        logger,
+      });
+      talosApi.adminVerifyApiKey.mockRejectedValue(
+        Object.assign(new Error('SDK request failed'), {
+          name: 'FetchError',
+          cause: new TypeError('fetch failed', {
+            cause: Object.assign(new Error('socket closed'), {
+              code: 'ECONNRESET',
+            }),
+          }),
+        }),
+      );
+
+      await expect(
+        validator.resolveAuthContext('ory_ak_secret'),
+      ).rejects.toMatchObject({ kind: 'unavailable' });
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          errorType: 'FetchError',
+          causeType: 'TypeError',
+          causeCode: 'ECONNRESET',
+        }),
+        'Talos API key validation unavailable',
+      );
+      expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
+        'socket closed',
       );
     });
 

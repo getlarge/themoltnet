@@ -22,7 +22,11 @@ import type {
   PermissionCheckCache,
   PermissionTuple,
 } from './permission-check-cache.js';
-import { parseRetryAfter, remoteErrorStatus } from './remote-auth-error.js';
+import {
+  parseRetryAfter,
+  remoteErrorStatus,
+  summarizeOryError,
+} from './remote-auth-error.js';
 
 /**
  * Minimal logger surface this module needs. Structurally compatible
@@ -93,7 +97,7 @@ function ketoCallFailed(
   const unavailable = isKetoUnavailable(failure);
   logger.warn(
     {
-      err,
+      ...summarizeOryError(err),
       unavailable,
       ketoStatus: failure.status ?? null,
       ketoRetryAfter: failure.retryAfter ?? null,
@@ -281,6 +285,7 @@ async function rawCheckPermission(
   subjectId: string,
   logger: PermissionCheckerLogger,
 ): Promise<boolean> {
+  const startedAt = performance.now();
   try {
     const data = await permissionApi.checkPermission({
       namespace,
@@ -304,7 +309,14 @@ async function rawCheckPermission(
     return ketoCallFailed(
       err,
       logger,
-      { namespace, object, relation, subjectNs, subjectId },
+      {
+        namespace,
+        object,
+        relation,
+        subjectNs,
+        subjectId,
+        requestDurationMs: Math.round(performance.now() - startedAt),
+      },
       'keto.permission_check_failed',
     );
   }
@@ -326,6 +338,7 @@ async function rawBatchCheckPermissionsWithStatus(
 ): Promise<{ permissions: boolean[]; hadErrors: boolean }> {
   if (tuples.length === 0) return { permissions: [], hadErrors: false };
 
+  const startedAt = performance.now();
   try {
     const data = await permissionApi.batchCheckPermission({
       batchCheckPermissionBody: {
@@ -382,6 +395,7 @@ async function rawBatchCheckPermissionsWithStatus(
       err,
       logger,
       {
+        requestDurationMs: Math.round(performance.now() - startedAt),
         tuples: tuples.map((tuple) => ({
           namespace: tuple.namespace,
           object: tuple.object,

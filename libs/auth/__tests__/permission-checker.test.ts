@@ -289,15 +289,27 @@ describe('PermissionChecker', () => {
 
     it('reports a Keto network failure as unavailable, not a denial', async () => {
       mockPermissionApi.checkPermission.mockRejectedValue(
-        Object.assign(new Error('fetch failed'), { name: 'FetchError' }),
+        Object.assign(new Error('SDK request failed'), {
+          name: 'FetchError',
+          cause: new DOMException('private detail', 'TimeoutError'),
+        }),
       );
 
       await expect(
         checker.canViewEntry(ENTRY_ID, AGENT_ID, KetoNamespace.Agent),
       ).rejects.toBeInstanceOf(PermissionCheckUnavailableError);
       expect(logger.warn).toHaveBeenCalledWith(
-        expect.objectContaining({ object: ENTRY_ID, unavailable: true }),
+        expect.objectContaining({
+          object: ENTRY_ID,
+          unavailable: true,
+          errorType: 'FetchError',
+          causeType: 'TimeoutError',
+          requestDurationMs: expect.any(Number),
+        }),
         'keto.permission_check_failed',
+      );
+      expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
+        'private detail',
       );
     });
 
@@ -513,7 +525,8 @@ describe('PermissionChecker', () => {
       ).rejects.toBeInstanceOf(PermissionCheckUnavailableError);
       expect(logger.warn).toHaveBeenCalledWith(
         expect.objectContaining({
-          err: expect.any(Error),
+          errorType: 'Error',
+          requestDurationMs: expect.any(Number),
           tuples: expect.arrayContaining([
             expect.objectContaining({
               namespace: 'ContextPack',
@@ -645,7 +658,8 @@ describe('PermissionChecker', () => {
       ).rejects.toBeInstanceOf(PermissionCheckUnavailableError);
       expect(logger.warn).toHaveBeenCalledWith(
         expect.objectContaining({
-          err: expect.any(Error),
+          errorType: 'Error',
+          requestDurationMs: expect.any(Number),
           tuples: expect.arrayContaining([
             expect.objectContaining({
               namespace: 'Task',

@@ -33,6 +33,87 @@ export function remoteErrorStatus(error: unknown): number | undefined {
     : undefined;
 }
 
+const ORY_ERROR_TYPES = new Set([
+  'AbortError',
+  'AggregateError',
+  'BodyTimeoutError',
+  'ConnectTimeoutError',
+  'Error',
+  'FetchError',
+  'HeadersTimeoutError',
+  'RequiredError',
+  'ResponseError',
+  'SocketError',
+  'SyntaxError',
+  'TimeoutError',
+  'TypeError',
+]);
+
+const TRANSPORT_ERROR_CODES = new Set([
+  'ABORT_ERR',
+  'EAI_AGAIN',
+  'ECONNABORTED',
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'EHOSTUNREACH',
+  'ENETUNREACH',
+  'ENOTFOUND',
+  'EPIPE',
+  'EPROTO',
+  'ETIMEDOUT',
+  'UND_ERR_BODY_TIMEOUT',
+  'UND_ERR_CONNECT_TIMEOUT',
+  'UND_ERR_HEADERS_TIMEOUT',
+  'UND_ERR_SOCKET',
+]);
+
+function knownErrorType(value: unknown): string | undefined {
+  return typeof value === 'string' && ORY_ERROR_TYPES.has(value)
+    ? value
+    : undefined;
+}
+
+function knownTransportCode(value: unknown): string | undefined {
+  return typeof value === 'string' && TRANSPORT_ERROR_CODES.has(value)
+    ? value
+    : undefined;
+}
+
+/** Bounded Ory SDK error details; unknown strings and raw messages stay out. */
+export function summarizeOryError(error: unknown): {
+  errorType: string;
+  status?: number;
+  causeType?: string;
+  causeCode?: string;
+} {
+  if (typeof error !== 'object' || error === null) {
+    return { errorType: 'UnknownError' };
+  }
+
+  const candidate = error as {
+    name?: unknown;
+    code?: unknown;
+    cause?: {
+      name?: unknown;
+      code?: unknown;
+      cause?: { code?: unknown };
+    };
+  };
+  const cause = candidate.cause;
+  const causeCode =
+    knownTransportCode(cause?.code) ??
+    knownTransportCode(cause?.cause?.code) ??
+    knownTransportCode(candidate.code);
+  const causeType = knownErrorType(cause?.name);
+  const status = remoteErrorStatus(error);
+  return {
+    errorType: knownErrorType(candidate.name) ?? 'UnknownError',
+    ...(status !== undefined ? { status } : {}),
+    ...(causeType ? { causeType } : {}),
+    ...(causeCode ? { causeCode } : {}),
+  };
+}
+
 export function parseRetryAfter(
   error: unknown,
   nowMs = Date.now(),
