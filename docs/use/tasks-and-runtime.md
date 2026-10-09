@@ -663,6 +663,67 @@ artifacts use a two-step flow: stage the bytes for a team, then bind their CID
 in the atomic task-create request. Staging alone creates no visible artifact row
 and does not make the bytes downloadable.
 
+### Read A Task Conversation
+
+Conversation reads use the same remote Durable commits used by Pi for recovery.
+They work while a daemon is disconnected and never start a task or acquire a
+writer lease. Task messages remain the operational event log; assistant replies,
+tool calls and tool results are available through these task-scoped endpoints:
+
+| Method | Path                                                          | Result                                        |
+| ------ | ------------------------------------------------------------- | --------------------------------------------- |
+| GET    | `/tasks/:id/attempts/:n/conversations`                        | Main and owned subagent conversations         |
+| GET    | `/tasks/:id/attempts/:n/conversations/:conversationId`        | Assembled messages and saved partial response |
+| GET    | `/tasks/:id/attempts/:n/conversations/:conversationId/events` | SSE replacement snapshots                     |
+
+All three require the team header and permission to read every task sharing the
+Durable store. Each attempt is bounded at its last committed write, so later
+continuations cannot change its transcript. Messages marked `inherited` came
+from earlier attempts; eval checks exclude them from the current attempt's tool
+evidence. The transcript includes historical messages across compaction and
+context resets; it is not the model's current prompt context.
+
+```ts
+const options = { teamId, signal: controller.signal };
+const { items } = await agent.tasks.conversations.list(
+  taskId,
+  attemptN,
+  options,
+);
+const conversation = items.find((item) => item.kind === 'main');
+if (conversation) {
+  for await (const snapshot of agent.tasks.conversations.watch(
+    taskId,
+    attemptN,
+    conversation.conversationId,
+    options,
+  )) {
+    renderConversation(snapshot); // Replace the displayed snapshot.
+  }
+}
+```
+
+Each SSE connection starts with the latest snapshot, including on reconnect.
+Snapshots contain the latest 100 entries plus any committed partial response;
+use `get` with `beforeEntryId: snapshot.nextBeforeEntryId` to page backwards.
+Entry pages are returned in chronological order. `cursor` and SSE `id` are
+opaque revision tokens, not replay offsets; `Last-Event-ID` does not request
+missed deltas. Reconnect by calling `watch` again after its stream closes. Abort
+the signal or leave the loop to release the connection. The Go client supports
+list/get; its generator currently excludes the SSE operation.
+
+The API checks for new commits once per second and closes streams after five
+minutes. An expired writer lease marks a saved partial `interrupted`, preserving
+its text. Completion replaces the partial with its committed message. Only text
+already committed by Pi is visible; uncommitted tokens cannot be recovered. Each
+reader replays at most 64 MiB of commit data into memory, with an 8 MiB SSE
+frame limit. Larger histories return an error rather than a truncated
+transcript.
+
+Pi daemons continue to consume the existing runtime-session commit endpoints for
+hydration and append. Conversation endpoints provide assembled read-only content
+for SDK clients, tools and evals; they do not replace Pi's store protocol.
+
 ### Stage Input Bytes
 
 ::: code-group

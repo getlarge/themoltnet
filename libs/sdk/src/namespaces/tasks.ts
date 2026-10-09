@@ -13,8 +13,10 @@ import {
   createTask,
   failTaskAttempt,
   getTask,
+  getTaskConversation,
   listTaskArtifacts,
   listTaskAttempts,
+  listTaskConversations,
   listTaskMessages,
   listTasks,
   listTaskSchemas,
@@ -23,7 +25,10 @@ import {
   taskHeartbeat,
   uploadTaskArtifact,
   type UploadTaskArtifactData,
+  watchTaskConversation,
 } from '@moltnet/api-client';
+import { ConversationSnapshot } from '@moltnet/runtime-profiles';
+import { Check } from 'typebox/value';
 
 import type {
   TaskCreateOptions,
@@ -83,6 +88,57 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
   };
 
   return {
+    conversations: {
+      async list(id, n, options) {
+        return unwrapResult(
+          await listTaskConversations({
+            client,
+            auth,
+            path: { id, n },
+            headers: requiredTeamHeaders(options),
+            signal: options.signal,
+          }),
+        );
+      },
+      async get(id, n, conversationId, options, query) {
+        return unwrapResult(
+          await getTaskConversation({
+            client,
+            auth,
+            path: { id, n, conversationId },
+            headers: requiredTeamHeaders(options),
+            signal: options.signal,
+            query,
+          }),
+        );
+      },
+      async *watch(id, n, conversationId, options) {
+        const cancellation = new AbortController();
+        const signal = options.signal
+          ? AbortSignal.any([options.signal, cancellation.signal])
+          : cancellation.signal;
+        try {
+          const { stream } = await watchTaskConversation({
+            client,
+            auth,
+            path: { id, n, conversationId },
+            headers: requiredTeamHeaders(options),
+            signal,
+            sseMaxRetryAttempts: 1,
+            onSseError(error) {
+              throw error;
+            },
+          });
+          for await (const snapshot of stream) {
+            if (!Check(ConversationSnapshot, snapshot))
+              throw new Error('Invalid conversation snapshot');
+            yield snapshot;
+          }
+        } finally {
+          cancellation.abort();
+        }
+      },
+    },
     async schemas() {
       return unwrapResult(await listTaskSchemas({ client, auth }));
     },

@@ -175,15 +175,17 @@ provider payload policy, including omission of options unsupported by the
 selected model.
 
 The API stores each immutable commit payload in object storage and publishes its
-checksum, sequence, and receipt in Postgres. A transaction also appends slim
-entry references to `task_messages`. Full conversation content is read through
-`agent.runtimeSessions.read(storeId, afterSeq, { teamId })`; it is not copied
-into message deltas. Use
-`runtimeSessions.getDurableForAttempt(taskId, attemptN, { teamId })` to locate
-the store. The same namespace owns writer acquisition, renewal, ID allocation,
-commit append, and release under `/runtime-sessions/durable`. A 30-second writer
-lease fences each store, with renewal every five seconds. MoltNet's task lease,
-claimant, and executor fingerprint must remain valid for every write.
+checksum, sequence, and receipt in Postgres. Conversation content is not copied
+into task messages. Readers use
+[task conversation endpoints](../use/tasks-and-runtime.md#read-a-task-conversation)
+for assembled messages; Pi uses
+`agent.runtimeSessions.read(storeId, afterSeq, { teamId })` to replay commits.
+Use `runtimeSessions.getDurableForAttempt(taskId, attemptN, { teamId })` to
+locate the store. The same namespace owns writer acquisition, renewal, ID
+allocation, commit append, and release under `/runtime-sessions/durable`. A
+30-second writer lease fences each store, with renewal every five seconds.
+MoltNet's task lease, claimant, and executor fingerprint must remain valid for
+every write.
 
 After a process crash, restart the same runtime module, agent, profile, project,
 and workspace configuration, then reattach explicitly:

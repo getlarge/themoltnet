@@ -51,7 +51,7 @@ export function buildJudgeEvalAttemptUserPrompt(
   const evidence = [
     `1. Call \`moltnet_get_task\` with taskId=\`${input.targetTaskId}\`.`,
     `2. Call \`moltnet_list_task_attempts\` with taskId=\`${input.targetTaskId}\` and inspect the accepted attempt matching \`${input.targetAttemptN}\`.`,
-    `3. Call \`moltnet_list_task_messages\` with taskId=\`${input.targetTaskId}\`, attemptN=\`${input.targetAttemptN}\` to inspect the producer's turn-by-turn behavior.`,
+    `3. Call \`moltnet_read_task_conversation\` with taskId=\`${input.targetTaskId}\`, attemptN=\`${input.targetAttemptN}\` to list the producer's conversations, then read each conversation and follow nextBeforeEntryId for older messages. Exclude inherited messages when judging this attempt's work.`,
     '4. Use the accepted attempt output, attempt messages, and any accessible',
     '   artifacts or workspace evidence available in your environment.',
     '   Read artifact files from the mounted producer workspace when present;',

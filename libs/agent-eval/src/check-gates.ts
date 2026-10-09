@@ -78,16 +78,28 @@ export interface GateArtifactDownload {
  * exercised when a scenario sets `forbidArtifactContentMatching`.
  */
 export interface GateAgent {
-  runtimeSessions?: {
-    read(
-      storeId: string,
-      afterSeq: number,
-      options: { teamId: string },
-    ): Promise<{
-      items: AsyncIterable<{ seq: number; writes: Record<string, unknown>[] }>;
-    }>;
-  };
   tasks: {
+    conversations?: {
+      list(
+        taskId: string,
+        attemptN: number,
+        options: { teamId: string },
+      ): Promise<{ items: Array<{ conversationId: string }> }>;
+      get(
+        taskId: string,
+        attemptN: number,
+        conversationId: string,
+        options: { teamId: string },
+        query?: { beforeEntryId?: string },
+      ): Promise<{
+        messages: Array<{
+          inherited: boolean;
+          entryId: string | null;
+          message: Record<string, unknown>;
+        }>;
+        nextBeforeEntryId: string | null;
+      }>;
+    };
     listMessages(
       taskId: string,
       attemptN: number,
@@ -238,89 +250,62 @@ function submitCallResults(
   return { succeeded, failed, errors };
 }
 
-/** Read only the committed entries indexed by this attempt, never a later head. */
+/** Conversation reads are bounded by the attempt; inherited context is not its evidence. */
 async function durableToolEvents(
   agent: GateAgent,
-  messages: GateTaskMessage[],
+  taskId: string,
+  attemptN: number,
   teamId: string | undefined,
 ): Promise<GateTaskMessage[]> {
   const events: GateTaskMessage[] = [];
-  const commits = new Map<string, Record<string, unknown>[]>();
-  const seen = new Set<string>();
-  for (const { payload: ref } of messages) {
-    if (ref.event !== 'runtime_entry' || ref.format !== 'pi-durable.v1')
-      continue;
-    if (!agent.runtimeSessions || !teamId)
-      throw new Error(
-        'Durable gate evidence requires a runtime store reader and team',
-      );
-    if (
-      typeof ref.storeId !== 'string' ||
-      typeof ref.commitSeq !== 'number' ||
-      typeof ref.entryId !== 'number'
-    )
-      throw new Error('Invalid Durable entry reference');
-    const identity = `${ref.storeId}:${ref.entryId}`;
-    if (seen.has(identity)) continue;
-    seen.add(identity);
-    const key = `${ref.storeId}:${ref.commitSeq}`;
-    let writes = commits.get(key);
-    if (!writes) {
-      const page = await agent.runtimeSessions.read(
-        ref.storeId,
-        ref.commitSeq - 1,
+  const reader = agent.tasks.conversations;
+  if (!reader) return events;
+  if (!teamId) throw new Error('Conversation evidence requires a team');
+  const { items } = await reader.list(taskId, attemptN, { teamId });
+  for (const { conversationId } of items) {
+    let beforeEntryId: string | undefined;
+    const cursors = new Set<string>();
+    do {
+      const page = await reader.get(
+        taskId,
+        attemptN,
+        conversationId,
         { teamId },
+        { beforeEntryId },
       );
-      for await (const commit of page.items) {
-        if (commit.seq === ref.commitSeq) {
-          writes = commit.writes;
-          break;
+      for (const item of page.messages) {
+        if (item.inherited || item.entryId === null) continue;
+        const message = item.message;
+        if (message.role === 'assistant' && Array.isArray(message.content)) {
+          for (const part of message.content as Array<{
+            type?: string;
+            name?: string;
+          }>) {
+            if (part.type === 'toolCall' && typeof part.name === 'string')
+              events.push({
+                kind: 'tool_call_start',
+                payload: { tool_name: part.name },
+              });
+          }
+        } else if (
+          message.role === 'toolResult' &&
+          typeof message.toolName === 'string'
+        ) {
+          events.push({
+            kind: 'tool_call_end',
+            payload: {
+              tool_name: message.toolName,
+              is_error: message.isError === true,
+              result: message.content,
+            },
+          });
         }
       }
-      if (!writes) throw new Error('Durable evidence commit is unavailable');
-      commits.set(key, writes);
-    }
-    const entry = writes.find(
-      (write) =>
-        write.type === 'entry' &&
-        (write.value as { id?: unknown } | undefined)?.id === ref.entryId,
-    )?.value as
-      | {
-          model?: Array<{
-            role?: string;
-            toolName?: string;
-            isError?: boolean;
-            content?: unknown;
-          }>;
-        }
-      | undefined;
-    if (!entry) throw new Error('Durable evidence entry is unavailable');
-    for (const message of entry.model ?? []) {
-      if (message.role === 'assistant' && Array.isArray(message.content)) {
-        for (const part of message.content as Array<{
-          type?: string;
-          name?: string;
-        }>) {
-          if (part.type === 'toolCall' && typeof part.name === 'string')
-            events.push({
-              kind: 'tool_call_start',
-              payload: { tool_name: part.name },
-            });
-        }
-      } else if (
-        message.role === 'toolResult' &&
-        typeof message.toolName === 'string'
-      ) {
-        events.push({
-          kind: 'tool_call_end',
-          payload: {
-            tool_name: message.toolName,
-            is_error: message.isError === true,
-            result: message.content,
-          },
-        });
-      }
-    }
+      beforeEntryId = page.nextBeforeEntryId ?? undefined;
+      if (beforeEntryId && cursors.has(beforeEntryId))
+        throw new Error('Conversation pagination did not advance');
+      if (beforeEntryId) cursors.add(beforeEntryId);
+    } while (beforeEntryId);
   }
   return events;
 }
@@ -376,7 +361,7 @@ export async function checkGates(
   const messages = await listAllMessages(agent, taskId, attemptN);
   try {
     messages.push(
-      ...(await durableToolEvents(agent, messages, expected.teamId)),
+      ...(await durableToolEvents(agent, taskId, attemptN, expected.teamId)),
     );
   } catch (error) {
     failures.push({

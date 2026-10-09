@@ -26,6 +26,7 @@ export type {
   TaskArtifactDownload,
   TaskArtifactsNamespace,
   TaskArtifactUploadBody,
+  TaskConversationsNamespace,
   TaskCreateOptions,
   TaskGrantsNamespace,
   TaskHeartbeatOptions,

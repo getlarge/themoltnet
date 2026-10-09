@@ -170,7 +170,11 @@ import type {
   Whoami,
 } from '@moltnet/api-client';
 import type { AgentSigningCapability } from '@moltnet/crypto-service';
-import type { RuntimeStoreCommit } from '@moltnet/runtime-profiles';
+import type {
+  ConversationList,
+  ConversationSnapshot,
+  RuntimeStoreCommit,
+} from '@moltnet/runtime-profiles';
 import type {
   AssessBriefInput,
   CuratePackInput,
@@ -801,7 +805,30 @@ export interface TaskCreateOptions extends TaskRequestOptions {
   idempotencyKey?: string;
 }
 
+export interface TaskConversationsNamespace {
+  list(
+    taskId: string,
+    attemptN: number,
+    options: TaskRequestOptions & { signal?: AbortSignal },
+  ): Promise<ConversationList>;
+  get(
+    taskId: string,
+    attemptN: number,
+    conversationId: string,
+    options: TaskRequestOptions & { signal?: AbortSignal },
+    query?: { beforeEntryId?: string; limit?: number },
+  ): Promise<ConversationSnapshot>;
+  /** Replacement snapshots. Call again after normal stream closure to reconnect. */
+  watch(
+    taskId: string,
+    attemptN: number,
+    conversationId: string,
+    options: TaskRequestOptions & { signal?: AbortSignal },
+  ): AsyncIterable<ConversationSnapshot>;
+}
+
 export interface TasksNamespace {
+  conversations: TaskConversationsNamespace;
   schemas(): Promise<ListTaskSchemasResponse>;
 
   artifacts: TaskArtifactsNamespace;
