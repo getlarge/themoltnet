@@ -161,54 +161,6 @@ export const RUBRIC_TEMPLATES: RubricTemplate[] = [
     },
   },
   {
-    id: 'pr-complexity-binary-v1',
-    label: 'PR review',
-    rubric: {
-      rubricId: 'pr-complexity-binary-v1',
-      version: 'v1',
-      preamble:
-        'Evaluate whether a pull request is reviewable, well-scoped, and backed by useful evidence.',
-      minCompositePercent: '90',
-      criteria: [
-        {
-          name: 'cognitive_load',
-          weightPercent: '20',
-          scoring: 'boolean',
-          description:
-            'Pass when the change is easy to review from the diff and description. Fail when reviewers must infer intent or untangle unrelated edits.',
-        },
-        {
-          name: 'blast_radius',
-          weightPercent: '20',
-          scoring: 'boolean',
-          description:
-            'Pass when affected modules and behavior are clear and bounded. Fail when shared contracts change without migration or compatibility notes.',
-        },
-        {
-          name: 'test_coverage_delta',
-          weightPercent: '20',
-          scoring: 'boolean',
-          description:
-            'Pass when new or existing checks cover the changed behavior. Fail when validation is missing for user-visible or shared logic.',
-        },
-        {
-          name: 'security_surface',
-          weightPercent: '20',
-          scoring: 'boolean',
-          description:
-            'Pass when auth, secret, input, and dependency risks are unchanged or explicitly handled. Fail when the PR broadens risk silently.',
-        },
-        {
-          name: 'reviewer_orientation',
-          weightPercent: '20',
-          scoring: 'boolean',
-          description:
-            'Pass when the PR explains why the change exists, what changed, and how it was verified. Fail when evidence is vague or missing.',
-        },
-      ],
-    },
-  },
-  {
     id: 'research-report',
     label: 'Research/report',
     rubric: {
