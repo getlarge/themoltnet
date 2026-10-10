@@ -246,7 +246,7 @@ moltnet-agent providers — manage local model providers.
 Usage:
   moltnet-agent providers list [--json] [--root <path>]
   moltnet-agent providers set <id> [--base-url <url>] [--api <pi-api-kind>]
-    [--model <id> ...] [--classifier-model <id>[=<context-window>] ...]
+    [--chat-model <id> ...] [--classifier-model <id>[=<context-window>] ...]
     [--clear-models]
     [--model-input <id>=text,image ...]
     [--model-reasoning <id> ...]
@@ -263,7 +263,7 @@ The default root is ~/.config/moltnet. MOLTNET_HOME selects another store.
 MOLTNET_AGENT_SERVER_ROOT is a legacy alias; conflicting values fail. API keys are accepted only from redirected stdin; they
 are stored separately and providers.json contains only a secret reference.
 
---model declares a text-only model. --model-input declares a model together
+--chat-model declares a chat model; --model is its compatibility alias. --model-input declares a model together
 with the input modalities it accepts, and is what makes a vision model usable:
 a model with no declared modalities is text-only to Pi, which drops image
 content parts before the request leaves the runtime.
@@ -275,7 +275,7 @@ sets its Pi thinking-level to provider effort mapping and implies reasoning.
 --model-strict-mode explicitly sets Pi's strict JSON-schema tool mode for an
 existing model after confirming the provider accepts strict function
 definitions. Use =default to remove the override.
-Model capability flags update existing model metadata; --model replaces the
+Model capability flags update existing model metadata; --chat-model (or --model) replaces the
 model list, including any classifiers. --classifier-model alone adds to the
 existing list. Discovery preserves declared classifiers.
 For existing Ollama providers, run providers discover <id> --save to detect

@@ -54,8 +54,7 @@ interface PiModelsDocument {
   providers: Record<
     string,
     {
-      models?: Array<{ id: string }>;
-      classifierModels?: Array<{ id: string }>;
+      models?: Array<{ id: string; type?: string }>;
     }
   >;
 }
@@ -190,26 +189,22 @@ function mergePiModels(
         storeProvider.models,
         repo.providers[id]?.models,
       ),
-      ...(storeProvider.classifierModels || repo.providers[id]?.classifierModels
-        ? {
-            classifierModels: mergeModelEntries(
-              storeProvider.classifierModels,
-              repo.providers[id]?.classifierModels,
-            ),
-          }
-        : {}),
     };
   }
   return { providers };
 }
 
-function mergeModelEntries<T extends { id: string }>(
+function mergeModelEntries<T extends { id: string; type?: string }>(
   store: T[] | undefined,
   repo: T[] | undefined,
 ): T[] {
-  const known = new Set((store ?? []).map((model) => model.id));
+  const known = new Set(
+    (store ?? []).map((model) => `${model.type ?? 'chat'}:${model.id}`),
+  );
   return [
     ...(store ?? []),
-    ...(repo ?? []).filter((model) => !known.has(model.id)),
+    ...(repo ?? []).filter(
+      (model) => !known.has(`${model.type ?? 'chat'}:${model.id}`),
+    ),
   ];
 }

@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -145,5 +145,87 @@ it.each([['Pi', createPiTaskExecutor]] as const)(
     expect(result.outputCid).toMatch(/^b/);
     expect(resumeVm).not.toHaveBeenCalled();
     expect(reporter.close).toHaveBeenCalledOnce();
+  },
+);
+
+it('finds Pi builtin Jev without codemode or a custom catalog', async () => {
+  const piDir = mkdtempSync(join(tmpdir(), 'builtin-classifier-'));
+  dirs.push(piDir);
+  const models = await createRuntimeModels(piDir);
+  expect(
+    models.getModelOfType('classifier', 'typesafe', 'jev-latest'),
+  ).toMatchObject({ type: 'classifier', api: 'typesafe-system-one' });
+  expect(models.getModel('typesafe', 'jev-latest')).toBeUndefined();
+});
+
+it('preserves native catalogs, model types and provider overrides across refresh', async () => {
+  const piDir = mkdtempSync(join(tmpdir(), 'native-catalog-'));
+  dirs.push(piDir);
+  writePiConfig({
+    piDir,
+    providers: {
+      typesafe: {
+        api: 'openai-completions',
+        baseUrl: 'https://proxy.example/v1',
+        models: [
+          { id: 'shared', type: 'chat', supportsStrictMode: true },
+          { id: 'decisions', type: 'classifier' },
+        ],
+      },
+    },
+  });
+  // The native JSON loader and the classifier adapter must read the same JSONC.
+  const path = join(piDir, 'models.json');
+  const document = JSON.parse(readFileSync(path, 'utf8'));
+  document.providers.typesafe.modelOverrides = {
+    shared: { contextWindow: 12345 },
+  };
+  writeFileSync(
+    path,
+    '\uFEFF// Shared provider configuration\n' + JSON.stringify(document),
+  );
+  const models = await createRuntimeModels(piDir);
+  await models.refresh({ allowNetwork: false });
+  expect(models.getModel('typesafe', 'shared')).toMatchObject({
+    compat: { supportsStrictMode: true },
+    contextWindow: 12345,
+  });
+  expect(
+    models.getModelOfType('classifier', 'typesafe', 'decisions'),
+  ).toMatchObject({ type: 'classifier', api: 'typesafe-system-one' });
+  expect(
+    models.getModelOfType('classifier', 'typesafe', 'jev-latest'),
+  ).toMatchObject({ baseUrl: 'https://proxy.example/v1' });
+  expect(models.getModel('typesafe', 'decisions')).toBeUndefined();
+  expect(models.getError()).toBeUndefined();
+});
+
+it.each([
+  [{ id: 'bad', type: 'classifier', api: 'openai-completions' }],
+  [{ id: 'bad', type: 'classifier', reasoning: true }],
+  [
+    { id: 'same', type: 'classifier' },
+    { id: 'same', type: 'classifier' },
+  ],
+])(
+  'rejects invalid typed declarations before execution: %j',
+  async (...models) => {
+    const piDir = mkdtempSync(join(tmpdir(), 'invalid-models-'));
+    dirs.push(piDir);
+    writeFileSync(
+      join(piDir, 'models.json'),
+      JSON.stringify({
+        providers: {
+          team: {
+            api: 'openai-completions',
+            baseUrl: 'https://example.test',
+            models,
+          },
+        },
+      }),
+    );
+    await expect(createRuntimeModels(piDir)).rejects.toThrow(
+      /Invalid classifier|Duplicate model/,
+    );
   },
 );

@@ -14,8 +14,8 @@ export const PI_CLASSIFIER_API = 'typesafe-system-one' as const;
 export type PiModelModality = (typeof PI_MODEL_MODALITIES)[number];
 
 /**
- * A model entry in Pi's `models.json`. `input` declares the modalities the
- * model accepts. Pi treats an entry with no `input` as text-only, so a vision
+ * A typed model declaration in the generated `models.json`. `input` declares
+ * the modalities the model accepts. Pi treats an entry with no `input` as text-only, so a vision
  * model must declare `['text', 'image']` or image content parts never reach
  * the provider.
  */
@@ -31,7 +31,7 @@ export interface PiModelSpec {
   supportsStrictMode?: boolean;
 }
 
-/** Serialized model entry consumed by Pi's model registry. */
+/** Serialized model declaration registered through Pi's native provider API. */
 interface PiStoredModelSpec extends Omit<PiModelSpec, 'supportsStrictMode'> {
   compat?: { supportsStrictMode: boolean };
 }
@@ -90,12 +90,13 @@ export type WritePiConfigInput =
   | WriteMultiProviderPiConfigInput;
 
 /**
- * Normalise a model entry to Pi's on-disk shape. `input` is emitted only when
- * declared, so a text-only model serializes as a bare `{ id }`.
+ * Keep model types explicit in the generated catalog. Legacy declarations
+ * without a type are chat; capabilities are emitted only when declared.
  */
 function toPiModel(entry: PiModelSpec): PiStoredModelSpec {
   return {
     id: entry.id,
+    type: entry.type ?? 'chat',
     ...(entry.api ? { api: entry.api } : {}),
     ...(entry.contextWindow !== undefined
       ? { contextWindow: entry.contextWindow }
@@ -127,22 +128,7 @@ export function writePiConfig(input: WritePiConfigInput): void {
             api: provider.api,
             ...(provider.apiKeyEnvRef ? { apiKey: provider.apiKeyEnvRef } : {}),
             baseUrl: provider.baseUrl,
-            models: provider.models
-              .filter((model) => model.type !== 'classifier')
-              .map(toPiModel),
-            ...(provider.models.some((model) => model.type === 'classifier')
-              ? {
-                  // Pi 1.0 models.json only constructs chat models. Our shared
-                  // ModelRuntime loader registers these under the same provider.
-                  classifierModels: provider.models
-                    .filter((model) => model.type === 'classifier')
-                    .map((model) => ({
-                      id: model.id,
-                      api: model.api ?? PI_CLASSIFIER_API,
-                      contextWindow: model.contextWindow ?? 8192,
-                    })),
-                }
-              : {}),
+            models: provider.models.map(toPiModel),
           },
         ]),
       )

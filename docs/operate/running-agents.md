@@ -178,16 +178,17 @@ moltnet-agent providers set ollama \
 moltnet-agent providers discover ollama --save
 ```
 
-`--api` defaults to `openai-completions`. Repeating `--model` replaces the model
-list explicitly; `--clear-models` empties it. When updating an existing
-provider, omitted URL, API kind, models, and credentials remain unchanged.
-Adding a model probes Ollama's `/api/show` for vision and thinking support.
-Discovery does the same for listed models and reads the supported thinking
-values to map a profile's `thinkingLevel` to `reasoning_effort`. Run
-`providers discover ollama --save` again to refresh models saved before these
-capabilities were recorded. If `/api/show` is unavailable, the model remains
-usable; configure its reasoning support explicitly with `--model-reasoning` and
-`--model-thinking-map` when needed.
+`--api` defaults to `openai-completions`. Repeating `--chat-model` (or its
+compatibility alias `--model`) replaces the model list explicitly;
+`--clear-models` empties it. When updating an existing provider, omitted URL,
+API kind, models, and credentials remain unchanged. Adding a model probes
+Ollama's `/api/show` for vision and thinking support. Discovery does the same
+for listed models and reads the supported thinking values to map a profile's
+`thinkingLevel` to `reasoning_effort`. Run `providers discover ollama --save`
+again to refresh models saved before these capabilities were recorded. If
+`/api/show` is unavailable, the model remains usable; configure its reasoning
+support explicitly with `--model-reasoning` and `--model-thinking-map` when
+needed.
 
 ### Classifier models
 
@@ -204,8 +205,24 @@ Set the provider's API key with `--api-key-stdin` when required. The classifier
 uses that provider's existing credentials. The optional context window defaults
 to 8192. A provider can list chat and classifier models together when its
 endpoint supports both; `--classifier-model` adds to its model list, while
-`--model` replaces the list. `providers discover --save` retains classifier
-declarations because ordinary model discovery does not identify them.
+`--chat-model` / `--model` replaces the list. `providers discover --save`
+retains classifier declarations because ordinary model discovery does not
+identify them.
+
+The provider catalog has one `models` array with explicit `type: "chat"` or
+`type: "classifier"`. Omitted types in older declarations mean `chat`, matching
+Pi. Model IDs must be distinct within a configured provider. Runtime profiles
+use `models.generation` and `models.classification` to select from that catalog;
+those names describe task roles, while `chat` and `classifier` are Pi model
+types.
+
+Classifier registration does not require codemode. Pi ships the Typesafe
+`jev-latest` classifier and exposes native `registerProvider()` and `classify()`
+APIs. MoltNet's generated catalog uses one typed `models` list; its adapter
+registers classifier entries through that API and retains Pi's chat defaults,
+overrides and credential resolution. Pi 1.0's raw `models.json` loader is
+chat-only, so custom classifiers require the MoltNet loader. Codemode and
+standalone classification tasks consume the registered model runtime.
 
 Select the exact provider and model in a runtime profile's
 `models.classification`. A `classify` task uses that selection after daemon

@@ -80,12 +80,16 @@ describe('agent server providers and runs', () => {
     });
 
     expect(put.statusCode).toBe(200);
-    expect(put.json<{ models: unknown[] }>().models).toEqual([model]);
+    expect(put.json<{ models: unknown[] }>().models).toEqual([
+      { ...model, type: 'chat' },
+    ]);
     expect(list.statusCode).toBe(200);
     expect(
       list.json<Record<string, { models: unknown[] }>>()['ollama-cloud'].models,
-    ).toEqual([model]);
-    expect(store.readProviders()['ollama-cloud'].models).toEqual([model]);
+    ).toEqual([{ ...model, type: 'chat' }]);
+    expect(store.readProviders()['ollama-cloud'].models).toEqual([
+      { ...model, type: 'chat' },
+    ]);
   });
   it('persists and forwards scoped drain and polling options', async () => {
     const info = vi.fn();
@@ -610,7 +614,7 @@ describe('agent server providers and runs', () => {
       api: 'openai-completions',
       baseUrl: 'https://ollama.com/v1',
       envName: 'MOLTNET_PROVIDER_OLLAMA_API_KEY',
-      models: [{ id: 'qwen3-coder:480b-cloud' }],
+      models: [{ id: 'qwen3-coder:480b-cloud', type: 'chat' }],
       hasApiKey: true,
     });
 

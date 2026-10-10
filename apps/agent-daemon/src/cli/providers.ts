@@ -40,7 +40,7 @@ const MODEL_MODALITIES: readonly ProviderModelModality[] = PI_MODEL_MODALITIES;
  * entry also declares the model, and overrides a bare `--model` for that id.
  */
 function parseModelArgs(
-  models: string[] | undefined,
+  chatModels: string[] | undefined,
   classifierModels: string[] | undefined,
   modelInputs: string[] | undefined,
   modelReasoning: string[] | undefined,
@@ -48,7 +48,7 @@ function parseModelArgs(
   modelStrictModes: string[] | undefined,
 ): ProviderModelEntry[] | undefined {
   if (
-    !models &&
+    !chatModels &&
     !classifierModels &&
     !modelInputs &&
     !modelReasoning &&
@@ -57,7 +57,7 @@ function parseModelArgs(
   )
     return undefined;
   const entries = new Map<string, ProviderModelEntry>();
-  for (const id of models ?? []) entries.set(id, { id });
+  for (const id of chatModels ?? []) entries.set(id, { id, type: 'chat' });
   for (const raw of modelInputs ?? []) {
     const separator = raw.indexOf('=');
     if (separator <= 0) {
@@ -89,11 +89,12 @@ function parseModelArgs(
     entries.set(id, {
       ...entries.get(id),
       id,
+      type: 'chat',
       input: input as ProviderModelModality[],
     });
   }
   for (const id of modelReasoning ?? []) {
-    entries.set(id, { ...entries.get(id), id, reasoning: true });
+    entries.set(id, { ...entries.get(id), id, type: 'chat', reasoning: true });
   }
   for (const raw of modelThinkingMaps ?? []) {
     const separator = raw.indexOf('=');
@@ -124,6 +125,7 @@ function parseModelArgs(
     entries.set(id, {
       ...entries.get(id),
       id,
+      type: 'chat',
       reasoning: true,
       thinkingLevelMap: map,
     });
@@ -300,6 +302,7 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
           'base-url': { type: 'string' },
           api: { type: 'string' },
           model: { type: 'string', multiple: true },
+          'chat-model': { type: 'string', multiple: true },
           'classifier-model': { type: 'string', multiple: true },
           'model-input': { type: 'string', multiple: true },
           'model-reasoning': { type: 'string', multiple: true },
@@ -313,10 +316,10 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
         strict: true,
       });
       requirePositionals(positionals, 1, 'providers set <id>');
-      if (values.model && values['clear-models']) {
+      if ((values.model || values['chat-model']) && values['clear-models']) {
         throw new ProviderCliError(
           'invalid_arguments',
-          '--model and --clear-models cannot be used together',
+          '--model/--chat-model and --clear-models cannot be used together',
         );
       }
       if (values['classifier-model'] && values['clear-models']) {
@@ -357,14 +360,17 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
         models: values['clear-models']
           ? []
           : parseModelArgs(
-              values.model,
+              values.model || values['chat-model']
+                ? [...(values.model ?? []), ...(values['chat-model'] ?? [])]
+                : undefined,
               values['classifier-model'],
               values['model-input'],
               values['model-reasoning'],
               values['model-thinking-map'],
               values['model-strict-mode'],
             ),
-        patchModels: !values.model && !values['clear-models'],
+        patchModels:
+          !values.model && !values['chat-model'] && !values['clear-models'],
         strictModeIds: (values['model-strict-mode'] ?? []).map((raw) =>
           raw.slice(0, raw.lastIndexOf('=')),
         ),
@@ -619,9 +625,7 @@ function mergeModelEntries(
     }
     entries.set(
       update.id,
-      update.type === 'classifier'
-        ? update
-        : { ...existingModel, ...update },
+      update.type === 'classifier' ? update : { ...existingModel, ...update },
     );
   }
   return [...entries.values()];

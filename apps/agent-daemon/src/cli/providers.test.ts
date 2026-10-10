@@ -80,7 +80,7 @@ describe('moltnet-agent providers', () => {
           'remote',
           '--base-url',
           'https://provider.example/v1',
-          '--model',
+          '--chat-model',
           'chat',
           '--classifier-model',
           'decisions=4096',
@@ -89,7 +89,7 @@ describe('moltnet-agent providers', () => {
       ),
     ).toBe(0);
     expect(test.configuration.list().remote.models).toEqual([
-      { id: 'chat' },
+      { type: 'chat', id: 'chat' },
       {
         id: 'decisions',
         type: 'classifier',
@@ -101,12 +101,17 @@ describe('moltnet-agent providers', () => {
     const pi = JSON.parse(
       readFileSync(join(test.root, 'models.json'), 'utf8'),
     ) as {
-      providers: Record<string, { models: unknown; classifierModels: unknown }>;
+      providers: Record<string, { models: unknown }>;
     };
     expect(pi.providers.remote).toMatchObject({
-      models: [{ id: 'chat' }],
-      classifierModels: [
-        { id: 'decisions', api: 'typesafe-system-one', contextWindow: 4096 },
+      models: [
+        { id: 'chat', type: 'chat' },
+        {
+          id: 'decisions',
+          type: 'classifier',
+          api: 'typesafe-system-one',
+          contextWindow: 4096,
+        },
       ],
     });
 
@@ -142,6 +147,7 @@ describe('moltnet-agent providers', () => {
   it('rejects conflicting or malformed classifier declarations', async () => {
     const test = await fixture();
     for (const args of [
+      ['--chat-model', 'chat', '--clear-models'],
       ['--classifier-model', 'decisions=0'],
       ['--classifier-model', 'decisions=1.5'],
       ['--model', 'decisions', '--classifier-model', 'decisions'],
@@ -182,6 +188,7 @@ describe('moltnet-agent providers', () => {
     };
     expect(listed.configuredProviders['ollama-cloud'].models).toEqual([
       {
+        type: 'chat',
         id: 'deepseek:cloud',
         reasoning: true,
         thinkingLevelMap: { off: 'none', low: 'low', high: 'high' },
@@ -207,12 +214,13 @@ describe('moltnet-agent providers', () => {
     ).toBe(0);
     expect(test.configuration.list().remote.models).toEqual([
       {
+        type: 'chat',
         id: 'model-a',
         reasoning: true,
         input: ['text', 'image'],
         supportsStrictMode: true,
       },
-      { id: 'model-b', input: ['text'] },
+      { type: 'chat', id: 'model-b', input: ['text'] },
     ]);
 
     expect(
@@ -222,6 +230,7 @@ describe('moltnet-agent providers', () => {
       ),
     ).toBe(0);
     expect(test.configuration.list().remote.models?.[0]).toMatchObject({
+      type: 'chat',
       id: 'model-a',
       reasoning: true,
       supportsStrictMode: false,
@@ -233,6 +242,7 @@ describe('moltnet-agent providers', () => {
       ),
     ).toBe(0);
     expect(test.configuration.list().remote.models?.[0]).toEqual({
+      type: 'chat',
       id: 'model-a',
       reasoning: true,
       input: ['text', 'image'],
@@ -309,7 +319,7 @@ describe('moltnet-agent providers', () => {
     expect(test.configuration.list()['ollama-cloud']).toMatchObject({
       api: 'openai-completions',
       baseUrl: 'https://ollama.com/v1',
-      models: [{ id: 'second' }],
+      models: [{ type: 'chat', id: 'second' }],
       hasApiKey: true,
     });
     expect(JSON.stringify(test.configuration.list())).not.toContain(
@@ -336,8 +346,8 @@ describe('moltnet-agent providers', () => {
       ),
     ).toBe(0);
     expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
-      { id: 'glm-5.2:cloud' },
-      { id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
+      { type: 'chat', id: 'glm-5.2:cloud' },
+      { type: 'chat', id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
     ]);
 
     expect(
@@ -358,8 +368,8 @@ describe('moltnet-agent providers', () => {
 
     // A rejected patch must not have disturbed the stored declaration.
     expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
-      { id: 'glm-5.2:cloud' },
-      { id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
+      { type: 'chat', id: 'glm-5.2:cloud' },
+      { type: 'chat', id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
     ]);
   });
 
@@ -474,14 +484,19 @@ describe('moltnet-agent providers', () => {
     ).toBe(0);
     expect(JSON.parse(test.stdout.at(-1) ?? '{}')).toEqual({
       models: [
-        { id: 'gemma4:31b-cloud', input: ['text', 'image'], reasoning: false },
-        { id: 'local-model', reasoning: false },
+        {
+          type: 'chat',
+          id: 'gemma4:31b-cloud',
+          input: ['text', 'image'],
+          reasoning: false,
+        },
+        { type: 'chat', id: 'local-model', reasoning: false },
       ],
       failures: [],
       probeFailures: [],
     });
     expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
-      { id: 'existing', reasoning: false },
+      { type: 'chat', id: 'existing', reasoning: false },
       { id: 'decisions', type: 'classifier', api: 'typesafe-system-one' },
     ]);
 
@@ -492,8 +507,13 @@ describe('moltnet-agent providers', () => {
       }),
     ).toBe(0);
     expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
-      { id: 'gemma4:31b-cloud', input: ['text', 'image'], reasoning: false },
-      { id: 'local-model', reasoning: false },
+      {
+        type: 'chat',
+        id: 'gemma4:31b-cloud',
+        input: ['text', 'image'],
+        reasoning: false,
+      },
+      { type: 'chat', id: 'local-model', reasoning: false },
       { id: 'decisions', type: 'classifier', api: 'typesafe-system-one' },
     ]);
   });

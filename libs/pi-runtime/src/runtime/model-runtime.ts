@@ -22,27 +22,31 @@ import {
   validateClassifyOutput,
 } from '@moltnet/tasks';
 import type { TaskExecutor } from '@themoltnet/agent-runtime';
+import stripJsonComments from 'strip-json-comments';
 import { Type } from 'typebox';
 import { Value } from 'typebox/value';
 
 import { resolvePiCodingAgentDir } from '../config.js';
+import { PI_CLASSIFIER_API } from '../pi-config.js';
 import {
   classifyProviderFailure,
   sanitizeProviderDiagnostic,
 } from './provider-error-classification.js';
 
-const Classifiers = Type.Array(
-  Type.Object(
-    {
-      id: Type.String({ minLength: 1 }),
-      api: Type.Literal('typesafe-system-one'),
-      contextWindow: Type.Integer({ minimum: 1 }),
-    },
-    { additionalProperties: false },
-  ),
+const ClassifierDeclaration = Type.Object(
+  {
+    id: Type.String({ minLength: 1 }),
+    type: Type.Literal('classifier'),
+    api: Type.Optional(Type.Literal(PI_CLASSIFIER_API)),
+    contextWindow: Type.Optional(Type.Integer({ minimum: 1 })),
+    input: Type.Optional(
+      Type.Array(Type.Union([Type.Literal('text'), Type.Literal('image')])),
+    ),
+  },
+  { additionalProperties: false },
 );
 
-/** One provider catalog and credential resolver for chat and classification. */
+/** One provider catalog and Pi-owned credential resolver; codemode is only a consumer. */
 export async function createRuntimeModels(
   piDir: string,
 ): Promise<ModelRuntime> {
@@ -55,40 +59,63 @@ export async function createRuntimeModels(
   let document: {
     providers?: Record<
       string,
-      { baseUrl?: string; classifierModels?: unknown }
+      { baseUrl?: string; models?: Array<{ id: string; type?: string }> }
     >;
   };
   try {
-    const source = await readFile(modelsPath, 'utf8');
-    if (!source.includes('"classifierModels"')) return models;
-    document = JSON.parse(source) as typeof document;
+    document = JSON.parse(
+      stripJsonComments(
+        (await readFile(modelsPath, 'utf8')).replace(/^\uFEFF/u, ''),
+      ),
+    ) as typeof document;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return models;
     throw error;
   }
   for (const [provider, config] of Object.entries(document.providers ?? {})) {
-    if (config.classifierModels === undefined) continue;
-    if (!Value.Check(Classifiers, config.classifierModels))
-      throw new Error(`Invalid classifier models for provider "${provider}"`);
-    const classifiers = config.classifierModels;
-    if (classifiers.length === 0) continue;
+    const declarations = config.models ?? [];
+    if (
+      declarations.some(
+        (model) =>
+          model.type !== undefined &&
+          model.type !== 'chat' &&
+          model.type !== 'classifier',
+      )
+    )
+      throw new Error(`Unsupported model type for provider "${provider}"`);
+    const classifiers = declarations.filter(
+      (model) => model.type === 'classifier',
+    );
+    if (!classifiers.length) continue;
+    if (!Value.Check(Type.Array(ClassifierDeclaration), classifiers))
+      throw new Error(
+        `Invalid classifier declaration for provider "${provider}"`,
+      );
+    // The daemon's model declarations have unique ids. Reject ambiguous config
+    // rather than let Pi's chat-only JSON loader silently replace a chat model.
+    if (
+      new Set(declarations.map((model) => model.id)).size !==
+      declarations.length
+    )
+      throw new Error(`Duplicate model declaration for provider "${provider}"`);
     const ids = new Set(classifiers.map((model) => model.id));
-    if (ids.size !== classifiers.length)
-      throw new Error(`Duplicate classifier model for provider "${provider}"`);
-    // registerProvider replaces the provider's model list: preserve its chat,
-    // image, and other classifier models. Auth remains owned by ModelRuntime.
     models.registerProvider(provider, {
       baseUrl: config.baseUrl,
-      classifiers: { 'typesafe-system-one': { classify } },
+      classifiers: { [PI_CLASSIFIER_API]: { classify } },
       models: [
+        // Pi 1.0's JSON loader constructs chat models even for classifier entries.
+        // Remove those interpretations and replace existing classifiers by id;
+        // retain every other Pi-composed model, override and provider credential.
         ...models
           .getAllModels(provider)
-          .filter((model) => model.type !== 'classifier' || !ids.has(model.id)),
+          .filter((model) => !ids.has(model.id) || model.type === 'image'),
         ...classifiers.map((model) => ({
           ...model,
           type: 'classifier' as const,
+          api: model.api ?? PI_CLASSIFIER_API,
+          contextWindow: model.contextWindow ?? 8192,
           name: model.id,
-          input: ['text' as const],
+          input: model.input ?? ['text' as const],
           cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
         })),
       ],

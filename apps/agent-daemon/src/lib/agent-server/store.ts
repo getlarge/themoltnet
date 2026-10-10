@@ -200,7 +200,7 @@ export function copyProviderModel(
 ): ProviderModelEntry {
   return {
     id: entry.id,
-    ...(entry.type ? { type: entry.type } : {}),
+    type: entry.type ?? 'chat',
     ...(entry.api ? { api: entry.api } : {}),
     ...(entry.contextWindow !== undefined
       ? { contextWindow: entry.contextWindow }
@@ -652,6 +652,10 @@ export class AgentServerStore {
           (model.type === 'classifier' &&
             model.api !== undefined &&
             model.api !== PI_CLASSIFIER_API) ||
+          (model.type === 'classifier' &&
+            (model.reasoning !== undefined ||
+              model.thinkingLevelMap !== undefined ||
+              model.supportsStrictMode !== undefined)) ||
           (model.contextWindow !== undefined &&
             (!Number.isSafeInteger(model.contextWindow) ||
               model.contextWindow <= 0))
