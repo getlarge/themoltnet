@@ -74,7 +74,6 @@ import { redactRequiredEnvValues } from '../lib/secret-redaction.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 import { createApiSourceAttemptResolver } from '../lib/source-attempts.js';
 import { WorkspaceModeMismatchError } from '../lib/task-execution-plan.js';
-import { makeTurnEventHandlerFactory } from '../lib/turn-event-logger.js';
 import { defaultPiDaemonAdapter } from '../pi.js';
 import type { DaemonRuntimeAdapter } from '../runtime.js';
 
@@ -840,11 +839,6 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           topK: taskGeneration?.topK ?? null,
           maxOutputTokens: taskGeneration?.maxOutputTokens ?? null,
           classifier: profile.models.classification,
-          providerFailureContext: {
-            runtimeProfileId: profile.id,
-            runtimeProfileName: profile.name,
-            piAgentDirSource: piAgentDir.source,
-          },
 
           sandboxConfig: sandbox.config,
           forwardEnv: profile.requiredEnv,
@@ -865,10 +859,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           runtimeProfileId: profile.id,
           toolEnforcement: profile.toolEnforcement,
           makeExecutionPlan: (task) => executionPlans.getOrCreate(task),
-          makeOnTurnEvent: makeTurnEventHandlerFactory(taskLogger),
           toolPolicyLogger: taskLogger,
           maxTurns: profile.maxTurns,
-          maxBashTimeouts: profile.maxBashTimeouts,
         });
         try {
           active = {

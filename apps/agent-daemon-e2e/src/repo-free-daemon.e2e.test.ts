@@ -7,7 +7,7 @@ import { computeJsonCid } from '@moltnet/crypto-service';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises the daemon app entry point.
 import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 import type { ClaimedTask, TaskReporter } from '@themoltnet/agent-runtime';
-import type { ExecutePiTaskOptions } from '@themoltnet/pi-runtime';
+import type { GondolinDurableTaskOptions } from '@themoltnet/pi-runtime';
 import { type Agent, connect } from '@themoltnet/sdk';
 import {
   afterAll,
@@ -60,7 +60,7 @@ vi.mock('@themoltnet/pi-runtime', async (importOriginal) => {
 });
 
 createDurableExecutorMock.mockImplementation(
-  (options: ExecutePiTaskOptions) =>
+  (options: GondolinDurableTaskOptions) =>
     async (claimedTask: ClaimedTask, reporter: TaskReporter) => {
       await reporter.open({
         taskId: claimedTask.task.id,
@@ -94,9 +94,12 @@ createDurableExecutorMock.mockImplementation(
  * The executor options the daemon hands to `createGondolinDurableTaskExecutor`, narrowed to
  * the fields these assertions rely on being present.
  */
-type CapturedExecutorOptions = ExecutePiTaskOptions &
+type CapturedExecutorOptions = GondolinDurableTaskOptions &
   Required<
-    Pick<ExecutePiTaskOptions, 'moltnetAgent' | 'agentRootDir' | 'mountPath'>
+    Pick<
+      GondolinDurableTaskOptions,
+      'moltnetAgent' | 'agentRootDir' | 'mountPath'
+    >
   >;
 
 describe('Agent daemon repo-free execution (e2e)', () => {

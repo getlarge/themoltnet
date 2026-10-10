@@ -11,7 +11,8 @@ import {
   materializePiBrokeredHttpSecrets,
   type PiRuntimeDefinition,
 } from '../runtime-definition.js';
-import type { ExecutePiTaskOptions } from './execute-pi-task.js';
+import type { GondolinDurableTaskOptions } from './durable-task-options.js';
+import type { PiTaskExecutionPlan } from './execution-plan.js';
 
 export class HostCapabilityContextMissingError extends Error {
   constructor() {
@@ -25,7 +26,7 @@ export class HostCapabilityContextMissingError extends Error {
 /** Compile before VM resume; calls fail closed until the executor sets policy. */
 export function createAttemptHostCapabilityRouter(input: {
   options: Pick<
-    ExecutePiTaskOptions,
+    GondolinDurableTaskOptions,
     | 'runtimeDefinition'
     | 'moltnetAgent'
     | 'agentIdentity'
@@ -93,9 +94,7 @@ export async function resolveAttemptBrokeredHttpSecrets(input: {
 
 export function applyExecutionPlanSandboxOverrides(
   sandboxConfig: SandboxConfig | undefined,
-  executionPlan: Awaited<
-    ReturnType<NonNullable<ExecutePiTaskOptions['makeExecutionPlan']>>
-  >,
+  executionPlan: PiTaskExecutionPlan | null,
 ): SandboxConfig | undefined {
   const shadowWrites = executionPlan?.workspaceAttachment?.shadowWrites;
   if (!shadowWrites) {

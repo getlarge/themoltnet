@@ -7,7 +7,7 @@ export {
   type RuntimeCommit,
 } from './durable-storage.js';
 export { acquireDurableTransport } from './durable-transport.js';
-export { createGondolinToolDefinitions } from './gondolin-tools.js';
+export { GONDOLIN_TOOL_NAMES } from './gondolin-tools.js';
 export {
   agentSigningCapability,
   GUEST_ALLOWED_SIGNERS_PATH,
@@ -19,27 +19,15 @@ export {
   HOST_EXEC_DEFAULT_BASE_ENV,
   MOLTNET_TOOL_NAMES,
   type MoltNetToolsConfig,
+  resolveHostExecBaseEnv,
   type TrackedError,
 } from './moltnet/tools.js';
 export { createPiOtelExtension, type PiOtelOptions } from './otel/index.js';
-export { buildAgentSession } from './runtime/agent-session-factory.js';
-export {
-  createPiTaskExecutor,
-  executePiTask,
-  type ExecutePiTaskOptions,
-  GONDOLIN_TOOL_NAMES,
-  type PiSessionPersistencePlan,
-  type PiTaskExecutionPlan,
-  type PiTaskExecutionPlanFactory,
-  type ProviderErrorRetryEvent,
-  type ProviderErrorRetryLevel,
-  type ProviderErrorRetryUi,
-  type ProviderFailureProfileContext,
-  resolveHostExecBaseEnv,
-  resolveTaskWorktreePath,
-  sanitizeProviderDiagnostic,
-  type TurnEventHandlerFactory,
-} from './runtime/execute-pi-task.js';
+export type { GondolinDurableTaskOptions } from './runtime/durable-task-options.js';
+export type {
+  PiTaskExecutionPlan,
+  PiTaskExecutionPlanFactory,
+} from './runtime/execution-plan.js';
 export {
   type InjectedTaskContext,
   injectTaskContext,
@@ -52,6 +40,7 @@ export {
   type RuntimeModelSelection,
   RuntimeProfileModelResolutionError,
 } from './runtime/model-selection.js';
+export { sanitizeProviderDiagnostic } from './runtime/provider-error-classification.js';
 export {
   PROVIDER_FAILURE_CODES,
   type ProviderFailureCode,
@@ -73,16 +62,8 @@ export {
   buildRuntimeKernel,
   buildWorkspaceMountInstructions,
 } from './runtime/runtime-instructor.js';
-export {
-  createSubagentTool,
-  type CreateSubagentToolArgs,
-  type SubagentToolHandle,
-  type SubagentToolParameters,
-} from './runtime/subagent-tool.js';
-export type {
-  TurnEventHandler,
-  TurnEventKind,
-} from './runtime/task-event-emitter.js';
+export { SubagentToolParameters } from './runtime/subagent-parameters.js';
+export { resolveTaskWorktreePath } from './runtime/task-workspace.js';
 export { piCodemode } from './runtime-definition.js';
 export {
   buildPiClassifierExecutorManifest,

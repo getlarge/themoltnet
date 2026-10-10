@@ -1,57 +1,30 @@
 import type { VM } from '@earendil-works/gondolin';
+
+export const GONDOLIN_TOOL_NAMES = [
+  'read',
+  'write',
+  'edit',
+  'bash',
+  'ls',
+  'find',
+  'grep',
+] as const;
 import {
-  createBashToolDefinition,
-  createEditToolDefinition,
   createFindToolDefinition,
   createGrepToolDefinition,
   createLsToolDefinition,
   createReadToolDefinition,
-  createWriteToolDefinition,
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 
 import {
-  createGondolinBashOps,
-  createGondolinEditOps,
   createGondolinFindOps,
   createGondolinLsOps,
   createGondolinReadOps,
-  createGondolinWriteOps,
   executeGondolinGrep,
   type GondolinToolLifecycle,
-  type GondolinVmRetirement,
   guardGondolinToolDefinitions,
 } from './tool-operations.js';
-
-export function createGondolinToolDefinitions(config: {
-  vm: VM;
-  cwdPath: string;
-  guestWorkspace: string;
-  lifecycle: GondolinToolLifecycle;
-  retireVm: (retirement: GondolinVmRetirement) => Promise<void>;
-}): ToolDefinition[] {
-  const { vm, cwdPath, guestWorkspace, lifecycle, retireVm } = config;
-  const readTools = createGondolinReadToolDefinitions(config);
-  return guardGondolinToolDefinitions(
-    [
-      readTools[0],
-      createWriteToolDefinition(cwdPath, {
-        operations: createGondolinWriteOps(vm, cwdPath, guestWorkspace),
-      }),
-      createEditToolDefinition(cwdPath, {
-        operations: createGondolinEditOps(vm, cwdPath, guestWorkspace),
-      }),
-      createBashToolDefinition(cwdPath, {
-        operations: createGondolinBashOps(vm, cwdPath, guestWorkspace, {
-          lifecycle,
-          retireVm,
-        }),
-      }),
-      ...readTools.slice(1),
-    ] as unknown as ToolDefinition[],
-    lifecycle,
-  );
-}
 
 /** Native read/search tools need only a cwd and model, never a session manager. */
 export function createGondolinReadToolDefinitions(config: {

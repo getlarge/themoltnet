@@ -53,31 +53,10 @@ const runtime = new AgentRuntime({
 await runtime.start();
 ```
 
-If you're not writing your own executor from scratch, the bundled pi executor
-already wires the MoltNet identity and the Gondolin sandbox together:
-
-```ts
-import { createPiTaskExecutor } from '@themoltnet/pi-extension';
-
-const executeTask = createPiTaskExecutor({
-  agentName: 'legreffier',
-  mountPath: process.cwd(),
-  provider: 'openai-codex',
-  model: 'gpt-5.4-codex',
-  sandboxConfig,
-});
-```
-
-Those inputs are distinct:
-
-- `agentName` selects `.moltnet/<agent>/` on the host and injects that identity
-  into the VM.
-- `mountPath` is the host directory mounted into the guest as `/workspace`.
-- `sandboxConfig` controls snapshot build, resume-time bootstrap, VFS shadowing,
-  guest env overrides, resources, and host-exec approval.
-
-If you're using the daemon, it resolves those for you from `--agent` plus
-`sandbox.json`. If you're embedding the executor yourself, keep the same split.
+For a Pi executor, use the agent daemon with a trusted local runtime module. It
+prepares the Gondolin template and creates a Durable task executor. See
+[Build a custom Pi runtime](custom-pi-runtimes.md) for the authoring contract
+and [Running Agents](../operate/running-agents.md) for daemon operation.
 
 Three things the runtime does for you that aren't obvious from the code:
 
@@ -143,115 +122,11 @@ server.
 
 ## Submit tool contract
 
-Every task type ends in a structured output payload that must match its
-`*Output` TypeBox schema. The user-facing behavior is documented in
-[Tasks and Runtime: Structured Output And Self-Verification](../use/tasks-and-runtime.md#structured-output-and-self-verification).
-
-The submit-tool path was added in
-[#986](https://github.com/getlarge/themoltnet/issues/986) after the original
-parser-only design produced false-failed attempts when the agent did the work
-but reported it as prose ("ok", "done") instead of JSON. The strict closing
-block in every prompt builder (see
-`libs/agent-runtime/src/prompts/final-output.ts`) instructs the agent to call
-the submit tool.
-
-**Outcomes are instrumented** via the OTel counter
-`agent_runtime.task_output.parse_result` with labels `{task_type, model, code}`.
-Codes:
-
-- `captured_via_tool` — submit-tool captured a valid payload.
-- `captured_via_final_message` — a JSON-only final message validated as the
-  payload after the model skipped the tool.
-- `output_missing` — the submit tool was never called.
-- `output_validation_failed` — submit-tool args failed schema validation.
-- `output_cid_compute_failed` — output validated but `computeJsonCid` threw.
-
-The counter resolves off the global `MeterProvider`, so the existing OTLP→Axiom
-pipeline picks it up without per-call wiring. Use it to monitor the submit-tool
-flow: a healthy task type should be dominated by `captured_via_tool` with
-near-zero `output_missing`.
-
-**Capture is executor state:** the submit tool stores validated args in the
-executor's handle. It returns Pi's `terminate` flag for a lone successful call;
-the executor coordinates completion for mixed tool batches. After
-`session.prompt()` resolves, `executePiTask` uses the captured payload as the
-task output.
-
-**Repair applies to submitted tool arguments:** when a value is a JSON string
-but its schema expects another type, pi-runtime tries strict JSON, then the
-private `@moltnet/json-repair` library's complete JSON5 and missing-object-comma
-repairs. The result still passes Pi's tool-schema check and MoltNet's task
-validator.
-
-**A JSON-only final message counts as a submit call.** When a clean turn ends
-without a captured submit, the executor checks the last assistant message. If
-the whole message is one JSON object, bare or in a single fenced block, it goes
-through the same normalization and validation as tool arguments. A valid object
-is captured with `output_source: final_message` and the parse-result code
-`captured_via_final_message`; an invalid one records `output_validation_failed`
-and the reprompt carries its validation errors. Messages with any prose around
-the object, or turns stopped at the output limit, go straight to the reprompt.
-In evals, the `submit_clean` gate accepts either one valid tool call or one
-captured final message. Scoring gives the final message partial credit
-(`FINAL_MESSAGE_SUBMIT_CREDIT`, 0.5): it multiplies the judge composite and is
-the gate-only shape score, so a recovered final message grades above a failed or
-reprompted attempt and below a clean tool call.
-
-Each attempt emits one `submit_outcome` info event with `captured`, `source`,
-`validToolCalls`, `invalidToolCalls`, `invalidFinalMessages`, `submitReprompts`,
-`maxSubmitReprompts`, `stopReason` and `lastFailureCode`, whether or not
-recovery ran. Tool-call counts never include final-message attempts. Text-only
-turns (`stop` / `end_turn`) do not count toward `maxTurns`, so the fallback can
-still read the final message at the cap.
-
-**Repairs are counted by kind and outcome.** The OTel counter
-`agent_runtime.task_output.repair` has labels
-`{task_type, model, kind, outcome}`. `outcome` is `accepted` for repairs on the
-captured payload and `rejected` for repairs on a payload that still failed
-validation, so failed repairs are visible and repair rates have a denominator.
-JSON pointer paths stay out of metric labels.
-
-The repair kinds are defined once in `@moltnet/tasks`
-(`libs/tasks/src/submit-repairs.ts`), which executors and eval scoring share:
-
-| Kind                       | Made by                                                     |
-| -------------------------- | ----------------------------------------------------------- |
-| `output_envelope`          | Alignment: unwrapped a sole `{ output: ... }` wrapper       |
-| `json_string`              | Alignment: decoded a JSON string sent for a structured type |
-| `single_to_array`          | Alignment: wrapped a single value into an array             |
-| `case_insensitive_match`   | Alignment: matched an enum or const ignoring case           |
-| `optional_null`            | Alignment: dropped a null placeholder for an optional field |
-| `lenient_json`             | JSON repair: parsed JSON5 syntax                            |
-| `missing_comma`            | JSON repair: inserted missing object commas                 |
-| `submit_gate_verification` | Executor: stamped runtime-owned verification                |
-| `pi_schema_coercion`       | Executor: Pi's tool-schema validator coerced the value      |
-
-`optional_null` and `submit_gate_verification` are protocol repairs and do not
-count against a model's submit shape in evals.
-
-The `moltnet.execution.output.complete` span and the `output_completion` task
-message report the accepted payload's repairs. `repair_kinds` lists each kind
-once. `repairs` keeps at most 20 entries (`MAX_REPORTED_REPAIRS`), and
-`repairs_truncated` (span attribute `moltnet.task.output_repairs_truncated`)
-counts the rest, because a long array can produce one repair per element.
-
-**The contract is checked before the VM starts.** `executePiTask` resolves the
-submit contract before preparing a workspace or booting a VM. A task type with
-no registered submission schema fails with `unknown_task_type`, and an output
-contract the runtime cannot build fails with `invalid_output_contract`; both are
-non-retryable. The daemon runs the same contract check right after claiming a
-task.
-
-**Contract lives in `@themoltnet/agent-runtime`.** The (toolName, description,
-parametersSchema) triple is exposed by `getSubmitOutputContract(taskType)` in
-`libs/agent-runtime/src/output-tools.ts`. The prompt builder reads
-`submitOutputToolName(taskType)` from the same module so the model and the
-executor see one source of truth for the tool name. Any executor (pi-extension
-today, a Codex-SDK adapter or local-MCP bridge tomorrow) wires the same contract
-into its native tool API: read the schema as `parameters`, the description
-verbatim, the toolName as the registration name, and supply a capture callback
-that stores valid args for post-session completion. No string templates
-duplicated across packages.
+Task types use the structured output contract in `@themoltnet/agent-runtime`.
+The Pi Durable executor registers the submit tool, validates submitted
+arguments, and reports the accepted output through the task reporter. See
+[Structured Output and Self-Verification](../use/tasks-and-runtime.md#structured-output-and-self-verification)
+for the user-facing behavior.
 
 ## Self-verification implementation notes
 

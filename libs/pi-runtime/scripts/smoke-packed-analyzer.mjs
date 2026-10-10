@@ -30,13 +30,9 @@ const bundle = readFileSync(distPath, 'utf8');
 const publishedRuntimeDependencies = [
   '@themoltnet/agent-runtime',
   '@themoltnet/sandbox-gondolin',
-  '@themoltnet/sdk',
   '@themoltnet/shell-command-analyzer',
 ];
 for (const dependency of publishedRuntimeDependencies) {
-  // Accept both the isomorphic entry ("@themoltnet/sdk") and the Node
-  // entry ("@themoltnet/sdk/node") — the Node entry is required for OS
-  // keyring secret resolution.
   const importMatched =
     bundle.includes(`from "${dependency}"`) ||
     bundle.includes(`from "${dependency}/node"`);
@@ -153,7 +149,6 @@ try {
       "const script = await codemode.execute('pack-smoke', { code: 'text(6 * 7)' });",
       "if (!script.content.some(item => item.type === 'text' && item.text.includes('42'))) throw new Error('native codemode WASM failed: ' + JSON.stringify(script));",
       "if (typeof runtime.createDurableTaskExecutor !== 'function') throw new Error('Durable executor missing');",
-      "if (typeof runtime.createPiTaskExecutor !== 'function') throw new Error('Pi task executor missing');",
       "if (typeof runtime.createClassificationTaskExecutor !== 'function') throw new Error('Classification task executor missing');",
       "const piConfig = await import('@themoltnet/pi-runtime/pi-config');",
       "if (typeof piConfig.writePiConfig !== 'function' || 'writeAgentCredentials' in piConfig) throw new Error('focused pi-config exports are incorrect');",

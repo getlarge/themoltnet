@@ -62,7 +62,6 @@ import { createApiRuntimeSlotStore } from '../lib/runtime-slots.js';
 import { redactRequiredEnvValues } from '../lib/secret-redaction.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 import { createApiSourceAttemptResolver } from '../lib/source-attempts.js';
-import { makeTurnEventHandler } from '../lib/turn-event-logger.js';
 import { defaultPiDaemonAdapter } from '../pi.js';
 import { type DaemonRuntimeAdapter } from '../runtime.js';
 
@@ -479,12 +478,6 @@ export async function runOnce(
         maxOutputTokens: taskGeneration?.maxOutputTokens ?? null,
         classifier: profile.models.classification,
 
-        providerFailureContext: {
-          runtimeProfileId: profile.id,
-          runtimeProfileName: profile.name,
-          piAgentDirSource: piAgentDir.source,
-        },
-
         sandboxConfig: sandbox.config,
         forwardEnv: profile.requiredEnv,
         onVmDiagnostic: (diagnostic) => {
@@ -505,10 +498,8 @@ export async function runOnce(
         toolEnforcement: profile.toolEnforcement,
         makeExecutionPlan: (claimedTask) =>
           executionPlans.getOrCreate(claimedTask),
-        onTurnEvent: makeTurnEventHandler(rootLogger, { taskId }),
         toolPolicyLogger: rootLogger,
         maxTurns: profile.maxTurns,
-        maxBashTimeouts: profile.maxBashTimeouts,
       });
     const executeTask: TaskExecutor = async (claimedTask, reporter) => {
       const taskModel = runtimeProfileModel(

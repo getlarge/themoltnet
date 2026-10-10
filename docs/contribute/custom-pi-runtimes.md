@@ -99,8 +99,8 @@ manifest again.
 
 The daemon owns task routing, leases, heartbeats, cancellation, workspace
 cleanup, retries, and finalization. Pi Durable owns conversation persistence and
-recovery. Runtime authors do not create a launcher or copy `executePiTask` or
-the polling loop.
+recovery. Runtime authors do not create a launcher or copy the executor or the
+polling loop.
 
 `--runtime` is intentionally local-only. A remote profile selects `runtimeKind`
 and declares requirements, but cannot name, install, or update a runtime module.

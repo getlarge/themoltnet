@@ -39,7 +39,7 @@ import {
   PollingApiTaskSource,
   type TaskReporter,
 } from '@themoltnet/agent-runtime';
-import type { ExecutePiTaskOptions } from '@themoltnet/pi-runtime';
+import type { GondolinDurableTaskOptions } from '@themoltnet/pi-runtime';
 import { type Agent, connect, type MoltNetError } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -59,7 +59,7 @@ vi.mock('@themoltnet/pi-runtime', async (importOriginal) => {
 });
 
 createDurableExecutorMock.mockImplementation(
-  (options: ExecutePiTaskOptions) =>
+  (options: GondolinDurableTaskOptions) =>
     async (claimedTask: ClaimedTask, reporter: TaskReporter) => {
       await reporter.open({
         taskId: claimedTask.task.id,
@@ -200,7 +200,7 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     taskId: string;
     attemptN: number;
     profileId: string;
-    executorOptions: ExecutePiTaskOptions;
+    executorOptions: GondolinDurableTaskOptions;
   };
 
   beforeAll(async () => {
@@ -469,7 +469,7 @@ describe('Agent daemon agent-key auth (e2e)', () => {
         );
       }
       const executorOptions = createDurableExecutorMock.mock.calls[0]?.[0] as
-        | ExecutePiTaskOptions
+        | GondolinDurableTaskOptions
         | undefined;
       if (
         !executorOptions ||

@@ -25,7 +25,7 @@ import { computeJsonCid } from '@moltnet/crypto-service';
 import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 import type { ClaimedTask, TaskReporter } from '@themoltnet/agent-runtime';
 import {
-  type ExecutePiTaskOptions,
+  type GondolinDurableTaskOptions,
   resolveRuntimeProfileModel,
 } from '@themoltnet/pi-runtime';
 import { type Agent, connect } from '@themoltnet/sdk';
@@ -207,7 +207,7 @@ describe('Agent daemon provider store for direct runs (e2e)', () => {
 
     let view: PiView | undefined;
     createDurableExecutorMock.mockImplementation(
-      (options: ExecutePiTaskOptions) =>
+      (options: GondolinDurableTaskOptions) =>
         async (claimedTask: ClaimedTask, reporter: TaskReporter) => {
           await reporter.open({
             taskId: claimedTask.task.id,
