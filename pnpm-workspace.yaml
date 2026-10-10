@@ -19,6 +19,8 @@ minimumReleaseAgeExclude:
   - pnpm@10.34.5
   # Renovate security update: smol-toml@1.9.0
   - smol-toml@1.9.0
+  # Renovate security update: @modelcontextprotocol/sdk@1.31.0
+  - "@modelcontextprotocol/sdk@1.31.0"
 allowBuilds:
   '@github/keytar': true
   cpu-features: false
