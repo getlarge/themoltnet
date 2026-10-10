@@ -696,7 +696,10 @@ describe('provider model discovery', () => {
     });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
-      models: [{ id: 'gpt-oss:120b' }, { id: 'qwen3' }],
+      models: [
+        { id: 'gpt-oss:120b', type: 'chat' },
+        { id: 'qwen3', type: 'chat' },
+      ],
       failures: [],
       probeFailures: [],
     });
@@ -738,7 +741,7 @@ describe('provider model discovery', () => {
     // The OpenAI listing's 404 is reported (the discovery was partial), and
     // so is the capability probe this fake also answers with 404.
     expect(ok.json()).toEqual({
-      models: [{ id: 'llama3.3:70b' }],
+      models: [{ id: 'llama3.3:70b', type: 'chat' }],
       failures: [{ kind: 'http', status: 404 }],
       probeFailures: [{ kind: 'http', status: 404 }],
     });
