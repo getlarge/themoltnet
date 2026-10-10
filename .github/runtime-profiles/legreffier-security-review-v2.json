@@ -10,11 +10,11 @@
   "defaultWorkspaceMode": "dedicated_worktree",
   "description": "Read-only runtime for staged advisory PR security review.",
   "maxBashTimeouts": 1,
-  "maxOutputTokens": 8192,
+  "maxOutputTokens": 16384,
   "maxTurns": 40,
-  "model": "gpt-oss:120b",
+  "model": "gpt-6-sol",
   "name": "legreffier-security-review-v2",
-  "provider": "ollama-cloud",
+  "provider": "openai-codex",
   "requiredEnv": [],
   "runtimeKind": "gondolin_pi",
   "sandbox": {
@@ -32,6 +32,6 @@
       "shadowMode": "deny"
     }
   },
-  "temperature": 0.1,
+  "thinkingLevel": "high",
   "toolEnforcement": "enforce"
 }

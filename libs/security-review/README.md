@@ -9,6 +9,11 @@ confirmed and unclear findings stay in the team-scoped task output; the public
 comment contains only the reviewed revision and task reference. No composite
 score is calculated.
 
+The review procedure lives at `.agents/skills/security-review/SKILL.md`. The
+trusted composer reads that file and attaches its contents to each task as a
+`skill` context binding. The daemon delivers it to the agent's skill discovery
+path, where the prompt refers to it as `security-review` in `available_skills`.
+
 The manual command skips Renovate PRs that change only dependency manifests or
 lockfiles. For other PRs, the skill asks for contextual abuse paths and avoids
 repeating automated advisory or update reports.
@@ -17,7 +22,8 @@ The review is bounded to 120,000 diff bytes. Larger changes fail before task
 creation rather than silently dropping evidence. Both stages inspect a dedicated
 worktree at the pinned head, with the security review read-only runtime policy.
 The workflow requires the `legreffier-security-review-v2` runtime profile and
-policy binding to be provisioned before it runs.
+policy binding to be provisioned before it runs. The runner also needs a
+`PI_AUTH_JSON` credential with access to the `openai-codex` provider.
 
 Provision the profile and policy from the committed definitions, then verify
 the effective tool set before enabling the workflow:

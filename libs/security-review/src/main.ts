@@ -69,7 +69,7 @@ function task(
   correlation: string,
   head: string,
 ) {
-  const skill = readFileSync('skills/security-review/SKILL.md', 'utf8');
+  const skill = readFileSync('.agents/skills/security-review/SKILL.md', 'utf8');
   return {
     taskType: 'freeform',
     correlationId: correlation,
