@@ -7,6 +7,11 @@ import {
   Type,
 } from '@earendil-works/pi-ai';
 import {
+  defineExtension,
+  defineTool,
+  type Extension,
+} from '@earendil-works/pi-durable';
+import {
   type ClaimedTask,
   createSubagentContractRegistry,
   type TaskReporter,
@@ -43,7 +48,11 @@ function reporter(): TaskReporter {
     cancelSignal: new AbortController().signal,
   };
 }
-function setup(subagents = false, maxTurns?: number) {
+function setup(
+  subagents = false,
+  maxTurns?: number,
+  subagentExtensions?: readonly Extension[],
+) {
   const remote = remoteLog();
   const faux = fauxProvider({ tokensPerSecond: 0 });
   const models = createModels();
@@ -53,6 +62,7 @@ function setup(subagents = false, maxTurns?: number) {
       name === 'subagent' ? undefined : 'blocked',
     ),
     ...(subagents ? { subagentTools: [] } : {}),
+    subagentExtensions,
     close: vi.fn(),
   }));
   const execute = createDurableTaskExecutor({
@@ -170,6 +180,47 @@ describe('Durable task integration', () => {
     const result = await execute(task(), reporter());
     expect(result.error?.code).toBe('max_turns_exceeded');
     expect(faux.state.callCount).toBe(2);
+  });
+
+  it('installs child extensions and guards their tools', async () => {
+    const executeChildTool = vi.fn(async () => ({
+      content: [{ type: 'text' as const, text: 'unreachable' }],
+    }));
+    const extension = defineExtension({
+      name: 'child-probe',
+      tools: [
+        defineTool({
+          name: 'child_probe',
+          description: 'Probe a child tool',
+          parameters: Type.Object({}),
+          replay: 'safe',
+          executionMode: 'sequential',
+          execute: executeChildTool,
+        }),
+      ],
+    });
+    const { faux, execute } = setup(true, undefined, [extension]);
+    faux.setResponses([
+      fauxAssistantMessage(
+        fauxToolCall('subagent', {
+          task: 'Inspect the change',
+          output_schema: 'verdict',
+        }),
+        { stopReason: 'toolUse' },
+      ),
+      fauxAssistantMessage(fauxToolCall('child_probe', {}), {
+        stopReason: 'toolUse',
+      }),
+      fauxAssistantMessage(
+        fauxToolCall('submit_subagent_output', { verdict: 'safe' }),
+        { stopReason: 'toolUse' },
+      ),
+      submitted(),
+    ]);
+
+    expect((await execute(task(), reporter())).status).toBe('completed');
+    expect(executeChildTool).not.toHaveBeenCalled();
+    expect(faux.state.callCount).toBe(4);
   });
 
   it('persists the validated output and reconciles a fresh executor without another model call or VM', async () => {

@@ -399,7 +399,10 @@ export function createDurableTaskExecutor(options: {
             },
           })),
         });
-      for (const extension of prepared.extensions ?? []) {
+      for (const extension of [
+        ...(prepared.extensions ?? []),
+        ...(prepared.subagentExtensions ?? []),
+      ]) {
         registry.install({
           ...extension,
           tools: guardedTools(extension.name, extension.tools ?? []).tools,
