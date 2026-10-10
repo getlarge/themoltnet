@@ -100,6 +100,7 @@ describe('ProviderConfigurationService', () => {
 
       expect(service.list()[providerId]?.models).toEqual([
         {
+          type: 'chat',
           id: 'deepseek-v4.1-flash',
           input: ['text', 'image'],
           reasoning: true,
@@ -142,6 +143,7 @@ describe('ProviderConfigurationService', () => {
 
     expect(result.models).toEqual([
       {
+        type: 'chat',
         id: 'gpt-oss:120b-cloud',
         reasoning: true,
         thinkingLevelMap: {
@@ -172,7 +174,7 @@ describe('ProviderConfigurationService', () => {
     ).resolves.toMatchObject({
       api: 'openai-completions',
       baseUrl: 'https://ollama.com/v1',
-      models: [{ id: 'new-model' }],
+      models: [{ type: 'chat', id: 'new-model' }],
       hasApiKey: true,
     });
     await expect(
@@ -250,7 +252,7 @@ describe('ProviderConfigurationService', () => {
     ).rejects.toThrow('persistence failed');
 
     expect(store.readProviders()['remote']?.models).toEqual([
-      { id: 'old-model' },
+      { type: 'chat', id: 'old-model' },
     ]);
     await expect(
       secretProviders.resolve({
@@ -329,8 +331,8 @@ describe('ProviderConfigurationService', () => {
     // Discovery reports ids only; a refresh must not demote a declared
     // vision model back to text-only.
     expect(service.list()['ollama-cloud']?.models).toEqual([
-      { id: 'glm-5.2:cloud' },
-      { id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
+      { type: 'chat', id: 'glm-5.2:cloud' },
+      { type: 'chat', id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
     ]);
   });
 
@@ -345,7 +347,12 @@ describe('ProviderConfigurationService', () => {
     await service.discover('ollama-cloud', { save: true });
 
     expect(service.list()['ollama-cloud']?.models).toEqual([
-      { id: 'qwen3.5:397b', input: ['text', 'image'], reasoning: false },
+      {
+        type: 'chat',
+        id: 'qwen3.5:397b',
+        input: ['text', 'image'],
+        reasoning: false,
+      },
     ]);
   });
 
@@ -360,7 +367,7 @@ describe('ProviderConfigurationService', () => {
     await service.discover('ollama-cloud', { save: true });
 
     expect(service.list()['ollama-cloud']?.models).toEqual([
-      { id: 'glm-5.2', reasoning: false },
+      { type: 'chat', id: 'glm-5.2', reasoning: false },
     ]);
   });
 
@@ -383,13 +390,13 @@ describe('ProviderConfigurationService', () => {
     await expect(
       service.discover('ollama-cloud', { save: true }),
     ).resolves.toEqual({
-      models: [{ id: 'qwen3.5:397b' }],
+      models: [{ type: 'chat', id: 'qwen3.5:397b' }],
       failures: [],
       // Reported separately, so a caller can avoid caching the gap.
       probeFailures: [{ kind: 'http', status: 500 }],
     });
     expect(service.list()['ollama-cloud']?.models).toEqual([
-      { id: 'qwen3.5:397b' },
+      { type: 'chat', id: 'qwen3.5:397b' },
     ]);
   });
 
@@ -409,7 +416,7 @@ describe('ProviderConfigurationService', () => {
     await service.discover('ollama-cloud', { save: true });
 
     expect(service.list()['ollama-cloud']?.models).toEqual([
-      { id: 'qwen3.5:397b', input: ['text'], reasoning: false },
+      { type: 'chat', id: 'qwen3.5:397b', input: ['text'], reasoning: false },
     ]);
   });
 
@@ -490,9 +497,14 @@ describe('ProviderConfigurationService', () => {
       service.discover('ollama-cloud', { save: true }),
     ).resolves.toEqual({
       models: [
-        { id: 'gemma4:31b-cloud', input: ['text', 'image'], reasoning: false },
-        { id: 'local', reasoning: false },
-        { id: 'shared', reasoning: false },
+        {
+          type: 'chat',
+          id: 'gemma4:31b-cloud',
+          input: ['text', 'image'],
+          reasoning: false,
+        },
+        { type: 'chat', id: 'local', reasoning: false },
+        { type: 'chat', id: 'shared', reasoning: false },
       ],
       failures: [],
       probeFailures: [],
@@ -505,9 +517,14 @@ describe('ProviderConfigurationService', () => {
       baseUrl: 'https://ollama.com/v1',
       hasApiKey: true,
       models: [
-        { id: 'gemma4:31b-cloud', input: ['text', 'image'], reasoning: false },
-        { id: 'local', reasoning: false },
-        { id: 'shared', reasoning: false },
+        {
+          type: 'chat',
+          id: 'gemma4:31b-cloud',
+          input: ['text', 'image'],
+          reasoning: false,
+        },
+        { type: 'chat', id: 'local', reasoning: false },
+        { type: 'chat', id: 'shared', reasoning: false },
       ],
     });
   });
@@ -524,7 +541,7 @@ describe('ProviderConfigurationService', () => {
     });
 
     await expect(service.discover('remote')).resolves.toEqual({
-      models: [{ id: 'remote-model' }],
+      models: [{ type: 'chat', id: 'remote-model' }],
       failures: [],
       probeFailures: [],
     });
@@ -646,7 +663,10 @@ describe('ProviderConfigurationService', () => {
     const result = await service.discover('remote', { retry: true });
 
     // Assert
-    expect(result).toMatchObject({ models: [{ id: 'model-a' }], failures: [] });
+    expect(result).toMatchObject({
+      models: [{ type: 'chat', id: 'model-a' }],
+      failures: [],
+    });
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 

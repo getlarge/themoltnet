@@ -27,7 +27,10 @@ import {
 import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 
-import type { PiModelModality } from '@themoltnet/pi-runtime/pi-config';
+import {
+  PI_CLASSIFIER_API,
+  type PiModelModality,
+} from '@themoltnet/pi-runtime/pi-config';
 import {
   assertIdentityAlias,
   getConfigDir,
@@ -164,6 +167,9 @@ export type ProviderModelModality = PiModelModality;
  */
 export interface ProviderModelEntry {
   id: string;
+  type?: 'chat' | 'classifier';
+  api?: string;
+  contextWindow?: number;
   input?: ProviderModelModality[];
   reasoning?: boolean;
   thinkingLevelMap?: Record<string, string>;
@@ -194,6 +200,11 @@ export function copyProviderModel(
 ): ProviderModelEntry {
   return {
     id: entry.id,
+    type: entry.type ?? 'chat',
+    ...(entry.api ? { api: entry.api } : {}),
+    ...(entry.contextWindow !== undefined
+      ? { contextWindow: entry.contextWindow }
+      : {}),
     ...(entry.input && entry.input.length > 0
       ? { input: [...entry.input] }
       : {}),
@@ -630,6 +641,28 @@ export class AgentServerStore {
           throw new AgentServerStoreError(
             'invalid_state',
             `provider "${id}" has a model entry that is not { id, input? }; rewrite providers.json entries as objects`,
+          );
+        }
+        if (
+          (model.type !== undefined &&
+            model.type !== 'chat' &&
+            model.type !== 'classifier') ||
+          (model.api !== undefined &&
+            (typeof model.api !== 'string' || !model.api)) ||
+          (model.type === 'classifier' &&
+            model.api !== undefined &&
+            model.api !== PI_CLASSIFIER_API) ||
+          (model.type === 'classifier' &&
+            (model.reasoning !== undefined ||
+              model.thinkingLevelMap !== undefined ||
+              model.supportsStrictMode !== undefined)) ||
+          (model.contextWindow !== undefined &&
+            (!Number.isSafeInteger(model.contextWindow) ||
+              model.contextWindow <= 0))
+        ) {
+          throw new AgentServerStoreError(
+            'invalid_state',
+            'Invalid provider model type, API, or context window',
           );
         }
       }

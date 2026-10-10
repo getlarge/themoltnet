@@ -492,7 +492,10 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     });
     expect(openai.response?.status).toBe(200);
     expect(openai.data).toEqual({
-      models: [{ id: MODEL_ID }, { id: 'e2e-other' }],
+      models: [
+        { id: MODEL_ID, type: 'chat' },
+        { id: 'e2e-other', type: 'chat' },
+      ],
       failures: [],
       probeFailures: [],
     });
@@ -518,7 +521,12 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     // and the tags answer still yields the model.
     expect(ollama.data).toEqual({
       models: [
-        { id: 'tags-only-model', input: ['text', 'image'], reasoning: false },
+        {
+          id: 'tags-only-model',
+          input: ['text', 'image'],
+          reasoning: false,
+          type: 'chat',
+        },
       ],
       failures: [{ kind: 'http', status: 404 }],
       probeFailures: [],
@@ -728,7 +736,12 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     expect(discovered.code, discovered.stderr).toBe(0);
     expect(JSON.parse(discovered.stdout)).toEqual({
       models: [
-        { id: 'tags-only-model', input: ['text', 'image'], reasoning: false },
+        {
+          id: 'tags-only-model',
+          input: ['text', 'image'],
+          reasoning: false,
+          type: 'chat',
+        },
       ],
       failures: [{ kind: 'http', status: 404 }],
       probeFailures: [],
@@ -740,7 +753,12 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
     // `discover --save` persists the detected capability, so the operator
     // never has to declare it by hand.
     expect(listedAfterDiscovery.data?.[CLI_PROVIDER_ID]?.models).toEqual([
-      { id: 'tags-only-model', input: ['text', 'image'], reasoning: false },
+      {
+        id: 'tags-only-model',
+        input: ['text', 'image'],
+        reasoning: false,
+        type: 'chat',
+      },
     ]);
 
     const updatedOverHttp = await putAgentServerProvider({

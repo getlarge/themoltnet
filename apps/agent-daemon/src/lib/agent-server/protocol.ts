@@ -12,6 +12,11 @@ const StringList = Type.Array(Type.String());
 /** A model the provider offers, with the input modalities it accepts. */
 const ProviderModelSchema = Type.Object({
   id: Type.String(),
+  type: Type.Optional(
+    Type.Union([Type.Literal('chat'), Type.Literal('classifier')]),
+  ),
+  api: Type.Optional(Type.String({ minLength: 1 })),
+  contextWindow: Type.Optional(Type.Integer({ minimum: 1 })),
   input: Type.Optional(
     Type.Array(
       Type.Union(PI_MODEL_MODALITIES.map((modality) => Type.Literal(modality))),

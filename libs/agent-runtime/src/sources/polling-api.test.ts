@@ -511,6 +511,50 @@ describe('PollingApiTaskSource', () => {
     );
   });
 
+  it.each([
+    ['classify', 'fulfill_brief'],
+    ['fulfill_brief', 'classify'],
+  ])(
+    'skips %s for an incompatible profile before claiming',
+    async (taskType, acceptedType) => {
+      const firstProfile = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+      const secondProfile = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+      const task = { ...makeFulfillBriefTask({ status: 'queued' }), taskType };
+      const list = vi.fn<TasksNamespace['list']>().mockResolvedValue({
+        items: [task],
+        total: 1,
+      });
+      const claim = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+        task,
+        attempt: { taskId: task.id, attemptN: 1 } as never,
+        traceHeaders: {},
+      });
+      const src = new PollingApiTaskSource({
+        agent: makeAgent(list, claim),
+        teamId: 't',
+        profiles: [
+          {
+            profileId: firstProfile,
+            acceptsTaskType: (type) => type === acceptedType,
+          },
+          {
+            profileId: secondProfile,
+            acceptsTaskType: (type) => type === taskType,
+          },
+        ],
+        stopWhenEmpty: true,
+      });
+
+      expect((await src.claim())?.profileId).toBe(secondProfile);
+      expect(claim).toHaveBeenCalledTimes(1);
+      expect(claim).toHaveBeenCalledWith(
+        task.id,
+        { projectId: null, profileId: secondProfile },
+        { teamId: 't' },
+      );
+    },
+  );
+
   it('claims pinned tasks with the first configured allowed profile', async () => {
     const firstProfile = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
     const secondProfile = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';

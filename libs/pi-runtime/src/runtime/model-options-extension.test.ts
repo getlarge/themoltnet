@@ -1,7 +1,9 @@
+import type { ModelRuntime } from '@earendil-works/pi-coding-agent';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
   applyPiModelOptions,
+  configureDurableModelOptions,
   createPiModelOptionsExtension,
 } from './model-options-extension.js';
 
@@ -175,4 +177,36 @@ describe('applyPiModelOptions', () => {
       expect.any(String),
     );
   });
+});
+
+it('applies profile sampling to Durable provider payloads while preserving an existing transform', async () => {
+  const stream = vi.fn();
+  const models = { streamSimple: stream } as unknown as ModelRuntime;
+  const warn = vi.fn();
+  configureDurableModelOptions(
+    models,
+    { temperature: 0.2, topP: 0.9, topK: 40, maxOutputTokens: 4000 },
+    'ollama-cloud',
+    'gpt-oss:120b',
+    warn,
+  );
+  const model = { provider: 'ollama-cloud', id: 'gpt-oss:120b' };
+  models.streamSimple(model as never, {} as never, {
+    onPayload: () => ({ model: 'gpt-oss:120b', messages: [], existing: true }),
+  });
+  const request = stream.mock.calls[0][2] as {
+    onPayload: (payload: unknown, model: unknown) => Promise<unknown>;
+  };
+  expect(await request.onPayload({}, model)).toEqual({
+    model: 'gpt-oss:120b',
+    messages: [],
+    existing: true,
+    temperature: 0.2,
+    top_p: 0.9,
+    max_tokens: 4000,
+  });
+  expect(warn).toHaveBeenCalledWith(
+    expect.objectContaining({ option: 'topK' }),
+    expect.any(String),
+  );
 });

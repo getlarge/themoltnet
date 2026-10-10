@@ -482,6 +482,7 @@ export async function runOnce(
         topP: taskGeneration?.topP ?? null,
         topK: taskGeneration?.topK ?? null,
         maxOutputTokens: taskGeneration?.maxOutputTokens ?? null,
+        classifier: profile.models.classification,
 
         providerFailureContext: {
           runtimeProfileId: profile.id,
@@ -652,6 +653,9 @@ export async function runOnce(
         teamId: profile.teamId,
         profileId: profile.id,
         executorFingerprint: preparedRuntime.attestor.fingerprint,
+        assertTaskEligible: (task) => {
+          runtimeProfileModel(profile.models, task.taskType);
+        },
       }),
       makeReporter: () =>
         new ApiTaskReporter({

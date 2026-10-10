@@ -22,7 +22,7 @@ const STORE_OLLAMA: ProvidersState = {
     api: 'openai-completions',
     baseUrl: 'https://ollama.com/v1',
     envName: 'MOLTNET_PROVIDER_OLLAMA_CLOUD_API_KEY',
-    models: [{ id: 'glm-5.2' }],
+    models: [{ id: 'glm-5.2', type: 'chat' }],
     apiKeyRef: 'file:providers/ollama-cloud/api-key',
   },
 };
@@ -192,7 +192,7 @@ describe('resolvePiAgentDir', () => {
           api: 'openai-completions',
           apiKey: '$MOLTNET_PROVIDER_OLLAMA_CLOUD_API_KEY',
           baseUrl: 'https://ollama.com/v1',
-          models: [{ id: 'glm-5.2' }],
+          models: [{ id: 'glm-5.2', type: 'chat' }],
         },
       },
     });
@@ -271,7 +271,7 @@ describe('resolvePiAgentDir', () => {
           apiKey: '$MOLTNET_PROVIDER_OLLAMA_CLOUD_API_KEY',
           baseUrl: 'https://ollama.com/v1',
           models: [
-            { id: 'glm-5.2' },
+            { id: 'glm-5.2', type: 'chat' },
             { id: 'glm-5.2:cloud', contextWindow: 202752, reasoning: true },
           ],
         },
@@ -281,6 +281,65 @@ describe('resolvePiAgentDir', () => {
     expect(readJson(join(result.path, 'settings.json'))).toEqual({
       transport: 'sse',
     });
+  });
+
+  it('appends repo classifier models under an existing store provider', async () => {
+    const agentRoot = tempDir();
+    const storeRoot = tempDir();
+    writeStore(storeRoot, {
+      providers: {
+        'ollama-cloud': {
+          ...STORE_OLLAMA['ollama-cloud'],
+          models: [
+            { id: 'chat' },
+            { id: 'stored', type: 'classifier', api: 'typesafe-system-one' },
+          ],
+        },
+      },
+    });
+    writeRepoPi(agentRoot, {
+      models: {
+        providers: {
+          'ollama-cloud': {
+            api: 'openai-completions',
+            baseUrl: 'https://ollama.com/v1',
+            models: [
+              {
+                id: 'stored',
+                type: 'classifier',
+                api: 'typesafe-system-one',
+                contextWindow: 1000,
+              },
+              {
+                id: 'repo',
+                type: 'classifier',
+                api: 'typesafe-system-one',
+                contextWindow: 2000,
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    const result = await resolve({ agentRoot, storeRoot });
+    expect(
+      (
+        readJson(join(result.path, 'models.json')) as {
+          providers: Record<string, { models: Array<{ type: string }> }>;
+        }
+      ).providers['ollama-cloud'].models.filter(
+        (model) => model.type === 'classifier',
+      ),
+    ).toEqual([
+      { id: 'stored', type: 'classifier', api: 'typesafe-system-one' },
+      {
+        id: 'repo',
+        type: 'classifier',
+        api: 'typesafe-system-one',
+        contextWindow: 2000,
+      },
+    ]);
   });
 
   it.each([

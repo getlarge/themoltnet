@@ -13,10 +13,8 @@ import { Readable } from 'node:stream';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  createGondolinToolDefinitions,
-  resolveTaskWorktreePath,
-} from '../runtime/execute-pi-task.js';
+import { createGondolinToolDefinitions } from '../gondolin-tools.js';
+import { resolveTaskWorktreePath } from '../runtime/execute-pi-task.js';
 import { createGondolinToolLifecycle } from '../tool-operations.js';
 import {
   createMoltNetTools,

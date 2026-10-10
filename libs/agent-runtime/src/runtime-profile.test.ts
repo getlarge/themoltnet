@@ -74,6 +74,7 @@ describe('resolveRuntimeProfile', () => {
 
     expect(get).toHaveBeenCalledWith(profile.id);
     expect(result).toEqual({
+      toolEnforcement: undefined,
       id: profile.id,
       name: profile.name,
       teamId: 'team-1',

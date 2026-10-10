@@ -36,7 +36,7 @@ describe('writePiConfig', () => {
           api: 'openai-completions',
           apiKey: '$OLLAMA_API_KEY',
           baseUrl: 'https://ollama.com/v1',
-          models: [{ id: 'qwen3-coder:480b-cloud' }],
+          models: [{ id: 'qwen3-coder:480b-cloud', type: 'chat' }],
         },
       },
     });
@@ -74,9 +74,9 @@ describe('writePiConfig', () => {
 
     const models = JSON.parse(readFileSync(join(dir, 'models.json'), 'utf8'));
     expect(models.providers['ollama-cloud'].models).toEqual([
-      { id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
-      { id: 'glm-5.2:cloud' },
-      { id: 'gpt-oss:120b-cloud' },
+      { id: 'qwen3.5:397b-cloud', input: ['text', 'image'], type: 'chat' },
+      { id: 'glm-5.2:cloud', type: 'chat' },
+      { id: 'gpt-oss:120b-cloud', type: 'chat' },
     ]);
   });
 
@@ -92,7 +92,7 @@ describe('writePiConfig', () => {
 
     const models = JSON.parse(readFileSync(join(dir, 'models.json'), 'utf8'));
     expect(models.providers['ollama-cloud'].models).toEqual([
-      { id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
+      { id: 'qwen3.5:397b-cloud', input: ['text', 'image'], type: 'chat' },
     ]);
   });
 

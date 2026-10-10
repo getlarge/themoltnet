@@ -65,11 +65,13 @@
     "@themoltnet/shell-command-analyzer": "workspace:*",
     "json5": "catalog:",
     "multiformats": "catalog:",
-    "typebox": "catalog:"
+    "typebox": "catalog:",
+    "@earendil-works/pi-durable": "catalog:",
+    "strip-json-comments": "catalog:"
   },
   "peerDependencies": {
-    "@earendil-works/pi-ai": "0.87.1",
-    "@earendil-works/pi-coding-agent": "0.87.1"
+    "@earendil-works/pi-ai": "1.0.0",
+    "@earendil-works/pi-coding-agent": "1.0.0"
   },
   "devDependencies": {
     "@earendil-works/pi-ai": "catalog:",

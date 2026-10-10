@@ -147,12 +147,15 @@ export type AgentServerProvider = {
   envName: string;
   hasApiKey: boolean;
   models: Array<{
+    api?: string;
+    contextWindow?: number;
     id: string;
     input?: Array<'text' | 'image'>;
     reasoning?: boolean;
     thinkingLevelMap?: {
       [key: string]: string;
     };
+    type?: 'chat' | 'classifier';
   }>;
 };
 
@@ -293,12 +296,15 @@ export type DiscoveredModels = {
       }
   >;
   models: Array<{
+    api?: string;
+    contextWindow?: number;
     id: string;
     input?: Array<'text' | 'image'>;
     reasoning?: boolean;
     thinkingLevelMap?: {
       [key: string]: string;
     };
+    type?: 'chat' | 'classifier';
   }>;
   probeFailures?: Array<
     | {
@@ -899,12 +905,15 @@ export type PutAgentServerProviderData = {
     baseUrl: string;
     envName: string;
     models: Array<{
+      api?: string;
+      contextWindow?: number;
       id: string;
       input?: Array<'text' | 'image'>;
       reasoning?: boolean;
       thinkingLevelMap?: {
         [key: string]: string;
       };
+      type?: 'chat' | 'classifier';
     }>;
   };
   path: {

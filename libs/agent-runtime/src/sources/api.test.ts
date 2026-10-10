@@ -83,6 +83,28 @@ describe('ApiTaskSource', () => {
     await expect(src.claim()).rejects.toThrow(/409 Conflict/);
   });
 
+  it.each(['classify', 'fulfill_brief'])(
+    'rejects an incompatible %s task before claiming',
+    async (taskType) => {
+      const task = { ...makeFulfillBriefTask(), taskType };
+      const get = vi.fn<TasksNamespace['get']>().mockResolvedValue(task);
+      const claim = vi.fn<TasksNamespace['claim']>();
+      const src = new ApiTaskSource({
+        agent: { tasks: { get, claim } } as unknown as Agent,
+        taskId: task.id,
+        teamId: 'team-1',
+        assertTaskEligible: (candidate) => {
+          if (candidate.taskType === taskType)
+            throw new Error('Incompatible model');
+        },
+      });
+
+      await expect(src.claim()).rejects.toThrow('Incompatible model');
+      expect(get).toHaveBeenCalledWith(task.id, { teamId: 'team-1' });
+      expect(claim).not.toHaveBeenCalled();
+    },
+  );
+
   it('keeps legacy claim responses compatible when authority is absent', async () => {
     const task = makeFulfillBriefTask({ status: 'dispatched' });
     const claimMock = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
@@ -196,4 +218,88 @@ it('declares the selected project for direct task claims', async () => {
   } as never);
   await source.claim();
   expect(claim).toHaveBeenCalledWith(task.id, { projectId: 'project' });
+});
+
+function fixture() {
+  const task = {
+    id: 'task',
+    teamId: 'team',
+    projectId: null,
+    status: 'running',
+  };
+  const attempt = {
+    attemptN: 2,
+    status: 'running',
+    claimedByAgentId: 'agent',
+    runtimeProfileId: 'profile',
+    claimedExecutorFingerprint: 'executor',
+    leaseId: 'lease',
+    runtimeProfileRevision: 3,
+    policySnapshotHash: 'hash',
+  };
+  const identity = { subjectType: 'agent', subjectId: 'agent' };
+  const attempts = [attempt];
+  const agent = {
+    agents: { whoami: vi.fn(async () => identity) },
+    tasks: {
+      get: vi.fn(async () => task),
+      listAttempts: vi.fn(async () => attempts),
+      claim: vi.fn(),
+    },
+  };
+  const source = new ApiTaskSource({
+    agent: agent as unknown as Agent,
+    taskId: 'task',
+    resumeAttempt: 2,
+    teamId: 'team',
+    profileId: 'profile',
+    executorFingerprint: 'executor',
+    projectId: null,
+  });
+  return { task, attempt, identity, attempts, agent, source };
+}
+it('reattaches once with original authority without claiming a new attempt', async () => {
+  const f = fixture();
+  const resumed = await f.source.claim();
+  expect(resumed?.claimAuthority).toEqual({
+    claimantAgentId: 'agent',
+    leaseId: 'lease',
+    runtimeProfileId: 'profile',
+    runtimeProfileRevision: 3,
+    policySnapshotHash: 'hash',
+    executorFingerprint: 'executor',
+  });
+  expect(await f.source.claim()).toBeNull();
+  expect(f.agent.tasks.claim).not.toHaveBeenCalled();
+});
+it.each([
+  'identity',
+  'team',
+  'profile',
+  'executor',
+  'lease',
+  'finished',
+  'superseded',
+])('rejects changed %s', async (change) => {
+  const f = fixture();
+  if (change === 'identity') f.identity.subjectId = 'other';
+  if (change === 'team') f.task.teamId = 'other';
+  if (change === 'profile') f.attempt.runtimeProfileId = 'other';
+  if (change === 'executor') f.attempt.claimedExecutorFingerprint = 'other';
+  if (change === 'lease') f.attempt.leaseId = '';
+  if (change === 'finished') f.task.status = 'completed';
+  if (change === 'superseded') f.attempts.push({ ...f.attempt, attemptN: 3 });
+  await expect(f.source.claim()).rejects.toThrow('Resume requires');
+  expect(f.agent.tasks.claim).not.toHaveBeenCalled();
+});
+
+it('rejects incomplete resume authority without falling back to a fresh claim', async () => {
+  const claim = vi.fn();
+  const source = new ApiTaskSource({
+    agent: makeAgent(claim),
+    taskId: 'task',
+    resumeAttempt: 1,
+  });
+  await expect(source.claim()).rejects.toThrow('Resume requires');
+  expect(claim).not.toHaveBeenCalled();
 });

@@ -8,18 +8,22 @@ import { join } from 'node:path';
  * this list so they cannot drift from what Pi actually accepts.
  */
 export const PI_MODEL_MODALITIES = ['text', 'image'] as const;
+export const PI_CLASSIFIER_API = 'typesafe-system-one' as const;
 
 /** Input modalities Pi understands for a model entry. */
 export type PiModelModality = (typeof PI_MODEL_MODALITIES)[number];
 
 /**
- * A model entry in Pi's `models.json`. `input` declares the modalities the
- * model accepts. Pi treats an entry with no `input` as text-only, so a vision
+ * A typed model declaration in the generated `models.json`. `input` declares
+ * the modalities the model accepts. Pi treats an entry with no `input` as text-only, so a vision
  * model must declare `['text', 'image']` or image content parts never reach
  * the provider.
  */
 export interface PiModelSpec {
   id: string;
+  type?: 'chat' | 'classifier';
+  api?: string;
+  contextWindow?: number;
   input?: readonly PiModelModality[];
   reasoning?: boolean;
   thinkingLevelMap?: Readonly<Record<string, string>>;
@@ -27,7 +31,7 @@ export interface PiModelSpec {
   supportsStrictMode?: boolean;
 }
 
-/** Serialized model entry consumed by Pi's model registry. */
+/** Serialized model declaration registered through Pi's native provider API. */
 interface PiStoredModelSpec extends Omit<PiModelSpec, 'supportsStrictMode'> {
   compat?: { supportsStrictMode: boolean };
 }
@@ -86,12 +90,17 @@ export type WritePiConfigInput =
   | WriteMultiProviderPiConfigInput;
 
 /**
- * Normalise a model entry to Pi's on-disk shape. `input` is emitted only when
- * declared, so a text-only model serializes as a bare `{ id }`.
+ * Keep model types explicit in the generated catalog. Legacy declarations
+ * without a type are chat; capabilities are emitted only when declared.
  */
 function toPiModel(entry: PiModelSpec): PiStoredModelSpec {
   return {
     id: entry.id,
+    type: entry.type ?? 'chat',
+    ...(entry.api ? { api: entry.api } : {}),
+    ...(entry.contextWindow !== undefined
+      ? { contextWindow: entry.contextWindow }
+      : {}),
     ...(entry.input && entry.input.length > 0
       ? { input: [...entry.input] }
       : {}),

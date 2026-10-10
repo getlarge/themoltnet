@@ -2,7 +2,10 @@ import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
 
-import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
+import {
+  PI_CLASSIFIER_API,
+  PI_MODEL_MODALITIES,
+} from '@themoltnet/pi-runtime/pi-config';
 import {
   createNodeSecretProviderRegistry,
   FileSecretProvider,
@@ -37,14 +40,16 @@ const MODEL_MODALITIES: readonly ProviderModelModality[] = PI_MODEL_MODALITIES;
  * entry also declares the model, and overrides a bare `--model` for that id.
  */
 function parseModelArgs(
-  models: string[] | undefined,
+  chatModels: string[] | undefined,
+  classifierModels: string[] | undefined,
   modelInputs: string[] | undefined,
   modelReasoning: string[] | undefined,
   modelThinkingMaps: string[] | undefined,
   modelStrictModes: string[] | undefined,
 ): ProviderModelEntry[] | undefined {
   if (
-    !models &&
+    !chatModels &&
+    !classifierModels &&
     !modelInputs &&
     !modelReasoning &&
     !modelThinkingMaps &&
@@ -52,7 +57,7 @@ function parseModelArgs(
   )
     return undefined;
   const entries = new Map<string, ProviderModelEntry>();
-  for (const id of models ?? []) entries.set(id, { id });
+  for (const id of chatModels ?? []) entries.set(id, { id, type: 'chat' });
   for (const raw of modelInputs ?? []) {
     const separator = raw.indexOf('=');
     if (separator <= 0) {
@@ -84,11 +89,12 @@ function parseModelArgs(
     entries.set(id, {
       ...entries.get(id),
       id,
+      type: 'chat',
       input: input as ProviderModelModality[],
     });
   }
   for (const id of modelReasoning ?? []) {
-    entries.set(id, { ...entries.get(id), id, reasoning: true });
+    entries.set(id, { ...entries.get(id), id, type: 'chat', reasoning: true });
   }
   for (const raw of modelThinkingMaps ?? []) {
     const separator = raw.indexOf('=');
@@ -119,6 +125,7 @@ function parseModelArgs(
     entries.set(id, {
       ...entries.get(id),
       id,
+      type: 'chat',
       reasoning: true,
       thinkingLevelMap: map,
     });
@@ -137,6 +144,30 @@ function parseModelArgs(
       ...entries.get(id),
       id,
       supportsStrictMode: mode === 'default' ? undefined : mode === 'true',
+    });
+  }
+  for (const raw of classifierModels ?? []) {
+    const separator = raw.indexOf('=');
+    const id = separator < 0 ? raw : raw.slice(0, separator);
+    const contextWindow = separator < 0 ? undefined : raw.slice(separator + 1);
+    if (
+      !id ||
+      id !== id.trim() ||
+      entries.has(id) ||
+      (contextWindow !== undefined &&
+        (!/^[1-9][0-9]*$/u.test(contextWindow) ||
+          !Number.isSafeInteger(Number(contextWindow))))
+    ) {
+      throw new ProviderCliError(
+        'invalid_arguments',
+        `--classifier-model expects a distinct <model-id>[=<positive-context-window>], received "${raw}"`,
+      );
+    }
+    entries.set(id, {
+      id,
+      type: 'classifier',
+      api: PI_CLASSIFIER_API,
+      ...(contextWindow ? { contextWindow: Number(contextWindow) } : {}),
     });
   }
   return [...entries.values()];
@@ -271,6 +302,8 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
           'base-url': { type: 'string' },
           api: { type: 'string' },
           model: { type: 'string', multiple: true },
+          'chat-model': { type: 'string', multiple: true },
+          'classifier-model': { type: 'string', multiple: true },
           'model-input': { type: 'string', multiple: true },
           'model-reasoning': { type: 'string', multiple: true },
           'model-thinking-map': { type: 'string', multiple: true },
@@ -283,10 +316,16 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
         strict: true,
       });
       requirePositionals(positionals, 1, 'providers set <id>');
-      if (values.model && values['clear-models']) {
+      if ((values.model || values['chat-model']) && values['clear-models']) {
         throw new ProviderCliError(
           'invalid_arguments',
-          '--model and --clear-models cannot be used together',
+          '--model/--chat-model and --clear-models cannot be used together',
+        );
+      }
+      if (values['classifier-model'] && values['clear-models']) {
+        throw new ProviderCliError(
+          'invalid_arguments',
+          '--classifier-model and --clear-models cannot be used together',
         );
       }
       if (values['model-input'] && values['clear-models']) {
@@ -321,13 +360,17 @@ function parseProviderArgs(command: string | undefined, args: string[]) {
         models: values['clear-models']
           ? []
           : parseModelArgs(
-              values.model,
+              values.model || values['chat-model']
+                ? [...(values.model ?? []), ...(values['chat-model'] ?? [])]
+                : undefined,
+              values['classifier-model'],
               values['model-input'],
               values['model-reasoning'],
               values['model-thinking-map'],
               values['model-strict-mode'],
             ),
-        patchModels: !values.model && !values['clear-models'],
+        patchModels:
+          !values.model && !values['chat-model'] && !values['clear-models'],
         strictModeIds: (values['model-strict-mode'] ?? []).map((raw) =>
           raw.slice(0, raw.lastIndexOf('=')),
         ),
@@ -562,15 +605,28 @@ function mergeModelEntries(
 ): ProviderModelEntry[] {
   const entries = new Map(existing.map((model) => [model.id, model]));
   for (const id of strictModeIds) {
-    if (!entries.has(id)) {
+    if (!entries.has(id) || entries.get(id)?.type === 'classifier') {
       throw new ProviderCliError(
         'invalid_arguments',
-        `--model-strict-mode requires an existing model "${id}"; declare it with --model or --model-input first`,
+        `--model-strict-mode requires an existing chat model "${id}"; declare it with --model or --model-input first`,
       );
     }
   }
   for (const update of updates) {
-    entries.set(update.id, { ...entries.get(update.id), ...update });
+    const existingModel = entries.get(update.id);
+    if (
+      existingModel &&
+      (existingModel.type === 'classifier') !== (update.type === 'classifier')
+    ) {
+      throw new ProviderCliError(
+        'invalid_arguments',
+        `model "${update.id}" is already declared as a ${existingModel.type === 'classifier' ? 'classifier' : 'chat'} model`,
+      );
+    }
+    entries.set(
+      update.id,
+      update.type === 'classifier' ? update : { ...existingModel, ...update },
+    );
   }
   return [...entries.values()];
 }

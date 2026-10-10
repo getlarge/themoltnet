@@ -184,8 +184,9 @@ export class ProviderConfigurationService {
           const ids = models
             .filter(
               (model) =>
-                model.reasoning === undefined ||
-                (model.reasoning && !model.thinkingLevelMap),
+                model.type !== 'classifier' &&
+                (model.reasoning === undefined ||
+                  (model.reasoning && !model.thinkingLevelMap)),
             )
             .map((model) => model.id);
           if (ids.length > 0) {
@@ -497,7 +498,20 @@ export class ProviderConfigurationService {
       );
     }
     if (options.save) {
-      await this.set(providerId, { models }, options);
+      const classifiers = provider.models.filter(
+        (model) => model.type === 'classifier',
+      );
+      const classifierIds = new Set(classifiers.map((model) => model.id));
+      await this.set(
+        providerId,
+        {
+          models: [
+            ...models.filter((model) => !classifierIds.has(model.id)),
+            ...classifiers,
+          ],
+        },
+        options,
+      );
     }
     this.logger.info(
       {
@@ -508,7 +522,7 @@ export class ProviderConfigurationService {
       'Provider model discovery completed',
     );
     return {
-      models,
+      models: models.map(copyProviderModel),
       failures: [...failures],
       probeFailures: [...probeFailures],
     };

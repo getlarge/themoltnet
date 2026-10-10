@@ -51,7 +51,12 @@ export interface ResolvePiAgentDirOptions {
 }
 
 interface PiModelsDocument {
-  providers: Record<string, { models?: Array<{ id: string }> }>;
+  providers: Record<
+    string,
+    {
+      models?: Array<{ id: string; type?: string }>;
+    }
+  >;
 }
 
 /**
@@ -178,15 +183,28 @@ function mergePiModels(
 ): PiModelsDocument {
   const providers = { ...repo.providers, ...store.providers };
   for (const [id, storeProvider] of Object.entries(store.providers)) {
-    const repoModels = repo.providers[id]?.models ?? [];
-    const known = new Set((storeProvider.models ?? []).map((m) => m.id));
     providers[id] = {
       ...storeProvider,
-      models: [
-        ...(storeProvider.models ?? []),
-        ...repoModels.filter((m) => !known.has(m.id)),
-      ],
+      models: mergeModelEntries(
+        storeProvider.models,
+        repo.providers[id]?.models,
+      ),
     };
   }
   return { providers };
+}
+
+function mergeModelEntries<T extends { id: string; type?: string }>(
+  store: T[] | undefined,
+  repo: T[] | undefined,
+): T[] {
+  const known = new Set(
+    (store ?? []).map((model) => `${model.type ?? 'chat'}:${model.id}`),
+  );
+  return [
+    ...(store ?? []),
+    ...(repo ?? []).filter(
+      (model) => !known.has(`${model.type ?? 'chat'}:${model.id}`),
+    ),
+  ];
 }

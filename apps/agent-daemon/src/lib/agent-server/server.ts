@@ -330,6 +330,24 @@ function modelArray(
     if (typeof id !== 'string' || id.length === 0) {
       return invalid(`"${field}" entries must carry a non-empty "id"`);
     }
+    if (
+      entry.type !== undefined &&
+      entry.type !== 'chat' &&
+      entry.type !== 'classifier'
+    )
+      return invalid('Invalid model type');
+    if (
+      entry.api !== undefined &&
+      (typeof entry.api !== 'string' || !entry.api)
+    )
+      return invalid('Invalid model API');
+    if (
+      entry.contextWindow !== undefined &&
+      (typeof entry.contextWindow !== 'number' ||
+        !Number.isSafeInteger(entry.contextWindow) ||
+        entry.contextWindow <= 0)
+    )
+      return invalid('Invalid model context window');
     if (entry.reasoning !== undefined && typeof entry.reasoning !== 'boolean') {
       return invalid(
         `"${field}" entry "${id}" must declare "reasoning" as a boolean`,
@@ -371,6 +389,11 @@ function modelArray(
     }
     return {
       id,
+      ...(entry.type ? { type: entry.type } : {}),
+      ...(entry.api ? { api: entry.api } : {}),
+      ...(entry.contextWindow !== undefined
+        ? { contextWindow: entry.contextWindow }
+        : {}),
       ...(entry.input ? { input: entry.input as ProviderModelModality[] } : {}),
       ...(entry.reasoning !== undefined ? { reasoning: entry.reasoning } : {}),
       ...(entry.supportsStrictMode !== undefined

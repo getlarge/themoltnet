@@ -1468,6 +1468,7 @@ jobs:
       ORY_ACTION_API_KEY: local-dev-webhook-key
       MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E: '1'
       OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+      TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
     steps:
       - name: Skip if Agent Daemon E2E not affected
         if: needs.affected.outputs.e2e-agent-daemon != 'true'

@@ -1,6 +1,7 @@
 import { executionCapabilityOfferFromPiManifest } from '@moltnet/execution-integrations/pi';
 import {
   agentSigningCapability,
+  buildPiClassifierExecutorManifest,
   buildPiExecutorManifest,
   createPiTaskExecutor,
   defineGondolinTemplate,
@@ -8,6 +9,7 @@ import {
   GONDOLIN_BASE_EXECUTABLES,
   GONDOLIN_TOOL_NAMES,
   MOLTNET_TOOL_NAMES,
+  type PiExecutorManifest,
   type PiRuntimeDefinition,
 } from '@themoltnet/pi-runtime';
 
@@ -47,25 +49,47 @@ export function createPiDaemonAdapter(
             `but this daemon adapter provides "${runtime.runtimeKind}".`,
         );
       }
-      const resolvedTemplate = await resolveTemplate(input.onProgress);
-      const manifest = await buildPiExecutorManifest({
-        runtime,
-        profile: input.profile,
-        template: resolvedTemplate,
-        builtInToolNames: PI_KERNEL_TOOL_NAMES,
-      });
-      const extensionTools = runtime.extensions.flatMap(
-        (extension) => extension.declaredTools,
-      );
+      const builtInToolNames = [
+        ...(input.profile.models.generation ? PI_KERNEL_TOOL_NAMES : []),
+        ...(input.profile.models.generation &&
+        input.profile.models.classification
+          ? ['classify']
+          : []),
+      ];
+      const resolvedTemplate = input.profile.models.generation
+        ? await resolveTemplate(input.onProgress)
+        : null;
+      let manifest: PiExecutorManifest;
+      if (resolvedTemplate) {
+        manifest = await buildPiExecutorManifest({
+          runtime,
+          profile: input.profile,
+          template: resolvedTemplate,
+          builtInToolNames,
+        });
+      } else if (input.profile.models.classification) {
+        manifest = buildPiClassifierExecutorManifest({
+          runtime,
+          profile: input.profile,
+          classifier: input.profile.models.classification,
+        });
+      } else {
+        throw new Error('Runtime profile has no model configured');
+      }
+      const extensionTools = resolvedTemplate
+        ? runtime.extensions.flatMap((extension) => extension.declaredTools)
+        : [];
       const prepared: PreparedDaemonRuntime = {
         runtimeKind: runtime.runtimeKind,
         manifest: manifest as unknown as Record<string, unknown>,
         tools: [
-          ...PI_KERNEL_TOOL_NAMES,
-          ...runtime.tools.map((tool) => tool.descriptor.name),
+          ...builtInToolNames,
+          ...(resolvedTemplate
+            ? runtime.tools.map((tool) => tool.descriptor.name)
+            : []),
           ...extensionTools,
         ],
-        executables: resolvedTemplate.executables,
+        executables: resolvedTemplate?.executables ?? [],
         createTaskExecutor: (options) =>
           createPiTaskExecutor({
             ...options,
@@ -77,7 +101,7 @@ export function createPiDaemonAdapter(
               resumeCommands: undefined,
             },
             runtimeDefinition: runtime,
-            resolvedVmTemplate: resolvedTemplate,
+            resolvedVmTemplate: resolvedTemplate ?? undefined,
           }),
       };
       registerRuntimeExecutionOffer(prepared, (executorFingerprint) =>
