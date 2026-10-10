@@ -67,6 +67,7 @@
     "multiformats": "catalog:",
     "typebox": "catalog:",
     "@earendil-works/pi-durable": "catalog:",
+    "@earendil-works/chord": "catalog:",
     "strip-json-comments": "catalog:"
   },
   "peerDependencies": {
