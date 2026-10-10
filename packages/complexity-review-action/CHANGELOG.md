@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.1](https://github.com/getlarge/themoltnet/compare/complexity-review-action-v0.3.0...complexity-review-action-v0.3.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **complexity-review:** review paths omitted by change map ([4d5974c](https://github.com/getlarge/themoltnet/commit/4d5974c9986222c1038610757871aa225f365c05))
+* **complexity-review:** review paths omitted by change map ([fcb16ed](https://github.com/getlarge/themoltnet/commit/fcb16eda45d1b11092c52bb3e8b515bd43ac2c91))
+* **complexity-review:** separate uncertainty from score ([3595033](https://github.com/getlarge/themoltnet/commit/3595033156447b6c95029a9ea7b10df51746356a))
+* **complexity-review:** separate uncertainty from score ([c59e746](https://github.com/getlarge/themoltnet/commit/c59e746924ec00417b5a5fc5c64939c0a26049ea))
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/complexity-review-action-v0.2.2...complexity-review-action-v0.3.0) (2026-10-06)
 
 

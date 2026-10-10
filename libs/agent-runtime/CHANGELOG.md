@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.13.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.12.0...agent-runtime-v1.13.0) (2026-10-10)
+
+
+### Bug Fixes
+
+* **agent-runtime:** bound comma repair and decode scalar submit fields strictly ([5376b94](https://github.com/getlarge/themoltnet/commit/5376b941d1f173fddc708a30c889cc203c548ef1))
+* **runtime:** finish submit-output follow-ups from [#2641](https://github.com/getlarge/themoltnet/issues/2641) ([269154b](https://github.com/getlarge/themoltnet/commit/269154b498b6cd8f8709f17684de80cbca4f1dc4))
+
 ## [1.12.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.11.0...agent-runtime-v1.12.0) (2026-10-06)
 
 
