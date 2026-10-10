@@ -10,10 +10,13 @@ export function isRoutineDependencyUpdate(
   return (
     /(?:^|-)renovate\[bot\]$/.test(author) &&
     paths.length > 0 &&
-    paths.every((path) =>
-      /(?:^|\/)(?:package\.json|pnpm-lock\.yaml|package-lock\.json|yarn\.lock|bun\.lock|go\.mod|go\.sum|Cargo\.lock)$/.test(
-        path,
-      ),
+    paths.every(
+      (path) =>
+        /(?:^|\/)(?:package\.json|pnpm-lock\.yaml|package-lock\.json|yarn\.lock|bun\.lock|go\.mod|go\.sum|Cargo\.lock)$/.test(
+          path,
+        ) ||
+        path === 'pnpm-workspace.yaml' ||
+        path === 'infra/otel/custom-collector/builder.yaml',
     )
   );
 }

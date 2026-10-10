@@ -51,6 +51,22 @@ describe('security review evidence boundary', () => {
     expect(isRoutineDependencyUpdate('contributor', ['package.json'])).toBe(
       false,
     );
+    expect(
+      isRoutineDependencyUpdate('themoltnet-renovate[bot]', [
+        'pnpm-workspace.yaml',
+        'pnpm-lock.yaml',
+      ]),
+    ).toBe(true);
+    expect(
+      isRoutineDependencyUpdate('themoltnet-renovate[bot]', [
+        'infra/otel/custom-collector/builder.yaml',
+      ]),
+    ).toBe(true);
+    expect(
+      isRoutineDependencyUpdate('themoltnet-renovate[bot]', [
+        '.github/workflows/renovate.yml',
+      ]),
+    ).toBe(false);
   });
   it('tracks added lines through context and deletions', () => {
     expect([...changedLines(diff).get('src/repair.ts')!.new]).toEqual([11, 12]);

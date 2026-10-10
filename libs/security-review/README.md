@@ -23,7 +23,7 @@ creation rather than silently dropping evidence. Both stages inspect a dedicated
 worktree at the pinned head, with the security review read-only runtime policy.
 The workflow requires the `legreffier-security-review-v2` runtime profile and
 policy binding to be provisioned before it runs. The workflow uses
-`OLLAMA_API_KEY` with the `glm-5.3` model.
+`OLLAMA_API_KEY` with the `mistral-large-4` model.
 
 Provision the profile and policy from the committed definitions, then verify
 the effective tool set before enabling the workflow:
