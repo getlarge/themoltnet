@@ -12,7 +12,7 @@
   "maxBashTimeouts": 1,
   "maxOutputTokens": 16384,
   "maxTurns": 40,
-  "model": "glm-5.3",
+  "model": "mistral-large-4",
   "name": "legreffier-security-review-v2",
   "provider": "ollama-cloud",
   "requiredEnv": [],
