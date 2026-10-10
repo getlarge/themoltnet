@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.23.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.22.0...pi-runtime-v0.23.0) (2026-10-10)
+
+
+### Features
+
+* **pi-runtime:** count rejected submit repairs and bound repair telemetry ([964e6b4](https://github.com/getlarge/themoltnet/commit/964e6b4edc24536b7c9e03834b336042c1b760c0))
+
+
+### Bug Fixes
+
+* **pi-runtime:** reject unusable submit contracts before VM boot ([9d0a213](https://github.com/getlarge/themoltnet/commit/9d0a2136210c71e7f9b20874a337314ec8c33707))
+* **runtime:** finish submit-output follow-ups from [#2641](https://github.com/getlarge/themoltnet/issues/2641) ([269154b](https://github.com/getlarge/themoltnet/commit/269154b498b6cd8f8709f17684de80cbca4f1dc4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.13.0
+
 ## [0.22.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.21.2...pi-runtime-v0.22.0) (2026-10-06)
 
 
