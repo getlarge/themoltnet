@@ -233,13 +233,24 @@ export function parseChangeMap(
       seen.add(index);
     }
   }
-  if (seen.size !== evidence.files.length)
-    throw new Error('change map omitted changed paths');
-  return groups.map((group) => ({
+  const mapped = groups.map((group) => ({
     id: group.id,
     nature: group.nature,
     paths: group.fileIndexes.map((index) => evidence.files[index].path),
   }));
+  const omitted = evidence.files.filter((_file, index) => !seen.has(index));
+  if (omitted.length) {
+    let id = 'remaining-changes';
+    for (let suffix = 2; ids.has(id); suffix++) {
+      id = 'remaining-changes-' + suffix;
+    }
+    mapped.push({
+      id,
+      nature: 'Files left out of the proposed change map; review each change',
+      paths: omitted.map((file) => file.path),
+    });
+  }
+  return mapped;
 }
 
 export function buildDomainTask(
