@@ -110,7 +110,7 @@ describe('staged complexity review', () => {
     ).toBe(large.files[0].patch);
   });
 
-  it('checks that the map covers each changed path exactly once before focused reviews', () => {
+  it('reviews omitted changed paths while rejecting duplicate indexes', () => {
     const map = {
       groups: [
         { id: 'app', nature: 'application behavior', fileIndexes: [0, 1] },
@@ -118,12 +118,27 @@ describe('staged complexity review', () => {
     };
     const groups = parseChangeMap(stageOutput(map), evidence);
     expect(groups[0].paths).toEqual(['apps/a.ts', 'apps/a.test.ts']);
-    expect(() =>
+    const incomplete = parseChangeMap(
+      stageOutput({ groups: [{ ...map.groups[0], fileIndexes: [0] }] }),
+      evidence,
+    );
+    expect(incomplete.map((group) => group.paths)).toEqual([
+      ['apps/a.ts'],
+      ['apps/a.test.ts'],
+    ]);
+    expect(
+      buildDomainWork(incomplete, evidence).map((item) => item.files[0].path),
+    ).toEqual(['apps/a.ts', 'apps/a.test.ts']);
+    expect(
       parseChangeMap(
-        stageOutput({ groups: [{ ...map.groups[0], fileIndexes: [0] }] }),
+        stageOutput({
+          groups: [
+            { id: 'remaining-changes', nature: 'app', fileIndexes: [0] },
+          ],
+        }),
         evidence,
-      ),
-    ).toThrow('omitted changed paths');
+      )[1].id,
+    ).toBe('remaining-changes-2');
     expect(() =>
       parseChangeMap(
         stageOutput({
@@ -141,6 +156,31 @@ describe('staged complexity review', () => {
       ['apps/a.ts'],
       ['apps/a.test.ts'],
     ]);
+  });
+
+  it('keeps omitted files covered when the map already uses eight groups', () => {
+    const manyFiles: ReviewEvidence = {
+      manifest: '9 files changed',
+      files: Array.from({ length: 9 }, (_, index) => ({
+        path: `src/file-${index}.ts`,
+        patch: `+export const value${index} = ${index}`,
+        bytes: 30,
+      })),
+      bytes: 270,
+      generatedPaths: [],
+    };
+    const groups = parseChangeMap(
+      stageOutput({
+        groups: Array.from({ length: 8 }, (_, index) => ({
+          id: `group-${index}`,
+          nature: 'source',
+          fileIndexes: [index],
+        })),
+      }),
+      manyFiles,
+    );
+    expect(groups).toHaveLength(9);
+    expect(groups[8].paths).toEqual(['src/file-8.ts']);
   });
 
   it('uses separate map, domain and synthesis briefs with strict domain coverage', () => {

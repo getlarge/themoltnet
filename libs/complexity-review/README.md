@@ -26,7 +26,11 @@ cannot hide its own files by editing `.gitattributes`. Generated files stay in
 the diff manifest, but they are left out of the change map, and the comment
 counts them and names the first few. When every changed file is generated, they
 are summarized like lockfiles instead, so the review still has evidence. Every
-other changed path appears in the change map and domain validation.
+other changed path appears in a focused review group after map validation.
+
+If the change-map task omits numbered files, trusted code adds those files to a
+separate focused review group. Duplicate or unknown file indexes still fail
+validation. This keeps full patch coverage when a map is incomplete.
 
 Each task has one attempt and a 180-second running budget. Two drain workers
 claim focused tasks under one correlation ID. The final comment leads with a
