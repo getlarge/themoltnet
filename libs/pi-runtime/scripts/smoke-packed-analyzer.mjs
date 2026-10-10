@@ -152,6 +152,7 @@ try {
       'factory({ registerTool(tool) { codemode = tool; } });',
       "const script = await codemode.execute('pack-smoke', { code: 'text(6 * 7)' });",
       "if (!script.content.some(item => item.type === 'text' && item.text.includes('42'))) throw new Error('native codemode WASM failed: ' + JSON.stringify(script));",
+      "if (typeof runtime.createDurableTaskExecutor !== 'function') throw new Error('Durable executor missing');",
       "if (typeof runtime.createPiTaskExecutor !== 'function') throw new Error('Pi task executor missing');",
       "if (typeof runtime.createClassificationTaskExecutor !== 'function') throw new Error('Classification task executor missing');",
       "const piConfig = await import('@themoltnet/pi-runtime/pi-config');",
@@ -179,5 +180,5 @@ try {
 }
 
 process.stdout.write(
-  'OK: packed pi-runtime loads native codemode WASM, task executors, focused Pi config, and ShellCommandAnalyzer\n',
+  'OK: packed pi-runtime loads native codemode WASM, task executors, Durable, focused Pi config, and ShellCommandAnalyzer\n',
 );
