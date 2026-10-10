@@ -3,7 +3,6 @@ import {
   CURATE_PACK_TYPE,
   JUDGE_EVAL_ATTEMPT_TYPE,
   JUDGE_PACK_TYPE,
-  PR_REVIEW_TYPE,
   RENDER_PACK_TYPE,
   RUN_EVAL_TYPE,
 } from '@moltnet/tasks';
@@ -34,19 +33,6 @@ const rubricSingle = {
       description: 'Pass condition',
       weight: 1,
       scoring: 'llm_score' as const,
-    },
-  ],
-};
-
-const rubricBinary = {
-  rubricId: 'pr-binary',
-  version: 'v1' as const,
-  criteria: [
-    {
-      id: 'c1',
-      description: 'Pass condition',
-      weight: 1,
-      scoring: 'boolean' as const,
     },
   ],
 };
@@ -166,23 +152,6 @@ describe('prompt snapshots (assembler refactor pin)', () => {
       },
     });
     expect(prompt.text).toMatchSnapshot();
-  });
-
-  it('pr_review — full subject', () => {
-    const task = makeFulfillBriefTask({
-      taskType: PR_REVIEW_TYPE,
-      input: {
-        subject: {
-          title: 'Generated change review',
-          summary: 'Review this change artifact for complexity.',
-          resourceUrls: ['https://example.test/review/123'],
-          inspectionHints: ['Inspect the local checkout before scoring.'],
-        },
-        taskPrompt: 'Use the consumer-supplied review flow.',
-        successCriteria: { version: 1 as const, rubric: rubricBinary },
-      },
-    });
-    expect(buildTaskUserPrompt(task, baseCtx).text).toMatchSnapshot();
   });
 
   it('run_eval — baseline (no context, no successCriteria)', () => {

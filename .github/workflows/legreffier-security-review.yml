@@ -5,42 +5,32 @@ on:
     types: [created]
 
 permissions: {}
+concurrency:
+  group: security-review-${{ github.event.issue.number }}
+  cancel-in-progress: true
 
-# Use the project-aware CLI independently of pending repository releases.
-env:
-  MOLTNET_CLI_VERSION: '3.3.0'
-
-# Manually triggered only (issue #121). Drop a PR comment containing
-# `@legreffier /security-review` to kick off a security-focused review.
-# Reuses the published daemon action; the only difference from the
-# complexity workflow is the composer + rubric + skill.
 jobs:
   security-review:
     if: |
-      github.event_name == 'issue_comment' &&
       github.event.issue.pull_request != null &&
       contains(github.event.comment.body, '@legreffier /security-review') &&
-      !endsWith(github.event.comment.user.login, '[bot]')
+      !endsWith(github.event.comment.user.login, '[bot]') &&
+      (github.event.comment.author_association == 'OWNER' ||
+       github.event.comment.author_association == 'MEMBER' ||
+       github.event.comment.author_association == 'COLLABORATOR')
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 50
     environment: legreffier
     permissions:
       contents: read
-      issues: write
-      pull-requests: write
+      pull-requests: read
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # MoltNet credentials are set at the job level (not as composite
-      # action inputs) because GitHub Actions YAML expression substitution
-      # collapses newlines in multi-line secrets. See issue #121.
+      MOLTNET_CLI_VERSION: '3.3.0'
       MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
       MOLTNET_SUBJECT_ID: ${{ secrets.MOLTNET_SUBJECT_ID }}
       MOLTNET_SUBJECT_TYPE: agent
       MOLTNET_CLIENT_ID: ${{ secrets.MOLTNET_CLIENT_ID }}
       MOLTNET_CLIENT_SECRET: ${{ secrets.MOLTNET_CLIENT_SECRET }}
-      # The daemon authenticates with this key; the OAuth pair above only
-      # materializes the agent's git/SSH/App assets (#2160).
       MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
       MOLTNET_PUBLIC_KEY: ${{ secrets.MOLTNET_PUBLIC_KEY }}
       MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
@@ -48,52 +38,83 @@ jobs:
       MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
       MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
       MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
-      MOLTNET_GITHUB_APP_ID: ${{ vars.MOLTNET_GITHUB_APP_ID }}
-      MOLTNET_GITHUB_APP_INSTALLATION_ID: ${{ vars.MOLTNET_GITHUB_APP_INSTALLATION_ID }}
-      MOLTNET_GITHUB_APP_SLUG: ${{ vars.MOLTNET_GITHUB_APP_SLUG }}
-      MOLTNET_GITHUB_APP_PRIVATE_KEY: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
       OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-      PI_AUTH_JSON: ${{ secrets.PI_AUTH_JSON }}
+      REVIEW_META: ${{ github.workspace }}/security-review-meta.json
+      CANDIDATE_OUTPUT: ${{ github.workspace }}/security-candidates.json
+      REVIEW_OUTPUT: ${{ github.workspace }}/security-result.json
+      TASK_SPEC: ${{ github.workspace }}/security-task.json
+      PR_NUMBER: ${{ github.event.issue.number }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.workflow_sha }}
+          fetch-depth: 0
+          persist-credentials: false
       - uses: ./.github/actions/setup-workspace
         with:
           go: 'false'
-
-      - name: Compose pr_review (security) task spec
-        id: compose
+      - name: Pin PR revisions
+        id: prepare
         env:
-          PR_NUMBER: ${{ github.event.issue.number }}
-        run: |
-          set -euo pipefail
-          head_ref="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json headRefName --jq .headRefName)"
-          branch_tag="$(printf '%s' "$head_ref" \
-            | tr '[:upper:]' '[:lower:]' \
-            | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+|-+$//g' \
-            | cut -c1-121)"
-          if [ -z "$branch_tag" ]; then
-            branch_tag="unknown"
-          fi
-          task_spec_path="$RUNNER_TEMP/pr-security-review-task-spec.json"
-          node --import tsx tools/src/tasks/compose-pr-security-review.ts \
-            --pr "$PR_NUMBER" \
-            --repo "$GITHUB_REPOSITORY" \
-            > "$task_spec_path"
-          echo "task-spec-path=$task_spec_path" >> "$GITHUB_OUTPUT"
-          echo "task-tags=ci,source:github-actions,workflow:legreffier-security-review,repo:$GITHUB_REPOSITORY,agent-daemon,agent:legreffier,review:pr,review:security,pr:$PR_NUMBER,branch:$branch_tag" >> "$GITHUB_OUTPUT"
-
-      - name: Run task
+          GH_TOKEN: ${{ github.token }}
+        run: node --import tsx libs/security-review/src/main.ts prepare >> "$GITHUB_OUTPUT"
+      - name: Report routine dependency update
+        if: steps.prepare.outputs.skip == 'true'
+        run: echo 'Renovate dependency-only PR; dependency update and advisory checks own this change.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Fetch revisions as inert Git data
+        if: steps.prepare.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ steps.prepare.outputs.base }}
+          HEAD: ${{ steps.prepare.outputs.head }}
+        run: git fetch --no-tags origin "$BASE" "$HEAD"
+      - name: Compose hunt stage
+        if: steps.prepare.outputs.skip != 'true'
+        run: node --import tsx libs/security-review/src/main.ts compose-hunt
+      - name: Hunt for candidate risks
+        id: hunt
+        if: steps.prepare.outputs.skip != 'true'
         uses: ./packages/agent-daemon-action
         with:
           providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
-          task-spec-path: ${{ steps.compose.outputs.task-spec-path }}
-          tags: ${{ steps.compose.outputs.task-tags }}
-          # Flip to 'false' once the deployed `pr_review` schema includes
-          # the optional `context: TaskContext` field.
-          skip-validation: 'true'
+          task-spec-path: ${{ github.workspace }}/security-task.json
+          profile: legreffier-security-review-v2
           max-attempts: '2'
-          # Hardened read-only review runtime (.github/runtime-profiles/legreffier-review-v1.json):
-          # sandboxed, no network egress, bounded turns, and a prompt contract that
-          # treats reviewed diffs as untrusted data. Falls back to the generic agent
-          # profile only if the variable is unset.
-          profile: ${{ vars.MOLTNET_REVIEW_PROFILE || vars.MOLTNET_AGENT_PROFILE }}
+      - name: Load accepted candidates
+        if: steps.prepare.outputs.skip != 'true'
+        run: |
+          npx -y @themoltnet/cli@${MOLTNET_CLI_VERSION} task attempts "${{ steps.hunt.outputs.task-id }}" \
+            --team-id "$MOLTNET_TEAM_ID" --accepted-only --field output > "$CANDIDATE_OUTPUT"
+      - name: Compose verification stage
+        if: steps.prepare.outputs.skip != 'true'
+        run: node --import tsx libs/security-review/src/main.ts compose-verify
+      - name: Verify candidates against the diff
+        id: verify
+        if: steps.prepare.outputs.skip != 'true'
+        uses: ./packages/agent-daemon-action
+        with:
+          providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
+          task-spec-path: ${{ github.workspace }}/security-task.json
+          profile: legreffier-security-review-v2
+          max-attempts: '2'
+      - name: Load accepted verification
+        if: steps.prepare.outputs.skip != 'true'
+        run: |
+          npx -y @themoltnet/cli@${MOLTNET_CLI_VERSION} task attempts "${{ steps.verify.outputs.task-id }}" \
+            --team-id "$MOLTNET_TEAM_ID" --accepted-only --field output > "$REVIEW_OUTPUT"
+      - name: Mint publisher token
+        id: app-token
+        if: steps.prepare.outputs.skip != 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.MOLTNET_GITHUB_APP_ID }}
+          private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
+          repositories: ${{ github.event.repository.name }}
+          permission-pull-requests: write
+      - name: Publish checked advisory
+        if: steps.prepare.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_LOGIN: ${{ steps.app-token.outputs.app-slug }}[bot]
+          REVIEW_TASK_ID: ${{ steps.verify.outputs.task-id }}
+        run: node --import tsx libs/security-review/src/main.ts publish

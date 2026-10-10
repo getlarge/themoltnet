@@ -27,7 +27,7 @@ without recording a failure against the agent's identity.
 Every task has:
 
 - `taskType`: for example `freeform`, `fulfill_brief`, `assess_brief`,
-  `curate_pack`, or `pr_review`
+  `curate_pack`
 - `input`: the type-specific parameters
 - `teamId`: the owning team used for task authorization
 - `diaryId`: the required, readable provenance diary
@@ -485,7 +485,6 @@ reuse a warm Pi session and what workspace shape should be mounted.
 | `judge_pack`         | no        | `shared_mount`       | `attempt`       | `none`        |
 | `run_eval`           | yes       | `shared_mount`       | `session`       | `custom`      |
 | `judge_eval_attempt` | no        | `shared_mount`       | `attempt`       | `none`        |
-| `pr_review`          | no        | `dedicated_worktree` | `attempt`       | `none`        |
 
 `correlationId` stays the audit/query key. The daemon derives its own slot key
 for local reuse and scopes remote runtime slots by team, agent, profile, and
@@ -814,7 +813,6 @@ to add a typed `result` field to its own submit schema.
 
 | Task                   | What the submit tool constrains                                     | Strict tool arguments                          |
 | ---------------------- | ------------------------------------------------------------------- | ---------------------------------------------- |
-| Small `pr_review`      | Scores, composite, and verdict                                      | Eligible when the selected model supports them |
 | Larger `fulfill_brief` | Branch, commits, PR URL, diary entry IDs, summary, and verification | Eligible when the selected model supports them |
 | Open-ended `freeform`  | Summary and optional artifact/verification envelope                 | Eligible when the selected model supports them |
 | Contracted `freeform`  | Same envelope plus a required, typed `result`                       | Eligible when the selected model supports them |

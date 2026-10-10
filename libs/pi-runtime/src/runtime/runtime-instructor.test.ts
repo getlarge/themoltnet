@@ -270,7 +270,7 @@ describe('runtime kernel', () => {
     expect(out).toContain(`Verified workspace revision: \`${revision}\``);
   });
 
-  it.each(['freeform', 'fulfill_brief', 'pr_review', 'run_eval'])(
+  it.each(['freeform', 'fulfill_brief', 'run_eval'])(
     'projects the effective policy for %s sessions',
     (taskType) => {
       const out = buildRuntimeKernel({

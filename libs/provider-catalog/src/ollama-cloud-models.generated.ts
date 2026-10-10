@@ -123,6 +123,14 @@ export const ollamaCloudModelData: readonly OllamaCloudModel[] = [
     tools: true,
   },
   {
+    id: 'mistral-large-4',
+    contextWindow: 1048576,
+    vision: true,
+    tools: true,
+    thinkingLevels: ['on'],
+    defaultThinkingLevel: 'on',
+  },
+  {
     id: 'nemotron-3-nano:30b',
     contextWindow: 262144,
     vision: false,

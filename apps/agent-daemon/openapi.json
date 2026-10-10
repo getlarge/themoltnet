@@ -1218,12 +1218,6 @@
           },
           {
             "enum": [
-              "pr_review"
-            ],
-            "type": "string"
-          },
-          {
-            "enum": [
               "render_pack"
             ],
             "type": "string"
@@ -3026,12 +3020,6 @@
                         {
                           "enum": [
                             "judge_pack"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "pr_review"
                           ],
                           "type": "string"
                         },

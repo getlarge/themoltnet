@@ -99,7 +99,7 @@ const status: AgentServerStatus = {
       projectId: 'project',
       location: 'Laptop',
       profiles: ['careful'],
-      taskTypes: ['pr_review'],
+      taskTypes: ['freeform'],
       mode: 'poll',
       active: false,
       status: 'stopped',

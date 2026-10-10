@@ -169,7 +169,6 @@ import type {
   FulfillBriefInput,
   JudgeEvalAttemptInput,
   JudgePackInput,
-  PrReviewInput,
   RenderPackInput,
   RunEvalInput,
 } from '@moltnet/tasks';
@@ -869,11 +868,6 @@ export interface TasksNamespace {
     target: JudgeEvalAttemptTarget,
     options: BuildRubricSuccessCriteriaOptions,
   ): TaskBuilder<JudgeEvalAttemptInput>;
-  /** Typed builder for a `pr_review` task (subject + successCriteria required). */
-  buildPrReview(
-    input: Pick<PrReviewInput, 'subject' | 'successCriteria'> &
-      Partial<PrReviewInput>,
-  ): TaskBuilder<PrReviewInput>;
 
   /**
    * Resolve a completed task's accepted output into a typed reader.

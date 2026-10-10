@@ -75,7 +75,7 @@ describe('Run-flow audit regressions', () => {
     await expect(field('Identity')).toHaveValue('previous-agent');
     await expect(field('Runtime profile')).toHaveValue('quick');
     await expect(
-      $('//label[span[normalize-space()="pr_review"]]/input'),
+      $('//label[span[normalize-space()="freeform"]]/input'),
     ).toBeSelected();
   });
 

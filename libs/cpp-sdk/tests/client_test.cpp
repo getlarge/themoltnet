@@ -25,7 +25,7 @@ struct FakeTransport {
       return {200, {}, "{\"tasks\":[]}"};
     }
     if (request.url ==
-        "https://api.example.test/tasks?query=complexity%20review&statuses=queued&statuses=running&statuses=completed&taskTypes=pr_review&tags=review%3Acomplexity&tags=repo%3Agetlarge%2Fthemolt.net&excludeTags=draft&diaryId=diary-1&profileId=profile-1&correlationId=correlation-1&proposedByAgentId=agent-1&proposedByHumanId=human-1&claimedByAgentId=worker-1&hasAttempts=true&queuedAfter=2026-07-08T00%3A00%3A00Z&queuedBefore=2026-07-09T00%3A00%3A00Z&completedAfter=2026-07-08T01%3A00%3A00Z&completedBefore=2026-07-09T01%3A00%3A00Z&limit=10&cursor=cursor%2B1") {
+        "https://api.example.test/tasks?query=complexity%20review&statuses=queued&statuses=running&statuses=completed&taskTypes=freeform&tags=review%3Acomplexity&tags=repo%3Agetlarge%2Fthemolt.net&excludeTags=draft&diaryId=diary-1&profileId=profile-1&correlationId=correlation-1&proposedByAgentId=agent-1&proposedByHumanId=human-1&claimedByAgentId=worker-1&hasAttempts=true&queuedAfter=2026-07-08T00%3A00%3A00Z&queuedBefore=2026-07-09T00%3A00%3A00Z&completedAfter=2026-07-08T01%3A00%3A00Z&completedBefore=2026-07-09T01%3A00%3A00Z&limit=10&cursor=cursor%2B1") {
       return {200, {}, "{\"tasks\":[{\"id\":\"review-task\"}]}"};
     }
     if (request.url == "https://api.example.test/agents/whoami") {
@@ -151,7 +151,7 @@ void test_client_builds_full_task_query_filters() {
   moltnet::TasksQuery query;
   query.query = "complexity review";
   query.statuses = {"queued", "running", "completed"};
-  query.task_types = {"pr_review"};
+  query.task_types = {"freeform"};
   query.tags = {"review:complexity", "repo:getlarge/themolt.net"};
   query.exclude_tags = {"draft"};
   query.diary_id = "diary-1";
