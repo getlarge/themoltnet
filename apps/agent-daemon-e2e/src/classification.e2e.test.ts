@@ -13,7 +13,7 @@ import {
 } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
-const LIVE_FLAG = 'MOLTNET_AGENT_DAEMON_LIVE_CLASSIFIER_E2E';
+const LIVE_FLAG = 'MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E';
 const FIXTURE_KEY = 'classifier-e2e-fixture-key';
 const input: ClassifyInput = {
   version: 1,
