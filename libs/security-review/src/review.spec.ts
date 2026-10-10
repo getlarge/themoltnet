@@ -64,6 +64,12 @@ describe('security review evidence boundary', () => {
     ).toBe(true);
     expect(
       isRoutineDependencyUpdate('themoltnet-renovate[bot]', [
+        'apps/agent-desktop/src-tauri/Cargo.toml',
+        'apps/agent-desktop/src-tauri/Cargo.lock',
+      ]),
+    ).toBe(true);
+    expect(
+      isRoutineDependencyUpdate('themoltnet-renovate[bot]', [
         '.github/workflows/renovate.yml',
       ]),
     ).toBe(false);

@@ -12,7 +12,7 @@ export function isRoutineDependencyUpdate(
     paths.length > 0 &&
     paths.every(
       (path) =>
-        /(?:^|\/)(?:package\.json|pnpm-lock\.yaml|package-lock\.json|yarn\.lock|bun\.lock|go\.mod|go\.sum|Cargo\.lock)$/.test(
+        /(?:^|\/)(?:package\.json|pnpm-lock\.yaml|package-lock\.json|yarn\.lock|bun\.lock|go\.mod|go\.sum|Cargo\.toml|Cargo\.lock)$/.test(
           path,
         ) ||
         path === 'pnpm-workspace.yaml' ||
