@@ -906,6 +906,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       rateLimitTaskArtifactUpload:
         config.security.RATE_LIMIT_TASK_ARTIFACT_UPLOAD,
       rateLimitGlobalRead: config.security.RATE_LIMIT_GLOBAL_READ,
+      rateLimitRuntimeStore: config.security.RATE_LIMIT_RUNTIME_STORE,
+      rateLimitRuntimeStoreIp: config.security.RATE_LIMIT_RUNTIME_STORE_IP,
       rateLimitPreResolveIp: config.security.RATE_LIMIT_PRE_RESOLVE_IP,
       rateLimitOauthApprovalIp: config.security.RATE_LIMIT_OAUTH_APPROVAL_IP,
       rateLimitClientIpHeader: config.security.RATE_LIMIT_CLIENT_IP_HEADER,

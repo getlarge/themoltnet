@@ -11,9 +11,14 @@
   "description": "Read-only openai-codex gpt-6-sol runtime (low thinking) for comparing latency and precision of the experimental docs-impact review stages.",
   "maxBashTimeouts": 1,
   "maxTurns": 6,
-  "model": "gpt-6-sol",
+  "models": {
+    "generation": {
+      "model": "gpt-6-sol",
+      "provider": "openai-codex",
+      "thinkingLevel": "low"
+    }
+  },
   "name": "legreffier-docs-review-codex-v1",
-  "provider": "openai-codex",
   "requiredEnv": [],
   "runtimeKind": "gondolin_pi",
   "sandbox": {
@@ -37,6 +42,5 @@
       "shadowMode": "deny"
     }
   },
-  "thinkingLevel": "low",
   "toolEnforcement": "enforce"
 }

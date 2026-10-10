@@ -209,6 +209,52 @@ erDiagram
         jsonb payload
     }
 
+    runtime_profiles {
+        uuid id PK
+        uuid team_id FK "teams"
+        varchar name "unique within team"
+        jsonb models "generation and/or classification selections"
+        varchar runtime_kind
+        jsonb sandbox
+        integer revision
+        varchar definition_cid
+        uuid created_by_agent_id FK "agents (nullable)"
+        uuid created_by_human_id FK "humans (nullable)"
+    }
+
+    runtime_stores {
+        uuid id PK
+        uuid team_id FK "teams"
+        text format "pi-durable.v1"
+        integer head_seq "last committed sequence; initially zero"
+        bigint next_id "next allocatable Pi record ID"
+        uuid writer_token "current writer lease (nullable)"
+        uuid writer_agent_id
+        uuid writer_task_id
+        integer writer_attempt_n
+        timestamp writer_expires_at
+        timestamp created_at
+    }
+
+    runtime_store_attempts {
+        uuid task_id PK,FK "composite attempt key"
+        integer attempt_n PK,FK "task_attempts(task_id, attempt_n)"
+        uuid team_id FK "teams"
+        uuid store_id FK "runtime_stores"
+    }
+
+    runtime_store_commits {
+        uuid store_id PK,FK "runtime_stores"
+        integer seq PK "ordered within store"
+        uuid commit_id "idempotency key; unique within store"
+        varchar sha256 "payload SHA-256"
+        text object_key "payload object storage location"
+        integer size_bytes
+        uuid task_id "originating task; provenance metadata"
+        integer attempt_n "originating attempt"
+        timestamp created_at
+    }
+
     %% ── Ory entities (external) ──
 
     kratos_identity {
@@ -304,6 +350,16 @@ erDiagram
     tasks }o--o| humans : "proposed by human"
     tasks }o--o| agents : "claimed by"
 
+    runtime_profiles }o--|| teams : "profile belongs to team"
+    runtime_profiles }o--o| agents : "created by agent"
+    runtime_profiles }o--o| humans : "created by human"
+    runtime_stores }o--|| teams : "store belongs to team"
+    runtime_store_attempts }o--|| teams : "binding belongs to team"
+    runtime_store_attempts }o--|| tasks : "task binding"
+    runtime_store_attempts |o--|| task_attempts : "attempt binding (task_id, attempt_n)"
+    runtime_store_attempts }o--|| runtime_stores : "attached to store"
+    runtime_store_commits }o--|| runtime_stores : "ordered commits"
+
     agents ||--|| kratos_identity : "mirrors identity"
     humans }o--o| kratos_identity : "linked after onboarding"
     kratos_identity ||--|| hydra_oauth2_client : "linked via metadata"
@@ -319,3 +375,24 @@ erDiagram
 ```
 
 </div>
+
+## Runtime profile and Durable storage tables
+
+| Table                    | Purpose                                                                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `runtime_profiles`       | Team-owned runtime configuration. The `models` JSONB column contains `generation`, `classification`, or both; each selects a provider and model. |
+| `runtime_stores`         | Team-owned Durable log metadata, committed head, record-ID allocator, and expiring writer lease.                                                 |
+| `runtime_store_attempts` | Binds a task attempt to its store. The composite primary key permits one binding per attempt; multiple attempts can share a store.               |
+| `runtime_store_commits`  | Ordered commit receipts and object-storage references. `(store_id, seq)` orders commits; `(store_id, commit_id)` makes retries idempotent.       |
+
+Commit payloads live in object storage, not in the receipt rows. The existing
+runtime-session storage configuration supplies the object-storage backend.
+Extending a conversation attaches another attempt to the same store; forking
+creates a new store with copied commit receipts that reference the existing
+payload objects. Copied receipts retain the originating task and attempt for
+read authorization and provenance.
+
+A writer must hold an unexpired store lease and active task-attempt authority.
+Appending checks the expected head before publishing the next receipt. Profile
+model selections and their update semantics are described in
+[Runtime profiles](../operate/runtime-profiles.md#model-capabilities).

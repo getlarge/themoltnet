@@ -418,6 +418,110 @@ func encodeAddGroupMemberResponse(response AddGroupMemberRes, w http.ResponseWri
 	}
 }
 
+func encodeAppendRuntimeStoreCommitResponse(response AppendRuntimeStoreCommitRes, w http.ResponseWriter, span trace.Span) error {
+	switch response := response.(type) {
+	case *AppendRuntimeStoreCommitOK:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(200)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *AppendRuntimeStoreCommitBadRequest:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(400)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *AppendRuntimeStoreCommitUnauthorized:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(401)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *AppendRuntimeStoreCommitForbidden:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(403)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *AppendRuntimeStoreCommitNotFound:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(404)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *AppendRuntimeStoreCommitConflict:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(409)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *AppendRuntimeStoreCommitTooManyRequests:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(429)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *AppendRuntimeStoreCommitServiceUnavailable:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(503)
+		span.SetStatus(codes.Error, http.StatusText(503))
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	default:
+		return errors.Errorf("unexpected response type: %T", response)
+	}
+}
+
 func encodeAppendTaskMessagesResponse(response AppendTaskMessagesRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
 	case *AppendMessagesResponse:
@@ -6964,6 +7068,110 @@ func encodeGetRuntimeSessionResponse(response GetRuntimeSessionRes, w http.Respo
 	}
 }
 
+func encodeGetRuntimeStoreForAttemptResponse(response GetRuntimeStoreForAttemptRes, w http.ResponseWriter, span trace.Span) error {
+	switch response := response.(type) {
+	case *NilGetRuntimeStoreForAttemptOK:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(200)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *GetRuntimeStoreForAttemptBadRequest:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(400)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *GetRuntimeStoreForAttemptUnauthorized:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(401)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *GetRuntimeStoreForAttemptForbidden:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(403)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *GetRuntimeStoreForAttemptNotFound:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(404)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *GetRuntimeStoreForAttemptConflict:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(409)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *GetRuntimeStoreForAttemptTooManyRequests:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(429)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *GetRuntimeStoreForAttemptServiceUnavailable:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(503)
+		span.SetStatus(codes.Error, http.StatusText(503))
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	default:
+		return errors.Errorf("unexpected response type: %T", response)
+	}
+}
+
 func encodeGetSigningCredentialResponse(response GetSigningCredentialRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
 	case *SigningCredential:
@@ -9209,6 +9417,112 @@ func encodeListRuntimeSlotsResponse(response ListRuntimeSlotsRes, w http.Respons
 	}
 }
 
+func encodeListRuntimeStoreCommitsResponse(response ListRuntimeStoreCommitsRes, w http.ResponseWriter, span trace.Span) error {
+	switch response := response.(type) {
+	case *ListRuntimeStoreCommitsOK:
+		w.Header().Set("Content-Type", "application/x-ndjson")
+		w.WriteHeader(200)
+
+		writer := w
+		if closer, ok := response.Data.(io.Closer); ok {
+			defer closer.Close()
+		}
+		if _, err := io.Copy(writer, response); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ListRuntimeStoreCommitsBadRequest:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(400)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ListRuntimeStoreCommitsUnauthorized:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(401)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ListRuntimeStoreCommitsForbidden:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(403)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ListRuntimeStoreCommitsNotFound:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(404)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ListRuntimeStoreCommitsConflict:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(409)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ListRuntimeStoreCommitsTooManyRequests:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(429)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ListRuntimeStoreCommitsServiceUnavailable:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(503)
+		span.SetStatus(codes.Error, http.StatusText(503))
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	default:
+		return errors.Errorf("unexpected response type: %T", response)
+	}
+}
+
 func encodeListSigningCredentialsResponse(response ListSigningCredentialsRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
 	case *SigningCredentialList:
@@ -10054,6 +10368,214 @@ func encodeListTeamsResponse(response ListTeamsRes, w http.ResponseWriter, span 
 	}
 }
 
+func encodeMintRuntimeStoreIdResponse(response MintRuntimeStoreIdRes, w http.ResponseWriter, span trace.Span) error {
+	switch response := response.(type) {
+	case *MintRuntimeStoreIdOK:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(200)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *MintRuntimeStoreIdBadRequest:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(400)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *MintRuntimeStoreIdUnauthorized:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(401)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *MintRuntimeStoreIdForbidden:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(403)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *MintRuntimeStoreIdNotFound:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(404)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *MintRuntimeStoreIdConflict:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(409)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *MintRuntimeStoreIdTooManyRequests:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(429)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *MintRuntimeStoreIdServiceUnavailable:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(503)
+		span.SetStatus(codes.Error, http.StatusText(503))
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	default:
+		return errors.Errorf("unexpected response type: %T", response)
+	}
+}
+
+func encodeOpenRuntimeStoreResponse(response OpenRuntimeStoreRes, w http.ResponseWriter, span trace.Span) error {
+	switch response := response.(type) {
+	case *OpenRuntimeStoreOK:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(200)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *OpenRuntimeStoreBadRequest:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(400)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *OpenRuntimeStoreUnauthorized:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(401)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *OpenRuntimeStoreForbidden:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(403)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *OpenRuntimeStoreNotFound:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(404)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *OpenRuntimeStoreConflict:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(409)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *OpenRuntimeStoreTooManyRequests:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(429)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *OpenRuntimeStoreServiceUnavailable:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(503)
+		span.SetStatus(codes.Error, http.StatusText(503))
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	default:
+		return errors.Errorf("unexpected response type: %T", response)
+	}
+}
+
 func encodePreviewDiaryCustomPackResponse(response PreviewDiaryCustomPackRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
 	case *CustomPackResult:
@@ -10819,6 +11341,103 @@ func encodeRejectTransferResponse(response RejectTransferRes, w http.ResponseWri
 	}
 }
 
+func encodeReleaseRuntimeStoreResponse(response ReleaseRuntimeStoreRes, w http.ResponseWriter, span trace.Span) error {
+	switch response := response.(type) {
+	case *ReleaseRuntimeStoreNoContent:
+		w.WriteHeader(204)
+
+		return nil
+
+	case *ReleaseRuntimeStoreBadRequest:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(400)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ReleaseRuntimeStoreUnauthorized:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(401)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ReleaseRuntimeStoreForbidden:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(403)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ReleaseRuntimeStoreNotFound:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(404)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ReleaseRuntimeStoreConflict:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(409)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ReleaseRuntimeStoreTooManyRequests:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(429)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ReleaseRuntimeStoreServiceUnavailable:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(503)
+		span.SetStatus(codes.Error, http.StatusText(503))
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	default:
+		return errors.Errorf("unexpected response type: %T", response)
+	}
+}
+
 func encodeRemoveGroupMemberResponse(response RemoveGroupMemberRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
 	case *RemoveGroupMemberOK:
@@ -11079,6 +11698,110 @@ func encodeRenderContextPackResponse(response RenderContextPackRes, w http.Respo
 		return nil
 
 	case *RenderContextPackServiceUnavailable:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(503)
+		span.SetStatus(codes.Error, http.StatusText(503))
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	default:
+		return errors.Errorf("unexpected response type: %T", response)
+	}
+}
+
+func encodeRenewRuntimeStoreResponse(response RenewRuntimeStoreRes, w http.ResponseWriter, span trace.Span) error {
+	switch response := response.(type) {
+	case *RenewRuntimeStoreOK:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(200)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *RenewRuntimeStoreBadRequest:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(400)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *RenewRuntimeStoreUnauthorized:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(401)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *RenewRuntimeStoreForbidden:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(403)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *RenewRuntimeStoreNotFound:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(404)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *RenewRuntimeStoreConflict:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(409)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *RenewRuntimeStoreTooManyRequests:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(429)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *RenewRuntimeStoreServiceUnavailable:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(503)
 		span.SetStatus(codes.Error, http.StatusText(503))

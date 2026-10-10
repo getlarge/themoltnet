@@ -276,8 +276,8 @@ describe('Agent daemon provider store for direct runs (e2e)', () => {
       {
         name: `provider-store-${randomUUID()}`,
         runtimeKind: 'gondolin_pi',
-        provider: PROVIDER_ID,
-        model: REPO_MODEL,
+        models: { generation: { provider: PROVIDER_ID, model: REPO_MODEL } },
+
         sandbox: {},
       },
       { teamId: creds.personalTeamId },

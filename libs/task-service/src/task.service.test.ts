@@ -307,6 +307,10 @@ interface Mocks {
       (id: string) => Promise<{
         id: string;
         teamId: string;
+        models: {
+          generation?: { provider: string; model: string };
+          classification?: { provider: string; model: string };
+        };
         runtimeKind: string;
         revision: number;
         definitionCid: string;
@@ -645,6 +649,10 @@ function makeMocks(
           (id: string) => Promise<{
             id: string;
             teamId: string;
+            models: {
+              generation?: { provider: string; model: string };
+              classification?: { provider: string; model: string };
+            };
             runtimeKind: string;
             revision: number;
             definitionCid: string;
@@ -655,6 +663,7 @@ function makeMocks(
         .mockResolvedValue({
           id: PROFILE_ID,
           teamId: TEAM_ID,
+          models: { generation: { provider: 'test', model: 'test' } },
           runtimeKind: 'gondolin_pi',
           revision: 7,
           definitionCid: PROFILE_DEFINITION_CID,
@@ -910,6 +919,7 @@ describe('createTaskService.claim — runtime profile attestation', () => {
     mocks.runtimeProfileRepository.findById.mockResolvedValue({
       id: PROFILE_ID,
       teamId: OTHER_TEAM_ID,
+      models: { generation: { provider: 'test', model: 'test' } },
       runtimeKind: 'gondolin_pi',
       revision: 7,
       definitionCid: PROFILE_DEFINITION_CID,
@@ -945,6 +955,54 @@ describe('createTaskService.claim — runtime profile attestation', () => {
     });
 
     expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['classify', 'generation', 'classification'],
+    ['judge', 'classification', 'generation'],
+  ] as const)(
+    'rejects %s with only %s configured',
+    async (taskType, configured, required) => {
+      mocks.taskRepository.findById.mockResolvedValue({
+        ...makeJudgeTask(JUDGE_TASK, 'queued'),
+        taskType,
+      } as DbTask);
+      const profile = await mocks.runtimeProfileRepository.findById(PROFILE_ID);
+      mocks.runtimeProfileRepository.findById.mockResolvedValue({
+        ...profile!,
+        models: { [configured]: { provider: 'test', model: 'test' } },
+      });
+      await expect(
+        service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
+          profileId: PROFILE_ID,
+        }),
+      ).rejects.toMatchObject({
+        code: 'forbidden',
+        message: `Runtime profile has no ${required} model configured`,
+      });
+      expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
+    },
+  );
+
+  it('allows a classification-only profile through capability validation', async () => {
+    mocks.taskRepository.findById.mockResolvedValue({
+      ...makeJudgeTask(JUDGE_TASK, 'queued'),
+      taskType: 'classify',
+    } as DbTask);
+    const profile = await mocks.runtimeProfileRepository.findById(PROFILE_ID);
+    mocks.runtimeProfileRepository.findById.mockResolvedValue({
+      ...profile!,
+      models: { classification: { provider: 'test', model: 'classifier' } },
+    });
+    await expect(
+      service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
+        profileId: PROFILE_ID,
+      }),
+    ).rejects.toMatchObject({
+      code: 'invalid',
+      message:
+        'Executor manifest is required when claiming with a runtime profile',
+    });
   });
 
   it('requires executor evidence before claiming with a runtime profile', async () => {

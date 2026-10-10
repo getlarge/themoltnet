@@ -122,8 +122,10 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
         {
           name: `live-contract-${randomUUID()}`,
           runtimeKind: 'gondolin_pi',
-          provider: LIVE_PROVIDER,
-          model: LIVE_MODEL,
+          models: {
+            generation: { provider: LIVE_PROVIDER, model: LIVE_MODEL },
+          },
+
           maxTurns: 12,
           maxBashTimeouts: 1,
           defaultWorkspaceMode: 'shared_mount',
@@ -258,8 +260,10 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
         {
           name: `live-ollama-${randomUUID()}`,
           runtimeKind: 'gondolin_pi',
-          provider: LIVE_PROVIDER,
-          model: LIVE_MODEL,
+          models: {
+            generation: { provider: LIVE_PROVIDER, model: LIVE_MODEL },
+          },
+
           maxTurns: 14,
           maxBashTimeouts: 1,
           defaultWorkspaceMode: 'shared_mount',
@@ -532,9 +536,13 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
           task: claimedTask.task,
           retryTriage: createRuntimeProfileRetryTriage({
             runtimeProfile: {
-              provider: LIVE_PROVIDER,
-              model: LIVE_TRIAGE_MODEL,
-              thinkingLevel: 'low',
+              models: {
+                generation: {
+                  provider: LIVE_PROVIDER,
+                  model: LIVE_TRIAGE_MODEL,
+                  thinkingLevel: 'low',
+                },
+              },
             },
             piAgentDir: join(repoRoot, '.pi'),
             cwd: repoRoot,

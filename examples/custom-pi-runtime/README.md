@@ -287,9 +287,14 @@ the runtime kind and capability requirements unchanged:
   "allowedWorkspaceModes": ["none"],
   "defaultWorkspaceMode": "none",
   "description": "Disposable profile for the custom Pi runtime smoke test.",
-  "model": "kimi-k2.7-code:cloud",
+  "models": {
+    "generation": {
+      "model": "kimi-k2.7-code:cloud",
+      "provider": "ollama-cloud"
+    }
+  },
   "name": "custom-pi-github-reader-smoke",
-  "provider": "ollama-cloud",
+
   "requiredEnv": [],
   "requiredExecutables": ["git", "node", "npm"],
   "requiredTools": ["github_issue_read"],

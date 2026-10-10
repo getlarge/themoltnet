@@ -48,9 +48,8 @@ is not currently exposed as MCP tools.
 cat > profile.json <<'JSON'
 {
   "description": "Built-in Pi/Gondolin profile for supervised tasks.",
-  "model": "<model>",
   "name": "gondolin-pilot",
-  "provider": "<provider>",
+  "models": { "generation": { "provider": "<provider>", "model": "<model>" } },
   "runtimeKind": "gondolin_pi",
   "sandbox": {},
   "toolEnforcement": "watch"
@@ -82,9 +81,9 @@ const profile =
   (await molt.runtimeProfiles.create(
     {
       description: 'Built-in Pi/Gondolin profile for supervised tasks.',
-      model: '<model>',
+      models: { generation: { model: '<model>', provider: '<provider>' } },
       name: 'gondolin-pilot',
-      provider: '<provider>',
+
       runtimeKind: 'gondolin_pi',
       sandbox: {},
       toolEnforcement: 'watch',
@@ -278,8 +277,10 @@ Creating a profile takes a JSON body: the CLI reads it from `--from-file` (or
 `-` for stdin), the SDK from an object literal. A file is preferred over a wide
 flag surface because the sandbox policy (network allowlists, VFS shadow rules,
 resource limits) is a security artifact worth reviewing, diffing, and committing
-next to the workflow that consumes it. `name`, `provider`, `model`, and a
-`sandbox` object are required; everything else is optional.
+next to the workflow that consumes it. `name`, a nonempty `models` object, and a
+`sandbox` object are required. Configure `models.generation`,
+`models.classification`, or both; each selection requires `provider` and
+`model`.
 
 ::: code-group
 
@@ -311,10 +312,16 @@ const teamId = '<team-uuid>';
 const profile = await molt.runtimeProfiles.create(
   {
     name: 'github-linear',
-    provider: 'openai',
-    model: 'gpt-5-codex',
+    models: {
+      generation: {
+        provider: 'openai',
+        model: 'gpt-5-codex',
+        thinkingLevel: 'high',
+      },
+    },
+
     runtimeKind: 'gondolin_pi',
-    thinkingLevel: 'high',
+
     maxTurns: 30,
     maxBashTimeouts: 3,
     toolEnforcement: 'enforce',
@@ -360,7 +367,8 @@ re-register the updated profile authority.
 
 In daemon mode:
 
-- `provider`, `model`, and model session settings come from the profile.
+- Provider, model, and generation settings come from `models.generation`;
+  classification uses `models.classification`.
 - Sandbox policy comes from the profile; daemon `--sandbox` is rejected.
 - Repeated `--profile` flags are priority order for unrestricted tasks.
 - `requiredEnv` names must exist in the daemon process environment before claim.
@@ -406,10 +414,26 @@ moltnet-agent runtime register acme_review_pi ./dist/runtime.mjs
 deliberately overrides it for server-managed runs; remove that override with
 `moltnet-agent runtime unregister gondolin_pi`.
 
-## Model Session Settings
+## Model capabilities
 
-Profiles set model behavior before the daemon starts a Pi session. `null` or an
-omitted field leaves the Pi or provider default in place.
+`models.generation` configures chat and coding execution.
+`models.classification` configures standalone `classify` tasks and
+classification calls within another task. A classification-only profile needs no
+generation model. Both capabilities resolve credentials through the daemon's
+provider configuration. If `models.classification` is omitted, the profile has
+no classifier: a `classify` task cannot fall back to `models.generation`. Other
+task types require `models.generation`; a classification-only profile cannot
+execute them.
+
+Updating `models` replaces the complete block. Include every capability you want
+to retain; omit `models` from a metadata-only update to preserve its
+configuration.
+
+## Generation settings
+
+The fields below belong inside `models.generation` and set model behavior before
+the daemon starts a Pi session. `null` or an omitted field leaves the Pi or
+provider default in place.
 
 | Field             | Range                                              | Notes                                                                                                            |
 | ----------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
@@ -493,8 +517,8 @@ submit-output tool; it does not need a profile-policy grant.
 const profile = await molt.runtimeProfiles.create(
   {
     name: 'run-eval-direct',
-    provider: 'openai',
-    model: 'gpt-5-codex',
+    models: { generation: { provider: 'openai', model: 'gpt-5-codex' } },
+
     runtimeKind: 'gondolin_pi',
     maxTurns: 3,
     allowedWorkspaceModes: ['none'],

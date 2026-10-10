@@ -2,6 +2,7 @@
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { runtimeProfileModel } from '@moltnet/runtime-profiles';
 import type { TaskOutput } from '@moltnet/tasks';
 import {
   AgentRuntime,
@@ -507,13 +508,14 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         return {
           id: profile.id,
           name: profile.name,
-          provider: profile.provider,
-          model: profile.model,
-          thinkingLevel: profile.thinkingLevel,
-          temperature: profile.temperature,
-          topP: profile.topP,
-          topK: profile.topK,
-          maxOutputTokens: profile.maxOutputTokens,
+          provider: runtimeProfileModel(profile.models).provider,
+          model: runtimeProfileModel(profile.models).model,
+          thinkingLevel: profile.models.generation?.thinkingLevel ?? null,
+          temperature: profile.models.generation?.temperature ?? null,
+          topP: profile.models.generation?.topP ?? null,
+          topK: profile.models.generation?.topK ?? null,
+          maxOutputTokens: profile.models.generation?.maxOutputTokens ?? null,
+
           sandbox: runtime.sandbox.path,
           heartbeatIntervalMs: operations.heartbeatIntervalMs,
           maxTurns: profile.maxTurns,
@@ -721,16 +723,24 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             logger: rootLogger,
           });
         }
+        const taskModel = runtimeProfileModel(
+          profile.models,
+          claimedTask.task.taskType,
+        );
+        const taskGeneration =
+          claimedTask.task.taskType === 'classify'
+            ? undefined
+            : profile.models.generation;
         const taskLogger = rootLogger.child({
           runtimeProfileId: profile.id,
           runtimeProfileName: profile.name,
-          provider: profile.provider,
-          model: profile.model,
-          thinkingLevel: profile.thinkingLevel,
-          temperature: profile.temperature,
-          topP: profile.topP,
-          topK: profile.topK,
-          maxOutputTokens: profile.maxOutputTokens,
+          provider: taskModel.provider,
+          model: taskModel.model,
+          thinkingLevel: taskGeneration?.thinkingLevel ?? null,
+          temperature: taskGeneration?.temperature ?? null,
+          topP: taskGeneration?.topP ?? null,
+          topK: taskGeneration?.topK ?? null,
+          maxOutputTokens: taskGeneration?.maxOutputTokens ?? null,
         });
         let executionPlan: Awaited<
           ReturnType<typeof executionPlans.getOrCreate>
@@ -835,8 +845,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           await slotRegistry.beginSlot({
             ...slotIdentity,
             runtimeProfileId: profile.id,
-            provider: profile.provider,
-            model: profile.model,
+            provider: taskModel.provider,
+            model: taskModel.model,
             teamId: claimedTask.task.teamId,
             slotKey: executionPlan.slotKey,
             taskType: claimedTask.task.taskType,
@@ -865,18 +875,20 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           hostCapabilityLogger: taskLogger,
           agentRootDir: ctx.agentRootDir,
           mountPath: sandbox.rootDir,
-          provider: profile.provider,
-          model: profile.model,
+          provider: taskModel.provider,
+          model: taskModel.model,
+          thinkingLevel: taskGeneration?.thinkingLevel ?? null,
+          temperature: taskGeneration?.temperature ?? null,
+          topP: taskGeneration?.topP ?? null,
+          topK: taskGeneration?.topK ?? null,
+          maxOutputTokens: taskGeneration?.maxOutputTokens ?? null,
+
           providerFailureContext: {
             runtimeProfileId: profile.id,
             runtimeProfileName: profile.name,
             piAgentDirSource: piAgentDir.source,
           },
-          thinkingLevel: profile.thinkingLevel,
-          temperature: profile.temperature,
-          topP: profile.topP,
-          topK: profile.topK,
-          maxOutputTokens: profile.maxOutputTokens,
+
           sandboxConfig: sandbox.config,
           forwardEnv: profile.requiredEnv,
           onVmDiagnostic: (diagnostic) => {
@@ -910,13 +922,13 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             {
               profileId: profile.id,
               profileName: profile.name,
-              provider: profile.provider,
-              model: profile.model,
-              thinkingLevel: profile.thinkingLevel,
-              temperature: profile.temperature,
-              topP: profile.topP,
-              topK: profile.topK,
-              maxOutputTokens: profile.maxOutputTokens,
+              provider: taskModel.provider,
+              model: taskModel.model,
+              thinkingLevel: taskGeneration?.thinkingLevel ?? null,
+              temperature: taskGeneration?.temperature ?? null,
+              topP: taskGeneration?.topP ?? null,
+              topK: taskGeneration?.topK ?? null,
+              maxOutputTokens: taskGeneration?.maxOutputTokens ?? null,
             },
             () => rawExecuteTask(claimedTask, reporter),
           );
@@ -930,8 +942,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
               claimedTask.attemptN,
               slotIdentity,
               executionPlan.slotKey,
-              profile.provider,
-              profile.model,
+              taskModel.provider,
+              taskModel.model,
               executionPlan.sessionPersistence
                 ? resolveLatestPiSessionPath(
                     executionPlan.sessionPersistence.sessionDir,

@@ -240,8 +240,9 @@ describe('CreateTaskDialog', () => {
         {
           id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
           name: 'github-linear',
-          provider: 'anthropic',
-          model: 'claude-sonnet-4-5',
+          models: {
+            generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+          },
         },
       ],
     });
@@ -269,8 +270,9 @@ describe('CreateTaskDialog', () => {
         {
           id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
           name: 'github-linear',
-          provider: 'anthropic',
-          model: 'claude-sonnet-4-5',
+          models: {
+            generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+          },
         },
       ],
     });

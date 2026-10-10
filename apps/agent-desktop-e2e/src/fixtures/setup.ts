@@ -60,8 +60,8 @@ try {
     {
       name: 'desktop-deterministic-worker',
       runtimeKind: 'desktop_e2e',
-      provider: 'ollama',
-      model: 'desktop-fixture',
+      models: { generation: { provider: 'ollama', model: 'desktop-fixture' } },
+
       sandbox: {},
       defaultWorkspaceMode: 'none',
     },

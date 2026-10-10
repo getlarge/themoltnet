@@ -497,11 +497,30 @@ export type CreateRuntimeProfileBody = {
   defaultWorkspaceMode?: 'none' | 'shared_mount' | 'dedicated_worktree' | null;
   description?: string;
   maxBashTimeouts?: number;
-  maxOutputTokens?: number | null;
   maxTurns?: number;
-  model: string;
+  models: {
+    classification?: {
+      model: string;
+      provider: string;
+    };
+    generation?: {
+      maxOutputTokens?: number | null;
+      model: string;
+      provider: string;
+      temperature?: null | number;
+      thinkingLevel?:
+        | 'off'
+        | 'minimal'
+        | 'low'
+        | 'medium'
+        | 'high'
+        | 'xhigh'
+        | null;
+      topK?: number | null;
+      topP?: null | number;
+    };
+  };
   name: string;
-  provider: string;
   requiredEnv?: Array<string>;
   requiredExecutables?: Array<string>;
   requiredTools?: Array<string>;
@@ -526,21 +545,10 @@ export type CreateRuntimeProfileBody = {
       shadowMode?: 'deny' | 'tmpfs';
     };
   };
-  temperature?: null | number;
-  thinkingLevel?:
-    | 'off'
-    | 'minimal'
-    | 'low'
-    | 'medium'
-    | 'high'
-    | 'xhigh'
-    | null;
   /**
    * Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed).
    */
   toolEnforcement?: 'off' | 'watch' | 'enforce';
-  topK?: number | null;
-  topP?: null | number;
 };
 
 export type CreateTaskBody = {
@@ -2049,11 +2057,30 @@ export type RuntimeProfile = {
   description: string | null;
   id: string;
   maxBashTimeouts: number;
-  maxOutputTokens: number | null;
   maxTurns: number;
-  model: string;
+  models: {
+    classification?: {
+      model: string;
+      provider: string;
+    };
+    generation?: {
+      maxOutputTokens?: number | null;
+      model: string;
+      provider: string;
+      temperature?: null | number;
+      thinkingLevel?:
+        | 'off'
+        | 'minimal'
+        | 'low'
+        | 'medium'
+        | 'high'
+        | 'xhigh'
+        | null;
+      topK?: number | null;
+      topP?: null | number;
+    };
+  };
   name: string;
-  provider: string;
   requiredEnv: Array<string>;
   requiredExecutables: Array<string>;
   requiredTools: Array<string>;
@@ -2080,14 +2107,10 @@ export type RuntimeProfile = {
     };
   };
   teamId: string;
-  temperature: null | number;
-  thinkingLevel: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | null;
   /**
    * Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed).
    */
   toolEnforcement: 'off' | 'watch' | 'enforce';
-  topK: number | null;
-  topP: null | number;
   updatedAt: string;
 };
 
@@ -2115,11 +2138,30 @@ export type RuntimeProfileListResponse = {
     description: string | null;
     id: string;
     maxBashTimeouts: number;
-    maxOutputTokens: number | null;
     maxTurns: number;
-    model: string;
+    models: {
+      classification?: {
+        model: string;
+        provider: string;
+      };
+      generation?: {
+        maxOutputTokens?: number | null;
+        model: string;
+        provider: string;
+        temperature?: null | number;
+        thinkingLevel?:
+          | 'off'
+          | 'minimal'
+          | 'low'
+          | 'medium'
+          | 'high'
+          | 'xhigh'
+          | null;
+        topK?: number | null;
+        topP?: null | number;
+      };
+    };
     name: string;
-    provider: string;
     requiredEnv: Array<string>;
     requiredExecutables: Array<string>;
     requiredTools: Array<string>;
@@ -2146,21 +2188,10 @@ export type RuntimeProfileListResponse = {
       };
     };
     teamId: string;
-    temperature: null | number;
-    thinkingLevel:
-      | 'off'
-      | 'minimal'
-      | 'low'
-      | 'medium'
-      | 'high'
-      | 'xhigh'
-      | null;
     /**
      * Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed).
      */
     toolEnforcement: 'off' | 'watch' | 'enforce';
-    topK: number | null;
-    topP: null | number;
     updatedAt: string;
   }>;
 };
@@ -2948,11 +2979,30 @@ export type UpdateRuntimeProfileBody = {
   defaultWorkspaceMode?: 'none' | 'shared_mount' | 'dedicated_worktree' | null;
   description?: string;
   maxBashTimeouts?: number;
-  maxOutputTokens?: number | null;
   maxTurns?: number;
-  model?: string;
+  models?: {
+    classification?: {
+      model: string;
+      provider: string;
+    };
+    generation?: {
+      maxOutputTokens?: number | null;
+      model: string;
+      provider: string;
+      temperature?: null | number;
+      thinkingLevel?:
+        | 'off'
+        | 'minimal'
+        | 'low'
+        | 'medium'
+        | 'high'
+        | 'xhigh'
+        | null;
+      topK?: number | null;
+      topP?: null | number;
+    };
+  };
   name?: string;
-  provider?: string;
   requiredEnv?: Array<string>;
   requiredExecutables?: Array<string>;
   requiredTools?: Array<string>;
@@ -2977,21 +3027,10 @@ export type UpdateRuntimeProfileBody = {
       shadowMode?: 'deny' | 'tmpfs';
     };
   };
-  temperature?: null | number;
-  thinkingLevel?:
-    | 'off'
-    | 'minimal'
-    | 'low'
-    | 'medium'
-    | 'high'
-    | 'xhigh'
-    | null;
   /**
    * Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed).
    */
   toolEnforcement?: 'off' | 'watch' | 'enforce';
-  topK?: number | null;
-  topP?: null | number;
 };
 
 export type UpdateTaskMetadataBody = {
@@ -9591,6 +9630,475 @@ export type SetRuntimeProfilePoliciesResponses = {
 
 export type SetRuntimeProfilePoliciesResponse =
   SetRuntimeProfilePoliciesResponses[keyof SetRuntimeProfilePoliciesResponses];
+
+export type GetRuntimeStoreForAttemptData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path?: never;
+  query: {
+    taskId: string;
+    attemptN: number;
+  };
+  url: '/runtime-sessions/durable/attempt';
+};
+
+export type GetRuntimeStoreForAttemptErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type GetRuntimeStoreForAttemptError =
+  GetRuntimeStoreForAttemptErrors[keyof GetRuntimeStoreForAttemptErrors];
+
+export type GetRuntimeStoreForAttemptResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    format: 'pi-durable.v1';
+    headSeq: number;
+    storeId: string;
+  } | null;
+};
+
+export type GetRuntimeStoreForAttemptResponse =
+  GetRuntimeStoreForAttemptResponses[keyof GetRuntimeStoreForAttemptResponses];
+
+export type OpenRuntimeStoreData = {
+  body: {
+    attemptN: number;
+    executorFingerprint: string;
+    leaseId: string;
+    taskId: string;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path?: never;
+  query?: never;
+  url: '/runtime-sessions/durable/open';
+};
+
+export type OpenRuntimeStoreErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type OpenRuntimeStoreError =
+  OpenRuntimeStoreErrors[keyof OpenRuntimeStoreErrors];
+
+export type OpenRuntimeStoreResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    format: 'pi-durable.v1';
+    headSeq: number;
+    storeId: string;
+    writerExpiresAt: string;
+    writerToken: string;
+  };
+};
+
+export type OpenRuntimeStoreResponse =
+  OpenRuntimeStoreResponses[keyof OpenRuntimeStoreResponses];
+
+export type ListRuntimeStoreCommitsData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    storeId: string;
+  };
+  query?: {
+    afterSeq?: number;
+    limit?: number;
+  };
+  url: '/runtime-sessions/durable/{storeId}/commits';
+};
+
+export type ListRuntimeStoreCommitsErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type ListRuntimeStoreCommitsError =
+  ListRuntimeStoreCommitsErrors[keyof ListRuntimeStoreCommitsErrors];
+
+export type ListRuntimeStoreCommitsResponses = {
+  /**
+   * Ordered NDJSON commits. The first line contains headSeq and count; exactly count commit lines follow. A truncated stream must not be treated as a complete page.
+   */
+  200: Blob | File;
+};
+
+export type ListRuntimeStoreCommitsResponse =
+  ListRuntimeStoreCommitsResponses[keyof ListRuntimeStoreCommitsResponses];
+
+export type AppendRuntimeStoreCommitData = {
+  body: {
+    attemptN: number;
+    commitId: string;
+    executorFingerprint: string;
+    expectedSeq: number;
+    leaseId: string;
+    taskId: string;
+    writerToken: string;
+    writes: Array<{
+      [key: string]: unknown;
+    }>;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    storeId: string;
+  };
+  query?: never;
+  url: '/runtime-sessions/durable/{storeId}/commits';
+};
+
+export type AppendRuntimeStoreCommitErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type AppendRuntimeStoreCommitError =
+  AppendRuntimeStoreCommitErrors[keyof AppendRuntimeStoreCommitErrors];
+
+export type AppendRuntimeStoreCommitResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    seq: number;
+  };
+};
+
+export type AppendRuntimeStoreCommitResponse =
+  AppendRuntimeStoreCommitResponses[keyof AppendRuntimeStoreCommitResponses];
+
+export type MintRuntimeStoreIdData = {
+  body: {
+    attemptN: number;
+    executorFingerprint: string;
+    leaseId: string;
+    taskId: string;
+    writerToken: string;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    storeId: string;
+  };
+  query?: never;
+  url: '/runtime-sessions/durable/{storeId}/ids';
+};
+
+export type MintRuntimeStoreIdErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type MintRuntimeStoreIdError =
+  MintRuntimeStoreIdErrors[keyof MintRuntimeStoreIdErrors];
+
+export type MintRuntimeStoreIdResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    id: number;
+  };
+};
+
+export type MintRuntimeStoreIdResponse =
+  MintRuntimeStoreIdResponses[keyof MintRuntimeStoreIdResponses];
+
+export type ReleaseRuntimeStoreData = {
+  body: {
+    attemptN: number;
+    executorFingerprint: string;
+    leaseId: string;
+    taskId: string;
+    writerToken: string;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    storeId: string;
+  };
+  query?: never;
+  url: '/runtime-sessions/durable/{storeId}/release';
+};
+
+export type ReleaseRuntimeStoreErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type ReleaseRuntimeStoreError =
+  ReleaseRuntimeStoreErrors[keyof ReleaseRuntimeStoreErrors];
+
+export type ReleaseRuntimeStoreResponses = {
+  /**
+   * Default Response
+   */
+  204: void;
+};
+
+export type ReleaseRuntimeStoreResponse =
+  ReleaseRuntimeStoreResponses[keyof ReleaseRuntimeStoreResponses];
+
+export type RenewRuntimeStoreData = {
+  body: {
+    attemptN: number;
+    executorFingerprint: string;
+    leaseId: string;
+    taskId: string;
+    writerToken: string;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    storeId: string;
+  };
+  query?: never;
+  url: '/runtime-sessions/durable/{storeId}/renew';
+};
+
+export type RenewRuntimeStoreErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type RenewRuntimeStoreError =
+  RenewRuntimeStoreErrors[keyof RenewRuntimeStoreErrors];
+
+export type RenewRuntimeStoreResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    format: 'pi-durable.v1';
+    headSeq: number;
+    storeId: string;
+    writerExpiresAt: string;
+    writerToken: string;
+  };
+};
+
+export type RenewRuntimeStoreResponse =
+  RenewRuntimeStoreResponses[keyof RenewRuntimeStoreResponses];
 
 export type GetRuntimeSessionData = {
   body?: never;

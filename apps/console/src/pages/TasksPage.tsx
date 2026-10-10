@@ -207,8 +207,7 @@ export function TasksPage() {
       (runtimeProfilesQuery.data?.items ?? []).map((profile) => ({
         id: profile.id,
         name: profile.name,
-        provider: profile.provider,
-        model: profile.model,
+        models: profile.models,
       })),
     [runtimeProfilesQuery.data],
   );

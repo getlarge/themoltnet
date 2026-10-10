@@ -1,6 +1,7 @@
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { runtimeProfileModel } from '@moltnet/runtime-profiles';
 import {
   AgentRuntime,
   ApiTaskReporter,
@@ -258,6 +259,8 @@ export async function runOnce(
     }),
     selection,
   );
+  const primaryModel = runtimeProfileModel(profile.models);
+  const generation = profile.models.generation;
   const { logger, shutdown: shutdownLogger } = createRootLogger({
     name: 'agent-daemon.once',
     level: cfg.logLevel || (identity.debug ? 'debug' : 'info'),
@@ -272,13 +275,13 @@ export async function runOnce(
     apiUrl: selection.apiUrl,
     mode: 'once',
     agent: identity.agent,
-    provider: profile.provider,
-    model: profile.model,
-    thinkingLevel: profile.thinkingLevel,
-    temperature: profile.temperature,
-    topP: profile.topP,
-    topK: profile.topK,
-    maxOutputTokens: profile.maxOutputTokens,
+    provider: primaryModel.provider,
+    model: primaryModel.model,
+    thinkingLevel: generation?.thinkingLevel ?? null,
+    temperature: generation?.temperature ?? null,
+    topP: generation?.topP ?? null,
+    topK: generation?.topK ?? null,
+    maxOutputTokens: generation?.maxOutputTokens ?? null,
     runtimeProfileId: profile.id,
     runtimeProfileName: profile.name,
   });
@@ -324,23 +327,33 @@ export async function runOnce(
       'moltnet.task.id': taskId,
       'moltnet.agent.name': identity.agent,
       'moltnet.credential.source': ctx.credentialSource,
-      'moltnet.llm.provider': profile.provider,
-      'moltnet.llm.model': profile.model,
-      ...(profile.thinkingLevel
-        ? { 'moltnet.llm.thinking_level': profile.thinkingLevel }
-        : {}),
-      ...(profile.temperature !== null
-        ? { 'moltnet.llm.temperature': String(profile.temperature) }
-        : {}),
-      ...(profile.topP !== null
-        ? { 'moltnet.llm.top_p': String(profile.topP) }
-        : {}),
-      ...(profile.topK !== null
-        ? { 'moltnet.llm.top_k': String(profile.topK) }
-        : {}),
-      ...(profile.maxOutputTokens !== null
+      'moltnet.llm.provider': primaryModel.provider,
+      'moltnet.llm.model': primaryModel.model,
+      ...((generation?.thinkingLevel ?? null)
         ? {
-            'moltnet.llm.max_output_tokens': String(profile.maxOutputTokens),
+            'moltnet.llm.thinking_level': String(generation?.thinkingLevel),
+          }
+        : {}),
+      ...((generation?.temperature ?? null) !== null
+        ? {
+            'moltnet.llm.temperature': String(generation?.temperature ?? null),
+          }
+        : {}),
+      ...((generation?.topP ?? null) !== null
+        ? {
+            'moltnet.llm.top_p': String(generation?.topP ?? null),
+          }
+        : {}),
+      ...((generation?.topK ?? null) !== null
+        ? {
+            'moltnet.llm.top_k': String(generation?.topK ?? null),
+          }
+        : {}),
+      ...((generation?.maxOutputTokens ?? null) !== null
+        ? {
+            'moltnet.llm.max_output_tokens': String(
+              generation?.maxOutputTokens ?? null,
+            ),
           }
         : {}),
       'moltnet.runtime_profile.id': profile.id,
@@ -450,54 +463,67 @@ export async function runOnce(
   });
 
   try {
-    const rawExecuteTask = preparedRuntime.createTaskExecutor({
-      agentName: identity.agent,
-      moltnetAgent: ctx.agent,
-      agentIdentity,
-      hostCapabilitySigner,
-      hostCapabilityLogger: rootLogger,
-      agentRootDir: ctx.agentRootDir,
-      mountPath: sandbox.rootDir,
-      provider: profile.provider,
-      model: profile.model,
-      providerFailureContext: {
+    const createRawExecuteTask = (
+      taskModel: { provider: string; model: string },
+      taskGeneration: typeof generation,
+    ) =>
+      preparedRuntime.createTaskExecutor({
+        agentName: identity.agent,
+        moltnetAgent: ctx.agent,
+        agentIdentity,
+        hostCapabilitySigner,
+        hostCapabilityLogger: rootLogger,
+        agentRootDir: ctx.agentRootDir,
+        mountPath: sandbox.rootDir,
+        provider: taskModel.provider,
+        model: taskModel.model,
+        thinkingLevel: taskGeneration?.thinkingLevel ?? null,
+        temperature: taskGeneration?.temperature ?? null,
+        topP: taskGeneration?.topP ?? null,
+        topK: taskGeneration?.topK ?? null,
+        maxOutputTokens: taskGeneration?.maxOutputTokens ?? null,
+
+        providerFailureContext: {
+          runtimeProfileId: profile.id,
+          runtimeProfileName: profile.name,
+          piAgentDirSource: piAgentDir.source,
+        },
+
+        sandboxConfig: sandbox.config,
+        forwardEnv: profile.requiredEnv,
+        onVmDiagnostic: (diagnostic) => {
+          const fields = {
+            event: diagnostic.event,
+            ...(diagnostic.brokeredSecretCount !== undefined && {
+              brokeredSecretCount: diagnostic.brokeredSecretCount,
+            }),
+          };
+          if (diagnostic.level === 'warning') {
+            rootLogger.warn(fields, diagnostic.message);
+          } else {
+            rootLogger.info(fields, diagnostic.message);
+          }
+        },
+        runtimeProfileContext: profile.context,
         runtimeProfileId: profile.id,
-        runtimeProfileName: profile.name,
-        piAgentDirSource: piAgentDir.source,
-      },
-      thinkingLevel: profile.thinkingLevel,
-      temperature: profile.temperature,
-      topP: profile.topP,
-      topK: profile.topK,
-      maxOutputTokens: profile.maxOutputTokens,
-      sandboxConfig: sandbox.config,
-      forwardEnv: profile.requiredEnv,
-      onVmDiagnostic: (diagnostic) => {
-        const fields = {
-          event: diagnostic.event,
-          ...(diagnostic.brokeredSecretCount !== undefined && {
-            brokeredSecretCount: diagnostic.brokeredSecretCount,
-          }),
-        };
-        if (diagnostic.level === 'warning') {
-          rootLogger.warn(fields, diagnostic.message);
-        } else {
-          rootLogger.info(fields, diagnostic.message);
-        }
-      },
-      runtimeProfileContext: profile.context,
-      runtimeProfileId: profile.id,
-      toolEnforcement: profile.toolEnforcement,
-      makeExecutionPlan: (claimedTask) =>
-        executionPlans.getOrCreate(claimedTask),
-      onTurnEvent: makeTurnEventHandler(rootLogger, { taskId }),
-      toolPolicyLogger: rootLogger,
-      maxTurns: profile.maxTurns,
-      maxBashTimeouts: profile.maxBashTimeouts,
-    });
+        toolEnforcement: profile.toolEnforcement,
+        makeExecutionPlan: (claimedTask) =>
+          executionPlans.getOrCreate(claimedTask),
+        onTurnEvent: makeTurnEventHandler(rootLogger, { taskId }),
+        toolPolicyLogger: rootLogger,
+        maxTurns: profile.maxTurns,
+        maxBashTimeouts: profile.maxBashTimeouts,
+      });
     const executeTask: TaskExecutor = async (claimedTask, reporter) => {
+      const taskModel = runtimeProfileModel(
+        profile.models,
+        claimedTask.task.taskType,
+      );
+      const taskGeneration =
+        claimedTask.task.taskType === 'classify' ? undefined : generation;
       const contractFailure = preflightOutputContract(claimedTask);
       if (contractFailure) return contractFailure;
+      const rawExecuteTask = createRawExecuteTask(taskModel, taskGeneration);
       if (runtimeCredentialConfig) {
         await observeGovernancePlanSafely({
           config: runtimeCredentialConfig,
@@ -549,8 +575,8 @@ export async function runOnce(
         await slotRegistry.beginSlot({
           ...slotIdentity,
           runtimeProfileId: profile.id,
-          provider: profile.provider,
-          model: profile.model,
+          provider: taskModel.provider,
+          model: taskModel.model,
           teamId: claimedTask.task.teamId,
           slotKey: executionPlan.slotKey,
           taskType: claimedTask.task.taskType,
@@ -580,13 +606,13 @@ export async function runOnce(
           {
             profileId: profile.id,
             profileName: profile.name,
-            provider: profile.provider,
-            model: profile.model,
-            thinkingLevel: profile.thinkingLevel,
-            temperature: profile.temperature,
-            topP: profile.topP,
-            topK: profile.topK,
-            maxOutputTokens: profile.maxOutputTokens,
+            provider: taskModel.provider,
+            model: taskModel.model,
+            thinkingLevel: taskGeneration?.thinkingLevel ?? null,
+            temperature: taskGeneration?.temperature ?? null,
+            topP: taskGeneration?.topP ?? null,
+            topK: taskGeneration?.topK ?? null,
+            maxOutputTokens: taskGeneration?.maxOutputTokens ?? null,
           },
           () => rawExecuteTask(claimedTask, reporter),
         );
@@ -600,8 +626,8 @@ export async function runOnce(
             claimedTask.attemptN,
             slotIdentity,
             executionPlan.slotKey,
-            profile.provider,
-            profile.model,
+            taskModel.provider,
+            taskModel.model,
             executionPlan.sessionPersistence
               ? resolveLatestPiSessionPath(
                   executionPlan.sessionPersistence.sessionDir,

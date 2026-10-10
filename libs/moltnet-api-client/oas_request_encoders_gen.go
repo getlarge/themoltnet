@@ -60,6 +60,20 @@ func encodeAddGroupMemberRequest(
 	return nil
 }
 
+func encodeAppendRuntimeStoreCommitRequest(
+	req *AppendRuntimeStoreCommitReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeAppendTaskMessagesRequest(
 	req *AppendTaskMessagesReq,
 	r *http.Request,
@@ -564,6 +578,34 @@ func encodeJoinTeamRequest(
 	return nil
 }
 
+func encodeMintRuntimeStoreIdRequest(
+	req *MintRuntimeStoreIdReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeOpenRuntimeStoreRequest(
+	req *OpenRuntimeStoreReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodePreviewDiaryCustomPackRequest(
 	req *PreviewDiaryCustomPackReq,
 	r *http.Request,
@@ -674,8 +716,36 @@ func encodeRejectSigningRequestRequest(
 	return nil
 }
 
+func encodeReleaseRuntimeStoreRequest(
+	req *ReleaseRuntimeStoreReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeRenderContextPackRequest(
 	req *RenderContextPackReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeRenewRuntimeStoreRequest(
+	req *RenewRuntimeStoreReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

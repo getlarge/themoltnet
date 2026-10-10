@@ -10,17 +10,28 @@
   "defaultWorkspaceMode": "dedicated_worktree",
   "description": "Read-only GLM-5.2 runtime for LeGreffier PR complexity and security review tasks.",
   "maxBashTimeouts": 3,
-  "maxOutputTokens": 16384,
   "maxTurns": 40,
-  "model": "glm-5.2",
+  "models": {
+    "generation": {
+      "maxOutputTokens": 16384,
+      "model": "glm-5.2",
+      "provider": "ollama-cloud",
+      "temperature": 0.1
+    }
+  },
   "name": "legreffier-review-v1",
-  "provider": "ollama-cloud",
   "requiredEnv": ["OLLAMA_API_KEY"],
   "runtimeKind": "gondolin_pi",
   "sandbox": {
     "env": {},
-    "network": { "allowedHosts": [], "allowedInternalHosts": [] },
-    "resources": { "cpus": 3, "memory": "6G" },
+    "network": {
+      "allowedHosts": [],
+      "allowedInternalHosts": []
+    },
+    "resources": {
+      "cpus": 3,
+      "memory": "6G"
+    },
     "vfs": {
       "shadow": [
         ".moltnet",
@@ -32,6 +43,5 @@
       "shadowMode": "deny"
     }
   },
-  "temperature": 0.1,
   "toolEnforcement": "watch"
 }

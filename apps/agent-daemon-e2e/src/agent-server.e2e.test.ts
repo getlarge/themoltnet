@@ -902,8 +902,8 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       {
         name: profileName,
         runtimeKind: 'gondolin_pi',
-        provider: PROVIDER_ID,
-        model: MODEL_ID,
+        models: { generation: { provider: PROVIDER_ID, model: MODEL_ID } },
+
         sandbox: {},
       },
       { teamId },
@@ -1049,8 +1049,8 @@ describe.sequential('moltnet-agent server (loopback supervisor)', () => {
       {
         name: `concurrent-${randomUUID()}`,
         runtimeKind: 'gondolin_pi',
-        provider: PROVIDER_ID,
-        model: MODEL_ID,
+        models: { generation: { provider: PROVIDER_ID, model: MODEL_ID } },
+
         sandbox: {},
       },
       { teamId: teamB.id },

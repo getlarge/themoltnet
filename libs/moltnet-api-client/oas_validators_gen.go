@@ -715,6 +715,183 @@ func (s *AppendMessagesResponse) Validate() error {
 	return nil
 }
 
+func (s *AppendRuntimeStoreCommitBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *AppendRuntimeStoreCommitConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *AppendRuntimeStoreCommitForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *AppendRuntimeStoreCommitNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *AppendRuntimeStoreCommitOK) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           0,
+			MaxSet:        true,
+			Max:           9007199254740991,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.Seq)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "seq",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *AppendRuntimeStoreCommitReq) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           1,
+			MaxSet:        false,
+			Max:           0,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.AttemptN)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "attemptN",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     0,
+			MaxLengthSet:  false,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.ExecutorFingerprint)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "executorFingerprint",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           0,
+			MaxSet:        true,
+			Max:           9007199254740991,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.ExpectedSeq)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "expectedSeq",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if s.Writes == nil {
+			return errors.New("nil is invalid value")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "writes",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *AppendRuntimeStoreCommitServiceUnavailable) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *AppendRuntimeStoreCommitTooManyRequests) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *AppendRuntimeStoreCommitUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *AppendTaskMessagesBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -5837,34 +6014,6 @@ func (s *CreateRuntimeProfileBody) Validate() error {
 		})
 	}
 	if err := func() error {
-		if value, ok := s.MaxOutputTokens.Get(); ok {
-			if err := func() error {
-				if err := (validate.Int{
-					MinSet:        true,
-					Min:           1,
-					MaxSet:        true,
-					Max:           1000000,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    0,
-					Pattern:       nil,
-				}).Validate(int64(value)); err != nil {
-					return errors.Wrap(err, "int")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "maxOutputTokens",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if value, ok := s.MaxTurns.Get(); ok {
 			if err := func() error {
 				if err := (validate.Int{
@@ -5893,25 +6042,13 @@ func (s *CreateRuntimeProfileBody) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     200,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.Model)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.Models.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "model",
+			Name:  "models",
 			Error: err,
 		})
 	}
@@ -5935,29 +6072,6 @@ func (s *CreateRuntimeProfileBody) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "name",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     100,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.Provider)); err != nil {
-			return errors.Wrap(err, "string")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "provider",
 			Error: err,
 		})
 	}
@@ -6147,52 +6261,6 @@ func (s *CreateRuntimeProfileBody) Validate() error {
 		})
 	}
 	if err := func() error {
-		if value, ok := s.Temperature.Get(); ok {
-			if err := func() error {
-				if err := (validate.Float{
-					MinSet:        true,
-					Min:           0,
-					MaxSet:        true,
-					Max:           2,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    nil,
-					Pattern:       nil,
-				}).Validate(float64(value)); err != nil {
-					return errors.Wrap(err, "float")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "temperature",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.ThinkingLevel.Get(); ok {
-			if err := func() error {
-				if err := value.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "thinkingLevel",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if value, ok := s.ToolEnforcement.Get(); ok {
 			if err := func() error {
 				if err := value.Validate(); err != nil {
@@ -6207,62 +6275,6 @@ func (s *CreateRuntimeProfileBody) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "toolEnforcement",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.TopK.Get(); ok {
-			if err := func() error {
-				if err := (validate.Int{
-					MinSet:        true,
-					Min:           1,
-					MaxSet:        true,
-					Max:           10000,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    0,
-					Pattern:       nil,
-				}).Validate(int64(value)); err != nil {
-					return errors.Wrap(err, "int")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "topK",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.TopP.Get(); ok {
-			if err := func() error {
-				if err := (validate.Float{
-					MinSet:        true,
-					Min:           0,
-					MaxSet:        true,
-					Max:           1,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    nil,
-					Pattern:       nil,
-				}).Validate(float64(value)); err != nil {
-					return errors.Wrap(err, "float")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "topP",
 			Error: err,
 		})
 	}
@@ -6376,6 +6388,319 @@ func (s CreateRuntimeProfileBodyDefaultWorkspaceMode) Validate() error {
 	case "shared_mount":
 		return nil
 	case "dedicated_worktree":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *CreateRuntimeProfileBodyModels) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.Classification.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "classification",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.Generation.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "generation",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *CreateRuntimeProfileBodyModelsClassification) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     200,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Model)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "model",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     100,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Provider)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "provider",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *CreateRuntimeProfileBodyModelsGeneration) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.MaxOutputTokens.Get(); ok {
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           1,
+					MaxSet:        true,
+					Max:           1000000,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(value)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "maxOutputTokens",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     200,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Model)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "model",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     100,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Provider)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "provider",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.Temperature.Get(); ok {
+			if err := func() error {
+				if err := (validate.Float{
+					MinSet:        true,
+					Min:           0,
+					MaxSet:        true,
+					Max:           2,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    nil,
+					Pattern:       nil,
+				}).Validate(float64(value)); err != nil {
+					return errors.Wrap(err, "float")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "temperature",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.ThinkingLevel.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "thinkingLevel",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.TopK.Get(); ok {
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           1,
+					MaxSet:        true,
+					Max:           10000,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(value)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "topK",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.TopP.Get(); ok {
+			if err := func() error {
+				if err := (validate.Float{
+					MinSet:        true,
+					Min:           0,
+					MaxSet:        true,
+					Max:           1,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    nil,
+					Pattern:       nil,
+				}).Validate(float64(value)); err != nil {
+					return errors.Wrap(err, "float")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "topP",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s CreateRuntimeProfileBodyModelsGenerationThinkingLevel) Validate() error {
+	switch s {
+	case "off":
+		return nil
+	case "minimal":
+		return nil
+	case "low":
+		return nil
+	case "medium":
+		return nil
+	case "high":
+		return nil
+	case "xhigh":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -6818,25 +7143,6 @@ func (s CreateRuntimeProfileBodySandboxVfsShadowMode) Validate() error {
 	case "deny":
 		return nil
 	case "tmpfs":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
-func (s CreateRuntimeProfileBodyThinkingLevel) Validate() error {
-	switch s {
-	case "off":
-		return nil
-	case "minimal":
-		return nil
-	case "low":
-		return nil
-	case "medium":
-		return nil
-	case "high":
-		return nil
-	case "xhigh":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -17233,6 +17539,115 @@ func (s GetRuntimeSessionUnauthorizedCode) Validate() error {
 	}
 }
 
+func (s *GetRuntimeStoreForAttemptBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetRuntimeStoreForAttemptConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetRuntimeStoreForAttemptForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetRuntimeStoreForAttemptNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetRuntimeStoreForAttemptOK) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Format.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "format",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           0,
+			MaxSet:        true,
+			Max:           9007199254740991,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.HeadSeq)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "headSeq",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s GetRuntimeStoreForAttemptOKFormat) Validate() error {
+	switch s {
+	case "pi-durable.v1":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *GetRuntimeStoreForAttemptServiceUnavailable) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetRuntimeStoreForAttemptTooManyRequests) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetRuntimeStoreForAttemptUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *GetSigningCredentialForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -20281,6 +20696,62 @@ func (s ListRuntimeSlotsUnauthorizedCode) Validate() error {
 	}
 }
 
+func (s *ListRuntimeStoreCommitsBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ListRuntimeStoreCommitsConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ListRuntimeStoreCommitsForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ListRuntimeStoreCommitsNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ListRuntimeStoreCommitsServiceUnavailable) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ListRuntimeStoreCommitsTooManyRequests) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ListRuntimeStoreCommitsUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *ListSigningCredentialsForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -21969,6 +22440,151 @@ func (s *ListTeamsUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *MintRuntimeStoreIdBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *MintRuntimeStoreIdConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *MintRuntimeStoreIdForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *MintRuntimeStoreIdNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *MintRuntimeStoreIdOK) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           0,
+			MaxSet:        true,
+			Max:           9007199254740991,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.ID)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "id",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *MintRuntimeStoreIdReq) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           1,
+			MaxSet:        false,
+			Max:           0,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.AttemptN)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "attemptN",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     0,
+			MaxLengthSet:  false,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.ExecutorFingerprint)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "executorFingerprint",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *MintRuntimeStoreIdServiceUnavailable) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *MintRuntimeStoreIdTooManyRequests) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *MintRuntimeStoreIdUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *NetworkInfo) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -22574,6 +23190,171 @@ func (s OAuth2RegistrationCredentialType) Validate() error {
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
+}
+
+func (s *OpenRuntimeStoreBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *OpenRuntimeStoreConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *OpenRuntimeStoreForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *OpenRuntimeStoreNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *OpenRuntimeStoreOK) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Format.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "format",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           0,
+			MaxSet:        true,
+			Max:           9007199254740991,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.HeadSeq)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "headSeq",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s OpenRuntimeStoreOKFormat) Validate() error {
+	switch s {
+	case "pi-durable.v1":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *OpenRuntimeStoreReq) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           1,
+			MaxSet:        false,
+			Max:           0,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.AttemptN)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "attemptN",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     0,
+			MaxLengthSet:  false,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.ExecutorFingerprint)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "executorFingerprint",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *OpenRuntimeStoreServiceUnavailable) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *OpenRuntimeStoreTooManyRequests) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *OpenRuntimeStoreUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *PreviewDiaryCustomPackBadRequest) Validate() error {
@@ -26000,6 +26781,118 @@ func (s RelationType) Validate() error {
 	}
 }
 
+func (s *ReleaseRuntimeStoreBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ReleaseRuntimeStoreConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ReleaseRuntimeStoreForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ReleaseRuntimeStoreNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ReleaseRuntimeStoreReq) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           1,
+			MaxSet:        false,
+			Max:           0,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.AttemptN)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "attemptN",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     0,
+			MaxLengthSet:  false,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.ExecutorFingerprint)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "executorFingerprint",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *ReleaseRuntimeStoreServiceUnavailable) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ReleaseRuntimeStoreTooManyRequests) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ReleaseRuntimeStoreUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *RemoveGroupMemberForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -26392,6 +27285,171 @@ func (s RenderedPackWithContentCreator) Validate() error {
 	default:
 		return errors.Errorf("invalid type %q", s.Type)
 	}
+}
+
+func (s *RenewRuntimeStoreBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RenewRuntimeStoreConflict) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RenewRuntimeStoreForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RenewRuntimeStoreNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RenewRuntimeStoreOK) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Format.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "format",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           0,
+			MaxSet:        true,
+			Max:           9007199254740991,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.HeadSeq)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "headSeq",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s RenewRuntimeStoreOKFormat) Validate() error {
+	switch s {
+	case "pi-durable.v1":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *RenewRuntimeStoreReq) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           1,
+			MaxSet:        false,
+			Max:           0,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.AttemptN)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "attemptN",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     0,
+			MaxLengthSet:  false,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.ExecutorFingerprint)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "executorFingerprint",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *RenewRuntimeStoreServiceUnavailable) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RenewRuntimeStoreTooManyRequests) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RenewRuntimeStoreUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *RequestRecoveryChallengeBadRequest) Validate() error {
@@ -27693,34 +28751,6 @@ func (s *RuntimeProfile) Validate() error {
 		})
 	}
 	if err := func() error {
-		if value, ok := s.MaxOutputTokens.Get(); ok {
-			if err := func() error {
-				if err := (validate.Int{
-					MinSet:        true,
-					Min:           1,
-					MaxSet:        true,
-					Max:           1000000,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    0,
-					Pattern:       nil,
-				}).Validate(int64(value)); err != nil {
-					return errors.Wrap(err, "int")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "maxOutputTokens",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if err := (validate.Int{
 			MinSet:        true,
 			Min:           0,
@@ -27742,25 +28772,13 @@ func (s *RuntimeProfile) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     200,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.Model)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.Models.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "model",
+			Name:  "models",
 			Error: err,
 		})
 	}
@@ -27784,29 +28802,6 @@ func (s *RuntimeProfile) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "name",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     100,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.Provider)); err != nil {
-			return errors.Wrap(err, "string")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "provider",
 			Error: err,
 		})
 	}
@@ -28010,52 +29005,6 @@ func (s *RuntimeProfile) Validate() error {
 		})
 	}
 	if err := func() error {
-		if value, ok := s.Temperature.Get(); ok {
-			if err := func() error {
-				if err := (validate.Float{
-					MinSet:        true,
-					Min:           0,
-					MaxSet:        true,
-					Max:           2,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    nil,
-					Pattern:       nil,
-				}).Validate(float64(value)); err != nil {
-					return errors.Wrap(err, "float")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "temperature",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.ThinkingLevel.Get(); ok {
-			if err := func() error {
-				if err := value.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "thinkingLevel",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if err := s.ToolEnforcement.Validate(); err != nil {
 			return err
 		}
@@ -28063,62 +29012,6 @@ func (s *RuntimeProfile) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "toolEnforcement",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.TopK.Get(); ok {
-			if err := func() error {
-				if err := (validate.Int{
-					MinSet:        true,
-					Min:           1,
-					MaxSet:        true,
-					Max:           10000,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    0,
-					Pattern:       nil,
-				}).Validate(int64(value)); err != nil {
-					return errors.Wrap(err, "int")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "topK",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.TopP.Get(); ok {
-			if err := func() error {
-				if err := (validate.Float{
-					MinSet:        true,
-					Min:           0,
-					MaxSet:        true,
-					Max:           1,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    nil,
-					Pattern:       nil,
-				}).Validate(float64(value)); err != nil {
-					return errors.Wrap(err, "float")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "topP",
 			Error: err,
 		})
 	}
@@ -28452,34 +29345,6 @@ func (s *RuntimeProfileListResponseItemsItem) Validate() error {
 		})
 	}
 	if err := func() error {
-		if value, ok := s.MaxOutputTokens.Get(); ok {
-			if err := func() error {
-				if err := (validate.Int{
-					MinSet:        true,
-					Min:           1,
-					MaxSet:        true,
-					Max:           1000000,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    0,
-					Pattern:       nil,
-				}).Validate(int64(value)); err != nil {
-					return errors.Wrap(err, "int")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "maxOutputTokens",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if err := (validate.Int{
 			MinSet:        true,
 			Min:           0,
@@ -28501,25 +29366,13 @@ func (s *RuntimeProfileListResponseItemsItem) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     200,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.Model)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.Models.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "model",
+			Name:  "models",
 			Error: err,
 		})
 	}
@@ -28543,29 +29396,6 @@ func (s *RuntimeProfileListResponseItemsItem) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "name",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     100,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.Provider)); err != nil {
-			return errors.Wrap(err, "string")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "provider",
 			Error: err,
 		})
 	}
@@ -28769,52 +29599,6 @@ func (s *RuntimeProfileListResponseItemsItem) Validate() error {
 		})
 	}
 	if err := func() error {
-		if value, ok := s.Temperature.Get(); ok {
-			if err := func() error {
-				if err := (validate.Float{
-					MinSet:        true,
-					Min:           0,
-					MaxSet:        true,
-					Max:           2,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    nil,
-					Pattern:       nil,
-				}).Validate(float64(value)); err != nil {
-					return errors.Wrap(err, "float")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "temperature",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.ThinkingLevel.Get(); ok {
-			if err := func() error {
-				if err := value.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "thinkingLevel",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if err := s.ToolEnforcement.Validate(); err != nil {
 			return err
 		}
@@ -28822,62 +29606,6 @@ func (s *RuntimeProfileListResponseItemsItem) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "toolEnforcement",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.TopK.Get(); ok {
-			if err := func() error {
-				if err := (validate.Int{
-					MinSet:        true,
-					Min:           1,
-					MaxSet:        true,
-					Max:           10000,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    0,
-					Pattern:       nil,
-				}).Validate(int64(value)); err != nil {
-					return errors.Wrap(err, "int")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "topK",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.TopP.Get(); ok {
-			if err := func() error {
-				if err := (validate.Float{
-					MinSet:        true,
-					Min:           0,
-					MaxSet:        true,
-					Max:           1,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    nil,
-					Pattern:       nil,
-				}).Validate(float64(value)); err != nil {
-					return errors.Wrap(err, "float")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "topP",
 			Error: err,
 		})
 	}
@@ -28991,6 +29719,319 @@ func (s RuntimeProfileListResponseItemsItemDefaultWorkspaceMode) Validate() erro
 	case "shared_mount":
 		return nil
 	case "dedicated_worktree":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *RuntimeProfileListResponseItemsItemModels) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.Classification.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "classification",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.Generation.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "generation",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *RuntimeProfileListResponseItemsItemModelsClassification) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     200,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Model)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "model",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     100,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Provider)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "provider",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.MaxOutputTokens.Get(); ok {
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           1,
+					MaxSet:        true,
+					Max:           1000000,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(value)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "maxOutputTokens",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     200,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Model)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "model",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     100,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Provider)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "provider",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.Temperature.Get(); ok {
+			if err := func() error {
+				if err := (validate.Float{
+					MinSet:        true,
+					Min:           0,
+					MaxSet:        true,
+					Max:           2,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    nil,
+					Pattern:       nil,
+				}).Validate(float64(value)); err != nil {
+					return errors.Wrap(err, "float")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "temperature",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.ThinkingLevel.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "thinkingLevel",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.TopK.Get(); ok {
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           1,
+					MaxSet:        true,
+					Max:           10000,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(value)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "topK",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.TopP.Get(); ok {
+			if err := func() error {
+				if err := (validate.Float{
+					MinSet:        true,
+					Min:           0,
+					MaxSet:        true,
+					Max:           1,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    nil,
+					Pattern:       nil,
+				}).Validate(float64(value)); err != nil {
+					return errors.Wrap(err, "float")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "topP",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) Validate() error {
+	switch s {
+	case "off":
+		return nil
+	case "minimal":
+		return nil
+	case "low":
+		return nil
+	case "medium":
+		return nil
+	case "high":
+		return nil
+	case "xhigh":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -29439,7 +30480,314 @@ func (s RuntimeProfileListResponseItemsItemSandboxVfsShadowMode) Validate() erro
 	}
 }
 
-func (s RuntimeProfileListResponseItemsItemThinkingLevel) Validate() error {
+func (s RuntimeProfileListResponseItemsItemToolEnforcement) Validate() error {
+	switch s {
+	case "off":
+		return nil
+	case "watch":
+		return nil
+	case "enforce":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *RuntimeProfileModels) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.Classification.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "classification",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.Generation.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "generation",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *RuntimeProfileModelsClassification) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     200,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Model)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "model",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     100,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Provider)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "provider",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *RuntimeProfileModelsGeneration) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.MaxOutputTokens.Get(); ok {
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           1,
+					MaxSet:        true,
+					Max:           1000000,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(value)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "maxOutputTokens",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     200,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Model)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "model",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     100,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Provider)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "provider",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.Temperature.Get(); ok {
+			if err := func() error {
+				if err := (validate.Float{
+					MinSet:        true,
+					Min:           0,
+					MaxSet:        true,
+					Max:           2,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    nil,
+					Pattern:       nil,
+				}).Validate(float64(value)); err != nil {
+					return errors.Wrap(err, "float")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "temperature",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.ThinkingLevel.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "thinkingLevel",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.TopK.Get(); ok {
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           1,
+					MaxSet:        true,
+					Max:           10000,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(value)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "topK",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.TopP.Get(); ok {
+			if err := func() error {
+				if err := (validate.Float{
+					MinSet:        true,
+					Min:           0,
+					MaxSet:        true,
+					Max:           1,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    nil,
+					Pattern:       nil,
+				}).Validate(float64(value)); err != nil {
+					return errors.Wrap(err, "float")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "topP",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s RuntimeProfileModelsGenerationThinkingLevel) Validate() error {
 	switch s {
 	case "off":
 		return nil
@@ -29452,19 +30800,6 @@ func (s RuntimeProfileListResponseItemsItemThinkingLevel) Validate() error {
 	case "high":
 		return nil
 	case "xhigh":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
-func (s RuntimeProfileListResponseItemsItemToolEnforcement) Validate() error {
-	switch s {
-	case "off":
-		return nil
-	case "watch":
-		return nil
-	case "enforce":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -29930,25 +31265,6 @@ func (s RuntimeProfileSandboxVfsShadowMode) Validate() error {
 	case "deny":
 		return nil
 	case "tmpfs":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
-func (s RuntimeProfileThinkingLevel) Validate() error {
-	switch s {
-	case "off":
-		return nil
-	case "minimal":
-		return nil
-	case "low":
-		return nil
-	case "medium":
-		return nil
-	case "high":
-		return nil
-	case "xhigh":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -36769,34 +38085,6 @@ func (s *UpdateRuntimeProfileBody) Validate() error {
 		})
 	}
 	if err := func() error {
-		if value, ok := s.MaxOutputTokens.Get(); ok {
-			if err := func() error {
-				if err := (validate.Int{
-					MinSet:        true,
-					Min:           1,
-					MaxSet:        true,
-					Max:           1000000,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    0,
-					Pattern:       nil,
-				}).Validate(int64(value)); err != nil {
-					return errors.Wrap(err, "int")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "maxOutputTokens",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if value, ok := s.MaxTurns.Get(); ok {
 			if err := func() error {
 				if err := (validate.Int{
@@ -36825,22 +38113,10 @@ func (s *UpdateRuntimeProfileBody) Validate() error {
 		})
 	}
 	if err := func() error {
-		if value, ok := s.Model.Get(); ok {
+		if value, ok := s.Models.Get(); ok {
 			if err := func() error {
-				if err := (validate.String{
-					MinLength:     1,
-					MinLengthSet:  true,
-					MaxLength:     200,
-					MaxLengthSet:  true,
-					Email:         false,
-					Hostname:      false,
-					Regex:         nil,
-					MinNumeric:    0,
-					MinNumericSet: false,
-					MaxNumeric:    0,
-					MaxNumericSet: false,
-				}).Validate(string(value)); err != nil {
-					return errors.Wrap(err, "string")
+				if err := value.Validate(); err != nil {
+					return err
 				}
 				return nil
 			}(); err != nil {
@@ -36850,7 +38126,7 @@ func (s *UpdateRuntimeProfileBody) Validate() error {
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "model",
+			Name:  "models",
 			Error: err,
 		})
 	}
@@ -36881,36 +38157,6 @@ func (s *UpdateRuntimeProfileBody) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "name",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.Provider.Get(); ok {
-			if err := func() error {
-				if err := (validate.String{
-					MinLength:     1,
-					MinLengthSet:  true,
-					MaxLength:     100,
-					MaxLengthSet:  true,
-					Email:         false,
-					Hostname:      false,
-					Regex:         nil,
-					MinNumeric:    0,
-					MinNumericSet: false,
-					MaxNumeric:    0,
-					MaxNumericSet: false,
-				}).Validate(string(value)); err != nil {
-					return errors.Wrap(err, "string")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "provider",
 			Error: err,
 		})
 	}
@@ -37107,52 +38353,6 @@ func (s *UpdateRuntimeProfileBody) Validate() error {
 		})
 	}
 	if err := func() error {
-		if value, ok := s.Temperature.Get(); ok {
-			if err := func() error {
-				if err := (validate.Float{
-					MinSet:        true,
-					Min:           0,
-					MaxSet:        true,
-					Max:           2,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    nil,
-					Pattern:       nil,
-				}).Validate(float64(value)); err != nil {
-					return errors.Wrap(err, "float")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "temperature",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.ThinkingLevel.Get(); ok {
-			if err := func() error {
-				if err := value.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "thinkingLevel",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if value, ok := s.ToolEnforcement.Get(); ok {
 			if err := func() error {
 				if err := value.Validate(); err != nil {
@@ -37167,62 +38367,6 @@ func (s *UpdateRuntimeProfileBody) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "toolEnforcement",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.TopK.Get(); ok {
-			if err := func() error {
-				if err := (validate.Int{
-					MinSet:        true,
-					Min:           1,
-					MaxSet:        true,
-					Max:           10000,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    0,
-					Pattern:       nil,
-				}).Validate(int64(value)); err != nil {
-					return errors.Wrap(err, "int")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "topK",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if value, ok := s.TopP.Get(); ok {
-			if err := func() error {
-				if err := (validate.Float{
-					MinSet:        true,
-					Min:           0,
-					MaxSet:        true,
-					Max:           1,
-					MinExclusive:  false,
-					MaxExclusive:  false,
-					MultipleOfSet: false,
-					MultipleOf:    nil,
-					Pattern:       nil,
-				}).Validate(float64(value)); err != nil {
-					return errors.Wrap(err, "float")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "topP",
 			Error: err,
 		})
 	}
@@ -37336,6 +38480,319 @@ func (s UpdateRuntimeProfileBodyDefaultWorkspaceMode) Validate() error {
 	case "shared_mount":
 		return nil
 	case "dedicated_worktree":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *UpdateRuntimeProfileBodyModels) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.Classification.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "classification",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.Generation.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "generation",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *UpdateRuntimeProfileBodyModelsClassification) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     200,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Model)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "model",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     100,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Provider)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "provider",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *UpdateRuntimeProfileBodyModelsGeneration) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.MaxOutputTokens.Get(); ok {
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           1,
+					MaxSet:        true,
+					Max:           1000000,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(value)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "maxOutputTokens",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     200,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Model)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "model",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     100,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         nil,
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.Provider)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "provider",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.Temperature.Get(); ok {
+			if err := func() error {
+				if err := (validate.Float{
+					MinSet:        true,
+					Min:           0,
+					MaxSet:        true,
+					Max:           2,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    nil,
+					Pattern:       nil,
+				}).Validate(float64(value)); err != nil {
+					return errors.Wrap(err, "float")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "temperature",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.ThinkingLevel.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "thinkingLevel",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.TopK.Get(); ok {
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           1,
+					MaxSet:        true,
+					Max:           10000,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(value)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "topK",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.TopP.Get(); ok {
+			if err := func() error {
+				if err := (validate.Float{
+					MinSet:        true,
+					Min:           0,
+					MaxSet:        true,
+					Max:           1,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    nil,
+					Pattern:       nil,
+				}).Validate(float64(value)); err != nil {
+					return errors.Wrap(err, "float")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "topP",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s UpdateRuntimeProfileBodyModelsGenerationThinkingLevel) Validate() error {
+	switch s {
+	case "off":
+		return nil
+	case "minimal":
+		return nil
+	case "low":
+		return nil
+	case "medium":
+		return nil
+	case "high":
+		return nil
+	case "xhigh":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -37778,25 +39235,6 @@ func (s UpdateRuntimeProfileBodySandboxVfsShadowMode) Validate() error {
 	case "deny":
 		return nil
 	case "tmpfs":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
-func (s UpdateRuntimeProfileBodyThinkingLevel) Validate() error {
-	switch s {
-	case "off":
-		return nil
-	case "minimal":
-		return nil
-	case "low":
-		return nil
-	case "medium":
-		return nil
-	case "high":
-		return nil
-	case "xhigh":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)

@@ -107,8 +107,10 @@ async function main() {
       headers: { 'x-moltnet-team-id': agent.personalTeamId },
       body: {
         name: `cpp-sdk-e2e-profile-${marker}`,
-        provider: runtimeProvider,
-        model: runtimeModel,
+        models: {
+          generation: { provider: runtimeProvider, model: runtimeModel },
+        },
+
         runtimeKind: 'gondolin_pi',
         defaultWorkspaceMode: 'none',
         allowedWorkspaceModes: ['none'],

@@ -1,8 +1,7 @@
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import { computeJsonCid } from '@moltnet/crypto-service';
-import type { RuntimeProfile as RuntimeProfile } from '@moltnet/database';
-import { UniqueViolationError } from '@moltnet/database';
+import { type RuntimeProfile, UniqueViolationError } from '@moltnet/database';
 import {
   ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
@@ -10,9 +9,11 @@ import {
 } from '@moltnet/models';
 import { getUnsupportedRequestOptions } from '@moltnet/provider-catalog';
 import {
+  normalizeRuntimeProfileModels,
   RuntimeProfile as RuntimeProfileSchema,
+  type RuntimeProfileDefinitionInput,
   runtimeProfileDefinitionPayload,
-  type RuntimeProfileThinkingLevel,
+  type RuntimeProfileModels,
   type RuntimeProfileToolEnforcement,
   type RuntimeProfileWorkspaceMode,
 } from '@moltnet/runtime-profiles';
@@ -76,7 +77,15 @@ function validateWorkspacePolicy(input: {
   }
 }
 
-function validateProviderModelOptions(input: {
+function validateProviderModelOptions(profile: {
+  models: RuntimeProfileModels;
+}): void {
+  const input = profile.models.generation;
+  if (!input) return;
+  validateGenerationOptions(input);
+}
+
+function validateGenerationOptions(input: {
   provider: string;
   model: string;
   temperature?: number | null;
@@ -102,25 +111,31 @@ function validateProviderModelOptions(input: {
 async function validateRuntimeProfileModelOptions(request: {
   body: unknown;
 }): Promise<void> {
-  if (!isRecord(request.body)) return;
+  if (
+    !isRecord(request.body) ||
+    !isRecord(request.body.models) ||
+    !isRecord(request.body.models.generation)
+  )
+    return;
+  const generation = request.body.models.generation;
 
   const errors: Array<{ field: string; message: string }> = [];
   validateNullableNumberOption({
-    body: request.body,
+    body: generation,
     errors,
     field: 'temperature',
     min: 0,
     max: 2,
   });
   validateNullableNumberOption({
-    body: request.body,
+    body: generation,
     errors,
     field: 'topP',
     min: 0,
     max: 1,
   });
   validateNullableNumberOption({
-    body: request.body,
+    body: generation,
     errors,
     field: 'topK',
     min: 1,
@@ -128,7 +143,7 @@ async function validateRuntimeProfileModelOptions(request: {
     integer: true,
   });
   validateNullableNumberOption({
-    body: request.body,
+    body: generation,
     errors,
     field: 'maxOutputTokens',
     min: 1,
@@ -182,14 +197,7 @@ function serializeProfile(
     teamId: row.teamId,
     name: row.name,
     description: row.description ?? null,
-    provider: row.provider,
-    model: row.model,
-    thinkingLevel:
-      (row.thinkingLevel as RuntimeProfileThinkingLevel | null) ?? null,
-    temperature: row.temperature ?? null,
-    topP: row.topP ?? null,
-    topK: row.topK ?? null,
-    maxOutputTokens: row.maxOutputTokens ?? null,
+    models: row.models,
     runtimeKind: row.runtimeKind ?? 'gondolin_pi',
     sandbox: row.sandbox as Record<string, unknown>,
     defaultWorkspaceMode:
@@ -213,28 +221,7 @@ function serializeProfile(
   };
 }
 
-type ProfileDefinitionInput = {
-  name: string;
-  description?: string | null;
-  provider: string;
-  model: string;
-  thinkingLevel?: RuntimeProfileThinkingLevel | null;
-  temperature?: number | null;
-  topP?: number | null;
-  topK?: number | null;
-  maxOutputTokens?: number | null;
-  runtimeKind?: string;
-  sandbox: unknown;
-  defaultWorkspaceMode?: RuntimeProfileWorkspaceMode | null;
-  allowedWorkspaceModes?: RuntimeProfileWorkspaceMode[];
-  maxTurns?: number;
-  maxBashTimeouts?: number;
-  toolEnforcement?: RuntimeProfileToolEnforcement;
-  requiredEnv?: string[];
-  requiredTools?: string[];
-  requiredExecutables?: string[];
-  context?: unknown[];
-};
+type ProfileDefinitionInput = RuntimeProfileDefinitionInput;
 
 async function computeProfileDefinitionCid(
   input: ProfileDefinitionInput,
@@ -340,13 +327,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
           teamId,
           name: body.name,
           description: body.description ?? null,
-          provider: body.provider.toLowerCase(),
-          model: body.model.toLowerCase(),
-          thinkingLevel: body.thinkingLevel ?? null,
-          temperature: body.temperature ?? null,
-          topP: body.topP ?? null,
-          topK: body.topK ?? null,
-          maxOutputTokens: body.maxOutputTokens ?? null,
+          models: normalizeRuntimeProfileModels(body.models),
           runtimeKind: body.runtimeKind ?? 'gondolin_pi',
           sandbox: body.sandbox,
           defaultWorkspaceMode: workspacePolicy.defaultWorkspaceMode,
@@ -465,23 +446,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
           'description' in body
             ? (body.description ?? null)
             : existing.description,
-        provider: (body.provider ?? existing.provider).toLowerCase(),
-        model: (body.model ?? existing.model).toLowerCase(),
-        thinkingLevel:
-          'thinkingLevel' in body
-            ? (body.thinkingLevel ?? null)
-            : ((existing.thinkingLevel as RuntimeProfileThinkingLevel | null) ??
-              null),
-        temperature:
-          'temperature' in body
-            ? (body.temperature ?? null)
-            : (existing.temperature ?? null),
-        topP: 'topP' in body ? (body.topP ?? null) : (existing.topP ?? null),
-        topK: 'topK' in body ? (body.topK ?? null) : (existing.topK ?? null),
-        maxOutputTokens:
-          'maxOutputTokens' in body
-            ? (body.maxOutputTokens ?? null)
-            : (existing.maxOutputTokens ?? null),
+        models: normalizeRuntimeProfileModels(body.models ?? existing.models),
         runtimeKind: body.runtimeKind ?? existing.runtimeKind,
         sandbox: body.sandbox ?? existing.sandbox,
         defaultWorkspaceMode:

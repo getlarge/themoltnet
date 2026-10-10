@@ -280,6 +280,13 @@ export function createTaskRepository(db: Database) {
         ${tasks.allowedProfiles} = '[]'::jsonb
         OR ${tasks.allowedProfiles} @> ${profileJson}::jsonb
       )`);
+      filters.push(sql`EXISTS (
+        SELECT 1 FROM ${runtimeProfiles}
+        WHERE ${runtimeProfiles.id} = ${opts.profileId}::uuid
+          AND ${runtimeProfiles.teamId} = ${tasks.teamId}
+          AND ${runtimeProfiles.models} ?
+            (CASE WHEN ${tasks.taskType} = 'classify' THEN 'classification' ELSE 'generation' END)
+      )`);
     }
     if (opts.correlationId)
       filters.push(eq(tasks.correlationId, opts.correlationId));
@@ -1731,8 +1738,8 @@ async function queryActivityAttemptRows(
       ${taskAttempts.claimedByAgentId} AS "claimedByAgentId",
       ${taskAttempts.usage} AS "usage",
       COALESCE(${runtimeSessions.sourceRuntimeProfileId}, latest_slot.runtime_profile_id) AS "profileId",
-      COALESCE(${taskAttempts.usage}->>'provider', ${runtimeProfiles.provider}, latest_slot.provider) AS "provider",
-      COALESCE(${taskAttempts.usage}->>'model', ${runtimeProfiles.model}, latest_slot.model) AS "model",
+      COALESCE(${taskAttempts.usage}->>'provider', ${runtimeProfiles.models}->(CASE WHEN ${tasks.taskType} = 'classify' THEN 'classification' ELSE 'generation' END)->>'provider', latest_slot.provider) AS "provider",
+      COALESCE(${taskAttempts.usage}->>'model', ${runtimeProfiles.models}->(CASE WHEN ${tasks.taskType} = 'classify' THEN 'classification' ELSE 'generation' END)->>'model', latest_slot.model) AS "model",
       ${taskAttemptActivityStats.taskId} AS "statsTaskId",
       ${taskAttemptActivityStats.attemptN} AS "statsAttemptN",
       ${taskAttemptActivityStats.computedAt} AS "statsComputedAt",

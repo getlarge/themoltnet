@@ -88,8 +88,8 @@ test.describe.serial('Runtime security console', () => {
 
     await page.getByRole('button', { name: /new profile/i }).click();
     await page.getByLabel(/^name$/i).fill(profileName);
-    await page.getByLabel(/^provider$/i).fill('anthropic');
-    await page.getByLabel(/^model$/i).fill('claude-sonnet-4-5');
+    await page.getByLabel('Generation provider').fill('anthropic');
+    await page.getByLabel('Generation model').fill('claude-sonnet-4-5');
     await page.getByLabel('Sandbox JSON', { exact: true }).fill('{}');
     await page.getByRole('button', { name: /create profile/i }).click();
     await expect(

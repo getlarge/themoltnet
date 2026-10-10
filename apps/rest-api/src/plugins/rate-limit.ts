@@ -66,6 +66,8 @@ export interface RateLimitPluginOptions {
    * burst of reads cannot starve writes. See issue #1336.
    */
   readLimit: number;
+  /** Incremental runtime log requests per identity per minute. */
+  runtimeStoreLimit?: number;
   /** Exact request paths exempt from rate limiting (e.g. liveness probes). */
   allowList: readonly string[];
   /** Header overwritten with the client address by the trusted ingress. */
@@ -88,6 +90,8 @@ export interface PreResolveThrottleOptions {
    * spray, not the per-principal budget. Should be generous.
    */
   preResolveIpLimit: number;
+  /** Separate coarse ceiling for incremental runtime traffic. */
+  runtimeStoreIpLimit?: number;
   /** Reserved pre-auth budget for each operator OAuth route. */
   oauthApprovalIpLimit: number;
   /** Exact request paths exempt from rate limiting (e.g. liveness probes). */
@@ -245,6 +249,10 @@ export function registerPreResolveThrottle(
     options.preResolveIpLimit,
     ONE_MINUTE_MS,
   );
+  const runtimeStoreThrottle = createPreResolveThrottle(
+    options.runtimeStoreIpLimit ?? 12000,
+    ONE_MINUTE_MS,
+  );
   const consentThrottle = createPreResolveThrottle(
     options.oauthApprovalIpLimit,
     ONE_MINUTE_MS,
@@ -285,7 +293,10 @@ export function registerPreResolveThrottle(
       ) {
         return;
       }
-      const selectedThrottle = approvalThrottles.get(bucket ?? '') ?? throttle;
+      const selectedThrottle =
+        bucket === 'runtime-store'
+          ? runtimeStoreThrottle
+          : (approvalThrottles.get(bucket ?? '') ?? throttle);
       const retryAfter = selectedThrottle.hit(
         clientAddressBucket(clientIp(request)),
         Date.now(),
@@ -570,6 +581,11 @@ async function rateLimitPluginImpl(
     // route that uses this config draw from ONE per-identity bucket, distinct
     // from the global mutation budget. Apply via `config.rateLimit` on read
     // routes (see e.g. tasks.ts GET handlers).
+    runtimeStore: {
+      max: options.runtimeStoreLimit ?? 6000,
+      timeWindow: '1 minute',
+      groupId: 'runtime-store',
+    },
     read: {
       max: readLimit,
       timeWindow: '1 minute',
@@ -624,6 +640,7 @@ declare module 'fastify' {
         groupId: string;
       };
       read: { max: number; timeWindow: string; groupId: string };
+      runtimeStore: { max: number; timeWindow: string; groupId: string };
     };
     tokenRateLimitKey(request: FastifyRequest): string;
   }

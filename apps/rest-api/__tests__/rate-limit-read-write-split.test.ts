@@ -103,3 +103,30 @@ describe('Rate limiter read/write split (#1336 part 2)', () => {
     await app.close();
   });
 });
+
+it('reserves bounded incremental-store capacity without exhausting ordinary API or pre-auth budgets', async () => {
+  const app = await createTestApp(createMockServices(), VALID_AUTH_CONTEXT, {
+    rateLimitRuntimeStore: 4,
+    rateLimitRuntimeStoreIp: 8,
+    rateLimitGlobalAuth: 1,
+    rateLimitPreResolveIp: 1,
+  });
+  try {
+    const append = () =>
+      app.inject({
+        method: 'POST',
+        url: '/runtime-sessions/durable/open',
+        headers: { authorization: TOKEN, 'content-type': 'application/json' },
+        payload: {},
+      });
+    for (let i = 0; i < 4; i++) {
+      const response = await append();
+      expect(response.statusCode).not.toBe(429);
+      expect(response.headers['x-ratelimit-limit']).toBe('4');
+    }
+    expect((await append()).statusCode).toBe(429);
+    expect((await mutate(app)).statusCode).not.toBe(429);
+  } finally {
+    await app.close();
+  }
+});

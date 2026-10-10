@@ -43,9 +43,29 @@ export type AgentServerCatalogueProfile = {
   description: string | null;
   id: string;
   maxTurns: number;
-  model: string;
+  models: {
+    classification?: {
+      model: string;
+      provider: string;
+    };
+    generation?: {
+      maxOutputTokens?: number | null;
+      model: string;
+      provider: string;
+      temperature?: null | number;
+      thinkingLevel?:
+        | 'off'
+        | 'minimal'
+        | 'low'
+        | 'medium'
+        | 'high'
+        | 'xhigh'
+        | null;
+      topK?: number | null;
+      topP?: null | number;
+    };
+  };
   name: string;
-  provider: string;
   requiredEnv: Array<string>;
   requiredExecutables: Array<string>;
   requiredTools: Array<string>;
@@ -243,6 +263,7 @@ export type AgentServerSubscriptionLogin = {
 
 export type AgentServerTaskType =
   | 'assess_brief'
+  | 'classify'
   | 'curate_pack'
   | 'freeform'
   | 'fulfill_brief'
@@ -1000,6 +1021,7 @@ export type StartAgentServerRunData = {
     strategy?: 'none' | 'existing' | 'git-worktree' | 'isolated-directory';
     taskTypes: Array<
       | 'assess_brief'
+      | 'classify'
       | 'curate_pack'
       | 'freeform'
       | 'fulfill_brief'

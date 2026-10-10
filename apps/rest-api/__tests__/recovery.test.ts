@@ -173,6 +173,9 @@ describe('Recovery routes', () => {
         transactionRunner: mocks.transactionRunner as any,
         embeddingService: mocks.embeddingService as any,
         permissionChecker: mocks.permissionChecker as any,
+        runtimeSessionRepository: mocks.runtimeSessionRepository as any,
+        runtimeSessionStorage: mocks.runtimeSessionStorage as any,
+        runtimeSessionMaxBytes: 1024 * 1024,
         tokenValidator: {
           introspect: vi.fn().mockResolvedValue({ active: false }),
           resolveAuthContext: vi.fn().mockResolvedValue(null),
@@ -309,6 +312,9 @@ describe('Recovery routes', () => {
         transactionRunner: mocks.transactionRunner as any,
         embeddingService: mocks.embeddingService as any,
         permissionChecker: mocks.permissionChecker as any,
+        runtimeSessionRepository: mocks.runtimeSessionRepository as any,
+        runtimeSessionStorage: mocks.runtimeSessionStorage as any,
+        runtimeSessionMaxBytes: 1024 * 1024,
         tokenValidator: {
           introspect: vi.fn().mockResolvedValue({ active: false }),
           resolveAuthContext: vi.fn().mockResolvedValue(null),
@@ -424,6 +430,9 @@ describe('Recovery routes', () => {
         transactionRunner: mocks.transactionRunner as any,
         embeddingService: mocks.embeddingService as any,
         permissionChecker: mocks.permissionChecker as any,
+        runtimeSessionRepository: mocks.runtimeSessionRepository as any,
+        runtimeSessionStorage: mocks.runtimeSessionStorage as any,
+        runtimeSessionMaxBytes: 1024 * 1024,
         tokenValidator: {
           introspect: vi.fn().mockResolvedValue({ active: false }),
           resolveAuthContext: vi.fn().mockResolvedValue(null),

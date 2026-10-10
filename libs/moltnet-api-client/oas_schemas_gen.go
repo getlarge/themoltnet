@@ -925,6 +925,152 @@ func (s *AppendMessagesResponse) SetCount(val int) {
 
 func (*AppendMessagesResponse) appendTaskMessagesRes() {}
 
+type AppendRuntimeStoreCommitBadRequest ProblemDetails
+
+func (*AppendRuntimeStoreCommitBadRequest) appendRuntimeStoreCommitRes() {}
+
+type AppendRuntimeStoreCommitConflict ProblemDetails
+
+func (*AppendRuntimeStoreCommitConflict) appendRuntimeStoreCommitRes() {}
+
+type AppendRuntimeStoreCommitForbidden ProblemDetails
+
+func (*AppendRuntimeStoreCommitForbidden) appendRuntimeStoreCommitRes() {}
+
+type AppendRuntimeStoreCommitNotFound ProblemDetails
+
+func (*AppendRuntimeStoreCommitNotFound) appendRuntimeStoreCommitRes() {}
+
+type AppendRuntimeStoreCommitOK struct {
+	Seq int `json:"seq"`
+}
+
+// GetSeq returns the value of Seq.
+func (s *AppendRuntimeStoreCommitOK) GetSeq() int {
+	return s.Seq
+}
+
+// SetSeq sets the value of Seq.
+func (s *AppendRuntimeStoreCommitOK) SetSeq(val int) {
+	s.Seq = val
+}
+
+func (*AppendRuntimeStoreCommitOK) appendRuntimeStoreCommitRes() {}
+
+type AppendRuntimeStoreCommitReq struct {
+	AttemptN            int                                     `json:"attemptN"`
+	CommitId            uuid.UUID                               `json:"commitId"`
+	ExecutorFingerprint string                                  `json:"executorFingerprint"`
+	ExpectedSeq         int                                     `json:"expectedSeq"`
+	LeaseId             uuid.UUID                               `json:"leaseId"`
+	TaskId              uuid.UUID                               `json:"taskId"`
+	WriterToken         uuid.UUID                               `json:"writerToken"`
+	Writes              []AppendRuntimeStoreCommitReqWritesItem `json:"writes"`
+}
+
+// GetAttemptN returns the value of AttemptN.
+func (s *AppendRuntimeStoreCommitReq) GetAttemptN() int {
+	return s.AttemptN
+}
+
+// GetCommitId returns the value of CommitId.
+func (s *AppendRuntimeStoreCommitReq) GetCommitId() uuid.UUID {
+	return s.CommitId
+}
+
+// GetExecutorFingerprint returns the value of ExecutorFingerprint.
+func (s *AppendRuntimeStoreCommitReq) GetExecutorFingerprint() string {
+	return s.ExecutorFingerprint
+}
+
+// GetExpectedSeq returns the value of ExpectedSeq.
+func (s *AppendRuntimeStoreCommitReq) GetExpectedSeq() int {
+	return s.ExpectedSeq
+}
+
+// GetLeaseId returns the value of LeaseId.
+func (s *AppendRuntimeStoreCommitReq) GetLeaseId() uuid.UUID {
+	return s.LeaseId
+}
+
+// GetTaskId returns the value of TaskId.
+func (s *AppendRuntimeStoreCommitReq) GetTaskId() uuid.UUID {
+	return s.TaskId
+}
+
+// GetWriterToken returns the value of WriterToken.
+func (s *AppendRuntimeStoreCommitReq) GetWriterToken() uuid.UUID {
+	return s.WriterToken
+}
+
+// GetWrites returns the value of Writes.
+func (s *AppendRuntimeStoreCommitReq) GetWrites() []AppendRuntimeStoreCommitReqWritesItem {
+	return s.Writes
+}
+
+// SetAttemptN sets the value of AttemptN.
+func (s *AppendRuntimeStoreCommitReq) SetAttemptN(val int) {
+	s.AttemptN = val
+}
+
+// SetCommitId sets the value of CommitId.
+func (s *AppendRuntimeStoreCommitReq) SetCommitId(val uuid.UUID) {
+	s.CommitId = val
+}
+
+// SetExecutorFingerprint sets the value of ExecutorFingerprint.
+func (s *AppendRuntimeStoreCommitReq) SetExecutorFingerprint(val string) {
+	s.ExecutorFingerprint = val
+}
+
+// SetExpectedSeq sets the value of ExpectedSeq.
+func (s *AppendRuntimeStoreCommitReq) SetExpectedSeq(val int) {
+	s.ExpectedSeq = val
+}
+
+// SetLeaseId sets the value of LeaseId.
+func (s *AppendRuntimeStoreCommitReq) SetLeaseId(val uuid.UUID) {
+	s.LeaseId = val
+}
+
+// SetTaskId sets the value of TaskId.
+func (s *AppendRuntimeStoreCommitReq) SetTaskId(val uuid.UUID) {
+	s.TaskId = val
+}
+
+// SetWriterToken sets the value of WriterToken.
+func (s *AppendRuntimeStoreCommitReq) SetWriterToken(val uuid.UUID) {
+	s.WriterToken = val
+}
+
+// SetWrites sets the value of Writes.
+func (s *AppendRuntimeStoreCommitReq) SetWrites(val []AppendRuntimeStoreCommitReqWritesItem) {
+	s.Writes = val
+}
+
+type AppendRuntimeStoreCommitReqWritesItem map[string]jx.Raw
+
+func (s *AppendRuntimeStoreCommitReqWritesItem) init() AppendRuntimeStoreCommitReqWritesItem {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type AppendRuntimeStoreCommitServiceUnavailable ProblemDetails
+
+func (*AppendRuntimeStoreCommitServiceUnavailable) appendRuntimeStoreCommitRes() {}
+
+type AppendRuntimeStoreCommitTooManyRequests ProblemDetails
+
+func (*AppendRuntimeStoreCommitTooManyRequests) appendRuntimeStoreCommitRes() {}
+
+type AppendRuntimeStoreCommitUnauthorized ProblemDetails
+
+func (*AppendRuntimeStoreCommitUnauthorized) appendRuntimeStoreCommitRes() {}
+
 type AppendTaskMessagesBadRequest ProblemDetails
 
 func (*AppendTaskMessagesBadRequest) appendTaskMessagesRes() {}
@@ -6839,23 +6985,17 @@ type CreateRuntimeProfileBody struct {
 	DefaultWorkspaceMode  OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode  `json:"defaultWorkspaceMode"`
 	Description           OptString                                           `json:"description"`
 	MaxBashTimeouts       OptInt                                              `json:"maxBashTimeouts"`
-	MaxOutputTokens       OptNilInt                                           `json:"maxOutputTokens"`
 	MaxTurns              OptInt                                              `json:"maxTurns"`
-	Model                 string                                              `json:"model"`
+	Models                CreateRuntimeProfileBodyModels                      `json:"models"`
 	Name                  string                                              `json:"name"`
-	Provider              string                                              `json:"provider"`
 	RequiredEnv           []string                                            `json:"requiredEnv"`
 	RequiredExecutables   []string                                            `json:"requiredExecutables"`
 	RequiredTools         []string                                            `json:"requiredTools"`
 	RuntimeKind           OptString                                           `json:"runtimeKind"`
 	Sandbox               CreateRuntimeProfileBodySandbox                     `json:"sandbox"`
-	Temperature           OptNilFloat64                                       `json:"temperature"`
-	ThinkingLevel         OptNilCreateRuntimeProfileBodyThinkingLevel         `json:"thinkingLevel"`
 	// Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed
 	// tools, fail-closed).
 	ToolEnforcement OptCreateRuntimeProfileBodyToolEnforcement `json:"toolEnforcement"`
-	TopK            OptNilInt                                  `json:"topK"`
-	TopP            OptNilFloat64                              `json:"topP"`
 }
 
 // GetAllowedWorkspaceModes returns the value of AllowedWorkspaceModes.
@@ -6883,29 +7023,19 @@ func (s *CreateRuntimeProfileBody) GetMaxBashTimeouts() OptInt {
 	return s.MaxBashTimeouts
 }
 
-// GetMaxOutputTokens returns the value of MaxOutputTokens.
-func (s *CreateRuntimeProfileBody) GetMaxOutputTokens() OptNilInt {
-	return s.MaxOutputTokens
-}
-
 // GetMaxTurns returns the value of MaxTurns.
 func (s *CreateRuntimeProfileBody) GetMaxTurns() OptInt {
 	return s.MaxTurns
 }
 
-// GetModel returns the value of Model.
-func (s *CreateRuntimeProfileBody) GetModel() string {
-	return s.Model
+// GetModels returns the value of Models.
+func (s *CreateRuntimeProfileBody) GetModels() CreateRuntimeProfileBodyModels {
+	return s.Models
 }
 
 // GetName returns the value of Name.
 func (s *CreateRuntimeProfileBody) GetName() string {
 	return s.Name
-}
-
-// GetProvider returns the value of Provider.
-func (s *CreateRuntimeProfileBody) GetProvider() string {
-	return s.Provider
 }
 
 // GetRequiredEnv returns the value of RequiredEnv.
@@ -6933,29 +7063,9 @@ func (s *CreateRuntimeProfileBody) GetSandbox() CreateRuntimeProfileBodySandbox 
 	return s.Sandbox
 }
 
-// GetTemperature returns the value of Temperature.
-func (s *CreateRuntimeProfileBody) GetTemperature() OptNilFloat64 {
-	return s.Temperature
-}
-
-// GetThinkingLevel returns the value of ThinkingLevel.
-func (s *CreateRuntimeProfileBody) GetThinkingLevel() OptNilCreateRuntimeProfileBodyThinkingLevel {
-	return s.ThinkingLevel
-}
-
 // GetToolEnforcement returns the value of ToolEnforcement.
 func (s *CreateRuntimeProfileBody) GetToolEnforcement() OptCreateRuntimeProfileBodyToolEnforcement {
 	return s.ToolEnforcement
-}
-
-// GetTopK returns the value of TopK.
-func (s *CreateRuntimeProfileBody) GetTopK() OptNilInt {
-	return s.TopK
-}
-
-// GetTopP returns the value of TopP.
-func (s *CreateRuntimeProfileBody) GetTopP() OptNilFloat64 {
-	return s.TopP
 }
 
 // SetAllowedWorkspaceModes sets the value of AllowedWorkspaceModes.
@@ -6983,29 +7093,19 @@ func (s *CreateRuntimeProfileBody) SetMaxBashTimeouts(val OptInt) {
 	s.MaxBashTimeouts = val
 }
 
-// SetMaxOutputTokens sets the value of MaxOutputTokens.
-func (s *CreateRuntimeProfileBody) SetMaxOutputTokens(val OptNilInt) {
-	s.MaxOutputTokens = val
-}
-
 // SetMaxTurns sets the value of MaxTurns.
 func (s *CreateRuntimeProfileBody) SetMaxTurns(val OptInt) {
 	s.MaxTurns = val
 }
 
-// SetModel sets the value of Model.
-func (s *CreateRuntimeProfileBody) SetModel(val string) {
-	s.Model = val
+// SetModels sets the value of Models.
+func (s *CreateRuntimeProfileBody) SetModels(val CreateRuntimeProfileBodyModels) {
+	s.Models = val
 }
 
 // SetName sets the value of Name.
 func (s *CreateRuntimeProfileBody) SetName(val string) {
 	s.Name = val
-}
-
-// SetProvider sets the value of Provider.
-func (s *CreateRuntimeProfileBody) SetProvider(val string) {
-	s.Provider = val
 }
 
 // SetRequiredEnv sets the value of RequiredEnv.
@@ -7033,29 +7133,9 @@ func (s *CreateRuntimeProfileBody) SetSandbox(val CreateRuntimeProfileBodySandbo
 	s.Sandbox = val
 }
 
-// SetTemperature sets the value of Temperature.
-func (s *CreateRuntimeProfileBody) SetTemperature(val OptNilFloat64) {
-	s.Temperature = val
-}
-
-// SetThinkingLevel sets the value of ThinkingLevel.
-func (s *CreateRuntimeProfileBody) SetThinkingLevel(val OptNilCreateRuntimeProfileBodyThinkingLevel) {
-	s.ThinkingLevel = val
-}
-
 // SetToolEnforcement sets the value of ToolEnforcement.
 func (s *CreateRuntimeProfileBody) SetToolEnforcement(val OptCreateRuntimeProfileBodyToolEnforcement) {
 	s.ToolEnforcement = val
-}
-
-// SetTopK sets the value of TopK.
-func (s *CreateRuntimeProfileBody) SetTopK(val OptNilInt) {
-	s.TopK = val
-}
-
-// SetTopP sets the value of TopP.
-func (s *CreateRuntimeProfileBody) SetTopP(val OptNilFloat64) {
-	s.TopP = val
 }
 
 type CreateRuntimeProfileBodyAllowedWorkspaceModesItem string
@@ -7239,6 +7319,205 @@ func (s *CreateRuntimeProfileBodyDefaultWorkspaceMode) UnmarshalText(data []byte
 		return nil
 	case CreateRuntimeProfileBodyDefaultWorkspaceModeDedicatedWorktree:
 		*s = CreateRuntimeProfileBodyDefaultWorkspaceModeDedicatedWorktree
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateRuntimeProfileBodyModels struct {
+	Classification OptCreateRuntimeProfileBodyModelsClassification `json:"classification"`
+	Generation     OptCreateRuntimeProfileBodyModelsGeneration     `json:"generation"`
+}
+
+// GetClassification returns the value of Classification.
+func (s *CreateRuntimeProfileBodyModels) GetClassification() OptCreateRuntimeProfileBodyModelsClassification {
+	return s.Classification
+}
+
+// GetGeneration returns the value of Generation.
+func (s *CreateRuntimeProfileBodyModels) GetGeneration() OptCreateRuntimeProfileBodyModelsGeneration {
+	return s.Generation
+}
+
+// SetClassification sets the value of Classification.
+func (s *CreateRuntimeProfileBodyModels) SetClassification(val OptCreateRuntimeProfileBodyModelsClassification) {
+	s.Classification = val
+}
+
+// SetGeneration sets the value of Generation.
+func (s *CreateRuntimeProfileBodyModels) SetGeneration(val OptCreateRuntimeProfileBodyModelsGeneration) {
+	s.Generation = val
+}
+
+type CreateRuntimeProfileBodyModelsClassification struct {
+	Model    string `json:"model"`
+	Provider string `json:"provider"`
+}
+
+// GetModel returns the value of Model.
+func (s *CreateRuntimeProfileBodyModelsClassification) GetModel() string {
+	return s.Model
+}
+
+// GetProvider returns the value of Provider.
+func (s *CreateRuntimeProfileBodyModelsClassification) GetProvider() string {
+	return s.Provider
+}
+
+// SetModel sets the value of Model.
+func (s *CreateRuntimeProfileBodyModelsClassification) SetModel(val string) {
+	s.Model = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *CreateRuntimeProfileBodyModelsClassification) SetProvider(val string) {
+	s.Provider = val
+}
+
+type CreateRuntimeProfileBodyModelsGeneration struct {
+	MaxOutputTokens OptNilInt                                                   `json:"maxOutputTokens"`
+	Model           string                                                      `json:"model"`
+	Provider        string                                                      `json:"provider"`
+	Temperature     OptNilFloat64                                               `json:"temperature"`
+	ThinkingLevel   OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel `json:"thinkingLevel"`
+	TopK            OptNilInt                                                   `json:"topK"`
+	TopP            OptNilFloat64                                               `json:"topP"`
+}
+
+// GetMaxOutputTokens returns the value of MaxOutputTokens.
+func (s *CreateRuntimeProfileBodyModelsGeneration) GetMaxOutputTokens() OptNilInt {
+	return s.MaxOutputTokens
+}
+
+// GetModel returns the value of Model.
+func (s *CreateRuntimeProfileBodyModelsGeneration) GetModel() string {
+	return s.Model
+}
+
+// GetProvider returns the value of Provider.
+func (s *CreateRuntimeProfileBodyModelsGeneration) GetProvider() string {
+	return s.Provider
+}
+
+// GetTemperature returns the value of Temperature.
+func (s *CreateRuntimeProfileBodyModelsGeneration) GetTemperature() OptNilFloat64 {
+	return s.Temperature
+}
+
+// GetThinkingLevel returns the value of ThinkingLevel.
+func (s *CreateRuntimeProfileBodyModelsGeneration) GetThinkingLevel() OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel {
+	return s.ThinkingLevel
+}
+
+// GetTopK returns the value of TopK.
+func (s *CreateRuntimeProfileBodyModelsGeneration) GetTopK() OptNilInt {
+	return s.TopK
+}
+
+// GetTopP returns the value of TopP.
+func (s *CreateRuntimeProfileBodyModelsGeneration) GetTopP() OptNilFloat64 {
+	return s.TopP
+}
+
+// SetMaxOutputTokens sets the value of MaxOutputTokens.
+func (s *CreateRuntimeProfileBodyModelsGeneration) SetMaxOutputTokens(val OptNilInt) {
+	s.MaxOutputTokens = val
+}
+
+// SetModel sets the value of Model.
+func (s *CreateRuntimeProfileBodyModelsGeneration) SetModel(val string) {
+	s.Model = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *CreateRuntimeProfileBodyModelsGeneration) SetProvider(val string) {
+	s.Provider = val
+}
+
+// SetTemperature sets the value of Temperature.
+func (s *CreateRuntimeProfileBodyModelsGeneration) SetTemperature(val OptNilFloat64) {
+	s.Temperature = val
+}
+
+// SetThinkingLevel sets the value of ThinkingLevel.
+func (s *CreateRuntimeProfileBodyModelsGeneration) SetThinkingLevel(val OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel) {
+	s.ThinkingLevel = val
+}
+
+// SetTopK sets the value of TopK.
+func (s *CreateRuntimeProfileBodyModelsGeneration) SetTopK(val OptNilInt) {
+	s.TopK = val
+}
+
+// SetTopP sets the value of TopP.
+func (s *CreateRuntimeProfileBodyModelsGeneration) SetTopP(val OptNilFloat64) {
+	s.TopP = val
+}
+
+type CreateRuntimeProfileBodyModelsGenerationThinkingLevel string
+
+const (
+	CreateRuntimeProfileBodyModelsGenerationThinkingLevelOff     CreateRuntimeProfileBodyModelsGenerationThinkingLevel = "off"
+	CreateRuntimeProfileBodyModelsGenerationThinkingLevelMinimal CreateRuntimeProfileBodyModelsGenerationThinkingLevel = "minimal"
+	CreateRuntimeProfileBodyModelsGenerationThinkingLevelLow     CreateRuntimeProfileBodyModelsGenerationThinkingLevel = "low"
+	CreateRuntimeProfileBodyModelsGenerationThinkingLevelMedium  CreateRuntimeProfileBodyModelsGenerationThinkingLevel = "medium"
+	CreateRuntimeProfileBodyModelsGenerationThinkingLevelHigh    CreateRuntimeProfileBodyModelsGenerationThinkingLevel = "high"
+	CreateRuntimeProfileBodyModelsGenerationThinkingLevelXhigh   CreateRuntimeProfileBodyModelsGenerationThinkingLevel = "xhigh"
+)
+
+// AllValues returns all CreateRuntimeProfileBodyModelsGenerationThinkingLevel values.
+func (CreateRuntimeProfileBodyModelsGenerationThinkingLevel) AllValues() []CreateRuntimeProfileBodyModelsGenerationThinkingLevel {
+	return []CreateRuntimeProfileBodyModelsGenerationThinkingLevel{
+		CreateRuntimeProfileBodyModelsGenerationThinkingLevelOff,
+		CreateRuntimeProfileBodyModelsGenerationThinkingLevelMinimal,
+		CreateRuntimeProfileBodyModelsGenerationThinkingLevelLow,
+		CreateRuntimeProfileBodyModelsGenerationThinkingLevelMedium,
+		CreateRuntimeProfileBodyModelsGenerationThinkingLevelHigh,
+		CreateRuntimeProfileBodyModelsGenerationThinkingLevelXhigh,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateRuntimeProfileBodyModelsGenerationThinkingLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateRuntimeProfileBodyModelsGenerationThinkingLevelOff:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodyModelsGenerationThinkingLevelMinimal:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodyModelsGenerationThinkingLevelLow:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodyModelsGenerationThinkingLevelMedium:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodyModelsGenerationThinkingLevelHigh:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodyModelsGenerationThinkingLevelXhigh:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateRuntimeProfileBodyModelsGenerationThinkingLevel) UnmarshalText(data []byte) error {
+	switch CreateRuntimeProfileBodyModelsGenerationThinkingLevel(data) {
+	case CreateRuntimeProfileBodyModelsGenerationThinkingLevelOff:
+		*s = CreateRuntimeProfileBodyModelsGenerationThinkingLevelOff
+		return nil
+	case CreateRuntimeProfileBodyModelsGenerationThinkingLevelMinimal:
+		*s = CreateRuntimeProfileBodyModelsGenerationThinkingLevelMinimal
+		return nil
+	case CreateRuntimeProfileBodyModelsGenerationThinkingLevelLow:
+		*s = CreateRuntimeProfileBodyModelsGenerationThinkingLevelLow
+		return nil
+	case CreateRuntimeProfileBodyModelsGenerationThinkingLevelMedium:
+		*s = CreateRuntimeProfileBodyModelsGenerationThinkingLevelMedium
+		return nil
+	case CreateRuntimeProfileBodyModelsGenerationThinkingLevelHigh:
+		*s = CreateRuntimeProfileBodyModelsGenerationThinkingLevelHigh
+		return nil
+	case CreateRuntimeProfileBodyModelsGenerationThinkingLevelXhigh:
+		*s = CreateRuntimeProfileBodyModelsGenerationThinkingLevelXhigh
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -7451,75 +7730,6 @@ func (s *CreateRuntimeProfileBodySandboxVfsShadowMode) UnmarshalText(data []byte
 		return nil
 	case CreateRuntimeProfileBodySandboxVfsShadowModeTmpfs:
 		*s = CreateRuntimeProfileBodySandboxVfsShadowModeTmpfs
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type CreateRuntimeProfileBodyThinkingLevel string
-
-const (
-	CreateRuntimeProfileBodyThinkingLevelOff     CreateRuntimeProfileBodyThinkingLevel = "off"
-	CreateRuntimeProfileBodyThinkingLevelMinimal CreateRuntimeProfileBodyThinkingLevel = "minimal"
-	CreateRuntimeProfileBodyThinkingLevelLow     CreateRuntimeProfileBodyThinkingLevel = "low"
-	CreateRuntimeProfileBodyThinkingLevelMedium  CreateRuntimeProfileBodyThinkingLevel = "medium"
-	CreateRuntimeProfileBodyThinkingLevelHigh    CreateRuntimeProfileBodyThinkingLevel = "high"
-	CreateRuntimeProfileBodyThinkingLevelXhigh   CreateRuntimeProfileBodyThinkingLevel = "xhigh"
-)
-
-// AllValues returns all CreateRuntimeProfileBodyThinkingLevel values.
-func (CreateRuntimeProfileBodyThinkingLevel) AllValues() []CreateRuntimeProfileBodyThinkingLevel {
-	return []CreateRuntimeProfileBodyThinkingLevel{
-		CreateRuntimeProfileBodyThinkingLevelOff,
-		CreateRuntimeProfileBodyThinkingLevelMinimal,
-		CreateRuntimeProfileBodyThinkingLevelLow,
-		CreateRuntimeProfileBodyThinkingLevelMedium,
-		CreateRuntimeProfileBodyThinkingLevelHigh,
-		CreateRuntimeProfileBodyThinkingLevelXhigh,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CreateRuntimeProfileBodyThinkingLevel) MarshalText() ([]byte, error) {
-	switch s {
-	case CreateRuntimeProfileBodyThinkingLevelOff:
-		return []byte(s), nil
-	case CreateRuntimeProfileBodyThinkingLevelMinimal:
-		return []byte(s), nil
-	case CreateRuntimeProfileBodyThinkingLevelLow:
-		return []byte(s), nil
-	case CreateRuntimeProfileBodyThinkingLevelMedium:
-		return []byte(s), nil
-	case CreateRuntimeProfileBodyThinkingLevelHigh:
-		return []byte(s), nil
-	case CreateRuntimeProfileBodyThinkingLevelXhigh:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CreateRuntimeProfileBodyThinkingLevel) UnmarshalText(data []byte) error {
-	switch CreateRuntimeProfileBodyThinkingLevel(data) {
-	case CreateRuntimeProfileBodyThinkingLevelOff:
-		*s = CreateRuntimeProfileBodyThinkingLevelOff
-		return nil
-	case CreateRuntimeProfileBodyThinkingLevelMinimal:
-		*s = CreateRuntimeProfileBodyThinkingLevelMinimal
-		return nil
-	case CreateRuntimeProfileBodyThinkingLevelLow:
-		*s = CreateRuntimeProfileBodyThinkingLevelLow
-		return nil
-	case CreateRuntimeProfileBodyThinkingLevelMedium:
-		*s = CreateRuntimeProfileBodyThinkingLevelMedium
-		return nil
-	case CreateRuntimeProfileBodyThinkingLevelHigh:
-		*s = CreateRuntimeProfileBodyThinkingLevelHigh
-		return nil
-	case CreateRuntimeProfileBodyThinkingLevelXhigh:
-		*s = CreateRuntimeProfileBodyThinkingLevelXhigh
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -26302,6 +26512,104 @@ func (s *GetRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) error {
 	}
 }
 
+type GetRuntimeStoreForAttemptBadRequest ProblemDetails
+
+func (*GetRuntimeStoreForAttemptBadRequest) getRuntimeStoreForAttemptRes() {}
+
+type GetRuntimeStoreForAttemptConflict ProblemDetails
+
+func (*GetRuntimeStoreForAttemptConflict) getRuntimeStoreForAttemptRes() {}
+
+type GetRuntimeStoreForAttemptForbidden ProblemDetails
+
+func (*GetRuntimeStoreForAttemptForbidden) getRuntimeStoreForAttemptRes() {}
+
+type GetRuntimeStoreForAttemptNotFound ProblemDetails
+
+func (*GetRuntimeStoreForAttemptNotFound) getRuntimeStoreForAttemptRes() {}
+
+type GetRuntimeStoreForAttemptOK struct {
+	Format  GetRuntimeStoreForAttemptOKFormat `json:"format"`
+	HeadSeq int                               `json:"headSeq"`
+	StoreId uuid.UUID                         `json:"storeId"`
+}
+
+// GetFormat returns the value of Format.
+func (s *GetRuntimeStoreForAttemptOK) GetFormat() GetRuntimeStoreForAttemptOKFormat {
+	return s.Format
+}
+
+// GetHeadSeq returns the value of HeadSeq.
+func (s *GetRuntimeStoreForAttemptOK) GetHeadSeq() int {
+	return s.HeadSeq
+}
+
+// GetStoreId returns the value of StoreId.
+func (s *GetRuntimeStoreForAttemptOK) GetStoreId() uuid.UUID {
+	return s.StoreId
+}
+
+// SetFormat sets the value of Format.
+func (s *GetRuntimeStoreForAttemptOK) SetFormat(val GetRuntimeStoreForAttemptOKFormat) {
+	s.Format = val
+}
+
+// SetHeadSeq sets the value of HeadSeq.
+func (s *GetRuntimeStoreForAttemptOK) SetHeadSeq(val int) {
+	s.HeadSeq = val
+}
+
+// SetStoreId sets the value of StoreId.
+func (s *GetRuntimeStoreForAttemptOK) SetStoreId(val uuid.UUID) {
+	s.StoreId = val
+}
+
+type GetRuntimeStoreForAttemptOKFormat string
+
+const (
+	GetRuntimeStoreForAttemptOKFormatPiDurableV1 GetRuntimeStoreForAttemptOKFormat = "pi-durable.v1"
+)
+
+// AllValues returns all GetRuntimeStoreForAttemptOKFormat values.
+func (GetRuntimeStoreForAttemptOKFormat) AllValues() []GetRuntimeStoreForAttemptOKFormat {
+	return []GetRuntimeStoreForAttemptOKFormat{
+		GetRuntimeStoreForAttemptOKFormatPiDurableV1,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetRuntimeStoreForAttemptOKFormat) MarshalText() ([]byte, error) {
+	switch s {
+	case GetRuntimeStoreForAttemptOKFormatPiDurableV1:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetRuntimeStoreForAttemptOKFormat) UnmarshalText(data []byte) error {
+	switch GetRuntimeStoreForAttemptOKFormat(data) {
+	case GetRuntimeStoreForAttemptOKFormatPiDurableV1:
+		*s = GetRuntimeStoreForAttemptOKFormatPiDurableV1
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type GetRuntimeStoreForAttemptServiceUnavailable ProblemDetails
+
+func (*GetRuntimeStoreForAttemptServiceUnavailable) getRuntimeStoreForAttemptRes() {}
+
+type GetRuntimeStoreForAttemptTooManyRequests ProblemDetails
+
+func (*GetRuntimeStoreForAttemptTooManyRequests) getRuntimeStoreForAttemptRes() {}
+
+type GetRuntimeStoreForAttemptUnauthorized ProblemDetails
+
+func (*GetRuntimeStoreForAttemptUnauthorized) getRuntimeStoreForAttemptRes() {}
+
 type GetSigningCredentialForbidden ProblemDetails
 
 func (*GetSigningCredentialForbidden) getSigningCredentialRes() {}
@@ -30811,6 +31119,50 @@ func (s *ListRuntimeSlotsUnauthorizedCode) UnmarshalText(data []byte) error {
 	}
 }
 
+type ListRuntimeStoreCommitsBadRequest ProblemDetails
+
+func (*ListRuntimeStoreCommitsBadRequest) listRuntimeStoreCommitsRes() {}
+
+type ListRuntimeStoreCommitsConflict ProblemDetails
+
+func (*ListRuntimeStoreCommitsConflict) listRuntimeStoreCommitsRes() {}
+
+type ListRuntimeStoreCommitsForbidden ProblemDetails
+
+func (*ListRuntimeStoreCommitsForbidden) listRuntimeStoreCommitsRes() {}
+
+type ListRuntimeStoreCommitsNotFound ProblemDetails
+
+func (*ListRuntimeStoreCommitsNotFound) listRuntimeStoreCommitsRes() {}
+
+type ListRuntimeStoreCommitsOK struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s ListRuntimeStoreCommitsOK) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+func (*ListRuntimeStoreCommitsOK) listRuntimeStoreCommitsRes() {}
+
+type ListRuntimeStoreCommitsServiceUnavailable ProblemDetails
+
+func (*ListRuntimeStoreCommitsServiceUnavailable) listRuntimeStoreCommitsRes() {}
+
+type ListRuntimeStoreCommitsTooManyRequests ProblemDetails
+
+func (*ListRuntimeStoreCommitsTooManyRequests) listRuntimeStoreCommitsRes() {}
+
+type ListRuntimeStoreCommitsUnauthorized ProblemDetails
+
+func (*ListRuntimeStoreCommitsUnauthorized) listRuntimeStoreCommitsRes() {}
+
 type ListSigningCredentialsForbidden ProblemDetails
 
 func (*ListSigningCredentialsForbidden) listSigningCredentialsRes() {}
@@ -33256,6 +33608,108 @@ type ListTeamsUnauthorized ProblemDetails
 
 func (*ListTeamsUnauthorized) listTeamsRes() {}
 
+type MintRuntimeStoreIdBadRequest ProblemDetails
+
+func (*MintRuntimeStoreIdBadRequest) mintRuntimeStoreIdRes() {}
+
+type MintRuntimeStoreIdConflict ProblemDetails
+
+func (*MintRuntimeStoreIdConflict) mintRuntimeStoreIdRes() {}
+
+type MintRuntimeStoreIdForbidden ProblemDetails
+
+func (*MintRuntimeStoreIdForbidden) mintRuntimeStoreIdRes() {}
+
+type MintRuntimeStoreIdNotFound ProblemDetails
+
+func (*MintRuntimeStoreIdNotFound) mintRuntimeStoreIdRes() {}
+
+type MintRuntimeStoreIdOK struct {
+	ID int `json:"id"`
+}
+
+// GetID returns the value of ID.
+func (s *MintRuntimeStoreIdOK) GetID() int {
+	return s.ID
+}
+
+// SetID sets the value of ID.
+func (s *MintRuntimeStoreIdOK) SetID(val int) {
+	s.ID = val
+}
+
+func (*MintRuntimeStoreIdOK) mintRuntimeStoreIdRes() {}
+
+type MintRuntimeStoreIdReq struct {
+	AttemptN            int       `json:"attemptN"`
+	ExecutorFingerprint string    `json:"executorFingerprint"`
+	LeaseId             uuid.UUID `json:"leaseId"`
+	TaskId              uuid.UUID `json:"taskId"`
+	WriterToken         uuid.UUID `json:"writerToken"`
+}
+
+// GetAttemptN returns the value of AttemptN.
+func (s *MintRuntimeStoreIdReq) GetAttemptN() int {
+	return s.AttemptN
+}
+
+// GetExecutorFingerprint returns the value of ExecutorFingerprint.
+func (s *MintRuntimeStoreIdReq) GetExecutorFingerprint() string {
+	return s.ExecutorFingerprint
+}
+
+// GetLeaseId returns the value of LeaseId.
+func (s *MintRuntimeStoreIdReq) GetLeaseId() uuid.UUID {
+	return s.LeaseId
+}
+
+// GetTaskId returns the value of TaskId.
+func (s *MintRuntimeStoreIdReq) GetTaskId() uuid.UUID {
+	return s.TaskId
+}
+
+// GetWriterToken returns the value of WriterToken.
+func (s *MintRuntimeStoreIdReq) GetWriterToken() uuid.UUID {
+	return s.WriterToken
+}
+
+// SetAttemptN sets the value of AttemptN.
+func (s *MintRuntimeStoreIdReq) SetAttemptN(val int) {
+	s.AttemptN = val
+}
+
+// SetExecutorFingerprint sets the value of ExecutorFingerprint.
+func (s *MintRuntimeStoreIdReq) SetExecutorFingerprint(val string) {
+	s.ExecutorFingerprint = val
+}
+
+// SetLeaseId sets the value of LeaseId.
+func (s *MintRuntimeStoreIdReq) SetLeaseId(val uuid.UUID) {
+	s.LeaseId = val
+}
+
+// SetTaskId sets the value of TaskId.
+func (s *MintRuntimeStoreIdReq) SetTaskId(val uuid.UUID) {
+	s.TaskId = val
+}
+
+// SetWriterToken sets the value of WriterToken.
+func (s *MintRuntimeStoreIdReq) SetWriterToken(val uuid.UUID) {
+	s.WriterToken = val
+}
+
+type MintRuntimeStoreIdServiceUnavailable ProblemDetails
+
+func (*MintRuntimeStoreIdServiceUnavailable) mintRuntimeStoreIdRes() {}
+
+type MintRuntimeStoreIdTooManyRequests ProblemDetails
+
+func (*MintRuntimeStoreIdTooManyRequests) mintRuntimeStoreIdRes() {}
+
+type MintRuntimeStoreIdUnauthorized ProblemDetails
+
+func (*MintRuntimeStoreIdUnauthorized) mintRuntimeStoreIdRes() {}
+
 // Ref: #/components/schemas/NetworkInfo
 type NetworkInfo struct {
 	Schema       string                  `json:"$schema"`
@@ -35015,6 +35469,53 @@ func (o NilFloat64) Or(d float64) float64 {
 	return d
 }
 
+// NewNilGetRuntimeStoreForAttemptOK returns new NilGetRuntimeStoreForAttemptOK with value set to v.
+func NewNilGetRuntimeStoreForAttemptOK(v GetRuntimeStoreForAttemptOK) NilGetRuntimeStoreForAttemptOK {
+	return NilGetRuntimeStoreForAttemptOK{
+		Value: v,
+	}
+}
+
+// NilGetRuntimeStoreForAttemptOK is nullable GetRuntimeStoreForAttemptOK.
+type NilGetRuntimeStoreForAttemptOK struct {
+	Value GetRuntimeStoreForAttemptOK
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilGetRuntimeStoreForAttemptOK) SetTo(v GetRuntimeStoreForAttemptOK) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilGetRuntimeStoreForAttemptOK) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilGetRuntimeStoreForAttemptOK) SetToNull() {
+	o.Null = true
+	var v GetRuntimeStoreForAttemptOK
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilGetRuntimeStoreForAttemptOK) Get() (v GetRuntimeStoreForAttemptOK, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilGetRuntimeStoreForAttemptOK) Or(d GetRuntimeStoreForAttemptOK) GetRuntimeStoreForAttemptOK {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+func (*NilGetRuntimeStoreForAttemptOK) getRuntimeStoreForAttemptRes() {}
+
 // NewNilInt returns new NilInt with value set to v.
 func NewNilInt(v int) NilInt {
 	return NilInt{
@@ -35189,96 +35690,6 @@ func (o NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode) Get() (v Run
 
 // Or returns value if set, or given parameter if does not.
 func (o NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode) Or(d RuntimeProfileListResponseItemsItemDefaultWorkspaceMode) RuntimeProfileListResponseItemsItemDefaultWorkspaceMode {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewNilRuntimeProfileListResponseItemsItemThinkingLevel returns new NilRuntimeProfileListResponseItemsItemThinkingLevel with value set to v.
-func NewNilRuntimeProfileListResponseItemsItemThinkingLevel(v RuntimeProfileListResponseItemsItemThinkingLevel) NilRuntimeProfileListResponseItemsItemThinkingLevel {
-	return NilRuntimeProfileListResponseItemsItemThinkingLevel{
-		Value: v,
-	}
-}
-
-// NilRuntimeProfileListResponseItemsItemThinkingLevel is nullable RuntimeProfileListResponseItemsItemThinkingLevel.
-type NilRuntimeProfileListResponseItemsItemThinkingLevel struct {
-	Value RuntimeProfileListResponseItemsItemThinkingLevel
-	Null  bool
-}
-
-// SetTo sets value to v.
-func (o *NilRuntimeProfileListResponseItemsItemThinkingLevel) SetTo(v RuntimeProfileListResponseItemsItemThinkingLevel) {
-	o.Null = false
-	o.Value = v
-}
-
-// IsNull returns true if value is Null.
-func (o NilRuntimeProfileListResponseItemsItemThinkingLevel) IsNull() bool { return o.Null }
-
-// SetToNull sets value to null.
-func (o *NilRuntimeProfileListResponseItemsItemThinkingLevel) SetToNull() {
-	o.Null = true
-	var v RuntimeProfileListResponseItemsItemThinkingLevel
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o NilRuntimeProfileListResponseItemsItemThinkingLevel) Get() (v RuntimeProfileListResponseItemsItemThinkingLevel, ok bool) {
-	if o.Null {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o NilRuntimeProfileListResponseItemsItemThinkingLevel) Or(d RuntimeProfileListResponseItemsItemThinkingLevel) RuntimeProfileListResponseItemsItemThinkingLevel {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewNilRuntimeProfileThinkingLevel returns new NilRuntimeProfileThinkingLevel with value set to v.
-func NewNilRuntimeProfileThinkingLevel(v RuntimeProfileThinkingLevel) NilRuntimeProfileThinkingLevel {
-	return NilRuntimeProfileThinkingLevel{
-		Value: v,
-	}
-}
-
-// NilRuntimeProfileThinkingLevel is nullable RuntimeProfileThinkingLevel.
-type NilRuntimeProfileThinkingLevel struct {
-	Value RuntimeProfileThinkingLevel
-	Null  bool
-}
-
-// SetTo sets value to v.
-func (o *NilRuntimeProfileThinkingLevel) SetTo(v RuntimeProfileThinkingLevel) {
-	o.Null = false
-	o.Value = v
-}
-
-// IsNull returns true if value is Null.
-func (o NilRuntimeProfileThinkingLevel) IsNull() bool { return o.Null }
-
-// SetToNull sets value to null.
-func (o *NilRuntimeProfileThinkingLevel) SetToNull() {
-	o.Null = true
-	var v RuntimeProfileThinkingLevel
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o NilRuntimeProfileThinkingLevel) Get() (v RuntimeProfileThinkingLevel, ok bool) {
-	if o.Null {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o NilRuntimeProfileThinkingLevel) Or(d RuntimeProfileThinkingLevel) RuntimeProfileThinkingLevel {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -35715,6 +36126,175 @@ func (s *OAuth2RegistrationCredentialType) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type OpenRuntimeStoreBadRequest ProblemDetails
+
+func (*OpenRuntimeStoreBadRequest) openRuntimeStoreRes() {}
+
+type OpenRuntimeStoreConflict ProblemDetails
+
+func (*OpenRuntimeStoreConflict) openRuntimeStoreRes() {}
+
+type OpenRuntimeStoreForbidden ProblemDetails
+
+func (*OpenRuntimeStoreForbidden) openRuntimeStoreRes() {}
+
+type OpenRuntimeStoreNotFound ProblemDetails
+
+func (*OpenRuntimeStoreNotFound) openRuntimeStoreRes() {}
+
+type OpenRuntimeStoreOK struct {
+	Format          OpenRuntimeStoreOKFormat `json:"format"`
+	HeadSeq         int                      `json:"headSeq"`
+	StoreId         uuid.UUID                `json:"storeId"`
+	WriterExpiresAt time.Time                `json:"writerExpiresAt"`
+	WriterToken     uuid.UUID                `json:"writerToken"`
+}
+
+// GetFormat returns the value of Format.
+func (s *OpenRuntimeStoreOK) GetFormat() OpenRuntimeStoreOKFormat {
+	return s.Format
+}
+
+// GetHeadSeq returns the value of HeadSeq.
+func (s *OpenRuntimeStoreOK) GetHeadSeq() int {
+	return s.HeadSeq
+}
+
+// GetStoreId returns the value of StoreId.
+func (s *OpenRuntimeStoreOK) GetStoreId() uuid.UUID {
+	return s.StoreId
+}
+
+// GetWriterExpiresAt returns the value of WriterExpiresAt.
+func (s *OpenRuntimeStoreOK) GetWriterExpiresAt() time.Time {
+	return s.WriterExpiresAt
+}
+
+// GetWriterToken returns the value of WriterToken.
+func (s *OpenRuntimeStoreOK) GetWriterToken() uuid.UUID {
+	return s.WriterToken
+}
+
+// SetFormat sets the value of Format.
+func (s *OpenRuntimeStoreOK) SetFormat(val OpenRuntimeStoreOKFormat) {
+	s.Format = val
+}
+
+// SetHeadSeq sets the value of HeadSeq.
+func (s *OpenRuntimeStoreOK) SetHeadSeq(val int) {
+	s.HeadSeq = val
+}
+
+// SetStoreId sets the value of StoreId.
+func (s *OpenRuntimeStoreOK) SetStoreId(val uuid.UUID) {
+	s.StoreId = val
+}
+
+// SetWriterExpiresAt sets the value of WriterExpiresAt.
+func (s *OpenRuntimeStoreOK) SetWriterExpiresAt(val time.Time) {
+	s.WriterExpiresAt = val
+}
+
+// SetWriterToken sets the value of WriterToken.
+func (s *OpenRuntimeStoreOK) SetWriterToken(val uuid.UUID) {
+	s.WriterToken = val
+}
+
+func (*OpenRuntimeStoreOK) openRuntimeStoreRes() {}
+
+type OpenRuntimeStoreOKFormat string
+
+const (
+	OpenRuntimeStoreOKFormatPiDurableV1 OpenRuntimeStoreOKFormat = "pi-durable.v1"
+)
+
+// AllValues returns all OpenRuntimeStoreOKFormat values.
+func (OpenRuntimeStoreOKFormat) AllValues() []OpenRuntimeStoreOKFormat {
+	return []OpenRuntimeStoreOKFormat{
+		OpenRuntimeStoreOKFormatPiDurableV1,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s OpenRuntimeStoreOKFormat) MarshalText() ([]byte, error) {
+	switch s {
+	case OpenRuntimeStoreOKFormatPiDurableV1:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *OpenRuntimeStoreOKFormat) UnmarshalText(data []byte) error {
+	switch OpenRuntimeStoreOKFormat(data) {
+	case OpenRuntimeStoreOKFormatPiDurableV1:
+		*s = OpenRuntimeStoreOKFormatPiDurableV1
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type OpenRuntimeStoreReq struct {
+	AttemptN            int       `json:"attemptN"`
+	ExecutorFingerprint string    `json:"executorFingerprint"`
+	LeaseId             uuid.UUID `json:"leaseId"`
+	TaskId              uuid.UUID `json:"taskId"`
+}
+
+// GetAttemptN returns the value of AttemptN.
+func (s *OpenRuntimeStoreReq) GetAttemptN() int {
+	return s.AttemptN
+}
+
+// GetExecutorFingerprint returns the value of ExecutorFingerprint.
+func (s *OpenRuntimeStoreReq) GetExecutorFingerprint() string {
+	return s.ExecutorFingerprint
+}
+
+// GetLeaseId returns the value of LeaseId.
+func (s *OpenRuntimeStoreReq) GetLeaseId() uuid.UUID {
+	return s.LeaseId
+}
+
+// GetTaskId returns the value of TaskId.
+func (s *OpenRuntimeStoreReq) GetTaskId() uuid.UUID {
+	return s.TaskId
+}
+
+// SetAttemptN sets the value of AttemptN.
+func (s *OpenRuntimeStoreReq) SetAttemptN(val int) {
+	s.AttemptN = val
+}
+
+// SetExecutorFingerprint sets the value of ExecutorFingerprint.
+func (s *OpenRuntimeStoreReq) SetExecutorFingerprint(val string) {
+	s.ExecutorFingerprint = val
+}
+
+// SetLeaseId sets the value of LeaseId.
+func (s *OpenRuntimeStoreReq) SetLeaseId(val uuid.UUID) {
+	s.LeaseId = val
+}
+
+// SetTaskId sets the value of TaskId.
+func (s *OpenRuntimeStoreReq) SetTaskId(val uuid.UUID) {
+	s.TaskId = val
+}
+
+type OpenRuntimeStoreServiceUnavailable ProblemDetails
+
+func (*OpenRuntimeStoreServiceUnavailable) openRuntimeStoreRes() {}
+
+type OpenRuntimeStoreTooManyRequests ProblemDetails
+
+func (*OpenRuntimeStoreTooManyRequests) openRuntimeStoreRes() {}
+
+type OpenRuntimeStoreUnauthorized ProblemDetails
+
+func (*OpenRuntimeStoreUnauthorized) openRuntimeStoreRes() {}
 
 // NewOptAbortTaskAttemptReq returns new OptAbortTaskAttemptReq with value set to v.
 func NewOptAbortTaskAttemptReq(v AbortTaskAttemptReq) OptAbortTaskAttemptReq {
@@ -36630,6 +37210,98 @@ func (o OptCreateRuntimeProfileBody) Get() (v CreateRuntimeProfileBody, ok bool)
 
 // Or returns value if set, or given parameter if does not.
 func (o OptCreateRuntimeProfileBody) Or(d CreateRuntimeProfileBody) CreateRuntimeProfileBody {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptCreateRuntimeProfileBodyModelsClassification returns new OptCreateRuntimeProfileBodyModelsClassification with value set to v.
+func NewOptCreateRuntimeProfileBodyModelsClassification(v CreateRuntimeProfileBodyModelsClassification) OptCreateRuntimeProfileBodyModelsClassification {
+	return OptCreateRuntimeProfileBodyModelsClassification{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateRuntimeProfileBodyModelsClassification is optional CreateRuntimeProfileBodyModelsClassification.
+type OptCreateRuntimeProfileBodyModelsClassification struct {
+	Value CreateRuntimeProfileBodyModelsClassification
+	Set   bool
+}
+
+// IsSet returns true if OptCreateRuntimeProfileBodyModelsClassification was set.
+func (o OptCreateRuntimeProfileBodyModelsClassification) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateRuntimeProfileBodyModelsClassification) Reset() {
+	var v CreateRuntimeProfileBodyModelsClassification
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateRuntimeProfileBodyModelsClassification) SetTo(v CreateRuntimeProfileBodyModelsClassification) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateRuntimeProfileBodyModelsClassification) Get() (v CreateRuntimeProfileBodyModelsClassification, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateRuntimeProfileBodyModelsClassification) Or(d CreateRuntimeProfileBodyModelsClassification) CreateRuntimeProfileBodyModelsClassification {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptCreateRuntimeProfileBodyModelsGeneration returns new OptCreateRuntimeProfileBodyModelsGeneration with value set to v.
+func NewOptCreateRuntimeProfileBodyModelsGeneration(v CreateRuntimeProfileBodyModelsGeneration) OptCreateRuntimeProfileBodyModelsGeneration {
+	return OptCreateRuntimeProfileBodyModelsGeneration{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateRuntimeProfileBodyModelsGeneration is optional CreateRuntimeProfileBodyModelsGeneration.
+type OptCreateRuntimeProfileBodyModelsGeneration struct {
+	Value CreateRuntimeProfileBodyModelsGeneration
+	Set   bool
+}
+
+// IsSet returns true if OptCreateRuntimeProfileBodyModelsGeneration was set.
+func (o OptCreateRuntimeProfileBodyModelsGeneration) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateRuntimeProfileBodyModelsGeneration) Reset() {
+	var v CreateRuntimeProfileBodyModelsGeneration
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateRuntimeProfileBodyModelsGeneration) SetTo(v CreateRuntimeProfileBodyModelsGeneration) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateRuntimeProfileBodyModelsGeneration) Get() (v CreateRuntimeProfileBodyModelsGeneration, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateRuntimeProfileBodyModelsGeneration) Or(d CreateRuntimeProfileBodyModelsGeneration) CreateRuntimeProfileBodyModelsGeneration {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -38038,57 +38710,57 @@ func (o OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode) Or(d CreateRuntimePr
 	return d
 }
 
-// NewOptNilCreateRuntimeProfileBodyThinkingLevel returns new OptNilCreateRuntimeProfileBodyThinkingLevel with value set to v.
-func NewOptNilCreateRuntimeProfileBodyThinkingLevel(v CreateRuntimeProfileBodyThinkingLevel) OptNilCreateRuntimeProfileBodyThinkingLevel {
-	return OptNilCreateRuntimeProfileBodyThinkingLevel{
+// NewOptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel returns new OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel with value set to v.
+func NewOptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel(v CreateRuntimeProfileBodyModelsGenerationThinkingLevel) OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel {
+	return OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel{
 		Value: v,
 		Set:   true,
 	}
 }
 
-// OptNilCreateRuntimeProfileBodyThinkingLevel is optional nullable CreateRuntimeProfileBodyThinkingLevel.
-type OptNilCreateRuntimeProfileBodyThinkingLevel struct {
-	Value CreateRuntimeProfileBodyThinkingLevel
+// OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel is optional nullable CreateRuntimeProfileBodyModelsGenerationThinkingLevel.
+type OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel struct {
+	Value CreateRuntimeProfileBodyModelsGenerationThinkingLevel
 	Set   bool
 	Null  bool
 }
 
-// IsSet returns true if OptNilCreateRuntimeProfileBodyThinkingLevel was set.
-func (o OptNilCreateRuntimeProfileBodyThinkingLevel) IsSet() bool { return o.Set }
+// IsSet returns true if OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel was set.
+func (o OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel) IsSet() bool { return o.Set }
 
 // Reset unsets value.
-func (o *OptNilCreateRuntimeProfileBodyThinkingLevel) Reset() {
-	var v CreateRuntimeProfileBodyThinkingLevel
+func (o *OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel) Reset() {
+	var v CreateRuntimeProfileBodyModelsGenerationThinkingLevel
 	o.Value = v
 	o.Set = false
 	o.Null = false
 }
 
 // SetTo sets value to v.
-func (o *OptNilCreateRuntimeProfileBodyThinkingLevel) SetTo(v CreateRuntimeProfileBodyThinkingLevel) {
+func (o *OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel) SetTo(v CreateRuntimeProfileBodyModelsGenerationThinkingLevel) {
 	o.Set = true
 	o.Null = false
 	o.Value = v
 }
 
 // IsNull returns true if value is Null.
-func (o OptNilCreateRuntimeProfileBodyThinkingLevel) IsNull() bool { return o.Null }
+func (o OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel) IsNull() bool { return o.Null }
 
 // SetToNull sets value to null.
-func (o *OptNilCreateRuntimeProfileBodyThinkingLevel) SetToNull() {
+func (o *OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel) SetToNull() {
 	o.Set = true
 	o.Null = true
-	var v CreateRuntimeProfileBodyThinkingLevel
+	var v CreateRuntimeProfileBodyModelsGenerationThinkingLevel
 	o.Value = v
 }
 
 // IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
-func (o OptNilCreateRuntimeProfileBodyThinkingLevel) IsEmpty() bool {
+func (o OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel) IsEmpty() bool {
 	return !o.Set && !o.Null
 }
 
 // Get returns value and boolean that denotes whether value was set.
-func (o OptNilCreateRuntimeProfileBodyThinkingLevel) Get() (v CreateRuntimeProfileBodyThinkingLevel, ok bool) {
+func (o OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel) Get() (v CreateRuntimeProfileBodyModelsGenerationThinkingLevel, ok bool) {
 	if o.Null {
 		return v, false
 	}
@@ -38099,7 +38771,7 @@ func (o OptNilCreateRuntimeProfileBodyThinkingLevel) Get() (v CreateRuntimeProfi
 }
 
 // Or returns value if set, or given parameter if does not.
-func (o OptNilCreateRuntimeProfileBodyThinkingLevel) Or(d CreateRuntimeProfileBodyThinkingLevel) CreateRuntimeProfileBodyThinkingLevel {
+func (o OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel) Or(d CreateRuntimeProfileBodyModelsGenerationThinkingLevel) CreateRuntimeProfileBodyModelsGenerationThinkingLevel {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -38514,6 +39186,146 @@ func (o OptNilPreviewSignEvidenceValue) Or(d PreviewSignEvidenceValue) PreviewSi
 	return d
 }
 
+// NewOptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel returns new OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel with value set to v.
+func NewOptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel(v RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel {
+	return OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel is optional nullable RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel.
+type OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel struct {
+	Value RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel was set.
+func (o OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) IsSet() bool {
+	return o.Set
+}
+
+// Reset unsets value.
+func (o *OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) Reset() {
+	var v RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) SetTo(v RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) IsNull() bool {
+	return o.Null
+}
+
+// SetToNull sets value to null.
+func (o *OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel
+	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) Get() (v RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) Or(d RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilRuntimeProfileModelsGenerationThinkingLevel returns new OptNilRuntimeProfileModelsGenerationThinkingLevel with value set to v.
+func NewOptNilRuntimeProfileModelsGenerationThinkingLevel(v RuntimeProfileModelsGenerationThinkingLevel) OptNilRuntimeProfileModelsGenerationThinkingLevel {
+	return OptNilRuntimeProfileModelsGenerationThinkingLevel{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilRuntimeProfileModelsGenerationThinkingLevel is optional nullable RuntimeProfileModelsGenerationThinkingLevel.
+type OptNilRuntimeProfileModelsGenerationThinkingLevel struct {
+	Value RuntimeProfileModelsGenerationThinkingLevel
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilRuntimeProfileModelsGenerationThinkingLevel was set.
+func (o OptNilRuntimeProfileModelsGenerationThinkingLevel) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilRuntimeProfileModelsGenerationThinkingLevel) Reset() {
+	var v RuntimeProfileModelsGenerationThinkingLevel
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilRuntimeProfileModelsGenerationThinkingLevel) SetTo(v RuntimeProfileModelsGenerationThinkingLevel) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilRuntimeProfileModelsGenerationThinkingLevel) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilRuntimeProfileModelsGenerationThinkingLevel) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v RuntimeProfileModelsGenerationThinkingLevel
+	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilRuntimeProfileModelsGenerationThinkingLevel) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilRuntimeProfileModelsGenerationThinkingLevel) Get() (v RuntimeProfileModelsGenerationThinkingLevel, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilRuntimeProfileModelsGenerationThinkingLevel) Or(d RuntimeProfileModelsGenerationThinkingLevel) RuntimeProfileModelsGenerationThinkingLevel {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptNilSigningRequestRequestedBy returns new OptNilSigningRequestRequestedBy with value set to v.
 func NewOptNilSigningRequestRequestedBy(v SigningRequestRequestedBy) OptNilSigningRequestRequestedBy {
 	return OptNilSigningRequestRequestedBy{
@@ -38854,57 +39666,57 @@ func (o OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode) Or(d UpdateRuntimePr
 	return d
 }
 
-// NewOptNilUpdateRuntimeProfileBodyThinkingLevel returns new OptNilUpdateRuntimeProfileBodyThinkingLevel with value set to v.
-func NewOptNilUpdateRuntimeProfileBodyThinkingLevel(v UpdateRuntimeProfileBodyThinkingLevel) OptNilUpdateRuntimeProfileBodyThinkingLevel {
-	return OptNilUpdateRuntimeProfileBodyThinkingLevel{
+// NewOptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel returns new OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel with value set to v.
+func NewOptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel(v UpdateRuntimeProfileBodyModelsGenerationThinkingLevel) OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel {
+	return OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel{
 		Value: v,
 		Set:   true,
 	}
 }
 
-// OptNilUpdateRuntimeProfileBodyThinkingLevel is optional nullable UpdateRuntimeProfileBodyThinkingLevel.
-type OptNilUpdateRuntimeProfileBodyThinkingLevel struct {
-	Value UpdateRuntimeProfileBodyThinkingLevel
+// OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel is optional nullable UpdateRuntimeProfileBodyModelsGenerationThinkingLevel.
+type OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel struct {
+	Value UpdateRuntimeProfileBodyModelsGenerationThinkingLevel
 	Set   bool
 	Null  bool
 }
 
-// IsSet returns true if OptNilUpdateRuntimeProfileBodyThinkingLevel was set.
-func (o OptNilUpdateRuntimeProfileBodyThinkingLevel) IsSet() bool { return o.Set }
+// IsSet returns true if OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel was set.
+func (o OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel) IsSet() bool { return o.Set }
 
 // Reset unsets value.
-func (o *OptNilUpdateRuntimeProfileBodyThinkingLevel) Reset() {
-	var v UpdateRuntimeProfileBodyThinkingLevel
+func (o *OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel) Reset() {
+	var v UpdateRuntimeProfileBodyModelsGenerationThinkingLevel
 	o.Value = v
 	o.Set = false
 	o.Null = false
 }
 
 // SetTo sets value to v.
-func (o *OptNilUpdateRuntimeProfileBodyThinkingLevel) SetTo(v UpdateRuntimeProfileBodyThinkingLevel) {
+func (o *OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel) SetTo(v UpdateRuntimeProfileBodyModelsGenerationThinkingLevel) {
 	o.Set = true
 	o.Null = false
 	o.Value = v
 }
 
 // IsNull returns true if value is Null.
-func (o OptNilUpdateRuntimeProfileBodyThinkingLevel) IsNull() bool { return o.Null }
+func (o OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel) IsNull() bool { return o.Null }
 
 // SetToNull sets value to null.
-func (o *OptNilUpdateRuntimeProfileBodyThinkingLevel) SetToNull() {
+func (o *OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel) SetToNull() {
 	o.Set = true
 	o.Null = true
-	var v UpdateRuntimeProfileBodyThinkingLevel
+	var v UpdateRuntimeProfileBodyModelsGenerationThinkingLevel
 	o.Value = v
 }
 
 // IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
-func (o OptNilUpdateRuntimeProfileBodyThinkingLevel) IsEmpty() bool {
+func (o OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel) IsEmpty() bool {
 	return !o.Set && !o.Null
 }
 
 // Get returns value and boolean that denotes whether value was set.
-func (o OptNilUpdateRuntimeProfileBodyThinkingLevel) Get() (v UpdateRuntimeProfileBodyThinkingLevel, ok bool) {
+func (o OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel) Get() (v UpdateRuntimeProfileBodyModelsGenerationThinkingLevel, ok bool) {
 	if o.Null {
 		return v, false
 	}
@@ -38915,7 +39727,7 @@ func (o OptNilUpdateRuntimeProfileBodyThinkingLevel) Get() (v UpdateRuntimeProfi
 }
 
 // Or returns value if set, or given parameter if does not.
-func (o OptNilUpdateRuntimeProfileBodyThinkingLevel) Or(d UpdateRuntimeProfileBodyThinkingLevel) UpdateRuntimeProfileBodyThinkingLevel {
+func (o OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel) Or(d UpdateRuntimeProfileBodyModelsGenerationThinkingLevel) UpdateRuntimeProfileBodyModelsGenerationThinkingLevel {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -39474,6 +40286,98 @@ func (o OptRotateIdentityKeyRequest) Or(d RotateIdentityKeyRequest) RotateIdenti
 	return d
 }
 
+// NewOptRuntimeProfileListResponseItemsItemModelsClassification returns new OptRuntimeProfileListResponseItemsItemModelsClassification with value set to v.
+func NewOptRuntimeProfileListResponseItemsItemModelsClassification(v RuntimeProfileListResponseItemsItemModelsClassification) OptRuntimeProfileListResponseItemsItemModelsClassification {
+	return OptRuntimeProfileListResponseItemsItemModelsClassification{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileListResponseItemsItemModelsClassification is optional RuntimeProfileListResponseItemsItemModelsClassification.
+type OptRuntimeProfileListResponseItemsItemModelsClassification struct {
+	Value RuntimeProfileListResponseItemsItemModelsClassification
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileListResponseItemsItemModelsClassification was set.
+func (o OptRuntimeProfileListResponseItemsItemModelsClassification) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileListResponseItemsItemModelsClassification) Reset() {
+	var v RuntimeProfileListResponseItemsItemModelsClassification
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileListResponseItemsItemModelsClassification) SetTo(v RuntimeProfileListResponseItemsItemModelsClassification) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileListResponseItemsItemModelsClassification) Get() (v RuntimeProfileListResponseItemsItemModelsClassification, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileListResponseItemsItemModelsClassification) Or(d RuntimeProfileListResponseItemsItemModelsClassification) RuntimeProfileListResponseItemsItemModelsClassification {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRuntimeProfileListResponseItemsItemModelsGeneration returns new OptRuntimeProfileListResponseItemsItemModelsGeneration with value set to v.
+func NewOptRuntimeProfileListResponseItemsItemModelsGeneration(v RuntimeProfileListResponseItemsItemModelsGeneration) OptRuntimeProfileListResponseItemsItemModelsGeneration {
+	return OptRuntimeProfileListResponseItemsItemModelsGeneration{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileListResponseItemsItemModelsGeneration is optional RuntimeProfileListResponseItemsItemModelsGeneration.
+type OptRuntimeProfileListResponseItemsItemModelsGeneration struct {
+	Value RuntimeProfileListResponseItemsItemModelsGeneration
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileListResponseItemsItemModelsGeneration was set.
+func (o OptRuntimeProfileListResponseItemsItemModelsGeneration) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileListResponseItemsItemModelsGeneration) Reset() {
+	var v RuntimeProfileListResponseItemsItemModelsGeneration
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileListResponseItemsItemModelsGeneration) SetTo(v RuntimeProfileListResponseItemsItemModelsGeneration) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileListResponseItemsItemModelsGeneration) Get() (v RuntimeProfileListResponseItemsItemModelsGeneration, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileListResponseItemsItemModelsGeneration) Or(d RuntimeProfileListResponseItemsItemModelsGeneration) RuntimeProfileListResponseItemsItemModelsGeneration {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptRuntimeProfileListResponseItemsItemSandboxEnv returns new OptRuntimeProfileListResponseItemsItemSandboxEnv with value set to v.
 func NewOptRuntimeProfileListResponseItemsItemSandboxEnv(v RuntimeProfileListResponseItemsItemSandboxEnv) OptRuntimeProfileListResponseItemsItemSandboxEnv {
 	return OptRuntimeProfileListResponseItemsItemSandboxEnv{
@@ -39790,6 +40694,98 @@ func (o OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode) Get() (v Run
 
 // Or returns value if set, or given parameter if does not.
 func (o OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode) Or(d RuntimeProfileListResponseItemsItemSandboxVfsShadowMode) RuntimeProfileListResponseItemsItemSandboxVfsShadowMode {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRuntimeProfileModelsClassification returns new OptRuntimeProfileModelsClassification with value set to v.
+func NewOptRuntimeProfileModelsClassification(v RuntimeProfileModelsClassification) OptRuntimeProfileModelsClassification {
+	return OptRuntimeProfileModelsClassification{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileModelsClassification is optional RuntimeProfileModelsClassification.
+type OptRuntimeProfileModelsClassification struct {
+	Value RuntimeProfileModelsClassification
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileModelsClassification was set.
+func (o OptRuntimeProfileModelsClassification) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileModelsClassification) Reset() {
+	var v RuntimeProfileModelsClassification
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileModelsClassification) SetTo(v RuntimeProfileModelsClassification) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileModelsClassification) Get() (v RuntimeProfileModelsClassification, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileModelsClassification) Or(d RuntimeProfileModelsClassification) RuntimeProfileModelsClassification {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRuntimeProfileModelsGeneration returns new OptRuntimeProfileModelsGeneration with value set to v.
+func NewOptRuntimeProfileModelsGeneration(v RuntimeProfileModelsGeneration) OptRuntimeProfileModelsGeneration {
+	return OptRuntimeProfileModelsGeneration{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileModelsGeneration is optional RuntimeProfileModelsGeneration.
+type OptRuntimeProfileModelsGeneration struct {
+	Value RuntimeProfileModelsGeneration
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileModelsGeneration was set.
+func (o OptRuntimeProfileModelsGeneration) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileModelsGeneration) Reset() {
+	var v RuntimeProfileModelsGeneration
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileModelsGeneration) SetTo(v RuntimeProfileModelsGeneration) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileModelsGeneration) Get() (v RuntimeProfileModelsGeneration, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileModelsGeneration) Or(d RuntimeProfileModelsGeneration) RuntimeProfileModelsGeneration {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -41446,6 +42442,144 @@ func (o OptUpdateRuntimeProfileBody) Get() (v UpdateRuntimeProfileBody, ok bool)
 
 // Or returns value if set, or given parameter if does not.
 func (o OptUpdateRuntimeProfileBody) Or(d UpdateRuntimeProfileBody) UpdateRuntimeProfileBody {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateRuntimeProfileBodyModels returns new OptUpdateRuntimeProfileBodyModels with value set to v.
+func NewOptUpdateRuntimeProfileBodyModels(v UpdateRuntimeProfileBodyModels) OptUpdateRuntimeProfileBodyModels {
+	return OptUpdateRuntimeProfileBodyModels{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeProfileBodyModels is optional UpdateRuntimeProfileBodyModels.
+type OptUpdateRuntimeProfileBodyModels struct {
+	Value UpdateRuntimeProfileBodyModels
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeProfileBodyModels was set.
+func (o OptUpdateRuntimeProfileBodyModels) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeProfileBodyModels) Reset() {
+	var v UpdateRuntimeProfileBodyModels
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeProfileBodyModels) SetTo(v UpdateRuntimeProfileBodyModels) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeProfileBodyModels) Get() (v UpdateRuntimeProfileBodyModels, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeProfileBodyModels) Or(d UpdateRuntimeProfileBodyModels) UpdateRuntimeProfileBodyModels {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateRuntimeProfileBodyModelsClassification returns new OptUpdateRuntimeProfileBodyModelsClassification with value set to v.
+func NewOptUpdateRuntimeProfileBodyModelsClassification(v UpdateRuntimeProfileBodyModelsClassification) OptUpdateRuntimeProfileBodyModelsClassification {
+	return OptUpdateRuntimeProfileBodyModelsClassification{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeProfileBodyModelsClassification is optional UpdateRuntimeProfileBodyModelsClassification.
+type OptUpdateRuntimeProfileBodyModelsClassification struct {
+	Value UpdateRuntimeProfileBodyModelsClassification
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeProfileBodyModelsClassification was set.
+func (o OptUpdateRuntimeProfileBodyModelsClassification) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeProfileBodyModelsClassification) Reset() {
+	var v UpdateRuntimeProfileBodyModelsClassification
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeProfileBodyModelsClassification) SetTo(v UpdateRuntimeProfileBodyModelsClassification) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeProfileBodyModelsClassification) Get() (v UpdateRuntimeProfileBodyModelsClassification, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeProfileBodyModelsClassification) Or(d UpdateRuntimeProfileBodyModelsClassification) UpdateRuntimeProfileBodyModelsClassification {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateRuntimeProfileBodyModelsGeneration returns new OptUpdateRuntimeProfileBodyModelsGeneration with value set to v.
+func NewOptUpdateRuntimeProfileBodyModelsGeneration(v UpdateRuntimeProfileBodyModelsGeneration) OptUpdateRuntimeProfileBodyModelsGeneration {
+	return OptUpdateRuntimeProfileBodyModelsGeneration{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeProfileBodyModelsGeneration is optional UpdateRuntimeProfileBodyModelsGeneration.
+type OptUpdateRuntimeProfileBodyModelsGeneration struct {
+	Value UpdateRuntimeProfileBodyModelsGeneration
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeProfileBodyModelsGeneration was set.
+func (o OptUpdateRuntimeProfileBodyModelsGeneration) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeProfileBodyModelsGeneration) Reset() {
+	var v UpdateRuntimeProfileBodyModelsGeneration
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeProfileBodyModelsGeneration) SetTo(v UpdateRuntimeProfileBodyModelsGeneration) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeProfileBodyModelsGeneration) Get() (v UpdateRuntimeProfileBodyModelsGeneration, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeProfileBodyModelsGeneration) Or(d UpdateRuntimeProfileBodyModelsGeneration) UpdateRuntimeProfileBodyModelsGeneration {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -47168,6 +48302,97 @@ func (s *RelationType) UnmarshalText(data []byte) error {
 	}
 }
 
+type ReleaseRuntimeStoreBadRequest ProblemDetails
+
+func (*ReleaseRuntimeStoreBadRequest) releaseRuntimeStoreRes() {}
+
+type ReleaseRuntimeStoreConflict ProblemDetails
+
+func (*ReleaseRuntimeStoreConflict) releaseRuntimeStoreRes() {}
+
+type ReleaseRuntimeStoreForbidden ProblemDetails
+
+func (*ReleaseRuntimeStoreForbidden) releaseRuntimeStoreRes() {}
+
+// ReleaseRuntimeStoreNoContent is response for ReleaseRuntimeStore operation.
+type ReleaseRuntimeStoreNoContent struct{}
+
+func (*ReleaseRuntimeStoreNoContent) releaseRuntimeStoreRes() {}
+
+type ReleaseRuntimeStoreNotFound ProblemDetails
+
+func (*ReleaseRuntimeStoreNotFound) releaseRuntimeStoreRes() {}
+
+type ReleaseRuntimeStoreReq struct {
+	AttemptN            int       `json:"attemptN"`
+	ExecutorFingerprint string    `json:"executorFingerprint"`
+	LeaseId             uuid.UUID `json:"leaseId"`
+	TaskId              uuid.UUID `json:"taskId"`
+	WriterToken         uuid.UUID `json:"writerToken"`
+}
+
+// GetAttemptN returns the value of AttemptN.
+func (s *ReleaseRuntimeStoreReq) GetAttemptN() int {
+	return s.AttemptN
+}
+
+// GetExecutorFingerprint returns the value of ExecutorFingerprint.
+func (s *ReleaseRuntimeStoreReq) GetExecutorFingerprint() string {
+	return s.ExecutorFingerprint
+}
+
+// GetLeaseId returns the value of LeaseId.
+func (s *ReleaseRuntimeStoreReq) GetLeaseId() uuid.UUID {
+	return s.LeaseId
+}
+
+// GetTaskId returns the value of TaskId.
+func (s *ReleaseRuntimeStoreReq) GetTaskId() uuid.UUID {
+	return s.TaskId
+}
+
+// GetWriterToken returns the value of WriterToken.
+func (s *ReleaseRuntimeStoreReq) GetWriterToken() uuid.UUID {
+	return s.WriterToken
+}
+
+// SetAttemptN sets the value of AttemptN.
+func (s *ReleaseRuntimeStoreReq) SetAttemptN(val int) {
+	s.AttemptN = val
+}
+
+// SetExecutorFingerprint sets the value of ExecutorFingerprint.
+func (s *ReleaseRuntimeStoreReq) SetExecutorFingerprint(val string) {
+	s.ExecutorFingerprint = val
+}
+
+// SetLeaseId sets the value of LeaseId.
+func (s *ReleaseRuntimeStoreReq) SetLeaseId(val uuid.UUID) {
+	s.LeaseId = val
+}
+
+// SetTaskId sets the value of TaskId.
+func (s *ReleaseRuntimeStoreReq) SetTaskId(val uuid.UUID) {
+	s.TaskId = val
+}
+
+// SetWriterToken sets the value of WriterToken.
+func (s *ReleaseRuntimeStoreReq) SetWriterToken(val uuid.UUID) {
+	s.WriterToken = val
+}
+
+type ReleaseRuntimeStoreServiceUnavailable ProblemDetails
+
+func (*ReleaseRuntimeStoreServiceUnavailable) releaseRuntimeStoreRes() {}
+
+type ReleaseRuntimeStoreTooManyRequests ProblemDetails
+
+func (*ReleaseRuntimeStoreTooManyRequests) releaseRuntimeStoreRes() {}
+
+type ReleaseRuntimeStoreUnauthorized ProblemDetails
+
+func (*ReleaseRuntimeStoreUnauthorized) releaseRuntimeStoreRes() {}
+
 type RemoveGroupMemberForbidden ProblemDetails
 
 func (*RemoveGroupMemberForbidden) removeGroupMemberRes() {}
@@ -48053,6 +49278,186 @@ func NewHumanPrincipalRenderedPackWithContentCreator(v HumanPrincipal) RenderedP
 	s.SetHumanPrincipal(v)
 	return s
 }
+
+type RenewRuntimeStoreBadRequest ProblemDetails
+
+func (*RenewRuntimeStoreBadRequest) renewRuntimeStoreRes() {}
+
+type RenewRuntimeStoreConflict ProblemDetails
+
+func (*RenewRuntimeStoreConflict) renewRuntimeStoreRes() {}
+
+type RenewRuntimeStoreForbidden ProblemDetails
+
+func (*RenewRuntimeStoreForbidden) renewRuntimeStoreRes() {}
+
+type RenewRuntimeStoreNotFound ProblemDetails
+
+func (*RenewRuntimeStoreNotFound) renewRuntimeStoreRes() {}
+
+type RenewRuntimeStoreOK struct {
+	Format          RenewRuntimeStoreOKFormat `json:"format"`
+	HeadSeq         int                       `json:"headSeq"`
+	StoreId         uuid.UUID                 `json:"storeId"`
+	WriterExpiresAt time.Time                 `json:"writerExpiresAt"`
+	WriterToken     uuid.UUID                 `json:"writerToken"`
+}
+
+// GetFormat returns the value of Format.
+func (s *RenewRuntimeStoreOK) GetFormat() RenewRuntimeStoreOKFormat {
+	return s.Format
+}
+
+// GetHeadSeq returns the value of HeadSeq.
+func (s *RenewRuntimeStoreOK) GetHeadSeq() int {
+	return s.HeadSeq
+}
+
+// GetStoreId returns the value of StoreId.
+func (s *RenewRuntimeStoreOK) GetStoreId() uuid.UUID {
+	return s.StoreId
+}
+
+// GetWriterExpiresAt returns the value of WriterExpiresAt.
+func (s *RenewRuntimeStoreOK) GetWriterExpiresAt() time.Time {
+	return s.WriterExpiresAt
+}
+
+// GetWriterToken returns the value of WriterToken.
+func (s *RenewRuntimeStoreOK) GetWriterToken() uuid.UUID {
+	return s.WriterToken
+}
+
+// SetFormat sets the value of Format.
+func (s *RenewRuntimeStoreOK) SetFormat(val RenewRuntimeStoreOKFormat) {
+	s.Format = val
+}
+
+// SetHeadSeq sets the value of HeadSeq.
+func (s *RenewRuntimeStoreOK) SetHeadSeq(val int) {
+	s.HeadSeq = val
+}
+
+// SetStoreId sets the value of StoreId.
+func (s *RenewRuntimeStoreOK) SetStoreId(val uuid.UUID) {
+	s.StoreId = val
+}
+
+// SetWriterExpiresAt sets the value of WriterExpiresAt.
+func (s *RenewRuntimeStoreOK) SetWriterExpiresAt(val time.Time) {
+	s.WriterExpiresAt = val
+}
+
+// SetWriterToken sets the value of WriterToken.
+func (s *RenewRuntimeStoreOK) SetWriterToken(val uuid.UUID) {
+	s.WriterToken = val
+}
+
+func (*RenewRuntimeStoreOK) renewRuntimeStoreRes() {}
+
+type RenewRuntimeStoreOKFormat string
+
+const (
+	RenewRuntimeStoreOKFormatPiDurableV1 RenewRuntimeStoreOKFormat = "pi-durable.v1"
+)
+
+// AllValues returns all RenewRuntimeStoreOKFormat values.
+func (RenewRuntimeStoreOKFormat) AllValues() []RenewRuntimeStoreOKFormat {
+	return []RenewRuntimeStoreOKFormat{
+		RenewRuntimeStoreOKFormatPiDurableV1,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RenewRuntimeStoreOKFormat) MarshalText() ([]byte, error) {
+	switch s {
+	case RenewRuntimeStoreOKFormatPiDurableV1:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RenewRuntimeStoreOKFormat) UnmarshalText(data []byte) error {
+	switch RenewRuntimeStoreOKFormat(data) {
+	case RenewRuntimeStoreOKFormatPiDurableV1:
+		*s = RenewRuntimeStoreOKFormatPiDurableV1
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RenewRuntimeStoreReq struct {
+	AttemptN            int       `json:"attemptN"`
+	ExecutorFingerprint string    `json:"executorFingerprint"`
+	LeaseId             uuid.UUID `json:"leaseId"`
+	TaskId              uuid.UUID `json:"taskId"`
+	WriterToken         uuid.UUID `json:"writerToken"`
+}
+
+// GetAttemptN returns the value of AttemptN.
+func (s *RenewRuntimeStoreReq) GetAttemptN() int {
+	return s.AttemptN
+}
+
+// GetExecutorFingerprint returns the value of ExecutorFingerprint.
+func (s *RenewRuntimeStoreReq) GetExecutorFingerprint() string {
+	return s.ExecutorFingerprint
+}
+
+// GetLeaseId returns the value of LeaseId.
+func (s *RenewRuntimeStoreReq) GetLeaseId() uuid.UUID {
+	return s.LeaseId
+}
+
+// GetTaskId returns the value of TaskId.
+func (s *RenewRuntimeStoreReq) GetTaskId() uuid.UUID {
+	return s.TaskId
+}
+
+// GetWriterToken returns the value of WriterToken.
+func (s *RenewRuntimeStoreReq) GetWriterToken() uuid.UUID {
+	return s.WriterToken
+}
+
+// SetAttemptN sets the value of AttemptN.
+func (s *RenewRuntimeStoreReq) SetAttemptN(val int) {
+	s.AttemptN = val
+}
+
+// SetExecutorFingerprint sets the value of ExecutorFingerprint.
+func (s *RenewRuntimeStoreReq) SetExecutorFingerprint(val string) {
+	s.ExecutorFingerprint = val
+}
+
+// SetLeaseId sets the value of LeaseId.
+func (s *RenewRuntimeStoreReq) SetLeaseId(val uuid.UUID) {
+	s.LeaseId = val
+}
+
+// SetTaskId sets the value of TaskId.
+func (s *RenewRuntimeStoreReq) SetTaskId(val uuid.UUID) {
+	s.TaskId = val
+}
+
+// SetWriterToken sets the value of WriterToken.
+func (s *RenewRuntimeStoreReq) SetWriterToken(val uuid.UUID) {
+	s.WriterToken = val
+}
+
+type RenewRuntimeStoreServiceUnavailable ProblemDetails
+
+func (*RenewRuntimeStoreServiceUnavailable) renewRuntimeStoreRes() {}
+
+type RenewRuntimeStoreTooManyRequests ProblemDetails
+
+func (*RenewRuntimeStoreTooManyRequests) renewRuntimeStoreRes() {}
+
+type RenewRuntimeStoreUnauthorized ProblemDetails
+
+func (*RenewRuntimeStoreUnauthorized) renewRuntimeStoreRes() {}
 
 type RequestRecoveryChallengeBadRequest ProblemDetails
 
@@ -49495,11 +50900,9 @@ type RuntimeProfile struct {
 	Description           NilString                                 `json:"description"`
 	ID                    uuid.UUID                                 `json:"id"`
 	MaxBashTimeouts       int                                       `json:"maxBashTimeouts"`
-	MaxOutputTokens       NilInt                                    `json:"maxOutputTokens"`
 	MaxTurns              int                                       `json:"maxTurns"`
-	Model                 string                                    `json:"model"`
+	Models                RuntimeProfileModels                      `json:"models"`
 	Name                  string                                    `json:"name"`
-	Provider              string                                    `json:"provider"`
 	RequiredEnv           []string                                  `json:"requiredEnv"`
 	RequiredExecutables   []string                                  `json:"requiredExecutables"`
 	RequiredTools         []string                                  `json:"requiredTools"`
@@ -49507,13 +50910,9 @@ type RuntimeProfile struct {
 	RuntimeKind           string                                    `json:"runtimeKind"`
 	Sandbox               RuntimeProfileSandbox                     `json:"sandbox"`
 	TeamId                uuid.UUID                                 `json:"teamId"`
-	Temperature           NilFloat64                                `json:"temperature"`
-	ThinkingLevel         NilRuntimeProfileThinkingLevel            `json:"thinkingLevel"`
 	// Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed
 	// tools, fail-closed).
 	ToolEnforcement RuntimeProfileToolEnforcement `json:"toolEnforcement"`
-	TopK            NilInt                        `json:"topK"`
-	TopP            NilFloat64                    `json:"topP"`
 	UpdatedAt       time.Time                     `json:"updatedAt"`
 }
 
@@ -49567,29 +50966,19 @@ func (s *RuntimeProfile) GetMaxBashTimeouts() int {
 	return s.MaxBashTimeouts
 }
 
-// GetMaxOutputTokens returns the value of MaxOutputTokens.
-func (s *RuntimeProfile) GetMaxOutputTokens() NilInt {
-	return s.MaxOutputTokens
-}
-
 // GetMaxTurns returns the value of MaxTurns.
 func (s *RuntimeProfile) GetMaxTurns() int {
 	return s.MaxTurns
 }
 
-// GetModel returns the value of Model.
-func (s *RuntimeProfile) GetModel() string {
-	return s.Model
+// GetModels returns the value of Models.
+func (s *RuntimeProfile) GetModels() RuntimeProfileModels {
+	return s.Models
 }
 
 // GetName returns the value of Name.
 func (s *RuntimeProfile) GetName() string {
 	return s.Name
-}
-
-// GetProvider returns the value of Provider.
-func (s *RuntimeProfile) GetProvider() string {
-	return s.Provider
 }
 
 // GetRequiredEnv returns the value of RequiredEnv.
@@ -49627,29 +51016,9 @@ func (s *RuntimeProfile) GetTeamId() uuid.UUID {
 	return s.TeamId
 }
 
-// GetTemperature returns the value of Temperature.
-func (s *RuntimeProfile) GetTemperature() NilFloat64 {
-	return s.Temperature
-}
-
-// GetThinkingLevel returns the value of ThinkingLevel.
-func (s *RuntimeProfile) GetThinkingLevel() NilRuntimeProfileThinkingLevel {
-	return s.ThinkingLevel
-}
-
 // GetToolEnforcement returns the value of ToolEnforcement.
 func (s *RuntimeProfile) GetToolEnforcement() RuntimeProfileToolEnforcement {
 	return s.ToolEnforcement
-}
-
-// GetTopK returns the value of TopK.
-func (s *RuntimeProfile) GetTopK() NilInt {
-	return s.TopK
-}
-
-// GetTopP returns the value of TopP.
-func (s *RuntimeProfile) GetTopP() NilFloat64 {
-	return s.TopP
 }
 
 // GetUpdatedAt returns the value of UpdatedAt.
@@ -49707,29 +51076,19 @@ func (s *RuntimeProfile) SetMaxBashTimeouts(val int) {
 	s.MaxBashTimeouts = val
 }
 
-// SetMaxOutputTokens sets the value of MaxOutputTokens.
-func (s *RuntimeProfile) SetMaxOutputTokens(val NilInt) {
-	s.MaxOutputTokens = val
-}
-
 // SetMaxTurns sets the value of MaxTurns.
 func (s *RuntimeProfile) SetMaxTurns(val int) {
 	s.MaxTurns = val
 }
 
-// SetModel sets the value of Model.
-func (s *RuntimeProfile) SetModel(val string) {
-	s.Model = val
+// SetModels sets the value of Models.
+func (s *RuntimeProfile) SetModels(val RuntimeProfileModels) {
+	s.Models = val
 }
 
 // SetName sets the value of Name.
 func (s *RuntimeProfile) SetName(val string) {
 	s.Name = val
-}
-
-// SetProvider sets the value of Provider.
-func (s *RuntimeProfile) SetProvider(val string) {
-	s.Provider = val
 }
 
 // SetRequiredEnv sets the value of RequiredEnv.
@@ -49767,29 +51126,9 @@ func (s *RuntimeProfile) SetTeamId(val uuid.UUID) {
 	s.TeamId = val
 }
 
-// SetTemperature sets the value of Temperature.
-func (s *RuntimeProfile) SetTemperature(val NilFloat64) {
-	s.Temperature = val
-}
-
-// SetThinkingLevel sets the value of ThinkingLevel.
-func (s *RuntimeProfile) SetThinkingLevel(val NilRuntimeProfileThinkingLevel) {
-	s.ThinkingLevel = val
-}
-
 // SetToolEnforcement sets the value of ToolEnforcement.
 func (s *RuntimeProfile) SetToolEnforcement(val RuntimeProfileToolEnforcement) {
 	s.ToolEnforcement = val
-}
-
-// SetTopK sets the value of TopK.
-func (s *RuntimeProfile) SetTopK(val NilInt) {
-	s.TopK = val
-}
-
-// SetTopP sets the value of TopP.
-func (s *RuntimeProfile) SetTopP(val NilFloat64) {
-	s.TopP = val
 }
 
 // SetUpdatedAt sets the value of UpdatedAt.
@@ -50016,11 +51355,9 @@ type RuntimeProfileListResponseItemsItem struct {
 	Description           NilString                                                      `json:"description"`
 	ID                    uuid.UUID                                                      `json:"id"`
 	MaxBashTimeouts       int                                                            `json:"maxBashTimeouts"`
-	MaxOutputTokens       NilInt                                                         `json:"maxOutputTokens"`
 	MaxTurns              int                                                            `json:"maxTurns"`
-	Model                 string                                                         `json:"model"`
+	Models                RuntimeProfileListResponseItemsItemModels                      `json:"models"`
 	Name                  string                                                         `json:"name"`
-	Provider              string                                                         `json:"provider"`
 	RequiredEnv           []string                                                       `json:"requiredEnv"`
 	RequiredExecutables   []string                                                       `json:"requiredExecutables"`
 	RequiredTools         []string                                                       `json:"requiredTools"`
@@ -50028,13 +51365,9 @@ type RuntimeProfileListResponseItemsItem struct {
 	RuntimeKind           string                                                         `json:"runtimeKind"`
 	Sandbox               RuntimeProfileListResponseItemsItemSandbox                     `json:"sandbox"`
 	TeamId                uuid.UUID                                                      `json:"teamId"`
-	Temperature           NilFloat64                                                     `json:"temperature"`
-	ThinkingLevel         NilRuntimeProfileListResponseItemsItemThinkingLevel            `json:"thinkingLevel"`
 	// Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed
 	// tools, fail-closed).
 	ToolEnforcement RuntimeProfileListResponseItemsItemToolEnforcement `json:"toolEnforcement"`
-	TopK            NilInt                                             `json:"topK"`
-	TopP            NilFloat64                                         `json:"topP"`
 	UpdatedAt       time.Time                                          `json:"updatedAt"`
 }
 
@@ -50088,29 +51421,19 @@ func (s *RuntimeProfileListResponseItemsItem) GetMaxBashTimeouts() int {
 	return s.MaxBashTimeouts
 }
 
-// GetMaxOutputTokens returns the value of MaxOutputTokens.
-func (s *RuntimeProfileListResponseItemsItem) GetMaxOutputTokens() NilInt {
-	return s.MaxOutputTokens
-}
-
 // GetMaxTurns returns the value of MaxTurns.
 func (s *RuntimeProfileListResponseItemsItem) GetMaxTurns() int {
 	return s.MaxTurns
 }
 
-// GetModel returns the value of Model.
-func (s *RuntimeProfileListResponseItemsItem) GetModel() string {
-	return s.Model
+// GetModels returns the value of Models.
+func (s *RuntimeProfileListResponseItemsItem) GetModels() RuntimeProfileListResponseItemsItemModels {
+	return s.Models
 }
 
 // GetName returns the value of Name.
 func (s *RuntimeProfileListResponseItemsItem) GetName() string {
 	return s.Name
-}
-
-// GetProvider returns the value of Provider.
-func (s *RuntimeProfileListResponseItemsItem) GetProvider() string {
-	return s.Provider
 }
 
 // GetRequiredEnv returns the value of RequiredEnv.
@@ -50148,29 +51471,9 @@ func (s *RuntimeProfileListResponseItemsItem) GetTeamId() uuid.UUID {
 	return s.TeamId
 }
 
-// GetTemperature returns the value of Temperature.
-func (s *RuntimeProfileListResponseItemsItem) GetTemperature() NilFloat64 {
-	return s.Temperature
-}
-
-// GetThinkingLevel returns the value of ThinkingLevel.
-func (s *RuntimeProfileListResponseItemsItem) GetThinkingLevel() NilRuntimeProfileListResponseItemsItemThinkingLevel {
-	return s.ThinkingLevel
-}
-
 // GetToolEnforcement returns the value of ToolEnforcement.
 func (s *RuntimeProfileListResponseItemsItem) GetToolEnforcement() RuntimeProfileListResponseItemsItemToolEnforcement {
 	return s.ToolEnforcement
-}
-
-// GetTopK returns the value of TopK.
-func (s *RuntimeProfileListResponseItemsItem) GetTopK() NilInt {
-	return s.TopK
-}
-
-// GetTopP returns the value of TopP.
-func (s *RuntimeProfileListResponseItemsItem) GetTopP() NilFloat64 {
-	return s.TopP
 }
 
 // GetUpdatedAt returns the value of UpdatedAt.
@@ -50228,29 +51531,19 @@ func (s *RuntimeProfileListResponseItemsItem) SetMaxBashTimeouts(val int) {
 	s.MaxBashTimeouts = val
 }
 
-// SetMaxOutputTokens sets the value of MaxOutputTokens.
-func (s *RuntimeProfileListResponseItemsItem) SetMaxOutputTokens(val NilInt) {
-	s.MaxOutputTokens = val
-}
-
 // SetMaxTurns sets the value of MaxTurns.
 func (s *RuntimeProfileListResponseItemsItem) SetMaxTurns(val int) {
 	s.MaxTurns = val
 }
 
-// SetModel sets the value of Model.
-func (s *RuntimeProfileListResponseItemsItem) SetModel(val string) {
-	s.Model = val
+// SetModels sets the value of Models.
+func (s *RuntimeProfileListResponseItemsItem) SetModels(val RuntimeProfileListResponseItemsItemModels) {
+	s.Models = val
 }
 
 // SetName sets the value of Name.
 func (s *RuntimeProfileListResponseItemsItem) SetName(val string) {
 	s.Name = val
-}
-
-// SetProvider sets the value of Provider.
-func (s *RuntimeProfileListResponseItemsItem) SetProvider(val string) {
-	s.Provider = val
 }
 
 // SetRequiredEnv sets the value of RequiredEnv.
@@ -50288,29 +51581,9 @@ func (s *RuntimeProfileListResponseItemsItem) SetTeamId(val uuid.UUID) {
 	s.TeamId = val
 }
 
-// SetTemperature sets the value of Temperature.
-func (s *RuntimeProfileListResponseItemsItem) SetTemperature(val NilFloat64) {
-	s.Temperature = val
-}
-
-// SetThinkingLevel sets the value of ThinkingLevel.
-func (s *RuntimeProfileListResponseItemsItem) SetThinkingLevel(val NilRuntimeProfileListResponseItemsItemThinkingLevel) {
-	s.ThinkingLevel = val
-}
-
 // SetToolEnforcement sets the value of ToolEnforcement.
 func (s *RuntimeProfileListResponseItemsItem) SetToolEnforcement(val RuntimeProfileListResponseItemsItemToolEnforcement) {
 	s.ToolEnforcement = val
-}
-
-// SetTopK sets the value of TopK.
-func (s *RuntimeProfileListResponseItemsItem) SetTopK(val NilInt) {
-	s.TopK = val
-}
-
-// SetTopP sets the value of TopP.
-func (s *RuntimeProfileListResponseItemsItem) SetTopP(val NilFloat64) {
-	s.TopP = val
 }
 
 // SetUpdatedAt sets the value of UpdatedAt.
@@ -50499,6 +51772,205 @@ func (s *RuntimeProfileListResponseItemsItemDefaultWorkspaceMode) UnmarshalText(
 		return nil
 	case RuntimeProfileListResponseItemsItemDefaultWorkspaceModeDedicatedWorktree:
 		*s = RuntimeProfileListResponseItemsItemDefaultWorkspaceModeDedicatedWorktree
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RuntimeProfileListResponseItemsItemModels struct {
+	Classification OptRuntimeProfileListResponseItemsItemModelsClassification `json:"classification"`
+	Generation     OptRuntimeProfileListResponseItemsItemModelsGeneration     `json:"generation"`
+}
+
+// GetClassification returns the value of Classification.
+func (s *RuntimeProfileListResponseItemsItemModels) GetClassification() OptRuntimeProfileListResponseItemsItemModelsClassification {
+	return s.Classification
+}
+
+// GetGeneration returns the value of Generation.
+func (s *RuntimeProfileListResponseItemsItemModels) GetGeneration() OptRuntimeProfileListResponseItemsItemModelsGeneration {
+	return s.Generation
+}
+
+// SetClassification sets the value of Classification.
+func (s *RuntimeProfileListResponseItemsItemModels) SetClassification(val OptRuntimeProfileListResponseItemsItemModelsClassification) {
+	s.Classification = val
+}
+
+// SetGeneration sets the value of Generation.
+func (s *RuntimeProfileListResponseItemsItemModels) SetGeneration(val OptRuntimeProfileListResponseItemsItemModelsGeneration) {
+	s.Generation = val
+}
+
+type RuntimeProfileListResponseItemsItemModelsClassification struct {
+	Model    string `json:"model"`
+	Provider string `json:"provider"`
+}
+
+// GetModel returns the value of Model.
+func (s *RuntimeProfileListResponseItemsItemModelsClassification) GetModel() string {
+	return s.Model
+}
+
+// GetProvider returns the value of Provider.
+func (s *RuntimeProfileListResponseItemsItemModelsClassification) GetProvider() string {
+	return s.Provider
+}
+
+// SetModel sets the value of Model.
+func (s *RuntimeProfileListResponseItemsItemModelsClassification) SetModel(val string) {
+	s.Model = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *RuntimeProfileListResponseItemsItemModelsClassification) SetProvider(val string) {
+	s.Provider = val
+}
+
+type RuntimeProfileListResponseItemsItemModelsGeneration struct {
+	MaxOutputTokens OptNilInt                                                              `json:"maxOutputTokens"`
+	Model           string                                                                 `json:"model"`
+	Provider        string                                                                 `json:"provider"`
+	Temperature     OptNilFloat64                                                          `json:"temperature"`
+	ThinkingLevel   OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel `json:"thinkingLevel"`
+	TopK            OptNilInt                                                              `json:"topK"`
+	TopP            OptNilFloat64                                                          `json:"topP"`
+}
+
+// GetMaxOutputTokens returns the value of MaxOutputTokens.
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) GetMaxOutputTokens() OptNilInt {
+	return s.MaxOutputTokens
+}
+
+// GetModel returns the value of Model.
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) GetModel() string {
+	return s.Model
+}
+
+// GetProvider returns the value of Provider.
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) GetProvider() string {
+	return s.Provider
+}
+
+// GetTemperature returns the value of Temperature.
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) GetTemperature() OptNilFloat64 {
+	return s.Temperature
+}
+
+// GetThinkingLevel returns the value of ThinkingLevel.
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) GetThinkingLevel() OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel {
+	return s.ThinkingLevel
+}
+
+// GetTopK returns the value of TopK.
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) GetTopK() OptNilInt {
+	return s.TopK
+}
+
+// GetTopP returns the value of TopP.
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) GetTopP() OptNilFloat64 {
+	return s.TopP
+}
+
+// SetMaxOutputTokens sets the value of MaxOutputTokens.
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) SetMaxOutputTokens(val OptNilInt) {
+	s.MaxOutputTokens = val
+}
+
+// SetModel sets the value of Model.
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) SetModel(val string) {
+	s.Model = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) SetProvider(val string) {
+	s.Provider = val
+}
+
+// SetTemperature sets the value of Temperature.
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) SetTemperature(val OptNilFloat64) {
+	s.Temperature = val
+}
+
+// SetThinkingLevel sets the value of ThinkingLevel.
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) SetThinkingLevel(val OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) {
+	s.ThinkingLevel = val
+}
+
+// SetTopK sets the value of TopK.
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) SetTopK(val OptNilInt) {
+	s.TopK = val
+}
+
+// SetTopP sets the value of TopP.
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) SetTopP(val OptNilFloat64) {
+	s.TopP = val
+}
+
+type RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel string
+
+const (
+	RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelOff     RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel = "off"
+	RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelMinimal RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel = "minimal"
+	RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelLow     RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel = "low"
+	RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelMedium  RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel = "medium"
+	RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelHigh    RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel = "high"
+	RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelXhigh   RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel = "xhigh"
+)
+
+// AllValues returns all RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel values.
+func (RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) AllValues() []RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel {
+	return []RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel{
+		RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelOff,
+		RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelMinimal,
+		RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelLow,
+		RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelMedium,
+		RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelHigh,
+		RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelXhigh,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelOff:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelMinimal:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelLow:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelMedium:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelHigh:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelXhigh:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) UnmarshalText(data []byte) error {
+	switch RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel(data) {
+	case RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelOff:
+		*s = RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelOff
+		return nil
+	case RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelMinimal:
+		*s = RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelMinimal
+		return nil
+	case RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelLow:
+		*s = RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelLow
+		return nil
+	case RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelMedium:
+		*s = RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelMedium
+		return nil
+	case RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelHigh:
+		*s = RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelHigh
+		return nil
+	case RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelXhigh:
+		*s = RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelXhigh
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -50717,75 +52189,6 @@ func (s *RuntimeProfileListResponseItemsItemSandboxVfsShadowMode) UnmarshalText(
 	}
 }
 
-type RuntimeProfileListResponseItemsItemThinkingLevel string
-
-const (
-	RuntimeProfileListResponseItemsItemThinkingLevelOff     RuntimeProfileListResponseItemsItemThinkingLevel = "off"
-	RuntimeProfileListResponseItemsItemThinkingLevelMinimal RuntimeProfileListResponseItemsItemThinkingLevel = "minimal"
-	RuntimeProfileListResponseItemsItemThinkingLevelLow     RuntimeProfileListResponseItemsItemThinkingLevel = "low"
-	RuntimeProfileListResponseItemsItemThinkingLevelMedium  RuntimeProfileListResponseItemsItemThinkingLevel = "medium"
-	RuntimeProfileListResponseItemsItemThinkingLevelHigh    RuntimeProfileListResponseItemsItemThinkingLevel = "high"
-	RuntimeProfileListResponseItemsItemThinkingLevelXhigh   RuntimeProfileListResponseItemsItemThinkingLevel = "xhigh"
-)
-
-// AllValues returns all RuntimeProfileListResponseItemsItemThinkingLevel values.
-func (RuntimeProfileListResponseItemsItemThinkingLevel) AllValues() []RuntimeProfileListResponseItemsItemThinkingLevel {
-	return []RuntimeProfileListResponseItemsItemThinkingLevel{
-		RuntimeProfileListResponseItemsItemThinkingLevelOff,
-		RuntimeProfileListResponseItemsItemThinkingLevelMinimal,
-		RuntimeProfileListResponseItemsItemThinkingLevelLow,
-		RuntimeProfileListResponseItemsItemThinkingLevelMedium,
-		RuntimeProfileListResponseItemsItemThinkingLevelHigh,
-		RuntimeProfileListResponseItemsItemThinkingLevelXhigh,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s RuntimeProfileListResponseItemsItemThinkingLevel) MarshalText() ([]byte, error) {
-	switch s {
-	case RuntimeProfileListResponseItemsItemThinkingLevelOff:
-		return []byte(s), nil
-	case RuntimeProfileListResponseItemsItemThinkingLevelMinimal:
-		return []byte(s), nil
-	case RuntimeProfileListResponseItemsItemThinkingLevelLow:
-		return []byte(s), nil
-	case RuntimeProfileListResponseItemsItemThinkingLevelMedium:
-		return []byte(s), nil
-	case RuntimeProfileListResponseItemsItemThinkingLevelHigh:
-		return []byte(s), nil
-	case RuntimeProfileListResponseItemsItemThinkingLevelXhigh:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *RuntimeProfileListResponseItemsItemThinkingLevel) UnmarshalText(data []byte) error {
-	switch RuntimeProfileListResponseItemsItemThinkingLevel(data) {
-	case RuntimeProfileListResponseItemsItemThinkingLevelOff:
-		*s = RuntimeProfileListResponseItemsItemThinkingLevelOff
-		return nil
-	case RuntimeProfileListResponseItemsItemThinkingLevelMinimal:
-		*s = RuntimeProfileListResponseItemsItemThinkingLevelMinimal
-		return nil
-	case RuntimeProfileListResponseItemsItemThinkingLevelLow:
-		*s = RuntimeProfileListResponseItemsItemThinkingLevelLow
-		return nil
-	case RuntimeProfileListResponseItemsItemThinkingLevelMedium:
-		*s = RuntimeProfileListResponseItemsItemThinkingLevelMedium
-		return nil
-	case RuntimeProfileListResponseItemsItemThinkingLevelHigh:
-		*s = RuntimeProfileListResponseItemsItemThinkingLevelHigh
-		return nil
-	case RuntimeProfileListResponseItemsItemThinkingLevelXhigh:
-		*s = RuntimeProfileListResponseItemsItemThinkingLevelXhigh
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 // Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed
 // tools, fail-closed).
 type RuntimeProfileListResponseItemsItemToolEnforcement string
@@ -50830,6 +52233,205 @@ func (s *RuntimeProfileListResponseItemsItemToolEnforcement) UnmarshalText(data 
 		return nil
 	case RuntimeProfileListResponseItemsItemToolEnforcementEnforce:
 		*s = RuntimeProfileListResponseItemsItemToolEnforcementEnforce
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RuntimeProfileModels struct {
+	Classification OptRuntimeProfileModelsClassification `json:"classification"`
+	Generation     OptRuntimeProfileModelsGeneration     `json:"generation"`
+}
+
+// GetClassification returns the value of Classification.
+func (s *RuntimeProfileModels) GetClassification() OptRuntimeProfileModelsClassification {
+	return s.Classification
+}
+
+// GetGeneration returns the value of Generation.
+func (s *RuntimeProfileModels) GetGeneration() OptRuntimeProfileModelsGeneration {
+	return s.Generation
+}
+
+// SetClassification sets the value of Classification.
+func (s *RuntimeProfileModels) SetClassification(val OptRuntimeProfileModelsClassification) {
+	s.Classification = val
+}
+
+// SetGeneration sets the value of Generation.
+func (s *RuntimeProfileModels) SetGeneration(val OptRuntimeProfileModelsGeneration) {
+	s.Generation = val
+}
+
+type RuntimeProfileModelsClassification struct {
+	Model    string `json:"model"`
+	Provider string `json:"provider"`
+}
+
+// GetModel returns the value of Model.
+func (s *RuntimeProfileModelsClassification) GetModel() string {
+	return s.Model
+}
+
+// GetProvider returns the value of Provider.
+func (s *RuntimeProfileModelsClassification) GetProvider() string {
+	return s.Provider
+}
+
+// SetModel sets the value of Model.
+func (s *RuntimeProfileModelsClassification) SetModel(val string) {
+	s.Model = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *RuntimeProfileModelsClassification) SetProvider(val string) {
+	s.Provider = val
+}
+
+type RuntimeProfileModelsGeneration struct {
+	MaxOutputTokens OptNilInt                                         `json:"maxOutputTokens"`
+	Model           string                                            `json:"model"`
+	Provider        string                                            `json:"provider"`
+	Temperature     OptNilFloat64                                     `json:"temperature"`
+	ThinkingLevel   OptNilRuntimeProfileModelsGenerationThinkingLevel `json:"thinkingLevel"`
+	TopK            OptNilInt                                         `json:"topK"`
+	TopP            OptNilFloat64                                     `json:"topP"`
+}
+
+// GetMaxOutputTokens returns the value of MaxOutputTokens.
+func (s *RuntimeProfileModelsGeneration) GetMaxOutputTokens() OptNilInt {
+	return s.MaxOutputTokens
+}
+
+// GetModel returns the value of Model.
+func (s *RuntimeProfileModelsGeneration) GetModel() string {
+	return s.Model
+}
+
+// GetProvider returns the value of Provider.
+func (s *RuntimeProfileModelsGeneration) GetProvider() string {
+	return s.Provider
+}
+
+// GetTemperature returns the value of Temperature.
+func (s *RuntimeProfileModelsGeneration) GetTemperature() OptNilFloat64 {
+	return s.Temperature
+}
+
+// GetThinkingLevel returns the value of ThinkingLevel.
+func (s *RuntimeProfileModelsGeneration) GetThinkingLevel() OptNilRuntimeProfileModelsGenerationThinkingLevel {
+	return s.ThinkingLevel
+}
+
+// GetTopK returns the value of TopK.
+func (s *RuntimeProfileModelsGeneration) GetTopK() OptNilInt {
+	return s.TopK
+}
+
+// GetTopP returns the value of TopP.
+func (s *RuntimeProfileModelsGeneration) GetTopP() OptNilFloat64 {
+	return s.TopP
+}
+
+// SetMaxOutputTokens sets the value of MaxOutputTokens.
+func (s *RuntimeProfileModelsGeneration) SetMaxOutputTokens(val OptNilInt) {
+	s.MaxOutputTokens = val
+}
+
+// SetModel sets the value of Model.
+func (s *RuntimeProfileModelsGeneration) SetModel(val string) {
+	s.Model = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *RuntimeProfileModelsGeneration) SetProvider(val string) {
+	s.Provider = val
+}
+
+// SetTemperature sets the value of Temperature.
+func (s *RuntimeProfileModelsGeneration) SetTemperature(val OptNilFloat64) {
+	s.Temperature = val
+}
+
+// SetThinkingLevel sets the value of ThinkingLevel.
+func (s *RuntimeProfileModelsGeneration) SetThinkingLevel(val OptNilRuntimeProfileModelsGenerationThinkingLevel) {
+	s.ThinkingLevel = val
+}
+
+// SetTopK sets the value of TopK.
+func (s *RuntimeProfileModelsGeneration) SetTopK(val OptNilInt) {
+	s.TopK = val
+}
+
+// SetTopP sets the value of TopP.
+func (s *RuntimeProfileModelsGeneration) SetTopP(val OptNilFloat64) {
+	s.TopP = val
+}
+
+type RuntimeProfileModelsGenerationThinkingLevel string
+
+const (
+	RuntimeProfileModelsGenerationThinkingLevelOff     RuntimeProfileModelsGenerationThinkingLevel = "off"
+	RuntimeProfileModelsGenerationThinkingLevelMinimal RuntimeProfileModelsGenerationThinkingLevel = "minimal"
+	RuntimeProfileModelsGenerationThinkingLevelLow     RuntimeProfileModelsGenerationThinkingLevel = "low"
+	RuntimeProfileModelsGenerationThinkingLevelMedium  RuntimeProfileModelsGenerationThinkingLevel = "medium"
+	RuntimeProfileModelsGenerationThinkingLevelHigh    RuntimeProfileModelsGenerationThinkingLevel = "high"
+	RuntimeProfileModelsGenerationThinkingLevelXhigh   RuntimeProfileModelsGenerationThinkingLevel = "xhigh"
+)
+
+// AllValues returns all RuntimeProfileModelsGenerationThinkingLevel values.
+func (RuntimeProfileModelsGenerationThinkingLevel) AllValues() []RuntimeProfileModelsGenerationThinkingLevel {
+	return []RuntimeProfileModelsGenerationThinkingLevel{
+		RuntimeProfileModelsGenerationThinkingLevelOff,
+		RuntimeProfileModelsGenerationThinkingLevelMinimal,
+		RuntimeProfileModelsGenerationThinkingLevelLow,
+		RuntimeProfileModelsGenerationThinkingLevelMedium,
+		RuntimeProfileModelsGenerationThinkingLevelHigh,
+		RuntimeProfileModelsGenerationThinkingLevelXhigh,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileModelsGenerationThinkingLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileModelsGenerationThinkingLevelOff:
+		return []byte(s), nil
+	case RuntimeProfileModelsGenerationThinkingLevelMinimal:
+		return []byte(s), nil
+	case RuntimeProfileModelsGenerationThinkingLevelLow:
+		return []byte(s), nil
+	case RuntimeProfileModelsGenerationThinkingLevelMedium:
+		return []byte(s), nil
+	case RuntimeProfileModelsGenerationThinkingLevelHigh:
+		return []byte(s), nil
+	case RuntimeProfileModelsGenerationThinkingLevelXhigh:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileModelsGenerationThinkingLevel) UnmarshalText(data []byte) error {
+	switch RuntimeProfileModelsGenerationThinkingLevel(data) {
+	case RuntimeProfileModelsGenerationThinkingLevelOff:
+		*s = RuntimeProfileModelsGenerationThinkingLevelOff
+		return nil
+	case RuntimeProfileModelsGenerationThinkingLevelMinimal:
+		*s = RuntimeProfileModelsGenerationThinkingLevelMinimal
+		return nil
+	case RuntimeProfileModelsGenerationThinkingLevelLow:
+		*s = RuntimeProfileModelsGenerationThinkingLevelLow
+		return nil
+	case RuntimeProfileModelsGenerationThinkingLevelMedium:
+		*s = RuntimeProfileModelsGenerationThinkingLevelMedium
+		return nil
+	case RuntimeProfileModelsGenerationThinkingLevelHigh:
+		*s = RuntimeProfileModelsGenerationThinkingLevelHigh
+		return nil
+	case RuntimeProfileModelsGenerationThinkingLevelXhigh:
+		*s = RuntimeProfileModelsGenerationThinkingLevelXhigh
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -51075,75 +52677,6 @@ func (s *RuntimeProfileSandboxVfsShadowMode) UnmarshalText(data []byte) error {
 		return nil
 	case RuntimeProfileSandboxVfsShadowModeTmpfs:
 		*s = RuntimeProfileSandboxVfsShadowModeTmpfs
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type RuntimeProfileThinkingLevel string
-
-const (
-	RuntimeProfileThinkingLevelOff     RuntimeProfileThinkingLevel = "off"
-	RuntimeProfileThinkingLevelMinimal RuntimeProfileThinkingLevel = "minimal"
-	RuntimeProfileThinkingLevelLow     RuntimeProfileThinkingLevel = "low"
-	RuntimeProfileThinkingLevelMedium  RuntimeProfileThinkingLevel = "medium"
-	RuntimeProfileThinkingLevelHigh    RuntimeProfileThinkingLevel = "high"
-	RuntimeProfileThinkingLevelXhigh   RuntimeProfileThinkingLevel = "xhigh"
-)
-
-// AllValues returns all RuntimeProfileThinkingLevel values.
-func (RuntimeProfileThinkingLevel) AllValues() []RuntimeProfileThinkingLevel {
-	return []RuntimeProfileThinkingLevel{
-		RuntimeProfileThinkingLevelOff,
-		RuntimeProfileThinkingLevelMinimal,
-		RuntimeProfileThinkingLevelLow,
-		RuntimeProfileThinkingLevelMedium,
-		RuntimeProfileThinkingLevelHigh,
-		RuntimeProfileThinkingLevelXhigh,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s RuntimeProfileThinkingLevel) MarshalText() ([]byte, error) {
-	switch s {
-	case RuntimeProfileThinkingLevelOff:
-		return []byte(s), nil
-	case RuntimeProfileThinkingLevelMinimal:
-		return []byte(s), nil
-	case RuntimeProfileThinkingLevelLow:
-		return []byte(s), nil
-	case RuntimeProfileThinkingLevelMedium:
-		return []byte(s), nil
-	case RuntimeProfileThinkingLevelHigh:
-		return []byte(s), nil
-	case RuntimeProfileThinkingLevelXhigh:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *RuntimeProfileThinkingLevel) UnmarshalText(data []byte) error {
-	switch RuntimeProfileThinkingLevel(data) {
-	case RuntimeProfileThinkingLevelOff:
-		*s = RuntimeProfileThinkingLevelOff
-		return nil
-	case RuntimeProfileThinkingLevelMinimal:
-		*s = RuntimeProfileThinkingLevelMinimal
-		return nil
-	case RuntimeProfileThinkingLevelLow:
-		*s = RuntimeProfileThinkingLevelLow
-		return nil
-	case RuntimeProfileThinkingLevelMedium:
-		*s = RuntimeProfileThinkingLevelMedium
-		return nil
-	case RuntimeProfileThinkingLevelHigh:
-		*s = RuntimeProfileThinkingLevelHigh
-		return nil
-	case RuntimeProfileThinkingLevelXhigh:
-		*s = RuntimeProfileThinkingLevelXhigh
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -58964,23 +60497,17 @@ type UpdateRuntimeProfileBody struct {
 	DefaultWorkspaceMode  OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode  `json:"defaultWorkspaceMode"`
 	Description           OptString                                           `json:"description"`
 	MaxBashTimeouts       OptInt                                              `json:"maxBashTimeouts"`
-	MaxOutputTokens       OptNilInt                                           `json:"maxOutputTokens"`
 	MaxTurns              OptInt                                              `json:"maxTurns"`
-	Model                 OptString                                           `json:"model"`
+	Models                OptUpdateRuntimeProfileBodyModels                   `json:"models"`
 	Name                  OptString                                           `json:"name"`
-	Provider              OptString                                           `json:"provider"`
 	RequiredEnv           []string                                            `json:"requiredEnv"`
 	RequiredExecutables   []string                                            `json:"requiredExecutables"`
 	RequiredTools         []string                                            `json:"requiredTools"`
 	RuntimeKind           OptString                                           `json:"runtimeKind"`
 	Sandbox               OptUpdateRuntimeProfileBodySandbox                  `json:"sandbox"`
-	Temperature           OptNilFloat64                                       `json:"temperature"`
-	ThinkingLevel         OptNilUpdateRuntimeProfileBodyThinkingLevel         `json:"thinkingLevel"`
 	// Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed
 	// tools, fail-closed).
 	ToolEnforcement OptUpdateRuntimeProfileBodyToolEnforcement `json:"toolEnforcement"`
-	TopK            OptNilInt                                  `json:"topK"`
-	TopP            OptNilFloat64                              `json:"topP"`
 }
 
 // GetAllowedWorkspaceModes returns the value of AllowedWorkspaceModes.
@@ -59008,29 +60535,19 @@ func (s *UpdateRuntimeProfileBody) GetMaxBashTimeouts() OptInt {
 	return s.MaxBashTimeouts
 }
 
-// GetMaxOutputTokens returns the value of MaxOutputTokens.
-func (s *UpdateRuntimeProfileBody) GetMaxOutputTokens() OptNilInt {
-	return s.MaxOutputTokens
-}
-
 // GetMaxTurns returns the value of MaxTurns.
 func (s *UpdateRuntimeProfileBody) GetMaxTurns() OptInt {
 	return s.MaxTurns
 }
 
-// GetModel returns the value of Model.
-func (s *UpdateRuntimeProfileBody) GetModel() OptString {
-	return s.Model
+// GetModels returns the value of Models.
+func (s *UpdateRuntimeProfileBody) GetModels() OptUpdateRuntimeProfileBodyModels {
+	return s.Models
 }
 
 // GetName returns the value of Name.
 func (s *UpdateRuntimeProfileBody) GetName() OptString {
 	return s.Name
-}
-
-// GetProvider returns the value of Provider.
-func (s *UpdateRuntimeProfileBody) GetProvider() OptString {
-	return s.Provider
 }
 
 // GetRequiredEnv returns the value of RequiredEnv.
@@ -59058,29 +60575,9 @@ func (s *UpdateRuntimeProfileBody) GetSandbox() OptUpdateRuntimeProfileBodySandb
 	return s.Sandbox
 }
 
-// GetTemperature returns the value of Temperature.
-func (s *UpdateRuntimeProfileBody) GetTemperature() OptNilFloat64 {
-	return s.Temperature
-}
-
-// GetThinkingLevel returns the value of ThinkingLevel.
-func (s *UpdateRuntimeProfileBody) GetThinkingLevel() OptNilUpdateRuntimeProfileBodyThinkingLevel {
-	return s.ThinkingLevel
-}
-
 // GetToolEnforcement returns the value of ToolEnforcement.
 func (s *UpdateRuntimeProfileBody) GetToolEnforcement() OptUpdateRuntimeProfileBodyToolEnforcement {
 	return s.ToolEnforcement
-}
-
-// GetTopK returns the value of TopK.
-func (s *UpdateRuntimeProfileBody) GetTopK() OptNilInt {
-	return s.TopK
-}
-
-// GetTopP returns the value of TopP.
-func (s *UpdateRuntimeProfileBody) GetTopP() OptNilFloat64 {
-	return s.TopP
 }
 
 // SetAllowedWorkspaceModes sets the value of AllowedWorkspaceModes.
@@ -59108,29 +60605,19 @@ func (s *UpdateRuntimeProfileBody) SetMaxBashTimeouts(val OptInt) {
 	s.MaxBashTimeouts = val
 }
 
-// SetMaxOutputTokens sets the value of MaxOutputTokens.
-func (s *UpdateRuntimeProfileBody) SetMaxOutputTokens(val OptNilInt) {
-	s.MaxOutputTokens = val
-}
-
 // SetMaxTurns sets the value of MaxTurns.
 func (s *UpdateRuntimeProfileBody) SetMaxTurns(val OptInt) {
 	s.MaxTurns = val
 }
 
-// SetModel sets the value of Model.
-func (s *UpdateRuntimeProfileBody) SetModel(val OptString) {
-	s.Model = val
+// SetModels sets the value of Models.
+func (s *UpdateRuntimeProfileBody) SetModels(val OptUpdateRuntimeProfileBodyModels) {
+	s.Models = val
 }
 
 // SetName sets the value of Name.
 func (s *UpdateRuntimeProfileBody) SetName(val OptString) {
 	s.Name = val
-}
-
-// SetProvider sets the value of Provider.
-func (s *UpdateRuntimeProfileBody) SetProvider(val OptString) {
-	s.Provider = val
 }
 
 // SetRequiredEnv sets the value of RequiredEnv.
@@ -59158,29 +60645,9 @@ func (s *UpdateRuntimeProfileBody) SetSandbox(val OptUpdateRuntimeProfileBodySan
 	s.Sandbox = val
 }
 
-// SetTemperature sets the value of Temperature.
-func (s *UpdateRuntimeProfileBody) SetTemperature(val OptNilFloat64) {
-	s.Temperature = val
-}
-
-// SetThinkingLevel sets the value of ThinkingLevel.
-func (s *UpdateRuntimeProfileBody) SetThinkingLevel(val OptNilUpdateRuntimeProfileBodyThinkingLevel) {
-	s.ThinkingLevel = val
-}
-
 // SetToolEnforcement sets the value of ToolEnforcement.
 func (s *UpdateRuntimeProfileBody) SetToolEnforcement(val OptUpdateRuntimeProfileBodyToolEnforcement) {
 	s.ToolEnforcement = val
-}
-
-// SetTopK sets the value of TopK.
-func (s *UpdateRuntimeProfileBody) SetTopK(val OptNilInt) {
-	s.TopK = val
-}
-
-// SetTopP sets the value of TopP.
-func (s *UpdateRuntimeProfileBody) SetTopP(val OptNilFloat64) {
-	s.TopP = val
 }
 
 type UpdateRuntimeProfileBodyAllowedWorkspaceModesItem string
@@ -59364,6 +60831,205 @@ func (s *UpdateRuntimeProfileBodyDefaultWorkspaceMode) UnmarshalText(data []byte
 		return nil
 	case UpdateRuntimeProfileBodyDefaultWorkspaceModeDedicatedWorktree:
 		*s = UpdateRuntimeProfileBodyDefaultWorkspaceModeDedicatedWorktree
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UpdateRuntimeProfileBodyModels struct {
+	Classification OptUpdateRuntimeProfileBodyModelsClassification `json:"classification"`
+	Generation     OptUpdateRuntimeProfileBodyModelsGeneration     `json:"generation"`
+}
+
+// GetClassification returns the value of Classification.
+func (s *UpdateRuntimeProfileBodyModels) GetClassification() OptUpdateRuntimeProfileBodyModelsClassification {
+	return s.Classification
+}
+
+// GetGeneration returns the value of Generation.
+func (s *UpdateRuntimeProfileBodyModels) GetGeneration() OptUpdateRuntimeProfileBodyModelsGeneration {
+	return s.Generation
+}
+
+// SetClassification sets the value of Classification.
+func (s *UpdateRuntimeProfileBodyModels) SetClassification(val OptUpdateRuntimeProfileBodyModelsClassification) {
+	s.Classification = val
+}
+
+// SetGeneration sets the value of Generation.
+func (s *UpdateRuntimeProfileBodyModels) SetGeneration(val OptUpdateRuntimeProfileBodyModelsGeneration) {
+	s.Generation = val
+}
+
+type UpdateRuntimeProfileBodyModelsClassification struct {
+	Model    string `json:"model"`
+	Provider string `json:"provider"`
+}
+
+// GetModel returns the value of Model.
+func (s *UpdateRuntimeProfileBodyModelsClassification) GetModel() string {
+	return s.Model
+}
+
+// GetProvider returns the value of Provider.
+func (s *UpdateRuntimeProfileBodyModelsClassification) GetProvider() string {
+	return s.Provider
+}
+
+// SetModel sets the value of Model.
+func (s *UpdateRuntimeProfileBodyModelsClassification) SetModel(val string) {
+	s.Model = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *UpdateRuntimeProfileBodyModelsClassification) SetProvider(val string) {
+	s.Provider = val
+}
+
+type UpdateRuntimeProfileBodyModelsGeneration struct {
+	MaxOutputTokens OptNilInt                                                   `json:"maxOutputTokens"`
+	Model           string                                                      `json:"model"`
+	Provider        string                                                      `json:"provider"`
+	Temperature     OptNilFloat64                                               `json:"temperature"`
+	ThinkingLevel   OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel `json:"thinkingLevel"`
+	TopK            OptNilInt                                                   `json:"topK"`
+	TopP            OptNilFloat64                                               `json:"topP"`
+}
+
+// GetMaxOutputTokens returns the value of MaxOutputTokens.
+func (s *UpdateRuntimeProfileBodyModelsGeneration) GetMaxOutputTokens() OptNilInt {
+	return s.MaxOutputTokens
+}
+
+// GetModel returns the value of Model.
+func (s *UpdateRuntimeProfileBodyModelsGeneration) GetModel() string {
+	return s.Model
+}
+
+// GetProvider returns the value of Provider.
+func (s *UpdateRuntimeProfileBodyModelsGeneration) GetProvider() string {
+	return s.Provider
+}
+
+// GetTemperature returns the value of Temperature.
+func (s *UpdateRuntimeProfileBodyModelsGeneration) GetTemperature() OptNilFloat64 {
+	return s.Temperature
+}
+
+// GetThinkingLevel returns the value of ThinkingLevel.
+func (s *UpdateRuntimeProfileBodyModelsGeneration) GetThinkingLevel() OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel {
+	return s.ThinkingLevel
+}
+
+// GetTopK returns the value of TopK.
+func (s *UpdateRuntimeProfileBodyModelsGeneration) GetTopK() OptNilInt {
+	return s.TopK
+}
+
+// GetTopP returns the value of TopP.
+func (s *UpdateRuntimeProfileBodyModelsGeneration) GetTopP() OptNilFloat64 {
+	return s.TopP
+}
+
+// SetMaxOutputTokens sets the value of MaxOutputTokens.
+func (s *UpdateRuntimeProfileBodyModelsGeneration) SetMaxOutputTokens(val OptNilInt) {
+	s.MaxOutputTokens = val
+}
+
+// SetModel sets the value of Model.
+func (s *UpdateRuntimeProfileBodyModelsGeneration) SetModel(val string) {
+	s.Model = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *UpdateRuntimeProfileBodyModelsGeneration) SetProvider(val string) {
+	s.Provider = val
+}
+
+// SetTemperature sets the value of Temperature.
+func (s *UpdateRuntimeProfileBodyModelsGeneration) SetTemperature(val OptNilFloat64) {
+	s.Temperature = val
+}
+
+// SetThinkingLevel sets the value of ThinkingLevel.
+func (s *UpdateRuntimeProfileBodyModelsGeneration) SetThinkingLevel(val OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel) {
+	s.ThinkingLevel = val
+}
+
+// SetTopK sets the value of TopK.
+func (s *UpdateRuntimeProfileBodyModelsGeneration) SetTopK(val OptNilInt) {
+	s.TopK = val
+}
+
+// SetTopP sets the value of TopP.
+func (s *UpdateRuntimeProfileBodyModelsGeneration) SetTopP(val OptNilFloat64) {
+	s.TopP = val
+}
+
+type UpdateRuntimeProfileBodyModelsGenerationThinkingLevel string
+
+const (
+	UpdateRuntimeProfileBodyModelsGenerationThinkingLevelOff     UpdateRuntimeProfileBodyModelsGenerationThinkingLevel = "off"
+	UpdateRuntimeProfileBodyModelsGenerationThinkingLevelMinimal UpdateRuntimeProfileBodyModelsGenerationThinkingLevel = "minimal"
+	UpdateRuntimeProfileBodyModelsGenerationThinkingLevelLow     UpdateRuntimeProfileBodyModelsGenerationThinkingLevel = "low"
+	UpdateRuntimeProfileBodyModelsGenerationThinkingLevelMedium  UpdateRuntimeProfileBodyModelsGenerationThinkingLevel = "medium"
+	UpdateRuntimeProfileBodyModelsGenerationThinkingLevelHigh    UpdateRuntimeProfileBodyModelsGenerationThinkingLevel = "high"
+	UpdateRuntimeProfileBodyModelsGenerationThinkingLevelXhigh   UpdateRuntimeProfileBodyModelsGenerationThinkingLevel = "xhigh"
+)
+
+// AllValues returns all UpdateRuntimeProfileBodyModelsGenerationThinkingLevel values.
+func (UpdateRuntimeProfileBodyModelsGenerationThinkingLevel) AllValues() []UpdateRuntimeProfileBodyModelsGenerationThinkingLevel {
+	return []UpdateRuntimeProfileBodyModelsGenerationThinkingLevel{
+		UpdateRuntimeProfileBodyModelsGenerationThinkingLevelOff,
+		UpdateRuntimeProfileBodyModelsGenerationThinkingLevelMinimal,
+		UpdateRuntimeProfileBodyModelsGenerationThinkingLevelLow,
+		UpdateRuntimeProfileBodyModelsGenerationThinkingLevelMedium,
+		UpdateRuntimeProfileBodyModelsGenerationThinkingLevelHigh,
+		UpdateRuntimeProfileBodyModelsGenerationThinkingLevelXhigh,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UpdateRuntimeProfileBodyModelsGenerationThinkingLevel) MarshalText() ([]byte, error) {
+	switch s {
+	case UpdateRuntimeProfileBodyModelsGenerationThinkingLevelOff:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodyModelsGenerationThinkingLevelMinimal:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodyModelsGenerationThinkingLevelLow:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodyModelsGenerationThinkingLevelMedium:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodyModelsGenerationThinkingLevelHigh:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodyModelsGenerationThinkingLevelXhigh:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UpdateRuntimeProfileBodyModelsGenerationThinkingLevel) UnmarshalText(data []byte) error {
+	switch UpdateRuntimeProfileBodyModelsGenerationThinkingLevel(data) {
+	case UpdateRuntimeProfileBodyModelsGenerationThinkingLevelOff:
+		*s = UpdateRuntimeProfileBodyModelsGenerationThinkingLevelOff
+		return nil
+	case UpdateRuntimeProfileBodyModelsGenerationThinkingLevelMinimal:
+		*s = UpdateRuntimeProfileBodyModelsGenerationThinkingLevelMinimal
+		return nil
+	case UpdateRuntimeProfileBodyModelsGenerationThinkingLevelLow:
+		*s = UpdateRuntimeProfileBodyModelsGenerationThinkingLevelLow
+		return nil
+	case UpdateRuntimeProfileBodyModelsGenerationThinkingLevelMedium:
+		*s = UpdateRuntimeProfileBodyModelsGenerationThinkingLevelMedium
+		return nil
+	case UpdateRuntimeProfileBodyModelsGenerationThinkingLevelHigh:
+		*s = UpdateRuntimeProfileBodyModelsGenerationThinkingLevelHigh
+		return nil
+	case UpdateRuntimeProfileBodyModelsGenerationThinkingLevelXhigh:
+		*s = UpdateRuntimeProfileBodyModelsGenerationThinkingLevelXhigh
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -59576,75 +61242,6 @@ func (s *UpdateRuntimeProfileBodySandboxVfsShadowMode) UnmarshalText(data []byte
 		return nil
 	case UpdateRuntimeProfileBodySandboxVfsShadowModeTmpfs:
 		*s = UpdateRuntimeProfileBodySandboxVfsShadowModeTmpfs
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type UpdateRuntimeProfileBodyThinkingLevel string
-
-const (
-	UpdateRuntimeProfileBodyThinkingLevelOff     UpdateRuntimeProfileBodyThinkingLevel = "off"
-	UpdateRuntimeProfileBodyThinkingLevelMinimal UpdateRuntimeProfileBodyThinkingLevel = "minimal"
-	UpdateRuntimeProfileBodyThinkingLevelLow     UpdateRuntimeProfileBodyThinkingLevel = "low"
-	UpdateRuntimeProfileBodyThinkingLevelMedium  UpdateRuntimeProfileBodyThinkingLevel = "medium"
-	UpdateRuntimeProfileBodyThinkingLevelHigh    UpdateRuntimeProfileBodyThinkingLevel = "high"
-	UpdateRuntimeProfileBodyThinkingLevelXhigh   UpdateRuntimeProfileBodyThinkingLevel = "xhigh"
-)
-
-// AllValues returns all UpdateRuntimeProfileBodyThinkingLevel values.
-func (UpdateRuntimeProfileBodyThinkingLevel) AllValues() []UpdateRuntimeProfileBodyThinkingLevel {
-	return []UpdateRuntimeProfileBodyThinkingLevel{
-		UpdateRuntimeProfileBodyThinkingLevelOff,
-		UpdateRuntimeProfileBodyThinkingLevelMinimal,
-		UpdateRuntimeProfileBodyThinkingLevelLow,
-		UpdateRuntimeProfileBodyThinkingLevelMedium,
-		UpdateRuntimeProfileBodyThinkingLevelHigh,
-		UpdateRuntimeProfileBodyThinkingLevelXhigh,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s UpdateRuntimeProfileBodyThinkingLevel) MarshalText() ([]byte, error) {
-	switch s {
-	case UpdateRuntimeProfileBodyThinkingLevelOff:
-		return []byte(s), nil
-	case UpdateRuntimeProfileBodyThinkingLevelMinimal:
-		return []byte(s), nil
-	case UpdateRuntimeProfileBodyThinkingLevelLow:
-		return []byte(s), nil
-	case UpdateRuntimeProfileBodyThinkingLevelMedium:
-		return []byte(s), nil
-	case UpdateRuntimeProfileBodyThinkingLevelHigh:
-		return []byte(s), nil
-	case UpdateRuntimeProfileBodyThinkingLevelXhigh:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *UpdateRuntimeProfileBodyThinkingLevel) UnmarshalText(data []byte) error {
-	switch UpdateRuntimeProfileBodyThinkingLevel(data) {
-	case UpdateRuntimeProfileBodyThinkingLevelOff:
-		*s = UpdateRuntimeProfileBodyThinkingLevelOff
-		return nil
-	case UpdateRuntimeProfileBodyThinkingLevelMinimal:
-		*s = UpdateRuntimeProfileBodyThinkingLevelMinimal
-		return nil
-	case UpdateRuntimeProfileBodyThinkingLevelLow:
-		*s = UpdateRuntimeProfileBodyThinkingLevelLow
-		return nil
-	case UpdateRuntimeProfileBodyThinkingLevelMedium:
-		*s = UpdateRuntimeProfileBodyThinkingLevelMedium
-		return nil
-	case UpdateRuntimeProfileBodyThinkingLevelHigh:
-		*s = UpdateRuntimeProfileBodyThinkingLevelHigh
-		return nil
-	case UpdateRuntimeProfileBodyThinkingLevelXhigh:
-		*s = UpdateRuntimeProfileBodyThinkingLevelXhigh
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

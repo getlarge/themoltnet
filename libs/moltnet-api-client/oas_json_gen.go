@@ -2955,6 +2955,651 @@ func (s *AppendMessagesResponse) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes AppendRuntimeStoreCommitBadRequest as json.
+func (s *AppendRuntimeStoreCommitBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes AppendRuntimeStoreCommitBadRequest from json.
+func (s *AppendRuntimeStoreCommitBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode AppendRuntimeStoreCommitBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = AppendRuntimeStoreCommitBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *AppendRuntimeStoreCommitBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *AppendRuntimeStoreCommitBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes AppendRuntimeStoreCommitConflict as json.
+func (s *AppendRuntimeStoreCommitConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes AppendRuntimeStoreCommitConflict from json.
+func (s *AppendRuntimeStoreCommitConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode AppendRuntimeStoreCommitConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = AppendRuntimeStoreCommitConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *AppendRuntimeStoreCommitConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *AppendRuntimeStoreCommitConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes AppendRuntimeStoreCommitForbidden as json.
+func (s *AppendRuntimeStoreCommitForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes AppendRuntimeStoreCommitForbidden from json.
+func (s *AppendRuntimeStoreCommitForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode AppendRuntimeStoreCommitForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = AppendRuntimeStoreCommitForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *AppendRuntimeStoreCommitForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *AppendRuntimeStoreCommitForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes AppendRuntimeStoreCommitNotFound as json.
+func (s *AppendRuntimeStoreCommitNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes AppendRuntimeStoreCommitNotFound from json.
+func (s *AppendRuntimeStoreCommitNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode AppendRuntimeStoreCommitNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = AppendRuntimeStoreCommitNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *AppendRuntimeStoreCommitNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *AppendRuntimeStoreCommitNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *AppendRuntimeStoreCommitOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *AppendRuntimeStoreCommitOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("seq")
+		e.Int(s.Seq)
+	}
+}
+
+var jsonFieldsNameOfAppendRuntimeStoreCommitOK = [1]string{
+	0: "seq",
+}
+
+// Decode decodes AppendRuntimeStoreCommitOK from json.
+func (s *AppendRuntimeStoreCommitOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode AppendRuntimeStoreCommitOK to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "seq":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.Seq = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"seq\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode AppendRuntimeStoreCommitOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfAppendRuntimeStoreCommitOK) {
+					name = jsonFieldsNameOfAppendRuntimeStoreCommitOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *AppendRuntimeStoreCommitOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *AppendRuntimeStoreCommitOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *AppendRuntimeStoreCommitReq) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *AppendRuntimeStoreCommitReq) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("attemptN")
+		e.Int(s.AttemptN)
+	}
+	{
+		e.FieldStart("commitId")
+		json.EncodeUUID(e, s.CommitId)
+	}
+	{
+		e.FieldStart("executorFingerprint")
+		e.Str(s.ExecutorFingerprint)
+	}
+	{
+		e.FieldStart("expectedSeq")
+		e.Int(s.ExpectedSeq)
+	}
+	{
+		e.FieldStart("leaseId")
+		json.EncodeUUID(e, s.LeaseId)
+	}
+	{
+		e.FieldStart("taskId")
+		json.EncodeUUID(e, s.TaskId)
+	}
+	{
+		e.FieldStart("writerToken")
+		json.EncodeUUID(e, s.WriterToken)
+	}
+	{
+		e.FieldStart("writes")
+		e.ArrStart()
+		for _, elem := range s.Writes {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+}
+
+var jsonFieldsNameOfAppendRuntimeStoreCommitReq = [8]string{
+	0: "attemptN",
+	1: "commitId",
+	2: "executorFingerprint",
+	3: "expectedSeq",
+	4: "leaseId",
+	5: "taskId",
+	6: "writerToken",
+	7: "writes",
+}
+
+// Decode decodes AppendRuntimeStoreCommitReq from json.
+func (s *AppendRuntimeStoreCommitReq) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode AppendRuntimeStoreCommitReq to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "attemptN":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.AttemptN = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"attemptN\"")
+			}
+		case "commitId":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.CommitId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"commitId\"")
+			}
+		case "executorFingerprint":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.ExecutorFingerprint = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"executorFingerprint\"")
+			}
+		case "expectedSeq":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.ExpectedSeq = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"expectedSeq\"")
+			}
+		case "leaseId":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.LeaseId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"leaseId\"")
+			}
+		case "taskId":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TaskId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"taskId\"")
+			}
+		case "writerToken":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.WriterToken = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"writerToken\"")
+			}
+		case "writes":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				s.Writes = make([]AppendRuntimeStoreCommitReqWritesItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem AppendRuntimeStoreCommitReqWritesItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Writes = append(s.Writes, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"writes\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode AppendRuntimeStoreCommitReq")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b11111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfAppendRuntimeStoreCommitReq) {
+					name = jsonFieldsNameOfAppendRuntimeStoreCommitReq[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *AppendRuntimeStoreCommitReq) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *AppendRuntimeStoreCommitReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s AppendRuntimeStoreCommitReqWritesItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s AppendRuntimeStoreCommitReqWritesItem) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes AppendRuntimeStoreCommitReqWritesItem from json.
+func (s *AppendRuntimeStoreCommitReqWritesItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode AppendRuntimeStoreCommitReqWritesItem to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode AppendRuntimeStoreCommitReqWritesItem")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s AppendRuntimeStoreCommitReqWritesItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *AppendRuntimeStoreCommitReqWritesItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes AppendRuntimeStoreCommitServiceUnavailable as json.
+func (s *AppendRuntimeStoreCommitServiceUnavailable) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes AppendRuntimeStoreCommitServiceUnavailable from json.
+func (s *AppendRuntimeStoreCommitServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode AppendRuntimeStoreCommitServiceUnavailable to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = AppendRuntimeStoreCommitServiceUnavailable(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *AppendRuntimeStoreCommitServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *AppendRuntimeStoreCommitServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes AppendRuntimeStoreCommitTooManyRequests as json.
+func (s *AppendRuntimeStoreCommitTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes AppendRuntimeStoreCommitTooManyRequests from json.
+func (s *AppendRuntimeStoreCommitTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode AppendRuntimeStoreCommitTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = AppendRuntimeStoreCommitTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *AppendRuntimeStoreCommitTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *AppendRuntimeStoreCommitTooManyRequests) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes AppendRuntimeStoreCommitUnauthorized as json.
+func (s *AppendRuntimeStoreCommitUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes AppendRuntimeStoreCommitUnauthorized from json.
+func (s *AppendRuntimeStoreCommitUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode AppendRuntimeStoreCommitUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = AppendRuntimeStoreCommitUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *AppendRuntimeStoreCommitUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *AppendRuntimeStoreCommitUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes AppendTaskMessagesBadRequest as json.
 func (s *AppendTaskMessagesBadRequest) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -17726,28 +18371,18 @@ func (s *CreateRuntimeProfileBody) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		if s.MaxOutputTokens.Set {
-			e.FieldStart("maxOutputTokens")
-			s.MaxOutputTokens.Encode(e)
-		}
-	}
-	{
 		if s.MaxTurns.Set {
 			e.FieldStart("maxTurns")
 			s.MaxTurns.Encode(e)
 		}
 	}
 	{
-		e.FieldStart("model")
-		e.Str(s.Model)
+		e.FieldStart("models")
+		s.Models.Encode(e)
 	}
 	{
 		e.FieldStart("name")
 		e.Str(s.Name)
-	}
-	{
-		e.FieldStart("provider")
-		e.Str(s.Provider)
 	}
 	{
 		if s.RequiredEnv != nil {
@@ -17790,58 +18425,28 @@ func (s *CreateRuntimeProfileBody) encodeFields(e *jx.Encoder) {
 		s.Sandbox.Encode(e)
 	}
 	{
-		if s.Temperature.Set {
-			e.FieldStart("temperature")
-			s.Temperature.Encode(e)
-		}
-	}
-	{
-		if s.ThinkingLevel.Set {
-			e.FieldStart("thinkingLevel")
-			s.ThinkingLevel.Encode(e)
-		}
-	}
-	{
 		if s.ToolEnforcement.Set {
 			e.FieldStart("toolEnforcement")
 			s.ToolEnforcement.Encode(e)
 		}
 	}
-	{
-		if s.TopK.Set {
-			e.FieldStart("topK")
-			s.TopK.Encode(e)
-		}
-	}
-	{
-		if s.TopP.Set {
-			e.FieldStart("topP")
-			s.TopP.Encode(e)
-		}
-	}
 }
 
-var jsonFieldsNameOfCreateRuntimeProfileBody = [20]string{
+var jsonFieldsNameOfCreateRuntimeProfileBody = [14]string{
 	0:  "allowedWorkspaceModes",
 	1:  "context",
 	2:  "defaultWorkspaceMode",
 	3:  "description",
 	4:  "maxBashTimeouts",
-	5:  "maxOutputTokens",
-	6:  "maxTurns",
-	7:  "model",
-	8:  "name",
-	9:  "provider",
-	10: "requiredEnv",
-	11: "requiredExecutables",
-	12: "requiredTools",
-	13: "runtimeKind",
-	14: "sandbox",
-	15: "temperature",
-	16: "thinkingLevel",
-	17: "toolEnforcement",
-	18: "topK",
-	19: "topP",
+	5:  "maxTurns",
+	6:  "models",
+	7:  "name",
+	8:  "requiredEnv",
+	9:  "requiredExecutables",
+	10: "requiredTools",
+	11: "runtimeKind",
+	12: "sandbox",
+	13: "toolEnforcement",
 }
 
 // Decode decodes CreateRuntimeProfileBody from json.
@@ -17849,7 +18454,7 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode CreateRuntimeProfileBody to nil")
 	}
-	var requiredBitSet [3]uint8
+	var requiredBitSet [2]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -17917,16 +18522,6 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxBashTimeouts\"")
 			}
-		case "maxOutputTokens":
-			if err := func() error {
-				s.MaxOutputTokens.Reset()
-				if err := s.MaxOutputTokens.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"maxOutputTokens\"")
-			}
 		case "maxTurns":
 			if err := func() error {
 				s.MaxTurns.Reset()
@@ -17937,20 +18532,18 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxTurns\"")
 			}
-		case "model":
-			requiredBitSet[0] |= 1 << 7
+		case "models":
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
-				v, err := d.Str()
-				s.Model = string(v)
-				if err != nil {
+				if err := s.Models.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"model\"")
+				return errors.Wrap(err, "decode field \"models\"")
 			}
 		case "name":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -17960,18 +18553,6 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"name\"")
-			}
-		case "provider":
-			requiredBitSet[1] |= 1 << 1
-			if err := func() error {
-				v, err := d.Str()
-				s.Provider = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"provider\"")
 			}
 		case "requiredEnv":
 			if err := func() error {
@@ -18041,7 +18622,7 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runtimeKind\"")
 			}
 		case "sandbox":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				if err := s.Sandbox.Decode(d); err != nil {
 					return err
@@ -18049,26 +18630,6 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"sandbox\"")
-			}
-		case "temperature":
-			if err := func() error {
-				s.Temperature.Reset()
-				if err := s.Temperature.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"temperature\"")
-			}
-		case "thinkingLevel":
-			if err := func() error {
-				s.ThinkingLevel.Reset()
-				if err := s.ThinkingLevel.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"thinkingLevel\"")
 			}
 		case "toolEnforcement":
 			if err := func() error {
@@ -18080,26 +18641,6 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"toolEnforcement\"")
 			}
-		case "topK":
-			if err := func() error {
-				s.TopK.Reset()
-				if err := s.TopK.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"topK\"")
-			}
-		case "topP":
-			if err := func() error {
-				s.TopP.Reset()
-				if err := s.TopP.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"topP\"")
-			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
 		}
@@ -18109,10 +18650,9 @@ func (s *CreateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [3]uint8{
-		0b10000000,
-		0b01000011,
-		0b00000000,
+	for i, mask := range [2]uint8{
+		0b11000000,
+		0b00010000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -18410,6 +18950,456 @@ func (s CreateRuntimeProfileBodyDefaultWorkspaceMode) MarshalJSON() ([]byte, err
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CreateRuntimeProfileBodyDefaultWorkspaceMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *CreateRuntimeProfileBodyModels) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CreateRuntimeProfileBodyModels) encodeFields(e *jx.Encoder) {
+	{
+		if s.Classification.Set {
+			e.FieldStart("classification")
+			s.Classification.Encode(e)
+		}
+	}
+	{
+		if s.Generation.Set {
+			e.FieldStart("generation")
+			s.Generation.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfCreateRuntimeProfileBodyModels = [2]string{
+	0: "classification",
+	1: "generation",
+}
+
+// Decode decodes CreateRuntimeProfileBodyModels from json.
+func (s *CreateRuntimeProfileBodyModels) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateRuntimeProfileBodyModels to nil")
+	}
+	var propertiesCount int
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		propertiesCount++
+		switch string(k) {
+		case "classification":
+			if err := func() error {
+				s.Classification.Reset()
+				if err := s.Classification.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"classification\"")
+			}
+		case "generation":
+			if err := func() error {
+				s.Generation.Reset()
+				if err := s.Generation.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"generation\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CreateRuntimeProfileBodyModels")
+	}
+	// Validate properties count.
+	if err := (validate.Object{
+		MinProperties:    1,
+		MinPropertiesSet: true,
+		MaxProperties:    0,
+		MaxPropertiesSet: false,
+	}).ValidateProperties(propertiesCount); err != nil {
+		return errors.Wrap(err, "object")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateRuntimeProfileBodyModels) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateRuntimeProfileBodyModels) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *CreateRuntimeProfileBodyModelsClassification) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CreateRuntimeProfileBodyModelsClassification) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("model")
+		e.Str(s.Model)
+	}
+	{
+		e.FieldStart("provider")
+		e.Str(s.Provider)
+	}
+}
+
+var jsonFieldsNameOfCreateRuntimeProfileBodyModelsClassification = [2]string{
+	0: "model",
+	1: "provider",
+}
+
+// Decode decodes CreateRuntimeProfileBodyModelsClassification from json.
+func (s *CreateRuntimeProfileBodyModelsClassification) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateRuntimeProfileBodyModelsClassification to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "model":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.Model = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"model\"")
+			}
+		case "provider":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Provider = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CreateRuntimeProfileBodyModelsClassification")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfCreateRuntimeProfileBodyModelsClassification) {
+					name = jsonFieldsNameOfCreateRuntimeProfileBodyModelsClassification[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateRuntimeProfileBodyModelsClassification) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateRuntimeProfileBodyModelsClassification) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *CreateRuntimeProfileBodyModelsGeneration) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CreateRuntimeProfileBodyModelsGeneration) encodeFields(e *jx.Encoder) {
+	{
+		if s.MaxOutputTokens.Set {
+			e.FieldStart("maxOutputTokens")
+			s.MaxOutputTokens.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("model")
+		e.Str(s.Model)
+	}
+	{
+		e.FieldStart("provider")
+		e.Str(s.Provider)
+	}
+	{
+		if s.Temperature.Set {
+			e.FieldStart("temperature")
+			s.Temperature.Encode(e)
+		}
+	}
+	{
+		if s.ThinkingLevel.Set {
+			e.FieldStart("thinkingLevel")
+			s.ThinkingLevel.Encode(e)
+		}
+	}
+	{
+		if s.TopK.Set {
+			e.FieldStart("topK")
+			s.TopK.Encode(e)
+		}
+	}
+	{
+		if s.TopP.Set {
+			e.FieldStart("topP")
+			s.TopP.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfCreateRuntimeProfileBodyModelsGeneration = [7]string{
+	0: "maxOutputTokens",
+	1: "model",
+	2: "provider",
+	3: "temperature",
+	4: "thinkingLevel",
+	5: "topK",
+	6: "topP",
+}
+
+// Decode decodes CreateRuntimeProfileBodyModelsGeneration from json.
+func (s *CreateRuntimeProfileBodyModelsGeneration) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateRuntimeProfileBodyModelsGeneration to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "maxOutputTokens":
+			if err := func() error {
+				s.MaxOutputTokens.Reset()
+				if err := s.MaxOutputTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxOutputTokens\"")
+			}
+		case "model":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Model = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"model\"")
+			}
+		case "provider":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Provider = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		case "temperature":
+			if err := func() error {
+				s.Temperature.Reset()
+				if err := s.Temperature.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"temperature\"")
+			}
+		case "thinkingLevel":
+			if err := func() error {
+				s.ThinkingLevel.Reset()
+				if err := s.ThinkingLevel.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"thinkingLevel\"")
+			}
+		case "topK":
+			if err := func() error {
+				s.TopK.Reset()
+				if err := s.TopK.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"topK\"")
+			}
+		case "topP":
+			if err := func() error {
+				s.TopP.Reset()
+				if err := s.TopP.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"topP\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CreateRuntimeProfileBodyModelsGeneration")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000110,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfCreateRuntimeProfileBodyModelsGeneration) {
+					name = jsonFieldsNameOfCreateRuntimeProfileBodyModelsGeneration[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateRuntimeProfileBodyModelsGeneration) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateRuntimeProfileBodyModelsGeneration) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateRuntimeProfileBodyModelsGenerationThinkingLevel as json.
+func (s CreateRuntimeProfileBodyModelsGenerationThinkingLevel) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes CreateRuntimeProfileBodyModelsGenerationThinkingLevel from json.
+func (s *CreateRuntimeProfileBodyModelsGenerationThinkingLevel) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateRuntimeProfileBodyModelsGenerationThinkingLevel to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch CreateRuntimeProfileBodyModelsGenerationThinkingLevel(v) {
+	case CreateRuntimeProfileBodyModelsGenerationThinkingLevelOff:
+		*s = CreateRuntimeProfileBodyModelsGenerationThinkingLevelOff
+	case CreateRuntimeProfileBodyModelsGenerationThinkingLevelMinimal:
+		*s = CreateRuntimeProfileBodyModelsGenerationThinkingLevelMinimal
+	case CreateRuntimeProfileBodyModelsGenerationThinkingLevelLow:
+		*s = CreateRuntimeProfileBodyModelsGenerationThinkingLevelLow
+	case CreateRuntimeProfileBodyModelsGenerationThinkingLevelMedium:
+		*s = CreateRuntimeProfileBodyModelsGenerationThinkingLevelMedium
+	case CreateRuntimeProfileBodyModelsGenerationThinkingLevelHigh:
+		*s = CreateRuntimeProfileBodyModelsGenerationThinkingLevelHigh
+	case CreateRuntimeProfileBodyModelsGenerationThinkingLevelXhigh:
+		*s = CreateRuntimeProfileBodyModelsGenerationThinkingLevelXhigh
+	default:
+		*s = CreateRuntimeProfileBodyModelsGenerationThinkingLevel(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s CreateRuntimeProfileBodyModelsGenerationThinkingLevel) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateRuntimeProfileBodyModelsGenerationThinkingLevel) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -19011,54 +20001,6 @@ func (s CreateRuntimeProfileBodySandboxVfsShadowMode) MarshalJSON() ([]byte, err
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CreateRuntimeProfileBodySandboxVfsShadowMode) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes CreateRuntimeProfileBodyThinkingLevel as json.
-func (s CreateRuntimeProfileBodyThinkingLevel) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes CreateRuntimeProfileBodyThinkingLevel from json.
-func (s *CreateRuntimeProfileBodyThinkingLevel) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode CreateRuntimeProfileBodyThinkingLevel to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch CreateRuntimeProfileBodyThinkingLevel(v) {
-	case CreateRuntimeProfileBodyThinkingLevelOff:
-		*s = CreateRuntimeProfileBodyThinkingLevelOff
-	case CreateRuntimeProfileBodyThinkingLevelMinimal:
-		*s = CreateRuntimeProfileBodyThinkingLevelMinimal
-	case CreateRuntimeProfileBodyThinkingLevelLow:
-		*s = CreateRuntimeProfileBodyThinkingLevelLow
-	case CreateRuntimeProfileBodyThinkingLevelMedium:
-		*s = CreateRuntimeProfileBodyThinkingLevelMedium
-	case CreateRuntimeProfileBodyThinkingLevelHigh:
-		*s = CreateRuntimeProfileBodyThinkingLevelHigh
-	case CreateRuntimeProfileBodyThinkingLevelXhigh:
-		*s = CreateRuntimeProfileBodyThinkingLevelXhigh
-	default:
-		*s = CreateRuntimeProfileBodyThinkingLevel(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s CreateRuntimeProfileBodyThinkingLevel) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CreateRuntimeProfileBodyThinkingLevel) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -54338,6 +55280,438 @@ func (s *GetRuntimeSessionUnauthorizedCode) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes GetRuntimeStoreForAttemptBadRequest as json.
+func (s *GetRuntimeStoreForAttemptBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetRuntimeStoreForAttemptBadRequest from json.
+func (s *GetRuntimeStoreForAttemptBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeStoreForAttemptBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetRuntimeStoreForAttemptBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetRuntimeStoreForAttemptBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeStoreForAttemptBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetRuntimeStoreForAttemptConflict as json.
+func (s *GetRuntimeStoreForAttemptConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetRuntimeStoreForAttemptConflict from json.
+func (s *GetRuntimeStoreForAttemptConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeStoreForAttemptConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetRuntimeStoreForAttemptConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetRuntimeStoreForAttemptConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeStoreForAttemptConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetRuntimeStoreForAttemptForbidden as json.
+func (s *GetRuntimeStoreForAttemptForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetRuntimeStoreForAttemptForbidden from json.
+func (s *GetRuntimeStoreForAttemptForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeStoreForAttemptForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetRuntimeStoreForAttemptForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetRuntimeStoreForAttemptForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeStoreForAttemptForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetRuntimeStoreForAttemptNotFound as json.
+func (s *GetRuntimeStoreForAttemptNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetRuntimeStoreForAttemptNotFound from json.
+func (s *GetRuntimeStoreForAttemptNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeStoreForAttemptNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetRuntimeStoreForAttemptNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetRuntimeStoreForAttemptNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeStoreForAttemptNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *GetRuntimeStoreForAttemptOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *GetRuntimeStoreForAttemptOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("format")
+		s.Format.Encode(e)
+	}
+	{
+		e.FieldStart("headSeq")
+		e.Int(s.HeadSeq)
+	}
+	{
+		e.FieldStart("storeId")
+		json.EncodeUUID(e, s.StoreId)
+	}
+}
+
+var jsonFieldsNameOfGetRuntimeStoreForAttemptOK = [3]string{
+	0: "format",
+	1: "headSeq",
+	2: "storeId",
+}
+
+// Decode decodes GetRuntimeStoreForAttemptOK from json.
+func (s *GetRuntimeStoreForAttemptOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeStoreForAttemptOK to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "format":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Format.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"format\"")
+			}
+		case "headSeq":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.HeadSeq = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"headSeq\"")
+			}
+		case "storeId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.StoreId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"storeId\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode GetRuntimeStoreForAttemptOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfGetRuntimeStoreForAttemptOK) {
+					name = jsonFieldsNameOfGetRuntimeStoreForAttemptOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetRuntimeStoreForAttemptOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeStoreForAttemptOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetRuntimeStoreForAttemptOKFormat as json.
+func (s GetRuntimeStoreForAttemptOKFormat) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes GetRuntimeStoreForAttemptOKFormat from json.
+func (s *GetRuntimeStoreForAttemptOKFormat) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeStoreForAttemptOKFormat to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch GetRuntimeStoreForAttemptOKFormat(v) {
+	case GetRuntimeStoreForAttemptOKFormatPiDurableV1:
+		*s = GetRuntimeStoreForAttemptOKFormatPiDurableV1
+	default:
+		*s = GetRuntimeStoreForAttemptOKFormat(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s GetRuntimeStoreForAttemptOKFormat) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeStoreForAttemptOKFormat) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetRuntimeStoreForAttemptServiceUnavailable as json.
+func (s *GetRuntimeStoreForAttemptServiceUnavailable) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetRuntimeStoreForAttemptServiceUnavailable from json.
+func (s *GetRuntimeStoreForAttemptServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeStoreForAttemptServiceUnavailable to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetRuntimeStoreForAttemptServiceUnavailable(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetRuntimeStoreForAttemptServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeStoreForAttemptServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetRuntimeStoreForAttemptTooManyRequests as json.
+func (s *GetRuntimeStoreForAttemptTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetRuntimeStoreForAttemptTooManyRequests from json.
+func (s *GetRuntimeStoreForAttemptTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeStoreForAttemptTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetRuntimeStoreForAttemptTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetRuntimeStoreForAttemptTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeStoreForAttemptTooManyRequests) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetRuntimeStoreForAttemptUnauthorized as json.
+func (s *GetRuntimeStoreForAttemptUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetRuntimeStoreForAttemptUnauthorized from json.
+func (s *GetRuntimeStoreForAttemptUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeStoreForAttemptUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetRuntimeStoreForAttemptUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetRuntimeStoreForAttemptUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeStoreForAttemptUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes GetSigningCredentialForbidden as json.
 func (s *GetSigningCredentialForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -65924,6 +67298,272 @@ func (s *ListRuntimeSlotsUnauthorizedCode) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes ListRuntimeStoreCommitsBadRequest as json.
+func (s *ListRuntimeStoreCommitsBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListRuntimeStoreCommitsBadRequest from json.
+func (s *ListRuntimeStoreCommitsBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListRuntimeStoreCommitsBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListRuntimeStoreCommitsBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListRuntimeStoreCommitsBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListRuntimeStoreCommitsBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListRuntimeStoreCommitsConflict as json.
+func (s *ListRuntimeStoreCommitsConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListRuntimeStoreCommitsConflict from json.
+func (s *ListRuntimeStoreCommitsConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListRuntimeStoreCommitsConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListRuntimeStoreCommitsConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListRuntimeStoreCommitsConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListRuntimeStoreCommitsConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListRuntimeStoreCommitsForbidden as json.
+func (s *ListRuntimeStoreCommitsForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListRuntimeStoreCommitsForbidden from json.
+func (s *ListRuntimeStoreCommitsForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListRuntimeStoreCommitsForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListRuntimeStoreCommitsForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListRuntimeStoreCommitsForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListRuntimeStoreCommitsForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListRuntimeStoreCommitsNotFound as json.
+func (s *ListRuntimeStoreCommitsNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListRuntimeStoreCommitsNotFound from json.
+func (s *ListRuntimeStoreCommitsNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListRuntimeStoreCommitsNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListRuntimeStoreCommitsNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListRuntimeStoreCommitsNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListRuntimeStoreCommitsNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListRuntimeStoreCommitsServiceUnavailable as json.
+func (s *ListRuntimeStoreCommitsServiceUnavailable) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListRuntimeStoreCommitsServiceUnavailable from json.
+func (s *ListRuntimeStoreCommitsServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListRuntimeStoreCommitsServiceUnavailable to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListRuntimeStoreCommitsServiceUnavailable(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListRuntimeStoreCommitsServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListRuntimeStoreCommitsServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListRuntimeStoreCommitsTooManyRequests as json.
+func (s *ListRuntimeStoreCommitsTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListRuntimeStoreCommitsTooManyRequests from json.
+func (s *ListRuntimeStoreCommitsTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListRuntimeStoreCommitsTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListRuntimeStoreCommitsTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListRuntimeStoreCommitsTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListRuntimeStoreCommitsTooManyRequests) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ListRuntimeStoreCommitsUnauthorized as json.
+func (s *ListRuntimeStoreCommitsUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ListRuntimeStoreCommitsUnauthorized from json.
+func (s *ListRuntimeStoreCommitsUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ListRuntimeStoreCommitsUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ListRuntimeStoreCommitsUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ListRuntimeStoreCommitsUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ListRuntimeStoreCommitsUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes ListSigningCredentialsForbidden as json.
 func (s *ListSigningCredentialsForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -71160,6 +72800,532 @@ func (s *ListTeamsUnauthorized) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes MintRuntimeStoreIdBadRequest as json.
+func (s *MintRuntimeStoreIdBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes MintRuntimeStoreIdBadRequest from json.
+func (s *MintRuntimeStoreIdBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode MintRuntimeStoreIdBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = MintRuntimeStoreIdBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *MintRuntimeStoreIdBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *MintRuntimeStoreIdBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes MintRuntimeStoreIdConflict as json.
+func (s *MintRuntimeStoreIdConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes MintRuntimeStoreIdConflict from json.
+func (s *MintRuntimeStoreIdConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode MintRuntimeStoreIdConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = MintRuntimeStoreIdConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *MintRuntimeStoreIdConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *MintRuntimeStoreIdConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes MintRuntimeStoreIdForbidden as json.
+func (s *MintRuntimeStoreIdForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes MintRuntimeStoreIdForbidden from json.
+func (s *MintRuntimeStoreIdForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode MintRuntimeStoreIdForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = MintRuntimeStoreIdForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *MintRuntimeStoreIdForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *MintRuntimeStoreIdForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes MintRuntimeStoreIdNotFound as json.
+func (s *MintRuntimeStoreIdNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes MintRuntimeStoreIdNotFound from json.
+func (s *MintRuntimeStoreIdNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode MintRuntimeStoreIdNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = MintRuntimeStoreIdNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *MintRuntimeStoreIdNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *MintRuntimeStoreIdNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *MintRuntimeStoreIdOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *MintRuntimeStoreIdOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("id")
+		e.Int(s.ID)
+	}
+}
+
+var jsonFieldsNameOfMintRuntimeStoreIdOK = [1]string{
+	0: "id",
+}
+
+// Decode decodes MintRuntimeStoreIdOK from json.
+func (s *MintRuntimeStoreIdOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode MintRuntimeStoreIdOK to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "id":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.ID = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode MintRuntimeStoreIdOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfMintRuntimeStoreIdOK) {
+					name = jsonFieldsNameOfMintRuntimeStoreIdOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *MintRuntimeStoreIdOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *MintRuntimeStoreIdOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *MintRuntimeStoreIdReq) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *MintRuntimeStoreIdReq) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("attemptN")
+		e.Int(s.AttemptN)
+	}
+	{
+		e.FieldStart("executorFingerprint")
+		e.Str(s.ExecutorFingerprint)
+	}
+	{
+		e.FieldStart("leaseId")
+		json.EncodeUUID(e, s.LeaseId)
+	}
+	{
+		e.FieldStart("taskId")
+		json.EncodeUUID(e, s.TaskId)
+	}
+	{
+		e.FieldStart("writerToken")
+		json.EncodeUUID(e, s.WriterToken)
+	}
+}
+
+var jsonFieldsNameOfMintRuntimeStoreIdReq = [5]string{
+	0: "attemptN",
+	1: "executorFingerprint",
+	2: "leaseId",
+	3: "taskId",
+	4: "writerToken",
+}
+
+// Decode decodes MintRuntimeStoreIdReq from json.
+func (s *MintRuntimeStoreIdReq) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode MintRuntimeStoreIdReq to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "attemptN":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.AttemptN = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"attemptN\"")
+			}
+		case "executorFingerprint":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.ExecutorFingerprint = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"executorFingerprint\"")
+			}
+		case "leaseId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.LeaseId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"leaseId\"")
+			}
+		case "taskId":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TaskId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"taskId\"")
+			}
+		case "writerToken":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.WriterToken = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"writerToken\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode MintRuntimeStoreIdReq")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00011111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfMintRuntimeStoreIdReq) {
+					name = jsonFieldsNameOfMintRuntimeStoreIdReq[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *MintRuntimeStoreIdReq) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *MintRuntimeStoreIdReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes MintRuntimeStoreIdServiceUnavailable as json.
+func (s *MintRuntimeStoreIdServiceUnavailable) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes MintRuntimeStoreIdServiceUnavailable from json.
+func (s *MintRuntimeStoreIdServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode MintRuntimeStoreIdServiceUnavailable to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = MintRuntimeStoreIdServiceUnavailable(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *MintRuntimeStoreIdServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *MintRuntimeStoreIdServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes MintRuntimeStoreIdTooManyRequests as json.
+func (s *MintRuntimeStoreIdTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes MintRuntimeStoreIdTooManyRequests from json.
+func (s *MintRuntimeStoreIdTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode MintRuntimeStoreIdTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = MintRuntimeStoreIdTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *MintRuntimeStoreIdTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *MintRuntimeStoreIdTooManyRequests) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes MintRuntimeStoreIdUnauthorized as json.
+func (s *MintRuntimeStoreIdUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes MintRuntimeStoreIdUnauthorized from json.
+func (s *MintRuntimeStoreIdUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode MintRuntimeStoreIdUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = MintRuntimeStoreIdUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *MintRuntimeStoreIdUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *MintRuntimeStoreIdUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode implements json.Marshaler.
 func (s *NetworkInfo) Encode(e *jx.Encoder) {
 	e.ObjStart()
@@ -76361,6 +78527,50 @@ func (s *NilFloat64) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes GetRuntimeStoreForAttemptOK as json.
+func (o NilGetRuntimeStoreForAttemptOK) Encode(e *jx.Encoder) {
+	if o.Null {
+		e.Null()
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes GetRuntimeStoreForAttemptOK from json.
+func (o *NilGetRuntimeStoreForAttemptOK) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode NilGetRuntimeStoreForAttemptOK to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v GetRuntimeStoreForAttemptOK
+		o.Value = v
+		o.Null = true
+		return nil
+	}
+	o.Null = false
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s NilGetRuntimeStoreForAttemptOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *NilGetRuntimeStoreForAttemptOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes int as json.
 func (o NilInt) Encode(e *jx.Encoder) {
 	if o.Null {
@@ -76535,94 +78745,6 @@ func (s NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode) MarshalJSON(
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes RuntimeProfileListResponseItemsItemThinkingLevel as json.
-func (o NilRuntimeProfileListResponseItemsItemThinkingLevel) Encode(e *jx.Encoder) {
-	if o.Null {
-		e.Null()
-		return
-	}
-	e.Str(string(o.Value))
-}
-
-// Decode decodes RuntimeProfileListResponseItemsItemThinkingLevel from json.
-func (o *NilRuntimeProfileListResponseItemsItemThinkingLevel) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode NilRuntimeProfileListResponseItemsItemThinkingLevel to nil")
-	}
-	if d.Next() == jx.Null {
-		if err := d.Null(); err != nil {
-			return err
-		}
-
-		var v RuntimeProfileListResponseItemsItemThinkingLevel
-		o.Value = v
-		o.Null = true
-		return nil
-	}
-	o.Null = false
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s NilRuntimeProfileListResponseItemsItemThinkingLevel) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *NilRuntimeProfileListResponseItemsItemThinkingLevel) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes RuntimeProfileThinkingLevel as json.
-func (o NilRuntimeProfileThinkingLevel) Encode(e *jx.Encoder) {
-	if o.Null {
-		e.Null()
-		return
-	}
-	e.Str(string(o.Value))
-}
-
-// Decode decodes RuntimeProfileThinkingLevel from json.
-func (o *NilRuntimeProfileThinkingLevel) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode NilRuntimeProfileThinkingLevel to nil")
-	}
-	if d.Next() == jx.Null {
-		if err := d.Null(); err != nil {
-			return err
-		}
-
-		var v RuntimeProfileThinkingLevel
-		o.Value = v
-		o.Null = true
-		return nil
-	}
-	o.Null = false
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s NilRuntimeProfileThinkingLevel) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *NilRuntimeProfileThinkingLevel) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -77148,6 +79270,619 @@ func (s OAuth2RegistrationCredentialType) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OAuth2RegistrationCredentialType) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes OpenRuntimeStoreBadRequest as json.
+func (s *OpenRuntimeStoreBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes OpenRuntimeStoreBadRequest from json.
+func (s *OpenRuntimeStoreBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode OpenRuntimeStoreBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = OpenRuntimeStoreBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *OpenRuntimeStoreBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OpenRuntimeStoreBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes OpenRuntimeStoreConflict as json.
+func (s *OpenRuntimeStoreConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes OpenRuntimeStoreConflict from json.
+func (s *OpenRuntimeStoreConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode OpenRuntimeStoreConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = OpenRuntimeStoreConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *OpenRuntimeStoreConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OpenRuntimeStoreConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes OpenRuntimeStoreForbidden as json.
+func (s *OpenRuntimeStoreForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes OpenRuntimeStoreForbidden from json.
+func (s *OpenRuntimeStoreForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode OpenRuntimeStoreForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = OpenRuntimeStoreForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *OpenRuntimeStoreForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OpenRuntimeStoreForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes OpenRuntimeStoreNotFound as json.
+func (s *OpenRuntimeStoreNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes OpenRuntimeStoreNotFound from json.
+func (s *OpenRuntimeStoreNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode OpenRuntimeStoreNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = OpenRuntimeStoreNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *OpenRuntimeStoreNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OpenRuntimeStoreNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *OpenRuntimeStoreOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *OpenRuntimeStoreOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("format")
+		s.Format.Encode(e)
+	}
+	{
+		e.FieldStart("headSeq")
+		e.Int(s.HeadSeq)
+	}
+	{
+		e.FieldStart("storeId")
+		json.EncodeUUID(e, s.StoreId)
+	}
+	{
+		e.FieldStart("writerExpiresAt")
+		json.EncodeDateTime(e, s.WriterExpiresAt)
+	}
+	{
+		e.FieldStart("writerToken")
+		json.EncodeUUID(e, s.WriterToken)
+	}
+}
+
+var jsonFieldsNameOfOpenRuntimeStoreOK = [5]string{
+	0: "format",
+	1: "headSeq",
+	2: "storeId",
+	3: "writerExpiresAt",
+	4: "writerToken",
+}
+
+// Decode decodes OpenRuntimeStoreOK from json.
+func (s *OpenRuntimeStoreOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode OpenRuntimeStoreOK to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "format":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Format.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"format\"")
+			}
+		case "headSeq":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.HeadSeq = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"headSeq\"")
+			}
+		case "storeId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.StoreId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"storeId\"")
+			}
+		case "writerExpiresAt":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.WriterExpiresAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"writerExpiresAt\"")
+			}
+		case "writerToken":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.WriterToken = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"writerToken\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode OpenRuntimeStoreOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00011111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfOpenRuntimeStoreOK) {
+					name = jsonFieldsNameOfOpenRuntimeStoreOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *OpenRuntimeStoreOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OpenRuntimeStoreOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes OpenRuntimeStoreOKFormat as json.
+func (s OpenRuntimeStoreOKFormat) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes OpenRuntimeStoreOKFormat from json.
+func (s *OpenRuntimeStoreOKFormat) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode OpenRuntimeStoreOKFormat to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch OpenRuntimeStoreOKFormat(v) {
+	case OpenRuntimeStoreOKFormatPiDurableV1:
+		*s = OpenRuntimeStoreOKFormatPiDurableV1
+	default:
+		*s = OpenRuntimeStoreOKFormat(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OpenRuntimeStoreOKFormat) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OpenRuntimeStoreOKFormat) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *OpenRuntimeStoreReq) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *OpenRuntimeStoreReq) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("attemptN")
+		e.Int(s.AttemptN)
+	}
+	{
+		e.FieldStart("executorFingerprint")
+		e.Str(s.ExecutorFingerprint)
+	}
+	{
+		e.FieldStart("leaseId")
+		json.EncodeUUID(e, s.LeaseId)
+	}
+	{
+		e.FieldStart("taskId")
+		json.EncodeUUID(e, s.TaskId)
+	}
+}
+
+var jsonFieldsNameOfOpenRuntimeStoreReq = [4]string{
+	0: "attemptN",
+	1: "executorFingerprint",
+	2: "leaseId",
+	3: "taskId",
+}
+
+// Decode decodes OpenRuntimeStoreReq from json.
+func (s *OpenRuntimeStoreReq) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode OpenRuntimeStoreReq to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "attemptN":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.AttemptN = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"attemptN\"")
+			}
+		case "executorFingerprint":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.ExecutorFingerprint = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"executorFingerprint\"")
+			}
+		case "leaseId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.LeaseId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"leaseId\"")
+			}
+		case "taskId":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TaskId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"taskId\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode OpenRuntimeStoreReq")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00001111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfOpenRuntimeStoreReq) {
+					name = jsonFieldsNameOfOpenRuntimeStoreReq[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *OpenRuntimeStoreReq) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OpenRuntimeStoreReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes OpenRuntimeStoreServiceUnavailable as json.
+func (s *OpenRuntimeStoreServiceUnavailable) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes OpenRuntimeStoreServiceUnavailable from json.
+func (s *OpenRuntimeStoreServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode OpenRuntimeStoreServiceUnavailable to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = OpenRuntimeStoreServiceUnavailable(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *OpenRuntimeStoreServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OpenRuntimeStoreServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes OpenRuntimeStoreTooManyRequests as json.
+func (s *OpenRuntimeStoreTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes OpenRuntimeStoreTooManyRequests from json.
+func (s *OpenRuntimeStoreTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode OpenRuntimeStoreTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = OpenRuntimeStoreTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *OpenRuntimeStoreTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OpenRuntimeStoreTooManyRequests) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes OpenRuntimeStoreUnauthorized as json.
+func (s *OpenRuntimeStoreUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes OpenRuntimeStoreUnauthorized from json.
+func (s *OpenRuntimeStoreUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode OpenRuntimeStoreUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = OpenRuntimeStoreUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *OpenRuntimeStoreUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OpenRuntimeStoreUnauthorized) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -77814,6 +80549,72 @@ func (s OptCreateRuntimeProfileBody) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptCreateRuntimeProfileBody) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateRuntimeProfileBodyModelsClassification as json.
+func (o OptCreateRuntimeProfileBodyModelsClassification) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes CreateRuntimeProfileBodyModelsClassification from json.
+func (o *OptCreateRuntimeProfileBodyModelsClassification) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptCreateRuntimeProfileBodyModelsClassification to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptCreateRuntimeProfileBodyModelsClassification) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptCreateRuntimeProfileBodyModelsClassification) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateRuntimeProfileBodyModelsGeneration as json.
+func (o OptCreateRuntimeProfileBodyModelsGeneration) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes CreateRuntimeProfileBodyModelsGeneration from json.
+func (o *OptCreateRuntimeProfileBodyModelsGeneration) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptCreateRuntimeProfileBodyModelsGeneration to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptCreateRuntimeProfileBodyModelsGeneration) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptCreateRuntimeProfileBodyModelsGeneration) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -78535,8 +81336,8 @@ func (s *OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode) UnmarshalJSON(data 
 	return s.Decode(d)
 }
 
-// Encode encodes CreateRuntimeProfileBodyThinkingLevel as json.
-func (o OptNilCreateRuntimeProfileBodyThinkingLevel) Encode(e *jx.Encoder) {
+// Encode encodes CreateRuntimeProfileBodyModelsGenerationThinkingLevel as json.
+func (o OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel) Encode(e *jx.Encoder) {
 	if !o.Set {
 		return
 	}
@@ -78547,17 +81348,17 @@ func (o OptNilCreateRuntimeProfileBodyThinkingLevel) Encode(e *jx.Encoder) {
 	e.Str(string(o.Value))
 }
 
-// Decode decodes CreateRuntimeProfileBodyThinkingLevel from json.
-func (o *OptNilCreateRuntimeProfileBodyThinkingLevel) Decode(d *jx.Decoder) error {
+// Decode decodes CreateRuntimeProfileBodyModelsGenerationThinkingLevel from json.
+func (o *OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel) Decode(d *jx.Decoder) error {
 	if o == nil {
-		return errors.New("invalid: unable to decode OptNilCreateRuntimeProfileBodyThinkingLevel to nil")
+		return errors.New("invalid: unable to decode OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel to nil")
 	}
 	if d.Next() == jx.Null {
 		if err := d.Null(); err != nil {
 			return err
 		}
 
-		var v CreateRuntimeProfileBodyThinkingLevel
+		var v CreateRuntimeProfileBodyModelsGenerationThinkingLevel
 		o.Value = v
 		o.Set = true
 		o.Null = true
@@ -78572,14 +81373,14 @@ func (o *OptNilCreateRuntimeProfileBodyThinkingLevel) Decode(d *jx.Decoder) erro
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s OptNilCreateRuntimeProfileBodyThinkingLevel) MarshalJSON() ([]byte, error) {
+func (s OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptNilCreateRuntimeProfileBodyThinkingLevel) UnmarshalJSON(data []byte) error {
+func (s *OptNilCreateRuntimeProfileBodyModelsGenerationThinkingLevel) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -78884,6 +81685,104 @@ func (s *OptNilPreviewSignEvidenceValue) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel as json.
+func (o OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	if o.Null {
+		e.Null()
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel from json.
+func (o *OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel
+		o.Value = v
+		o.Set = true
+		o.Null = true
+		return nil
+	}
+	o.Set = true
+	o.Null = false
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptNilRuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RuntimeProfileModelsGenerationThinkingLevel as json.
+func (o OptNilRuntimeProfileModelsGenerationThinkingLevel) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	if o.Null {
+		e.Null()
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes RuntimeProfileModelsGenerationThinkingLevel from json.
+func (o *OptNilRuntimeProfileModelsGenerationThinkingLevel) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptNilRuntimeProfileModelsGenerationThinkingLevel to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v RuntimeProfileModelsGenerationThinkingLevel
+		o.Value = v
+		o.Set = true
+		o.Null = true
+		return nil
+	}
+	o.Set = true
+	o.Null = false
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptNilRuntimeProfileModelsGenerationThinkingLevel) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptNilRuntimeProfileModelsGenerationThinkingLevel) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes SigningRequestRequestedBy as json.
 func (o OptNilSigningRequestRequestedBy) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -79133,8 +82032,8 @@ func (s *OptNilUpdateRuntimeProfileBodyDefaultWorkspaceMode) UnmarshalJSON(data 
 	return s.Decode(d)
 }
 
-// Encode encodes UpdateRuntimeProfileBodyThinkingLevel as json.
-func (o OptNilUpdateRuntimeProfileBodyThinkingLevel) Encode(e *jx.Encoder) {
+// Encode encodes UpdateRuntimeProfileBodyModelsGenerationThinkingLevel as json.
+func (o OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel) Encode(e *jx.Encoder) {
 	if !o.Set {
 		return
 	}
@@ -79145,17 +82044,17 @@ func (o OptNilUpdateRuntimeProfileBodyThinkingLevel) Encode(e *jx.Encoder) {
 	e.Str(string(o.Value))
 }
 
-// Decode decodes UpdateRuntimeProfileBodyThinkingLevel from json.
-func (o *OptNilUpdateRuntimeProfileBodyThinkingLevel) Decode(d *jx.Decoder) error {
+// Decode decodes UpdateRuntimeProfileBodyModelsGenerationThinkingLevel from json.
+func (o *OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel) Decode(d *jx.Decoder) error {
 	if o == nil {
-		return errors.New("invalid: unable to decode OptNilUpdateRuntimeProfileBodyThinkingLevel to nil")
+		return errors.New("invalid: unable to decode OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel to nil")
 	}
 	if d.Next() == jx.Null {
 		if err := d.Null(); err != nil {
 			return err
 		}
 
-		var v UpdateRuntimeProfileBodyThinkingLevel
+		var v UpdateRuntimeProfileBodyModelsGenerationThinkingLevel
 		o.Value = v
 		o.Set = true
 		o.Null = true
@@ -79170,14 +82069,14 @@ func (o *OptNilUpdateRuntimeProfileBodyThinkingLevel) Decode(d *jx.Decoder) erro
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s OptNilUpdateRuntimeProfileBodyThinkingLevel) MarshalJSON() ([]byte, error) {
+func (s OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptNilUpdateRuntimeProfileBodyThinkingLevel) UnmarshalJSON(data []byte) error {
+func (s *OptNilUpdateRuntimeProfileBodyModelsGenerationThinkingLevel) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -79579,6 +82478,72 @@ func (s *OptRotateIdentityKeyRequest) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes RuntimeProfileListResponseItemsItemModelsClassification as json.
+func (o OptRuntimeProfileListResponseItemsItemModelsClassification) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes RuntimeProfileListResponseItemsItemModelsClassification from json.
+func (o *OptRuntimeProfileListResponseItemsItemModelsClassification) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptRuntimeProfileListResponseItemsItemModelsClassification to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptRuntimeProfileListResponseItemsItemModelsClassification) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptRuntimeProfileListResponseItemsItemModelsClassification) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RuntimeProfileListResponseItemsItemModelsGeneration as json.
+func (o OptRuntimeProfileListResponseItemsItemModelsGeneration) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes RuntimeProfileListResponseItemsItemModelsGeneration from json.
+func (o *OptRuntimeProfileListResponseItemsItemModelsGeneration) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptRuntimeProfileListResponseItemsItemModelsGeneration to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptRuntimeProfileListResponseItemsItemModelsGeneration) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptRuntimeProfileListResponseItemsItemModelsGeneration) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes RuntimeProfileListResponseItemsItemSandboxEnv as json.
 func (o OptRuntimeProfileListResponseItemsItemSandboxEnv) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -79807,6 +82772,72 @@ func (s OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode) MarshalJSON(
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptRuntimeProfileListResponseItemsItemSandboxVfsShadowMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RuntimeProfileModelsClassification as json.
+func (o OptRuntimeProfileModelsClassification) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes RuntimeProfileModelsClassification from json.
+func (o *OptRuntimeProfileModelsClassification) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptRuntimeProfileModelsClassification to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptRuntimeProfileModelsClassification) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptRuntimeProfileModelsClassification) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RuntimeProfileModelsGeneration as json.
+func (o OptRuntimeProfileModelsGeneration) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes RuntimeProfileModelsGeneration from json.
+func (o *OptRuntimeProfileModelsGeneration) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptRuntimeProfileModelsGeneration to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptRuntimeProfileModelsGeneration) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptRuntimeProfileModelsGeneration) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -80970,6 +84001,105 @@ func (s OptUpdateRuntimeProfileBody) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptUpdateRuntimeProfileBody) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateRuntimeProfileBodyModels as json.
+func (o OptUpdateRuntimeProfileBodyModels) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes UpdateRuntimeProfileBodyModels from json.
+func (o *OptUpdateRuntimeProfileBodyModels) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateRuntimeProfileBodyModels to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateRuntimeProfileBodyModels) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateRuntimeProfileBodyModels) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateRuntimeProfileBodyModelsClassification as json.
+func (o OptUpdateRuntimeProfileBodyModelsClassification) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes UpdateRuntimeProfileBodyModelsClassification from json.
+func (o *OptUpdateRuntimeProfileBodyModelsClassification) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateRuntimeProfileBodyModelsClassification to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateRuntimeProfileBodyModelsClassification) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateRuntimeProfileBodyModelsClassification) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateRuntimeProfileBodyModelsGeneration as json.
+func (o OptUpdateRuntimeProfileBodyModelsGeneration) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes UpdateRuntimeProfileBodyModelsGeneration from json.
+func (o *OptUpdateRuntimeProfileBodyModelsGeneration) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateRuntimeProfileBodyModelsGeneration to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateRuntimeProfileBodyModelsGeneration) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateRuntimeProfileBodyModelsGeneration) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -94077,6 +97207,436 @@ func (s *RelationType) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes ReleaseRuntimeStoreBadRequest as json.
+func (s *ReleaseRuntimeStoreBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ReleaseRuntimeStoreBadRequest from json.
+func (s *ReleaseRuntimeStoreBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ReleaseRuntimeStoreBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ReleaseRuntimeStoreBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ReleaseRuntimeStoreBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ReleaseRuntimeStoreBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ReleaseRuntimeStoreConflict as json.
+func (s *ReleaseRuntimeStoreConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ReleaseRuntimeStoreConflict from json.
+func (s *ReleaseRuntimeStoreConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ReleaseRuntimeStoreConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ReleaseRuntimeStoreConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ReleaseRuntimeStoreConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ReleaseRuntimeStoreConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ReleaseRuntimeStoreForbidden as json.
+func (s *ReleaseRuntimeStoreForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ReleaseRuntimeStoreForbidden from json.
+func (s *ReleaseRuntimeStoreForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ReleaseRuntimeStoreForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ReleaseRuntimeStoreForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ReleaseRuntimeStoreForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ReleaseRuntimeStoreForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ReleaseRuntimeStoreNotFound as json.
+func (s *ReleaseRuntimeStoreNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ReleaseRuntimeStoreNotFound from json.
+func (s *ReleaseRuntimeStoreNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ReleaseRuntimeStoreNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ReleaseRuntimeStoreNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ReleaseRuntimeStoreNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ReleaseRuntimeStoreNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ReleaseRuntimeStoreReq) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ReleaseRuntimeStoreReq) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("attemptN")
+		e.Int(s.AttemptN)
+	}
+	{
+		e.FieldStart("executorFingerprint")
+		e.Str(s.ExecutorFingerprint)
+	}
+	{
+		e.FieldStart("leaseId")
+		json.EncodeUUID(e, s.LeaseId)
+	}
+	{
+		e.FieldStart("taskId")
+		json.EncodeUUID(e, s.TaskId)
+	}
+	{
+		e.FieldStart("writerToken")
+		json.EncodeUUID(e, s.WriterToken)
+	}
+}
+
+var jsonFieldsNameOfReleaseRuntimeStoreReq = [5]string{
+	0: "attemptN",
+	1: "executorFingerprint",
+	2: "leaseId",
+	3: "taskId",
+	4: "writerToken",
+}
+
+// Decode decodes ReleaseRuntimeStoreReq from json.
+func (s *ReleaseRuntimeStoreReq) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ReleaseRuntimeStoreReq to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "attemptN":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.AttemptN = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"attemptN\"")
+			}
+		case "executorFingerprint":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.ExecutorFingerprint = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"executorFingerprint\"")
+			}
+		case "leaseId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.LeaseId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"leaseId\"")
+			}
+		case "taskId":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TaskId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"taskId\"")
+			}
+		case "writerToken":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.WriterToken = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"writerToken\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ReleaseRuntimeStoreReq")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00011111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfReleaseRuntimeStoreReq) {
+					name = jsonFieldsNameOfReleaseRuntimeStoreReq[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ReleaseRuntimeStoreReq) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ReleaseRuntimeStoreReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ReleaseRuntimeStoreServiceUnavailable as json.
+func (s *ReleaseRuntimeStoreServiceUnavailable) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ReleaseRuntimeStoreServiceUnavailable from json.
+func (s *ReleaseRuntimeStoreServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ReleaseRuntimeStoreServiceUnavailable to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ReleaseRuntimeStoreServiceUnavailable(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ReleaseRuntimeStoreServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ReleaseRuntimeStoreServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ReleaseRuntimeStoreTooManyRequests as json.
+func (s *ReleaseRuntimeStoreTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ReleaseRuntimeStoreTooManyRequests from json.
+func (s *ReleaseRuntimeStoreTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ReleaseRuntimeStoreTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ReleaseRuntimeStoreTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ReleaseRuntimeStoreTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ReleaseRuntimeStoreTooManyRequests) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ReleaseRuntimeStoreUnauthorized as json.
+func (s *ReleaseRuntimeStoreUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ReleaseRuntimeStoreUnauthorized from json.
+func (s *ReleaseRuntimeStoreUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ReleaseRuntimeStoreUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ReleaseRuntimeStoreUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ReleaseRuntimeStoreUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ReleaseRuntimeStoreUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes RemoveGroupMemberForbidden as json.
 func (s *RemoveGroupMemberForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -96571,6 +100131,636 @@ func (s RenderedPackWithContentCreator) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RenderedPackWithContentCreator) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RenewRuntimeStoreBadRequest as json.
+func (s *RenewRuntimeStoreBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes RenewRuntimeStoreBadRequest from json.
+func (s *RenewRuntimeStoreBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenewRuntimeStoreBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = RenewRuntimeStoreBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RenewRuntimeStoreBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenewRuntimeStoreBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RenewRuntimeStoreConflict as json.
+func (s *RenewRuntimeStoreConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes RenewRuntimeStoreConflict from json.
+func (s *RenewRuntimeStoreConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenewRuntimeStoreConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = RenewRuntimeStoreConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RenewRuntimeStoreConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenewRuntimeStoreConflict) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RenewRuntimeStoreForbidden as json.
+func (s *RenewRuntimeStoreForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes RenewRuntimeStoreForbidden from json.
+func (s *RenewRuntimeStoreForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenewRuntimeStoreForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = RenewRuntimeStoreForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RenewRuntimeStoreForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenewRuntimeStoreForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RenewRuntimeStoreNotFound as json.
+func (s *RenewRuntimeStoreNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes RenewRuntimeStoreNotFound from json.
+func (s *RenewRuntimeStoreNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenewRuntimeStoreNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = RenewRuntimeStoreNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RenewRuntimeStoreNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenewRuntimeStoreNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *RenewRuntimeStoreOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *RenewRuntimeStoreOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("format")
+		s.Format.Encode(e)
+	}
+	{
+		e.FieldStart("headSeq")
+		e.Int(s.HeadSeq)
+	}
+	{
+		e.FieldStart("storeId")
+		json.EncodeUUID(e, s.StoreId)
+	}
+	{
+		e.FieldStart("writerExpiresAt")
+		json.EncodeDateTime(e, s.WriterExpiresAt)
+	}
+	{
+		e.FieldStart("writerToken")
+		json.EncodeUUID(e, s.WriterToken)
+	}
+}
+
+var jsonFieldsNameOfRenewRuntimeStoreOK = [5]string{
+	0: "format",
+	1: "headSeq",
+	2: "storeId",
+	3: "writerExpiresAt",
+	4: "writerToken",
+}
+
+// Decode decodes RenewRuntimeStoreOK from json.
+func (s *RenewRuntimeStoreOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenewRuntimeStoreOK to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "format":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Format.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"format\"")
+			}
+		case "headSeq":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.HeadSeq = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"headSeq\"")
+			}
+		case "storeId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.StoreId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"storeId\"")
+			}
+		case "writerExpiresAt":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.WriterExpiresAt = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"writerExpiresAt\"")
+			}
+		case "writerToken":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.WriterToken = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"writerToken\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode RenewRuntimeStoreOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00011111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfRenewRuntimeStoreOK) {
+					name = jsonFieldsNameOfRenewRuntimeStoreOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RenewRuntimeStoreOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenewRuntimeStoreOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RenewRuntimeStoreOKFormat as json.
+func (s RenewRuntimeStoreOKFormat) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes RenewRuntimeStoreOKFormat from json.
+func (s *RenewRuntimeStoreOKFormat) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenewRuntimeStoreOKFormat to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch RenewRuntimeStoreOKFormat(v) {
+	case RenewRuntimeStoreOKFormatPiDurableV1:
+		*s = RenewRuntimeStoreOKFormatPiDurableV1
+	default:
+		*s = RenewRuntimeStoreOKFormat(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s RenewRuntimeStoreOKFormat) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenewRuntimeStoreOKFormat) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *RenewRuntimeStoreReq) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *RenewRuntimeStoreReq) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("attemptN")
+		e.Int(s.AttemptN)
+	}
+	{
+		e.FieldStart("executorFingerprint")
+		e.Str(s.ExecutorFingerprint)
+	}
+	{
+		e.FieldStart("leaseId")
+		json.EncodeUUID(e, s.LeaseId)
+	}
+	{
+		e.FieldStart("taskId")
+		json.EncodeUUID(e, s.TaskId)
+	}
+	{
+		e.FieldStart("writerToken")
+		json.EncodeUUID(e, s.WriterToken)
+	}
+}
+
+var jsonFieldsNameOfRenewRuntimeStoreReq = [5]string{
+	0: "attemptN",
+	1: "executorFingerprint",
+	2: "leaseId",
+	3: "taskId",
+	4: "writerToken",
+}
+
+// Decode decodes RenewRuntimeStoreReq from json.
+func (s *RenewRuntimeStoreReq) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenewRuntimeStoreReq to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "attemptN":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.AttemptN = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"attemptN\"")
+			}
+		case "executorFingerprint":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.ExecutorFingerprint = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"executorFingerprint\"")
+			}
+		case "leaseId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.LeaseId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"leaseId\"")
+			}
+		case "taskId":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.TaskId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"taskId\"")
+			}
+		case "writerToken":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.WriterToken = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"writerToken\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode RenewRuntimeStoreReq")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00011111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfRenewRuntimeStoreReq) {
+					name = jsonFieldsNameOfRenewRuntimeStoreReq[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RenewRuntimeStoreReq) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenewRuntimeStoreReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RenewRuntimeStoreServiceUnavailable as json.
+func (s *RenewRuntimeStoreServiceUnavailable) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes RenewRuntimeStoreServiceUnavailable from json.
+func (s *RenewRuntimeStoreServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenewRuntimeStoreServiceUnavailable to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = RenewRuntimeStoreServiceUnavailable(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RenewRuntimeStoreServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenewRuntimeStoreServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RenewRuntimeStoreTooManyRequests as json.
+func (s *RenewRuntimeStoreTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes RenewRuntimeStoreTooManyRequests from json.
+func (s *RenewRuntimeStoreTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenewRuntimeStoreTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = RenewRuntimeStoreTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RenewRuntimeStoreTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenewRuntimeStoreTooManyRequests) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RenewRuntimeStoreUnauthorized as json.
+func (s *RenewRuntimeStoreUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes RenewRuntimeStoreUnauthorized from json.
+func (s *RenewRuntimeStoreUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RenewRuntimeStoreUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = RenewRuntimeStoreUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RenewRuntimeStoreUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RenewRuntimeStoreUnauthorized) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -100896,24 +105086,16 @@ func (s *RuntimeProfile) encodeFields(e *jx.Encoder) {
 		e.Int(s.MaxBashTimeouts)
 	}
 	{
-		e.FieldStart("maxOutputTokens")
-		s.MaxOutputTokens.Encode(e)
-	}
-	{
 		e.FieldStart("maxTurns")
 		e.Int(s.MaxTurns)
 	}
 	{
-		e.FieldStart("model")
-		e.Str(s.Model)
+		e.FieldStart("models")
+		s.Models.Encode(e)
 	}
 	{
 		e.FieldStart("name")
 		e.Str(s.Name)
-	}
-	{
-		e.FieldStart("provider")
-		e.Str(s.Provider)
 	}
 	{
 		e.FieldStart("requiredEnv")
@@ -100956,24 +105138,8 @@ func (s *RuntimeProfile) encodeFields(e *jx.Encoder) {
 		json.EncodeUUID(e, s.TeamId)
 	}
 	{
-		e.FieldStart("temperature")
-		s.Temperature.Encode(e)
-	}
-	{
-		e.FieldStart("thinkingLevel")
-		s.ThinkingLevel.Encode(e)
-	}
-	{
 		e.FieldStart("toolEnforcement")
 		s.ToolEnforcement.Encode(e)
-	}
-	{
-		e.FieldStart("topK")
-		s.TopK.Encode(e)
-	}
-	{
-		e.FieldStart("topP")
-		s.TopP.Encode(e)
 	}
 	{
 		e.FieldStart("updatedAt")
@@ -100981,7 +105147,7 @@ func (s *RuntimeProfile) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfRuntimeProfile = [28]string{
+var jsonFieldsNameOfRuntimeProfile = [22]string{
 	0:  "allowedWorkspaceModes",
 	1:  "context",
 	2:  "createdAt",
@@ -100992,24 +105158,18 @@ var jsonFieldsNameOfRuntimeProfile = [28]string{
 	7:  "description",
 	8:  "id",
 	9:  "maxBashTimeouts",
-	10: "maxOutputTokens",
-	11: "maxTurns",
-	12: "model",
-	13: "name",
-	14: "provider",
-	15: "requiredEnv",
-	16: "requiredExecutables",
-	17: "requiredTools",
-	18: "revision",
-	19: "runtimeKind",
-	20: "sandbox",
-	21: "teamId",
-	22: "temperature",
-	23: "thinkingLevel",
-	24: "toolEnforcement",
-	25: "topK",
-	26: "topP",
-	27: "updatedAt",
+	10: "maxTurns",
+	11: "models",
+	12: "name",
+	13: "requiredEnv",
+	14: "requiredExecutables",
+	15: "requiredTools",
+	16: "revision",
+	17: "runtimeKind",
+	18: "sandbox",
+	19: "teamId",
+	20: "toolEnforcement",
+	21: "updatedAt",
 }
 
 // Decode decodes RuntimeProfile from json.
@@ -101017,7 +105177,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode RuntimeProfile to nil")
 	}
-	var requiredBitSet [4]uint8
+	var requiredBitSet [3]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -101145,18 +105305,8 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxBashTimeouts\"")
 			}
-		case "maxOutputTokens":
-			requiredBitSet[1] |= 1 << 2
-			if err := func() error {
-				if err := s.MaxOutputTokens.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"maxOutputTokens\"")
-			}
 		case "maxTurns":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := d.Int()
 				s.MaxTurns = int(v)
@@ -101167,20 +105317,18 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxTurns\"")
 			}
-		case "model":
-			requiredBitSet[1] |= 1 << 4
+		case "models":
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
-				v, err := d.Str()
-				s.Model = string(v)
-				if err != nil {
+				if err := s.Models.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"model\"")
+				return errors.Wrap(err, "decode field \"models\"")
 			}
 		case "name":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -101191,20 +105339,8 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
-		case "provider":
-			requiredBitSet[1] |= 1 << 6
-			if err := func() error {
-				v, err := d.Str()
-				s.Provider = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"provider\"")
-			}
 		case "requiredEnv":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				s.RequiredEnv = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -101224,7 +105360,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredEnv\"")
 			}
 		case "requiredExecutables":
-			requiredBitSet[2] |= 1 << 0
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				s.RequiredExecutables = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -101244,7 +105380,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredExecutables\"")
 			}
 		case "requiredTools":
-			requiredBitSet[2] |= 1 << 1
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				s.RequiredTools = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -101264,7 +105400,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredTools\"")
 			}
 		case "revision":
-			requiredBitSet[2] |= 1 << 2
+			requiredBitSet[2] |= 1 << 0
 			if err := func() error {
 				v, err := d.Int()
 				s.Revision = int(v)
@@ -101276,7 +105412,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"revision\"")
 			}
 		case "runtimeKind":
-			requiredBitSet[2] |= 1 << 3
+			requiredBitSet[2] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.RuntimeKind = string(v)
@@ -101288,7 +105424,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runtimeKind\"")
 			}
 		case "sandbox":
-			requiredBitSet[2] |= 1 << 4
+			requiredBitSet[2] |= 1 << 2
 			if err := func() error {
 				if err := s.Sandbox.Decode(d); err != nil {
 					return err
@@ -101298,7 +105434,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sandbox\"")
 			}
 		case "teamId":
-			requiredBitSet[2] |= 1 << 5
+			requiredBitSet[2] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -101309,28 +105445,8 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
-		case "temperature":
-			requiredBitSet[2] |= 1 << 6
-			if err := func() error {
-				if err := s.Temperature.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"temperature\"")
-			}
-		case "thinkingLevel":
-			requiredBitSet[2] |= 1 << 7
-			if err := func() error {
-				if err := s.ThinkingLevel.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"thinkingLevel\"")
-			}
 		case "toolEnforcement":
-			requiredBitSet[3] |= 1 << 0
+			requiredBitSet[2] |= 1 << 4
 			if err := func() error {
 				if err := s.ToolEnforcement.Decode(d); err != nil {
 					return err
@@ -101339,28 +105455,8 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"toolEnforcement\"")
 			}
-		case "topK":
-			requiredBitSet[3] |= 1 << 1
-			if err := func() error {
-				if err := s.TopK.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"topK\"")
-			}
-		case "topP":
-			requiredBitSet[3] |= 1 << 2
-			if err := func() error {
-				if err := s.TopP.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"topP\"")
-			}
 		case "updatedAt":
-			requiredBitSet[3] |= 1 << 3
+			requiredBitSet[2] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -101380,11 +105476,10 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [4]uint8{
+	for i, mask := range [3]uint8{
 		0b11111111,
 		0b11111111,
-		0b11111111,
-		0b00001111,
+		0b00111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -101850,24 +105945,16 @@ func (s *RuntimeProfileListResponseItemsItem) encodeFields(e *jx.Encoder) {
 		e.Int(s.MaxBashTimeouts)
 	}
 	{
-		e.FieldStart("maxOutputTokens")
-		s.MaxOutputTokens.Encode(e)
-	}
-	{
 		e.FieldStart("maxTurns")
 		e.Int(s.MaxTurns)
 	}
 	{
-		e.FieldStart("model")
-		e.Str(s.Model)
+		e.FieldStart("models")
+		s.Models.Encode(e)
 	}
 	{
 		e.FieldStart("name")
 		e.Str(s.Name)
-	}
-	{
-		e.FieldStart("provider")
-		e.Str(s.Provider)
 	}
 	{
 		e.FieldStart("requiredEnv")
@@ -101910,24 +105997,8 @@ func (s *RuntimeProfileListResponseItemsItem) encodeFields(e *jx.Encoder) {
 		json.EncodeUUID(e, s.TeamId)
 	}
 	{
-		e.FieldStart("temperature")
-		s.Temperature.Encode(e)
-	}
-	{
-		e.FieldStart("thinkingLevel")
-		s.ThinkingLevel.Encode(e)
-	}
-	{
 		e.FieldStart("toolEnforcement")
 		s.ToolEnforcement.Encode(e)
-	}
-	{
-		e.FieldStart("topK")
-		s.TopK.Encode(e)
-	}
-	{
-		e.FieldStart("topP")
-		s.TopP.Encode(e)
 	}
 	{
 		e.FieldStart("updatedAt")
@@ -101935,7 +106006,7 @@ func (s *RuntimeProfileListResponseItemsItem) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfRuntimeProfileListResponseItemsItem = [28]string{
+var jsonFieldsNameOfRuntimeProfileListResponseItemsItem = [22]string{
 	0:  "allowedWorkspaceModes",
 	1:  "context",
 	2:  "createdAt",
@@ -101946,24 +106017,18 @@ var jsonFieldsNameOfRuntimeProfileListResponseItemsItem = [28]string{
 	7:  "description",
 	8:  "id",
 	9:  "maxBashTimeouts",
-	10: "maxOutputTokens",
-	11: "maxTurns",
-	12: "model",
-	13: "name",
-	14: "provider",
-	15: "requiredEnv",
-	16: "requiredExecutables",
-	17: "requiredTools",
-	18: "revision",
-	19: "runtimeKind",
-	20: "sandbox",
-	21: "teamId",
-	22: "temperature",
-	23: "thinkingLevel",
-	24: "toolEnforcement",
-	25: "topK",
-	26: "topP",
-	27: "updatedAt",
+	10: "maxTurns",
+	11: "models",
+	12: "name",
+	13: "requiredEnv",
+	14: "requiredExecutables",
+	15: "requiredTools",
+	16: "revision",
+	17: "runtimeKind",
+	18: "sandbox",
+	19: "teamId",
+	20: "toolEnforcement",
+	21: "updatedAt",
 }
 
 // Decode decodes RuntimeProfileListResponseItemsItem from json.
@@ -101971,7 +106036,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode RuntimeProfileListResponseItemsItem to nil")
 	}
-	var requiredBitSet [4]uint8
+	var requiredBitSet [3]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -102099,18 +106164,8 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxBashTimeouts\"")
 			}
-		case "maxOutputTokens":
-			requiredBitSet[1] |= 1 << 2
-			if err := func() error {
-				if err := s.MaxOutputTokens.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"maxOutputTokens\"")
-			}
 		case "maxTurns":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := d.Int()
 				s.MaxTurns = int(v)
@@ -102121,20 +106176,18 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxTurns\"")
 			}
-		case "model":
-			requiredBitSet[1] |= 1 << 4
+		case "models":
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
-				v, err := d.Str()
-				s.Model = string(v)
-				if err != nil {
+				if err := s.Models.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"model\"")
+				return errors.Wrap(err, "decode field \"models\"")
 			}
 		case "name":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -102145,20 +106198,8 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
-		case "provider":
-			requiredBitSet[1] |= 1 << 6
-			if err := func() error {
-				v, err := d.Str()
-				s.Provider = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"provider\"")
-			}
 		case "requiredEnv":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				s.RequiredEnv = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -102178,7 +106219,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredEnv\"")
 			}
 		case "requiredExecutables":
-			requiredBitSet[2] |= 1 << 0
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				s.RequiredExecutables = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -102198,7 +106239,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredExecutables\"")
 			}
 		case "requiredTools":
-			requiredBitSet[2] |= 1 << 1
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				s.RequiredTools = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -102218,7 +106259,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredTools\"")
 			}
 		case "revision":
-			requiredBitSet[2] |= 1 << 2
+			requiredBitSet[2] |= 1 << 0
 			if err := func() error {
 				v, err := d.Int()
 				s.Revision = int(v)
@@ -102230,7 +106271,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"revision\"")
 			}
 		case "runtimeKind":
-			requiredBitSet[2] |= 1 << 3
+			requiredBitSet[2] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.RuntimeKind = string(v)
@@ -102242,7 +106283,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runtimeKind\"")
 			}
 		case "sandbox":
-			requiredBitSet[2] |= 1 << 4
+			requiredBitSet[2] |= 1 << 2
 			if err := func() error {
 				if err := s.Sandbox.Decode(d); err != nil {
 					return err
@@ -102252,7 +106293,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sandbox\"")
 			}
 		case "teamId":
-			requiredBitSet[2] |= 1 << 5
+			requiredBitSet[2] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -102263,28 +106304,8 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
-		case "temperature":
-			requiredBitSet[2] |= 1 << 6
-			if err := func() error {
-				if err := s.Temperature.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"temperature\"")
-			}
-		case "thinkingLevel":
-			requiredBitSet[2] |= 1 << 7
-			if err := func() error {
-				if err := s.ThinkingLevel.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"thinkingLevel\"")
-			}
 		case "toolEnforcement":
-			requiredBitSet[3] |= 1 << 0
+			requiredBitSet[2] |= 1 << 4
 			if err := func() error {
 				if err := s.ToolEnforcement.Decode(d); err != nil {
 					return err
@@ -102293,28 +106314,8 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"toolEnforcement\"")
 			}
-		case "topK":
-			requiredBitSet[3] |= 1 << 1
-			if err := func() error {
-				if err := s.TopK.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"topK\"")
-			}
-		case "topP":
-			requiredBitSet[3] |= 1 << 2
-			if err := func() error {
-				if err := s.TopP.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"topP\"")
-			}
 		case "updatedAt":
-			requiredBitSet[3] |= 1 << 3
+			requiredBitSet[2] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -102334,11 +106335,10 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [4]uint8{
+	for i, mask := range [3]uint8{
 		0b11111111,
 		0b11111111,
-		0b11111111,
-		0b00001111,
+		0b00111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -102636,6 +106636,456 @@ func (s RuntimeProfileListResponseItemsItemDefaultWorkspaceMode) MarshalJSON() (
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RuntimeProfileListResponseItemsItemDefaultWorkspaceMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *RuntimeProfileListResponseItemsItemModels) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *RuntimeProfileListResponseItemsItemModels) encodeFields(e *jx.Encoder) {
+	{
+		if s.Classification.Set {
+			e.FieldStart("classification")
+			s.Classification.Encode(e)
+		}
+	}
+	{
+		if s.Generation.Set {
+			e.FieldStart("generation")
+			s.Generation.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfRuntimeProfileListResponseItemsItemModels = [2]string{
+	0: "classification",
+	1: "generation",
+}
+
+// Decode decodes RuntimeProfileListResponseItemsItemModels from json.
+func (s *RuntimeProfileListResponseItemsItemModels) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RuntimeProfileListResponseItemsItemModels to nil")
+	}
+	var propertiesCount int
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		propertiesCount++
+		switch string(k) {
+		case "classification":
+			if err := func() error {
+				s.Classification.Reset()
+				if err := s.Classification.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"classification\"")
+			}
+		case "generation":
+			if err := func() error {
+				s.Generation.Reset()
+				if err := s.Generation.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"generation\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode RuntimeProfileListResponseItemsItemModels")
+	}
+	// Validate properties count.
+	if err := (validate.Object{
+		MinProperties:    1,
+		MinPropertiesSet: true,
+		MaxProperties:    0,
+		MaxPropertiesSet: false,
+	}).ValidateProperties(propertiesCount); err != nil {
+		return errors.Wrap(err, "object")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RuntimeProfileListResponseItemsItemModels) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RuntimeProfileListResponseItemsItemModels) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *RuntimeProfileListResponseItemsItemModelsClassification) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *RuntimeProfileListResponseItemsItemModelsClassification) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("model")
+		e.Str(s.Model)
+	}
+	{
+		e.FieldStart("provider")
+		e.Str(s.Provider)
+	}
+}
+
+var jsonFieldsNameOfRuntimeProfileListResponseItemsItemModelsClassification = [2]string{
+	0: "model",
+	1: "provider",
+}
+
+// Decode decodes RuntimeProfileListResponseItemsItemModelsClassification from json.
+func (s *RuntimeProfileListResponseItemsItemModelsClassification) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RuntimeProfileListResponseItemsItemModelsClassification to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "model":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.Model = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"model\"")
+			}
+		case "provider":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Provider = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode RuntimeProfileListResponseItemsItemModelsClassification")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfRuntimeProfileListResponseItemsItemModelsClassification) {
+					name = jsonFieldsNameOfRuntimeProfileListResponseItemsItemModelsClassification[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RuntimeProfileListResponseItemsItemModelsClassification) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RuntimeProfileListResponseItemsItemModelsClassification) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) encodeFields(e *jx.Encoder) {
+	{
+		if s.MaxOutputTokens.Set {
+			e.FieldStart("maxOutputTokens")
+			s.MaxOutputTokens.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("model")
+		e.Str(s.Model)
+	}
+	{
+		e.FieldStart("provider")
+		e.Str(s.Provider)
+	}
+	{
+		if s.Temperature.Set {
+			e.FieldStart("temperature")
+			s.Temperature.Encode(e)
+		}
+	}
+	{
+		if s.ThinkingLevel.Set {
+			e.FieldStart("thinkingLevel")
+			s.ThinkingLevel.Encode(e)
+		}
+	}
+	{
+		if s.TopK.Set {
+			e.FieldStart("topK")
+			s.TopK.Encode(e)
+		}
+	}
+	{
+		if s.TopP.Set {
+			e.FieldStart("topP")
+			s.TopP.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfRuntimeProfileListResponseItemsItemModelsGeneration = [7]string{
+	0: "maxOutputTokens",
+	1: "model",
+	2: "provider",
+	3: "temperature",
+	4: "thinkingLevel",
+	5: "topK",
+	6: "topP",
+}
+
+// Decode decodes RuntimeProfileListResponseItemsItemModelsGeneration from json.
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RuntimeProfileListResponseItemsItemModelsGeneration to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "maxOutputTokens":
+			if err := func() error {
+				s.MaxOutputTokens.Reset()
+				if err := s.MaxOutputTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxOutputTokens\"")
+			}
+		case "model":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Model = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"model\"")
+			}
+		case "provider":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Provider = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		case "temperature":
+			if err := func() error {
+				s.Temperature.Reset()
+				if err := s.Temperature.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"temperature\"")
+			}
+		case "thinkingLevel":
+			if err := func() error {
+				s.ThinkingLevel.Reset()
+				if err := s.ThinkingLevel.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"thinkingLevel\"")
+			}
+		case "topK":
+			if err := func() error {
+				s.TopK.Reset()
+				if err := s.TopK.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"topK\"")
+			}
+		case "topP":
+			if err := func() error {
+				s.TopP.Reset()
+				if err := s.TopP.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"topP\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode RuntimeProfileListResponseItemsItemModelsGeneration")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000110,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfRuntimeProfileListResponseItemsItemModelsGeneration) {
+					name = jsonFieldsNameOfRuntimeProfileListResponseItemsItemModelsGeneration[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RuntimeProfileListResponseItemsItemModelsGeneration) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel as json.
+func (s RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel from json.
+func (s *RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel(v) {
+	case RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelOff:
+		*s = RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelOff
+	case RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelMinimal:
+		*s = RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelMinimal
+	case RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelLow:
+		*s = RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelLow
+	case RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelMedium:
+		*s = RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelMedium
+	case RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelHigh:
+		*s = RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelHigh
+	case RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelXhigh:
+		*s = RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevelXhigh
+	default:
+		*s = RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RuntimeProfileListResponseItemsItemModelsGenerationThinkingLevel) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -103241,54 +107691,6 @@ func (s *RuntimeProfileListResponseItemsItemSandboxVfsShadowMode) UnmarshalJSON(
 	return s.Decode(d)
 }
 
-// Encode encodes RuntimeProfileListResponseItemsItemThinkingLevel as json.
-func (s RuntimeProfileListResponseItemsItemThinkingLevel) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes RuntimeProfileListResponseItemsItemThinkingLevel from json.
-func (s *RuntimeProfileListResponseItemsItemThinkingLevel) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode RuntimeProfileListResponseItemsItemThinkingLevel to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch RuntimeProfileListResponseItemsItemThinkingLevel(v) {
-	case RuntimeProfileListResponseItemsItemThinkingLevelOff:
-		*s = RuntimeProfileListResponseItemsItemThinkingLevelOff
-	case RuntimeProfileListResponseItemsItemThinkingLevelMinimal:
-		*s = RuntimeProfileListResponseItemsItemThinkingLevelMinimal
-	case RuntimeProfileListResponseItemsItemThinkingLevelLow:
-		*s = RuntimeProfileListResponseItemsItemThinkingLevelLow
-	case RuntimeProfileListResponseItemsItemThinkingLevelMedium:
-		*s = RuntimeProfileListResponseItemsItemThinkingLevelMedium
-	case RuntimeProfileListResponseItemsItemThinkingLevelHigh:
-		*s = RuntimeProfileListResponseItemsItemThinkingLevelHigh
-	case RuntimeProfileListResponseItemsItemThinkingLevelXhigh:
-		*s = RuntimeProfileListResponseItemsItemThinkingLevelXhigh
-	default:
-		*s = RuntimeProfileListResponseItemsItemThinkingLevel(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s RuntimeProfileListResponseItemsItemThinkingLevel) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *RuntimeProfileListResponseItemsItemThinkingLevel) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes RuntimeProfileListResponseItemsItemToolEnforcement as json.
 func (s RuntimeProfileListResponseItemsItemToolEnforcement) Encode(e *jx.Encoder) {
 	e.Str(string(s))
@@ -103327,6 +107729,456 @@ func (s RuntimeProfileListResponseItemsItemToolEnforcement) MarshalJSON() ([]byt
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RuntimeProfileListResponseItemsItemToolEnforcement) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *RuntimeProfileModels) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *RuntimeProfileModels) encodeFields(e *jx.Encoder) {
+	{
+		if s.Classification.Set {
+			e.FieldStart("classification")
+			s.Classification.Encode(e)
+		}
+	}
+	{
+		if s.Generation.Set {
+			e.FieldStart("generation")
+			s.Generation.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfRuntimeProfileModels = [2]string{
+	0: "classification",
+	1: "generation",
+}
+
+// Decode decodes RuntimeProfileModels from json.
+func (s *RuntimeProfileModels) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RuntimeProfileModels to nil")
+	}
+	var propertiesCount int
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		propertiesCount++
+		switch string(k) {
+		case "classification":
+			if err := func() error {
+				s.Classification.Reset()
+				if err := s.Classification.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"classification\"")
+			}
+		case "generation":
+			if err := func() error {
+				s.Generation.Reset()
+				if err := s.Generation.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"generation\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode RuntimeProfileModels")
+	}
+	// Validate properties count.
+	if err := (validate.Object{
+		MinProperties:    1,
+		MinPropertiesSet: true,
+		MaxProperties:    0,
+		MaxPropertiesSet: false,
+	}).ValidateProperties(propertiesCount); err != nil {
+		return errors.Wrap(err, "object")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RuntimeProfileModels) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RuntimeProfileModels) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *RuntimeProfileModelsClassification) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *RuntimeProfileModelsClassification) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("model")
+		e.Str(s.Model)
+	}
+	{
+		e.FieldStart("provider")
+		e.Str(s.Provider)
+	}
+}
+
+var jsonFieldsNameOfRuntimeProfileModelsClassification = [2]string{
+	0: "model",
+	1: "provider",
+}
+
+// Decode decodes RuntimeProfileModelsClassification from json.
+func (s *RuntimeProfileModelsClassification) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RuntimeProfileModelsClassification to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "model":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.Model = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"model\"")
+			}
+		case "provider":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Provider = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode RuntimeProfileModelsClassification")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfRuntimeProfileModelsClassification) {
+					name = jsonFieldsNameOfRuntimeProfileModelsClassification[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RuntimeProfileModelsClassification) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RuntimeProfileModelsClassification) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *RuntimeProfileModelsGeneration) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *RuntimeProfileModelsGeneration) encodeFields(e *jx.Encoder) {
+	{
+		if s.MaxOutputTokens.Set {
+			e.FieldStart("maxOutputTokens")
+			s.MaxOutputTokens.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("model")
+		e.Str(s.Model)
+	}
+	{
+		e.FieldStart("provider")
+		e.Str(s.Provider)
+	}
+	{
+		if s.Temperature.Set {
+			e.FieldStart("temperature")
+			s.Temperature.Encode(e)
+		}
+	}
+	{
+		if s.ThinkingLevel.Set {
+			e.FieldStart("thinkingLevel")
+			s.ThinkingLevel.Encode(e)
+		}
+	}
+	{
+		if s.TopK.Set {
+			e.FieldStart("topK")
+			s.TopK.Encode(e)
+		}
+	}
+	{
+		if s.TopP.Set {
+			e.FieldStart("topP")
+			s.TopP.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfRuntimeProfileModelsGeneration = [7]string{
+	0: "maxOutputTokens",
+	1: "model",
+	2: "provider",
+	3: "temperature",
+	4: "thinkingLevel",
+	5: "topK",
+	6: "topP",
+}
+
+// Decode decodes RuntimeProfileModelsGeneration from json.
+func (s *RuntimeProfileModelsGeneration) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RuntimeProfileModelsGeneration to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "maxOutputTokens":
+			if err := func() error {
+				s.MaxOutputTokens.Reset()
+				if err := s.MaxOutputTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxOutputTokens\"")
+			}
+		case "model":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Model = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"model\"")
+			}
+		case "provider":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Provider = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		case "temperature":
+			if err := func() error {
+				s.Temperature.Reset()
+				if err := s.Temperature.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"temperature\"")
+			}
+		case "thinkingLevel":
+			if err := func() error {
+				s.ThinkingLevel.Reset()
+				if err := s.ThinkingLevel.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"thinkingLevel\"")
+			}
+		case "topK":
+			if err := func() error {
+				s.TopK.Reset()
+				if err := s.TopK.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"topK\"")
+			}
+		case "topP":
+			if err := func() error {
+				s.TopP.Reset()
+				if err := s.TopP.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"topP\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode RuntimeProfileModelsGeneration")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000110,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfRuntimeProfileModelsGeneration) {
+					name = jsonFieldsNameOfRuntimeProfileModelsGeneration[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RuntimeProfileModelsGeneration) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RuntimeProfileModelsGeneration) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RuntimeProfileModelsGenerationThinkingLevel as json.
+func (s RuntimeProfileModelsGenerationThinkingLevel) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes RuntimeProfileModelsGenerationThinkingLevel from json.
+func (s *RuntimeProfileModelsGenerationThinkingLevel) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RuntimeProfileModelsGenerationThinkingLevel to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch RuntimeProfileModelsGenerationThinkingLevel(v) {
+	case RuntimeProfileModelsGenerationThinkingLevelOff:
+		*s = RuntimeProfileModelsGenerationThinkingLevelOff
+	case RuntimeProfileModelsGenerationThinkingLevelMinimal:
+		*s = RuntimeProfileModelsGenerationThinkingLevelMinimal
+	case RuntimeProfileModelsGenerationThinkingLevelLow:
+		*s = RuntimeProfileModelsGenerationThinkingLevelLow
+	case RuntimeProfileModelsGenerationThinkingLevelMedium:
+		*s = RuntimeProfileModelsGenerationThinkingLevelMedium
+	case RuntimeProfileModelsGenerationThinkingLevelHigh:
+		*s = RuntimeProfileModelsGenerationThinkingLevelHigh
+	case RuntimeProfileModelsGenerationThinkingLevelXhigh:
+		*s = RuntimeProfileModelsGenerationThinkingLevelXhigh
+	default:
+		*s = RuntimeProfileModelsGenerationThinkingLevel(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s RuntimeProfileModelsGenerationThinkingLevel) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RuntimeProfileModelsGenerationThinkingLevel) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -104132,54 +108984,6 @@ func (s RuntimeProfileSandboxVfsShadowMode) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RuntimeProfileSandboxVfsShadowMode) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes RuntimeProfileThinkingLevel as json.
-func (s RuntimeProfileThinkingLevel) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes RuntimeProfileThinkingLevel from json.
-func (s *RuntimeProfileThinkingLevel) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode RuntimeProfileThinkingLevel to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch RuntimeProfileThinkingLevel(v) {
-	case RuntimeProfileThinkingLevelOff:
-		*s = RuntimeProfileThinkingLevelOff
-	case RuntimeProfileThinkingLevelMinimal:
-		*s = RuntimeProfileThinkingLevelMinimal
-	case RuntimeProfileThinkingLevelLow:
-		*s = RuntimeProfileThinkingLevelLow
-	case RuntimeProfileThinkingLevelMedium:
-		*s = RuntimeProfileThinkingLevelMedium
-	case RuntimeProfileThinkingLevelHigh:
-		*s = RuntimeProfileThinkingLevelHigh
-	case RuntimeProfileThinkingLevelXhigh:
-		*s = RuntimeProfileThinkingLevelXhigh
-	default:
-		*s = RuntimeProfileThinkingLevel(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s RuntimeProfileThinkingLevel) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *RuntimeProfileThinkingLevel) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -120912,33 +125716,21 @@ func (s *UpdateRuntimeProfileBody) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		if s.MaxOutputTokens.Set {
-			e.FieldStart("maxOutputTokens")
-			s.MaxOutputTokens.Encode(e)
-		}
-	}
-	{
 		if s.MaxTurns.Set {
 			e.FieldStart("maxTurns")
 			s.MaxTurns.Encode(e)
 		}
 	}
 	{
-		if s.Model.Set {
-			e.FieldStart("model")
-			s.Model.Encode(e)
+		if s.Models.Set {
+			e.FieldStart("models")
+			s.Models.Encode(e)
 		}
 	}
 	{
 		if s.Name.Set {
 			e.FieldStart("name")
 			s.Name.Encode(e)
-		}
-	}
-	{
-		if s.Provider.Set {
-			e.FieldStart("provider")
-			s.Provider.Encode(e)
 		}
 	}
 	{
@@ -120984,58 +125776,28 @@ func (s *UpdateRuntimeProfileBody) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		if s.Temperature.Set {
-			e.FieldStart("temperature")
-			s.Temperature.Encode(e)
-		}
-	}
-	{
-		if s.ThinkingLevel.Set {
-			e.FieldStart("thinkingLevel")
-			s.ThinkingLevel.Encode(e)
-		}
-	}
-	{
 		if s.ToolEnforcement.Set {
 			e.FieldStart("toolEnforcement")
 			s.ToolEnforcement.Encode(e)
 		}
 	}
-	{
-		if s.TopK.Set {
-			e.FieldStart("topK")
-			s.TopK.Encode(e)
-		}
-	}
-	{
-		if s.TopP.Set {
-			e.FieldStart("topP")
-			s.TopP.Encode(e)
-		}
-	}
 }
 
-var jsonFieldsNameOfUpdateRuntimeProfileBody = [20]string{
+var jsonFieldsNameOfUpdateRuntimeProfileBody = [14]string{
 	0:  "allowedWorkspaceModes",
 	1:  "context",
 	2:  "defaultWorkspaceMode",
 	3:  "description",
 	4:  "maxBashTimeouts",
-	5:  "maxOutputTokens",
-	6:  "maxTurns",
-	7:  "model",
-	8:  "name",
-	9:  "provider",
-	10: "requiredEnv",
-	11: "requiredExecutables",
-	12: "requiredTools",
-	13: "runtimeKind",
-	14: "sandbox",
-	15: "temperature",
-	16: "thinkingLevel",
-	17: "toolEnforcement",
-	18: "topK",
-	19: "topP",
+	5:  "maxTurns",
+	6:  "models",
+	7:  "name",
+	8:  "requiredEnv",
+	9:  "requiredExecutables",
+	10: "requiredTools",
+	11: "runtimeKind",
+	12: "sandbox",
+	13: "toolEnforcement",
 }
 
 // Decode decodes UpdateRuntimeProfileBody from json.
@@ -121112,16 +125874,6 @@ func (s *UpdateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxBashTimeouts\"")
 			}
-		case "maxOutputTokens":
-			if err := func() error {
-				s.MaxOutputTokens.Reset()
-				if err := s.MaxOutputTokens.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"maxOutputTokens\"")
-			}
 		case "maxTurns":
 			if err := func() error {
 				s.MaxTurns.Reset()
@@ -121132,15 +125884,15 @@ func (s *UpdateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"maxTurns\"")
 			}
-		case "model":
+		case "models":
 			if err := func() error {
-				s.Model.Reset()
-				if err := s.Model.Decode(d); err != nil {
+				s.Models.Reset()
+				if err := s.Models.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"model\"")
+				return errors.Wrap(err, "decode field \"models\"")
 			}
 		case "name":
 			if err := func() error {
@@ -121151,16 +125903,6 @@ func (s *UpdateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"name\"")
-			}
-		case "provider":
-			if err := func() error {
-				s.Provider.Reset()
-				if err := s.Provider.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"provider\"")
 			}
 		case "requiredEnv":
 			if err := func() error {
@@ -121239,26 +125981,6 @@ func (s *UpdateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"sandbox\"")
 			}
-		case "temperature":
-			if err := func() error {
-				s.Temperature.Reset()
-				if err := s.Temperature.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"temperature\"")
-			}
-		case "thinkingLevel":
-			if err := func() error {
-				s.ThinkingLevel.Reset()
-				if err := s.ThinkingLevel.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"thinkingLevel\"")
-			}
 		case "toolEnforcement":
 			if err := func() error {
 				s.ToolEnforcement.Reset()
@@ -121268,26 +125990,6 @@ func (s *UpdateRuntimeProfileBody) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"toolEnforcement\"")
-			}
-		case "topK":
-			if err := func() error {
-				s.TopK.Reset()
-				if err := s.TopK.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"topK\"")
-			}
-		case "topP":
-			if err := func() error {
-				s.TopP.Reset()
-				if err := s.TopP.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"topP\"")
 			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
@@ -121574,6 +126276,456 @@ func (s UpdateRuntimeProfileBodyDefaultWorkspaceMode) MarshalJSON() ([]byte, err
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *UpdateRuntimeProfileBodyDefaultWorkspaceMode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UpdateRuntimeProfileBodyModels) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UpdateRuntimeProfileBodyModels) encodeFields(e *jx.Encoder) {
+	{
+		if s.Classification.Set {
+			e.FieldStart("classification")
+			s.Classification.Encode(e)
+		}
+	}
+	{
+		if s.Generation.Set {
+			e.FieldStart("generation")
+			s.Generation.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfUpdateRuntimeProfileBodyModels = [2]string{
+	0: "classification",
+	1: "generation",
+}
+
+// Decode decodes UpdateRuntimeProfileBodyModels from json.
+func (s *UpdateRuntimeProfileBodyModels) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateRuntimeProfileBodyModels to nil")
+	}
+	var propertiesCount int
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		propertiesCount++
+		switch string(k) {
+		case "classification":
+			if err := func() error {
+				s.Classification.Reset()
+				if err := s.Classification.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"classification\"")
+			}
+		case "generation":
+			if err := func() error {
+				s.Generation.Reset()
+				if err := s.Generation.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"generation\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UpdateRuntimeProfileBodyModels")
+	}
+	// Validate properties count.
+	if err := (validate.Object{
+		MinProperties:    1,
+		MinPropertiesSet: true,
+		MaxProperties:    0,
+		MaxPropertiesSet: false,
+	}).ValidateProperties(propertiesCount); err != nil {
+		return errors.Wrap(err, "object")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateRuntimeProfileBodyModels) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateRuntimeProfileBodyModels) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UpdateRuntimeProfileBodyModelsClassification) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UpdateRuntimeProfileBodyModelsClassification) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("model")
+		e.Str(s.Model)
+	}
+	{
+		e.FieldStart("provider")
+		e.Str(s.Provider)
+	}
+}
+
+var jsonFieldsNameOfUpdateRuntimeProfileBodyModelsClassification = [2]string{
+	0: "model",
+	1: "provider",
+}
+
+// Decode decodes UpdateRuntimeProfileBodyModelsClassification from json.
+func (s *UpdateRuntimeProfileBodyModelsClassification) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateRuntimeProfileBodyModelsClassification to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "model":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.Model = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"model\"")
+			}
+		case "provider":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Provider = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UpdateRuntimeProfileBodyModelsClassification")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfUpdateRuntimeProfileBodyModelsClassification) {
+					name = jsonFieldsNameOfUpdateRuntimeProfileBodyModelsClassification[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateRuntimeProfileBodyModelsClassification) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateRuntimeProfileBodyModelsClassification) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UpdateRuntimeProfileBodyModelsGeneration) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UpdateRuntimeProfileBodyModelsGeneration) encodeFields(e *jx.Encoder) {
+	{
+		if s.MaxOutputTokens.Set {
+			e.FieldStart("maxOutputTokens")
+			s.MaxOutputTokens.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("model")
+		e.Str(s.Model)
+	}
+	{
+		e.FieldStart("provider")
+		e.Str(s.Provider)
+	}
+	{
+		if s.Temperature.Set {
+			e.FieldStart("temperature")
+			s.Temperature.Encode(e)
+		}
+	}
+	{
+		if s.ThinkingLevel.Set {
+			e.FieldStart("thinkingLevel")
+			s.ThinkingLevel.Encode(e)
+		}
+	}
+	{
+		if s.TopK.Set {
+			e.FieldStart("topK")
+			s.TopK.Encode(e)
+		}
+	}
+	{
+		if s.TopP.Set {
+			e.FieldStart("topP")
+			s.TopP.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfUpdateRuntimeProfileBodyModelsGeneration = [7]string{
+	0: "maxOutputTokens",
+	1: "model",
+	2: "provider",
+	3: "temperature",
+	4: "thinkingLevel",
+	5: "topK",
+	6: "topP",
+}
+
+// Decode decodes UpdateRuntimeProfileBodyModelsGeneration from json.
+func (s *UpdateRuntimeProfileBodyModelsGeneration) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateRuntimeProfileBodyModelsGeneration to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "maxOutputTokens":
+			if err := func() error {
+				s.MaxOutputTokens.Reset()
+				if err := s.MaxOutputTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxOutputTokens\"")
+			}
+		case "model":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Model = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"model\"")
+			}
+		case "provider":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Provider = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		case "temperature":
+			if err := func() error {
+				s.Temperature.Reset()
+				if err := s.Temperature.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"temperature\"")
+			}
+		case "thinkingLevel":
+			if err := func() error {
+				s.ThinkingLevel.Reset()
+				if err := s.ThinkingLevel.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"thinkingLevel\"")
+			}
+		case "topK":
+			if err := func() error {
+				s.TopK.Reset()
+				if err := s.TopK.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"topK\"")
+			}
+		case "topP":
+			if err := func() error {
+				s.TopP.Reset()
+				if err := s.TopP.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"topP\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UpdateRuntimeProfileBodyModelsGeneration")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000110,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfUpdateRuntimeProfileBodyModelsGeneration) {
+					name = jsonFieldsNameOfUpdateRuntimeProfileBodyModelsGeneration[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateRuntimeProfileBodyModelsGeneration) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateRuntimeProfileBodyModelsGeneration) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateRuntimeProfileBodyModelsGenerationThinkingLevel as json.
+func (s UpdateRuntimeProfileBodyModelsGenerationThinkingLevel) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes UpdateRuntimeProfileBodyModelsGenerationThinkingLevel from json.
+func (s *UpdateRuntimeProfileBodyModelsGenerationThinkingLevel) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateRuntimeProfileBodyModelsGenerationThinkingLevel to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch UpdateRuntimeProfileBodyModelsGenerationThinkingLevel(v) {
+	case UpdateRuntimeProfileBodyModelsGenerationThinkingLevelOff:
+		*s = UpdateRuntimeProfileBodyModelsGenerationThinkingLevelOff
+	case UpdateRuntimeProfileBodyModelsGenerationThinkingLevelMinimal:
+		*s = UpdateRuntimeProfileBodyModelsGenerationThinkingLevelMinimal
+	case UpdateRuntimeProfileBodyModelsGenerationThinkingLevelLow:
+		*s = UpdateRuntimeProfileBodyModelsGenerationThinkingLevelLow
+	case UpdateRuntimeProfileBodyModelsGenerationThinkingLevelMedium:
+		*s = UpdateRuntimeProfileBodyModelsGenerationThinkingLevelMedium
+	case UpdateRuntimeProfileBodyModelsGenerationThinkingLevelHigh:
+		*s = UpdateRuntimeProfileBodyModelsGenerationThinkingLevelHigh
+	case UpdateRuntimeProfileBodyModelsGenerationThinkingLevelXhigh:
+		*s = UpdateRuntimeProfileBodyModelsGenerationThinkingLevelXhigh
+	default:
+		*s = UpdateRuntimeProfileBodyModelsGenerationThinkingLevel(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s UpdateRuntimeProfileBodyModelsGenerationThinkingLevel) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateRuntimeProfileBodyModelsGenerationThinkingLevel) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -122175,54 +127327,6 @@ func (s UpdateRuntimeProfileBodySandboxVfsShadowMode) MarshalJSON() ([]byte, err
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *UpdateRuntimeProfileBodySandboxVfsShadowMode) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes UpdateRuntimeProfileBodyThinkingLevel as json.
-func (s UpdateRuntimeProfileBodyThinkingLevel) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes UpdateRuntimeProfileBodyThinkingLevel from json.
-func (s *UpdateRuntimeProfileBodyThinkingLevel) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode UpdateRuntimeProfileBodyThinkingLevel to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch UpdateRuntimeProfileBodyThinkingLevel(v) {
-	case UpdateRuntimeProfileBodyThinkingLevelOff:
-		*s = UpdateRuntimeProfileBodyThinkingLevelOff
-	case UpdateRuntimeProfileBodyThinkingLevelMinimal:
-		*s = UpdateRuntimeProfileBodyThinkingLevelMinimal
-	case UpdateRuntimeProfileBodyThinkingLevelLow:
-		*s = UpdateRuntimeProfileBodyThinkingLevelLow
-	case UpdateRuntimeProfileBodyThinkingLevelMedium:
-		*s = UpdateRuntimeProfileBodyThinkingLevelMedium
-	case UpdateRuntimeProfileBodyThinkingLevelHigh:
-		*s = UpdateRuntimeProfileBodyThinkingLevelHigh
-	case UpdateRuntimeProfileBodyThinkingLevelXhigh:
-		*s = UpdateRuntimeProfileBodyThinkingLevelXhigh
-	default:
-		*s = UpdateRuntimeProfileBodyThinkingLevel(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s UpdateRuntimeProfileBodyThinkingLevel) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *UpdateRuntimeProfileBodyThinkingLevel) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

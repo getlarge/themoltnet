@@ -93,8 +93,10 @@ describe('Tool-policy enforcement (daemon)', () => {
       {
         name,
         runtimeKind: 'gondolin_pi',
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
+        models: {
+          generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+        },
+
         sandbox: {},
         toolEnforcement,
       },

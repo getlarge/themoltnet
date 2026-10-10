@@ -74,8 +74,7 @@ const init: NodeInitializer = (RED): void => {
             profiles: items.map((p) => ({
               id: p.id,
               name: p.name,
-              model: p.model,
-              provider: p.provider,
+              models: p.models,
             })),
           });
         } catch (err) {

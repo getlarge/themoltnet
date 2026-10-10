@@ -451,6 +451,22 @@ The normal producer/judge loop is:
 The judge fetches the producer's accepted attempt itself; the runtime does not
 copy producer output into the judge prompt.
 
+### Chain generation and classification
+
+One task selects one model capability. A `classify` task uses
+`models.classification`; other task types use `models.generation`. When a
+workflow needs both, create two tasks and pass a validated field from the
+accepted output of the first into the second. The classifier runs through Pi as
+its own task once the classifier executor and daemon dispatch are deployed, and
+must use a Pi-compatible model. This PR adds the contract and model selection;
+its daemon does not yet execute `classify`. PR #2659 adds the standalone
+classifier executor, and #2631 wires the final daemon cutover.
+
+The
+[generation and classification workflow examples](https://github.com/getlarge/themoltnet/tree/main/examples/tasks/workflows)
+show both directions: draft then classify, and classify then draft. They use
+explicit output contracts, check accepted attempts, and share a correlation ID.
+
 ### Durable Freeform Orchestration
 
 Some workflows need orchestration while each step stays `freeform`. Keep

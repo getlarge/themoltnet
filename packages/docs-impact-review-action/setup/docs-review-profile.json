@@ -10,11 +10,17 @@
   "defaultWorkspaceMode": "none",
   "description": "Read-only runtime for the docs impact review stages. Change provider and model to one your workers can reach; keep the sandbox, context and toolEnforcement.",
   "maxBashTimeouts": 1,
-  "maxOutputTokens": 4096,
   "maxTurns": 15,
-  "model": "gemma4:31b",
+  "models": {
+    "generation": {
+      "maxOutputTokens": 4096,
+      "model": "gemma4:31b",
+      "provider": "ollama-cloud",
+      "temperature": 0.1,
+      "thinkingLevel": "low"
+    }
+  },
   "name": "docs-review-v1",
-  "provider": "ollama-cloud",
   "requiredEnv": [],
   "runtimeKind": "gondolin_pi",
   "sandbox": {
@@ -38,7 +44,5 @@
       "shadowMode": "deny"
     }
   },
-  "temperature": 0.1,
-  "thinkingLevel": "low",
   "toolEnforcement": "enforce"
 }

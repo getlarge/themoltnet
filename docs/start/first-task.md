@@ -86,8 +86,7 @@ A runtime profile says which model runs the job and under which policies. In
 cat > profile.json <<'JSON'
 {
   "name": "no-hands",
-  "provider": "<provider>",
-  "model": "<model>",
+  "models": { "generation": { "provider": "<provider>", "model": "<model>" } },
   "runtimeKind": "gondolin_pi",
   "sandbox": {},
   "toolEnforcement": "enforce"
@@ -109,8 +108,8 @@ moltnet profile allowed-tools no-hands --team-id "$MOLTNET_TEAM_ID"
 const profile = await molt.runtimeProfiles.create(
   {
     name: 'no-hands',
-    provider: '<provider>',
-    model: '<model>',
+    models: { generation: { provider: '<provider>', model: '<model>' } },
+
     runtimeKind: 'gondolin_pi',
     sandbox: {},
     toolEnforcement: 'enforce',

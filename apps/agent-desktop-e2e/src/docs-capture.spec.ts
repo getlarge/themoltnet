@@ -53,8 +53,10 @@ const catalogue: AgentServerCatalogue = {
       definitionCid: 'docs-cid',
       description: null,
       maxTurns: 10,
-      model: 'claude-sonnet-4-5',
-      provider: 'anthropic',
+      models: {
+        generation: { model: 'claude-sonnet-4-5', provider: 'anthropic' },
+      },
+
       requiredEnv: [],
       requiredExecutables: [],
       requiredTools: [],

@@ -1,3 +1,5 @@
+import { Readable } from 'node:stream';
+
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import {
@@ -6,16 +8,28 @@ import {
   ValidationProblemDetailsSchema,
 } from '@moltnet/models';
 import {
+  AppendRuntimeStoreCommit,
   RuntimeSession as RuntimeSessionSchema,
   RuntimeSessionAttemptParams as RuntimeSessionAttemptParamsSchema,
   RuntimeSessionContent as RuntimeSessionContentSchema,
+  RuntimeStoreAttemptQuery,
+  RuntimeStoreAttemptResponse,
+  RuntimeStoreAuthority,
+  RuntimeStoreCommitReceipt,
+  RuntimeStoreHandle,
+  RuntimeStoreIdAllocation,
+  RuntimeStoreParams,
+  RuntimeStoreReadQuery,
+  RuntimeStoreWriter,
   UploadRuntimeSessionQuery as UploadRuntimeSessionQuerySchema,
 } from '@moltnet/runtime-profiles';
 import {
   createRuntimeSessionService,
+  createRuntimeStoreService,
   serializeRuntimeSession,
 } from '@moltnet/runtime-session-service';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { Type } from 'typebox';
 
 import { PRINCIPAL_AUTH_SECURITY } from '../openapi-security.js';
 import { createProblem } from '../problems/index.js';
@@ -191,6 +205,187 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
         .header('x-moltnet-runtime-session-sha256', session.sha256)
         .type(object.contentType ?? 'application/x-ndjson')
         .send(stream as never);
+    },
+  );
+  await server.register(registerDurableSessionRoutes);
+}
+
+async function registerDurableSessionRoutes(fastify: FastifyInstance) {
+  const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
+  const service = createRuntimeStoreService({
+    repository: fastify.runtimeSessionRepository.durable,
+    taskRepository: fastify.taskRepository,
+    transactionRunner: fastify.transactionRunner,
+    storage: fastify.runtimeSessionStorage,
+    permissionChecker: fastify.permissionChecker,
+    maxBytes: Math.min(fastify.runtimeSessionMaxBytes, 1024 * 1024),
+  });
+  const config = {
+    rateLimitBucket: 'runtime-store',
+    rateLimit: fastify.rateLimitConfig.runtimeStore,
+    auth: {
+      credentialBindingScope: 'team' as const,
+      requiredScopes: ['task:execute'] as const,
+    },
+  };
+  const common = {
+    tags: ['runtime-sessions'],
+    security: PRINCIPAL_AUTH_SECURITY,
+    headers: TeamHeaderRequiredSchema,
+  };
+  const errors = {
+    400: Type.Ref(ProblemDetailsSchema.$id),
+    401: Type.Ref(ProblemDetailsSchema.$id),
+    403: Type.Ref(ProblemDetailsSchema.$id),
+    404: Type.Ref(ProblemDetailsSchema.$id),
+    409: Type.Ref(ProblemDetailsSchema.$id),
+    503: Type.Ref(ProblemDetailsSchema.$id),
+  };
+  const subject = (request: FastifyRequest) => ({
+    ...requireKetoSubject(request),
+    teamId: requireCurrentTeamId(request, 'runtime stores'),
+  });
+  const agent = (request: FastifyRequest) => {
+    const value = subject(request);
+    if (value.subjectType !== 'agent')
+      throw createProblem('forbidden', 'Only agents may write runtime stores');
+    return value;
+  };
+  server.get(
+    '/runtime-sessions/durable/attempt',
+    {
+      config,
+      schema: {
+        ...common,
+        operationId: 'getRuntimeStoreForAttempt',
+        querystring: RuntimeStoreAttemptQuery,
+        response: { ...errors, 200: RuntimeStoreAttemptResponse },
+      },
+    },
+    (request) => service.findAttempt({ ...request.query, ...subject(request) }),
+  );
+  server.post(
+    '/runtime-sessions/durable/open',
+    {
+      config,
+      schema: {
+        ...common,
+        operationId: 'openRuntimeStore',
+        body: RuntimeStoreAuthority,
+        response: { ...errors, 200: RuntimeStoreHandle },
+      },
+    },
+    (request) => service.open({ ...request.body, ...agent(request) }),
+  );
+  server.post(
+    '/runtime-sessions/durable/:storeId/renew',
+    {
+      config,
+      schema: {
+        ...common,
+        operationId: 'renewRuntimeStore',
+        params: RuntimeStoreParams,
+        body: RuntimeStoreWriter,
+        response: { ...errors, 200: RuntimeStoreHandle },
+      },
+    },
+    (request) =>
+      service.renew({ ...request.body, ...request.params, ...agent(request) }),
+  );
+  server.post(
+    '/runtime-sessions/durable/:storeId/release',
+    {
+      config,
+      schema: {
+        ...common,
+        operationId: 'releaseRuntimeStore',
+        params: RuntimeStoreParams,
+        body: RuntimeStoreWriter,
+        response: { ...errors, 204: { type: 'null' } },
+      },
+    },
+    async (request, reply) => {
+      await service.release({
+        ...request.body,
+        ...request.params,
+        ...agent(request),
+      });
+      return reply.code(204).send();
+    },
+  );
+  server.post(
+    '/runtime-sessions/durable/:storeId/ids',
+    {
+      config,
+      schema: {
+        ...common,
+        operationId: 'mintRuntimeStoreId',
+        params: RuntimeStoreParams,
+        body: RuntimeStoreWriter,
+        response: { ...errors, 200: RuntimeStoreIdAllocation },
+      },
+    },
+    async (request) => ({
+      id: await service.mintId({
+        ...request.body,
+        ...request.params,
+        ...agent(request),
+      }),
+    }),
+  );
+  server.post(
+    '/runtime-sessions/durable/:storeId/commits',
+    {
+      config,
+      schema: {
+        ...common,
+        operationId: 'appendRuntimeStoreCommit',
+        params: RuntimeStoreParams,
+        body: AppendRuntimeStoreCommit,
+        response: { ...errors, 200: RuntimeStoreCommitReceipt },
+      },
+    },
+    (request) =>
+      service.append({ ...request.body, ...request.params, ...agent(request) }),
+  );
+  server.get(
+    '/runtime-sessions/durable/:storeId/commits',
+    {
+      config,
+      schema: {
+        ...common,
+        operationId: 'listRuntimeStoreCommits',
+        params: RuntimeStoreParams,
+        querystring: RuntimeStoreReadQuery,
+        response: {
+          ...errors,
+          200: {
+            description:
+              'Ordered NDJSON commits. The first line contains headSeq and count; exactly count commit lines follow. A truncated stream must not be treated as a complete page.',
+            content: {
+              'application/x-ndjson': {
+                schema: Type.String({ format: 'binary' }),
+              },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const page = await service.read({
+        ...request.query,
+        ...request.params,
+        ...subject(request),
+      });
+      async function* lines() {
+        yield JSON.stringify({ headSeq: page.headSeq, count: page.count }) +
+          '\n';
+        for await (const commit of page.items)
+          yield JSON.stringify(commit) + '\n';
+      }
+      return reply
+        .type('application/x-ndjson')
+        .send(Readable.from(lines(), { highWaterMark: 1 }) as never);
     },
   );
 }

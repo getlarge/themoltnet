@@ -5,6 +5,8 @@ import type {
   AgentKeyWithSecret,
   AgentProfile,
   AllowedToolsResponse,
+  AppendRuntimeStoreCommitData,
+  AppendRuntimeStoreCommitResponse,
   AppendTaskMessagesData,
   BatchDeleteDiaryEntriesData,
   BatchDeleteResponse,
@@ -65,6 +67,7 @@ import type {
   GetPublicFeedData,
   GetRenderedPackByIdData,
   GetRuntimeSessionData,
+  GetRuntimeStoreForAttemptResponse,
   GetTeamResponse,
   Health,
   HeartbeatResponse,
@@ -93,7 +96,10 @@ import type {
   ListTeamInvitesResponse,
   ListTeamMembersResponse,
   ListTeamsResponse,
+  MintRuntimeStoreIdResponse,
   NetworkInfo,
+  OpenRuntimeStoreData,
+  OpenRuntimeStoreResponse,
   PreviewDiaryCustomPackData,
   PreviewRenderedPackData,
   ProvenanceGraph,
@@ -113,6 +119,8 @@ import type {
   RenderedPackPreview,
   RenderedPackResult,
   RenderedPackWithContent,
+  RenewRuntimeStoreData,
+  RenewRuntimeStoreResponse,
   RequestRecoveryChallengeData,
   ResolvedRuntimeSlot,
   RevokeAgentKeyData,
@@ -162,6 +170,7 @@ import type {
   Whoami,
 } from '@moltnet/api-client';
 import type { AgentSigningCapability } from '@moltnet/crypto-service';
+import type { RuntimeStoreCommit } from '@moltnet/runtime-profiles';
 import type {
   AssessBriefInput,
   CuratePackInput,
@@ -1025,6 +1034,47 @@ export interface RuntimeSlotRequestOptions {
 }
 
 export interface RuntimeSessionsNamespace {
+  /** Read the incremental Pi Durable session attached to an attempt. */
+  getDurableForAttempt(
+    taskId: string,
+    attemptN: number,
+    options: RuntimeSessionRequestOptions,
+  ): Promise<GetRuntimeStoreForAttemptResponse>;
+  open(
+    body: OpenRuntimeStoreData['body'],
+    options: RuntimeSessionRequestOptions,
+  ): Promise<OpenRuntimeStoreResponse>;
+  renew(
+    storeId: string,
+    body: RenewRuntimeStoreData['body'],
+    options: RuntimeSessionRequestOptions,
+  ): Promise<RenewRuntimeStoreResponse>;
+  release(
+    storeId: string,
+    body: RenewRuntimeStoreData['body'],
+    options: RuntimeSessionRequestOptions,
+  ): Promise<void>;
+  mintId(
+    storeId: string,
+    body: RenewRuntimeStoreData['body'],
+    options: RuntimeSessionRequestOptions,
+  ): Promise<MintRuntimeStoreIdResponse>;
+  append(
+    storeId: string,
+    body: AppendRuntimeStoreCommitData['body'],
+    options: RuntimeSessionRequestOptions,
+  ): Promise<AppendRuntimeStoreCommitResponse>;
+  read(
+    storeId: string,
+    afterSeq: number,
+    options: RuntimeSessionRequestOptions,
+  ): Promise<{
+    headSeq: number;
+    items: AsyncIterable<RuntimeStoreCommit>;
+    /** Release the response when items are not fully consumed. */
+    close(): void;
+  }>;
+
   getForAttempt(
     path: GetRuntimeSessionData['path'],
     options: RuntimeSessionRequestOptions,
@@ -1045,6 +1095,7 @@ export interface RuntimeSessionsNamespace {
 
 export interface RuntimeSessionRequestOptions {
   teamId: string;
+  signal?: AbortSignal;
 }
 
 export type RuntimeSessionUploadBody =

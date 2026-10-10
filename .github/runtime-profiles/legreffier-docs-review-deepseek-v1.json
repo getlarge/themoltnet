@@ -10,11 +10,17 @@
   "defaultWorkspaceMode": "none",
   "description": "Read-only Ollama Cloud deepseek-v4.1-flash runtime (low thinking) for the coverage stage of the experimental docs-impact review.",
   "maxBashTimeouts": 1,
-  "maxOutputTokens": 4096,
   "maxTurns": 10,
-  "model": "deepseek-v4.1-flash",
+  "models": {
+    "generation": {
+      "maxOutputTokens": 4096,
+      "model": "deepseek-v4.1-flash",
+      "provider": "ollama-cloud",
+      "temperature": 0.1,
+      "thinkingLevel": "low"
+    }
+  },
   "name": "legreffier-docs-review-deepseek-v1",
-  "provider": "ollama-cloud",
   "requiredEnv": [],
   "runtimeKind": "gondolin_pi",
   "sandbox": {
@@ -38,7 +44,5 @@
       "shadowMode": "deny"
     }
   },
-  "temperature": 0.1,
-  "thinkingLevel": "low",
   "toolEnforcement": "enforce"
 }
