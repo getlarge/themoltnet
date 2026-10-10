@@ -96,6 +96,12 @@
             "externalDependencies": [
               "vitest"
             ]
+          },
+          {
+            "env": "MOLTNET_AGENT_DAEMON_LIVE_CLASSIFIER_E2E"
+          },
+          {
+            "env": "MOLTNET_AGENT_DAEMON_CLASSIFIER_MODEL"
           }
         ],
         "options": {

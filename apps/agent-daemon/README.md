@@ -582,6 +582,30 @@ reach: real LLM behaviour against the assembled system prompt, real VM, real
 API round-trips, and the interaction between `.moltnet/<agent>/` identity
 material and the selected runtime profile.
 
+### Classifier E2E tests
+
+With the local E2E stack running, exercise standalone classification through
+`runOnce`, the real Pi HTTP transport, and task completion storage:
+
+```bash
+NX_LOAD_DOT_ENV_FILES=false pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e src/classification.e2e.test.ts --skipNxCache
+```
+
+The regular suite uses a local System One HTTP fixture and covers all three
+question types, authentication failure, and invalid provider output. It needs
+no model credentials or Gondolin VM.
+
+To also call live Jev, supply `TYPESAFE_API_KEY` in your shell environment and run:
+
+```bash
+MOLTNET_AGENT_DAEMON_LIVE_CLASSIFIER_E2E=1 NX_LOAD_DOT_ENV_FILES=false pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e src/classification.e2e.test.ts --skipNxCache
+```
+
+The live test defaults to `jev-latest`; override it with
+`MOLTNET_AGENT_DAEMON_CLASSIFIER_MODEL`. Enabling the test without a key fails
+explicitly. The test checks typed answers and persisted output, not exact model
+probabilities. Always bypass the Nx cache for live provider checks.
+
 ## License
 
 AGPL-3.0-only.
