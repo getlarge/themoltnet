@@ -420,7 +420,10 @@ deliberately overrides it for server-managed runs; remove that override with
 `models.classification` configures standalone `classify` tasks and
 classification calls within another task. A classification-only profile needs no
 generation model. Both capabilities resolve credentials through the daemon's
-provider configuration.
+provider configuration. If `models.classification` is omitted, the profile has
+no classifier: a `classify` task cannot fall back to `models.generation`. Other
+task types require `models.generation`; a classification-only profile cannot
+execute them.
 
 Updating `models` replaces the complete block. Include every capability you want
 to retain; omit `models` from a metadata-only update to preserve its
