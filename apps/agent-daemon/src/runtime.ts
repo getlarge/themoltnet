@@ -1,5 +1,7 @@
-import type { RuntimeProfileModels } from '@moltnet/runtime-profiles';
-import type { TaskExecutor } from '@themoltnet/agent-runtime';
+import type {
+  ResolvedRuntimeProfile,
+  TaskExecutor,
+} from '@themoltnet/agent-runtime';
 import type { ExecutePiTaskOptions } from '@themoltnet/pi-runtime';
 
 export interface PreparedDaemonRuntime {
@@ -16,7 +18,7 @@ export interface DaemonRuntimeAdapter {
     profile: {
       id: string;
       definitionCid: string;
-      models: RuntimeProfileModels;
+      models: ResolvedRuntimeProfile['models'];
       runtimeKind: string;
       sandboxConfig: ExecutePiTaskOptions['sandboxConfig'];
     };
