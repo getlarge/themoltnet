@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { rmSync } from 'node:fs';
 import { type Server, type ServerResponse } from 'node:http';
 
+import { checkGates } from '@moltnet/agent-eval';
 import { getSubmitOutputContract } from '@themoltnet/agent-runtime';
 import { writePiConfig } from '@themoltnet/pi-runtime/pi-config';
 import { type Agent, connect } from '@themoltnet/sdk';
@@ -380,6 +381,20 @@ describe('structured task submission through Pi (e2e)', () => {
     const attempt = (await agent.tasks.listAttempts(task.id))[0];
     expect(attempt?.output).toHaveProperty('artifacts.0.body', pageBody);
     expect(attempt?.output).toHaveProperty('verification.passed', true);
+    const gates = await checkGates(
+      agent,
+      task.id,
+      1,
+      { requireToolCalls: [FREEFORM_TOOL] },
+      {
+        model: MODEL,
+        workspace: 'shared_mount',
+        teamId: creds.personalTeamId,
+        taskType: 'freeform',
+      },
+    );
+    expect(gates.failures).toEqual([]);
+    expect(gates.passed).toBe(true);
   }, 600_000);
 
   it('enforces a proposer supplied page schema on the tool and accepted output', async () => {

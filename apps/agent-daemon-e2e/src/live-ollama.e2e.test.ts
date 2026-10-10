@@ -323,7 +323,6 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
       await expectRuntimeState({
         agent,
         attemptN: parentAttemptN,
-        expectedMessageFragment: 'prompt_assembled',
         taskId: parent.id,
         teamId,
       });
@@ -370,7 +369,6 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
       await expectRuntimeState({
         agent,
         attemptN: continuationAttemptN,
-        expectedMessageFragment: 'prior_context_',
         taskId: continuation.id,
         teamId,
       });
@@ -646,47 +644,30 @@ async function runLiveTask(input: {
 async function expectRuntimeState(input: {
   agent: Agent;
   attemptN: number;
-  expectedMessageFragment: string;
   taskId: string;
   teamId: string;
 }): Promise<void> {
-  const slot = await input.agent.runtimeSlots.findLatestForAttempt(
-    {
-      attemptN: input.attemptN,
-      taskId: input.taskId,
-    },
-    { teamId: input.teamId },
-  );
-  expect(slot?.slot.expiresAtMs).toBeGreaterThan(Date.now());
-  expect(slot?.slot.sessionDir).toBeTruthy();
-  expect(slot?.slot.sessionPath).toBeTruthy();
-
-  const session = await input.agent.runtimeSessions.getForAttempt(
-    {
-      attemptN: input.attemptN,
-      taskId: input.taskId,
-    },
+  const session = await input.agent.runtimeSessions.getDurableForAttempt(
+    input.taskId,
+    input.attemptN,
     { teamId: input.teamId },
   );
   expect(session).toBeTruthy();
-  const downloaded = await input.agent.runtimeSessions.download(
-    {
-      attemptN: input.attemptN,
-      taskId: input.taskId,
-    },
-    { teamId: input.teamId },
-  );
-  const downloadedSession = await collectStreamText(downloaded);
-  expect(downloadedSession).toContain('"type":"session"');
-  expect(downloadedSession).toContain(input.taskId);
-
+  const commits = await input.agent.runtimeSessions.read(session!.storeId, 0, {
+    teamId: input.teamId,
+  });
+  expect(commits.headSeq).toBeGreaterThan(0);
+  let count = 0;
+  for await (const commit of commits.items) {
+    expect(commit.seq).toBeGreaterThan(0);
+    count++;
+  }
+  expect(count).toBeGreaterThan(0);
   const messages = await input.agent.tasks.listMessages(
     input.taskId,
     input.attemptN,
   );
-  const serializedMessages = JSON.stringify(messages);
-  expect(serializedMessages).toContain('execute_start');
-  expect(serializedMessages).toContain(input.expectedMessageFragment);
+  expect(JSON.stringify(messages)).toContain('pi-durable.v1');
 }
 
 async function collectStreamText(

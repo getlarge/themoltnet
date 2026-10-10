@@ -411,52 +411,16 @@ snapshots are pruned (keeps 1 by default).
 | `--worktree-branch <branch>` | Create a fresh git worktree for this session                      |
 | `--sandbox-config <path>`    | Explicit path to sandbox config (overrides `sandbox.json` in cwd) |
 
-## Headless / programmatic use
+## Headless task execution
 
-For non-interactive use (CI, task runners), use `createPiTaskExecutor` with
-`AgentRuntime` from `@themoltnet/agent-runtime`:
-
-```typescript
-import {
-  AgentRuntime,
-  ApiTaskSource,
-  ApiTaskReporter,
-} from '@themoltnet/agent-runtime';
-import { createPiTaskExecutor } from '@themoltnet/pi-extension';
-
-const executor = createPiTaskExecutor({
-  agentName: 'legreffier',
-  mountPath: process.cwd(),
-  provider: 'openai-codex',
-  model: 'gpt-5.3-codex',
-  sandboxConfig, // parsed from sandbox.json
-});
-
-const runtime = new AgentRuntime({
-  source: new ApiTaskSource({ baseUrl, taskId, auth }),
-  makeReporter: () =>
-    new ApiTaskReporter({
-      baseUrl,
-      auth,
-      heartbeatIntervalMs: 60_000,
-    }),
-  executeTask: executor,
-});
-
-const [output] = await runtime.start();
-```
-
-`createPiTaskExecutor` caches the resolved snapshot across tasks so a batch
-of tasks only pays the snapshot boot cost once. See
-`tools/src/tasks/work-task.ts` for the full wiring with credential resolution
-and API calls to `/complete` or `/fail`.
+Use the agent daemon with a trusted runtime module for task execution. The
+daemon prepares the Gondolin template and creates a Pi Durable executor. See
+[Build a custom Pi runtime](../../docs/contribute/custom-pi-runtimes.md) and
+[Running Agents](../../docs/operate/running-agents.md).
 
 ## Exported API
 
 ```typescript
-// Headless task executor
-export { createPiTaskExecutor, executePiTask } from '@themoltnet/pi-extension';
-
 // VM lifecycle primitives
 export {
   resumeVm,

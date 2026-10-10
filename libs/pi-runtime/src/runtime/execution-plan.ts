@@ -1,10 +1,5 @@
 import type { ClaimedTask } from '@themoltnet/agent-runtime';
 
-export interface PiSessionPersistencePlan {
-  sessionDir: string;
-  forkFromSessionPath?: string | null;
-}
-
 export interface PiWorkspaceAttachmentPlan {
   mountPath: string;
   cwdPath: string;
@@ -65,11 +60,6 @@ export interface PiTaskExecutionPlan {
    * Optional seed content for a freshly created scratch workspace.
    */
   workspaceSeed?: PiWorkspaceSeedPlan | null;
-  /**
-   * Optional location for file-backed Pi session history. When omitted,
-   * the executor keeps the conversation in memory for this attempt only.
-   */
-  sessionPersistence?: PiSessionPersistencePlan | null;
 }
 
 export type PiTaskExecutionPlanFactory = (

@@ -1,6 +1,3 @@
-import { existsSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
-
 import type { Task, TaskStatus } from '@moltnet/tasks';
 import type { Agent } from '@themoltnet/sdk';
 import { MoltNetError } from '@themoltnet/sdk';
@@ -17,184 +14,6 @@ import type {
   CreateClaimAttestation,
   TaskSource,
 } from './types.js';
-
-/**
- * Structural shape of the runtime slot store needed by the affinity filter.
- * Declared here so `libs/agent-runtime` does not depend on
- * `apps/agent-daemon`. The daemon's concrete remote slot store
- * satisfies this by duck typing.
- */
-export interface ContinuationSlotRegistry {
-  findLatestSlotByTaskAttempt(
-    teamId: string,
-    taskId: string,
-    attemptN: number,
-  ):
-    | Promise<{
-        session?: {
-          sessionDir?: string | null;
-          sessionPath?: string | null;
-        } | null;
-      } | null>
-    | {
-        session?: {
-          sessionDir?: string | null;
-          sessionPath?: string | null;
-        } | null;
-      }
-    | null;
-}
-
-export interface ContinuationSessionRegistry {
-  findRuntimeSessionByTaskAttempt(
-    teamId: string,
-    taskId: string,
-    attemptN: number,
-  ): Promise<unknown>;
-}
-
-export interface ContinuationSourceAttemptResolver {
-  findOutputBranch(input: {
-    taskId: string;
-    attemptN: number;
-  }): Promise<string | null>;
-}
-
-/**
- * Claim-time affinity filter for continuations.
- *
- * - No `continueFrom` → claimable (true).
- * - `continueFrom` set + mode=extend + remote session exists → claimable,
- *   even if the
- *   producer slot row is absent or its local session file is unavailable.
- * - `continueFrom` set + mode=fork + remote session exists → claimable only
- *   when the source attempt output carries branch metadata.
- * - `continueFrom` set + no slot in the store + no remote session → not
- *   claimable (the producer context is unavailable to this daemon).
- * - `continueFrom` set + slot exists but its `sessionDir` is missing on
- *   disk and no remote session exists → not claimable (stale slot row, slot
- *   directory was wiped).
- * - `continueFrom` set + slot exists + `sessionDir` present on disk →
- *   claimable.
- *
- * Pure predicate over `(task, slotRegistry)` — no side effects.
- */
-export async function isContinuationClaimableByThisDaemon(
-  task: {
-    teamId: string;
-    input?: {
-      continueFrom?: {
-        taskId: string;
-        attemptN: number;
-        mode?: 'extend' | 'fork';
-      };
-    };
-  },
-  slotRegistry: ContinuationSlotRegistry,
-  sessionRegistry?: ContinuationSessionRegistry,
-  sourceAttemptResolver?: ContinuationSourceAttemptResolver,
-): Promise<
-  | { claimable: true }
-  | {
-      claimable: false;
-      reason:
-        | 'missing_producer_slot'
-        | 'missing_session_dir'
-        | 'missing_source_branch';
-      continueFrom: { taskId: string; attemptN: number; mode?: string };
-      sessionDir?: string | null;
-    }
-> {
-  const cf = task.input?.continueFrom;
-  if (!cf) return { claimable: true };
-  const slot = await slotRegistry.findLatestSlotByTaskAttempt(
-    task.teamId,
-    cf.taskId,
-    cf.attemptN,
-  );
-  if (!slot) {
-    const remoteSession =
-      await sessionRegistry?.findRuntimeSessionByTaskAttempt(
-        task.teamId,
-        cf.taskId,
-        cf.attemptN,
-      );
-    if (remoteSession) {
-      return isRemoteSessionClaimable(cf, sourceAttemptResolver);
-    }
-    return {
-      claimable: false,
-      reason: 'missing_producer_slot',
-      continueFrom: cf,
-    };
-  }
-  if (!hasLocalSessionFile(slot.session ?? null)) {
-    const remoteSession =
-      await sessionRegistry?.findRuntimeSessionByTaskAttempt(
-        task.teamId,
-        cf.taskId,
-        cf.attemptN,
-      );
-    if (remoteSession) {
-      return isRemoteSessionClaimable(cf, sourceAttemptResolver);
-    }
-    return {
-      claimable: false,
-      reason: 'missing_session_dir',
-      continueFrom: cf,
-      sessionDir: slot.session?.sessionDir,
-    };
-  }
-  return { claimable: true };
-}
-
-async function isRemoteSessionClaimable(
-  cf: { taskId: string; attemptN: number; mode?: 'extend' | 'fork' },
-  sourceAttemptResolver?: ContinuationSourceAttemptResolver,
-): Promise<
-  | { claimable: true }
-  | {
-      claimable: false;
-      reason: 'missing_source_branch';
-      continueFrom: { taskId: string; attemptN: number; mode?: string };
-    }
-> {
-  if (cf.mode !== 'fork') return { claimable: true };
-  const branch = await sourceAttemptResolver?.findOutputBranch({
-    taskId: cf.taskId,
-    attemptN: cf.attemptN,
-  });
-  if (branch) return { claimable: true };
-  return {
-    claimable: false,
-    reason: 'missing_source_branch',
-    continueFrom: cf,
-  };
-}
-
-function hasLocalSessionFile(
-  session: { sessionDir?: string | null; sessionPath?: string | null } | null,
-): boolean {
-  const explicit = session?.sessionPath ?? null;
-  if (explicit && existsSync(explicit)) return true;
-
-  const sessionDir = session?.sessionDir ?? null;
-  if (!sessionDir || !existsSync(sessionDir)) return false;
-  return resolveLatestPiSessionPath(sessionDir) !== null;
-}
-
-function resolveLatestPiSessionPath(sessionDir: string): string | null {
-  try {
-    const latestEntry = readdirSync(sessionDir, { withFileTypes: true })
-      .filter((entry) => entry.isFile() && entry.name.endsWith('.jsonl'))
-      .map((entry) => entry.name)
-      .sort()
-      .at(-1);
-    return latestEntry ? join(sessionDir, latestEntry) : null;
-  } catch {
-    return null;
-  }
-}
 
 export interface PollingApiTaskSourceOptions {
   agent: Agent;
@@ -274,24 +93,11 @@ export interface PollingApiTaskSourceOptions {
    * least one task has been claimed before returning null.
    */
   waitAfterTaskMs?: number;
-  /**
-   * Runtime slot store used for the claim-time affinity filter on
-   * `freeform.continueFrom` tasks. When omitted, the affinity filter is a
-   * no-op (continuations are always claimable) — appropriate for
-   * non-pi daemon entry points (e.g. drain/e2e harnesses) that don't
-   * manage runtime slots.
-   */
-  slotRegistry?: ContinuationSlotRegistry;
-  /**
-   * Durable runtime session store used for remote continuation hydration. When
-   * available, it supersedes local slot affinity for claim filtering.
-   */
-  sessionRegistry?: ContinuationSessionRegistry;
-  /**
-   * Source attempt lookup used to prove remote-only fork continuations can
-   * recover a parent branch before this daemon claims them.
-   */
-  sourceAttemptResolver?: ContinuationSourceAttemptResolver;
+  /** Whether a continuation's persisted source attempt is available. */
+  isContinuationAvailable?: (
+    task: Task,
+    profileId?: string,
+  ) => Promise<boolean>;
   /** Logger; defaults to a self-named pino instance. */
   logger?: AgentRuntimeLogger;
   /**
@@ -542,37 +348,9 @@ export class PollingApiTaskSource implements TaskSource {
           ) {
             continue;
           }
-          // Warm-resume affinity filter — skip continuations whose producer
-          // slot cannot be resolved to a local sessionDir on this daemon. The
-          // task lingers queued until a daemon with that context polls or the
-          // server's dispatch_timeout_sec fires. See #1287, #1299.
-          const slotRegistry = this.opts.slotRegistry;
-          if (slotRegistry) {
-            const affinity = await traceRuntimePhase(
-              'moltnet.task_source.affinity',
-              { 'moltnet.task.id': item.id },
-              () =>
-                isContinuationClaimableByThisDaemon(
-                  item,
-                  slotRegistry,
-                  this.opts.sessionRegistry,
-                  this.opts.sourceAttemptResolver,
-                ),
-            );
-            if (!affinity.claimable) {
-              this.logger.debug(
-                {
-                  taskId: item.id,
-                  taskType: item.taskType,
-                  reason: affinity.reason,
-                  continueFrom: affinity.continueFrom,
-                  sessionDir: affinity.sessionDir,
-                },
-                'polling-api.continuation_skipped',
-              );
-              continue;
-            }
-          }
+          const continuationAvailable =
+            await this.opts.isContinuationAvailable?.(item, profile.profileId);
+          if (continuationAvailable === false) continue;
           // Belt-and-braces profile filter — silently skip profile-pinned
           // tasks whose allowedProfiles does not include this daemon's
           // selected profile. Empty array = no restriction.

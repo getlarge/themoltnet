@@ -78,6 +78,15 @@ export interface GateArtifactDownload {
  * exercised when a scenario sets `forbidArtifactContentMatching`.
  */
 export interface GateAgent {
+  runtimeSessions?: {
+    read(
+      storeId: string,
+      afterSeq: number,
+      options: { teamId: string },
+    ): Promise<{
+      items: AsyncIterable<{ seq: number; writes: Record<string, unknown>[] }>;
+    }>;
+  };
   tasks: {
     listMessages(
       taskId: string,
@@ -199,9 +208,10 @@ function finalMessageSubmits(messages: GateTaskMessage[]): {
 function submitCallResults(
   messages: GateTaskMessage[],
   toolName: string,
-): { succeeded: number; failed: number } {
+): { succeeded: number; failed: number; errors: string[] } {
   let succeeded = 0;
   let failed = 0;
+  const errors: string[] = [];
   for (const message of messages) {
     if (
       message.kind !== 'tool_call_end' ||
@@ -211,11 +221,108 @@ function submitCallResults(
     }
     if (message.payload.is_error === true) {
       failed += 1;
+      if (Array.isArray(message.payload.result) && errors.length < 3) {
+        for (const part of message.payload.result as Array<{
+          type?: string;
+          text?: string;
+        }>) {
+          if (errors.length >= 3) break;
+          if (part.type === 'text' && typeof part.text === 'string')
+            errors.push(part.text.slice(0, 500));
+        }
+      }
     } else if (message.payload.is_error === false) {
       succeeded += 1;
     }
   }
-  return { succeeded, failed };
+  return { succeeded, failed, errors };
+}
+
+/** Read only the committed entries indexed by this attempt, never a later head. */
+async function durableToolEvents(
+  agent: GateAgent,
+  messages: GateTaskMessage[],
+  teamId: string | undefined,
+): Promise<GateTaskMessage[]> {
+  const events: GateTaskMessage[] = [];
+  const commits = new Map<string, Record<string, unknown>[]>();
+  const seen = new Set<string>();
+  for (const { payload: ref } of messages) {
+    if (ref.event !== 'runtime_entry' || ref.format !== 'pi-durable.v1')
+      continue;
+    if (!agent.runtimeSessions || !teamId)
+      throw new Error(
+        'Durable gate evidence requires a runtime store reader and team',
+      );
+    if (
+      typeof ref.storeId !== 'string' ||
+      typeof ref.commitSeq !== 'number' ||
+      typeof ref.entryId !== 'number'
+    )
+      throw new Error('Invalid Durable entry reference');
+    const identity = `${ref.storeId}:${ref.entryId}`;
+    if (seen.has(identity)) continue;
+    seen.add(identity);
+    const key = `${ref.storeId}:${ref.commitSeq}`;
+    let writes = commits.get(key);
+    if (!writes) {
+      const page = await agent.runtimeSessions.read(
+        ref.storeId,
+        ref.commitSeq - 1,
+        { teamId },
+      );
+      for await (const commit of page.items) {
+        if (commit.seq === ref.commitSeq) {
+          writes = commit.writes;
+          break;
+        }
+      }
+      if (!writes) throw new Error('Durable evidence commit is unavailable');
+      commits.set(key, writes);
+    }
+    const entry = writes.find(
+      (write) =>
+        write.type === 'entry' &&
+        (write.value as { id?: unknown } | undefined)?.id === ref.entryId,
+    )?.value as
+      | {
+          model?: Array<{
+            role?: string;
+            toolName?: string;
+            isError?: boolean;
+            content?: unknown;
+          }>;
+        }
+      | undefined;
+    if (!entry) throw new Error('Durable evidence entry is unavailable');
+    for (const message of entry.model ?? []) {
+      if (message.role === 'assistant' && Array.isArray(message.content)) {
+        for (const part of message.content as Array<{
+          type?: string;
+          name?: string;
+        }>) {
+          if (part.type === 'toolCall' && typeof part.name === 'string')
+            events.push({
+              kind: 'tool_call_start',
+              payload: { tool_name: part.name },
+            });
+        }
+      } else if (
+        message.role === 'toolResult' &&
+        typeof message.toolName === 'string'
+      ) {
+        events.push({
+          kind: 'tool_call_end',
+          payload: {
+            tool_name: message.toolName,
+            is_error: message.isError === true,
+            result: message.content,
+          },
+        });
+      }
+    }
+  }
+  return events;
 }
 
 /** Decode an artifact byte stream to text, capped so a hostile large upload
@@ -267,6 +374,16 @@ export async function checkGates(
     responseField,
   } = TASK_TYPE_OUTPUT[expected.taskType ?? 'run_eval'];
   const messages = await listAllMessages(agent, taskId, attemptN);
+  try {
+    messages.push(
+      ...(await durableToolEvents(agent, messages, expected.teamId)),
+    );
+  } catch (error) {
+    failures.push({
+      gate: 'runtime_evidence',
+      detail: error instanceof Error ? error.message : String(error),
+    });
+  }
 
   // Gate: a prompt_build_failure short-circuits everything else.
   const buildError = messages.find(
@@ -375,7 +492,7 @@ export async function checkGates(
     if (submitCalls.failed > 0) {
       failures.push({
         gate: 'submit_clean',
-        detail: `${submitToolName} had ${submitCalls.failed} invalid call(s)`,
+        detail: `${submitToolName} had ${submitCalls.failed} invalid call(s)${submitCalls.errors.length ? `: ${submitCalls.errors.join(' | ')}` : ''}`,
       });
     }
     if (finalMessage.invalid > 0) {

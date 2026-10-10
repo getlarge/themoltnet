@@ -13,16 +13,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runOnce } from './once.js';
 import { runPoll } from './poll.js';
-import { runSyncSessions } from './sync-sessions.js';
 
-const { connectMock, registryMock, signingMock, syncMock, boundary } =
-  vi.hoisted(() => ({
-    connectMock: vi.fn(),
-    registryMock: vi.fn(),
-    signingMock: vi.fn(),
-    syncMock: vi.fn(),
-    boundary: new Error('authenticated command boundary reached'),
-  }));
+const { connectMock, registryMock, signingMock, boundary } = vi.hoisted(() => ({
+  connectMock: vi.fn(),
+  registryMock: vi.fn(),
+  signingMock: vi.fn(),
+  boundary: new Error('authenticated command boundary reached'),
+}));
 
 // Keep the config reader, selector, secret resolver and startup binding check real.
 // Stop after authentication, before signing or mutating runtime sessions.
@@ -42,9 +39,6 @@ vi.mock('../config.js', () => ({
 }));
 vi.mock('../lib/executor-attestation.js', () => ({
   resolveExecutorSigningPrivateKey: signingMock,
-}));
-vi.mock('../lib/runtime-session-sync.js', () => ({
-  syncRuntimeSessions: syncMock,
 }));
 vi.mock('../lib/logger.js', () => ({ logDaemonStartupFailure: vi.fn() }));
 vi.mock('../pi.js', () => ({ defaultPiDaemonAdapter: {} }));
@@ -114,7 +108,6 @@ beforeEach(() => {
     },
   }));
   signingMock.mockRejectedValue(boundary);
-  syncMock.mockRejectedValue(boundary);
 });
 
 afterEach(() => rmSync(root, { recursive: true, force: true }));
@@ -130,7 +123,6 @@ describe.each([
     run: runPoll,
     extra: ['--profile', 'profile', '--task-types', 'freeform'],
   },
-  { name: 'sync-sessions', run: runSyncSessions, extra: [] },
 ])('$name project credential selection', ({ run, extra }) => {
   function invoke(team?: string) {
     const configPath = join(root, 'projects.json');
@@ -189,7 +181,6 @@ describe.each([
     run: runPoll,
     extra: ['--profile', 'profile', '--task-types', 'freeform'],
   },
-  { name: 'sync-sessions', run: runSyncSessions, extra: [] },
 ])('$name team credential boundary', ({ run, extra }) => {
   const invoke = (team = 'b') =>
     run([
@@ -223,7 +214,6 @@ describe.each([
         'selected team credential has a different binding',
       );
       expect(signingMock).not.toHaveBeenCalled();
-      expect(syncMock).not.toHaveBeenCalled();
     },
   );
 
@@ -232,6 +222,5 @@ describe.each([
     await expect(invoke()).rejects.toThrow('could not resolve');
     expect(connectMock).not.toHaveBeenCalled();
     expect(signingMock).not.toHaveBeenCalled();
-    expect(syncMock).not.toHaveBeenCalled();
   });
 });

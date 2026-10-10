@@ -5,7 +5,6 @@ import { runOnce } from './cli/once.js';
 import { runPoll } from './cli/poll.js';
 import { runProviders } from './cli/providers.js';
 import { runAgentServer } from './cli/server.js';
-import { runSyncSessions } from './cli/sync-sessions.js';
 import {
   legacyStoreNotice,
   loadAgentServerEnvConfig,
@@ -26,7 +25,7 @@ export async function runAgentDaemonCli(options: {
   const help =
     subcommand === '--help' ||
     subcommand === '-h' ||
-    (['poll', 'drain', 'once', 'server', 'providers', 'sync-sessions'].includes(
+    (['poll', 'drain', 'once', 'server', 'providers'].includes(
       subcommand ?? '',
     ) &&
       isHelpFlag(rest));
@@ -61,8 +60,6 @@ export async function runAgentDaemonCli(options: {
       return runAgentServer(rest);
     case 'providers':
       return runProviders(rest);
-    case 'sync-sessions':
-      return runSyncSessions(rest);
     case 'update':
       return runUpdate(rest);
     case 'runtime':

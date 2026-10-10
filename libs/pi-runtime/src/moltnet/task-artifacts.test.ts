@@ -11,11 +11,15 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 
+import { createWriteToolDefinition } from '@earendil-works/pi-coding-agent';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createGondolinToolDefinitions } from '../gondolin-tools.js';
-import { resolveTaskWorktreePath } from '../runtime/execute-pi-task.js';
-import { createGondolinToolLifecycle } from '../tool-operations.js';
+import { createGondolinReadToolDefinitions } from '../gondolin-tools.js';
+import { resolveTaskWorktreePath } from '../runtime/task-workspace.js';
+import {
+  createGondolinToolLifecycle,
+  createGondolinWriteOps,
+} from '../tool-operations.js';
 import {
   createMoltNetTools,
   type MoltNetTaskContext,
@@ -454,7 +458,7 @@ describe('moltnet_download_task_artifact', () => {
           lifecycle: createGondolinToolLifecycle(),
           retireVm: vi.fn(),
         };
-        const readTool = createGondolinToolDefinitions(toolConfig).find(
+        const readTool = createGondolinReadToolDefinitions(toolConfig).find(
           (tool) => tool.name === 'read',
         );
         if (!readTool) throw new Error('read tool not registered');
@@ -466,10 +470,9 @@ describe('moltnet_download_task_artifact', () => {
           () => {},
           null as never,
         );
-        const writeTool = createGondolinToolDefinitions(toolConfig).find(
-          (tool) => tool.name === 'write',
-        );
-        if (!writeTool) throw new Error('write tool not registered');
+        const writeTool = createWriteToolDefinition(cwdPath, {
+          operations: createGondolinWriteOps(vm as never, cwdPath, mountPath),
+        });
 
         await writeTool.execute(
           'call-id',

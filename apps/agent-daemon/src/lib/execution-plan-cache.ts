@@ -1,14 +1,12 @@
-import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { createHash } from 'node:crypto';
 
 import type { ClaimedTask } from '@themoltnet/agent-runtime';
 
 import type { DaemonSlotIdentity } from './daemon-slot-identity.js';
-import type { RuntimeSessionStore } from './runtime-sessions.js';
-import { resolveLatestPiSessionPath } from './session-files.js';
-import type { DaemonStateDirs } from './state-dir.js';
 import {
+  buildDaemonSlotId,
   buildDaemonTaskExecutionPlan,
+  buildRuntimeSlotKey,
   type DaemonTaskExecutionPlan,
   type RuntimeProfileWorkspacePolicy,
   WorkspaceModeMismatchError,
@@ -112,52 +110,81 @@ export interface ExecutionPlanCache {
   delete(claimedTask: CachedTask): void;
 }
 
-export class ProducerContextResolutionError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ProducerContextResolutionError';
-  }
-}
-
+/** Plans environments only. Pi Durable owns all conversation continuity. */
 export function createExecutionPlanCache(args: {
-  stateDirs: DaemonStateDirs;
   slotIdentity: DaemonSlotIdentity;
-  warmRetentionSec: number;
   workspacePolicy?: RuntimeProfileWorkspacePolicy;
-  slotRegistry: RuntimeSlotStore;
-  runtimeSessionStore?: RuntimeSessionStore;
   sourceAttemptResolver?: SourceAttemptResolver;
 }): ExecutionPlanCache {
   const cache = new Map<string, DaemonTaskExecutionPlan>();
-  const runtimeSessionStore =
-    args.runtimeSessionStore ?? createNullRuntimeSessionStore();
-  const sourceAttemptResolver =
-    args.sourceAttemptResolver ?? createNullSourceAttemptResolver();
-
   return {
-    async getOrCreate(
-      claimedTask: CachedTask,
-    ): Promise<DaemonTaskExecutionPlan> {
+    async getOrCreate(claimedTask) {
       const key = buildClaimedTaskKey(claimedTask);
       const existing = cache.get(key);
       if (existing) return existing;
-
-      const basePlan = buildDaemonTaskExecutionPlan(
+      const plan = buildDaemonTaskExecutionPlan(
         claimedTask.task,
-        args.stateDirs,
-        args.slotIdentity,
-        args.warmRetentionSec,
         args.workspacePolicy,
         claimedTask.attemptN,
       );
-      const plan = await maybeAttachWarmSlotContext(
-        claimedTask,
-        basePlan,
-        args.stateDirs,
-        args.slotRegistry,
-        runtimeSessionStore,
-        sourceAttemptResolver,
-      );
+      const input = claimedTask.task.input as {
+        targetTaskId?: string;
+        targetAttemptN?: number;
+      };
+      const parent =
+        claimedTask.task.taskType === 'judge_eval_attempt' &&
+        input.targetTaskId &&
+        input.targetAttemptN
+          ? {
+              taskId: input.targetTaskId,
+              attemptN: input.targetAttemptN,
+              mode: 'fork',
+            }
+          : (
+              claimedTask.task.input as {
+                continueFrom?: {
+                  taskId: string;
+                  attemptN: number;
+                  mode?: string;
+                };
+              }
+            ).continueFrom;
+      if (parent && args.sourceAttemptResolver) {
+        const source = {
+          teamId: claimedTask.task.teamId,
+          taskId: parent.taskId,
+          attemptN: parent.attemptN,
+        };
+        const branch =
+          await args.sourceAttemptResolver.findOutputBranch(source);
+        const revision = branch
+          ? null
+          : await args.sourceAttemptResolver.findInputRevision(source);
+        if (branch || revision) {
+          plan.workspaceMode = 'dedicated_worktree';
+          if (parent.mode === 'fork') {
+            plan.workspaceKind = 'fork';
+            plan.worktreeBaseRef = branch ?? revision;
+            plan.worktreeBranch = `${branch ?? 'durable'}-fork-${claimedTask.task.id.slice(0, 8)}-${claimedTask.attemptN}`;
+            plan.workspaceRevision = null;
+          } else {
+            plan.worktreeBranch = branch;
+            plan.workspaceRevision = revision;
+          }
+        }
+      }
+      // A Git branch has one retained checkout. A fork gets a different branch.
+      if (plan.worktreeBranch)
+        plan.workspaceId = `durable-branch-${createHash('sha256').update(`${claimedTask.task.teamId}:${plan.worktreeBranch}`).digest('hex').slice(0, 32)}`;
+      plan.workspaceScope = 'session';
+      plan.sessionKey = `durable:${claimedTask.task.id}:${claimedTask.attemptN}`;
+      if (plan.workspaceId && plan.workspaceMode !== 'shared_mount') {
+        plan.slotKey = buildRuntimeSlotKey(
+          `workspace:${plan.workspaceId}`,
+          args.slotIdentity.runtimeInstanceId,
+        );
+        plan.slotId = buildDaemonSlotId(args.slotIdentity, plan.slotKey);
+      }
       assertPlanAllowedByWorkspacePolicy(
         plan,
         args.workspacePolicy,
@@ -166,37 +193,8 @@ export function createExecutionPlanCache(args: {
       cache.set(key, plan);
       return plan;
     },
-    delete(claimedTask: CachedTask): void {
+    delete(claimedTask) {
       cache.delete(buildClaimedTaskKey(claimedTask));
-    },
-  };
-}
-
-function createNullSourceAttemptResolver(): SourceAttemptResolver {
-  return {
-    findOutputBranch() {
-      return Promise.resolve(null);
-    },
-    findInputRevision() {
-      return Promise.resolve(null);
-    },
-  };
-}
-
-function createNullRuntimeSessionStore(): RuntimeSessionStore {
-  return {
-    findRuntimeSessionByTaskAttempt() {
-      return Promise.resolve(null);
-    },
-    hydrateSession() {
-      return Promise.reject(
-        new ProducerContextResolutionError(
-          'Cannot hydrate runtime session: no runtime session store configured',
-        ),
-      );
-    },
-    async uploadAttemptFinal() {
-      // Existing tests and local-only flows do not publish remote session state.
     },
   };
 }
@@ -244,462 +242,4 @@ function planToRuntimeProfileWorkspaceMode(
 
 function buildClaimedTaskKey(task: CachedTask): string {
   return `${task.task.id}:${task.attemptN}`;
-}
-
-type WarmSlotResolution =
-  | {
-      kind: 'found';
-      producerSlot: ResolvedRuntimeSlotContext;
-      sessionPath: string;
-    }
-  | {
-      kind: 'remote-session';
-      sessionPath: string;
-    }
-  | { kind: 'missing' }
-  | { kind: 'no-session-path' };
-
-async function hydrateRemoteRuntimeSession(
-  runtimeSessionStore: RuntimeSessionStore,
-  teamId: string,
-  sourceTaskId: string,
-  sourceAttemptN: number,
-  stateDirs: DaemonStateDirs,
-): Promise<string | null> {
-  const remoteSession =
-    await runtimeSessionStore.findRuntimeSessionByTaskAttempt(
-      teamId,
-      sourceTaskId,
-      sourceAttemptN,
-    );
-  if (!remoteSession) return null;
-  return runtimeSessionStore.hydrateSession({
-    attemptN: sourceAttemptN,
-    destinationDir: `${stateDirs.piSessionsDir}/remote-${sourceTaskId}-attempt-${sourceAttemptN}`,
-    taskId: sourceTaskId,
-    teamId,
-  });
-}
-
-async function resolveWarmSlot(
-  slotRegistry: RuntimeSlotStore,
-  runtimeSessionStore: RuntimeSessionStore,
-  teamId: string,
-  sourceTaskId: string,
-  sourceAttemptN: number,
-  stateDirs: DaemonStateDirs,
-): Promise<WarmSlotResolution> {
-  const producerContext = await slotRegistry.findLatestSlotByTaskAttempt(
-    teamId,
-    sourceTaskId,
-    sourceAttemptN,
-  );
-  if (!producerContext) {
-    const remoteSessionPath = await hydrateRemoteRuntimeSession(
-      runtimeSessionStore,
-      teamId,
-      sourceTaskId,
-      sourceAttemptN,
-      stateDirs,
-    );
-    return remoteSessionPath
-      ? { kind: 'remote-session', sessionPath: remoteSessionPath }
-      : { kind: 'missing' };
-  }
-
-  const localSessionPath = resolveProducerSessionPath(producerContext);
-  const sourceSessionPath = localSessionPath
-    ? localSessionPath
-    : await hydrateRemoteRuntimeSession(
-        runtimeSessionStore,
-        teamId,
-        sourceTaskId,
-        sourceAttemptN,
-        stateDirs,
-      );
-  if (!sourceSessionPath) return { kind: 'no-session-path' };
-
-  return {
-    kind: 'found',
-    producerSlot: producerContext,
-    sessionPath: sourceSessionPath,
-  };
-}
-
-async function maybeAttachWarmSlotContext(
-  claimedTask: CachedTask,
-  basePlan: DaemonTaskExecutionPlan,
-  stateDirs: DaemonStateDirs,
-  slotRegistry: RuntimeSlotStore,
-  runtimeSessionStore: RuntimeSessionStore,
-  sourceAttemptResolver: SourceAttemptResolver,
-): Promise<DaemonTaskExecutionPlan> {
-  if (claimedTask.task.taskType === 'freeform') {
-    const continueFrom = (
-      claimedTask.task.input as {
-        continueFrom?: {
-          taskId: string;
-          attemptN: number;
-          mode?: 'extend' | 'fork';
-        };
-      }
-    ).continueFrom;
-
-    if (!continueFrom) {
-      return maybeAttachRetrySession(
-        claimedTask,
-        basePlan,
-        stateDirs,
-        slotRegistry,
-        runtimeSessionStore,
-      );
-    }
-
-    const resolution = await resolveWarmSlot(
-      slotRegistry,
-      runtimeSessionStore,
-      claimedTask.task.teamId,
-      continueFrom.taskId,
-      continueFrom.attemptN,
-      stateDirs,
-    );
-
-    if (resolution.kind === 'missing') {
-      throw new ProducerContextResolutionError(
-        `Continuation source task ${continueFrom.taskId} attempt ${continueFrom.attemptN} has no local runtime slot or durable runtime session — claim affinity filter should have prevented this claim`,
-      );
-    }
-    if (resolution.kind === 'no-session-path') {
-      throw new ProducerContextResolutionError(
-        `Continuation source attempt ${continueFrom.taskId}/${continueFrom.attemptN} has no persisted Pi session path`,
-      );
-    }
-
-    const sessionDir = `${stateDirs.piSessionsDir}/continue-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`;
-    if (resolution.kind === 'remote-session') {
-      const recoveredBranch = await sourceAttemptResolver.findOutputBranch({
-        attemptN: continueFrom.attemptN,
-        taskId: continueFrom.taskId,
-        teamId: claimedTask.task.teamId,
-      });
-      const recoveredRevision = recoveredBranch
-        ? null
-        : await sourceAttemptResolver.findInputRevision({
-            attemptN: continueFrom.attemptN,
-            taskId: continueFrom.taskId,
-            teamId: claimedTask.task.teamId,
-          });
-      if (continueFrom.mode === 'fork') {
-        if (recoveredBranch || recoveredRevision) {
-          const forkWorkspaceId = `fork-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`;
-          const forkBranch = buildForkBranch(
-            recoveredBranch ?? `detached-${continueFrom.taskId.slice(0, 8)}`,
-            claimedTask.task.id,
-            claimedTask.attemptN,
-          );
-          return {
-            ...basePlan,
-            workspaceMode: 'dedicated_worktree',
-            workspaceId: forkWorkspaceId,
-            worktreeBranch: forkBranch,
-            worktreeBaseRef: recoveredBranch ?? recoveredRevision,
-            workspaceKind: 'fork',
-            sessionPersistence: {
-              sessionDir,
-              forkFromSessionPath: resolution.sessionPath,
-            },
-          };
-        }
-        throw new ProducerContextResolutionError(
-          `Cannot fork continuation of ${continueFrom.taskId}/${continueFrom.attemptN}: durable runtime session is available but the source attempt output did not report a branch`,
-        );
-      }
-      const hasDedicatedWorkspace = Boolean(
-        recoveredBranch || recoveredRevision,
-      );
-      return {
-        ...basePlan,
-        workspaceMode: hasDedicatedWorkspace
-          ? 'dedicated_worktree'
-          : 'shared_mount',
-        workspaceId: hasDedicatedWorkspace
-          ? buildAttemptWorkspaceId(claimedTask)
-          : null,
-        worktreeBranch: recoveredBranch,
-        workspaceRevision: recoveredRevision,
-        sessionPersistence: {
-          sessionDir,
-          forkFromSessionPath: resolution.sessionPath,
-        },
-      };
-    }
-
-    const parentBranch =
-      resolution.producerSlot.workspace?.worktreeBranch ?? null;
-    const parentRevision = parentBranch
-      ? null
-      : await sourceAttemptResolver.findInputRevision({
-          attemptN: continueFrom.attemptN,
-          taskId: continueFrom.taskId,
-          teamId: claimedTask.task.teamId,
-        });
-
-    if (continueFrom.mode === 'fork') {
-      // Fork: diverge onto a NEW branch cut from the parent's tip, in a fresh
-      // (unique) workspace. The session is still copied (forkFromSessionPath),
-      // but git state forks cleanly so the new chain is a separate PR.
-      if (!parentBranch && !parentRevision) {
-        throw new ProducerContextResolutionError(
-          `Cannot fork continuation of ${continueFrom.taskId}/${continueFrom.attemptN}: producer slot has no worktree branch or immutable revision to fork from`,
-        );
-      }
-      // Both the workspace id and the branch name must be unique per fork
-      // task: two `fork` continuations of the same parent both run at child
-      // attempt 1, so keying the branch only on the parent + attempt would
-      // collide (the second `git worktree add` would hit an already-checked-out
-      // branch). Include the child task id (mirrors forkWorkspaceId).
-      const forkWorkspaceId = `fork-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`;
-      const forkBranch = buildForkBranch(
-        parentBranch ?? `detached-${continueFrom.taskId.slice(0, 8)}`,
-        claimedTask.task.id,
-        claimedTask.attemptN,
-      );
-      return {
-        ...basePlan,
-        workspaceMode: 'dedicated_worktree',
-        workspaceId: forkWorkspaceId,
-        worktreeBranch: forkBranch,
-        worktreeBaseRef: parentBranch ?? parentRevision,
-        workspaceKind: 'fork',
-        sessionPersistence: {
-          sessionDir,
-          forkFromSessionPath: resolution.sessionPath,
-        },
-        // No workspaceSeed: the worktree is created by branching, not copying.
-      };
-    }
-
-    // Extend (default): continue on the parent's branch in a fresh attempt
-    // worktree. The producer's attempt-scoped worktree is disposed when its
-    // executor finishes; only the branch and checkpointed session cross the
-    // attempt boundary.
-    //
-    // A null workspace here is legitimate, not a degraded continuation: it
-    // means the producer ran in shared_mount (no dedicated worktree), so there
-    // is no branch to share and the continuation correctly runs on the shared
-    // mount too. Dedicated worktree producers must still resolve to a recorded
-    // workspace path before this point.
-    const hasDedicatedWorkspace = Boolean(parentBranch || parentRevision);
-    return {
-      ...basePlan,
-      workspaceMode: hasDedicatedWorkspace
-        ? 'dedicated_worktree'
-        : 'shared_mount',
-      workspaceId: hasDedicatedWorkspace
-        ? buildAttemptWorkspaceId(claimedTask)
-        : null,
-      worktreeBranch: parentBranch,
-      workspaceRevision: parentRevision,
-      sessionPersistence: {
-        sessionDir,
-        forkFromSessionPath: resolution.sessionPath,
-      },
-      // Importantly: NO workspaceSeed. Git recreates the checkout from the
-      // parent's branch; the producer directory itself is not retained.
-    };
-  }
-
-  if (claimedTask.task.taskType !== 'judge_eval_attempt') {
-    return basePlan;
-  }
-
-  const targetTaskId =
-    typeof (claimedTask.task.input as { targetTaskId?: unknown })
-      .targetTaskId === 'string'
-      ? (claimedTask.task.input as { targetTaskId: string }).targetTaskId
-      : null;
-  const targetAttemptN =
-    typeof (claimedTask.task.input as { targetAttemptN?: unknown })
-      .targetAttemptN === 'number'
-      ? (claimedTask.task.input as { targetAttemptN: number }).targetAttemptN
-      : null;
-
-  if (!targetTaskId || !targetAttemptN) {
-    throw new ProducerContextResolutionError(
-      'judge_eval_attempt is missing targetTaskId/targetAttemptN',
-    );
-  }
-
-  const resolution = await resolveWarmSlot(
-    slotRegistry,
-    runtimeSessionStore,
-    claimedTask.task.teamId,
-    targetTaskId,
-    targetAttemptN,
-    stateDirs,
-  );
-
-  if (resolution.kind === 'missing') {
-    throw new ProducerContextResolutionError(
-      `No live producer runtime slot found for task ${targetTaskId} attempt ${targetAttemptN}`,
-    );
-  }
-  if (resolution.kind === 'no-session-path') {
-    throw new ProducerContextResolutionError(
-      `Producer task ${targetTaskId} attempt ${targetAttemptN} has no persisted Pi session path`,
-    );
-  }
-  if (resolution.kind === 'remote-session') {
-    throw new ProducerContextResolutionError(
-      `Producer task ${targetTaskId} attempt ${targetAttemptN} has a durable runtime session but no workspace metadata to copy`,
-    );
-  }
-
-  const producerWorkspaceCopySource = resolveProducerWorkspaceCopySource(
-    resolution.producerSlot,
-    stateDirs,
-  );
-
-  return {
-    ...basePlan,
-    workspaceMode: 'scratch_mount',
-    worktreeBranch: null,
-    workspaceKind: 'scratch',
-    workspaceSeed: producerWorkspaceCopySource
-      ? {
-          copyFromPath: producerWorkspaceCopySource,
-          source: 'producer',
-        }
-      : null,
-    sessionPersistence: {
-      sessionDir: `${stateDirs.piSessionsDir}/judge-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`,
-      forkFromSessionPath: resolution.sessionPath,
-    },
-  };
-}
-
-function buildAttemptWorkspaceId(claimedTask: CachedTask): string {
-  return `daemon-task-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`;
-}
-
-async function maybeAttachRetrySession(
-  claimedTask: CachedTask,
-  basePlan: DaemonTaskExecutionPlan,
-  stateDirs: DaemonStateDirs,
-  slotRegistry: RuntimeSlotStore,
-  runtimeSessionStore: RuntimeSessionStore,
-): Promise<DaemonTaskExecutionPlan> {
-  if (claimedTask.attemptN <= 1 || !basePlan.sessionPersistence?.sessionDir) {
-    return basePlan;
-  }
-
-  const resolution = await resolveWarmSlot(
-    slotRegistry,
-    runtimeSessionStore,
-    claimedTask.task.teamId,
-    claimedTask.task.id,
-    claimedTask.attemptN - 1,
-    stateDirs,
-  );
-  if (resolution.kind === 'missing' || resolution.kind === 'no-session-path') {
-    return basePlan;
-  }
-
-  const sourceSessionDir = dirname(resolution.sessionPath);
-  const targetSessionDir = basePlan.sessionPersistence.sessionDir;
-  if (sourceSessionDir === targetSessionDir) {
-    return basePlan;
-  }
-
-  return {
-    ...basePlan,
-    worktreeBranch:
-      basePlan.workspaceMode === 'dedicated_worktree' &&
-      resolution.kind === 'found'
-        ? (resolution.producerSlot.workspace?.worktreeBranch ??
-          basePlan.worktreeBranch)
-        : basePlan.worktreeBranch,
-    sessionPersistence: {
-      sessionDir: targetSessionDir,
-      forkFromSessionPath: resolution.sessionPath,
-    },
-  };
-}
-
-function buildForkBranch(
-  parentBranch: string,
-  childTaskId: string,
-  childAttemptN: number,
-): string {
-  return `${parentBranch}-fork-${childTaskId.slice(0, 8)}-${childAttemptN}`;
-}
-
-function resolveProducerSessionPath(
-  producer: ResolvedRuntimeSlotContext,
-): string | null {
-  const explicit = producer.session?.sessionPath ?? null;
-  if (explicit && existsSync(explicit)) return explicit;
-
-  const sessionDir = producer.session?.sessionDir ?? null;
-  if (!sessionDir || !existsSync(sessionDir)) return null;
-
-  const latest = resolveLatestPiSessionPath(sessionDir);
-  return latest && existsSync(latest) ? latest : null;
-}
-
-function resolveProducerWorkspaceCopySource(
-  producer: ResolvedRuntimeSlotContext,
-  stateDirs: DaemonStateDirs,
-): string | null {
-  const workspacePath = producer.workspace?.worktreePath ?? null;
-  if (workspacePath) {
-    if (existsSync(workspacePath)) {
-      return workspacePath;
-    }
-    const recoveredPath = recoverScratchWorkspacePath(producer, stateDirs);
-    if (recoveredPath) return recoveredPath;
-    if (isDisposableScratchWorkspace(producer, stateDirs)) return null;
-    throw new ProducerContextResolutionError(
-      `Producer workspace path is missing on disk: ${workspacePath}`,
-    );
-  }
-
-  const sharedMountRoot = stateDirs.mountPath;
-  if (!sharedMountRoot)
-    throw new ProducerContextResolutionError(
-      'Shared producer mount root was not supplied by the runtime profile',
-    );
-  if (!existsSync(sharedMountRoot)) {
-    throw new ProducerContextResolutionError(
-      `Shared producer mount root is missing on disk: ${sharedMountRoot}`,
-    );
-  }
-  return sharedMountRoot;
-}
-
-function isDisposableScratchWorkspace(
-  producer: ResolvedRuntimeSlotContext,
-  stateDirs: DaemonStateDirs,
-): boolean {
-  if (producer.workspace?.kind === 'scratch') return true;
-  if (!producer.workspace?.workspaceId) return false;
-  return (
-    producer.workspace.worktreePath ===
-    join(stateDirs.rootDir, 'task-workspaces', producer.workspace.workspaceId)
-  );
-}
-
-function recoverScratchWorkspacePath(
-  producer: ResolvedRuntimeSlotContext,
-  stateDirs: DaemonStateDirs,
-): string | null {
-  if (producer.workspace?.worktreeBranch) return null;
-  if (!producer.workspace?.workspaceId) return null;
-
-  const fallback = join(
-    stateDirs.rootDir,
-    'task-workspaces',
-    producer.workspace.workspaceId,
-  );
-  return existsSync(fallback) ? fallback : null;
 }

@@ -337,7 +337,7 @@ function agentKeyRequiredMessage(agentDir: string, agentName: string): string {
  * legacy bundle that actually exists.
  *
  * The flag is documented as "Directory that owns .moltnet/<agent>" and is still
- * accepted by `once`, `poll` and `sync-sessions`. Ignoring it silently sent
+ * accepted by `once` and `poll`. Ignoring it silently sent
  * every caller that passes one — sandboxed runs, the e2e harness — to a
  * central store they never populated, and failed with a bare "No credentials
  * found".

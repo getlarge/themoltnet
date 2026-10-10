@@ -1202,9 +1202,8 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   // here and the final `return { vm, ... }` must close the VM, or the
   // qemu child process (visible in `process.getActiveResourcesInfo()`
   // as `ProcessWrap` + ~12 `PipeWrap` for its stdio fds) keeps the
-  // Node event loop alive, and `executePiTask`'s own finally block
-  // never runs because it depends on the resolved `managed` handle
-  // we're about to return.
+  // Node event loop alive. The caller cannot close the VM without
+  // the managed handle we're about to return.
   // Projected guest services are tracked so they can be stopped before the VM
   // closes (setup failure or normal teardown). Declared before `try` so the
   // catch path can abort them as well.

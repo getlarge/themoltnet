@@ -31,7 +31,7 @@ import {
   resolveAttemptBrokeredHttpSecrets,
 } from './runtime/attempt-vm.js';
 import { discoverGuestExecutables } from './runtime/capability-discovery.js';
-import type { ExecutePiTaskOptions } from './runtime/execute-pi-task.js';
+import type { GondolinDurableTaskOptions } from './runtime/durable-task-options.js';
 import { configureDurableModelOptions } from './runtime/model-options-extension.js';
 import {
   createClassifierTool,
@@ -52,7 +52,6 @@ import { prepareTaskWorkspace } from './runtime/task-workspace.js';
 import {
   filterModelVisibleTools,
   materializePiTools,
-  type ResolvedGondolinTemplate,
 } from './runtime-definition.js';
 import {
   createGondolinToolLifecycle,
@@ -65,16 +64,16 @@ import { resumeVm } from './vm.js';
 
 /** Mounted workspaces remain available independently of the daemon process. */
 export function createGondolinDurableTaskExecutor(
-  options: ExecutePiTaskOptions & {
-    template: ResolvedGondolinTemplate;
-    runtimeKind: string;
-  },
+  options: GondolinDurableTaskOptions,
 ) {
   return async (
     ...args: Parameters<ReturnType<typeof createDurableTaskExecutor>>
   ) => {
     if (args[0].task.taskType === 'classify')
       return executeProfileClassificationTask(options.classifier, ...args);
+    const template = options.template;
+    if (!template)
+      throw new Error('Generation task requires a Gondolin template');
     const agent = options.moltnetAgent;
     if (!agent || !options.runtimeProfileId)
       throw new Error(
@@ -228,7 +227,7 @@ export function createGondolinDurableTaskExecutor(
             });
             capabilityRouter?.setPolicy(policy);
             const managed = await (options.resumeVm ?? resumeVm)({
-              checkpointPath: options.template.checkpointPath,
+              checkpointPath: template.checkpointPath,
               agentName: options.agentName,
               agentRootDir: options.agentRootDir,
               mountPath: workspace.mountPath,
@@ -237,7 +236,7 @@ export function createGondolinDurableTaskExecutor(
                 {
                   ...options.sandboxConfig,
                   snapshot: undefined,
-                  resumeCommands: [...options.template.resumeCommands],
+                  resumeCommands: [...template.resumeCommands],
                 },
                 plan,
               ),

@@ -39,6 +39,25 @@ describe('reapRuntimeSlotResources', () => {
     expect(existsSync(fixture.workspacePath)).toBe(false);
   });
 
+  it('retains a checkout referenced by another daemon process', async () => {
+    const fixture = await makeFixture('idle', 1);
+    const other = {
+      ...fixture.slot,
+      slot: {
+        ...fixture.slot.slot,
+        id: 'other-slot',
+        slotKey: 'workspace:shared:worker:other-worker',
+        state: 'active' as const,
+      },
+    };
+    const result = await reapRuntimeSlotResources(
+      makeDeps([fixture.slot, other], []),
+      fixture.input,
+    );
+    expect(result.removedWorkspaces).toBe(0);
+    expect(existsSync(fixture.workspacePath)).toBe(true);
+  });
+
   it('retains an active running attempt even after its slot TTL', async () => {
     const fixture = await makeFixture('active', 1);
 

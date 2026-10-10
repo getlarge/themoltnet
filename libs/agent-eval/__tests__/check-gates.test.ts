@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   checkGates,
@@ -144,6 +144,102 @@ const completedAttempt: GateTaskAttempt = {
 };
 
 describe('checkGates', () => {
+  it.each([false, true])(
+    'reads committed Durable tool evidence, including failed submits (%s)',
+    async (isError) => {
+      const entries = [
+        {
+          id: 1,
+          model: [
+            {
+              role: 'assistant',
+              content: [
+                { type: 'toolCall', name: 'moltnet_upload_task_artifact' },
+              ],
+            },
+          ],
+        },
+        {
+          id: 2,
+          model: [
+            {
+              role: 'toolResult',
+              toolName: 'submit_run_eval_output',
+              isError,
+              content: [{ type: 'text', text: 'Invalid submission shape' }],
+            },
+          ],
+        },
+      ];
+      const refs = entries.map((entry) => ({
+        kind: 'info',
+        payload: {
+          event: 'runtime_entry',
+          format: 'pi-durable.v1',
+          storeId: 'store',
+          commitSeq: 4,
+          entryId: entry.id,
+        },
+      }));
+      const agent = fakeAgent(
+        [...messages({ submitResults: [] }), ...refs, refs[1]],
+        completedAttempt,
+      );
+      const read = vi.fn().mockResolvedValue({
+        items: (async function* () {
+          yield {
+            seq: 4,
+            writes: entries.map((value) => ({ type: 'entry', value })),
+          };
+        })(),
+      });
+      agent.runtimeSessions = { read };
+      const result = await checkGates(
+        agent,
+        't1',
+        1,
+        { requireToolCalls: ['moltnet_upload_task_artifact'] },
+        EXPECTED_WITH_TEAM,
+      );
+      expect(read).toHaveBeenCalledExactlyOnceWith('store', 3, {
+        teamId: 'team-1',
+      });
+      expect(result.passed).toBe(!isError);
+      if (isError)
+        expect(result.failures).toContainEqual({
+          gate: 'submit_clean',
+          detail:
+            'submit_run_eval_output had 1 invalid call(s): Invalid submission shape',
+        });
+    },
+  );
+
+  it('fails closed when referenced Durable evidence is unavailable', async () => {
+    const agent = fakeAgent(
+      [
+        ...messages(),
+        {
+          kind: 'info',
+          payload: {
+            event: 'runtime_entry',
+            format: 'pi-durable.v1',
+            storeId: 'store',
+            commitSeq: 4,
+            entryId: 1,
+          },
+        },
+      ],
+      completedAttempt,
+    );
+    agent.runtimeSessions = { read: vi.fn().mockResolvedValue({ items: [] }) };
+    const result = await checkGates(agent, 't1', 1, {}, EXPECTED_WITH_TEAM);
+    expect(result.passed).toBe(false);
+    expect(result.failures).toContainEqual({
+      gate: 'runtime_evidence',
+      detail: 'Durable evidence commit is unavailable',
+    });
+  });
+
   it('passes a clean attempt against default gates', async () => {
     // Arrange
     const agent = fakeAgent(messages(), completedAttempt);

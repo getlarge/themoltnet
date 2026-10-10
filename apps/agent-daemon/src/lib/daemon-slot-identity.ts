@@ -4,9 +4,8 @@ export interface DaemonSlotIdentity {
   agentName: string;
   runtimeProfileId: string;
   /**
-   * Process-lifetime discriminator. Correlation keys remain the logical warm
-   * session identity, while this component prevents concurrent daemon
-   * processes from opening the same local Pi session directory.
+   * Process-lifetime discriminator for workspace ownership and cleanup.
+   * Conversation identity belongs to the Durable attempt store.
    */
   runtimeInstanceId?: string;
 }

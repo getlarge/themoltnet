@@ -41,7 +41,6 @@ import {
   findMainWorktree,
   type GondolinVmRetirement,
   HOST_EXEC_DEFAULT_BASE_ENV,
-  type ProviderErrorRetryUi,
   resumeVm,
   type SandboxConfig,
 } from '@themoltnet/pi-runtime';
@@ -57,22 +56,6 @@ export {
   createPiOtelExtension,
   type PiOtelOptions,
 } from '@themoltnet/pi-runtime';
-
-export function createPiProviderErrorRetryUi(
-  ctx: ExtensionContext,
-): ProviderErrorRetryUi | undefined {
-  const hasUI = Boolean((ctx as { hasUI?: boolean }).hasUI);
-  if (!hasUI) return undefined;
-  return {
-    hasUI,
-    setStatus: (key, message) => {
-      ctx.ui.setStatus(key, ctx.ui.theme.fg('muted', message));
-    },
-    notify: (message, level) => {
-      ctx.ui.notify?.(message, level);
-    },
-  };
-}
 
 export async function retirePiExtensionVm(config: {
   activeVm: Pick<VM, 'close'>;

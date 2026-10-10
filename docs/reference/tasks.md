@@ -46,7 +46,9 @@ The versioned output includes provider/model identity and the answers. Usage is
 omitted when the provider does not report it. Extra answers, invalid probability
 mass, unknown labels, and out-of-range scores fail validation. See
 [Runtime profile model capabilities](../operate/runtime-profiles.md#model-capabilities)
-for runtime configuration.
+for runtime configuration and
+[Pi classification adapters](../contribute/custom-pi-runtimes.md#pi-10-classification)
+for adapter integration.
 
 #### Freeform as the discovery lane
 

@@ -16,16 +16,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { checkGates, readScenario, type Scenario } from '@moltnet/agent-eval';
-// eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises the daemon app entry point.
-import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 import { writePiConfig } from '@themoltnet/pi-runtime/pi-config';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import {
-  createScenarioProducerTask,
-  provisionDaemonCredentials,
-} from './fixtures.js';
+import { createScenarioProducerTask, runDaemonOnce } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const LIVE_LLM_FLAG = 'MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E';
@@ -149,17 +144,6 @@ export function defineLiveOllamaEvalSuite(partitionIndex: number): void {
           const agentRoot = mkdtempSync(join(tmpdir(), 'evals-v2-agent-'));
           const piDir = mkdtempSync(join(tmpdir(), 'evals-v2-pi-'));
           tempRoots.push(agentRoot, piDir);
-          await provisionDaemonCredentials({
-            agent,
-            agentRoot,
-            agentName,
-            agentId,
-            teamId,
-            apiUrl: harness.restApiUrl,
-            publicKey,
-            privateKey,
-            fingerprint,
-          });
           writePiConfig({ piDir, provider: LIVE_PROVIDER, model: LIVE_MODEL });
 
           let result: Awaited<ReturnType<typeof checkGates>> | null = null;
@@ -182,33 +166,23 @@ export function defineLiveOllamaEvalSuite(partitionIndex: number): void {
             });
 
             // Act — run the task through the daemon once against the pinned model.
-            const oldPiDir = process.env.PI_CODING_AGENT_DIR;
-            const oldCwd = process.cwd();
-            process.env.PI_CODING_AGENT_DIR = piDir;
-            try {
-              process.chdir(sandboxRoot);
-              await runOnce([
-                '--task-id',
-                task.id,
-                '--agent',
-                agentName,
-                '--profile',
-                profileId!,
-                '--team',
-                teamId,
-                '--agent-root',
+            await runDaemonOnce({
+              credentials: {
+                agent,
                 agentRoot,
-                '--warm-retention-sec',
-                '600',
-              ]);
-            } finally {
-              process.chdir(oldCwd);
-              if (oldPiDir === undefined) {
-                delete process.env.PI_CODING_AGENT_DIR;
-              } else {
-                process.env.PI_CODING_AGENT_DIR = oldPiDir;
-              }
-            }
+                agentName,
+                agentId,
+                teamId,
+                apiUrl: harness.restApiUrl,
+                publicKey,
+                privateKey,
+                fingerprint,
+              },
+              sandboxRoot,
+              piDir,
+              taskId: task.id,
+              profileId: profileId!,
+            });
 
             const final = await agent.tasks.get(task.id);
             if (final.status !== 'completed' || !final.acceptedAttemptN) {

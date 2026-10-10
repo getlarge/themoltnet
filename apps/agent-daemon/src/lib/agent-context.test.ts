@@ -140,7 +140,7 @@ describe('resolveAgentContext', () => {
   });
 
   // `--agent-root` is a documented flag ("Directory that owns .moltnet/<agent>")
-  // still accepted by once, poll and sync-sessions. The central-store cutover
+  // still accepted by once and poll. The central-store cutover
   // stopped honouring it while keeping the flag, so every caller that passed
   // one — sandboxed runs, the e2e harness — was silently sent to a central
   // store it had never populated and failed with "No credentials found".

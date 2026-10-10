@@ -11,7 +11,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { RuntimeProfileModels } from '@moltnet/runtime-profiles';
-import type { ProviderFailureProfileContext } from '@themoltnet/pi-runtime';
 import {
   parseSecretReferenceString,
   type SecretProviderRegistry,
@@ -31,8 +30,7 @@ import {
   resolveAgentServerRoot,
 } from './agent-server/store.js';
 
-export type PiAgentDirSource =
-  ProviderFailureProfileContext['piAgentDirSource'];
+export type PiAgentDirSource = 'env' | 'store' | 'repo';
 
 export interface PiAgentDir {
   path: string;

@@ -243,7 +243,7 @@ boundary.
 
 A durable-session audit after the later write failure found the actual harness
 defect. Every Kimi-labelled session above records
-`ollama-cloud/gemma4:31b-cloud` in its `model_change` entry. `executePiTask`
+`ollama-cloud/gemma4:31b-cloud` in its `model_change` entry. The former task executor
 used pi-ai's built-in-only `getModel()` against the custom `ollama-cloud`
 provider; the lookup returned `undefined`, and pi-coding-agent silently selected
 the default from `.pi/settings.json`. The workspace also mixed pi-ai 0.74.0
