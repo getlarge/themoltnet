@@ -38,7 +38,7 @@ jobs:
       MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
       MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
       MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
-      PI_AUTH_JSON: ${{ secrets.PI_AUTH_JSON }}
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
       REVIEW_META: ${{ github.workspace }}/security-review-meta.json
       CANDIDATE_OUTPUT: ${{ github.workspace }}/security-candidates.json
       REVIEW_OUTPUT: ${{ github.workspace }}/security-result.json
@@ -76,6 +76,7 @@ jobs:
         if: steps.prepare.outputs.skip != 'true'
         uses: ./packages/agent-daemon-action
         with:
+          providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
           task-spec-path: ${{ github.workspace }}/security-task.json
           profile: legreffier-security-review-v2
           max-attempts: '2'
@@ -92,6 +93,7 @@ jobs:
         if: steps.prepare.outputs.skip != 'true'
         uses: ./packages/agent-daemon-action
         with:
+          providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
           task-spec-path: ${{ github.workspace }}/security-task.json
           profile: legreffier-security-review-v2
           max-attempts: '2'
