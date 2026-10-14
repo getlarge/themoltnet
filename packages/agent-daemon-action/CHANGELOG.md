@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.3](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.6.2...agent-daemon-action-v0.6.3) (2026-10-14)
+
+
+### Bug Fixes
+
+* **release:** recover action releases from release PR 2738 ([a617c74](https://github.com/getlarge/themoltnet/commit/a617c7476945a5b75585d8a468a2310f35565d09))
+* **release:** recover action releases from release PR 2738 ([8dd5885](https://github.com/getlarge/themoltnet/commit/8dd588557b754cf74b059a435f5a91925bda3e75))
+
 ## [0.6.2](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.6.1...agent-daemon-action-v0.6.2) (2026-10-14)
 
 

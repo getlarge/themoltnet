@@ -1,5 +1,39 @@
 # Changelog
 
+## [3.17.0](https://github.com/getlarge/themoltnet/compare/cli-v3.16.0...cli-v3.17.0) (2026-10-14)
+
+
+### Features
+
+* **api:** add Durable storage and classification contracts [1/8] ([3ad3881](https://github.com/getlarge/themoltnet/commit/3ad3881d70de0a5491e3898f8bcf1cae0d95a260))
+* **cli:** add team group commands ([42d2909](https://github.com/getlarge/themoltnet/commit/42d2909f5f69ce204c354b02c0556ca190c4a2fa))
+* **cli:** add team group commands ([b0fef19](https://github.com/getlarge/themoltnet/commit/b0fef192c1c5a9bc00497dc6a546f2993f9082c8))
+* **cli:** expose pack preview and latest render ([17ada3b](https://github.com/getlarge/themoltnet/commit/17ada3babb695368f7e66f0ef20b27cd878db4fd))
+* **cli:** manage runtime model catalog ([aff6be2](https://github.com/getlarge/themoltnet/commit/aff6be219db122d091bd0f77047f25f43923fddf))
+* **cli:** manage runtime model catalog ([bd67eed](https://github.com/getlarge/themoltnet/commit/bd67eede6b6493ea6422c97beee3ed921505ad8b))
+* **cli:** preview source packs and fetch latest render ([6cc1c23](https://github.com/getlarge/themoltnet/commit/6cc1c23f09d1ac80f44b2169e66b07ea1a84e4ef))
+* **cli:** read Durable task conversations ([f136063](https://github.com/getlarge/themoltnet/commit/f136063c879906531b0948ce1d2b5ab3df3a4564))
+* **cli:** read Durable task conversations [8/8] ([ac04e38](https://github.com/getlarge/themoltnet/commit/ac04e3890f2f9b66704658b9f67f7514e82de54a))
+* **packs:** expose context pack diffs in SDK and CLI ([fb51189](https://github.com/getlarge/themoltnet/commit/fb51189c881482eaef9fa57e8b89c0855e97924f))
+* **packs:** expose context pack diffs in SDK and CLI ([8d4a91e](https://github.com/getlarge/themoltnet/commit/8d4a91ef15b47b71c046720ac7d5c3fd5155a2c0))
+* **tools:** infer per-project secretlint targets ([27bd19d](https://github.com/getlarge/themoltnet/commit/27bd19d2ff4e6d1efa513845d28cb0b8a8607d3b))
+
+
+### Bug Fixes
+
+* address review round 1 on continuation help ([8dbb275](https://github.com/getlarge/themoltnet/commit/8dbb2759fc7207c544227582a95564aef09afa4f))
+* **cli:** close conversation follow gaps and neutralise terminal escapes ([202dc74](https://github.com/getlarge/themoltnet/commit/202dc74baf565bd5b2d717820f9975e1cc1c7a2b))
+* **cli:** explain missing Durable conversations from the empty list ([8d6733a](https://github.com/getlarge/themoltnet/commit/8d6733acde98372d5e38267a3f75a8cac81cdaa8))
+* **cli:** make conversation follow resilient and observable ([74ae6f8](https://github.com/getlarge/themoltnet/commit/74ae6f8ff1b4eab80ab3f958fa44f6868b2d155e))
+* **cli:** remove inert preview persistence flags ([bb31e4e](https://github.com/getlarge/themoltnet/commit/bb31e4ead99ca7dad70bfa26cc379a5bed289ff0))
+* **cli:** retry conversation discovery and bound follow state ([ff9bf21](https://github.com/getlarge/themoltnet/commit/ff9bf2192f942bc47df72e5a86c8d69ca7a82354))
+* **openapi:** migrate Swagger 9.9 generated clients ([1dd4440](https://github.com/getlarge/themoltnet/commit/1dd444048814c5b1475d817a41c0f16a96b8f234))
+* **openapi:** require signing transition request bodies ([a549c3d](https://github.com/getlarge/themoltnet/commit/a549c3ddf189992f4790b8fde857c2edcac4d441))
+* **packs:** name diff endpoints by direction ([45dbd96](https://github.com/getlarge/themoltnet/commit/45dbd96db2c057a78be2ee6794d9e619701c32ee))
+* **release:** recover cli v3.14.0 release cycle ([7ca55b3](https://github.com/getlarge/themoltnet/commit/7ca55b3f8e5f9cab9fd5d0092798b0cd8171fe29))
+* **release:** recover cli v3.14.0 release cycle ([e6853a7](https://github.com/getlarge/themoltnet/commit/e6853a788bccdb77b432046a431d695d183a0b38))
+* validate task contracts early and repair release bundle portability ([89e9fbf](https://github.com/getlarge/themoltnet/commit/89e9fbf52aa984645162b3e417ba856e0cfbd1b8))
+
 ## [3.16.0](https://github.com/getlarge/themoltnet/compare/cli-v3.15.0...cli-v3.16.0) (2026-10-14)
 
 

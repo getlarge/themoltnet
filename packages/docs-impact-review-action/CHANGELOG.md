@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.2](https://github.com/getlarge/themoltnet/compare/docs-impact-review-action-v0.5.1...docs-impact-review-action-v0.5.2) (2026-10-14)
+
+
+### Bug Fixes
+
+* **actions:** refresh action bundles and runtime locks ([427053a](https://github.com/getlarge/themoltnet/commit/427053a318f831d0f32857136c9d79994afeffd3))
+* **actions:** refresh action bundles and runtime locks ([1c9823e](https://github.com/getlarge/themoltnet/commit/1c9823ea9177387f7e44774ef2810883cfdfcd00))
+* **action:** update review runtime locks for refreshed bundle ([2165958](https://github.com/getlarge/themoltnet/commit/2165958ff0ce996de367cb0a1d9b9a84e47c199d))
+* **release:** recover action releases from release PR 2738 ([a617c74](https://github.com/getlarge/themoltnet/commit/a617c7476945a5b75585d8a468a2310f35565d09))
+* **release:** recover action releases from release PR 2738 ([8dd5885](https://github.com/getlarge/themoltnet/commit/8dd588557b754cf74b059a435f5a91925bda3e75))
+
 ## [0.5.1](https://github.com/getlarge/themoltnet/compare/docs-impact-review-action-v0.5.0...docs-impact-review-action-v0.5.1) (2026-10-13)
 
 
