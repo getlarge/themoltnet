@@ -6,6 +6,10 @@
   "type": "module",
   "description": "Bounded PR complexity review with staged MoltNet tasks",
   "exports": {
+    "./evidence": {
+      "import": "./src/evidence.ts",
+      "types": "./src/evidence.ts"
+    },
     "./main": {
       "import": "./src/main.ts",
       "types": "./src/main.ts"
