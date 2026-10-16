@@ -10,6 +10,10 @@
       "import": "./src/evidence.ts",
       "types": "./src/evidence.ts"
     },
+    "./workflow": {
+      "import": "./src/workflow.ts",
+      "types": "./src/workflow.ts"
+    },
     "./main": {
       "import": "./src/main.ts",
       "types": "./src/main.ts"

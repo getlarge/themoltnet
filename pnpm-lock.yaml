@@ -1865,9 +1865,21 @@ importers:
       '@moltnet/complexity-review':
         specifier: workspace:*
         version: link:../complexity-review
+      '@moltnet/docs-impact-review':
+        specifier: workspace:*
+        version: link:../docs-impact-review
+      '@moltnet/security-review':
+        specifier: workspace:*
+        version: link:../security-review
+      '@moltnet/task-schemas':
+        specifier: workspace:*
+        version: link:../task-schemas
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../tasks
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../sdk
       '@themoltnet/tasks-orchestrator':
         specifier: workspace:*
         version: link:../tasks-orchestrator

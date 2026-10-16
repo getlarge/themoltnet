@@ -5,6 +5,12 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "description": "Staged advisory PR security review",
+  "exports": {
+    "./review": {
+      "import": "./src/review.ts",
+      "types": "./src/review.ts"
+    }
+  },
   "scripts": {
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint .",

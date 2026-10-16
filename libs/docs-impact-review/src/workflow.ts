@@ -384,9 +384,17 @@ export function failedReport(
   };
 }
 
+async function settle<T>(
+  promise: Promise<T>,
+): Promise<PromiseSettledResult<T>> {
+  const [result] = await Promise.allSettled([promise]);
+  return result;
+}
+
 export async function runDocsImpactReview(
   deps: DocsImpactDeps,
   reviewInput: DocsImpactInput,
+  options: { serialTaskDispatch?: boolean } = {},
 ): Promise<DocsImpactReport> {
   const { config, configSource, ...rest } = reviewInput;
   const budgets = resolveBudgets(config.budgets);
@@ -566,9 +574,7 @@ export async function runDocsImpactReview(
         reason: `docs hunk not checked: more than ${budgets.maxDocsHunks} hunks (budgets.maxDocsHunks)`,
       });
     }
-    // Coverage and the docs check are independent: run them in parallel so
-    // the extra stage costs no wall-clock beyond the slower of the two.
-    const [coverageResult, docsCheckResult] = await Promise.allSettled([
+    const runCoverage = () =>
       runStage(
         deps,
         input,
@@ -594,7 +600,8 @@ export async function runDocsImpactReview(
           ),
         ),
         timings.stages,
-      ),
+      );
+    const runDocsCheck = () =>
       docsHunks.hunks.length > 0
         ? runStage(
             deps,
@@ -606,8 +613,12 @@ export async function runDocsImpactReview(
             ),
             timings.stages,
           )
-        : Promise.resolve([]),
-    ]);
+        : Promise.resolve([]);
+    // The adaptive review uses one worker for this profile, so it submits the
+    // independent tasks one at a time. Other callers retain parallel dispatch.
+    const [coverageResult, docsCheckResult] = options.serialTaskDispatch
+      ? [await settle(runCoverage()), await settle(runDocsCheck())]
+      : await Promise.allSettled([runCoverage(), runDocsCheck()]);
     if (coverageResult.status === 'rejected') throw coverageResult.reason;
     const coverage = coverageResult.value;
     let docsFindings: DocsFinding[] = [];
