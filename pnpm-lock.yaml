@@ -1857,6 +1857,28 @@ importers:
         specifier: 'catalog:'
         version: 3.5.33(typescript@5.9.3)
 
+  libs/adaptive-review:
+    dependencies:
+      '@moltnet/complexity-review':
+        specifier: workspace:*
+        version: link:../complexity-review
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../tasks
+      '@themoltnet/tasks-orchestrator':
+        specifier: workspace:*
+        version: link:../tasks-orchestrator
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.19
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.33.0)(terser@5.47.1)(tsx@4.23.15)(yaml@2.8.4)
+
   libs/agent-config:
     dependencies:
       '@moltnet/crypto-service':

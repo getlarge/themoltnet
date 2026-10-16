@@ -1,0 +1,37 @@
+{
+  "name": "@moltnet/adaptive-review",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "description": "Classifier-first advisory pull request review",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "test": "vitest run",
+    "typecheck": "tsc -b --emitDeclarationOnly"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "projectType": "library",
+    "tags": [
+      "type:feature",
+      "scope:agent",
+      "platform:server"
+    ]
+  },
+  "dependencies": {
+    "@moltnet/complexity-review": "workspace:*",
+    "@moltnet/tasks": "workspace:*",
+    "@themoltnet/tasks-orchestrator": "workspace:*"
+  }
+}
