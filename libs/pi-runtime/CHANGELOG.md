@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.25.3](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.25.2...pi-runtime-v0.25.3) (2026-10-16)
+
+
+### Bug Fixes
+
+* **pi-runtime:** use VM filesystem for Gondolin writes ([f83b85d](https://github.com/getlarge/themoltnet/commit/f83b85d907727bc047bbf66c4fa6f39eabeb26a1))
+* **pi-runtime:** use VM filesystem for Gondolin writes ([7688de5](https://github.com/getlarge/themoltnet/commit/7688de51841d73375be953a939ace604927b244c))
+
 ## [0.25.2](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.25.1...pi-runtime-v0.25.2) (2026-10-14)
 
 

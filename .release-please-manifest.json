@@ -1,5 +1,5 @@
 {
-  "apps/agent-daemon": "0.72.2",
+  "apps/agent-daemon": "0.72.3",
   "apps/agent-desktop": "0.12.1",
   "apps/console": "0.22.4",
   "apps/mcp-host": "0.2.0",
@@ -19,8 +19,8 @@
   "libs/node-red-contrib-core": "0.18.4",
   "libs/node-red-theme": "0.3.13",
   "libs/os-keyring": "0.5.0",
-  "libs/pi-extension": "0.42.2",
-  "libs/pi-runtime": "0.25.2",
+  "libs/pi-extension": "0.42.3",
+  "libs/pi-runtime": "0.25.3",
   "libs/sandbox-gondolin": "0.8.0",
   "libs/sdk": "0.154.0",
   "libs/shell-command-analyzer": "0.4.0",
