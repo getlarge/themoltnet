@@ -177,6 +177,52 @@ describe('runDocsImpactReview', () => {
     expect(created).toHaveLength(0);
   });
 
+  it('waits for coverage before submitting a docs check in serial mode', async () => {
+    const head = repo.commit({
+      'docs/reference/cli.md':
+        '# CLI reference\n\n## Commands\n\n`run --fast`\n',
+    });
+    const fake = fakeTasks([
+      json({ version: 1, outcome: 'not-needed', findings: [] }),
+      json({
+        version: 1,
+        hunks: [
+          {
+            id: 'docs/reference/cli.md#1',
+            verdict: 'keep',
+            reason: 'Describes a command.',
+          },
+        ],
+      }),
+    ]);
+    const events: string[] = [];
+    const tasks: TaskClient = {
+      createTask: async (body, options) => {
+        const task = await fake.client.createTask(body, options);
+        events.push(`created:${task.id}`);
+        return task;
+      },
+      getTask: (id) => fake.client.getTask(id),
+      listAttempts: async (id) => {
+        const attempts = await fake.client.listAttempts(id);
+        events.push(`completed:${id}`);
+        return attempts;
+      },
+    };
+
+    const report = await runDocsImpactReview(
+      { git: repo.git, tasks, ctx: createSleepingContext() },
+      input(head),
+      { serialTaskDispatch: true },
+    );
+
+    expect(report.outcome).toBe('covered');
+    expect(fake.created).toHaveLength(2);
+    expect(events.indexOf('completed:task-1')).toBeLessThan(
+      events.indexOf('created:task-2'),
+    );
+  });
+
   it('stops after extraction when a refactor changes no public contract', async () => {
     // Arrange
     const head = repo.commit({

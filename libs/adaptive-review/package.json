@@ -9,6 +9,14 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
+    },
+    "./main": {
+      "import": "./src/main.ts",
+      "types": "./src/main.ts"
+    },
+    "./publish": {
+      "import": "./src/publish.ts",
+      "types": "./src/publish.ts"
     }
   },
   "scripts": {
@@ -31,7 +39,12 @@
   },
   "dependencies": {
     "@moltnet/complexity-review": "workspace:*",
+    "@moltnet/docs-impact-review": "workspace:*",
+    "@moltnet/security-review": "workspace:*",
+    "@moltnet/task-schemas": "workspace:*",
     "@moltnet/tasks": "workspace:*",
-    "@themoltnet/tasks-orchestrator": "workspace:*"
+    "@themoltnet/sdk": "workspace:*",
+    "@themoltnet/tasks-orchestrator": "workspace:*",
+    "typebox": "catalog:"
   }
 }
