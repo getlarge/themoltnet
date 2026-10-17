@@ -1,0 +1,28 @@
+{
+  "description": "Repository inspection only for focused advisory PR reviews.",
+  "name": "legreffier-adaptive-focused-readonly-v1",
+  "shellCommands": [
+    { "argvPrefix": ["git", "blame"] },
+    { "argvPrefix": ["git", "cat-file"] },
+    { "argvPrefix": ["git", "diff"] },
+    { "argvPrefix": ["git", "diff-tree"] },
+    { "argvPrefix": ["git", "grep"] },
+    { "argvPrefix": ["git", "log"] },
+    { "argvPrefix": ["git", "ls-files"] },
+    { "argvPrefix": ["git", "merge-base"] },
+    { "argvPrefix": ["git", "rev-parse"] },
+    { "argvPrefix": ["git", "show"] },
+    { "argvPrefix": ["git", "status"] },
+    { "argvPrefix": ["cat"] },
+    { "argvPrefix": ["cd"] },
+    { "argvPrefix": ["cut"] },
+    { "argvPrefix": ["grep"] },
+    { "argvPrefix": ["head"] },
+    { "argvPrefix": ["ls"] },
+    { "argvPrefix": ["pwd"] },
+    { "argvPrefix": ["sort"] },
+    { "argvPrefix": ["tail"] },
+    { "argvPrefix": ["wc"] }
+  ],
+  "tools": ["find", "grep", "ls", "read"]
+}

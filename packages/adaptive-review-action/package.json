@@ -1,0 +1,36 @@
+{
+  "name": "@themoltnet/adaptive-review-action",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "description": "Bundled action for classifier-first PR review",
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "action.yml",
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "lint": "eslint src/",
+    "typecheck": "tsc -b --emitDeclarationOnly"
+  },
+  "devDependencies": {
+    "@moltnet/adaptive-review": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:app",
+      "scope:agent",
+      "platform:gha"
+    ],
+    "targets": {
+      "check:externals": {}
+    }
+  }
+}
