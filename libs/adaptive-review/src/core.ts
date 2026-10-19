@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
 
-import type {
-  ChangedFile,
-  ReviewEvidence,
+import {
+  type ChangedFile,
+  type ReviewEvidence,
+  splitPatch,
 } from '@moltnet/complexity-review/evidence';
 import type { ClassifyOutput } from '@moltnet/tasks';
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
@@ -165,16 +166,12 @@ export function packetize(evidence: ReviewEvidence): Packet[] {
     bytes = 0;
   };
   for (const file of evidence.files) {
-    const source = Buffer.from(file.patch);
-    for (let offset = 0; offset < source.length; ) {
-      let end = Math.min(offset + MAX_PACKET_BYTES, source.length);
-      while (end < source.length && (source[end] & 0xc0) === 0x80) end--;
-      const patch = source.subarray(offset, end).toString('utf8');
+    const chunks = splitPatch(file.patch, MAX_PACKET_BYTES);
+    for (const [index, patch] of chunks.entries()) {
       if (bytes + Buffer.byteLength(patch) > MAX_PACKET_BYTES) flush();
       files.push({ ...file, patch, bytes: Buffer.byteLength(patch) });
       bytes += Buffer.byteLength(patch);
-      offset = end;
-      if (offset < source.length) flush();
+      if (index < chunks.length - 1) flush();
     }
   }
   flush();

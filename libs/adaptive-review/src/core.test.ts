@@ -133,6 +133,19 @@ describe('classifier-first routing', () => {
     expect(packets.every((packet) => packet.bytes <= 24_000)).toBe(true);
   });
 
+  it('prefers diff line boundaries when splitting large patches', () => {
+    const firstLine = `+${'a'.repeat(18_000)}\n`;
+    const secondLine = `+${'b'.repeat(10_000)}\n`;
+    const patch = firstLine + secondLine;
+    const packets = packetize({
+      ...evidence,
+      files: [{ path: 'x.ts', patch, bytes: Buffer.byteLength(patch) }],
+    });
+    expect(
+      packets.flatMap((packet) => packet.files.map((file) => file.patch)),
+    ).toEqual([firstLine, secondLine]);
+  });
+
   it('runs all lanes in shadow, then screens low-concern lanes in active mode', () => {
     const packets = packetize(evidence);
     const classified = [{ packetId: packets[0].id, answers: answers(0.12) }];
