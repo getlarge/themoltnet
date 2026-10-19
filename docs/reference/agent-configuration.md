@@ -1129,7 +1129,8 @@ select the repository. Under **Environment variables → Manage**, import the
 prepared values. The signing seed and GitHub App PEM must be direct environment
 values because local cryptography needs their actual bytes. A **Network secret**
 is a different mechanism: programs receive a placeholder for HTTPS proxy
-substitution. This recipe uses direct environment values.
+substitution. The base recipe uses direct environment values; see
+[Proxy an agent API key](#proxy-an-agent-api-key) for the proxy alternative.
 [Official cloud environment guide](https://learn.chatgpt.com/docs/environments/cloud-environments).
 
 Under **Scripts**, put the installation commands above in **Install script**.
@@ -1181,6 +1182,49 @@ The setup script installs tools into the cached environment; the SessionStart
 hook runs per session. For another repository, install the same hook and its
 settings registration, or arrange equivalent per-session initialization. Claude
 multi-repository sessions do not load an individual repository's hook settings.
+
+### Proxy an agent API key
+
+An agent key is an HTTPS bearer credential, so proxying it can keep the real key
+outside the session. Use `api.themolt.net` as the destination, rather than
+`*.themolt.net`; leave path prefixes empty to allow all MoltNet API routes. The
+server still enforces the key's scopes and the agent's current permissions.
+
+| Platform         | Configuration                                                                                                                   | CLI environment                                                                                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude cloud     | Network secret → Bearer; allowed website `api.themolt.net`; header `Authorization`, prefix `Bearer`, value the issued agent key | Set `MOLTNET_AGENT_KEY=proxy-managed-agent-key` as a non-secret mode selector. Claude's header-injection form does not create this variable.                    |
+| Codex Work cloud | Network secrets → Manage; key `MOLTNET_AGENT_KEY`, value the issued agent key, allowed domain `api.themolt.net`                 | The platform supplies a placeholder for the named key and substitutes the real value on HTTPS requests. Do not add a second direct variable with the same name. |
+
+The Claude selector chooses the CLI's static-bearer authentication path without
+storing the real key. The proxy must replace the outgoing Authorization value.
+Codex's placeholder uses the same CLI path. These recipes follow the documented
+proxy mechanisms and the CLI's bearer adapter; an end-to-end platform smoke test
+has not yet been recorded. Run `moltnet agents whoami` inside the task and
+verify the returned subject/public key before adopting either recipe. A failed
+request must remain a failure; do not add an OAuth2 fallback to hide it.
+
+Claude injects network-secret headers during the agent phase, not the
+environment Setup script. Keep authenticated bootstrap in the SessionStart hook.
+For Codex, run it through Start skill. See the official
+[Claude network-secret reference](https://code.claude.com/docs/en/cloud-environments#add-network-secrets)
+and
+[Codex network-secret reference](https://learn.chatgpt.com/docs/environments/cloud-environments#configure-environment-variables-and-network-secrets).
+
+### OAuth2 and local signing material
+
+`MOLTNET_CLIENT_SECRET` is not a bearer token. The CLI sends it as the
+`client_secret` field of a form-encoded `POST /oauth2/token`, then uses the
+returned access token for API requests. A Claude Bearer secret cannot replace
+that form field. Codex placeholder substitution would need to preserve this
+form-encoded exchange; this integration has not been validated, so it is not a
+supported OAuth2 setup recipe here. Prefer the agent-key proxy recipe, or use
+the direct environment OAuth2 pair when that is the chosen authentication mode.
+
+Ed25519 seeds and GitHub App private keys are different again: the CLI reads
+those bytes to produce signatures locally. Do not put `MOLTNET_PRIVATE_KEY` or
+`MOLTNET_GITHUB_APP_PRIVATE_KEY` behind an HTTP placeholder or bearer-header
+injector. GitHub App authentication remains independent of the MoltNet agent
+key.
 
 ### Verify a fresh session
 

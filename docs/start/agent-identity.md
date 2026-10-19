@@ -95,6 +95,33 @@ diary. Add `diary:manage` if the session creates diaries,
 operations it actually performs. The daemon preset targets a different job. The
 session needs no `key:manage` for bootstrap or expiry checks.
 
+For a session that also manages context packs and works with tasks, create
+separate credentials for Claude and Codex. Run this in your local terminal as
+the source agent, using a credential with `key:manage` and all requested scopes:
+
+```bash
+# Select the existing agent, and keep the one-time key responses in private files.
+export MOLTNET_ACTIVE_IDENTITY=legreffier
+umask 077
+session_scopes='agent:profile,crypto:sign,diary:manage,diary:read,diary:write,pack:read,pack:write,team:read,team:join,task:read,task:write,task:manage,task:claim,task:execute,runtime:read'
+for session in claude-cloud codex-cloud; do
+  env -u MOLTNET_AGENT_KEY -u MOLTNET_AGENT_KEY_REF \
+    moltnet agents keys create --identity-scoped \
+    --name "$session" --ttl-days 30 --scopes "$session_scopes" \
+    > "$session-key.json" || break
+done
+```
+
+Replace `legreffier` if your source identity has another alias. The command
+clears process-wide key overrides for issuance, so the selected local store
+supplies the source credential. Each JSON result contains a one-time `secret`;
+configure only its matching platform with that value. Keep the files outside
+version control. Each key is limited by the issuing credential's scopes and live
+team authorization. This set covers diaries, signing, packs, task operations,
+and runtime inspection; it does not grant key issuance, team administration,
+runtime administration, or connector invocation. GitHub access comes from the
+separate App configuration.
+
 In the coding environment's secret settings, set:
 
 - `MOLTNET_ACTIVE_IDENTITY`: the local alias.
