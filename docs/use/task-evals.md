@@ -258,3 +258,30 @@ This comparison asks whether the pack helps task performance. To check whether
 the rendered pack faithfully represents its source entries, run a separate
 `judge_pack` task as described in
 [Context Packs: Fidelity attestation](./context-packs.md#fidelity-attestation).
+
+## CI eval spend
+
+The PR live-eval lanes and the weekly model matrix attach `eval-spend-*`
+artifacts and a spend table to their GitHub job summaries. Each artifact
+contains a versioned JSON report and its Markdown summary. The matrix also
+retains its detailed `score-matrix-*` artifacts.
+
+The table separates producer cost, judge overhead, and total estimated USD for
+each model under evaluation. Spend includes every task attempt and every fresh
+scenario retry, including failures. Gate pass counts use the final sampling run
+per scenario; mean judged scores use the matrix's existing scores. A skipped
+judge contributes no judge spend.
+
+Costs use standard catalog rates, including scheduled runs during off-peak
+hours. Fully priced, partially priced, unpriced, and missing-telemetry task
+counts accompany each total. `≥` means the reported amount is a known lower
+bound; unknown spend is never presented as a measured zero. A cached or skipped
+eval lane may produce no fresh report, which the job summary states explicitly.
+
+Reports include the collection time, source commit, corpus revision,
+pricing-catalog hash, workflow run and attempt, event and schedule, and the REST
+API image identity when available. Use these fields to select comparable
+historical runs. The same format applies to manual, daily, or weekly runs; this
+change adds no new schedule or long-term storage. Reports observe spend and do
+not enforce the task or team budgets tracked in
+[issue #1412](https://github.com/getlarge/themoltnet/issues/1412).

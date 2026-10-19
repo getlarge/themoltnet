@@ -88,6 +88,24 @@ describe('summarizeProducerSpend', () => {
 
     // Assert
     expect(spend.durationMs).toBe(0);
+    expect(spend.costComplete).toBe(false);
+  });
+
+  it('keeps missing usage and cache-only unpriced attempts incomplete', () => {
+    expect(summarizeProducerSpend([attempt(null)]).costComplete).toBe(false);
+    expect(
+      summarizeProducerSpend([
+        attempt({ inputTokens: 0, outputTokens: 0, cacheReadTokens: 50 }),
+      ]).costComplete,
+    ).toBe(false);
+    expect(
+      summarizeProducerSpend([
+        {
+          ...attempt({ inputTokens: 1, outputTokens: 0, cost: cost(0.1) }),
+          completedAt: null,
+        },
+      ]).costComplete,
+    ).toBe(false);
   });
 });
 

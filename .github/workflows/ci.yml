@@ -1498,6 +1498,8 @@ jobs:
       SERVER_BASE_URL: http://localhost:8080
       ORY_ACTION_API_KEY: local-dev-webhook-key
       MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E: '1'
+      EVAL_SPEND_DIR: ${{ github.workspace }}/eval-spend
+      EVAL_SCHEDULE: ${{ github.event.schedule }}
       OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
       TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
     steps:
@@ -1585,6 +1587,22 @@ jobs:
       - name: Run agent-daemon ${{ matrix.lane.name }} E2E tests
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
         run: pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e --configuration=${{ matrix.lane.configuration }}
+      - name: Summarize eval spend
+        if: always() && needs.affected.outputs.e2e-agent-daemon == 'true' && startsWith(matrix.lane.configuration, 'live-evals-')
+        shell: bash
+        run: |
+          if compgen -G "$EVAL_SPEND_DIR/*.md" > /dev/null; then
+            cat "$EVAL_SPEND_DIR"/*.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'No fresh eval spend report was produced (the evals may have been cached, skipped, or failed before reporting). This is not a measured zero cost.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload eval spend
+        if: always() && needs.affected.outputs.e2e-agent-daemon == 'true' && startsWith(matrix.lane.configuration, 'live-evals-')
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: eval-spend-${{ matrix.lane.cache_key }}-${{ github.run_attempt }}
+          path: eval-spend/
+          if-no-files-found: ignore
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-agent-daemon == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
