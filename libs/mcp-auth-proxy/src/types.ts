@@ -25,7 +25,7 @@ export interface McpAuthProxyOptions {
   };
   /** Rate limiting for failed token exchanges */
   rateLimit?: {
-    /** Max failures before cooldown (default: 5) */
+    /** Credential rejections per client ID/secret before cooldown (default: 5) */
     maxFailures?: number;
     /** Cooldown duration in ms (default: 60000) */
     cooldownMs?: number;
