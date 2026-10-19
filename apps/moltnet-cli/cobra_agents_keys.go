@@ -126,7 +126,6 @@ a second credential.`,
 	cmd.Flags().Int("ttl-days", 0, "Key lifetime in days (server default applies if unset)")
 	cmd.Flags().String("idempotency-key", "", "Idempotency key for safe retries (generated if unset)")
 	addAgentKeyStoreFlags(cmd)
-	_ = cmd.MarkFlagRequired("agent-id")
 	_ = cmd.MarkFlagRequired("name")
 	return cmd
 }

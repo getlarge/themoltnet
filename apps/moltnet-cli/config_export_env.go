@@ -45,7 +45,7 @@ func runConfigExportEnvCmdWithRegistry(
 	}
 	includeSecrets := outFile != "" || showSecret
 	clientSecret := ""
-	if includeSecrets {
+	if includeSecrets && hasOAuth2Configuration(creds) {
 		clientSecret, err = resolveOAuth2Secret(creds, secretProviders)
 		if err != nil {
 			return fmt.Errorf("resolve OAuth2 client secret: %w", err)
@@ -71,9 +71,11 @@ func runConfigExportEnvCmdWithRegistry(
 	}
 	lines = append(lines, fmt.Sprintf("MOLTNET_SUBJECT_ID=%s", creds.SubjectID))
 	lines = append(lines, fmt.Sprintf("MOLTNET_SUBJECT_TYPE=%s", creds.SubjectType))
-	lines = append(lines, fmt.Sprintf("MOLTNET_CLIENT_ID=%s", creds.OAuth2.ClientID))
-	if includeSecrets {
-		lines = append(lines, fmt.Sprintf("MOLTNET_CLIENT_SECRET=%s", clientSecret))
+	if hasOAuth2Configuration(creds) {
+		lines = append(lines, fmt.Sprintf("MOLTNET_CLIENT_ID=%s", creds.OAuth2.ClientID))
+		if includeSecrets {
+			lines = append(lines, fmt.Sprintf("MOLTNET_CLIENT_SECRET=%s", clientSecret))
+		}
 	}
 	lines = append(lines, fmt.Sprintf("MOLTNET_PUBLIC_KEY=%s", creds.Keys.PublicKey))
 	// A host signing broker owns the seed; never export it from a guest.

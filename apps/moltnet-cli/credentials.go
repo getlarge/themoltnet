@@ -85,6 +85,10 @@ func (c CredentialsFile) MarshalJSON() ([]byte, error) {
 	if err := json.Unmarshal(encoded, &document); err != nil {
 		return nil, err
 	}
+	// Environment-only agent keys need no OAuth2 section in their document.
+	if c.OAuth2 == (CredentialsOAuth2{}) {
+		delete(document, "oauth2")
+	}
 	for key, value := range c.extraFields {
 		if _, known := document[key]; !known {
 			document[key] = value

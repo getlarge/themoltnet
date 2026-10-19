@@ -6,12 +6,17 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 )
 
 // runAgentsWhoamiCmd is the flag-free business logic for agents whoami.
 func runAgentsWhoamiCmd(apiURL, credPath string) error {
+	return runAgentsWhoamiWithExpiry(apiURL, credPath, os.Stdout, os.Stderr, -1)
+}
+
+func runAgentsWhoamiWithExpiry(apiURL, credPath string, out, errOut io.Writer, warnDays int) error {
 	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
@@ -24,7 +29,10 @@ func runAgentsWhoamiCmd(apiURL, credPath string) error {
 	if !ok {
 		return formatAPIError(res)
 	}
-	return printJSON(whoami)
+	if warnDays >= 0 {
+		warnAgentKeyExpiry(errOut, whoami, warnDays, time.Now())
+	}
+	return printJSONTo(out, whoami)
 }
 
 // runAgentsLookupCmd is the flag-free business logic for agents lookup.
@@ -57,4 +65,23 @@ func printJSONTo(w io.Writer, v interface{}) error {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(v)
+}
+
+// Missing or null expiry denotes an unavailable or non-expiring credential.
+func warnAgentKeyExpiry(out io.Writer, whoami *moltnetapi.Whoami, days int, now time.Time) {
+	binding, ok := whoami.CredentialBinding.Get()
+	if !ok {
+		return
+	}
+	var expiry moltnetapi.OptNilDateTime
+	switch binding.Type {
+	case moltnetapi.ProvenanceGraphIdentityNodeWhoamiCredentialBinding:
+		expiry = binding.ProvenanceGraphIdentityNode.ExpiresAt
+	case moltnetapi.ProvenanceGraphTeamNodeWhoamiCredentialBinding:
+		expiry = binding.ProvenanceGraphTeamNode.ExpiresAt
+	}
+	at, ok := expiry.Get()
+	if ok && at.Sub(now).Hours()/24 <= float64(days) {
+		fmt.Fprintf(out, "Warning: MoltNet agent key expires at %s; replace the session key before expiry.\n", at.UTC().Format(time.RFC3339))
+	}
 }

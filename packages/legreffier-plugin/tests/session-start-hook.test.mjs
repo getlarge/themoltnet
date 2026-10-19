@@ -19,6 +19,7 @@ function runHook({
   withGitconfig,
   withDocument = true,
   stubNpx = false,
+  npxBody = 'exit 0',
   env = {},
 } = {}) {
   const home = mkdtempSync(join(tmpdir(), 'moltnet-hook-'));
@@ -43,7 +44,14 @@ function runHook({
   if (stubNpx) {
     const bin = join(home, 'bin');
     mkdirSync(bin, { recursive: true });
-    writeFileSync(join(bin, 'npx'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
+    writeFileSync(
+      join(bin, 'npx'),
+      `#!/bin/sh
+printf '%s\\n' "$*" >> "$HOME/npx-calls"
+${npxBody}
+`,
+      { mode: 0o755 },
+    );
     path = `${bin}:${path}`;
   }
 
@@ -68,7 +76,11 @@ function runHook({
       ...env,
     },
   });
-  return { ...result, exported: readFileSync(envFile, 'utf8') };
+  return {
+    ...result,
+    exported: readFileSync(envFile, 'utf8'),
+    calls: stubNpx ? readFileSync(join(home, 'npx-calls'), 'utf8') : '',
+  };
 }
 
 // The active identity IS the session activation signal — the secrets guard and
@@ -118,18 +130,18 @@ test('does nothing outside a remote session', () => {
   assert.equal(exported, '');
 });
 
-// The hook runs with OAuth, signing-key and optional GitHub App secrets in its
-// environment, so it must not resolve a mutable npm tag by default.
-test('pins the CLI it installs rather than tracking latest', () => {
-  const script = readFileSync(hook, 'utf8');
-  assert.doesNotMatch(
-    script,
-    /@themoltnet\/cli@\$\{MOLTNET_CLI_VERSION:-latest\}/,
-  );
-  assert.match(
-    script,
-    /@themoltnet\/cli@\$\{MOLTNET_CLI_VERSION:-\d+\.\d+\.\d+\}/,
-  );
+test('uses the published latest tag and accepts an explicit release pin', () => {
+  for (const version of ['', '3.17.0']) {
+    const { calls } = runHook({
+      withDocument: false,
+      stubNpx: true,
+      env: { MOLTNET_CLI_VERSION: version },
+    });
+    assert.match(
+      calls,
+      new RegExp(`@themoltnet/cli@${version || 'latest'} config init-from-env`),
+    );
+  }
 });
 
 // The hook accepts the pre-cutover variable name so an environment configured
@@ -169,4 +181,57 @@ test('fails loudly when the CLI creates no central document', () => {
   assert.match(stderr, /did not create/);
   assert.match(stderr, /MOLTNET_CLI_VERSION/);
   assert.equal(exported, '', 'a failed bootstrap must export nothing');
+});
+
+test('checks agent-key expiry even when the identity is already initialized', () => {
+  const { status, calls, exported } = runHook({
+    stubNpx: true,
+    env: { MOLTNET_AGENT_KEY: 'session-test-key' },
+  });
+  assert.equal(status, 0);
+  assert.match(calls, /agents whoami --warn-expiry-days 7/);
+  assert.match(exported, /MOLTNET_ACTIVE_IDENTITY/);
+});
+
+test('passes an expiry threshold override and preserves the CLI warning', () => {
+  const { status, calls, stderr } = runHook({
+    stubNpx: true,
+    npxBody: 'echo "Warning: key expires soon" >&2',
+    env: {
+      MOLTNET_AGENT_KEY: 'session-test-key',
+      MOLTNET_AGENT_KEY_WARN_DAYS: '14',
+    },
+  });
+  assert.equal(status, 0);
+  assert.match(calls, /--warn-expiry-days 14/);
+  assert.match(stderr, /key expires soon/);
+});
+
+test('a rejected key fails before exporting session activation', () => {
+  const { status, stderr, exported } = runHook({
+    stubNpx: true,
+    npxBody: 'case "$*" in *whoami*) exit 1 ;; esac',
+    env: { MOLTNET_AGENT_KEY: 'session-test-key' },
+  });
+  assert.equal(status, 1);
+  assert.match(stderr, /replace an expired or revoked key/);
+  assert.equal(exported, '');
+});
+
+test('bootstraps an agent-key session and checks expiry before activation', () => {
+  const { status, calls, exported } = runHook({
+    withDocument: false,
+    stubNpx: true,
+    npxBody: `case "$*" in
+      *init-from-env*)
+        mkdir -p "$HOME/.config/moltnet/identities/legreffier"
+        printf '{}' > "$HOME/.config/moltnet/identities/legreffier/moltnet.json"
+        ;;
+    esac`,
+    env: { MOLTNET_AGENT_KEY: 'session-test-key' },
+  });
+  assert.equal(status, 0);
+  assert.match(calls, /config init-from-env --name legreffier/);
+  assert.match(calls, /agents whoami --warn-expiry-days 7/);
+  assert.match(exported, /MOLTNET_ACTIVE_IDENTITY/);
 });
