@@ -171,7 +171,7 @@ jobs:
         if: steps.pin.outputs.skip == 'false'
         with:
           ref: ${{ steps.pin.outputs.base }}
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         if: steps.pin.outputs.skip == 'false'
@@ -214,7 +214,7 @@ jobs:
           GIT_CONFIG_COUNT=1 \
             GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL:-https://github.com}/.extraheader" \
             GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
-            git fetch --no-tags origin "$HEAD_SHA"
+            git fetch --no-tags --depth=1 origin "$HEAD_SHA"
       - name: Write pinned planner input
         if: steps.pin.outputs.skip == 'false'
         env:
@@ -264,7 +264,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ needs.prepare.outputs.base }}
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -298,7 +298,7 @@ jobs:
           GIT_CONFIG_COUNT=1 \
             GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL:-https://github.com}/.extraheader" \
             GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
-            git fetch --no-tags origin "$HEAD_SHA"
+            git fetch --no-tags --depth=1 origin "$HEAD_SHA"
       - name: Write pinned review input
         env:
           PREPARED_JSON: ${{ needs.prepare.outputs.prepared }}
@@ -373,7 +373,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ needs.prepare.outputs.base }}
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -407,7 +407,7 @@ jobs:
           GIT_CONFIG_COUNT=1 \
             GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL:-https://github.com}/.extraheader" \
             GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
-            git fetch --no-tags origin "$HEAD_SHA"
+            git fetch --no-tags --depth=1 origin "$HEAD_SHA"
       - name: Write pinned review input
         env:
           PREPARED_JSON: ${{ needs.prepare.outputs.prepared }}
@@ -471,7 +471,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ needs.prepare.outputs.base }}
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
       - name: Fetch reviewed head as inert Git data
         env:
@@ -485,7 +485,7 @@ jobs:
           GIT_CONFIG_COUNT=1 \
             GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL:-https://github.com}/.extraheader" \
             GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
-            git fetch --no-tags origin "$HEAD_SHA"
+            git fetch --no-tags --depth=1 origin "$HEAD_SHA"
       - name: Drain this review's tasks
         uses: getlarge/themoltnet/packages/agent-daemon-action@e82895cd187297d4531f853661e7d667a1243b35 # v0
         env:
@@ -529,7 +529,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ needs.prepare.outputs.base }}
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
       - name: Fetch reviewed head as inert Git data
         env:
@@ -543,7 +543,7 @@ jobs:
           GIT_CONFIG_COUNT=1 \
             GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL:-https://github.com}/.extraheader" \
             GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
-            git fetch --no-tags origin "$HEAD_SHA"
+            git fetch --no-tags --depth=1 origin "$HEAD_SHA"
       - name: Drain selected review tasks
         uses: getlarge/themoltnet/packages/agent-daemon-action@e82895cd187297d4531f853661e7d667a1243b35 # v0
         env:

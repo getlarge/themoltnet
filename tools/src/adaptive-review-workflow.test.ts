@@ -1,6 +1,7 @@
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import {
   chmodSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -115,6 +116,25 @@ function job(name: string): string {
     (line, index) => index > start && /^ {2}[a-z][a-z-]*:$/.test(line),
   );
   return lines.slice(start, end < 0 ? undefined : end).join('\n');
+}
+
+function workerActionInputs(name: string): string {
+  const lines = job(name).split('\n');
+  const action = lines.findIndex((line) =>
+    line.includes('/packages/agent-daemon-action@'),
+  );
+  const withInputs = lines.findIndex(
+    (line, index) => index > action && line === '        with:',
+  );
+  const nextStep = lines.findIndex(
+    (line, index) => index > action && line.startsWith('      - '),
+  );
+  if (action < 0 || withInputs < 0 || (nextStep >= 0 && withInputs > nextStep))
+    throw new Error(`Worker action inputs are missing in ${name}`);
+  const end = lines.findIndex(
+    (line, index) => index > withInputs && !line.startsWith('          '),
+  );
+  return lines.slice(withInputs + 1, end < 0 ? undefined : end).join('\n');
 }
 
 function fetchScripts(): string[] {
@@ -374,7 +394,9 @@ describe('adaptive review workflow trust gates', () => {
 
   it('passes the producer project scope to both worker types', () => {
     for (const name of ['classifier-worker', 'specialist-workers']) {
-      expect(job(name)).toContain('project-id: ${{ inputs.project-id }}');
+      expect(workerActionInputs(name)).toContain(
+        'project-id: ${{ inputs.project-id }}',
+      );
     }
   });
 
@@ -395,6 +417,7 @@ describe('adaptive review workflow trust gates', () => {
     const scripts = fetchScripts();
     expect(scripts).toHaveLength(5);
     expect(new Set(scripts).size).toBe(1);
+    expect(workflow.match(/fetch-depth: 1/g)).toHaveLength(5);
     expect(workflow).not.toContain('filter: blob:none');
     const temp = mkdtempSync(join(tmpdir(), 'adaptive-fetch-'));
     try {
@@ -426,6 +449,7 @@ describe('adaptive review workflow trust gates', () => {
         `AUTHORIZATION: basic ${Buffer.from('x-access-token:fixture-token').toString('base64')}`,
         'fetch',
         '--no-tags',
+        '--depth=1',
         'origin',
         sha,
       ]);
@@ -435,6 +459,65 @@ describe('adaptive review workflow trust gates', () => {
         encoding: 'utf8',
       });
       expect(invalid.status).toBe(2);
+    } finally {
+      rmSync(temp, { recursive: true, force: true });
+    }
+  });
+
+  it('can diff complete base and head objects from shallow fetches', () => {
+    const temp = mkdtempSync(join(tmpdir(), 'adaptive-shallow-'));
+    const source = join(temp, 'source');
+    const remote = join(temp, 'remote.git');
+    const checkout = join(temp, 'checkout');
+    const git = (cwd: string, ...args: string[]) =>
+      execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
+    try {
+      mkdirSync(source);
+      git(temp, 'init', '--bare', remote);
+      git(source, 'init', '-b', 'main');
+      git(source, 'config', 'user.name', 'Test');
+      git(source, 'config', 'user.email', 'test@example.invalid');
+      writeFileSync(join(source, 'review.txt'), 'base content\n');
+      git(source, 'add', 'review.txt');
+      git(source, 'commit', '-m', 'base');
+      const base = git(source, 'rev-parse', 'HEAD');
+      git(source, 'remote', 'add', 'origin', remote);
+      git(source, 'push', 'origin', 'main');
+      git(source, 'checkout', '-b', 'feature');
+      writeFileSync(join(source, 'review.txt'), 'head content\n');
+      git(source, 'commit', '-am', 'head');
+      const head = git(source, 'rev-parse', 'HEAD');
+      git(source, 'push', 'origin', 'feature');
+
+      git(
+        temp,
+        'clone',
+        '--depth=1',
+        '--branch',
+        'main',
+        `file://${remote}`,
+        checkout,
+      );
+      const fetched = spawnSync('bash', ['-e'], {
+        cwd: checkout,
+        input: fetchScripts()[0],
+        env: {
+          ...process.env,
+          HEAD_SHA: head,
+          GH_TOKEN: 'fixture-token',
+          GITHUB_SERVER_URL: 'https://github.com',
+        },
+        encoding: 'utf8',
+      });
+      expect(fetched.status, fetched.stderr).toBe(0);
+      expect(git(checkout, 'rev-parse', '--is-shallow-repository')).toBe(
+        'true',
+      );
+      expect(git(checkout, 'show', `${base}:review.txt`)).toBe('base content');
+      expect(git(checkout, 'show', `${head}:review.txt`)).toBe('head content');
+      expect(git(checkout, 'diff', '--name-only', base, head)).toBe(
+        'review.txt',
+      );
     } finally {
       rmSync(temp, { recursive: true, force: true });
     }
@@ -451,7 +534,7 @@ describe('adaptive review workflow trust gates', () => {
     expect(workflow).toContain('path: .adaptive-review-runtime');
     expect(workflow).toContain('ref: ${{ needs.prepare.outputs.base }}');
     expect(
-      workflow.match(/git fetch --no-tags origin "\$HEAD_SHA"/g),
+      workflow.match(/git fetch --no-tags --depth=1 origin "\$HEAD_SHA"/g),
     ).toHaveLength(5);
     expect(workflow.match(/GIT_CONFIG_COUNT=1/g)).toHaveLength(5);
     expect(
