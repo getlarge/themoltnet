@@ -1,6 +1,11 @@
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import { canonicalJson } from '@moltnet/crypto-service';
+import { createGit } from '@moltnet/docs-impact-review';
 import { describe, expect, it } from 'vitest';
 
 import { changedPaths, loadAdaptivePolicy } from './snapshot.js';
@@ -83,5 +88,57 @@ describe('pinned adaptive policy snapshot', () => {
       },
       { status: 'deleted', path: 'migrations/old.sql' },
     ]);
+  });
+
+  it('reads another repository policy and renamed changes from real Git objects', () => {
+    const root = mkdtempSync(join(tmpdir(), 'adaptive-foreign-repo-'));
+    const git = (args: string[]) =>
+      execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
+    try {
+      git(['init', '-q']);
+      git(['config', 'user.name', 'Test']);
+      git(['config', 'user.email', 'test@example.invalid']);
+      mkdirSync(join(root, '.github'));
+      mkdirSync(join(root, 'src', 'domain'), { recursive: true });
+      writeFileSync(
+        join(root, '.github', 'adaptive-review.json'),
+        JSON.stringify({
+          version: 1,
+          lanes: ['tests', 'conventions'],
+          rules: [
+            {
+              id: 'domain-tests',
+              description: 'Keep domain behavior covered by tests.',
+              kind: 'semantic',
+              paths: ['src/domain/**'],
+              source: 'CONTRIBUTING.md',
+            },
+          ],
+          checks: [],
+        }),
+      );
+      writeFileSync(
+        join(root, 'src', 'domain', 'old.ts'),
+        'export const n = 1;\n',
+      );
+      git(['add', '.']);
+      git(['commit', '-qm', 'base']);
+      const fixtureBase = git(['rev-parse', 'HEAD']);
+      git(['mv', 'src/domain/old.ts', 'src/domain/new.ts']);
+      git(['commit', '-qam', 'rename']);
+      const fixtureHead = git(['rev-parse', 'HEAD']);
+
+      const snapshot = loadAdaptivePolicy(createGit(root), fixtureBase);
+      expect(snapshot?.policy.rules[0].id).toBe('domain-tests');
+      expect(changedPaths(createGit(root), fixtureBase, fixtureHead)).toEqual([
+        {
+          status: 'renamed',
+          previousPath: 'src/domain/old.ts',
+          path: 'src/domain/new.ts',
+        },
+      ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

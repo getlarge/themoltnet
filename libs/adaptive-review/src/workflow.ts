@@ -761,7 +761,7 @@ export async function runRoutedAdaptiveReview(
         return {
           lane: route.lane,
           status: 'screened',
-          summary: 'Screened by Jev; not verified.',
+          summary: 'Screened by classifier; not verified.',
           taskIds: [],
           findings: [],
         };

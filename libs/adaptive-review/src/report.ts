@@ -14,7 +14,7 @@ export function renderAdaptiveComment(
     '',
     `${report.mode === 'shadow' ? 'Shadow run: every enabled lane was investigated.' : 'Classifier-selected investigations.'} Head \`${report.head.slice(0, 7)}\` · [workflow run](${runUrl}).`,
     '',
-    '| Lane | Jev concern | Investigation |',
+    '| Lane | Classifier concern | Investigation |',
     '| --- | ---: | --- |',
   ];
   for (const route of report.routing.routes) {
@@ -33,7 +33,7 @@ export function renderAdaptiveComment(
   const effort = report.routing.scores['review-effort'];
   lines.push(
     '',
-    `Jev scores (0–3): code complexity ${complexity === null ? 'unavailable' : complexity.toFixed(1)}; review effort ${effort === null ? 'unavailable' : effort.toFixed(1)}. These describe screening, not review findings.`,
+    `Classifier scores (0–3): code complexity ${complexity === null ? 'unavailable' : complexity.toFixed(1)}; review effort ${effort === null ? 'unavailable' : effort.toFixed(1)}. These describe screening, not review findings.`,
   );
   const concerns = report.results.filter(
     (result) => result.status === 'concern' && result.lane !== 'security',
