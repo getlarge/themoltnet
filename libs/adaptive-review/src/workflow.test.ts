@@ -734,6 +734,46 @@ describe('adaptive review orchestration', () => {
     expect(log.mock.calls.flat().join('')).not.toContain('private token');
   });
 
+  it('does not blame a later docs task for an earlier polling failure', async () => {
+    const { tasks } = harness({ selected: 'docs' });
+    const log = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+    mocks.runDocsImpactReview.mockImplementationOnce(
+      async (deps: { tasks: TaskClient }) => {
+        for (const stage of ['coverage', 'docs-check']) {
+          await deps.tasks.createTask({
+            taskType: 'freeform',
+            title: `Docs ${stage}`,
+            teamId: identity.teamId,
+            diaryId: identity.diaryId,
+            tags: [`stage:${stage}`],
+            input: { brief: 'Review docs' },
+          } as Parameters<TaskClient['createTask']>[0]);
+        }
+        return {
+          status: 'failed',
+          error: 'polling failed: private token',
+          findings: [],
+          timings: { stages: {} },
+        };
+      },
+    );
+
+    const report = await review(tasks);
+
+    expect(
+      report.results.find((result) => result.lane === 'docs'),
+    ).toMatchObject({
+      status: 'failed',
+      summary:
+        'Docs review failed during task-outcome (polling-error); inspect its task outcome.',
+      taskIds: ['task-2', 'task-3'],
+    });
+    expect(log).toHaveBeenCalledWith(
+      'Adaptive lane failure: lane=docs stage=task-outcome code=polling-error taskIds=task-2,task-3\n',
+    );
+    expect(log.mock.calls.flat().join('')).not.toContain('private token');
+  });
+
   it.each([
     [
       'updates-needed',

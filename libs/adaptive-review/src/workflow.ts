@@ -502,7 +502,7 @@ function docsResult(
   )?.[1];
   const stage =
     stageFromError ??
-    stages.get(taskIds.at(-1) ?? '') ??
+    (taskIds.length === 1 ? stages.get(taskIds[0]) : undefined) ??
     (taskIds.length ? 'task-outcome' : 'before-task');
   const error = report.error ?? '';
   const code = /poll|read task|task lookup/i.test(error)
