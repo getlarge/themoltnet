@@ -34,7 +34,10 @@ vi.mock('./resolve-correlation.js', () => ({
 
 const PROJECT = '55555555-5555-4555-8555-555555555555';
 
+const PROFILE = '44444444-4444-4444-8444-444444444444';
+
 const BASE_ENV = {
+  MOLTNET_ACTION_PROFILE_ID: PROFILE,
   MOLTNET_TEAM_ID: '11111111-1111-4111-8111-111111111111',
   MOLTNET_DIARY_ID: '22222222-2222-4222-8222-222222222222',
 };
@@ -84,6 +87,7 @@ describe('dispatch', () => {
       expect.objectContaining({
         maxAttempts: 2,
         tags: ['ci', 'source:github-actions'],
+        profileId: PROFILE,
       }),
     );
   });
@@ -181,6 +185,7 @@ describe('dispatch', () => {
     expect(mocks.createAssessTask).toHaveBeenCalledWith(
       expect.objectContaining({
         projectId: PROJECT,
+        profileId: PROFILE,
         targetTaskId: 'fulfill-1',
       }),
     );
