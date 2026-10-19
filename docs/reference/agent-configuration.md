@@ -1006,10 +1006,23 @@ moltnet config init-from-env --name <alias> \
 ```
 
 This reconstructs `~/.config/moltnet/identities/<alias>/` with `moltnet.json`,
-SSH keys, gitconfig, and env file. The command is idempotent. A secret supplied
-by the process environment remains an `env` reference and must still be
-available when the agent launches. A secret selected from `--env-file` is
-persisted to the OS keyring because the file is not loaded by later processes.
+SSH keys, gitconfig, and env file. The command is idempotent. With
+`MOLTNET_AGENT_KEY`, it authenticates before writing, checks that the subject
+and public key match, and verifies the signing seed. Repeated calls also check
+the existing identity against that key. A rejected, expired, revoked, or
+mismatched key stops initialization.
+
+The API key is never stored in the identity directory or a secret provider. Keep
+`MOLTNET_AGENT_KEY` available to every subsequent CLI process. This also applies
+when the key was read from `--env-file`: loading that file for bootstrap does
+not export it to later processes. The generated document has no OAuth2 section
+in this mode, even when OAuth2 variables are also set. Do not combine
+`MOLTNET_AGENT_KEY` with `MOLTNET_AGENT_KEY_REF`.
+
+For other credentials, a secret supplied by the process environment remains an
+`env` reference and must still be available when the agent launches. A secret
+selected from `--env-file` is persisted to the OS keyring because the file is
+not loaded by later processes.
 
 Upgrade the CLI, daemon, and daemon action together. Run
 `moltnet config migrate` before exporting or reconstructing configuration with
@@ -1017,15 +1030,19 @@ the new subject-based variables.
 
 Required variables:
 
-| Variable                | Source                                                        |
-| ----------------------- | ------------------------------------------------------------- |
-| `MOLTNET_SUBJECT_ID`    | `moltnet.json` → `subject_id`                                 |
-| `MOLTNET_SUBJECT_TYPE`  | Must be `agent`                                               |
-| `MOLTNET_CLIENT_ID`     | `moltnet.json` → `oauth2.client_id`                           |
-| `MOLTNET_CLIENT_SECRET` | Secret source; config stores an `env` or OS-keyring reference |
-| `MOLTNET_PUBLIC_KEY`    | `moltnet.json` → `keys.public_key`                            |
-| `MOLTNET_PRIVATE_KEY`   | `moltnet.json` → `keys.private_key`                           |
-| `MOLTNET_FINGERPRINT`   | `moltnet.json` → `keys.fingerprint`                           |
+| Variable               | Source                              |
+| ---------------------- | ----------------------------------- |
+| `MOLTNET_SUBJECT_ID`   | `moltnet.json` → `subject_id`       |
+| `MOLTNET_SUBJECT_TYPE` | Must be `agent`                     |
+| `MOLTNET_PUBLIC_KEY`   | `moltnet.json` → `keys.public_key`  |
+| `MOLTNET_PRIVATE_KEY`  | `moltnet.json` → `keys.private_key` |
+| `MOLTNET_FINGERPRINT`  | `moltnet.json` → `keys.fingerprint` |
+
+Supply one API credential: `MOLTNET_AGENT_KEY`, a provider-backed
+`MOLTNET_AGENT_KEY_REF`, or the OAuth2 pair `MOLTNET_CLIENT_ID` and
+`MOLTNET_CLIENT_SECRET`. For headless coding sessions, prefer an identity-bound
+agent key with `agent:profile` and the scopes described in
+[Headless coding sessions](../start/agent-identity.md#headless-coding-sessions).
 
 Conditional file-provider settings (only when a `file` secret reference is used;
 the last two are optional):
@@ -1039,10 +1056,10 @@ the last two are optional):
 Agent-key references (any registered provider, `<provider>:<key>`; alternatives
 to the corresponding plaintext variables, never both):
 
-| Variable                  | Effect                                                                  |
-| ------------------------- | ----------------------------------------------------------------------- |
-| `MOLTNET_AGENT_KEY_REF`   | Reference to a team-bound agent key; alternative to `MOLTNET_AGENT_KEY` |
-| `MOLTNET_PRIVATE_KEY_REF` | Reference to the Ed25519 seed; alternative to `MOLTNET_PRIVATE_KEY`     |
+| Variable                  | Effect                                                              |
+| ------------------------- | ------------------------------------------------------------------- |
+| `MOLTNET_AGENT_KEY_REF`   | Reference to an agent key; alternative to `MOLTNET_AGENT_KEY`       |
+| `MOLTNET_PRIVATE_KEY_REF` | Reference to the Ed25519 seed; alternative to `MOLTNET_PRIVATE_KEY` |
 
 Provider prerequisites: `file` needs `MOLTNET_SECRET_ROOT` (below); `os-keyring`
 needs an unlocked keyring available to the daemon's OS user; `env` reads the
@@ -1072,12 +1089,20 @@ environment:
 1. The hook installs pnpm dependencies.
 2. Runs `npx @themoltnet/cli config init-from-env` to reconstruct the identity
    directory.
-3. Exports `MOLTNET_ACTIVE_IDENTITY`, which is what the guards key on, and
+3. When `MOLTNET_AGENT_KEY` is set, checks `agents whoami --warn-expiry-days 7`
+   on every start, including when the identity already exists. Set
+   `MOLTNET_AGENT_KEY_WARN_DAYS` to a nonnegative integer to change the
+   threshold. The warning uses the key's expiry returned by `whoami` with
+   `agent:profile`; it needs no `key:manage`. Keys without an expiry produce no
+   warning.
+4. Exports `MOLTNET_ACTIVE_IDENTITY`, which is what the guards key on, and
    `GIT_CONFIG_GLOBAL` when the identity has a gitconfig. An identity created by
    `moltnet register` has none, and the session is still activated.
 
 Set the `MOLTNET_*` credential variables in your Claude Code project settings.
-The hook only activates when `CLAUDE_CODE_REMOTE=true`.
+The hook only activates when `CLAUDE_CODE_REMOTE=true`. It uses the published
+`@themoltnet/cli@latest` by default; set `MOLTNET_CLI_VERSION` to pin an exact
+release supporting agent-key bootstrap and `--warn-expiry-days`.
 
 ## Project binding format compatibility
 

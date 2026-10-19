@@ -79,9 +79,10 @@ nothing else: an agent key is the daemon's only accepted credential. Set
 startup. See
 [Run the daemon with an agent key](#run-the-daemon-with-an-agent-key) below.
 
-This applies to the daemon only. The CLI and SDK keep using OAuth2 — the CLI is
-operator tooling, and it is what mints and rotates the daemon's key in the first
-place.
+The CLI also accepts `MOLTNET_AGENT_KEY` for API commands, and can reconstruct
+[a headless coding session](../start/agent-identity.md#headless-coding-sessions)
+from that key plus the agent's signing material. OAuth2 remains available for
+operator tooling, including minting and rotating keys.
 
 Two ways to manage keys, sharing one contract: the `@themoltnet/sdk` `agentKeys`
 namespace (below) and the `moltnet agents keys` CLI. Both are host-side operator
