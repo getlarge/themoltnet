@@ -950,3 +950,49 @@ func TestRunAgentsKeysCreate_WhoamiFailureNamesTheFlag(t *testing.T) {
 		t.Errorf("error should point at --agent-id, got: %v", err)
 	}
 }
+
+func TestAgentsKeysCreateCommandDefaultsAgentID(t *testing.T) {
+	for _, identityScoped := range []bool{false, true} {
+		name := "team"
+		if identityScoped {
+			name = "identity"
+		}
+		t.Run(name, func(t *testing.T) {
+			clearMoltnetEnv(t)
+			setTestHome(t, t.TempDir())
+			t.Setenv(agentKeyEnv, "session-test-key")
+			var received uuid.UUID
+			handler := agentKeysStubHandler{
+				whoami: func() moltnetapi.GetWhoamiRes {
+					return &moltnetapi.Whoami{IdentityId: uuid.New(), SubjectId: uuid.MustParse(testAgentID), SubjectType: moltnetapi.WhoamiSubjectTypeAgent}
+				},
+				create: func(req *moltnetapi.CreateAgentKeyReq, _ moltnetapi.CreateAgentKeyParams) moltnetapi.CreateAgentKeyRes {
+					received = req.AgentId
+					key := validAgentKey("fixture-key")
+					if identityScoped {
+						key = validIdentityAgentKey("fixture-key")
+					}
+					return &moltnetapi.AgentKeyWithSecret{Key: key, Secret: "fixture-only-key"}
+				},
+			}
+			_, server, _ := newTestServer(t, handler)
+			t.Setenv("MOLTNET_API_URL", server.URL)
+			args := []string{"agents", "keys", "create", "--name", "session"}
+			if identityScoped {
+				args = append(args, "--identity-scoped")
+			} else {
+				args = append(args, "--team-id", testTeamID)
+			}
+			stdout, _, err := executeCommand(NewRootCmd("test", ""), args...)
+			if err != nil {
+				t.Fatalf("command must reach authenticated agent default: %v", err)
+			}
+			if received.String() != testAgentID {
+				t.Fatalf("agentId=%s, want %s", received, testAgentID)
+			}
+			if !json.Valid([]byte(stdout)) {
+				t.Fatalf("invalid result: %s", stdout)
+			}
+		})
+	}
+}
