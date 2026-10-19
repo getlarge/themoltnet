@@ -74,6 +74,7 @@ func clearMoltnetEnv(t *testing.T) {
 		"MOLTNET_GIT_NAME",
 		"MOLTNET_GIT_EMAIL",
 		agentKeyRefEnv,
+		agentKeyEnv,
 		"MOLTNET_PRIVATE_KEY_REF",
 		"MOLTNET_SECRET_ROOT",
 	} {
