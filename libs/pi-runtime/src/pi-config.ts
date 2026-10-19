@@ -2,13 +2,9 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import {
-  type ModelCostRates,
-  ollamaCloudModelData,
-} from '@moltnet/provider-catalog';
-import { Type } from 'typebox';
+import { ollamaCloudModelData } from '@moltnet/provider-catalog';
+import { type Static, Type } from 'typebox';
 
-export type PiModelCost = ModelCostRates;
 export const PiModelCostSchema = Type.Object(
   {
     input: Type.Number({ minimum: 0 }),
@@ -18,6 +14,7 @@ export const PiModelCostSchema = Type.Object(
   },
   { additionalProperties: false },
 );
+export type PiModelCost = Static<typeof PiModelCostSchema>;
 
 /** Provider configuration accepts finite, nonnegative USD rates. */
 export function isPiModelCost(value: unknown): value is PiModelCost {
