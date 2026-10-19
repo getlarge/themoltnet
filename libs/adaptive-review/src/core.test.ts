@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import type { ClassifyOutput } from '@moltnet/tasks';
 import { describe, expect, it } from 'vitest';
 
@@ -285,13 +287,20 @@ describe('classifier-first routing', () => {
     expect(
       mechanicalConcerns([schema, migration], schemaPatch, policy.checks),
     ).toEqual([]);
-    expect(
-      mechanicalConcerns(
-        [schema, { ...migration, status: 'deleted' }],
-        schemaPatch,
-        policy.checks,
-      ),
-    ).toMatchObject([{ ruleId: 'schema-migration' }]);
+    for (const status of [
+      'deleted',
+      'renamed',
+      'copied',
+      'typechanged',
+    ] as const) {
+      expect(
+        mechanicalConcerns(
+          [schema, { ...migration, status }],
+          schemaPatch,
+          policy.checks,
+        ),
+      ).toMatchObject([{ ruleId: 'schema-migration' }]);
+    }
     expect(
       mechanicalConcerns(
         [
@@ -346,4 +355,3 @@ describe('classifier-first routing', () => {
     ).toThrow('reference');
   });
 });
-import { readFileSync } from 'node:fs';

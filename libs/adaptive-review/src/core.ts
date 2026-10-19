@@ -74,7 +74,7 @@ export function mechanicalConcerns(
     if (check.kind === 'missing-companion') {
       const companionPresent = changes.some(
         (change) =>
-          change.status !== 'deleted' &&
+          (change.status === 'added' || change.status === 'modified') &&
           matchesPolicyPaths(change.path, check.companionPaths),
       );
       if (!companionPresent) {
