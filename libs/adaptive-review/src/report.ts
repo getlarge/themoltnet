@@ -1,18 +1,8 @@
+import { shorten } from '@moltnet/docs-impact-review';
+
 import type { AdaptiveReport } from './workflow.js';
 
 export const ADAPTIVE_REVIEW_MARKER = '<!-- moltnet:adaptive-review -->';
-
-function plain(value: string, max = 240): string {
-  const flat = value
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/[[\]]/g, (bracket) => `\\${bracket}`)
-    .replace(/@(?=[A-Za-z0-9_-])/g, '@\u200b')
-    .replace(/#(?=\d)/g, '#\u200b')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-  return flat.length <= max ? flat : `${flat.slice(0, max - 1).trimEnd()}…`;
-}
 
 export function renderAdaptiveComment(
   report: AdaptiveReport,
@@ -51,10 +41,10 @@ export function renderAdaptiveComment(
   if (concerns.length) {
     lines.push('', 'Investigated concerns:');
     for (const result of concerns) {
-      lines.push(`- **${result.lane}**: ${plain(result.summary)}`);
+      lines.push(`- **${result.lane}**: ${shorten(result.summary, 240)}`);
       for (const finding of result.findings.slice(0, 2)) {
         lines.push(
-          `  - ${plain(finding.path, 120)}${finding.line ? `:${finding.line}` : ''}: ${plain(finding.concern)}`,
+          `  - ${shorten(finding.path, 120)}${finding.line ? `:${finding.line}` : ''}${finding.side === 'old' ? ' (old)' : ''}: ${shorten(finding.concern, 240)}`,
         );
       }
     }
@@ -76,7 +66,7 @@ export function renderAdaptiveComment(
   ];
   if (gaps.length) {
     lines.push('', 'Not fully assessed:');
-    for (const gap of gaps.slice(0, 8)) lines.push(`- ${plain(gap)}`);
+    for (const gap of gaps.slice(0, 8)) lines.push(`- ${shorten(gap, 240)}`);
     if (gaps.length > 8)
       lines.push(`- …and ${gaps.length - 8} more in the workflow report.`);
   }

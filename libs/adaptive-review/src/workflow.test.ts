@@ -125,64 +125,59 @@ function harness(
       if (task.taskType === 'classify' && options.classifierFails) {
         throw new Error('classifier unavailable');
       }
-      const raw =
-        task.taskType === 'classify'
-          ? { answers: answers(options.selected) }
-          : task.title?.includes('security hunt')
-            ? {
-                result: {
-                  summary: 'Security hunt complete',
-                  findings: options.securityFindingStatus
-                    ? [
-                        {
-                          id: 'changed-route',
-                          path: sourcePath,
-                          side: 'new',
-                          line: 1,
-                          title: 'Changed route behavior',
-                          hypothesis: 'The new route might skip a guard.',
-                        },
-                      ]
-                    : [],
-                },
-              }
-            : task.title?.includes('security verify')
-              ? {
-                  result: {
-                    summary: 'Security verification complete',
-                    findings: [
-                      {
-                        id: 'changed-route',
-                        status: options.securityFindingStatus,
-                        severity: 'medium',
-                        path: sourcePath,
-                        side: 'new',
-                        line: 1,
-                        title: 'Changed route behavior',
-                        evidence: 'The changed route was inspected.',
-                        reachability: 'The route has a caller.',
-                        remediation: 'Restore the guard if needed.',
-                      },
-                    ],
-                  },
-                }
-              : options.invalidFocusedOutput
-                ? {
-                    result: {
-                      summary: 'Malformed focused result',
-                      findings: 'not an array',
-                      unclear: [],
-                    },
-                  }
-                : options.focusedResult
-                  ? { result: options.focusedResult }
-                  : {
-                      result: {
-                        summary: 'No concern',
-                        findings: [],
-                        unclear: [],
-                      },
-                    };
+      let raw: unknown;
+      if (task.taskType === 'classify') {
+        raw = { answers: answers(options.selected) };
+      } else if (task.title?.includes('security hunt')) {
+        const findings = [];
+        if (options.securityFindingStatus) {
+          findings.push({
+            id: 'changed-route',
+            path: sourcePath,
+            side: 'new',
+            line: 1,
+            title: 'Changed route behavior',
+            hypothesis: 'The new route might skip a guard.',
+          });
+        }
+        raw = { result: { summary: 'Security hunt complete', findings } };
+      } else if (task.title?.includes('security verify')) {
+        raw = {
+          result: {
+            summary: 'Security verification complete',
+            findings: [
+              {
+                id: 'changed-route',
+                status: options.securityFindingStatus,
+                severity: 'medium',
+                path: sourcePath,
+                side: 'new',
+                line: 1,
+                title: 'Changed route behavior',
+                evidence: 'The changed route was inspected.',
+                reachability: 'The route has a caller.',
+                remediation: 'Restore the guard if needed.',
+              },
+            ],
+          },
+        };
+      } else if (options.invalidFocusedOutput) {
+        raw = {
+          result: {
+            summary: 'Malformed focused result',
+            findings: 'not an array',
+            unclear: [],
+          },
+        };
+      } else {
+        raw = {
+          result: options.focusedResult ?? {
+            summary: 'No concern',
+            findings: [],
+            unclear: [],
+          },
+        };
+      }
       return Promise.resolve({
         kind: 'accepted',
         result: { state: parse(raw) },
@@ -340,7 +335,46 @@ describe('adaptive review orchestration', () => {
     ).toMatchObject({
       status: 'concern',
       findings: [
-        { path: sourcePath, line: 1, concern: 'The new route is untested.' },
+        {
+          path: sourcePath,
+          side: 'new',
+          line: 1,
+          concern: 'The new route is untested.',
+        },
+      ],
+    });
+  });
+
+  it('preserves the old side for a finding on a deleted line', async () => {
+    const { tasks } = harness({
+      selected: 'tests',
+      focusedResult: {
+        summary: 'The removed guard needs a regression test.',
+        findings: [
+          {
+            path: sourcePath,
+            side: 'old',
+            line: 1,
+            concern: 'The old guard was removed without a test.',
+            action: 'Add a regression test.',
+          },
+        ],
+        unclear: [],
+      },
+    });
+
+    const report = await review(tasks);
+
+    expect(
+      report.results.find((result) => result.lane === 'tests'),
+    ).toMatchObject({
+      findings: [
+        {
+          path: sourcePath,
+          side: 'old',
+          line: 1,
+          concern: 'The old guard was removed without a test.',
+        },
       ],
     });
   });
@@ -583,8 +617,9 @@ describe('adaptive review orchestration', () => {
 
   it('retains successful lanes and task IDs when another deep lane fails', async () => {
     const { tasks } = harness({ classifierFails: true });
+    const log = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
     mocks.runDocsImpactReview.mockRejectedValueOnce(
-      new Error('docs reviewer unavailable'),
+      new Error('docs reviewer unavailable: private token'),
     );
 
     const report = await review(tasks);
@@ -593,7 +628,8 @@ describe('adaptive review orchestration', () => {
       report.results.find((result) => result.lane === 'docs'),
     ).toMatchObject({
       status: 'failed',
-      summary: 'docs review failed; inspect its task outcome.',
+      summary:
+        'docs review failed before a task was created; inspect workflow logs.',
     });
     expect(
       report.results.find((result) => result.lane === 'tests'),
@@ -605,6 +641,10 @@ describe('adaptive review orchestration', () => {
     expect(report.gaps).toEqual([
       'Classifier task failed; inspect its task outcome.',
     ]);
+    expect(log).toHaveBeenCalledWith(
+      'Adaptive lane failure: lane=docs stage=before-task code=unexpected-error taskIds=none\n',
+    );
+    expect(log.mock.calls.flat().join('')).not.toContain('private token');
   });
 
   it.each([

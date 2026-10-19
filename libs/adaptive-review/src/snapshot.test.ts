@@ -1,3 +1,6 @@
+import { createHash } from 'node:crypto';
+
+import { canonicalJson } from '@moltnet/crypto-service';
 import { describe, expect, it } from 'vitest';
 
 import { changedPaths, loadAdaptivePolicy } from './snapshot.js';
@@ -52,6 +55,19 @@ describe('pinned adaptive policy snapshot', () => {
         base,
       ),
     ).toThrow('schema');
+  });
+
+  it('digests the validated policy with the shared canonical JSON contract', () => {
+    const raw = '{"checks":[],"rules":[],"lanes":["tests"],"version":1}';
+    const snapshot = loadAdaptivePolicy(gitWithPolicy(raw), base);
+    const expected = createHash('sha256')
+      .update(canonicalJson(snapshot?.policy))
+      .digest('hex');
+
+    expect(snapshot?.digest).toBe(expected);
+    expect(snapshot?.digest).toBe(
+      loadAdaptivePolicy(gitWithPolicy(testsOnly), base)?.digest,
+    );
   });
 
   it('records renamed and deleted files independently of patch retention', () => {

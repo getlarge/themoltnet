@@ -38,6 +38,31 @@ const LONG_WAIT_HEADER = 'x-moltnet-rate-limit-wait-ms';
 /** The edit is idempotent; creating a comment (POST) is not. */
 const RETRY_METHODS = ['GET', 'HEAD', 'OPTIONS', 'PUT', 'PATCH'];
 
+async function* pages<T>(
+  request: (path: string) => Promise<T[]>,
+  path: string,
+): AsyncGenerator<T[]> {
+  const separator = path.includes('?') ? '&' : '?';
+  for (let page = 1; ; page += 1) {
+    const batch = await request(`${path}${separator}per_page=100&page=${page}`);
+    yield batch;
+    if (batch.length < 100) return;
+  }
+}
+
+/** Stops requesting pages as soon as a matching item is found. */
+export async function findPaginated<T>(
+  request: (path: string) => Promise<T[]>,
+  path: string,
+  predicate: (item: T) => boolean,
+): Promise<T | undefined> {
+  for await (const batch of pages(request, path)) {
+    const found = batch.find(predicate);
+    if (found) return found;
+  }
+  return undefined;
+}
+
 /** How long GitHub asks us to wait, from `retry-after` or the reset time. */
 function rateLimitWaitMs(response: Response, now: number): number | undefined {
   const retryAfter = response.headers.get('retry-after');
@@ -161,14 +186,13 @@ export class GitHubApi {
 
   /** Follows `per_page=100` pages until a short page. */
   async paginate<T>(path: string): Promise<T[]> {
-    const separator = path.includes('?') ? '&' : '?';
     const items: T[] = [];
-    for (let page = 1; ; page += 1) {
-      const batch = await this.request<T[]>(
-        `${path}${separator}per_page=100&page=${page}`,
-      );
+    for await (const batch of pages<T>(
+      (page) => this.request<T[]>(page),
+      path,
+    )) {
       items.push(...batch);
-      if (batch.length < 100) return items;
     }
+    return items;
   }
 }

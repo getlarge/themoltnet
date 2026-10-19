@@ -83,7 +83,12 @@ export interface LaneResult {
   status: 'clear' | 'concern' | 'unclear' | 'failed' | 'screened';
   summary: string;
   taskIds: string[];
-  findings: Array<{ path: string; line?: number; concern: string }>;
+  findings: Array<{
+    path: string;
+    side?: 'old' | 'new';
+    line?: number;
+    concern: string;
+  }>;
 }
 
 export interface AdaptiveReport {
@@ -145,6 +150,24 @@ function requiredProfile(options: RunOptions, lane: Lane): string {
   if (!value)
     throw new Error(`missing runtime profile for enabled ${lane} lane`);
   return value;
+}
+
+function laneFailureCode(reason: unknown): string {
+  if (!(reason instanceof Error)) return 'non-error-rejection';
+  if (reason.message === 'invalid complexity rubric')
+    return 'invalid-complexity-rubric';
+  if (reason.message.startsWith('missing runtime profile for enabled '))
+    return 'missing-profile';
+  if (/^invalid (tests|conventions|blast-radius) result$/.test(reason.message))
+    return 'invalid-focused-result';
+  if (/ finding does not cite a changed line$/.test(reason.message))
+    return 'invalid-finding-citation';
+  if (reason.message === 'accepted freeform task has no result')
+    return 'missing-task-result';
+  const status = (reason as Error & { status?: unknown }).status;
+  if (typeof status === 'number' && Number.isInteger(status) && status >= 400)
+    return `http-${status}`;
+  return reason.name === 'TypeError' ? 'type-error' : 'unexpected-error';
 }
 
 function unwrap(output: unknown): unknown {
@@ -300,8 +323,9 @@ async function runFocused(
         : 'clear',
     summary: result.summary,
     taskIds: [task.id],
-    findings: result.findings.map(({ path, line, concern }) => ({
+    findings: result.findings.map(({ path, side, line, concern }) => ({
       path,
+      side,
       line,
       concern,
     })),
@@ -759,18 +783,25 @@ export async function runRoutedAdaptiveReview(
       );
     }),
   );
-  const results = routed.map(
-    (item, index): LaneResult =>
-      item.status === 'fulfilled'
-        ? item.value
-        : {
-            lane: routing.routes[index].lane,
-            status: 'failed',
-            summary: `${routing.routes[index].lane} review failed; inspect its task outcome.`,
-            taskIds: createdTaskIds[index],
-            findings: [],
-          },
-  );
+  const results = routed.map((item, index): LaneResult => {
+    if (item.status === 'fulfilled') return item.value;
+    const lane = routing.routes[index].lane;
+    const stage = createdTaskIds[index].length ? 'task-outcome' : 'before-task';
+    // Raw task errors can contain untrusted PR text or credentials. The
+    // private runner log retains only the lane, stage, and error class.
+    process.stderr.write(
+      `Adaptive lane failure: lane=${lane} stage=${stage} code=${laneFailureCode(item.reason)} taskIds=${createdTaskIds[index].join(',') || 'none'}\n`,
+    );
+    return {
+      lane,
+      status: 'failed',
+      summary: createdTaskIds[index].length
+        ? `${lane} review failed; inspect its task outcome.`
+        : `${lane} review failed before a task was created; inspect workflow logs.`,
+      taskIds: createdTaskIds[index],
+      findings: [],
+    };
+  });
   return {
     version: 1,
     mode,

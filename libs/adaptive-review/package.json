@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@moltnet/complexity-review": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
     "@moltnet/docs-impact-review": "workspace:*",
     "@moltnet/security-review": "workspace:*",
     "@moltnet/task-schemas": "workspace:*",

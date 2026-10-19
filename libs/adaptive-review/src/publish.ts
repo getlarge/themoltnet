@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs';
 
-import { GitHubApi } from '@moltnet/docs-impact-review/github-api';
+import {
+  findPaginated,
+  GitHubApi,
+} from '@moltnet/docs-impact-review/github-api';
 
 import { env } from './config.js';
 import { ADAPTIVE_REVIEW_MARKER, renderAdaptiveComment } from './report.js';
@@ -110,18 +113,14 @@ export async function publishAdaptiveReport(
   if (current.base.sha !== report.base)
     throw new Error('PR base changed; refusing to publish stale review');
   const body = renderAdaptiveComment(report, runUrl);
-  let previous: { id: number } | undefined;
-  for (let page = 1; page <= 100 && !previous; page++) {
-    const comments = (await request(
-      `/repos/${expected.repo}/issues/${expected.pr}/comments?per_page=100&page=${page}`,
-    )) as Array<{ id: number; body: string; user: { login: string } }>;
-    previous = comments.find(
-      (comment) =>
-        comment.body.includes(ADAPTIVE_REVIEW_MARKER) &&
-        comment.user.login === appLogin,
-    );
-    if (comments.length < 100) break;
-  }
+  type Comment = { id: number; body: string; user: { login: string } };
+  const previous = await findPaginated<Comment>(
+    (path) => request(path) as Promise<Comment[]>,
+    `/repos/${expected.repo}/issues/${expected.pr}/comments`,
+    (comment) =>
+      comment.body.includes(ADAPTIVE_REVIEW_MARKER) &&
+      comment.user.login === appLogin,
+  );
   const latest = (await request(
     `/repos/${expected.repo}/pulls/${expected.pr}`,
   )) as {

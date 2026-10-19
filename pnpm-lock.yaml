@@ -1865,6 +1865,9 @@ importers:
       '@moltnet/complexity-review':
         specifier: workspace:*
         version: link:../complexity-review
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../crypto-service
       '@moltnet/docs-impact-review':
         specifier: workspace:*
         version: link:../docs-impact-review

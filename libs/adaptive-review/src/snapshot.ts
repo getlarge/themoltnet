@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 
+import { canonicalJson } from '@moltnet/crypto-service';
 import type { Git } from '@moltnet/docs-impact-review';
 
 import type { ChangedPath } from './core.js';
@@ -9,17 +10,6 @@ export const ADAPTIVE_POLICY_PATH = '.github/adaptive-review.json';
 
 function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex');
-}
-
-function canonical(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
-  if (value !== null && typeof value === 'object') {
-    return `{${Object.entries(value)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, child]) => `${JSON.stringify(key)}:${canonical(child)}`)
-      .join(',')}}`;
-  }
-  return JSON.stringify(value);
 }
 
 export interface PolicySnapshot {
@@ -76,7 +66,7 @@ export function loadAdaptivePolicy(
   }
   return {
     policy,
-    digest: sha256(canonical(policy)),
+    digest: sha256(canonicalJson(policy)),
     referenceDigests,
     source: `${ADAPTIVE_POLICY_PATH}@${base}`,
   };
