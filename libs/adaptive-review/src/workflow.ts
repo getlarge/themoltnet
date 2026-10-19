@@ -249,7 +249,7 @@ function focusBrief(
           (file) => `Path ${JSON.stringify(file.path)}:\n${file.patch}`,
         )
       : [
-          'The diff exceeds the inline budget. Inspect the pinned base...head diff and surrounding files with read-only Git tools.',
+          'The diff exceeds the inline budget. Inspect the pinned head worktree and surrounding files with approved read tools. If changed-line evidence is unavailable, explain the gap in unclear rather than guessing a citation.',
         ]),
   ].join('\n\n');
 }
