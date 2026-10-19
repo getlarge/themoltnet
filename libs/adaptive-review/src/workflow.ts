@@ -170,6 +170,15 @@ function laneFailureCode(reason: unknown): string {
   return reason.name === 'TypeError' ? 'type-error' : 'unexpected-error';
 }
 
+function logLaneFailure(lane: string, taskIds: string[], code: string): void {
+  const stage = taskIds.length ? 'task-outcome' : 'before-task';
+  // Report errors can contain untrusted PR text or credentials. Log only
+  // fixed diagnostic fields and task IDs; never log the raw error.
+  process.stderr.write(
+    `Adaptive lane failure: lane=${lane} stage=${stage} code=${code} taskIds=${taskIds.join(',') || 'none'}\n`,
+  );
+}
+
 function unwrap(output: unknown): unknown {
   if (typeof output !== 'object' || output === null || !('result' in output)) {
     throw new Error('accepted freeform task has no result');
@@ -463,21 +472,34 @@ async function runSecurity(
   };
 }
 
-function docsResult(report: DocsImpactReport): LaneResult {
+function docsResult(
+  report: DocsImpactReport,
+  createdTaskIds: string[],
+): LaneResult {
   let status: LaneResult['status'] = 'clear';
   if (report.status === 'failed') status = 'failed';
   else if (report.outcome === 'updates-needed') status = 'concern';
   else if (report.outcome === 'incomplete') status = 'unclear';
+  const taskIds = [
+    ...new Set([
+      ...createdTaskIds,
+      ...Object.values(report.timings.stages).flatMap((stage) =>
+        stage ? [stage.taskId] : [],
+      ),
+    ]),
+  ];
+  if (report.status === 'failed')
+    logLaneFailure('docs', taskIds, 'reported-failure');
   return {
     lane: 'docs',
     status,
     summary:
       report.status === 'failed'
-        ? 'Docs review failed; inspect its task outcome.'
+        ? taskIds.length
+          ? 'Docs review failed; inspect its task outcome.'
+          : 'Docs review failed before a task was created; inspect workflow logs.'
         : `Docs impact: ${report.outcome}.`,
-    taskIds: Object.values(report.timings.stages).flatMap((stage) =>
-      stage ? [stage.taskId] : [],
-    ),
+    taskIds,
     findings: report.findings.map((finding) => ({
       path: finding.docsPath,
       concern: finding.update,
@@ -710,7 +732,7 @@ export async function runRoutedAdaptiveReview(
           },
           { serialTaskDispatch: true },
         );
-        return docsResult(report);
+        return docsResult(report, createdTaskIds[index]);
       }
       if (route.lane === 'complexity') {
         const rubricValue: unknown = snapshot.policy.complexity
@@ -786,12 +808,7 @@ export async function runRoutedAdaptiveReview(
   const results = routed.map((item, index): LaneResult => {
     if (item.status === 'fulfilled') return item.value;
     const lane = routing.routes[index].lane;
-    const stage = createdTaskIds[index].length ? 'task-outcome' : 'before-task';
-    // Raw task errors can contain untrusted PR text or credentials. The
-    // private runner log retains only the lane, stage, and error class.
-    process.stderr.write(
-      `Adaptive lane failure: lane=${lane} stage=${stage} code=${laneFailureCode(item.reason)} taskIds=${createdTaskIds[index].join(',') || 'none'}\n`,
-    );
+    logLaneFailure(lane, createdTaskIds[index], laneFailureCode(item.reason));
     return {
       lane,
       status: 'failed',

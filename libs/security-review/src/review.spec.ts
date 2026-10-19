@@ -123,6 +123,19 @@ describe('security review evidence boundary', () => {
     ).toHaveLength(1);
   });
 
+  it('tracks changed lines in Git-quoted Unicode paths', () => {
+    const quoted = [
+      String.raw`diff --git "a/src/caf\303\251.ts" "b/src/caf\303\251.ts"`,
+      String.raw`--- "a/src/caf\303\251.ts"`,
+      String.raw`+++ "b/src/caf\303\251.ts"`,
+      '@@ -1 +1 @@',
+      '-old',
+      '+new',
+    ].join('\n');
+    expect([...changedLines(quoted).get('src/café.ts')!.old]).toEqual([1]);
+    expect([...changedLines(quoted).get('src/café.ts')!.new]).toEqual([1]);
+  });
+
   it('requires every suspicion to be verified and keeps uncertainty separate', () => {
     const source = validateCandidates(candidates, diff);
     const result = validateResult(

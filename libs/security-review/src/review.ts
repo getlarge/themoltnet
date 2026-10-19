@@ -109,6 +109,49 @@ export const RESULT_SCHEMA = {
   additionalProperties: false,
 } as const;
 
+/** Git quotes non-ASCII and control bytes in patch path headers. */
+function patchPath(header: string, side: 'a' | 'b'): string | undefined {
+  if (header.startsWith(`${side}/`)) return header.slice(2);
+  if (!header.startsWith(`"${side}/`) || !header.endsWith('"'))
+    return undefined;
+  const quoted = header.slice(3, -1);
+  const bytes: number[] = [];
+  const escapes: Record<string, string> = {
+    a: '\x07',
+    b: '\b',
+    f: '\f',
+    n: '\n',
+    r: '\r',
+    t: '\t',
+    v: '\v',
+    '"': '"',
+    '\\': '\\',
+  };
+  for (let index = 0; index < quoted.length; ) {
+    const char = quoted[index];
+    if (char !== '\\') {
+      const codePoint = quoted.codePointAt(index);
+      if (codePoint === undefined) return undefined;
+      bytes.push(...Buffer.from(String.fromCodePoint(codePoint)));
+      index += codePoint > 0xffff ? 2 : 1;
+      continue;
+    }
+    const escape = quoted[index + 1];
+    if (!escape) return undefined;
+    const octal = /^[0-7]{3}/.exec(quoted.slice(index + 1));
+    if (octal) {
+      bytes.push(Number.parseInt(octal[0], 8));
+      index += 4;
+      continue;
+    }
+    const decoded = escapes[escape];
+    if (decoded === undefined) return undefined;
+    bytes.push(...Buffer.from(decoded));
+    index += 2;
+  }
+  return Buffer.from(bytes).toString('utf8');
+}
+
 export function changedLines(
   diff: string,
 ): Map<string, { old: Set<number>; new: Set<number> }> {
@@ -123,17 +166,27 @@ export function changedLines(
       oldPath = undefined;
       continue;
     }
-    if (line.startsWith('--- a/')) {
-      oldPath = line.slice(6);
+    if (line === '--- /dev/null') {
+      oldPath = undefined;
       continue;
     }
-    if (line.startsWith('+++ b/')) {
-      path = line.slice(6);
-      files.set(path, { old: new Set(), new: new Set() });
+    const parsedOldPath = line.startsWith('--- ')
+      ? patchPath(line.slice(4), 'a')
+      : undefined;
+    if (parsedOldPath !== undefined) {
+      oldPath = parsedOldPath;
       continue;
     }
     if (line === '+++ /dev/null' && oldPath) {
       path = oldPath;
+      files.set(path, { old: new Set(), new: new Set() });
+      continue;
+    }
+    const parsedPath = line.startsWith('+++ ')
+      ? patchPath(line.slice(4), 'b')
+      : undefined;
+    if (parsedPath !== undefined) {
+      path = parsedPath;
       files.set(path, { old: new Set(), new: new Set() });
       continue;
     }

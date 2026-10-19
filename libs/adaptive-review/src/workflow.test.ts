@@ -647,6 +647,43 @@ describe('adaptive review orchestration', () => {
     expect(log.mock.calls.flat().join('')).not.toContain('private token');
   });
 
+  it('retains a docs task when polling fails before stage timing is recorded', async () => {
+    const { tasks } = harness({ selected: 'docs' });
+    const log = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+    mocks.runDocsImpactReview.mockImplementationOnce(
+      async (deps: { tasks: TaskClient }) => {
+        await deps.tasks.createTask({
+          taskType: 'freeform',
+          title: 'Docs extract',
+          teamId: identity.teamId,
+          diaryId: identity.diaryId,
+          input: { brief: 'Inspect changed source contracts' },
+        } as Parameters<TaskClient['createTask']>[0]);
+        return {
+          status: 'failed',
+          error: 'polling failed: private token',
+          findings: [],
+          timings: { stages: {} },
+        };
+      },
+    );
+
+    const report = await review(tasks);
+
+    expect(
+      report.results.find((result) => result.lane === 'docs'),
+    ).toMatchObject({
+      status: 'failed',
+      summary: 'Docs review failed; inspect its task outcome.',
+      taskIds: ['task-2'],
+    });
+    expect(report.taskIds).toContain('task-2');
+    expect(log).toHaveBeenCalledWith(
+      'Adaptive lane failure: lane=docs stage=task-outcome code=reported-failure taskIds=task-2\n',
+    );
+    expect(log.mock.calls.flat().join('')).not.toContain('private token');
+  });
+
   it.each([
     [
       'updates-needed',
