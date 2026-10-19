@@ -94,6 +94,12 @@ export async function dispatch(ctx: DispatchContext): Promise<void> {
   // Validate before connecting: a malformed project must fail the run, never
   // degrade into General work.
   const projectId = parseProjectId(env);
+  const profileId = required(env, 'MOLTNET_ACTION_PROFILE_ID').trim();
+  if (!UUID_PATTERN.test(profileId)) {
+    throw new Error(
+      'MOLTNET_ACTION_PROFILE_ID must be a resolved profile UUID',
+    );
+  }
   const moltnet = await connect();
   const runningTimeoutSec = parseRunningTimeout(env);
   const maxAttempts = parseMaxAttempts(env);
@@ -112,6 +118,7 @@ export async function dispatch(ctx: DispatchContext): Promise<void> {
       maxAttempts,
       tags,
       projectId,
+      profileId,
     });
     return;
   }
@@ -130,6 +137,7 @@ export async function dispatch(ctx: DispatchContext): Promise<void> {
     maxAttempts,
     tags,
     projectId,
+    profileId,
   });
 }
 
@@ -231,6 +239,7 @@ async function dispatchFulfill(args: {
   maxAttempts?: number;
   tags?: string[];
   projectId?: string;
+  profileId: string;
 }): Promise<void> {
   const correlationId = await resolveCorrelation(
     { contextType: 'issue', referenceUrl: args.referenceUrl },
@@ -253,6 +262,7 @@ async function dispatchFulfill(args: {
     maxAttempts: args.maxAttempts,
     tags: args.tags,
     projectId: args.projectId,
+    profileId: args.profileId,
   });
 
   core.setOutput('task-id', created.id);
@@ -275,6 +285,7 @@ async function dispatchAssess(args: {
   maxAttempts?: number;
   tags?: string[];
   projectId?: string;
+  profileId: string;
 }): Promise<void> {
   const pr = { owner: args.owner, repo: args.repo, number: args.prNumber };
 
@@ -349,6 +360,7 @@ async function dispatchAssess(args: {
     maxAttempts: args.maxAttempts,
     tags: args.tags,
     projectId: args.projectId,
+    profileId: args.profileId,
   });
 
   core.setOutput('task-id', created.id);

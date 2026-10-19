@@ -128,7 +128,8 @@ inputs:
     default: 'false'
   profile:
     description: >
-      Runtime profile UUID or name. Forwarded to `agent-daemon --profile`.
+      Runtime profile UUID or name. Resolved once and pinned on tasks created
+      by this action; the same UUID is forwarded to `agent-daemon --profile`.
       Falls back to the MOLTNET_AGENT_PROFILE env var when this input is empty.
     required: false
     default: ''
@@ -578,6 +579,32 @@ runs:
         path: ~/.cache/moltnet/gondolin
         key: ${{ steps.gondolin-cache-key.outputs.value }}
 
+    - name: Resolve runtime profile
+      id: profile
+      shell: bash
+      env:
+        MOLTNET_CLI_PACKAGE: ${{ steps.cli.outputs.package }}
+        PROFILE_OVERRIDE: ${{ inputs.profile }}
+      run: |
+        set -euo pipefail
+        PROFILE="${PROFILE_OVERRIDE:-${MOLTNET_AGENT_PROFILE:-}}"
+        if [ -z "$PROFILE" ]; then
+          echo "::error::profile is required (set the action's \`profile\` input or MOLTNET_AGENT_PROFILE env)" >&2
+          exit 1
+        fi
+        : "${MOLTNET_TEAM_ID:?MOLTNET_TEAM_ID is required}"
+        # Resolve before enqueueing: a daemon-side override alone leaves the
+        # task available to workers running unrelated profiles.
+        PROFILE_JSON=$(npx -y "$MOLTNET_CLI_PACKAGE" profile get "$PROFILE" \
+          --team-id "$MOLTNET_TEAM_ID" \
+          --api-url "${MOLTNET_API_URL:-https://api.themolt.net}")
+        PROFILE_ID=$(jq -er --arg team "$MOLTNET_TEAM_ID" '
+          select(.teamId == $team) | .id
+          | select(type == "string")
+          | select(test("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"))
+        ' <<<"$PROFILE_JSON")
+        echo "id=$PROFILE_ID" >> "$GITHUB_OUTPUT"
+
     - name: Cancel superseded tasks
       if: ${{ inputs.task-id == '' && inputs.task-spec-path != '' && inputs.cancel-superseded == 'true' }}
       shell: bash
@@ -598,6 +625,7 @@ runs:
         MOLTNET_RUNNING_TIMEOUT_SEC: ${{ inputs.running-timeout-sec }}
         MOLTNET_MAX_ATTEMPTS: ${{ inputs.max-attempts }}
         PROJECT_ID: ${{ inputs.project-id }}
+        PROFILE_ID: ${{ steps.profile.outputs.id }}
       run: |
         set -euo pipefail
         # Normalise project-id once, exactly like dispatch.ts: empty means
@@ -676,7 +704,13 @@ runs:
           exit 1
         fi
 
-        flags=()
+        : "${PROFILE_ID:?resolved runtime profile is required}"
+        create_help=$(npx -y "$MOLTNET_CLI_PACKAGE" task create --help)
+        if ! grep -q -- '--allowed-profile' <<<"$create_help"; then
+          echo "::error::$MOLTNET_CLI_PACKAGE does not support task create --allowed-profile; refusing to create unpinned work" >&2
+          exit 1
+        fi
+        flags=(--allowed-profile "$(jq -cn --arg id "$PROFILE_ID" '{profileId: $id}')")
         if [ "$SKIP_VALIDATION" = "true" ]; then
           flags+=(--skip-validation)
         elif [ "$SKIP_VALIDATION" != "false" ]; then
@@ -742,6 +776,7 @@ runs:
         # Dedicated name so the caller's ambient MOLTNET_PROJECT_ID can never
         # scope mention-created tasks implicitly.
         MOLTNET_ACTION_PROJECT_ID: ${{ inputs.project-id }}
+        MOLTNET_ACTION_PROFILE_ID: ${{ steps.profile.outputs.id }}
       run: |
         set -euo pipefail
         # MOLTNET_CLIENT_ID / MOLTNET_CLIENT_SECRET / MOLTNET_API_URL /
@@ -1198,7 +1233,7 @@ runs:
       shell: bash
       env:
         TASK_ID: ${{ inputs.task-id || steps.create-task.outputs.task-id || steps.dispatch.outputs.task-id }}
-        PROFILE_OVERRIDE: ${{ inputs.profile }}
+        PROFILE_OVERRIDE: ${{ steps.profile.outputs.id }}
         TASK_TYPES: ${{ inputs.task-types }}
         CORRELATION_ID: ${{ inputs.correlation-id }}
         WAIT_FOR_FIRST_TASK_SEC: ${{ inputs.wait-for-first-task-sec }}

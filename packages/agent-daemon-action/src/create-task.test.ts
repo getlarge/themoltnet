@@ -13,6 +13,8 @@ const BASE_INPUT = {
   brief: 'Issue body...',
 };
 
+const PROFILE = '44444444-4444-4444-8444-444444444444';
+
 const PROJECT = '55555555-5555-4555-8555-555555555555';
 
 function makeAgent() {
@@ -118,6 +120,14 @@ describe('createTask', () => {
     });
     const body = m.create.mock.calls[0][0] as { maxAttempts?: number };
     expect(body.maxAttempts).toBe(2);
+  });
+
+  it('pins the selected runtime profile on fulfill tasks', async () => {
+    const m = makeAgent();
+    await createTask({ agent: m.agent, ...BASE_INPUT, profileId: PROFILE });
+    expect(m.create.mock.calls[0][0]).toMatchObject({
+      allowedProfiles: [{ profileId: PROFILE }],
+    });
   });
 
   it('forwards projectId on the fulfill body when set', async () => {
@@ -229,6 +239,18 @@ describe('createAssessTask', () => {
 
     const body = m.create.mock.calls[0][0] as { maxAttempts?: number };
     expect(body.maxAttempts).toBe(2);
+  });
+
+  it('pins the selected runtime profile on assess tasks', async () => {
+    const m = makeAgent();
+    await createAssessTask({
+      agent: m.agent,
+      ...ASSESS_INPUT,
+      profileId: PROFILE,
+    });
+    expect(m.create.mock.calls[0][0]).toMatchObject({
+      allowedProfiles: [{ profileId: PROFILE }],
+    });
   });
 
   it('forwards projectId on the assess body when set', async () => {
