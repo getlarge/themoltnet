@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.5.9...tasks-orchestrator-v0.6.0) (2026-10-19)
+
+
+### Features
+
+* **tasks:** report harness cost and per-model usage for attempts ([e7a419d](https://github.com/getlarge/themoltnet/commit/e7a419de342d17deb05e5056a494f384f80eb532))
+* **tasks:** report harness cost and per-model usage for attempts ([08f13fd](https://github.com/getlarge/themoltnet/commit/08f13fd7a7a5fcd9e915dfb529bb23938a003c03)), closes [#1412](https://github.com/getlarge/themoltnet/issues/1412)
+
 ## [0.5.9](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.5.8...tasks-orchestrator-v0.5.9) (2026-10-14)
 
 

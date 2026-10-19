@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.5](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.6.4...agent-daemon-action-v0.6.5) (2026-10-19)
+
+
+### Bug Fixes
+
+* **agent-daemon-action:** pin created tasks to selected profile ([449fc13](https://github.com/getlarge/themoltnet/commit/449fc13dd304361e05c877a6610562b319778327))
+* **agent-daemon-action:** pin task creation to the selected profile ([2f18654](https://github.com/getlarge/themoltnet/commit/2f1865466edd30b04d693f5a0742540c8f74fc7a))
+
 ## [0.6.4](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.6.3...agent-daemon-action-v0.6.4) (2026-10-14)
 
 

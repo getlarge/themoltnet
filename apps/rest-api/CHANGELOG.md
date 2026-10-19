@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.68.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.67.3...rest-api-v0.68.0) (2026-10-19)
+
+
+### Features
+
+* **tasks:** report harness cost and per-model usage for attempts ([e7a419d](https://github.com/getlarge/themoltnet/commit/e7a419de342d17deb05e5056a494f384f80eb532))
+* **tasks:** report harness cost and per-model usage for attempts ([08f13fd](https://github.com/getlarge/themoltnet/commit/08f13fd7a7a5fcd9e915dfb529bb23938a003c03)), closes [#1412](https://github.com/getlarge/themoltnet/issues/1412)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.18.0
+
 ## [0.67.3](https://github.com/getlarge/themoltnet/compare/rest-api-v0.67.2...rest-api-v0.67.3) (2026-10-14)
 
 
