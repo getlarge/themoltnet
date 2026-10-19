@@ -215,6 +215,12 @@ async function baseBody(
     diaryId: input.diaryId,
     maxAttempts,
     correlationId: input.correlationId,
+    tags: [
+      'workflow:issue-lifecycle',
+      `stage:${step}`,
+      `repo:${input.repo}`,
+      `issue:${issue.number}`,
+    ],
     input: {
       brief,
       expectedOutput:

@@ -30,6 +30,12 @@ describe('buildTriageTask config wiring', () => {
   it('omits allowedProfiles and uses the default attempts with no config', async () => {
     const body = await buildTriageTask(input(), ISSUE);
 
+    expect(body.tags).toEqual([
+      'workflow:issue-lifecycle',
+      'stage:triage',
+      'repo:getlarge/themoltnet',
+      'issue:7',
+    ]);
     expect('allowedProfiles' in body).toBe(false);
     expect(body.maxAttempts).toBe(3); // RETRYABLE_AGENT_TASK_ATTEMPTS
     expect('requiredExecutorTrustLevel' in body).toBe(false);
