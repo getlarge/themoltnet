@@ -14,7 +14,7 @@ reads `.github/complexity-review.json` at the PR base, checks protected paths,
 and emits one versioned JSON payload. `review` runs the bundled library and
 posts a head-aware comment through the configured GitHub App. The repository
 config selects the rubric file; the default is
-`rubrics/pr-complexity-tristate-v2.json` when the config is absent.
+`rubrics/pr-complexity-tristate-v3.json` when the config is absent.
 
 The action bundles are ignored on main and built into a release-only commit
 pointed to by `complexity-review-action-v0`. Release notes record its SHA for

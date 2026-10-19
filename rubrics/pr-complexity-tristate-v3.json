@@ -1,0 +1,38 @@
+{
+  "criteria": [
+    {
+      "description": "Pass when the change is single-purpose and its concepts form a coherent feature, even when collection, aggregation, formatting, tests, and wiring span multiple files. Fail when concrete unrelated concerns or intertwined control/data flows make the change materially harder to follow. Identify the specific concerns and their interaction; added modules or interfaces alone do not establish high cognitive load.",
+      "id": "cognitive_load",
+      "scoring": "boolean",
+      "weight": 0.25
+    },
+    {
+      "description": "Pass when behavior is isolated, including additive APIs with no observed change to existing consumers. Fail when concrete changes to existing contracts, shared behavior, schema, migrations, auth paths, or consumers create propagation risk that demands broader review. Name the affected contract or behavior and the propagation mechanism. An exported symbol or shared-library location alone does not demonstrate broad impact; if consumer impact cannot be established from supplied evidence, mark unclear.",
+      "id": "blast_radius",
+      "scoring": "boolean",
+      "weight": 0.25
+    },
+    {
+      "description": "Pass when relevant assertions cover the meaningful changed behavior proportionally to its risk. Before failing, reconcile source and test observations across every domain, cite the test paths/assertions reviewed, and name the specific changed behavior still lacking verification or a weakened/removed assertion. Distinguish unit, integration, and live-system coverage: a missing integration test does not mean the feature has no direct tests. Test filenames or test counts alone prove neither adequacy nor absence. When supplied evidence cannot establish coverage, mark unclear rather than asserting missing tests; a concrete untested change may still fail even when other behavior has tests.",
+      "id": "test_coverage_delta",
+      "scoring": "boolean",
+      "weight": 0.2
+    },
+    {
+      "description": "Pass only when the change does not materially increase security review surface or when the security-sensitive parts remain obviously low-risk and well-contained. Fail when it touches authentication, authorization, cryptography, secrets, or external egress in a way that demands deeper review.",
+      "id": "security_surface",
+      "scoring": "boolean",
+      "weight": 0.2
+    },
+    {
+      "description": "Pass only when the reviewer is well oriented by the title, description, commits, and any supporting rationale. Fail when the change lacks a clear explanation of what changed and why, leaving the reviewer to reconstruct intent from the diff alone.",
+      "id": "reviewer_orientation",
+      "scoring": "boolean",
+      "weight": 0.1
+    }
+  ],
+  "preamble": "Review how hard the change is to review safely, not whether the feature is desirable. Base each judgment on concrete changed paths, symbols, behaviors, and relevant test assertions. Reconcile evidence across all review domains before judging the whole PR. File count, added interfaces, additive exports, or missing tests in one focused packet are not sufficient reasons to fail. Check suspected impacts against the diff, including guard and branch scope. Distinguish observed risk from unavailable context: mark unresolved criteria unclear rather than failing them; exclude unclear criteria from the weighted composite.",
+  "rubricId": "pr-complexity-tristate-v3",
+  "scope": "change_review",
+  "version": "v3"
+}
