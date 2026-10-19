@@ -29,6 +29,8 @@ import { join, resolve, sep } from 'node:path';
 
 import {
   isPiClassifierApi,
+  isPiModelCost,
+  type PiModelCost,
   type PiModelModality,
 } from '@themoltnet/pi-runtime/pi-config';
 import {
@@ -167,6 +169,7 @@ export type ProviderModelModality = PiModelModality;
  */
 export interface ProviderModelEntry {
   id: string;
+  cost?: PiModelCost;
   type?: 'chat' | 'classifier';
   api?: string;
   contextWindow?: number;
@@ -201,6 +204,7 @@ export function copyProviderModel(
   entry: ProviderModelEntry,
 ): ProviderModelEntry {
   return {
+    ...(entry.cost ? { cost: { ...entry.cost } } : {}),
     id: entry.id,
     type: entry.type ?? 'chat',
     ...(entry.api ? { api: entry.api } : {}),
@@ -660,6 +664,7 @@ export class AgentServerStore {
             model.type !== 'classifier') ||
           (model.api !== undefined &&
             (typeof model.api !== 'string' || !model.api)) ||
+          (model.cost !== undefined && !isPiModelCost(model.cost)) ||
           (model.type === 'classifier' &&
             model.api !== undefined &&
             !isPiClassifierApi(model.api)) ||

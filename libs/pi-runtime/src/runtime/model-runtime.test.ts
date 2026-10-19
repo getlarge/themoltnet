@@ -63,6 +63,7 @@ it.each(['environment', 'auth', 'classifier-only', 'classifier-only-chat-api'])(
               type: 'classifier',
               api: 'typesafe-system-one',
               contextWindow: 4096,
+              cost: { input: 0.24, output: 0, cacheRead: 0, cacheWrite: 0 },
             },
           ],
         },
@@ -83,6 +84,7 @@ it.each(['environment', 'auth', 'classifier-only', 'classifier-only-chat-api'])(
     expect(models.getModel('team', 'decisions')).toBeUndefined();
     const model = models.getModelOfType('classifier', 'team', 'decisions');
     expect(model?.baseUrl).toBe('https://classifier.example.test/v1');
+    expect(model?.cost.input).toBe(0.24);
     if (!model) throw new Error('classifier missing');
     await models.classify(model, { state: {}, questions: {} });
     expect(classify).toHaveBeenCalledOnce();

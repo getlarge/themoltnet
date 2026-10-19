@@ -260,7 +260,8 @@ const Amount = Type.Number({ minimum: 0 });
 /**
  * Spend the harness priced from its own model catalog at run time. It is an
  * estimate in `currency`, never a bill. `complete: false` means some usage had
- * no price (an unpriced or zero-priced model), so `total` is a lower bound.
+ * no price (an unpriced or zero-priced model), or pricing coverage could not be
+ * established for aggregated tool calls. `total` is the known estimate only.
  */
 export const TaskUsageCost = Type.Object(
   {

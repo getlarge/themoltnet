@@ -1,0 +1,57 @@
+import type { ModelCostRates } from '../src/types.js';
+
+export type OllamaCloudPricing = {
+  cost: ModelCostRates;
+  offPeakCost?: ModelCostRates;
+};
+
+/** Parse the published model table; never substitute zero for a missing price. */
+export function parseOllamaCloudPricing(
+  html: string,
+): Map<string, OllamaCloudPricing> {
+  const section = html.split('id="model-pricing"')[1];
+  const table = section?.match(/<table\b[^>]*>([\s\S]*?)<\/table>/)?.[1];
+  if (!table) throw new Error('Ollama pricing page has no model pricing table');
+  const text = (cell: string) => cell.replace(/<[^>]*>/g, '').trim();
+  const headers = [...table.matchAll(/<th\b[^>]*>([\s\S]*?)<\/th>/g)].map(
+    (match) => text(match[1]),
+  );
+  if (headers.join(',') !== 'Model,Input,Cached input,Output') {
+    throw new Error('Ollama pricing table columns changed');
+  }
+  const price = (value: string): number => {
+    if (!/^\$\d+(\.\d+)?$/.test(value))
+      throw new Error(`Invalid Ollama token price: ${value}`);
+    return Number(value.slice(1));
+  };
+  const prices = new Map<string, OllamaCloudPricing>();
+  for (const row of table.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/g)) {
+    const cells = [...row[1].matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/g)].map(
+      (match) => text(match[1]),
+    );
+    if (!cells.length) continue;
+    if (cells.length !== 4) throw new Error('Invalid Ollama model pricing row');
+    const [name, input, cacheRead, output] = cells;
+    // Input-only classifiers do not belong to the chat model catalog.
+    if (output === '-') continue;
+    const cost = {
+      input: price(input),
+      output: price(output),
+      // Without a cache discount, input is charged at the ordinary input rate.
+      cacheRead: cacheRead === '-' ? price(input) : price(cacheRead),
+      cacheWrite: 0,
+    };
+    const id = name.replace(/ \(Off-Peak\)$/, '');
+    const existing = prices.get(id);
+    if (id !== name) {
+      if (!existing || existing.offPeakCost)
+        throw new Error(`Unexpected Ollama off-peak row: ${name}`);
+      existing.offPeakCost = cost;
+    } else {
+      if (existing) throw new Error(`Duplicate Ollama model price: ${id}`);
+      prices.set(id, { cost });
+    }
+  }
+  if (!prices.size) throw new Error('Ollama pricing table has no chat prices');
+  return prices;
+}

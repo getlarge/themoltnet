@@ -133,6 +133,31 @@ describe('taskUsageFromState', () => {
     expect(usage.tools).toEqual([
       expect.objectContaining({ tool: 'summarize', inputTokens: 30 }),
     ]);
+    expect(usage.tools?.[0].cost?.complete).toBe(false);
+    expect(usage.cost?.complete).toBe(false);
+  });
+
+  it('keeps mixed-price tool spend incomplete after subtracting a continuation baseline', () => {
+    const key = 'pi.codemode.models.classify';
+    const baseline: UsageState = {
+      models: {},
+      tools: { [key]: bucket({ input: 100 }, { input: 0.01, total: 0.01 }) },
+    };
+    // The next attempt adds a priced 100-token call and an unpriced 200-token
+    // call. Pi retains only their combined tool counters.
+    const current: UsageState = {
+      models: {},
+      tools: { [key]: bucket({ input: 400 }, { input: 0.02, total: 0.02 }) },
+    };
+
+    const usage = taskUsageFromState(usageSince(current, baseline), primary);
+
+    expect(usage.inputTokens).toBe(300);
+    expect(usage.cost).toMatchObject({ total: 0.01, complete: false });
+    expect(usage.tools?.[0].cost).toMatchObject({
+      total: 0.01,
+      complete: false,
+    });
   });
 });
 

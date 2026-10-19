@@ -29,7 +29,11 @@ import { Type } from 'typebox';
 import { Value } from 'typebox/value';
 
 import { resolvePiCodingAgentDir } from '../config.js';
-import { PI_CLASSIFIER_API, PI_CLASSIFIER_APIS } from '../pi-config.js';
+import {
+  PI_CLASSIFIER_API,
+  PI_CLASSIFIER_APIS,
+  PiModelCostSchema,
+} from '../pi-config.js';
 import { streamAnonymousOpenAI } from './anonymous-openai.js';
 import {
   classifyProviderFailure,
@@ -41,6 +45,7 @@ const ClassifierDeclaration = Type.Object(
   {
     id: Type.String({ minLength: 1 }),
     type: Type.Literal('classifier'),
+    cost: Type.Optional(PiModelCostSchema),
     api: Type.Optional(
       Type.Union(PI_CLASSIFIER_APIS.map((api) => Type.Literal(api))),
     ),
@@ -150,7 +155,12 @@ export async function createRuntimeModels(
           contextWindow: model.contextWindow ?? 8192,
           name: model.id,
           input: model.input ?? ['text' as const],
-          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          cost: model.cost ?? {
+            input: 0,
+            output: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
         })),
       ],
     });

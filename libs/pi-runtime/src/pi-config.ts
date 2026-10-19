@@ -2,6 +2,40 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import {
+  type ModelCostRates,
+  ollamaCloudModelData,
+} from '@moltnet/provider-catalog';
+import { Type } from 'typebox';
+
+export type PiModelCost = ModelCostRates;
+export const PiModelCostSchema = Type.Object(
+  {
+    input: Type.Number({ minimum: 0 }),
+    output: Type.Number({ minimum: 0 }),
+    cacheRead: Type.Number({ minimum: 0 }),
+    cacheWrite: Type.Number({ minimum: 0 }),
+  },
+  { additionalProperties: false },
+);
+
+/** Provider configuration accepts finite, nonnegative USD rates. */
+export function isPiModelCost(value: unknown): value is PiModelCost {
+  if (typeof value !== 'object' || value === null || Array.isArray(value))
+    return false;
+  const rates = value as Record<string, unknown>;
+  return ['input', 'output', 'cacheRead', 'cacheWrite'].every(
+    (key) =>
+      typeof rates[key] === 'number' &&
+      Number.isFinite(rates[key]) &&
+      rates[key] >= 0,
+  );
+}
+
+const ollamaPrices = new Map(
+  ollamaCloudModelData.map((model) => [model.id, model.cost]),
+);
+
 /**
  * Every input modality Pi understands. Canonical for the repo: daemon
  * validation, CLI parsing and wire schemas derive their allowed values from
@@ -32,6 +66,8 @@ export type PiModelModality = (typeof PI_MODEL_MODALITIES)[number];
  */
 export interface PiModelSpec {
   id: string;
+  /** USD per million tokens; explicit rates override generated defaults. */
+  cost?: PiModelCost;
   type?: 'chat' | 'classifier';
   api?: string;
   contextWindow?: number;
@@ -72,6 +108,7 @@ export interface WriteSingleProviderPiConfigInput extends WritePiConfigBase {
   provider: string;
   /** Pi model id, e.g. `qwen3-coder:480b-cloud`. */
   model: string;
+  cost?: PiModelCost;
   /** Input modalities for `model`. Omitted leaves Pi's text-only default. */
   input?: readonly PiModelModality[];
   /**
@@ -108,9 +145,18 @@ export type WritePiConfigInput =
  * Keep model types explicit in the generated catalog. Legacy declarations
  * without a type are chat; capabilities are emitted only when declared.
  */
-function toPiModel(entry: PiModelSpec): PiStoredModelSpec {
+function toPiModel(entry: PiModelSpec, baseUrl: string): PiStoredModelSpec {
+  const endpoint = new URL(baseUrl);
+  const cloudCost =
+    endpoint.origin === 'https://ollama.com' &&
+    endpoint.pathname.replace(/\/$/, '') === '/v1' &&
+    entry.type !== 'classifier'
+      ? ollamaPrices.get(entry.id)
+      : undefined;
+  const cost = entry.cost ?? cloudCost;
   return {
     id: entry.id,
+    ...(cost ? { cost: { ...cost } } : {}),
     type: entry.type ?? 'chat',
     ...(entry.api ? { api: entry.api } : {}),
     ...(entry.contextWindow !== undefined
@@ -150,7 +196,9 @@ export function writePiConfig(input: WritePiConfigInput): void {
                   },
                 }
               : {}),
-            models: provider.models.map(toPiModel),
+            models: provider.models.map((model) =>
+              toPiModel(model, provider.baseUrl),
+            ),
           },
         ]),
       )
@@ -167,11 +215,15 @@ export function writePiConfig(input: WritePiConfigInput): void {
               }
             : {}),
           models: [
-            toPiModel({
-              id: input.model,
-              input: input.input,
-              supportsStrictMode: input.supportsStrictMode,
-            }),
+            toPiModel(
+              {
+                id: input.model,
+                cost: input.cost,
+                input: input.input,
+                supportsStrictMode: input.supportsStrictMode,
+              },
+              input.baseUrl ?? 'https://ollama.com/v1',
+            ),
           ],
         },
       };

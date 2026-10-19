@@ -41,7 +41,7 @@ export function taskUsageFromState(
     .map(([key, bucket]) => ({ ...splitModelKey(key), ...counters(bucket) }))
     .filter(hasTokens);
   const tools: TaskToolUsage[] = Object.entries(state.tools)
-    .map(([tool, bucket]) => ({ tool, ...counters(bucket) }))
+    .map(([tool, bucket]) => ({ tool, ...counters(bucket, false) }))
     .filter(hasTokens);
   const all: Counters[] = [...models, ...tools];
   const reasoning = all.filter((b) => b.reasoningTokens !== undefined);
@@ -111,7 +111,7 @@ function splitModelKey(key: string): { provider: string; model: string } {
     : { provider: key.slice(0, slash), model: key.slice(slash + 1) };
 }
 
-function counters(bucket: Bucket): Counters {
+function counters(bucket: Bucket, complete = true): Counters {
   const tokens = {
     inputTokens: tokenCount(bucket.input),
     outputTokens: tokenCount(bucket.output),
@@ -132,7 +132,8 @@ function counters(bucket: Bucket): Counters {
           output: amount(bucket.cost.output),
           cacheRead: amount(bucket.cost.cacheRead),
           cacheWrite: amount(bucket.cost.cacheWrite),
-          complete: true,
+          // Tool buckets merge calls to different models without price coverage.
+          complete,
         },
       }
     : tokens;
@@ -148,7 +149,7 @@ function sumCost(buckets: Counters[]): TaskUsageCost | undefined {
     output: sum(costs, (c) => c.output),
     cacheRead: sum(costs, (c) => c.cacheRead),
     cacheWrite: sum(costs, (c) => c.cacheWrite),
-    complete: costs.length === buckets.length,
+    complete: costs.length === buckets.length && costs.every((c) => c.complete),
   };
 }
 

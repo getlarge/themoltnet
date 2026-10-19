@@ -1,6 +1,9 @@
 import { ProjectResponseSchema } from '@moltnet/models';
 import { RuntimeProfile } from '@moltnet/runtime-profiles';
-import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
+import {
+  PI_MODEL_MODALITIES,
+  PiModelCostSchema,
+} from '@themoltnet/pi-runtime/pi-config';
 import { type TSchema, Type } from 'typebox';
 
 import { REGISTERED_TASK_TYPES } from '../help.js';
@@ -12,6 +15,7 @@ const StringList = Type.Array(Type.String());
 /** A model the provider offers, with the input modalities it accepts. */
 const ProviderModelSchema = Type.Object({
   id: Type.String(),
+  cost: Type.Optional(PiModelCostSchema),
   type: Type.Optional(
     Type.Union([Type.Literal('chat'), Type.Literal('classifier')]),
   ),
