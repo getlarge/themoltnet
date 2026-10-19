@@ -104,7 +104,13 @@ In the coding environment's secret settings, set:
 - Optional `MOLTNET_GITHUB_APP_ID`, `MOLTNET_GITHUB_APP_SLUG`,
   `MOLTNET_GITHUB_APP_INSTALLATION_ID`, and `MOLTNET_GITHUB_APP_PRIVATE_KEY`.
 
-Run `moltnet config init-from-env --name <alias>`. Claude Code web's
+[Export an existing store](../reference/agent-configuration.md#export-credentials-from-a-working-setup)
+to obtain these values, then follow the platform recipe for
+[Codex Work cloud](../reference/agent-configuration.md#codex-work-cloud) or
+[Claude Code cloud](../reference/agent-configuration.md#claude-code-cloud). The
+export never contains the agent API key; add that separately.
+
+Run `moltnet config init-from-env --name <alias>`. Claude Code cloud's
 session-start hook runs this automatically. For another CI/cloud runner,
 activate the generated gitconfig in its shell before committing:
 
