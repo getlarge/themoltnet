@@ -204,17 +204,10 @@ jobs:
       - name: Fetch reviewed head as inert Git data
         if: steps.pin.outputs.skip == 'false'
         env:
+          BASE_SHA: ${{ steps.pin.outputs.base }}
           HEAD_SHA: ${{ steps.pin.outputs.head }}
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::not a full commit id' >&2; exit 2; }
-          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
-          echo "::add-mask::$auth"
-          GIT_CONFIG_COUNT=1 \
-            GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL:-https://github.com}/.extraheader" \
-            GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
-            git fetch --no-tags --depth=1 origin "$HEAD_SHA"
+        run: bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh
       - name: Write pinned planner input
         if: steps.pin.outputs.skip == 'false'
         env:
@@ -288,17 +281,10 @@ jobs:
           pnpm exec nx run @themoltnet/adaptive-review-action:build --excludeTaskDependencies
       - name: Fetch reviewed head as inert Git data
         env:
+          BASE_SHA: ${{ needs.prepare.outputs.base }}
           HEAD_SHA: ${{ needs.prepare.outputs.head }}
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::not a full commit id' >&2; exit 2; }
-          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
-          echo "::add-mask::$auth"
-          GIT_CONFIG_COUNT=1 \
-            GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL:-https://github.com}/.extraheader" \
-            GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
-            git fetch --no-tags --depth=1 origin "$HEAD_SHA"
+        run: bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh
       - name: Write pinned review input
         env:
           PREPARED_JSON: ${{ needs.prepare.outputs.prepared }}
@@ -397,17 +383,10 @@ jobs:
           pnpm exec nx run @themoltnet/adaptive-review-action:build --excludeTaskDependencies
       - name: Fetch reviewed head as inert Git data
         env:
+          BASE_SHA: ${{ needs.prepare.outputs.base }}
           HEAD_SHA: ${{ needs.prepare.outputs.head }}
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::not a full commit id' >&2; exit 2; }
-          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
-          echo "::add-mask::$auth"
-          GIT_CONFIG_COUNT=1 \
-            GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL:-https://github.com}/.extraheader" \
-            GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
-            git fetch --no-tags --depth=1 origin "$HEAD_SHA"
+        run: bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh
       - name: Write pinned review input
         env:
           PREPARED_JSON: ${{ needs.prepare.outputs.prepared }}
@@ -473,19 +452,18 @@ jobs:
           ref: ${{ needs.prepare.outputs.base }}
           fetch-depth: 1
           persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ needs.prepare.outputs.runtime-sha }}
+          path: .adaptive-review-runtime
+          persist-credentials: false
       - name: Fetch reviewed head as inert Git data
         env:
+          BASE_SHA: ${{ needs.prepare.outputs.base }}
           HEAD_SHA: ${{ needs.prepare.outputs.head }}
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::not a full commit id' >&2; exit 2; }
-          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
-          echo "::add-mask::$auth"
-          GIT_CONFIG_COUNT=1 \
-            GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL:-https://github.com}/.extraheader" \
-            GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
-            git fetch --no-tags --depth=1 origin "$HEAD_SHA"
+        run: bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh
       - name: Drain this review's tasks
         uses: getlarge/themoltnet/packages/agent-daemon-action@e82895cd187297d4531f853661e7d667a1243b35 # v0
         env:
@@ -531,19 +509,18 @@ jobs:
           ref: ${{ needs.prepare.outputs.base }}
           fetch-depth: 1
           persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ needs.prepare.outputs.runtime-sha }}
+          path: .adaptive-review-runtime
+          persist-credentials: false
       - name: Fetch reviewed head as inert Git data
         env:
+          BASE_SHA: ${{ needs.prepare.outputs.base }}
           HEAD_SHA: ${{ needs.prepare.outputs.head }}
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::not a full commit id' >&2; exit 2; }
-          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
-          echo "::add-mask::$auth"
-          GIT_CONFIG_COUNT=1 \
-            GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL:-https://github.com}/.extraheader" \
-            GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
-            git fetch --no-tags --depth=1 origin "$HEAD_SHA"
+        run: bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh
       - name: Drain selected review tasks
         uses: getlarge/themoltnet/packages/agent-daemon-action@e82895cd187297d4531f853661e7d667a1243b35 # v0
         env:

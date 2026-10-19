@@ -10,6 +10,7 @@ import {
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Script } from 'node:vm';
 
 import { describe, expect, it } from 'vitest';
@@ -42,6 +43,10 @@ const focusedPolicy = JSON.parse(
     'utf8',
   ),
 ) as { shellCommands: unknown[]; tools: string[] };
+const fetchScriptPath = fileURLToPath(
+  new URL('../fetch-adaptive-review-head.sh', import.meta.url),
+);
+const fetchScript = readFileSync(fetchScriptPath, 'utf8');
 
 function prepareScript(): string {
   const lines = workflow.split('\n');
@@ -137,29 +142,15 @@ function workerActionInputs(name: string): string {
   return lines.slice(withInputs + 1, end < 0 ? undefined : end).join('\n');
 }
 
-function fetchScripts(): string[] {
+function fetchSteps(): string[] {
   const lines = workflow.split('\n');
   return lines.flatMap((line, index) => {
     if (line !== '      - name: Fetch reviewed head as inert Git data')
       return [];
-    const run = lines.findIndex(
-      (candidate, offset) =>
-        offset > index &&
-        (candidate === '        run: |' ||
-          candidate.startsWith('      - name: ')),
-    );
-    if (run < 0 || lines[run] !== '        run: |')
-      throw new Error('Authenticated head fetch script is missing');
     const end = lines.findIndex(
-      (candidate, offset) =>
-        offset > run && !candidate.startsWith('          '),
+      (candidate, offset) => offset > index && candidate.startsWith('      - '),
     );
-    return [
-      lines
-        .slice(run + 1, end < 0 ? undefined : end)
-        .map((command) => command.slice(10))
-        .join('\n'),
-    ];
+    return [lines.slice(index, end < 0 ? undefined : end).join('\n')];
   });
 }
 
@@ -413,36 +404,51 @@ describe('adaptive review workflow trust gates', () => {
     );
   });
 
-  it('executes the same authenticated full-object fetch in every job', () => {
-    const scripts = fetchScripts();
-    expect(scripts).toHaveLength(5);
-    expect(new Set(scripts).size).toBe(1);
+  it('runs one pinned authenticated fetch script in every job', () => {
+    const steps = fetchSteps();
+    expect(steps).toHaveLength(5);
     expect(workflow.match(/fetch-depth: 1/g)).toHaveLength(5);
     expect(workflow).not.toContain('filter: blob:none');
+    for (const step of steps) {
+      expect(step).toContain('BASE_SHA: ${{ ');
+      expect(step).toContain('HEAD_SHA: ${{ ');
+      expect(step).toContain('GH_TOKEN: ${{ github.token }}');
+      expect(step).toContain(
+        'run: bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh',
+      );
+    }
+    for (const name of ['classifier-worker', 'specialist-workers']) {
+      expect(job(name)).toContain('repository: ${{ job.workflow_repository }}');
+      expect(job(name)).toContain(
+        'ref: ${{ needs.prepare.outputs.runtime-sha }}',
+      );
+      expect(job(name)).toContain('path: .adaptive-review-runtime');
+    }
     const temp = mkdtempSync(join(tmpdir(), 'adaptive-fetch-'));
     try {
       const capture = join(temp, 'capture');
       const fakeGit = join(temp, 'git');
       writeFileSync(
         fakeGit,
-        '#!/bin/sh\nprintf "%s\\n" "$GIT_CONFIG_COUNT" "$GIT_CONFIG_KEY_0" "$GIT_CONFIG_VALUE_0" "$@" > "$TEST_CAPTURE"\n',
+        '#!/bin/sh\ncase "$1" in\n  fetch) printf "%s\\n" "$GIT_CONFIG_COUNT" "$GIT_CONFIG_KEY_0" "$GIT_CONFIG_VALUE_0" "$@" > "$TEST_CAPTURE";;\n  merge-base) exit 0;;\nesac\n',
       );
       chmodSync(fakeGit, 0o755);
-      const sha = 'b'.repeat(40);
+      const base = 'a'.repeat(40);
+      const head = 'b'.repeat(40);
       const env = {
         ...process.env,
         PATH: `${temp}:${process.env.PATH ?? ''}`,
-        HEAD_SHA: sha,
+        BASE_SHA: base,
+        HEAD_SHA: head,
         GH_TOKEN: 'fixture-token',
         GITHUB_SERVER_URL: 'https://github.com',
         TEST_CAPTURE: capture,
       };
-      const valid = spawnSync('bash', ['-e'], {
-        input: scripts[0],
+      const valid = spawnSync('bash', [fetchScriptPath], {
         env,
         encoding: 'utf8',
       });
-      expect(valid.status).toBe(0);
+      expect(valid.status, valid.stderr).toBe(0);
       expect(readFileSync(capture, 'utf8').trim().split('\n')).toEqual([
         '1',
         'http.https://github.com/.extraheader',
@@ -451,10 +457,9 @@ describe('adaptive review workflow trust gates', () => {
         '--no-tags',
         '--depth=1',
         'origin',
-        sha,
+        head,
       ]);
-      const invalid = spawnSync('bash', ['-e'], {
-        input: scripts[0],
+      const invalid = spawnSync('bash', [fetchScriptPath], {
         env: { ...env, HEAD_SHA: '--upload-pack=evil' },
         encoding: 'utf8',
       });
@@ -464,7 +469,7 @@ describe('adaptive review workflow trust gates', () => {
     }
   });
 
-  it('can diff complete base and head objects from shallow fetches', () => {
+  it('finds a merge base and reads complete blobs for production three-dot diffs', () => {
     const temp = mkdtempSync(join(tmpdir(), 'adaptive-shallow-'));
     const source = join(temp, 'source');
     const remote = join(temp, 'remote.git');
@@ -477,13 +482,18 @@ describe('adaptive review workflow trust gates', () => {
       git(source, 'init', '-b', 'main');
       git(source, 'config', 'user.name', 'Test');
       git(source, 'config', 'user.email', 'test@example.invalid');
-      writeFileSync(join(source, 'review.txt'), 'base content\n');
+      writeFileSync(join(source, 'review.txt'), 'common content\n');
       git(source, 'add', 'review.txt');
-      git(source, 'commit', '-m', 'base');
+      git(source, 'commit', '-m', 'common');
+      const common = git(source, 'rev-parse', 'HEAD');
+      git(source, 'branch', 'feature');
+      writeFileSync(join(source, 'main-only.txt'), 'main content\n');
+      git(source, 'add', 'main-only.txt');
+      git(source, 'commit', '-m', 'base advanced');
       const base = git(source, 'rev-parse', 'HEAD');
       git(source, 'remote', 'add', 'origin', remote);
       git(source, 'push', 'origin', 'main');
-      git(source, 'checkout', '-b', 'feature');
+      git(source, 'checkout', 'feature');
       writeFileSync(join(source, 'review.txt'), 'head content\n');
       git(source, 'commit', '-am', 'head');
       const head = git(source, 'rev-parse', 'HEAD');
@@ -498,11 +508,14 @@ describe('adaptive review workflow trust gates', () => {
         `file://${remote}`,
         checkout,
       );
-      const fetched = spawnSync('bash', ['-e'], {
+      expect(git(checkout, 'rev-parse', '--is-shallow-repository')).toBe(
+        'true',
+      );
+      const fetched = spawnSync('bash', [fetchScriptPath], {
         cwd: checkout,
-        input: fetchScripts()[0],
         env: {
           ...process.env,
+          BASE_SHA: base,
           HEAD_SHA: head,
           GH_TOKEN: 'fixture-token',
           GITHUB_SERVER_URL: 'https://github.com',
@@ -510,12 +523,12 @@ describe('adaptive review workflow trust gates', () => {
         encoding: 'utf8',
       });
       expect(fetched.status, fetched.stderr).toBe(0);
-      expect(git(checkout, 'rev-parse', '--is-shallow-repository')).toBe(
-        'true',
+      expect(git(checkout, 'merge-base', base, head)).toBe(common);
+      expect(git(checkout, 'show', `${base}:main-only.txt`)).toBe(
+        'main content',
       );
-      expect(git(checkout, 'show', `${base}:review.txt`)).toBe('base content');
       expect(git(checkout, 'show', `${head}:review.txt`)).toBe('head content');
-      expect(git(checkout, 'diff', '--name-only', base, head)).toBe(
+      expect(git(checkout, 'diff', '--name-only', `${base}...${head}`)).toBe(
         'review.txt',
       );
     } finally {
@@ -533,10 +546,10 @@ describe('adaptive review workflow trust gates', () => {
     );
     expect(workflow).toContain('path: .adaptive-review-runtime');
     expect(workflow).toContain('ref: ${{ needs.prepare.outputs.base }}');
-    expect(
-      workflow.match(/git fetch --no-tags --depth=1 origin "\$HEAD_SHA"/g),
-    ).toHaveLength(5);
-    expect(workflow.match(/GIT_CONFIG_COUNT=1/g)).toHaveLength(5);
+    expect(fetchScript).toContain(
+      'authenticated_fetch --depth=1 origin "$HEAD_SHA"',
+    );
+    expect(fetchScript).toContain('GIT_CONFIG_COUNT=1');
     expect(
       workflow.match(/GH_TOKEN: \$\{\{ github\.token \}\}/g)?.length,
     ).toBeGreaterThanOrEqual(5);
