@@ -1,0 +1,521 @@
+name: Adaptive review (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        default: ''
+      team-id:
+        type: string
+        default: ''
+      diary-id:
+        type: string
+        default: ''
+      project-id:
+        type: string
+        default: ''
+      agent-name:
+        type: string
+        default: ''
+      api-url:
+        type: string
+        default: ''
+      app-id:
+        type: string
+        default: ''
+      classifier-profile:
+        type: string
+        required: true
+      docs-profile:
+        type: string
+        default: ''
+      complexity-profile:
+        type: string
+        default: ''
+      security-profile:
+        type: string
+        default: ''
+      focused-profile:
+        type: string
+        default: ''
+      mode:
+        type: string
+        default: shadow
+      providers:
+        type: string
+        required: true
+      protected-paths:
+        type: string
+        default: ''
+      runtime-ref:
+        type: string
+        default: ''
+      daemon-version:
+        type: string
+        default: '0.72.2'
+    outputs:
+      skip:
+        value: ${{ jobs.prepare.outputs.skip }}
+      correlation-id:
+        value: ${{ jobs.prepare.outputs.correlation }}
+    secrets:
+      MOLTNET_AGENT_KEY:
+        required: false
+      MOLTNET_PRIVATE_KEY:
+        required: false
+      MOLTNET_GITHUB_APP_PRIVATE_KEY:
+        required: false
+      OLLAMA_API_KEY:
+        required: false
+      OPENAI_API_KEY:
+        required: false
+      ANTHROPIC_API_KEY:
+        required: false
+      OPENROUTER_API_KEY:
+        required: false
+      GEMINI_API_KEY:
+        required: false
+
+permissions: {}
+
+concurrency:
+  group: adaptive-review-${{ github.repository }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      skip: ${{ steps.pin.outputs.skip == 'true' || steps.plan.outputs.review-enabled != 'true' }}
+      prepared: ${{ steps.pin.outputs.prepared }}
+      base: ${{ steps.pin.outputs.base }}
+      head: ${{ steps.pin.outputs.head }}
+      correlation: ${{ steps.pin.outputs.correlation }}
+      classifier-needed: ${{ steps.plan.outputs.classifier-needed }}
+      review-enabled: ${{ steps.plan.outputs.review-enabled }}
+      runtime-repository: ${{ steps.runtime.outputs.repository }}
+      runtime-sha: ${{ steps.runtime-pin.outputs.sha }}
+    steps:
+      - name: Pin reviewed PR and protect the runtime
+        id: pin
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          PROTECTED_PATHS: ${{ inputs.protected-paths }}
+        with:
+          script: |
+            const crypto = require('node:crypto');
+            const pr = context.payload.pull_request;
+            const repo = `${context.repo.owner}/${context.repo.repo}`;
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              per_page: 100,
+            });
+            const protectedPaths = (process.env.PROTECTED_PATHS || '')
+              .split('\n').map(path => path.trim()).filter(Boolean);
+            const changed = files.flatMap(file =>
+              [file.filename, file.previous_filename].filter(Boolean));
+            const skip = pr.head.repo?.full_name !== repo ||
+              pr.user.login === 'dependabot[bot]' ||
+              files.length < pr.changed_files ||
+              changed.some(path => protectedPaths.some(prefix => path.startsWith(prefix)));
+            core.setOutput('skip', String(skip));
+            if (skip) return;
+            const correlationId = crypto.randomUUID();
+            const prepared = {
+              repo,
+              pr: pr.number,
+              title: pr.title.slice(0, 500),
+              body: (pr.body || '').slice(0, 4000),
+              base: pr.base.sha,
+              head: pr.head.sha,
+              correlationId,
+            };
+            core.setOutput('prepared', JSON.stringify(prepared));
+            core.setOutput('base', prepared.base);
+            core.setOutput('head', prepared.head);
+            core.setOutput('correlation', correlationId);
+      - name: Resolve trusted review runtime
+        id: runtime
+        if: steps.pin.outputs.skip == 'false'
+        env:
+          WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
+          WORKFLOW_SHA: ${{ job.workflow_sha }}
+          RUNTIME_REF: ${{ inputs.runtime-ref }}
+          PROVIDERS: ${{ inputs.providers }}
+        run: |
+          set -euo pipefail
+          if ! printf '%s\n' "$PROVIDERS" | grep -Eq '^[[:space:]]*[^#[:space:]]'; then
+            echo '::error::providers needs at least one provider definition' >&2
+            exit 1
+          fi
+          if [ -z "$WORKFLOW_REPOSITORY" ]; then
+            echo '::error::job.workflow_repository is required' >&2
+            exit 1
+          fi
+          runtime_ref="${RUNTIME_REF:-$WORKFLOW_SHA}"
+          if ! [[ "$runtime_ref" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::runtime-ref or job.workflow_sha must be a full commit SHA' >&2
+            exit 1
+          fi
+          echo "repository=$WORKFLOW_REPOSITORY" >> "$GITHUB_OUTPUT"
+          echo "ref=$runtime_ref" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        if: steps.pin.outputs.skip == 'false'
+        with:
+          ref: ${{ steps.pin.outputs.base }}
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        if: steps.pin.outputs.skip == 'false'
+        with:
+          repository: ${{ steps.runtime.outputs.repository }}
+          ref: ${{ steps.runtime.outputs.ref }}
+          path: .adaptive-review-runtime
+          persist-credentials: false
+      - name: Pin runtime commit
+        id: runtime-pin
+        if: steps.pin.outputs.skip == 'false'
+        run: echo "sha=$(git -C .adaptive-review-runtime rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        if: steps.pin.outputs.skip == 'false'
+        with:
+          version: 10.34.5
+          package_json_file: .adaptive-review-runtime/package.json
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        if: steps.pin.outputs.skip == 'false'
+        with:
+          node-version-file: .adaptive-review-runtime/.tool-versions
+          cache: pnpm
+          cache-dependency-path: .adaptive-review-runtime/pnpm-lock.yaml
+      - name: Build the trusted classifier planner
+        if: steps.pin.outputs.skip == 'false'
+        working-directory: .adaptive-review-runtime
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec nx run @themoltnet/adaptive-review-action:build --excludeTaskDependencies
+      - name: Fetch reviewed head as inert Git data
+        if: steps.pin.outputs.skip == 'false'
+        env:
+          HEAD_SHA: ${{ steps.pin.outputs.head }}
+        run: git fetch --no-tags origin "$HEAD_SHA"
+      - name: Write pinned planner input
+        if: steps.pin.outputs.skip == 'false'
+        env:
+          PREPARED_JSON: ${{ steps.pin.outputs.prepared }}
+        run: |
+          node -e "require('node:fs').writeFileSync('adaptive-prepared.json', process.env.PREPARED_JSON, {mode: 0o600})"
+      - name: Check classifier work budget
+        id: plan
+        if: steps.pin.outputs.skip == 'false'
+        uses: ./.adaptive-review-runtime/packages/adaptive-review-action
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ADAPTIVE_PREPARED: ${{ github.workspace }}/adaptive-prepared.json
+        with:
+          step: plan
+
+  route:
+    needs: prepare
+    if: needs.prepare.outputs.skip == 'false' && needs.prepare.outputs.review-enabled == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      specialists: ${{ steps.specialists.outputs.matrix }}
+      has-specialists: ${{ steps.specialists.outputs.enabled }}
+    env:
+      ADAPTIVE_MODE: ${{ inputs.mode }}
+      ADAPTIVE_PREPARED: ${{ github.workspace }}/adaptive-prepared.json
+      ADAPTIVE_ROUTE: ${{ github.workspace }}/adaptive-route.json
+      ADAPTIVE_REPORT: ${{ github.workspace }}/adaptive-report.json
+      ADAPTIVE_CLASSIFIER_PROFILE: ${{ inputs.classifier-profile }}
+      ADAPTIVE_DOCS_PROFILE: ${{ inputs.docs-profile }}
+      ADAPTIVE_COMPLEXITY_PROFILE: ${{ inputs.complexity-profile }}
+      ADAPTIVE_SECURITY_PROFILE: ${{ inputs.security-profile }}
+      ADAPTIVE_FOCUSED_PROFILE: ${{ inputs.focused-profile }}
+      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+      MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
+      MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
+      MOLTNET_TEAM_ID: ${{ inputs.team-id || vars.MOLTNET_TEAM_ID }}
+      MOLTNET_DIARY_ID: ${{ inputs.diary-id || vars.MOLTNET_DIARY_ID }}
+      MOLTNET_PROJECT_ID: ${{ inputs.project-id }}
+      ADAPTIVE_RUNTIME_SHA: ${{ needs.prepare.outputs.runtime-sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.prepare.outputs.base }}
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ needs.prepare.outputs.runtime-repository }}
+          ref: ${{ needs.prepare.outputs.runtime-sha }}
+          path: .adaptive-review-runtime
+          persist-credentials: false
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 10.34.5
+          package_json_file: .adaptive-review-runtime/package.json
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .adaptive-review-runtime/.tool-versions
+          cache: pnpm
+          cache-dependency-path: .adaptive-review-runtime/pnpm-lock.yaml
+      - name: Install and build the trusted action
+        working-directory: .adaptive-review-runtime
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec nx run @themoltnet/adaptive-review-action:build --excludeTaskDependencies
+      - name: Fetch reviewed head as inert Git data
+        env:
+          HEAD_SHA: ${{ needs.prepare.outputs.head }}
+        run: git fetch --no-tags origin "$HEAD_SHA"
+      - name: Write pinned review input
+        env:
+          PREPARED_JSON: ${{ needs.prepare.outputs.prepared }}
+        run: |
+          node -e "require('node:fs').writeFileSync(process.env.ADAPTIVE_PREPARED, process.env.PREPARED_JSON, {mode: 0o600})"
+      - name: Classify and route the review
+        uses: ./.adaptive-review-runtime/packages/adaptive-review-action
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          step: route
+      - name: Select specialist workers
+        id: specialists
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const route = JSON.parse(fs.readFileSync(process.env.ADAPTIVE_ROUTE, 'utf8'));
+          const profiles = {
+            docs: process.env.ADAPTIVE_DOCS_PROFILE,
+            tests: process.env.ADAPTIVE_FOCUSED_PROFILE,
+            conventions: process.env.ADAPTIVE_FOCUSED_PROFILE,
+            security: process.env.ADAPTIVE_SECURITY_PROFILE,
+            'blast-radius': process.env.ADAPTIVE_FOCUSED_PROFILE,
+            complexity: process.env.ADAPTIVE_COMPLEXITY_PROFILE,
+          };
+          const selected = new Map();
+          for (const item of route.routing.routes.filter(item => item.run)) {
+            const profile = profiles[item.lane];
+            if (!profile) throw new Error(`Unknown review lane: ${item.lane}`);
+            if (item.lane === 'docs' && !route.docsTaskPossible) continue;
+            selected.set(profile, (selected.get(profile) || 0) + 1);
+          }
+          const matrix = { include: [...selected].flatMap(([profile, capacity]) =>
+            Array.from({ length: capacity }, (_, index) => ({ profile, worker: index + 1 }))) };
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,
+            `matrix=${JSON.stringify(matrix)}\nenabled=${matrix.include.length > 0}\n`);
+          NODE
+      - name: Upload routing decision
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: adaptive-route-${{ github.repository_id }}-${{ github.event.pull_request.number }}
+          path: ${{ env.ADAPTIVE_ROUTE }}
+          retention-days: 14
+
+  review:
+    needs: [prepare, route]
+    if: needs.route.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      ADAPTIVE_MODE: ${{ inputs.mode }}
+      ADAPTIVE_PREPARED: ${{ github.workspace }}/adaptive-prepared.json
+      ADAPTIVE_ROUTE: ${{ github.workspace }}/adaptive-route.json
+      ADAPTIVE_REPORT: ${{ github.workspace }}/adaptive-report.json
+      ADAPTIVE_CLASSIFIER_PROFILE: ${{ inputs.classifier-profile }}
+      ADAPTIVE_DOCS_PROFILE: ${{ inputs.docs-profile }}
+      ADAPTIVE_COMPLEXITY_PROFILE: ${{ inputs.complexity-profile }}
+      ADAPTIVE_SECURITY_PROFILE: ${{ inputs.security-profile }}
+      ADAPTIVE_FOCUSED_PROFILE: ${{ inputs.focused-profile }}
+      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+      MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
+      MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
+      MOLTNET_TEAM_ID: ${{ inputs.team-id || vars.MOLTNET_TEAM_ID }}
+      MOLTNET_DIARY_ID: ${{ inputs.diary-id || vars.MOLTNET_DIARY_ID }}
+      MOLTNET_PROJECT_ID: ${{ inputs.project-id }}
+      ADAPTIVE_RUNTIME_SHA: ${{ needs.prepare.outputs.runtime-sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.prepare.outputs.base }}
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          repository: ${{ needs.prepare.outputs.runtime-repository }}
+          ref: ${{ needs.prepare.outputs.runtime-sha }}
+          path: .adaptive-review-runtime
+          persist-credentials: false
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 10.34.5
+          package_json_file: .adaptive-review-runtime/package.json
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .adaptive-review-runtime/.tool-versions
+          cache: pnpm
+          cache-dependency-path: .adaptive-review-runtime/pnpm-lock.yaml
+      - name: Install and build the trusted action
+        working-directory: .adaptive-review-runtime
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec nx run @themoltnet/adaptive-review-action:build --excludeTaskDependencies
+      - name: Fetch reviewed head as inert Git data
+        env:
+          HEAD_SHA: ${{ needs.prepare.outputs.head }}
+        run: git fetch --no-tags origin "$HEAD_SHA"
+      - name: Write pinned review input
+        env:
+          PREPARED_JSON: ${{ needs.prepare.outputs.prepared }}
+        run: |
+          node -e "require('node:fs').writeFileSync(process.env.ADAPTIVE_PREPARED, process.env.PREPARED_JSON, {mode: 0o600})"
+      - name: Download routing decision
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: adaptive-route-${{ github.repository_id }}-${{ github.event.pull_request.number }}
+          path: ${{ github.workspace }}
+      - name: Run selected review lanes
+        id: review
+        uses: ./.adaptive-review-runtime/packages/adaptive-review-action
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          step: review
+      - name: Detect review report
+        id: report-file
+        if: always()
+        run: |
+          if test -s "$ADAPTIVE_REPORT"; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Upload review report
+        if: always() && steps.report-file.outputs.exists == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: adaptive-review-${{ github.repository_id }}-${{ github.event.pull_request.number }}
+          path: ${{ env.ADAPTIVE_REPORT }}
+          retention-days: 14
+      - name: Mint LeGreffier comment token
+        id: app-token
+        if: always() && steps.report-file.outputs.exists == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ inputs.app-id || vars.MOLTNET_GITHUB_APP_ID }}
+          private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
+          repositories: ${{ github.event.repository.name }}
+          permission-pull-requests: write
+      - name: Upsert PR comment
+        if: always() && steps.app-token.outcome == 'success'
+        uses: ./.adaptive-review-runtime/packages/adaptive-review-action
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          ADAPTIVE_APP_LOGIN: ${{ steps.app-token.outputs.app-slug }}[bot]
+          ADAPTIVE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          step: publish
+
+  classifier-worker:
+    needs: prepare
+    if: needs.prepare.outputs.classifier-needed == 'true'
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.prepare.outputs.base }}
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      - name: Fetch reviewed head as inert Git data
+        env:
+          HEAD_SHA: ${{ needs.prepare.outputs.head }}
+        run: git fetch --no-tags origin "$HEAD_SHA"
+      - name: Drain this review's tasks
+        uses: getlarge/themoltnet/packages/agent-daemon-action@e82895cd187297d4531f853661e7d667a1243b35 # v0
+        env:
+          MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+          MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
+          MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
+          MOLTNET_TEAM_ID: ${{ inputs.team-id || vars.MOLTNET_TEAM_ID }}
+          MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+        with:
+          agent-name: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
+          mode: drain
+          task-types: classify
+          correlation-id: ${{ needs.prepare.outputs.correlation }}
+          profile: ${{ inputs.classifier-profile }}
+          daemon-version: ${{ inputs.daemon-version }}
+          wait-for-first-task-sec: '900'
+          wait-after-task-sec: '120'
+          max-poll-interval-ms: '3000'
+          providers: ${{ inputs.providers }}
+
+  specialist-workers:
+    name: 'Specialist ${{ matrix.profile }} #${{ matrix.worker }}'
+    needs: [prepare, route]
+    if: needs.route.outputs.has-specialists == 'true'
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.route.outputs.specialists) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.prepare.outputs.base }}
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      - name: Fetch reviewed head as inert Git data
+        env:
+          HEAD_SHA: ${{ needs.prepare.outputs.head }}
+        run: git fetch --no-tags origin "$HEAD_SHA"
+      - name: Drain selected review tasks
+        uses: getlarge/themoltnet/packages/agent-daemon-action@e82895cd187297d4531f853661e7d667a1243b35 # v0
+        env:
+          MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+          MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
+          MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
+          MOLTNET_TEAM_ID: ${{ inputs.team-id || vars.MOLTNET_TEAM_ID }}
+          MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+        with:
+          agent-name: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
+          mode: drain
+          task-types: freeform
+          correlation-id: ${{ needs.prepare.outputs.correlation }}
+          profile: ${{ matrix.profile }}
+          daemon-version: ${{ inputs.daemon-version }}
+          wait-for-first-task-sec: '900'
+          wait-after-task-sec: ${{ matrix.profile == inputs.focused-profile && '0' || '120' }}
+          max-poll-interval-ms: '3000'
+          providers: ${{ inputs.providers }}
