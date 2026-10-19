@@ -29,6 +29,7 @@ import { Type } from 'typebox';
 import { Value } from 'typebox/value';
 
 import { resolvePiCodingAgentDir } from '../config.js';
+import { taskUsageFromState } from '../durable-usage.js';
 import {
   PI_CLASSIFIER_API,
   PI_CLASSIFIER_APIS,
@@ -302,10 +303,16 @@ export function createClassificationTaskExecutor(options: {
         throw error;
       }
       if (result.usage) {
-        usage.inputTokens = result.usage.input;
-        usage.outputTokens = result.usage.output;
-        usage.cacheReadTokens = result.usage.cacheRead;
-        usage.cacheWriteTokens = result.usage.cacheWrite;
+        Object.assign(
+          usage,
+          taskUsageFromState(
+            {
+              models: { [`${result.provider}/${result.model}`]: result.usage },
+              tools: {},
+            },
+            { provider: options.model.provider, model: options.model.id },
+          ),
+        );
       }
       if (result.stopReason !== 'stop') {
         const failure =

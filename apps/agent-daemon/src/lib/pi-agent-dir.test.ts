@@ -17,6 +17,13 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { ProvidersState } from './agent-server/store.js';
 import { type PiAgentDir, resolvePiAgentDir } from './pi-agent-dir.js';
 
+const OLLAMA_CLOUD_COST: Record<string, unknown> = {
+  input: expect.any(Number),
+  output: expect.any(Number),
+  cacheRead: expect.any(Number),
+  cacheWrite: expect.any(Number),
+};
+
 const STORE_OLLAMA: ProvidersState = {
   'ollama-cloud': {
     api: 'openai-completions',
@@ -194,7 +201,13 @@ describe('resolvePiAgentDir', () => {
           apiKey: '$MOLTNET_PROVIDER_OLLAMA_CLOUD_API_KEY',
           baseUrl: 'https://ollama.com/v1',
           compat: { supportsDeveloperRole: false },
-          models: [{ id: 'glm-5.2', type: 'chat' }],
+          models: [
+            {
+              id: 'glm-5.2',
+              type: 'chat',
+              cost: OLLAMA_CLOUD_COST,
+            },
+          ],
         },
       },
     });
@@ -274,7 +287,11 @@ describe('resolvePiAgentDir', () => {
           baseUrl: 'https://ollama.com/v1',
           compat: { supportsDeveloperRole: false },
           models: [
-            { id: 'glm-5.2', type: 'chat' },
+            {
+              id: 'glm-5.2',
+              type: 'chat',
+              cost: OLLAMA_CLOUD_COST,
+            },
             { id: 'glm-5.2:cloud', contextWindow: 202752, reasoning: true },
           ],
         },
