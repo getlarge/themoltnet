@@ -1,5 +1,14 @@
-import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import {
+  chmodSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Script } from 'node:vm';
 
 import { describe, expect, it } from 'vitest';
@@ -106,6 +115,32 @@ function job(name: string): string {
     (line, index) => index > start && /^ {2}[a-z][a-z-]*:$/.test(line),
   );
   return lines.slice(start, end < 0 ? undefined : end).join('\n');
+}
+
+function fetchScripts(): string[] {
+  const lines = workflow.split('\n');
+  return lines.flatMap((line, index) => {
+    if (line !== '      - name: Fetch reviewed head as inert Git data')
+      return [];
+    const run = lines.findIndex(
+      (candidate, offset) =>
+        offset > index &&
+        (candidate === '        run: |' ||
+          candidate.startsWith('      - name: ')),
+    );
+    if (run < 0 || lines[run] !== '        run: |')
+      throw new Error('Authenticated head fetch script is missing');
+    const end = lines.findIndex(
+      (candidate, offset) =>
+        offset > run && !candidate.startsWith('          '),
+    );
+    return [
+      lines
+        .slice(run + 1, end < 0 ? undefined : end)
+        .map((command) => command.slice(10))
+        .join('\n'),
+    ];
+  });
 }
 
 function specialistMatrix(
@@ -334,6 +369,74 @@ describe('adaptive review workflow trust gates', () => {
           `${provider}_API_KEY: ${'${{ secrets.'}${provider}_API_KEY }}`,
         );
       }
+    }
+  });
+
+  it('passes the producer project scope to both worker types', () => {
+    for (const name of ['classifier-worker', 'specialist-workers']) {
+      expect(job(name)).toContain('project-id: ${{ inputs.project-id }}');
+    }
+  });
+
+  it('keeps route artifacts distinct across rerun attempts', () => {
+    const attempt = '${{ github.run_attempt }}';
+    expect(workflow.match(/name: adaptive-route-/g)).toHaveLength(2);
+    expect(
+      workflow
+        .match(/name: adaptive-route-[^\n]+/g)
+        ?.every((name) => name.includes(attempt)),
+    ).toBe(true);
+    expect(workflow).toContain(
+      `name: adaptive-review-${'${{ github.repository_id }}'}-${'${{ github.event.pull_request.number }}'}-${attempt}`,
+    );
+  });
+
+  it('executes the same authenticated full-object fetch in every job', () => {
+    const scripts = fetchScripts();
+    expect(scripts).toHaveLength(5);
+    expect(new Set(scripts).size).toBe(1);
+    expect(workflow).not.toContain('filter: blob:none');
+    const temp = mkdtempSync(join(tmpdir(), 'adaptive-fetch-'));
+    try {
+      const capture = join(temp, 'capture');
+      const fakeGit = join(temp, 'git');
+      writeFileSync(
+        fakeGit,
+        '#!/bin/sh\nprintf "%s\\n" "$GIT_CONFIG_COUNT" "$GIT_CONFIG_KEY_0" "$GIT_CONFIG_VALUE_0" "$@" > "$TEST_CAPTURE"\n',
+      );
+      chmodSync(fakeGit, 0o755);
+      const sha = 'b'.repeat(40);
+      const env = {
+        ...process.env,
+        PATH: `${temp}:${process.env.PATH ?? ''}`,
+        HEAD_SHA: sha,
+        GH_TOKEN: 'fixture-token',
+        GITHUB_SERVER_URL: 'https://github.com',
+        TEST_CAPTURE: capture,
+      };
+      const valid = spawnSync('bash', ['-e'], {
+        input: scripts[0],
+        env,
+        encoding: 'utf8',
+      });
+      expect(valid.status).toBe(0);
+      expect(readFileSync(capture, 'utf8').trim().split('\n')).toEqual([
+        '1',
+        'http.https://github.com/.extraheader',
+        `AUTHORIZATION: basic ${Buffer.from('x-access-token:fixture-token').toString('base64')}`,
+        'fetch',
+        '--no-tags',
+        'origin',
+        sha,
+      ]);
+      const invalid = spawnSync('bash', ['-e'], {
+        input: scripts[0],
+        env: { ...env, HEAD_SHA: '--upload-pack=evil' },
+        encoding: 'utf8',
+      });
+      expect(invalid.status).toBe(2);
+    } finally {
+      rmSync(temp, { recursive: true, force: true });
     }
   });
 

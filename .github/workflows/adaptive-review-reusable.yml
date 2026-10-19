@@ -172,7 +172,6 @@ jobs:
         with:
           ref: ${{ steps.pin.outputs.base }}
           fetch-depth: 0
-          filter: blob:none
           persist-credentials: false
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         if: steps.pin.outputs.skip == 'false'
@@ -266,7 +265,6 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.base }}
           fetch-depth: 0
-          filter: blob:none
           persist-credentials: false
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -341,7 +339,7 @@ jobs:
       - name: Upload routing decision
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: adaptive-route-${{ github.repository_id }}-${{ github.event.pull_request.number }}
+          name: adaptive-route-${{ github.repository_id }}-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
           path: ${{ env.ADAPTIVE_ROUTE }}
           retention-days: 14
 
@@ -376,7 +374,6 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.base }}
           fetch-depth: 0
-          filter: blob:none
           persist-credentials: false
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -419,7 +416,7 @@ jobs:
       - name: Download routing decision
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          name: adaptive-route-${{ github.repository_id }}-${{ github.event.pull_request.number }}
+          name: adaptive-route-${{ github.repository_id }}-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
           path: ${{ github.workspace }}
       - name: Run selected review lanes
         id: review
@@ -439,7 +436,7 @@ jobs:
         if: always() && steps.report-file.outputs.exists == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: adaptive-review-${{ github.repository_id }}-${{ github.event.pull_request.number }}
+          name: adaptive-review-${{ github.repository_id }}-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
           path: ${{ env.ADAPTIVE_REPORT }}
           retention-days: 14
       - name: Mint LeGreffier comment token
@@ -475,7 +472,6 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.base }}
           fetch-depth: 0
-          filter: blob:none
           persist-credentials: false
       - name: Fetch reviewed head as inert Git data
         env:
@@ -508,6 +504,7 @@ jobs:
           mode: drain
           task-types: classify
           correlation-id: ${{ needs.prepare.outputs.correlation }}
+          project-id: ${{ inputs.project-id }}
           profile: ${{ inputs.classifier-profile }}
           daemon-version: ${{ inputs.daemon-version }}
           wait-for-first-task-sec: '900'
@@ -533,7 +530,6 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.base }}
           fetch-depth: 0
-          filter: blob:none
           persist-credentials: false
       - name: Fetch reviewed head as inert Git data
         env:
@@ -566,6 +562,7 @@ jobs:
           mode: drain
           task-types: freeform
           correlation-id: ${{ needs.prepare.outputs.correlation }}
+          project-id: ${{ inputs.project-id }}
           profile: ${{ matrix.profile }}
           daemon-version: ${{ inputs.daemon-version }}
           wait-for-first-task-sec: '900'
