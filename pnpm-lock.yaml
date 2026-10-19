@@ -188,7 +188,7 @@ catalogs:
       version: 1.43.0
     '@ory/client-fetch':
       specifier: ^1.22.63
-      version: 1.22.63
+      version: 1.22.66
     '@playwright/test':
       specifier: ^1.55.0
       version: 1.64.1
@@ -1048,7 +1048,7 @@ importers:
         version: link:../../libs/tasks
       '@ory/client-fetch':
         specifier: 'catalog:'
-        version: 1.22.63
+        version: 1.22.66
       '@tanstack/react-query':
         specifier: 'catalog:'
         version: 5.99.2(react@19.3.0)
@@ -1127,7 +1127,7 @@ importers:
         version: link:../../libs/crypto-service
       '@ory/client-fetch':
         specifier: 'catalog:'
-        version: 1.22.63
+        version: 1.22.66
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.64.1
@@ -1666,7 +1666,7 @@ importers:
         version: 1.43.0
       '@ory/client-fetch':
         specifier: 'catalog:'
-        version: 1.22.63
+        version: 1.22.66
       '@scalar/fastify-api-reference':
         specifier: 'catalog:'
         version: 1.73.1
@@ -1781,7 +1781,7 @@ importers:
         version: link:../../libs/models
       '@ory/client-fetch':
         specifier: 'catalog:'
-        version: 1.22.63
+        version: 1.22.66
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../../libs/sdk
@@ -1825,7 +1825,7 @@ importers:
         version: link:../libs/api-client
       '@ory/client-fetch':
         specifier: 'catalog:'
-        version: 1.22.63
+        version: 1.22.66
       '@themoltnet/design-system':
         specifier: workspace:*
         version: link:../libs/design-system
@@ -1923,7 +1923,7 @@ importers:
         version: link:../models
       '@ory/client-fetch':
         specifier: 'catalog:'
-        version: 1.22.63
+        version: 1.22.66
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -2018,7 +2018,7 @@ importers:
         version: link:../observability
       '@ory/client-fetch':
         specifier: 'catalog:'
-        version: 1.22.63
+        version: 1.22.66
       fastify-plugin:
         specifier: 'catalog:'
         version: 5.1.0
@@ -2092,7 +2092,7 @@ importers:
         version: link:../database
       '@ory/client-fetch':
         specifier: 'catalog:'
-        version: 1.22.63
+        version: 1.22.66
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -3936,7 +3936,7 @@ importers:
         version: link:../libs/tasks
       '@ory/client-fetch':
         specifier: 'catalog:'
-        version: 1.22.63
+        version: 1.22.66
       '@themoltnet/agent-runtime':
         specifier: workspace:*
         version: link:../libs/agent-runtime
@@ -7420,8 +7420,8 @@ packages:
     peerDependencies:
       '@opentelemetry/api': ^1.1.0
 
-  '@ory/client-fetch@1.22.63':
-    resolution: {integrity: sha512-+5+OH5+Yy8Lj/PygYAwz4RWrhKg5XHAt6LbUTD/pBaXTtFXLvm0jCi97CSFsUmCsxYReMaWNOHgsd0qzXOEMhg==}
+  '@ory/client-fetch@1.22.66':
+    resolution: {integrity: sha512-teGEdSeVL7RwNPFNfl5hZM/f54B9pnXUt18pK8y3Zoj2PPbkbQSXV5cBhPK1wR8IAiImc22GtdWNGeRSQ2qQxA==}
 
   '@oxc-project/types@0.153.0':
     resolution: {integrity: sha512-jSNrRIyvPVLL5E1z/tS5zLAprosGz/FuI1PWwEOz59j3E4TTTzSpqKb/RDGqJhhW0QHYISGXxq582wGx6T11Tw==}
@@ -19479,7 +19479,7 @@ snapshots:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.8.0(@opentelemetry/api@1.9.1)
 
-  '@ory/client-fetch@1.22.63': {}
+  '@ory/client-fetch@1.22.66': {}
 
   '@oxc-project/types@0.153.0': {}
 
