@@ -63,6 +63,22 @@ const stageOutput = (value: unknown) => ({
 });
 
 describe('staged complexity review', () => {
+  it('carries parent review tags into each stage', () => {
+    const task = buildChangeMapTask(
+      { ...input, tags: ['review:adaptive', 'lane:complexity'] },
+      evidence,
+    );
+    expect(task.tags).toEqual([
+      'review:complexity',
+      'review:adaptive',
+      'lane:complexity',
+      'stage:map',
+      'repo:getlarge/themoltnet',
+      'pr:2545',
+      `revision:${head}`,
+    ]);
+  });
+
   it('keeps cross-domain test paths visible without presenting unassigned patches as inspected evidence', () => {
     // Regression shape from #2790: source and direct tests can be assigned to
     // different packets. The source reviewer must know its view is partial;

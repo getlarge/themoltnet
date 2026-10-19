@@ -111,7 +111,12 @@ function harness(
   let nextId = 0;
   const created = new Map<
     string,
-    { taskType: string; title?: string; input: { brief?: string } }
+    {
+      taskType: string;
+      title?: string;
+      tags?: string[];
+      input: { brief?: string };
+    }
   >();
   const createTask = vi.fn((body: Parameters<TaskClient['createTask']>[0]) => {
     const id = `task-${++nextId}`;
@@ -643,12 +648,24 @@ describe('adaptive review orchestration', () => {
       true,
     );
     expect(mocks.runDocsImpactReview).toHaveBeenCalledOnce();
+    expect(mocks.runDocsImpactReview.mock.calls[0][1]).toMatchObject({
+      tags: [
+        'review:adaptive',
+        'lane:docs',
+        'repo:getlarge/themoltnet',
+        'pr:42',
+        `revision:${identity.head}`,
+      ],
+    });
     expect(mocks.runDocsImpactReview).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
       { serialTaskDispatch: true },
     );
     expect(mocks.runComplexityReview).toHaveBeenCalledOnce();
+    expect(mocks.runComplexityReview.mock.calls[0][1]).toMatchObject({
+      tags: ['review:adaptive', 'lane:complexity'],
+    });
     expect(mocks.runComplexityReview).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
@@ -661,6 +678,16 @@ describe('adaptive review orchestration', () => {
       ),
     ).toBe(true);
     expect(createTask).toHaveBeenCalledTimes(5);
+    for (const task of created.values()) {
+      expect(task.tags).toEqual(
+        expect.arrayContaining([
+          'review:adaptive',
+          'repo:getlarge/themoltnet',
+          'pr:42',
+          `revision:${identity.head}`,
+        ]),
+      );
+    }
   });
 
   it('scopes classifier and specialist tasks to the worker project', async () => {

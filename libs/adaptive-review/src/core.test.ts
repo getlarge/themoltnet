@@ -67,6 +67,13 @@ describe('classifier-first routing', () => {
   it('gives each bounded packet every independent question and applicable rule', () => {
     const [packet] = packetize(evidence);
     const task = buildClassifyTask(identity, evidence, packet, policy);
+    expect(task.tags).toEqual([
+      'review:adaptive',
+      'stage:classify',
+      'repo:getlarge/themoltnet',
+      'pr:42',
+      `revision:${identity.head}`,
+    ]);
     expect(Object.keys(task.input.questions)).toHaveLength(8);
     expect(task.input.state.packet[0].patch).toContain('+new');
     expect(

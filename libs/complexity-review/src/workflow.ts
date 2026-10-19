@@ -36,6 +36,7 @@ export interface ReviewInput {
   correlationId: string;
   profileId: string;
   rubric: Rubric;
+  tags?: string[];
 }
 
 const MAX_METADATA_BYTES = 8_000;
@@ -131,6 +132,7 @@ function stageTask(
     maxAttempts: 1,
     tags: [
       'review:complexity',
+      ...(input.tags ?? []),
       'stage:' + stage,
       'repo:' + input.repo,
       'pr:' + input.pr,

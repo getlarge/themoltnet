@@ -271,6 +271,7 @@ export function buildClassifyTask(
     tags: [
       'review:adaptive',
       'stage:classify',
+      `repo:${identity.repo}`,
       `pr:${identity.pr}`,
       `revision:${identity.head}`,
     ],
