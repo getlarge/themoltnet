@@ -9,8 +9,8 @@ github.com/dlclark/regexp2 v1.12.0 h1:0j4c5qQmnC6XOWNjP3PIXURXN2gWx76rd3KvgdPkCz
 github.com/dlclark/regexp2 v1.12.0/go.mod h1:DHkYz0B9wPfa6wondMfaivmHpzrQ3v9q8cnmRbL6yW8=
 github.com/fatih/color v1.19.0 h1:Zp3PiM21/9Ld6FzSKyL5c/BULoe/ONr9KlbYVOfG8+w=
 github.com/fatih/color v1.19.0/go.mod h1:zNk67I0ZUT1bEGsSGyCZYZNrHuTkJJB+r6Q9VuMi0LE=
-github.com/getlarge/themoltnet/libs/moltnet-api-client v1.86.0 h1:GqNWljggJ0TaOsiQPCkIplePeW/ZhywdC37eZ6D/Gb8=
-github.com/getlarge/themoltnet/libs/moltnet-api-client v1.86.0/go.mod h1:ckHIgbc3oahUEHx9K5qv3NYjpc0sH9MaqnrAvZJNCsw=
+github.com/getlarge/themoltnet/libs/moltnet-api-client v1.87.0 h1:cpnoZh1g+0dynZeMBNI6NGLCp+LjFVgKnTlxLe2MeTI=
+github.com/getlarge/themoltnet/libs/moltnet-api-client v1.87.0/go.mod h1:ckHIgbc3oahUEHx9K5qv3NYjpc0sH9MaqnrAvZJNCsw=
 github.com/ghodss/yaml v1.0.0 h1:wQHKEahhL6wmXdzwWG11gIVCkOv05bNOh+Rxn0yngAk=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/go-faster/errors v0.8.0 h1:9T9eJrM+72dFk7n4DfhuaDDe6cyuFCSW2oNUkN77Yqc=
