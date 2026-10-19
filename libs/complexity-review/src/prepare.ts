@@ -28,7 +28,7 @@ export interface PreparedReview {
 }
 
 const oid = /^[0-9a-f]{40}$/;
-const defaultRubric = 'rubrics/pr-complexity-tristate-v2.json';
+const defaultRubric = 'rubrics/pr-complexity-tristate-v3.json';
 
 export function parsePreparedReview(
   raw: string,

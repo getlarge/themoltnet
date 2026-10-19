@@ -55,7 +55,7 @@ export async function main() {
       correlation: { type: 'string' },
       rubric: {
         type: 'string',
-        default: 'rubrics/pr-complexity-tristate-v2.json',
+        default: 'rubrics/pr-complexity-tristate-v3.json',
       },
       'dry-run': { type: 'boolean', default: false },
     },

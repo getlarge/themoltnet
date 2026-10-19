@@ -27,7 +27,7 @@ const rubric = JSON.parse(
   readFileSync(
     resolve(
       import.meta.dirname,
-      '../../../rubrics/pr-complexity-tristate-v2.json',
+      '../../../rubrics/pr-complexity-tristate-v3.json',
     ),
     'utf8',
   ),
@@ -63,6 +63,92 @@ const stageOutput = (value: unknown) => ({
 });
 
 describe('staged complexity review', () => {
+  it('keeps cross-domain test paths visible without presenting unassigned patches as inspected evidence', () => {
+    // Regression shape from #2790: source and direct tests can be assigned to
+    // different packets. The source reviewer must know its view is partial;
+    // synthesis needs both observations before claiming the feature lacks tests.
+    const splitEvidence: ReviewEvidence = {
+      manifest: '2 files changed',
+      files: [
+        {
+          path: 'src/spend-report.ts',
+          patch: '+export function collectSpend() { return totalAttempts(); }',
+          bytes: 70,
+        },
+        {
+          path: '__tests__/spend-report.test.ts',
+          patch: '+expect(report.totals.combined.usage.attempts).toBe(5);',
+          bytes: 65,
+        },
+      ],
+      bytes: 135,
+      generatedPaths: [],
+    };
+    const work = buildDomainWork(
+      [
+        { id: 'source', nature: 'collection', paths: ['src/spend-report.ts'] },
+        {
+          id: 'tests',
+          nature: 'verification',
+          paths: ['__tests__/spend-report.test.ts'],
+        },
+      ],
+      splitEvidence,
+    );
+    const source = buildDomainTask(input, splitEvidence, work[0]);
+    expect(source.input.brief).toContain('__tests__/spend-report.test.ts');
+    expect(source.input.brief).not.toContain('toBe(5)');
+    expect(source.input.brief).toContain(
+      'Do not infer missing PR-wide tests from their absence in this packet',
+    );
+    const domains = [
+      parseDomainResult(
+        stageOutput({
+          summary: 'Collection; tests are in another packet',
+          signals: [
+            {
+              criterionId: 'test_coverage_delta',
+              evidence:
+                'src/spend-report.ts adds attempt aggregation; assertions are outside this packet',
+              impact: 'neutral',
+            },
+          ],
+        }),
+        work[0],
+        rubric,
+      ),
+      parseDomainResult(
+        stageOutput({
+          summary: 'Direct aggregation test',
+          signals: [
+            {
+              criterionId: 'test_coverage_delta',
+              evidence:
+                '__tests__/spend-report.test.ts asserts combined attempt count toBe(5)',
+              impact: 'reduces',
+            },
+          ],
+        }),
+        work[1],
+        rubric,
+      ),
+    ];
+    const synthesis = buildSynthesisTask(input, splitEvidence, domains);
+    expect(synthesis.input.brief).toContain('toBe(5)');
+    expect(synthesis.input.brief).toContain(
+      'assertions are outside this packet',
+    );
+    expect(synthesis.input.brief).toContain(
+      'Reconcile test-coverage observations across ALL domains before scoring',
+    );
+    expect(synthesis.input.brief).toContain(
+      'Distinguish absent integration coverage from absent unit coverage',
+    );
+    expect(synthesis.input.brief).toContain(
+      'Do not automatically pass because test files exist',
+    );
+  });
+
   it('reads the complete pinned diff by changed path without rejecting oversized patches', () => {
     const calls: string[][] = [];
     const git = (args: string[]) => {

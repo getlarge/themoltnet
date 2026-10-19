@@ -35,6 +35,15 @@ a separate focused review group. Duplicate or unknown indexes do not affect
 coverage. Domain tasks return observations without echoing assigned paths, and
 the synthesis task returns judgments without calculating the composite.
 
+The v3 rubric requires concrete behavior or contract evidence for burden
+findings. Additive exports, new interfaces, and shared-library placement alone
+do not establish broad impact. Focused tasks receive a whole-PR changed-path
+inventory alongside their assigned patches so they can identify evidence that
+belongs to other packets without claiming to have inspected it. Synthesis
+reconciles test assertions across domains, distinguishes unit from integration
+coverage, and marks insufficient evidence unclear. Test files alone establish
+neither adequate coverage nor its absence.
+
 Each task has one attempt and a 180-second running budget. Two drain workers
 claim focused tasks under one correlation ID. The final comment leads with a
 compact burden, head, and elapsed-time line.
