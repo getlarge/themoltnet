@@ -254,20 +254,77 @@ export const TaskRef = Type.Object(
 );
 export type TaskRef = Static<typeof TaskRef>;
 
+const TokenCount = Type.Integer({ minimum: 0 });
+const Amount = Type.Number({ minimum: 0 });
+
+/**
+ * Spend the harness priced from its own model catalog at run time. It is an
+ * estimate in `currency`, never a bill. `complete: false` means some usage had
+ * no price (an unpriced or zero-priced model), or pricing coverage could not be
+ * established for aggregated tool calls. `total` is the known estimate only.
+ */
+export const TaskUsageCost = Type.Object(
+  {
+    currency: Type.Literal('USD'),
+    total: Amount,
+    input: Amount,
+    output: Amount,
+    cacheRead: Amount,
+    cacheWrite: Amount,
+    complete: Type.Boolean(),
+  },
+  { additionalProperties: false },
+);
+export type TaskUsageCost = Static<typeof TaskUsageCost>;
+
+const UsageCounters = {
+  inputTokens: TokenCount,
+  outputTokens: TokenCount,
+  cacheReadTokens: TokenCount,
+  cacheWriteTokens: TokenCount,
+  /** Subset of `outputTokens`; absent when the provider reports no split. */
+  reasoningTokens: Type.Optional(TokenCount),
+  /** Absent when this bucket's model has no price. */
+  cost: Type.Optional(TaskUsageCost),
+};
+
+/** One model's share of an attempt, keyed by the model that answered. */
+export const TaskModelUsage = Type.Object(
+  { provider: Type.String(), model: Type.String(), ...UsageCounters },
+  { additionalProperties: false },
+);
+export type TaskModelUsage = Static<typeof TaskModelUsage>;
+
+/**
+ * Spend a tool reported for its own model calls (a summarizer, a nested
+ * agent). The harness does not record which model the tool used.
+ */
+export const TaskToolUsage = Type.Object(
+  { tool: Type.String(), ...UsageCounters },
+  { additionalProperties: false },
+);
+export type TaskToolUsage = Static<typeof TaskToolUsage>;
+
 /**
  * Token / cost accounting for one attempt.
  * Reported by the runtime; persisted per-attempt, also rolled up into
- * `TaskOutput.usage` for convenience.
+ * `TaskOutput.usage` for convenience. When `models` / `tools` are present the
+ * top-level counters and `cost` are their sum.
  */
 export const TaskUsage = Type.Object(
   {
-    inputTokens: Type.Integer({ minimum: 0 }),
-    outputTokens: Type.Integer({ minimum: 0 }),
-    cacheReadTokens: Type.Optional(Type.Integer({ minimum: 0 })),
-    cacheWriteTokens: Type.Optional(Type.Integer({ minimum: 0 })),
-    toolCalls: Type.Optional(Type.Integer({ minimum: 0 })),
+    inputTokens: TokenCount,
+    outputTokens: TokenCount,
+    cacheReadTokens: Type.Optional(TokenCount),
+    cacheWriteTokens: Type.Optional(TokenCount),
+    reasoningTokens: Type.Optional(TokenCount),
+    toolCalls: Type.Optional(TokenCount),
+    /** The attempt's primary model; `models` holds the per-model split. */
     model: Type.Optional(Type.String()),
     provider: Type.Optional(Type.String()),
+    cost: Type.Optional(TaskUsageCost),
+    models: Type.Optional(Type.Array(TaskModelUsage)),
+    tools: Type.Optional(Type.Array(TaskToolUsage)),
   },
   { $id: 'TaskUsage', additionalProperties: false },
 );

@@ -84199,6 +84199,105 @@ func (s *OptTaskAttemptErrorRetryDecision) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes TaskAttemptUsageCost as json.
+func (o OptTaskAttemptUsageCost) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes TaskAttemptUsageCost from json.
+func (o *OptTaskAttemptUsageCost) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptTaskAttemptUsageCost to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptTaskAttemptUsageCost) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptTaskAttemptUsageCost) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes TaskAttemptUsageModelsItemCost as json.
+func (o OptTaskAttemptUsageModelsItemCost) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes TaskAttemptUsageModelsItemCost from json.
+func (o *OptTaskAttemptUsageModelsItemCost) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptTaskAttemptUsageModelsItemCost to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptTaskAttemptUsageModelsItemCost) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptTaskAttemptUsageModelsItemCost) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes TaskAttemptUsageToolsItemCost as json.
+func (o OptTaskAttemptUsageToolsItemCost) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes TaskAttemptUsageToolsItemCost from json.
+func (o *OptTaskAttemptUsageToolsItemCost) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptTaskAttemptUsageToolsItemCost to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptTaskAttemptUsageToolsItemCost) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptTaskAttemptUsageToolsItemCost) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes TaskErrorRetry as json.
 func (o OptTaskErrorRetry) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -84426,6 +84525,105 @@ func (s OptTaskReferencesItemExternal) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptTaskReferencesItemExternal) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes TaskUsageCost as json.
+func (o OptTaskUsageCost) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes TaskUsageCost from json.
+func (o *OptTaskUsageCost) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptTaskUsageCost to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptTaskUsageCost) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptTaskUsageCost) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes TaskUsageModelsItemCost as json.
+func (o OptTaskUsageModelsItemCost) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes TaskUsageModelsItemCost from json.
+func (o *OptTaskUsageModelsItemCost) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptTaskUsageModelsItemCost to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptTaskUsageModelsItemCost) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptTaskUsageModelsItemCost) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes TaskUsageToolsItemCost as json.
+func (o OptTaskUsageToolsItemCost) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes TaskUsageToolsItemCost from json.
+func (o *OptTaskUsageToolsItemCost) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptTaskUsageToolsItemCost to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptTaskUsageToolsItemCost) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptTaskUsageToolsItemCost) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -117592,16 +117790,44 @@ func (s *TaskActivityProductMetricsRoi) encodeFields(e *jx.Encoder) {
 		s.AcceptedTasksPerThousandTokens.Encode(e)
 	}
 	{
+		e.FieldStart("estimatedCostPerAcceptedTaskUsd")
+		s.EstimatedCostPerAcceptedTaskUsd.Encode(e)
+	}
+	{
+		e.FieldStart("estimatedCostUsd")
+		e.Float64(s.EstimatedCostUsd)
+	}
+	{
 		e.FieldStart("extraAttemptCount")
 		e.Int(s.ExtraAttemptCount)
+	}
+	{
+		e.FieldStart("extraCostBeforeAcceptanceUsd")
+		e.Float64(s.ExtraCostBeforeAcceptanceUsd)
 	}
 	{
 		e.FieldStart("extraTokensBeforeAcceptance")
 		e.Int(s.ExtraTokensBeforeAcceptance)
 	}
 	{
+		e.FieldStart("partiallyPricedAttemptCount")
+		e.Int(s.PartiallyPricedAttemptCount)
+	}
+	{
+		e.FieldStart("pricedAttemptCount")
+		e.Int(s.PricedAttemptCount)
+	}
+	{
 		e.FieldStart("tokensPerAcceptedTask")
 		s.TokensPerAcceptedTask.Encode(e)
+	}
+	{
+		e.FieldStart("totalCacheReadTokens")
+		e.Int(s.TotalCacheReadTokens)
+	}
+	{
+		e.FieldStart("totalCacheWriteTokens")
+		e.Int(s.TotalCacheWriteTokens)
 	}
 	{
 		e.FieldStart("totalInputTokens")
@@ -117612,19 +117838,36 @@ func (s *TaskActivityProductMetricsRoi) encodeFields(e *jx.Encoder) {
 		e.Int(s.TotalOutputTokens)
 	}
 	{
+		e.FieldStart("totalReasoningTokens")
+		e.Int(s.TotalReasoningTokens)
+	}
+	{
 		e.FieldStart("totalTokens")
 		e.Int(s.TotalTokens)
 	}
+	{
+		e.FieldStart("unpricedAttemptCount")
+		e.Int(s.UnpricedAttemptCount)
+	}
 }
 
-var jsonFieldsNameOfTaskActivityProductMetricsRoi = [7]string{
-	0: "acceptedTasksPerThousandTokens",
-	1: "extraAttemptCount",
-	2: "extraTokensBeforeAcceptance",
-	3: "tokensPerAcceptedTask",
-	4: "totalInputTokens",
-	5: "totalOutputTokens",
-	6: "totalTokens",
+var jsonFieldsNameOfTaskActivityProductMetricsRoi = [16]string{
+	0:  "acceptedTasksPerThousandTokens",
+	1:  "estimatedCostPerAcceptedTaskUsd",
+	2:  "estimatedCostUsd",
+	3:  "extraAttemptCount",
+	4:  "extraCostBeforeAcceptanceUsd",
+	5:  "extraTokensBeforeAcceptance",
+	6:  "partiallyPricedAttemptCount",
+	7:  "pricedAttemptCount",
+	8:  "tokensPerAcceptedTask",
+	9:  "totalCacheReadTokens",
+	10: "totalCacheWriteTokens",
+	11: "totalInputTokens",
+	12: "totalOutputTokens",
+	13: "totalReasoningTokens",
+	14: "totalTokens",
+	15: "unpricedAttemptCount",
 }
 
 // Decode decodes TaskActivityProductMetricsRoi from json.
@@ -117632,7 +117875,7 @@ func (s *TaskActivityProductMetricsRoi) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode TaskActivityProductMetricsRoi to nil")
 	}
-	var requiredBitSet [1]uint8
+	var requiredBitSet [2]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -117646,8 +117889,30 @@ func (s *TaskActivityProductMetricsRoi) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"acceptedTasksPerThousandTokens\"")
 			}
-		case "extraAttemptCount":
+		case "estimatedCostPerAcceptedTaskUsd":
 			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.EstimatedCostPerAcceptedTaskUsd.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"estimatedCostPerAcceptedTaskUsd\"")
+			}
+		case "estimatedCostUsd":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Float64()
+				s.EstimatedCostUsd = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"estimatedCostUsd\"")
+			}
+		case "extraAttemptCount":
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.ExtraAttemptCount = int(v)
@@ -117658,8 +117923,20 @@ func (s *TaskActivityProductMetricsRoi) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"extraAttemptCount\"")
 			}
+		case "extraCostBeforeAcceptanceUsd":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Float64()
+				s.ExtraCostBeforeAcceptanceUsd = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"extraCostBeforeAcceptanceUsd\"")
+			}
 		case "extraTokensBeforeAcceptance":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Int()
 				s.ExtraTokensBeforeAcceptance = int(v)
@@ -117670,8 +117947,32 @@ func (s *TaskActivityProductMetricsRoi) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"extraTokensBeforeAcceptance\"")
 			}
+		case "partiallyPricedAttemptCount":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Int()
+				s.PartiallyPricedAttemptCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"partiallyPricedAttemptCount\"")
+			}
+		case "pricedAttemptCount":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := d.Int()
+				s.PricedAttemptCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"pricedAttemptCount\"")
+			}
 		case "tokensPerAcceptedTask":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				if err := s.TokensPerAcceptedTask.Decode(d); err != nil {
 					return err
@@ -117680,8 +117981,32 @@ func (s *TaskActivityProductMetricsRoi) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"tokensPerAcceptedTask\"")
 			}
+		case "totalCacheReadTokens":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.TotalCacheReadTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"totalCacheReadTokens\"")
+			}
+		case "totalCacheWriteTokens":
+			requiredBitSet[1] |= 1 << 2
+			if err := func() error {
+				v, err := d.Int()
+				s.TotalCacheWriteTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"totalCacheWriteTokens\"")
+			}
 		case "totalInputTokens":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.TotalInputTokens = int(v)
@@ -117693,7 +118018,7 @@ func (s *TaskActivityProductMetricsRoi) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"totalInputTokens\"")
 			}
 		case "totalOutputTokens":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.TotalOutputTokens = int(v)
@@ -117704,8 +118029,20 @@ func (s *TaskActivityProductMetricsRoi) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"totalOutputTokens\"")
 			}
+		case "totalReasoningTokens":
+			requiredBitSet[1] |= 1 << 5
+			if err := func() error {
+				v, err := d.Int()
+				s.TotalReasoningTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"totalReasoningTokens\"")
+			}
 		case "totalTokens":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				v, err := d.Int()
 				s.TotalTokens = int(v)
@@ -117716,6 +118053,18 @@ func (s *TaskActivityProductMetricsRoi) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"totalTokens\"")
 			}
+		case "unpricedAttemptCount":
+			requiredBitSet[1] |= 1 << 7
+			if err := func() error {
+				v, err := d.Int()
+				s.UnpricedAttemptCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"unpricedAttemptCount\"")
+			}
 		default:
 			return d.Skip()
 		}
@@ -117725,8 +118074,9 @@ func (s *TaskActivityProductMetricsRoi) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b01111111,
+	for i, mask := range [2]uint8{
+		0b11111111,
+		0b11111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -119406,6 +119756,12 @@ func (s *TaskAttemptUsage) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.Cost.Set {
+			e.FieldStart("cost")
+			s.Cost.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("inputTokens")
 		e.Int(s.InputTokens)
 	}
@@ -119413,6 +119769,16 @@ func (s *TaskAttemptUsage) encodeFields(e *jx.Encoder) {
 		if s.Model.Set {
 			e.FieldStart("model")
 			s.Model.Encode(e)
+		}
+	}
+	{
+		if s.Models != nil {
+			e.FieldStart("models")
+			e.ArrStart()
+			for _, elem := range s.Models {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
 		}
 	}
 	{
@@ -119426,21 +119792,41 @@ func (s *TaskAttemptUsage) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.ReasoningTokens.Set {
+			e.FieldStart("reasoningTokens")
+			s.ReasoningTokens.Encode(e)
+		}
+	}
+	{
 		if s.ToolCalls.Set {
 			e.FieldStart("toolCalls")
 			s.ToolCalls.Encode(e)
 		}
 	}
+	{
+		if s.Tools != nil {
+			e.FieldStart("tools")
+			e.ArrStart()
+			for _, elem := range s.Tools {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
 }
 
-var jsonFieldsNameOfTaskAttemptUsage = [7]string{
-	0: "cacheReadTokens",
-	1: "cacheWriteTokens",
-	2: "inputTokens",
-	3: "model",
-	4: "outputTokens",
-	5: "provider",
-	6: "toolCalls",
+var jsonFieldsNameOfTaskAttemptUsage = [11]string{
+	0:  "cacheReadTokens",
+	1:  "cacheWriteTokens",
+	2:  "cost",
+	3:  "inputTokens",
+	4:  "model",
+	5:  "models",
+	6:  "outputTokens",
+	7:  "provider",
+	8:  "reasoningTokens",
+	9:  "toolCalls",
+	10: "tools",
 }
 
 // Decode decodes TaskAttemptUsage from json.
@@ -119448,7 +119834,7 @@ func (s *TaskAttemptUsage) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode TaskAttemptUsage to nil")
 	}
-	var requiredBitSet [1]uint8
+	var requiredBitSet [2]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -119472,8 +119858,18 @@ func (s *TaskAttemptUsage) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"cacheWriteTokens\"")
 			}
+		case "cost":
+			if err := func() error {
+				s.Cost.Reset()
+				if err := s.Cost.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cost\"")
+			}
 		case "inputTokens":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.InputTokens = int(v)
@@ -119494,8 +119890,25 @@ func (s *TaskAttemptUsage) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
+		case "models":
+			if err := func() error {
+				s.Models = make([]TaskAttemptUsageModelsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem TaskAttemptUsageModelsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Models = append(s.Models, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"models\"")
+			}
 		case "outputTokens":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := d.Int()
 				s.OutputTokens = int(v)
@@ -119516,6 +119929,16 @@ func (s *TaskAttemptUsage) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"provider\"")
 			}
+		case "reasoningTokens":
+			if err := func() error {
+				s.ReasoningTokens.Reset()
+				if err := s.ReasoningTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"reasoningTokens\"")
+			}
 		case "toolCalls":
 			if err := func() error {
 				s.ToolCalls.Reset()
@@ -119526,6 +119949,23 @@ func (s *TaskAttemptUsage) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"toolCalls\"")
 			}
+		case "tools":
+			if err := func() error {
+				s.Tools = make([]TaskAttemptUsageToolsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem TaskAttemptUsageToolsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Tools = append(s.Tools, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"tools\"")
+			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
 		}
@@ -119535,8 +119975,9 @@ func (s *TaskAttemptUsage) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00010100,
+	for i, mask := range [2]uint8{
+		0b01001000,
+		0b00000000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -119578,6 +120019,1121 @@ func (s *TaskAttemptUsage) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *TaskAttemptUsage) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskAttemptUsageCost) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskAttemptUsageCost) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("cacheRead")
+		e.Float64(s.CacheRead)
+	}
+	{
+		e.FieldStart("cacheWrite")
+		e.Float64(s.CacheWrite)
+	}
+	{
+		e.FieldStart("complete")
+		e.Bool(s.Complete)
+	}
+	{
+		e.FieldStart("currency")
+		s.Currency.Encode(e)
+	}
+	{
+		e.FieldStart("input")
+		e.Float64(s.Input)
+	}
+	{
+		e.FieldStart("output")
+		e.Float64(s.Output)
+	}
+	{
+		e.FieldStart("total")
+		e.Float64(s.Total)
+	}
+}
+
+var jsonFieldsNameOfTaskAttemptUsageCost = [7]string{
+	0: "cacheRead",
+	1: "cacheWrite",
+	2: "complete",
+	3: "currency",
+	4: "input",
+	5: "output",
+	6: "total",
+}
+
+// Decode decodes TaskAttemptUsageCost from json.
+func (s *TaskAttemptUsageCost) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskAttemptUsageCost to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "cacheRead":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Float64()
+				s.CacheRead = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheRead\"")
+			}
+		case "cacheWrite":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Float64()
+				s.CacheWrite = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheWrite\"")
+			}
+		case "complete":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Bool()
+				s.Complete = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"complete\"")
+			}
+		case "currency":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.Currency.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"currency\"")
+			}
+		case "input":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Float64()
+				s.Input = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"input\"")
+			}
+		case "output":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Float64()
+				s.Output = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"output\"")
+			}
+		case "total":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Float64()
+				s.Total = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"total\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskAttemptUsageCost")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskAttemptUsageCost) {
+					name = jsonFieldsNameOfTaskAttemptUsageCost[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskAttemptUsageCost) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskAttemptUsageCost) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes TaskAttemptUsageCostCurrency as json.
+func (s TaskAttemptUsageCostCurrency) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes TaskAttemptUsageCostCurrency from json.
+func (s *TaskAttemptUsageCostCurrency) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskAttemptUsageCostCurrency to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch TaskAttemptUsageCostCurrency(v) {
+	case TaskAttemptUsageCostCurrencyUSD:
+		*s = TaskAttemptUsageCostCurrencyUSD
+	default:
+		*s = TaskAttemptUsageCostCurrency(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s TaskAttemptUsageCostCurrency) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskAttemptUsageCostCurrency) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskAttemptUsageModelsItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskAttemptUsageModelsItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("cacheReadTokens")
+		e.Int(s.CacheReadTokens)
+	}
+	{
+		e.FieldStart("cacheWriteTokens")
+		e.Int(s.CacheWriteTokens)
+	}
+	{
+		if s.Cost.Set {
+			e.FieldStart("cost")
+			s.Cost.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("inputTokens")
+		e.Int(s.InputTokens)
+	}
+	{
+		e.FieldStart("model")
+		e.Str(s.Model)
+	}
+	{
+		e.FieldStart("outputTokens")
+		e.Int(s.OutputTokens)
+	}
+	{
+		e.FieldStart("provider")
+		e.Str(s.Provider)
+	}
+	{
+		if s.ReasoningTokens.Set {
+			e.FieldStart("reasoningTokens")
+			s.ReasoningTokens.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfTaskAttemptUsageModelsItem = [8]string{
+	0: "cacheReadTokens",
+	1: "cacheWriteTokens",
+	2: "cost",
+	3: "inputTokens",
+	4: "model",
+	5: "outputTokens",
+	6: "provider",
+	7: "reasoningTokens",
+}
+
+// Decode decodes TaskAttemptUsageModelsItem from json.
+func (s *TaskAttemptUsageModelsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskAttemptUsageModelsItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "cacheReadTokens":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.CacheReadTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheReadTokens\"")
+			}
+		case "cacheWriteTokens":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.CacheWriteTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheWriteTokens\"")
+			}
+		case "cost":
+			if err := func() error {
+				s.Cost.Reset()
+				if err := s.Cost.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cost\"")
+			}
+		case "inputTokens":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.InputTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"inputTokens\"")
+			}
+		case "model":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Model = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"model\"")
+			}
+		case "outputTokens":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Int()
+				s.OutputTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"outputTokens\"")
+			}
+		case "provider":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Str()
+				s.Provider = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		case "reasoningTokens":
+			if err := func() error {
+				s.ReasoningTokens.Reset()
+				if err := s.ReasoningTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"reasoningTokens\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskAttemptUsageModelsItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskAttemptUsageModelsItem) {
+					name = jsonFieldsNameOfTaskAttemptUsageModelsItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskAttemptUsageModelsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskAttemptUsageModelsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskAttemptUsageModelsItemCost) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskAttemptUsageModelsItemCost) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("cacheRead")
+		e.Float64(s.CacheRead)
+	}
+	{
+		e.FieldStart("cacheWrite")
+		e.Float64(s.CacheWrite)
+	}
+	{
+		e.FieldStart("complete")
+		e.Bool(s.Complete)
+	}
+	{
+		e.FieldStart("currency")
+		s.Currency.Encode(e)
+	}
+	{
+		e.FieldStart("input")
+		e.Float64(s.Input)
+	}
+	{
+		e.FieldStart("output")
+		e.Float64(s.Output)
+	}
+	{
+		e.FieldStart("total")
+		e.Float64(s.Total)
+	}
+}
+
+var jsonFieldsNameOfTaskAttemptUsageModelsItemCost = [7]string{
+	0: "cacheRead",
+	1: "cacheWrite",
+	2: "complete",
+	3: "currency",
+	4: "input",
+	5: "output",
+	6: "total",
+}
+
+// Decode decodes TaskAttemptUsageModelsItemCost from json.
+func (s *TaskAttemptUsageModelsItemCost) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskAttemptUsageModelsItemCost to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "cacheRead":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Float64()
+				s.CacheRead = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheRead\"")
+			}
+		case "cacheWrite":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Float64()
+				s.CacheWrite = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheWrite\"")
+			}
+		case "complete":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Bool()
+				s.Complete = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"complete\"")
+			}
+		case "currency":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.Currency.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"currency\"")
+			}
+		case "input":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Float64()
+				s.Input = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"input\"")
+			}
+		case "output":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Float64()
+				s.Output = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"output\"")
+			}
+		case "total":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Float64()
+				s.Total = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"total\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskAttemptUsageModelsItemCost")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskAttemptUsageModelsItemCost) {
+					name = jsonFieldsNameOfTaskAttemptUsageModelsItemCost[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskAttemptUsageModelsItemCost) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskAttemptUsageModelsItemCost) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes TaskAttemptUsageModelsItemCostCurrency as json.
+func (s TaskAttemptUsageModelsItemCostCurrency) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes TaskAttemptUsageModelsItemCostCurrency from json.
+func (s *TaskAttemptUsageModelsItemCostCurrency) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskAttemptUsageModelsItemCostCurrency to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch TaskAttemptUsageModelsItemCostCurrency(v) {
+	case TaskAttemptUsageModelsItemCostCurrencyUSD:
+		*s = TaskAttemptUsageModelsItemCostCurrencyUSD
+	default:
+		*s = TaskAttemptUsageModelsItemCostCurrency(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s TaskAttemptUsageModelsItemCostCurrency) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskAttemptUsageModelsItemCostCurrency) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskAttemptUsageToolsItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskAttemptUsageToolsItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("cacheReadTokens")
+		e.Int(s.CacheReadTokens)
+	}
+	{
+		e.FieldStart("cacheWriteTokens")
+		e.Int(s.CacheWriteTokens)
+	}
+	{
+		if s.Cost.Set {
+			e.FieldStart("cost")
+			s.Cost.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("inputTokens")
+		e.Int(s.InputTokens)
+	}
+	{
+		e.FieldStart("outputTokens")
+		e.Int(s.OutputTokens)
+	}
+	{
+		if s.ReasoningTokens.Set {
+			e.FieldStart("reasoningTokens")
+			s.ReasoningTokens.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("tool")
+		e.Str(s.Tool)
+	}
+}
+
+var jsonFieldsNameOfTaskAttemptUsageToolsItem = [7]string{
+	0: "cacheReadTokens",
+	1: "cacheWriteTokens",
+	2: "cost",
+	3: "inputTokens",
+	4: "outputTokens",
+	5: "reasoningTokens",
+	6: "tool",
+}
+
+// Decode decodes TaskAttemptUsageToolsItem from json.
+func (s *TaskAttemptUsageToolsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskAttemptUsageToolsItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "cacheReadTokens":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.CacheReadTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheReadTokens\"")
+			}
+		case "cacheWriteTokens":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.CacheWriteTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheWriteTokens\"")
+			}
+		case "cost":
+			if err := func() error {
+				s.Cost.Reset()
+				if err := s.Cost.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cost\"")
+			}
+		case "inputTokens":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.InputTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"inputTokens\"")
+			}
+		case "outputTokens":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.OutputTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"outputTokens\"")
+			}
+		case "reasoningTokens":
+			if err := func() error {
+				s.ReasoningTokens.Reset()
+				if err := s.ReasoningTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"reasoningTokens\"")
+			}
+		case "tool":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Str()
+				s.Tool = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"tool\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskAttemptUsageToolsItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01011011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskAttemptUsageToolsItem) {
+					name = jsonFieldsNameOfTaskAttemptUsageToolsItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskAttemptUsageToolsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskAttemptUsageToolsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskAttemptUsageToolsItemCost) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskAttemptUsageToolsItemCost) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("cacheRead")
+		e.Float64(s.CacheRead)
+	}
+	{
+		e.FieldStart("cacheWrite")
+		e.Float64(s.CacheWrite)
+	}
+	{
+		e.FieldStart("complete")
+		e.Bool(s.Complete)
+	}
+	{
+		e.FieldStart("currency")
+		s.Currency.Encode(e)
+	}
+	{
+		e.FieldStart("input")
+		e.Float64(s.Input)
+	}
+	{
+		e.FieldStart("output")
+		e.Float64(s.Output)
+	}
+	{
+		e.FieldStart("total")
+		e.Float64(s.Total)
+	}
+}
+
+var jsonFieldsNameOfTaskAttemptUsageToolsItemCost = [7]string{
+	0: "cacheRead",
+	1: "cacheWrite",
+	2: "complete",
+	3: "currency",
+	4: "input",
+	5: "output",
+	6: "total",
+}
+
+// Decode decodes TaskAttemptUsageToolsItemCost from json.
+func (s *TaskAttemptUsageToolsItemCost) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskAttemptUsageToolsItemCost to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "cacheRead":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Float64()
+				s.CacheRead = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheRead\"")
+			}
+		case "cacheWrite":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Float64()
+				s.CacheWrite = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheWrite\"")
+			}
+		case "complete":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Bool()
+				s.Complete = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"complete\"")
+			}
+		case "currency":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.Currency.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"currency\"")
+			}
+		case "input":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Float64()
+				s.Input = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"input\"")
+			}
+		case "output":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Float64()
+				s.Output = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"output\"")
+			}
+		case "total":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Float64()
+				s.Total = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"total\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskAttemptUsageToolsItemCost")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskAttemptUsageToolsItemCost) {
+					name = jsonFieldsNameOfTaskAttemptUsageToolsItemCost[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskAttemptUsageToolsItemCost) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskAttemptUsageToolsItemCost) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes TaskAttemptUsageToolsItemCostCurrency as json.
+func (s TaskAttemptUsageToolsItemCostCurrency) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes TaskAttemptUsageToolsItemCostCurrency from json.
+func (s *TaskAttemptUsageToolsItemCostCurrency) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskAttemptUsageToolsItemCostCurrency to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch TaskAttemptUsageToolsItemCostCurrency(v) {
+	case TaskAttemptUsageToolsItemCostCurrencyUSD:
+		*s = TaskAttemptUsageToolsItemCostCurrencyUSD
+	default:
+		*s = TaskAttemptUsageToolsItemCostCurrency(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s TaskAttemptUsageToolsItemCostCurrency) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskAttemptUsageToolsItemCostCurrency) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -122332,6 +123888,12 @@ func (s *TaskUsage) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.Cost.Set {
+			e.FieldStart("cost")
+			s.Cost.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("inputTokens")
 		e.Int(s.InputTokens)
 	}
@@ -122339,6 +123901,16 @@ func (s *TaskUsage) encodeFields(e *jx.Encoder) {
 		if s.Model.Set {
 			e.FieldStart("model")
 			s.Model.Encode(e)
+		}
+	}
+	{
+		if s.Models != nil {
+			e.FieldStart("models")
+			e.ArrStart()
+			for _, elem := range s.Models {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
 		}
 	}
 	{
@@ -122352,21 +123924,41 @@ func (s *TaskUsage) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.ReasoningTokens.Set {
+			e.FieldStart("reasoningTokens")
+			s.ReasoningTokens.Encode(e)
+		}
+	}
+	{
 		if s.ToolCalls.Set {
 			e.FieldStart("toolCalls")
 			s.ToolCalls.Encode(e)
 		}
 	}
+	{
+		if s.Tools != nil {
+			e.FieldStart("tools")
+			e.ArrStart()
+			for _, elem := range s.Tools {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
 }
 
-var jsonFieldsNameOfTaskUsage = [7]string{
-	0: "cacheReadTokens",
-	1: "cacheWriteTokens",
-	2: "inputTokens",
-	3: "model",
-	4: "outputTokens",
-	5: "provider",
-	6: "toolCalls",
+var jsonFieldsNameOfTaskUsage = [11]string{
+	0:  "cacheReadTokens",
+	1:  "cacheWriteTokens",
+	2:  "cost",
+	3:  "inputTokens",
+	4:  "model",
+	5:  "models",
+	6:  "outputTokens",
+	7:  "provider",
+	8:  "reasoningTokens",
+	9:  "toolCalls",
+	10: "tools",
 }
 
 // Decode decodes TaskUsage from json.
@@ -122374,7 +123966,7 @@ func (s *TaskUsage) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode TaskUsage to nil")
 	}
-	var requiredBitSet [1]uint8
+	var requiredBitSet [2]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -122398,8 +123990,18 @@ func (s *TaskUsage) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"cacheWriteTokens\"")
 			}
+		case "cost":
+			if err := func() error {
+				s.Cost.Reset()
+				if err := s.Cost.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cost\"")
+			}
 		case "inputTokens":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.InputTokens = int(v)
@@ -122420,8 +124022,25 @@ func (s *TaskUsage) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
+		case "models":
+			if err := func() error {
+				s.Models = make([]TaskUsageModelsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem TaskUsageModelsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Models = append(s.Models, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"models\"")
+			}
 		case "outputTokens":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := d.Int()
 				s.OutputTokens = int(v)
@@ -122442,6 +124061,16 @@ func (s *TaskUsage) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"provider\"")
 			}
+		case "reasoningTokens":
+			if err := func() error {
+				s.ReasoningTokens.Reset()
+				if err := s.ReasoningTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"reasoningTokens\"")
+			}
 		case "toolCalls":
 			if err := func() error {
 				s.ToolCalls.Reset()
@@ -122452,6 +124081,23 @@ func (s *TaskUsage) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"toolCalls\"")
 			}
+		case "tools":
+			if err := func() error {
+				s.Tools = make([]TaskUsageToolsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem TaskUsageToolsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Tools = append(s.Tools, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"tools\"")
+			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
 		}
@@ -122461,8 +124107,9 @@ func (s *TaskUsage) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00010100,
+	for i, mask := range [2]uint8{
+		0b01001000,
+		0b00000000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -122504,6 +124151,1121 @@ func (s *TaskUsage) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *TaskUsage) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskUsageCost) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskUsageCost) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("cacheRead")
+		e.Float64(s.CacheRead)
+	}
+	{
+		e.FieldStart("cacheWrite")
+		e.Float64(s.CacheWrite)
+	}
+	{
+		e.FieldStart("complete")
+		e.Bool(s.Complete)
+	}
+	{
+		e.FieldStart("currency")
+		s.Currency.Encode(e)
+	}
+	{
+		e.FieldStart("input")
+		e.Float64(s.Input)
+	}
+	{
+		e.FieldStart("output")
+		e.Float64(s.Output)
+	}
+	{
+		e.FieldStart("total")
+		e.Float64(s.Total)
+	}
+}
+
+var jsonFieldsNameOfTaskUsageCost = [7]string{
+	0: "cacheRead",
+	1: "cacheWrite",
+	2: "complete",
+	3: "currency",
+	4: "input",
+	5: "output",
+	6: "total",
+}
+
+// Decode decodes TaskUsageCost from json.
+func (s *TaskUsageCost) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskUsageCost to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "cacheRead":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Float64()
+				s.CacheRead = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheRead\"")
+			}
+		case "cacheWrite":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Float64()
+				s.CacheWrite = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheWrite\"")
+			}
+		case "complete":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Bool()
+				s.Complete = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"complete\"")
+			}
+		case "currency":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.Currency.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"currency\"")
+			}
+		case "input":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Float64()
+				s.Input = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"input\"")
+			}
+		case "output":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Float64()
+				s.Output = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"output\"")
+			}
+		case "total":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Float64()
+				s.Total = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"total\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskUsageCost")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskUsageCost) {
+					name = jsonFieldsNameOfTaskUsageCost[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskUsageCost) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskUsageCost) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes TaskUsageCostCurrency as json.
+func (s TaskUsageCostCurrency) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes TaskUsageCostCurrency from json.
+func (s *TaskUsageCostCurrency) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskUsageCostCurrency to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch TaskUsageCostCurrency(v) {
+	case TaskUsageCostCurrencyUSD:
+		*s = TaskUsageCostCurrencyUSD
+	default:
+		*s = TaskUsageCostCurrency(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s TaskUsageCostCurrency) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskUsageCostCurrency) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskUsageModelsItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskUsageModelsItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("cacheReadTokens")
+		e.Int(s.CacheReadTokens)
+	}
+	{
+		e.FieldStart("cacheWriteTokens")
+		e.Int(s.CacheWriteTokens)
+	}
+	{
+		if s.Cost.Set {
+			e.FieldStart("cost")
+			s.Cost.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("inputTokens")
+		e.Int(s.InputTokens)
+	}
+	{
+		e.FieldStart("model")
+		e.Str(s.Model)
+	}
+	{
+		e.FieldStart("outputTokens")
+		e.Int(s.OutputTokens)
+	}
+	{
+		e.FieldStart("provider")
+		e.Str(s.Provider)
+	}
+	{
+		if s.ReasoningTokens.Set {
+			e.FieldStart("reasoningTokens")
+			s.ReasoningTokens.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfTaskUsageModelsItem = [8]string{
+	0: "cacheReadTokens",
+	1: "cacheWriteTokens",
+	2: "cost",
+	3: "inputTokens",
+	4: "model",
+	5: "outputTokens",
+	6: "provider",
+	7: "reasoningTokens",
+}
+
+// Decode decodes TaskUsageModelsItem from json.
+func (s *TaskUsageModelsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskUsageModelsItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "cacheReadTokens":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.CacheReadTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheReadTokens\"")
+			}
+		case "cacheWriteTokens":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.CacheWriteTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheWriteTokens\"")
+			}
+		case "cost":
+			if err := func() error {
+				s.Cost.Reset()
+				if err := s.Cost.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cost\"")
+			}
+		case "inputTokens":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.InputTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"inputTokens\"")
+			}
+		case "model":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Model = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"model\"")
+			}
+		case "outputTokens":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Int()
+				s.OutputTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"outputTokens\"")
+			}
+		case "provider":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Str()
+				s.Provider = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"provider\"")
+			}
+		case "reasoningTokens":
+			if err := func() error {
+				s.ReasoningTokens.Reset()
+				if err := s.ReasoningTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"reasoningTokens\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskUsageModelsItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskUsageModelsItem) {
+					name = jsonFieldsNameOfTaskUsageModelsItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskUsageModelsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskUsageModelsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskUsageModelsItemCost) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskUsageModelsItemCost) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("cacheRead")
+		e.Float64(s.CacheRead)
+	}
+	{
+		e.FieldStart("cacheWrite")
+		e.Float64(s.CacheWrite)
+	}
+	{
+		e.FieldStart("complete")
+		e.Bool(s.Complete)
+	}
+	{
+		e.FieldStart("currency")
+		s.Currency.Encode(e)
+	}
+	{
+		e.FieldStart("input")
+		e.Float64(s.Input)
+	}
+	{
+		e.FieldStart("output")
+		e.Float64(s.Output)
+	}
+	{
+		e.FieldStart("total")
+		e.Float64(s.Total)
+	}
+}
+
+var jsonFieldsNameOfTaskUsageModelsItemCost = [7]string{
+	0: "cacheRead",
+	1: "cacheWrite",
+	2: "complete",
+	3: "currency",
+	4: "input",
+	5: "output",
+	6: "total",
+}
+
+// Decode decodes TaskUsageModelsItemCost from json.
+func (s *TaskUsageModelsItemCost) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskUsageModelsItemCost to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "cacheRead":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Float64()
+				s.CacheRead = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheRead\"")
+			}
+		case "cacheWrite":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Float64()
+				s.CacheWrite = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheWrite\"")
+			}
+		case "complete":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Bool()
+				s.Complete = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"complete\"")
+			}
+		case "currency":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.Currency.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"currency\"")
+			}
+		case "input":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Float64()
+				s.Input = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"input\"")
+			}
+		case "output":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Float64()
+				s.Output = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"output\"")
+			}
+		case "total":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Float64()
+				s.Total = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"total\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskUsageModelsItemCost")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskUsageModelsItemCost) {
+					name = jsonFieldsNameOfTaskUsageModelsItemCost[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskUsageModelsItemCost) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskUsageModelsItemCost) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes TaskUsageModelsItemCostCurrency as json.
+func (s TaskUsageModelsItemCostCurrency) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes TaskUsageModelsItemCostCurrency from json.
+func (s *TaskUsageModelsItemCostCurrency) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskUsageModelsItemCostCurrency to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch TaskUsageModelsItemCostCurrency(v) {
+	case TaskUsageModelsItemCostCurrencyUSD:
+		*s = TaskUsageModelsItemCostCurrencyUSD
+	default:
+		*s = TaskUsageModelsItemCostCurrency(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s TaskUsageModelsItemCostCurrency) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskUsageModelsItemCostCurrency) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskUsageToolsItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskUsageToolsItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("cacheReadTokens")
+		e.Int(s.CacheReadTokens)
+	}
+	{
+		e.FieldStart("cacheWriteTokens")
+		e.Int(s.CacheWriteTokens)
+	}
+	{
+		if s.Cost.Set {
+			e.FieldStart("cost")
+			s.Cost.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("inputTokens")
+		e.Int(s.InputTokens)
+	}
+	{
+		e.FieldStart("outputTokens")
+		e.Int(s.OutputTokens)
+	}
+	{
+		if s.ReasoningTokens.Set {
+			e.FieldStart("reasoningTokens")
+			s.ReasoningTokens.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("tool")
+		e.Str(s.Tool)
+	}
+}
+
+var jsonFieldsNameOfTaskUsageToolsItem = [7]string{
+	0: "cacheReadTokens",
+	1: "cacheWriteTokens",
+	2: "cost",
+	3: "inputTokens",
+	4: "outputTokens",
+	5: "reasoningTokens",
+	6: "tool",
+}
+
+// Decode decodes TaskUsageToolsItem from json.
+func (s *TaskUsageToolsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskUsageToolsItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "cacheReadTokens":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.CacheReadTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheReadTokens\"")
+			}
+		case "cacheWriteTokens":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.CacheWriteTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheWriteTokens\"")
+			}
+		case "cost":
+			if err := func() error {
+				s.Cost.Reset()
+				if err := s.Cost.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cost\"")
+			}
+		case "inputTokens":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.InputTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"inputTokens\"")
+			}
+		case "outputTokens":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.OutputTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"outputTokens\"")
+			}
+		case "reasoningTokens":
+			if err := func() error {
+				s.ReasoningTokens.Reset()
+				if err := s.ReasoningTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"reasoningTokens\"")
+			}
+		case "tool":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Str()
+				s.Tool = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"tool\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskUsageToolsItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01011011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskUsageToolsItem) {
+					name = jsonFieldsNameOfTaskUsageToolsItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskUsageToolsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskUsageToolsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskUsageToolsItemCost) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskUsageToolsItemCost) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("cacheRead")
+		e.Float64(s.CacheRead)
+	}
+	{
+		e.FieldStart("cacheWrite")
+		e.Float64(s.CacheWrite)
+	}
+	{
+		e.FieldStart("complete")
+		e.Bool(s.Complete)
+	}
+	{
+		e.FieldStart("currency")
+		s.Currency.Encode(e)
+	}
+	{
+		e.FieldStart("input")
+		e.Float64(s.Input)
+	}
+	{
+		e.FieldStart("output")
+		e.Float64(s.Output)
+	}
+	{
+		e.FieldStart("total")
+		e.Float64(s.Total)
+	}
+}
+
+var jsonFieldsNameOfTaskUsageToolsItemCost = [7]string{
+	0: "cacheRead",
+	1: "cacheWrite",
+	2: "complete",
+	3: "currency",
+	4: "input",
+	5: "output",
+	6: "total",
+}
+
+// Decode decodes TaskUsageToolsItemCost from json.
+func (s *TaskUsageToolsItemCost) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskUsageToolsItemCost to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "cacheRead":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Float64()
+				s.CacheRead = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheRead\"")
+			}
+		case "cacheWrite":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Float64()
+				s.CacheWrite = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cacheWrite\"")
+			}
+		case "complete":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Bool()
+				s.Complete = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"complete\"")
+			}
+		case "currency":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.Currency.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"currency\"")
+			}
+		case "input":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Float64()
+				s.Input = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"input\"")
+			}
+		case "output":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Float64()
+				s.Output = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"output\"")
+			}
+		case "total":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Float64()
+				s.Total = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"total\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskUsageToolsItemCost")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskUsageToolsItemCost) {
+					name = jsonFieldsNameOfTaskUsageToolsItemCost[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskUsageToolsItemCost) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskUsageToolsItemCost) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes TaskUsageToolsItemCostCurrency as json.
+func (s TaskUsageToolsItemCostCurrency) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes TaskUsageToolsItemCostCurrency from json.
+func (s *TaskUsageToolsItemCostCurrency) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskUsageToolsItemCostCurrency to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch TaskUsageToolsItemCostCurrency(v) {
+	case TaskUsageToolsItemCostCurrencyUSD:
+		*s = TaskUsageToolsItemCostCurrencyUSD
+	default:
+		*s = TaskUsageToolsItemCostCurrency(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s TaskUsageToolsItemCostCurrency) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskUsageToolsItemCostCurrency) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

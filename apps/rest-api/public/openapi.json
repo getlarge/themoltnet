@@ -12325,7 +12325,7 @@
             "type": "object"
           },
           "roi": {
-            "description": "Token-efficiency ROI metrics: token totals, accepted work per token, tokens per accepted task, and retry waste.",
+            "description": "Token-efficiency ROI metrics: token and cost totals, accepted work per token, tokens per accepted task, and retry waste.",
             "properties": {
               "acceptedTasksPerThousandTokens": {
                 "anyOf": [
@@ -12337,12 +12337,42 @@
                   }
                 ]
               },
+              "estimatedCostPerAcceptedTaskUsd": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "estimatedCostUsd": {
+                "description": "Sum of the harness cost estimates reported per attempt, in USD. A lower bound when any attempt is unpriced or partially priced.",
+                "minimum": 0,
+                "type": "number"
+              },
               "extraAttemptCount": {
                 "minimum": 0,
                 "type": "integer"
               },
+              "extraCostBeforeAcceptanceUsd": {
+                "description": "Estimated cost of attempts before the accepted attempt, in USD.",
+                "minimum": 0,
+                "type": "number"
+              },
               "extraTokensBeforeAcceptance": {
                 "description": "Tokens spent on attempts before the accepted attempt. Product intent: wasted retry cost.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "partiallyPricedAttemptCount": {
+                "description": "Attempts priced for only part of their usage.",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "pricedAttemptCount": {
+                "description": "Attempts with token usage priced in full.",
                 "minimum": 0,
                 "type": "integer"
               },
@@ -12357,6 +12387,14 @@
                 ],
                 "description": "Token cost per accepted task. Product intent: ROI proxy for accepted work."
               },
+              "totalCacheReadTokens": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "totalCacheWriteTokens": {
+                "minimum": 0,
+                "type": "integer"
+              },
               "totalInputTokens": {
                 "minimum": 0,
                 "type": "integer"
@@ -12365,7 +12403,17 @@
                 "minimum": 0,
                 "type": "integer"
               },
+              "totalReasoningTokens": {
+                "description": "Reasoning tokens, a subset of totalOutputTokens.",
+                "minimum": 0,
+                "type": "integer"
+              },
               "totalTokens": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "unpricedAttemptCount": {
+                "description": "Attempts with token usage but no cost estimate (unpriced model, or a runtime that does not report cost).",
                 "minimum": 0,
                 "type": "integer"
               }
@@ -12377,7 +12425,16 @@
               "acceptedTasksPerThousandTokens",
               "tokensPerAcceptedTask",
               "extraAttemptCount",
-              "extraTokensBeforeAcceptance"
+              "extraTokensBeforeAcceptance",
+              "totalCacheReadTokens",
+              "totalCacheWriteTokens",
+              "totalReasoningTokens",
+              "estimatedCostUsd",
+              "estimatedCostPerAcceptedTaskUsd",
+              "extraCostBeforeAcceptanceUsd",
+              "pricedAttemptCount",
+              "partiallyPricedAttemptCount",
+              "unpricedAttemptCount"
             ],
             "type": "object"
           },
@@ -13151,12 +13208,143 @@
                     "minimum": 0,
                     "type": "integer"
                   },
+                  "cost": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "cacheRead": {
+                        "minimum": 0,
+                        "type": "number"
+                      },
+                      "cacheWrite": {
+                        "minimum": 0,
+                        "type": "number"
+                      },
+                      "complete": {
+                        "type": "boolean"
+                      },
+                      "currency": {
+                        "enum": [
+                          "USD"
+                        ],
+                        "type": "string"
+                      },
+                      "input": {
+                        "minimum": 0,
+                        "type": "number"
+                      },
+                      "output": {
+                        "minimum": 0,
+                        "type": "number"
+                      },
+                      "total": {
+                        "minimum": 0,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "currency",
+                      "total",
+                      "input",
+                      "output",
+                      "cacheRead",
+                      "cacheWrite",
+                      "complete"
+                    ],
+                    "type": "object"
+                  },
                   "inputTokens": {
                     "minimum": 0,
                     "type": "integer"
                   },
                   "model": {
                     "type": "string"
+                  },
+                  "models": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "cacheReadTokens": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "cacheWriteTokens": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "cost": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "cacheRead": {
+                              "minimum": 0,
+                              "type": "number"
+                            },
+                            "cacheWrite": {
+                              "minimum": 0,
+                              "type": "number"
+                            },
+                            "complete": {
+                              "type": "boolean"
+                            },
+                            "currency": {
+                              "enum": [
+                                "USD"
+                              ],
+                              "type": "string"
+                            },
+                            "input": {
+                              "minimum": 0,
+                              "type": "number"
+                            },
+                            "output": {
+                              "minimum": 0,
+                              "type": "number"
+                            },
+                            "total": {
+                              "minimum": 0,
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "currency",
+                            "total",
+                            "input",
+                            "output",
+                            "cacheRead",
+                            "cacheWrite",
+                            "complete"
+                          ],
+                          "type": "object"
+                        },
+                        "inputTokens": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "model": {
+                          "type": "string"
+                        },
+                        "outputTokens": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "provider": {
+                          "type": "string"
+                        },
+                        "reasoningTokens": {
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "provider",
+                        "model",
+                        "inputTokens",
+                        "outputTokens",
+                        "cacheReadTokens",
+                        "cacheWriteTokens"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
                   },
                   "outputTokens": {
                     "minimum": 0,
@@ -13165,9 +13353,96 @@
                   "provider": {
                     "type": "string"
                   },
+                  "reasoningTokens": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
                   "toolCalls": {
                     "minimum": 0,
                     "type": "integer"
+                  },
+                  "tools": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "cacheReadTokens": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "cacheWriteTokens": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "cost": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "cacheRead": {
+                              "minimum": 0,
+                              "type": "number"
+                            },
+                            "cacheWrite": {
+                              "minimum": 0,
+                              "type": "number"
+                            },
+                            "complete": {
+                              "type": "boolean"
+                            },
+                            "currency": {
+                              "enum": [
+                                "USD"
+                              ],
+                              "type": "string"
+                            },
+                            "input": {
+                              "minimum": 0,
+                              "type": "number"
+                            },
+                            "output": {
+                              "minimum": 0,
+                              "type": "number"
+                            },
+                            "total": {
+                              "minimum": 0,
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "currency",
+                            "total",
+                            "input",
+                            "output",
+                            "cacheRead",
+                            "cacheWrite",
+                            "complete"
+                          ],
+                          "type": "object"
+                        },
+                        "inputTokens": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "outputTokens": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "reasoningTokens": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "tool": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "tool",
+                        "inputTokens",
+                        "outputTokens",
+                        "cacheReadTokens",
+                        "cacheWriteTokens"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
                   }
                 },
                 "required": [
@@ -13854,12 +14129,143 @@
             "minimum": 0,
             "type": "integer"
           },
+          "cost": {
+            "additionalProperties": false,
+            "properties": {
+              "cacheRead": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "cacheWrite": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "complete": {
+                "type": "boolean"
+              },
+              "currency": {
+                "enum": [
+                  "USD"
+                ],
+                "type": "string"
+              },
+              "input": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "output": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "total": {
+                "minimum": 0,
+                "type": "number"
+              }
+            },
+            "required": [
+              "currency",
+              "total",
+              "input",
+              "output",
+              "cacheRead",
+              "cacheWrite",
+              "complete"
+            ],
+            "type": "object"
+          },
           "inputTokens": {
             "minimum": 0,
             "type": "integer"
           },
           "model": {
             "type": "string"
+          },
+          "models": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "cacheReadTokens": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "cacheWriteTokens": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "cost": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "cacheRead": {
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "cacheWrite": {
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "complete": {
+                      "type": "boolean"
+                    },
+                    "currency": {
+                      "enum": [
+                        "USD"
+                      ],
+                      "type": "string"
+                    },
+                    "input": {
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "output": {
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "total": {
+                      "minimum": 0,
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "currency",
+                    "total",
+                    "input",
+                    "output",
+                    "cacheRead",
+                    "cacheWrite",
+                    "complete"
+                  ],
+                  "type": "object"
+                },
+                "inputTokens": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "model": {
+                  "type": "string"
+                },
+                "outputTokens": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "provider": {
+                  "type": "string"
+                },
+                "reasoningTokens": {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "provider",
+                "model",
+                "inputTokens",
+                "outputTokens",
+                "cacheReadTokens",
+                "cacheWriteTokens"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           },
           "outputTokens": {
             "minimum": 0,
@@ -13868,9 +14274,96 @@
           "provider": {
             "type": "string"
           },
+          "reasoningTokens": {
+            "minimum": 0,
+            "type": "integer"
+          },
           "toolCalls": {
             "minimum": 0,
             "type": "integer"
+          },
+          "tools": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "cacheReadTokens": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "cacheWriteTokens": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "cost": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "cacheRead": {
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "cacheWrite": {
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "complete": {
+                      "type": "boolean"
+                    },
+                    "currency": {
+                      "enum": [
+                        "USD"
+                      ],
+                      "type": "string"
+                    },
+                    "input": {
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "output": {
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "total": {
+                      "minimum": 0,
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "currency",
+                    "total",
+                    "input",
+                    "output",
+                    "cacheRead",
+                    "cacheWrite",
+                    "complete"
+                  ],
+                  "type": "object"
+                },
+                "inputTokens": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "outputTokens": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "reasoningTokens": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "tool": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "tool",
+                "inputTokens",
+                "outputTokens",
+                "cacheReadTokens",
+                "cacheWriteTokens"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           }
         },
         "required": [

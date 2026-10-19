@@ -14,6 +14,11 @@
  * dependency.
  */
 import type { GateResult } from './check-gates.js';
+import {
+  formatProducerSpend,
+  mergeProducerSpend,
+  type ProducerSpend,
+} from './producer-spend.js';
 import type { Scenario, ScenarioTaskType } from './scenario.js';
 import {
   submitProtocolCredit,
@@ -51,6 +56,8 @@ export interface BaselineRun {
   failureCode?: string;
   /** Set when the run threw before producing a gradable attempt. */
   error?: string;
+  /** Producer tokens and cost across all its attempts, when the runner read them. */
+  spend?: ProducerSpend;
 }
 
 /** Aggregated result for one scenario across all repeats. */
@@ -68,6 +75,8 @@ export interface BaselineScenarioResult {
    * `error` (the run threw).
    */
   failureModes: Record<string, number>;
+  /** Summed over runs that reported spend; absent when none did. */
+  spend?: ProducerSpend;
   cells: BaselineRun[];
 }
 
@@ -94,6 +103,7 @@ export interface BaselineDeps {
     /** The task's terminal error code when it did not complete (optional). */
     failureCode?: string;
     structure?: SubmitStructure;
+    spend?: ProducerSpend;
   }>;
   /** Evaluate stage-1 gates for a completed attempt. */
   runGates(
@@ -139,6 +149,7 @@ export async function runBaseline(
         const producer = await deps.runProducer(scenario, run);
         cell.producerTaskId = producer.taskId;
         cell.producerAttemptN = producer.attemptN;
+        if (producer.spend) cell.spend = producer.spend;
 
         if (producer.taskId === null || producer.attemptN === null) {
           // Bucket by the specific terminal error code when known, so the
@@ -191,6 +202,7 @@ export async function runBaseline(
       cells.push(cell);
     }
 
+    const spends = cells.flatMap((c) => (c.spend ? [c.spend] : []));
     results.push({
       scenario: scenario.slug,
       taskType: scenario.taskType,
@@ -198,6 +210,7 @@ export async function runBaseline(
       passes,
       passRate: repeats === 0 ? 0 : passes / repeats,
       failureModes,
+      ...(spends.length ? { spend: mergeProducerSpend(spends) } : {}),
       cells,
     });
   }
@@ -222,7 +235,8 @@ export function summarizeBaseline(report: BaselineReport): string {
       .join(', ');
     lines.push(
       `  ${s.scenario.padEnd(34)} ${String(s.passes).padStart(2)}/${s.runs} (${pct.padStart(3)}%)` +
-        (modes ? `  fail: ${modes}` : ''),
+        (modes ? `  fail: ${modes}` : '') +
+        (s.spend ? `  ${formatProducerSpend(s.spend)}` : ''),
     );
   }
   return lines.join('\n');

@@ -63,6 +63,7 @@ it.each(['environment', 'auth', 'classifier-only', 'classifier-only-chat-api'])(
               type: 'classifier',
               api: 'typesafe-system-one',
               contextWindow: 4096,
+              cost: { input: 0.24, output: 0, cacheRead: 0, cacheWrite: 0 },
             },
           ],
         },
@@ -83,6 +84,7 @@ it.each(['environment', 'auth', 'classifier-only', 'classifier-only-chat-api'])(
     expect(models.getModel('team', 'decisions')).toBeUndefined();
     const model = models.getModelOfType('classifier', 'team', 'decisions');
     expect(model?.baseUrl).toBe('https://classifier.example.test/v1');
+    expect(model?.cost.input).toBe(0.24);
     if (!model) throw new Error('classifier missing');
     await models.classify(model, { state: {}, questions: {} });
     expect(classify).toHaveBeenCalledOnce();
@@ -179,70 +181,105 @@ it('preserves builtin ambient credentials when adding a llama.cpp classifier', a
   });
 });
 
-it('dispatches a standalone classifier through Durable without a coding VM', async () => {
-  const piDir = mkdtempSync(join(tmpdir(), 'classifier-task-'));
-  dirs.push(piDir);
-  vi.stubEnv('PI_CODING_AGENT_DIR', piDir);
-  vi.stubEnv('TEST_CLASSIFIER_API_KEY', 'configured-test-key');
-  writePiConfig({
-    piDir,
-    providers: {
-      team: {
-        api: 'typesafe-system-one',
-        baseUrl: 'https://classifier.example.test/v1',
-        apiKeyEnvRef: '$TEST_CLASSIFIER_API_KEY',
-        models: [{ id: 'decisions', type: 'classifier' }],
+it.each(['stop', 'error'] as const)(
+  'preserves standalone classifier spend on %s without a coding VM',
+  async (stopReason) => {
+    const piDir = mkdtempSync(join(tmpdir(), 'classifier-task-'));
+    dirs.push(piDir);
+    vi.stubEnv('PI_CODING_AGENT_DIR', piDir);
+    vi.stubEnv('TEST_CLASSIFIER_API_KEY', 'configured-test-key');
+    writePiConfig({
+      piDir,
+      providers: {
+        team: {
+          api: 'typesafe-system-one',
+          baseUrl: 'https://classifier.example.test/v1',
+          apiKeyEnvRef: '$TEST_CLASSIFIER_API_KEY',
+          models: [{ id: 'decisions', type: 'classifier' }],
+        },
       },
-    },
-  });
-  vi.mocked(classify).mockResolvedValue({
-    provider: 'team',
-    model: 'decisions',
-    api: 'typesafe-system-one',
-    timestamp: 0,
-    stopReason: 'stop',
-    answers: { actionable: { type: 'bool', probability: 0.9 } },
-  });
-  const resumeVm = vi.fn();
-  const execute = createGondolinDurableTaskExecutor({
-    classifier: { provider: 'team', model: 'decisions' },
-    resumeVm,
-  } as unknown as Parameters<typeof createGondolinDurableTaskExecutor>[0]);
-  const reporter = {
-    open: vi.fn(),
-    record: vi.fn(),
-    close: vi.fn(),
-    finalize: vi.fn(),
-    cancelSignal: new AbortController().signal,
-    cancelReason: null,
-  };
-  const result = await execute(
-    {
-      task: {
-        id: 'task',
-        taskType: 'classify',
-        input: {
-          version: 1,
-          state: { issue: 'Reproducible crash' },
-          questions: {
-            actionable: {
-              type: 'bool',
-              instructions: 'Is this actionable?',
-              criteria: { true: 'Reproducible', false: 'Unclear' },
+    });
+    vi.mocked(classify).mockResolvedValue({
+      provider: 'team',
+      model: 'decisions',
+      api: 'typesafe-system-one',
+      timestamp: 0,
+      stopReason,
+      usage: {
+        input: 100,
+        output: 5,
+        cacheRead: 3,
+        cacheWrite: 0,
+        reasoning: 2,
+        totalTokens: 108,
+        cost: {
+          input: 0.01,
+          output: 0,
+          cacheRead: 0,
+          cacheWrite: 0,
+          total: 0.01,
+        },
+      },
+      answers: { actionable: { type: 'bool', probability: 0.9 } },
+    });
+    const resumeVm = vi.fn();
+    const execute = createGondolinDurableTaskExecutor({
+      classifier: { provider: 'team', model: 'decisions' },
+      resumeVm,
+    } as unknown as Parameters<typeof createGondolinDurableTaskExecutor>[0]);
+    const reporter = {
+      open: vi.fn(),
+      record: vi.fn(),
+      close: vi.fn(),
+      finalize: vi.fn(),
+      cancelSignal: new AbortController().signal,
+      cancelReason: null,
+    };
+    const result = await execute(
+      {
+        task: {
+          id: 'task',
+          taskType: 'classify',
+          input: {
+            version: 1,
+            state: { issue: 'Reproducible crash' },
+            questions: {
+              actionable: {
+                type: 'bool',
+                instructions: 'Is this actionable?',
+                criteria: { true: 'Reproducible', false: 'Unclear' },
+              },
             },
           },
         },
-      },
-      attemptN: 1,
-    } as unknown as ClaimedTask,
-    reporter,
-  );
-  expect(result.error).toBeUndefined();
-  expect(result.status).toBe('completed');
-  expect(result.outputCid).toMatch(/^b/);
-  expect(resumeVm).not.toHaveBeenCalled();
-  expect(reporter.close).toHaveBeenCalledOnce();
-});
+        attemptN: 1,
+      } as unknown as ClaimedTask,
+      reporter,
+    );
+    expect(result.status).toBe(stopReason === 'stop' ? 'completed' : 'failed');
+    if (stopReason === 'stop') {
+      expect(result.error).toBeUndefined();
+      expect(result.outputCid).toMatch(/^b/);
+    }
+    expect(result.usage).toMatchObject({
+      inputTokens: 100,
+      outputTokens: 5,
+      cacheReadTokens: 3,
+      reasoningTokens: 2,
+      cost: { currency: 'USD', total: 0.01, complete: true },
+      models: [
+        {
+          provider: 'team',
+          model: 'decisions',
+          cost: { total: 0.01, complete: true },
+        },
+      ],
+    });
+    expect(reporter.finalize).toHaveBeenCalledWith(result.usage);
+    expect(resumeVm).not.toHaveBeenCalled();
+    expect(reporter.close).toHaveBeenCalledOnce();
+  },
+);
 
 it('finds Pi builtin Jev without codemode or a custom catalog', async () => {
   const piDir = mkdtempSync(join(tmpdir(), 'builtin-classifier-'));

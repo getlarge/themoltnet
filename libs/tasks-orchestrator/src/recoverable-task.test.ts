@@ -175,7 +175,10 @@ describe('waitForRecoverableTask', () => {
       outputTokens: 32,
       cacheReadTokens: 0,
       cacheWriteTokens: 0,
+      reasoningTokens: 0,
       toolCalls: 0,
+      estimatedCostUsd: 0,
+      costComplete: false,
     });
     expect(replayed.chain).toEqual(first.chain);
     expect(replayed.decisions).toEqual(first.decisions);
@@ -342,7 +345,10 @@ describe('waitForRecoverableTask', () => {
       outputTokens: 6,
       cacheReadTokens: 3,
       cacheWriteTokens: 0,
+      reasoningTokens: 0,
       toolCalls: 1,
+      estimatedCostUsd: 0,
+      costComplete: false,
     });
     expect(
       result.chain[0]?.outcome.kind === 'failed'

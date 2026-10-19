@@ -141,7 +141,12 @@ export interface CumulativeTaskUsage {
   outputTokens: number;
   cacheReadTokens: number;
   cacheWriteTokens: number;
+  reasoningTokens: number;
   toolCalls: number;
+  /** Sum of the harness cost estimates, in USD. */
+  estimatedCostUsd: number;
+  /** False once any attempt with usage reported no cost or a partial one. */
+  costComplete: boolean;
 }
 
 /** One original or semantic-repair task and its unmodified await outcome. */

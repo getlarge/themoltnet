@@ -73,7 +73,10 @@ describe('waitForValidatedTask', () => {
       outputTokens: 0,
       cacheReadTokens: 0,
       cacheWriteTokens: 0,
+      reasoningTokens: 0,
       toolCalls: 0,
+      estimatedCostUsd: 0,
+      costComplete: true,
     });
   });
 
@@ -111,7 +114,59 @@ describe('waitForValidatedTask', () => {
       outputTokens: 3,
       cacheReadTokens: 0,
       cacheWriteTokens: 0,
+      reasoningTokens: 0,
       toolCalls: 0,
+      estimatedCostUsd: 0,
+      costComplete: false,
+    });
+  });
+
+  it('sums harness cost estimates across priced attempts', async () => {
+    const tasks = new FakeTasks([{ phase: 'done' }]);
+    const initial = await tasks.createTask(baseBody);
+    const getTask = tasks.getTask.bind(tasks);
+    tasks.getTask = async (id) => ({
+      ...(await getTask(id)),
+      acceptedAttemptN: 2,
+    });
+    const cost = (total: number) => ({
+      currency: 'USD' as const,
+      total,
+      input: total,
+      output: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
+      complete: true,
+    });
+    const listAttempts = tasks.listAttempts.bind(tasks);
+    tasks.listAttempts = async (id) => {
+      const [accepted] = await listAttempts(id);
+      return [
+        {
+          ...accepted,
+          attemptN: 1,
+          status: 'failed',
+          usage: {
+            inputTokens: 4,
+            outputTokens: 1,
+            reasoningTokens: 1,
+            cost: cost(0.25),
+          },
+        } as SdkTaskAttempt,
+        {
+          ...accepted,
+          attemptN: 2,
+          usage: { inputTokens: 5, outputTokens: 2, cost: cost(0.5) },
+        } as SdkTaskAttempt,
+      ];
+    };
+
+    const result = await waitForValidatedTask(initial, options(tasks));
+
+    expect(result.cumulativeUsage).toMatchObject({
+      reasoningTokens: 1,
+      estimatedCostUsd: 0.75,
+      costComplete: true,
     });
   });
 
@@ -206,7 +261,10 @@ describe('waitForValidatedTask', () => {
       outputTokens: 7,
       cacheReadTokens: 10,
       cacheWriteTokens: 4,
+      reasoningTokens: 0,
       toolCalls: 1,
+      estimatedCostUsd: 0,
+      costComplete: false,
     });
     expect(
       result.chain[0]?.outcome.kind === 'invalid_output'

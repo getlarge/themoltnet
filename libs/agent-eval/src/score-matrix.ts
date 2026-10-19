@@ -17,6 +17,11 @@ import {
 } from '@moltnet/tasks';
 
 import type { GateResult } from './check-gates.js';
+import {
+  formatProducerSpend,
+  mergeProducerSpend,
+  type ProducerSpend,
+} from './producer-spend.js';
 import type { Scenario } from './scenario.js';
 
 /** One producer run + its gate result + (if gates passed) the judge score. */
@@ -41,6 +46,8 @@ export interface ScoreCell {
   error?: string;
   /** Terminal producer error code when the task ended without acceptance. */
   failureCode?: string;
+  /** Producer tokens and cost across all its attempts, when the runner read them. */
+  spend?: ProducerSpend;
 }
 
 export interface ScoreMatrix {
@@ -127,6 +134,7 @@ export interface MatrixDeps {
     attemptN: number | null;
     failureCode?: string;
     structure?: SubmitStructure;
+    spend?: ProducerSpend;
   }>;
   /**
    * Evaluate stage-1 deterministic gates for a producer attempt.
@@ -187,6 +195,7 @@ export async function runMatrix(
         const producer = await deps.runProducer(model, scenario);
         base.producerTaskId = producer.taskId;
         base.producerAttemptN = producer.attemptN;
+        if (producer.spend) base.spend = producer.spend;
         if (producer.structure) {
           base.invalidSubmitCalls = producer.structure.invalidSubmitCalls;
           base.repairKinds = producer.structure.repairKinds;
@@ -279,6 +288,9 @@ export function summarizeMatrix(matrix: ScoreMatrix): string {
       const score = shapeCells.reduce((sum, c) => sum + c.composite, 0);
       parts.push(`shape ${score}/${shapeCells.length}`);
     }
+    const spends = modelCells.flatMap((c) => (c.spend ? [c.spend] : []));
+    if (spends.length > 0)
+      parts.push(formatProducerSpend(mergeProducerSpend(spends)));
     lines.push(`\n${model}  (${parts.join(', ')})`);
     for (const cell of modelCells) {
       const status = cell.error
@@ -304,7 +316,8 @@ export function summarizeMatrix(matrix: ScoreMatrix): string {
             [...cell.repairKinds, ...(cell.unknownRepairKinds ?? [])].join(
               ',',
             ) || 'none'
-          }`,
+          }` +
+          (cell.spend ? ` ${formatProducerSpend(cell.spend)}` : ''),
       );
     }
   }

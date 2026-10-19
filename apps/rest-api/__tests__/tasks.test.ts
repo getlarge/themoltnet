@@ -109,7 +109,9 @@ function emptyActivityMetrics() {
     cancelledAttemptCount: 0,
     entryGetCount: 0,
     entrySearchCount: 0,
+    estimatedCostUsd: 0,
     extraAttemptCount: 0,
+    extraCostBeforeAcceptanceUsd: 0,
     extraTokensBeforeAcceptance: 0,
     failedAttemptCount: 0,
     failedToolCallCount: 0,
@@ -121,16 +123,22 @@ function emptyActivityMetrics() {
     medianTurnsPerAttempt: null,
     messageCount: 0,
     packGetCount: 0,
+    partiallyPricedAttemptCount: 0,
+    pricedAttemptCount: 0,
     retryAttemptCount: 0,
     retryRecoveredTaskCount: 0,
     taskCount: 0,
     terminalFailureTaskCount: 0,
     timeoutAttemptCount: 0,
     toolCallCount: 0,
+    totalCacheReadTokens: 0,
+    totalCacheWriteTokens: 0,
     totalInputTokens: 0,
     totalOutputTokens: 0,
+    totalReasoningTokens: 0,
     totalTokens: 0,
     turnCount: 0,
+    unpricedAttemptCount: 0,
   };
 }
 
@@ -625,6 +633,9 @@ describe('GET /tasks/analytics/activity', () => {
         totalInputTokens: 2500,
         totalOutputTokens: 1500,
         totalTokens: 4000,
+        estimatedCostUsd: 1.5,
+        pricedAttemptCount: 2,
+        unpricedAttemptCount: 1,
       },
       statsComplete: true,
     });
@@ -679,6 +690,10 @@ describe('GET /tasks/analytics/activity', () => {
         roi: {
           acceptedTasksPerThousandTokens: 0.5,
           tokensPerAcceptedTask: 2000,
+          estimatedCostUsd: 1.5,
+          estimatedCostPerAcceptedTaskUsd: 0.75,
+          pricedAttemptCount: 2,
+          unpricedAttemptCount: 1,
         },
         success: {
           acceptedOutputRate: 1,

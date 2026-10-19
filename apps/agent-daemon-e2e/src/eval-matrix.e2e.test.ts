@@ -31,6 +31,7 @@ import {
   type ScoreMatrix,
   type SubmitStructure,
   summarizeMatrix,
+  summarizeProducerSpend,
 } from '@moltnet/agent-eval';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises the daemon app entry point.
 import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
@@ -242,6 +243,9 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
           taskId: task.id,
         });
         const final = await agent.tasks.get(task.id);
+        const spend = summarizeProducerSpend(
+          await agent.tasks.listAttempts(task.id),
+        );
         if (final.status !== 'completed' || !final.acceptedAttemptN) {
           const attempts = await agent.tasks.listAttempts(task.id);
           let latest = attempts[0];
@@ -262,6 +266,7 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
                   scenario.taskType,
                 )
               : NO_SUBMIT_STRUCTURE,
+            spend,
           };
         }
         return {
@@ -273,6 +278,7 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
             final.acceptedAttemptN,
             scenario.taskType,
           ),
+          spend,
         };
       },
       runGates: (model, scenario, producer) =>

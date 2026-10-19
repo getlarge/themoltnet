@@ -518,6 +518,15 @@ describe('Durable task integration', () => {
       expect(child.status).toBe('completed');
       expect(faux.state.callCount).toBe(2);
       expect(child.usage.inputTokens).toBeGreaterThan(0);
+      // The child's per-model split carries only its own call.
+      expect(child.usage.models).toEqual([
+        expect.objectContaining({
+          provider: faux.provider.id,
+          model: faux.models[0].id,
+          inputTokens: child.usage.inputTokens,
+          outputTokens: child.usage.outputTokens,
+        }),
+      ]);
     },
   );
   it('bounds missing-output reminders and persists failure', async () => {

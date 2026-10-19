@@ -2625,22 +2625,49 @@ export type TaskActivityProductMetrics = {
     turnCount: number;
   };
   /**
-   * Token-efficiency ROI metrics: token totals, accepted work per token, tokens per accepted task, and retry waste.
+   * Token-efficiency ROI metrics: token and cost totals, accepted work per token, tokens per accepted task, and retry waste.
    */
   roi: {
     acceptedTasksPerThousandTokens: number | null;
+    estimatedCostPerAcceptedTaskUsd: number | null;
+    /**
+     * Sum of the harness cost estimates reported per attempt, in USD. A lower bound when any attempt is unpriced or partially priced.
+     */
+    estimatedCostUsd: number;
     extraAttemptCount: number;
+    /**
+     * Estimated cost of attempts before the accepted attempt, in USD.
+     */
+    extraCostBeforeAcceptanceUsd: number;
     /**
      * Tokens spent on attempts before the accepted attempt. Product intent: wasted retry cost.
      */
     extraTokensBeforeAcceptance: number;
     /**
+     * Attempts priced for only part of their usage.
+     */
+    partiallyPricedAttemptCount: number;
+    /**
+     * Attempts with token usage priced in full.
+     */
+    pricedAttemptCount: number;
+    /**
      * Token cost per accepted task. Product intent: ROI proxy for accepted work.
      */
     tokensPerAcceptedTask: number | null;
+    totalCacheReadTokens: number;
+    totalCacheWriteTokens: number;
     totalInputTokens: number;
     totalOutputTokens: number;
+    /**
+     * Reasoning tokens, a subset of totalOutputTokens.
+     */
+    totalReasoningTokens: number;
     totalTokens: number;
+    /**
+     * Attempts with token usage but no cost estimate (unpriced model, or a runtime that does not report cost).
+     */
+    unpricedAttemptCount: number;
   };
   /**
    * Task success metrics: accepted output rate, first-attempt success, retry recovery, and terminal failure.
@@ -2785,11 +2812,56 @@ export type TaskAttempt = {
   usage: {
     cacheReadTokens?: number;
     cacheWriteTokens?: number;
+    cost?: {
+      cacheRead: number;
+      cacheWrite: number;
+      complete: boolean;
+      currency: 'USD';
+      input: number;
+      output: number;
+      total: number;
+    };
     inputTokens: number;
     model?: string;
+    models?: Array<{
+      cacheReadTokens: number;
+      cacheWriteTokens: number;
+      cost?: {
+        cacheRead: number;
+        cacheWrite: number;
+        complete: boolean;
+        currency: 'USD';
+        input: number;
+        output: number;
+        total: number;
+      };
+      inputTokens: number;
+      model: string;
+      outputTokens: number;
+      provider: string;
+      reasoningTokens?: number;
+    }>;
     outputTokens: number;
     provider?: string;
+    reasoningTokens?: number;
     toolCalls?: number;
+    tools?: Array<{
+      cacheReadTokens: number;
+      cacheWriteTokens: number;
+      cost?: {
+        cacheRead: number;
+        cacheWrite: number;
+        complete: boolean;
+        currency: 'USD';
+        input: number;
+        output: number;
+        total: number;
+      };
+      inputTokens: number;
+      outputTokens: number;
+      reasoningTokens?: number;
+      tool: string;
+    }>;
   } | null;
   [key: string]: unknown;
 };
@@ -2921,11 +2993,56 @@ export type TaskTypeDescriptor = {
 export type TaskUsage = {
   cacheReadTokens?: number;
   cacheWriteTokens?: number;
+  cost?: {
+    cacheRead: number;
+    cacheWrite: number;
+    complete: boolean;
+    currency: 'USD';
+    input: number;
+    output: number;
+    total: number;
+  };
   inputTokens: number;
   model?: string;
+  models?: Array<{
+    cacheReadTokens: number;
+    cacheWriteTokens: number;
+    cost?: {
+      cacheRead: number;
+      cacheWrite: number;
+      complete: boolean;
+      currency: 'USD';
+      input: number;
+      output: number;
+      total: number;
+    };
+    inputTokens: number;
+    model: string;
+    outputTokens: number;
+    provider: string;
+    reasoningTokens?: number;
+  }>;
   outputTokens: number;
   provider?: string;
+  reasoningTokens?: number;
   toolCalls?: number;
+  tools?: Array<{
+    cacheReadTokens: number;
+    cacheWriteTokens: number;
+    cost?: {
+      cacheRead: number;
+      cacheWrite: number;
+      complete: boolean;
+      currency: 'USD';
+      input: number;
+      output: number;
+      total: number;
+    };
+    inputTokens: number;
+    outputTokens: number;
+    reasoningTokens?: number;
+    tool: string;
+  }>;
 };
 
 export type TeamAgentKey = {

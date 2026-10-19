@@ -1,3 +1,11 @@
+/** USD per million tokens, using Pi's model price field names. */
+export type ModelCostRates = {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+};
+
 export type RuntimeModelCatalogEntry = {
   provider: string;
   model: string;

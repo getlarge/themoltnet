@@ -2,6 +2,7 @@ import type { SubmitRepairKind } from '@moltnet/tasks';
 import { describe, expect, it } from 'vitest';
 
 import type { GateResult } from '../src/check-gates.js';
+import { summarizeProducerSpend } from '../src/producer-spend.js';
 import type { Scenario } from '../src/scenario.js';
 import {
   type MatrixDeps,
@@ -167,6 +168,29 @@ describe('runMatrix', () => {
       }),
     );
     expect(matrix.cells[0].composite).toBe(0);
+  });
+  it('records producer spend on the cell and in the summary', async () => {
+    const spend = {
+      ...summarizeProducerSpend([]),
+      attempts: 2,
+      inputTokens: 900,
+      outputTokens: 100,
+      estimatedCostUsd: 0.0125,
+    };
+    const matrix = await runMatrix(
+      ['m'],
+      [scenario('s')],
+      'judge-x',
+      deps({
+        runProducer: () =>
+          Promise.resolve({ taskId: 'task-1', attemptN: 2, spend }),
+      }),
+    );
+
+    expect(matrix.cells[0].spend).toEqual(spend);
+    expect(summarizeMatrix(matrix)).toContain(
+      'tokens=1000 cost=$0.0125 attempts=2',
+    );
   });
   it('copies observed structure telemetry into the score cell', async () => {
     const matrix = await runMatrix(

@@ -169,8 +169,20 @@ export interface TaskActivityMetricBucket {
   totalInputTokens: number;
   totalOutputTokens: number;
   totalTokens: number;
+  totalCacheReadTokens: number;
+  totalCacheWriteTokens: number;
+  totalReasoningTokens: number;
+  /** Sum of harness cost estimates (USD); a lower bound unless every attempt was priced. */
+  estimatedCostUsd: number;
+  /** Attempts with token usage whose cost the harness priced in full. */
+  pricedAttemptCount: number;
+  /** Attempts priced for only part of their usage. */
+  partiallyPricedAttemptCount: number;
+  /** Attempts with token usage but no cost estimate. */
+  unpricedAttemptCount: number;
   extraAttemptCount: number;
   extraTokensBeforeAcceptance: number;
+  extraCostBeforeAcceptanceUsd: number;
   medianTimeToAcceptedMs: number | null;
   medianTurnsPerAttempt: number | null;
   medianToolCallsPerAttempt: number | null;
@@ -1452,7 +1464,9 @@ function emptyMetricBucket(): TaskActivityMetricBucket {
     cancelledAttemptCount: 0,
     entryGetCount: 0,
     entrySearchCount: 0,
+    estimatedCostUsd: 0,
     extraAttemptCount: 0,
+    extraCostBeforeAcceptanceUsd: 0,
     extraTokensBeforeAcceptance: 0,
     failedAttemptCount: 0,
     failedToolCallCount: 0,
@@ -1464,16 +1478,22 @@ function emptyMetricBucket(): TaskActivityMetricBucket {
     medianTurnsPerAttempt: null,
     messageCount: 0,
     packGetCount: 0,
+    partiallyPricedAttemptCount: 0,
+    pricedAttemptCount: 0,
     retryAttemptCount: 0,
     retryRecoveredTaskCount: 0,
     taskCount: 0,
     terminalFailureTaskCount: 0,
     timeoutAttemptCount: 0,
     toolCallCount: 0,
+    totalCacheReadTokens: 0,
+    totalCacheWriteTokens: 0,
     totalInputTokens: 0,
     totalOutputTokens: 0,
+    totalReasoningTokens: 0,
     totalTokens: 0,
     turnCount: 0,
+    unpricedAttemptCount: 0,
   };
 }
 
@@ -1592,6 +1612,15 @@ function summarizeActivityRows(
     bucket.totalInputTokens += usage.inputTokens;
     bucket.totalOutputTokens += usage.outputTokens;
     bucket.totalTokens += totalTokens;
+    bucket.totalCacheReadTokens += usage.cacheReadTokens;
+    bucket.totalCacheWriteTokens += usage.cacheWriteTokens;
+    bucket.totalReasoningTokens += usage.reasoningTokens;
+    bucket.estimatedCostUsd += usage.costUsd ?? 0;
+    if (totalTokens > 0) {
+      if (usage.costUsd === null) bucket.unpricedAttemptCount += 1;
+      else if (usage.costComplete) bucket.pricedAttemptCount += 1;
+      else bucket.partiallyPricedAttemptCount += 1;
+    }
     if (row.attemptStatus === 'completed') bucket.acceptedAttemptCount += 1;
     if (row.attemptStatus === 'failed') bucket.failedAttemptCount += 1;
     if (row.attemptStatus === 'timed_out') bucket.timeoutAttemptCount += 1;
@@ -1607,6 +1636,7 @@ function summarizeActivityRows(
     if (row.acceptedAttemptN !== null && row.attemptN < row.acceptedAttemptN) {
       bucket.extraAttemptCount += 1;
       bucket.extraTokensBeforeAcceptance += totalTokens;
+      bucket.extraCostBeforeAcceptanceUsd += usage.costUsd ?? 0;
     }
     if (stats) {
       turns.push(stats.turnCount);
@@ -1652,11 +1682,26 @@ function summarizeActivityRows(
 function readUsage(usage: unknown): {
   inputTokens: number;
   outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  reasoningTokens: number;
+  /** Null when the attempt carries no harness cost estimate. */
+  costUsd: number | null;
+  costComplete: boolean;
 } {
-  if (!isRecord(usage)) return { inputTokens: 0, outputTokens: 0 };
+  const record = isRecord(usage) ? usage : {};
+  const cost = isRecord(record.cost) ? record.cost : null;
   return {
-    inputTokens: readNonNegativeNumber(usage.inputTokens),
-    outputTokens: readNonNegativeNumber(usage.outputTokens),
+    inputTokens: readNonNegativeNumber(record.inputTokens),
+    outputTokens: readNonNegativeNumber(record.outputTokens),
+    cacheReadTokens: readNonNegativeNumber(record.cacheReadTokens),
+    cacheWriteTokens: readNonNegativeNumber(record.cacheWriteTokens),
+    reasoningTokens: readNonNegativeNumber(record.reasoningTokens),
+    costUsd:
+      cost && cost.currency === 'USD'
+        ? readNonNegativeNumber(cost.total)
+        : null,
+    costComplete: cost?.complete === true,
   };
 }
 

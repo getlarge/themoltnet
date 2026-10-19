@@ -222,7 +222,10 @@ export class ProviderConfigurationService {
               // Decision models cannot be used through the chat API, even
               // when the id was originally entered as a generic model.
               return metadata?.type === 'classifier'
-                ? { ...metadata }
+                ? {
+                    ...metadata,
+                    ...(model.cost ? { cost: { ...model.cost } } : {}),
+                  }
                 : { ...metadata, ...model };
             });
           }
@@ -487,6 +490,7 @@ export class ProviderConfigurationService {
       if (model.type === 'classifier') return model;
       return {
         ...model,
+        ...(override?.cost ? { cost: { ...override.cost } } : {}),
         ...(override?.input?.length ? { input: [...override.input] } : {}),
         ...(model.reasoning === undefined && override?.reasoning !== undefined
           ? { reasoning: override.reasoning }

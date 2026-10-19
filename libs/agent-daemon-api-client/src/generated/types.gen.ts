@@ -149,6 +149,12 @@ export type AgentServerProvider = {
   models: Array<{
     api?: string;
     contextWindow?: number;
+    cost?: {
+      cacheRead: number;
+      cacheWrite: number;
+      input: number;
+      output: number;
+    };
     id: string;
     input?: Array<'text' | 'image'>;
     reasoning?: boolean;
@@ -298,6 +304,12 @@ export type DiscoveredModels = {
   models: Array<{
     api?: string;
     contextWindow?: number;
+    cost?: {
+      cacheRead: number;
+      cacheWrite: number;
+      input: number;
+      output: number;
+    };
     id: string;
     input?: Array<'text' | 'image'>;
     reasoning?: boolean;
@@ -907,6 +919,12 @@ export type PutAgentServerProviderData = {
     models: Array<{
       api?: string;
       contextWindow?: number;
+      cost?: {
+        cacheRead: number;
+        cacheWrite: number;
+        input: number;
+        output: number;
+      };
       id: string;
       input?: Array<'text' | 'image'>;
       reasoning?: boolean;

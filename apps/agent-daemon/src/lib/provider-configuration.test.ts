@@ -430,11 +430,17 @@ describe('ProviderConfigurationService', () => {
     });
     await service.set('ollama', {
       baseUrl: 'http://localhost:11434/v1',
-      models: [{ id: 'nimble:latest' }],
+      models: [
+        {
+          id: 'nimble:latest',
+          cost: { input: 0.1, output: 0, cacheRead: 0, cacheWrite: 0 },
+        },
+      ],
     });
     expect(service.list().ollama.models).toEqual([
       {
         id: 'nimble:latest',
+        cost: { input: 0.1, output: 0, cacheRead: 0, cacheWrite: 0 },
         type: 'classifier',
         api: 'typesafe-system-one',
         contextWindow: 262144,

@@ -44,6 +44,7 @@ import {
 } from '@themoltnet/agent-runtime';
 import { Value } from 'typebox/value';
 
+import { taskUsageFromState, usageSince } from './durable-usage.js';
 import { classifyProviderFailure } from './runtime/provider-error-classification.js';
 import { redactRetryTriageSecrets } from './runtime/retry-triage.js';
 import { SubagentToolParameters } from './runtime/subagent-parameters.js';
@@ -71,6 +72,8 @@ const Attempts = defineDocFamily({
     conversationId: number;
     startedAt: number;
     baseline: TaskUsage;
+    /** Session usage when the attempt began; absent on attempts started before it existed. */
+    baselineUsage?: UsageState;
   }) => ({
     ...seed,
     submission: null as JsonObject | null,
@@ -120,6 +123,7 @@ async function abortGeneration(
   context.abortSignal!.throwIfAborted();
 }
 
+/** Aggregate counters only: the pre-`baselineUsage` continuation baseline. */
 function totals(state: UsageState): TaskUsage {
   const result: TaskUsage = {
     inputTokens: 0,
@@ -137,6 +141,36 @@ function totals(state: UsageState): TaskUsage {
     result.cacheWriteTokens! += usage.cacheWrite;
   }
   return result;
+}
+
+/**
+ * What this attempt spent. Without a recorded `baselineUsage` (an attempt that
+ * began before it existed) only an empty baseline is exact; a continuation
+ * then falls back to aggregate counters, without the per-model split or cost.
+ */
+function attemptUsage(
+  current: UsageState,
+  seed: { baseline: TaskUsage; baselineUsage?: UsageState },
+  model: { provider: string; modelId: string },
+): TaskUsage {
+  const primary = { provider: model.provider, model: model.modelId };
+  const legacy = seed.baseline;
+  if (seed.baselineUsage || legacy.inputTokens + legacy.outputTokens === 0)
+    return taskUsageFromState(usageSince(current, seed.baselineUsage), primary);
+  const total = totals(current);
+  return {
+    inputTokens: Math.max(0, total.inputTokens - legacy.inputTokens),
+    outputTokens: Math.max(0, total.outputTokens - legacy.outputTokens),
+    cacheReadTokens: Math.max(
+      0,
+      (total.cacheReadTokens ?? 0) - (legacy.cacheReadTokens ?? 0),
+    ),
+    cacheWriteTokens: Math.max(
+      0,
+      (total.cacheWriteTokens ?? 0) - (legacy.cacheWriteTokens ?? 0),
+    ),
+    ...primary,
+  };
 }
 
 /** No filesystem artifacts: this executor's complete continuation state lives in Storage. */
@@ -295,10 +329,15 @@ export function createDurableTaskExecutor(options: {
           };
         },
       });
-      let seed = {
+      let seed: {
+        conversationId: number;
+        startedAt: number;
+        baseline: TaskUsage;
+        baselineUsage?: UsageState;
+      } = {
         conversationId: 1,
         startedAt: Date.now(),
-        baseline: { inputTokens: 0, outputTokens: 0 } as TaskUsage,
+        baseline: { inputTokens: 0, outputTokens: 0 },
       };
       const guards = defineExtension({
         name: 'moltnet-attempt',
@@ -471,6 +510,9 @@ export function createDurableTaskExecutor(options: {
           conversationId: state.conversationId,
           startedAt: state.startedAt,
           baseline: state.baseline,
+          ...(state.baselineUsage
+            ? { baselineUsage: state.baselineUsage }
+            : {}),
         };
         const found = await harness.conversation(
           state.conversationId as ConversationId,
@@ -512,10 +554,12 @@ export function createDurableTaskExecutor(options: {
             );
           } else conversation = found;
         } else conversation = await harness.root(context);
+        const baselineUsage = await harness.usage(context);
         seed = {
           conversationId: conversation.id,
           startedAt: Date.now(),
-          baseline: totals(await harness.usage(context)),
+          baseline: totals(baselineUsage),
+          baselineUsage,
         };
         await harness.commit(async (tx) => {
           await tx.doc(Attempts, key, seed);
@@ -753,17 +797,11 @@ export function createDurableTaskExecutor(options: {
       const settlement = await submission.wait(context);
       connected.check();
       state = await harness.snapshot(Attempts, key, context);
-      const total = totals(await harness.usage(context));
-      const usage: TaskUsage = {
-        inputTokens: total.inputTokens - seed.baseline.inputTokens,
-        outputTokens: total.outputTokens - seed.baseline.outputTokens,
-        cacheReadTokens:
-          (total.cacheReadTokens ?? 0) - (seed.baseline.cacheReadTokens ?? 0),
-        cacheWriteTokens:
-          (total.cacheWriteTokens ?? 0) - (seed.baseline.cacheWriteTokens ?? 0),
-        provider: options.model.provider,
-        model: options.model.modelId,
-      };
+      const usage = attemptUsage(
+        await harness.usage(context),
+        seed,
+        options.model,
+      );
       const durationMs = Date.now() - seed.startedAt;
       const output = state?.submission
         ? materializeTaskOutput(task.taskType, state.submission, {

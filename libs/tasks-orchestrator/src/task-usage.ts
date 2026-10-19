@@ -9,7 +9,10 @@ export const emptyUsage = (): CumulativeTaskUsage => ({
   outputTokens: 0,
   cacheReadTokens: 0,
   cacheWriteTokens: 0,
+  reasoningTokens: 0,
   toolCalls: 0,
+  estimatedCostUsd: 0,
+  costComplete: true,
 });
 
 /** Await outcomes carry the full attempt snapshot; accept legacy constructed outcomes too. */
@@ -33,6 +36,11 @@ export function addAttemptUsage(
     usage.outputTokens += attempt.usage.outputTokens;
     usage.cacheReadTokens += attempt.usage.cacheReadTokens ?? 0;
     usage.cacheWriteTokens += attempt.usage.cacheWriteTokens ?? 0;
+    usage.reasoningTokens += attempt.usage.reasoningTokens ?? 0;
     usage.toolCalls += attempt.usage.toolCalls ?? 0;
+    const cost = attempt.usage.cost;
+    usage.estimatedCostUsd += cost?.total ?? 0;
+    const spent = attempt.usage.inputTokens + attempt.usage.outputTokens > 0;
+    if (spent && !cost?.complete) usage.costComplete = false;
   }
 }

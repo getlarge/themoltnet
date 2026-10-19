@@ -208,15 +208,27 @@ function toProductMetrics(
         metrics.totalTokens > 0
           ? (metrics.acceptedTaskCount / metrics.totalTokens) * 1000
           : null,
+      estimatedCostPerAcceptedTaskUsd: nullableRatio(
+        metrics.estimatedCostUsd,
+        metrics.acceptedTaskCount,
+      ),
+      estimatedCostUsd: metrics.estimatedCostUsd,
       extraAttemptCount: metrics.extraAttemptCount,
+      extraCostBeforeAcceptanceUsd: metrics.extraCostBeforeAcceptanceUsd,
       extraTokensBeforeAcceptance: metrics.extraTokensBeforeAcceptance,
+      partiallyPricedAttemptCount: metrics.partiallyPricedAttemptCount,
+      pricedAttemptCount: metrics.pricedAttemptCount,
       tokensPerAcceptedTask: nullableRatio(
         metrics.totalTokens,
         metrics.acceptedTaskCount,
       ),
+      totalCacheReadTokens: metrics.totalCacheReadTokens,
+      totalCacheWriteTokens: metrics.totalCacheWriteTokens,
       totalInputTokens: metrics.totalInputTokens,
       totalOutputTokens: metrics.totalOutputTokens,
+      totalReasoningTokens: metrics.totalReasoningTokens,
       totalTokens: metrics.totalTokens,
+      unpricedAttemptCount: metrics.unpricedAttemptCount,
     },
     success: {
       acceptedOutputRate: rate(metrics.acceptedTaskCount, metrics.taskCount),

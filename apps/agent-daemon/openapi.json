@@ -798,6 +798,34 @@
                   "minimum": 1,
                   "type": "integer"
                 },
+                "cost": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "cacheRead": {
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "cacheWrite": {
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "input": {
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "output": {
+                      "minimum": 0,
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "input",
+                    "output",
+                    "cacheRead",
+                    "cacheWrite"
+                  ],
+                  "type": "object"
+                },
                 "id": {
                   "type": "string"
                 },
@@ -1477,6 +1505,34 @@
                 "contextWindow": {
                   "minimum": 1,
                   "type": "integer"
+                },
+                "cost": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "cacheRead": {
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "cacheWrite": {
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "input": {
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "output": {
+                      "minimum": 0,
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "input",
+                    "output",
+                    "cacheRead",
+                    "cacheWrite"
+                  ],
+                  "type": "object"
                 },
                 "id": {
                   "type": "string"
@@ -2899,6 +2955,34 @@
                         "contextWindow": {
                           "minimum": 1,
                           "type": "integer"
+                        },
+                        "cost": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "cacheRead": {
+                              "minimum": 0,
+                              "type": "number"
+                            },
+                            "cacheWrite": {
+                              "minimum": 0,
+                              "type": "number"
+                            },
+                            "input": {
+                              "minimum": 0,
+                              "type": "number"
+                            },
+                            "output": {
+                              "minimum": 0,
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "input",
+                            "output",
+                            "cacheRead",
+                            "cacheWrite"
+                          ],
+                          "type": "object"
                         },
                         "id": {
                           "type": "string"

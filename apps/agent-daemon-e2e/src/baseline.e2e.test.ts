@@ -39,6 +39,7 @@ import {
   type Scenario,
   type SubmitStructure,
   summarizeBaseline,
+  summarizeProducerSpend,
 } from '@moltnet/agent-eval';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises the daemon app entry point.
 import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
@@ -242,6 +243,7 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
           }
 
           const attemptsForStructure = await agent.tasks.listAttempts(task.id);
+          const spend = summarizeProducerSpend(attemptsForStructure);
           const lastAttempt = attemptsForStructure.at(-1);
           let structure: SubmitStructure | undefined;
           if (lastAttempt) {
@@ -264,6 +266,7 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
               taskId: task.id,
               attemptN: final.acceptedAttemptN,
               structure,
+              spend,
             };
           }
           // Not completed: surface the failed attempt's terminal error code so
@@ -275,6 +278,7 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
             taskId: task.id,
             attemptN: null,
             failureCode: failed?.error?.code,
+            spend,
           };
         },
         runGates: (scenario, producer) =>

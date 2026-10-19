@@ -466,6 +466,38 @@ describe('Task Analytics API', () => {
             model: 'claude-sonnet-4-5',
             outputTokens: 80,
             provider: 'anthropic',
+            cacheReadTokens: 40,
+            cacheWriteTokens: 0,
+            reasoningTokens: 30,
+            cost: {
+              currency: 'USD',
+              total: 0.25,
+              input: 0.05,
+              output: 0.18,
+              cacheRead: 0.02,
+              cacheWrite: 0,
+              complete: true,
+            },
+            models: [
+              {
+                provider: 'anthropic',
+                model: 'claude-sonnet-4-5',
+                inputTokens: 120,
+                outputTokens: 80,
+                cacheReadTokens: 40,
+                cacheWriteTokens: 0,
+                reasoningTokens: 30,
+                cost: {
+                  currency: 'USD',
+                  total: 0.25,
+                  input: 0.05,
+                  output: 0.18,
+                  cacheRead: 0.02,
+                  cacheWrite: 0,
+                  complete: true,
+                },
+              },
+            ],
           },
         },
       });
@@ -527,6 +559,15 @@ describe('Task Analytics API', () => {
       expect(analytics.overall.roi.totalTokens).toBe(200);
       expect(analytics.overall.roi.tokensPerAcceptedTask).toBe(200);
       expect(analytics.overall.roi.acceptedTasksPerThousandTokens).toBe(5);
+      expect(analytics.overall.roi).toMatchObject({
+        totalCacheReadTokens: 40,
+        totalReasoningTokens: 30,
+        estimatedCostUsd: 0.25,
+        estimatedCostPerAcceptedTaskUsd: 0.25,
+        pricedAttemptCount: 1,
+        partiallyPricedAttemptCount: 0,
+        unpricedAttemptCount: 0,
+      });
       expect(analytics.overall.hurdles.failedToolCallCount).toBe(1);
       expect(analytics.overall.hurdles.failedToolCallRate).toBe(0.5);
       expect(analytics.overall.knowledge.knowledgeToolCallCount).toBe(2);
@@ -1107,6 +1148,9 @@ describe('Task Analytics API', () => {
       expect(analytics.overall.roi.totalInputTokens).toBe(70);
       expect(analytics.overall.roi.totalOutputTokens).toBe(30);
       expect(analytics.overall.roi.totalTokens).toBe(100);
+      // No harness cost was reported: unpriced, never a fabricated zero cost.
+      expect(analytics.overall.roi.unpricedAttemptCount).toBe(1);
+      expect(analytics.overall.roi.pricedAttemptCount).toBe(0);
     });
   });
 });

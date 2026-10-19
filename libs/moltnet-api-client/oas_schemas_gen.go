@@ -41102,6 +41102,144 @@ func (o OptTaskAttemptErrorRetryDecision) Or(d TaskAttemptErrorRetryDecision) Ta
 	return d
 }
 
+// NewOptTaskAttemptUsageCost returns new OptTaskAttemptUsageCost with value set to v.
+func NewOptTaskAttemptUsageCost(v TaskAttemptUsageCost) OptTaskAttemptUsageCost {
+	return OptTaskAttemptUsageCost{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTaskAttemptUsageCost is optional TaskAttemptUsageCost.
+type OptTaskAttemptUsageCost struct {
+	Value TaskAttemptUsageCost
+	Set   bool
+}
+
+// IsSet returns true if OptTaskAttemptUsageCost was set.
+func (o OptTaskAttemptUsageCost) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTaskAttemptUsageCost) Reset() {
+	var v TaskAttemptUsageCost
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTaskAttemptUsageCost) SetTo(v TaskAttemptUsageCost) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTaskAttemptUsageCost) Get() (v TaskAttemptUsageCost, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTaskAttemptUsageCost) Or(d TaskAttemptUsageCost) TaskAttemptUsageCost {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptTaskAttemptUsageModelsItemCost returns new OptTaskAttemptUsageModelsItemCost with value set to v.
+func NewOptTaskAttemptUsageModelsItemCost(v TaskAttemptUsageModelsItemCost) OptTaskAttemptUsageModelsItemCost {
+	return OptTaskAttemptUsageModelsItemCost{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTaskAttemptUsageModelsItemCost is optional TaskAttemptUsageModelsItemCost.
+type OptTaskAttemptUsageModelsItemCost struct {
+	Value TaskAttemptUsageModelsItemCost
+	Set   bool
+}
+
+// IsSet returns true if OptTaskAttemptUsageModelsItemCost was set.
+func (o OptTaskAttemptUsageModelsItemCost) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTaskAttemptUsageModelsItemCost) Reset() {
+	var v TaskAttemptUsageModelsItemCost
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTaskAttemptUsageModelsItemCost) SetTo(v TaskAttemptUsageModelsItemCost) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTaskAttemptUsageModelsItemCost) Get() (v TaskAttemptUsageModelsItemCost, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTaskAttemptUsageModelsItemCost) Or(d TaskAttemptUsageModelsItemCost) TaskAttemptUsageModelsItemCost {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptTaskAttemptUsageToolsItemCost returns new OptTaskAttemptUsageToolsItemCost with value set to v.
+func NewOptTaskAttemptUsageToolsItemCost(v TaskAttemptUsageToolsItemCost) OptTaskAttemptUsageToolsItemCost {
+	return OptTaskAttemptUsageToolsItemCost{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTaskAttemptUsageToolsItemCost is optional TaskAttemptUsageToolsItemCost.
+type OptTaskAttemptUsageToolsItemCost struct {
+	Value TaskAttemptUsageToolsItemCost
+	Set   bool
+}
+
+// IsSet returns true if OptTaskAttemptUsageToolsItemCost was set.
+func (o OptTaskAttemptUsageToolsItemCost) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTaskAttemptUsageToolsItemCost) Reset() {
+	var v TaskAttemptUsageToolsItemCost
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTaskAttemptUsageToolsItemCost) SetTo(v TaskAttemptUsageToolsItemCost) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTaskAttemptUsageToolsItemCost) Get() (v TaskAttemptUsageToolsItemCost, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTaskAttemptUsageToolsItemCost) Or(d TaskAttemptUsageToolsItemCost) TaskAttemptUsageToolsItemCost {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptTaskErrorRetry returns new OptTaskErrorRetry with value set to v.
 func NewOptTaskErrorRetry(v TaskErrorRetry) OptTaskErrorRetry {
 	return OptTaskErrorRetry{
@@ -41464,6 +41602,144 @@ func (o OptTaskStatus) Get() (v TaskStatus, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptTaskStatus) Or(d TaskStatus) TaskStatus {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptTaskUsageCost returns new OptTaskUsageCost with value set to v.
+func NewOptTaskUsageCost(v TaskUsageCost) OptTaskUsageCost {
+	return OptTaskUsageCost{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTaskUsageCost is optional TaskUsageCost.
+type OptTaskUsageCost struct {
+	Value TaskUsageCost
+	Set   bool
+}
+
+// IsSet returns true if OptTaskUsageCost was set.
+func (o OptTaskUsageCost) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTaskUsageCost) Reset() {
+	var v TaskUsageCost
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTaskUsageCost) SetTo(v TaskUsageCost) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTaskUsageCost) Get() (v TaskUsageCost, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTaskUsageCost) Or(d TaskUsageCost) TaskUsageCost {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptTaskUsageModelsItemCost returns new OptTaskUsageModelsItemCost with value set to v.
+func NewOptTaskUsageModelsItemCost(v TaskUsageModelsItemCost) OptTaskUsageModelsItemCost {
+	return OptTaskUsageModelsItemCost{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTaskUsageModelsItemCost is optional TaskUsageModelsItemCost.
+type OptTaskUsageModelsItemCost struct {
+	Value TaskUsageModelsItemCost
+	Set   bool
+}
+
+// IsSet returns true if OptTaskUsageModelsItemCost was set.
+func (o OptTaskUsageModelsItemCost) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTaskUsageModelsItemCost) Reset() {
+	var v TaskUsageModelsItemCost
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTaskUsageModelsItemCost) SetTo(v TaskUsageModelsItemCost) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTaskUsageModelsItemCost) Get() (v TaskUsageModelsItemCost, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTaskUsageModelsItemCost) Or(d TaskUsageModelsItemCost) TaskUsageModelsItemCost {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptTaskUsageToolsItemCost returns new OptTaskUsageToolsItemCost with value set to v.
+func NewOptTaskUsageToolsItemCost(v TaskUsageToolsItemCost) OptTaskUsageToolsItemCost {
+	return OptTaskUsageToolsItemCost{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptTaskUsageToolsItemCost is optional TaskUsageToolsItemCost.
+type OptTaskUsageToolsItemCost struct {
+	Value TaskUsageToolsItemCost
+	Set   bool
+}
+
+// IsSet returns true if OptTaskUsageToolsItemCost was set.
+func (o OptTaskUsageToolsItemCost) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptTaskUsageToolsItemCost) Reset() {
+	var v TaskUsageToolsItemCost
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptTaskUsageToolsItemCost) SetTo(v TaskUsageToolsItemCost) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptTaskUsageToolsItemCost) Get() (v TaskUsageToolsItemCost, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptTaskUsageToolsItemCost) Or(d TaskUsageToolsItemCost) TaskUsageToolsItemCost {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -55840,8 +56116,8 @@ type TaskActivityProductMetrics struct {
 	// work.
 	Productivity TaskActivityProductMetricsProductivity `json:"productivity"`
 	Raw          TaskActivityProductMetricsRaw          `json:"raw"`
-	// Token-efficiency ROI metrics: token totals, accepted work per token, tokens per accepted task, and
-	// retry waste.
+	// Token-efficiency ROI metrics: token and cost totals, accepted work per token, tokens per accepted
+	// task, and retry waste.
 	Roi TaskActivityProductMetricsRoi `json:"roi"`
 	// Task success metrics: accepted output rate, first-attempt success, retry recovery, and terminal
 	// failure.
@@ -56180,18 +56456,35 @@ func (s *TaskActivityProductMetricsRaw) SetTurnCount(val int) {
 	s.TurnCount = val
 }
 
-// Token-efficiency ROI metrics: token totals, accepted work per token, tokens per accepted task, and
-// retry waste.
+// Token-efficiency ROI metrics: token and cost totals, accepted work per token, tokens per accepted
+// task, and retry waste.
 type TaskActivityProductMetricsRoi struct {
-	AcceptedTasksPerThousandTokens NilFloat64 `json:"acceptedTasksPerThousandTokens"`
-	ExtraAttemptCount              int        `json:"extraAttemptCount"`
+	AcceptedTasksPerThousandTokens  NilFloat64 `json:"acceptedTasksPerThousandTokens"`
+	EstimatedCostPerAcceptedTaskUsd NilFloat64 `json:"estimatedCostPerAcceptedTaskUsd"`
+	// Sum of the harness cost estimates reported per attempt, in USD. A lower bound when any attempt is
+	// unpriced or partially priced.
+	EstimatedCostUsd  float64 `json:"estimatedCostUsd"`
+	ExtraAttemptCount int     `json:"extraAttemptCount"`
+	// Estimated cost of attempts before the accepted attempt, in USD.
+	ExtraCostBeforeAcceptanceUsd float64 `json:"extraCostBeforeAcceptanceUsd"`
 	// Tokens spent on attempts before the accepted attempt. Product intent: wasted retry cost.
 	ExtraTokensBeforeAcceptance int `json:"extraTokensBeforeAcceptance"`
+	// Attempts priced for only part of their usage.
+	PartiallyPricedAttemptCount int `json:"partiallyPricedAttemptCount"`
+	// Attempts with token usage priced in full.
+	PricedAttemptCount int `json:"pricedAttemptCount"`
 	// Token cost per accepted task. Product intent: ROI proxy for accepted work.
 	TokensPerAcceptedTask NilFloat64 `json:"tokensPerAcceptedTask"`
+	TotalCacheReadTokens  int        `json:"totalCacheReadTokens"`
+	TotalCacheWriteTokens int        `json:"totalCacheWriteTokens"`
 	TotalInputTokens      int        `json:"totalInputTokens"`
 	TotalOutputTokens     int        `json:"totalOutputTokens"`
-	TotalTokens           int        `json:"totalTokens"`
+	// Reasoning tokens, a subset of totalOutputTokens.
+	TotalReasoningTokens int `json:"totalReasoningTokens"`
+	TotalTokens          int `json:"totalTokens"`
+	// Attempts with token usage but no cost estimate (unpriced model, or a runtime that does not report
+	// cost).
+	UnpricedAttemptCount int `json:"unpricedAttemptCount"`
 }
 
 // GetAcceptedTasksPerThousandTokens returns the value of AcceptedTasksPerThousandTokens.
@@ -56199,9 +56492,24 @@ func (s *TaskActivityProductMetricsRoi) GetAcceptedTasksPerThousandTokens() NilF
 	return s.AcceptedTasksPerThousandTokens
 }
 
+// GetEstimatedCostPerAcceptedTaskUsd returns the value of EstimatedCostPerAcceptedTaskUsd.
+func (s *TaskActivityProductMetricsRoi) GetEstimatedCostPerAcceptedTaskUsd() NilFloat64 {
+	return s.EstimatedCostPerAcceptedTaskUsd
+}
+
+// GetEstimatedCostUsd returns the value of EstimatedCostUsd.
+func (s *TaskActivityProductMetricsRoi) GetEstimatedCostUsd() float64 {
+	return s.EstimatedCostUsd
+}
+
 // GetExtraAttemptCount returns the value of ExtraAttemptCount.
 func (s *TaskActivityProductMetricsRoi) GetExtraAttemptCount() int {
 	return s.ExtraAttemptCount
+}
+
+// GetExtraCostBeforeAcceptanceUsd returns the value of ExtraCostBeforeAcceptanceUsd.
+func (s *TaskActivityProductMetricsRoi) GetExtraCostBeforeAcceptanceUsd() float64 {
+	return s.ExtraCostBeforeAcceptanceUsd
 }
 
 // GetExtraTokensBeforeAcceptance returns the value of ExtraTokensBeforeAcceptance.
@@ -56209,9 +56517,29 @@ func (s *TaskActivityProductMetricsRoi) GetExtraTokensBeforeAcceptance() int {
 	return s.ExtraTokensBeforeAcceptance
 }
 
+// GetPartiallyPricedAttemptCount returns the value of PartiallyPricedAttemptCount.
+func (s *TaskActivityProductMetricsRoi) GetPartiallyPricedAttemptCount() int {
+	return s.PartiallyPricedAttemptCount
+}
+
+// GetPricedAttemptCount returns the value of PricedAttemptCount.
+func (s *TaskActivityProductMetricsRoi) GetPricedAttemptCount() int {
+	return s.PricedAttemptCount
+}
+
 // GetTokensPerAcceptedTask returns the value of TokensPerAcceptedTask.
 func (s *TaskActivityProductMetricsRoi) GetTokensPerAcceptedTask() NilFloat64 {
 	return s.TokensPerAcceptedTask
+}
+
+// GetTotalCacheReadTokens returns the value of TotalCacheReadTokens.
+func (s *TaskActivityProductMetricsRoi) GetTotalCacheReadTokens() int {
+	return s.TotalCacheReadTokens
+}
+
+// GetTotalCacheWriteTokens returns the value of TotalCacheWriteTokens.
+func (s *TaskActivityProductMetricsRoi) GetTotalCacheWriteTokens() int {
+	return s.TotalCacheWriteTokens
 }
 
 // GetTotalInputTokens returns the value of TotalInputTokens.
@@ -56224,9 +56552,19 @@ func (s *TaskActivityProductMetricsRoi) GetTotalOutputTokens() int {
 	return s.TotalOutputTokens
 }
 
+// GetTotalReasoningTokens returns the value of TotalReasoningTokens.
+func (s *TaskActivityProductMetricsRoi) GetTotalReasoningTokens() int {
+	return s.TotalReasoningTokens
+}
+
 // GetTotalTokens returns the value of TotalTokens.
 func (s *TaskActivityProductMetricsRoi) GetTotalTokens() int {
 	return s.TotalTokens
+}
+
+// GetUnpricedAttemptCount returns the value of UnpricedAttemptCount.
+func (s *TaskActivityProductMetricsRoi) GetUnpricedAttemptCount() int {
+	return s.UnpricedAttemptCount
 }
 
 // SetAcceptedTasksPerThousandTokens sets the value of AcceptedTasksPerThousandTokens.
@@ -56234,9 +56572,24 @@ func (s *TaskActivityProductMetricsRoi) SetAcceptedTasksPerThousandTokens(val Ni
 	s.AcceptedTasksPerThousandTokens = val
 }
 
+// SetEstimatedCostPerAcceptedTaskUsd sets the value of EstimatedCostPerAcceptedTaskUsd.
+func (s *TaskActivityProductMetricsRoi) SetEstimatedCostPerAcceptedTaskUsd(val NilFloat64) {
+	s.EstimatedCostPerAcceptedTaskUsd = val
+}
+
+// SetEstimatedCostUsd sets the value of EstimatedCostUsd.
+func (s *TaskActivityProductMetricsRoi) SetEstimatedCostUsd(val float64) {
+	s.EstimatedCostUsd = val
+}
+
 // SetExtraAttemptCount sets the value of ExtraAttemptCount.
 func (s *TaskActivityProductMetricsRoi) SetExtraAttemptCount(val int) {
 	s.ExtraAttemptCount = val
+}
+
+// SetExtraCostBeforeAcceptanceUsd sets the value of ExtraCostBeforeAcceptanceUsd.
+func (s *TaskActivityProductMetricsRoi) SetExtraCostBeforeAcceptanceUsd(val float64) {
+	s.ExtraCostBeforeAcceptanceUsd = val
 }
 
 // SetExtraTokensBeforeAcceptance sets the value of ExtraTokensBeforeAcceptance.
@@ -56244,9 +56597,29 @@ func (s *TaskActivityProductMetricsRoi) SetExtraTokensBeforeAcceptance(val int) 
 	s.ExtraTokensBeforeAcceptance = val
 }
 
+// SetPartiallyPricedAttemptCount sets the value of PartiallyPricedAttemptCount.
+func (s *TaskActivityProductMetricsRoi) SetPartiallyPricedAttemptCount(val int) {
+	s.PartiallyPricedAttemptCount = val
+}
+
+// SetPricedAttemptCount sets the value of PricedAttemptCount.
+func (s *TaskActivityProductMetricsRoi) SetPricedAttemptCount(val int) {
+	s.PricedAttemptCount = val
+}
+
 // SetTokensPerAcceptedTask sets the value of TokensPerAcceptedTask.
 func (s *TaskActivityProductMetricsRoi) SetTokensPerAcceptedTask(val NilFloat64) {
 	s.TokensPerAcceptedTask = val
+}
+
+// SetTotalCacheReadTokens sets the value of TotalCacheReadTokens.
+func (s *TaskActivityProductMetricsRoi) SetTotalCacheReadTokens(val int) {
+	s.TotalCacheReadTokens = val
+}
+
+// SetTotalCacheWriteTokens sets the value of TotalCacheWriteTokens.
+func (s *TaskActivityProductMetricsRoi) SetTotalCacheWriteTokens(val int) {
+	s.TotalCacheWriteTokens = val
 }
 
 // SetTotalInputTokens sets the value of TotalInputTokens.
@@ -56259,9 +56632,19 @@ func (s *TaskActivityProductMetricsRoi) SetTotalOutputTokens(val int) {
 	s.TotalOutputTokens = val
 }
 
+// SetTotalReasoningTokens sets the value of TotalReasoningTokens.
+func (s *TaskActivityProductMetricsRoi) SetTotalReasoningTokens(val int) {
+	s.TotalReasoningTokens = val
+}
+
 // SetTotalTokens sets the value of TotalTokens.
 func (s *TaskActivityProductMetricsRoi) SetTotalTokens(val int) {
 	s.TotalTokens = val
+}
+
+// SetUnpricedAttemptCount sets the value of UnpricedAttemptCount.
+func (s *TaskActivityProductMetricsRoi) SetUnpricedAttemptCount(val int) {
+	s.UnpricedAttemptCount = val
 }
 
 // Task success metrics: accepted output rate, first-attempt success, retry recovery, and terminal
@@ -57058,13 +57441,17 @@ func (s *TaskAttemptStatus) UnmarshalText(data []byte) error {
 }
 
 type TaskAttemptUsage struct {
-	CacheReadTokens  OptInt    `json:"cacheReadTokens"`
-	CacheWriteTokens OptInt    `json:"cacheWriteTokens"`
-	InputTokens      int       `json:"inputTokens"`
-	Model            OptString `json:"model"`
-	OutputTokens     int       `json:"outputTokens"`
-	Provider         OptString `json:"provider"`
-	ToolCalls        OptInt    `json:"toolCalls"`
+	CacheReadTokens  OptInt                       `json:"cacheReadTokens"`
+	CacheWriteTokens OptInt                       `json:"cacheWriteTokens"`
+	Cost             OptTaskAttemptUsageCost      `json:"cost"`
+	InputTokens      int                          `json:"inputTokens"`
+	Model            OptString                    `json:"model"`
+	Models           []TaskAttemptUsageModelsItem `json:"models"`
+	OutputTokens     int                          `json:"outputTokens"`
+	Provider         OptString                    `json:"provider"`
+	ReasoningTokens  OptInt                       `json:"reasoningTokens"`
+	ToolCalls        OptInt                       `json:"toolCalls"`
+	Tools            []TaskAttemptUsageToolsItem  `json:"tools"`
 }
 
 // GetCacheReadTokens returns the value of CacheReadTokens.
@@ -57077,6 +57464,11 @@ func (s *TaskAttemptUsage) GetCacheWriteTokens() OptInt {
 	return s.CacheWriteTokens
 }
 
+// GetCost returns the value of Cost.
+func (s *TaskAttemptUsage) GetCost() OptTaskAttemptUsageCost {
+	return s.Cost
+}
+
 // GetInputTokens returns the value of InputTokens.
 func (s *TaskAttemptUsage) GetInputTokens() int {
 	return s.InputTokens
@@ -57085,6 +57477,11 @@ func (s *TaskAttemptUsage) GetInputTokens() int {
 // GetModel returns the value of Model.
 func (s *TaskAttemptUsage) GetModel() OptString {
 	return s.Model
+}
+
+// GetModels returns the value of Models.
+func (s *TaskAttemptUsage) GetModels() []TaskAttemptUsageModelsItem {
+	return s.Models
 }
 
 // GetOutputTokens returns the value of OutputTokens.
@@ -57097,9 +57494,19 @@ func (s *TaskAttemptUsage) GetProvider() OptString {
 	return s.Provider
 }
 
+// GetReasoningTokens returns the value of ReasoningTokens.
+func (s *TaskAttemptUsage) GetReasoningTokens() OptInt {
+	return s.ReasoningTokens
+}
+
 // GetToolCalls returns the value of ToolCalls.
 func (s *TaskAttemptUsage) GetToolCalls() OptInt {
 	return s.ToolCalls
+}
+
+// GetTools returns the value of Tools.
+func (s *TaskAttemptUsage) GetTools() []TaskAttemptUsageToolsItem {
+	return s.Tools
 }
 
 // SetCacheReadTokens sets the value of CacheReadTokens.
@@ -57112,6 +57519,11 @@ func (s *TaskAttemptUsage) SetCacheWriteTokens(val OptInt) {
 	s.CacheWriteTokens = val
 }
 
+// SetCost sets the value of Cost.
+func (s *TaskAttemptUsage) SetCost(val OptTaskAttemptUsageCost) {
+	s.Cost = val
+}
+
 // SetInputTokens sets the value of InputTokens.
 func (s *TaskAttemptUsage) SetInputTokens(val int) {
 	s.InputTokens = val
@@ -57120,6 +57532,11 @@ func (s *TaskAttemptUsage) SetInputTokens(val int) {
 // SetModel sets the value of Model.
 func (s *TaskAttemptUsage) SetModel(val OptString) {
 	s.Model = val
+}
+
+// SetModels sets the value of Models.
+func (s *TaskAttemptUsage) SetModels(val []TaskAttemptUsageModelsItem) {
+	s.Models = val
 }
 
 // SetOutputTokens sets the value of OutputTokens.
@@ -57132,9 +57549,532 @@ func (s *TaskAttemptUsage) SetProvider(val OptString) {
 	s.Provider = val
 }
 
+// SetReasoningTokens sets the value of ReasoningTokens.
+func (s *TaskAttemptUsage) SetReasoningTokens(val OptInt) {
+	s.ReasoningTokens = val
+}
+
 // SetToolCalls sets the value of ToolCalls.
 func (s *TaskAttemptUsage) SetToolCalls(val OptInt) {
 	s.ToolCalls = val
+}
+
+// SetTools sets the value of Tools.
+func (s *TaskAttemptUsage) SetTools(val []TaskAttemptUsageToolsItem) {
+	s.Tools = val
+}
+
+type TaskAttemptUsageCost struct {
+	CacheRead  float64                      `json:"cacheRead"`
+	CacheWrite float64                      `json:"cacheWrite"`
+	Complete   bool                         `json:"complete"`
+	Currency   TaskAttemptUsageCostCurrency `json:"currency"`
+	Input      float64                      `json:"input"`
+	Output     float64                      `json:"output"`
+	Total      float64                      `json:"total"`
+}
+
+// GetCacheRead returns the value of CacheRead.
+func (s *TaskAttemptUsageCost) GetCacheRead() float64 {
+	return s.CacheRead
+}
+
+// GetCacheWrite returns the value of CacheWrite.
+func (s *TaskAttemptUsageCost) GetCacheWrite() float64 {
+	return s.CacheWrite
+}
+
+// GetComplete returns the value of Complete.
+func (s *TaskAttemptUsageCost) GetComplete() bool {
+	return s.Complete
+}
+
+// GetCurrency returns the value of Currency.
+func (s *TaskAttemptUsageCost) GetCurrency() TaskAttemptUsageCostCurrency {
+	return s.Currency
+}
+
+// GetInput returns the value of Input.
+func (s *TaskAttemptUsageCost) GetInput() float64 {
+	return s.Input
+}
+
+// GetOutput returns the value of Output.
+func (s *TaskAttemptUsageCost) GetOutput() float64 {
+	return s.Output
+}
+
+// GetTotal returns the value of Total.
+func (s *TaskAttemptUsageCost) GetTotal() float64 {
+	return s.Total
+}
+
+// SetCacheRead sets the value of CacheRead.
+func (s *TaskAttemptUsageCost) SetCacheRead(val float64) {
+	s.CacheRead = val
+}
+
+// SetCacheWrite sets the value of CacheWrite.
+func (s *TaskAttemptUsageCost) SetCacheWrite(val float64) {
+	s.CacheWrite = val
+}
+
+// SetComplete sets the value of Complete.
+func (s *TaskAttemptUsageCost) SetComplete(val bool) {
+	s.Complete = val
+}
+
+// SetCurrency sets the value of Currency.
+func (s *TaskAttemptUsageCost) SetCurrency(val TaskAttemptUsageCostCurrency) {
+	s.Currency = val
+}
+
+// SetInput sets the value of Input.
+func (s *TaskAttemptUsageCost) SetInput(val float64) {
+	s.Input = val
+}
+
+// SetOutput sets the value of Output.
+func (s *TaskAttemptUsageCost) SetOutput(val float64) {
+	s.Output = val
+}
+
+// SetTotal sets the value of Total.
+func (s *TaskAttemptUsageCost) SetTotal(val float64) {
+	s.Total = val
+}
+
+type TaskAttemptUsageCostCurrency string
+
+const (
+	TaskAttemptUsageCostCurrencyUSD TaskAttemptUsageCostCurrency = "USD"
+)
+
+// AllValues returns all TaskAttemptUsageCostCurrency values.
+func (TaskAttemptUsageCostCurrency) AllValues() []TaskAttemptUsageCostCurrency {
+	return []TaskAttemptUsageCostCurrency{
+		TaskAttemptUsageCostCurrencyUSD,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskAttemptUsageCostCurrency) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskAttemptUsageCostCurrencyUSD:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskAttemptUsageCostCurrency) UnmarshalText(data []byte) error {
+	switch TaskAttemptUsageCostCurrency(data) {
+	case TaskAttemptUsageCostCurrencyUSD:
+		*s = TaskAttemptUsageCostCurrencyUSD
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type TaskAttemptUsageModelsItem struct {
+	CacheReadTokens  int                               `json:"cacheReadTokens"`
+	CacheWriteTokens int                               `json:"cacheWriteTokens"`
+	Cost             OptTaskAttemptUsageModelsItemCost `json:"cost"`
+	InputTokens      int                               `json:"inputTokens"`
+	Model            string                            `json:"model"`
+	OutputTokens     int                               `json:"outputTokens"`
+	Provider         string                            `json:"provider"`
+	ReasoningTokens  OptInt                            `json:"reasoningTokens"`
+}
+
+// GetCacheReadTokens returns the value of CacheReadTokens.
+func (s *TaskAttemptUsageModelsItem) GetCacheReadTokens() int {
+	return s.CacheReadTokens
+}
+
+// GetCacheWriteTokens returns the value of CacheWriteTokens.
+func (s *TaskAttemptUsageModelsItem) GetCacheWriteTokens() int {
+	return s.CacheWriteTokens
+}
+
+// GetCost returns the value of Cost.
+func (s *TaskAttemptUsageModelsItem) GetCost() OptTaskAttemptUsageModelsItemCost {
+	return s.Cost
+}
+
+// GetInputTokens returns the value of InputTokens.
+func (s *TaskAttemptUsageModelsItem) GetInputTokens() int {
+	return s.InputTokens
+}
+
+// GetModel returns the value of Model.
+func (s *TaskAttemptUsageModelsItem) GetModel() string {
+	return s.Model
+}
+
+// GetOutputTokens returns the value of OutputTokens.
+func (s *TaskAttemptUsageModelsItem) GetOutputTokens() int {
+	return s.OutputTokens
+}
+
+// GetProvider returns the value of Provider.
+func (s *TaskAttemptUsageModelsItem) GetProvider() string {
+	return s.Provider
+}
+
+// GetReasoningTokens returns the value of ReasoningTokens.
+func (s *TaskAttemptUsageModelsItem) GetReasoningTokens() OptInt {
+	return s.ReasoningTokens
+}
+
+// SetCacheReadTokens sets the value of CacheReadTokens.
+func (s *TaskAttemptUsageModelsItem) SetCacheReadTokens(val int) {
+	s.CacheReadTokens = val
+}
+
+// SetCacheWriteTokens sets the value of CacheWriteTokens.
+func (s *TaskAttemptUsageModelsItem) SetCacheWriteTokens(val int) {
+	s.CacheWriteTokens = val
+}
+
+// SetCost sets the value of Cost.
+func (s *TaskAttemptUsageModelsItem) SetCost(val OptTaskAttemptUsageModelsItemCost) {
+	s.Cost = val
+}
+
+// SetInputTokens sets the value of InputTokens.
+func (s *TaskAttemptUsageModelsItem) SetInputTokens(val int) {
+	s.InputTokens = val
+}
+
+// SetModel sets the value of Model.
+func (s *TaskAttemptUsageModelsItem) SetModel(val string) {
+	s.Model = val
+}
+
+// SetOutputTokens sets the value of OutputTokens.
+func (s *TaskAttemptUsageModelsItem) SetOutputTokens(val int) {
+	s.OutputTokens = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *TaskAttemptUsageModelsItem) SetProvider(val string) {
+	s.Provider = val
+}
+
+// SetReasoningTokens sets the value of ReasoningTokens.
+func (s *TaskAttemptUsageModelsItem) SetReasoningTokens(val OptInt) {
+	s.ReasoningTokens = val
+}
+
+type TaskAttemptUsageModelsItemCost struct {
+	CacheRead  float64                                `json:"cacheRead"`
+	CacheWrite float64                                `json:"cacheWrite"`
+	Complete   bool                                   `json:"complete"`
+	Currency   TaskAttemptUsageModelsItemCostCurrency `json:"currency"`
+	Input      float64                                `json:"input"`
+	Output     float64                                `json:"output"`
+	Total      float64                                `json:"total"`
+}
+
+// GetCacheRead returns the value of CacheRead.
+func (s *TaskAttemptUsageModelsItemCost) GetCacheRead() float64 {
+	return s.CacheRead
+}
+
+// GetCacheWrite returns the value of CacheWrite.
+func (s *TaskAttemptUsageModelsItemCost) GetCacheWrite() float64 {
+	return s.CacheWrite
+}
+
+// GetComplete returns the value of Complete.
+func (s *TaskAttemptUsageModelsItemCost) GetComplete() bool {
+	return s.Complete
+}
+
+// GetCurrency returns the value of Currency.
+func (s *TaskAttemptUsageModelsItemCost) GetCurrency() TaskAttemptUsageModelsItemCostCurrency {
+	return s.Currency
+}
+
+// GetInput returns the value of Input.
+func (s *TaskAttemptUsageModelsItemCost) GetInput() float64 {
+	return s.Input
+}
+
+// GetOutput returns the value of Output.
+func (s *TaskAttemptUsageModelsItemCost) GetOutput() float64 {
+	return s.Output
+}
+
+// GetTotal returns the value of Total.
+func (s *TaskAttemptUsageModelsItemCost) GetTotal() float64 {
+	return s.Total
+}
+
+// SetCacheRead sets the value of CacheRead.
+func (s *TaskAttemptUsageModelsItemCost) SetCacheRead(val float64) {
+	s.CacheRead = val
+}
+
+// SetCacheWrite sets the value of CacheWrite.
+func (s *TaskAttemptUsageModelsItemCost) SetCacheWrite(val float64) {
+	s.CacheWrite = val
+}
+
+// SetComplete sets the value of Complete.
+func (s *TaskAttemptUsageModelsItemCost) SetComplete(val bool) {
+	s.Complete = val
+}
+
+// SetCurrency sets the value of Currency.
+func (s *TaskAttemptUsageModelsItemCost) SetCurrency(val TaskAttemptUsageModelsItemCostCurrency) {
+	s.Currency = val
+}
+
+// SetInput sets the value of Input.
+func (s *TaskAttemptUsageModelsItemCost) SetInput(val float64) {
+	s.Input = val
+}
+
+// SetOutput sets the value of Output.
+func (s *TaskAttemptUsageModelsItemCost) SetOutput(val float64) {
+	s.Output = val
+}
+
+// SetTotal sets the value of Total.
+func (s *TaskAttemptUsageModelsItemCost) SetTotal(val float64) {
+	s.Total = val
+}
+
+type TaskAttemptUsageModelsItemCostCurrency string
+
+const (
+	TaskAttemptUsageModelsItemCostCurrencyUSD TaskAttemptUsageModelsItemCostCurrency = "USD"
+)
+
+// AllValues returns all TaskAttemptUsageModelsItemCostCurrency values.
+func (TaskAttemptUsageModelsItemCostCurrency) AllValues() []TaskAttemptUsageModelsItemCostCurrency {
+	return []TaskAttemptUsageModelsItemCostCurrency{
+		TaskAttemptUsageModelsItemCostCurrencyUSD,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskAttemptUsageModelsItemCostCurrency) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskAttemptUsageModelsItemCostCurrencyUSD:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskAttemptUsageModelsItemCostCurrency) UnmarshalText(data []byte) error {
+	switch TaskAttemptUsageModelsItemCostCurrency(data) {
+	case TaskAttemptUsageModelsItemCostCurrencyUSD:
+		*s = TaskAttemptUsageModelsItemCostCurrencyUSD
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type TaskAttemptUsageToolsItem struct {
+	CacheReadTokens  int                              `json:"cacheReadTokens"`
+	CacheWriteTokens int                              `json:"cacheWriteTokens"`
+	Cost             OptTaskAttemptUsageToolsItemCost `json:"cost"`
+	InputTokens      int                              `json:"inputTokens"`
+	OutputTokens     int                              `json:"outputTokens"`
+	ReasoningTokens  OptInt                           `json:"reasoningTokens"`
+	Tool             string                           `json:"tool"`
+}
+
+// GetCacheReadTokens returns the value of CacheReadTokens.
+func (s *TaskAttemptUsageToolsItem) GetCacheReadTokens() int {
+	return s.CacheReadTokens
+}
+
+// GetCacheWriteTokens returns the value of CacheWriteTokens.
+func (s *TaskAttemptUsageToolsItem) GetCacheWriteTokens() int {
+	return s.CacheWriteTokens
+}
+
+// GetCost returns the value of Cost.
+func (s *TaskAttemptUsageToolsItem) GetCost() OptTaskAttemptUsageToolsItemCost {
+	return s.Cost
+}
+
+// GetInputTokens returns the value of InputTokens.
+func (s *TaskAttemptUsageToolsItem) GetInputTokens() int {
+	return s.InputTokens
+}
+
+// GetOutputTokens returns the value of OutputTokens.
+func (s *TaskAttemptUsageToolsItem) GetOutputTokens() int {
+	return s.OutputTokens
+}
+
+// GetReasoningTokens returns the value of ReasoningTokens.
+func (s *TaskAttemptUsageToolsItem) GetReasoningTokens() OptInt {
+	return s.ReasoningTokens
+}
+
+// GetTool returns the value of Tool.
+func (s *TaskAttemptUsageToolsItem) GetTool() string {
+	return s.Tool
+}
+
+// SetCacheReadTokens sets the value of CacheReadTokens.
+func (s *TaskAttemptUsageToolsItem) SetCacheReadTokens(val int) {
+	s.CacheReadTokens = val
+}
+
+// SetCacheWriteTokens sets the value of CacheWriteTokens.
+func (s *TaskAttemptUsageToolsItem) SetCacheWriteTokens(val int) {
+	s.CacheWriteTokens = val
+}
+
+// SetCost sets the value of Cost.
+func (s *TaskAttemptUsageToolsItem) SetCost(val OptTaskAttemptUsageToolsItemCost) {
+	s.Cost = val
+}
+
+// SetInputTokens sets the value of InputTokens.
+func (s *TaskAttemptUsageToolsItem) SetInputTokens(val int) {
+	s.InputTokens = val
+}
+
+// SetOutputTokens sets the value of OutputTokens.
+func (s *TaskAttemptUsageToolsItem) SetOutputTokens(val int) {
+	s.OutputTokens = val
+}
+
+// SetReasoningTokens sets the value of ReasoningTokens.
+func (s *TaskAttemptUsageToolsItem) SetReasoningTokens(val OptInt) {
+	s.ReasoningTokens = val
+}
+
+// SetTool sets the value of Tool.
+func (s *TaskAttemptUsageToolsItem) SetTool(val string) {
+	s.Tool = val
+}
+
+type TaskAttemptUsageToolsItemCost struct {
+	CacheRead  float64                               `json:"cacheRead"`
+	CacheWrite float64                               `json:"cacheWrite"`
+	Complete   bool                                  `json:"complete"`
+	Currency   TaskAttemptUsageToolsItemCostCurrency `json:"currency"`
+	Input      float64                               `json:"input"`
+	Output     float64                               `json:"output"`
+	Total      float64                               `json:"total"`
+}
+
+// GetCacheRead returns the value of CacheRead.
+func (s *TaskAttemptUsageToolsItemCost) GetCacheRead() float64 {
+	return s.CacheRead
+}
+
+// GetCacheWrite returns the value of CacheWrite.
+func (s *TaskAttemptUsageToolsItemCost) GetCacheWrite() float64 {
+	return s.CacheWrite
+}
+
+// GetComplete returns the value of Complete.
+func (s *TaskAttemptUsageToolsItemCost) GetComplete() bool {
+	return s.Complete
+}
+
+// GetCurrency returns the value of Currency.
+func (s *TaskAttemptUsageToolsItemCost) GetCurrency() TaskAttemptUsageToolsItemCostCurrency {
+	return s.Currency
+}
+
+// GetInput returns the value of Input.
+func (s *TaskAttemptUsageToolsItemCost) GetInput() float64 {
+	return s.Input
+}
+
+// GetOutput returns the value of Output.
+func (s *TaskAttemptUsageToolsItemCost) GetOutput() float64 {
+	return s.Output
+}
+
+// GetTotal returns the value of Total.
+func (s *TaskAttemptUsageToolsItemCost) GetTotal() float64 {
+	return s.Total
+}
+
+// SetCacheRead sets the value of CacheRead.
+func (s *TaskAttemptUsageToolsItemCost) SetCacheRead(val float64) {
+	s.CacheRead = val
+}
+
+// SetCacheWrite sets the value of CacheWrite.
+func (s *TaskAttemptUsageToolsItemCost) SetCacheWrite(val float64) {
+	s.CacheWrite = val
+}
+
+// SetComplete sets the value of Complete.
+func (s *TaskAttemptUsageToolsItemCost) SetComplete(val bool) {
+	s.Complete = val
+}
+
+// SetCurrency sets the value of Currency.
+func (s *TaskAttemptUsageToolsItemCost) SetCurrency(val TaskAttemptUsageToolsItemCostCurrency) {
+	s.Currency = val
+}
+
+// SetInput sets the value of Input.
+func (s *TaskAttemptUsageToolsItemCost) SetInput(val float64) {
+	s.Input = val
+}
+
+// SetOutput sets the value of Output.
+func (s *TaskAttemptUsageToolsItemCost) SetOutput(val float64) {
+	s.Output = val
+}
+
+// SetTotal sets the value of Total.
+func (s *TaskAttemptUsageToolsItemCost) SetTotal(val float64) {
+	s.Total = val
+}
+
+type TaskAttemptUsageToolsItemCostCurrency string
+
+const (
+	TaskAttemptUsageToolsItemCostCurrencyUSD TaskAttemptUsageToolsItemCostCurrency = "USD"
+)
+
+// AllValues returns all TaskAttemptUsageToolsItemCostCurrency values.
+func (TaskAttemptUsageToolsItemCostCurrency) AllValues() []TaskAttemptUsageToolsItemCostCurrency {
+	return []TaskAttemptUsageToolsItemCostCurrency{
+		TaskAttemptUsageToolsItemCostCurrencyUSD,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskAttemptUsageToolsItemCostCurrency) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskAttemptUsageToolsItemCostCurrencyUSD:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskAttemptUsageToolsItemCostCurrency) UnmarshalText(data []byte) error {
+	switch TaskAttemptUsageToolsItemCostCurrency(data) {
+	case TaskAttemptUsageToolsItemCostCurrencyUSD:
+		*s = TaskAttemptUsageToolsItemCostCurrencyUSD
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 // Ref: #/components/schemas/TaskError
@@ -58497,13 +59437,17 @@ func (s *TaskTypeDescriptorOutputKind) UnmarshalText(data []byte) error {
 
 // Ref: #/components/schemas/TaskUsage
 type TaskUsage struct {
-	CacheReadTokens  OptInt    `json:"cacheReadTokens"`
-	CacheWriteTokens OptInt    `json:"cacheWriteTokens"`
-	InputTokens      int       `json:"inputTokens"`
-	Model            OptString `json:"model"`
-	OutputTokens     int       `json:"outputTokens"`
-	Provider         OptString `json:"provider"`
-	ToolCalls        OptInt    `json:"toolCalls"`
+	CacheReadTokens  OptInt                `json:"cacheReadTokens"`
+	CacheWriteTokens OptInt                `json:"cacheWriteTokens"`
+	Cost             OptTaskUsageCost      `json:"cost"`
+	InputTokens      int                   `json:"inputTokens"`
+	Model            OptString             `json:"model"`
+	Models           []TaskUsageModelsItem `json:"models"`
+	OutputTokens     int                   `json:"outputTokens"`
+	Provider         OptString             `json:"provider"`
+	ReasoningTokens  OptInt                `json:"reasoningTokens"`
+	ToolCalls        OptInt                `json:"toolCalls"`
+	Tools            []TaskUsageToolsItem  `json:"tools"`
 }
 
 // GetCacheReadTokens returns the value of CacheReadTokens.
@@ -58516,6 +59460,11 @@ func (s *TaskUsage) GetCacheWriteTokens() OptInt {
 	return s.CacheWriteTokens
 }
 
+// GetCost returns the value of Cost.
+func (s *TaskUsage) GetCost() OptTaskUsageCost {
+	return s.Cost
+}
+
 // GetInputTokens returns the value of InputTokens.
 func (s *TaskUsage) GetInputTokens() int {
 	return s.InputTokens
@@ -58524,6 +59473,11 @@ func (s *TaskUsage) GetInputTokens() int {
 // GetModel returns the value of Model.
 func (s *TaskUsage) GetModel() OptString {
 	return s.Model
+}
+
+// GetModels returns the value of Models.
+func (s *TaskUsage) GetModels() []TaskUsageModelsItem {
+	return s.Models
 }
 
 // GetOutputTokens returns the value of OutputTokens.
@@ -58536,9 +59490,19 @@ func (s *TaskUsage) GetProvider() OptString {
 	return s.Provider
 }
 
+// GetReasoningTokens returns the value of ReasoningTokens.
+func (s *TaskUsage) GetReasoningTokens() OptInt {
+	return s.ReasoningTokens
+}
+
 // GetToolCalls returns the value of ToolCalls.
 func (s *TaskUsage) GetToolCalls() OptInt {
 	return s.ToolCalls
+}
+
+// GetTools returns the value of Tools.
+func (s *TaskUsage) GetTools() []TaskUsageToolsItem {
+	return s.Tools
 }
 
 // SetCacheReadTokens sets the value of CacheReadTokens.
@@ -58551,6 +59515,11 @@ func (s *TaskUsage) SetCacheWriteTokens(val OptInt) {
 	s.CacheWriteTokens = val
 }
 
+// SetCost sets the value of Cost.
+func (s *TaskUsage) SetCost(val OptTaskUsageCost) {
+	s.Cost = val
+}
+
 // SetInputTokens sets the value of InputTokens.
 func (s *TaskUsage) SetInputTokens(val int) {
 	s.InputTokens = val
@@ -58559,6 +59528,11 @@ func (s *TaskUsage) SetInputTokens(val int) {
 // SetModel sets the value of Model.
 func (s *TaskUsage) SetModel(val OptString) {
 	s.Model = val
+}
+
+// SetModels sets the value of Models.
+func (s *TaskUsage) SetModels(val []TaskUsageModelsItem) {
+	s.Models = val
 }
 
 // SetOutputTokens sets the value of OutputTokens.
@@ -58571,9 +59545,532 @@ func (s *TaskUsage) SetProvider(val OptString) {
 	s.Provider = val
 }
 
+// SetReasoningTokens sets the value of ReasoningTokens.
+func (s *TaskUsage) SetReasoningTokens(val OptInt) {
+	s.ReasoningTokens = val
+}
+
 // SetToolCalls sets the value of ToolCalls.
 func (s *TaskUsage) SetToolCalls(val OptInt) {
 	s.ToolCalls = val
+}
+
+// SetTools sets the value of Tools.
+func (s *TaskUsage) SetTools(val []TaskUsageToolsItem) {
+	s.Tools = val
+}
+
+type TaskUsageCost struct {
+	CacheRead  float64               `json:"cacheRead"`
+	CacheWrite float64               `json:"cacheWrite"`
+	Complete   bool                  `json:"complete"`
+	Currency   TaskUsageCostCurrency `json:"currency"`
+	Input      float64               `json:"input"`
+	Output     float64               `json:"output"`
+	Total      float64               `json:"total"`
+}
+
+// GetCacheRead returns the value of CacheRead.
+func (s *TaskUsageCost) GetCacheRead() float64 {
+	return s.CacheRead
+}
+
+// GetCacheWrite returns the value of CacheWrite.
+func (s *TaskUsageCost) GetCacheWrite() float64 {
+	return s.CacheWrite
+}
+
+// GetComplete returns the value of Complete.
+func (s *TaskUsageCost) GetComplete() bool {
+	return s.Complete
+}
+
+// GetCurrency returns the value of Currency.
+func (s *TaskUsageCost) GetCurrency() TaskUsageCostCurrency {
+	return s.Currency
+}
+
+// GetInput returns the value of Input.
+func (s *TaskUsageCost) GetInput() float64 {
+	return s.Input
+}
+
+// GetOutput returns the value of Output.
+func (s *TaskUsageCost) GetOutput() float64 {
+	return s.Output
+}
+
+// GetTotal returns the value of Total.
+func (s *TaskUsageCost) GetTotal() float64 {
+	return s.Total
+}
+
+// SetCacheRead sets the value of CacheRead.
+func (s *TaskUsageCost) SetCacheRead(val float64) {
+	s.CacheRead = val
+}
+
+// SetCacheWrite sets the value of CacheWrite.
+func (s *TaskUsageCost) SetCacheWrite(val float64) {
+	s.CacheWrite = val
+}
+
+// SetComplete sets the value of Complete.
+func (s *TaskUsageCost) SetComplete(val bool) {
+	s.Complete = val
+}
+
+// SetCurrency sets the value of Currency.
+func (s *TaskUsageCost) SetCurrency(val TaskUsageCostCurrency) {
+	s.Currency = val
+}
+
+// SetInput sets the value of Input.
+func (s *TaskUsageCost) SetInput(val float64) {
+	s.Input = val
+}
+
+// SetOutput sets the value of Output.
+func (s *TaskUsageCost) SetOutput(val float64) {
+	s.Output = val
+}
+
+// SetTotal sets the value of Total.
+func (s *TaskUsageCost) SetTotal(val float64) {
+	s.Total = val
+}
+
+type TaskUsageCostCurrency string
+
+const (
+	TaskUsageCostCurrencyUSD TaskUsageCostCurrency = "USD"
+)
+
+// AllValues returns all TaskUsageCostCurrency values.
+func (TaskUsageCostCurrency) AllValues() []TaskUsageCostCurrency {
+	return []TaskUsageCostCurrency{
+		TaskUsageCostCurrencyUSD,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskUsageCostCurrency) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskUsageCostCurrencyUSD:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskUsageCostCurrency) UnmarshalText(data []byte) error {
+	switch TaskUsageCostCurrency(data) {
+	case TaskUsageCostCurrencyUSD:
+		*s = TaskUsageCostCurrencyUSD
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type TaskUsageModelsItem struct {
+	CacheReadTokens  int                        `json:"cacheReadTokens"`
+	CacheWriteTokens int                        `json:"cacheWriteTokens"`
+	Cost             OptTaskUsageModelsItemCost `json:"cost"`
+	InputTokens      int                        `json:"inputTokens"`
+	Model            string                     `json:"model"`
+	OutputTokens     int                        `json:"outputTokens"`
+	Provider         string                     `json:"provider"`
+	ReasoningTokens  OptInt                     `json:"reasoningTokens"`
+}
+
+// GetCacheReadTokens returns the value of CacheReadTokens.
+func (s *TaskUsageModelsItem) GetCacheReadTokens() int {
+	return s.CacheReadTokens
+}
+
+// GetCacheWriteTokens returns the value of CacheWriteTokens.
+func (s *TaskUsageModelsItem) GetCacheWriteTokens() int {
+	return s.CacheWriteTokens
+}
+
+// GetCost returns the value of Cost.
+func (s *TaskUsageModelsItem) GetCost() OptTaskUsageModelsItemCost {
+	return s.Cost
+}
+
+// GetInputTokens returns the value of InputTokens.
+func (s *TaskUsageModelsItem) GetInputTokens() int {
+	return s.InputTokens
+}
+
+// GetModel returns the value of Model.
+func (s *TaskUsageModelsItem) GetModel() string {
+	return s.Model
+}
+
+// GetOutputTokens returns the value of OutputTokens.
+func (s *TaskUsageModelsItem) GetOutputTokens() int {
+	return s.OutputTokens
+}
+
+// GetProvider returns the value of Provider.
+func (s *TaskUsageModelsItem) GetProvider() string {
+	return s.Provider
+}
+
+// GetReasoningTokens returns the value of ReasoningTokens.
+func (s *TaskUsageModelsItem) GetReasoningTokens() OptInt {
+	return s.ReasoningTokens
+}
+
+// SetCacheReadTokens sets the value of CacheReadTokens.
+func (s *TaskUsageModelsItem) SetCacheReadTokens(val int) {
+	s.CacheReadTokens = val
+}
+
+// SetCacheWriteTokens sets the value of CacheWriteTokens.
+func (s *TaskUsageModelsItem) SetCacheWriteTokens(val int) {
+	s.CacheWriteTokens = val
+}
+
+// SetCost sets the value of Cost.
+func (s *TaskUsageModelsItem) SetCost(val OptTaskUsageModelsItemCost) {
+	s.Cost = val
+}
+
+// SetInputTokens sets the value of InputTokens.
+func (s *TaskUsageModelsItem) SetInputTokens(val int) {
+	s.InputTokens = val
+}
+
+// SetModel sets the value of Model.
+func (s *TaskUsageModelsItem) SetModel(val string) {
+	s.Model = val
+}
+
+// SetOutputTokens sets the value of OutputTokens.
+func (s *TaskUsageModelsItem) SetOutputTokens(val int) {
+	s.OutputTokens = val
+}
+
+// SetProvider sets the value of Provider.
+func (s *TaskUsageModelsItem) SetProvider(val string) {
+	s.Provider = val
+}
+
+// SetReasoningTokens sets the value of ReasoningTokens.
+func (s *TaskUsageModelsItem) SetReasoningTokens(val OptInt) {
+	s.ReasoningTokens = val
+}
+
+type TaskUsageModelsItemCost struct {
+	CacheRead  float64                         `json:"cacheRead"`
+	CacheWrite float64                         `json:"cacheWrite"`
+	Complete   bool                            `json:"complete"`
+	Currency   TaskUsageModelsItemCostCurrency `json:"currency"`
+	Input      float64                         `json:"input"`
+	Output     float64                         `json:"output"`
+	Total      float64                         `json:"total"`
+}
+
+// GetCacheRead returns the value of CacheRead.
+func (s *TaskUsageModelsItemCost) GetCacheRead() float64 {
+	return s.CacheRead
+}
+
+// GetCacheWrite returns the value of CacheWrite.
+func (s *TaskUsageModelsItemCost) GetCacheWrite() float64 {
+	return s.CacheWrite
+}
+
+// GetComplete returns the value of Complete.
+func (s *TaskUsageModelsItemCost) GetComplete() bool {
+	return s.Complete
+}
+
+// GetCurrency returns the value of Currency.
+func (s *TaskUsageModelsItemCost) GetCurrency() TaskUsageModelsItemCostCurrency {
+	return s.Currency
+}
+
+// GetInput returns the value of Input.
+func (s *TaskUsageModelsItemCost) GetInput() float64 {
+	return s.Input
+}
+
+// GetOutput returns the value of Output.
+func (s *TaskUsageModelsItemCost) GetOutput() float64 {
+	return s.Output
+}
+
+// GetTotal returns the value of Total.
+func (s *TaskUsageModelsItemCost) GetTotal() float64 {
+	return s.Total
+}
+
+// SetCacheRead sets the value of CacheRead.
+func (s *TaskUsageModelsItemCost) SetCacheRead(val float64) {
+	s.CacheRead = val
+}
+
+// SetCacheWrite sets the value of CacheWrite.
+func (s *TaskUsageModelsItemCost) SetCacheWrite(val float64) {
+	s.CacheWrite = val
+}
+
+// SetComplete sets the value of Complete.
+func (s *TaskUsageModelsItemCost) SetComplete(val bool) {
+	s.Complete = val
+}
+
+// SetCurrency sets the value of Currency.
+func (s *TaskUsageModelsItemCost) SetCurrency(val TaskUsageModelsItemCostCurrency) {
+	s.Currency = val
+}
+
+// SetInput sets the value of Input.
+func (s *TaskUsageModelsItemCost) SetInput(val float64) {
+	s.Input = val
+}
+
+// SetOutput sets the value of Output.
+func (s *TaskUsageModelsItemCost) SetOutput(val float64) {
+	s.Output = val
+}
+
+// SetTotal sets the value of Total.
+func (s *TaskUsageModelsItemCost) SetTotal(val float64) {
+	s.Total = val
+}
+
+type TaskUsageModelsItemCostCurrency string
+
+const (
+	TaskUsageModelsItemCostCurrencyUSD TaskUsageModelsItemCostCurrency = "USD"
+)
+
+// AllValues returns all TaskUsageModelsItemCostCurrency values.
+func (TaskUsageModelsItemCostCurrency) AllValues() []TaskUsageModelsItemCostCurrency {
+	return []TaskUsageModelsItemCostCurrency{
+		TaskUsageModelsItemCostCurrencyUSD,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskUsageModelsItemCostCurrency) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskUsageModelsItemCostCurrencyUSD:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskUsageModelsItemCostCurrency) UnmarshalText(data []byte) error {
+	switch TaskUsageModelsItemCostCurrency(data) {
+	case TaskUsageModelsItemCostCurrencyUSD:
+		*s = TaskUsageModelsItemCostCurrencyUSD
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type TaskUsageToolsItem struct {
+	CacheReadTokens  int                       `json:"cacheReadTokens"`
+	CacheWriteTokens int                       `json:"cacheWriteTokens"`
+	Cost             OptTaskUsageToolsItemCost `json:"cost"`
+	InputTokens      int                       `json:"inputTokens"`
+	OutputTokens     int                       `json:"outputTokens"`
+	ReasoningTokens  OptInt                    `json:"reasoningTokens"`
+	Tool             string                    `json:"tool"`
+}
+
+// GetCacheReadTokens returns the value of CacheReadTokens.
+func (s *TaskUsageToolsItem) GetCacheReadTokens() int {
+	return s.CacheReadTokens
+}
+
+// GetCacheWriteTokens returns the value of CacheWriteTokens.
+func (s *TaskUsageToolsItem) GetCacheWriteTokens() int {
+	return s.CacheWriteTokens
+}
+
+// GetCost returns the value of Cost.
+func (s *TaskUsageToolsItem) GetCost() OptTaskUsageToolsItemCost {
+	return s.Cost
+}
+
+// GetInputTokens returns the value of InputTokens.
+func (s *TaskUsageToolsItem) GetInputTokens() int {
+	return s.InputTokens
+}
+
+// GetOutputTokens returns the value of OutputTokens.
+func (s *TaskUsageToolsItem) GetOutputTokens() int {
+	return s.OutputTokens
+}
+
+// GetReasoningTokens returns the value of ReasoningTokens.
+func (s *TaskUsageToolsItem) GetReasoningTokens() OptInt {
+	return s.ReasoningTokens
+}
+
+// GetTool returns the value of Tool.
+func (s *TaskUsageToolsItem) GetTool() string {
+	return s.Tool
+}
+
+// SetCacheReadTokens sets the value of CacheReadTokens.
+func (s *TaskUsageToolsItem) SetCacheReadTokens(val int) {
+	s.CacheReadTokens = val
+}
+
+// SetCacheWriteTokens sets the value of CacheWriteTokens.
+func (s *TaskUsageToolsItem) SetCacheWriteTokens(val int) {
+	s.CacheWriteTokens = val
+}
+
+// SetCost sets the value of Cost.
+func (s *TaskUsageToolsItem) SetCost(val OptTaskUsageToolsItemCost) {
+	s.Cost = val
+}
+
+// SetInputTokens sets the value of InputTokens.
+func (s *TaskUsageToolsItem) SetInputTokens(val int) {
+	s.InputTokens = val
+}
+
+// SetOutputTokens sets the value of OutputTokens.
+func (s *TaskUsageToolsItem) SetOutputTokens(val int) {
+	s.OutputTokens = val
+}
+
+// SetReasoningTokens sets the value of ReasoningTokens.
+func (s *TaskUsageToolsItem) SetReasoningTokens(val OptInt) {
+	s.ReasoningTokens = val
+}
+
+// SetTool sets the value of Tool.
+func (s *TaskUsageToolsItem) SetTool(val string) {
+	s.Tool = val
+}
+
+type TaskUsageToolsItemCost struct {
+	CacheRead  float64                        `json:"cacheRead"`
+	CacheWrite float64                        `json:"cacheWrite"`
+	Complete   bool                           `json:"complete"`
+	Currency   TaskUsageToolsItemCostCurrency `json:"currency"`
+	Input      float64                        `json:"input"`
+	Output     float64                        `json:"output"`
+	Total      float64                        `json:"total"`
+}
+
+// GetCacheRead returns the value of CacheRead.
+func (s *TaskUsageToolsItemCost) GetCacheRead() float64 {
+	return s.CacheRead
+}
+
+// GetCacheWrite returns the value of CacheWrite.
+func (s *TaskUsageToolsItemCost) GetCacheWrite() float64 {
+	return s.CacheWrite
+}
+
+// GetComplete returns the value of Complete.
+func (s *TaskUsageToolsItemCost) GetComplete() bool {
+	return s.Complete
+}
+
+// GetCurrency returns the value of Currency.
+func (s *TaskUsageToolsItemCost) GetCurrency() TaskUsageToolsItemCostCurrency {
+	return s.Currency
+}
+
+// GetInput returns the value of Input.
+func (s *TaskUsageToolsItemCost) GetInput() float64 {
+	return s.Input
+}
+
+// GetOutput returns the value of Output.
+func (s *TaskUsageToolsItemCost) GetOutput() float64 {
+	return s.Output
+}
+
+// GetTotal returns the value of Total.
+func (s *TaskUsageToolsItemCost) GetTotal() float64 {
+	return s.Total
+}
+
+// SetCacheRead sets the value of CacheRead.
+func (s *TaskUsageToolsItemCost) SetCacheRead(val float64) {
+	s.CacheRead = val
+}
+
+// SetCacheWrite sets the value of CacheWrite.
+func (s *TaskUsageToolsItemCost) SetCacheWrite(val float64) {
+	s.CacheWrite = val
+}
+
+// SetComplete sets the value of Complete.
+func (s *TaskUsageToolsItemCost) SetComplete(val bool) {
+	s.Complete = val
+}
+
+// SetCurrency sets the value of Currency.
+func (s *TaskUsageToolsItemCost) SetCurrency(val TaskUsageToolsItemCostCurrency) {
+	s.Currency = val
+}
+
+// SetInput sets the value of Input.
+func (s *TaskUsageToolsItemCost) SetInput(val float64) {
+	s.Input = val
+}
+
+// SetOutput sets the value of Output.
+func (s *TaskUsageToolsItemCost) SetOutput(val float64) {
+	s.Output = val
+}
+
+// SetTotal sets the value of Total.
+func (s *TaskUsageToolsItemCost) SetTotal(val float64) {
+	s.Total = val
+}
+
+type TaskUsageToolsItemCostCurrency string
+
+const (
+	TaskUsageToolsItemCostCurrencyUSD TaskUsageToolsItemCostCurrency = "USD"
+)
+
+// AllValues returns all TaskUsageToolsItemCostCurrency values.
+func (TaskUsageToolsItemCostCurrency) AllValues() []TaskUsageToolsItemCostCurrency {
+	return []TaskUsageToolsItemCostCurrency{
+		TaskUsageToolsItemCostCurrencyUSD,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskUsageToolsItemCostCurrency) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskUsageToolsItemCostCurrencyUSD:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskUsageToolsItemCostCurrency) UnmarshalText(data []byte) error {
+	switch TaskUsageToolsItemCostCurrency(data) {
+	case TaskUsageToolsItemCostCurrencyUSD:
+		*s = TaskUsageToolsItemCostCurrencyUSD
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 // Ref: #/components/schemas/TeamAgentKey

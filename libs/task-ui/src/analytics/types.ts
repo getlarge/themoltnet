@@ -101,6 +101,17 @@ export interface TaskActivityProductMetrics {
     tokensPerAcceptedTask: number | null;
     extraAttemptCount: number;
     extraTokensBeforeAcceptance: number;
+    totalCacheReadTokens: number;
+    totalCacheWriteTokens: number;
+    /** Subset of `totalOutputTokens`. */
+    totalReasoningTokens: number;
+    /** Harness cost estimate in USD; a lower bound unless every attempt is priced. */
+    estimatedCostUsd: number;
+    estimatedCostPerAcceptedTaskUsd: number | null;
+    extraCostBeforeAcceptanceUsd: number;
+    pricedAttemptCount: number;
+    partiallyPricedAttemptCount: number;
+    unpricedAttemptCount: number;
   };
   /** Auditable raw counters behind the ratios. */
   raw: {

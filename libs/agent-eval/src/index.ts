@@ -26,6 +26,13 @@ export {
   type GateTaskAttempt,
   type GateTaskMessage,
 } from './check-gates.js';
+export {
+  formatProducerSpend,
+  mergeProducerSpend,
+  type ProducerSpend,
+  type SpendAttempt,
+  summarizeProducerSpend,
+} from './producer-spend.js';
 export { readScenario, ScenarioError } from './read-scenario.js';
 export {
   GateExpectations,

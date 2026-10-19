@@ -10,7 +10,10 @@ import {
   registerLoopbackSecurity,
   requireOriginHeader,
 } from '@moltnet/loopback-companion';
-import { PI_MODEL_MODALITIES } from '@themoltnet/pi-runtime/pi-config';
+import {
+  isPiModelCost,
+  PI_MODEL_MODALITIES,
+} from '@themoltnet/pi-runtime/pi-config';
 import {
   hasAgentKeyConfiguration,
   type SecretProviderRegistry,
@@ -330,6 +333,9 @@ function modelArray(
     if (typeof id !== 'string' || id.length === 0) {
       return invalid(`"${field}" entries must carry a non-empty "id"`);
     }
+    if (entry.cost !== undefined && !isPiModelCost(entry.cost)) {
+      return invalid(`"${field}" entry "${id}" has invalid USD token prices`);
+    }
     if (
       entry.type !== undefined &&
       entry.type !== 'chat' &&
@@ -389,6 +395,7 @@ function modelArray(
     }
     return {
       id,
+      ...(entry.cost ? { cost: { ...entry.cost } } : {}),
       ...(entry.type ? { type: entry.type } : {}),
       ...(entry.api ? { api: entry.api } : {}),
       ...(entry.contextWindow !== undefined

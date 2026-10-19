@@ -48,6 +48,30 @@ afterEach(async () => {
 
 describe('agent server providers and runs', () => {
   it.each([
+    { input: -1, output: 1, cacheRead: 0, cacheWrite: 0 },
+    { input: 1, output: 1 },
+    { input: '1', output: 1, cacheRead: 0, cacheWrite: 0 },
+  ])('rejects invalid model prices without saving them', async (cost) => {
+    const { app, store } = await fixture();
+    const token = await authorize(app);
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/v1/providers/custom',
+      headers: {
+        host: HOST,
+        origin: TEST_CLIENT_ORIGIN,
+        [AGENT_SERVER_TOKEN_HEADER]: token,
+      },
+      payload: {
+        baseUrl: 'https://provider.example/v1',
+        models: [{ id: 'model', cost }],
+      },
+    });
+    expect(response.statusCode).toBe(400);
+    expect(store.readProviders().custom).toBeUndefined();
+  });
+
+  it.each([
     ['generation', 'typesafe-system-one'],
     ['classification', 'typesafe-system-one'],
     ['mixed', 'typesafe-system-one'],
@@ -66,11 +90,13 @@ describe('agent server providers and runs', () => {
       };
       const model = {
         id: 'gpt-oss:120b-cloud',
+        cost: { input: 0.15, output: 0.6, cacheRead: 0.014, cacheWrite: 0 },
         reasoning: true,
         thinkingLevelMap: { off: 'low', low: 'low', high: 'high' },
       };
       const classifier = {
         id: 'decisions',
+        cost: { input: 0.24, output: 0, cacheRead: 0, cacheWrite: 0 },
         type: 'classifier',
         api,
         contextWindow: 8192,

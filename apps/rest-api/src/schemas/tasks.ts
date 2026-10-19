@@ -494,10 +494,40 @@ export const TaskActivityProductMetricsSchema = Type.Object(
           description:
             'Tokens spent on attempts before the accepted attempt. Product intent: wasted retry cost.',
         }),
+        totalCacheReadTokens: Type.Integer({ minimum: 0 }),
+        totalCacheWriteTokens: Type.Integer({ minimum: 0 }),
+        totalReasoningTokens: Type.Integer({
+          minimum: 0,
+          description: 'Reasoning tokens, a subset of totalOutputTokens.',
+        }),
+        estimatedCostUsd: Type.Number({
+          minimum: 0,
+          description:
+            'Sum of the harness cost estimates reported per attempt, in USD. A lower bound when any attempt is unpriced or partially priced.',
+        }),
+        estimatedCostPerAcceptedTaskUsd: NullableNumber,
+        extraCostBeforeAcceptanceUsd: Type.Number({
+          minimum: 0,
+          description:
+            'Estimated cost of attempts before the accepted attempt, in USD.',
+        }),
+        pricedAttemptCount: Type.Integer({
+          minimum: 0,
+          description: 'Attempts with token usage priced in full.',
+        }),
+        partiallyPricedAttemptCount: Type.Integer({
+          minimum: 0,
+          description: 'Attempts priced for only part of their usage.',
+        }),
+        unpricedAttemptCount: Type.Integer({
+          minimum: 0,
+          description:
+            'Attempts with token usage but no cost estimate (unpriced model, or a runtime that does not report cost).',
+        }),
       },
       {
         description:
-          'Token-efficiency ROI metrics: token totals, accepted work per token, tokens per accepted task, and retry waste.',
+          'Token-efficiency ROI metrics: token and cost totals, accepted work per token, tokens per accepted task, and retry waste.',
       },
     ),
     raw: Type.Object({
