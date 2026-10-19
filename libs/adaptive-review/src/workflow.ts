@@ -88,7 +88,9 @@ export interface LaneResult {
     side?: 'old' | 'new';
     line?: number;
     concern: string;
+    action?: string;
   }>;
+  unclear?: string[];
 }
 
 export interface AdaptiveReport {
@@ -170,8 +172,12 @@ function laneFailureCode(reason: unknown): string {
   return reason.name === 'TypeError' ? 'type-error' : 'unexpected-error';
 }
 
-function logLaneFailure(lane: string, taskIds: string[], code: string): void {
-  const stage = taskIds.length ? 'task-outcome' : 'before-task';
+function logLaneFailure(
+  lane: string,
+  taskIds: string[],
+  code: string,
+  stage = taskIds.length ? 'task-outcome' : 'before-task',
+): void {
   // Report errors can contain untrusted PR text or credentials. Log only
   // fixed diagnostic fields and task IDs; never log the raw error.
   process.stderr.write(
@@ -332,12 +338,14 @@ async function runFocused(
         : 'clear',
     summary: result.summary,
     taskIds: [task.id],
-    findings: result.findings.map(({ path, side, line, concern }) => ({
+    findings: result.findings.map(({ path, side, line, concern, action }) => ({
       path,
       side,
       line,
       concern,
+      action,
     })),
+    unclear: result.unclear,
   };
 }
 
@@ -475,6 +483,7 @@ async function runSecurity(
 function docsResult(
   report: DocsImpactReport,
   createdTaskIds: string[],
+  stages: Map<string, string>,
 ): LaneResult {
   let status: LaneResult['status'] = 'clear';
   if (report.status === 'failed') status = 'failed';
@@ -488,16 +497,32 @@ function docsResult(
       ),
     ]),
   ];
-  if (report.status === 'failed')
-    logLaneFailure('docs', taskIds, 'reported-failure');
+  const stageFromError = /^(extract|coverage|docs-check) stage:/.exec(
+    report.error ?? '',
+  )?.[1];
+  const stage =
+    stageFromError ??
+    stages.get(taskIds.at(-1) ?? '') ??
+    (taskIds.length ? 'task-outcome' : 'before-task');
+  const error = report.error ?? '';
+  const code = /poll|read task|task lookup/i.test(error)
+    ? 'polling-error'
+    : /timeout|timed out|deadline/i.test(error)
+      ? 'timeout'
+      : /invalid|schema|output/i.test(error)
+        ? 'invalid-output'
+        : /fetch|git /i.test(error)
+          ? 'git-error'
+          : /config|policy/i.test(error)
+            ? 'config-error'
+            : 'unexpected-error';
+  if (report.status === 'failed') logLaneFailure('docs', taskIds, code, stage);
   return {
     lane: 'docs',
     status,
     summary:
       report.status === 'failed'
-        ? taskIds.length
-          ? 'Docs review failed; inspect its task outcome.'
-          : 'Docs review failed before a task was created; inspect workflow logs.'
+        ? `Docs review failed during ${stage} (${code}); inspect ${taskIds.length ? 'its task outcome' : 'workflow logs'}.`
         : `Docs impact: ${report.outcome}.`,
     taskIds,
     findings: report.findings.map((finding) => ({
@@ -507,12 +532,20 @@ function docsResult(
   };
 }
 
-function trackingTaskClient(tasks: TaskClient, taskIds: string[]): TaskClient {
+function trackingTaskClient(
+  tasks: TaskClient,
+  taskIds: string[],
+  stages: Map<string, string>,
+): TaskClient {
   const listMessages = tasks.listMessages?.bind(tasks);
   return {
     async createTask(body, options) {
       const task = await tasks.createTask(body, options);
       taskIds.push(task.id);
+      const stage = body.tags?.find((tag) =>
+        /^(stage:extract|stage:coverage|stage:docs-check)$/.test(tag),
+      );
+      if (stage) stages.set(task.id, stage.slice('stage:'.length));
       return task;
     },
     getTask: (id) => tasks.getTask(id),
@@ -698,7 +731,12 @@ export async function runRoutedAdaptiveReview(
   const createdTaskIds = routing.routes.map((): string[] => []);
   const routed = await Promise.allSettled(
     routing.routes.map(async (route, index): Promise<LaneResult> => {
-      const laneTasks = trackingTaskClient(tasks, createdTaskIds[index]);
+      const stages = new Map<string, string>();
+      const laneTasks = trackingTaskClient(
+        tasks,
+        createdTaskIds[index],
+        stages,
+      );
       if (!route.run)
         return {
           lane: route.lane,
@@ -732,7 +770,7 @@ export async function runRoutedAdaptiveReview(
           },
           { serialTaskDispatch: true },
         );
-        return docsResult(report, createdTaskIds[index]);
+        return docsResult(report, createdTaskIds[index], stages);
       }
       if (route.lane === 'complexity') {
         const rubricValue: unknown = snapshot.policy.complexity

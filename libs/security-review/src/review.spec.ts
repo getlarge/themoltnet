@@ -136,6 +136,35 @@ describe('security review evidence boundary', () => {
     expect([...changedLines(quoted).get('src/café.ts')!.new]).toEqual([1]);
   });
 
+  it('does not treat added source text as a quoted patch header', () => {
+    const forged = [
+      'diff --git a/src/real.ts b/src/real.ts',
+      '--- a/src/real.ts',
+      '+++ b/src/real.ts',
+      '@@ -0,0 +1,2 @@',
+      String.raw`++ "b/src/caf\303\251.ts"`,
+      '+actual change',
+    ].join('\n');
+    expect([...changedLines(forged).get('src/real.ts')!.new]).toEqual([1, 2]);
+    expect(changedLines(forged).has('src/café.ts')).toBe(false);
+  });
+
+  it('keys old-side renamed lines by their old path', () => {
+    const renamed = [
+      'diff --git a/src/before.ts b/src/after.ts',
+      'rename from src/before.ts',
+      'rename to src/after.ts',
+      '--- a/src/before.ts',
+      '+++ b/src/after.ts',
+      '@@ -1 +1 @@',
+      '-old',
+      '+new',
+    ].join('\n');
+    expect([...changedLines(renamed).get('src/before.ts')!.old]).toEqual([1]);
+    expect([...changedLines(renamed).get('src/after.ts')!.new]).toEqual([1]);
+    expect(changedLines(renamed).get('src/after.ts')!.old.size).toBe(0);
+  });
+
   it('requires every suspicion to be verified and keeps uncertainty separate', () => {
     const source = validateCandidates(candidates, diff);
     const result = validateResult(

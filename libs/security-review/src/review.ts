@@ -160,45 +160,58 @@ export function changedLines(
   let oldPath: string | undefined;
   let oldLine = 0;
   let newLine = 0;
+  let inHunk = false;
+  const lineSet = (filePath: string) => {
+    let changed = files.get(filePath);
+    if (!changed) {
+      changed = { old: new Set<number>(), new: new Set<number>() };
+      files.set(filePath, changed);
+    }
+    return changed;
+  };
   for (const line of diff.split('\n')) {
     if (line.startsWith('diff --git ')) {
       path = undefined;
       oldPath = undefined;
+      inHunk = false;
       continue;
     }
-    if (line === '--- /dev/null') {
-      oldPath = undefined;
-      continue;
-    }
-    const parsedOldPath = line.startsWith('--- ')
-      ? patchPath(line.slice(4), 'a')
-      : undefined;
-    if (parsedOldPath !== undefined) {
-      oldPath = parsedOldPath;
-      continue;
-    }
-    if (line === '+++ /dev/null' && oldPath) {
-      path = oldPath;
-      files.set(path, { old: new Set(), new: new Set() });
-      continue;
-    }
-    const parsedPath = line.startsWith('+++ ')
-      ? patchPath(line.slice(4), 'b')
-      : undefined;
-    if (parsedPath !== undefined) {
-      path = parsedPath;
-      files.set(path, { old: new Set(), new: new Set() });
-      continue;
+    if (!inHunk) {
+      if (line === '--- /dev/null') {
+        oldPath = undefined;
+        continue;
+      }
+      const parsedOldPath = line.startsWith('--- ')
+        ? patchPath(line.slice(4), 'a')
+        : undefined;
+      if (parsedOldPath !== undefined) {
+        oldPath = parsedOldPath;
+        continue;
+      }
+      if (line === '+++ /dev/null' && oldPath) {
+        path = oldPath;
+        lineSet(path);
+        continue;
+      }
+      const parsedPath = line.startsWith('+++ ')
+        ? patchPath(line.slice(4), 'b')
+        : undefined;
+      if (parsedPath !== undefined) {
+        path = parsedPath;
+        lineSet(path);
+        continue;
+      }
     }
     const hunk = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(line);
     if (hunk) {
       oldLine = Number(hunk[1]);
       newLine = Number(hunk[2]);
+      inHunk = true;
       continue;
     }
-    if (!path || line.startsWith('\\')) continue;
-    if (line.startsWith('+')) files.get(path)?.new.add(newLine++);
-    else if (line.startsWith('-')) files.get(path)?.old.add(oldLine++);
+    if (!inHunk || !path || line.startsWith('\\')) continue;
+    if (line.startsWith('+')) lineSet(path).new.add(newLine++);
+    else if (line.startsWith('-')) lineSet(oldPath ?? path).old.add(oldLine++);
     else if (line.startsWith(' ')) {
       oldLine++;
       newLine++;
