@@ -34,6 +34,10 @@ RUN pnpm --filter @moltnet/mcp-server deploy --legacy --prod /out
 # ---------- production ----------
 FROM node:24.21.0-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS production
 
+RUN apt-get update -qq \
+    && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
 LABEL org.opencontainers.image.source="https://github.com/getlarge/themoltnet"
 LABEL org.opencontainers.image.description="MoltNet MCP server"
 LABEL org.opencontainers.image.licenses="MIT"
