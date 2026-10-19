@@ -554,11 +554,27 @@ function trackingTaskClient(
   };
 }
 
+function projectScopedTaskClient(
+  tasks: TaskClient,
+  projectId?: string,
+): TaskClient {
+  if (!projectId) return tasks;
+  const listMessages = tasks.listMessages?.bind(tasks);
+  return {
+    createTask: (body, options) =>
+      tasks.createTask({ ...body, projectId }, options),
+    getTask: (id) => tasks.getTask(id),
+    listAttempts: (id) => tasks.listAttempts(id),
+    ...(listMessages ? { listMessages } : {}),
+  };
+}
+
 export async function prepareAdaptiveReview(
   options: RunOptions,
 ): Promise<AdaptivePreparation> {
   const started = Date.now();
-  const { identity, tasks, mode } = options;
+  const { identity, mode } = options;
+  const tasks = projectScopedTaskClient(options.tasks, options.projectId);
   if (!FullOid.test(identity.base) || !FullOid.test(identity.head))
     throw new Error('base and head must be full Git OIDs');
   if (!FullOid.test(options.runtimeSha))
@@ -698,7 +714,8 @@ export async function runRoutedAdaptiveReview(
   preparation: AdaptivePreparation,
 ): Promise<AdaptiveReport> {
   const started = Date.now();
-  const { identity, tasks, mode } = options;
+  const { identity, mode } = options;
+  const tasks = projectScopedTaskClient(options.tasks, options.projectId);
   const git = createGit(options.cwd);
   const snapshot = loadAdaptivePolicy(git, identity.base);
   if (!snapshot)

@@ -663,6 +663,27 @@ describe('adaptive review orchestration', () => {
     expect(createTask).toHaveBeenCalledTimes(5);
   });
 
+  it('scopes classifier and specialist tasks to the worker project', async () => {
+    const { tasks, createTask } = harness({ classifierFails: true });
+    const projectId = '00000000-0000-4000-8000-000000000005';
+    const options = { ...reviewOptions(tasks), projectId };
+
+    const preparation = await prepareAdaptiveReview(options);
+    await runRoutedAdaptiveReview(options, preparation);
+
+    expect(createTask).toHaveBeenCalledTimes(5);
+    for (const [body] of createTask.mock.calls) {
+      expect(body.projectId).toBe(projectId);
+    }
+    expect(mocks.runDocsImpactReview.mock.calls[0][1]).toMatchObject({
+      projectId,
+    });
+    const complexityTasks = mocks.runComplexityReview.mock
+      .calls[0][0] as TaskClient;
+    await complexityTasks.createTask(createTask.mock.calls[0][0]);
+    expect(createTask.mock.calls.at(-1)?.[0].projectId).toBe(projectId);
+  });
+
   it('retains successful lanes and task IDs when another deep lane fails', async () => {
     const { tasks } = harness({ classifierFails: true });
     const log = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
