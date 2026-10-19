@@ -50,7 +50,7 @@ function installFakeNpx() {
     resolve(binDir, 'npx'),
     [
       'for arg in "$@"; do',
-      '  if [ "$arg" = "--help" ]; then printf "%s\\n" "$FAKE_CREATE_HELP"; exit 0; fi',
+      '  if [ "$arg" = "--help" ]; then printf "%s\\n" "--allowed-profile" "$FAKE_CREATE_HELP"; exit 0; fi',
       'done',
       'printf "%s\\n" "$*" >> "$FAKE_CALL_LOG"',
       'echo created-task-id',
@@ -132,6 +132,7 @@ describe('create-task step with project-id', () => {
     mkdirSync(creds, { recursive: true });
     writeFileSync(resolve(creds, 'moltnet.json'), '{}', 'utf8');
     return {
+      PROFILE_ID: '44444444-4444-4444-8444-444444444444',
       MOLTNET_CLI_PACKAGE: '@themoltnet/cli@9.9.9',
       TASK_SPEC_PATH: spec,
       TASK_TAGS: '',
@@ -207,7 +208,7 @@ describe('create-task step with project-id', () => {
     expect(existsSync(callLog)).toBe(false);
   });
 
-  it('creates General work without probing the CLI when project-id is empty', () => {
+  it('creates profile-pinned General work when project-id is empty', () => {
     installFakeNpx();
 
     const result = runStep('create-task', {

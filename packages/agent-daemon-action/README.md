@@ -224,8 +224,17 @@ sandbox policy, runtime defaults, and prerequisite env names. The GitHub
 Environment supplies only the secret material those prerequisites reference
 (for example `PI_AUTH_JSON`, `ANTHROPIC_API_KEY`, or `OLLAMA_API_KEY`).
 When `MOLTNET_AGENT_PROFILE` is a profile name instead of a UUID,
-`MOLTNET_TEAM_ID` must also be set so the action can pass `--team` to the
-daemon for team-scoped profile resolution.
+`MOLTNET_TEAM_ID` must also be set for team-scoped profile resolution.
+The action resolves the profile once, pins its UUID in `allowedProfiles` on
+both spec-created and mention-created tasks, and runs the daemon with that UUID.
+Workers using another profile cannot claim those tasks. An older CLI without
+`task create --allowed-profile` fails before spec-created work is queued.
+
+A correlation ID groups related tasks; it does not reserve them for one worker.
+For a local worker serving one chain, pass `--correlation-id <uuid>` to its
+`poll` or `drain` command. Workers without that filter can still claim any
+otherwise eligible task, including tasks with a correlation ID. Another worker
+using the same pinned profile can also claim the action's task.
 
 ## Multi-agent routing
 

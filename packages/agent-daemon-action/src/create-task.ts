@@ -65,6 +65,8 @@ export interface FulfillTaskInput {
    * Only ever set from the action's explicit `project-id` input.
    */
   projectId?: string;
+  /** Resolved runtime profile selected by the action. */
+  profileId?: string;
 }
 
 export async function createTask(input: FulfillTaskInput): Promise<Task> {
@@ -92,6 +94,9 @@ export async function createTask(input: FulfillTaskInput): Promise<Task> {
         : {}),
       ...(input.tags?.length ? { tags: input.tags } : {}),
       ...(input.projectId ? { projectId: input.projectId } : {}),
+      ...(input.profileId
+        ? { allowedProfiles: [{ profileId: input.profileId }] }
+        : {}),
     },
     { teamId: input.teamId },
   );
@@ -127,6 +132,8 @@ export interface AssessTaskInput {
    * Only ever set from the action's explicit `project-id` input.
    */
   projectId?: string;
+  /** Resolved runtime profile selected by the action. */
+  profileId?: string;
 }
 
 export async function createAssessTask(input: AssessTaskInput): Promise<Task> {
@@ -155,6 +162,9 @@ export async function createAssessTask(input: AssessTaskInput): Promise<Task> {
         : {}),
       ...(input.tags?.length ? { tags: input.tags } : {}),
       ...(input.projectId ? { projectId: input.projectId } : {}),
+      ...(input.profileId
+        ? { allowedProfiles: [{ profileId: input.profileId }] }
+        : {}),
     },
     { teamId: input.teamId },
   );
