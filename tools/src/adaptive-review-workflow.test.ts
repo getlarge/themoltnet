@@ -19,6 +19,19 @@ const action = readFileSync(
   new URL('../../packages/adaptive-review-action/action.yml', import.meta.url),
   'utf8',
 );
+const main = readFileSync(
+  new URL('../../libs/adaptive-review/src/main.ts', import.meta.url),
+  'utf8',
+);
+const focusedPolicy = JSON.parse(
+  readFileSync(
+    new URL(
+      '../../.github/runtime-policies/legreffier-adaptive-focused-readonly-v1.json',
+      import.meta.url,
+    ),
+    'utf8',
+  ),
+) as { shellCommands: unknown[]; tools: string[] };
 
 function prepareScript(): string {
   const lines = workflow.split('\n');
@@ -141,6 +154,40 @@ function specialistMatrix(
   };
 }
 
+function planOutputs(policyPresent: boolean, classifierNeeded: boolean) {
+  const start = main.indexOf("  if (stage === 'plan') {");
+  const end = main.indexOf('  if (!snapshot)', start);
+  if (start < 0 || end < 0) throw new Error('Plan branch is missing');
+  const branch = main.slice(start, end);
+  let output = '';
+  const execute = new Script(
+    `(snapshot, classifierTaskPossible, appendFileSync, required, process, prepared) => { const stage = 'plan'; ${branch} }`,
+  ).runInNewContext() as (
+    snapshot: object | null,
+    classifierTaskPossible: () => boolean,
+    appendFileSync: (path: string, data: string) => void,
+    required: (name: string) => string,
+    process: { cwd: () => string },
+    prepared: { base: string; head: string },
+  ) => void;
+  execute(
+    policyPresent ? {} : null,
+    () => classifierNeeded,
+    (_path, data) => {
+      output += data;
+    },
+    () => 'github-output',
+    { cwd: () => 'repo' },
+    { base: 'a'.repeat(40), head: 'b'.repeat(40) },
+  );
+  return Object.fromEntries(
+    output
+      .trim()
+      .split('\n')
+      .map((line) => line.split('=')),
+  ) as Record<string, string>;
+}
+
 describe('adaptive review workflow trust gates', () => {
   it('pins an eligible PR before starting workers', async () => {
     const outputs = await runPrepare({});
@@ -231,6 +278,26 @@ describe('adaptive review workflow trust gates', () => {
     expect(job('prepare')).toContain(
       'review-enabled: ${{ steps.plan.outputs.review-enabled }}',
     );
+  });
+
+  it('runs the planner output branch for enabled, disabled, and no-work policies', () => {
+    expect(planOutputs(true, true)).toEqual({
+      'review-enabled': 'true',
+      'classifier-needed': 'true',
+    });
+    expect(planOutputs(true, false)).toEqual({
+      'review-enabled': 'true',
+      'classifier-needed': 'false',
+    });
+    expect(planOutputs(false, true)).toEqual({
+      'review-enabled': 'false',
+      'classifier-needed': 'false',
+    });
+  });
+
+  it('keeps the focused runtime on bounded read tools', () => {
+    expect(focusedPolicy.shellCommands).toEqual([]);
+    expect(focusedPolicy.tools).toEqual(['find', 'grep', 'ls', 'read']);
   });
 
   it('allocates one worker per runnable task, including shared focused profiles', () => {
