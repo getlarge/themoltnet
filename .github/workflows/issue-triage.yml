@@ -135,10 +135,11 @@ jobs:
           MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
           MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
           MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
-          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
         with:
           task-spec-path: ${{ steps.classifier-spec.outputs.spec }}
-          profile: legreffier-issue-classifier-v1
+          profile: legreffier-issue-classifier-v2
+          providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY
           running-timeout-sec: '240'
           max-attempts: '1'
 
