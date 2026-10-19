@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.0](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.11.0...legreffier-plugin-v0.12.0) (2026-10-19)
+
+
+### Features
+
+* **cli:** bootstrap headless coding sessions from agent keys ([b055be5](https://github.com/getlarge/themoltnet/commit/b055be53745ce233f1c435c6334748216cbf30f4))
+* **hooks:** initialize and check headless agent-key sessions ([c7138f0](https://github.com/getlarge/themoltnet/commit/c7138f07102a012f6f2ec1cbe720ffdaacb83fb6)), closes [#2783](https://github.com/getlarge/themoltnet/issues/2783)
+
 ## [0.11.0](https://github.com/getlarge/themoltnet/compare/legreffier-plugin-v0.10.0...legreffier-plugin-v0.11.0) (2026-10-13)
 
 

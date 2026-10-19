@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.73.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.72.2...agent-daemon-v0.73.0) (2026-10-19)
+
+
+### Features
+
+* **tasks:** report harness cost and per-model usage for attempts ([e7a419d](https://github.com/getlarge/themoltnet/commit/e7a419de342d17deb05e5056a494f384f80eb532))
+
+
+### Bug Fixes
+
+* address review round 1 on classifier spend ([340c243](https://github.com/getlarge/themoltnet/commit/340c2431f52ab89e35a8f00cc3a01725e35b48bf))
+* refresh provider contracts and parse pricing cells ([e0b2bfd](https://github.com/getlarge/themoltnet/commit/e0b2bfdd86355594214bed802310d25aad3d684a))
+* **tasks:** preserve pricing coverage and price Ollama Cloud models ([41d69e3](https://github.com/getlarge/themoltnet/commit/41d69e3c93fa364dc859dad1cd651bc1a0b74611))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-runtime bumped to 0.26.0
+
 ## [0.72.2](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.72.1...agent-daemon-v0.72.2) (2026-10-14)
 
 

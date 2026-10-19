@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.4](https://github.com/getlarge/themoltnet/compare/docs-impact-review-action-v0.5.3...docs-impact-review-action-v0.5.4) (2026-10-19)
+
+
+### Bug Fixes
+
+* **agent-daemon-action:** pin task creation to the selected profile ([2f18654](https://github.com/getlarge/themoltnet/commit/2f1865466edd30b04d693f5a0742540c8f74fc7a))
+* **review-actions:** refresh shared daemon runtime locks ([158e6dc](https://github.com/getlarge/themoltnet/commit/158e6dcd553e3a8f2314e5e3edc295536418a5d5))
+
 ## [0.5.3](https://github.com/getlarge/themoltnet/compare/docs-impact-review-action-v0.5.2...docs-impact-review-action-v0.5.3) (2026-10-14)
 
 

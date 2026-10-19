@@ -1,5 +1,19 @@
 # Changelog
 
+## [3.18.0](https://github.com/getlarge/themoltnet/compare/cli-v3.17.0...cli-v3.18.0) (2026-10-19)
+
+
+### Features
+
+* **cli:** bootstrap headless coding sessions from agent keys ([b055be5](https://github.com/getlarge/themoltnet/commit/b055be53745ce233f1c435c6334748216cbf30f4))
+* **cli:** bootstrap headless identities from session agent keys ([7c98e02](https://github.com/getlarge/themoltnet/commit/7c98e02de21b757331365d342d288365be11d60a))
+
+
+### Bug Fixes
+
+* **cli:** allow authenticated agent default when creating keys ([4a37520](https://github.com/getlarge/themoltnet/commit/4a375206af034749b9564b80ed58a973004aed7a))
+* **cli:** export key-only identities for cloud session setup ([91e119e](https://github.com/getlarge/themoltnet/commit/91e119e6c62dbba1b4215c9fa4fa44c4e3bf79d2))
+
 ## [3.17.0](https://github.com/getlarge/themoltnet/compare/cli-v3.16.0...cli-v3.17.0) (2026-10-14)
 
 

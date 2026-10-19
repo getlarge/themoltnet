@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.26.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.25.2...pi-runtime-v0.26.0) (2026-10-19)
+
+
+### Features
+
+* **tasks:** report harness cost and per-model usage for attempts ([e7a419d](https://github.com/getlarge/themoltnet/commit/e7a419de342d17deb05e5056a494f384f80eb532))
+* **tasks:** report harness cost and per-model usage for attempts ([08f13fd](https://github.com/getlarge/themoltnet/commit/08f13fd7a7a5fcd9e915dfb529bb23938a003c03)), closes [#1412](https://github.com/getlarge/themoltnet/issues/1412)
+
+
+### Bug Fixes
+
+* address review round 1 on classifier spend ([340c243](https://github.com/getlarge/themoltnet/commit/340c2431f52ab89e35a8f00cc3a01725e35b48bf))
+* **pi-runtime:** keep provider cost declarations public ([f843022](https://github.com/getlarge/themoltnet/commit/f84302275e5906e1050994c837ea72e5348b5e49))
+* **pi-runtime:** use VM filesystem for Gondolin writes ([f83b85d](https://github.com/getlarge/themoltnet/commit/f83b85d907727bc047bbf66c4fa6f39eabeb26a1))
+* **pi-runtime:** use VM filesystem for Gondolin writes ([7688de5](https://github.com/getlarge/themoltnet/commit/7688de51841d73375be953a939ace604927b244c))
+* **tasks:** preserve pricing coverage and price Ollama Cloud models ([41d69e3](https://github.com/getlarge/themoltnet/commit/41d69e3c93fa364dc859dad1cd651bc1a0b74611))
+
 ## [0.25.2](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.25.1...pi-runtime-v0.25.2) (2026-10-14)
 
 

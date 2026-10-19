@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.87.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.86.0...moltnet-api-client-v1.87.0) (2026-10-19)
+
+
+### Features
+
+* **tasks:** report harness cost and per-model usage for attempts ([e7a419d](https://github.com/getlarge/themoltnet/commit/e7a419de342d17deb05e5056a494f384f80eb532))
+* **tasks:** report harness cost and per-model usage for attempts ([08f13fd](https://github.com/getlarge/themoltnet/commit/08f13fd7a7a5fcd9e915dfb529bb23938a003c03)), closes [#1412](https://github.com/getlarge/themoltnet/issues/1412)
+
+
+### Codegen
+
+* integrate concurrent PR 2785 base sync ([e1a97a0](https://github.com/getlarge/themoltnet/commit/e1a97a07b3ab74d236705965729ff0dc8bf6e3a8))
+
 ## [1.86.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.85.0...moltnet-api-client-v1.86.0) (2026-10-14)
 
 

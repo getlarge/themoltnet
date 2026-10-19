@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.4](https://github.com/getlarge/themoltnet/compare/complexity-review-action-v0.4.3...complexity-review-action-v0.4.4) (2026-10-19)
+
+
+### Bug Fixes
+
+* **agent-daemon-action:** pin task creation to the selected profile ([2f18654](https://github.com/getlarge/themoltnet/commit/2f1865466edd30b04d693f5a0742540c8f74fc7a))
+* **complexity-review:** ground burden judgments in cross-domain evidence ([3fd0cb4](https://github.com/getlarge/themoltnet/commit/3fd0cb49587d5b7e8872468587dd30b8065b920d))
+* **complexity-review:** ground burden judgments in cross-domain evidence ([60b91c7](https://github.com/getlarge/themoltnet/commit/60b91c702e8732f2b2544669e7616bf8ec49db60))
+* **review-actions:** refresh shared daemon runtime locks ([158e6dc](https://github.com/getlarge/themoltnet/commit/158e6dcd553e3a8f2314e5e3edc295536418a5d5))
+
 ## [0.4.3](https://github.com/getlarge/themoltnet/compare/complexity-review-action-v0.4.2...complexity-review-action-v0.4.3) (2026-10-14)
 
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.22.5](https://github.com/getlarge/themoltnet/compare/console-v0.22.4...console-v0.22.5) (2026-10-19)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @moltnet/database bumped to 0.18.0
+
 ## [0.22.4](https://github.com/getlarge/themoltnet/compare/console-v0.22.3...console-v0.22.4) (2026-10-14)
 
 
