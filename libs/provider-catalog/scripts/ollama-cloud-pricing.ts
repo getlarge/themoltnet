@@ -12,7 +12,14 @@ export function parseOllamaCloudPricing(
   const section = html.split('id="model-pricing"')[1];
   const table = section?.match(/<table\b[^>]*>([\s\S]*?)<\/table>/)?.[1];
   if (!table) throw new Error('Ollama pricing page has no model pricing table');
-  const text = (cell: string) => cell.replace(/<[^>]*>/g, '').trim();
+  const text = (cell: string) => {
+    const value = cell.trim();
+    const anchor = value.match(/^<a\b[^>]*>([^<>]*)<\/a>$/);
+    if (anchor) return anchor[1].trim();
+    if (/[<>]/.test(value))
+      throw new Error('Unexpected markup in Ollama pricing cell');
+    return value;
+  };
   const headers = [...table.matchAll(/<th\b[^>]*>([\s\S]*?)<\/th>/g)].map(
     (match) => text(match[1]),
   );

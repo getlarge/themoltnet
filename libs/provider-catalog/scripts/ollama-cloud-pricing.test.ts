@@ -45,6 +45,8 @@ describe('Ollama Cloud pricing', () => {
     '<html>pricing unavailable</html>',
     page(row('model', 'contact sales', '$0.01', '$1.00')),
     page(row('model (Off-Peak)', '$0.10', '$0.01', '$1.00')),
+    page(row('<span>model</span>', '$0.10', '$0.01', '$1.00')),
+    page(row('model', '<b>$0.10</b>', '$0.01', '$1.00')),
     page(''),
   ])('rejects a missing or unparseable price table', (html) => {
     expect(() => parseOllamaCloudPricing(html)).toThrow();
