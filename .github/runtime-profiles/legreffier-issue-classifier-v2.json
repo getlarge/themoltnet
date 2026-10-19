@@ -1,0 +1,36 @@
+{
+  "allowedWorkspaceModes": ["none"],
+  "defaultWorkspaceMode": "none",
+  "description": "Input-only issue classification using Ollama Cloud Clef.",
+  "models": {
+    "classification": {
+      "model": "clef:27b",
+      "provider": "ollama-cloud"
+    }
+  },
+  "name": "legreffier-issue-classifier-v2",
+  "requiredEnv": [],
+  "runtimeKind": "gondolin_pi",
+  "sandbox": {
+    "env": {},
+    "network": {
+      "allowedHosts": [],
+      "allowedInternalHosts": []
+    },
+    "resources": {
+      "cpus": 2,
+      "memory": "4G"
+    },
+    "vfs": {
+      "shadow": [
+        ".moltnet",
+        ".moltnet/**",
+        ".env",
+        ".env.local",
+        ".env.infra.local"
+      ],
+      "shadowMode": "deny"
+    }
+  },
+  "toolEnforcement": "enforce"
+}

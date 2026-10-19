@@ -15,7 +15,7 @@ output redirection.
 | [`legreffier-review-readonly-v1.json`](./legreffier-review-readonly-v1.json)                           | `legreffier-review-v1`, `legreffier-docs-review-v1`, `legreffier-docs-review-codex-v1`, `legreffier-docs-review-gemma-v1`, `legreffier-docs-review-gptoss-v1`, `legreffier-docs-review-deepseek-v1` |
 | [`legreffier-security-review-readonly-v1.json`](./legreffier-security-review-readonly-v1.json)         | `legreffier-security-review-v2`                                                                                                                                                                     |
 | [`legreffier-complexity-review-input-only-v1.json`](./legreffier-complexity-review-input-only-v1.json) | `legreffier-complexity-review-v2`                                                                                                                                                                   |
-| [`legreffier-issue-triage-input-only-v1.json`](./legreffier-issue-triage-input-only-v1.json)           | `legreffier-issue-triage-v1`, `legreffier-issue-classifier-v1`                                                                                                                                      |
+| [`legreffier-issue-triage-input-only-v1.json`](./legreffier-issue-triage-input-only-v1.json)           | `legreffier-issue-triage-v1`, `legreffier-issue-classifier-v1`, `legreffier-issue-classifier-v2`                                                                                                    |
 | [`multi-lens-review-readonly-v1.json`](./multi-lens-review-readonly-v1.json)                           | `multi-lens-review-v1`                                                                                                                                                                              |
 
 The definitions here are the reviewable source of truth. They are **not**
@@ -36,14 +36,19 @@ decide `needs-spec` and `ready-for-agent` labels. A classifier failure leaves
 the established label path available.
 
 Before setting repository variable `MOLTNET_ISSUE_CLASSIFIER_ENABLED=true`,
-create `legreffier-issue-classifier-v1` from its
-[profile definition](../runtime-profiles/legreffier-issue-classifier-v1.json),
+create `legreffier-issue-classifier-v2` from its
+[profile definition](../runtime-profiles/legreffier-issue-classifier-v2.json),
 bind `legreffier-issue-triage-input-only-v1` to it, and provide
-`TYPESAFE_API_KEY` in the `legreffier` GitHub environment. The profile selects
-Pi's built-in `typesafe/jev-latest` classifier, so the classifier action does
-not need a provider discovery input. Verify the effective policy with
-`moltnet profile allowed-tools legreffier-issue-classifier-v1 --team-id "$TEAM"`
-before enabling the pilot.
+`OLLAMA_API_KEY` in the `legreffier` GitHub environment. The profile selects
+Ollama Cloud's `clef:27b` decision model. The classifier action discovers its
+System One capabilities from `https://ollama.com/api/show` and calls the
+cloud `/v1/systemone` endpoint through Pi. Provider credentials stay in the
+daemon provider configuration.
+
+Verify the effective policy with
+`moltnet profile allowed-tools legreffier-issue-classifier-v2 --team-id "$TEAM"`
+before enabling the pilot. The v1 definition retains the earlier TypeSafe
+classifier for existing consumers.
 
 ## Applying a definition
 
