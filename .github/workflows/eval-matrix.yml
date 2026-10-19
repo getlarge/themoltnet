@@ -1,4 +1,4 @@
-# Nightly agent-runtime prompt eval matrix (issue #1588).
+# Weekly agent-runtime prompt eval matrix (issue #1588).
 #
 # Sweeps the committed evals-v2/ scenarios across N Ollama Cloud producer
 # models, applies stage-1 deterministic gates, and scores gate-passing attempts
@@ -14,7 +14,7 @@
 # needs no per-run image build. If :ci-main does not yet exist (before the first
 # main build lands), this workflow will fail to pull the stack — that is
 # expected until the bootstrap main build runs.
-name: Eval Matrix (nightly)
+name: Eval Matrix (weekly)
 
 on:
   schedule:
@@ -102,6 +102,8 @@ jobs:
       MODELS: ${{ matrix.model }}
       MOLTNET_EVAL_JUDGE_MODEL: ${{ github.event.inputs.judge_model || 'gemma4:31b' }}
       EVAL_MATRIX_OUT: ${{ github.workspace }}/score-matrix.json
+      EVAL_SPEND_DIR: ${{ github.workspace }}/eval-spend
+      EVAL_SCHEDULE: ${{ github.event.schedule }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - uses: ./.github/actions/setup-workspace
@@ -144,6 +146,22 @@ jobs:
           name: score-matrix-${{ strategy.job-index }}
           path: score-matrix.json
           if-no-files-found: error
+      - name: Summarize eval spend
+        if: always()
+        shell: bash
+        run: |
+          if compgen -G "$EVAL_SPEND_DIR/*.md" > /dev/null; then
+            cat "$EVAL_SPEND_DIR"/*.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'No fresh eval spend report was produced; usage may be unavailable because initialization or the runner failed.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload eval spend
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: eval-spend-matrix-${{ strategy.job-index }}-${{ github.run_attempt }}
+          path: eval-spend/
+          if-no-files-found: warn
       - name: Docker Compose logs
         if: failure()
         run: docker compose -f docker-compose.e2e.yaml logs --tail=100

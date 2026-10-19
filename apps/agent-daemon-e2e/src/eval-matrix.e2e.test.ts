@@ -1,5 +1,5 @@
 /**
- * Nightly model-matrix eval (issue #1588), run as a gated vitest e2e test.
+ * Weekly model-matrix eval (issue #1588), run as a gated vitest e2e test.
  *
  * Sweeps the committed `evals-v2/` corpus across the producer models in `MODELS`
  * (comma-separated; default a single model), applies the stage-1 deterministic
@@ -39,6 +39,7 @@ import { writePiConfig } from '@themoltnet/pi-runtime/pi-config';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { createEvalSpendReporter } from './eval-spend-report.js';
 import {
   createScenarioProducerTask,
   provisionDaemonCredentials,
@@ -155,6 +156,7 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
   const models = parseModels();
   const judgeModel = process.env.MOLTNET_EVAL_JUDGE_MODEL ?? 'gemma4:31b';
   const scenarios = loadScenarios();
+  const spendReport = createEvalSpendReporter('matrix');
 
   beforeAll(async () => {
     if (!process.env.OLLAMA_API_KEY) {
@@ -211,10 +213,14 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
   }, 300_000);
 
   afterAll(async () => {
-    for (const root of tempRoots.splice(0)) {
-      rmSync(root, { recursive: true, force: true });
+    try {
+      await spendReport.write(agent);
+    } finally {
+      for (const root of tempRoots.splice(0)) {
+        rmSync(root, { recursive: true, force: true });
+      }
+      await harness?.teardown();
     }
-    await harness?.teardown();
   });
 
   it('sweeps the model matrix and scores gate-passing attempts', async () => {
@@ -231,6 +237,14 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
           teamId,
           diaryId,
           title: `matrix ${model} ${scenario.slug}`,
+        });
+        spendReport.track({
+          taskId: task.id,
+          scenario: scenario.slug,
+          provider: PROVIDER,
+          model,
+          role: 'producer',
+          evaluation: { gatesPassed: false },
         });
         producerSandboxRoots.set(task.id, sandboxRoot);
         await runTaskOnce({
@@ -304,6 +318,14 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
             .team(teamId)
             .build(),
         );
+        spendReport.track({
+          taskId: judgeTask.id,
+          producerTaskId: producer.taskId,
+          scenario: scenario.slug,
+          provider: PROVIDER,
+          model: judgeModel,
+          role: 'judge',
+        });
         console.log(
           `[eval-matrix] judge task=${judgeTask.id} scenario=${scenario.slug}`,
         );
@@ -336,6 +358,13 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
       },
     });
 
+    for (const cell of matrix.cells) {
+      if (cell.producerTaskId)
+        spendReport.result(cell.producerTaskId, {
+          gatesPassed: cell.gatesPassed,
+          ...(cell.scoring === 'judge' ? { judgedScore: cell.composite } : {}),
+        });
+    }
     const outPath = resolve(
       process.env.EVAL_MATRIX_OUT ?? join(process.cwd(), 'score-matrix.json'),
     );

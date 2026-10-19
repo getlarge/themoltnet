@@ -65,6 +65,15 @@ export {
   summarizeMatrix,
 } from './score-matrix.js';
 export {
+  collectEvalSpend,
+  type EvalSpendContext,
+  type EvalSpendRecord,
+  type EvalSpendReport,
+  type EvalSpendTask,
+  type EvalSpendTotal,
+  formatEvalSpendReport,
+} from './spend-report.js';
+export {
   readSubmitStructure,
   type SubmitStructureAgent,
   type SubmitStructureMessage,

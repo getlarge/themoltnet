@@ -2,7 +2,7 @@
  * Per-PR live smoke: run the committed `evals-v2/` runtime-prompt-compliance
  * scenarios against ONE pinned Ollama Cloud model and assert their deterministic
  * stage-1 gates. No LLM judge runs here — the per-PR lane is a fast regression
- * tripwire, not the scoring matrix (that is the nightly `eval-matrix` workflow).
+ * tripwire, not the scoring matrix (that is the weekly `eval-matrix` workflow).
  *
  * Gated exactly like `live-ollama.e2e.test.ts`: skipped unless
  * `MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E=1`, and requires `OLLAMA_API_KEY`.
@@ -20,6 +20,7 @@ import { writePiConfig } from '@themoltnet/pi-runtime/pi-config';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { createEvalSpendReporter } from './eval-spend-report.js';
 import { createScenarioProducerTask, runDaemonOnce } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
@@ -74,6 +75,9 @@ export function defineLiveOllamaEvalSuite(partitionIndex: number): void {
       let profileId: string | null = null;
       const tempRoots: string[] = [];
       const scenarios = loadScenarios(partitionIndex, partitionCount);
+      const spendReport = createEvalSpendReporter(
+        `live-smoke-${partitionIndex}`,
+      );
 
       beforeAll(async () => {
         if (!process.env.OLLAMA_API_KEY) {
@@ -126,13 +130,19 @@ export function defineLiveOllamaEvalSuite(partitionIndex: number): void {
       }, 120_000);
 
       afterAll(async () => {
-        if (profileId) {
-          await agent.runtimeProfiles.delete(profileId).catch(() => undefined);
+        try {
+          await spendReport.write(agent);
+        } finally {
+          if (profileId) {
+            await agent.runtimeProfiles
+              .delete(profileId)
+              .catch(() => undefined);
+          }
+          for (const root of tempRoots.splice(0)) {
+            rmSync(root, { recursive: true, force: true });
+          }
+          await harness?.teardown();
         }
-        for (const root of tempRoots.splice(0)) {
-          rmSync(root, { recursive: true, force: true });
-        }
-        await harness?.teardown();
       });
 
       it('has a non-empty scenario corpus', () => {
@@ -165,6 +175,14 @@ export function defineLiveOllamaEvalSuite(partitionIndex: number): void {
               teamId,
               diaryId,
               title: `evals-v2 ${scenario.slug}`,
+            });
+            spendReport.track({
+              taskId: task.id,
+              scenario: scenario.slug,
+              provider: LIVE_PROVIDER,
+              model: LIVE_MODEL,
+              role: 'producer',
+              evaluation: { gatesPassed: false },
             });
 
             // Act — run the task through the daemon once against the pinned model.
@@ -203,6 +221,7 @@ export function defineLiveOllamaEvalSuite(partitionIndex: number): void {
                   taskType: scenario.taskType,
                 },
               );
+              spendReport.result(task.id, { gatesPassed: result.passed });
               if (result.passed) {
                 if (run > 1) {
                   console.log(
