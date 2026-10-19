@@ -15,6 +15,10 @@ const caller = readFileSync(
   new URL('../../.github/workflows/adaptive-review.yml', import.meta.url),
   'utf8',
 );
+const action = readFileSync(
+  new URL('../../packages/adaptive-review-action/action.yml', import.meta.url),
+  'utf8',
+);
 
 function prepareScript(): string {
   const lines = workflow.split('\n');
@@ -89,6 +93,52 @@ function job(name: string): string {
     (line, index) => index > start && /^ {2}[a-z][a-z-]*:$/.test(line),
   );
   return lines.slice(start, end < 0 ? undefined : end).join('\n');
+}
+
+function specialistMatrix(
+  routes: { lane: string; run: boolean }[],
+  docsTaskPossible: boolean,
+) {
+  const lines = job('route').split('\n');
+  const start = lines.findIndex((line) => line === "          node <<'NODE'");
+  if (start < 0) throw new Error('Specialist selection script is missing');
+  const end = lines.findIndex(
+    (line, index) => index > start && line === '          NODE',
+  );
+  if (end < 0) throw new Error('Specialist selection script is unterminated');
+  const script = lines
+    .slice(start + 1, end)
+    .map((line) => line.slice(10))
+    .join('\n');
+  let output = '';
+  const fs = {
+    readFileSync: () =>
+      JSON.stringify({ routing: { routes }, docsTaskPossible }),
+    appendFileSync: (_path: string, data: string) => {
+      output += data;
+    },
+  };
+  const select = new Script(
+    `(require, process) => { ${script} }`,
+  ).runInNewContext() as (
+    require: (name: string) => typeof fs,
+    process: { env: Record<string, string> },
+  ) => void;
+  select(() => fs, {
+    env: {
+      ADAPTIVE_ROUTE: 'route.json',
+      GITHUB_OUTPUT: 'output.txt',
+      ADAPTIVE_DOCS_PROFILE: 'docs',
+      ADAPTIVE_FOCUSED_PROFILE: 'focused',
+      ADAPTIVE_SECURITY_PROFILE: 'security',
+      ADAPTIVE_COMPLEXITY_PROFILE: 'complexity',
+    },
+  });
+  const matrix = output.match(/^matrix=(.*)$/m)?.[1];
+  if (!matrix) throw new Error('Specialist matrix output is missing');
+  return JSON.parse(matrix) as {
+    include: { profile: string; worker: number }[];
+  };
 }
 
 describe('adaptive review workflow trust gates', () => {
@@ -175,6 +225,51 @@ describe('adaptive review workflow trust gates', () => {
     }
   });
 
+  it('exposes the policy decision used to start routing', () => {
+    expect(action).toContain('review-enabled:');
+    expect(action).toContain('value: ${{ steps.plan.outputs.review-enabled }}');
+    expect(job('prepare')).toContain(
+      'review-enabled: ${{ steps.plan.outputs.review-enabled }}',
+    );
+  });
+
+  it('allocates one worker per runnable task, including shared focused profiles', () => {
+    expect(
+      specialistMatrix(
+        [
+          { lane: 'docs', run: true },
+          { lane: 'tests', run: true },
+          { lane: 'conventions', run: true },
+          { lane: 'security', run: false },
+          { lane: 'blast-radius', run: true },
+        ],
+        false,
+      ),
+    ).toEqual({
+      include: [
+        { profile: 'focused', worker: 1 },
+        { profile: 'focused', worker: 2 },
+        { profile: 'focused', worker: 3 },
+      ],
+    });
+  });
+
+  it('passes every declared provider secret to both worker jobs', () => {
+    for (const name of ['classifier-worker', 'specialist-workers']) {
+      for (const provider of [
+        'OLLAMA',
+        'OPENAI',
+        'ANTHROPIC',
+        'OPENROUTER',
+        'GEMINI',
+      ]) {
+        expect(job(name)).toContain(
+          `${provider}_API_KEY: ${'${{ secrets.'}${provider}_API_KEY }}`,
+        );
+      }
+    }
+  });
+
   it('pins runtime code separately from caller policy and head data', () => {
     expect(workflow).toContain(
       'WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}',
@@ -185,7 +280,13 @@ describe('adaptive review workflow trust gates', () => {
     );
     expect(workflow).toContain('path: .adaptive-review-runtime');
     expect(workflow).toContain('ref: ${{ needs.prepare.outputs.base }}');
-    expect(workflow).toContain('git fetch --no-tags origin "$HEAD_SHA"');
+    expect(
+      workflow.match(/git fetch --no-tags origin "\$HEAD_SHA"/g),
+    ).toHaveLength(5);
+    expect(workflow.match(/GIT_CONFIG_COUNT=1/g)).toHaveLength(5);
+    expect(
+      workflow.match(/GH_TOKEN: \$\{\{ github\.token \}\}/g)?.length,
+    ).toBeGreaterThanOrEqual(5);
     expect(workflow).not.toContain('ref: ${{ needs.prepare.outputs.head }}');
     expect(caller).toContain(
       'classifier-profile: legreffier-issue-classifier-v2',

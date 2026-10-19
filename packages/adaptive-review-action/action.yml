@@ -9,6 +9,9 @@ outputs:
   classifier-needed:
     description: Whether this review can create classifier tasks.
     value: ${{ steps.plan.outputs.classifier-needed }}
+  review-enabled:
+    description: Whether policy enables an adaptive review.
+    value: ${{ steps.plan.outputs.review-enabled }}
 runs:
   using: composite
   steps:

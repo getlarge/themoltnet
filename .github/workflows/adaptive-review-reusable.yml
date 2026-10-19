@@ -206,7 +206,16 @@ jobs:
         if: steps.pin.outputs.skip == 'false'
         env:
           HEAD_SHA: ${{ steps.pin.outputs.head }}
-        run: git fetch --no-tags origin "$HEAD_SHA"
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::not a full commit id' >&2; exit 2; }
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          echo "::add-mask::$auth"
+          GIT_CONFIG_COUNT=1 \
+            GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL:-https://github.com}/.extraheader" \
+            GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
+            git fetch --no-tags origin "$HEAD_SHA"
       - name: Write pinned planner input
         if: steps.pin.outputs.skip == 'false'
         env:
@@ -282,7 +291,16 @@ jobs:
       - name: Fetch reviewed head as inert Git data
         env:
           HEAD_SHA: ${{ needs.prepare.outputs.head }}
-        run: git fetch --no-tags origin "$HEAD_SHA"
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::not a full commit id' >&2; exit 2; }
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          echo "::add-mask::$auth"
+          GIT_CONFIG_COUNT=1 \
+            GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL:-https://github.com}/.extraheader" \
+            GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
+            git fetch --no-tags origin "$HEAD_SHA"
       - name: Write pinned review input
         env:
           PREPARED_JSON: ${{ needs.prepare.outputs.prepared }}
@@ -383,7 +401,16 @@ jobs:
       - name: Fetch reviewed head as inert Git data
         env:
           HEAD_SHA: ${{ needs.prepare.outputs.head }}
-        run: git fetch --no-tags origin "$HEAD_SHA"
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::not a full commit id' >&2; exit 2; }
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          echo "::add-mask::$auth"
+          GIT_CONFIG_COUNT=1 \
+            GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL:-https://github.com}/.extraheader" \
+            GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
+            git fetch --no-tags origin "$HEAD_SHA"
       - name: Write pinned review input
         env:
           PREPARED_JSON: ${{ needs.prepare.outputs.prepared }}
@@ -453,7 +480,16 @@ jobs:
       - name: Fetch reviewed head as inert Git data
         env:
           HEAD_SHA: ${{ needs.prepare.outputs.head }}
-        run: git fetch --no-tags origin "$HEAD_SHA"
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::not a full commit id' >&2; exit 2; }
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          echo "::add-mask::$auth"
+          GIT_CONFIG_COUNT=1 \
+            GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL:-https://github.com}/.extraheader" \
+            GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
+            git fetch --no-tags origin "$HEAD_SHA"
       - name: Drain this review's tasks
         uses: getlarge/themoltnet/packages/agent-daemon-action@e82895cd187297d4531f853661e7d667a1243b35 # v0
         env:
@@ -463,6 +499,10 @@ jobs:
           MOLTNET_TEAM_ID: ${{ inputs.team-id || vars.MOLTNET_TEAM_ID }}
           MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
           OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         with:
           agent-name: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
           mode: drain
@@ -498,7 +538,16 @@ jobs:
       - name: Fetch reviewed head as inert Git data
         env:
           HEAD_SHA: ${{ needs.prepare.outputs.head }}
-        run: git fetch --no-tags origin "$HEAD_SHA"
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo '::error::not a full commit id' >&2; exit 2; }
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          echo "::add-mask::$auth"
+          GIT_CONFIG_COUNT=1 \
+            GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL:-https://github.com}/.extraheader" \
+            GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
+            git fetch --no-tags origin "$HEAD_SHA"
       - name: Drain selected review tasks
         uses: getlarge/themoltnet/packages/agent-daemon-action@e82895cd187297d4531f853661e7d667a1243b35 # v0
         env:
@@ -508,6 +557,10 @@ jobs:
           MOLTNET_TEAM_ID: ${{ inputs.team-id || vars.MOLTNET_TEAM_ID }}
           MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
           OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         with:
           agent-name: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
           mode: drain
