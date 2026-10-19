@@ -188,7 +188,7 @@ catalogs:
       version: 1.43.0
     '@ory/client-fetch':
       specifier: ^1.22.63
-      version: 1.22.63
+      version: 1.22.66
     '@playwright/test':
       specifier: ^1.55.0
       version: 1.64.1
@@ -1048,7 +1048,7 @@ importers:
         version: link:../../libs/tasks
       '@ory/client-fetch':
         specifier: 'catalog:'
-        version: 1.22.63
+        version: 1.22.66
       '@tanstack/react-query':
         specifier: 'catalog:'
         version: 5.99.2(react@19.3.0)
@@ -1127,7 +1127,7 @@ importers:
         version: link:../../libs/crypto-service
       '@ory/client-fetch':
         specifier: 'catalog:'
-        version: 1.22.63
+        version: 1.22.66
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.64.1
@@ -1666,7 +1666,7 @@ importers:
         version: 1.43.0
       '@ory/client-fetch':
         specifier: 'catalog:'
-        version: 1.22.63
+        version: 1.22.66
       '@scalar/fastify-api-reference':
         specifier: 'catalog:'
         version: 1.73.1
@@ -1781,7 +1781,7 @@ importers:
         version: link:../../libs/models
       '@ory/client-fetch':
         specifier: 'catalog:'
-        version: 1.22.63
+        version: 1.22.66
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../../libs/sdk
@@ -1825,7 +1825,7 @@ importers:
         version: link:../libs/api-client
       '@ory/client-fetch':
         specifier: 'catalog:'
-        version: 1.22.63
+        version: 1.22.66
       '@themoltnet/design-system':
         specifier: workspace:*
         version: link:../libs/design-system
@@ -1923,7 +1923,7 @@ importers:
         version: link:../models
       '@ory/client-fetch':
         specifier: 'catalog:'
-        version: 1.22.63
+        version: 1.22.66
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -2018,7 +2018,7 @@ importers:
         version: link:../observability
       '@ory/client-fetch':
         specifier: 'catalog:'
-        version: 1.22.63
+        version: 1.22.66
       fastify-plugin:
         specifier: 'catalog:'
         version: 5.1.0
@@ -2092,7 +2092,7 @@ importers:
         version: link:../database
       '@ory/client-fetch':
         specifier: 'catalog:'
-        version: 1.22.63
+        version: 1.22.66
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -3936,7 +3936,7 @@ importers:
         version: link:../libs/tasks
       '@ory/client-fetch':
         specifier: 'catalog:'
-        version: 1.22.63
+        version: 1.22.66
       '@themoltnet/agent-runtime':
         specifier: workspace:*
         version: link:../libs/agent-runtime
@@ -7421,8 +7421,8 @@ packages:
     peerDependencies:
       '@opentelemetry/api': ^1.1.0
 
-  '@ory/client-fetch@1.22.63':
-    resolution: {integrity: sha512-+5+OH5+Yy8Lj/PygYAwz4RWrhKg5XHAt6LbUTD/pBaXTtFXLvm0jCi97CSFsUmCsxYReMaWNOHgsd0qzXOEMhg==}
+  '@ory/client-fetch@1.22.66':
+    resolution: {integrity: sha512-teGEdSeVL7RwNPFNfl5hZM/f54B9pnXUt18pK8y3Zoj2PPbkbQSXV5cBhPK1wR8IAiImc22GtdWNGeRSQ2qQxA==}
 
   '@oxc-project/types@0.153.0':
     resolution: {integrity: sha512-jSNrRIyvPVLL5E1z/tS5zLAprosGz/FuI1PWwEOz59j3E4TTTzSpqKb/RDGqJhhW0QHYISGXxq582wGx6T11Tw==}
@@ -12795,8 +12795,8 @@ packages:
   no-case@3.0.4:
     resolution: {integrity: sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg==}
 
-  node-abi@3.98.0:
-    resolution: {integrity: sha512-Llh8noNw7s15m+rmIrZnZQbe4gLyasL9loT74rC92PkmwWKeEedKvc7o6pjp8B3MhrYT/Cl846NOYZbz1wmddw==}
+  node-abi@3.99.0:
+    resolution: {integrity: sha512-lLdwkeg2XUVPTHqWjPltTxH81zbQNbUWC+AEb9ni50KjxkUzAAx1HGtMT21sbntzfUGfIphhcklvs3imJeqDXw==}
     engines: {node: '>=10'}
 
   node-addon-api@8.9.0:
@@ -14219,8 +14219,8 @@ packages:
   strip-literal@3.1.0:
     resolution: {integrity: sha512-8r3mkIM/2+PpjHoOtiAW8Rg3jJLHaV7xPwG+YRGrv6FP0wwk/toTpATxWYOW0BKdWwl82VT2tFYi5DlROa0Mxg==}
 
-  strtok3@10.5.0:
-    resolution: {integrity: sha512-PgAsgIuizbZN/r4+g4UNvbVCTpJWdoIdI71kIWwKmdIH0vJ0q7ylMVGU8PWj2s9O98y4MtFWiDTIrtNukZMMgQ==}
+  strtok3@10.6.1:
+    resolution: {integrity: sha512-p8ynRS8lXnvA3tsdcUYFjbzwh2MsdBZgxrFT2G+Yb7vNvUfPF+GgHCt/0jkayfsRXA1TwtZstf+JA0V+iQXdHA==}
     engines: {node: '>=18'}
 
   structured-source@4.0.0:
@@ -19476,7 +19476,7 @@ snapshots:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.8.0(@opentelemetry/api@1.9.1)
 
-  '@ory/client-fetch@1.22.63': {}
+  '@ory/client-fetch@1.22.66': {}
 
   '@oxc-project/types@0.153.0': {}
 
@@ -21750,16 +21750,6 @@ snapshots:
       - debug
       - supports-color
 
-  axios@1.20.0(debug@4.3.4):
-    dependencies:
-      follow-redirects: 1.16.0(debug@4.3.4)
-      form-data: 4.0.6
-      https-proxy-agent: 5.0.1
-      proxy-from-env: 2.1.0
-    transitivePeerDependencies:
-      - debug
-      - supports-color
-
   axios@1.20.0(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0):
     dependencies:
       follow-redirects: 1.16.0(debug@4.4.3(supports-color@7.2.0))
@@ -23663,7 +23653,7 @@ snapshots:
   file-type@21.3.2:
     dependencies:
       '@tokenizer/inflate': 0.4.1
-      strtok3: 10.5.0
+      strtok3: 10.6.1
       token-types: 6.1.2
       uint8array-extras: 1.6.0
     transitivePeerDependencies:
@@ -24232,7 +24222,7 @@ snapshots:
       '@types/debug': 4.1.12
       '@types/node': 18.19.80
       '@types/tough-cookie': 4.0.0
-      axios: 1.20.0(debug@4.3.4)
+      axios: 1.20.0
       camelcase: 6.3.0
       debug: 4.3.4
       dotenv: 16.4.5
@@ -24243,7 +24233,7 @@ snapshots:
       jsonwebtoken: 9.0.3
       load-esm: 1.0.3
       mime-types: 2.1.35
-      retry-axios: 2.6.0(axios@1.20.0)
+      retry-axios: 2.6.0(axios@1.20.0(debug@4.3.4))
       tough-cookie: 4.1.3
     transitivePeerDependencies:
       - supports-color
@@ -25688,7 +25678,7 @@ snapshots:
       lower-case: 2.0.2
       tslib: 2.8.1
 
-  node-abi@3.98.0:
+  node-abi@3.99.0:
     dependencies:
       semver: 7.8.5
     optional: true
@@ -26414,7 +26404,7 @@ snapshots:
       minimist: 1.2.8
       mkdirp-classic: 0.5.3
       napi-build-utils: 2.0.0
-      node-abi: 3.98.0
+      node-abi: 3.99.0
       pump: 3.0.4
       rc: 1.2.8
       simple-get: 4.0.1
@@ -26828,7 +26818,7 @@ snapshots:
 
   ret@0.5.0: {}
 
-  retry-axios@2.6.0(axios@1.20.0):
+  retry-axios@2.6.0(axios@1.20.0(debug@4.3.4)):
     dependencies:
       axios: 1.20.0
 
@@ -27484,7 +27474,7 @@ snapshots:
     dependencies:
       js-tokens: 9.0.1
 
-  strtok3@10.5.0:
+  strtok3@10.6.1:
     dependencies:
       '@tokenizer/token': 0.3.0
 
