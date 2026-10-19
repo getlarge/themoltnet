@@ -239,6 +239,10 @@ export function buildClassifyTask(
   evidence: ReviewEvidence,
   packet: Packet,
   policy: AdaptivePolicy,
+  changes: readonly ChangedPath[] = evidence.files.map((file) => ({
+    status: 'modified',
+    path: file.path,
+  })),
 ) {
   const paths = packet.files.map((file) => file.path);
   const questions = Object.fromEntries(
@@ -280,7 +284,11 @@ export function buildClassifyTask(
         title: identity.title.slice(0, 500),
         body: identity.body.slice(0, MAX_METADATA_BYTES),
         manifest: evidence.manifest.slice(0, MAX_METADATA_BYTES),
-        allPaths: evidence.files.map((file) => file.path),
+        allPaths: changes.flatMap((change) =>
+          change.previousPath
+            ? [change.previousPath, change.path]
+            : [change.path],
+        ),
         packet: packet.files.map((file) => ({
           path: file.path,
           patch: file.patch,

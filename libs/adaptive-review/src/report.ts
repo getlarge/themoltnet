@@ -22,7 +22,7 @@ export function renderAdaptiveComment(
     ADAPTIVE_REVIEW_MARKER,
     '## Experimental adaptive review',
     '',
-    `${report.mode === 'shadow' ? 'Shadow run: every lane was investigated.' : 'Classifier-selected investigations.'} Head \`${report.head.slice(0, 7)}\` · [workflow run](${runUrl}).`,
+    `${report.mode === 'shadow' ? 'Shadow run: every enabled lane was investigated.' : 'Classifier-selected investigations.'} Head \`${report.head.slice(0, 7)}\` · [workflow run](${runUrl}).`,
     '',
     '| Lane | Jev concern | Investigation |',
     '| --- | ---: | --- |',

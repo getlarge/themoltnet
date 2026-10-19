@@ -149,8 +149,9 @@ export class ReviewConfigError extends Error {
 /** The source of a configuration read from `revision`. */
 export function baseConfigSource(
   revision: string,
+  path = REVIEW_CONFIG_PATH,
 ): Extract<ReviewConfigSource, { kind: 'base' }> {
-  return { kind: 'base', location: `${REVIEW_CONFIG_PATH}@${revision}` };
+  return { kind: 'base', location: `${path}@${revision}` };
 }
 
 /** Runs `parse`, attributing a configuration error to `source`. */
@@ -290,6 +291,7 @@ function parseJson(raw: string, location: string): unknown {
 export function loadReviewConfig(
   git: Git,
   baseRevision: string,
+  path = REVIEW_CONFIG_PATH,
 ): { config: ReviewConfig; source: ReviewConfigSource } {
   requireFullOid(baseRevision, 'base revision');
   // `ls-tree` prints nothing for an absent path and fails for a missing or
@@ -302,13 +304,13 @@ export function loadReviewConfig(
     '--name-only',
     baseRevision,
     '--',
-    REVIEW_CONFIG_PATH,
+    path,
   ]).trim();
   if (!listed) {
     return { config: DEFAULT_REVIEW_CONFIG, source: { kind: 'default' } };
   }
-  const source = baseConfigSource(baseRevision);
-  const raw = git(['show', `${baseRevision}:${REVIEW_CONFIG_PATH}`]);
+  const source = baseConfigSource(baseRevision, path);
+  const raw = git(['show', `${baseRevision}:${path}`]);
   return {
     config: attributed(source, () =>
       parseReviewConfig(parseJson(raw, source.location), source.location),

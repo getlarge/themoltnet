@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import type { ReviewEvidence } from '@moltnet/complexity-review/evidence';
@@ -72,6 +73,8 @@ const evidence: ReviewEvidence = {
   bytes: Buffer.byteLength(patch),
   generatedPaths: [],
 };
+let policyOverride: string | undefined;
+const gitCalls: string[][] = [];
 
 function answers(selected?: string): ClassifyOutput['answers'] {
   const result: ClassifyOutput['answers'] = {};
@@ -196,6 +199,7 @@ function reviewOptions(tasks: TaskClient) {
     mode: 'active' as const,
     tasks,
     cwd,
+    runtimeSha: 'c'.repeat(40),
     profiles: {
       docs: 'docs-profile',
       complexity: 'complexity-profile',
@@ -211,6 +215,23 @@ async function review(tasks: TaskClient) {
 
 describe('adaptive review orchestration', () => {
   beforeEach(() => {
+    policyOverride = undefined;
+    gitCalls.length = 0;
+    mocks.createGit.mockImplementation(() =>
+      vi.fn((args: string[]) => {
+        gitCalls.push(args);
+        if (args[0] === 'ls-tree') return String(args.at(-1));
+        if (args[0] === 'show') {
+          const path = args[1].slice(args[1].indexOf(':') + 1);
+          if (path === '.github/adaptive-review.json' && policyOverride)
+            return policyOverride;
+          return readFileSync(resolve(cwd, path), 'utf8');
+        }
+        if (args[0] === 'diff' && args.includes('--name-status'))
+          return `M\0${sourcePath}\0`;
+        return '';
+      }),
+    );
     mocks.buildEvidence.mockReturnValue(evidence);
     mocks.collectChangeSet.mockReturnValue({
       files: [{ path: sourcePath, category: 'source' }],
@@ -231,6 +252,40 @@ describe('adaptive review orchestration', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
+  });
+
+  it('runs only an unrelated repository’s opted-in tests lane', async () => {
+    policyOverride = JSON.stringify({
+      version: 1,
+      lanes: ['tests'],
+      rules: [],
+      checks: [],
+    });
+    const { tasks, createTask } = harness({ selected: 'tests' });
+    const report = await review(tasks);
+
+    expect(report.routing.routes.map((route) => route.lane)).toEqual(['tests']);
+    expect(report.results.map((result) => result.lane)).toEqual(['tests']);
+    expect(createTask).toHaveBeenCalledTimes(2);
+    expect(mocks.runDocsImpactReview).not.toHaveBeenCalled();
+    expect(mocks.runComplexityReview).not.toHaveBeenCalled();
+    expect(gitCalls.flat().join(' ')).not.toContain('rubrics/pr-complexity');
+    expect(gitCalls.flat().join(' ')).not.toContain('docs-impact-review.json');
+  });
+
+  it('rejects a changed base policy between routing and review', async () => {
+    const { tasks } = harness({ selected: 'tests' });
+    const options = reviewOptions(tasks);
+    const preparation = await prepareAdaptiveReview(options);
+    policyOverride = JSON.stringify({
+      version: 1,
+      lanes: ['tests'],
+      rules: [],
+      checks: [],
+    });
+    await expect(runRoutedAdaptiveReview(options, preparation)).rejects.toThrow(
+      'pinned review',
+    );
   });
 
   it('classifies once, runs a selected focused lane, and screens the others', async () => {
@@ -354,7 +409,7 @@ describe('adaptive review orchestration', () => {
     ).toMatchObject({
       status: 'failed',
       taskIds: ['task-2'],
-      summary: 'Error: tests finding does not cite a changed line',
+      summary: 'tests review failed; inspect its task outcome.',
       findings: [],
     });
   });
@@ -500,7 +555,7 @@ describe('adaptive review orchestration', () => {
     expect(report.routing.classifierFailed).toBe(true);
     expect(report.routing.routes.every((route) => route.run)).toBe(true);
     expect(report.gaps).toEqual([
-      expect.stringContaining('classifier unavailable'),
+      'Classifier task failed; inspect its task outcome.',
     ]);
     expect(report.results.every((result) => result.status === 'clear')).toBe(
       true,
@@ -538,7 +593,7 @@ describe('adaptive review orchestration', () => {
       report.results.find((result) => result.lane === 'docs'),
     ).toMatchObject({
       status: 'failed',
-      summary: 'Error: docs reviewer unavailable',
+      summary: 'docs review failed; inspect its task outcome.',
     });
     expect(
       report.results.find((result) => result.lane === 'tests'),
@@ -548,7 +603,7 @@ describe('adaptive review orchestration', () => {
       report.results.find((result) => result.lane === 'tests')?.taskIds[0],
     );
     expect(report.gaps).toEqual([
-      expect.stringContaining('classifier unavailable'),
+      'Classifier task failed; inspect its task outcome.',
     ]);
   });
 
@@ -597,7 +652,7 @@ describe('adaptive review orchestration', () => {
       report.results.find((result) => result.lane === 'tests'),
     ).toMatchObject({
       status: 'failed',
-      summary: 'Error: invalid tests result',
+      summary: 'tests review failed; inspect its task outcome.',
       taskIds: ['task-2'],
     });
     expect(report.taskIds).toContain('task-2');

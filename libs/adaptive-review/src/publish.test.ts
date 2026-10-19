@@ -11,6 +11,16 @@ const COMMENTS_PATH = '/repos/getlarge/themoltnet/issues/42/comments';
 const OPTIONS = {
   runUrl: 'https://github.com/getlarge/themoltnet/actions/runs/1',
   appLogin: 'moltnet-review[bot]',
+  expected: {
+    repo: 'getlarge/themoltnet',
+    pr: 42,
+    base: BASE,
+    head: HEAD,
+    correlationId: 'test',
+    policyDigest: 'd'.repeat(64),
+    referenceDigests: {},
+    runtimeSha: 'c'.repeat(40),
+  },
 };
 
 function report(): AdaptiveReport {
@@ -22,6 +32,9 @@ function report(): AdaptiveReport {
     base: BASE,
     head: HEAD,
     correlationId: 'test',
+    policyDigest: 'd'.repeat(64),
+    referenceDigests: {},
+    runtimeSha: 'c'.repeat(40),
     routing: {
       classifierFailed: false,
       scores: { 'code-complexity': null, 'review-effort': null },
@@ -47,6 +60,28 @@ function expectPublishedBody(body: object | undefined): void {
 }
 
 describe('publishAdaptiveReport', () => {
+  it('rejects a report for another repository before an API request', async () => {
+    const request = vi.fn();
+    await expect(
+      publishAdaptiveReport(
+        { ...report(), repo: 'other/repo' },
+        { ...OPTIONS, request },
+      ),
+    ).rejects.toThrow('repo does not match');
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it('rejects changed policy provenance before an API request', async () => {
+    const request = vi.fn();
+    await expect(
+      publishAdaptiveReport(
+        { ...report(), policyDigest: 'e'.repeat(64) },
+        { ...OPTIONS, request },
+      ),
+    ).rejects.toThrow('policyDigest does not match');
+    expect(request).not.toHaveBeenCalled();
+  });
+
   it('refuses a report whose head changed before reading comments', async () => {
     const request = vi.fn(() =>
       Promise.resolve({ head: { sha: 'c'.repeat(40) }, base: { sha: BASE } }),

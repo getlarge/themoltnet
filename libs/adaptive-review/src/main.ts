@@ -1,10 +1,12 @@
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 
+import { createGit } from '@moltnet/docs-impact-review';
 import { connect } from '@themoltnet/sdk/node';
 import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 
 import { env, required } from './config.js';
+import { loadAdaptivePolicy } from './snapshot.js';
 import {
   type AdaptivePreparation,
   classifierTaskPossible,
@@ -49,15 +51,20 @@ async function main() {
   ) {
     throw new Error('PR revisions changed after preparation');
   }
+  const snapshot = loadAdaptivePolicy(createGit(process.cwd()), prepared.base);
   if (stage === 'plan') {
-    const needed = classifierTaskPossible(
-      process.cwd(),
-      prepared.base,
-      prepared.head,
+    const enabled = snapshot !== null;
+    const needed =
+      enabled &&
+      classifierTaskPossible(process.cwd(), prepared.base, prepared.head);
+    appendFileSync(
+      required('GITHUB_OUTPUT'),
+      `review-enabled=${enabled}\nclassifier-needed=${needed}\n`,
     );
-    appendFileSync(required('GITHUB_OUTPUT'), `classifier-needed=${needed}\n`);
     return;
   }
+  if (!snapshot)
+    throw new Error('adaptive review policy is absent on the base');
   const mode = required('ADAPTIVE_MODE');
   if (mode !== 'shadow' && mode !== 'active')
     throw new Error('ADAPTIVE_MODE must be shadow or active');
@@ -81,11 +88,23 @@ async function main() {
     mode,
     tasks: createSdkTaskClient(agent),
     cwd: process.cwd(),
+    runtimeSha: required('ADAPTIVE_RUNTIME_SHA'),
     profiles: {
-      docs: resolve(required('ADAPTIVE_DOCS_PROFILE')),
-      complexity: resolve(required('ADAPTIVE_COMPLEXITY_PROFILE')),
-      security: resolve(required('ADAPTIVE_SECURITY_PROFILE')),
-      focused: resolve(required('ADAPTIVE_FOCUSED_PROFILE')),
+      ...(snapshot.policy.lanes.includes('docs')
+        ? { docs: resolve(required('ADAPTIVE_DOCS_PROFILE')) }
+        : {}),
+      ...(snapshot.policy.lanes.includes('complexity')
+        ? { complexity: resolve(required('ADAPTIVE_COMPLEXITY_PROFILE')) }
+        : {}),
+      ...(snapshot.policy.lanes.includes('security')
+        ? { security: resolve(required('ADAPTIVE_SECURITY_PROFILE')) }
+        : {}),
+      ...(snapshot.policy.lanes.some(
+        (lane) =>
+          lane === 'tests' || lane === 'conventions' || lane === 'blast-radius',
+      )
+        ? { focused: resolve(required('ADAPTIVE_FOCUSED_PROFILE')) }
+        : {}),
     },
     projectId: env().MOLTNET_PROJECT_ID || undefined,
   };
