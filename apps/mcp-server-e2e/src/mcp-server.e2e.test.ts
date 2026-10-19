@@ -247,6 +247,59 @@ describe('MCP Server E2E', () => {
     });
   });
 
+  describe('client-credentials cooldown isolation', () => {
+    it('keeps a valid cached credential usable while another secret is limited', async () => {
+      const { agent } = await harness.createAgent('e2e-proxy-cooldown');
+      const responses: Response[] = [];
+
+      async function connectWithSecret(secret: string): Promise<void> {
+        const transport = new StreamableHTTPClientTransport(
+          new URL(`${harness.mcpBaseUrl}/mcp`),
+          {
+            requestInit: {
+              headers: {
+                'X-Client-Id': agent.clientId,
+                'X-Client-Secret': secret,
+              },
+            },
+            fetch: async (input, init) => {
+              const response = await fetch(input, init);
+              responses.push(response);
+              return response;
+            },
+          },
+        );
+        const client = new Client({
+          name: 'e2e-proxy-cooldown',
+          version: '1.0.0',
+        });
+        try {
+          await client.connect(transport);
+          const { tools } = await client.listTools();
+          expect(tools.length).toBeGreaterThan(0);
+        } finally {
+          await client.close();
+        }
+      }
+
+      // Prime the valid credential's cache before exhausting the wrong secret.
+      await connectWithSecret(agent.clientSecret);
+      for (let attempt = 0; attempt < 5; attempt++) {
+        await expect(connectWithSecret('invalid-secret')).rejects.toThrow();
+        expect(responses.at(-1)?.status).toBe(401);
+      }
+      await expect(connectWithSecret('invalid-secret')).rejects.toThrow();
+      const limited = responses.at(-1)!;
+      expect(limited.status).toBe(429);
+      expect(Number(limited.headers.get('retry-after'))).toBeGreaterThan(0);
+      expect(Number(limited.headers.get('retry-after'))).toBeLessThanOrEqual(
+        60,
+      );
+
+      await connectWithSecret(agent.clientSecret);
+    });
+  });
+
   // ── Raw HTTP transport behavior ──────────────────────────────
 
   describe('Raw HTTP transport', () => {

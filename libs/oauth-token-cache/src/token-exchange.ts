@@ -32,6 +32,7 @@ interface TokenExchangeError extends Error {
   statusCode: number;
   code: string;
   detail: string;
+  retryAfterSeconds?: number;
 }
 
 function createError(
@@ -127,23 +128,26 @@ export function createTokenExchanger(
     source,
   });
 
-  function checkRateLimit(clientId: string): void {
-    const entry = failureTracker.get(clientId);
-    if (!entry) return;
-    if (
-      entry.failures >= config.rateLimit.maxFailures &&
-      Date.now() < entry.cooldownUntil
-    ) {
-      throw createError(
-        429,
-        'RATE_LIMITED',
-        `Too many failed token exchanges for client ${clientId}`,
-      );
+  function checkRateLimit(key: string, clientId: string): void {
+    const entry = failureTracker.get(key);
+    if (!entry || entry.cooldownUntil === 0) return;
+    const remainingMs = entry.cooldownUntil - Date.now();
+    if (remainingMs <= 0) {
+      // A completed cooldown restores the full credential-failure budget.
+      failureTracker.delete(key);
+      return;
     }
+    const error = createError(
+      429,
+      'RATE_LIMITED',
+      `Too many failed token exchanges for client ${clientId}`,
+    );
+    error.retryAfterSeconds = Math.ceil(remainingMs / 1000);
+    throw error;
   }
 
-  function recordFailure(clientId: string): void {
-    const entry = failureTracker.get(clientId) ?? {
+  function recordFailure(key: string): void {
+    const entry = failureTracker.get(key) ?? {
       failures: 0,
       cooldownUntil: 0,
     };
@@ -151,17 +155,15 @@ export function createTokenExchanger(
     if (entry.failures >= config.rateLimit.maxFailures) {
       entry.cooldownUntil = Date.now() + config.rateLimit.cooldownMs;
     }
-    failureTracker.set(clientId, entry);
-  }
-
-  function resetFailures(clientId: string): void {
-    failureTracker.delete(clientId);
+    failureTracker.set(key, entry);
   }
 
   async function doExchange(
     clientId: string,
     clientSecret: string,
+    key: string,
   ): Promise<LoadResult<string>> {
+    checkRateLimit(key, clientId);
     const params = new URLSearchParams({
       grant_type: 'client_credentials',
       client_id: clientId,
@@ -181,7 +183,6 @@ export function createTokenExchanger(
         signal: AbortSignal.timeout(10_000),
       });
     } catch (err) {
-      recordFailure(clientId);
       metrics.recordExchange(source, GRANT_TYPE, 'unavailable');
       throw createError(
         502,
@@ -191,8 +192,8 @@ export function createTokenExchanger(
     }
 
     if (!response.ok) {
-      recordFailure(clientId);
       if (response.status === 400 || response.status === 401) {
+        recordFailure(key);
         metrics.recordExchange(source, GRANT_TYPE, 'invalid');
         throw createError(
           401,
@@ -214,7 +215,7 @@ export function createTokenExchanger(
       token_type: string;
     };
 
-    resetFailures(clientId);
+    failureTracker.delete(key);
     metrics.recordExchange(source, GRANT_TYPE, 'success');
 
     config.log.debug(
@@ -233,11 +234,10 @@ export function createTokenExchanger(
     clientId: string,
     clientSecret: string,
   ): Promise<string> {
-    checkRateLimit(clientId);
-
-    const resolved = await cache.resolve(
-      credentialKey(clientId, clientSecret),
-      () => doExchange(clientId, clientSecret),
+    const key = credentialKey(clientId, clientSecret);
+    // Cached tokens and single-flight joins need no new upstream attempt.
+    const resolved = await cache.resolve(key, () =>
+      doExchange(clientId, clientSecret, key),
     );
     return resolved.value;
   }

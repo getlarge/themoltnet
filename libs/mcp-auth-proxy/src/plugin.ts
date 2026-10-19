@@ -75,7 +75,11 @@ export const mcpAuthProxyPlugin = fp(
           statusCode?: number;
           code?: string;
           detail?: string;
+          retryAfterSeconds?: number;
         };
+        if (error.statusCode === 429 && error.retryAfterSeconds !== undefined) {
+          reply.header('Retry-After', error.retryAfterSeconds);
+        }
         reply.code(error.statusCode ?? 502).send({
           error: error.code ?? 'BAD_GATEWAY',
           message: error.detail ?? error.message,
