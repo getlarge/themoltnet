@@ -116,7 +116,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 	configPath := filepath.Join(agentDir, "moltnet.json")
 
 	// Skip if already initialized (no env vars needed).
-	if _, err := os.Stat(configPath); err == nil {
+	if _, err := os.Stat(configPath); err == nil && strings.TrimSpace(getenv(agentKeyEnv, fileVars, override)) == "" {
 		fmt.Fprintf(errOut, "Agent %q already initialized at %s, skipping\n", agentName, configPath)
 		return nil
 	}
@@ -140,6 +140,11 @@ func runConfigInitFromEnvCmdWithRegistry(
 	// just to obtain them (#2160).
 	agentKeyRef := getenv(agentKeyRefEnv, fileVars, override)
 	haveAgentKeyRef := strings.TrimSpace(agentKeyRef) != ""
+	agentKey := strings.TrimSpace(getenv(agentKeyEnv, fileVars, override))
+	haveAgentKey := agentKey != ""
+	if haveAgentKey && haveAgentKeyRef {
+		return fmt.Errorf("set only one of %s or %s", agentKeyEnv, agentKeyRefEnv)
+	}
 
 	var missing []string
 	if subjectID == "" && identityID == "" {
@@ -159,14 +164,14 @@ func runConfigInitFromEnvCmdWithRegistry(
 			return fmt.Errorf("MOLTNET_SUBJECT_ID must be a valid UUID: %w", err)
 		}
 	}
-	if !haveAgentKeyRef {
+	if !haveAgentKeyRef && !haveAgentKey {
 		if clientID == "" {
 			missing = append(missing, "MOLTNET_CLIENT_ID")
 		}
 		if clientSecret == "" {
 			missing = append(missing, "MOLTNET_CLIENT_SECRET")
 		}
-	} else {
+	} else if !haveAgentKey {
 		// With a key reference the OAuth pair is optional, but half of it is
 		// not: writing a client_id with a reference to an unset
 		// MOLTNET_CLIENT_SECRET would produce a config that only fails later,
@@ -197,7 +202,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 	}
 	if len(missing) > 0 {
 		hint := ""
-		if !haveAgentKeyRef {
+		if !haveAgentKeyRef && !haveAgentKey {
 			hint = fmt.Sprintf(" (or set %s to write an agent_key_ref instead of OAuth2 client credentials)", agentKeyRefEnv)
 		}
 		return fmt.Errorf("missing required environment variables: %s%s", strings.Join(missing, ", "), hint)
@@ -246,10 +251,45 @@ func runConfigInitFromEnvCmdWithRegistry(
 	}
 	apiURL = strings.TrimRight(apiURL, "/")
 
+	// A raw session key is never copied into the document or secret store.
+	// Verify its identity before creating any local assets, even for canonical
+	// bundles (which do not need the legacy OAuth authentication below).
+	if haveAgentKey {
+		client, err := newAgentKeyAuthenticatedClient(apiURL, agentKey)
+		if err != nil {
+			return err
+		}
+		whoami, err := fetchAgentWhoami(context.Background(), client)
+		if err != nil {
+			return fmt.Errorf("authenticate MOLTNET_AGENT_KEY: %w; check that the key is active, unexpired and has agent:profile; replace an expired or revoked key in the session environment", err)
+		}
+		if subjectID != "" && whoami.SubjectId.String() != subjectID {
+			return fmt.Errorf("MOLTNET_SUBJECT_ID does not match MOLTNET_AGENT_KEY; supply the subject and key for the same agent")
+		}
+		if identityID != "" && whoami.IdentityId.String() != identityID {
+			return fmt.Errorf("legacy MOLTNET_IDENTITY_ID does not match MOLTNET_AGENT_KEY")
+		}
+		if serverKey, ok := whoami.PublicKey.Get(); !ok || serverKey != publicKey {
+			return fmt.Errorf("MOLTNET_PUBLIC_KEY does not match MOLTNET_AGENT_KEY's agent; supply that agent's signing material")
+		}
+		seed := privateKey
+		if privateKeyReference != nil {
+			seed, err = secretProviders.Resolve(*privateKeyReference)
+			if err != nil {
+				return fmt.Errorf("resolve MOLTNET_PRIVATE_KEY_REF: %w", err)
+			}
+		}
+		if err := assertSeedMatchesPublicKey(seed, publicKey); err != nil {
+			return fmt.Errorf("MOLTNET_PRIVATE_KEY: %w", err)
+		}
+		subjectID = whoami.SubjectId.String()
+		subjectType = SubjectTypeAgent
+	}
+
 	// identity_id is not a durable local anchor. Authenticate any bundle that
 	// still supplies it, verify the legacy identity assertion, and obtain the
 	// canonical subject from the server before writing config or secrets.
-	if identityID != "" {
+	if identityID != "" && !haveAgentKey {
 		var client *moltnetapi.Client
 		if agentKeyReference != nil {
 			agentKeySecret, err = secretProviders.Resolve(*agentKeyReference)
@@ -329,6 +369,18 @@ func runConfigInitFromEnvCmdWithRegistry(
 		return fmt.Errorf("canonical config requires MOLTNET_SUBJECT_ID and MOLTNET_SUBJECT_TYPE=agent")
 	}
 
+	if haveAgentKey {
+		if existing, err := ReadConfigFrom(configPath); err != nil {
+			return err
+		} else if existing != nil {
+			if existing.SubjectID != subjectID || existing.SubjectType != subjectType || existing.Keys.PublicKey != publicKey {
+				return fmt.Errorf("existing identity %q does not match MOLTNET_AGENT_KEY; select the matching alias or use a new alias", agentName)
+			}
+			fmt.Fprintf(errOut, "Agent %q already initialized at %s, skipping\n", agentName, configPath)
+			return nil
+		}
+	}
+
 	registeredAt := getenv("MOLTNET_REGISTERED_AT", fileVars, override)
 	if registeredAt == "" {
 		registeredAt = time.Now().UTC().Format(time.RFC3339Nano)
@@ -341,7 +393,7 @@ func runConfigInitFromEnvCmdWithRegistry(
 	// The OAuth2 section is optional once an agent-key reference is supplied,
 	// so build it only when client credentials are actually present.
 	oauth2Section := CredentialsOAuth2{}
-	if clientID != "" {
+	if clientID != "" && !haveAgentKey {
 		// A secret arriving through the process environment is only referenced, so
 		// nothing is written. One arriving from --env-file has to be persisted
 		// somewhere, and that destination must be selectable: the OS keyring does

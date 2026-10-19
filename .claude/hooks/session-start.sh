@@ -19,9 +19,8 @@ if [ ! -d "node_modules" ]; then
   pnpm install --frozen-lockfile
 fi
 
-# Reconstruct agent config from env vars if MOLTNET_AGENT_NAME is set
-# and the agent directory doesn't exist yet.
-# Set MOLTNET_AGENT_NAME and credential env vars in Claude Code project settings.
+# Reconstruct the selected identity from session environment settings.
+# Raw agent keys are revalidated even when the identity directory exists.
 identity="${MOLTNET_ACTIVE_IDENTITY:-${MOLTNET_AGENT_NAME:-}}"
 if [ -n "$identity" ] && {
   [ -n "${MOLTNET_SUBJECT_ID:-}" ] ||
@@ -40,15 +39,12 @@ if [ -n "$identity" ] && {
     exit 1
   fi
 
+  cli_version="${MOLTNET_CLI_VERSION:-latest}"
   identity_dir="$HOME/.config/moltnet/identities/$identity"
-  if [ ! -f "$identity_dir/moltnet.json" ]; then
-    # Pinned by default. This runs with OAuth, signing-key and optional GitHub
-    # App secrets in the environment, so resolving a mutable `latest` would let
-    # any future npm release read them. MOLTNET_CLI_VERSION overrides it
-    # deliberately; it is never `latest` implicitly. A CLI predating the central
-    # identity store also writes the legacy layout, so the document is verified
-    # immediately below rather than letting this hook re-run every session.
-    npx --yes "@themoltnet/cli@${MOLTNET_CLI_VERSION:-1.91.0}" config init-from-env \
+  if [ ! -f "$identity_dir/moltnet.json" ] || [ -n "${MOLTNET_AGENT_KEY:-}" ]; then
+    # Follow the published CLI by default. Operators may pin
+    # a release supporting agent-key bootstrap with MOLTNET_CLI_VERSION.
+    npx --yes "@themoltnet/cli@$cli_version" config init-from-env \
       --name "$identity"
     if [ ! -f "$identity_dir/moltnet.json" ]; then
       echo "moltnet: config init-from-env did not create $identity_dir/moltnet.json." >&2
@@ -56,6 +52,16 @@ if [ -n "$identity" ] && {
       echo "moltnet: pin a supported release with MOLTNET_CLI_VERSION." >&2
       exit 1
     fi
+  fi
+
+  # Check on every start, including sessions with an existing identity.
+  # whoami exposes expiry with agent:profile; key:manage is unnecessary.
+  if [ -n "${MOLTNET_AGENT_KEY:-}" ]; then
+    npx --yes "@themoltnet/cli@$cli_version" agents whoami \
+      --warn-expiry-days "${MOLTNET_AGENT_KEY_WARN_DAYS:-7}" >/dev/null || {
+      echo "moltnet: agent-key check failed; verify agent:profile and replace an expired or revoked key in the session environment." >&2
+      exit 1
+    }
   fi
 
   if [ -n "${CLAUDE_ENV_FILE:-}" ]; then

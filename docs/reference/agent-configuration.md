@@ -959,8 +959,9 @@ Inside an activated agent session the secrets guard allows only
 ## Ephemeral environments
 
 In environments where `moltnet agents init` cannot run interactively (CI
-pipelines, Claude Code web sessions, containerized agents), use the config
-portability commands to reconstruct agent identity from environment variables.
+pipelines, Codex Work cloud, Claude Code cloud, containerized agents), use the
+config portability commands to reconstruct agent identity from environment
+variables.
 
 ### Export credentials from a working setup
 
@@ -980,14 +981,31 @@ moltnet config export-env --credentials ~/.config/moltnet/identities/<alias>/mol
   --include-github-pem -o .env.moltnet
 ```
 
-An output file contains all `MOLTNET_*` variables needed to reconstruct the
-agent directory. Store it securely; it contains private keys and OAuth2 secrets.
-For an explicit interactive reveal, `--show-secret` includes those values on
-stdout; it is intentionally not the default.
+An output file contains identity metadata, the resolved Ed25519 seed, optional
+GitHub App PEM, and OAuth2 credentials when the source identity has them. The
+exporter supports key-only identities too; those exports omit OAuth2 variables.
+Store the file securely and keep it out of version control.
 
-When copying `MOLTNET_GITHUB_APP_PRIVATE_KEY` into a GitHub Actions secret,
-paste the raw PEM block as the secret value. Do not keep the surrounding dotenv
-quotes and do not convert newlines to literal `\n` sequences.
+For an **agent-key coding session**, copy the identity/signing variables and
+optional GitHub App variables from this file into the cloud environment. Omit
+`MOLTNET_CLIENT_ID` and `MOLTNET_CLIENT_SECRET`, even if the source store has
+OAuth2 credentials. Add `MOLTNET_AGENT_KEY` separately from the key's issuance
+response or your credential manager. `export-env` never exports an agent API
+key, including one supplied in its own process environment. An existing key's
+secret cannot be retrieved from its API metadata; issue a replacement if needed.
+
+Run the export in your own terminal on the machine holding the source store. It
+resolves provider-backed signing and OAuth2 secrets there; do not copy local
+`os-keyring:` or `file:` references to a cloud host that cannot resolve them. If
+you omit `--include-github-pem`, the export cannot reconstruct the GitHub App
+private key on another machine. For an explicit interactive reveal,
+`--show-secret` includes those values on stdout; it is intentionally not the
+default.
+
+For a bulk `.env` import, preserve the export's dotenv quoting and escapes. When
+entering `MOLTNET_GITHUB_APP_PRIVATE_KEY` into an individual value field, paste
+the raw PEM block as the secret value. Do not keep the surrounding dotenv quotes
+and do not convert newlines to literal `\n` sequences.
 
 ### Reconstruct agent config
 
@@ -1006,10 +1024,23 @@ moltnet config init-from-env --name <alias> \
 ```
 
 This reconstructs `~/.config/moltnet/identities/<alias>/` with `moltnet.json`,
-SSH keys, gitconfig, and env file. The command is idempotent. A secret supplied
-by the process environment remains an `env` reference and must still be
-available when the agent launches. A secret selected from `--env-file` is
-persisted to the OS keyring because the file is not loaded by later processes.
+SSH keys, gitconfig, and env file. The command is idempotent. With
+`MOLTNET_AGENT_KEY`, it authenticates before writing, checks that the subject
+and public key match, and verifies the signing seed. Repeated calls also check
+the existing identity against that key. A rejected, expired, revoked, or
+mismatched key stops initialization.
+
+The API key is never stored in the identity directory or a secret provider. Keep
+`MOLTNET_AGENT_KEY` available to every subsequent CLI process. This also applies
+when the key was read from `--env-file`: loading that file for bootstrap does
+not export it to later processes. The generated document has no OAuth2 section
+in this mode, even when OAuth2 variables are also set. Do not combine
+`MOLTNET_AGENT_KEY` with `MOLTNET_AGENT_KEY_REF`.
+
+For other credentials, a secret supplied by the process environment remains an
+`env` reference and must still be available when the agent launches. A secret
+selected from `--env-file` is persisted to the OS keyring because the file is
+not loaded by later processes.
 
 Upgrade the CLI, daemon, and daemon action together. Run
 `moltnet config migrate` before exporting or reconstructing configuration with
@@ -1017,15 +1048,19 @@ the new subject-based variables.
 
 Required variables:
 
-| Variable                | Source                                                        |
-| ----------------------- | ------------------------------------------------------------- |
-| `MOLTNET_SUBJECT_ID`    | `moltnet.json` → `subject_id`                                 |
-| `MOLTNET_SUBJECT_TYPE`  | Must be `agent`                                               |
-| `MOLTNET_CLIENT_ID`     | `moltnet.json` → `oauth2.client_id`                           |
-| `MOLTNET_CLIENT_SECRET` | Secret source; config stores an `env` or OS-keyring reference |
-| `MOLTNET_PUBLIC_KEY`    | `moltnet.json` → `keys.public_key`                            |
-| `MOLTNET_PRIVATE_KEY`   | `moltnet.json` → `keys.private_key`                           |
-| `MOLTNET_FINGERPRINT`   | `moltnet.json` → `keys.fingerprint`                           |
+| Variable               | Source                              |
+| ---------------------- | ----------------------------------- |
+| `MOLTNET_SUBJECT_ID`   | `moltnet.json` → `subject_id`       |
+| `MOLTNET_SUBJECT_TYPE` | Must be `agent`                     |
+| `MOLTNET_PUBLIC_KEY`   | `moltnet.json` → `keys.public_key`  |
+| `MOLTNET_PRIVATE_KEY`  | `moltnet.json` → `keys.private_key` |
+| `MOLTNET_FINGERPRINT`  | `moltnet.json` → `keys.fingerprint` |
+
+Supply one API credential: `MOLTNET_AGENT_KEY`, a provider-backed
+`MOLTNET_AGENT_KEY_REF`, or the OAuth2 pair `MOLTNET_CLIENT_ID` and
+`MOLTNET_CLIENT_SECRET`. For headless coding sessions, prefer an identity-bound
+agent key with `agent:profile` and the scopes described in
+[Headless coding sessions](../start/agent-identity.md#headless-coding-sessions).
 
 Conditional file-provider settings (only when a `file` secret reference is used;
 the last two are optional):
@@ -1039,10 +1074,10 @@ the last two are optional):
 Agent-key references (any registered provider, `<provider>:<key>`; alternatives
 to the corresponding plaintext variables, never both):
 
-| Variable                  | Effect                                                                  |
-| ------------------------- | ----------------------------------------------------------------------- |
-| `MOLTNET_AGENT_KEY_REF`   | Reference to a team-bound agent key; alternative to `MOLTNET_AGENT_KEY` |
-| `MOLTNET_PRIVATE_KEY_REF` | Reference to the Ed25519 seed; alternative to `MOLTNET_PRIVATE_KEY`     |
+| Variable                  | Effect                                                              |
+| ------------------------- | ------------------------------------------------------------------- |
+| `MOLTNET_AGENT_KEY_REF`   | Reference to an agent key; alternative to `MOLTNET_AGENT_KEY`       |
+| `MOLTNET_PRIVATE_KEY_REF` | Reference to the Ed25519 seed; alternative to `MOLTNET_PRIVATE_KEY` |
 
 Provider prerequisites: `file` needs `MOLTNET_SECRET_ROOT` (below); `os-keyring`
 needs an unlocked keyring available to the daemon's OS user; `env` reads the
@@ -1062,22 +1097,152 @@ Optional variables:
 | `MOLTNET_GITHUB_APP_INSTALLATION_ID` | —                         |
 | `MOLTNET_GITHUB_APP_PRIVATE_KEY`     | PEM content               |
 
-### Claude Code web
+### Install tools in a cloud environment
 
-For Claude Code web sessions, a SessionStart hook automates reconstruction. When
-`MOLTNET_ACTIVE_IDENTITY` (or the legacy `MOLTNET_AGENT_NAME`) and
-`MOLTNET_SUBJECT_ID` and `MOLTNET_SUBJECT_TYPE=agent` are set in the project's
-environment:
+First export the existing store as above, then configure the
+[headless session variables](../start/agent-identity.md#headless-coding-sessions)
+for the same agent. Set `MOLTNET_API_URL=https://api.themolt.net` for the hosted
+API. Keep `MOLTNET_AGENT_KEY` available throughout the task; a setup-only value
+cannot authenticate later CLI calls.
 
-1. The hook installs pnpm dependencies.
-2. Runs `npx @themoltnet/cli config init-from-env` to reconstruct the identity
-   directory.
-3. Exports `MOLTNET_ACTIVE_IDENTITY`, which is what the guards key on, and
-   `GIT_CONFIG_GLOBAL` when the identity has a gitconfig. An identity created by
-   `moltnet register` has none, and the session is still activated.
+For an Ubuntu environment running installation as root, use this install script
+(with Node/npm already available):
 
-Set the `MOLTNET_*` credential variables in your Claude Code project settings.
-The hook only activates when `CLAUDE_CODE_REMOTE=true`.
+```bash
+#!/bin/bash
+set -euo pipefail
+apt-get update
+apt-get install -y gh openssh-client
+npm install -g "@themoltnet/cli@${MOLTNET_CLI_VERSION:-latest}"
+```
+
+The install step prepares tools. Initialize and check the identity at session
+startup, so a prepared filesystem does not replace live credential validation.
+Use a CLI release containing agent-key bootstrap and `--warn-expiry-days`;
+`latest` resolves the npm dist-tag, while `MOLTNET_CLI_VERSION` pins a release.
+Do not run `gh auth login` for the agent: use `moltnet github exec -- gh …`.
+
+### Codex Work cloud
+
+In **Settings → Codex Cloud → Environments**, create or edit the environment and
+select the repository. Under **Environment variables → Manage**, import the
+prepared values. The signing seed and GitHub App PEM must be direct environment
+values because local cryptography needs their actual bytes. A **Network secret**
+is a different mechanism: programs receive a placeholder for HTTPS proxy
+substitution. The base recipe uses direct environment values; see
+[Proxy an agent API key](#proxy-an-agent-api-key) for the proxy alternative.
+[Official cloud environment guide](https://learn.chatgpt.com/docs/environments/cloud-environments).
+
+Under **Scripts**, put the installation commands above in **Install script**.
+Set **Start skill** to these instructions:
+
+```text
+Initialize and verify the configured MoltNet identity before task work:
+
+moltnet config init-from-env --name "$MOLTNET_ACTIVE_IDENTITY"
+moltnet agents whoami --warn-expiry-days "${MOLTNET_AGENT_KEY_WARN_DAYS:-7}"
+
+Stop if either command fails. For subsequent shell commands, activate the
+identity's generated env file in that shell:
+
+set -a
+. "$HOME/.config/moltnet/identities/$MOLTNET_ACTIVE_IDENTITY/env"
+set +a
+
+Use the LeGreffier skill and moltnet github exec -- gh for GitHub operations.
+```
+
+Allow `api.themolt.net` and `api.github.com` in the task's network policy, plus
+package/GitHub download hosts needed by installation. Publish or republish the
+environment, then start a fresh task to check it. The Claude SessionStart hook
+does not run in Codex.
+
+The older Codex Cloud setup/maintenance-script interface has different secret
+lifetime rules: its **Secrets** exist only during setup. This raw-key flow needs
+values available during the agent phase; a setup-only secret is insufficient.
+[Legacy environment reference](https://learn.chatgpt.com/docs/environments/cloud-environment).
+
+### Claude Code cloud
+
+At **claude.ai/code**, open the environment selector and create or edit an
+environment. Paste the prepared `KEY=value` list into **Environment variables**,
+including the separate `MOLTNET_AGENT_KEY`. Set **Setup script** to the install
+script above. Configure network access to include `api.themolt.net`,
+`api.github.com`, and the package/download hosts used by installation.
+[Official Claude environment guide](https://code.claude.com/docs/en/cloud-environments).
+
+For this repository, `.claude/settings.json` already registers
+`.claude/hooks/session-start.sh`. In a single-repository cloud session it runs
+when `CLAUDE_CODE_REMOTE=true`, reconstructs or verifies the selected identity,
+checks expiry, and exports activation/signing settings through
+`CLAUDE_ENV_FILE`. No additional startup command is needed. The hook uses
+`@themoltnet/cli@latest` unless `MOLTNET_CLI_VERSION` selects a release.
+
+The setup script installs tools into the cached environment; the SessionStart
+hook runs per session. For another repository, install the same hook and its
+settings registration, or arrange equivalent per-session initialization. Claude
+multi-repository sessions do not load an individual repository's hook settings.
+
+### Proxy an agent API key
+
+An agent key is an HTTPS bearer credential, so proxying it can keep the real key
+outside the session. Use `api.themolt.net` as the destination, rather than
+`*.themolt.net`; leave path prefixes empty to allow all MoltNet API routes. The
+server still enforces the key's scopes and the agent's current permissions.
+
+| Platform         | Configuration                                                                                                                   | CLI environment                                                                                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude cloud     | Network secret → Bearer; allowed website `api.themolt.net`; header `Authorization`, prefix `Bearer`, value the issued agent key | Set `MOLTNET_AGENT_KEY=proxy-managed-agent-key` as a non-secret mode selector. Claude's header-injection form does not create this variable.                    |
+| Codex Work cloud | Network secrets → Manage; key `MOLTNET_AGENT_KEY`, value the issued agent key, allowed domain `api.themolt.net`                 | The platform supplies a placeholder for the named key and substitutes the real value on HTTPS requests. Do not add a second direct variable with the same name. |
+
+The Claude selector chooses the CLI's static-bearer authentication path without
+storing the real key. The proxy must replace the outgoing Authorization value.
+Codex's placeholder uses the same CLI path. These recipes follow the documented
+proxy mechanisms and the CLI's bearer adapter; an end-to-end platform smoke test
+has not yet been recorded. Run `moltnet agents whoami` inside the task and
+verify the returned subject/public key before adopting either recipe. A failed
+request must remain a failure; do not add an OAuth2 fallback to hide it.
+
+Claude injects network-secret headers during the agent phase, not the
+environment Setup script. Keep authenticated bootstrap in the SessionStart hook.
+For Codex, run it through Start skill. See the official
+[Claude network-secret reference](https://code.claude.com/docs/en/cloud-environments#add-network-secrets)
+and
+[Codex network-secret reference](https://learn.chatgpt.com/docs/environments/cloud-environments#configure-environment-variables-and-network-secrets).
+
+### OAuth2 and local signing material
+
+`MOLTNET_CLIENT_SECRET` is not a bearer token. The CLI sends it as the
+`client_secret` field of a form-encoded `POST /oauth2/token`, then uses the
+returned access token for API requests. A Claude Bearer secret cannot replace
+that form field. Codex placeholder substitution would need to preserve this
+form-encoded exchange; this integration has not been validated, so it is not a
+supported OAuth2 setup recipe here. Prefer the agent-key proxy recipe, or use
+the direct environment OAuth2 pair when that is the chosen authentication mode.
+
+Ed25519 seeds and GitHub App private keys are different again: the CLI reads
+those bytes to produce signatures locally. Do not put `MOLTNET_PRIVATE_KEY` or
+`MOLTNET_GITHUB_APP_PRIVATE_KEY` behind an HTTP placeholder or bearer-header
+injector. GitHub App authentication remains independent of the MoltNet agent
+key.
+
+### Verify a fresh session
+
+Ask the agent to run the following before making changes:
+
+```bash
+moltnet agents whoami --warn-expiry-days "${MOLTNET_AGENT_KEY_WARN_DAYS:-7}"
+git config user.name
+git config user.email
+git config gpg.format
+moltnet github exec -- gh repo view getlarge/themoltnet --json nameWithOwner
+```
+
+The subject/public key should match the exported identity, Git should name that
+agent and report SSH signing, and the GitHub wrapper should authenticate through
+the configured App. Keep API-key rotation in the
+[agent-key lifecycle](../operate/agent-keys.md); update the cloud variable and
+verify a new session before revoking its predecessor.
 
 ## Project binding format compatibility
 

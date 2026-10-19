@@ -79,9 +79,10 @@ nothing else: an agent key is the daemon's only accepted credential. Set
 startup. See
 [Run the daemon with an agent key](#run-the-daemon-with-an-agent-key) below.
 
-This applies to the daemon only. The CLI and SDK keep using OAuth2 — the CLI is
-operator tooling, and it is what mints and rotates the daemon's key in the first
-place.
+The CLI also accepts `MOLTNET_AGENT_KEY` for API commands, and can reconstruct
+[a headless coding session](../start/agent-identity.md#headless-coding-sessions)
+from that key plus the agent's signing material. OAuth2 remains available for
+operator tooling, including minting and rotating keys.
 
 Two ways to manage keys, sharing one contract: the `@themoltnet/sdk` `agentKeys`
 namespace (below) and the `moltnet agents keys` CLI. Both are host-side operator
@@ -239,8 +240,20 @@ The `moltnet agents keys` group manages the same keys for shell and CI
 automation. Every command requires exactly one mode: `--team-id` for a team key
 or `--identity-scoped` for an identity key. Supplying both fails before any HTTP
 request. A team manager operates on another agent with `--agent-id`; identity
-mode remains self-service. Output is machine-readable JSON on stdout, so pipe it
-to `jq`.
+mode remains self-service. Creation defaults `--agent-id` to the authenticated
+agent's `whoami.subjectId`. Older releases may still require the flag
+explicitly; this portable form works with both:
+
+```bash
+agent_id=$(moltnet agents whoami | jq -er '.subjectId') || exit 1
+moltnet agents keys create --identity-scoped --agent-id "$agent_id" \
+  --name coding-session --ttl-days 30
+```
+
+Run it as the intended source agent. Its credential needs `key:manage` and the
+scopes being requested. `identityId` is a legacy identity identifier and is not
+the `--agent-id` value. Output is machine-readable JSON on stdout, so pipe it to
+`jq`.
 
 ```bash
 # Create — the secret is printed once, in the result. A one-time-secret notice

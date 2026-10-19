@@ -1,6 +1,9 @@
 package main
 
-import "github.com/spf13/cobra"
+import (
+	"fmt"
+	"github.com/spf13/cobra"
+)
 
 func newAgentsCmd() *cobra.Command {
 	agentsCmd := &cobra.Command{
@@ -14,9 +17,15 @@ func newAgentsCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath, _ := cmd.Flags().GetString("credentials")
 			apiURL := resolveAPIURL(cmd, credPath)
-			return runAgentsWhoamiCmd(apiURL, credPath)
+			warnDays, _ := cmd.Flags().GetInt("warn-expiry-days")
+			if warnDays < 0 && cmd.Flags().Changed("warn-expiry-days") {
+				return fmt.Errorf("--warn-expiry-days must be nonnegative")
+			}
+			return runAgentsWhoamiWithExpiry(apiURL, credPath, cmd.OutOrStdout(), cmd.ErrOrStderr(), warnDays)
 		},
 	}
+
+	whoamiCmd.Flags().Int("warn-expiry-days", -1, "Warn on stderr when the authenticated key expires within this many days")
 
 	lookupCmd := &cobra.Command{
 		Use:   "lookup <fingerprint>",

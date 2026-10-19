@@ -41,6 +41,7 @@ Required env vars:
   MOLTNET_PUBLIC_KEY, MOLTNET_PRIVATE_KEY, MOLTNET_FINGERPRINT
   plus ONE credential:
     MOLTNET_CLIENT_ID + MOLTNET_CLIENT_SECRET   (OAuth2), or
+    MOLTNET_AGENT_KEY (environment-only session credential), or
     MOLTNET_AGENT_KEY_REF=<provider>:agent-key/<subject_id>
 
 Compatibility release: a legacy bundle with MOLTNET_IDENTITY_ID is accepted
@@ -52,6 +53,12 @@ The git, SSH and GitHub App assets derive from the Ed25519 material above,
 never from the OAuth2 pair, so an agent authenticating with a key needs no
 client credentials to obtain them. The reference must be bound to this agent
 subject and cannot use the env provider.
+
+MOLTNET_AGENT_KEY authenticates with whoami (requires agent:profile) and must
+match the supplied subject and public key before any files are written. It
+selects key-only mode even if OAuth2 variables are present. The API key is never
+stored or exported: keep it available in the runtime environment, including
+when supplied through --env-file. Do not combine it with MOLTNET_AGENT_KEY_REF.
 
 Optional env vars:
   MOLTNET_ACTIVE_IDENTITY (alternative to --name flag)

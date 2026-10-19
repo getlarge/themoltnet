@@ -472,3 +472,39 @@ func TestConfigExportEnvIncludesReferencedGitHubPEM(t *testing.T) {
 		t.Fatalf("expected the referenced PEM in the env file:\n%s", written)
 	}
 }
+
+func TestConfigExportEnvKeyOnlyIdentity(t *testing.T) {
+	clearMoltnetEnv(t)
+	// Even a process-wide API key must never become part of the export.
+	t.Setenv(agentKeyEnv, "session-test-key")
+	dir := filepath.Join(t.TempDir(), "identities", "session")
+	path := filepath.Join(dir, "moltnet.json")
+	config := &CredentialsFile{
+		SubjectID: testSubjectID, SubjectType: SubjectTypeAgent,
+		AgentKeyRef: &SecretReference{Provider: osKeyringProviderName, Key: AgentKeyKey(testSubjectID)},
+		Keys:        CredentialsKeys{PublicKey: testPublicKey, PrivateKey: testPrivateKey, Fingerprint: "test-fingerprint"},
+		Endpoints:   CredentialsEndpoints{API: "https://api.themolt.net"},
+	}
+	if _, err := WriteConfigTo(config, path); err != nil {
+		t.Fatal(err)
+	}
+	registry, _ := newMemorySecretProviderRegistry()
+	outFile := filepath.Join(t.TempDir(), "export.env")
+	if err := runConfigExportEnvCmdWithRegistry(io.Discard, path, outFile, false, false, registry); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(outFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"MOLTNET_ACTIVE_IDENTITY=session", "MOLTNET_PRIVATE_KEY=" + testPrivateKey, "MOLTNET_SUBJECT_ID=" + testSubjectID} {
+		if !strings.Contains(string(data), want) {
+			t.Errorf("missing %s", strings.SplitN(want, "=", 2)[0])
+		}
+	}
+	for _, absent := range []string{"MOLTNET_CLIENT_ID", "MOLTNET_CLIENT_SECRET", "MOLTNET_AGENT_KEY", "session-test-key"} {
+		if strings.Contains(string(data), absent) {
+			t.Errorf("unexpected %s in export", absent)
+		}
+	}
+}
