@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./out-tsc",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
+  },
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "../../libs/adaptive-review/tsconfig.lib.json" }]
+}
