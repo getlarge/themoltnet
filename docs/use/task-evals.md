@@ -281,7 +281,6 @@ eval lane may produce no fresh report, which the job summary states explicitly.
 Reports include the collection time, source commit, corpus revision,
 pricing-catalog hash, workflow run and attempt, event and schedule, and the REST
 API image identity when available. Use these fields to select comparable
-historical runs. The same format applies to manual, daily, or weekly runs; this
-change adds no new schedule or long-term storage. Reports observe spend and do
-not enforce the task or team budgets tracked in
+historical runs. The same format applies to manual, daily, or weekly runs.
+Reports observe spend and do not enforce the task or team budgets tracked in
 [issue #1412](https://github.com/getlarge/themoltnet/issues/1412).
