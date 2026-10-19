@@ -307,6 +307,8 @@ describe('mcpAuthProxyPlugin', () => {
 
     expect(res.statusCode).toBe(429);
     expect(res.json().error).toBe('RATE_LIMITED');
+    expect(Number(res.headers['retry-after'])).toBeGreaterThan(0);
+    expect(Number(res.headers['retry-after'])).toBeLessThanOrEqual(60);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 

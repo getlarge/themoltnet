@@ -376,6 +376,174 @@ describe('createTokenExchanger', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it('should restore the full failure budget at cooldown expiry', async () => {
+    exchanger = makeExchanger({
+      rateLimit: { maxFailures: 3, cooldownMs: 10_000 },
+    });
+    fetchSpy.mockResolvedValue(
+      mockFetchResponse({ error: 'invalid_client' }, 401, false),
+    );
+
+    for (let window = 0; window < 2; window++) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        await expect(
+          exchanger.exchange('client-1', 'bad'),
+        ).rejects.toMatchObject({
+          statusCode: 401,
+        });
+      }
+      await expect(exchanger.exchange('client-1', 'bad')).rejects.toMatchObject(
+        {
+          statusCode: 429,
+          retryAfterSeconds: 10,
+        },
+      );
+      vi.advanceTimersByTime(10_000);
+    }
+    expect(fetchSpy).toHaveBeenCalledTimes(6);
+  });
+
+  it('should report remaining cooldown without extending it on blocked retries', async () => {
+    exchanger = makeExchanger({
+      rateLimit: { maxFailures: 1, cooldownMs: 10_000 },
+    });
+    fetchSpy.mockResolvedValue(
+      mockFetchResponse({ error: 'invalid_client' }, 400, false),
+    );
+    await expect(exchanger.exchange('client-1', 'bad')).rejects.toMatchObject({
+      statusCode: 401,
+    });
+
+    vi.advanceTimersByTime(8_501);
+    await expect(exchanger.exchange('client-1', 'bad')).rejects.toMatchObject({
+      statusCode: 429,
+      retryAfterSeconds: 2,
+    });
+    vi.advanceTimersByTime(1_499);
+    await expect(exchanger.exchange('client-1', 'bad')).rejects.toMatchObject({
+      statusCode: 401,
+    });
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('should isolate credential cooldowns for cached and uncached tokens', async () => {
+    exchanger = makeExchanger({
+      rateLimit: { maxFailures: 1, cooldownMs: 60_000 },
+    });
+    fetchSpy.mockResolvedValueOnce(mockTokenResponse('cached-token'));
+    await exchanger.exchange('client-1', 'cached-secret');
+    fetchSpy.mockResolvedValueOnce(
+      mockFetchResponse({ error: 'invalid_client' }, 401, false),
+    );
+    await expect(exchanger.exchange('client-1', 'bad')).rejects.toMatchObject({
+      statusCode: 401,
+    });
+
+    await expect(exchanger.exchange('client-1', 'cached-secret')).resolves.toBe(
+      'cached-token',
+    );
+    fetchSpy.mockResolvedValueOnce(mockTokenResponse('fresh-token'));
+    await expect(exchanger.exchange('client-1', 'new-secret')).resolves.toBe(
+      'fresh-token',
+    );
+    // Success with another secret must not clear the rejected secret's cooldown.
+    await expect(exchanger.exchange('client-1', 'bad')).rejects.toMatchObject({
+      statusCode: 429,
+    });
+    expect(fetchSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it('should serve a shared-cache hit even for a credential in local cooldown', async () => {
+    exchanger = makeExchanger({
+      rateLimit: { maxFailures: 1, cooldownMs: 60_000 },
+    });
+    fetchSpy.mockResolvedValueOnce(
+      mockFetchResponse({ error: 'invalid_client' }, 401, false),
+    );
+    await expect(
+      exchanger.exchange('client-1', 'secret'),
+    ).rejects.toMatchObject({
+      statusCode: 401,
+    });
+    await cache.set(testCredentialKey('client-1', 'secret'), {
+      value: 'shared-token',
+      expiresAt: 2_000_000,
+    });
+
+    await expect(exchanger.exchange('client-1', 'secret')).resolves.toBe(
+      'shared-token',
+    );
+    expect(fetchSpy).toHaveBeenCalledOnce();
+  });
+
+  it('should keep expired tokens behind the upstream failure gate', async () => {
+    exchanger = makeExchanger({
+      rateLimit: { maxFailures: 1, cooldownMs: 60_000 },
+    });
+    fetchSpy.mockResolvedValueOnce(
+      mockFetchResponse({ error: 'invalid_client' }, 401, false),
+    );
+    await expect(
+      exchanger.exchange('client-1', 'secret'),
+    ).rejects.toMatchObject({
+      statusCode: 401,
+    });
+    await cache.set(testCredentialKey('client-1', 'secret'), {
+      value: 'expired-token',
+      expiresAt: Date.now(),
+    });
+
+    await expect(
+      exchanger.exchange('client-1', 'secret'),
+    ).rejects.toMatchObject({
+      statusCode: 429,
+    });
+    expect(fetchSpy).toHaveBeenCalledOnce();
+  });
+
+  it.each(['network', 429, 500, 503] as const)(
+    'should preserve the credential failure budget through upstream %s errors',
+    async (failure) => {
+      exchanger = makeExchanger({
+        rateLimit: { maxFailures: 2, cooldownMs: 60_000 },
+      });
+      fetchSpy.mockResolvedValueOnce(
+        mockFetchResponse({ error: 'invalid_client' }, 401, false),
+      );
+      await expect(
+        exchanger.exchange('client-1', 'secret'),
+      ).rejects.toMatchObject({
+        statusCode: 401,
+      });
+      if (failure === 'network') {
+        fetchSpy.mockRejectedValue(new Error('Connection refused'));
+      } else {
+        fetchSpy.mockResolvedValue(mockFetchResponse({}, failure, false));
+      }
+      for (let attempt = 0; attempt < 3; attempt++) {
+        await expect(
+          exchanger.exchange('client-1', 'secret'),
+        ).rejects.toMatchObject({
+          statusCode: 502,
+        });
+      }
+      fetchSpy.mockResolvedValueOnce(
+        mockFetchResponse({ error: 'invalid_client' }, 401, false),
+      );
+      await expect(
+        exchanger.exchange('client-1', 'secret'),
+      ).rejects.toMatchObject({
+        statusCode: 401,
+      });
+      await expect(
+        exchanger.exchange('client-1', 'secret'),
+      ).rejects.toMatchObject({
+        statusCode: 429,
+      });
+      expect(fetchSpy).toHaveBeenCalledTimes(5);
+    },
+  );
+
   it('should reset rate limit after cooldown and successful exchange', async () => {
     exchanger = makeExchanger({
       rateLimit: { maxFailures: 2, cooldownMs: 10_000 },
@@ -397,7 +565,7 @@ describe('createTokenExchanger', () => {
 
     // Successful exchange resets
     fetchSpy.mockResolvedValueOnce(mockTokenResponse('recovered-token'));
-    const token = await exchanger.exchange('client-1', 'good-secret');
+    const token = await exchanger.exchange('client-1', 'bad');
 
     expect(token).toBe('recovered-token');
   });
