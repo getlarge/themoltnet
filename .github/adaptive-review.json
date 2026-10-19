@@ -1,0 +1,327 @@
+{
+  "checks": [
+    {
+      "companionPaths": ["libs/database/drizzle/**/*.sql"],
+      "detail": "Schema changed without a SQL migration in the PR.",
+      "id": "schema-migration",
+      "kind": "missing-companion",
+      "paths": ["libs/database/src/schema.ts"],
+      "ruleId": "schema-migration"
+    },
+    {
+      "detail": "Added a TypeScript paths mapping.",
+      "id": "tsconfig-paths",
+      "kind": "added-line",
+      "paths": ["**/tsconfig*.json"],
+      "pattern": "\"paths\"\\s*:",
+      "ruleId": "tsconfig-paths"
+    },
+    {
+      "detail": "Added a dynamic import in a test; check the resetModules exception.",
+      "id": "test-dynamic-import",
+      "kind": "added-line",
+      "paths": [
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "**/*.test.tsx",
+        "**/*.spec.tsx",
+        "**/__tests__/**/*.ts",
+        "**/__tests__/**/*.tsx"
+      ],
+      "pattern": "\\bimport\\s*\\(",
+      "ruleId": "test-dynamic-import"
+    },
+    {
+      "detail": "Added direct process.env access outside a source config.ts module.",
+      "excludePaths": ["**/config.ts", "libs/pi-extension/**"],
+      "id": "source-config-env",
+      "kind": "added-line",
+      "paths": [
+        "apps/**/src/**/*.ts",
+        "libs/**/src/**/*.ts",
+        "packages/**/src/**/*.ts",
+        "apps/**/src/**/*.tsx",
+        "libs/**/src/**/*.tsx",
+        "packages/**/src/**/*.tsx"
+      ],
+      "pattern": "\\bprocess\\.env\\b",
+      "ruleId": "source-config-env"
+    },
+    {
+      "detail": "Secretlint ignore file changed; check for rule-scoped inline fixture suppressions instead.",
+      "id": "fixture-secretlint",
+      "kind": "changed-path",
+      "paths": [".secretlintignore"],
+      "ruleId": "fixture-secretlint"
+    }
+  ],
+  "complexity": {
+    "rubric": "rubrics/pr-complexity-tristate-v2.json"
+  },
+  "docs": {
+    "config": ".github/docs-impact-review.json"
+  },
+  "lanes": [
+    "docs",
+    "tests",
+    "conventions",
+    "security",
+    "blast-radius",
+    "complexity"
+  ],
+  "rules": [
+    {
+      "description": "Changes to the Drizzle schema require a matching SQL migration.",
+      "id": "schema-migration",
+      "kind": "mechanical",
+      "paths": ["libs/database/src/schema.ts"],
+      "source": "AGENTS.md#database-schema-changes"
+    },
+    {
+      "description": "Custom structural SQL must keep Drizzle schema, snapshots, and the monotonic journal consistent.",
+      "id": "migration-metadata",
+      "kind": "semantic",
+      "paths": [
+        "libs/database/drizzle/**/*.sql",
+        "libs/database/drizzle/meta/**/*.json"
+      ],
+      "source": ".agents/skills/drizzle-migrations/SKILL.md"
+    },
+    {
+      "description": "TypeScript package resolution uses workspace exports, never tsconfig paths aliases.",
+      "id": "tsconfig-paths",
+      "kind": "mechanical",
+      "paths": ["**/tsconfig*.json"],
+      "source": "AGENTS.md#typescript-configuration-rules"
+    },
+    {
+      "description": "Nx syncs the composite project-reference graph; Vite projects use a glue tsconfig with separate source and spec configs and outputs.",
+      "id": "tsconfig-project-graph",
+      "kind": "semantic",
+      "paths": ["**/tsconfig*.json", "nx.json"],
+      "source": "AGENTS.md#vite-nx-multi-tsconfig-layout"
+    },
+    {
+      "description": "Build outputs and typecheck outputs follow the project group; dist and out-tsc do not overlap.",
+      "id": "build-cache-outputs",
+      "kind": "semantic",
+      "paths": ["**/tsconfig*.json", "nx.json", "**/package.json"],
+      "source": "AGENTS.md#build-cache-contract-three-groups"
+    },
+    {
+      "description": "In-repo dependencies use workspace:* and catalogued third-party dependencies use catalog:; apply the published-versus-bundled dependency policy.",
+      "id": "workspace-dependencies",
+      "kind": "semantic",
+      "paths": ["**/package.json", "pnpm-workspace.yaml", "pnpm-lock.yaml"],
+      "source": "AGENTS.md#adding-a-new-workspace"
+    },
+    {
+      "description": "Workspace imports resolve through source conditional exports; published packages also provide dist fallbacks. Private reviewer libraries may omit main/types and build scripts.",
+      "id": "package-exports",
+      "kind": "semantic",
+      "paths": ["**/package.json"],
+      "source": "AGENTS.md#typescript-configuration-rules"
+    },
+    {
+      "description": "Use Nx-resolved project tasks and standard package scripts; confirm test-ci inference for projects with tests. A package script may itself be an inferred Nx target.",
+      "id": "nx-project-tasks",
+      "kind": "semantic",
+      "paths": [
+        "**/package.json",
+        "**/project.json",
+        "**/vitest.config.ts",
+        "nx.json"
+      ],
+      "source": "AGENTS.md#quick-start"
+    },
+    {
+      "description": "Bundled GitHub Actions use Vite SSR on Node 22+, emit dist, typecheck to out-tsc, and expose check:externals.",
+      "id": "vite-action-build",
+      "kind": "semantic",
+      "paths": [
+        "packages/*-action/package.json",
+        "packages/*-action/vite.config.ts",
+        "packages/*-action/tsconfig*.json"
+      ],
+      "source": "AGENTS.md#bundle-externals-must-be-declared"
+    },
+    {
+      "description": "ESLint enforces Nx tag and browser/server import boundaries, typed promises, type-only imports, and sorting. Review config edits for weakened enforcement; let lint report ordinary violations.",
+      "id": "eslint-boundaries",
+      "kind": "semantic",
+      "paths": ["eslint.config.mjs", "**/eslint.config.mjs", "nx.json"],
+      "source": "eslint.config.mjs"
+    },
+    {
+      "description": "Read process.env through a source config.ts module; the Pi extension has an explicit exception.",
+      "id": "source-config-env",
+      "kind": "mechanical",
+      "paths": [
+        "apps/**/src/**/*.ts",
+        "libs/**/src/**/*.ts",
+        "packages/**/src/**/*.ts",
+        "apps/**/src/**/*.tsx",
+        "libs/**/src/**/*.tsx",
+        "packages/**/src/**/*.tsx"
+      ],
+      "source": "eslint.config.mjs"
+    },
+    {
+      "description": "Tests use static imports; dynamic import is reserved for explicit vi.resetModules environment reloads.",
+      "id": "test-dynamic-import",
+      "kind": "mechanical",
+      "paths": [
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "**/*.test.tsx",
+        "**/*.spec.tsx",
+        "**/__tests__/**/*.ts",
+        "**/__tests__/**/*.tsx"
+      ],
+      "source": "AGENTS.md#code-style"
+    },
+    {
+      "description": "Meaningful Vitest tests follow Arrange, Act, Assert and cover changed behavior rather than mirroring implementation.",
+      "id": "test-structure",
+      "kind": "semantic",
+      "paths": [
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "**/*.test.tsx",
+        "**/*.spec.tsx",
+        "**/__tests__/**/*.ts",
+        "**/__tests__/**/*.tsx"
+      ],
+      "source": "AGENTS.md#code-style"
+    },
+    {
+      "description": "Fake credentials use a rule-scoped inline Secretlint suppression with a reason; whole-file disables and .secretlintignore entries are not acceptable.",
+      "id": "fixture-secretlint",
+      "kind": "semantic",
+      "paths": [
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "**/fixtures/**",
+        "**/.secretlintrc*",
+        ".secretlintignore"
+      ],
+      "source": "docs/contribute/secret-scanning.md#false-positives"
+    },
+    {
+      "description": "Changed HTTP, MCP, or webhook trust boundaries validate external input with TypeBox schemas.",
+      "id": "runtime-typebox",
+      "kind": "semantic",
+      "paths": [
+        "apps/rest-api/src/**/*.ts",
+        "apps/mcp-server/src/**/*.ts",
+        "libs/mcp-*/src/**/*.ts"
+      ],
+      "source": "AGENTS.md#code-style"
+    },
+    {
+      "description": "Cross-cutting Fastify behavior belongs in plugins, with route-specific logic in routes or handlers.",
+      "id": "fastify-plugin",
+      "kind": "semantic",
+      "paths": ["apps/rest-api/src/**/*.ts", "apps/mcp-server/src/**/*.ts"],
+      "source": "AGENTS.md#code-style"
+    },
+    {
+      "description": "Application data access uses the repository layer rather than scattering direct database queries across routes or workflows.",
+      "id": "database-repository",
+      "kind": "semantic",
+      "paths": ["apps/**/src/**/*.ts", "libs/**/src/**/*.ts"],
+      "source": "AGENTS.md#code-style"
+    },
+    {
+      "description": "Repository writes use getExecutor(db) to preserve the active transaction; do not launch DBOS workflows inside runTransaction.",
+      "id": "db-transaction",
+      "kind": "semantic",
+      "paths": [
+        "libs/database/src/repositories/**/*.ts",
+        "libs/**/src/workflows/**/*.ts"
+      ],
+      "source": ".agents/skills/rendered-pack-6e1e24d4/SKILL.md"
+    },
+    {
+      "description": "Ordinary repository reads omit the 384-dimensional embedding column unless the query actually needs it.",
+      "id": "db-embedding",
+      "kind": "semantic",
+      "paths": ["libs/database/src/repositories/**/*.ts"],
+      "source": ".agents/skills/rendered-pack-6e1e24d4/SKILL.md"
+    },
+    {
+      "description": "ID lookups with team or diary scope combine both filters with AND; verify reachability before alleging a security regression.",
+      "id": "tenant-scope",
+      "kind": "semantic",
+      "paths": [
+        "libs/database/src/repositories/**/*.ts",
+        "apps/rest-api/src/**/*.ts",
+        "apps/mcp-server/src/**/*.ts"
+      ],
+      "source": ".agents/skills/rendered-pack-6e1e24d4/SKILL.md"
+    },
+    {
+      "description": "E2E requests for in-spec endpoints use @moltnet/api-client. Raw fetch is allowed for health, OAuth/token/auth/register, and documented spec gaps.",
+      "id": "e2e-api-client",
+      "kind": "semantic",
+      "paths": [
+        "apps/**/e2e/**/*.ts",
+        "apps/*-e2e/src/**/*.ts",
+        "libs/mcp-test-harness/**/*.ts"
+      ],
+      "source": ".agents/skills/rendered-pack-bba8dca4/SKILL.md"
+    },
+    {
+      "description": "Consumer UI uses design-system components and theme tokens; design-system internals are an exception to the import rule.",
+      "id": "ui-design-system",
+      "kind": "semantic",
+      "paths": [
+        "apps/console/src/**/*.tsx",
+        "libs/*-ui/src/**/*.tsx",
+        "libs/design-system/src/**/*.tsx"
+      ],
+      "source": "docs/contribute/design-system.md"
+    },
+    {
+      "description": "Interactive UI preserves native control semantics, accessible names and state, keyboard focus, and reduced-motion behavior.",
+      "id": "ui-accessibility",
+      "kind": "semantic",
+      "paths": [
+        "apps/console/src/**/*.tsx",
+        "libs/*-ui/src/**/*.tsx",
+        "libs/design-system/src/**/*.tsx"
+      ],
+      "source": "docs/contribute/accessibility.md"
+    },
+    {
+      "description": "Docs use meaningful alt text and link labels, context around code and Mermaid, and absolute dates where time matters.",
+      "id": "docs-accessibility",
+      "kind": "semantic",
+      "paths": ["docs/**/*.md", "docs/**/*.mdx"],
+      "source": "docs/contribute/accessibility.md"
+    },
+    {
+      "description": "Onboarding and use docs extend the canonical page and cross-link instead of duplicating guidance; keep user-facing tone.",
+      "id": "docs-canonical",
+      "kind": "semantic",
+      "paths": [
+        "docs/start/**/*.md",
+        "docs/use/**/*.md",
+        "docs/reference/**/*.md"
+      ],
+      "source": ".agents/skills/rendered-pack-5bf21e8c/SKILL.md"
+    },
+    {
+      "description": "Review automation executes trusted pinned runtime code, treats PR head as inert Git data, and publishes through the App identity.",
+      "id": "review-workflow-trust",
+      "kind": "semantic",
+      "paths": [
+        ".github/workflows/*review*.yml",
+        "libs/*review*/**",
+        "packages/*review-action/**"
+      ],
+      "source": ".github/workflows/docs-impact-review.yml"
+    }
+  ],
+  "version": 1
+}

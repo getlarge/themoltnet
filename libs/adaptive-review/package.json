@@ -32,6 +32,8 @@
   "dependencies": {
     "@moltnet/complexity-review": "workspace:*",
     "@moltnet/tasks": "workspace:*",
-    "@themoltnet/tasks-orchestrator": "workspace:*"
+    "@themoltnet/tasks-orchestrator": "workspace:*",
+    "re2js": "catalog:",
+    "typebox": "catalog:"
   }
 }
