@@ -56,7 +56,7 @@
     }
   ],
   "complexity": {
-    "rubric": "rubrics/pr-complexity-tristate-v2.json"
+    "rubric": "rubrics/pr-complexity-tristate-v3.json"
   },
   "docs": {
     "config": ".github/docs-impact-review.json"
