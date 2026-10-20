@@ -9,6 +9,7 @@ import type { ClassifyOutput } from '@moltnet/tasks';
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 import { RE2JS } from 're2js';
 
+import { parseReviewTaskBudgets, type TaskBudget } from './config.js';
 import {
   type AdaptivePolicy,
   type ConventionRule,
@@ -243,6 +244,7 @@ export function buildClassifyTask(
     status: 'modified',
     path: file.path,
   })),
+  budget: TaskBudget = parseReviewTaskBudgets().classifier,
 ) {
   const paths = packet.files.map((file) => file.path);
   const questions = Object.fromEntries(
@@ -264,9 +266,7 @@ export function buildClassifyTask(
     diaryId: identity.diaryId,
     correlationId: identity.correlationId,
     allowedProfiles: [{ profileId: identity.classifierProfileId }],
-    runningTimeoutSec: 90,
-    dispatchTimeoutSec: 240,
-    expiresInSec: 3600,
+    ...budget,
     maxAttempts: 1,
     tags: [
       'review:adaptive',

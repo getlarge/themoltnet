@@ -657,6 +657,27 @@ describe('runDocsImpactReview', () => {
     expect(created[0].runningTimeoutSec).toBe(150);
   });
 
+  it('applies trusted caller task budgets ahead of repository runtime settings', async () => {
+    const head = repo.commit({
+      'apps/cli/src/flags.ts': "export const flags = ['--dry-run'];\n",
+    });
+    const taskBudget = {
+      runningTimeoutSec: 420,
+      dispatchTimeoutSec: 180,
+      expiresInSec: 1800,
+    };
+    const { report, created } = run(head, ['timeout'], {
+      config: parseReviewConfig({
+        version: 1,
+        budgets: { stageRunningTimeoutSec: 90 },
+      }),
+      taskBudget,
+    });
+    const result = await report;
+    expect(created[0]).toMatchObject(taskBudget);
+    expect(result.gaps[0].reason).toContain('420s running budget');
+  });
+
   it('names the configured timeout when a stage exceeds it', async () => {
     // Arrange
     const head = repo.commit({

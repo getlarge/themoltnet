@@ -22,7 +22,11 @@ jobs:
       complexity-profile: legreffier-complexity-review-v2
       security-profile: legreffier-security-review-v2
       focused-profile: legreffier-adaptive-focused-review-v1
-      task-budgets: '{"focused":{"runningTimeoutSec":720,"dispatchTimeoutSec":300,"expiresInSec":3600},"security":{"runningTimeoutSec":900,"dispatchTimeoutSec":300,"expiresInSec":3600}}'
+      task-budgets: |
+        focused:
+          timeout: 12m
+        security:
+          timeout: 15m
       providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY supports-developer-role=false
       protected-paths: |
         .github/workflows/adaptive-review.yml

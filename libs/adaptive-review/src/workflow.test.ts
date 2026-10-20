@@ -336,6 +336,35 @@ describe('adaptive review orchestration', () => {
     expect(report.taskIds).toEqual(['task-1', 'task-2']);
   });
 
+  it('passes classifier and per-lane overrides to task creation', async () => {
+    const { tasks, created } = harness({ selected: 'tests' });
+    const budgets = parseReviewTaskBudgets(
+      'classifier: {timeout: 45s}\nfocused: {timeout: 10m}\ntests: {timeout: 8m}',
+    );
+    await runAdaptiveReview({ ...reviewOptions(tasks), taskBudgets: budgets });
+    expect(created.get('task-1')).toMatchObject(budgets.classifier);
+    expect(created.get('task-2')).toMatchObject(budgets.tests);
+  });
+
+  it.each(['docs', 'complexity'] as const)(
+    'passes %s budgets to its specialist workflow',
+    async (lane) => {
+      const { tasks } = harness({ selected: lane });
+      const budgets = parseReviewTaskBudgets(
+        `${lane}: {timeout: 5m, dispatch-timeout: 2m, expires-after: 2h}`,
+      );
+      await runAdaptiveReview({
+        ...reviewOptions(tasks),
+        taskBudgets: budgets,
+      });
+      const call =
+        lane === 'docs' ? mocks.runDocsImpactReview : mocks.runComplexityReview;
+      expect(call.mock.calls[0][1]).toMatchObject({
+        taskBudget: budgets[lane],
+      });
+    },
+  );
+
   it('publishes a focused concern with a changed-line citation', async () => {
     const { tasks } = harness({
       selected: 'tests',
@@ -576,7 +605,7 @@ describe('adaptive review orchestration', () => {
           taskBudgets: {
             ...options.taskBudgets,
             security: {
-              ...taskBudgets.security!,
+              ...taskBudgets.security,
               runningTimeoutSec: 702,
             },
           },

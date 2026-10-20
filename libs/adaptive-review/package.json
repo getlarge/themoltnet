@@ -47,6 +47,7 @@
     "@themoltnet/sdk": "workspace:*",
     "@themoltnet/tasks-orchestrator": "workspace:*",
     "re2js": "catalog:",
-    "typebox": "catalog:"
+    "typebox": "catalog:",
+    "yaml": "catalog:"
   }
 }

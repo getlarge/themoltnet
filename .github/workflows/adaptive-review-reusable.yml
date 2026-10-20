@@ -40,9 +40,9 @@ on:
         type: string
         default: ''
       task-budgets:
-        description: JSON map of focused and security task running, dispatch, and expiry limits in seconds.
+        description: Optional YAML map of review timeout overrides (timeout, dispatch-timeout, expires-after; e.g. 12m). Legacy JSON seconds are accepted.
         type: string
-        required: true
+        default: ''
       mode:
         type: string
         default: shadow

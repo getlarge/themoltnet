@@ -161,16 +161,6 @@ function requiredProfile(options: RunOptions, lane: Lane): string {
   return value;
 }
 
-function requiredBudget(
-  options: RunOptions,
-  lane: FocusedLane | 'security',
-): TaskBudget {
-  const key = lane === 'security' ? 'security' : 'focused';
-  const budget = options.taskBudgets[key];
-  if (!budget) throw new Error(`missing task budget for enabled ${lane} lane`);
-  return budget;
-}
-
 function laneFailureCode(reason: unknown): string {
   if (!(reason instanceof Error)) return 'non-error-rejection';
   if (reason.message === 'invalid complexity rubric')
@@ -655,6 +645,7 @@ export async function prepareAdaptiveReview(
           packet,
           snapshot.policy,
           changes,
+          options.taskBudgets.classifier,
         ),
         {
           idempotencyKey: taskKey(reviewIdentity, `classify-${packet.id}`),
@@ -815,6 +806,7 @@ export async function runRoutedAdaptiveReview(
             correlationId: identity.correlationId,
             profileId: requiredProfile(options, 'docs'),
             projectId: options.projectId,
+            taskBudget: options.taskBudgets.docs,
             tags: [
               'review:adaptive',
               'lane:docs',
@@ -855,6 +847,7 @@ export async function runRoutedAdaptiveReview(
             correlationId: identity.correlationId,
             profileId: requiredProfile(options, 'complexity'),
             rubric: rubricValue,
+            taskBudget: options.taskBudgets.complexity,
             tags: ['review:adaptive', 'lane:complexity'],
           },
           evidence,
@@ -889,7 +882,7 @@ export async function runRoutedAdaptiveReview(
           evidence,
           laneTasks,
           requiredProfile(options, 'security'),
-          requiredBudget(options, 'security'),
+          options.taskBudgets.security,
         );
       return runFocused(
         route.lane,
@@ -899,7 +892,7 @@ export async function runRoutedAdaptiveReview(
         snapshot.policy,
         laneTasks,
         requiredProfile(options, route.lane),
-        requiredBudget(options, route.lane),
+        options.taskBudgets[route.lane],
       );
     }),
   );

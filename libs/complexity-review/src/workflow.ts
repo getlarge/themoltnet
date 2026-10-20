@@ -37,6 +37,13 @@ export interface ReviewInput {
   profileId: string;
   rubric: Rubric;
   tags?: string[];
+  /** Trusted caller override, applied to every stage task. */
+  taskBudget?: Required<
+    Pick<
+      Parameters<TaskClient['createTask']>[0],
+      'runningTimeoutSec' | 'dispatchTimeoutSec' | 'expiresInSec'
+    >
+  >;
 }
 
 const MAX_METADATA_BYTES = 8_000;
@@ -133,6 +140,7 @@ function stageTask(
     runningTimeoutSec: STAGE_RUNNING_TIMEOUT_SEC,
     dispatchTimeoutSec: STAGE_DISPATCH_TIMEOUT_SEC,
     expiresInSec: 3600,
+    ...input.taskBudget,
     maxAttempts: 1,
     tags: [
       'review:complexity',

@@ -63,6 +63,21 @@ const stageOutput = (value: unknown) => ({
 });
 
 describe('staged complexity review', () => {
+  it('applies trusted task budgets to stage tasks', () => {
+    const taskBudget = {
+      runningTimeoutSec: 420,
+      dispatchTimeoutSec: 180,
+      expiresInSec: 1800,
+    };
+    const task = buildChangeMapTask({ ...input, taskBudget }, evidence);
+    expect(task).toMatchObject(taskBudget);
+    expect(buildChangeMapTask(input, evidence)).toMatchObject({
+      runningTimeoutSec: 180,
+      dispatchTimeoutSec: 240,
+      expiresInSec: 3600,
+    });
+  });
+
   it('carries parent review tags into each stage', () => {
     const task = buildChangeMapTask(
       { ...input, tags: ['review:adaptive', 'lane:complexity'] },

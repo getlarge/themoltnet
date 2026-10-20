@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
+import { parse } from 'yaml';
 
 import { parseReviewTaskBudgets } from './config.js';
 
@@ -12,7 +13,10 @@ function callerBudgets() {
     resolve(root, '.github/workflows/adaptive-review.yml'),
     'utf8',
   );
-  const raw = /^ {6}task-budgets: '([^']+)'$/m.exec(caller)?.[1];
+  const workflow = parse(caller) as {
+    jobs: { review: { with: { 'task-budgets': string } } };
+  };
+  const raw = workflow.jobs.review.with['task-budgets'];
   if (!raw) throw new Error('adaptive review caller has no task budgets');
   const budgets = parseReviewTaskBudgets(raw, [
     'tests',

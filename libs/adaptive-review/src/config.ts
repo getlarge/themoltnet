@@ -1,7 +1,8 @@
 import { type Static, Type } from 'typebox';
 import { Value } from 'typebox/value';
+import { parseDocument } from 'yaml';
 
-import type { Lane } from './policy.js';
+import { type Lane, LANES } from './policy.js';
 
 const TaskBudgetSchema = Type.Object(
   {
@@ -12,66 +13,162 @@ const TaskBudgetSchema = Type.Object(
   { additionalProperties: false },
 );
 
-const ReviewTaskBudgetsSchema = Type.Object(
-  {
-    focused: Type.Optional(TaskBudgetSchema),
-    security: Type.Optional(TaskBudgetSchema),
-  },
-  { additionalProperties: false },
-);
-
 export type TaskBudget = Static<typeof TaskBudgetSchema>;
-export type ReviewTaskBudgets = Static<typeof ReviewTaskBudgetsSchema>;
+export const REVIEW_BUDGET_KEYS = ['classifier', 'focused', ...LANES] as const;
+export type ReviewBudgetKey = (typeof REVIEW_BUDGET_KEYS)[number];
+export type ReviewTaskBudgets = Record<ReviewBudgetKey, TaskBudget>;
 
-/** Validate caller-owned runtime limits before any review task starts. */
+const DEFAULT_RUNNING_SECONDS: Record<ReviewBudgetKey, number> = {
+  classifier: 90,
+  focused: 720,
+  docs: 120,
+  complexity: 180,
+  security: 900,
+  tests: 720,
+  conventions: 720,
+  'blast-radius': 720,
+};
+const FOCUSED_LANES: readonly string[] = [
+  'tests',
+  'conventions',
+  'blast-radius',
+];
+const FIELDS = {
+  timeout: 'runningTimeoutSec',
+  'dispatch-timeout': 'dispatchTimeoutSec',
+  'expires-after': 'expiresInSec',
+} as const;
+const LEGACY_FIELDS = Object.values(FIELDS);
+const PREFIX = 'ADAPTIVE_TASK_BUDGETS';
+
+function isMap(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function seconds(value: unknown, path: string, legacy: boolean): number {
+  let result: number;
+  if (legacy) {
+    result = typeof value === 'number' ? value : NaN;
+  } else {
+    const match = typeof value === 'string' && /^(\d+)(s|m|h)$/.exec(value);
+    result = match
+      ? Number(match[1]) * ({ s: 1, m: 60, h: 3600 }[match[2]] ?? NaN)
+      : NaN;
+  }
+  if (!Number.isSafeInteger(result) || result <= 0) {
+    throw new Error(
+      `${path} must be ${legacy ? 'a positive safe integer in seconds' : 'a positive whole duration such as 90s, 12m, or 1h'}`,
+    );
+  }
+  return result;
+}
+
+/** Validate normalized limits before any review task starts. */
 export function validateReviewTaskBudgets(
   value: unknown,
-  lanes: readonly Lane[],
+  _lanes: readonly Lane[],
 ): asserts value is ReviewTaskBudgets {
-  if (!Value.Check(ReviewTaskBudgetsSchema, value)) {
-    throw new Error('ADAPTIVE_TASK_BUDGETS has invalid task budget fields');
+  if (
+    !isMap(value) ||
+    Object.keys(value).some(
+      (key) => !REVIEW_BUDGET_KEYS.includes(key as ReviewBudgetKey),
+    )
+  ) {
+    throw new Error(`${PREFIX} has invalid task budget fields`);
   }
-  const required = new Set(
-    lanes.map((lane) =>
-      lane === 'tests' || lane === 'conventions' || lane === 'blast-radius'
-        ? 'focused'
-        : lane,
-    ),
-  );
-  for (const key of ['focused', 'security'] as const) {
+  for (const key of REVIEW_BUDGET_KEYS) {
     const budget = value[key];
-    if (required.has(key) && !budget)
-      throw new Error(`ADAPTIVE_TASK_BUDGETS.${key} is required`);
     if (
-      budget &&
-      Object.values(budget).some((seconds) => !Number.isSafeInteger(seconds))
-    ) {
-      throw new Error(`ADAPTIVE_TASK_BUDGETS.${key} must use safe integers`);
-    }
-    if (
-      budget &&
-      budget.expiresInSec < budget.dispatchTimeoutSec + budget.runningTimeoutSec
+      !Value.Check(TaskBudgetSchema, budget) ||
+      Object.values(budget).some((n) => !Number.isSafeInteger(n))
     ) {
       throw new Error(
-        `ADAPTIVE_TASK_BUDGETS.${key} expires before its dispatch and running budgets`,
+        `${PREFIX}.${key} must contain positive safe integer limits`,
+      );
+    }
+    if (
+      budget.expiresInSec <
+      budget.dispatchTimeoutSec + budget.runningTimeoutSec
+    ) {
+      throw new Error(
+        `${PREFIX}.${key} expires before its dispatch and running budgets`,
       );
     }
   }
 }
 
-/** Parse the reusable workflow's JSON input. */
+/** YAML is the authoring format; legacy JSON seconds remain accepted. */
 export function parseReviewTaskBudgets(
-  raw: string,
-  lanes: readonly Lane[],
+  raw = '',
+  lanes: readonly Lane[] = LANES,
 ): ReviewTaskBudgets {
-  let value: unknown;
-  try {
-    value = JSON.parse(raw);
-  } catch {
-    throw new Error('ADAPTIVE_TASK_BUDGETS must be valid JSON');
+  let value: unknown = {};
+  if (raw.trim()) {
+    const document = parseDocument(raw);
+    if (document.errors.length)
+      throw new Error(
+        `${PREFIX} must be valid YAML or JSON (duplicate keys are not allowed)`,
+      );
+    value = document.toJS({ maxAliasCount: 0 });
   }
-  validateReviewTaskBudgets(value, lanes);
-  return value;
+  if (!isMap(value)) throw new Error(`${PREFIX} must be a map of review names`);
+  const overrides: Partial<Record<ReviewBudgetKey, Partial<TaskBudget>>> = {};
+  for (const [key, fields] of Object.entries(value)) {
+    if (!REVIEW_BUDGET_KEYS.includes(key as ReviewBudgetKey)) {
+      throw new Error(
+        `${PREFIX}.${key} is unknown; valid reviews: ${REVIEW_BUDGET_KEYS.join(', ')}`,
+      );
+    }
+    if (!isMap(fields))
+      throw new Error(`${PREFIX}.${key} must be a map of timeout overrides`);
+    const budget: Partial<TaskBudget> = {};
+    for (const [field, input] of Object.entries(fields)) {
+      const legacy = LEGACY_FIELDS.includes(
+        field as (typeof LEGACY_FIELDS)[number],
+      );
+      const target = Object.hasOwn(FIELDS, field)
+        ? FIELDS[field as keyof typeof FIELDS]
+        : legacy
+          ? (field as keyof TaskBudget)
+          : undefined;
+      if (!target)
+        throw new Error(
+          `${PREFIX}.${key}.${field} is unknown; use ${Object.keys(FIELDS).join(', ')}`,
+        );
+      if (Object.hasOwn(budget, target))
+        throw new Error(`${PREFIX}.${key}.${field} duplicates ${target}`);
+      budget[target] = seconds(input, `${PREFIX}.${key}.${field}`, legacy);
+    }
+    overrides[key as ReviewBudgetKey] = budget;
+  }
+  const resolved = Object.fromEntries(
+    REVIEW_BUDGET_KEYS.map((key) => [
+      key,
+      {
+        runningTimeoutSec: DEFAULT_RUNNING_SECONDS[key],
+        dispatchTimeoutSec: 300,
+        expiresInSec: 3600,
+        ...(FOCUSED_LANES.includes(key) ? overrides.focused : {}),
+        ...overrides[key],
+      },
+    ]),
+  ) as ReviewTaskBudgets;
+  validateReviewTaskBudgets(resolved, lanes);
+  return resolved;
+}
+
+export function formatReviewTaskBudgets(budgets: ReviewTaskBudgets): string {
+  return [
+    '### Resolved review task budgets',
+    '',
+    '| Review | Running | Dispatch | Expiry |',
+    '| --- | --- | --- | --- |',
+    ...REVIEW_BUDGET_KEYS.map((key) => {
+      const budget = budgets[key];
+      return `| ${key} | ${budget.runningTimeoutSec}s | ${budget.dispatchTimeoutSec}s | ${budget.expiresInSec}s |`;
+    }),
+    '',
+  ].join('\n');
 }
 
 /** Centralize environment reads so review modules receive explicit inputs. */
