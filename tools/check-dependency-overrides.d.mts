@@ -3,6 +3,7 @@
 /** An advisory as reported by `pnpm audit --json`. */
 export interface AuditAdvisory {
   id?: number;
+  patched_versions?: string | null;
   github_advisory_id?: string;
   module_name: string;
   severity: string;
@@ -26,3 +27,10 @@ export function devOnlyAdvisories(
   prodReport: AuditReport,
   fullReport: AuditReport,
 ): DevOnlyAdvisory[];
+
+/** Remove audit suppressions from a parsed pnpm workspace document. */
+export function dropIgnores(workspace: import('yaml').Document): void;
+
+export function hasPatchedVersion(
+  advisory: Pick<AuditAdvisory, 'patched_versions'>,
+): boolean;

@@ -15,7 +15,7 @@ case "${1:-}" in
     curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
     sudo apt-get install -y --no-install-recommends nodejs
     corepack enable
-    corepack prepare pnpm@10 --activate
+    corepack install
     ;;
   bundle)
     cd ~/src/themoltnet

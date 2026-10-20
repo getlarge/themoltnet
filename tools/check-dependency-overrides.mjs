@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Verifies that every `pnpm.overrides` entry and every `pnpm.auditConfig.
- * ignoreGhsas` entry is still earning its place.
+ * Verifies that every `overrides` entry and every `auditConfig.ignoreGhsas`
+ * entry in pnpm-workspace.yaml is still earning its place.
  *
  * A security override is a permanent, global, invisible pin. It gets added the
  * day an advisory lands and then outlives its reason: once the packages that
@@ -29,6 +29,8 @@ import { dirname, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+
+import { parse, parseDocument } from 'yaml';
 
 const execFileAsync = promisify(execFile);
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -110,6 +112,14 @@ export function overrideTarget(key) {
   return at === -1 ? last : last.slice(0, at);
 }
 
+/** pnpm 12 reports no patched release as null; older releases used <0.0.0. */
+export function hasPatchedVersion(advisory) {
+  return (
+    typeof advisory.patched_versions === 'string' &&
+    advisory.patched_versions !== '<0.0.0'
+  );
+}
+
 /** Package names carrying at least one advisory in this audit report. */
 function vulnerablePackages(report) {
   return new Set(
@@ -179,7 +189,7 @@ async function listWorkspaceManifests() {
 
 /**
  * Builds a throwaway copy of the workspace containing only what dependency
- * resolution reads, with `mutate` applied to the root manifest.
+ * resolution reads, with `mutate` applied to the workspace configuration.
  */
 async function stageWorkspace(mutate) {
   const dir = await mkdtemp(join(tmpdir(), 'moltnet-override-check-'));
@@ -201,28 +211,36 @@ async function stageWorkspace(mutate) {
     );
   }
 
-  const root = JSON.parse(
-    await readFile(join(REPO_ROOT, 'package.json'), 'utf8'),
+  await cp(join(REPO_ROOT, 'package.json'), join(dir, 'package.json'));
+  const workspace = parseDocument(
+    await readFile(join(REPO_ROOT, 'pnpm-workspace.yaml'), 'utf8'),
   );
-  mutate(root);
-  await writeFile(join(dir, 'package.json'), JSON.stringify(root, null, 2));
+  mutate(workspace);
+  await writeFile(join(dir, 'pnpm-workspace.yaml'), workspace.toString());
   return dir;
 }
 
 /** Strips the ignore list so suppressed advisories are visible to the check. */
-function dropIgnores(manifest) {
-  if (manifest.pnpm?.auditConfig) delete manifest.pnpm.auditConfig.ignoreGhsas;
+export function dropIgnores(workspace) {
+  if (workspace.hasIn(['auditConfig', 'ignoreGhsas'])) {
+    workspace.deleteIn(['auditConfig', 'ignoreGhsas']);
+  }
 }
 
 async function auditWithoutOverrides() {
-  const dir = await stageWorkspace((manifest) => {
-    delete manifest.pnpm.overrides;
-    dropIgnores(manifest);
+  const dir = await stageWorkspace((workspace) => {
+    workspace.delete('overrides');
+    dropIgnores(workspace);
   });
   try {
     // Re-resolve: without the overrides the lockfile no longer matches.
     await runPnpmStrict(
-      ['install', '--lockfile-only', '--ignore-scripts'],
+      [
+        'install',
+        '--lockfile-only',
+        '--ignore-scripts',
+        '--no-frozen-lockfile',
+      ],
       dir,
     );
     return {
@@ -265,7 +283,7 @@ function formatMarkdown({
       marker,
       '## :white_check_mark: Override hygiene — every entry is justified',
       '',
-      `${securityCount} of ${total} \`pnpm.overrides\` entries hold back a live advisory.` +
+      `${securityCount} of ${total} \`overrides\` entries hold back a live advisory.` +
         (dedupeOverrides.length > 0
           ? ` The other ${dedupeOverrides.length} collapse the tree — removing them would add ` +
             `${dedupeOverrides.reduce((n, o) => n + o.dedupeCost, 0)} package version(s).`
@@ -319,12 +337,12 @@ function formatMarkdown({
 async function main() {
   const args = process.argv.slice(2);
   const markdownIndex = args.indexOf('--markdown');
-  const manifest = JSON.parse(
-    await readFile(join(REPO_ROOT, 'package.json'), 'utf8'),
+  const workspace = parse(
+    await readFile(join(REPO_ROOT, 'pnpm-workspace.yaml'), 'utf8'),
   );
 
-  const overrides = manifest.pnpm?.overrides ?? {};
-  const ignored = manifest.pnpm?.auditConfig?.ignoreGhsas ?? [];
+  const overrides = workspace.overrides ?? {};
+  const ignored = workspace.auditConfig?.ignoreGhsas ?? [];
 
   // Resolving reaches the registry. Because this check blocks merges, a
   // network blip must not read as "your overrides are wrong" — exit 2 says
@@ -404,7 +422,7 @@ async function main() {
     if (!advisory) {
       return [{ ghsa, reason: 'no longer present in the dependency tree' }];
     }
-    if (advisory.patched_versions !== '<0.0.0') {
+    if (hasPatchedVersion(advisory)) {
       return [
         {
           ghsa,

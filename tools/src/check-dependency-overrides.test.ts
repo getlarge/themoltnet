@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { parseDocument } from 'yaml';
 
 import {
   type AuditAdvisory,
   devOnlyAdvisories,
+  dropIgnores,
+  hasPatchedVersion,
   overrideTarget,
 } from '../check-dependency-overrides.mjs';
 
@@ -100,5 +103,52 @@ describe('devOnlyAdvisories', () => {
 
     // Assert
     expect(result).toEqual([]);
+  });
+});
+
+describe('workspace audit configuration', () => {
+  it('exposes suppressed advisories without changing overrides or build permissions', () => {
+    const workspace = parseDocument(`
+# Keep the resolution policy intact.
+overrides:
+  lodash: ">=4.18.1"
+auditConfig:
+  ignoreGhsas:
+    - GHSA-example
+allowBuilds:
+  esbuild: true
+`);
+
+    dropIgnores(workspace);
+
+    expect(workspace.toJS()).toEqual({
+      overrides: { lodash: '>=4.18.1' },
+      auditConfig: {},
+      allowBuilds: { esbuild: true },
+    });
+    expect(workspace.toString()).toContain(
+      '# Keep the resolution policy intact.',
+    );
+  });
+
+  it('accepts a workspace without audit suppressions', () => {
+    const workspace = parseDocument('packages: ["apps/*"]\n');
+
+    dropIgnores(workspace);
+
+    expect(workspace.toJS()).toEqual({ packages: ['apps/*'] });
+  });
+});
+
+describe('audit patched versions', () => {
+  it.each([null, '<0.0.0', undefined])(
+    'does not claim a fix for %s',
+    (patched_versions) => {
+      expect(hasPatchedVersion({ patched_versions })).toBe(false);
+    },
+  );
+
+  it('recognizes an available patched release', () => {
+    expect(hasPatchedVersion({ patched_versions: '>=1.2.3' })).toBe(true);
   });
 });

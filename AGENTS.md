@@ -325,7 +325,7 @@ See `libs/database/drizzle/README.md` for the full workflow, rollback strategy, 
 - **Incremental builds**: Lib packages use `tsc -b` for incremental compilation with `.tsbuildinfo` caching. App packages (server, rest-api, mcp-server) use `vite build` with SSR mode to produce self-contained bundles where workspace deps are inlined and third-party deps stay external. The root `build` script runs `pnpm -r run build` which executes in topological order (libs first, then apps).
 - **Project references**: The root `tsconfig.json` is a solution file (`files: []` + `references` to all packages). It sets `composite: true` in `compilerOptions`, so every glue `tsconfig.json` that extends it is composite. Do not remove it: when Nx sync rewrites the root reference list (for example, after a new project is added), it keeps only projects whose `tsconfig.json` resolves to `composite: true`. Without the root setting, sync collapses the list to the few projects that set it themselves. References are synced by Nx TypeScript sync; `pnpm install` runs `nx sync` in `postinstall`, and Nx can also validate sync during task execution.
 - **Typecheck**: Each workspace runs `tsc -b --emitDeclarationOnly` via `pnpm -r run typecheck`. This emits `.d.ts` + `.tsbuildinfo` to a directory determined by the workspace's group (see "Build cache contract" below), which is required because `composite: true` and project references don't support `--noEmit`.
-- **Workspace linking**: `inject-workspace-packages=false` in `.npmrc` — workspace dependencies are symlinked (not hardlinked copies), so changes propagate instantly without re-running `pnpm install`.
+- **Workspace linking**: `injectWorkspacePackages: false` in `pnpm-workspace.yaml` — workspace dependencies are symlinked (not hardlinked copies), so changes propagate instantly without re-running `pnpm install`.
 
 ### Vite/Nx multi-tsconfig layout
 
@@ -507,7 +507,7 @@ these rules.
 - **Versions live in the catalog.** Change versions in `pnpm-workspace.yaml`,
   not in individual `package.json` files (see
   [Adding a New Workspace](#adding-a-new-workspace)).
-- **`pnpm.overrides` must justify themselves to the Override Hygiene gate.**
+- **`pnpm-workspace.yaml overrides` must justify themselves to the Override Hygiene gate.**
   The blocking `Override Hygiene` CI job (`tools/check-dependency-overrides.mjs`)
   re-resolves the workspace without overrides. It keeps an entry only if it
   holds back an advisory in production dependencies (`pnpm audit --prod`) or
