@@ -16,7 +16,7 @@ Install the published dependencies and build the runtime module:
 
 ```bash
 env npm_config_minimum_release_age_exclude='@themoltnet/*' \
-  pnpm install --ignore-workspace
+  pnpm install
 pnpm build
 ```
 
@@ -27,7 +27,7 @@ sequence from this directory:
 
 ```bash
 env npm_config_minimum_release_age_exclude='@themoltnet/*' \
-  pnpm install --ignore-workspace
+  pnpm install
 pnpm typecheck
 pnpm test
 pnpm build
@@ -43,7 +43,7 @@ must match the pins of the
 `apps/agent-daemon/src/runtime-loader.ts` validates the adapter structurally, so
 a skewed pair loads successfully and then fails later with an unhelpful error.
 
-The `pnpm.overrides` pins also keep Pi's transitive packages on that version.
+The `overrides` pins in `pnpm-workspace.yaml` also keep Pi's transitive packages on that version.
 Pi declares caret ranges internally; these overrides keep a fresh install on
 the same Pi 1.2 release as the daemon.
 
@@ -270,7 +270,7 @@ Run the same isolated sequence as the dedicated example workflow:
 
 ```bash
 env npm_config_minimum_release_age_exclude='@themoltnet/*' \
-  pnpm install --ignore-workspace
+  pnpm install
 pnpm typecheck
 pnpm test
 pnpm build

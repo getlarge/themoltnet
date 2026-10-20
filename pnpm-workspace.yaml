@@ -25,21 +25,48 @@ minimumReleaseAgeExclude:
   - '@themoltnet/*'
   # Renovate security update: vite@8.0.16
   - vite@8.0.16
-  # Renovate security update: pnpm@10.34.5
-  - pnpm@10.34.5
   # Renovate security update: smol-toml@1.9.0
   - smol-toml@1.9.0
 allowBuilds:
   '@github/keytar': true
+  '@google/genai': false
+  '@swc/core': true
+  better-sqlite3: true
   cpu-features: false
   edgedriver: false
   esbuild: true
+  eslint-plugin-n8n-nodes-base: false
   geckodriver: false
+  isolated-vm: true
   node-hid: true
+  nx: true
   onnxruntime-node: true
   protobufjs: false
   sharp: false
   ssh2: false
+  tree-sitter-bash: true
+  unrs-resolver: true
+overrides:
+  'minimatch': '>=10.2.5'
+  'brace-expansion@1': '>=1.1.13'
+  'brace-expansion@2': '>=2.0.3'
+  'brace-expansion': '>=5.0.12 <6'
+  'picomatch': '>=4.0.4'
+  'lodash': '>=4.18.1'
+  'path-to-regexp': '>=8.4.2'
+  'yaml': '>=2.8.3 <3'
+  'ajv@8': '>=8.18.0'
+  'protobufjs@7': '>=7.6.5 <8'
+  'protobufjs@8': '>=8.6.6 <9'
+  'fast-jwt': '>=6.3.0 <7'
+  'sharp': '>=0.35.4 <0.36'
+  '@opentelemetry/core': '>=2.8.0 <3'
+  'uuid': '>=11.1.1 <12'
+  'axios': '>=1.20.0 <2'
+  'form-data@4': '>=4.0.6 <5'
+auditConfig:
+  ignoreGhsas:
+    - GHSA-848j-6mx2-7j84
 catalog:
   '@andersmyrmel/vard': '^1.2.0'
   '@axe-core/webdriverio': '^4.13.0'

@@ -64,7 +64,8 @@
     "json5": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "yaml": "catalog:"
   },
   "nx": {
     "namedInputs": {
