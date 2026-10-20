@@ -58,6 +58,13 @@ another System One classifier without changing this library. Classifier
 scores determine which enabled lanes receive deeper review. A classifier
 failure routes every enabled lane for review.
 
+Repository-reading focused tasks have a 12-minute running budget; the staged
+security tasks have 15 minutes each. These budgets cover the 40-turn MoltNet
+profiles while the 55-minute review job still accommodates both security
+stages. The shorter input-only docs and complexity stages keep their own
+budgets. Changing a profile's turn limit or a workflow deadline requires
+checking the budget contract tests alongside the task configuration.
+
 For a caller repository, add a `pull_request` workflow that invokes
 `getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml` at a
 trusted commit or release tag, passes `secrets: inherit`, and names an

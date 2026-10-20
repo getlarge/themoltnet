@@ -41,9 +41,13 @@ export interface ReviewInput {
 
 const MAX_METADATA_BYTES = 8_000;
 const MAX_GROUPS = 8;
-// Four domain tasks plus mapping and synthesis fit the 55-minute review job
-// even when each task uses its dispatch and running timeout (7 minutes).
-const MAX_SERIAL_DOMAIN_WORK = 4;
+// Each task can use seven minutes including dispatch. Adaptive review runs
+// domains serially; the standalone workflow has two workers and admits three
+// two-task waves. Both paths retain time for mapping and synthesis.
+export const MAX_SERIAL_DOMAIN_WORK = 4;
+export const MAX_PARALLEL_DOMAIN_WORK = 6;
+export const STAGE_RUNNING_TIMEOUT_SEC = 180;
+export const STAGE_DISPATCH_TIMEOUT_SEC = 240;
 const ChangeMapSchema = Type.Object({
   groups: Type.Array(
     Type.Object({
@@ -126,8 +130,8 @@ function stageTask(
     diaryId: input.diaryId,
     correlationId: input.correlationId,
     allowedProfiles: [{ profileId: input.profileId }],
-    runningTimeoutSec: 180,
-    dispatchTimeoutSec: 240,
+    runningTimeoutSec: STAGE_RUNNING_TIMEOUT_SEC,
+    dispatchTimeoutSec: STAGE_DISPATCH_TIMEOUT_SEC,
     expiresInSec: 3600,
     maxAttempts: 1,
     tags: [
@@ -414,9 +418,12 @@ export async function runComplexityReview(
   );
   const mappedAt = Date.now();
   const work = buildDomainWork(groups, evidence);
-  const selectedWork = options.serialDomainDispatch
-    ? work.slice(0, MAX_SERIAL_DOMAIN_WORK)
-    : work;
+  const selectedWork = work.slice(
+    0,
+    options.serialDomainDispatch
+      ? MAX_SERIAL_DOMAIN_WORK
+      : MAX_PARALLEL_DOMAIN_WORK,
+  );
   const unreviewedDomainWork = work.length - selectedWork.length;
   const runDomainBatch = (items: DomainWork[]) =>
     parallelTasks({
@@ -431,19 +438,24 @@ export async function runComplexityReview(
         awaitParsed(task.id, (output) =>
           parseDomainResult(output, item, input.rubric),
         ),
-      concurrency: 4,
+      // The reusable workflow has two workers. More queued tasks can exhaust
+      // their dispatch timeout while earlier tasks occupy both workers.
+      concurrency: 2,
     });
-  let domains: Awaited<ReturnType<typeof runDomainBatch>>;
-  if (options.serialDomainDispatch) {
-    const batches: Array<Awaited<ReturnType<typeof runDomainBatch>>> = [];
-    for (const item of selectedWork) batches.push(await runDomainBatch([item]));
-    domains = {
-      created: batches.flatMap((batch) => batch.created),
-      results: batches.flatMap((batch) => batch.results),
-    };
-  } else {
-    domains = await runDomainBatch(selectedWork);
+  const batches: Array<Awaited<ReturnType<typeof runDomainBatch>>> = [];
+  const batchSize = options.serialDomainDispatch ? 1 : 2;
+  // parallelTasks bounds result polling, but creates every task in its input
+  // immediately. Batch creation too, so queued tasks cannot exhaust their
+  // dispatch budget behind the two busy standalone workers.
+  for (let index = 0; index < selectedWork.length; index += batchSize) {
+    batches.push(
+      await runDomainBatch(selectedWork.slice(index, index + batchSize)),
+    );
   }
+  const domains = {
+    created: batches.flatMap((batch) => batch.created),
+    results: batches.flatMap((batch) => batch.results),
+  };
   const domainsAt = Date.now();
   const synthesisTask = await tasks.createTask(
     buildSynthesisTask(input, evidence, domains.results, unreviewedDomainWork),

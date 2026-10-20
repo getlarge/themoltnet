@@ -542,8 +542,8 @@ describe('staged complexity review', () => {
             created.find((item) => item.id === id)?.stage.startsWith('domain:')
           ) {
             expect(
-              created.filter((item) => item.stage.startsWith('domain:')),
-            ).toHaveLength(work.length);
+              created.filter((item) => item.stage.startsWith('domain:')).length,
+            ).toBeLessThanOrEqual(completedDomains + 2);
           }
           return Promise.resolve({
             id,
@@ -593,82 +593,90 @@ describe('staged complexity review', () => {
     },
   );
 
-  it('caps serial domain work and tells synthesis about omitted segments', async () => {
-    const files = Array.from({ length: 9 }, (_, index) => ({
-      path: `apps/domain-${index}.ts`,
-      patch: `+${'x'.repeat(MAX_PATCH_BYTES - 10)}`,
-      bytes: MAX_PATCH_BYTES - 9,
-    }));
-    const evidence: ReviewEvidence = {
-      manifest: files.map((file) => file.path).join('\n'),
-      files,
-      bytes: files.reduce((sum, file) => sum + file.bytes, 0),
-      generatedPaths: [],
-    };
-    const scores = rubric.criteria.map((criterion) => ({
-      criterionId: criterion.id,
-      status: 'pass' as const,
-      rationale: 'Reviewed change',
-    }));
-    const created: Array<{ id: string; stage: string; brief: string }> = [];
-    const outputs = new Map<string, unknown>();
-    const tasks = {
-      createTask: (body: Parameters<TaskClient['createTask']>[0]) => {
-        const id = `task-${created.length}`;
-        const stage =
-          body.tags?.find((tag) => tag.startsWith('stage:'))?.slice(6) ?? '';
-        created.push({ id, stage, brief: String(body.input.brief) });
-        outputs.set(
-          id,
-          stageOutput(
-            stage === 'map'
-              ? {
-                  groups: files.slice(0, 8).map((_, index) => ({
-                    nature: 'app change',
-                    fileIndexes: [index],
-                  })),
-                }
-              : stage.startsWith('domain:')
+  it.each([
+    { serialDomainDispatch: true, reviewed: 4, omitted: 5 },
+    { serialDomainDispatch: false, reviewed: 6, omitted: 3 },
+  ])(
+    'caps domain work and tells synthesis about omitted segments ($serialDomainDispatch)',
+    async ({ serialDomainDispatch, reviewed, omitted }) => {
+      const files = Array.from({ length: 9 }, (_, index) => ({
+        path: `apps/domain-${index}.ts`,
+        patch: `+${'x'.repeat(MAX_PATCH_BYTES - 10)}`,
+        bytes: MAX_PATCH_BYTES - 9,
+      }));
+      const evidence: ReviewEvidence = {
+        manifest: files.map((file) => file.path).join('\n'),
+        files,
+        bytes: files.reduce((sum, file) => sum + file.bytes, 0),
+        generatedPaths: [],
+      };
+      const scores = rubric.criteria.map((criterion) => ({
+        criterionId: criterion.id,
+        status: 'pass' as const,
+        rationale: 'Reviewed change',
+      }));
+      const created: Array<{ id: string; stage: string; brief: string }> = [];
+      const outputs = new Map<string, unknown>();
+      const tasks = {
+        createTask: (body: Parameters<TaskClient['createTask']>[0]) => {
+          const id = `task-${created.length}`;
+          const stage =
+            body.tags?.find((tag) => tag.startsWith('stage:'))?.slice(6) ?? '';
+          created.push({ id, stage, brief: String(body.input.brief) });
+          outputs.set(
+            id,
+            stageOutput(
+              stage === 'map'
                 ? {
-                    summary: 'Reviewed change',
-                    signals: [
-                      {
-                        criterionId: 'cognitive_load',
-                        evidence: 'One change',
-                        impact: 'neutral',
-                      },
-                    ],
+                    groups: files.slice(0, 8).map((_, index) => ({
+                      nature: 'app change',
+                      fileIndexes: [index],
+                    })),
                   }
-                : { scores, verdict: 'Low burden' },
-          ),
-        );
-        return Promise.resolve({ id });
-      },
-      getTask: (id: string) =>
-        Promise.resolve({
-          id,
-          status: 'completed',
-          acceptedAttemptN: 1,
-        }),
-      listAttempts: (id: string) =>
-        Promise.resolve([
-          {
-            taskId: id,
-            attemptN: 1,
+                : stage.startsWith('domain:')
+                  ? {
+                      summary: 'Reviewed change',
+                      signals: [
+                        {
+                          criterionId: 'cognitive_load',
+                          evidence: 'One change',
+                          impact: 'neutral',
+                        },
+                      ],
+                    }
+                  : { scores, verdict: 'Low burden' },
+            ),
+          );
+          return Promise.resolve({ id });
+        },
+        getTask: (id: string) =>
+          Promise.resolve({
+            id,
             status: 'completed',
-            output: outputs.get(id),
-          },
-        ]),
-    } as TaskClient;
+            acceptedAttemptN: 1,
+          }),
+        listAttempts: (id: string) =>
+          Promise.resolve([
+            {
+              taskId: id,
+              attemptN: 1,
+              status: 'completed',
+              output: outputs.get(id),
+            },
+          ]),
+      } as TaskClient;
 
-    const result = await runComplexityReview(tasks, input, evidence, {
-      serialDomainDispatch: true,
-    });
+      const result = await runComplexityReview(tasks, input, evidence, {
+        serialDomainDispatch,
+      });
 
-    expect(result.unreviewedDomainWork).toBe(5);
-    expect(
-      created.filter((item) => item.stage.startsWith('domain:')),
-    ).toHaveLength(4);
-    expect(created.at(-1)?.brief).toContain('5 segments were not reviewed');
-  });
+      expect(result.unreviewedDomainWork).toBe(omitted);
+      expect(
+        created.filter((item) => item.stage.startsWith('domain:')),
+      ).toHaveLength(reviewed);
+      expect(created.at(-1)?.brief).toContain(
+        `${omitted} segments were not reviewed`,
+      );
+    },
+  );
 });

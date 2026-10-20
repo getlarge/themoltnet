@@ -9,9 +9,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LANES, type ReviewIdentity } from './core.js';
 import {
   classifierTaskPossible,
+  DEEP_REVIEW_DISPATCH_TIMEOUT_SEC,
+  FOCUSED_RUNNING_TIMEOUT_SEC,
   prepareAdaptiveReview,
   runAdaptiveReview,
   runRoutedAdaptiveReview,
+  SECURITY_RUNNING_TIMEOUT_SEC,
 } from './workflow.js';
 
 const mocks = vi.hoisted(() => ({
@@ -312,6 +315,10 @@ describe('adaptive review orchestration', () => {
     ).toHaveLength(5);
     expect(createTask).toHaveBeenCalledTimes(2);
     expect(created.get('task-2')?.input.brief).toContain(sourcePath);
+    expect(created.get('task-2')).toMatchObject({
+      runningTimeoutSec: FOCUSED_RUNNING_TIMEOUT_SEC,
+      dispatchTimeoutSec: DEEP_REVIEW_DISPATCH_TIMEOUT_SEC,
+    });
     expect(report.taskIds).toEqual(['task-1', 'task-2']);
   });
 
@@ -964,6 +971,12 @@ describe('adaptive review orchestration', () => {
       expect(created.get('task-2')?.title).toContain('security hunt');
       expect(created.get('task-2')?.input.brief).toContain(patch);
       expect(created.get('task-3')?.title).toContain('security verify');
+      for (const taskId of ['task-2', 'task-3']) {
+        expect(created.get(taskId)).toMatchObject({
+          runningTimeoutSec: SECURITY_RUNNING_TIMEOUT_SEC,
+          dispatchTimeoutSec: DEEP_REVIEW_DISPATCH_TIMEOUT_SEC,
+        });
+      }
       expect(created.get('task-3')?.input.brief).toContain(
         '"id":"changed-route"',
       );

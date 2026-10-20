@@ -12,14 +12,15 @@ revision-aware comment with the LeGreffier GitHub App token.
 
 Focused tasks receive evidence packets of at most 96 KB and have no optional
 tools. Larger source patches are split into numbered segments without dropping
-bytes, and synthesis combines observations across segments. There is no PR-wide
-file-count or focused-task-count rejection; focused reviews run with concurrency
-four and remain subject to the workflow timeout.
+bytes. The standalone workflow reviews at most six domain segments with two
+workers; adaptive review uses at most four serial segments. Synthesis names
+any remaining segments as unreviewed, so a large change cannot appear fully
+covered when it exceeds the review deadline budget.
 
 Generated dependency lockfiles are represented by their diff headers, original
 patch size, added/deleted line counts, and patch digest. Their contents are not
 reviewed, and the final comment explicitly lists these summarized paths. Source
-patches retain complete coverage.
+patches retain complete evidence for the segments selected for review.
 
 Files marked `linguist-generated` in `.gitattributes` are not reviewed. The
 attributes are read from the pull request's **base** revision, so a pull request
@@ -27,7 +28,8 @@ cannot hide its own files by editing `.gitattributes`. Generated files stay in
 the diff manifest, but they are left out of the change map, and the comment
 counts them and names the first few. When every changed file is generated, they
 are summarized like lockfiles instead, so the review still has evidence. Every
-other changed path appears in a focused review group after map validation.
+other changed path appears in a mapped review group; groups beyond the task
+budget are reported as unreviewed.
 
 The change-map task suggests groups; trusted code assigns group IDs, keeps the
 first valid assignment for each numbered file, and places unassigned files in
@@ -45,8 +47,9 @@ coverage, and marks insufficient evidence unclear. Test files alone establish
 neither adequate coverage nor its absence.
 
 Each task has one attempt and a 180-second running budget. Two drain workers
-claim focused tasks under one correlation ID. The final comment leads with a
-compact burden, head, and elapsed-time line.
+claim focused tasks under one correlation ID. The standalone review job allows
+45 minutes for mapping, three two-task waves, synthesis, and publishing. The
+final comment leads with a compact burden, head, and elapsed-time line.
 
 The source-controlled runtime assets are
 [`legreffier-complexity-review-v2.json`](../../.github/runtime-profiles/legreffier-complexity-review-v2.json)

@@ -92,13 +92,15 @@ export function renderComplexityReviewResult(args: {
   taskId: string;
   durationMs: number;
   domainCount: number;
+  unreviewedDomainWork?: number;
   summarizedPaths?: string[];
   generatedPaths?: string[];
   output: ComplexityReviewOutput;
 }): string {
   requireFullOid(args.revision, 'review revision');
+  const incomplete = (args.unreviewedDomainWork ?? 0) > 0;
   const burden =
-    args.output.composite === undefined
+    incomplete || args.output.composite === undefined
       ? 'undetermined'
       : args.output.composite >= 0.8
         ? 'low'
@@ -120,9 +122,12 @@ export function renderComplexityReviewResult(args: {
     '## MoltNet complexity review\n\n' +
     `Complexity: ${burden} burden · head ${args.revision.slice(0, 7)} · reviewed in ${Math.round(args.durationMs / 1000)}s\n\n` +
     `Stages: change map → ${args.domainCount} focused review${args.domainCount === 1 ? '' : 's'} → synthesis.\n\n` +
-    `**Weighted composite (assessed criteria only):** ${args.output.composite === undefined ? 'N/A' : args.output.composite.toFixed(2)}\n\n` +
+    (incomplete
+      ? `**Incomplete coverage:** ${args.unreviewedDomainWork} domain segment${args.unreviewedDomainWork === 1 ? ' was' : 's were'} not reviewed. No whole-change composite is shown.\n\n`
+      : '') +
+    `**Weighted composite (assessed criteria only):** ${incomplete || args.output.composite === undefined ? 'N/A' : args.output.composite.toFixed(2)}\n\n` +
     `Assessed criteria: ${assessedCount}/${args.output.scores.length}.\n\n` +
-    `**Verdict:** ${args.output.verdict}\n\n` +
+    `**Verdict:** ${incomplete ? 'Incomplete review; some domain segments were not assessed.' : args.output.verdict}\n\n` +
     `${criteria}\n\n` +
     (args.summarizedPaths?.length
       ? `Generated lockfile contents summarized (change metadata only): ${args.summarizedPaths.map((path) => JSON.stringify(path)).join(', ')}.\n\n`
@@ -289,6 +294,7 @@ export async function updateComplexityReviewComment(args: {
     output?: unknown;
     durationMs?: unknown;
     taskIds?: unknown;
+    unreviewedDomainWork?: unknown;
     summarizedPaths?: unknown;
     generatedPaths?: unknown;
   };
@@ -306,6 +312,13 @@ export async function updateComplexityReviewComment(args: {
     report.taskIds.length < 3
   ) {
     throw new Error('accepted review report has no valid workflow timing');
+  }
+  if (
+    report.unreviewedDomainWork !== undefined &&
+    (!Number.isSafeInteger(report.unreviewedDomainWork) ||
+      (report.unreviewedDomainWork as number) < 0)
+  ) {
+    throw new Error('invalid unreviewed domain count');
   }
   if (
     report.summarizedPaths !== undefined &&
@@ -329,6 +342,7 @@ export async function updateComplexityReviewComment(args: {
       taskId: args.taskId,
       durationMs: report.durationMs,
       domainCount: report.taskIds.length - 2,
+      unreviewedDomainWork: report.unreviewedDomainWork as number | undefined,
       summarizedPaths: report.summarizedPaths as string[] | undefined,
       generatedPaths: report.generatedPaths as string[] | undefined,
       output,

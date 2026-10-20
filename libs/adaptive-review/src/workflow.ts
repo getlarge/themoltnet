@@ -53,6 +53,11 @@ import { changedPaths, loadAdaptivePolicy } from './snapshot.js';
 const FullOid = /^[0-9a-f]{40}$/;
 const MAX_FOCUSED_DIFF_BYTES = 120_000;
 const MAX_CLASSIFIER_PACKETS = 4;
+// Repository-reading profiles allow 40 turns. Keep their server-side task
+// budgets separate from the short input-only docs and complexity stages.
+export const FOCUSED_RUNNING_TIMEOUT_SEC = 720;
+export const SECURITY_RUNNING_TIMEOUT_SEC = 900;
+export const DEEP_REVIEW_DISPATCH_TIMEOUT_SEC = 300;
 type FocusedLane = 'tests' | 'conventions' | 'blast-radius';
 
 const FocusedOutput = Type.Object(
@@ -269,8 +274,8 @@ function createFocusedBody(
     diaryId: identity.diaryId,
     correlationId: identity.correlationId,
     allowedProfiles: [{ profileId }],
-    runningTimeoutSec: 180,
-    dispatchTimeoutSec: 300,
+    runningTimeoutSec: FOCUSED_RUNNING_TIMEOUT_SEC,
+    dispatchTimeoutSec: DEEP_REVIEW_DISPATCH_TIMEOUT_SEC,
     expiresInSec: 3600,
     maxAttempts: 1,
     tags: [
@@ -389,8 +394,8 @@ async function runSecurity(
     diaryId: identity.diaryId,
     correlationId: identity.correlationId,
     allowedProfiles: [{ profileId }],
-    runningTimeoutSec: 180,
-    dispatchTimeoutSec: 300,
+    runningTimeoutSec: SECURITY_RUNNING_TIMEOUT_SEC,
+    dispatchTimeoutSec: DEEP_REVIEW_DISPATCH_TIMEOUT_SEC,
     expiresInSec: 3600,
     maxAttempts: 1,
     tags: [

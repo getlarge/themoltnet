@@ -88,6 +88,28 @@ describe('complexity review comment lifecycle', () => {
     expect(body).toContain('cognitive-load: unclear');
   });
 
+  it('does not label partial domain coverage as low burden', () => {
+    const body = renderComplexityReviewResult({
+      revision: OLD_HEAD,
+      runUrl: RUN_URL,
+      taskId: 'task',
+      durationMs: 1000,
+      domainCount: 6,
+      unreviewedDomainWork: 3,
+      output,
+    });
+
+    expect(body).toContain('Complexity: undetermined burden');
+    expect(body).toContain(
+      'Incomplete coverage:** 3 domain segments were not reviewed',
+    );
+    expect(body).toContain(
+      'Weighted composite (assessed criteria only):** N/A',
+    );
+    expect(body).toContain('Verdict:** Incomplete review');
+    expect(body).not.toContain('Complexity: low burden');
+  });
+
   it('discloses generated lockfile summary coverage in the published result', () => {
     const body = renderComplexityReviewResult({
       revision: OLD_HEAD,

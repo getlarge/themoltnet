@@ -140,7 +140,7 @@ jobs:
     needs: prepare
     if: needs.prepare.outputs.skip == 'false'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     environment: ${{ inputs.environment }}
     permissions:
       contents: read
@@ -186,7 +186,7 @@ jobs:
       matrix:
         slot: [1, 2]
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 50
     environment: ${{ inputs.environment }}
     permissions:
       contents: read
