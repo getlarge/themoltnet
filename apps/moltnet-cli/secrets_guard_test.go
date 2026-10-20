@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -1079,5 +1080,180 @@ func TestSecretsGuardConnectionEnvironment(t *testing.T) {
 		if got := classifyProtectedPathWithContext(path, newSecretGuardPathContext(root, root, root)); got != pathCredential {
 			t.Errorf("classification for %s = %v", suffix, got)
 		}
+	}
+}
+
+// Exercise the full hook path: changing a shell command to git -C must not be
+// necessary to recover from cwd inside .git, and file tools must work as well.
+func TestSecretsGuardWorkingDirectories(t *testing.T) {
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_SYSTEM", os.DevNull)
+	store := t.TempDir()
+	t.Setenv("MOLTNET_HOME", store)
+	t.Setenv("MOLTNET_AGENT_SERVER_ROOT", store)
+	repo := t.TempDir()
+	mustGit(t, repo, "init")
+	mustGit(t, repo, "-c", "user.name=Test", "-c", "user.email=test@example.com", "-c", "commit.gpgsign=false", "commit", "--allow-empty", "-m", "initial")
+	worktree := filepath.Join(t.TempDir(), "linked")
+	mustGit(t, repo, "worktree", "add", "-b", "linked", worktree)
+	metadata := filepath.Join(repo, ".git", "finalize-pr")
+	linkedMetadata := filepath.Join(repo, ".git", "worktrees", "linked", "finalize-pr")
+	for _, dir := range []string{metadata, linkedMetadata} {
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	outside := t.TempDir()
+	for _, test := range []struct {
+		name, cwd, currentRoot, mainRoot string
+	}{
+		{"checkout", repo, repo, repo},
+		{"metadata", metadata, repo, repo},
+		{"linked-checkout", worktree, worktree, repo},
+		{"linked-metadata", linkedMetadata, worktree, repo},
+		{"outside-git", outside, outside, outside},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Chdir(test.cwd)
+			context, err := resolveSecretGuardPathContext()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if context.currentRoot != canonicalizeRoot(test.currentRoot) || context.mainRoot != canonicalizeRoot(test.mainRoot) {
+				t.Fatalf("incorrect roots: %+v", context)
+			}
+			cases := []struct {
+				tool   string
+				input  map[string]any
+				denied bool
+			}{
+				{"Bash", map[string]any{"command": "pwd"}, false},
+				{"Bash", map[string]any{"command": "cd " + strconv.Quote(filepath.ToSlash(repo))}, false},
+				{"Bash", map[string]any{"command": "git -C " + strconv.Quote(filepath.ToSlash(worktree)) + " rev-parse --short HEAD"}, false},
+				{"Read", map[string]any{"file_path": filepath.Join(metadata, "pr-1.md")}, false},
+				{"Edit", map[string]any{"file_path": filepath.Join(metadata, "pr-1.md")}, false},
+				{"Read", map[string]any{"file_path": filepath.Join(store, "identities", "agent", "moltnet.json")}, true},
+				{"Bash", map[string]any{"command": "cat " + strconv.Quote(filepath.ToSlash(filepath.Join(store, "identities", "agent", "moltnet.json")))}, true},
+				{"Read", map[string]any{"file_path": ".moltnet/agent/env"}, true},
+				{"Write", map[string]any{"file_path": filepath.Join(test.currentRoot, ".claude", "settings.json")}, true},
+				{"Write", map[string]any{"file_path": filepath.Join(test.mainRoot, ".codex", "hooks.json")}, true},
+			}
+			for _, check := range cases {
+				payload, err := json.Marshal(secretHookInput{ToolName: check.tool, ToolInput: check.input})
+				if err != nil {
+					t.Fatal(err)
+				}
+				var out bytes.Buffer
+				if err := runActiveSecretsGuardCmd(bytes.NewReader(payload), &out); err != nil {
+					t.Fatal(err)
+				}
+				if denied := strings.Contains(out.String(), `"permissionDecision":"deny"`); denied != check.denied {
+					t.Errorf("%s %v: denied=%v, want %v; %s", check.tool, check.input, denied, check.denied, &out)
+				}
+			}
+		})
+	}
+	t.Run("relative-linked-metadata", func(t *testing.T) {
+		admin := filepath.Dir(linkedMetadata)
+		pointer, err := filepath.Rel(admin, filepath.Join(worktree, ".git"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(admin, "gitdir"), []byte(pointer+"\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		t.Chdir(linkedMetadata)
+		context, err := resolveSecretGuardPathContext()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if context.currentRoot != canonicalizeRoot(worktree) || context.mainRoot != canonicalizeRoot(repo) {
+			t.Fatalf("incorrect relative backlink roots: %+v", context)
+		}
+		if reason := evaluateSecretsShellWithContext("cd "+strconv.Quote(filepath.ToSlash(repo)), context); reason != "" {
+			t.Fatalf("recovery command denied: %s", reason)
+		}
+		if got := classifyProtectedPathWithContext(filepath.Join(worktree, ".codex", "hooks.json"), context); got != pathManagedConfig {
+			t.Fatalf("linked checkout enforcement file class: %v", got)
+		}
+	})
+
+}
+
+func TestSecretsGuardFailureDiagnostics(t *testing.T) {
+	t.Parallel()
+	for _, test := range []struct{ payload, code string }{
+		{`{`, "invalid_payload"},
+		{`{"tool_name":"Bash"}`, "missing_tool_input"},
+		{`{"tool_name":"Bash","tool_input":{"command":""}}`, "missing_shell_command"},
+		{`{"tool_name":"Bash","tool_input":{"command":"echo 'sensitive-unclosed"}}`, "shell_parse_failed"},
+	} {
+		var out bytes.Buffer
+		if err := runActiveSecretsGuardCmd(strings.NewReader(test.payload), &out); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(out.String(), "["+test.code+"]") || !strings.Contains(out.String(), `"permissionDecision":"deny"`) {
+			t.Errorf("expected diagnostic %s: %s", test.code, &out)
+		}
+		if strings.Contains(out.String(), "sensitive-unclosed") {
+			t.Errorf("diagnostic echoed tool input: %s", &out)
+		}
+	}
+}
+
+func TestSecretsGuardRepositoryDiscoveryFailures(t *testing.T) {
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_SYSTEM", os.DevNull)
+	repo := t.TempDir()
+	mustGit(t, repo, "init")
+	nested := filepath.Join(repo, "nested")
+	if err := os.Mkdir(nested, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	// A malformed repository config must not turn a nested directory into a
+	// new protection root and leave checkout-level enforcement files outside it.
+	if err := os.WriteFile(filepath.Join(repo, ".git", "config"), []byte("[invalid"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(nested)
+	for _, target := range []string{
+		filepath.Join(repo, ".codex", "hooks.json"),
+		filepath.Join(repo, ".claude", "settings.json"),
+	} {
+		payload, err := json.Marshal(secretHookInput{ToolName: "Write", ToolInput: map[string]any{"file_path": target}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out bytes.Buffer
+		if err := runActiveSecretsGuardCmd(bytes.NewReader(payload), &out); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(out.String(), `"permissionDecision":"deny"`) || !strings.Contains(out.String(), "[repository_context_unavailable]") {
+			t.Errorf("expected repository discovery denial for %s: %s", target, &out)
+		}
+	}
+}
+
+func TestSecretsGuardSeparateMetadataRequiresCheckoutEvidence(t *testing.T) {
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_SYSTEM", os.DevNull)
+	root := t.TempDir()
+	admin := filepath.Join(root, "admin")
+	checkout := filepath.Join(root, "checkout")
+	mustGit(t, root, "init", "--separate-git-dir="+admin, checkout)
+	t.Chdir(admin)
+	payload, err := json.Marshal(secretHookInput{
+		ToolName:  "Write",
+		ToolInput: map[string]any{"file_path": filepath.Join(checkout, ".codex", "hooks.json")},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := runActiveSecretsGuardCmd(bytes.NewReader(payload), &out); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), `"permissionDecision":"deny"`) || !strings.Contains(out.String(), "[repository_context_unavailable]") {
+		t.Fatalf("expected unresolved metadata ownership denial: %s", &out)
 	}
 }

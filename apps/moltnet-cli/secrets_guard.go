@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -13,7 +14,12 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-const secretGuardFailure = "MoltNet secret guard could not verify this tool call. Run it outside the activated agent session after reviewing the credential exposure risk."
+// Diagnostics deliberately identify the failed stage without echoing tool
+// payloads, parser errors, or credential-provider details into the transcript.
+func secretGuardCheckFailure(code, guidance string) string {
+	return "MoltNet secret guard [" + code + "]: " + guidance
+}
+
 const maxSecretHookPayloadBytes = 8 << 20
 
 const secretGuardPayloadTooLarge = "MoltNet secret guard rejected an oversized tool payload. Split the operation into a smaller request; credential protection was not evaluated."
@@ -45,35 +51,106 @@ type secretGuardPathContext struct {
 	mainRoot    string
 }
 
-func currentRepoRoot() (string, error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("get working directory: %w", err)
-	}
+// Git metadata directories are not work trees: --show-toplevel fails there.
+// Resolve their owning checkout instead, including linked-worktree gitdirs.
+// Outside Git, cwd still anchors path checks; repository discovery must not
+// prevent safe commands (including cd) or central credential protection.
+func secretGuardRepoRoots(cwd string) (currentRoot, mainRoot string, err error) {
+	currentRoot = cwd
+	resolved := false
+	repositoryFound := false
+	metadataDir := ""
 	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
-	cmd.Dir = wd
-	root, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("resolve repo root: %w", err)
+	cmd.Dir = cwd
+	if root, err := cmd.Output(); err == nil {
+		currentRoot = strings.TrimSpace(string(root))
+		resolved = true
+		repositoryFound = true
+	} else {
+		cmd = exec.Command("git", "rev-parse", "--absolute-git-dir")
+		cmd.Dir = cwd
+		if gitDir, err := cmd.Output(); err == nil {
+			repositoryFound = true
+			metadataDir = strings.TrimSpace(string(gitDir))
+			// A linked worktree's administrative directory points back to
+			// its checkout via gitdir, even when cwd is below that directory.
+			if pointer, err := os.ReadFile(filepath.Join(metadataDir, "gitdir")); err == nil {
+				target := strings.TrimSpace(string(pointer))
+				if target == "" {
+					return "", "", secretGuardRepositoryError()
+				}
+				if !filepath.IsAbs(target) {
+					target = filepath.Join(metadataDir, target)
+				}
+				currentRoot = filepath.Dir(target)
+				resolved = true
+			} else if !os.IsNotExist(err) {
+				return "", "", secretGuardRepositoryError()
+			}
+		}
 	}
-	return strings.TrimSpace(string(root)), nil
+	mainRoot, ok := resolveGitCommonRoot(cwd)
+	if !ok {
+		if repositoryFound || secretGuardRepositoryExpected(cwd) {
+			return "", "", secretGuardRepositoryError()
+		}
+		mainRoot = currentRoot
+	} else if !resolved {
+		// The common-dir parent identifies a checkout only for the
+		// conventional .git layout. Separate metadata without a backlink
+		// does not establish checkout ownership, so do not guess its root.
+		if metadataDir == "" || canonicalizeRoot(filepath.Join(mainRoot, ".git")) != canonicalizeRoot(metadataDir) {
+			return "", "", secretGuardRepositoryError()
+		}
+		currentRoot = mainRoot
+	}
+	return currentRoot, mainRoot, nil
+}
+
+func secretGuardRepositoryError() error {
+	return errors.New(secretGuardCheckFailure("repository_context_unavailable",
+		"Cannot resolve an existing Git repository. Check Git availability, repository configuration, and access permissions, or switch to a valid checkout."))
+}
+
+// Failed Git probes do not prove that cwd is outside a repository. Look for
+// repository evidence independently so an unreadable or malformed Git config
+// cannot silently replace the protected checkout roots with a nested cwd.
+func secretGuardRepositoryExpected(cwd string) bool {
+	if os.Getenv("GIT_DIR") != "" || os.Getenv("GIT_WORK_TREE") != "" {
+		return true
+	}
+	for dir := cwd; ; dir = filepath.Dir(dir) {
+		if _, err := os.Lstat(filepath.Join(dir, ".git")); !os.IsNotExist(err) {
+			return true
+		}
+		// Bare and separately located administrative directories need not
+		// be named .git. A linked gitdir has commondir instead of objects.
+		if head, err := os.Stat(filepath.Join(dir, "HEAD")); err == nil && !head.IsDir() {
+			for _, name := range []string{"objects", "commondir"} {
+				if _, err := os.Stat(filepath.Join(dir, name)); !os.IsNotExist(err) {
+					return true
+				}
+			}
+		}
+		if filepath.Dir(dir) == dir {
+			return false
+		}
+	}
 }
 
 func resolveSecretGuardPathContext() (secretGuardPathContext, error) {
 	if _, err := GetConfigDir(); err != nil {
-		return secretGuardPathContext{}, fmt.Errorf("resolve protected store: %w", err)
+		return secretGuardPathContext{}, errors.New(secretGuardCheckFailure(
+			"protected_store_unavailable", "Cannot resolve the protected store. Check MOLTNET_HOME and MOLTNET_AGENT_SERVER_ROOT configuration."))
 	}
 	cwd, err := os.Getwd()
 	if err != nil {
-		return secretGuardPathContext{}, fmt.Errorf("get working directory: %w", err)
+		return secretGuardPathContext{}, errors.New(secretGuardCheckFailure(
+			"working_directory_unavailable", "Cannot resolve the hook working directory. Switch worktrees or restart the session from an existing directory."))
 	}
-	currentRoot, err := currentRepoRoot()
+	currentRoot, mainRoot, err := secretGuardRepoRoots(cwd)
 	if err != nil {
 		return secretGuardPathContext{}, err
-	}
-	mainRoot, ok := resolveGitCommonRoot(cwd)
-	if !ok {
-		mainRoot = currentRoot
 	}
 	return newSecretGuardPathContext(cwd, currentRoot, mainRoot), nil
 }
@@ -97,7 +174,7 @@ func runSecretsGuardCmd(in io.Reader, out io.Writer) error {
 		return nil
 	}
 	if err != nil {
-		return writeSecretGuardDenial(out, secretGuardFailure)
+		return writeSecretGuardDenial(out, secretGuardCheckFailure("activation_unresolved", "Cannot resolve the activated identity. Check the session identity selection and GIT_CONFIG_GLOBAL."))
 	}
 	return runActiveSecretsGuardCmd(in, out)
 }
@@ -105,7 +182,7 @@ func runSecretsGuardCmd(in io.Reader, out io.Writer) error {
 func runActiveSecretsGuardCmd(in io.Reader, out io.Writer) error {
 	payload, err := io.ReadAll(io.LimitReader(in, maxSecretHookPayloadBytes+1))
 	if err != nil {
-		return writeSecretGuardDenial(out, secretGuardFailure)
+		return writeSecretGuardDenial(out, secretGuardCheckFailure("payload_read_failed", "Cannot read the hook input. Check the host hook integration."))
 	}
 	if len(payload) > maxSecretHookPayloadBytes {
 		return writeSecretGuardDenial(out, secretGuardPayloadTooLarge)
@@ -113,14 +190,14 @@ func runActiveSecretsGuardCmd(in io.Reader, out io.Writer) error {
 
 	var input secretHookInput
 	if err := json.NewDecoder(bytes.NewReader(payload)).Decode(&input); err != nil {
-		return writeSecretGuardDenial(out, secretGuardFailure)
+		return writeSecretGuardDenial(out, secretGuardCheckFailure("invalid_payload", "Expected a JSON hook payload. Check the host hook integration."))
 	}
 	if input.ToolInput == nil {
-		return writeSecretGuardDenial(out, secretGuardFailure)
+		return writeSecretGuardDenial(out, secretGuardCheckFailure("missing_tool_input", "The hook payload has no tool_input object. Check the host hook integration."))
 	}
 	pathContext, err := resolveSecretGuardPathContext()
 	if err != nil {
-		return writeSecretGuardDenial(out, secretGuardFailure)
+		return writeSecretGuardDenial(out, err.Error())
 	}
 
 	tool := normalizeSecretToolName(input.ToolName)
@@ -134,7 +211,7 @@ func runActiveSecretsGuardCmd(in io.Reader, out io.Writer) error {
 	case "bash", "shell", "terminal":
 		command, ok := input.ToolInput["command"].(string)
 		if !ok || strings.TrimSpace(command) == "" {
-			reason = secretGuardFailure
+			reason = secretGuardCheckFailure("missing_shell_command", "The shell tool payload has no nonempty command string. Check the host hook integration.")
 		} else {
 			reason = evaluateSecretsShellWithContext(command, pathContext)
 		}
@@ -217,7 +294,7 @@ func patchTouchesProtectedSecret(patch string, pathContext secretGuardPathContex
 func evaluateSecretsShell(command string) string {
 	pathContext, err := resolveSecretGuardPathContext()
 	if err != nil {
-		return secretGuardFailure
+		return err.Error()
 	}
 	return evaluateSecretsShellWithContext(command, pathContext)
 }
@@ -225,7 +302,7 @@ func evaluateSecretsShell(command string) string {
 func evaluateSecretsShellWithContext(command string, pathContext secretGuardPathContext) string {
 	file, err := syntax.NewParser(syntax.Variant(syntax.LangBash)).Parse(strings.NewReader(command), "secret-hook")
 	if err != nil {
-		return secretGuardFailure
+		return secretGuardCheckFailure("shell_parse_failed", "Cannot parse the command as Bash. Submit a valid Bash command; tool input was not evaluated.")
 	}
 	vars := collectStaticShellVars(file)
 	scopedGitHubTokenCalls := collectScopedGitHubTokenCalls(file, vars)
