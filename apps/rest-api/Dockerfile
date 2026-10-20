@@ -36,7 +36,7 @@ WORKDIR /repo
 
 # Keep downloaded packages in a normal image layer so CI's registry cache can
 # restore them on ephemeral builders when source or host-built artifacts change.
-COPY pnpm-lock.yaml ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm fetch --prod
 
 # .dockerignore prunes everything not needed for install + deploy. Per-app

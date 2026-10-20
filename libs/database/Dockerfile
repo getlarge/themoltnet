@@ -22,7 +22,7 @@ RUN npm install -g pnpm@${PNPM_VERSION}
 FROM base AS build
 WORKDIR /repo
 
-COPY pnpm-lock.yaml ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm fetch --prod
 
 COPY . .
