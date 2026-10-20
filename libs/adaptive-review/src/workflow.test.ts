@@ -6,16 +6,30 @@ import type { ClassifyOutput } from '@moltnet/tasks';
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { parseReviewTaskBudgets } from './config.js';
 import { LANES, type ReviewIdentity } from './core.js';
 import {
   classifierTaskPossible,
-  DEEP_REVIEW_DISPATCH_TIMEOUT_SEC,
-  FOCUSED_RUNNING_TIMEOUT_SEC,
   prepareAdaptiveReview,
   runAdaptiveReview,
   runRoutedAdaptiveReview,
-  SECURITY_RUNNING_TIMEOUT_SEC,
 } from './workflow.js';
+
+const taskBudgets = parseReviewTaskBudgets(
+  JSON.stringify({
+    focused: {
+      runningTimeoutSec: 601,
+      dispatchTimeoutSec: 251,
+      expiresInSec: 1800,
+    },
+    security: {
+      runningTimeoutSec: 701,
+      dispatchTimeoutSec: 301,
+      expiresInSec: 1900,
+    },
+  }),
+  LANES,
+);
 
 const mocks = vi.hoisted(() => ({
   buildEvidence: vi.fn(),
@@ -203,6 +217,7 @@ function reviewOptions(tasks: TaskClient) {
     tasks,
     cwd,
     runtimeSha: 'c'.repeat(40),
+    taskBudgets,
     profiles: {
       docs: 'docs-profile',
       complexity: 'complexity-profile',
@@ -316,8 +331,7 @@ describe('adaptive review orchestration', () => {
     expect(createTask).toHaveBeenCalledTimes(2);
     expect(created.get('task-2')?.input.brief).toContain(sourcePath);
     expect(created.get('task-2')).toMatchObject({
-      runningTimeoutSec: FOCUSED_RUNNING_TIMEOUT_SEC,
-      dispatchTimeoutSec: DEEP_REVIEW_DISPATCH_TIMEOUT_SEC,
+      ...taskBudgets.focused,
     });
     expect(report.taskIds).toEqual(['task-1', 'task-2']);
   });
@@ -554,6 +568,21 @@ describe('adaptive review orchestration', () => {
     ).rejects.toThrow('routing does not match the pinned review');
     await expect(
       runRoutedAdaptiveReview({ ...options, mode: 'shadow' }, preparation),
+    ).rejects.toThrow('routing does not match the pinned review');
+    await expect(
+      runRoutedAdaptiveReview(
+        {
+          ...options,
+          taskBudgets: {
+            ...options.taskBudgets,
+            security: {
+              ...taskBudgets.security!,
+              runningTimeoutSec: 702,
+            },
+          },
+        },
+        preparation,
+      ),
     ).rejects.toThrow('routing does not match the pinned review');
     expect(createTask).toHaveBeenCalledTimes(1);
   });
@@ -973,8 +1002,7 @@ describe('adaptive review orchestration', () => {
       expect(created.get('task-3')?.title).toContain('security verify');
       for (const taskId of ['task-2', 'task-3']) {
         expect(created.get(taskId)).toMatchObject({
-          runningTimeoutSec: SECURITY_RUNNING_TIMEOUT_SEC,
-          dispatchTimeoutSec: DEEP_REVIEW_DISPATCH_TIMEOUT_SEC,
+          ...taskBudgets.security,
         });
       }
       expect(created.get('task-3')?.input.brief).toContain(

@@ -3,13 +3,27 @@ import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import {
-  DEEP_REVIEW_DISPATCH_TIMEOUT_SEC,
-  FOCUSED_RUNNING_TIMEOUT_SEC,
-  SECURITY_RUNNING_TIMEOUT_SEC,
-} from './workflow.js';
+import { parseReviewTaskBudgets } from './config.js';
 
 const root = resolve(import.meta.dirname, '../../..');
+
+function callerBudgets() {
+  const caller = readFileSync(
+    resolve(root, '.github/workflows/adaptive-review.yml'),
+    'utf8',
+  );
+  const raw = /^ {6}task-budgets: '([^']+)'$/m.exec(caller)?.[1];
+  if (!raw) throw new Error('adaptive review caller has no task budgets');
+  const budgets = parseReviewTaskBudgets(raw, [
+    'tests',
+    'conventions',
+    'security',
+    'blast-radius',
+  ]);
+  if (!budgets.focused || !budgets.security)
+    throw new Error('adaptive review caller is missing a deep lane budget');
+  return { focused: budgets.focused, security: budgets.security };
+}
 
 function profile(name: string): { maxTurns: number; thinkingLevel?: string } {
   return JSON.parse(
@@ -22,21 +36,23 @@ function profile(name: string): { maxTurns: number; thinkingLevel?: string } {
 
 describe('adaptive review task budgets', () => {
   it('allows the repository-reading profiles to use their configured turns', () => {
+    const budgets = callerBudgets();
     const focused = profile('legreffier-adaptive-focused-review-v1');
     const security = profile('legreffier-security-review-v2');
 
     // Cloud model calls and repository inspection can each consume a turn.
     // The high-reasoning security profile needs more time per turn.
     expect(
-      FOCUSED_RUNNING_TIMEOUT_SEC / focused.maxTurns,
+      budgets.focused.runningTimeoutSec / focused.maxTurns,
     ).toBeGreaterThanOrEqual(18);
     expect(security.thinkingLevel).toBe('high');
     expect(
-      SECURITY_RUNNING_TIMEOUT_SEC / security.maxTurns,
+      budgets.security.runningTimeoutSec / security.maxTurns,
     ).toBeGreaterThanOrEqual(22);
   });
 
   it('leaves review-job time for both sequential security stages', () => {
+    const { security } = callerBudgets();
     const workflow = readFileSync(
       resolve(root, '.github/workflows/adaptive-review-reusable.yml'),
       'utf8',
@@ -48,8 +64,13 @@ describe('adaptive review task budgets', () => {
     expect(review).not.toBeNull();
     const jobSec = Number(review?.[1]) * 60;
     const twoStagesSec =
-      2 * (DEEP_REVIEW_DISPATCH_TIMEOUT_SEC + SECURITY_RUNNING_TIMEOUT_SEC);
+      2 * (security.dispatchTimeoutSec + security.runningTimeoutSec);
 
     expect(jobSec - twoStagesSec).toBeGreaterThanOrEqual(10 * 60);
+    expect(
+      workflow.match(
+        /ADAPTIVE_TASK_BUDGETS: \$\{\{ inputs\.task-budgets \}\}/g,
+      ),
+    ).toHaveLength(2);
   });
 });

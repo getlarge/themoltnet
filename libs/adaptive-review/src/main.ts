@@ -5,7 +5,7 @@ import { createGit } from '@moltnet/docs-impact-review';
 import { connect } from '@themoltnet/sdk/node';
 import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 
-import { env, required } from './config.js';
+import { env, parseReviewTaskBudgets, required } from './config.js';
 import { loadAdaptivePolicy } from './snapshot.js';
 import {
   type AdaptivePreparation,
@@ -89,6 +89,10 @@ async function main() {
     tasks: createSdkTaskClient(agent),
     cwd: process.cwd(),
     runtimeSha: required('ADAPTIVE_RUNTIME_SHA'),
+    taskBudgets: parseReviewTaskBudgets(
+      required('ADAPTIVE_TASK_BUDGETS'),
+      snapshot.policy.lanes,
+    ),
     profiles: {
       ...(snapshot.policy.lanes.includes('docs')
         ? { docs: resolve(required('ADAPTIVE_DOCS_PROFILE')) }

@@ -58,19 +58,23 @@ another System One classifier without changing this library. Classifier
 scores determine which enabled lanes receive deeper review. A classifier
 failure routes every enabled lane for review.
 
-Repository-reading focused tasks have a 12-minute running budget; the staged
-security tasks have 15 minutes each. These budgets cover the 40-turn MoltNet
-profiles while the 55-minute review job still accommodates both security
-stages. The shorter input-only docs and complexity stages keep their own
-budgets. Changing a profile's turn limit or a workflow deadline requires
-checking the budget contract tests alongside the task configuration.
+The caller supplies `task-budgets` as JSON. A `focused` entry is required when
+tests, conventions, or blast-radius is enabled; a `security` entry is required
+when security is enabled. Each entry specifies `runningTimeoutSec`,
+`dispatchTimeoutSec`, and `expiresInSec`, and expiry must cover dispatch plus
+running time. Size these limits for the selected profiles and the reusable
+workflow's review and worker deadlines. MoltNet's caller uses 12 minutes for
+its 40-turn focused profile and 15 minutes per staged security task; the
+library contains no model-specific timeout. The shorter docs and complexity
+stages keep their own budgets.
 
 For a caller repository, add a `pull_request` workflow that invokes
 `getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml` at a
 trusted commit or release tag, passes `secrets: inherit`, and names an
 environment containing the MoltNet agent and provider keys. Pass at least a
-classifier profile, a nonempty `providers` definition, and profiles for each
-lane enabled in `.github/adaptive-review.json`. `protected-paths` should
+classifier profile, `task-budgets`, a nonempty `providers` definition, and
+profiles for each lane enabled in `.github/adaptive-review.json`.
+`protected-paths` should
 include the caller workflow and any trusted runtime configuration it owns.
 For private repositories, bind workers to a private diary; the review report
 does not require a public diary.

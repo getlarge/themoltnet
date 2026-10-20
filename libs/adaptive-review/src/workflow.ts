@@ -30,6 +30,11 @@ import { Type } from 'typebox';
 import { Value } from 'typebox/value';
 
 import {
+  type ReviewTaskBudgets,
+  type TaskBudget,
+  validateReviewTaskBudgets,
+} from './config.js';
+import {
   applicableRules,
   buildClassifyTask,
   type ChangedPath,
@@ -53,11 +58,6 @@ import { changedPaths, loadAdaptivePolicy } from './snapshot.js';
 const FullOid = /^[0-9a-f]{40}$/;
 const MAX_FOCUSED_DIFF_BYTES = 120_000;
 const MAX_CLASSIFIER_PACKETS = 4;
-// Repository-reading profiles allow 40 turns. Keep their server-side task
-// budgets separate from the short input-only docs and complexity stages.
-export const FOCUSED_RUNNING_TIMEOUT_SEC = 720;
-export const SECURITY_RUNNING_TIMEOUT_SEC = 900;
-export const DEEP_REVIEW_DISPATCH_TIMEOUT_SEC = 300;
 type FocusedLane = 'tests' | 'conventions' | 'blast-radius';
 
 const FocusedOutput = Type.Object(
@@ -128,6 +128,7 @@ export interface AdaptivePreparation {
   policyDigest: string;
   referenceDigests: Record<string, string>;
   runtimeSha: string;
+  taskBudgets: ReviewTaskBudgets;
   routing: RoutingDecision;
   packetCount: number;
   classifierTaskIds: string[];
@@ -144,6 +145,7 @@ export interface RunOptions {
   profiles: Partial<
     Record<'docs' | 'complexity' | 'security' | 'focused', string>
   >;
+  taskBudgets: ReviewTaskBudgets;
   runtimeSha: string;
   projectId?: string;
 }
@@ -159,12 +161,24 @@ function requiredProfile(options: RunOptions, lane: Lane): string {
   return value;
 }
 
+function requiredBudget(
+  options: RunOptions,
+  lane: FocusedLane | 'security',
+): TaskBudget {
+  const key = lane === 'security' ? 'security' : 'focused';
+  const budget = options.taskBudgets[key];
+  if (!budget) throw new Error(`missing task budget for enabled ${lane} lane`);
+  return budget;
+}
+
 function laneFailureCode(reason: unknown): string {
   if (!(reason instanceof Error)) return 'non-error-rejection';
   if (reason.message === 'invalid complexity rubric')
     return 'invalid-complexity-rubric';
   if (reason.message.startsWith('missing runtime profile for enabled '))
     return 'missing-profile';
+  if (reason.message.startsWith('missing task budget for enabled '))
+    return 'missing-budget';
   if (/^invalid (tests|conventions|blast-radius) result$/.test(reason.message))
     return 'invalid-focused-result';
   if (/ finding does not cite a changed line$/.test(reason.message))
@@ -266,6 +280,7 @@ function createFocusedBody(
   changes: readonly ChangedPath[],
   policy: AdaptivePolicy,
   profileId: string,
+  budget: TaskBudget,
 ) {
   return {
     taskType: 'freeform' as const,
@@ -274,9 +289,7 @@ function createFocusedBody(
     diaryId: identity.diaryId,
     correlationId: identity.correlationId,
     allowedProfiles: [{ profileId }],
-    runningTimeoutSec: FOCUSED_RUNNING_TIMEOUT_SEC,
-    dispatchTimeoutSec: DEEP_REVIEW_DISPATCH_TIMEOUT_SEC,
-    expiresInSec: 3600,
+    ...budget,
     maxAttempts: 1,
     tags: [
       'review:adaptive',
@@ -314,9 +327,18 @@ async function runFocused(
   policy: AdaptivePolicy,
   tasks: TaskClient,
   profileId: string,
+  budget: TaskBudget,
 ): Promise<LaneResult> {
   const task = await tasks.createTask(
-    createFocusedBody(lane, identity, evidence, changes, policy, profileId),
+    createFocusedBody(
+      lane,
+      identity,
+      evidence,
+      changes,
+      policy,
+      profileId,
+      budget,
+    ),
     {
       idempotencyKey: taskKey(identity, lane),
     },
@@ -360,6 +382,7 @@ async function runSecurity(
   evidence: ReviewEvidence,
   tasks: TaskClient,
   profileId: string,
+  budget: TaskBudget,
 ): Promise<LaneResult> {
   const generatedPaths = new Set(evidence.generatedPaths);
   const diff = evidence.files
@@ -394,9 +417,7 @@ async function runSecurity(
     diaryId: identity.diaryId,
     correlationId: identity.correlationId,
     allowedProfiles: [{ profileId }],
-    runningTimeoutSec: SECURITY_RUNNING_TIMEOUT_SEC,
-    dispatchTimeoutSec: DEEP_REVIEW_DISPATCH_TIMEOUT_SEC,
-    expiresInSec: 3600,
+    ...budget,
     maxAttempts: 1,
     tags: [
       'review:adaptive',
@@ -591,6 +612,7 @@ export async function prepareAdaptiveReview(
   const snapshot = loadAdaptivePolicy(git, identity.base);
   if (!snapshot)
     throw new Error('adaptive review policy is absent on the base');
+  validateReviewTaskBudgets(options.taskBudgets, snapshot.policy.lanes);
   const reviewIdentity = { ...identity, policyDigest: snapshot.digest };
   const changes = changedPaths(git, identity.base, identity.head);
   const evidence = buildEvidence(
@@ -695,6 +717,7 @@ export async function prepareAdaptiveReview(
     policyDigest: snapshot.digest,
     referenceDigests: snapshot.referenceDigests,
     runtimeSha: options.runtimeSha,
+    taskBudgets: options.taskBudgets,
     routing,
     packetCount: packets.length,
     classifierTaskIds,
@@ -728,6 +751,7 @@ export async function runRoutedAdaptiveReview(
   const snapshot = loadAdaptivePolicy(git, identity.base);
   if (!snapshot)
     throw new Error('adaptive review policy is absent on the base');
+  validateReviewTaskBudgets(options.taskBudgets, snapshot.policy.lanes);
   const reviewIdentity = { ...identity, policyDigest: snapshot.digest };
   if (
     preparation.version !== 1 ||
@@ -741,6 +765,8 @@ export async function runRoutedAdaptiveReview(
     JSON.stringify(preparation.referenceDigests) !==
       JSON.stringify(snapshot.referenceDigests) ||
     preparation.runtimeSha !== options.runtimeSha ||
+    JSON.stringify(preparation.taskBudgets) !==
+      JSON.stringify(options.taskBudgets) ||
     JSON.stringify(preparation.routing.routes.map((route) => route.lane)) !==
       JSON.stringify(snapshot.policy.lanes)
   ) {
@@ -863,6 +889,7 @@ export async function runRoutedAdaptiveReview(
           evidence,
           laneTasks,
           requiredProfile(options, 'security'),
+          requiredBudget(options, 'security'),
         );
       return runFocused(
         route.lane,
@@ -872,6 +899,7 @@ export async function runRoutedAdaptiveReview(
         snapshot.policy,
         laneTasks,
         requiredProfile(options, route.lane),
+        requiredBudget(options, route.lane),
       );
     }),
   );
