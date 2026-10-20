@@ -396,6 +396,9 @@ catalogs:
     proper-lockfile:
       specifier: 4.1.2
       version: 4.1.2
+    re2js:
+      specifier: ^2.8.8
+      version: 2.8.8
     react:
       specifier: ^19.3.0
       version: 19.3.0
@@ -1856,6 +1859,49 @@ importers:
       vue:
         specifier: 'catalog:'
         version: 3.5.33(typescript@5.9.3)
+
+  libs/adaptive-review:
+    dependencies:
+      '@moltnet/complexity-review':
+        specifier: workspace:*
+        version: link:../complexity-review
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../crypto-service
+      '@moltnet/docs-impact-review':
+        specifier: workspace:*
+        version: link:../docs-impact-review
+      '@moltnet/security-review':
+        specifier: workspace:*
+        version: link:../security-review
+      '@moltnet/task-schemas':
+        specifier: workspace:*
+        version: link:../task-schemas
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../tasks
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      '@themoltnet/tasks-orchestrator':
+        specifier: workspace:*
+        version: link:../tasks-orchestrator
+      re2js:
+        specifier: 'catalog:'
+        version: 2.8.8
+      typebox:
+        specifier: 'catalog:'
+        version: 1.3.27
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.19
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.33.0)(terser@5.47.1)(tsx@4.23.15)(yaml@2.8.4)
 
   libs/agent-config:
     dependencies:
@@ -3728,6 +3774,21 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@1.8.0))(lightningcss@1.33.0)(terser@5.47.1)(tsx@4.23.15)(yaml@2.8.4)
+
+  packages/adaptive-review-action:
+    devDependencies:
+      '@moltnet/adaptive-review':
+        specifier: workspace:*
+        version: link:../../libs/adaptive-review
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.19
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.3.4(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.23.15)(yaml@2.8.4)
 
   packages/agent-daemon-action:
     dependencies:
@@ -13529,6 +13590,10 @@ packages:
   rc@1.2.8:
     resolution: {integrity: sha512-y3bGgqKj3QBdxLbLkomlohkvsA8gdAiUQlSBJnBhfn+BPxg4bc62d8TcBW15wavDfgexCgccckhcZvywyQYPOw==}
     hasBin: true
+
+  re2js@2.8.8:
+    resolution: {integrity: sha512-E2FVgqD2mzJ+ZmMSHLnkOvZ7PiZ4FgMdfVCA3YsJWs9gtyoaKmUMxyVPCXS1yK209/mz3XkdT7kr3OlMWW2Fww==}
+    engines: {node: '>=20.0.0'}
 
   react-dom@19.3.0:
     resolution: {integrity: sha512-JDk8dgif51OjFoDE70+OT9ICyYr+69HlmihNwp1+Nsfbna3t5sIiCa9ZJktDmQ4/1b/rn26hIAR2uYXDMr5r0Q==}
@@ -26595,6 +26660,8 @@ snapshots:
       minimist: 1.2.8
       strip-json-comments: 2.0.1
     optional: true
+
+  re2js@2.8.8: {}
 
   react-dom@19.3.0(react@19.3.0):
     dependencies:

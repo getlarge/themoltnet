@@ -16,7 +16,9 @@ export { matchesAny, matchesGlob, validateGlob } from './glob.js';
 export { boundDiff, collectChangeSet, type DiffBudget } from './ingest.js';
 export {
   DOCS_IMPACT_COMMENT_MARKER,
+  neutralize,
   renderComment,
+  shorten,
   summarizeCorpus,
 } from './report.js';
 export {

@@ -173,7 +173,7 @@ export function buildDomainWork(
     for (const path of group.paths) {
       const file = byPath.get(path);
       if (!file) throw new Error(`change map included unknown path ${path}`);
-      const chunks = splitPatch(file.patch);
+      const chunks = splitPatch(file.patch, MAX_PATCH_BYTES);
       for (const [index, patch] of chunks.entries()) {
         const chunk =
           chunks.length === 1
@@ -199,16 +199,18 @@ export function buildDomainWork(
 }
 
 /** Lossless UTF-8 packets; prefer line boundaries, including for huge single lines. */
-function splitPatch(patch: string): string[] {
+export function splitPatch(patch: string, maxBytes: number): string[] {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 4)
+    throw new Error('maxBytes must be an integer of at least four');
   const data = Buffer.from(patch);
   const chunks: string[] = [];
   let start = 0;
   while (start < data.length) {
-    let end = Math.min(start + MAX_PATCH_BYTES, data.length);
+    let end = Math.min(start + maxBytes, data.length);
     if (end < data.length) {
       while ((data[end] & 0xc0) === 0x80) end--;
       const newline = data.lastIndexOf(0x0a, end - 1);
-      if (newline >= start + MAX_PATCH_BYTES / 2) end = newline + 1;
+      if (newline >= start + maxBytes / 2) end = newline + 1;
     }
     chunks.push(data.subarray(start, end).toString('utf8'));
     start = end;

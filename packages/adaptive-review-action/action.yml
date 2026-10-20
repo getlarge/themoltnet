@@ -1,0 +1,45 @@
+name: MoltNet adaptive review
+description: Run or publish the classifier-first advisory PR review.
+author: getlarge
+inputs:
+  step:
+    description: plan, route, review, or publish
+    required: true
+outputs:
+  classifier-needed:
+    description: Whether this review can create classifier tasks.
+    value: ${{ steps.plan.outputs.classifier-needed }}
+  review-enabled:
+    description: Whether policy enables an adaptive review.
+    value: ${{ steps.plan.outputs.review-enabled }}
+runs:
+  using: composite
+  steps:
+    - name: Plan classifier work
+      id: plan
+      if: inputs.step == 'plan'
+      shell: bash
+      env:
+        DIST: ${{ github.action_path }}/dist
+        ADAPTIVE_STAGE: plan
+      run: node "$DIST/review.js"
+    - name: Route adaptive review
+      if: inputs.step == 'route'
+      shell: bash
+      env:
+        DIST: ${{ github.action_path }}/dist
+        ADAPTIVE_STAGE: route
+      run: node "$DIST/review.js"
+    - name: Run routed adaptive review
+      if: inputs.step == 'review'
+      shell: bash
+      env:
+        DIST: ${{ github.action_path }}/dist
+        ADAPTIVE_STAGE: review
+      run: node "$DIST/review.js"
+    - name: Publish adaptive review
+      if: inputs.step == 'publish'
+      shell: bash
+      env:
+        DIST: ${{ github.action_path }}/dist
+      run: node "$DIST/publish.js"

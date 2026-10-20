@@ -27,6 +27,12 @@ const issue = {
 test('builds a bounded task from an eligible issue', () => {
   const spec = buildSpec(issue, 'getlarge/themoltnet', false);
   assert.equal(spec.taskType, 'freeform');
+  assert.deepEqual(spec.tags, [
+    'review:issue-triage',
+    'stage:extract',
+    'repo:getlarge/themoltnet',
+    'issue:42',
+  ]);
   assert.equal(
     spec.input.outputContract.schema.properties.criteria.minItems,
     5,
@@ -109,6 +115,12 @@ test('chains validated extraction into a standalone classifier task', () => {
     criteria,
   );
   assert.equal(spec.taskType, 'classify');
+  assert.deepEqual(spec.tags, [
+    'review:issue-triage',
+    'stage:classify',
+    'repo:getlarge/themoltnet',
+    'issue:42',
+  ]);
   assert.equal(spec.correlationId, 'correlation');
   assert.deepEqual(spec.input.state.evidence['context-files'], [
     'Done when: status appears.',

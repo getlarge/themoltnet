@@ -1,0 +1,34 @@
+name: Adaptive review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, synchronize, reopened]
+
+permissions: {}
+
+jobs:
+  review:
+    if: vars.MOLTNET_ADAPTIVE_REVIEW_CLEF_ENABLED == 'true' && github.event.pull_request.draft == false
+    uses: getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml@main
+    permissions:
+      contents: read
+      pull-requests: write
+    secrets: inherit
+    with:
+      environment: legreffier
+      mode: ${{ vars.MOLTNET_ADAPTIVE_REVIEW_MODE || 'shadow' }}
+      classifier-profile: legreffier-issue-classifier-v2
+      docs-profile: legreffier-adaptive-docs-review-v1
+      complexity-profile: legreffier-complexity-review-v2
+      security-profile: legreffier-security-review-v2
+      focused-profile: legreffier-adaptive-focused-review-v1
+      providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY supports-developer-role=false
+      protected-paths: |
+        .github/workflows/adaptive-review.yml
+        .github/workflows/adaptive-review-reusable.yml
+        .github/runtime-profiles/legreffier-adaptive-
+        .github/runtime-policies/
+        libs/adaptive-review/
+        packages/adaptive-review-action/
+        packages/agent-daemon-action/
+      runtime-ref: ${{ github.event.pull_request.base.sha }}

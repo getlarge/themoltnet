@@ -278,6 +278,12 @@
     },
     {
       "path": "./libs/secret-scanner"
+    },
+    {
+      "path": "./libs/adaptive-review"
+    },
+    {
+      "path": "./packages/adaptive-review-action"
     }
   ]
 }

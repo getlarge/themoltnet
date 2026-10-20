@@ -63,6 +63,22 @@ const stageOutput = (value: unknown) => ({
 });
 
 describe('staged complexity review', () => {
+  it('carries parent review tags into each stage', () => {
+    const task = buildChangeMapTask(
+      { ...input, tags: ['review:adaptive', 'lane:complexity'] },
+      evidence,
+    );
+    expect(task.tags).toEqual([
+      'review:complexity',
+      'review:adaptive',
+      'lane:complexity',
+      'stage:map',
+      'repo:getlarge/themoltnet',
+      'pr:2545',
+      `revision:${head}`,
+    ]);
+  });
+
   it('keeps cross-domain test paths visible without presenting unassigned patches as inspected evidence', () => {
     // Regression shape from #2790: source and direct tests can be assigned to
     // different packets. The source reviewer must know its view is partial;
@@ -420,7 +436,7 @@ describe('staged complexity review', () => {
     ).toBeCloseTo(2 / 3);
   });
 
-  it.each([
+  const reviewCases = [
     evidence,
     {
       manifest: 'large source',
@@ -447,9 +463,16 @@ describe('staged complexity review', () => {
       bytes: 36,
       generatedPaths: [],
     },
-  ] satisfies ReviewEvidence[])(
-    'maps, reviews each packet, and synthesizes with explicit coverage',
-    async (evidence) => {
+  ] satisfies ReviewEvidence[];
+
+  it.each(
+    reviewCases.flatMap((evidence) => [
+      { evidence, serialDomainDispatch: false },
+      { evidence, serialDomainDispatch: true },
+    ]),
+  )(
+    'maps, reviews each packet, and synthesizes with explicit coverage (%s)',
+    async ({ evidence, serialDomainDispatch }) => {
       const work = buildDomainWork(
         [
           {
@@ -461,6 +484,7 @@ describe('staged complexity review', () => {
         evidence,
       );
       const created: Array<{ id: string; stage: string; key: string }> = [];
+      let completedDomains = 0;
       const scores = rubric.criteria.map((criterion) => ({
         criterionId: criterion.id,
         status: 'pass' as const,
@@ -473,6 +497,11 @@ describe('staged complexity review', () => {
             body.tags?.find((tag) => tag.startsWith('stage:'))?.slice(6) ?? '';
           const id = 'task-' + created.length;
           created.push({ id, stage, key: options?.idempotencyKey ?? '' });
+          if (serialDomainDispatch && stage.startsWith('domain:')) {
+            expect(
+              created.filter((item) => item.stage.startsWith('domain:')),
+            ).toHaveLength(completedDomains + 1);
+          }
           if (stage === 'map') {
             outputs.set(
               id,
@@ -508,6 +537,7 @@ describe('staged complexity review', () => {
         },
         getTask: (id) => {
           if (
+            !serialDomainDispatch &&
             id.startsWith('task-') &&
             created.find((item) => item.id === id)?.stage.startsWith('domain:')
           ) {
@@ -521,17 +551,24 @@ describe('staged complexity review', () => {
             acceptedAttemptN: 1,
           } as Awaited<ReturnType<TaskClient['getTask']>>);
         },
-        listAttempts: (id) =>
-          Promise.resolve([
+        listAttempts: (id) => {
+          if (
+            created.find((item) => item.id === id)?.stage.startsWith('domain:')
+          )
+            completedDomains++;
+          return Promise.resolve([
             {
               taskId: id,
               attemptN: 1,
               status: 'completed',
               output: outputs.get(id),
             } as Awaited<ReturnType<TaskClient['listAttempts']>>[number],
-          ]),
+          ]);
+        },
       };
-      const result = await runComplexityReview(tasks, input, evidence);
+      const result = await runComplexityReview(tasks, input, evidence, {
+        serialDomainDispatch,
+      });
       expect(created.map((item) => item.stage)).toEqual([
         'map',
         ...work.map((item) => 'domain:' + item.id),
@@ -555,4 +592,83 @@ describe('staged complexity review', () => {
       ).toBe(result.durationMs);
     },
   );
+
+  it('caps serial domain work and tells synthesis about omitted segments', async () => {
+    const files = Array.from({ length: 9 }, (_, index) => ({
+      path: `apps/domain-${index}.ts`,
+      patch: `+${'x'.repeat(MAX_PATCH_BYTES - 10)}`,
+      bytes: MAX_PATCH_BYTES - 9,
+    }));
+    const evidence: ReviewEvidence = {
+      manifest: files.map((file) => file.path).join('\n'),
+      files,
+      bytes: files.reduce((sum, file) => sum + file.bytes, 0),
+      generatedPaths: [],
+    };
+    const scores = rubric.criteria.map((criterion) => ({
+      criterionId: criterion.id,
+      status: 'pass' as const,
+      rationale: 'Reviewed change',
+    }));
+    const created: Array<{ id: string; stage: string; brief: string }> = [];
+    const outputs = new Map<string, unknown>();
+    const tasks = {
+      createTask: (body: Parameters<TaskClient['createTask']>[0]) => {
+        const id = `task-${created.length}`;
+        const stage =
+          body.tags?.find((tag) => tag.startsWith('stage:'))?.slice(6) ?? '';
+        created.push({ id, stage, brief: String(body.input.brief) });
+        outputs.set(
+          id,
+          stageOutput(
+            stage === 'map'
+              ? {
+                  groups: files.slice(0, 8).map((_, index) => ({
+                    nature: 'app change',
+                    fileIndexes: [index],
+                  })),
+                }
+              : stage.startsWith('domain:')
+                ? {
+                    summary: 'Reviewed change',
+                    signals: [
+                      {
+                        criterionId: 'cognitive_load',
+                        evidence: 'One change',
+                        impact: 'neutral',
+                      },
+                    ],
+                  }
+                : { scores, verdict: 'Low burden' },
+          ),
+        );
+        return Promise.resolve({ id });
+      },
+      getTask: (id: string) =>
+        Promise.resolve({
+          id,
+          status: 'completed',
+          acceptedAttemptN: 1,
+        }),
+      listAttempts: (id: string) =>
+        Promise.resolve([
+          {
+            taskId: id,
+            attemptN: 1,
+            status: 'completed',
+            output: outputs.get(id),
+          },
+        ]),
+    } as TaskClient;
+
+    const result = await runComplexityReview(tasks, input, evidence, {
+      serialDomainDispatch: true,
+    });
+
+    expect(result.unreviewedDomainWork).toBe(5);
+    expect(
+      created.filter((item) => item.stage.startsWith('domain:')),
+    ).toHaveLength(4);
+    expect(created.at(-1)?.brief).toContain('5 segments were not reviewed');
+  });
 });

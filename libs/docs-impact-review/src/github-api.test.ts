@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { GitHubApi, GitHubApiError } from './github-api.js';
+import { findPaginated, GitHubApi, GitHubApiError } from './github-api.js';
 
 function sequence(
   responses: Array<{
@@ -244,5 +244,23 @@ describe('GitHubApi', () => {
     // Assert
     expect(items).toHaveLength(101);
     expect(urls[1]).toContain('/repos/o/r/pulls/7/files?per_page=100&page=2');
+  });
+
+  it('stops comment lookup on the first matching page', async () => {
+    const pages: string[] = [];
+    const first = Array.from({ length: 100 }, (_, index) => ({ index }));
+    const request = (path: string) => {
+      pages.push(path);
+      return Promise.resolve(first);
+    };
+
+    const found = await findPaginated(
+      request,
+      '/repos/o/r/issues/7/comments',
+      (item) => item.index === 5,
+    );
+
+    expect(found).toEqual({ index: 5 });
+    expect(pages).toEqual(['/repos/o/r/issues/7/comments?per_page=100&page=1']);
   });
 });

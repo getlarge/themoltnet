@@ -86,7 +86,12 @@ export function buildSpec(issue, repo, sweep) {
   return {
     taskType: 'freeform',
     correlationId: randomUUID(),
-    tags: ['review:issue-triage', `repo:${repo}`, `issue:${issue.number}`],
+    tags: [
+      'review:issue-triage',
+      'stage:extract',
+      `repo:${repo}`,
+      `issue:${issue.number}`,
+    ],
     input: {
       brief,
       expectedOutput:

@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./out-tsc",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
+  },
+  "exclude": ["src/**/*.test.ts", "node_modules", "dist"],
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../crypto-service/tsconfig.lib.json"
+    },
+    {
+      "path": "../tasks-orchestrator/tsconfig.lib.json"
+    },
+    {
+      "path": "../sdk/tsconfig.lib.json"
+    },
+    {
+      "path": "../tasks/tsconfig.lib.json"
+    },
+    {
+      "path": "../task-schemas/tsconfig.lib.json"
+    },
+    {
+      "path": "../security-review/tsconfig.lib.json"
+    },
+    {
+      "path": "../docs-impact-review/tsconfig.lib.json"
+    },
+    {
+      "path": "../complexity-review/tsconfig.lib.json"
+    }
+  ]
+}
