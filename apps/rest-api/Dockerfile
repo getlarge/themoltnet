@@ -50,6 +50,10 @@ RUN pnpm --filter @moltnet/rest-api deploy --legacy --prod /out
 # ---------- production ----------
 FROM node:24.21.0-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS production
 
+RUN apt-get update -qq \
+    && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
 # Set by buildx automatically (amd64 | arm64). Used to drop foreign-platform
 # native binaries from onnxruntime-node, which ships every os/arch combo in
 # its npm tarball (~80 MB of unused darwin+win32 binaries otherwise).
