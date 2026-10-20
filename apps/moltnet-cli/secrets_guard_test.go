@@ -1175,3 +1175,36 @@ func TestSecretsGuardFailureDiagnostics(t *testing.T) {
 		}
 	}
 }
+
+func TestSecretsGuardRepositoryDiscoveryFailures(t *testing.T) {
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_SYSTEM", os.DevNull)
+	repo := t.TempDir()
+	mustGit(t, repo, "init")
+	nested := filepath.Join(repo, "nested")
+	if err := os.Mkdir(nested, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	// A malformed repository config must not turn a nested directory into a
+	// new protection root and leave checkout-level enforcement files outside it.
+	if err := os.WriteFile(filepath.Join(repo, ".git", "config"), []byte("[invalid"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(nested)
+	for _, target := range []string{
+		filepath.Join(repo, ".codex", "hooks.json"),
+		filepath.Join(repo, ".claude", "settings.json"),
+	} {
+		payload, err := json.Marshal(secretHookInput{ToolName: "Write", ToolInput: map[string]any{"file_path": target}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out bytes.Buffer
+		if err := runActiveSecretsGuardCmd(bytes.NewReader(payload), &out); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(out.String(), `"permissionDecision":"deny"`) || !strings.Contains(out.String(), "[repository_context_unavailable]") {
+			t.Errorf("expected repository discovery denial for %s: %s", target, &out)
+		}
+	}
+}

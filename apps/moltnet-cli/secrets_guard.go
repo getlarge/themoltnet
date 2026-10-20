@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -54,49 +55,92 @@ type secretGuardPathContext struct {
 // Resolve their owning checkout instead, including linked-worktree gitdirs.
 // Outside Git, cwd still anchors path checks; repository discovery must not
 // prevent safe commands (including cd) or central credential protection.
-func secretGuardRepoRoots(cwd string) (currentRoot, mainRoot string) {
+func secretGuardRepoRoots(cwd string) (currentRoot, mainRoot string, err error) {
 	currentRoot = cwd
 	resolved := false
+	repositoryFound := false
 	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
 	cmd.Dir = cwd
 	if root, err := cmd.Output(); err == nil {
 		currentRoot = strings.TrimSpace(string(root))
 		resolved = true
+		repositoryFound = true
 	} else {
 		cmd = exec.Command("git", "rev-parse", "--absolute-git-dir")
 		cmd.Dir = cwd
 		if gitDir, err := cmd.Output(); err == nil {
+			repositoryFound = true
 			// A linked worktree's administrative directory points back to
 			// its checkout via gitdir, even when cwd is below that directory.
 			if pointer, err := os.ReadFile(filepath.Join(strings.TrimSpace(string(gitDir)), "gitdir")); err == nil {
 				checkout := filepath.Dir(strings.TrimSpace(string(pointer)))
-				if filepath.IsAbs(checkout) {
-					currentRoot = checkout
-					resolved = true
+				if !filepath.IsAbs(checkout) {
+					return "", "", secretGuardRepositoryError()
 				}
+				currentRoot = checkout
+				resolved = true
+			} else if !os.IsNotExist(err) {
+				return "", "", secretGuardRepositoryError()
 			}
 		}
 	}
 	mainRoot, ok := resolveGitCommonRoot(cwd)
 	if !ok {
+		if repositoryFound || secretGuardRepositoryExpected(cwd) {
+			return "", "", secretGuardRepositoryError()
+		}
 		mainRoot = currentRoot
 	} else if !resolved {
 		currentRoot = mainRoot
 	}
-	return currentRoot, mainRoot
+	return currentRoot, mainRoot, nil
+}
+
+func secretGuardRepositoryError() error {
+	return errors.New(secretGuardCheckFailure("repository_context_unavailable",
+		"Cannot resolve an existing Git repository. Check Git availability, repository configuration, and access permissions, or switch to a valid checkout."))
+}
+
+// Failed Git probes do not prove that cwd is outside a repository. Look for
+// repository evidence independently so an unreadable or malformed Git config
+// cannot silently replace the protected checkout roots with a nested cwd.
+func secretGuardRepositoryExpected(cwd string) bool {
+	if os.Getenv("GIT_DIR") != "" || os.Getenv("GIT_WORK_TREE") != "" {
+		return true
+	}
+	for dir := cwd; ; dir = filepath.Dir(dir) {
+		if _, err := os.Lstat(filepath.Join(dir, ".git")); !os.IsNotExist(err) {
+			return true
+		}
+		// Bare and separately located administrative directories need not
+		// be named .git. A linked gitdir has commondir instead of objects.
+		if head, err := os.Stat(filepath.Join(dir, "HEAD")); err == nil && !head.IsDir() {
+			for _, name := range []string{"objects", "commondir"} {
+				if _, err := os.Stat(filepath.Join(dir, name)); !os.IsNotExist(err) {
+					return true
+				}
+			}
+		}
+		if filepath.Dir(dir) == dir {
+			return false
+		}
+	}
 }
 
 func resolveSecretGuardPathContext() (secretGuardPathContext, error) {
 	if _, err := GetConfigDir(); err != nil {
-		return secretGuardPathContext{}, fmt.Errorf("%s", secretGuardCheckFailure(
+		return secretGuardPathContext{}, errors.New(secretGuardCheckFailure(
 			"protected_store_unavailable", "Cannot resolve the protected store. Check MOLTNET_HOME and MOLTNET_AGENT_SERVER_ROOT configuration."))
 	}
 	cwd, err := os.Getwd()
 	if err != nil {
-		return secretGuardPathContext{}, fmt.Errorf("%s", secretGuardCheckFailure(
+		return secretGuardPathContext{}, errors.New(secretGuardCheckFailure(
 			"working_directory_unavailable", "Cannot resolve the hook working directory. Switch worktrees or restart the session from an existing directory."))
 	}
-	currentRoot, mainRoot := secretGuardRepoRoots(cwd)
+	currentRoot, mainRoot, err := secretGuardRepoRoots(cwd)
+	if err != nil {
+		return secretGuardPathContext{}, err
+	}
 	return newSecretGuardPathContext(cwd, currentRoot, mainRoot), nil
 }
 
