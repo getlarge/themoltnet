@@ -59,6 +59,7 @@ func secretGuardRepoRoots(cwd string) (currentRoot, mainRoot string, err error) 
 	currentRoot = cwd
 	resolved := false
 	repositoryFound := false
+	metadataDir := ""
 	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
 	cmd.Dir = cwd
 	if root, err := cmd.Output(); err == nil {
@@ -70,14 +71,18 @@ func secretGuardRepoRoots(cwd string) (currentRoot, mainRoot string, err error) 
 		cmd.Dir = cwd
 		if gitDir, err := cmd.Output(); err == nil {
 			repositoryFound = true
+			metadataDir = strings.TrimSpace(string(gitDir))
 			// A linked worktree's administrative directory points back to
 			// its checkout via gitdir, even when cwd is below that directory.
-			if pointer, err := os.ReadFile(filepath.Join(strings.TrimSpace(string(gitDir)), "gitdir")); err == nil {
-				checkout := filepath.Dir(strings.TrimSpace(string(pointer)))
-				if !filepath.IsAbs(checkout) {
+			if pointer, err := os.ReadFile(filepath.Join(metadataDir, "gitdir")); err == nil {
+				target := strings.TrimSpace(string(pointer))
+				if target == "" {
 					return "", "", secretGuardRepositoryError()
 				}
-				currentRoot = checkout
+				if !filepath.IsAbs(target) {
+					target = filepath.Join(metadataDir, target)
+				}
+				currentRoot = filepath.Dir(target)
 				resolved = true
 			} else if !os.IsNotExist(err) {
 				return "", "", secretGuardRepositoryError()
@@ -91,6 +96,12 @@ func secretGuardRepoRoots(cwd string) (currentRoot, mainRoot string, err error) 
 		}
 		mainRoot = currentRoot
 	} else if !resolved {
+		// The common-dir parent identifies a checkout only for the
+		// conventional .git layout. Separate metadata without a backlink
+		// does not establish checkout ownership, so do not guess its root.
+		if metadataDir == "" || canonicalizeRoot(filepath.Join(mainRoot, ".git")) != canonicalizeRoot(metadataDir) {
+			return "", "", secretGuardRepositoryError()
+		}
 		currentRoot = mainRoot
 	}
 	return currentRoot, mainRoot, nil

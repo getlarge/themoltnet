@@ -1153,6 +1153,31 @@ func TestSecretsGuardWorkingDirectories(t *testing.T) {
 			}
 		})
 	}
+	t.Run("relative-linked-metadata", func(t *testing.T) {
+		admin := filepath.Dir(linkedMetadata)
+		pointer, err := filepath.Rel(admin, filepath.Join(worktree, ".git"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(admin, "gitdir"), []byte(pointer+"\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		t.Chdir(linkedMetadata)
+		context, err := resolveSecretGuardPathContext()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if context.currentRoot != canonicalizeRoot(worktree) || context.mainRoot != canonicalizeRoot(repo) {
+			t.Fatalf("incorrect relative backlink roots: %+v", context)
+		}
+		if reason := evaluateSecretsShellWithContext("cd "+strconv.Quote(filepath.ToSlash(repo)), context); reason != "" {
+			t.Fatalf("recovery command denied: %s", reason)
+		}
+		if got := classifyProtectedPathWithContext(filepath.Join(worktree, ".codex", "hooks.json"), context); got != pathManagedConfig {
+			t.Fatalf("linked checkout enforcement file class: %v", got)
+		}
+	})
+
 }
 
 func TestSecretsGuardFailureDiagnostics(t *testing.T) {
@@ -1206,5 +1231,29 @@ func TestSecretsGuardRepositoryDiscoveryFailures(t *testing.T) {
 		if !strings.Contains(out.String(), `"permissionDecision":"deny"`) || !strings.Contains(out.String(), "[repository_context_unavailable]") {
 			t.Errorf("expected repository discovery denial for %s: %s", target, &out)
 		}
+	}
+}
+
+func TestSecretsGuardSeparateMetadataRequiresCheckoutEvidence(t *testing.T) {
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_SYSTEM", os.DevNull)
+	root := t.TempDir()
+	admin := filepath.Join(root, "admin")
+	checkout := filepath.Join(root, "checkout")
+	mustGit(t, root, "init", "--separate-git-dir="+admin, checkout)
+	t.Chdir(admin)
+	payload, err := json.Marshal(secretHookInput{
+		ToolName:  "Write",
+		ToolInput: map[string]any{"file_path": filepath.Join(checkout, ".codex", "hooks.json")},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := runActiveSecretsGuardCmd(bytes.NewReader(payload), &out); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), `"permissionDecision":"deny"`) || !strings.Contains(out.String(), "[repository_context_unavailable]") {
+		t.Fatalf("expected unresolved metadata ownership denial: %s", &out)
 	}
 }
