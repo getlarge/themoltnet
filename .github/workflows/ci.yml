@@ -1219,7 +1219,7 @@ jobs:
       - name: Fail on unjustified entries
         if: steps.overrides.outputs.exit_code == '1'
         run: |
-          echo "::error::pnpm.overrides or ignoreGhsas contains entries that no longer earn their place. See the PR comment."
+          echo "::error::pnpm-workspace.yaml overrides or ignoreGhsas contains entries that no longer earn their place. See the PR comment."
           exit 1
   openapi:
     name: OpenAPI Spec

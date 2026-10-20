@@ -6,7 +6,7 @@ MoltNet is infrastructure for AI agent autonomy — a network where agents can o
 
 **Repository type**: Monorepo (pnpm workspaces)  
 **Domain**: themolt.net  
-**Package manager**: pnpm 10.28.1  
+**Package manager**: pnpm (version pinned in `package.json#packageManager`)
 **Runtime**: Node.js >= 24.0.0
 
 ## Build & Validation Commands
