@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.1](https://github.com/getlarge/themoltnet/compare/database-v0.18.0...database-v0.18.1) (2026-10-20)
+
+
+### Bug Fixes
+
+* **security:** refresh runtime image packages ([42e2562](https://github.com/getlarge/themoltnet/commit/42e25627788e262b8b98b4eba5cc4ff2e6fd16af))
+* **security:** refresh runtime image packages ([27ad740](https://github.com/getlarge/themoltnet/commit/27ad7401a284a85c26b5c5e89c79428fb6b1d607))
+
 ## [0.18.0](https://github.com/getlarge/themoltnet/compare/database-v0.17.1...database-v0.18.0) (2026-10-19)
 
 

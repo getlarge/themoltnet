@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.68.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.68.0...rest-api-v0.68.1) (2026-10-20)
+
+
+### Bug Fixes
+
+* **security:** refresh runtime image packages ([42e2562](https://github.com/getlarge/themoltnet/commit/42e25627788e262b8b98b4eba5cc4ff2e6fd16af))
+* **security:** refresh runtime image packages ([27ad740](https://github.com/getlarge/themoltnet/commit/27ad7401a284a85c26b5c5e89c79428fb6b1d607))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.18.1
+
 ## [0.68.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.67.3...rest-api-v0.68.0) (2026-10-19)
 
 
