@@ -402,7 +402,8 @@ export async function runDocsImpactReview(
     ...rest,
     config,
     configSource,
-    runningTimeoutSec: budgets.stageRunningTimeoutSec,
+    runningTimeoutSec:
+      rest.taskBudget?.runningTimeoutSec ?? budgets.stageRunningTimeoutSec,
     ...(config.instructions ? { instructions: config.instructions } : {}),
   };
   const now = deps.now ?? Date.now;

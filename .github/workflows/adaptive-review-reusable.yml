@@ -39,6 +39,10 @@ on:
       focused-profile:
         type: string
         default: ''
+      task-budgets:
+        description: Optional YAML map of review timeout overrides (timeout, dispatch-timeout, expires-after; e.g. 12m).
+        type: string
+        default: ''
       mode:
         type: string
         default: shadow
@@ -245,6 +249,7 @@ jobs:
       ADAPTIVE_COMPLEXITY_PROFILE: ${{ inputs.complexity-profile }}
       ADAPTIVE_SECURITY_PROFILE: ${{ inputs.security-profile }}
       ADAPTIVE_FOCUSED_PROFILE: ${{ inputs.focused-profile }}
+      ADAPTIVE_TASK_BUDGETS: ${{ inputs.task-budgets }}
       MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
       MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
       MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
@@ -346,6 +351,7 @@ jobs:
       ADAPTIVE_COMPLEXITY_PROFILE: ${{ inputs.complexity-profile }}
       ADAPTIVE_SECURITY_PROFILE: ${{ inputs.security-profile }}
       ADAPTIVE_FOCUSED_PROFILE: ${{ inputs.focused-profile }}
+      ADAPTIVE_TASK_BUDGETS: ${{ inputs.task-budgets }}
       MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
       MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
       MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}

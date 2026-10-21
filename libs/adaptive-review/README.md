@@ -58,12 +58,70 @@ another System One classifier without changing this library. Classifier
 scores determine which enabled lanes receive deeper review. A classifier
 failure routes every enabled lane for review.
 
+`task-budgets` is optional. Use a YAML block to override only the limits that
+need to change for your selected profiles:
+
+```yaml
+task-budgets: |
+  classifier:
+    timeout: 2m
+  focused:
+    timeout: 12m
+  security:
+    timeout: 15m
+  docs:
+    timeout: 5m
+  complexity:
+    timeout: 5m
+```
+
+All fields are optional. `timeout` limits execution of **each task**, not the
+whole review. `dispatch-timeout` limits the wait for a worker, and
+`expires-after` bounds the task's total lifetime. Durations use positive whole
+seconds, minutes, or hours (`90s`, `12m`, `1h`).
+
+| Review       | Default execution timeout |
+| ------------ | ------------------------- |
+| `classifier` | 90s                       |
+| `docs`       | 2m                        |
+| `complexity` | 3m                        |
+| `focused`    | 12m                       |
+| `security`   | 15m                       |
+
+Every review defaults to a 5-minute dispatch timeout and 1-hour expiry.
+`focused` supplies defaults for `tests`, `conventions`, and `blast-radius`;
+each of those lane names also accepts its own overrides. Resolution happens
+per field: built-in defaults, then `focused` overrides for its three lanes,
+then the individual lane override. Unknown names, duplicate fields, invalid
+durations, and expiry shorter than dispatch plus execution fail before tasks
+are submitted.
+
+```yaml
+task-budgets: |
+  focused:
+    timeout: 10m
+  tests:
+    timeout: 8m
+  security:
+    dispatch-timeout: 10m
+    expires-after: 2h
+```
+
+The resolved limits appear in the GitHub run summary and are pinned between
+routing and review. Docs and complexity apply the caller's limits to every
+stage; adaptive docs task limits take precedence over the docs policy's
+`stageRunningTimeoutSec`. Standalone docs and complexity workflows retain
+their existing defaults. Size overrides for the selected profiles and the
+reusable workflow's job and worker deadlines: security has two sequential
+tasks, and docs and complexity can have multiple stages.
+
 For a caller repository, add a `pull_request` workflow that invokes
 `getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml` at a
 trusted commit or release tag, passes `secrets: inherit`, and names an
 environment containing the MoltNet agent and provider keys. Pass at least a
-classifier profile, a nonempty `providers` definition, and profiles for each
-lane enabled in `.github/adaptive-review.json`. `protected-paths` should
+classifier profile, a nonempty `providers` definition, and
+profiles for each lane enabled in `.github/adaptive-review.json`.
+`protected-paths` should
 include the caller workflow and any trusted runtime configuration it owns.
 For private repositories, bind workers to a private diary; the review report
 does not require a public diary.

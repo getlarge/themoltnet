@@ -6,6 +6,7 @@ import type { ClassifyOutput } from '@moltnet/tasks';
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { parseReviewTaskBudgets } from './config.js';
 import { LANES, type ReviewIdentity } from './core.js';
 import {
   classifierTaskPossible,
@@ -13,6 +14,17 @@ import {
   runAdaptiveReview,
   runRoutedAdaptiveReview,
 } from './workflow.js';
+
+const taskBudgets = parseReviewTaskBudgets(`
+focused:
+  timeout: 601s
+  dispatch-timeout: 251s
+  expires-after: 1800s
+security:
+  timeout: 701s
+  dispatch-timeout: 301s
+  expires-after: 1900s
+`);
 
 const mocks = vi.hoisted(() => ({
   buildEvidence: vi.fn(),
@@ -200,6 +212,7 @@ function reviewOptions(tasks: TaskClient) {
     tasks,
     cwd,
     runtimeSha: 'c'.repeat(40),
+    taskBudgets,
     profiles: {
       docs: 'docs-profile',
       complexity: 'complexity-profile',
@@ -312,8 +325,40 @@ describe('adaptive review orchestration', () => {
     ).toHaveLength(5);
     expect(createTask).toHaveBeenCalledTimes(2);
     expect(created.get('task-2')?.input.brief).toContain(sourcePath);
+    expect(created.get('task-2')).toMatchObject({
+      ...taskBudgets.focused,
+    });
     expect(report.taskIds).toEqual(['task-1', 'task-2']);
   });
+
+  it('passes classifier and per-lane overrides to task creation', async () => {
+    const { tasks, created } = harness({ selected: 'tests' });
+    const budgets = parseReviewTaskBudgets(
+      'classifier: {timeout: 45s}\nfocused: {timeout: 10m}\ntests: {timeout: 8m}',
+    );
+    await runAdaptiveReview({ ...reviewOptions(tasks), taskBudgets: budgets });
+    expect(created.get('task-1')).toMatchObject(budgets.classifier);
+    expect(created.get('task-2')).toMatchObject(budgets.tests);
+  });
+
+  it.each(['docs', 'complexity'] as const)(
+    'passes %s budgets to its specialist workflow',
+    async (lane) => {
+      const { tasks } = harness({ selected: lane });
+      const budgets = parseReviewTaskBudgets(
+        `${lane}: {timeout: 5m, dispatch-timeout: 2m, expires-after: 2h}`,
+      );
+      await runAdaptiveReview({
+        ...reviewOptions(tasks),
+        taskBudgets: budgets,
+      });
+      const call =
+        lane === 'docs' ? mocks.runDocsImpactReview : mocks.runComplexityReview;
+      expect(call.mock.calls[0][1]).toMatchObject({
+        taskBudget: budgets[lane],
+      });
+    },
+  );
 
   it('publishes a focused concern with a changed-line citation', async () => {
     const { tasks } = harness({
@@ -547,6 +592,21 @@ describe('adaptive review orchestration', () => {
     ).rejects.toThrow('routing does not match the pinned review');
     await expect(
       runRoutedAdaptiveReview({ ...options, mode: 'shadow' }, preparation),
+    ).rejects.toThrow('routing does not match the pinned review');
+    await expect(
+      runRoutedAdaptiveReview(
+        {
+          ...options,
+          taskBudgets: {
+            ...options.taskBudgets,
+            security: {
+              ...taskBudgets.security,
+              runningTimeoutSec: 702,
+            },
+          },
+        },
+        preparation,
+      ),
     ).rejects.toThrow('routing does not match the pinned review');
     expect(createTask).toHaveBeenCalledTimes(1);
   });
@@ -964,6 +1024,11 @@ describe('adaptive review orchestration', () => {
       expect(created.get('task-2')?.title).toContain('security hunt');
       expect(created.get('task-2')?.input.brief).toContain(patch);
       expect(created.get('task-3')?.title).toContain('security verify');
+      for (const taskId of ['task-2', 'task-3']) {
+        expect(created.get(taskId)).toMatchObject({
+          ...taskBudgets.security,
+        });
+      }
       expect(created.get('task-3')?.input.brief).toContain(
         '"id":"changed-route"',
       );

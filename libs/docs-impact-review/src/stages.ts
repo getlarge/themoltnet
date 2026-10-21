@@ -80,6 +80,13 @@ export interface StageContext {
   instructions?: string;
   /** Running timeout of each stage task; defaults to the shared budget. */
   runningTimeoutSec?: number;
+  /** Trusted caller override for all stage task limits. */
+  taskBudget?: Required<
+    Pick<
+      CreateBody,
+      'runningTimeoutSec' | 'dispatchTimeoutSec' | 'expiresInSec'
+    >
+  >;
   tags: string[];
 }
 
@@ -363,6 +370,7 @@ function baseTask(
     expiresInSec: TASK_EXPIRES_IN_SEC,
     runningTimeoutSec: ctx.runningTimeoutSec ?? STAGE_RUNNING_TIMEOUT_SEC,
     dispatchTimeoutSec: STAGE_DISPATCH_TIMEOUT_SEC,
+    ...ctx.taskBudget,
     maxAttempts: 1,
     allowedProfiles: [
       { profileId: ctx.stageProfileIds?.[stage] ?? ctx.profileId },

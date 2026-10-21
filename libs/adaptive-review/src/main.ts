@@ -5,7 +5,12 @@ import { createGit } from '@moltnet/docs-impact-review';
 import { connect } from '@themoltnet/sdk/node';
 import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 
-import { env, required } from './config.js';
+import {
+  env,
+  formatReviewTaskBudgets,
+  parseReviewTaskBudgets,
+  required,
+} from './config.js';
 import { loadAdaptivePolicy } from './snapshot.js';
 import {
   type AdaptivePreparation,
@@ -68,6 +73,16 @@ async function main() {
   const mode = required('ADAPTIVE_MODE');
   if (mode !== 'shadow' && mode !== 'active')
     throw new Error('ADAPTIVE_MODE must be shadow or active');
+  const taskBudgets = parseReviewTaskBudgets(
+    env().ADAPTIVE_TASK_BUDGETS,
+    snapshot.policy.lanes,
+  );
+  if (env().GITHUB_STEP_SUMMARY) {
+    appendFileSync(
+      required('GITHUB_STEP_SUMMARY'),
+      formatReviewTaskBudgets(taskBudgets),
+    );
+  }
   const agent = await connect();
   const teamId = required('MOLTNET_TEAM_ID');
   const { items } = await agent.runtimeProfiles.list({ teamId });
@@ -89,6 +104,7 @@ async function main() {
     tasks: createSdkTaskClient(agent),
     cwd: process.cwd(),
     runtimeSha: required('ADAPTIVE_RUNTIME_SHA'),
+    taskBudgets,
     profiles: {
       ...(snapshot.policy.lanes.includes('docs')
         ? { docs: resolve(required('ADAPTIVE_DOCS_PROFILE')) }
