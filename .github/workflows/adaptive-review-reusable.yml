@@ -40,7 +40,7 @@ on:
         type: string
         default: ''
       task-budgets:
-        description: Optional YAML map of review timeout overrides (timeout, dispatch-timeout, expires-after; e.g. 12m). Legacy JSON seconds are accepted.
+        description: Optional YAML map of review timeout overrides (timeout, dispatch-timeout, expires-after; e.g. 12m).
         type: string
         default: ''
       mode:

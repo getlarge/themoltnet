@@ -58,26 +58,8 @@ complexity:
     expect(budgets.complexity.runningTimeoutSec).toBe(240);
   });
 
-  it('preserves legacy JSON seconds and allows partial legacy entries', () => {
-    const focused = {
-      runningTimeoutSec: 420,
-      dispatchTimeoutSec: 120,
-      expiresInSec: 900,
-    };
-    const budgets = parseReviewTaskBudgets(
-      JSON.stringify({ focused, docs: { runningTimeoutSec: 150 } }),
-    );
-    expect(budgets.focused).toEqual(focused);
-    expect(budgets.tests).toEqual(focused);
-    expect(budgets.docs).toEqual({
-      runningTimeoutSec: 150,
-      dispatchTimeoutSec: 300,
-      expiresInSec: 3600,
-    });
-  });
-
   it.each([
-    ['{', 'valid YAML or JSON'],
+    ['{', 'valid YAML'],
     ['[]', 'map of review names'],
     ['null', 'map of review names'],
     ['securty: {}', 'valid reviews:'],
@@ -87,12 +69,9 @@ complexity:
     ['docs: { timeout: 1.5m }', 'positive whole duration'],
     ['docs: { timeout: 30 }', 'positive whole duration'],
     ['docs: { timeout: 9999999999999999h }', 'positive whole duration'],
-    ['docs: { runningTimeoutSec: -1 }', 'positive safe integer'],
-    ['docs: { runningTimeoutSec: 1.5 }', 'positive safe integer'],
-    [
-      'docs: { timeout: 2m, runningTimeoutSec: 120 }',
-      'duplicates runningTimeoutSec',
-    ],
+    ['docs: { runningTimeoutSec: 120 }', 'unknown; use timeout'],
+    ['docs: { dispatchTimeoutSec: 300 }', 'unknown; use timeout'],
+    ['docs: { expiresInSec: 3600 }', 'unknown; use timeout'],
     ['docs: { timeout: 2m, timeout: 3m }', 'duplicate keys'],
     [
       'security: { timeout: 1h }',

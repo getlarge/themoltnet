@@ -15,21 +15,16 @@ import {
   runRoutedAdaptiveReview,
 } from './workflow.js';
 
-const taskBudgets = parseReviewTaskBudgets(
-  JSON.stringify({
-    focused: {
-      runningTimeoutSec: 601,
-      dispatchTimeoutSec: 251,
-      expiresInSec: 1800,
-    },
-    security: {
-      runningTimeoutSec: 701,
-      dispatchTimeoutSec: 301,
-      expiresInSec: 1900,
-    },
-  }),
-  LANES,
-);
+const taskBudgets = parseReviewTaskBudgets(`
+focused:
+  timeout: 601s
+  dispatch-timeout: 251s
+  expires-after: 1800s
+security:
+  timeout: 701s
+  dispatch-timeout: 301s
+  expires-after: 1900s
+`);
 
 const mocks = vi.hoisted(() => ({
   buildEvidence: vi.fn(),

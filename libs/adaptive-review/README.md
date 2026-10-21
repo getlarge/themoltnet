@@ -78,9 +78,7 @@ task-budgets: |
 All fields are optional. `timeout` limits execution of **each task**, not the
 whole review. `dispatch-timeout` limits the wait for a worker, and
 `expires-after` bounds the task's total lifetime. Durations use positive whole
-seconds, minutes, or hours (`90s`, `12m`, `1h`). Legacy JSON objects using
-`runningTimeoutSec`, `dispatchTimeoutSec`, and `expiresInSec` remain supported.
-Do not specify both spellings of the same field.
+seconds, minutes, or hours (`90s`, `12m`, `1h`).
 
 | Review       | Default execution timeout |
 | ------------ | ------------------------- |

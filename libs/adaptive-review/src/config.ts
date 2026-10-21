@@ -38,26 +38,20 @@ const FIELDS = {
   'dispatch-timeout': 'dispatchTimeoutSec',
   'expires-after': 'expiresInSec',
 } as const;
-const LEGACY_FIELDS = Object.values(FIELDS);
 const PREFIX = 'ADAPTIVE_TASK_BUDGETS';
 
 function isMap(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function seconds(value: unknown, path: string, legacy: boolean): number {
-  let result: number;
-  if (legacy) {
-    result = typeof value === 'number' ? value : NaN;
-  } else {
-    const match = typeof value === 'string' && /^(\d+)(s|m|h)$/.exec(value);
-    result = match
-      ? Number(match[1]) * ({ s: 1, m: 60, h: 3600 }[match[2]] ?? NaN)
-      : NaN;
-  }
+function seconds(value: unknown, path: string): number {
+  const match = typeof value === 'string' && /^(\d+)(s|m|h)$/.exec(value);
+  const result = match
+    ? Number(match[1]) * ({ s: 1, m: 60, h: 3600 }[match[2]] ?? NaN)
+    : NaN;
   if (!Number.isSafeInteger(result) || result <= 0) {
     throw new Error(
-      `${path} must be ${legacy ? 'a positive safe integer in seconds' : 'a positive whole duration such as 90s, 12m, or 1h'}`,
+      `${path} must be a positive whole duration such as 90s, 12m, or 1h`,
     );
   }
   return result;
@@ -97,7 +91,7 @@ export function validateReviewTaskBudgets(
   }
 }
 
-/** YAML is the authoring format; legacy JSON seconds remain accepted. */
+/** Resolve optional YAML duration overrides into task limits. */
 export function parseReviewTaskBudgets(
   raw = '',
   lanes: readonly Lane[] = LANES,
@@ -107,7 +101,7 @@ export function parseReviewTaskBudgets(
     const document = parseDocument(raw);
     if (document.errors.length)
       throw new Error(
-        `${PREFIX} must be valid YAML or JSON (duplicate keys are not allowed)`,
+        `${PREFIX} must be valid YAML (duplicate keys are not allowed)`,
       );
     value = document.toJS({ maxAliasCount: 0 });
   }
@@ -123,21 +117,14 @@ export function parseReviewTaskBudgets(
       throw new Error(`${PREFIX}.${key} must be a map of timeout overrides`);
     const budget: Partial<TaskBudget> = {};
     for (const [field, input] of Object.entries(fields)) {
-      const legacy = LEGACY_FIELDS.includes(
-        field as (typeof LEGACY_FIELDS)[number],
-      );
       const target = Object.hasOwn(FIELDS, field)
         ? FIELDS[field as keyof typeof FIELDS]
-        : legacy
-          ? (field as keyof TaskBudget)
-          : undefined;
+        : undefined;
       if (!target)
         throw new Error(
           `${PREFIX}.${key}.${field} is unknown; use ${Object.keys(FIELDS).join(', ')}`,
         );
-      if (Object.hasOwn(budget, target))
-        throw new Error(`${PREFIX}.${key}.${field} duplicates ${target}`);
-      budget[target] = seconds(input, `${PREFIX}.${key}.${field}`, legacy);
+      budget[target] = seconds(input, `${PREFIX}.${key}.${field}`);
     }
     overrides[key as ReviewBudgetKey] = budget;
   }
