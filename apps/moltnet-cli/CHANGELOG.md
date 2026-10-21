@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.19.0](https://github.com/getlarge/themoltnet/compare/cli-v3.18.0...cli-v3.19.0) (2026-10-21)
+
+
+### Bug Fixes
+
+* **cli:** address review round 1 on repository discovery ([705db8c](https://github.com/getlarge/themoltnet/commit/705db8c39dea1b5ab89018be232bc6c5c4ea74e4))
+* **cli:** address review round 2 on Git metadata ownership ([0f764de](https://github.com/getlarge/themoltnet/commit/0f764defeba72b7c6690b46dcdd67db37366f4da))
+* **cli:** keep secret guard usable from Git metadata ([098a447](https://github.com/getlarge/themoltnet/commit/098a44737ce2b2a0aa99d7266dbae77929204a80))
+* **cli:** resolve secret guard context from Git metadata ([24df049](https://github.com/getlarge/themoltnet/commit/24df0491e28d8eb47b8b3acfb054bcca12cbd566))
+
 ## [3.18.0](https://github.com/getlarge/themoltnet/compare/cli-v3.17.0...cli-v3.18.0) (2026-10-19)
 
 
