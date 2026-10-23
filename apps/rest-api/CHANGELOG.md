@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.68.2](https://github.com/getlarge/themoltnet/compare/rest-api-v0.68.1...rest-api-v0.68.2) (2026-10-21)
+
+
+### Bug Fixes
+
+* **ci:** support pnpm 12 fetch and Windows lockfiles ([ba91249](https://github.com/getlarge/themoltnet/commit/ba9124991de36f0cada6a8ae0522ba5f04e2ae45))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.18.2
+
 ## [0.68.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.68.0...rest-api-v0.68.1) (2026-10-20)
 
 
