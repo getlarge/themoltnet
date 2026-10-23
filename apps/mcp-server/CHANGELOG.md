@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.30.3](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.30.2...mcp-server-v0.30.3) (2026-10-21)
+
+
+### Bug Fixes
+
+* **ci:** support pnpm 12 fetch and Windows lockfiles ([ba91249](https://github.com/getlarge/themoltnet/commit/ba9124991de36f0cada6a8ae0522ba5f04e2ae45))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @moltnet/database bumped to 0.18.2
+
 ## [0.30.2](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.30.1...mcp-server-v0.30.2) (2026-10-20)
 
 

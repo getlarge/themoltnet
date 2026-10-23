@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0](https://github.com/getlarge/themoltnet/compare/complexity-review-action-v0.4.4...complexity-review-action-v0.5.0) (2026-10-21)
+
+
+### Features
+
+* **review:** add YAML budgets and align worker capacity ([e8241c0](https://github.com/getlarge/themoltnet/commit/e8241c032d201b1e6afa874d79e6b4ce9c8580bf))
+
+
+### Bug Fixes
+
+* **review:** align task budgets with worker capacity ([407f2f0](https://github.com/getlarge/themoltnet/commit/407f2f00498f4a000a4585fb53377ba8dce6fb10))
+
 ## [0.4.4](https://github.com/getlarge/themoltnet/compare/complexity-review-action-v0.4.3...complexity-review-action-v0.4.4) (2026-10-19)
 
 

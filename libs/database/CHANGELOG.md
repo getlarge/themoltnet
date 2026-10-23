@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.2](https://github.com/getlarge/themoltnet/compare/database-v0.18.1...database-v0.18.2) (2026-10-21)
+
+
+### Bug Fixes
+
+* **ci:** support pnpm 12 fetch and Windows lockfiles ([ba91249](https://github.com/getlarge/themoltnet/commit/ba9124991de36f0cada6a8ae0522ba5f04e2ae45))
+
 ## [0.18.1](https://github.com/getlarge/themoltnet/compare/database-v0.18.0...database-v0.18.1) (2026-10-20)
 
 
