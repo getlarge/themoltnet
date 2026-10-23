@@ -3,21 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
 )
-
-// activationWarningWriter receives non-fatal activation warnings; nil → os.Stderr.
-var activationWarningWriter io.Writer
-
-func activationWarnings() io.Writer {
-	if activationWarningWriter == nil {
-		return os.Stderr
-	}
-	return activationWarningWriter
-}
 
 type selectedAgentKey struct {
 	Reference SecretReference
@@ -32,16 +21,14 @@ func hasUsableCredentialConfiguration(config *CredentialsFile) bool {
 	return hasAgentKeyConfiguration(config) || (config != nil && config.OAuth2.ClientID != "")
 }
 
-// missingTeamAgentKeyError reports that the key map has no entry for the
-// selected team and no fallback applies. Unlike a resolution failure, no grant
-// was attempted, so a caller whose selected grant is OAuth2 may ignore it.
+// missingTeamAgentKeyError: no key is mapped for the selected team, so no grant was attempted.
 type missingTeamAgentKeyError struct {
 	TeamID string
 }
 
 func (e *missingTeamAgentKeyError) Error() string {
-	return fmt.Sprintf("no agent key configured for team %s; issue one with "+
-		"'moltnet agents keys create --team-id %s --name <name> --store' "+
+	return fmt.Sprintf("no agent key configured for team %q; issue one with "+
+		"'moltnet agents keys create --team-id %q --name <name> --store' "+
 		"or redeem an invite with 'moltnet teams join --code <code> --issue-agent-key --store'",
 		e.TeamID, e.TeamID)
 }

@@ -275,9 +275,10 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 	}
 	// OAuth2 takes precedence over agent keys (see newCredentialsAuthenticatedClient),
 	// so a team without a mapped key only blocks key-only identities.
-	if _, err := selectAgentKeyReference(creds, ctx.Context.teamID()); err != nil &&
-		!(hasOAuth2Configuration(creds) && isMissingTeamAgentKey(err)) {
-		return nil, err
+	if _, err := selectAgentKeyReference(creds, ctx.Context.teamID()); err != nil {
+		if !isMissingTeamAgentKey(err) || !hasOAuth2Configuration(creds) {
+			return nil, err
+		}
 	}
 	credentialProviders := activationCredentialProviders(creds, ctx.Context.teamID())
 	credentialProvider := credentialProviders[activationCredentialOAuth2]

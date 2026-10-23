@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/ed25519"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
@@ -19,6 +21,16 @@ type subjectVerification struct {
 	SubjectType SubjectType
 	PublicKey   string
 	Fingerprint string
+}
+
+// activationWarningWriter receives non-fatal activation warnings; nil → os.Stderr.
+var activationWarningWriter io.Writer
+
+func activationWarnings() io.Writer {
+	if activationWarningWriter == nil {
+		return os.Stderr
+	}
+	return activationWarningWriter
 }
 
 // verifyIdentityAgainstServer confirms that the subject tuple in moltnet.json
@@ -65,7 +77,11 @@ func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *Credenti
 	// No key is mapped for this team, so there is no daemon credential to
 	// cross-check. Activation still succeeds through OAuth2; a daemon run here
 	// would fail until the team is enrolled.
-	if _, err := selectAgentKeyReference(creds, firstNonEmpty(team...)); isMissingTeamAgentKey(err) {
+	selectedTeam := ""
+	if len(team) > 0 {
+		selectedTeam = team[0]
+	}
+	if _, err := selectAgentKeyReference(creds, selectedTeam); isMissingTeamAgentKey(err) {
 		fmt.Fprintf(activationWarnings(), "Warning: daemon credential not verified: %v\n", err)
 		return verified, nil
 	}
