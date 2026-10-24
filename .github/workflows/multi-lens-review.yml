@@ -8,7 +8,7 @@ permissions: {}
 
 # Use the project-aware CLI independently of pending repository releases.
 env:
-  MOLTNET_CLI_VERSION: '3.3.0'
+  MOLTNET_CLI_VERSION: '3.19.0'
 
 # Every comment on the pull request starts a run, and runs whose jobs all
 # skip still join the concurrency group. Only a comment that would start a
