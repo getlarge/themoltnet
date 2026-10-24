@@ -164,12 +164,15 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
         if: steps.release.outputs.prs_created == 'true'
-      - name: Sync published Gondolin CLI pin
+      - name: Sync published CLI consumer pins
         if: steps.release.outputs.prs_created == 'true'
         run: |
           node tools/release/sync-gondolin-cli-pin.mjs
-          git add -- libs/sandbox-gondolin/src/snapshot.ts
-      - name: Commit Gondolin CLI pin to release PR
+          git add -- libs/sandbox-gondolin/src/snapshot.ts \
+            .github/workflows/issue-triage.yml \
+            .github/workflows/legreffier-security-review.yml \
+            .github/workflows/multi-lens-review.yml
+      - name: Commit CLI consumer pins to release PR
         if: steps.release.outputs.prs_created == 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -188,7 +191,7 @@ jobs:
           test "$(jq -r .headRefOid <<< "$state")" = "$(git rev-parse HEAD)"
           git config user.name "MoltNet Release[bot]"
           git config user.email "261968324+moltnet-release[bot]@users.noreply.github.com"
-          git commit -m "chore(release): sync published Gondolin CLI pin"
+          git commit -m "chore(release): sync published CLI consumer pins"
           gh auth setup-git
           git push origin "HEAD:refs/heads/$PR_BRANCH"
 
