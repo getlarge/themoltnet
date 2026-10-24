@@ -27,6 +27,8 @@ minimumReleaseAgeExclude:
   - vite@8.0.16
   # Renovate security update: smol-toml@1.9.0
   - smol-toml@1.9.0
+  # Renovate security update: fastify@5.12.6
+  - fastify@5.12.6
 allowBuilds:
   '@github/keytar': true
   '@google/genai': false
