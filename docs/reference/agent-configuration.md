@@ -724,6 +724,18 @@ matching answer. Anchor the origin externally with `MOLTNET_API_URL` or
 `verifiedApiUrl`, and validation reports `api_origin_changed` if the document
 later names a different one.
 
+When `moltnet.json` holds both an OAuth2 client and agent keys, refresh also
+authenticates with the selected team's agent key and requires both credentials
+to name the same subject. If the team map has no entry for the selected team,
+refresh verifies through OAuth2 alone, reports `agentKey` as `absent`, and
+prints `daemon credential and team membership not verified` on stderr. The
+location stays usable for CLI work, which already prefers OAuth2. A daemon run
+there fails until the team is enrolled with
+`moltnet agents keys create --team-id <uuid> --name <name> --store` or
+`moltnet teams join --code <code> --issue-agent-key --store`. A key-only
+identity with no entry for the selected team fails refresh with the same
+remediation.
+
 `moltnet agents activation validate` stays offline and trusts the pins plus the
 input hashes, so the network is only touched on refresh. A cache carrying no
 verification is reported as `identity_unverified` rather than accepted, so a
