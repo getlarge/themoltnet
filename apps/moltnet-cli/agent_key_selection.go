@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,6 +19,29 @@ func hasAgentKeyConfiguration(config *CredentialsFile) bool {
 
 func hasUsableCredentialConfiguration(config *CredentialsFile) bool {
 	return hasAgentKeyConfiguration(config) || (config != nil && config.OAuth2.ClientID != "")
+}
+
+// missingTeamAgentKeyError: no key is mapped for the selected team, so no grant was attempted.
+type missingTeamAgentKeyError struct {
+	TeamID string
+}
+
+func (e *missingTeamAgentKeyError) Error() string {
+	return fmt.Sprintf("no agent key configured for team %q; issue one with "+
+		"'moltnet agents keys create --team-id %q --name <name> --store' "+
+		"or redeem an invite with 'moltnet teams join --code <code> --issue-agent-key --store'",
+		e.TeamID, e.TeamID)
+}
+
+func isMissingTeamAgentKey(err error) bool {
+	var missing *missingTeamAgentKeyError
+	return errors.As(err, &missing)
+}
+
+// OAuth2 takes precedence over agent keys (see newCredentialsAuthenticatedClient),
+// so a team without a mapped key only blocks key-only identities.
+func oauth2CoversMissingTeamKey(creds *CredentialsFile, err error) bool {
+	return isMissingTeamAgentKey(err) && hasOAuth2Configuration(creds)
 }
 
 // Select exactly once. Provider failure must never try another grant.
@@ -44,7 +68,7 @@ func selectAgentKeyReference(config *CredentialsFile, selectedTeam string) (*sel
 		}
 	}
 	if team != "" {
-		return nil, fmt.Errorf("no agent key configured for the selected team; enroll that team first")
+		return nil, &missingTeamAgentKeyError{TeamID: team}
 	}
 	return nil, fmt.Errorf("multiple team agent keys configured; select a team explicitly")
 }

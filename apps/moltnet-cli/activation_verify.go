@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"fmt"
+	"io"
 	"strings"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
@@ -39,7 +40,7 @@ type subjectVerification struct {
 // Activation verifies the credential selected for ordinary CLI work. When the
 // document also contains an agent_key_ref, it verifies that daemon credential
 // independently and requires both credentials to identify the same subject.
-func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *CredentialsFile, team ...string) (*subjectVerification, error) {
+func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *CredentialsFile, errOut io.Writer, team ...string) (*subjectVerification, error) {
 	registry := NewSecretProviderRegistry()
 	client, err := newConfigAuthenticatedClient(apiURL, credentialsPath, registry, team...)
 	if err != nil {
@@ -62,8 +63,15 @@ func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *Credenti
 	if !hasOAuth2Configuration(creds) || !hasAgentKeyConfiguration(creds) {
 		return verified, nil
 	}
-
 	configKey, _, err := resolveAgentKey(creds, registry, team...)
+	// No key is mapped for this team, so there is no daemon credential to
+	// cross-check, and nothing here confirms the identity belongs to the team.
+	// Activation still succeeds through OAuth2; a daemon run here would fail
+	// until the team is enrolled.
+	if oauth2CoversMissingTeamKey(creds, err) {
+		fmt.Fprintf(errOut, "Warning: daemon credential and team membership not verified: %v\n", err)
+		return verified, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("verify daemon identity: resolve agent_key_ref: %w", err)
 	}

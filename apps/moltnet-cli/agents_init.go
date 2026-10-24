@@ -594,7 +594,7 @@ func completeCentralIdentityInit(opts agentsInitOpts, identityDir, configPath st
 	}
 	// Warm the activation cache so `agents activation validate` does not
 	// report invalid immediately after a successful init.
-	return runAgentsActivationRefreshCmd(io.Discard, opts.name, false)
+	return runAgentsActivationRefreshCmd(io.Discard, opts.errOut, opts.name, false)
 }
 
 func openBrowser(url string) error {
