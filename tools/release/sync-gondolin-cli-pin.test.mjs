@@ -1,9 +1,15 @@
 import assert from 'node:assert/strict';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { test } from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import {
   advancePin,
   compareVersions,
+  main,
+  pinFiles,
   publishedPin,
   verifyPackages,
   waitForPackages,
@@ -59,6 +65,16 @@ test('advances only newer pins and is idempotent', () => {
   assert.equal(advanced, "const MOLTNET_CLI_VERSION = '3.6.0';");
   assert.equal(advancePin(advanced, '3.6.0'), advanced);
   assert.equal(advancePin(advanced, '3.5.0'), advanced);
+});
+
+test('advances workflow pins without changing surrounding YAML', () => {
+  const source = "env:\n  MOLTNET_CLI_VERSION: '3.15.0' # published\n";
+  assert.equal(
+    advancePin(source, '3.19.0'),
+    "env:\n  MOLTNET_CLI_VERSION: '3.19.0' # published\n",
+  );
+  assert.equal(advancePin(source, '3.14.0'), source);
+  assert.throws(() => advancePin('env: {}', '3.19.0'), /CLI pin not found/);
 });
 
 test('requires all three published packages', async () => {
@@ -129,4 +145,60 @@ test('fails closed on registry errors and inconsistent metadata', async () => {
     })),
     /resolved 3.11.0/,
   );
+});
+
+test('syncs actual consumer files together only after npm publication', async (t) => {
+  const root = await mkdtemp(join(tmpdir(), 'cli-consumer-pins-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const originals = await Promise.all(
+    pinFiles.map(async (file) => {
+      const source = await readFile(
+        join(fileURLToPath(new URL('../../', import.meta.url)), file),
+        'utf8',
+      );
+      const older = source.replace(
+        /(MOLTNET_CLI_VERSION(?: = |: ))'[^']+'/,
+        "$1'3.1.0'",
+      );
+      assert.notEqual(older, source, `fixture must change ${file}`);
+      await mkdir(dirname(join(root, file)), { recursive: true });
+      await writeFile(join(root, file), older);
+      return older;
+    }),
+  );
+  const readConsumers = () =>
+    Promise.all(pinFiles.map((file) => readFile(join(root, file), 'utf8')));
+  const visited = [];
+  let partial = true;
+  const get = async (url) => {
+    visited.push(url);
+    const missing = partial && url.includes('arm64');
+    return {
+      ok: !missing,
+      status: missing ? 404 : 200,
+      json: async () => ({ version: '3.19.0' }),
+    };
+  };
+
+  await main({ root, get, version: null });
+  assert.deepEqual(await readConsumers(), originals);
+
+  partial = false;
+  visited.length = 0;
+  await main({ root, get, version: null });
+  const updated = await readConsumers();
+  assert.deepEqual(
+    updated,
+    originals.map((source) => source.replace('3.1.0', '3.19.0')),
+  );
+  assert.equal(visited.length, 4);
+
+  visited.length = 0;
+  await main({ root, get, version: null });
+  assert.deepEqual(await readConsumers(), updated);
+  assert.equal(visited.length, 1);
+
+  await writeFile(join(root, pinFiles[1]), 'env: {}');
+  await assert.rejects(main({ root, get, version: '3.20.0' }), /pin not found/);
+  assert.equal(await readFile(join(root, pinFiles[0]), 'utf8'), updated[0]);
 });

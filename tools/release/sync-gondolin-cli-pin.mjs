@@ -1,9 +1,15 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import process from 'node:process';
+import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 
-const pinFile = 'libs/sandbox-gondolin/src/snapshot.ts';
+export const pinFiles = [
+  'libs/sandbox-gondolin/src/snapshot.ts',
+  '.github/workflows/issue-triage.yml',
+  '.github/workflows/legreffier-security-review.yml',
+  '.github/workflows/multi-lens-review.yml',
+];
 const packages = ['cli', 'cli-linux-x64', 'cli-linux-arm64'];
 
 export function compareVersions(a, b) {
@@ -19,10 +25,12 @@ export function compareVersions(a, b) {
 }
 
 export function advancePin(source, version) {
-  const match = source.match(/const MOLTNET_CLI_VERSION = '([^']+)';/);
-  if (!match) throw new Error('Gondolin CLI pin not found');
-  if (compareVersions(version, match[1]) <= 0) return source;
-  return source.replace(match[0], `const MOLTNET_CLI_VERSION = '${version}';`);
+  const pattern =
+    /(const MOLTNET_CLI_VERSION = |MOLTNET_CLI_VERSION: )'([^']+)'/g;
+  if (!pattern.test(source)) throw new Error('CLI pin not found');
+  return source.replace(pattern, (match, prefix, current) =>
+    compareVersions(version, current) > 0 ? `${prefix}'${version}'` : match,
+  );
 }
 
 export async function verifyPackages(version, get = globalThis.fetch) {
@@ -74,14 +82,19 @@ export async function waitForPackages(
 // The release PR's CLI version may not be published yet. Resolve npm's
 // stable dist-tag instead, and only advance after both Linux packages exist.
 export async function publishedPin(source, get = globalThis.fetch) {
+  return (await publishedPins([source], get))[0];
+}
+
+export async function publishedPins(sources, get = globalThis.fetch) {
   const response = await get(
     'https://registry.npmjs.org/@themoltnet%2fcli/latest',
   );
   if (!response.ok)
     throw new Error(`Cannot resolve published CLI (${response.status})`);
   const { version } = await response.json();
-  const updated = advancePin(source, version);
-  if (updated === source) return source;
+  const updated = sources.map((source) => advancePin(source, version));
+  if (updated.every((source, index) => source === sources[index]))
+    return sources;
   try {
     await verifyPackages(version, get);
   } catch (error) {
@@ -89,20 +102,29 @@ export async function publishedPin(source, get = globalThis.fetch) {
     process.stderr.write(
       `CLI ${version} is not available on both Linux platforms; retaining current pin\n`,
     );
-    return source;
+    return sources;
   }
   return updated;
 }
 
-export async function main() {
-  const source = await readFile(pinFile, 'utf8');
-  const updated = process.env.CLI_VERSION
-    ? advancePin(source, process.env.CLI_VERSION.replace(/^cli-v/, ''))
-    : await publishedPin(source);
-  if (updated === source) return;
-  if (process.env.CLI_VERSION)
-    await waitForPackages(process.env.CLI_VERSION.replace(/^cli-v/, ''));
-  await writeFile(pinFile, updated);
+export async function main({
+  root = '.',
+  get = globalThis.fetch,
+  version = process.env.CLI_VERSION?.replace(/^cli-v/, ''),
+} = {}) {
+  const paths = pinFiles.map((file) => join(root, file));
+  const sources = await Promise.all(
+    paths.map((file) => readFile(file, 'utf8')),
+  );
+  const updated = version
+    ? sources.map((source) => advancePin(source, version))
+    : await publishedPins(sources, get);
+  if (updated.every((source, index) => source === sources[index])) return;
+  if (version) await waitForPackages(version, get);
+  for (const [index, file] of paths.entries()) {
+    if (updated[index] !== sources[index])
+      await writeFile(file, updated[index]);
+  }
 }
 
 if (
