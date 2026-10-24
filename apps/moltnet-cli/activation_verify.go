@@ -63,19 +63,15 @@ func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *Credenti
 	if !hasOAuth2Configuration(creds) || !hasAgentKeyConfiguration(creds) {
 		return verified, nil
 	}
+	configKey, _, err := resolveAgentKey(creds, registry, team...)
 	// No key is mapped for this team, so there is no daemon credential to
-	// cross-check. Activation still succeeds through OAuth2; a daemon run here
-	// would fail until the team is enrolled.
-	selectedTeam := ""
-	if len(team) > 0 {
-		selectedTeam = team[0]
-	}
-	if _, err := selectAgentKeyReference(creds, selectedTeam); isMissingTeamAgentKey(err) {
-		fmt.Fprintf(errOut, "Warning: daemon credential not verified: %v\n", err)
+	// cross-check, and nothing here confirms the identity belongs to the team.
+	// Activation still succeeds through OAuth2; a daemon run here would fail
+	// until the team is enrolled.
+	if oauth2CoversMissingTeamKey(creds, err) {
+		fmt.Fprintf(errOut, "Warning: daemon credential and team membership not verified: %v\n", err)
 		return verified, nil
 	}
-
-	configKey, _, err := resolveAgentKey(creds, registry, team...)
 	if err != nil {
 		return nil, fmt.Errorf("verify daemon identity: resolve agent_key_ref: %w", err)
 	}

@@ -38,6 +38,12 @@ func isMissingTeamAgentKey(err error) bool {
 	return errors.As(err, &missing)
 }
 
+// OAuth2 takes precedence over agent keys (see newCredentialsAuthenticatedClient),
+// so a team without a mapped key only blocks key-only identities.
+func oauth2CoversMissingTeamKey(creds *CredentialsFile, err error) bool {
+	return isMissingTeamAgentKey(err) && hasOAuth2Configuration(creds)
+}
+
 // Select exactly once. Provider failure must never try another grant.
 func selectAgentKeyReference(config *CredentialsFile, selectedTeam string) (*selectedAgentKey, error) {
 	if config == nil {

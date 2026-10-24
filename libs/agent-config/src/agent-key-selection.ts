@@ -48,7 +48,7 @@ export function selectAgentKeyReference(
     return { reference: entries[teams[0]], teamId: teams[0] };
   }
   if (team) {
-    // Same wording as the Go CLI's missingTeamAgentKeyError.
+    // Mirrors the remediation in the Go CLI's missingTeamAgentKeyError.
     const id = JSON.stringify(team);
     throw new Error(
       `No agent key configured for team ${id}; issue one with ` +

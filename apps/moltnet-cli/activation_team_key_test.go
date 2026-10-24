@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -60,7 +59,7 @@ func TestActivationRefreshUsesOAuth2WhenSelectedTeamHasNoKey(t *testing.T) {
 	if !result.Valid || result.CredentialProviders["agentKey"] != "absent" {
 		t.Fatalf("unexpected activation result: %+v", result)
 	}
-	if !strings.Contains(warnings.String(), "daemon credential not verified") ||
+	if !strings.Contains(warnings.String(), "daemon credential and team membership not verified") ||
 		!strings.Contains(warnings.String(), fixtureTeamID) {
 		t.Fatalf("missing daemon warning: %q", warnings.String())
 	}
@@ -83,10 +82,9 @@ func TestActivationRefreshKeyOnlyRejectsUnenrolledTeam(t *testing.T) {
 		creds.OAuth2 = CredentialsOAuth2{}
 		mapOnlyOtherTeamKey(t, creds)
 	})
-	err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true)
-	// Must fail at the cache gate, before verification reaches the server.
-	if !isMissingTeamAgentKey(err) || strings.Contains(err.Error(), "verify") ||
-		!strings.Contains(err.Error(), `--team-id "`+fixtureTeamID+`"`) {
+	// Must fail at the offline cache gate, before verification reaches the server.
+	err := buildActivationCacheForTest(t)
+	if !isMissingTeamAgentKey(err) || !strings.Contains(err.Error(), `--team-id "`+fixtureTeamID+`"`) {
 		t.Fatalf("expected actionable missing team key error, got %v", err)
 	}
 }
@@ -108,29 +106,43 @@ func TestActivationRefreshRejectsUnresolvableSelectedTeamKey(t *testing.T) {
 // keys are ambiguous and must still fail rather than skip the daemon check.
 func TestActivationRefreshRejectsAmbiguousTeamKeysDespiteOAuth2(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
-	envPath := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent", "env")
-	raw, err := os.ReadFile(envPath)
+	stripActivationFixtureContext(t, dir)
+	rewriteActivationFixtureCredentials(t, dir, mapTwoTeamKeys)
+	if err := buildActivationCacheForTest(t); err == nil || isMissingTeamAgentKey(err) {
+		t.Fatalf("expected ambiguous selection to fail at the cache gate, got %v", err)
+	}
+}
+
+// The daemon cross-check skips only a missing mapping, independently of the
+// cache gate that normally rejects other selection errors first.
+func TestVerifyIdentityRejectsAmbiguousDaemonKeyDespiteOAuth2(t *testing.T) {
+	dir := setupActivationCacheFixture(t)
+	rewriteActivationFixtureCredentials(t, dir, mapTwoTeamKeys)
+	credentialsPath := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent", "moltnet.json")
+	creds, err := ReadConfigFrom(credentialsPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var kept []string
-	for _, line := range strings.Split(string(raw), "\n") {
-		if !strings.HasPrefix(line, "MOLTNET_TEAM_ID=") && !strings.HasPrefix(line, "MOLTNET_DIARY_ID=") {
-			kept = append(kept, line)
-		}
+	var warnings bytes.Buffer
+	_, err = verifyIdentityAgainstServer(resolveAPIURLFromCredentials("", false, creds), credentialsPath, creds, &warnings)
+	if err == nil || isMissingTeamAgentKey(err) || warnings.Len() > 0 {
+		t.Fatalf("expected terminal ambiguous daemon key error without warning, got %v (warnings %q)", err, warnings.String())
 	}
-	if err := os.WriteFile(envPath, []byte(strings.Join(kept, "\n")), 0o600); err != nil {
+}
+
+func mapTwoTeamKeys(creds *CredentialsFile) {
+	creds.AgentKeyRefs = map[string]SecretReference{
+		fixtureTeamID: {Provider: "file", Key: TeamAgentKeyKey(fixtureSubjectID, fixtureTeamID)},
+		otherTeamID:   {Provider: "file", Key: TeamAgentKeyKey(fixtureSubjectID, otherTeamID)},
+	}
+}
+
+func buildActivationCacheForTest(t *testing.T) error {
+	t.Helper()
+	ctx, err := resolveActivationContext("test-agent")
+	if err != nil {
 		t.Fatal(err)
 	}
-	useActivationTestLocation(t)
-	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
-		creds.AgentKeyRefs = map[string]SecretReference{
-			fixtureTeamID: {Provider: "file", Key: TeamAgentKeyKey(fixtureSubjectID, fixtureTeamID)},
-			otherTeamID:   {Provider: "file", Key: TeamAgentKeyKey(fixtureSubjectID, otherTeamID)},
-		}
-	})
-	err = runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true)
-	if err == nil || isMissingTeamAgentKey(err) || strings.Contains(err.Error(), "verify") {
-		t.Fatalf("expected ambiguous selection to fail at the cache gate, got %v", err)
-	}
+	_, err = buildActivationCache(ctx)
+	return err
 }

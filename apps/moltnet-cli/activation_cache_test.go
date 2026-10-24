@@ -1201,6 +1201,28 @@ func TestAgentsActivationRefreshAcceptsRelinkedIdentityID(t *testing.T) {
 	}
 }
 
+// stripActivationFixtureContext removes the fixture's team and diary so
+// refresh runs with no context, from an unbound location.
+func stripActivationFixtureContext(t *testing.T, dir string) {
+	t.Helper()
+	envPath := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent", "env")
+	raw, err := os.ReadFile(envPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var kept []string
+	for _, line := range strings.Split(string(raw), "\n") {
+		if strings.HasPrefix(line, "MOLTNET_TEAM_ID=") || strings.HasPrefix(line, "MOLTNET_DIARY_ID=") {
+			continue
+		}
+		kept = append(kept, line)
+	}
+	if err := os.WriteFile(envPath, []byte(strings.Join(kept, "\n")), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	useActivationTestLocation(t)
+}
+
 func useActivationTestLocation(t *testing.T) {
 	t.Helper()
 	location := t.TempDir()
@@ -1238,22 +1260,7 @@ func TestAgentsActivationRefreshRejectsDiaryFromAnotherTeam(t *testing.T) {
 // init report failure after it has already succeeded.
 func TestAgentsActivationRefreshWithoutAnyContextSucceeds(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
-	envPath := filepath.Join(dir, ".config", "moltnet", "identities", "test-agent", "env")
-	raw, err := os.ReadFile(envPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var kept []string
-	for _, line := range strings.Split(string(raw), "\n") {
-		if strings.HasPrefix(line, "MOLTNET_TEAM_ID=") || strings.HasPrefix(line, "MOLTNET_DIARY_ID=") {
-			continue
-		}
-		kept = append(kept, line)
-	}
-	if err := os.WriteFile(envPath, []byte(strings.Join(kept, "\n")), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	useActivationTestLocation(t)
+	stripActivationFixtureContext(t, dir)
 	if err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", false); err != nil {
 		t.Fatalf("refresh without a team or diary must succeed (agents init depends on it): %v", err)
 	}
