@@ -76,6 +76,20 @@ describe('shared credential selection fixtures', () => {
       );
     },
   );
+  it('names the unmapped team and how to enroll it', () => {
+    expect(() =>
+      selectAgentKeyReference(
+        {
+          agent_key_refs: {
+            a: { provider: 'os-keyring', key: agentKeyKey('subject', 'a') },
+          },
+        },
+        'b',
+      ),
+    ).toThrow(
+      /team "b".*moltnet agents keys create --team-id "b".*moltnet teams join/,
+    );
+  });
   it('fails invalid selected bindings without selecting the fallback', () => {
     for (const reference of [
       { provider: 'env', key: 'MOLTNET_AGENT_KEY' },

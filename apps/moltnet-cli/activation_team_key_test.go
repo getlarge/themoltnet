@@ -13,10 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const (
-	fixtureTeamID = "00000000-0000-4000-8000-000000000011"
-	otherTeamID   = "00000000-0000-4000-8000-0000000000ff"
-)
+const otherTeamID = "00000000-0000-4000-8000-0000000000ff"
 
 // mapOnlyOtherTeamKey stores and maps a key for a team the fixture location is not bound to.
 func mapOnlyOtherTeamKey(t *testing.T, creds *CredentialsFile) {
@@ -52,13 +49,8 @@ func TestActivationVerifiesSelectedTeamBinding(t *testing.T) {
 func TestActivationRefreshUsesOAuth2WhenSelectedTeamHasNoKey(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
 	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) { mapOnlyOtherTeamKey(t, creds) })
-	var warnings bytes.Buffer
-	previous := activationWarningWriter
-	activationWarningWriter = &warnings
-	t.Cleanup(func() { activationWarningWriter = previous })
-
-	var out bytes.Buffer
-	if err := runAgentsActivationRefreshCmd(&out, "test-agent", true); err != nil {
+	var out, warnings bytes.Buffer
+	if err := runAgentsActivationRefreshCmd(&out, &warnings, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	var result activationValidationResult
@@ -74,13 +66,24 @@ func TestActivationRefreshUsesOAuth2WhenSelectedTeamHasNoKey(t *testing.T) {
 	}
 }
 
+// Credential resolution wraps the selection failure; the typed error must stay
+// reachable so callers can tell a missing mapping from other selection errors.
+func TestResolveAgentKeyKeepsMissingTeamKeyCause(t *testing.T) {
+	creds := &CredentialsFile{SubjectID: fixtureSubjectID}
+	creds.AgentKeyRefs = map[string]SecretReference{otherTeamID: {Provider: "file", Key: TeamAgentKeyKey(fixtureSubjectID, otherTeamID)}}
+	_, _, err := resolveAgentKey(creds, NewSecretProviderRegistry(), fixtureTeamID)
+	if !isMissingTeamAgentKey(err) {
+		t.Fatalf("expected missing team key cause, got %v", err)
+	}
+}
+
 func TestActivationRefreshKeyOnlyRejectsUnenrolledTeam(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
 	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
 		creds.OAuth2 = CredentialsOAuth2{}
 		mapOnlyOtherTeamKey(t, creds)
 	})
-	err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true)
+	err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true)
 	// Must fail at the cache gate, before verification reaches the server.
 	if !isMissingTeamAgentKey(err) || strings.Contains(err.Error(), "verify") ||
 		!strings.Contains(err.Error(), `--team-id "`+fixtureTeamID+`"`) {
@@ -95,7 +98,7 @@ func TestActivationRefreshRejectsUnresolvableSelectedTeamKey(t *testing.T) {
 	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
 		creds.AgentKeyRefs = map[string]SecretReference{fixtureTeamID: {Provider: "file", Key: TeamAgentKeyKey(fixtureSubjectID, fixtureTeamID)}}
 	})
-	err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true)
+	err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true)
 	if err == nil || isMissingTeamAgentKey(err) || !strings.Contains(err.Error(), "daemon identity") {
 		t.Fatalf("expected terminal daemon key resolution error, got %v", err)
 	}
@@ -126,7 +129,7 @@ func TestActivationRefreshRejectsAmbiguousTeamKeysDespiteOAuth2(t *testing.T) {
 			otherTeamID:   {Provider: "file", Key: TeamAgentKeyKey(fixtureSubjectID, otherTeamID)},
 		}
 	})
-	err = runAgentsActivationRefreshCmd(io.Discard, "test-agent", true)
+	err = runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true)
 	if err == nil || isMissingTeamAgentKey(err) || strings.Contains(err.Error(), "verify") {
 		t.Fatalf("expected ambiguous selection to fail at the cache gate, got %v", err)
 	}

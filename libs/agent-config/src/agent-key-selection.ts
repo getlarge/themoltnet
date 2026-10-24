@@ -47,10 +47,17 @@ export function selectAgentKeyReference(
       throw new Error('Team key map contains an empty team ID');
     return { reference: entries[teams[0]], teamId: teams[0] };
   }
+  if (team) {
+    // Same wording as the Go CLI's missingTeamAgentKeyError.
+    const id = JSON.stringify(team);
+    throw new Error(
+      `No agent key configured for team ${id}; issue one with ` +
+        `'moltnet agents keys create --team-id ${id} --name <name> --store' ` +
+        "or redeem an invite with 'moltnet teams join --code <code> --issue-agent-key --store'",
+    );
+  }
   throw new Error(
-    team
-      ? 'No agent key configured for the selected team; enroll that team first'
-      : 'Multiple team agent keys configured; select a team explicitly',
+    'Multiple team agent keys configured; select a team explicitly',
   );
 }
 

@@ -122,7 +122,7 @@ func runAgentsActivationValidateCmd(w io.Writer, identity string, jsonOut bool, 
 	return printActivationValidationResult(w, result, jsonOut)
 }
 
-func runAgentsActivationRefreshCmd(w io.Writer, identity string, jsonOut bool, options ...nativeProjectOptions) error {
+func runAgentsActivationRefreshCmd(w, errOut io.Writer, identity string, jsonOut bool, options ...nativeProjectOptions) error {
 	ctx, err := resolveActivationContext(identity, options...)
 	if err != nil {
 		return err
@@ -134,7 +134,7 @@ func runAgentsActivationRefreshCmd(w io.Writer, identity string, jsonOut bool, o
 	// Refresh is the only path allowed to use the network. buildActivationCache
 	// is shared with warm validate, which is offline by contract, so the server
 	// check and the pins it produces belong here and nowhere else.
-	if err := verifyAndPinIdentity(ctx, cache); err != nil {
+	if err := verifyAndPinIdentity(ctx, cache, errOut); err != nil {
 		return err
 	}
 	if ctx.Context.Binding != nil {
@@ -220,7 +220,7 @@ func resolveActivationContext(identity string, options ...nativeProjectOptions) 
 
 // verifyAndPinIdentity confirms the identity against the server and records
 // what was confirmed, so warm validation can trust the pins without re-asking.
-func verifyAndPinIdentity(ctx *activationContext, cache *activationCache) error {
+func verifyAndPinIdentity(ctx *activationContext, cache *activationCache, errOut io.Writer) error {
 	credentialsPath := filepath.Join(ctx.AgentDir, "moltnet.json")
 	creds, err := ReadConfigFrom(credentialsPath)
 	if err != nil {
@@ -230,7 +230,7 @@ func verifyAndPinIdentity(ctx *activationContext, cache *activationCache) error 
 		return fmt.Errorf("credentials not found at %s", credentialsPath)
 	}
 	apiURL := resolveAPIURLFromCredentials("", false, creds)
-	verified, err := verifyIdentityAgainstServer(apiURL, credentialsPath, creds, ctx.Context.teamID())
+	verified, err := verifyIdentityAgainstServer(apiURL, credentialsPath, creds, errOut, ctx.Context.teamID())
 	if err != nil {
 		return err
 	}

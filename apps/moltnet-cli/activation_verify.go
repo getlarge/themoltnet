@@ -5,7 +5,6 @@ import (
 	"crypto/ed25519"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
@@ -21,16 +20,6 @@ type subjectVerification struct {
 	SubjectType SubjectType
 	PublicKey   string
 	Fingerprint string
-}
-
-// activationWarningWriter receives non-fatal activation warnings; nil → os.Stderr.
-var activationWarningWriter io.Writer
-
-func activationWarnings() io.Writer {
-	if activationWarningWriter == nil {
-		return os.Stderr
-	}
-	return activationWarningWriter
 }
 
 // verifyIdentityAgainstServer confirms that the subject tuple in moltnet.json
@@ -51,7 +40,7 @@ func activationWarnings() io.Writer {
 // Activation verifies the credential selected for ordinary CLI work. When the
 // document also contains an agent_key_ref, it verifies that daemon credential
 // independently and requires both credentials to identify the same subject.
-func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *CredentialsFile, team ...string) (*subjectVerification, error) {
+func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *CredentialsFile, errOut io.Writer, team ...string) (*subjectVerification, error) {
 	registry := NewSecretProviderRegistry()
 	client, err := newConfigAuthenticatedClient(apiURL, credentialsPath, registry, team...)
 	if err != nil {
@@ -82,7 +71,7 @@ func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *Credenti
 		selectedTeam = team[0]
 	}
 	if _, err := selectAgentKeyReference(creds, selectedTeam); isMissingTeamAgentKey(err) {
-		fmt.Fprintf(activationWarnings(), "Warning: daemon credential not verified: %v\n", err)
+		fmt.Fprintf(errOut, "Warning: daemon credential not verified: %v\n", err)
 		return verified, nil
 	}
 

@@ -73,7 +73,7 @@ func newAgentsCmd() *cobra.Command {
 				identity, _ = cmd.Flags().GetString("agent")
 			}
 			jsonOut, _ := cmd.Flags().GetBool("json")
-			return runAgentsActivationRefreshCmd(cmd.OutOrStdout(), identity, jsonOut, nativeProjectOptionsFromCommand(cmd))
+			return runAgentsActivationRefreshCmd(cmd.OutOrStdout(), cmd.ErrOrStderr(), identity, jsonOut, nativeProjectOptionsFromCommand(cmd))
 		},
 	}
 	addNativeProjectFlags(refreshCmd)

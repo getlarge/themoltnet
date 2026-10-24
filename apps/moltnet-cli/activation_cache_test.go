@@ -24,6 +24,9 @@ const fixtureIdentityID = "00000000-0000-4000-8000-0000000000aa"
 // fixture that reused one value would let code reading the wrong field pass.
 const fixtureSubjectID = "00000000-0000-4000-8000-00000000005a"
 
+// fixtureTeamID is the team the fixture location and env are bound to.
+const fixtureTeamID = "00000000-0000-4000-8000-000000000011"
+
 // startActivationIdentityServer stands in for the MoltNet API during
 // activation. Refresh now confirms the local identity document against the
 // server before pinning anything, so every activation test needs an endpoint
@@ -66,7 +69,7 @@ func startActivationIdentityServer(t *testing.T) (*httptest.Server, *activationI
 		case "/diaries/00000000-0000-4000-8000-000000000001":
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"id": "00000000-0000-4000-8000-000000000001", "name": "fixture",
-				"teamId":    "00000000-0000-4000-8000-000000000011",
+				"teamId":    fixtureTeamID,
 				"createdAt": "2026-01-01T00:00:00Z", "updatedAt": "2026-01-01T00:00:00Z",
 				"creator": map[string]any{"kind": "agent", "agentId": fixtureSubjectID, "identityId": fixtureIdentityID, "fingerprint": "ABCD-EF01-2345-6789", "publicKey": answer.PublicKey},
 				"signed":  false, "visibility": "moltnet",
@@ -293,7 +296,7 @@ func TestAgentsActivationRefreshRebasesPortedAbsolutePaths(t *testing.T) {
 		"MOLTNET_AGENT_NAME='test-agent'",
 		"MOLTNET_FINGERPRINT='SHA256:testfingerprint'",
 		"MOLTNET_DIARY_ID='00000000-0000-4000-8000-000000000001'",
-		"MOLTNET_TEAM_ID='00000000-0000-4000-8000-000000000011'",
+		"MOLTNET_TEAM_ID='" + fixtureTeamID + "'",
 		"GIT_CONFIG_GLOBAL='" + hostGitconfig + "'",
 		"",
 	}, "\n")
@@ -342,11 +345,11 @@ func TestAgentsActivationRefreshRebasesPortedAbsolutePaths(t *testing.T) {
 func TestAgentsActivationValidateHashMismatch(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
 
-	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	envPath := filepath.Join(dir, ".moltnet", "test-agent", "env")
-	if err := os.WriteFile(envPath, []byte("MOLTNET_AGENT_NAME='test-agent'\nMOLTNET_FINGERPRINT='SHA256:testfingerprint'\nMOLTNET_DIARY_ID='00000000-0000-4000-8000-000000000002'\nMOLTNET_TEAM_ID='00000000-0000-4000-8000-000000000011'\nGIT_CONFIG_GLOBAL='.moltnet/test-agent/gitconfig'\n"), 0o644); err != nil {
+	if err := os.WriteFile(envPath, []byte("MOLTNET_AGENT_NAME='test-agent'\nMOLTNET_FINGERPRINT='SHA256:testfingerprint'\nMOLTNET_DIARY_ID='00000000-0000-4000-8000-000000000002'\nMOLTNET_TEAM_ID='"+fixtureTeamID+"'\nGIT_CONFIG_GLOBAL='.moltnet/test-agent/gitconfig'\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -372,7 +375,7 @@ func TestAgentsActivationValidateHashMismatch(t *testing.T) {
 func TestAgentsActivationValidateAgentMismatch(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
 
-	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	cachePath := fixtureActivationCachePath(t, dir)
@@ -401,7 +404,7 @@ func TestAgentsActivationValidateAgentMismatch(t *testing.T) {
 func TestAgentsActivationValidateMissingRequiredInput(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
 
-	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	cachePath := fixtureActivationCachePath(t, dir)
@@ -432,7 +435,7 @@ func TestAgentsActivationValidateMissingRequiredInput(t *testing.T) {
 
 func TestAgentsActivationValidateUnavailableInputReturnsInvalidJSON(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
-	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	credentialsPath := filepath.Join(dir, ".moltnet", "test-agent", "moltnet.json")
@@ -456,7 +459,7 @@ func TestAgentsActivationValidateUnavailableInputReturnsInvalidJSON(t *testing.T
 
 func TestAgentsActivationValidateRejectsForgedCacheMetadata(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
-	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	cachePath := fixtureActivationCachePath(t, dir)
@@ -491,7 +494,7 @@ func TestAgentsActivationValidateRejectsForgedCacheMetadata(t *testing.T) {
 func TestAgentsActivationClear(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
 
-	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	cachePath := fixtureActivationCachePath(t, dir)
@@ -508,7 +511,7 @@ func TestAgentsActivationClear(t *testing.T) {
 
 func TestAgentsActivationValidateOutsideGitRepository(t *testing.T) {
 	setupActivationCacheFixture(t)
-	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	ctx, err := resolveActivationContext("test-agent")
@@ -558,7 +561,7 @@ func setupActivationCacheFixtureWithIdentity(
 	if err := os.WriteFile(filepath.Join(agentDir, "gitconfig"), []byte("[user]\n\tname = Test Agent\n\temail = test-agent@example.com\n\tsigningkey = ssh/id_ed25519.pub\n[gpg]\n\tformat = ssh\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	env := "MOLTNET_AGENT_NAME='test-agent'\nMOLTNET_FINGERPRINT='SHA256:testfingerprint'\nMOLTNET_DIARY_ID='00000000-0000-4000-8000-000000000001'\nMOLTNET_TEAM_ID='00000000-0000-4000-8000-000000000011'\nGIT_CONFIG_GLOBAL='gitconfig'\n"
+	env := "MOLTNET_AGENT_NAME='test-agent'\nMOLTNET_FINGERPRINT='SHA256:testfingerprint'\nMOLTNET_DIARY_ID='00000000-0000-4000-8000-000000000001'\nMOLTNET_TEAM_ID='" + fixtureTeamID + "'\nGIT_CONFIG_GLOBAL='gitconfig'\n"
 	if err := os.WriteFile(filepath.Join(agentDir, "env"), []byte(env), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -653,7 +656,7 @@ func TestAgentsActivationRecordsPerKindCredentialProviders(t *testing.T) {
 	})
 
 	var out bytes.Buffer
-	if err := runAgentsActivationRefreshCmd(&out, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(&out, io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	var result activationValidationResult
@@ -673,7 +676,7 @@ func TestAgentsActivationRecordsPerKindCredentialProviders(t *testing.T) {
 
 	setupActivationCacheFixture(t)
 	out.Reset()
-	if err := runAgentsActivationRefreshCmd(&out, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(&out, io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh legacy: %v", err)
 	}
 	if err := json.Unmarshal(out.Bytes(), &result); err != nil {
@@ -694,7 +697,7 @@ func TestAgentsActivationRejectsDualCredentialsForDifferentSubjects(t *testing.T
 	answer.AgentKeySubjectID = "00000000-0000-4000-8000-0000000000bb"
 
 	var out bytes.Buffer
-	err := runAgentsActivationRefreshCmd(&out, "test-agent", true)
+	err := runAgentsActivationRefreshCmd(&out, io.Discard, "test-agent", true)
 	if err == nil || !strings.Contains(err.Error(), "daemon identity") {
 		t.Fatalf("expected dual-credential subject mismatch, got %v", err)
 	}
@@ -702,7 +705,7 @@ func TestAgentsActivationRejectsDualCredentialsForDifferentSubjects(t *testing.T
 
 func TestAgentsActivationValidateRejectsPreviousCacheVersion(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
-	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	cachePath := fixtureActivationCachePath(t, dir)
@@ -730,7 +733,7 @@ func TestAgentsActivationValidateRejectsPreviousCacheVersion(t *testing.T) {
 
 func TestAgentsActivationValidateDetectsCredentialProviderChange(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
-	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	cachePath := fixtureActivationCachePath(t, dir)
@@ -764,7 +767,7 @@ func TestAgentsActivationValidateReportsCredentialProviders(t *testing.T) {
 	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
 		creds.AgentKeyRef = &SecretReference{Provider: "file", Key: AgentKeyKey(fixtureSubjectID)}
 	})
-	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	root := NewRootCmd("test", "")
@@ -853,7 +856,7 @@ func TestAgentsActivationRefreshRejectsServerSubjectMismatch(t *testing.T) {
 			tc.mutate(identity)
 
 			// Act.
-			err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true)
+			err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true)
 
 			// Assert.
 			if err == nil {
@@ -878,7 +881,7 @@ func TestAgentsActivationRefreshAllowsRotatedOryIdentityOnly(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			dir, _, identity := setupActivationCacheFixtureWithIdentity(t)
 			tc.mutate(identity)
-			if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+			if err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true); err != nil {
 				t.Fatalf("refresh after rotation: %v", err)
 			}
 			if _, err := os.Stat(fixtureActivationCachePath(t, dir)); err != nil {
@@ -900,7 +903,7 @@ func TestAgentsActivationRefreshRejectsSigningKeyMismatch(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			_, _, identity := setupActivationCacheFixtureWithIdentity(t)
 			tc.mutate(identity)
-			err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true)
+			err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true)
 			if err == nil || !strings.Contains(err.Error(), tc.wantMsg) {
 				t.Fatalf("error = %v, want %q", err, tc.wantMsg)
 			}
@@ -913,7 +916,7 @@ func TestAgentsActivationRefreshPinsVerifiedSubject(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
 
 	// Act.
-	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 
@@ -946,7 +949,7 @@ func TestAgentsActivationRefreshUpgradesLegacyIdentityPin(t *testing.T) {
 	})
 	addLegacyIdentityToConfigFile(t, filepath.Join(dir, ".config", "moltnet", "identities", "test-agent", "moltnet.json"), fixtureIdentityID)
 
-	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh legacy config: %v", err)
 	}
 	cache, err := readActivationCache(fixtureActivationCachePath(t, dir))
@@ -971,7 +974,7 @@ func TestAgentsActivationRefreshReplacesStaleEnvFingerprint(t *testing.T) {
 	}
 
 	// Act.
-	err = runAgentsActivationRefreshCmd(io.Discard, "test-agent", true)
+	err = runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true)
 
 	if err != nil {
 		t.Fatalf("refresh with stale environment fingerprint: %v", err)
@@ -1020,7 +1023,7 @@ func TestAgentsActivationRefreshResolvesOSKeyringAgentKey(t *testing.T) {
 
 	// Act.
 	var out bytes.Buffer
-	if err := runAgentsActivationRefreshCmd(&out, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(&out, io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh with a keyring-backed agent key: %v", err)
 	}
 
@@ -1064,7 +1067,7 @@ func TestAgentsActivationRefreshReportsRejectedCredential(t *testing.T) {
 	})
 
 	// Act.
-	err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true)
+	err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true)
 
 	// Assert: reported as a rejected binding, not as an opaque failure, and
 	// nothing is pinned from an unverified answer.
@@ -1082,7 +1085,7 @@ func TestAgentsActivationRefreshReportsRejectedCredential(t *testing.T) {
 func TestAgentsActivationValidateStaysOfflineAfterRefresh(t *testing.T) {
 	// Arrange: refresh against a live server, then take the server away.
 	dir, server, _ := setupActivationCacheFixtureWithIdentity(t)
-	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	server.Close()
@@ -1111,7 +1114,7 @@ func TestAgentsActivationValidateRejectsUnverifiedCache(t *testing.T) {
 	// Arrange: a cache with the verification pins stripped, which is what a
 	// hand-edited or pre-verification cache looks like.
 	dir, _, _ := setupActivationCacheFixtureWithIdentity(t)
-	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	cachePath := fixtureActivationCachePath(t, dir)
@@ -1154,7 +1157,7 @@ func TestAgentsActivationValidateRejectsChangedAPIOrigin(t *testing.T) {
 	// names another, so the verification no longer describes where this
 	// credential would be sent.
 	dir, _, _ := setupActivationCacheFixtureWithIdentity(t)
-	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
@@ -1190,7 +1193,7 @@ func TestAgentsActivationRefreshAcceptsRelinkedIdentityID(t *testing.T) {
 	identity.IdentityID = "00000000-0000-4000-8000-0000000000bb"
 
 	// Act.
-	err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", true)
+	err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", true)
 
 	// Assert.
 	if err != nil {
@@ -1224,7 +1227,7 @@ func TestAgentsActivationRefreshRejectsDiaryFromAnotherTeam(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	err = runAgentsActivationRefreshCmd(io.Discard, "test-agent", false)
+	err = runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", false)
 	if err == nil || !strings.Contains(err.Error(), "belongs to team") {
 		t.Fatalf("refresh must reject a diary from another team, got: %v", err)
 	}
@@ -1251,7 +1254,7 @@ func TestAgentsActivationRefreshWithoutAnyContextSucceeds(t *testing.T) {
 		t.Fatal(err)
 	}
 	useActivationTestLocation(t)
-	if err := runAgentsActivationRefreshCmd(io.Discard, "test-agent", false); err != nil {
+	if err := runAgentsActivationRefreshCmd(io.Discard, io.Discard, "test-agent", false); err != nil {
 		t.Fatalf("refresh without a team or diary must succeed (agents init depends on it): %v", err)
 	}
 }
