@@ -117,6 +117,11 @@ const claimCondition = joinCondition(reviewTaskIds); // op: 'all', status: 'comp
 `waitForTaskOutcome`, `waitForAcceptedTask`, and `waitForSignalOrSleep` poll a
 MoltNet task to a terminal (or accepted) state, sleeping durably between polls.
 Per-poll logs go to `logger.debug`; lifecycle transitions to `logger.info`.
+On a non-accepted outcome, `waitForAcceptedTask` throws a `TaskOutcomeError`.
+Its message is the outcome reason. `kind` is `failed` or `invalid_output`, and
+`attemptErrorCode` is the latest attempt's error code (for example
+`max_turns_exceeded`), so callers can classify failures without parsing
+messages.
 
 A transient read failure during a poll (`isTransientMoltNetError` from
 `@themoltnet/sdk`: a network error, or HTTP 408, 429, or 5xx) counts as a missed

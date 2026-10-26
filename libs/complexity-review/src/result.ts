@@ -32,6 +32,41 @@ export const ComplexityReviewOutput = Type.Object(
 );
 export type ComplexityReviewOutput = Static<typeof ComplexityReviewOutput>;
 
+/** A rubric criterion ID; the submit gate rejects any other value. */
+export function criterionIdSchema(rubric: Rubric) {
+  return Type.Union(
+    rubric.criteria.map((criterion) => Type.Literal(criterion.id)),
+  );
+}
+
+/**
+ * The synthesis output contract bound to one rubric. The submit gate rejects
+ * unknown criteria and a wrong score count, so the model can correct them
+ * before settlement; the trusted parser still enforces rubric order.
+ */
+export function complexityReviewDecisionContract(rubric: Rubric) {
+  const { scores, verdict } = ComplexityReviewDecision.properties;
+  return Type.Object(
+    {
+      scores: Type.Array(
+        Type.Object(
+          {
+            ...scores.items.properties,
+            criterionId: criterionIdSchema(rubric),
+          },
+          { additionalProperties: false },
+        ),
+        {
+          minItems: rubric.criteria.length,
+          maxItems: rubric.criteria.length,
+        },
+      ),
+      verdict,
+    },
+    { additionalProperties: false },
+  );
+}
+
 export function finalizeComplexityReviewDecision(
   output: unknown,
   rubric: Rubric,

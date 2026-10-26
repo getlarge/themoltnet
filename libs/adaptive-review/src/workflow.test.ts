@@ -3,7 +3,10 @@ import { resolve } from 'node:path';
 
 import type { ReviewEvidence } from '@moltnet/complexity-review/evidence';
 import type { ClassifyOutput } from '@moltnet/tasks';
-import type { TaskClient } from '@themoltnet/tasks-orchestrator';
+import type {
+  TaskClient,
+  TaskOutcomeError,
+} from '@themoltnet/tasks-orchestrator';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { parseReviewTaskBudgets } from './config.js';
@@ -52,10 +55,24 @@ vi.mock('@moltnet/docs-impact-review', async (importOriginal) => ({
 vi.mock('@moltnet/complexity-review/workflow', () => ({
   runComplexityReview: mocks.runComplexityReview,
 }));
-vi.mock('@themoltnet/tasks-orchestrator', async (importOriginal) => ({
-  ...(await importOriginal<object>()),
-  waitForTaskOutcome: mocks.waitForTaskOutcome,
-}));
+vi.mock('@themoltnet/tasks-orchestrator', async (importOriginal) => {
+  const original = await importOriginal<{
+    TaskOutcomeError: typeof TaskOutcomeError;
+  }>();
+  return {
+    ...original,
+    waitForTaskOutcome: mocks.waitForTaskOutcome,
+    // The real helper calls the unmocked module-internal poll; mirror it.
+    waitForAcceptedTask: async (id: string, opts: unknown) => {
+      const outcome = (await mocks.waitForTaskOutcome(id, opts)) as {
+        kind: string;
+        result: unknown;
+      };
+      if (outcome.kind === 'accepted') return outcome.result;
+      throw new original.TaskOutcomeError(id, outcome as never);
+    },
+  };
+});
 
 const cwd = resolve(import.meta.dirname, '../../..');
 const identity: ReviewIdentity = {
@@ -769,6 +786,78 @@ describe('adaptive review orchestration', () => {
       .calls[0][0] as TaskClient;
     await complexityTasks.createTask(createTask.mock.calls[0][0]);
     expect(createTask.mock.calls.at(-1)?.[0].projectId).toBe(projectId);
+  });
+
+  it('logs the task attempt code for failed lane tasks', async () => {
+    policyOverride = JSON.stringify({
+      version: 1,
+      lanes: ['tests', 'complexity'],
+      rules: [],
+      checks: [],
+    });
+    const { tasks, created } = harness({ selected: 'tests' });
+    const log = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+    const accept = mocks.waitForTaskOutcome.getMockImplementation();
+    mocks.waitForTaskOutcome.mockImplementation((id: string, opts: never) =>
+      created.get(id)?.title?.includes('tests review')
+        ? Promise.resolve({
+            kind: 'failed',
+            task: {},
+            attempts: [
+              { attemptN: 1, error: { code: 'executor_threw' } },
+              { attemptN: 2, error: { code: 'max_turns_exceeded' } },
+            ],
+            reason: `task ${id} ended with status failed`,
+          })
+        : (accept?.(id, opts) as Promise<unknown>),
+    );
+    mocks.runComplexityReview.mockRejectedValueOnce(
+      Object.assign(new Error('Internal Server Error'), {
+        name: 'MoltNetError',
+        statusCode: 500,
+      }),
+    );
+
+    const report = await runAdaptiveReview({
+      ...reviewOptions(tasks),
+      mode: 'shadow',
+    });
+
+    expect(report.results.map((result) => result.status)).toEqual([
+      'failed',
+      'failed',
+    ]);
+    const lines = log.mock.calls.flat().join('');
+    expect(lines).toMatch(/lane=tests .*code=task-max-turns-exceeded /);
+    expect(lines).toMatch(/lane=complexity .*code=http-500 /);
+  });
+
+  it('distinguishes network errors from rejected task output', async () => {
+    policyOverride = JSON.stringify({
+      version: 1,
+      lanes: ['tests', 'complexity'],
+      rules: [],
+      checks: [],
+    });
+    const { tasks } = harness({
+      selected: 'tests',
+      invalidFocusedOutput: true,
+    });
+    const log = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+    mocks.runComplexityReview.mockRejectedValueOnce(
+      Object.assign(new Error('Heartbeat request timed out'), {
+        name: 'NetworkError',
+      }),
+    );
+
+    await runAdaptiveReview({
+      ...reviewOptions(tasks),
+      mode: 'shadow',
+    });
+
+    const lines = log.mock.calls.flat().join('');
+    expect(lines).toMatch(/lane=tests .*code=invalid-focused-result /);
+    expect(lines).toMatch(/lane=complexity .*code=network-error /);
   });
 
   it('retains successful lanes and task IDs when another deep lane fails', async () => {

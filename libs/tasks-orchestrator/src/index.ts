@@ -4,6 +4,7 @@ export {
   type OrchestrationAbsurdAppArgs,
 } from './absurd.js';
 export {
+  TaskOutcomeError,
   waitForAcceptedTask,
   waitForSignalOrSleep,
   waitForTaskOutcome,

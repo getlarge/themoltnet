@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import type { Rubric } from '@moltnet/tasks';
+import { type Rubric, validateOutputContractResult } from '@moltnet/tasks';
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 import { describe, expect, it } from 'vitest';
 
@@ -381,6 +381,58 @@ describe('staged complexity review', () => {
     expect(synthesis.input.outputContract?.schema).not.toHaveProperty(
       'properties.composite',
     );
+  });
+
+  it('rejects semantically invalid stage results at the submit gate', () => {
+    const work = buildDomainWork(
+      [{ id: 'app', nature: 'application behavior', paths: ['apps/a.ts'] }],
+      evidence,
+    )[0];
+    const domain = buildDomainTask(input, evidence, work);
+    const submitErrors = (task: { input: unknown }, result: unknown) =>
+      validateOutputContractResult('freeform', task.input, { result });
+    const signal = {
+      criterionId: rubric.criteria[0].id,
+      evidence: 'One export changed',
+      impact: 'neutral',
+    };
+
+    expect(
+      submitErrors(domain, { summary: 'App update', signals: [signal] }),
+    ).toEqual([]);
+    // The model put its prose in the envelope summary and left this empty.
+    expect(
+      submitErrors(domain, { summary: '', signals: [signal] }),
+    ).not.toEqual([]);
+    expect(
+      submitErrors(domain, {
+        summary: 'App update',
+        signals: [{ ...signal, criterionId: 'unknown' }],
+      }),
+    ).not.toEqual([]);
+    expect(
+      submitErrors(domain, {
+        summary: 'App update',
+        signals: [{ ...signal, evidence: '' }],
+      }),
+    ).not.toEqual([]);
+
+    const synthesis = buildSynthesisTask(input, evidence, []);
+    const scores = rubric.criteria.map((criterion) => ({
+      criterionId: criterion.id,
+      status: 'pass',
+      rationale: 'reviewable',
+    }));
+    expect(submitErrors(synthesis, { scores, verdict: 'Low' })).toEqual([]);
+    expect(
+      submitErrors(synthesis, { scores: scores.slice(1), verdict: 'Low' }),
+    ).not.toEqual([]);
+    expect(
+      submitErrors(synthesis, {
+        scores: [{ ...scores[0], criterionId: 'unknown' }, ...scores.slice(1)],
+        verdict: 'Low',
+      }),
+    ).not.toEqual([]);
   });
 
   it('computes the composite while rejecting incomplete final judgments', () => {
