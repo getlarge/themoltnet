@@ -113,6 +113,12 @@
         "dependsOn": [
           "test"
         ]
+      },
+      "check:pack": {
+        "dependsOn": [
+          "build",
+          "^build"
+        ]
       }
     }
   }

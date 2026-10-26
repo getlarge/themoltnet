@@ -363,10 +363,12 @@ tool call before it runs.
 
 1. **Attempt start.** Every profile-backed attempt resolves the latest
    enforcement mode and allow-sets through the SDK, including when the daemon's
-   cached mode is `off`. The fetch has a **5-second deadline**. Durable never
-   runs on the degraded fallback: if the policy cannot be resolved, the attempt
-   fails before any tool runs. The canonical claim/execution snapshot lifecycle
-   is documented in
+   cached mode is `off`. The fetch has a **5-second deadline**. A timed-out,
+   transport-failed, or HTTP 408/429/5xx fetch is retried up to twice with a
+   short backoff; other errors are not retried. Durable never runs on the
+   degraded fallback: if the policy cannot be resolved, the attempt fails before
+   any tool runs. The canonical claim/execution snapshot lifecycle is documented
+   in
    [Tasks and Runtime](../use/tasks-and-runtime.md#map-3-claim-and-pin-authority).
 2. **Model-visible capability projection.** The execution snapshot filters the
    attempt's visible tools. Their tool definitions are the authoritative

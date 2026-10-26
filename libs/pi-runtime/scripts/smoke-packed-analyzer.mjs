@@ -106,22 +106,19 @@ try {
       name: 'pack-smoke',
       version: '1.0.0',
       private: true,
-      // pi-runtime's published manifest pins its @themoltnet/* dependencies by
-      // version. When a change extends one of their APIs before the version is
-      // bumped, pnpm would otherwise dedupe to the same-version npm copy that
-      // lacks the new export. Force every locally packed dependency so the
-      // smoke proves the packed closure even before those versions reach npm.
-      pnpm: {
-        overrides: {
-          '@themoltnet/agent-runtime': `file:${agentRuntimeTarball}`,
-          '@themoltnet/sandbox-gondolin': `file:${sandboxGondolinTarball}`,
-          '@themoltnet/sdk': `file:${sdkTarball}`,
-        },
-      },
     }),
   );
 
-  writePackedConsumerPolicy(repoRoot, installDir);
+  // pi-runtime's published manifest pins its @themoltnet/* dependencies by
+  // version. When a change extends one of their APIs before the version is
+  // bumped, pnpm would otherwise dedupe to the same-version npm copy that
+  // lacks the new export. Force every locally packed dependency so the
+  // smoke proves the packed closure even before those versions reach npm.
+  writePackedConsumerPolicy(repoRoot, installDir, {
+    '@themoltnet/agent-runtime': `file:${agentRuntimeTarball}`,
+    '@themoltnet/sandbox-gondolin': `file:${sandboxGondolinTarball}`,
+    '@themoltnet/sdk': `file:${sdkTarball}`,
+  });
   const install = spawnSync('pnpm', ['add', ...tarballs, '--ignore-scripts'], {
     cwd: installDir,
     encoding: 'utf8',

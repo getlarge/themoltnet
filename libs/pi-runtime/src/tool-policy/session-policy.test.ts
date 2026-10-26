@@ -274,7 +274,8 @@ describe('resolveSessionToolPolicy', () => {
         enforcement: 'enforce',
         timeoutMs: 5,
       });
-      await vi.advanceTimersByTimeAsync(5);
+      // The deadline, then the first retry backoff.
+      await vi.advanceTimersByTimeAsync(5 + 250);
       expect((await pending).degraded).toBe(false);
       expect(fetch).toHaveBeenCalledTimes(2);
       expect(fetch.mock.calls[0][1].signal!.aborted).toBe(true);
@@ -302,6 +303,56 @@ describe('resolveSessionToolPolicy', () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    ['an HTTP 500', Object.assign(new Error('Internal'), { statusCode: 500 })],
+    [
+      'a transport failure',
+      Object.assign(new Error('fetch failed'), { name: 'NetworkError' }),
+    ],
+  ])('retries %s and accepts the fresh policy', async (_label, failure) => {
+    vi.useFakeTimers();
+    try {
+      const agent = agentReturning('enforce', ['git']);
+      const fetch = vi.mocked(agent.runtimeProfiles.allowedTools);
+      fetch.mockRejectedValueOnce(failure).mockRejectedValueOnce(failure);
+      const pending = resolveSessionToolPolicy({
+        ...params,
+        agent,
+        enforcement: 'enforce',
+      });
+      await vi.advanceTimersByTimeAsync(250 + 1_000);
+      const policy = await pending;
+      expect(policy.degraded).toBe(false);
+      expect(policy.allowedTools).toEqual(new Set(['git']));
+      expect(fetch).toHaveBeenCalledTimes(3);
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({ attempt: 2, delayMs: 1_000 }),
+        'tool_policy.resolve_retry',
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops retrying when the task stops during backoff', async () => {
+    const agent = agentReturning('enforce', ['git']);
+    const fetch = vi.mocked(agent.runtimeProfiles.allowedTools);
+    fetch.mockRejectedValue(
+      Object.assign(new Error('Unavailable'), { statusCode: 503 }),
+    );
+    const controller = new AbortController();
+    const pending = resolveSessionToolPolicy({
+      ...params,
+      agent,
+      enforcement: 'enforce',
+      signal: controller.signal,
+    });
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    controller.abort(new Error('Writer stopped'));
+    expect((await pending).degraded).toBe(true);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('cancels a hung policy read without retrying when the task stops', async () => {
     const agent = agentHanging();
     const controller = new AbortController();
@@ -322,19 +373,28 @@ describe('resolveSessionToolPolicy', () => {
 
   it('times out a hung fetch and falls back to the degraded enforce policy', async () => {
     const agent = agentHanging();
-    const policy = await resolveSessionToolPolicy({
-      ...params,
-      agent,
-      enforcement: 'enforce',
-      timeoutMs: 5,
-    });
+    vi.useFakeTimers();
+    let policy: Awaited<ReturnType<typeof resolveSessionToolPolicy>>;
+    try {
+      const pending = resolveSessionToolPolicy({
+        ...params,
+        agent,
+        enforcement: 'enforce',
+        timeoutMs: 5,
+      });
+      // Three deadlines with two retry backoffs between them.
+      await vi.advanceTimersByTimeAsync(3 * 5 + 250 + 1_000);
+      policy = await pending;
+    } finally {
+      vi.useRealTimers();
+    }
     expect(policy).toEqual({
       enforcement: 'enforce',
       allowedTools: new Set(),
       allowedShellCommands: [],
       degraded: true,
     });
-    expect(agent.runtimeProfiles.allowedTools).toHaveBeenCalledTimes(2);
+    expect(agent.runtimeProfiles.allowedTools).toHaveBeenCalledTimes(3);
     expect(
       vi
         .mocked(agent.runtimeProfiles.allowedTools)

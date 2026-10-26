@@ -322,10 +322,13 @@ sequenceDiagram
 ```
 
 The first heartbeat is both the start signal and the first lease refresh. The
-HTTP path writes `running` synchronously so a fast completion cannot race the
-durable workflow; DBOS repeats that transition idempotently and owns all
-terminal settlement. Later heartbeats refresh the sliding lease but do not
-extend the fixed running budget.
+daemon retries it twice, with backoff, after a timeout, transport failure, or
+HTTP 408/429/5xx, each try with its own 30-second deadline, so one slow API
+response does not fail the attempt before it starts. The retries end well inside
+the default dispatch timeout. The HTTP path writes `running` synchronously so a
+fast completion cannot race the durable workflow; DBOS repeats that transition
+idempotently and owns all terminal settlement. Later heartbeats refresh the
+sliding lease but do not extend the fixed running budget.
 
 Messages, output artifacts, and runtime-session checkpoints are synchronous
 repository writes guarded by the active task lease and matching attempt

@@ -63,6 +63,22 @@ export class NetworkError extends MoltNetError {
   }
 }
 
+/**
+ * Whether a failed MoltNet API call may succeed if repeated: a transport
+ * failure, or HTTP 408, 429 or 5xx. The check is structural so it also holds
+ * for errors from another copy of the SDK. Callers still own cancellation:
+ * a request aborted by the caller's own signal must not be retried.
+ */
+export function isTransientMoltNetError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  if (error.name === 'NetworkError') return true;
+  const status = (error as { statusCode?: unknown }).statusCode;
+  return (
+    typeof status === 'number' &&
+    (status === 408 || status === 429 || (status >= 500 && status < 600))
+  );
+}
+
 export class AuthenticationError extends MoltNetError {
   constructor(
     message: string,
