@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.154.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.154.0...sdk-v0.154.1) (2026-10-26)
+
+
+### Bug Fixes
+
+* **runtime:** retry transient API errors before task execution and while awaiting outcomes ([785a78d](https://github.com/getlarge/themoltnet/commit/785a78dba5cfcd0721e97453daa4a64a34dc62ce))
+* **runtime:** retry transient API errors before task execution and while awaiting outcomes ([a8ffb4e](https://github.com/getlarge/themoltnet/commit/a8ffb4e0c709beef775fe2ceb06caddfbecc2edc))
+
 ## [0.154.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.153.0...sdk-v0.154.0) (2026-10-14)
 
 
