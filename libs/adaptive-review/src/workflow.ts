@@ -55,6 +55,12 @@ import {
   SECURITY_PROCEDURE,
 } from './review-assets.js';
 import { changedPaths, loadAdaptivePolicy } from './snapshot.js';
+import {
+  guardWorkers,
+  type WorkerLiveness,
+  type WorkerPool,
+  WorkerUnavailableError,
+} from './workers.js';
 
 const FullOid = /^[0-9a-f]{40}$/;
 const MAX_FOCUSED_DIFF_BYTES = 120_000;
@@ -149,14 +155,18 @@ export interface RunOptions {
   taskBudgets: ReviewTaskBudgets;
   runtimeSha: string;
   projectId?: string;
+  /** Stops waiting on tasks once the workers that could claim them stopped. */
+  workers?: WorkerLiveness;
+}
+
+function workerPool(lane: Lane): Exclude<WorkerPool, 'classifier'> {
+  return lane === 'tests' || lane === 'conventions' || lane === 'blast-radius'
+    ? 'focused'
+    : lane;
 }
 
 function requiredProfile(options: RunOptions, lane: Lane): string {
-  const key =
-    lane === 'tests' || lane === 'conventions' || lane === 'blast-radius'
-      ? 'focused'
-      : lane;
-  const value = options.profiles[key];
+  const value = options.profiles[workerPool(lane)];
   if (!value)
     throw new Error(`missing runtime profile for enabled ${lane} lane`);
   return value;
@@ -164,6 +174,7 @@ function requiredProfile(options: RunOptions, lane: Lane): string {
 
 function laneFailureCode(reason: unknown): string {
   if (!(reason instanceof Error)) return 'non-error-rejection';
+  if (reason instanceof WorkerUnavailableError) return 'worker-unavailable';
   if (reason instanceof TaskOutcomeError && reason.kind === 'failed') {
     // The executor sets the attempt code; keep it to a log-safe slug.
     const code = reason.attemptErrorCode
@@ -220,6 +231,26 @@ function logClassifierFailure(
   process.stderr.write(
     `Adaptive classifier failure: packet=${packetId} stage=${taskId ? 'task-outcome' : 'before-task'} code=${code} taskId=${taskId ?? 'none'}\n`,
   );
+}
+
+const MAX_COMMITS = 100;
+
+/** PR commit messages, oldest first, read from the fetched inert history. */
+function commitMessages(
+  git: ReturnType<typeof createGit>,
+  base: string,
+  head: string,
+): string[] {
+  return git([
+    'log',
+    '--reverse',
+    `--max-count=${MAX_COMMITS}`,
+    '--format=%B%x00',
+    `${base}..${head}`,
+  ])
+    .split('\0')
+    .map((message) => message.trim())
+    .filter(Boolean);
 }
 
 function unwrap(output: unknown): unknown {
@@ -551,17 +582,19 @@ function docsResult(
     (taskIds.length === 1 ? stages.get(taskIds[0]) : undefined) ??
     (taskIds.length ? 'task-outcome' : 'before-task');
   const error = report.error ?? '';
-  const code = /poll|read task|task lookup/i.test(error)
-    ? 'polling-error'
-    : /timeout|timed out|deadline/i.test(error)
-      ? 'timeout'
-      : /invalid|schema|output/i.test(error)
-        ? 'invalid-output'
-        : /fetch|git /i.test(error)
-          ? 'git-error'
-          : /config|policy/i.test(error)
-            ? 'config-error'
-            : 'unexpected-error';
+  const code = /worker stopped/i.test(error)
+    ? 'worker-unavailable'
+    : /poll|read task|task lookup/i.test(error)
+      ? 'polling-error'
+      : /timeout|timed out|deadline/i.test(error)
+        ? 'timeout'
+        : /invalid|schema|output/i.test(error)
+          ? 'invalid-output'
+          : /fetch|git /i.test(error)
+            ? 'git-error'
+            : /config|policy/i.test(error)
+              ? 'config-error'
+              : 'unexpected-error';
   if (report.status === 'failed') logLaneFailure('docs', taskIds, code, stage);
   return {
     lane: 'docs',
@@ -658,6 +691,7 @@ export async function prepareAdaptiveReview(
       )
       .map((file) => `Binary contents not reviewed: ${file.path}`),
   );
+  const classifierTasks = guardWorkers(tasks, 'classifier', options.workers);
   const classifierTaskIds: string[] = [];
   const answers: PacketAnswer[] = [];
   const packetBudgetReached = packets.length > MAX_CLASSIFIER_PACKETS;
@@ -669,7 +703,7 @@ export async function prepareAdaptiveReview(
   for (const packet of packetBudgetReached ? [] : packets) {
     let taskId: string | undefined;
     try {
-      const task = await tasks.createTask(
+      const task = await classifierTasks.createTask(
         buildClassifyTask(
           reviewIdentity,
           evidence,
@@ -684,7 +718,7 @@ export async function prepareAdaptiveReview(
       );
       taskId = task.id;
       classifierTaskIds.push(task.id);
-      const output = await accepted(tasks, task.id, classifyOutput);
+      const output = await accepted(classifierTasks, task.id, classifyOutput);
       answers.push({ packetId: packet.id, answers: output.answers });
     } catch (reason) {
       const code = laneFailureCode(reason);
@@ -700,7 +734,6 @@ export async function prepareAdaptiveReview(
     packets,
     answers,
     mechanicalConcerns(changes, evidence.files, snapshot.policy.checks),
-    evidence.generatedPaths,
   );
   let docsTaskPossible = false;
   if (routing.routes.some((route) => route.lane === 'docs' && route.run)) {
@@ -801,7 +834,7 @@ export async function runRoutedAdaptiveReview(
     routing.routes.map(async (route, index): Promise<LaneResult> => {
       const stages = new Map<string, string>();
       const laneTasks = trackingTaskClient(
-        tasks,
+        guardWorkers(tasks, workerPool(route.lane), options.workers),
         createdTaskIds[index],
         stages,
       );
@@ -865,7 +898,7 @@ export async function runRoutedAdaptiveReview(
             pr: identity.pr,
             title: identity.title,
             body: identity.body,
-            commits: [],
+            commits: commitMessages(git, identity.base, identity.head),
             base: identity.base,
             head: identity.head,
             teamId: identity.teamId,
@@ -882,24 +915,40 @@ export async function runRoutedAdaptiveReview(
         const failed = result.output.scores.filter(
           (score) => score.status === 'fail',
         );
+        const unclear = result.output.scores.filter(
+          (score) => score.status === 'unclear',
+        );
+        const unreviewed = result.unreviewedDomainWork;
+        const coverage = unreviewed
+          ? `Incomplete coverage: ${unreviewed} domain segment${unreviewed === 1 ? '' : 's'} ${unreviewed === 1 ? 'was' : 'were'} not reviewed.`
+          : '';
         let status: LaneResult['status'] = 'clear';
         if (failed.length) status = 'concern';
-        else if (
-          result.unreviewedDomainWork > 0 ||
-          result.output.scores.some((score) => score.status === 'unclear')
-        )
-          status = 'unclear';
+        else if (unreviewed > 0 || unclear.length) status = 'unclear';
+        // An unclear summary is listed as an assessment gap, so it names the
+        // gap rather than repeating the verdict.
+        let summary = result.output.verdict;
+        if (status === 'unclear')
+          summary =
+            coverage ||
+            `${unclear.length} rubric criteri${unclear.length === 1 ? 'on' : 'a'} could not be assessed.`;
+        else if (coverage) summary = `${summary} ${coverage}`;
         return {
           lane: 'complexity',
           status,
-          summary: result.unreviewedDomainWork
-            ? `${result.output.verdict} Incomplete coverage: ${result.unreviewedDomainWork} domain segment${result.unreviewedDomainWork === 1 ? '' : 's'} ${result.unreviewedDomainWork === 1 ? 'was' : 'were'} not reviewed.`
-            : result.output.verdict,
+          summary,
           taskIds: result.taskIds,
           findings: failed.map((score) => ({
             path: '',
             concern: `${score.criterionId}: ${score.rationale}`,
           })),
+          ...(status === 'unclear'
+            ? {
+                unclear: unclear.map(
+                  (score) => `${score.criterionId}: ${score.rationale}`,
+                ),
+              }
+            : {}),
         };
       }
       if (route.lane === 'security')

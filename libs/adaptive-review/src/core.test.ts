@@ -163,7 +163,6 @@ describe('classifier-first routing', () => {
         packets,
         classified,
         [],
-        [],
       ).routes.every((route) => route.run),
     ).toBe(true);
     const active = decideRoutes(
@@ -171,7 +170,6 @@ describe('classifier-first routing', () => {
       policy.lanes,
       packets,
       classified,
-      [],
       [],
     );
     expect(
@@ -187,20 +185,54 @@ describe('classifier-first routing', () => {
   it('routes all lanes on missing answers or incomplete evidence', () => {
     const packets = packetize(evidence);
     expect(
-      decideRoutes('active', policy.lanes, packets, [], [], []).routes.every(
+      decideRoutes('active', policy.lanes, packets, [], []).routes.every(
         (route) => route.run,
       ),
     ).toBe(true);
+    const binary = 'diff --git a/logo.png b/logo.png\nBinary files differ\n';
+    const binaryPackets = packetize({
+      ...evidence,
+      files: [{ path: 'logo.png', patch: binary, bytes: binary.length }],
+    });
     expect(
       decideRoutes(
         'active',
         policy.lanes,
-        packets,
-        [{ packetId: packets[0].id, answers: answers() }],
+        binaryPackets,
+        [{ packetId: binaryPackets[0].id, answers: answers() }],
         [],
-        ['generated.ts'],
-      ).routes.every((route) => route.run),
+      ).routes.every((route) => route.run && route.reason === 'incomplete'),
     ).toBe(true);
+  });
+
+  it('screens normally when only a lockfile summary stands in for contents', () => {
+    const summary =
+      'diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml\nGenerated lockfile payload summarized: 900 original patch bytes.\n';
+    const packets = packetize({
+      ...evidence,
+      files: [
+        ...evidence.files,
+        {
+          path: 'pnpm-lock.yaml',
+          patch: summary,
+          bytes: summary.length,
+          summarized: true,
+        },
+      ],
+      generatedPaths: ['libs/api-client/src/generated.ts'],
+    });
+    const routes = decideRoutes(
+      'active',
+      policy.lanes,
+      packets,
+      [{ packetId: packets[0].id, answers: answers() }],
+      [],
+    ).routes;
+    expect(routes.some((route) => route.reason === 'incomplete')).toBe(false);
+    expect(routes.find((route) => route.lane === 'docs')).toMatchObject({
+      run: false,
+      reason: 'screened',
+    });
   });
 
   it('raises mechanical convention candidates but leaves exceptions for the deep reviewer', () => {
@@ -223,7 +255,6 @@ describe('classifier-first routing', () => {
       packets,
       [{ packetId: packets[0].id, answers: answers() }],
       concerns,
-      [],
     );
     expect(
       routes.routes.find((route) => route.lane === 'conventions')?.run,
@@ -285,12 +316,12 @@ describe('classifier-first routing', () => {
       ),
     ).toEqual([]);
     expect(
-      decideRoutes('shadow', other.lanes, packets, [], [], []).routes.map(
+      decideRoutes('shadow', other.lanes, packets, [], []).routes.map(
         (route) => route.lane,
       ),
     ).toEqual(['tests']);
     expect(
-      decideRoutes('active', other.lanes, packets, [], [], []).routes,
+      decideRoutes('active', other.lanes, packets, [], []).routes,
     ).toMatchObject([{ lane: 'tests', run: true, reason: 'classifier-error' }]);
   });
 
