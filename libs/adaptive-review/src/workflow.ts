@@ -24,7 +24,8 @@ import { toOutputContractSchema } from '@moltnet/task-schemas';
 import { type ClassifyOutput, Rubric } from '@moltnet/tasks';
 import {
   type TaskClient,
-  waitForTaskOutcome,
+  TaskOutcomeError,
+  waitForAcceptedTask,
 } from '@themoltnet/tasks-orchestrator';
 import { Type } from 'typebox';
 import { Value } from 'typebox/value';
@@ -163,6 +164,15 @@ function requiredProfile(options: RunOptions, lane: Lane): string {
 
 function laneFailureCode(reason: unknown): string {
   if (!(reason instanceof Error)) return 'non-error-rejection';
+  if (reason instanceof TaskOutcomeError && reason.kind === 'failed') {
+    // The executor sets the attempt code; keep it to a log-safe slug.
+    const code = reason.attemptErrorCode
+      ?.toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 64);
+    return code ? `task-${code}` : 'task-failed';
+  }
   if (reason.message === 'invalid complexity rubric')
     return 'invalid-complexity-rubric';
   if (reason.message.startsWith('missing runtime profile for enabled '))
@@ -175,9 +185,16 @@ function laneFailureCode(reason: unknown): string {
     return 'invalid-finding-citation';
   if (reason.message === 'accepted freeform task has no result')
     return 'missing-task-result';
-  const status = (reason as Error & { status?: unknown }).status;
-  if (typeof status === 'number' && Number.isInteger(status) && status >= 400)
-    return `http-${status}`;
+  if (reason instanceof TaskOutcomeError) return 'invalid-task-output';
+  // SDK errors carry `statusCode`; other HTTP clients use `status`.
+  const { status, statusCode } = reason as Error & {
+    status?: unknown;
+    statusCode?: unknown;
+  };
+  const http = statusCode ?? status;
+  if (typeof http === 'number' && Number.isInteger(http) && http >= 400)
+    return `http-${http}`;
+  if (reason.name === 'NetworkError') return 'network-error';
   return reason.name === 'TypeError' ? 'type-error' : 'unexpected-error';
 }
 
@@ -206,14 +223,13 @@ async function accepted<T>(
   id: string,
   parse: (output: unknown) => T,
 ): Promise<T> {
-  const outcome = await waitForTaskOutcome(id, {
+  const result = await waitForAcceptedTask(id, {
     tasks,
     ctx: createSleepingContext(),
     pollIntervalSec: 2,
     parse,
   });
-  if (outcome.kind !== 'accepted') throw new Error(outcome.reason);
-  return outcome.result.state;
+  return result.state;
 }
 
 function classifyOutput(output: unknown): ClassifyOutput {

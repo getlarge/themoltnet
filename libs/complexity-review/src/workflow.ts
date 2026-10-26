@@ -6,7 +6,7 @@ import {
   createInlineContext,
   parallelTasks,
   type TaskClient,
-  waitForTaskOutcome,
+  waitForAcceptedTask,
 } from '@themoltnet/tasks-orchestrator';
 import { type Static, type TSchema, Type } from 'typebox';
 import { Value } from 'typebox/value';
@@ -18,8 +18,9 @@ import {
   type ReviewEvidence,
 } from './evidence.js';
 import {
-  ComplexityReviewDecision,
+  complexityReviewDecisionContract,
   type ComplexityReviewOutput,
+  criterionIdSchema,
   finalizeComplexityReviewDecision,
 } from './result.js';
 
@@ -64,11 +65,11 @@ const ChangeMapSchema = Type.Object({
   ),
 });
 const DomainResultSchema = Type.Object({
-  summary: Type.String(),
+  summary: Type.String({ minLength: 1 }),
   signals: Type.Array(
     Type.Object({
-      criterionId: Type.String(),
-      evidence: Type.String(),
+      criterionId: Type.String({ minLength: 1 }),
+      evidence: Type.String({ minLength: 1 }),
       impact: Type.Union([
         Type.Literal('raises'),
         Type.Literal('reduces'),
@@ -78,6 +79,26 @@ const DomainResultSchema = Type.Object({
     { minItems: 1 },
   ),
 });
+
+/**
+ * The domain output contract bound to one rubric, so the submit gate rejects
+ * an empty summary or an unknown criterion while the model can still correct
+ * it. The trusted parser keeps the whitespace checks the contract cannot
+ * express.
+ */
+function domainResultContract(rubric: Rubric) {
+  const { summary, signals } = DomainResultSchema.properties;
+  return Type.Object({
+    summary,
+    signals: Type.Array(
+      Type.Object({
+        ...signals.items.properties,
+        criterionId: criterionIdSchema(rubric),
+      }),
+      { minItems: 1 },
+    ),
+  });
+}
 export type DomainResult = Static<typeof DomainResultSchema> & {
   paths: string[];
   workId: string;
@@ -296,7 +317,7 @@ export function buildDomainTask(
         ),
       ),
     ].join('\n\n'),
-    DomainResultSchema,
+    domainResultContract(input.rubric),
   );
 }
 
@@ -357,7 +378,7 @@ export function buildSynthesisTask(
       ),
       fence('domain-observations', JSON.stringify(domains)),
     ].join('\n\n'),
-    ComplexityReviewDecision,
+    complexityReviewDecisionContract(input.rubric),
   );
 }
 
@@ -408,16 +429,15 @@ export async function runComplexityReview(
   const awaitParsed = async <T>(
     taskId: string,
     parse: (output: unknown) => T,
-  ): Promise<T> => {
-    const outcome = await waitForTaskOutcome(taskId, {
-      tasks,
-      ctx,
-      pollIntervalSec: 2,
-      parse,
-    });
-    if (outcome.kind !== 'accepted') throw new Error(outcome.reason);
-    return outcome.result.state;
-  };
+  ): Promise<T> =>
+    (
+      await waitForAcceptedTask(taskId, {
+        tasks,
+        ctx,
+        pollIntervalSec: 2,
+        parse,
+      })
+    ).state;
   const mapTask = await tasks.createTask(buildChangeMapTask(input, evidence), {
     idempotencyKey: idempotencyKey(input, 'map'),
   });

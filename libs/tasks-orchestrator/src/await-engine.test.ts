@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { waitForAcceptedTask, waitForTaskOutcome } from './await-engine.js';
+import {
+  TaskOutcomeError,
+  waitForAcceptedTask,
+  waitForTaskOutcome,
+} from './await-engine.js';
 import { inlineContext } from './context.js';
 import { FakeTasks } from './testing.js';
 import type {
@@ -294,5 +298,46 @@ describe('waitForAcceptedTask', () => {
         parse: parseState,
       }),
     ).rejects.toThrow(/status cancelled/);
+  });
+
+  it('carries the failed attempt error code', async () => {
+    const tasks = new FakeTasks([
+      {
+        __taskStatus: 'failed',
+        error: { code: 'max_turns_exceeded', message: 'too many turns' },
+      },
+    ]);
+    const task = await tasks.createTask(baseBody);
+    const error: unknown = await waitForAcceptedTask(task.id, {
+      tasks,
+      ctx: inlineContext,
+      pollIntervalSec: 0,
+      parse: parseState,
+    }).catch((reason: unknown) => reason);
+    expect(error).toBeInstanceOf(TaskOutcomeError);
+    expect(error).toMatchObject({
+      taskId: task.id,
+      kind: 'failed',
+      attemptErrorCode: 'max_turns_exceeded',
+    });
+    expect((error as Error).message).toMatch(/status failed/);
+  });
+
+  it('marks parser rejections as invalid output', async () => {
+    const tasks = new FakeTasks([{ wrong: true }]);
+    const task = await tasks.createTask(baseBody);
+    await expect(
+      waitForAcceptedTask(task.id, {
+        tasks,
+        ctx: inlineContext,
+        pollIntervalSec: 0,
+        parse: parseState,
+      }),
+    ).rejects.toMatchObject({
+      name: 'TaskOutcomeError',
+      kind: 'invalid_output',
+      attemptErrorCode: null,
+      message: 'missing phase',
+    });
   });
 });

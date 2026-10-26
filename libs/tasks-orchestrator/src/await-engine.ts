@@ -1,6 +1,7 @@
 import type {
   AcceptedTaskResult,
   Logger,
+  SdkTaskAttempt,
   TaskOutcome,
   WaitForTaskOptions,
   WorkflowContext,
@@ -169,8 +170,36 @@ export async function waitForTaskOutcome<TState>(
 }
 
 /**
- * Like {@link waitForTaskOutcome} but throws on any non-accepted outcome,
- * returning the parsed accepted result directly.
+ * A non-accepted task outcome. The message is the outcome reason; the fields
+ * let callers classify the failure without parsing it.
+ */
+export class TaskOutcomeError extends Error {
+  readonly taskId: string;
+  readonly kind: 'failed' | 'invalid_output';
+  /** Error code of the latest attempt (e.g. `max_turns_exceeded`), if any. */
+  readonly attemptErrorCode: string | null;
+
+  constructor(
+    taskId: string,
+    outcome: Exclude<TaskOutcome<unknown>, { kind: 'accepted' }>,
+  ) {
+    super(outcome.reason);
+    this.name = 'TaskOutcomeError';
+    this.taskId = taskId;
+    this.kind = outcome.kind;
+    const latest = (outcome.attempts ?? []).reduce<SdkTaskAttempt | undefined>(
+      (last, attempt) =>
+        !last || attempt.attemptN > last.attemptN ? attempt : last,
+      undefined,
+    );
+    const code: unknown = (latest?.error as { code?: unknown } | null)?.code;
+    this.attemptErrorCode = typeof code === 'string' ? code : null;
+  }
+}
+
+/**
+ * Like {@link waitForTaskOutcome} but throws {@link TaskOutcomeError} on any
+ * non-accepted outcome, returning the parsed accepted result directly.
  */
 export async function waitForAcceptedTask<TState>(
   taskId: string,
@@ -178,5 +207,5 @@ export async function waitForAcceptedTask<TState>(
 ): Promise<AcceptedTaskResult<TState>> {
   const outcome = await waitForTaskOutcome(taskId, opts);
   if (outcome.kind === 'accepted') return outcome.result;
-  throw new Error(outcome.reason);
+  throw new TaskOutcomeError(taskId, outcome);
 }
