@@ -673,6 +673,9 @@ func TestAgentsActivationRecordsPerKindCredentialProviders(t *testing.T) {
 	if strings.Contains(out.String(), "identity/SHA256") || strings.Contains(out.String(), "agent-key/") {
 		t.Fatal("activation output must not echo secret reference keys")
 	}
+	if len(result.Warnings) > 0 {
+		t.Fatalf("cross-checked credentials must not warn: %q", result.Warnings)
+	}
 
 	setupActivationCacheFixture(t)
 	out.Reset()

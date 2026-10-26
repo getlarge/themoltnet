@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -56,9 +57,13 @@ type activationCache struct {
 	// document names its own API, so verification proves it agrees with
 	// whatever endpoint it points at — recording which one lets offline
 	// validation notice if that endpoint is changed afterwards.
-	VerifiedAPIURL string                          `json:"verifiedApiUrl"`
-	Inputs         map[string]activationCacheInput `json:"inputs"`
-	CreatedAt      string                          `json:"createdAt"`
+	VerifiedAPIURL string `json:"verifiedApiUrl"`
+	// Warnings come from the last online verification. They derive from
+	// moltnet.json and the selected team, and changing either invalidates the
+	// cache, so a stale warning cannot outlive its cause.
+	Warnings  []string                        `json:"warnings,omitempty"`
+	Inputs    map[string]activationCacheInput `json:"inputs"`
+	CreatedAt string                          `json:"createdAt"`
 }
 
 type activationCacheInput struct {
@@ -88,6 +93,7 @@ type activationValidationResult struct {
 	CredentialProviders        map[string]string `json:"credentialProviders,omitempty"`
 	CredentialStatus           string            `json:"credentialStatus,omitempty"`
 	RegisteredAt               string            `json:"registeredAt,omitempty"`
+	Warnings                   []string          `json:"warnings,omitempty"`
 }
 
 type activationContext struct {
@@ -230,10 +236,14 @@ func verifyAndPinIdentity(ctx *activationContext, cache *activationCache, errOut
 		return fmt.Errorf("credentials not found at %s", credentialsPath)
 	}
 	apiURL := resolveAPIURLFromCredentials("", false, creds)
-	verified, err := verifyIdentityAgainstServer(apiURL, credentialsPath, creds, errOut, ctx.Context.teamID())
+	verified, err := verifyIdentityAgainstServer(apiURL, credentialsPath, creds, ctx.Context.teamID())
 	if err != nil {
 		return err
 	}
+	for _, warning := range verified.Warnings {
+		fmt.Fprintf(errOut, "Warning: %s\n", warning)
+	}
+	cache.Warnings = verified.Warnings
 	// Identity and signing-key attributes may rotate without changing the
 	// durable agent subject. Refresh derived metadata from the authenticated
 	// record instead of turning a stale local fingerprint into a lockout.
@@ -411,6 +421,7 @@ func validateActivationCache(ctx *activationContext) (*activationValidationResul
 	current.VerifiedAPIURL = cache.VerifiedAPIURL
 	current.SubjectVerifiedAt = cache.SubjectVerifiedAt
 	current.Fingerprint = cache.Fingerprint
+	current.Warnings = cache.Warnings
 
 	result := activationResultFromCache(current)
 	return &result, nil
@@ -509,6 +520,7 @@ func activationResultFromCache(cache *activationCache) activationValidationResul
 		CredentialProviders:        maps.Clone(cache.CredentialProviders),
 		CredentialStatus:           cache.CredentialStatus,
 		RegisteredAt:               cache.RegisteredAt,
+		Warnings:                   slices.Clone(cache.Warnings),
 	}
 }
 

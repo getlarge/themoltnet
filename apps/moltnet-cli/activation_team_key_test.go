@@ -63,6 +63,31 @@ func TestActivationRefreshUsesOAuth2WhenSelectedTeamHasNoKey(t *testing.T) {
 		!strings.Contains(warnings.String(), fixtureTeamID) {
 		t.Fatalf("missing daemon warning: %q", warnings.String())
 	}
+	assertSingleUnverifiedWarning(t, result.Warnings)
+
+	// Warm validation is how activated sessions read state, so the warning
+	// must survive in the cache rather than only on the refresh's stderr.
+	out.Reset()
+	if err := runAgentsActivationValidateCmd(&out, "test-agent", true); err != nil {
+		t.Fatalf("validate: %v", err)
+	}
+	result = activationValidationResult{}
+	if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if !result.Valid {
+		t.Fatalf("expected warm cache to stay valid: %+v", result)
+	}
+	assertSingleUnverifiedWarning(t, result.Warnings)
+}
+
+func assertSingleUnverifiedWarning(t *testing.T, warnings []string) {
+	t.Helper()
+	if len(warnings) != 1 ||
+		!strings.Contains(warnings[0], "daemon credential and team membership not verified") ||
+		!strings.Contains(warnings[0], fixtureTeamID) {
+		t.Fatalf("expected one unverified-daemon warning naming the team, got %q", warnings)
+	}
 }
 
 // Credential resolution wraps the selection failure; the typed error must stay
@@ -123,10 +148,9 @@ func TestVerifyIdentityRejectsAmbiguousDaemonKeyDespiteOAuth2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var warnings bytes.Buffer
-	_, err = verifyIdentityAgainstServer(resolveAPIURLFromCredentials("", false, creds), credentialsPath, creds, &warnings)
-	if err == nil || isMissingTeamAgentKey(err) || warnings.Len() > 0 {
-		t.Fatalf("expected terminal ambiguous daemon key error without warning, got %v (warnings %q)", err, warnings.String())
+	verified, err := verifyIdentityAgainstServer(resolveAPIURLFromCredentials("", false, creds), credentialsPath, creds)
+	if err == nil || isMissingTeamAgentKey(err) || verified != nil {
+		t.Fatalf("expected terminal ambiguous daemon key error, got %v (verified %+v)", err, verified)
 	}
 }
 

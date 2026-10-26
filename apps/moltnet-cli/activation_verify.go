@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/ed25519"
 	"fmt"
-	"io"
 	"strings"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
@@ -20,6 +19,9 @@ type subjectVerification struct {
 	SubjectType SubjectType
 	PublicKey   string
 	Fingerprint string
+	// Warnings name checks that were skipped rather than failed, so callers
+	// can report them alongside the result.
+	Warnings []string
 }
 
 // verifyIdentityAgainstServer confirms that the subject tuple in moltnet.json
@@ -40,7 +42,7 @@ type subjectVerification struct {
 // Activation verifies the credential selected for ordinary CLI work. When the
 // document also contains an agent_key_ref, it verifies that daemon credential
 // independently and requires both credentials to identify the same subject.
-func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *CredentialsFile, errOut io.Writer, team ...string) (*subjectVerification, error) {
+func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *CredentialsFile, team ...string) (*subjectVerification, error) {
 	registry := NewSecretProviderRegistry()
 	client, err := newConfigAuthenticatedClient(apiURL, credentialsPath, registry, team...)
 	if err != nil {
@@ -69,7 +71,8 @@ func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *Credenti
 	// Activation still succeeds through OAuth2; a daemon run here would fail
 	// until the team is enrolled.
 	if oauth2CoversMissingTeamKey(creds, err) {
-		fmt.Fprintf(errOut, "Warning: daemon credential and team membership not verified: %v\n", err)
+		verified.Warnings = append(verified.Warnings,
+			fmt.Sprintf("daemon credential and team membership not verified: %v", err))
 		return verified, nil
 	}
 	if err != nil {
