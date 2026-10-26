@@ -172,7 +172,7 @@ func resolveAgentKey(creds *CredentialsFile, registry *SecretProviderRegistry, t
 	}
 	selection, err := selectAgentKeyReference(creds, selectedTeam)
 	if err != nil {
-		return "", true, &CredentialResolutionError{Kind: kind, Code: "selection", Detail: err.Error()}
+		return "", true, &CredentialResolutionError{Kind: kind, Code: "selection", Detail: err.Error(), Cause: err}
 	}
 	if selection == nil {
 		return "", false, nil

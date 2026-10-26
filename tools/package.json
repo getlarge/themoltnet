@@ -18,7 +18,7 @@
     "bench:embedding": "tsx src/bench-embedding-warmup.ts",
     "bench:task-readiness": "tsx src/bench-task-readiness.ts",
     "smtp:test": "tsx src/test-smtp.ts",
-    "test:agent-bundle": "node --test release/agent-bundle/agent-bundle.test.mjs release/cli/install.test.mjs release/cli/p12-chain.test.mjs release/sync-gondolin-cli-pin.test.mjs",
+    "test:agent-bundle": "node --test release/agent-bundle/agent-bundle.test.mjs release/cli/install.test.mjs release/cli/p12-chain.test.mjs release/sync-cli-consumer-pins.test.mjs",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
@@ -91,11 +91,15 @@
         "inputs": [
           "{workspaceRoot}/tools/release/agent-bundle/**",
           "{workspaceRoot}/tools/release/cli/**",
-          "{workspaceRoot}/tools/release/sync-gondolin-cli-pin*.mjs",
+          "{workspaceRoot}/tools/release/sync-cli-consumer-pins*.mjs",
           "{projectRoot}/package.json",
           "{workspaceRoot}/apps/agent-daemon/package.json",
           "{workspaceRoot}/apps/moltnet-cli/.goreleaser.yml",
           "{workspaceRoot}/.github/workflows/release.yml",
+          "{workspaceRoot}/.github/workflows/issue-triage.yml",
+          "{workspaceRoot}/.github/workflows/legreffier-security-review.yml",
+          "{workspaceRoot}/.github/workflows/multi-lens-review.yml",
+          "{workspaceRoot}/libs/sandbox-gondolin/src/snapshot.ts",
           "{workspaceRoot}/.tool-versions"
         ]
       },

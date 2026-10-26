@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -59,7 +60,18 @@ type activationCache struct {
 	VerifiedAPIURL string                          `json:"verifiedApiUrl"`
 	Inputs         map[string]activationCacheInput `json:"inputs"`
 	CreatedAt      string                          `json:"createdAt"`
+	// Warnings are derived on every build and never persisted.
+	Warnings []activationWarning `json:"-"`
 }
+
+// activationWarning reports a check that was skipped rather than failed.
+// Code is the stable value for consumers; Message is for humans.
+type activationWarning struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+const activationWarningDaemonUnverified = "daemon_credential_unverified"
 
 type activationCacheInput struct {
 	Path   string `json:"path"`
@@ -88,6 +100,9 @@ type activationValidationResult struct {
 	CredentialProviders        map[string]string `json:"credentialProviders,omitempty"`
 	CredentialStatus           string            `json:"credentialStatus,omitempty"`
 	RegisteredAt               string            `json:"registeredAt,omitempty"`
+
+	// Warnings lists checks that were skipped rather than failed.
+	Warnings []activationWarning `json:"warnings,omitempty"`
 }
 
 type activationContext struct {
@@ -119,10 +134,16 @@ func runAgentsActivationValidateCmd(w io.Writer, identity string, jsonOut bool, 
 	if err != nil {
 		return err
 	}
-	return printActivationValidationResult(w, result, jsonOut)
+	if err := printActivationValidationResult(w, result, jsonOut); err != nil {
+		return err
+	}
+	if !jsonOut {
+		printActivationWarnings(w, result.Warnings)
+	}
+	return nil
 }
 
-func runAgentsActivationRefreshCmd(w io.Writer, identity string, jsonOut bool, options ...nativeProjectOptions) error {
+func runAgentsActivationRefreshCmd(w, errOut io.Writer, identity string, jsonOut bool, options ...nativeProjectOptions) error {
 	ctx, err := resolveActivationContext(identity, options...)
 	if err != nil {
 		return err
@@ -137,6 +158,7 @@ func runAgentsActivationRefreshCmd(w io.Writer, identity string, jsonOut bool, o
 	if err := verifyAndPinIdentity(ctx, cache); err != nil {
 		return err
 	}
+	printActivationWarnings(errOut, cache.Warnings)
 	if ctx.Context.Binding != nil {
 		if err := verifyContextBindingOnline(ctx.AgentDir, *ctx.Context.Binding); err != nil {
 			return err
@@ -220,6 +242,12 @@ func resolveActivationContext(identity string, options ...nativeProjectOptions) 
 
 // verifyAndPinIdentity confirms the identity against the server and records
 // what was confirmed, so warm validation can trust the pins without re-asking.
+func printActivationWarnings(w io.Writer, warnings []activationWarning) {
+	for _, warning := range warnings {
+		fmt.Fprintf(w, "Warning: %s\n", warning.Message)
+	}
+}
+
 func verifyAndPinIdentity(ctx *activationContext, cache *activationCache) error {
 	credentialsPath := filepath.Join(ctx.AgentDir, "moltnet.json")
 	creds, err := ReadConfigFrom(credentialsPath)
@@ -273,8 +301,15 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 	if !authorshipConfigured {
 		authorshipMode = "agent"
 	}
+	var warnings []activationWarning
 	if _, err := selectAgentKeyReference(creds, ctx.Context.teamID()); err != nil {
-		return nil, err
+		if !oauth2CoversMissingTeamKey(creds, err) {
+			return nil, err
+		}
+		warnings = append(warnings, activationWarning{
+			Code:    activationWarningDaemonUnverified,
+			Message: fmt.Sprintf("%s: %v", daemonUnverifiedMessage, err),
+		})
 	}
 	credentialProviders := activationCredentialProviders(creds, ctx.Context.teamID())
 	credentialProvider := credentialProviders[activationCredentialOAuth2]
@@ -333,6 +368,7 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 		CredentialStatus:     credentialStatus,
 		RegisteredAt:         creds.RegisteredAt,
 		Inputs:               inputs,
+		Warnings:             warnings,
 		CreatedAt:            now,
 	}, nil
 }
@@ -509,6 +545,7 @@ func activationResultFromCache(cache *activationCache) activationValidationResul
 		CredentialProviders:        maps.Clone(cache.CredentialProviders),
 		CredentialStatus:           cache.CredentialStatus,
 		RegisteredAt:               cache.RegisteredAt,
+		Warnings:                   slices.Clone(cache.Warnings),
 	}
 }
 
