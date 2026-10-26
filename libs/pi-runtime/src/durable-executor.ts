@@ -3,7 +3,7 @@ import {
   BACKGROUND_CONTEXT,
   withAbortSignal,
 } from '@earendil-works/chord/context';
-import type { Models } from '@earendil-works/pi-ai';
+import type { Models, UserMessage } from '@earendil-works/pi-ai';
 import {
   type AgentChange,
   configure,
@@ -92,6 +92,30 @@ const Attempts = defineDocFamily({
 // The Durable `bash` tool throws this text on timeout, and the Harness keeps a
 // thrown message as the result's `tool_error` diagnostic.
 const BASH_TIMEOUT = /^Command timed out after /;
+
+/** Tool rounds left at which the model is told to submit. */
+const TURN_BUDGET_WARNING_ROUNDS = 3;
+
+/**
+ * A request-only notice that the turn budget is nearly spent. Without it the
+ * model cannot see the limit and an exploring attempt ends with no output.
+ */
+function turnBudgetNotice(
+  remaining: number,
+  toolName: string,
+  messages: readonly { timestamp?: number }[],
+): UserMessage {
+  return {
+    role: 'user',
+    content:
+      `Runtime notice: ${remaining} tool round${remaining === 1 ? '' : 's'} ` +
+      `left before this attempt ends without output. Stop investigating and ` +
+      `call ${toolName} now with your best result. Report anything you could ` +
+      `not verify as uncertain instead of investigating further.`,
+    // Derived from the conversation so a replayed request is identical.
+    timestamp: messages.at(-1)?.timestamp ?? 0,
+  };
+}
 
 function isBashTimeout(result: ToolExecutionResult): boolean {
   return (
@@ -404,7 +428,7 @@ export function createDurableTaskExecutor(options: {
                 }
               }, ctx);
             },
-            async beforeRequest(_request, api, ctx) {
+            async beforeRequest(request, api, ctx) {
               connected.check();
               const state = await harness!.snapshot(Attempts, key, ctx);
               const exhausted =
@@ -413,7 +437,27 @@ export function createDurableTaskExecutor(options: {
                   bashTimeoutsOf(state) >= bashTimeoutLimit);
               if (exhausted) {
                 await abortGeneration(harness!, api.taskId, ctx);
+                return undefined;
               }
+              const remaining =
+                turnLimit === undefined
+                  ? undefined
+                  : turnLimit - (state?.turns ?? 0);
+              if (
+                remaining !== undefined &&
+                remaining <= TURN_BUDGET_WARNING_ROUNDS &&
+                !state?.submission
+              )
+                return {
+                  messages: [
+                    ...request.messages,
+                    turnBudgetNotice(
+                      remaining,
+                      contract.toolName,
+                      request.messages,
+                    ),
+                  ],
+                };
               return undefined;
             },
             async onYield(answer, _api, ctx) {
