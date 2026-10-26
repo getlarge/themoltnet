@@ -37,6 +37,10 @@ func TestSharedTeamKeySelectionFixtures(t *testing.T) {
 				if err == nil {
 					t.Fatal("expected selection error")
 				}
+				// Only this case may be tolerated by OAuth2 activation.
+				if isMissingTeamAgentKey(err) != (test.Name == "map only missing selected") {
+					t.Fatalf("missing-team classification wrong: %v", err)
+				}
 				return
 			}
 			if err != nil {

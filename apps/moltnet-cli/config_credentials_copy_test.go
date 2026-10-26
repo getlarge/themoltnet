@@ -692,7 +692,7 @@ func TestConfigCredentialsCopyInvalidatesActivationCache(t *testing.T) {
 		creds.OAuth2.ClientSecret = ""
 		creds.OAuth2.ClientSecretRef = &SecretReference{Provider: fileProviderName, Key: OAuth2SecretKey(fixtureSubjectID, "cid")}
 	})
-	if err := runAgentsActivationRefreshCmd(&bytes.Buffer{}, "test-agent", true); err != nil {
+	if err := runAgentsActivationRefreshCmd(&bytes.Buffer{}, &bytes.Buffer{}, "test-agent", true); err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
 	ctx, err := resolveActivationContext("test-agent")
