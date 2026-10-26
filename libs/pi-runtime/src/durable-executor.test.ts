@@ -391,6 +391,43 @@ describe('Durable task integration', () => {
     expect(await execute(task(), reporter())).toEqual(result);
   });
 
+  it('tells the model to submit when few tool rounds remain', async () => {
+    const bash = failingBash('Command exited with code 1');
+    const { faux, execute } = setup(false, 5, undefined, {
+      tools: [bash.tool],
+    });
+    const notices: string[][] = [];
+    const respond =
+      (reply: () => ReturnType<typeof submitted>) =>
+      (context: {
+        messages: readonly { role: string; content: unknown }[];
+      }) => {
+        notices.push(
+          context.messages
+            .filter((message) => message.role === 'user')
+            .map((message) => JSON.stringify(message.content))
+            .filter((content) => content.includes('Runtime notice')),
+        );
+        return reply();
+      };
+    faux.setResponses([
+      respond(() => bashCall('ls')),
+      respond(() => bashCall('ls')),
+      respond(() => bashCall('ls')),
+      respond(submitted),
+    ]);
+
+    const result = await execute(task(), reporter());
+
+    expect(result.status).toBe('completed');
+    // Five rounds allowed: the notice starts once three remain, and only the
+    // current request carries it.
+    expect(notices.map((found) => found.length)).toEqual([0, 0, 1, 1]);
+    expect(notices[2][0]).toContain('3 tool rounds left');
+    expect(notices[2][0]).toContain('call submit_freeform_output now');
+    expect(notices[3][0]).toContain('2 tool rounds left');
+  });
+
   it('counts only bash timeouts toward the cap', async () => {
     const bash = failingBash('Command exited with code 1');
     const { faux, execute } = setup(false, undefined, undefined, {
