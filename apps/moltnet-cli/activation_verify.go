@@ -19,9 +19,6 @@ type subjectVerification struct {
 	SubjectType SubjectType
 	PublicKey   string
 	Fingerprint string
-	// Warnings name checks that were skipped rather than failed, so callers
-	// can report them alongside the result.
-	Warnings []string
 }
 
 // verifyIdentityAgainstServer confirms that the subject tuple in moltnet.json
@@ -66,13 +63,8 @@ func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *Credenti
 		return verified, nil
 	}
 	configKey, _, err := resolveAgentKey(creds, registry, team...)
-	// No key is mapped for this team, so there is no daemon credential to
-	// cross-check, and nothing here confirms the identity belongs to the team.
-	// Activation still succeeds through OAuth2; a daemon run here would fail
-	// until the team is enrolled.
+	// No daemon credential to cross-check; buildActivationCache reports this.
 	if oauth2CoversMissingTeamKey(creds, err) {
-		verified.Warnings = append(verified.Warnings,
-			fmt.Sprintf("daemon credential and team membership not verified: %v", err))
 		return verified, nil
 	}
 	if err != nil {

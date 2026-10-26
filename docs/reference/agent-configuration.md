@@ -728,11 +728,14 @@ When `moltnet.json` holds both an OAuth2 client and agent keys, refresh also
 authenticates with the selected team's agent key and requires both credentials
 to name the same subject. If the team map has no entry for the selected team,
 refresh verifies through OAuth2 alone, reports `agentKey` as `absent`, and
-prints `daemon credential and team membership not verified` on stderr. The same
-message appears in the `warnings` array of the `--json` output of both refresh
-and validate, so a session that reads the warm cache sees it too. The location
-stays usable for CLI work, which already prefers OAuth2. A daemon run there
-fails until the team is enrolled with
+prints `daemon credential and team membership not verified` on stderr. Both
+refresh and validate report it in the `warnings` array of their `--json` output
+as `{"code": "daemon_credential_unverified", "message": "..."}`. Match on
+`code`, because the message wording may change. Validate works the warning out
+from `moltnet.json` and the selected team, so it stays offline and the warning
+disappears once the team is enrolled. The location stays usable for CLI work,
+which already prefers OAuth2. A daemon run there fails until the team is
+enrolled with
 `moltnet agents keys create --team-id <uuid> --name <name> --store` or
 `moltnet teams join --code <code> --issue-agent-key --store`. A key-only
 identity with no entry for the selected team fails refresh with the same

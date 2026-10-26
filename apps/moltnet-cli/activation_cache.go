@@ -57,14 +57,21 @@ type activationCache struct {
 	// document names its own API, so verification proves it agrees with
 	// whatever endpoint it points at — recording which one lets offline
 	// validation notice if that endpoint is changed afterwards.
-	VerifiedAPIURL string `json:"verifiedApiUrl"`
-	// Warnings come from the last online verification. They derive from
-	// moltnet.json and the selected team, and changing either invalidates the
-	// cache, so a stale warning cannot outlive its cause.
-	Warnings  []string                        `json:"warnings,omitempty"`
-	Inputs    map[string]activationCacheInput `json:"inputs"`
-	CreatedAt string                          `json:"createdAt"`
+	VerifiedAPIURL string                          `json:"verifiedApiUrl"`
+	Inputs         map[string]activationCacheInput `json:"inputs"`
+	CreatedAt      string                          `json:"createdAt"`
+	// Warnings are derived on every build and never persisted.
+	Warnings []activationWarning `json:"-"`
 }
+
+// activationWarning reports a check that was skipped rather than failed.
+// Code is the stable value for consumers; Message is for humans.
+type activationWarning struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+const activationWarningDaemonUnverified = "daemon_credential_unverified"
 
 type activationCacheInput struct {
 	Path   string `json:"path"`
@@ -93,7 +100,9 @@ type activationValidationResult struct {
 	CredentialProviders        map[string]string `json:"credentialProviders,omitempty"`
 	CredentialStatus           string            `json:"credentialStatus,omitempty"`
 	RegisteredAt               string            `json:"registeredAt,omitempty"`
-	Warnings                   []string          `json:"warnings,omitempty"`
+
+	// Warnings lists checks that were skipped rather than failed.
+	Warnings []activationWarning `json:"warnings,omitempty"`
 }
 
 type activationContext struct {
@@ -125,7 +134,13 @@ func runAgentsActivationValidateCmd(w io.Writer, identity string, jsonOut bool, 
 	if err != nil {
 		return err
 	}
-	return printActivationValidationResult(w, result, jsonOut)
+	if err := printActivationValidationResult(w, result, jsonOut); err != nil {
+		return err
+	}
+	if !jsonOut {
+		printActivationWarnings(w, result.Warnings)
+	}
+	return nil
 }
 
 func runAgentsActivationRefreshCmd(w, errOut io.Writer, identity string, jsonOut bool, options ...nativeProjectOptions) error {
@@ -140,9 +155,10 @@ func runAgentsActivationRefreshCmd(w, errOut io.Writer, identity string, jsonOut
 	// Refresh is the only path allowed to use the network. buildActivationCache
 	// is shared with warm validate, which is offline by contract, so the server
 	// check and the pins it produces belong here and nowhere else.
-	if err := verifyAndPinIdentity(ctx, cache, errOut); err != nil {
+	if err := verifyAndPinIdentity(ctx, cache); err != nil {
 		return err
 	}
+	printActivationWarnings(errOut, cache.Warnings)
 	if ctx.Context.Binding != nil {
 		if err := verifyContextBindingOnline(ctx.AgentDir, *ctx.Context.Binding); err != nil {
 			return err
@@ -226,7 +242,13 @@ func resolveActivationContext(identity string, options ...nativeProjectOptions) 
 
 // verifyAndPinIdentity confirms the identity against the server and records
 // what was confirmed, so warm validation can trust the pins without re-asking.
-func verifyAndPinIdentity(ctx *activationContext, cache *activationCache, errOut io.Writer) error {
+func printActivationWarnings(w io.Writer, warnings []activationWarning) {
+	for _, warning := range warnings {
+		fmt.Fprintf(w, "Warning: %s\n", warning.Message)
+	}
+}
+
+func verifyAndPinIdentity(ctx *activationContext, cache *activationCache) error {
 	credentialsPath := filepath.Join(ctx.AgentDir, "moltnet.json")
 	creds, err := ReadConfigFrom(credentialsPath)
 	if err != nil {
@@ -240,10 +262,6 @@ func verifyAndPinIdentity(ctx *activationContext, cache *activationCache, errOut
 	if err != nil {
 		return err
 	}
-	for _, warning := range verified.Warnings {
-		fmt.Fprintf(errOut, "Warning: %s\n", warning)
-	}
-	cache.Warnings = verified.Warnings
 	// Identity and signing-key attributes may rotate without changing the
 	// durable agent subject. Refresh derived metadata from the authenticated
 	// record instead of turning a stale local fingerprint into a lockout.
@@ -283,8 +301,15 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 	if !authorshipConfigured {
 		authorshipMode = "agent"
 	}
-	if _, err := selectAgentKeyReference(creds, ctx.Context.teamID()); err != nil && !oauth2CoversMissingTeamKey(creds, err) {
-		return nil, err
+	var warnings []activationWarning
+	if _, err := selectAgentKeyReference(creds, ctx.Context.teamID()); err != nil {
+		if !oauth2CoversMissingTeamKey(creds, err) {
+			return nil, err
+		}
+		warnings = append(warnings, activationWarning{
+			Code:    activationWarningDaemonUnverified,
+			Message: fmt.Sprintf("%s: %v", daemonUnverifiedMessage, err),
+		})
 	}
 	credentialProviders := activationCredentialProviders(creds, ctx.Context.teamID())
 	credentialProvider := credentialProviders[activationCredentialOAuth2]
@@ -343,6 +368,7 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 		CredentialStatus:     credentialStatus,
 		RegisteredAt:         creds.RegisteredAt,
 		Inputs:               inputs,
+		Warnings:             warnings,
 		CreatedAt:            now,
 	}, nil
 }
@@ -421,7 +447,6 @@ func validateActivationCache(ctx *activationContext) (*activationValidationResul
 	current.VerifiedAPIURL = cache.VerifiedAPIURL
 	current.SubjectVerifiedAt = cache.SubjectVerifiedAt
 	current.Fingerprint = cache.Fingerprint
-	current.Warnings = cache.Warnings
 
 	result := activationResultFromCache(current)
 	return &result, nil

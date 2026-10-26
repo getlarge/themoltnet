@@ -59,10 +59,7 @@ func TestActivationRefreshUsesOAuth2WhenSelectedTeamHasNoKey(t *testing.T) {
 	if !result.Valid || result.CredentialProviders["agentKey"] != "absent" {
 		t.Fatalf("unexpected activation result: %+v", result)
 	}
-	if !strings.Contains(warnings.String(), "daemon credential and team membership not verified") ||
-		!strings.Contains(warnings.String(), fixtureTeamID) {
-		t.Fatalf("missing daemon warning: %q", warnings.String())
-	}
+	assertUnverifiedWarningText(t, warnings.String())
 	assertSingleUnverifiedWarning(t, result.Warnings)
 
 	// Warm validation is how activated sessions read state, so the warning
@@ -79,14 +76,26 @@ func TestActivationRefreshUsesOAuth2WhenSelectedTeamHasNoKey(t *testing.T) {
 		t.Fatalf("expected warm cache to stay valid: %+v", result)
 	}
 	assertSingleUnverifiedWarning(t, result.Warnings)
+
+	out.Reset()
+	if err := runAgentsActivationValidateCmd(&out, "test-agent", false); err != nil {
+		t.Fatalf("validate text: %v", err)
+	}
+	assertUnverifiedWarningText(t, out.String())
 }
 
-func assertSingleUnverifiedWarning(t *testing.T, warnings []string) {
+func assertSingleUnverifiedWarning(t *testing.T, warnings []activationWarning) {
 	t.Helper()
-	if len(warnings) != 1 ||
-		!strings.Contains(warnings[0], "daemon credential and team membership not verified") ||
-		!strings.Contains(warnings[0], fixtureTeamID) {
-		t.Fatalf("expected one unverified-daemon warning naming the team, got %q", warnings)
+	if len(warnings) != 1 || warnings[0].Code != activationWarningDaemonUnverified {
+		t.Fatalf("expected one %s warning, got %+v", activationWarningDaemonUnverified, warnings)
+	}
+	assertUnverifiedWarningText(t, warnings[0].Message)
+}
+
+func assertUnverifiedWarningText(t *testing.T, text string) {
+	t.Helper()
+	if !strings.Contains(text, daemonUnverifiedMessage) || !strings.Contains(text, fixtureTeamID) {
+		t.Fatalf("expected unverified-daemon warning naming the team, got %q", text)
 	}
 }
 
@@ -101,13 +110,12 @@ func TestResolveAgentKeyKeepsMissingTeamKeyCause(t *testing.T) {
 	}
 }
 
-func TestActivationRefreshKeyOnlyRejectsUnenrolledTeam(t *testing.T) {
+func TestBuildActivationCacheKeyOnlyRejectsUnenrolledTeam(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
 	rewriteActivationFixtureCredentials(t, dir, func(creds *CredentialsFile) {
 		creds.OAuth2 = CredentialsOAuth2{}
 		mapOnlyOtherTeamKey(t, creds)
 	})
-	// Must fail at the offline cache gate, before verification reaches the server.
 	err := buildActivationCacheForTest(t)
 	if !isMissingTeamAgentKey(err) || !strings.Contains(err.Error(), `--team-id "`+fixtureTeamID+`"`) {
 		t.Fatalf("expected actionable missing team key error, got %v", err)
@@ -129,7 +137,7 @@ func TestActivationRefreshRejectsUnresolvableSelectedTeamKey(t *testing.T) {
 
 // OAuth2 tolerates only a missing mapping. Without a team context, two mapped
 // keys are ambiguous and must still fail rather than skip the daemon check.
-func TestActivationRefreshRejectsAmbiguousTeamKeysDespiteOAuth2(t *testing.T) {
+func TestBuildActivationCacheRejectsAmbiguousTeamKeysDespiteOAuth2(t *testing.T) {
 	dir := setupActivationCacheFixture(t)
 	stripActivationFixtureContext(t, dir)
 	rewriteActivationFixtureCredentials(t, dir, mapTwoTeamKeys)

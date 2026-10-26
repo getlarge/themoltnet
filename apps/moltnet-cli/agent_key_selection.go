@@ -38,6 +38,10 @@ func isMissingTeamAgentKey(err error) bool {
 	return errors.As(err, &missing)
 }
 
+// daemonUnverifiedMessage prefixes the warning for a team that OAuth2 covers
+// but no agent key does.
+const daemonUnverifiedMessage = "daemon credential and team membership not verified"
+
 // OAuth2 takes precedence over agent keys (see newCredentialsAuthenticatedClient),
 // so a team without a mapped key only blocks key-only identities.
 func oauth2CoversMissingTeamKey(creds *CredentialsFile, err error) bool {
