@@ -1,3 +1,4 @@
+import { isTransientMoltNetError } from '@themoltnet/sdk';
 import type { ShellCommandAnalyzer } from '@themoltnet/shell-command-analyzer';
 
 import {
@@ -33,6 +34,8 @@ export interface SessionToolPolicy {
 
 /** Default deadline for the allowed-tools fetch before we fall back. */
 export const DEFAULT_RESOLVE_TIMEOUT_MS = 5_000;
+/** Backoff before each retry of a transiently failed allowed-tools fetch. */
+const RESOLVE_RETRY_DELAYS_MS = [250, 1_000] as const;
 
 /**
  * Structured logger the resolver and gate emit to. Deliberately the pino
@@ -87,9 +90,10 @@ export interface ResolveSessionToolPolicyInput {
   enforcement: ToolEnforcement;
   logger: ToolPolicyLogger;
   /**
-   * Deadline per allowed-tools fetch. Retry one timed-out GET, cancelling each
-   * request at its deadline. After both fail, return the mode-appropriate
-   * degraded policy. Defaults to
+   * Deadline per allowed-tools fetch. A timed-out, transport-failed or
+   * 408/429/5xx GET is cancelled and retried up to twice with backoff. After
+   * the last attempt fails, return the mode-appropriate degraded policy.
+   * Defaults to
    * {@link DEFAULT_RESOLVE_TIMEOUT_MS}; `0`/negative disables the deadline.
    */
   timeoutMs?: number;
@@ -127,21 +131,38 @@ export async function resolveSessionToolPolicy(
         timeoutMs,
         input.signal,
       );
-    // A transient upstream stall must not permanently fail a claimed task.
-    // Retry only a local deadline once, after cancelling that request. Auth,
-    // policy errors and caller cancellation remain fail-closed immediately.
-    const resolved = await fetchPolicy().catch((error: unknown) => {
-      if (
-        !(error instanceof ToolPolicyResolveTimeoutError) ||
-        input.signal?.aborted
-      )
-        throw error;
-      input.logger.warn(
-        { profileId: input.profileId, timeoutMs },
-        'tool_policy.resolve_retry',
-      );
-      return fetchPolicy();
-    });
+    // A transient upstream failure must not permanently fail a claimed task.
+    // Retry a local deadline, a transport failure, or HTTP 408/429/5xx with a
+    // short backoff, after cancelling the failed request. Auth, policy errors
+    // and caller cancellation remain fail-closed immediately.
+    let resolved: Awaited<ReturnType<typeof fetchPolicy>> | undefined;
+    for (let attempt = 1; !resolved; attempt += 1) {
+      try {
+        resolved = await fetchPolicy();
+      } catch (error) {
+        const transient =
+          error instanceof ToolPolicyResolveTimeoutError ||
+          isTransientMoltNetError(error);
+        if (
+          !transient ||
+          input.signal?.aborted ||
+          attempt > RESOLVE_RETRY_DELAYS_MS.length
+        )
+          throw error;
+        const delayMs = RESOLVE_RETRY_DELAYS_MS[attempt - 1];
+        input.logger.warn(
+          {
+            profileId: input.profileId,
+            timeoutMs,
+            attempt,
+            delayMs,
+            timedOut: error instanceof ToolPolicyResolveTimeoutError,
+          },
+          'tool_policy.resolve_retry',
+        );
+        await delay(delayMs, input.signal);
+      }
+    }
     const shellCommands = resolved.allowedShellCommands ?? [];
     if (resolved.runtimeKind !== input.runtimeKind) {
       throw new RuntimeKindMismatchError({
@@ -212,6 +233,26 @@ export class RuntimeKindMismatchError extends Error {
     );
     this.name = 'RuntimeKindMismatchError';
   }
+}
+
+/** Sleep between retries, ending early with the abort reason. */
+function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    signal?.throwIfAborted();
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(
+        signal?.reason instanceof Error
+          ? signal.reason
+          : new Error('Policy resolution cancelled'),
+      );
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
 }
 
 /** Bound and cancel each GET, even when a client fails to honor abort. */

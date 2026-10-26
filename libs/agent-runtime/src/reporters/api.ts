@@ -3,7 +3,7 @@ import {
   type TaskOutput,
   type TaskUsage,
 } from '@moltnet/tasks';
-import type { TasksNamespace } from '@themoltnet/sdk';
+import { isTransientMoltNetError, type TasksNamespace } from '@themoltnet/sdk';
 
 import { addActiveTaskEvent, traceRuntimePhase } from '../telemetry.js';
 import type { TaskReporter } from './types.js';
@@ -21,6 +21,15 @@ export interface ApiTaskReporterOptions {
 const MAX_BATCH_SIZE = 50;
 const FLUSH_INTERVAL_MS = 200;
 const HEARTBEAT_TIMEOUT_MS = 30_000;
+/** Backoff before each retry of a transiently failed first heartbeat. */
+const INITIAL_HEARTBEAT_RETRY_DELAYS_MS = [1_000, 5_000] as const;
+
+class HeartbeatTimeoutError extends Error {
+  constructor() {
+    super('Heartbeat request timed out');
+    this.name = 'HeartbeatTimeoutError';
+  }
+}
 
 type BufferedMessage = {
   kind: TaskMessage['kind'];
@@ -115,7 +124,7 @@ export class ApiTaskReporter implements TaskReporter {
     await traceRuntimePhase(
       'moltnet.reporter.open',
       { 'moltnet.task.attempt': this.attemptN },
-      () => this.heartbeatNow(),
+      () => this.sendInitialHeartbeat(),
     );
 
     const intervalMs = this.opts.heartbeatIntervalMs ?? 60_000;
@@ -362,6 +371,40 @@ export class ApiTaskReporter implements TaskReporter {
     }
   }
 
+  /**
+   * The first heartbeat reports that the claimed attempt started. Retry a
+   * timeout, transport failure or HTTP 408/429/5xx, each try with its own
+   * deadline, so one slow API response cannot fail the attempt before it
+   * runs. The retries end well inside the dispatch timeout.
+   */
+  private async sendInitialHeartbeat(): Promise<void> {
+    for (let retry = 0; ; retry += 1) {
+      try {
+        await this.heartbeatNow();
+        return;
+      } catch (err) {
+        const transient =
+          err instanceof HeartbeatTimeoutError || isTransientMoltNetError(err);
+        if (!transient || retry >= INITIAL_HEARTBEAT_RETRY_DELAYS_MS.length)
+          throw err;
+        const delayMs = INITIAL_HEARTBEAT_RETRY_DELAYS_MS[retry];
+        this.warn(
+          {
+            err,
+            taskId: this.taskId,
+            attemptN: this.attemptN,
+            retry: retry + 1,
+            delayMs,
+          },
+          'agent-runtime.reporter.initial_heartbeat_retry',
+        );
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, delayMs);
+        });
+      }
+    }
+  }
+
   /** Send a heartbeat after all earlier heartbeat checks have settled. */
   heartbeatNow(): Promise<void> {
     this.heartbeatPendingCount += 1;
@@ -381,7 +424,7 @@ export class ApiTaskReporter implements TaskReporter {
   private async sendHeartbeatBounded(): Promise<void> {
     const controller = new AbortController();
     const timeout = setTimeout(
-      () => controller.abort(new Error('Heartbeat request timed out')),
+      () => controller.abort(new HeartbeatTimeoutError()),
       HEARTBEAT_TIMEOUT_MS,
     );
     try {

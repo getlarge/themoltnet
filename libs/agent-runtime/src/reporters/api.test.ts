@@ -360,6 +360,111 @@ describe('ApiTaskReporter', () => {
     expect(heartbeatMock).toHaveBeenCalledTimes(2);
   });
 
+  it('retries a transient initial heartbeat failure', async () => {
+    const unavailable = Object.assign(new Error('Service Unavailable'), {
+      statusCode: 503,
+    });
+    const heartbeatMock = vi
+      .fn<TasksNamespace['heartbeat']>()
+      .mockRejectedValueOnce(unavailable)
+      .mockResolvedValueOnce({
+        claimExpiresAt: new Date(Date.now() + 90_000).toISOString(),
+        cancelled: false,
+        cancelReason: null,
+      });
+    const { tasks } = makeMockTasks({ heartbeat: heartbeatMock });
+    const warn = vi.fn();
+    const reporter = new ApiTaskReporter({
+      tasks,
+      heartbeatIntervalMs: 60_000,
+      logger: { warn },
+    });
+
+    const openPromise = reporter.open({ taskId: TASK_ID, attemptN: 1 });
+    await vi.advanceTimersByTimeAsync(1_000);
+    await openPromise;
+
+    expect(heartbeatMock).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({ retry: 1, delayMs: 1_000 }),
+      'agent-runtime.reporter.initial_heartbeat_retry',
+    );
+  });
+
+  it('retries a hung initial heartbeat with a fresh deadline', async () => {
+    const heartbeatMock = vi
+      .fn<TasksNamespace['heartbeat']>()
+      .mockImplementationOnce(
+        (_taskId, _attemptN, _body, options) =>
+          new Promise((_resolve, reject) => {
+            options?.signal?.addEventListener(
+              'abort',
+              () => reject(options.signal?.reason as Error),
+              { once: true },
+            );
+          }),
+      )
+      .mockResolvedValueOnce({
+        claimExpiresAt: new Date(Date.now() + 90_000).toISOString(),
+        cancelled: false,
+        cancelReason: null,
+      });
+    const { tasks } = makeMockTasks({ heartbeat: heartbeatMock });
+    const reporter = new ApiTaskReporter({
+      tasks,
+      heartbeatIntervalMs: 60_000,
+    });
+
+    const openPromise = reporter.open({ taskId: TASK_ID, attemptN: 1 });
+    await vi.advanceTimersByTimeAsync(30_000 + 1_000);
+    await openPromise;
+
+    expect(heartbeatMock).toHaveBeenCalledTimes(2);
+    expect(heartbeatMock.mock.calls[0]?.[3]?.signal?.aborted).toBe(true);
+    expect(heartbeatMock.mock.calls[1]?.[3]?.signal?.aborted).toBe(false);
+  });
+
+  it('fails after the initial heartbeat retries are exhausted', async () => {
+    const unavailable = Object.assign(new Error('Service Unavailable'), {
+      statusCode: 503,
+    });
+    const heartbeatMock = vi
+      .fn<TasksNamespace['heartbeat']>()
+      .mockRejectedValue(unavailable);
+    const { tasks } = makeMockTasks({ heartbeat: heartbeatMock });
+    const reporter = new ApiTaskReporter({
+      tasks,
+      heartbeatIntervalMs: 60_000,
+      logger: { warn: vi.fn() },
+    });
+
+    const openPromise = reporter.open({ taskId: TASK_ID, attemptN: 1 });
+    const settled = expect(openPromise).rejects.toThrow('Service Unavailable');
+    await vi.advanceTimersByTimeAsync(1_000 + 5_000);
+    await settled;
+    expect(heartbeatMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not retry a non-transient initial heartbeat failure', async () => {
+    const conflict = Object.assign(new Error('Claim superseded'), {
+      statusCode: 409,
+    });
+    const heartbeatMock = vi
+      .fn<TasksNamespace['heartbeat']>()
+      .mockRejectedValue(conflict);
+    const { tasks } = makeMockTasks({ heartbeat: heartbeatMock });
+    const reporter = new ApiTaskReporter({
+      tasks,
+      heartbeatIntervalMs: 60_000,
+      logger: { warn: vi.fn() },
+    });
+
+    await expect(
+      reporter.open({ taskId: TASK_ID, attemptN: 1 }),
+    ).rejects.toThrow('Claim superseded');
+    expect(heartbeatMock).toHaveBeenCalledTimes(1);
+  });
+
   describe('appendMessages authorization failures', () => {
     it('surfaces a non-legacy 403 without retrying', async () => {
       const error403 = Object.assign(new Error('Team access denied'), {
@@ -582,10 +687,19 @@ describe('ApiTaskReporter', () => {
     const rejected = expect(opening).rejects.toThrow(
       'Heartbeat request timed out',
     );
-    await vi.advanceTimersByTimeAsync(30_000);
+    // Three deadlines with the two initial-heartbeat retry backoffs.
+    await vi.advanceTimersByTimeAsync(3 * 30_000 + 1_000 + 5_000);
 
     await rejected;
-    expect(warn).toHaveBeenCalledTimes(1);
+    expect(heartbeat).toHaveBeenCalledTimes(3);
+    const messages = warn.mock.calls.map(([, message]) => message as string);
+    expect(messages).toEqual([
+      'agent-runtime.reporter.heartbeat_failed',
+      'agent-runtime.reporter.initial_heartbeat_retry',
+      'agent-runtime.reporter.heartbeat_failed',
+      'agent-runtime.reporter.initial_heartbeat_retry',
+      'agent-runtime.reporter.heartbeat_failed',
+    ]);
   });
 });
 
