@@ -36,7 +36,8 @@ Globs are root-relative, case-sensitive POSIX paths. A `*` matches within one
 path segment and `**` matches zero or more segments. Dotfiles are matched by
 wildcards. Negation, braces, character classes, parent traversal, and absolute
 paths are not supported; use `excludePaths` for exclusions. Rule and check
-lists are bounded and validated before routing.
+lists are bounded and validated before routing. These globs differ from the
+docs impact review's, which use minimatch and skip dot names.
 
 Optional `docs.config` and `complexity.rubric` are root-relative paths to
 base-commit JSON files for their enabled lanes. They do not select runtime
@@ -142,5 +143,8 @@ classifier profile, a nonempty `providers` definition, and
 profiles for each lane enabled in `.github/adaptive-review.json`.
 `protected-paths` should
 include the caller workflow and any trusted runtime configuration it owns.
+The prepare job applies the docs impact review's eligibility rules: it skips
+fork and Dependabot pull requests, pull requests whose file list GitHub
+truncated, and pull requests that change a protected path.
 For private repositories, bind workers to a private diary; the review report
 does not require a public diary.
