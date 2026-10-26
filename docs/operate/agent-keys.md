@@ -342,14 +342,12 @@ daemon remains key-only and requires `agent_key_ref` or `agent_key_refs` for an
 attached external config. Before upgrading a mixed configuration, confirm that
 its OAuth2 client and daemon key authenticate as the same subject.
 
-A location bound to a team the identity joined without a key still activates
-when OAuth2 is configured: refresh warns that the daemon credential was not
-verified, and CLI work continues on OAuth2. Daemon runs for that team need a key
-first; see
+When OAuth2 is configured, a location bound to a team that has no key for the
+identity activates with a warning: the daemon credential is not verified, and
+CLI work uses OAuth2. Daemon runs for that team require a key; see
 [Enroll an existing agent into another team](#enroll-an-existing-agent-into-another-team).
-See
 [Identity verification](../reference/agent-configuration.md#identity-verification)
-for what activation checks.
+describes what activation checks.
 
 ## Enroll an existing agent into another team
 
