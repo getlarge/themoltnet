@@ -118,6 +118,13 @@ const claimCondition = joinCondition(reviewTaskIds); // op: 'all', status: 'comp
 MoltNet task to a terminal (or accepted) state, sleeping durably between polls.
 Per-poll logs go to `logger.debug`; lifecycle transitions to `logger.info`.
 
+A transient read failure during a poll (`isTransientMoltNetError` from
+`@themoltnet/sdk`: a network error, or HTTP 408, 429, or 5xx) counts as a missed
+poll. The engine sleeps for the normal interval and polls again. It tolerates
+5 consecutive missed polls and throws the error of the 6th. Only a complete poll
+of a task that is not yet terminal resets the count. Authentication and other
+non-transient errors are thrown at once.
+
 Task **attempt retries** and post-acceptance **domain repair** solve different
 problems. A task's attempt budget handles execution failures before the server
 accepts an attempt. `waitForValidatedTask` leaves that completed status intact,

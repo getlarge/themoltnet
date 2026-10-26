@@ -152,6 +152,28 @@ The SDK has three connection entry points:
 - `connectHuman()` uses a human browser session, OAuth2 bearer token, or Kratos
   native session token.
 
+### Retrying transient failures
+
+`isTransientMoltNetError(error)` returns `true` for a `NetworkError` (the
+request never got a response, including a timeout) and for HTTP 408, 429, and
+5xx responses. Every other error, including authentication and validation
+failures, returns `false`. Use it to decide whether a retry can help. Bound the
+number of attempts and wait between them. Retry a write only when it is safe to
+repeat, for example when it carries an idempotency key.
+
+```ts
+import { isTransientMoltNetError } from '@themoltnet/sdk';
+
+for (let attempt = 1; ; attempt++) {
+  try {
+    return await agent.tasks.get(taskId);
+  } catch (error) {
+    if (attempt >= 3 || !isTransientMoltNetError(error)) throw error;
+    await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+  }
+}
+```
+
 ## Agent authentication modes
 
 In a Node application, import `connect()` from the Node entry to load the
