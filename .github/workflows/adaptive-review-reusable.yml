@@ -106,49 +106,8 @@ jobs:
       runtime-repository: ${{ steps.runtime.outputs.repository }}
       runtime-sha: ${{ steps.runtime-pin.outputs.sha }}
     steps:
-      - name: Pin reviewed PR and protect the runtime
-        id: pin
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
-        env:
-          PROTECTED_PATHS: ${{ inputs.protected-paths }}
-        with:
-          script: |
-            const crypto = require('node:crypto');
-            const pr = context.payload.pull_request;
-            const repo = `${context.repo.owner}/${context.repo.repo}`;
-            const files = await github.paginate(github.rest.pulls.listFiles, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pr.number,
-              per_page: 100,
-            });
-            const protectedPaths = (process.env.PROTECTED_PATHS || '')
-              .split('\n').map(path => path.trim()).filter(Boolean);
-            const changed = files.flatMap(file =>
-              [file.filename, file.previous_filename].filter(Boolean));
-            const skip = pr.head.repo?.full_name !== repo ||
-              pr.user.login === 'dependabot[bot]' ||
-              files.length < pr.changed_files ||
-              changed.some(path => protectedPaths.some(prefix => path.startsWith(prefix)));
-            core.setOutput('skip', String(skip));
-            if (skip) return;
-            const correlationId = crypto.randomUUID();
-            const prepared = {
-              repo,
-              pr: pr.number,
-              title: pr.title.slice(0, 500),
-              body: (pr.body || '').slice(0, 4000),
-              base: pr.base.sha,
-              head: pr.head.sha,
-              correlationId,
-            };
-            core.setOutput('prepared', JSON.stringify(prepared));
-            core.setOutput('base', prepared.base);
-            core.setOutput('head', prepared.head);
-            core.setOutput('correlation', correlationId);
       - name: Resolve trusted review runtime
         id: runtime
-        if: steps.pin.outputs.skip == 'false'
         env:
           WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}
           WORKFLOW_SHA: ${{ job.workflow_sha }}
@@ -171,14 +130,13 @@ jobs:
           fi
           echo "repository=$WORKFLOW_REPOSITORY" >> "$GITHUB_OUTPUT"
           echo "ref=$runtime_ref" >> "$GITHUB_OUTPUT"
+      # The event's base commit is the one the eligibility step pins.
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        if: steps.pin.outputs.skip == 'false'
         with:
-          ref: ${{ steps.pin.outputs.base }}
+          ref: ${{ github.event.pull_request.base.sha }}
           fetch-depth: 1
           persist-credentials: false
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        if: steps.pin.outputs.skip == 'false'
         with:
           repository: ${{ steps.runtime.outputs.repository }}
           ref: ${{ steps.runtime.outputs.ref }}
@@ -186,24 +144,16 @@ jobs:
           persist-credentials: false
       - name: Pin runtime commit
         id: runtime-pin
-        if: steps.pin.outputs.skip == 'false'
         run: echo "sha=$(git -C .adaptive-review-runtime rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-        if: steps.pin.outputs.skip == 'false'
+      - uses: ./.adaptive-review-runtime/packages/adaptive-review-action/setup
+      - name: Pin reviewed PR and protect the runtime
+        id: pin
+        uses: ./.adaptive-review-runtime/packages/adaptive-review-action
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROTECTED_PATHS: ${{ inputs.protected-paths }}
         with:
-          package_json_file: .adaptive-review-runtime/package.json
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        if: steps.pin.outputs.skip == 'false'
-        with:
-          node-version-file: .adaptive-review-runtime/.tool-versions
-          cache: pnpm
-          cache-dependency-path: .adaptive-review-runtime/pnpm-lock.yaml
-      - name: Build the trusted classifier planner
-        if: steps.pin.outputs.skip == 'false'
-        working-directory: .adaptive-review-runtime
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm exec nx run @themoltnet/adaptive-review-action:build --excludeTaskDependencies
+          step: prepare
       - name: Fetch reviewed head as inert Git data
         if: steps.pin.outputs.skip == 'false'
         env:
@@ -239,8 +189,8 @@ jobs:
       contents: read
       pull-requests: read
     outputs:
-      specialists: ${{ steps.specialists.outputs.matrix }}
-      has-specialists: ${{ steps.specialists.outputs.enabled }}
+      specialists: ${{ steps.route.outputs.specialists }}
+      has-specialists: ${{ steps.route.outputs.has-specialists }}
     env:
       ADAPTIVE_MODE: ${{ inputs.mode }}
       ADAPTIVE_PREPARED: ${{ github.workspace }}/adaptive-prepared.json
@@ -271,19 +221,7 @@ jobs:
           ref: ${{ needs.prepare.outputs.runtime-sha }}
           path: .adaptive-review-runtime
           persist-credentials: false
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-        with:
-          package_json_file: .adaptive-review-runtime/package.json
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version-file: .adaptive-review-runtime/.tool-versions
-          cache: pnpm
-          cache-dependency-path: .adaptive-review-runtime/pnpm-lock.yaml
-      - name: Install and build the trusted action
-        working-directory: .adaptive-review-runtime
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm exec nx run @themoltnet/adaptive-review-action:build --excludeTaskDependencies
+      - uses: ./.adaptive-review-runtime/packages/adaptive-review-action/setup
       - name: Fetch reviewed head as inert Git data
         env:
           BASE_SHA: ${{ needs.prepare.outputs.base }}
@@ -296,37 +234,12 @@ jobs:
         run: |
           node -e "require('node:fs').writeFileSync(process.env.ADAPTIVE_PREPARED, process.env.PREPARED_JSON, {mode: 0o600})"
       - name: Classify and route the review
+        id: route
         uses: ./.adaptive-review-runtime/packages/adaptive-review-action
         env:
           GH_TOKEN: ${{ github.token }}
         with:
           step: route
-      - name: Select specialist workers
-        id: specialists
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const route = JSON.parse(fs.readFileSync(process.env.ADAPTIVE_ROUTE, 'utf8'));
-          const profiles = {
-            docs: process.env.ADAPTIVE_DOCS_PROFILE,
-            tests: process.env.ADAPTIVE_FOCUSED_PROFILE,
-            conventions: process.env.ADAPTIVE_FOCUSED_PROFILE,
-            security: process.env.ADAPTIVE_SECURITY_PROFILE,
-            'blast-radius': process.env.ADAPTIVE_FOCUSED_PROFILE,
-            complexity: process.env.ADAPTIVE_COMPLEXITY_PROFILE,
-          };
-          const selected = new Map();
-          for (const item of route.routing.routes.filter(item => item.run)) {
-            const profile = profiles[item.lane];
-            if (!profile) throw new Error(`Unknown review lane: ${item.lane}`);
-            if (item.lane === 'docs' && !route.docsTaskPossible) continue;
-            selected.set(profile, (selected.get(profile) || 0) + 1);
-          }
-          const matrix = { include: [...selected].flatMap(([profile, capacity]) =>
-            Array.from({ length: capacity }, (_, index) => ({ profile, worker: index + 1 }))) };
-          fs.appendFileSync(process.env.GITHUB_OUTPUT,
-            `matrix=${JSON.stringify(matrix)}\nenabled=${matrix.include.length > 0}\n`);
-          NODE
       - name: Upload routing decision
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
@@ -375,19 +288,7 @@ jobs:
           ref: ${{ needs.prepare.outputs.runtime-sha }}
           path: .adaptive-review-runtime
           persist-credentials: false
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-        with:
-          package_json_file: .adaptive-review-runtime/package.json
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version-file: .adaptive-review-runtime/.tool-versions
-          cache: pnpm
-          cache-dependency-path: .adaptive-review-runtime/pnpm-lock.yaml
-      - name: Install and build the trusted action
-        working-directory: .adaptive-review-runtime
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm exec nx run @themoltnet/adaptive-review-action:build --excludeTaskDependencies
+      - uses: ./.adaptive-review-runtime/packages/adaptive-review-action/setup
       - name: Fetch reviewed head as inert Git data
         env:
           BASE_SHA: ${{ needs.prepare.outputs.base }}

@@ -36,6 +36,11 @@ describe('checkEligibility', () => {
     ['a fork', { headRepo: 'someone/themoltnet' }, /fork/],
     ['a deleted fork', { headRepo: null }, /fork/],
     ['Dependabot', { author: 'dependabot[bot]' }, /Dependabot/],
+    [
+      'a truncated file list',
+      { changedFiles: 3001 },
+      /listed 1 of 3001 changed files/,
+    ],
   ])('rejects %s', (_label, overrides, reason) => {
     // Act
     const result = checkEligibility(pr(overrides));
@@ -43,6 +48,13 @@ describe('checkEligibility', () => {
     // Assert
     expect(result.eligible).toBe(false);
     expect(!result.eligible && result.reason).toMatch(reason);
+  });
+
+  it('admits a complete file list', () => {
+    // Act / Assert
+    expect(checkEligibility(pr({ changedFiles: 1 }))).toEqual({
+      eligible: true,
+    });
   });
 
   it.each([

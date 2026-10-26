@@ -1,39 +1,32 @@
-import { execFile, execFileSync } from 'node:child_process';
-import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
-import { createGit } from '@moltnet/docs-impact-review';
+import type { PullRequestFile } from '@moltnet/docs-impact-review/eligibility';
 import { connect } from '@themoltnet/sdk/node';
 import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 
-import {
-  env,
-  formatReviewTaskBudgets,
-  parseReviewTaskBudgets,
-  required,
-} from './config.js';
-import { loadAdaptivePolicy } from './snapshot.js';
+import { type CliDeps, runAdaptiveStage } from './cli.js';
+import { env, required } from './config.js';
 import {
   type WorkerJob,
   type WorkerLiveness,
   workflowWorkerLiveness,
 } from './workers.js';
-import {
-  type AdaptivePreparation,
-  classifierTaskPossible,
-  prepareAdaptiveReview,
-  type RunOptions,
-  runRoutedAdaptiveReview,
-} from './workflow.js';
 
-interface Prepared {
-  repo: string;
-  pr: number;
-  title: string;
-  body: string;
-  base: string;
-  head: string;
-  correlationId: string;
+async function gh(args: string[]): Promise<string> {
+  const { stdout } = await promisify(execFile)('gh', args, {
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  return stdout;
+}
+
+/** `gh api --paginate --jq` output: one JSON value per line. */
+function jsonLines<T>(stdout: string): T[] {
+  return stdout
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => JSON.parse(line) as T);
 }
 
 /** Watches this run's worker jobs; absent outside GitHub Actions. */
@@ -50,15 +43,15 @@ function runWorkerLiveness(): WorkerLiveness | undefined {
       focused: env().ADAPTIVE_FOCUSED_PROFILE || undefined,
     },
     async listJobs() {
-      const { stdout } = await promisify(execFile)(
-        'gh',
-        ['api', '--paginate', path, '--jq', '.jobs[] | {name, status}'],
-        { encoding: 'utf8' },
+      return jsonLines<WorkerJob>(
+        await gh([
+          'api',
+          '--paginate',
+          path,
+          '--jq',
+          '.jobs[] | {name, status}',
+        ]),
       );
-      return stdout
-        .split('\n')
-        .filter(Boolean)
-        .map((line) => JSON.parse(line) as WorkerJob);
     },
     onLookupError() {
       // Liveness is advisory: keep waiting on the task budgets instead.
@@ -71,135 +64,57 @@ function runWorkerLiveness(): WorkerLiveness | undefined {
   });
 }
 
-async function main() {
-  const stage = required('ADAPTIVE_STAGE');
-  const prepared = JSON.parse(
-    readFileSync(required('ADAPTIVE_PREPARED'), 'utf8'),
-  ) as Prepared;
-  const current = JSON.parse(
-    execFileSync(
-      'gh',
-      [
-        'pr',
-        'view',
-        String(prepared.pr),
-        '--repo',
-        prepared.repo,
-        '--json',
-        'headRefOid,baseRefOid',
-      ],
-      { encoding: 'utf8' },
-    ),
-  ) as { headRefOid: string; baseRefOid: string };
-  if (
-    current.headRefOid !== prepared.head ||
-    current.baseRefOid !== prepared.base
-  ) {
-    throw new Error('PR revisions changed after preparation');
-  }
-  const snapshot = loadAdaptivePolicy(createGit(process.cwd()), prepared.base);
-  if (stage === 'plan') {
-    const enabled = snapshot !== null;
-    const needed =
-      enabled &&
-      classifierTaskPossible(process.cwd(), prepared.base, prepared.head);
-    appendFileSync(
-      required('GITHUB_OUTPUT'),
-      `review-enabled=${enabled}\nclassifier-needed=${needed}\n`,
-    );
-    return;
-  }
-  if (!snapshot)
-    throw new Error('adaptive review policy is absent on the base');
-  const mode = required('ADAPTIVE_MODE');
-  if (mode !== 'shadow' && mode !== 'active')
-    throw new Error('ADAPTIVE_MODE must be shadow or active');
-  const taskBudgets = parseReviewTaskBudgets(
-    env().ADAPTIVE_TASK_BUDGETS,
-    snapshot.policy.lanes,
-  );
-  if (env().GITHUB_STEP_SUMMARY) {
-    appendFileSync(
-      required('GITHUB_STEP_SUMMARY'),
-      formatReviewTaskBudgets(taskBudgets),
-    );
-  }
-  const agent = await connect();
-  const teamId = required('MOLTNET_TEAM_ID');
-  const { items } = await agent.runtimeProfiles.list({ teamId });
-  const resolve = (name: string): string => {
-    const profile = items.find(
-      (item) => item.id === name || item.name === name,
-    );
-    if (!profile) throw new Error(`runtime profile ${name} not found`);
-    return profile.id;
-  };
-  const options: RunOptions = {
-    identity: {
-      ...prepared,
-      teamId,
-      diaryId: required('MOLTNET_DIARY_ID'),
-      classifierProfileId: resolve(required('ADAPTIVE_CLASSIFIER_PROFILE')),
+const deps: CliDeps = {
+  env: env(),
+  cwd: process.cwd(),
+  github: {
+    async revisions(repo, pr) {
+      const current = JSON.parse(
+        await gh([
+          'pr',
+          'view',
+          String(pr),
+          '--repo',
+          repo,
+          '--json',
+          'headRefOid,baseRefOid',
+        ]),
+      ) as { headRefOid: string; baseRefOid: string };
+      return { head: current.headRefOid, base: current.baseRefOid };
     },
-    mode,
-    tasks: createSdkTaskClient(agent),
-    cwd: process.cwd(),
-    runtimeSha: required('ADAPTIVE_RUNTIME_SHA'),
-    taskBudgets,
-    profiles: {
-      ...(snapshot.policy.lanes.includes('docs')
-        ? { docs: resolve(required('ADAPTIVE_DOCS_PROFILE')) }
-        : {}),
-      ...(snapshot.policy.lanes.includes('complexity')
-        ? { complexity: resolve(required('ADAPTIVE_COMPLEXITY_PROFILE')) }
-        : {}),
-      ...(snapshot.policy.lanes.includes('security')
-        ? { security: resolve(required('ADAPTIVE_SECURITY_PROFILE')) }
-        : {}),
-      ...(snapshot.policy.lanes.some(
-        (lane) =>
-          lane === 'tests' || lane === 'conventions' || lane === 'blast-radius',
-      )
-        ? { focused: resolve(required('ADAPTIVE_FOCUSED_PROFILE')) }
-        : {}),
+    async files(repo, pr) {
+      return jsonLines<PullRequestFile>(
+        await gh([
+          'api',
+          '--paginate',
+          `repos/${repo}/pulls/${pr}/files?per_page=100`,
+          '--jq',
+          '.[] | {filename} + (if .previous_filename then {previous_filename} else {} end)',
+        ]),
+      );
     },
-    projectId: env().MOLTNET_PROJECT_ID || undefined,
-    workers: runWorkerLiveness(),
-  };
-  if (stage === 'route') {
-    const preparation = await prepareAdaptiveReview(options);
-    writeFileSync(
-      required('ADAPTIVE_ROUTE'),
-      `${JSON.stringify(preparation, null, 2)}\n`,
-      { mode: 0o600 },
-    );
-    process.stdout.write(
-      `Adaptive routing finished: ${preparation.routing.routes
-        .filter((route) => route.run)
-        .map((route) => route.lane)
-        .join(', ')}\n`,
-    );
-    return;
-  }
-  if (stage !== 'review')
-    throw new Error('ADAPTIVE_STAGE must be plan, route, or review');
-  const preparation = JSON.parse(
-    readFileSync(required('ADAPTIVE_ROUTE'), 'utf8'),
-  ) as AdaptivePreparation;
-  const report = await runRoutedAdaptiveReview(options, preparation);
-  writeFileSync(
-    required('ADAPTIVE_REPORT'),
-    `${JSON.stringify(report, null, 2)}\n`,
-    { mode: 0o600 },
-  );
-  process.stdout.write(
-    `Adaptive review finished: ${report.results.map((result) => `${result.lane}=${result.status}`).join(', ')}\n`,
-  );
-  if (report.results.some((result) => result.status === 'failed'))
-    process.exitCode = 1;
-}
+  },
+  async connect() {
+    const agent = await connect();
+    return {
+      async profiles(teamId) {
+        return (await agent.runtimeProfiles.list({ teamId })).items;
+      },
+      tasks: createSdkTaskClient(agent),
+    };
+  },
+  workers: runWorkerLiveness,
+  stdout: (text) => process.stdout.write(text),
+};
 
-main().catch((error) => {
-  process.stderr.write(`${String(error)}\n`);
-  process.exitCode = 1;
-});
+Promise.resolve()
+  .then(() => runAdaptiveStage(required('ADAPTIVE_STAGE'), deps))
+  .then(
+    (code) => {
+      process.exitCode = code;
+    },
+    (error: unknown) => {
+      process.stderr.write(`${String(error)}\n`);
+      process.exitCode = 1;
+    },
+  );

@@ -18,6 +18,11 @@ export interface PullRequestFacts {
   author: string;
   files: PullRequestFile[];
   /**
+   * GitHub's changed-file count. The files endpoint stops at 3,000 entries, so
+   * a shorter `files` list may hide a protected path and is never reviewed.
+   */
+  changedFiles?: number;
+  /**
    * Path prefixes of the review runtime in this repository, e.g. the workflow
    * that runs the review. A pull request touching one is not reviewed by the
    * runtime it modifies.
@@ -38,6 +43,12 @@ function normalizePrefix(prefix: string): string {
 }
 
 export function checkEligibility(pr: PullRequestFacts): Eligibility {
+  if (pr.changedFiles !== undefined && pr.files.length < pr.changedFiles) {
+    return {
+      eligible: false,
+      reason: `GitHub listed ${pr.files.length} of ${pr.changedFiles} changed files, so the protected paths cannot be checked`,
+    };
+  }
   // Fork PRs run without secrets and cannot publish; a deleted fork is
   // treated the same way.
   if (pr.headRepo !== pr.baseRepo) {

@@ -7,40 +7,50 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Script } from 'node:vm';
 
 import { describe, expect, it } from 'vitest';
+import { parse } from 'yaml';
 
-const workflow = readFileSync(
-  new URL(
-    '../../.github/workflows/adaptive-review-reusable.yml',
-    import.meta.url,
-  ),
-  'utf8',
-);
-const caller = readFileSync(
-  new URL('../../.github/workflows/adaptive-review.yml', import.meta.url),
-  'utf8',
-);
-const action = readFileSync(
-  new URL('../../packages/adaptive-review-action/action.yml', import.meta.url),
-  'utf8',
-);
-const main = readFileSync(
-  new URL('../../libs/adaptive-review/src/main.ts', import.meta.url),
-  'utf8',
-);
+interface Step {
+  name?: string;
+  id?: string;
+  uses?: string;
+  run?: string;
+  if?: string;
+  env?: Record<string, string>;
+  with?: Record<string, string>;
+}
+
+interface Job {
+  if?: string;
+  needs?: string | string[];
+  permissions?: Record<string, string>;
+  outputs?: Record<string, string>;
+  steps: Step[];
+}
+
+function read(path: string): string {
+  return readFileSync(new URL(path, import.meta.url), 'utf8');
+}
+
+const workflow = parse(
+  read('../../.github/workflows/adaptive-review-reusable.yml'),
+) as { jobs: Record<string, Job> };
+const caller = parse(read('../../.github/workflows/adaptive-review.yml')) as {
+  jobs: Record<string, Job & { with: Record<string, string> }>;
+};
+const action = parse(
+  read('../../packages/adaptive-review-action/action.yml'),
+) as {
+  outputs: Record<string, { value: string }>;
+  runs: { steps: Step[] };
+};
 const focusedPolicy = JSON.parse(
-  readFileSync(
-    new URL(
-      '../../.github/runtime-policies/legreffier-adaptive-focused-readonly-v1.json',
-      import.meta.url,
-    ),
-    'utf8',
+  read(
+    '../../.github/runtime-policies/legreffier-adaptive-focused-readonly-v1.json',
   ),
 ) as { shellCommands: unknown[]; tools: string[] };
 const fetchScriptPath = fileURLToPath(
@@ -48,297 +58,136 @@ const fetchScriptPath = fileURLToPath(
 );
 const fetchScript = readFileSync(fetchScriptPath, 'utf8');
 
-function prepareScript(): string {
-  const lines = workflow.split('\n');
-  const start = lines.findIndex((line) => line === '          script: |');
-  if (start < 0) throw new Error('Prepare script is missing');
-  const script: string[] = [];
-  for (const line of lines.slice(start + 1)) {
-    if (line && !line.startsWith('            ')) break;
-    script.push(line.slice(12));
-  }
-  return script.join('\n');
+const RUNTIME_ACTION =
+  './.adaptive-review-runtime/packages/adaptive-review-action';
+const FETCH_STEP = 'Fetch reviewed head as inert Git data';
+const WORKERS = ['classifier-worker', 'specialist-workers'];
+
+function job(name: string): Job {
+  const value = workflow.jobs[name];
+  if (!value) throw new Error(`Job ${name} is missing`);
+  return value;
 }
 
-type ReviewFile = { filename: string; previous_filename?: string };
-
-async function runPrepare(options: {
-  files?: ReviewFile[];
-  changedFiles?: number;
-  author?: string;
-  headRepo?: string;
-  repo?: string;
-  protectedPaths?: string;
-}) {
-  const files = options.files ?? [{ filename: 'apps/console/src/App.tsx' }];
-  const repo = options.repo ?? 'getlarge/themoltnet';
-  const [owner, name] = repo.split('/');
-  const outputs = new Map<string, string>();
-  const pullRequest = {
-    number: 42,
-    title: 'Review title',
-    body: 'Review body',
-    changed_files: options.changedFiles ?? files.length,
-    base: { sha: 'base-sha' },
-    head: {
-      sha: 'head-sha',
-      repo: { full_name: options.headRepo ?? repo },
-    },
-    user: { login: options.author ?? 'contributor' },
-  };
-  const execute = new Script(
-    `(async (github, context, core, require, process) => {\n${prepareScript()}\n})`,
-  ).runInNewContext() as (...args: unknown[]) => Promise<void>;
-  await execute(
-    {
-      paginate: () => Promise.resolve(files),
-      rest: { pulls: { listFiles: () => undefined } },
-    },
-    {
-      repo: { owner, repo: name },
-      payload: { pull_request: pullRequest },
-      runId: 100,
-    },
-    { setOutput: (key: string, value: string) => outputs.set(key, value) },
-    createRequire(import.meta.url),
-    {
-      env: {
-        GITHUB_RUN_ATTEMPT: '1',
-        PROTECTED_PATHS:
-          options.protectedPaths ??
-          '.github/workflows/adaptive-review.yml\nlibs/adaptive-review/\npackages/adaptive-review-action/',
-      },
-    },
-  );
-  return outputs;
+function step(name: string, predicate: (step: Step) => boolean): Step {
+  const found = job(name).steps.find(predicate);
+  if (!found) throw new Error(`Step is missing in ${name}`);
+  return found;
 }
 
-function job(name: string): string {
-  const lines = workflow.split('\n');
-  const start = lines.findIndex((line) => line === `  ${name}:`);
-  if (start < 0) throw new Error(`Job ${name} is missing`);
-  const end = lines.findIndex(
-    (line, index) => index > start && /^ {2}[a-z][a-z-]*:$/.test(line),
-  );
-  return lines.slice(start, end < 0 ? undefined : end).join('\n');
+function stepIndex(name: string, predicate: (step: Step) => boolean): number {
+  const index = job(name).steps.findIndex(predicate);
+  if (index < 0) throw new Error(`Step is missing in ${name}`);
+  return index;
 }
 
-function workerActionInputs(name: string): string {
-  const lines = job(name).split('\n');
-  const action = lines.findIndex((line) =>
-    line.includes('/packages/agent-daemon-action@'),
+function workerAction(name: string): Step {
+  return step(name, (item) =>
+    Boolean(item.uses?.includes('/packages/agent-daemon-action@')),
   );
-  const withInputs = lines.findIndex(
-    (line, index) => index > action && line === '        with:',
-  );
-  const nextStep = lines.findIndex(
-    (line, index) => index > action && line.startsWith('      - '),
-  );
-  if (action < 0 || withInputs < 0 || (nextStep >= 0 && withInputs > nextStep))
-    throw new Error(`Worker action inputs are missing in ${name}`);
-  const end = lines.findIndex(
-    (line, index) => index > withInputs && !line.startsWith('          '),
-  );
-  return lines.slice(withInputs + 1, end < 0 ? undefined : end).join('\n');
-}
-
-function fetchSteps(): string[] {
-  const lines = workflow.split('\n');
-  return lines.flatMap((line, index) => {
-    if (line !== '      - name: Fetch reviewed head as inert Git data')
-      return [];
-    const end = lines.findIndex(
-      (candidate, offset) => offset > index && candidate.startsWith('      - '),
-    );
-    return [lines.slice(index, end < 0 ? undefined : end).join('\n')];
-  });
-}
-
-function specialistMatrix(
-  routes: { lane: string; run: boolean }[],
-  docsTaskPossible: boolean,
-) {
-  const lines = job('route').split('\n');
-  const start = lines.findIndex((line) => line === "          node <<'NODE'");
-  if (start < 0) throw new Error('Specialist selection script is missing');
-  const end = lines.findIndex(
-    (line, index) => index > start && line === '          NODE',
-  );
-  if (end < 0) throw new Error('Specialist selection script is unterminated');
-  const script = lines
-    .slice(start + 1, end)
-    .map((line) => line.slice(10))
-    .join('\n');
-  let output = '';
-  const fs = {
-    readFileSync: () =>
-      JSON.stringify({ routing: { routes }, docsTaskPossible }),
-    appendFileSync: (_path: string, data: string) => {
-      output += data;
-    },
-  };
-  const select = new Script(
-    `(require, process) => { ${script} }`,
-  ).runInNewContext() as (
-    require: (name: string) => typeof fs,
-    process: { env: Record<string, string> },
-  ) => void;
-  select(() => fs, {
-    env: {
-      ADAPTIVE_ROUTE: 'route.json',
-      GITHUB_OUTPUT: 'output.txt',
-      ADAPTIVE_DOCS_PROFILE: 'docs',
-      ADAPTIVE_FOCUSED_PROFILE: 'focused',
-      ADAPTIVE_SECURITY_PROFILE: 'security',
-      ADAPTIVE_COMPLEXITY_PROFILE: 'complexity',
-    },
-  });
-  const matrix = output.match(/^matrix=(.*)$/m)?.[1];
-  if (!matrix) throw new Error('Specialist matrix output is missing');
-  return JSON.parse(matrix) as {
-    include: { profile: string; worker: number }[];
-  };
-}
-
-function planOutputs(policyPresent: boolean, classifierNeeded: boolean) {
-  const start = main.indexOf("  if (stage === 'plan') {");
-  const end = main.indexOf('  if (!snapshot)', start);
-  if (start < 0 || end < 0) throw new Error('Plan branch is missing');
-  const branch = main.slice(start, end);
-  let output = '';
-  const execute = new Script(
-    `(snapshot, classifierTaskPossible, appendFileSync, required, process, prepared) => { const stage = 'plan'; ${branch} }`,
-  ).runInNewContext() as (
-    snapshot: object | null,
-    classifierTaskPossible: () => boolean,
-    appendFileSync: (path: string, data: string) => void,
-    required: (name: string) => string,
-    process: { cwd: () => string },
-    prepared: { base: string; head: string },
-  ) => void;
-  execute(
-    policyPresent ? {} : null,
-    () => classifierNeeded,
-    (_path, data) => {
-      output += data;
-    },
-    () => 'github-output',
-    { cwd: () => 'repo' },
-    { base: 'a'.repeat(40), head: 'b'.repeat(40) },
-  );
-  return Object.fromEntries(
-    output
-      .trim()
-      .split('\n')
-      .map((line) => line.split('=')),
-  ) as Record<string, string>;
 }
 
 describe('adaptive review workflow trust gates', () => {
-  it('pins an eligible PR before starting workers', async () => {
-    const outputs = await runPrepare({});
-    expect(outputs.get('skip')).toBe('false');
-    expect(JSON.parse(outputs.get('prepared') ?? '{}')).toMatchObject({
-      repo: 'getlarge/themoltnet',
-      pr: 42,
-      base: 'base-sha',
-      head: 'head-sha',
-    });
+  it('gates every downstream job that can reach credentials', () => {
+    expect(job('prepare').if).toBe('github.event.pull_request.draft == false');
+    expect(job('route').if).toContain("needs.prepare.outputs.skip == 'false'");
+    expect(job('review').if).toBe("needs.route.result == 'success'");
+    expect(job('classifier-worker').if).toBe(
+      "needs.prepare.outputs.classifier-needed == 'true'",
+    );
+    expect(job('specialist-workers').if).toBe(
+      "needs.route.outputs.has-specialists == 'true'",
+    );
+    expect(job('route').needs).toBe('prepare');
+    expect(job('classifier-worker').needs).toBe('prepare');
+    expect(job('review').needs).toEqual(['prepare', 'route']);
+    expect(job('specialist-workers').needs).toEqual(['prepare', 'route']);
   });
 
-  it('accepts a same-repository PR in a foreign caller and uses its protected paths', async () => {
-    const outputs = await runPrepare({
-      repo: 'other/example',
-      files: [{ filename: 'src/service.ts' }],
-      protectedPaths: '.github/workflows/review.yml\nreview-policy/',
+  it('checks eligibility in the pinned runtime before fetching head data', () => {
+    const pin = step('prepare', (item) => item.id === 'pin');
+    expect(pin.uses).toBe(RUNTIME_ACTION);
+    expect(pin.with).toEqual({ step: 'prepare' });
+    expect(pin.env).toEqual({
+      GH_TOKEN: '${{ github.token }}',
+      PROTECTED_PATHS: '${{ inputs.protected-paths }}',
+    });
+    const pinAt = stepIndex('prepare', (item) => item.id === 'pin');
+    const gated = job('prepare').steps.slice(pinAt + 1);
+    expect(gated.map((item) => item.name ?? item.id)).toEqual([
+      FETCH_STEP,
+      'Write pinned planner input',
+      'Check classifier work budget',
+    ]);
+    for (const item of gated)
+      expect(item.if).toBe("steps.pin.outputs.skip == 'false'");
+    expect(
+      step(
+        'prepare',
+        (item) => item.uses?.startsWith('actions/checkout@') ?? false,
+      ).with?.ref,
+    ).toBe('${{ github.event.pull_request.base.sha }}');
+  });
+
+  it('exposes the stage outputs the jobs consume', () => {
+    const stepOutput = (id: string, key: string) =>
+      `\${{ steps.${id}.outputs.${key} }}`;
+    for (const key of ['skip', 'prepared', 'base', 'head', 'correlation'])
+      expect(action.outputs[key].value).toBe(stepOutput('prepare', key));
+    for (const key of ['review-enabled', 'classifier-needed'])
+      expect(action.outputs[key].value).toBe(stepOutput('plan', key));
+    for (const key of ['specialists', 'has-specialists'])
+      expect(action.outputs[key].value).toBe(stepOutput('route', key));
+    expect(job('prepare').outputs?.['review-enabled']).toBe(
+      stepOutput('plan', 'review-enabled'),
+    );
+    expect(job('route').outputs).toEqual({
+      specialists: stepOutput('route', 'specialists'),
+      'has-specialists': stepOutput('route', 'has-specialists'),
     });
     expect(
-      (JSON.parse(outputs.get('prepared') ?? '{}') as { repo?: string }).repo,
-    ).toBe('other/example');
-    const blocked = await runPrepare({
-      repo: 'other/example',
-      files: [{ filename: 'review-policy/config.json' }],
-      protectedPaths: '.github/workflows/review.yml\nreview-policy/',
-    });
-    expect(blocked.get('skip')).toBe('true');
+      action.runs.steps
+        .filter((item) => item.id)
+        .map((item) => [item.id, item.if]),
+    ).toEqual([
+      ['prepare', "inputs.step == 'prepare'"],
+      ['plan', "inputs.step == 'plan'"],
+      ['route', "inputs.step == 'route'"],
+    ]);
   });
 
-  it.each([
-    ['fork', { headRepo: 'other/themoltnet' }],
-    ['Dependabot', { author: 'dependabot[bot]' }],
-    ['incomplete file list', { changedFiles: 2 }],
-    [
-      'workflow edit',
-      { files: [{ filename: '.github/workflows/adaptive-review.yml' }] },
-    ],
-    [
-      'library edit',
-      { files: [{ filename: 'libs/adaptive-review/src/core.ts' }] },
-    ],
-    [
-      'action edit',
-      { files: [{ filename: 'packages/adaptive-review-action/action.yml' }] },
-    ],
-    [
-      'renamed protected file',
-      {
-        files: [
-          {
-            filename: 'docs/old-workflow.md',
-            previous_filename: '.github/workflows/adaptive-review.yml',
-          },
-        ],
-      },
-    ],
-  ])('skips %s before preparing a review', async (_case, options) => {
-    const outputs = await runPrepare(options);
-    expect(outputs.get('skip')).toBe('true');
-    expect(outputs.has('prepared')).toBe(false);
-  });
-
-  it('gates every downstream job that can reach credentials', () => {
-    expect(job('prepare')).toContain(
-      'if: github.event.pull_request.draft == false',
-    );
-    expect(job('route')).toContain("if: needs.prepare.outputs.skip == 'false'");
-    expect(job('review')).toContain("if: needs.route.result == 'success'");
-    expect(job('classifier-worker')).toContain(
-      "if: needs.prepare.outputs.classifier-needed == 'true'",
-    );
-    expect(job('specialist-workers')).toContain(
-      "if: needs.route.outputs.has-specialists == 'true'",
-    );
-    for (const name of [
-      'route',
-      'review',
-      'classifier-worker',
-      'specialist-workers',
-    ]) {
-      expect(job(name)).toMatch(/needs: (prepare|\[prepare, route\])/);
+  it('builds the action from the pinned runtime in every stage job', () => {
+    for (const name of ['prepare', 'route', 'review']) {
+      const runtime = stepIndex(
+        name,
+        (item) => item.with?.path === '.adaptive-review-runtime',
+      );
+      const setup = stepIndex(
+        name,
+        (item) => item.uses === `${RUNTIME_ACTION}/setup`,
+      );
+      const firstStage = stepIndex(
+        name,
+        (item) => item.uses === RUNTIME_ACTION,
+      );
+      expect(runtime).toBeLessThan(setup);
+      expect(setup).toBeLessThan(firstStage);
     }
+    for (const name of ['route', 'review'])
+      expect(
+        step(name, (item) => item.with?.path === '.adaptive-review-runtime')
+          .with?.ref,
+      ).toBe('${{ needs.prepare.outputs.runtime-sha }}');
   });
 
-  it('exposes the policy decision used to start routing', () => {
-    expect(action).toContain('review-enabled:');
-    expect(action).toContain('value: ${{ steps.plan.outputs.review-enabled }}');
-    expect(job('prepare')).toContain(
-      'review-enabled: ${{ steps.plan.outputs.review-enabled }}',
-    );
-  });
-
-  it('runs the planner output branch for enabled, disabled, and no-work policies', () => {
-    expect(planOutputs(true, true)).toEqual({
-      'review-enabled': 'true',
-      'classifier-needed': 'true',
-    });
-    expect(planOutputs(true, false)).toEqual({
-      'review-enabled': 'true',
-      'classifier-needed': 'false',
-    });
-    expect(planOutputs(false, true)).toEqual({
-      'review-enabled': 'false',
-      'classifier-needed': 'false',
-    });
+  it('lets the stage jobs read worker liveness', () => {
+    for (const name of ['route', 'review'])
+      expect(job(name).permissions).toEqual({
+        actions: 'read',
+        contents: 'read',
+        'pull-requests': 'read',
+      });
+    expect(caller.jobs.review.permissions).toMatchObject({ actions: 'read' });
   });
 
   it('keeps the focused runtime on bounded read tools', () => {
@@ -346,29 +195,9 @@ describe('adaptive review workflow trust gates', () => {
     expect(focusedPolicy.tools).toEqual(['find', 'grep', 'ls', 'read']);
   });
 
-  it('allocates one worker per runnable task, including shared focused profiles', () => {
-    expect(
-      specialistMatrix(
-        [
-          { lane: 'docs', run: true },
-          { lane: 'tests', run: true },
-          { lane: 'conventions', run: true },
-          { lane: 'security', run: false },
-          { lane: 'blast-radius', run: true },
-        ],
-        false,
-      ),
-    ).toEqual({
-      include: [
-        { profile: 'focused', worker: 1 },
-        { profile: 'focused', worker: 2 },
-        { profile: 'focused', worker: 3 },
-      ],
-    });
-  });
-
   it('passes every declared provider secret to both worker jobs', () => {
-    for (const name of ['classifier-worker', 'specialist-workers']) {
+    for (const name of WORKERS) {
+      const env = workerAction(name).env ?? {};
       for (const provider of [
         'OLLAMA',
         'OPENAI',
@@ -376,53 +205,64 @@ describe('adaptive review workflow trust gates', () => {
         'OPENROUTER',
         'GEMINI',
       ]) {
-        expect(job(name)).toContain(
-          `${provider}_API_KEY: ${'${{ secrets.'}${provider}_API_KEY }}`,
+        expect(env[`${provider}_API_KEY`]).toBe(
+          `\${{ secrets.${provider}_API_KEY }}`,
         );
       }
     }
   });
 
   it('passes the producer project scope to both worker types', () => {
-    for (const name of ['classifier-worker', 'specialist-workers']) {
-      expect(workerActionInputs(name)).toContain(
-        'project-id: ${{ inputs.project-id }}',
+    for (const name of WORKERS)
+      expect(workerAction(name).with?.['project-id']).toBe(
+        '${{ inputs.project-id }}',
       );
-    }
   });
 
   it('keeps route artifacts distinct across rerun attempts', () => {
-    const attempt = '${{ github.run_attempt }}';
-    expect(workflow.match(/name: adaptive-route-/g)).toHaveLength(2);
+    const name =
+      'adaptive-route-${{ github.repository_id }}-${{ github.event.pull_request.number }}-${{ github.run_attempt }}';
     expect(
-      workflow
-        .match(/name: adaptive-route-[^\n]+/g)
-        ?.every((name) => name.includes(attempt)),
-    ).toBe(true);
-    expect(workflow).toContain(
-      `name: adaptive-review-${'${{ github.repository_id }}'}-${'${{ github.event.pull_request.number }}'}-${attempt}`,
+      step('route', (item) => item.name === 'Upload routing decision').with
+        ?.name,
+    ).toBe(name);
+    expect(
+      step('review', (item) => item.name === 'Download routing decision').with
+        ?.name,
+    ).toBe(name);
+    expect(
+      step('review', (item) => item.name === 'Upload review report').with?.name,
+    ).toBe(
+      'adaptive-review-${{ github.repository_id }}-${{ github.event.pull_request.number }}-${{ github.run_attempt }}',
     );
   });
 
   it('runs one pinned authenticated fetch script in every job', () => {
-    const steps = fetchSteps();
-    expect(steps).toHaveLength(5);
-    expect(workflow.match(/fetch-depth: 1/g)).toHaveLength(5);
-    expect(workflow).not.toContain('filter: blob:none');
-    for (const step of steps) {
-      expect(step).toContain('BASE_SHA: ${{ ');
-      expect(step).toContain('HEAD_SHA: ${{ ');
-      expect(step).toContain('GH_TOKEN: ${{ github.token }}');
-      expect(step).toContain(
-        'run: bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh',
+    for (const name of Object.keys(workflow.jobs)) {
+      const fetch = step(name, (item) => item.name === FETCH_STEP);
+      expect(fetch.run).toBe(
+        'bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh',
       );
+      expect(fetch.env?.GH_TOKEN).toBe('${{ github.token }}');
+      expect(fetch.env?.BASE_SHA).toMatch(/^\$\{\{ .+\.base \}\}$/);
+      expect(fetch.env?.HEAD_SHA).toMatch(/^\$\{\{ .+\.head \}\}$/);
+      const base = step(
+        name,
+        (item) =>
+          Boolean(item.uses?.startsWith('actions/checkout@')) &&
+          item.with?.path === undefined,
+      );
+      expect(base.with?.['fetch-depth']).toBe(1);
+      expect(base.with?.ref).not.toContain('head');
     }
-    for (const name of ['classifier-worker', 'specialist-workers']) {
-      expect(job(name)).toContain('repository: ${{ job.workflow_repository }}');
-      expect(job(name)).toContain(
-        'ref: ${{ needs.prepare.outputs.runtime-sha }}',
-      );
-      expect(job(name)).toContain('path: .adaptive-review-runtime');
+    for (const name of WORKERS) {
+      expect(
+        step(name, (item) => item.with?.path === '.adaptive-review-runtime')
+          .with,
+      ).toMatchObject({
+        repository: '${{ job.workflow_repository }}',
+        ref: '${{ needs.prepare.outputs.runtime-sha }}',
+      });
     }
     const temp = mkdtempSync(join(tmpdir(), 'adaptive-fetch-'));
     try {
@@ -537,28 +377,25 @@ describe('adaptive review workflow trust gates', () => {
   });
 
   it('pins runtime code separately from caller policy and head data', () => {
-    expect(workflow).toContain(
-      'WORKFLOW_REPOSITORY: ${{ job.workflow_repository }}',
-    );
-    expect(workflow).toContain('WORKFLOW_SHA: ${{ job.workflow_sha }}');
-    expect(workflow).toContain(
-      'ADAPTIVE_RUNTIME_SHA: ${{ needs.prepare.outputs.runtime-sha }}',
-    );
-    expect(workflow).toContain('path: .adaptive-review-runtime');
-    expect(workflow).toContain('ref: ${{ needs.prepare.outputs.base }}');
+    const runtime = step('prepare', (item) => item.id === 'runtime');
+    expect(runtime.env).toMatchObject({
+      WORKFLOW_REPOSITORY: '${{ job.workflow_repository }}',
+      WORKFLOW_SHA: '${{ job.workflow_sha }}',
+    });
+    for (const name of ['route', 'review'])
+      expect(
+        (job(name) as Job & { env: Record<string, string> }).env
+          .ADAPTIVE_RUNTIME_SHA,
+      ).toBe('${{ needs.prepare.outputs.runtime-sha }}');
     expect(fetchScript).toContain(
       'authenticated_fetch --depth=1 origin "$HEAD_SHA"',
     );
     expect(fetchScript).toContain('GIT_CONFIG_COUNT=1');
-    expect(
-      workflow.match(/GH_TOKEN: \$\{\{ github\.token \}\}/g)?.length,
-    ).toBeGreaterThanOrEqual(5);
-    expect(workflow).not.toContain('ref: ${{ needs.prepare.outputs.head }}');
-    expect(caller).toContain(
-      'classifier-profile: legreffier-issue-classifier-v2',
+    expect(caller.jobs.review.with['classifier-profile']).toBe(
+      'legreffier-issue-classifier-v2',
     );
-    expect(caller).toContain(
-      'runtime-ref: ${{ github.event.pull_request.base.sha }}',
+    expect(caller.jobs.review.with['runtime-ref']).toBe(
+      '${{ github.event.pull_request.base.sha }}',
     );
   });
 });
