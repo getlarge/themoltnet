@@ -8,12 +8,15 @@ export const field = (label: string) =>
 /**
  * Native refresh and explicit operations share a nonblocking lock. Retry only
  * an operation rejected before it acquired the lock or changed any state.
+ * Commands that reach the Agent Server through the control connection take the
+ * same lock before sending anything, so they go through here as well.
  */
 export async function lifecycle<T = DesktopStatus>(
   command: string,
   args?: Record<string, unknown>,
 ): Promise<T> {
   let result: T | undefined;
+  let settled = false;
   let failure: unknown;
   await browser.waitUntil(
     async () => {
@@ -26,6 +29,7 @@ export async function lifecycle<T = DesktopStatus>(
           command,
           args,
         );
+        settled = true;
         return true;
       } catch (error) {
         if (
@@ -46,6 +50,7 @@ export async function lifecycle<T = DesktopStatus>(
   );
   if (failure !== undefined)
     throw failure instanceof Error ? failure : new Error(String(failure));
-  if (!result) throw new Error(`No lifecycle result for ${command}`);
-  return result;
+  // Commands returning `()` resolve to null; only a missing settle is an error.
+  if (!settled) throw new Error(`No lifecycle result for ${command}`);
+  return result as T;
 }

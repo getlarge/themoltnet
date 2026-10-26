@@ -88,9 +88,7 @@ describe('Native Desktop and real fixture daemon', () => {
     await expect($('a=Saved worker')).toBeDisplayed();
     const restarted = await lifecycle('start_agent_server');
     expect(restarted.state).toBe('running');
-    const providers = await browser.tauri.execute(({ core }) =>
-      core.invoke('desktop_providers'),
-    );
+    const providers = await lifecycle('desktop_providers');
     expect(providers).toEqual(expect.objectContaining({ ollama: saved }));
     await lifecycle('stop_agent_server');
   });
@@ -103,9 +101,7 @@ describe('Native project locations', () => {
     const source = join(root, 'project-checkout');
     await mkdir(source);
     await lifecycle('start_agent_server');
-    const initial = await browser.tauri.execute(({ core }) =>
-      core.invoke('desktop_project_locations'),
-    );
+    const initial = await lifecycle('desktop_project_locations');
     expect(initial).toEqual({ locations: [] });
     const location = {
       identity: 'desktop-fixture',
@@ -116,21 +112,15 @@ describe('Native project locations', () => {
       strategy: 'existing',
       default: true,
     };
-    const saved = await browser.tauri.execute(
-      ({ core }, input) =>
-        core.invoke('desktop_save_project_location', { input }),
-      location,
-    );
+    const saved = await lifecycle('desktop_save_project_location', {
+      input: location,
+    });
     expect(saved).toMatchObject({ name: 'Laptop', readiness: { ready: true } });
     await lifecycle('stop_agent_server');
     await lifecycle('start_agent_server');
-    const persisted = await browser.tauri.execute(({ core }) =>
-      core.invoke('desktop_project_locations'),
-    );
+    const persisted = await lifecycle('desktop_project_locations');
     expect(persisted).toMatchObject({ locations: [{ name: 'Laptop' }] });
-    await browser.tauri.execute(({ core }) =>
-      core.invoke('desktop_remove_project_location', { name: 'Laptop' }),
-    );
+    await lifecycle('desktop_remove_project_location', { name: 'Laptop' });
     expect((await stat(source)).isDirectory()).toBe(true);
     await lifecycle('stop_agent_server');
   });
@@ -143,10 +133,8 @@ describe('Native managed project execution', () => {
     const source = join(root, 'run-checkout');
     await mkdir(source);
     await lifecycle('start_agent_server');
-    await browser.tauri.execute(
-      ({ core }, input) =>
-        core.invoke('desktop_save_project_location', { input }),
-      {
+    await lifecycle('desktop_save_project_location', {
+      input: {
         identity: 'desktop-fixture',
         name: 'Run location',
         teamId: 'team',
@@ -155,27 +143,21 @@ describe('Native managed project execution', () => {
         strategy: 'existing',
         default: true,
       },
-    );
-    const run = await browser.tauri.execute<
-      Promise<{ id: string; workspace: { source: string; projectId: string } }>,
-      []
-    >(
-      ({ core }) =>
-        core.invoke('desktop_start_run', {
-          spec: {
-            agent: 'desktop-fixture',
-            teamId: 'team',
-            projectId: 'project',
-            location: 'Run location',
-            profiles: ['fixture-profile'],
-            taskTypes: ['freeform'],
-            mode: 'poll',
-          },
-        }) as Promise<{
-          id: string;
-          workspace: { source: string; projectId: string };
-        }>,
-    );
+    });
+    const run = await lifecycle<{
+      id: string;
+      workspace: { source: string; projectId: string };
+    }>('desktop_start_run', {
+      spec: {
+        agent: 'desktop-fixture',
+        teamId: 'team',
+        projectId: 'project',
+        location: 'Run location',
+        profiles: ['fixture-profile'],
+        taskTypes: ['freeform'],
+        mode: 'poll',
+      },
+    });
     // The daemon records the canonical folder (/var → /private/var on macOS).
     expect(run.workspace).toMatchObject({
       projectId: 'project',
@@ -183,24 +165,14 @@ describe('Native managed project execution', () => {
     });
     await browser.waitUntil(
       async () => {
-        const logs = await browser.tauri.execute(
-          ({ core }, runId) => core.invoke('desktop_run_logs', { runId }),
-          run.id,
-        );
+        const logs = await lifecycle('desktop_run_logs', { runId: run.id });
         return JSON.stringify(logs).includes('fixture-worker-ready');
       },
       { timeout: 15_000 },
     );
-    const workerLog = await browser.tauri.execute<
-      Promise<{ lines: string[] }>,
-      [string]
-    >(
-      ({ core }, runId) =>
-        core.invoke('desktop_run_logs', { runId }) as Promise<{
-          lines: string[];
-        }>,
-      run.id,
-    );
+    const workerLog = await lifecycle<{ lines: string[] }>('desktop_run_logs', {
+      runId: run.id,
+    });
     const readyLine = workerLog.lines.find((line) =>
       line.includes('fixture-worker-ready'),
     );
@@ -210,10 +182,7 @@ describe('Native managed project execution', () => {
       source,
       strategy: 'existing',
     });
-    await browser.tauri.execute(
-      ({ core }, runId) => core.invoke('desktop_stop_run', { runId }),
-      run.id,
-    );
+    await lifecycle('desktop_stop_run', { runId: run.id });
     await lifecycle('stop_agent_server');
   });
 });
@@ -312,9 +281,7 @@ describe('Native Projects screen', () => {
     );
     await $('button=Save location').click();
     await expect($('h3=Native UI location')).toBeDisplayed();
-    const persisted = await browser.tauri.execute(({ core }) =>
-      core.invoke('desktop_project_locations'),
-    );
+    const persisted = await lifecycle('desktop_project_locations');
     expect(persisted).toMatchObject({
       locations: expect.arrayContaining([
         expect.objectContaining({
