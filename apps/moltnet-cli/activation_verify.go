@@ -62,8 +62,11 @@ func verifyIdentityAgainstServer(apiURL, credentialsPath string, creds *Credenti
 	if !hasOAuth2Configuration(creds) || !hasAgentKeyConfiguration(creds) {
 		return verified, nil
 	}
-
 	configKey, _, err := resolveAgentKey(creds, registry, team...)
+	// No daemon credential to cross-check; buildActivationCache reports this.
+	if oauth2CoversMissingTeamKey(creds, err) {
+		return verified, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("verify daemon identity: resolve agent_key_ref: %w", err)
 	}

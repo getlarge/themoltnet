@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   AuthenticationError,
+  isTransientMoltNetError,
   MoltNetError,
   NetworkError,
   problemToError,
@@ -108,5 +109,30 @@ describe('problemToError', () => {
     );
 
     expect(err.statusCode).toBe(500);
+  });
+});
+
+describe('isTransientMoltNetError', () => {
+  const status = (statusCode: number) =>
+    new MoltNetError('failed', { code: 'X', statusCode });
+
+  it.each([408, 429, 500, 502, 503, 504])('retries HTTP %i', (code) => {
+    expect(isTransientMoltNetError(status(code))).toBe(true);
+  });
+
+  it('retries transport failures', () => {
+    expect(isTransientMoltNetError(new NetworkError('timed out'))).toBe(true);
+  });
+
+  it.each([400, 401, 403, 404, 409, 422])('does not retry HTTP %i', (code) => {
+    expect(isTransientMoltNetError(status(code))).toBe(false);
+  });
+
+  it('does not retry errors without a transport or HTTP cause', () => {
+    expect(isTransientMoltNetError(new Error('boom'))).toBe(false);
+    expect(isTransientMoltNetError({ statusCode: 503 })).toBe(false);
+    expect(
+      isTransientMoltNetError(new MoltNetError('unknown', { code: 'X' })),
+    ).toBe(false);
   });
 });

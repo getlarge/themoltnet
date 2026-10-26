@@ -380,6 +380,10 @@ In daemon mode:
   that adapter before claim.
 - `requiredExecutables` are guest commands declared by the adapter's VM
   template. Host `PATH` is not used for this check.
+- `maxTurns` caps tool rounds per attempt. When three or fewer rounds remain and
+  nothing has been submitted, each model request carries a runtime notice to
+  call the submit tool now. An attempt that reaches the cap without output fails
+  with `max_turns_exceeded`.
 - Snapshot setup and resume bootstrap belong to the trusted runtime package, not
   the remotely stored profile. See
   [Build a custom Pi runtime](../contribute/custom-pi-runtimes.md).

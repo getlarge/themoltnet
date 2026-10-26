@@ -274,6 +274,64 @@ describe('waitForTaskOutcome (polling transitions)', () => {
   });
 });
 
+describe('waitForTaskOutcome transient read failures', () => {
+  const unavailable = () =>
+    Object.assign(new Error('Service Unavailable'), { statusCode: 503 });
+
+  /** Fails the first N reads of each kind with HTTP 503, then answers. */
+  class FlakyTasks implements TaskClient {
+    getCalls = 0;
+    attemptCalls = 0;
+    constructor(
+      private readonly getFailures: number,
+      private readonly attemptFailures: number,
+    ) {}
+    createTask(): Promise<SdkTask> {
+      return Promise.reject(new Error('not used'));
+    }
+    getTask(): Promise<SdkTask> {
+      this.getCalls += 1;
+      if (this.getCalls <= this.getFailures)
+        return Promise.reject(unavailable());
+      return Promise.resolve(task('completed', 1));
+    }
+    listAttempts(): Promise<SdkTaskAttempt[]> {
+      this.attemptCalls += 1;
+      if (this.attemptCalls <= this.attemptFailures)
+        return Promise.reject(unavailable());
+      return Promise.resolve([attempt('completed', { phase: 'done' })]);
+    }
+  }
+
+  it('treats transient read failures as missed polls', async () => {
+    const tasks = new FlakyTasks(2, 1);
+    const { ctx, sleeps } = recordingContext();
+    const outcome = await waitForTaskOutcome('t1', {
+      tasks,
+      ctx,
+      pollIntervalSec: 1,
+      parse: parseState,
+    });
+    expect(outcome.kind).toBe('accepted');
+    expect(tasks.getCalls).toBe(4);
+    expect(tasks.attemptCalls).toBe(2);
+    expect(sleeps).toHaveLength(3);
+  });
+
+  it('fails the wait after too many consecutive read failures', async () => {
+    const tasks = new FlakyTasks(0, Number.POSITIVE_INFINITY);
+    await expect(
+      waitForTaskOutcome('t1', {
+        tasks,
+        ctx: inlineContext,
+        pollIntervalSec: 0,
+        parse: parseState,
+      }),
+    ).rejects.toThrow('Service Unavailable');
+    expect(tasks.attemptCalls).toBe(6);
+  });
+});
+
 describe('waitForAcceptedTask', () => {
   it('returns the accepted result directly', async () => {
     const tasks = new FakeTasks([{ phase: 'planned' }]);

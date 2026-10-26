@@ -1,3 +1,5 @@
+import { isTransientMoltNetError } from '@themoltnet/sdk';
+
 import type {
   AcceptedTaskResult,
   Logger,
@@ -8,6 +10,8 @@ import type {
 } from './types.js';
 
 const DEFAULT_LOG_PREFIX = 'orchestration';
+/** Consecutive transient read failures tolerated before the wait fails. */
+const MAX_CONSECUTIVE_READ_FAILURES = 5;
 
 function isTimeoutError(error: unknown): boolean {
   return (
@@ -69,6 +73,11 @@ export async function waitForSignalOrSleep(args: {
  * Poll a MoltNet task to a terminal outcome. Between polls it prefers a durable
  * `moltnet.task.updated:<id>` event and falls back to sleeping. Returns one of
  * `accepted` (with parsed state), `failed`, or `invalid_output`.
+ *
+ * A transient read failure (transport, HTTP 408/429/5xx) counts as a missed
+ * poll and is retried on the poll cadence. After
+ * {@link MAX_CONSECUTIVE_READ_FAILURES} in a row, or on any other error, the
+ * error propagates: a read failure says nothing about the task's outcome.
  */
 export async function waitForTaskOutcome<TState>(
   taskId: string,
@@ -80,8 +89,42 @@ export async function waitForTaskOutcome<TState>(
     { taskId, description, pollIntervalSec },
     `${prefix}.task.wait.start`,
   );
+  const pause = () =>
+    waitForSignalOrSleep({
+      ctx,
+      eventName: `moltnet.task.updated:${taskId}`,
+      stepName: `wait-task:${taskId}`,
+      seconds: pollIntervalSec,
+      logger,
+      description,
+      logPrefix: prefix,
+    });
+  let readFailures = 0;
+  // Resolves undefined after a tolerated transient failure; the caller then
+  // pauses and polls again.
+  const read = async <T>(request: () => Promise<T>): Promise<T | undefined> => {
+    try {
+      return await request();
+    } catch (error) {
+      readFailures += 1;
+      if (
+        !isTransientMoltNetError(error) ||
+        readFailures > MAX_CONSECUTIVE_READ_FAILURES
+      )
+        throw error;
+      logger?.warn(
+        { taskId, description, readFailures },
+        `${prefix}.task.wait.read_retry`,
+      );
+      return undefined;
+    }
+  };
   for (;;) {
-    const task = await tasks.getTask(taskId);
+    const task = await read(() => tasks.getTask(taskId));
+    if (!task) {
+      await pause();
+      continue;
+    }
     logger?.debug?.(
       {
         taskId,
@@ -97,7 +140,11 @@ export async function waitForTaskOutcome<TState>(
       task.status === 'expired' ||
       (task.status === 'completed' && task.acceptedAttemptN === null)
     ) {
-      const attempts = await tasks.listAttempts(taskId);
+      const attempts = await read(() => tasks.listAttempts(taskId));
+      if (!attempts) {
+        await pause();
+        continue;
+      }
       logger?.error(
         { taskId, description, status: task.status },
         `${prefix}.task.wait.terminal_failure`,
@@ -113,7 +160,11 @@ export async function waitForTaskOutcome<TState>(
       };
     }
     if (task.status === 'completed' && task.acceptedAttemptN !== null) {
-      const attempts = await tasks.listAttempts(taskId);
+      const attempts = await read(() => tasks.listAttempts(taskId));
+      if (!attempts) {
+        await pause();
+        continue;
+      }
       const attempt = attempts.find(
         (candidate) => candidate.attemptN === task.acceptedAttemptN,
       );
@@ -157,15 +208,10 @@ export async function waitForTaskOutcome<TState>(
         return { kind: 'invalid_output', task, attempt, attempts, reason };
       }
     }
-    await waitForSignalOrSleep({
-      ctx,
-      eventName: `moltnet.task.updated:${taskId}`,
-      stepName: `wait-task:${taskId}`,
-      seconds: pollIntervalSec,
-      logger,
-      description,
-      logPrefix: prefix,
-    });
+    // Only a full non-terminal poll clears the count, so a terminal task
+    // whose attempts keep failing to load cannot poll forever.
+    readFailures = 0;
+    await pause();
   }
 }
 

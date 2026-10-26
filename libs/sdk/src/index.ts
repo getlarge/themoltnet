@@ -101,6 +101,7 @@ export {
 } from './encrypt.js';
 export {
   AuthenticationError,
+  isTransientMoltNetError,
   MoltNetError,
   NetworkError,
   problemToError,

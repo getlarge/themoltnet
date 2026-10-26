@@ -297,7 +297,10 @@ test('prepares the next task from the accepted attempt and preserves labels if c
     GH_CALLS: callsPath,
     CLI_PACKAGES: cliPackagesPath,
     MOLTNET_CLI_PACKAGE: '',
-    MOLTNET_CLI_VERSION: '3.19.0',
+    MOLTNET_CLI_VERSION: readFileSync(
+      new URL('../workflows/issue-triage.yml', import.meta.url),
+      'utf8',
+    ).match(/MOLTNET_CLI_VERSION: '([^']+)'/)[1],
     GH_BODY: bodyPath,
     ISSUE_FIXTURE: JSON.stringify({
       ...issue,
@@ -384,7 +387,11 @@ test('prepares the next task from the accepted attempt and preserves labels if c
   assert.match(comment, /actions\/runs\/123456/);
   const cliPackages = readFileSync(cliPackagesPath, 'utf8').trim().split('\n');
   assert.ok(cliPackages.length >= 3);
-  assert.ok(cliPackages.every((name) => name === '@themoltnet/cli@3.19.0'));
+  assert.ok(
+    cliPackages.every(
+      (name) => name === `@themoltnet/cli@${env.MOLTNET_CLI_VERSION}`,
+    ),
+  );
   const callsAfterClassification = readFileSync(callsPath, 'utf8');
   assert.equal(
     callsAfterClassification.match(
