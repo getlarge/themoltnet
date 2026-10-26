@@ -13,7 +13,7 @@ import {
   publishedPin,
   verifyPackages,
   waitForPackages,
-} from './sync-gondolin-cli-pin.mjs';
+} from './sync-cli-consumer-pins.mjs';
 
 test('compares numeric versions and rejects malformed versions', () => {
   assert.equal(compareVersions('3.10.0', '3.9.9'), 1);

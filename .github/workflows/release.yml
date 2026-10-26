@@ -167,7 +167,7 @@ jobs:
       - name: Sync published CLI consumer pins
         if: steps.release.outputs.prs_created == 'true'
         run: |
-          node tools/release/sync-gondolin-cli-pin.mjs
+          node tools/release/sync-cli-consumer-pins.mjs
           git add -- libs/sandbox-gondolin/src/snapshot.ts \
             .github/workflows/issue-triage.yml \
             .github/workflows/legreffier-security-review.yml \
