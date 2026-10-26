@@ -4,6 +4,26 @@ import type { AdaptiveReport } from './workflow.js';
 
 export const ADAPTIVE_REVIEW_MARKER = '<!-- moltnet:adaptive-review -->';
 
+/** Replaces a result whose pull request moved while it was being published. */
+export function renderAdaptiveStale(
+  report: Pick<AdaptiveReport, 'head' | 'base'>,
+  current: { head: string; base: string },
+  runUrl: string,
+): string {
+  const moved =
+    current.head === report.head
+      ? `base now points at \`${current.base.slice(0, 7)}\``
+      : `head now points at \`${current.head.slice(0, 7)}\``;
+  return [
+    ADAPTIVE_REVIEW_MARKER,
+    '## Experimental adaptive review: stale',
+    '',
+    `Reviewed head \`${report.head.slice(0, 7)}\` · [workflow run](${runUrl}).`,
+    '',
+    `The pull request ${moved}, so this result was not published as current. A review of the new revision replaces this notice.`,
+  ].join('\n');
+}
+
 export function renderAdaptiveComment(
   report: AdaptiveReport,
   runUrl: string,
@@ -62,7 +82,12 @@ export function renderAdaptiveComment(
       .filter(
         (result) => result.status === 'failed' || result.status === 'unclear',
       )
-      .map((result) => `${result.lane}: ${result.summary}`),
+      .flatMap((result) => [
+        `${result.lane}: ${result.summary}`,
+        ...(result.status === 'unclear' ? (result.unclear ?? []) : []).map(
+          (item) => `${result.lane}: ${item}`,
+        ),
+      ]),
   ];
   if (gaps.length) {
     lines.push('', 'Not fully assessed:');

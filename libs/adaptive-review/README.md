@@ -50,13 +50,20 @@ reviewer fetches the pinned head as Git data and reads `git diff base...head`;
 it never runs code from the head. The full name/status manifest includes
 deletions and both sides of renames even when patch evidence is summarized.
 The policy and reference digests, PR revisions, and runtime SHA are checked
-again before a comment is published.
+again before a comment is published. The PR head and base are read once more
+after the comment is written. If either moved, the comment is replaced with a
+stale notice, and the publish step fails.
 
 The classifier is selected by the caller's profile. MoltNet uses Ollama Cloud
 `clef:27b` through its issue-classifier-v2 profile; other repositories can select
 another System One classifier without changing this library. Classifier
 scores determine which enabled lanes receive deeper review. A classifier
-failure routes every enabled lane for review.
+failure routes every enabled lane for review. The report names the failed
+packet and a diagnostic code, and the workflow log adds the classifier task ID.
+
+When a lane's review is incomplete, the comment lists what it could not assess
+under "Not fully assessed". For the docs lane, these are the documents, hunks,
+and stages the docs impact review reported as gaps.
 
 `task-budgets` is optional. Use a YAML block to override only the limits that
 need to change for your selected profiles:

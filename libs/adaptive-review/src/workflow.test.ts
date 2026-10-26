@@ -714,12 +714,20 @@ describe('adaptive review orchestration', () => {
 
   it('runs every deep lane and records a gap when classification fails', async () => {
     const { tasks, createTask, created } = harness({ classifierFails: true });
+    const log = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
     const report = await review(tasks);
+
+    expect(log).toHaveBeenCalledWith(
+      'Adaptive classifier failure: packet=1 stage=task-outcome code=unexpected-error taskId=task-1\n',
+    );
+    expect(log.mock.calls.flat().join('')).not.toContain(
+      'classifier unavailable',
+    );
 
     expect(report.routing.classifierFailed).toBe(true);
     expect(report.routing.routes.every((route) => route.run)).toBe(true);
     expect(report.gaps).toEqual([
-      'Classifier task failed; inspect its task outcome.',
+      'Classifier failed for packet 1 (unexpected-error); inspect its task outcome.',
     ]);
     expect(report.results.every((result) => result.status === 'clear')).toBe(
       true,
@@ -884,7 +892,7 @@ describe('adaptive review orchestration', () => {
       report.results.find((result) => result.lane === 'tests')?.taskIds[0],
     );
     expect(report.gaps).toEqual([
-      'Classifier task failed; inspect its task outcome.',
+      'Classifier failed for packet 1 (unexpected-error); inspect its task outcome.',
     ]);
     expect(log).toHaveBeenCalledWith(
       'Adaptive lane failure: lane=docs stage=before-task code=unexpected-error taskIds=none\n',
@@ -976,11 +984,20 @@ describe('adaptive review orchestration', () => {
       'updates-needed',
       'concern',
       [{ path: 'docs/use/entries.md', concern: 'Explain the changed route.' }],
+      undefined,
     ],
-    ['incomplete', 'unclear', []],
+    [
+      'incomplete',
+      'unclear',
+      [],
+      [
+        'docs/use/entries.md: patch truncated at the per-file budget (budgets.diffPerFileBytes)',
+        'docs-check stage: timed out',
+      ],
+    ],
   ] as const)(
     'maps docs outcome %s to %s',
-    async (outcome, status, findings) => {
+    async (outcome, status, findings, unclear) => {
       const { tasks } = harness({ selected: 'docs' });
       mocks.runDocsImpactReview.mockResolvedValueOnce({
         status: 'completed',
@@ -989,6 +1006,14 @@ describe('adaptive review orchestration', () => {
           docsPath: finding.path,
           update: finding.concern,
         })),
+        gaps: [
+          {
+            scope: 'docs/use/entries.md',
+            reason:
+              'patch truncated at the per-file budget (budgets.diffPerFileBytes)',
+          },
+          { scope: 'docs-check stage', reason: 'timed out' },
+        ],
         timings: { stages: { inspect: { taskId: 'docs-task' } } },
       });
 
@@ -1000,6 +1025,7 @@ describe('adaptive review orchestration', () => {
         status,
         taskIds: ['docs-task'],
         findings,
+        ...(unclear ? { unclear } : {}),
       });
     },
   );
