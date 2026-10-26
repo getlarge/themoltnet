@@ -464,7 +464,7 @@ async function runSecurity(
   const hunt = await tasks.createTask(
     makeTask(
       'hunt',
-      `Follow the trusted security-review procedure. Map changed trust boundaries and find plausible security regressions introduced by changed lines. Inspect surrounding code with read-only tools. Cite old or new diff lines. Return result {"summary":"...","findings":[{"id":"...","path":"...","side":"new","line":1,"title":"...","hypothesis":"..."}]}. Empty findings is valid.\n${context}`,
+      `This is the hunt stage: follow steps 1 and 2 of the trusted security-review procedure only. A separate verification task performs steps 3 to 5, so do not trace each candidate to a verdict here. Map changed trust boundaries and list plausible security regressions introduced by changed lines. Read only the surrounding code needed to state each hypothesis, then submit. Cite old or new diff lines. Return result {"summary":"...","findings":[{"id":"...","path":"...","side":"new","line":1,"title":"...","hypothesis":"..."}]}. Empty findings is valid.\n${context}`,
       CANDIDATE_SCHEMA,
     ),
     { idempotencyKey: taskKey(identity, 'security-hunt') },
