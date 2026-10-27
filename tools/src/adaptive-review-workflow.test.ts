@@ -124,6 +124,12 @@ describe('adaptive review workflow trust gates', () => {
     }
   });
 
+  it('protects the shared eligibility gate in the caller', () => {
+    expect(caller.jobs.review.with['protected-paths'].split('\n')).toContain(
+      'libs/docs-impact-review/src/eligibility.ts',
+    );
+  });
+
   it('checks eligibility in the pinned runtime before fetching head data', () => {
     const pin = step('prepare', (item) => item.id === 'pin');
     expect(pin.uses).toBe(RUNTIME_ACTION);
