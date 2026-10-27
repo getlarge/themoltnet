@@ -133,12 +133,13 @@ describe('publishAdaptiveReport', () => {
 
     await publishAdaptiveReport(report(), { ...OPTIONS, request });
 
-    expect(headReads).toBe(2);
-    expect(request).toHaveBeenLastCalledWith(
+    expect(headReads).toBe(3);
+    expect(request).toHaveBeenCalledWith(
       '/repos/getlarge/themoltnet/issues/comments/101',
       'PATCH',
       expect.any(Object),
     );
+    expect(request).toHaveBeenLastCalledWith(PR_PATH);
   });
 
   it('refuses to publish when the head changes during comment lookup', async () => {
@@ -207,11 +208,87 @@ describe('publishAdaptiveReport', () => {
 
     await publishAdaptiveReport(report(), { ...OPTIONS, request });
 
-    expect(request).toHaveBeenLastCalledWith(
+    expect(request).toHaveBeenCalledWith(
       COMMENTS_PATH,
       'POST',
       expect.any(Object),
     );
+    expect(request).toHaveBeenLastCalledWith(PR_PATH);
+  });
+
+  it.each([
+    {
+      moved: 'head',
+      after: { head: { sha: 'c'.repeat(40) }, base: { sha: BASE } },
+      notice: 'head now points at `ccccccc`',
+    },
+    {
+      moved: 'base',
+      after: { head: { sha: HEAD }, base: { sha: 'c'.repeat(40) } },
+      notice: 'base now points at `ccccccc`',
+    },
+  ])(
+    'replaces a new comment with a stale notice when the $moved moves during publication',
+    async ({ after, notice }) => {
+      let prReads = 0;
+      const bodies: string[] = [];
+      const request = vi.fn((url: string, method = 'GET', body?: object) => {
+        if (url === PR_PATH)
+          return Promise.resolve(
+            ++prReads <= 2
+              ? { head: { sha: HEAD }, base: { sha: BASE } }
+              : after,
+          );
+        if (url === `${COMMENTS_PATH}?per_page=100&page=1`)
+          return Promise.resolve([]);
+        if (url === COMMENTS_PATH && method === 'POST')
+          return Promise.resolve({ id: 55 });
+        if (
+          url === '/repos/getlarge/themoltnet/issues/comments/55' &&
+          method === 'PATCH'
+        ) {
+          expectPublishedBody(body);
+          bodies.push((body as { body: string }).body);
+          return Promise.resolve({});
+        }
+        throw new Error(`Unexpected request: ${method} ${url}`);
+      });
+
+      await expect(
+        publishAdaptiveReport(report(), { ...OPTIONS, request }),
+      ).rejects.toThrow('replaced it with a stale notice');
+      expect(bodies).toHaveLength(1);
+      expect(bodies[0]).toContain('adaptive review: stale');
+      expect(bodies[0]).toContain(notice);
+      expect(bodies[0]).toContain(OPTIONS.runUrl);
+    },
+  );
+
+  it('replaces an updated comment with a stale notice when the head moves after the update', async () => {
+    let prReads = 0;
+    const patches: string[] = [];
+    const request = vi.fn((url: string, method = 'GET', body?: object) => {
+      if (url === PR_PATH)
+        return Promise.resolve({
+          head: { sha: ++prReads <= 2 ? HEAD : 'c'.repeat(40) },
+          base: { sha: BASE },
+        });
+      if (url === `${COMMENTS_PATH}?per_page=100&page=1`)
+        return Promise.resolve([comment(9, OPTIONS.appLogin)]);
+      if (url === '/repos/getlarge/themoltnet/issues/comments/9') {
+        expect(method).toBe('PATCH');
+        patches.push((body as { body: string }).body);
+        return Promise.resolve({});
+      }
+      throw new Error(`Unexpected request: ${method} ${url}`);
+    });
+
+    await expect(
+      publishAdaptiveReport(report(), { ...OPTIONS, request }),
+    ).rejects.toThrow('replaced it with a stale notice');
+    expect(patches).toHaveLength(2);
+    expect(patches[0]).toContain('Experimental adaptive review\n');
+    expect(patches[1]).toContain('adaptive review: stale');
   });
 
   it('requires an App login before making any GitHub request', async () => {

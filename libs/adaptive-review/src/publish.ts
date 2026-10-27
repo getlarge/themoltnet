@@ -6,7 +6,11 @@ import {
 } from '@moltnet/docs-impact-review/github-api';
 
 import { env } from './config.js';
-import { ADAPTIVE_REVIEW_MARKER, renderAdaptiveComment } from './report.js';
+import {
+  ADAPTIVE_REVIEW_MARKER,
+  renderAdaptiveComment,
+  renderAdaptiveStale,
+} from './report.js';
 import type { AdaptiveReport } from './workflow.js';
 
 type Request = (
@@ -59,6 +63,9 @@ function assertReport(value: unknown): asserts value is AdaptiveReport {
         typeof result.lane === 'string' &&
         typeof result.status === 'string' &&
         typeof result.summary === 'string' &&
+        (result.unclear === undefined ||
+          (Array.isArray(result.unclear) &&
+            result.unclear.every((item) => typeof item === 'string'))) &&
         Array.isArray(result.findings) &&
         result.findings.every(
           (finding) =>
@@ -131,19 +138,42 @@ export async function publishAdaptiveReport(
     throw new Error('PR head changed before publishing review');
   if (latest.base.sha !== report.base)
     throw new Error('PR base changed before publishing review');
+  let commentId: number;
   if (previous) {
     await request(
       `/repos/${expected.repo}/issues/comments/${previous.id}`,
       'PATCH',
       { body },
     );
+    commentId = previous.id;
   } else {
-    await request(
+    const created = (await request(
       `/repos/${expected.repo}/issues/${expected.pr}/comments`,
       'POST',
       { body },
-    );
+    )) as { id: number };
+    commentId = created.id;
   }
+  // Narrow the check-then-write race: if the PR moved while publishing,
+  // replace the result with a stale notice.
+  const after = (await request(
+    `/repos/${expected.repo}/pulls/${expected.pr}`,
+  )) as { head: { sha: string }; base: { sha: string } };
+  if (after.head.sha === report.head && after.base.sha === report.base) return;
+  await request(
+    `/repos/${expected.repo}/issues/comments/${commentId}`,
+    'PATCH',
+    {
+      body: renderAdaptiveStale(
+        report,
+        { head: after.head.sha, base: after.base.sha },
+        runUrl,
+      ),
+    },
+  );
+  throw new Error(
+    'PR changed while publishing review; replaced it with a stale notice',
+  );
 }
 
 export async function publishAdaptiveReportFromEnv(): Promise<void> {

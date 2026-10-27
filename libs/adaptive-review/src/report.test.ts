@@ -45,6 +45,9 @@ it('labels screening honestly and neutralizes model-authored text', () => {
             ? '@reviewer [unclear](bad)'
             : 'screened',
       taskIds: [],
+      ...(lane === 'conventions'
+        ? { unclear: ['`docs/x.md`: @owner [hunk](bad) not judged'] }
+        : {}),
       findings:
         lane === 'tests'
           ? [
@@ -70,6 +73,9 @@ it('labels screening honestly and neutralizes model-authored text', () => {
     '\\[gap\\](bad) @\u200bteam #\u200b456 &lt;script&gt;',
   );
   expect(comment).toContain('conventions: @\u200breviewer \\[unclear\\](bad)');
+  expect(comment).toContain(
+    'conventions: `docs/x.md`: @\u200bowner \\[hunk\\](bad) not judged',
+  );
   expect(comment).not.toContain('@owner');
   expect(comment).not.toContain('[click](bad)');
   expect(comment).not.toContain('<script>');

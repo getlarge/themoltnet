@@ -211,6 +211,17 @@ function logLaneFailure(
   );
 }
 
+function logClassifierFailure(
+  packetId: string,
+  taskId: string | undefined,
+  code: string,
+): void {
+  // Same rule as lane failures: fixed fields only, never the raw error.
+  process.stderr.write(
+    `Adaptive classifier failure: packet=${packetId} stage=${taskId ? 'task-outcome' : 'before-task'} code=${code} taskId=${taskId ?? 'none'}\n`,
+  );
+}
+
 function unwrap(output: unknown): unknown {
   if (typeof output !== 'object' || output === null || !('result' in output)) {
     throw new Error('accepted freeform task has no result');
@@ -564,6 +575,9 @@ function docsResult(
       path: finding.docsPath,
       concern: finding.update,
     })),
+    ...(status === 'unclear'
+      ? { unclear: report.gaps.map((gap) => `${gap.scope}: ${gap.reason}`) }
+      : {}),
   };
 }
 
@@ -645,7 +659,7 @@ export async function prepareAdaptiveReview(
       .map((file) => `Binary contents not reviewed: ${file.path}`),
   );
   const classifierTaskIds: string[] = [];
-  const classification: PromiseSettledResult<PacketAnswer>[] = [];
+  const answers: PacketAnswer[] = [];
   const packetBudgetReached = packets.length > MAX_CLASSIFIER_PACKETS;
   if (packetBudgetReached) {
     gaps.push(
@@ -653,6 +667,7 @@ export async function prepareAdaptiveReview(
     );
   }
   for (const packet of packetBudgetReached ? [] : packets) {
+    let taskId: string | undefined;
     try {
       const task = await tasks.createTask(
         buildClassifyTask(
@@ -667,22 +682,17 @@ export async function prepareAdaptiveReview(
           idempotencyKey: taskKey(reviewIdentity, `classify-${packet.id}`),
         },
       );
+      taskId = task.id;
       classifierTaskIds.push(task.id);
       const output = await accepted(tasks, task.id, classifyOutput);
-      classification.push({
-        status: 'fulfilled',
-        value: { packetId: packet.id, answers: output.answers },
-      });
+      answers.push({ packetId: packet.id, answers: output.answers });
     } catch (reason) {
-      classification.push({ status: 'rejected', reason });
+      const code = laneFailureCode(reason);
+      logClassifierFailure(packet.id, taskId, code);
+      gaps.push(
+        `Classifier failed for packet ${packet.id} (${code}); inspect ${taskId ? 'its task outcome' : 'workflow logs'}.`,
+      );
     }
-  }
-  const answers = classification.flatMap((item) =>
-    item.status === 'fulfilled' ? [item.value] : [],
-  );
-  for (const item of classification) {
-    if (item.status === 'rejected')
-      gaps.push('Classifier task failed; inspect its task outcome.');
   }
   const routing = decideRoutes(
     mode,
