@@ -43,7 +43,7 @@ export interface PiAgentDir {
 
 export interface ResolvePiAgentDirOptions {
   /** Disable repository models, settings and auth overlays (workflow runs). */
-  includeRepoConfig?: boolean;
+  includePiRepoConfig?: boolean;
   /** Defaults to the store's `secrets/` file provider. */
   secretProviders?: Pick<SecretProviderRegistry, 'resolve'>;
   /** Parent of the composed dir. Defaults to `os.tmpdir()`. */
@@ -88,7 +88,7 @@ export async function resolvePiAgentDir(
     };
   }
 
-  const includeRepoConfig = options.includeRepoConfig ?? true;
+  const includePiRepoConfig = options.includePiRepoConfig ?? true;
   const repoPiDir = join(agentRoot, '.pi');
   const store = new AgentServerStore(
     resolveAgentServerRoot({ root: cfg.agentServerRoot || undefined }),
@@ -96,7 +96,7 @@ export async function resolvePiAgentDir(
   const providers = store.readProviders();
   const storeHasAuth = existsSync(store.piAuthJsonPath);
   if (
-    includeRepoConfig &&
+    includePiRepoConfig &&
     Object.keys(providers).length === 0 &&
     !storeHasAuth
   ) {
@@ -110,7 +110,7 @@ export async function resolvePiAgentDir(
   try {
     writeStorePiConfig(path, providers);
     const repoModelsPath = join(repoPiDir, 'models.json');
-    if (includeRepoConfig && existsSync(repoModelsPath)) {
+    if (includePiRepoConfig && existsSync(repoModelsPath)) {
       const modelsPath = join(path, 'models.json');
       const merged = mergePiModels(
         readPiModels(modelsPath),
@@ -121,13 +121,13 @@ export async function resolvePiAgentDir(
       });
     }
     const repoSettingsPath = join(repoPiDir, 'settings.json');
-    if (includeRepoConfig && existsSync(repoSettingsPath)) {
+    if (includePiRepoConfig && existsSync(repoSettingsPath)) {
       copyFileSync(repoSettingsPath, join(path, 'settings.json'));
     }
     // Store and repo auth are never merged: a store login wins.
     const repoAuthPath = join(repoPiDir, 'auth.json');
     linkPiAuth(
-      !includeRepoConfig || storeHasAuth || !existsSync(repoAuthPath)
+      !includePiRepoConfig || storeHasAuth || !existsSync(repoAuthPath)
         ? store.piAuthJsonPath
         : repoAuthPath,
       path,

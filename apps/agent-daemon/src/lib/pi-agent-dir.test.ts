@@ -117,7 +117,7 @@ describe('resolvePiAgentDir', () => {
     profiles?: ReadonlyArray<{ models: RuntimeProfileModels }>;
     secrets?: Record<string, string>;
     tempRoot?: string;
-    includeRepoConfig?: boolean;
+    includePiRepoConfig?: boolean;
   }): Promise<PiAgentDir> {
     const secrets = input.secrets ?? {};
     const result = await resolvePiAgentDir(
@@ -136,7 +136,7 @@ describe('resolvePiAgentDir', () => {
               : Promise.reject(new Error('secret not found')),
         },
         tempRoot: input.tempRoot ?? tempDir(),
-        includeRepoConfig: input.includeRepoConfig,
+        includePiRepoConfig: input.includePiRepoConfig,
       },
     );
     resolved.push(result);
@@ -156,7 +156,7 @@ describe('resolvePiAgentDir', () => {
     const result = await resolve({
       agentRoot,
       storeRoot,
-      includeRepoConfig: false,
+      includePiRepoConfig: false,
       profiles: OLLAMA_CLOUD_PROFILE,
       secrets: { 'providers/ollama-cloud/api-key': 'fixture-provider-key' },
     });
@@ -188,7 +188,7 @@ describe('resolvePiAgentDir', () => {
     const result = await resolve({
       agentRoot,
       storeRoot: tempDir(),
-      includeRepoConfig: false,
+      includePiRepoConfig: false,
     });
     expect(result.source).toBe('store');
     expect(readJson(join(result.path, 'models.json'))).toEqual({

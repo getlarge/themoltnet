@@ -370,9 +370,9 @@ login if there was one. Keys are never cached.
 
 With `providers` set, the action configures and discovers models through the
 daemon CLI. The daemon composes its runtime configuration from that provider
-store with `--include-repo-config=false`, preserving model capabilities and authentication
+store with `--include-pi-repo-config=false`, preserving model capabilities and authentication
 without loading repository-local Pi models, settings, or login files. Use a
-daemon release that supports `--include-repo-config` (or `daemon-version: workspace`);
+daemon release that supports `--include-pi-repo-config` (or `daemon-version: workspace`);
 older releases fail with an upgrade message. A caller-set
 `PI_CODING_AGENT_DIR` conflicts with this store configuration and is rejected.
 

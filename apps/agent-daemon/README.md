@@ -662,7 +662,7 @@ temporary roots.
 
 ### Workflow Pi configuration
 
-Use `--include-repo-config=false` with `once`, `poll`, or `drain` to compose Pi configuration
+Use `--include-pi-repo-config=false` with `once`, `poll`, or `drain` to compose Pi configuration
 from the CLI-managed provider store without merging repository `.pi` models,
 settings, or authentication. The default retains repository overlays for local
 runs. An explicit `PI_CODING_AGENT_DIR` still selects the caller's directory.

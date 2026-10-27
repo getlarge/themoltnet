@@ -1379,11 +1379,11 @@ runs:
         if [ -n "${PROVIDERS:-}" ]; then
           # Let the daemon compose models/auth from the CLI-managed store,
           # without layering repository-local Pi configuration into CI.
-          if ! "${daemon_cmd[@]}" "$DAEMON_MODE" --help | grep -q -- '--include-repo-config'; then
-            echo "::error::providers requires a daemon with --include-repo-config; upgrade daemon-version" >&2
+          if ! "${daemon_cmd[@]}" "$DAEMON_MODE" --help | grep -q -- '--include-pi-repo-config'; then
+            echo "::error::providers requires a daemon with --include-pi-repo-config; upgrade daemon-version" >&2
             exit 1
           fi
-          daemon_args+=(--include-repo-config=false)
+          daemon_args+=(--include-pi-repo-config=false)
         fi
 
         if [ -n "${PROJECT_ID:-}" ]; then
