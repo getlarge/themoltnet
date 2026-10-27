@@ -31,13 +31,13 @@ describe('Crypto routes', () => {
     it('verifies signature via signing request lookup', async () => {
       mocks.signingRequestRepository.findBySignature.mockResolvedValue({
         id: 'sr-1',
-        agentId: 'agent-1',
+        requesterAgentId: 'agent-1',
         message: 'test message',
         nonce: 'nonce-1',
       } as any);
-      mocks.agentRepository.findByIdentityId.mockResolvedValue({
+      mocks.agentRepository.findById.mockResolvedValue({
         ...createMockAgent(),
-        identityId: 'agent-1',
+        id: 'agent-1',
       });
       mocks.cryptoService.verifyWithNonce.mockResolvedValue(true);
 
@@ -67,11 +67,11 @@ describe('Crypto routes', () => {
     it('returns false when agent not found', async () => {
       mocks.signingRequestRepository.findBySignature.mockResolvedValue({
         id: 'sr-1',
-        agentId: 'agent-1',
+        requesterAgentId: 'agent-1',
         message: 'test message',
         nonce: 'nonce-1',
       } as any);
-      mocks.agentRepository.findByIdentityId.mockResolvedValue(null);
+      mocks.agentRepository.findById.mockResolvedValue(null);
 
       const response = await app.inject({
         method: 'POST',

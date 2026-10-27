@@ -2,9 +2,13 @@
  * Diary entry CRUD and search routes
  */
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { type KetoNamespace, requireAuth } from '@moltnet/auth';
+import {
+  authPrincipalCreator,
+  type KetoNamespace,
+  requireAuth,
+} from '@moltnet/auth';
 import { computeContentCid } from '@moltnet/crypto-service';
-import type { RelationAtDepth } from '@moltnet/database';
+import { type RelationAtDepth, signingRequester } from '@moltnet/database';
 import type { ListInput, ListTagsInput } from '@moltnet/diary-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
@@ -195,15 +199,9 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           if (!signingRequest) {
             throw createProblem('not-found', 'Signing request not found');
           }
-          // `signing_requests.agent_id` stores a KRATOS IDENTITY, not
-          // agents.id: the column carries no foreign key, so migration 0041's
-          // FK-driven rewrite never reached it, and its actor may be a human
-          // as well as an agent. Retargeting it needs its own migration.
-          //
-          // Compare against the caller's identity accordingly. Using the Keto
-          // subject here silently rejected every signed entry, because the two
-          // values are different by construction since the decoupling.
-          if (signingRequest.agentId !== request.authContext!.identityId) {
+          const requester = signingRequester(signingRequest);
+          const caller = authPrincipalCreator(request.authContext!);
+          if (requester.kind !== caller.kind || requester.id !== caller.id) {
             throw createProblem(
               'forbidden',
               'Signing request belongs to a different agent',

@@ -108,7 +108,8 @@ erDiagram
 
     signing_requests {
         uuid id PK
-        uuid agent_id FK "Kratos identity ID"
+        uuid requester_agent_id FK "agents.id, XOR requester_human_id"
+        uuid requester_human_id FK "humans.id, XOR requester_agent_id"
         text message
         uuid nonce "replay prevention"
         signing_request_status status "pending | completed | expired"
@@ -328,7 +329,8 @@ erDiagram
     diaries }o--|| teams : "belongs to (team_id)"
     diary_entries }o--|| diaries : "belongs to (diary_id)"
     groups }o--|| teams : "group belongs to team"
-    signing_requests }o--|| agents : "requested by (agent_id)"
+    signing_requests }o--o| agents : "requested by agent"
+    signing_requests }o--o| humans : "requested by human"
     team_invites }o--|| teams : "invite belongs to team"
     founding_acceptances }o--|| teams : "acceptance for team"
     diary_transfers }o--|| diaries : "transfer of diary"

@@ -32,14 +32,35 @@ import { getExecutor } from '../transaction-context.js';
 
 export type SigningRequestStatus = SigningRequest['status'];
 
+/** The principal that created a request, keyed on `agents.id` / `humans.id`. */
+export interface SigningRequester {
+  readonly kind: 'agent' | 'human';
+  readonly id: string;
+}
+
+/** The row's requester; the `signing_requests_requester_xor` check holds one. */
+export function signingRequester(
+  row: Pick<SigningRequest, 'requesterAgentId' | 'requesterHumanId'>,
+): SigningRequester {
+  if (row.requesterAgentId) return { kind: 'agent', id: row.requesterAgentId };
+  if (row.requesterHumanId) return { kind: 'human', id: row.requesterHumanId };
+  throw new Error('Signing request has no requester');
+}
+
+function requesterIs(requester: SigningRequester) {
+  return requester.kind === 'agent'
+    ? eq(signingRequests.requesterAgentId, requester.id)
+    : eq(signingRequests.requesterHumanId, requester.id);
+}
+
 export function createSigningRequestRepository(db: Database) {
   return {
     async create(
-      input: Pick<NewSigningRequest, 'agentId' | 'message'> & {
+      input: Pick<NewSigningRequest, 'message'> & {
+        requester: SigningRequester;
         expiresAt: Date;
         verificationMethod?: NewSigningRequest['verificationMethod'];
         workflowId?: string;
-        requestedBy?: NewSigningRequest['requestedBy'];
         signerConstraint?: NewSigningRequest['signerConstraint'];
         teamId?: string;
         purpose?: string;
@@ -48,13 +69,15 @@ export function createSigningRequestRepository(db: Database) {
       const [request] = await getExecutor(db)
         .insert(signingRequests)
         .values({
-          agentId: input.agentId,
+          requesterAgentId:
+            input.requester.kind === 'agent' ? input.requester.id : null,
+          requesterHumanId:
+            input.requester.kind === 'human' ? input.requester.id : null,
           message: input.message,
           expiresAt: input.expiresAt,
           verificationMethod:
             input.verificationMethod ?? VERIFICATION_METHOD.AgentEd25519,
           workflowId: input.workflowId,
-          requestedBy: input.requestedBy,
           signerConstraint: input.signerConstraint,
           teamId: input.teamId,
           purpose: input.purpose,
@@ -111,8 +134,7 @@ export function createSigningRequestRepository(db: Database) {
     },
 
     async list(options: {
-      agentId?: string;
-      requestedBy?: { id: string; type: 'agent' | 'human' | 'service' };
+      requester?: SigningRequester;
       teamIds?: string[];
       status?: SigningRequestStatus[];
       unexpired?: boolean;
@@ -120,8 +142,7 @@ export function createSigningRequestRepository(db: Database) {
       offset?: number;
     }): Promise<{ items: SigningRequest[]; total: number }> {
       const {
-        agentId,
-        requestedBy,
+        requester,
         teamIds,
         status,
         unexpired,
@@ -130,13 +151,8 @@ export function createSigningRequestRepository(db: Database) {
       } = options;
 
       const conditions = [];
-      if (agentId) {
-        conditions.push(eq(signingRequests.agentId, agentId));
-      }
-      if (requestedBy) {
-        conditions.push(
-          sql`${signingRequests.requestedBy} @> ${JSON.stringify(requestedBy)}::jsonb`,
-        );
+      if (requester) {
+        conditions.push(requesterIs(requester));
       }
       if (teamIds?.length) {
         conditions.push(inArray(signingRequests.teamId, teamIds));
@@ -389,16 +405,18 @@ export function createSigningRequestRepository(db: Database) {
       return rejected ?? null;
     },
 
-    async acquirePendingCreateLock(agentId: string): Promise<void> {
+    async acquirePendingCreateLock(requester: SigningRequester): Promise<void> {
       await acquireTransactionAdvisoryLock(
         db,
         'signing-request:create',
-        agentId,
+        `${requester.kind}:${requester.id}`,
         'acquirePendingCreateLock',
       );
     },
 
-    async getActivePendingSummaryByAgent(agentId: string): Promise<{
+    async getActivePendingSummaryByRequester(
+      requester: SigningRequester,
+    ): Promise<{
       count: number;
       earliestExpiresAt: Date | null;
     }> {
@@ -412,7 +430,7 @@ export function createSigningRequestRepository(db: Database) {
         .from(signingRequests)
         .where(
           and(
-            eq(signingRequests.agentId, agentId),
+            requesterIs(requester),
             eq(signingRequests.status, 'pending'),
             gt(signingRequests.expiresAt, sql`now()`),
           ),

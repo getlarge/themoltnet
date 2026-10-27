@@ -4,6 +4,7 @@ import {
   authPrincipal,
   authPrincipalCreator,
 } from '@moltnet/auth';
+import type { SigningRequest } from '@moltnet/database';
 import type { SigningMethodJson } from '@moltnet/signing-workflows';
 import {
   SigningCredentialError,
@@ -42,6 +43,17 @@ export function actorPrincipal(actor: AuthContext): {
   readonly id: string;
 } {
   return authPrincipalCreator(actor);
+}
+
+/** Whether the actor is the principal that created the request. */
+export function isRequester(
+  row: Pick<SigningRequest, 'requesterAgentId' | 'requesterHumanId'>,
+  actor: AuthContext,
+): boolean {
+  const { kind, id } = actorPrincipal(actor);
+  return (
+    (kind === 'agent' ? row.requesterAgentId : row.requesterHumanId) === id
+  );
 }
 
 export function requireHuman(

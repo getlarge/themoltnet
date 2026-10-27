@@ -5,7 +5,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { createDatabase, type Database } from '../src/db.js';
 import { runMigrations } from '../src/migrate.js';
 import { createSigningRequestRepository } from '../src/repositories/signing-request.repository.js';
-import { signingRequests } from '../src/schema.js';
+import { agents, signingRequests } from '../src/schema.js';
 
 describe('SigningRequestRepository (integration)', () => {
   let db: Database;
@@ -26,6 +26,11 @@ describe('SigningRequestRepository (integration)', () => {
     await runMigrations(container.getConnectionUri());
     ({ db, pool } = createDatabase(container.getConnectionUri()));
     repo = createSigningRequestRepository(db);
+    await db.insert(agents).values({
+      id: AGENT_ID,
+      publicKey: 'ed25519:signing-request-integration',
+      fingerprint: 'SIGN-REQU-ESTS-0001',
+    });
   }, 60_000);
 
   afterEach(async () => {
@@ -42,17 +47,17 @@ describe('SigningRequestRepository (integration)', () => {
     const liveExpiry = new Date(now + 120_000);
     await db.insert(signingRequests).values([
       {
-        agentId: AGENT_ID,
+        requesterAgentId: AGENT_ID,
         message: 'expired pending',
         expiresAt: new Date(now - 60_000),
       },
       {
-        agentId: AGENT_ID,
+        requesterAgentId: AGENT_ID,
         message: 'live pending',
         expiresAt: liveExpiry,
       },
       {
-        agentId: AGENT_ID,
+        requesterAgentId: AGENT_ID,
         message: 'completed request',
         status: 'completed',
         expiresAt: new Date(now + 60_000),
@@ -60,7 +65,10 @@ describe('SigningRequestRepository (integration)', () => {
       },
     ]);
 
-    const result = await repo.getActivePendingSummaryByAgent(AGENT_ID);
+    const result = await repo.getActivePendingSummaryByRequester({
+      kind: 'agent',
+      id: AGENT_ID,
+    });
 
     expect(result).toEqual({
       count: 1,

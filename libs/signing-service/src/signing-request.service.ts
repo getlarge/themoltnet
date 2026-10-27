@@ -18,7 +18,9 @@ import {
 } from '@moltnet/signing-workflows';
 
 import {
+  actorPrincipal,
   asSigningMethodJson,
+  isRequester,
   mapWorkflowError,
   namespace,
   requireHuman,
@@ -42,10 +44,6 @@ function signingPayload(row: SigningRequest): string {
   return Buffer.from(buildSigningBytes(row.message, row.nonce)).toString(
     'base64',
   );
-}
-
-function requester(actor: AuthContext) {
-  return { id: subjectId(actor), type: actor.subjectType } as const;
 }
 
 async function startAgentSigningWorkflow(input: {
@@ -149,7 +147,10 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
         }
       }
 
+      // The signing workflow looks the key up by the live caller's identity;
+      // the persisted requester is the principal row, which outlives it.
       const agentId = input.actor.identityId;
+      const requester = actorPrincipal(input.actor);
       const expiresAt = new Date(
         now().getTime() + deps.signingTimeoutSeconds * 1000,
       );
@@ -158,10 +159,12 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
       // committed insert before deciding whether capacity remains.
       const created = await deps.transactionRunner.runInTransaction(
         async () => {
-          await deps.signingRequestRepository.acquirePendingCreateLock(agentId);
+          await deps.signingRequestRepository.acquirePendingCreateLock(
+            requester,
+          );
           const pending =
-            await deps.signingRequestRepository.getActivePendingSummaryByAgent(
-              agentId,
+            await deps.signingRequestRepository.getActivePendingSummaryByRequester(
+              requester,
             );
           if (pending.count >= deps.maxPendingSigningRequests) {
             const earliestExpiry = pending.earliestExpiresAt?.getTime();
@@ -178,11 +181,10 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
             );
           }
           return deps.signingRequestRepository.create({
-            agentId,
+            requester,
             message: input.message,
             expiresAt,
             verificationMethod: input.verificationMethod,
-            requestedBy: requester(input.actor),
             signerConstraint: input.signerConstraint,
             teamId: input.teamId,
             purpose: input.purpose,
@@ -269,7 +271,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
             offset: input.offset,
           })
         : deps.signingRequestRepository.list({
-            agentId: input.actor.identityId,
+            requester: actorPrincipal(input.actor),
             status: input.status,
             limit: input.limit,
             offset: input.offset,
@@ -280,7 +282,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
       const row = await deps.signingRequestRepository.findById(input.requestId);
       if (
         !row ||
-        (row.agentId !== input.actor.identityId &&
+        (!isRequester(row, input.actor) &&
           row.claimedByHumanId !==
             (input.actor.subjectType === 'human' ? input.actor.humanId : null))
       ) {
@@ -577,7 +579,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
       signature: string;
     }) {
       const row = await deps.signingRequestRepository.findById(input.requestId);
-      if (!row || row.agentId !== input.actor.identityId) {
+      if (!row || !isRequester(row, input.actor)) {
         throw new SigningServiceError('not_found', 'Signing request not found');
       }
       if (row.verificationMethod !== VERIFICATION_METHOD.AgentEd25519) {

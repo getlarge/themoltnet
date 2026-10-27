@@ -78,10 +78,7 @@ describe('Agent routes', () => {
       );
       mocks.signingRequestRepository.findBySignature.mockResolvedValue({
         id: 'sr-1',
-        // `signing_requests.agent_id` stores a Kratos identity, not agents.id:
-        // the column carries no foreign key, so migration 0041's FK-driven
-        // rewrite never reached it. Retargeting it needs its own migration.
-        agentId: OWNER_IDENTITY_ID,
+        requesterAgentId: OWNER_ID,
         message: 'test message',
         nonce: 'nonce-1',
       } as any);
@@ -112,7 +109,7 @@ describe('Agent routes', () => {
       );
       mocks.signingRequestRepository.findBySignature.mockResolvedValue({
         id: 'sr-1',
-        agentId: OWNER_IDENTITY_ID,
+        requesterAgentId: OWNER_ID,
         message: 'test message',
         nonce: 'nonce-1',
         createdAt,
@@ -152,7 +149,7 @@ describe('Agent routes', () => {
       );
       mocks.signingRequestRepository.findBySignature.mockResolvedValue({
         id: 'sr-1',
-        agentId: OWNER_IDENTITY_ID,
+        requesterAgentId: OWNER_ID,
         message: 'test message',
         nonce: 'nonce-1',
         completedAt,
@@ -192,7 +189,7 @@ describe('Agent routes', () => {
       );
       mocks.signingRequestRepository.findBySignature.mockResolvedValue({
         id: 'sr-1',
-        agentId: OWNER_IDENTITY_ID,
+        requesterAgentId: OWNER_ID,
         message: 'test message',
         nonce: 'nonce-1',
         completedAt: new Date(),
@@ -220,7 +217,7 @@ describe('Agent routes', () => {
       mocks.agentRepository.findById.mockResolvedValue(createMockAgent());
       mocks.signingRequestRepository.findBySignature.mockResolvedValue({
         id: 'sr-1',
-        agentId: OWNER_IDENTITY_ID,
+        requesterAgentId: OWNER_ID,
         message: 'test message',
         nonce: 'nonce-1',
       } as any);
@@ -243,7 +240,7 @@ describe('Agent routes', () => {
       );
       mocks.signingRequestRepository.findBySignature.mockResolvedValue({
         id: 'sr-1',
-        agentId: OWNER_ID,
+        requesterAgentId: OWNER_ID,
         message: 'test message',
         nonce: 'nonce-1',
       } as any);
@@ -270,7 +267,7 @@ describe('Agent routes', () => {
       );
       mocks.signingRequestRepository.findBySignature.mockResolvedValue({
         id: 'sr-2',
-        agentId: OTHER_AGENT_ID,
+        requesterAgentId: OTHER_AGENT_ID,
         message: 'test message',
         nonce: 'nonce-2',
       } as any);

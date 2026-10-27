@@ -142,7 +142,11 @@ export const PreviewSignEvidenceValueSchema = Type.Object(
 export const SigningRequestSchema = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
-    agentId: Type.String({ format: 'uuid' }),
+    agentId: Type.String({
+      format: 'uuid',
+      description:
+        'ID of the principal that created the request: an agent ID, or a human ID when requestedBy.type is human.',
+    }),
     verificationMethod: VerificationMethodSchema,
     requestedBy: Type.Optional(
       Type.Union([

@@ -11036,6 +11036,7 @@
       "SigningRequest": {
         "properties": {
           "agentId": {
+            "description": "ID of the principal that created the request: an agent ID, or a human ID when requestedBy.type is human.",
             "format": "uuid",
             "type": "string"
           },

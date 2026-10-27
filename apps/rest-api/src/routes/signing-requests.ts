@@ -6,15 +6,16 @@
  *
  * ## Authorization
  *
- * Agent Ed25519 requests remain identity-owned and use a direct `agentId`
- * comparison. Delegated requests are team-scoped: Keto establishes team role
- * and group membership, while the persisted signer constraint selects which
- * eligible human may claim and complete the request.
+ * Agent Ed25519 requests are owned by the principal that created them
+ * (`requester_agent_id` / `requester_human_id`). Delegated requests are
+ * team-scoped: Keto establishes team role and group membership, while the
+ * persisted signer constraint selects which eligible human may claim and
+ * complete the request.
  */
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import { buildSigningBytes } from '@moltnet/crypto-service';
-import type { SigningRequest } from '@moltnet/database';
+import { type SigningRequest, signingRequester } from '@moltnet/database';
 import {
   ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
@@ -41,11 +42,12 @@ import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 import { throwSigningServiceProblem } from '../utils/signing-service-error.js';
 
 function toSigningResponse(row: SigningRequest) {
+  const requester = signingRequester(row);
   return {
     id: row.id,
-    agentId: row.agentId,
+    agentId: requester.id,
     verificationMethod: row.verificationMethod,
-    requestedBy: row.requestedBy ?? null,
+    requestedBy: { id: requester.id, type: requester.kind },
     signerConstraint: row.signerConstraint ?? null,
     teamId: row.teamId ?? null,
     purpose: row.purpose ?? null,

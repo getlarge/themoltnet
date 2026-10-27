@@ -111,21 +111,9 @@ export async function agentRoutes(fastify: FastifyInstance) {
         );
       }
 
-      // `signing_requests.agent_id` still stores a Kratos identity, not
-      // `agents.id`: the column carries no foreign key, so migration 0041's
-      // FK-driven rewrite never reached it, and the actor there may be a human
-      // as well as an agent. Retargeting it needs its own migration.
-      //
-      // Until then, an agent with no live identity can own no signing request.
-      // Say so explicitly rather than letting `null !== <uuid>` decide it as a
-      // side effect of identityId having become nullable.
-      if (!agent.identityId) {
-        return { valid: false };
-      }
-
       const signingRequest =
         await fastify.signingRequestRepository.findBySignature(signature);
-      if (!signingRequest || signingRequest.agentId !== agent.identityId) {
+      if (!signingRequest || signingRequest.requesterAgentId !== agent.id) {
         return { valid: false };
       }
 

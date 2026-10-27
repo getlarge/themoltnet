@@ -29,6 +29,7 @@ const NOW = () => new Date('2026-08-01T12:00:00.000Z');
 const agent = {
   subjectType: 'agent',
   identityId: 'agent-identity',
+  agentId: 'agent-id',
 } as Extract<AuthContext, { subjectType: 'agent' }>;
 
 const human = {
@@ -147,9 +148,9 @@ function createDeps(
 function pendingRequest() {
   return {
     id: REQUEST_ID,
-    agentId: 'requester-agent',
+    requesterAgentId: 'requester-agent',
+    requesterHumanId: null,
     verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
-    requestedBy: { id: 'requester-agent', type: 'agent' as const },
     signerConstraint: { id: human.humanId, type: 'human' as const },
     teamId: TEAM_ID,
     purpose: 'Approve production deployment',
@@ -247,7 +248,7 @@ describe('createSigningService', () => {
         signingRequestRepository: {
           findById: vi.fn().mockResolvedValue({
             ...pendingRequest(),
-            agentId: agent.identityId,
+            requesterAgentId: agent.agentId,
             verificationMethod: VERIFICATION_METHOD.AgentEd25519,
             status: 'rejected',
             workflowId: `signing-${REQUEST_ID}`,
@@ -271,7 +272,7 @@ describe('createSigningService', () => {
     const send = vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
     const pending = {
       ...pendingRequest(),
-      agentId: agent.identityId,
+      requesterAgentId: agent.agentId,
       verificationMethod: VERIFICATION_METHOD.AgentEd25519,
       workflowId: `signing-${REQUEST_ID}`,
     };
@@ -548,7 +549,7 @@ describe('createSigningService', () => {
 
   it('rejects creation when the requester has reached the pending cap', async () => {
     const acquirePendingCreateLock = vi.fn().mockResolvedValue(undefined);
-    const getActivePendingSummaryByAgent = vi.fn().mockResolvedValue({
+    const getActivePendingSummaryByRequester = vi.fn().mockResolvedValue({
       count: MAX_PENDING_SIGNING_REQUESTS,
       earliestExpiresAt: new Date('2026-08-01T12:02:00.000Z'),
     });
@@ -560,7 +561,7 @@ describe('createSigningService', () => {
       createDeps({
         signingRequestRepository: {
           acquirePendingCreateLock,
-          getActivePendingSummaryByAgent,
+          getActivePendingSummaryByRequester,
           create,
         } as never,
         transactionRunner: transactionRunner as never,
@@ -584,17 +585,16 @@ describe('createSigningService', () => {
       expect.any(Function),
       { name: 'create-signing-request' },
     );
-    expect(acquirePendingCreateLock).toHaveBeenCalledWith(agent.identityId);
-    expect(getActivePendingSummaryByAgent).toHaveBeenCalledWith(
-      agent.identityId,
-    );
+    const requester = { kind: 'agent', id: agent.agentId };
+    expect(acquirePendingCreateLock).toHaveBeenCalledWith(requester);
+    expect(getActivePendingSummaryByRequester).toHaveBeenCalledWith(requester);
     expect(create).not.toHaveBeenCalled();
   });
 
   it('creates below the pending cap inside the guarded transaction', async () => {
     const created = pendingRequest();
     const acquirePendingCreateLock = vi.fn().mockResolvedValue(undefined);
-    const getActivePendingSummaryByAgent = vi.fn().mockResolvedValue({
+    const getActivePendingSummaryByRequester = vi.fn().mockResolvedValue({
       count: MAX_PENDING_SIGNING_REQUESTS - 1,
       earliestExpiresAt: new Date('2026-08-01T12:02:00.000Z'),
     });
@@ -606,7 +606,7 @@ describe('createSigningService', () => {
       createDeps({
         signingRequestRepository: {
           acquirePendingCreateLock,
-          getActivePendingSummaryByAgent,
+          getActivePendingSummaryByRequester,
           create,
         } as never,
         transactionRunner: transactionRunner as never,
@@ -624,18 +624,17 @@ describe('createSigningService', () => {
       }),
     ).resolves.toBe(created);
     expect(acquirePendingCreateLock).toHaveBeenCalledBefore(
-      getActivePendingSummaryByAgent,
+      getActivePendingSummaryByRequester,
     );
-    expect(getActivePendingSummaryByAgent).toHaveBeenCalledBefore(create);
+    expect(getActivePendingSummaryByRequester).toHaveBeenCalledBefore(create);
   });
 
   it('expires and logs an agent request when workflow startup fails', async () => {
     const now = new Date('2026-08-01T12:00:00.000Z');
     const created = {
       ...pendingRequest(),
-      agentId: agent.identityId,
+      requesterAgentId: agent.agentId,
       verificationMethod: VERIFICATION_METHOD.AgentEd25519,
-      requestedBy: { id: agent.identityId, type: 'agent' as const },
     };
     const startupError = new Error('DBOS unavailable');
     const startAgentSigningWorkflow = vi.fn().mockRejectedValue(startupError);
@@ -652,7 +651,7 @@ describe('createSigningService', () => {
         startAgentSigningWorkflow,
         signingRequestRepository: {
           acquirePendingCreateLock: vi.fn(),
-          getActivePendingSummaryByAgent: vi.fn().mockResolvedValue({
+          getActivePendingSummaryByRequester: vi.fn().mockResolvedValue({
             count: 0,
             earliestExpiresAt: null,
           }),

@@ -53,9 +53,11 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
         return { valid: false };
       }
 
-      const agent = await fastify.agentRepository.findByIdentityId(
-        signingRequest.agentId,
-      );
+      const agent = signingRequest.requesterAgentId
+        ? await fastify.agentRepository.findById(
+            signingRequest.requesterAgentId,
+          )
+        : null;
       if (!agent) {
         return { valid: false };
       }

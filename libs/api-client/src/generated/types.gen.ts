@@ -2395,6 +2395,9 @@ export type SigningCredentialRegistration = {
 };
 
 export type SigningRequest = {
+  /**
+   * ID of the principal that created the request: an agent ID, or a human ID when requestedBy.type is human.
+   */
   agentId: string;
   challenge?: PreviewSignChallengeValue | null;
   claimedAt?: string | null;

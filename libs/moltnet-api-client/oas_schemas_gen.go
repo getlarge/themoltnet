@@ -53153,6 +53153,8 @@ func (s *SigningCredentialVerificationMethod) UnmarshalText(data []byte) error {
 
 // Ref: #/components/schemas/SigningRequest
 type SigningRequest struct {
+	// ID of the principal that created the request: an agent ID, or a human ID when requestedBy.type is
+	// human.
 	AgentId             uuid.UUID                            `json:"agentId"`
 	Challenge           OptNilPreviewSignChallengeValue      `json:"challenge"`
 	ClaimedAt           OptNilDateTime                       `json:"claimedAt"`
