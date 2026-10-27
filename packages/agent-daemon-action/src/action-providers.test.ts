@@ -902,7 +902,7 @@ describe('invocation isolation', () => {
     const calls = resolve(root, 'runtime.log');
     writeExecutable(
       agent,
-      `if [[ "$*" == *--help* ]]; then echo --no-repo-pi; exit 0; fi\nprintf '%s\\n' "$*|pi=$PI_CODING_AGENT_DIR" >> "${calls}"`,
+      `if [[ "$*" == *--help* ]]; then echo --include-repo-config; exit 0; fi\nprintf '%s\\n' "$*|pi=$PI_CODING_AGENT_DIR" >> "${calls}"`,
     );
     const result = runStep('run', {
       AGENT_BIN: agent,
@@ -915,7 +915,7 @@ describe('invocation isolation', () => {
     });
     expect(result.status, result.stderr).toBe(0);
     expect(readCalls(calls)).toEqual([
-      'once --agent worker --profile profile --task-id task --no-repo-pi|pi=',
+      'once --agent worker --profile profile --task-id task --include-repo-config=false|pi=',
     ]);
   });
 });

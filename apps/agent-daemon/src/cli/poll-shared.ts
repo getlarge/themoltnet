@@ -107,10 +107,15 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       'max-poll-interval-ms': { type: 'string' },
       'list-limit': { type: 'string' },
       sandbox: { type: 'string' },
-      'no-repo-pi': { type: 'boolean', default: false },
+      'include-repo-config': { type: 'string', default: 'true' },
       profile: { type: 'string', multiple: true },
     },
   });
+
+  if (!['true', 'false'].includes(values['include-repo-config'])) {
+    console.error('--include-repo-config must be true or false');
+    return 1;
+  }
 
   if (
     !values.team &&
@@ -399,7 +404,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     cfg,
     profiles[0].mountPath,
     profiles,
-    { includeRepoConfig: !values['no-repo-pi'] },
+    { includeRepoConfig: values['include-repo-config'] === 'true' },
   );
   process.once('exit', piAgentDir.cleanup);
   activatePiCodingAgentDir(piAgentDir.path, piAgentDir.env);

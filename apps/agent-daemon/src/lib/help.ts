@@ -11,7 +11,8 @@ export const COMMON_REQUIRED_FLAGS = `\
                               execution policy come from the selected profile.`;
 
 export const COMMON_OPTIONAL_FLAGS = `\
-  --no-repo-pi               Compose Pi config from the provider store only.
+  --include-repo-config <true|false>
+                              Merge repository Pi config. Default: true.
   --sandbox <path>            Deprecated. Remote runtime profiles define
                               sandbox policy.
   --agent-root <path>         Explicit legacy identity bundle location.
