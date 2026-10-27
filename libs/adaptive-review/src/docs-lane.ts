@@ -4,9 +4,13 @@ import {
   loadReviewConfig,
   runDocsImpactReview,
 } from '@moltnet/docs-impact-review';
-import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 
-import { type LaneContext, type LaneResult, logLaneFailure } from './lane.js';
+import {
+  type LaneContext,
+  type LaneResult,
+  logLaneFailure,
+  withCreateHook,
+} from './lane.js';
 
 const DOCS_STAGE_TAG = /^stage:(extract|coverage|docs-check)$/;
 
@@ -72,21 +76,13 @@ export async function runDocsLane(ctx: LaneContext): Promise<LaneResult> {
   const { git, identity } = ctx;
   const taskIds: string[] = [];
   const stages = new Map<string, string>();
-  const listMessages = ctx.tasks.listMessages?.bind(ctx.tasks);
-  const tasks: TaskClient = {
-    async createTask(body, options) {
-      const task = await ctx.tasks.createTask(body, options);
-      taskIds.push(task.id);
-      const stage = body.tags
-        ?.map((tag) => DOCS_STAGE_TAG.exec(tag)?.[1])
-        .find(Boolean);
-      if (stage) stages.set(task.id, stage);
-      return task;
-    },
-    getTask: (id) => ctx.tasks.getTask(id),
-    listAttempts: (id) => ctx.tasks.listAttempts(id),
-    ...(listMessages ? { listMessages } : {}),
-  };
+  const tasks = withCreateHook(ctx.tasks, (task, body) => {
+    taskIds.push(task.id);
+    const stage = body.tags
+      ?.map((tag) => DOCS_STAGE_TAG.exec(tag)?.[1])
+      .find(Boolean);
+    if (stage) stages.set(task.id, stage);
+  });
   const { config, source } = loadReviewConfig(
     git,
     identity.base,

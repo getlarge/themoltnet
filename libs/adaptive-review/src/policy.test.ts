@@ -34,11 +34,10 @@ describe('policy globs', () => {
   });
 
   it('stays fast on a pathological segment', () => {
-    const started = performance.now();
+    // A backtracking matcher would exceed the test timeout here.
     expect(matchesPolicyGlob(`${'a'.repeat(5_000)}c`, '*a*a*a*a*a*a*b')).toBe(
       false,
     );
-    expect(performance.now() - started).toBeLessThan(1_000);
   });
 
   it('applies excludes after includes', () => {

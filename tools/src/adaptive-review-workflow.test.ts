@@ -124,9 +124,12 @@ describe('adaptive review workflow trust gates', () => {
     }
   });
 
-  it('protects the shared eligibility gate in the caller', () => {
-    expect(caller.jobs.review.with['protected-paths'].split('\n')).toContain(
-      'libs/docs-impact-review/src/eligibility.ts',
+  it('protects the shared gate and head fetch script in the caller', () => {
+    expect(caller.jobs.review.with['protected-paths'].split('\n')).toEqual(
+      expect.arrayContaining([
+        'libs/docs-impact-review/src/eligibility.ts',
+        'tools/fetch-adaptive-review-head.sh',
+      ]),
     );
   });
 

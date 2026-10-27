@@ -38,4 +38,5 @@ jobs:
         libs/docs-impact-review/src/eligibility.ts
         packages/adaptive-review-action/
         packages/agent-daemon-action/
+        tools/fetch-adaptive-review-head.sh
       runtime-ref: ${{ github.event.pull_request.base.sha }}
