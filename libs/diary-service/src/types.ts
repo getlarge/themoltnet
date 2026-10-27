@@ -98,13 +98,6 @@ export interface UpdateDiaryInput {
   visibility?: DiaryVisibility;
 }
 
-/** Signer provenance recorded on a signed entry. */
-export interface EntrySigner {
-  agentId: string;
-  publicKey: string;
-  fingerprint: string;
-}
-
 export interface CreateEntryInput {
   diaryId: string;
   content: string;
@@ -118,8 +111,6 @@ export interface CreateEntryInput {
   contentSignature?: string;
   /** Nonce from signing request (stored for self-contained verification) */
   signingNonce?: string;
-  /** The agent key that verified the signature, recorded at acceptance */
-  signer?: EntrySigner;
   /** Authenticated principal creating the entry (resolved at the auth boundary) */
   creator: ServicePrincipal;
 }

@@ -37,34 +37,20 @@ export async function verifyWithSigningKeys(
   signingRequest: Pick<SigningRequest, 'completedAt' | 'signerPublicKey'>,
   verify: (publicKey: string) => Promise<boolean>,
 ): Promise<string | null> {
-  const key = await findSigningKey(deps, agent, signingRequest, verify);
-  return key?.fingerprint ?? null;
-}
-
-/**
- * Same resolution as `verifyWithSigningKeys`, returning the whole key that
- * verified so a caller can record it.
- */
-export async function findSigningKey(
-  deps: KeyDeps,
-  agent: Agent,
-  signingRequest: Pick<SigningRequest, 'completedAt' | 'signerPublicKey'>,
-  verify: (publicKey: string) => Promise<boolean>,
-): Promise<SigningKey | null> {
   const candidates = await signingKeyCandidates(deps, agent, signingRequest);
   for (const key of candidates) {
-    if (await verify(key.publicKey)) return key;
+    if (await verify(key.publicKey)) return key.fingerprint;
   }
   return null;
 }
 
-export type SigningKey = { publicKey: string; fingerprint: string };
+type KeyCandidate = { publicKey: string; fingerprint: string };
 
 async function signingKeyCandidates(
   deps: KeyDeps,
   agent: Agent,
   signingRequest: Pick<SigningRequest, 'completedAt' | 'signerPublicKey'>,
-): Promise<SigningKey[]> {
+): Promise<KeyCandidate[]> {
   const current = {
     publicKey: agent.publicKey,
     fingerprint: agent.fingerprint,

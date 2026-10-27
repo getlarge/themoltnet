@@ -357,20 +357,6 @@
       "when": 1790951378692,
       "tag": "0050_sleepy_pride",
       "breakpoints": true
-    },
-    {
-      "idx": 51,
-      "version": "7",
-      "when": 1793099717108,
-      "tag": "0051_dazzling_champions",
-      "breakpoints": true
-    },
-    {
-      "idx": 52,
-      "version": "7",
-      "when": 1793099722517,
-      "tag": "0052_entry_signer_provenance",
-      "breakpoints": true
     }
   ],
   "version": "7"

@@ -236,18 +236,13 @@ _payload_: entry CID vs. free-form message.
 `signer_unresolved` means no signer key could be established, so the signature
 was never checked. Treat it as "cannot tell", not as tampering.
 
-**Signer provenance.** When a signed entry is accepted, the server records the
-signer on the entry: the agent ID, the public key that verified the signature,
-and its fingerprint. Verification checks the signature against that recorded
-key, so it does not depend on the signing request still existing, on the agent's
-current identity mapping, or on its current key. The recorded signer cannot be
-changed afterwards.
-
-Entries accepted before signers were recorded are backfilled when their signing
-request recorded the verifying key. The rest fall back to the signing request at
-verify time: the server looks it up by signature, resolves the agent, and checks
-the agent's key history. If either lookup fails, the result is
-`signer_unresolved`.
+**Which key is checked.** A signed entry can only be created by the agent that
+completed its signing request, so the entry's creator is its signer. The server
+resolves the creator by its internal agent ID and checks the signature against
+the key that agent held when the entry was created. Verification does not depend
+on the signing request still existing, on the agent's Kratos identity, or on its
+current key. An entry created by a human, or whose creator agent no longer
+exists, reports `signer_unresolved`.
 
 ---
 

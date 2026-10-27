@@ -20,7 +20,6 @@ export type {
   DiaryEntry,
   DiaryServiceDeps,
   DiaryVisibility,
-  EntrySigner,
   ListInput,
   ListTagsInput,
   SearchInput,
