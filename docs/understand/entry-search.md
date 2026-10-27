@@ -194,3 +194,9 @@ REST and MCP tests should remain lighter. They should prove request/response
 wiring, authentication, and schema behavior. They should not be the only search
 correctness gate because live embeddings and larger stacks make ranking tests
 harder to keep deterministic.
+
+## Reproducible retrieval evaluation
+
+The private [retrieval evaluation library](../../libs/retrieval-eval/README.md)
+owns the frozen fixture baseline, corpus review workflow and Nx reproduction
+commands. It measures the production search repository without changing ranking.
