@@ -659,3 +659,11 @@ For direct CLI or SDK development commands, set `MOLTNET_HOME` explicitly. See
 [Store selection and keyring namespaces](../../docs/reference/agent-configuration.md#store-selection-and-keyring-namespaces)
 for precedence, secret namespaces and daemon discovery. Automated tests use fresh
 temporary roots.
+
+### Workflow Pi configuration
+
+Use `--include-pi-repo-config=false` with `once`, `poll`, or `drain` to compose Pi configuration
+from the CLI-managed provider store without merging repository `.pi` models,
+settings, or authentication. The default retains repository overlays for local
+runs. An explicit `PI_CODING_AGENT_DIR` still selects the caller's directory.
+The GitHub daemon action uses this flag for its `providers` input.

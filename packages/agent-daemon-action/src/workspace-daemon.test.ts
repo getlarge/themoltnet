@@ -61,7 +61,7 @@ describe('workspace daemon action contract', () => {
         env: {
           ...process.env,
           GITHUB_WORKSPACE: root,
-          GITHUB_ENV: githubEnv,
+          GITHUB_OUTPUT: githubEnv,
           AGENT_NAME_OVERRIDE: '',
           MOLTNET_AGENT_NAME: 'configless',
           MOLTNET_AGENT_KEY: 'agent-key-secret',
@@ -105,7 +105,7 @@ describe('workspace daemon action contract', () => {
         env: {
           ...process.env,
           GITHUB_WORKSPACE: root,
-          GITHUB_ENV: githubEnv,
+          GITHUB_OUTPUT: githubEnv,
           AGENT_NAME_OVERRIDE: '',
           MOLTNET_AGENT_NAME: 'configless',
           MOLTNET_AGENT_KEY: 'agent-key-secret',
@@ -255,7 +255,7 @@ describe('workspace daemon action contract', () => {
         env: {
           ...process.env,
           GITHUB_WORKSPACE: root,
-          GITHUB_ENV: githubEnv,
+          GITHUB_OUTPUT: githubEnv,
           AGENT_NAME_OVERRIDE: '',
           MOLTNET_AGENT_NAME: 'configless',
           MOLTNET_AGENT_KEY_REF: 'os-keyring:agent-key/identity-1',

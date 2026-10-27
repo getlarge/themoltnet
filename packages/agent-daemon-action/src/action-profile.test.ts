@@ -72,7 +72,7 @@ function run(id: string, overrides: NodeJS.ProcessEnv = {}) {
       env: {
         PATH: `${resolve(root, 'bin')}:${process.env.PATH ?? ''}`,
         HOME: root,
-        RUNNER_TEMP: root,
+        ACTION_TEMP: root,
         GITHUB_OUTPUT: resolve(root, 'output'),
         CALLS: calls,
         MOLTNET_CLI_PACKAGE: '@themoltnet/cli@3.15.0',

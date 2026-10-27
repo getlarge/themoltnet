@@ -83,9 +83,15 @@ export async function runOnce(
       'resume-attempt': { type: 'string' },
       team: { type: 'string' },
       sandbox: { type: 'string' },
+      'include-pi-repo-config': { type: 'string', default: 'true' },
       profile: { type: 'string' },
     },
   });
+
+  if (!['true', 'false'].includes(values['include-pi-repo-config'])) {
+    console.error('--include-pi-repo-config must be true or false');
+    return 1;
+  }
 
   if (!values['task-id']) {
     console.error('Missing required flag: --task-id\n');
@@ -307,7 +313,9 @@ export async function runOnce(
   });
   const { executionPlans, preparedRuntime, sandbox, slotIdentity, stateDirs } =
     prepared;
-  const piAgentDir = await resolvePiAgentDir(cfg, sandbox.rootDir, [profile]);
+  const piAgentDir = await resolvePiAgentDir(cfg, sandbox.rootDir, [profile], {
+    includePiRepoConfig: values['include-pi-repo-config'] === 'true',
+  });
   process.once('exit', piAgentDir.cleanup);
   activatePiCodingAgentDir(piAgentDir.path, piAgentDir.env);
   const otelShutdown = await initWorkerOtel({
