@@ -3,18 +3,47 @@ description: Run or publish the classifier-first advisory PR review.
 author: getlarge
 inputs:
   step:
-    description: plan, route, review, or publish
+    description: prepare, plan, route, review, or publish
     required: true
 outputs:
+  skip:
+    description: Whether the pull request is ineligible for review.
+    value: ${{ steps.prepare.outputs.skip }}
+  prepared:
+    description: The pinned pull request, as JSON.
+    value: ${{ steps.prepare.outputs.prepared }}
+  base:
+    description: The pinned base commit.
+    value: ${{ steps.prepare.outputs.base }}
+  head:
+    description: The pinned head commit.
+    value: ${{ steps.prepare.outputs.head }}
+  correlation:
+    description: The correlation ID shared by this review's tasks.
+    value: ${{ steps.prepare.outputs.correlation }}
   classifier-needed:
     description: Whether this review can create classifier tasks.
     value: ${{ steps.plan.outputs.classifier-needed }}
   review-enabled:
     description: Whether policy enables an adaptive review.
     value: ${{ steps.plan.outputs.review-enabled }}
+  specialists:
+    description: Specialist worker matrix for the routed lanes, as JSON.
+    value: ${{ steps.route.outputs.specialists }}
+  has-specialists:
+    description: Whether any routed lane needs a specialist worker.
+    value: ${{ steps.route.outputs.has-specialists }}
 runs:
   using: composite
   steps:
+    - name: Pin the pull request and check eligibility
+      id: prepare
+      if: inputs.step == 'prepare'
+      shell: bash
+      env:
+        DIST: ${{ github.action_path }}/dist
+        ADAPTIVE_STAGE: prepare
+      run: node "$DIST/review.js"
     - name: Plan classifier work
       id: plan
       if: inputs.step == 'plan'
@@ -24,6 +53,7 @@ runs:
         ADAPTIVE_STAGE: plan
       run: node "$DIST/review.js"
     - name: Route adaptive review
+      id: route
       if: inputs.step == 'route'
       shell: bash
       env:

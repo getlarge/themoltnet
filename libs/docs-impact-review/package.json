@@ -18,6 +18,10 @@
       "import": "./src/config.ts",
       "types": "./src/config.ts"
     },
+    "./eligibility": {
+      "import": "./src/eligibility.ts",
+      "types": "./src/eligibility.ts"
+    },
     "./github-api": {
       "import": "./src/github-api.ts",
       "types": "./src/github-api.ts"

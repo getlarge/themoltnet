@@ -1,6 +1,7 @@
 /**
- * Trust gate for the docs-impact CI workflow: decides whether a pull request
- * may run the credentialed review jobs. Kept dependency-free and limited to
+ * Trust gate shared by the docs-impact and adaptive review workflows: decides
+ * whether a pull request may run their credentialed review jobs. A rule change
+ * here changes both workflows. Kept dependency-free and limited to
  * erasable TypeScript so the `prepare` job can run it with plain `node`
  * (native type stripping) before any install.
  */
@@ -17,6 +18,11 @@ export interface PullRequestFacts {
   baseRepo: string;
   author: string;
   files: PullRequestFile[];
+  /**
+   * GitHub's changed-file count. The files endpoint stops at 3,000 entries, so
+   * a shorter `files` list may hide a protected path and is never reviewed.
+   */
+  changedFiles: number;
   /**
    * Path prefixes of the review runtime in this repository, e.g. the workflow
    * that runs the review. A pull request touching one is not reviewed by the
@@ -38,6 +44,12 @@ function normalizePrefix(prefix: string): string {
 }
 
 export function checkEligibility(pr: PullRequestFacts): Eligibility {
+  if (pr.files.length < pr.changedFiles) {
+    return {
+      eligible: false,
+      reason: `GitHub listed ${pr.files.length} of ${pr.changedFiles} changed files, so the protected paths cannot be checked`,
+    };
+  }
   // Fork PRs run without secrets and cannot publish; a deleted fork is
   // treated the same way.
   if (pr.headRepo !== pr.baseRepo) {

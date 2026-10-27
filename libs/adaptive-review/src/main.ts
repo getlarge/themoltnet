@@ -1,39 +1,31 @@
-import { execFile, execFileSync } from 'node:child_process';
-import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
-import { createGit } from '@moltnet/docs-impact-review';
+import { workflowCommandValue } from '@moltnet/docs-impact-review/workflow-command';
 import { connect } from '@themoltnet/sdk/node';
 import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 
 import {
-  env,
-  formatReviewTaskBudgets,
-  parseReviewTaskBudgets,
-  required,
-} from './config.js';
-import { loadAdaptivePolicy } from './snapshot.js';
+  type CliDeps,
+  jsonLines,
+  PROFILE_ENV,
+  pullRequestFiles,
+  reportStageFailure,
+  runAdaptiveStage,
+} from './cli.js';
+import { env } from './config.js';
 import {
   type WorkerJob,
   type WorkerLiveness,
   workflowWorkerLiveness,
 } from './workers.js';
-import {
-  type AdaptivePreparation,
-  classifierTaskPossible,
-  prepareAdaptiveReview,
-  type RunOptions,
-  runRoutedAdaptiveReview,
-} from './workflow.js';
 
-interface Prepared {
-  repo: string;
-  pr: number;
-  title: string;
-  body: string;
-  base: string;
-  head: string;
-  correlationId: string;
+async function gh(args: string[]): Promise<string> {
+  const { stdout } = await promisify(execFile)('gh', args, {
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  return stdout;
 }
 
 /** Watches this run's worker jobs; absent outside GitHub Actions. */
@@ -43,163 +35,93 @@ function runWorkerLiveness(): WorkerLiveness | undefined {
   const path = `repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT || '1'}/jobs?per_page=100`;
   let reported = false;
   return workflowWorkerLiveness({
-    profiles: {
-      docs: env().ADAPTIVE_DOCS_PROFILE || undefined,
-      complexity: env().ADAPTIVE_COMPLEXITY_PROFILE || undefined,
-      security: env().ADAPTIVE_SECURITY_PROFILE || undefined,
-      focused: env().ADAPTIVE_FOCUSED_PROFILE || undefined,
-    },
+    profiles: Object.fromEntries(
+      Object.entries(PROFILE_ENV).map(([pool, name]) => [
+        pool,
+        env()[name] || undefined,
+      ]),
+    ),
     async listJobs() {
-      const { stdout } = await promisify(execFile)(
-        'gh',
-        ['api', '--paginate', path, '--jq', '.jobs[] | {name, status}'],
-        { encoding: 'utf8' },
+      return jsonLines<WorkerJob>(
+        await gh([
+          'api',
+          '--paginate',
+          path,
+          '--jq',
+          '.jobs[] | {name, status}',
+        ]),
       );
-      return stdout
-        .split('\n')
-        .filter(Boolean)
-        .map((line) => JSON.parse(line) as WorkerJob);
     },
-    onLookupError() {
+    onLookupError(error) {
       // Liveness is advisory: keep waiting on the task budgets instead.
       if (reported) return;
       reported = true;
-      process.stderr.write(
-        'Adaptive worker liveness unavailable; waiting on task budgets.\n',
+      const cause = (error instanceof Error ? error.message : String(error))
+        .trim()
+        .split('\n')
+        .at(-1)
+        ?.slice(0, 200);
+      process.stdout.write(
+        `::warning::Adaptive worker liveness unavailable (${workflowCommandValue(cause ?? 'unknown error')}); waiting on task budgets.\n`,
       );
     },
   });
 }
 
-async function main() {
-  const stage = required('ADAPTIVE_STAGE');
-  const prepared = JSON.parse(
-    readFileSync(required('ADAPTIVE_PREPARED'), 'utf8'),
-  ) as Prepared;
-  const current = JSON.parse(
-    execFileSync(
-      'gh',
-      [
-        'pr',
-        'view',
-        String(prepared.pr),
-        '--repo',
-        prepared.repo,
-        '--json',
-        'headRefOid,baseRefOid',
-      ],
-      { encoding: 'utf8' },
-    ),
-  ) as { headRefOid: string; baseRefOid: string };
-  if (
-    current.headRefOid !== prepared.head ||
-    current.baseRefOid !== prepared.base
-  ) {
-    throw new Error('PR revisions changed after preparation');
-  }
-  const snapshot = loadAdaptivePolicy(createGit(process.cwd()), prepared.base);
-  if (stage === 'plan') {
-    const enabled = snapshot !== null;
-    const needed =
-      enabled &&
-      classifierTaskPossible(process.cwd(), prepared.base, prepared.head);
-    appendFileSync(
-      required('GITHUB_OUTPUT'),
-      `review-enabled=${enabled}\nclassifier-needed=${needed}\n`,
-    );
-    return;
-  }
-  if (!snapshot)
-    throw new Error('adaptive review policy is absent on the base');
-  const mode = required('ADAPTIVE_MODE');
-  if (mode !== 'shadow' && mode !== 'active')
-    throw new Error('ADAPTIVE_MODE must be shadow or active');
-  const taskBudgets = parseReviewTaskBudgets(
-    env().ADAPTIVE_TASK_BUDGETS,
-    snapshot.policy.lanes,
-  );
-  if (env().GITHUB_STEP_SUMMARY) {
-    appendFileSync(
-      required('GITHUB_STEP_SUMMARY'),
-      formatReviewTaskBudgets(taskBudgets),
-    );
-  }
-  const agent = await connect();
-  const teamId = required('MOLTNET_TEAM_ID');
-  const { items } = await agent.runtimeProfiles.list({ teamId });
-  const resolve = (name: string): string => {
-    const profile = items.find(
-      (item) => item.id === name || item.name === name,
-    );
-    if (!profile) throw new Error(`runtime profile ${name} not found`);
-    return profile.id;
-  };
-  const options: RunOptions = {
-    identity: {
-      ...prepared,
-      teamId,
-      diaryId: required('MOLTNET_DIARY_ID'),
-      classifierProfileId: resolve(required('ADAPTIVE_CLASSIFIER_PROFILE')),
+const deps: CliDeps = {
+  env: env(),
+  cwd: process.cwd(),
+  github: {
+    async revisions(repo, pr) {
+      const current = JSON.parse(
+        await gh([
+          'pr',
+          'view',
+          String(pr),
+          '--repo',
+          repo,
+          '--json',
+          'headRefOid,baseRefOid',
+        ]),
+      ) as { headRefOid: string; baseRefOid: string };
+      return { head: current.headRefOid, base: current.baseRefOid };
     },
-    mode,
-    tasks: createSdkTaskClient(agent),
-    cwd: process.cwd(),
-    runtimeSha: required('ADAPTIVE_RUNTIME_SHA'),
-    taskBudgets,
-    profiles: {
-      ...(snapshot.policy.lanes.includes('docs')
-        ? { docs: resolve(required('ADAPTIVE_DOCS_PROFILE')) }
-        : {}),
-      ...(snapshot.policy.lanes.includes('complexity')
-        ? { complexity: resolve(required('ADAPTIVE_COMPLEXITY_PROFILE')) }
-        : {}),
-      ...(snapshot.policy.lanes.includes('security')
-        ? { security: resolve(required('ADAPTIVE_SECURITY_PROFILE')) }
-        : {}),
-      ...(snapshot.policy.lanes.some(
-        (lane) =>
-          lane === 'tests' || lane === 'conventions' || lane === 'blast-radius',
-      )
-        ? { focused: resolve(required('ADAPTIVE_FOCUSED_PROFILE')) }
-        : {}),
+    async files(repo, pr) {
+      return pullRequestFiles(
+        JSON.parse(
+          await gh([
+            'api',
+            '--paginate',
+            '--slurp',
+            `repos/${repo}/pulls/${pr}/files?per_page=100`,
+          ]),
+        ),
+      );
     },
-    projectId: env().MOLTNET_PROJECT_ID || undefined,
-    workers: runWorkerLiveness(),
-  };
-  if (stage === 'route') {
-    const preparation = await prepareAdaptiveReview(options);
-    writeFileSync(
-      required('ADAPTIVE_ROUTE'),
-      `${JSON.stringify(preparation, null, 2)}\n`,
-      { mode: 0o600 },
-    );
-    process.stdout.write(
-      `Adaptive routing finished: ${preparation.routing.routes
-        .filter((route) => route.run)
-        .map((route) => route.lane)
-        .join(', ')}\n`,
-    );
-    return;
+  },
+  async connect() {
+    const agent = await connect();
+    return {
+      async profiles(teamId) {
+        return (await agent.runtimeProfiles.list({ teamId })).items;
+      },
+      tasks: createSdkTaskClient(agent),
+    };
+  },
+  workers: runWorkerLiveness,
+  stdout: (text) => process.stdout.write(text),
+};
+
+async function main(): Promise<void> {
+  const stage = env().ADAPTIVE_STAGE;
+  try {
+    process.exitCode = await runAdaptiveStage(stage ?? '', deps);
+  } catch (error) {
+    process.exitCode = reportStageFailure(stage, error, {
+      stdout: (text) => process.stdout.write(text),
+      stderr: (text) => process.stderr.write(text),
+    });
   }
-  if (stage !== 'review')
-    throw new Error('ADAPTIVE_STAGE must be plan, route, or review');
-  const preparation = JSON.parse(
-    readFileSync(required('ADAPTIVE_ROUTE'), 'utf8'),
-  ) as AdaptivePreparation;
-  const report = await runRoutedAdaptiveReview(options, preparation);
-  writeFileSync(
-    required('ADAPTIVE_REPORT'),
-    `${JSON.stringify(report, null, 2)}\n`,
-    { mode: 0o600 },
-  );
-  process.stdout.write(
-    `Adaptive review finished: ${report.results.map((result) => `${result.lane}=${result.status}`).join(', ')}\n`,
-  );
-  if (report.results.some((result) => result.status === 'failed'))
-    process.exitCode = 1;
 }
 
-main().catch((error) => {
-  process.stderr.write(`${String(error)}\n`);
-  process.exitCode = 1;
-});
+void main();

@@ -1,5 +1,7 @@
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 
+import type { Lane } from './core.js';
+
 /** The worker jobs that can claim one kind of adaptive review task. */
 export type WorkerPool =
   | 'classifier'
@@ -7,6 +9,16 @@ export type WorkerPool =
   | 'complexity'
   | 'security'
   | 'focused';
+
+/** A pool of specialist workers, each running one runtime profile. */
+export type SpecialistPool = Exclude<WorkerPool, 'classifier'>;
+
+/** The specialist pool whose workers claim a lane's tasks. */
+export function workerPool(lane: Lane): SpecialistPool {
+  return lane === 'tests' || lane === 'conventions' || lane === 'blast-radius'
+    ? 'focused'
+    : lane;
+}
 
 /** Reports whether every worker job that could claim a pool's tasks has stopped. */
 export interface WorkerLiveness {

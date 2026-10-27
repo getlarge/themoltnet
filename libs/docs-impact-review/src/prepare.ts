@@ -82,17 +82,10 @@ export async function preparePullRequestReview(
           : {}),
       }),
     ),
+    changedFiles: pr.changed_files,
     protectedPaths: options.protectedPaths,
   };
-  // The files endpoint stops at 3,000 entries: a protected path past the
-  // cap would go unseen, so an incomplete list is never reviewed.
-  const eligibility =
-    files.length < pr.changed_files
-      ? {
-          eligible: false as const,
-          reason: `GitHub listed ${files.length} of ${pr.changed_files} changed files, so the protected paths cannot be checked`,
-        }
-      : checkEligibility(facts);
+  const eligibility = checkEligibility(facts);
   const coverage = options.coverageProfile || options.profile;
   const docsCheck = options.docsCheckProfile || options.profile;
   const runAttempt = Number(options.runAttempt);
