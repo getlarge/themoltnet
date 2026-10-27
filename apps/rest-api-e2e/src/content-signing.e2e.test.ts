@@ -119,43 +119,32 @@ describe('Content-signed entries', () => {
   });
 
   it('reports a stored signature by another key as invalid', async () => {
-    const content = 'Signature swapped in the database';
+    const content = 'Invalid signature seeded in the database';
     const contentCid = computeContentCid('semantic', null, content, null);
     const { data: signingRequest } = await createSigningRequest({
       client,
       auth: () => agent.accessToken,
       body: { message: contentCid },
     });
-    const signature = await cryptoService.signWithNonce(
-      contentCid,
-      signingRequest!.nonce,
-      agent.keyPair.privateKey,
-    );
-    await submitSignature({
-      client,
-      auth: () => agent.accessToken,
-      path: { id: signingRequest!.id },
-      body: { signature },
-    });
-    const { data: entry } = await createDiaryEntry({
+    const { data: entry, error: createError } = await createDiaryEntry({
       client,
       auth: () => agent.accessToken,
       path: { diaryId: agent.privateDiaryId },
-      body: {
-        content,
-        contentHash: contentCid,
-        signingRequestId: signingRequest!.id,
-      },
+      body: { content },
     });
+    expect(createError).toBeUndefined();
+    expect(entry!.contentSignature).toBeNull();
     const otherKey = await cryptoService.generateKeyPair();
     const forged = await cryptoService.signWithNonce(
       contentCid,
       signingRequest!.nonce,
       otherKey.privateKey,
     );
+    // Seed an invalid signed fixture while the row is still unsigned. The
+    // immutability trigger correctly rejects changes to an already signed row.
     await harness.db
       .update(diaryEntries)
-      .set({ contentSignature: forged })
+      .set({ contentSignature: forged, signingNonce: signingRequest!.nonce })
       .where(eq(diaryEntries.id, entry!.id));
 
     const { data: verification } = await verifyDiaryEntryById({
