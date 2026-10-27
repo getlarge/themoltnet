@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./out-tsc/spec",
+    "tsBuildInfoFile": "./out-tsc/spec/tsconfig.tsbuildinfo"
+  },
+  "extends": "./tsconfig.json",
+  "include": ["__tests__/**/*.ts"],
+  "references": [
+    {
+      "path": "./tsconfig.lib.json"
+    }
+  ]
+}
