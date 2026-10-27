@@ -117,6 +117,7 @@ describe('resolvePiAgentDir', () => {
     profiles?: ReadonlyArray<{ models: RuntimeProfileModels }>;
     secrets?: Record<string, string>;
     tempRoot?: string;
+    includeRepoConfig?: boolean;
   }): Promise<PiAgentDir> {
     const secrets = input.secrets ?? {};
     const result = await resolvePiAgentDir(
@@ -135,11 +136,66 @@ describe('resolvePiAgentDir', () => {
               : Promise.reject(new Error('secret not found')),
         },
         tempRoot: input.tempRoot ?? tempDir(),
+        includeRepoConfig: input.includeRepoConfig,
       },
     );
     resolved.push(result);
     return result;
   }
+
+  it('composes workflow configuration from the CLI store without repository overlays', async () => {
+    const storeRoot = tempDir();
+    const agentRoot = tempDir();
+    writeStore(storeRoot, { providers: STORE_OLLAMA, auth: { codex: {} } });
+    writeRepoPi(agentRoot, {
+      models: REPO_MODELS,
+      settings: { defaultModel: 'repo-only', enableInstallTelemetry: true },
+      auth: { repository: {} },
+    });
+
+    const result = await resolve({
+      agentRoot,
+      storeRoot,
+      includeRepoConfig: false,
+      profiles: OLLAMA_CLOUD_PROFILE,
+      secrets: { 'providers/ollama-cloud/api-key': 'fixture-provider-key' },
+    });
+
+    expect(result.source).toBe('store');
+    expect(readJson(join(result.path, 'models.json'))).toMatchObject({
+      providers: {
+        'ollama-cloud': {
+          compat: { supportsDeveloperRole: false },
+          models: [{ id: 'glm-5.2' }],
+        },
+      },
+    });
+    expect(
+      JSON.stringify(readJson(join(result.path, 'models.json'))),
+    ).not.toContain('glm-5.2:cloud');
+    expect(readJson(join(result.path, 'settings.json'))).toEqual({
+      enableInstallTelemetry: false,
+    });
+    expect(readJson(join(result.path, 'auth.json'))).toEqual({ codex: {} });
+    expect(result.env.MOLTNET_PROVIDER_OLLAMA_CLOUD_API_KEY).toBe(
+      'fixture-provider-key',
+    );
+  });
+
+  it('does not fall back to repository auth when workflow store has no login', async () => {
+    const agentRoot = tempDir();
+    writeRepoPi(agentRoot, { auth: { repository: {} }, models: REPO_MODELS });
+    const result = await resolve({
+      agentRoot,
+      storeRoot: tempDir(),
+      includeRepoConfig: false,
+    });
+    expect(result.source).toBe('store');
+    expect(readJson(join(result.path, 'models.json'))).toEqual({
+      providers: {},
+    });
+    expect(() => readJson(join(result.path, 'auth.json'))).toThrow();
+  });
 
   it('uses PI_CODING_AGENT_DIR unchanged even when a store exists', async () => {
     // Arrange

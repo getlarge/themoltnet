@@ -77,7 +77,7 @@ function runStep(id: string, env: Record<string, string>) {
     env: {
       PATH: `${binDir}:${process.env.PATH ?? ''}`,
       HOME: root,
-      RUNNER_TEMP: root,
+      ACTION_TEMP: root,
       GITHUB_WORKSPACE: root,
       GITHUB_OUTPUT: resolve(root, 'github-output'),
       FAKE_CALL_LOG: callLog,

@@ -107,6 +107,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       'max-poll-interval-ms': { type: 'string' },
       'list-limit': { type: 'string' },
       sandbox: { type: 'string' },
+      'no-repo-pi': { type: 'boolean', default: false },
       profile: { type: 'string', multiple: true },
     },
   });
@@ -398,6 +399,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     cfg,
     profiles[0].mountPath,
     profiles,
+    { includeRepoConfig: !values['no-repo-pi'] },
   );
   process.once('exit', piAgentDir.cleanup);
   activatePiCodingAgentDir(piAgentDir.path, piAgentDir.env);

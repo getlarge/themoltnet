@@ -102,7 +102,7 @@ function installFakeAgent() {
 function runStep(id: string, env: Record<string, string>) {
   return runStepScript(stepById(action, id), {
     HOME: root,
-    RUNNER_TEMP: root,
+    ACTION_TEMP: root,
     GITHUB_OUTPUT: output,
     ...env,
   });
@@ -124,11 +124,6 @@ const argv = () => readCalls(resolve(root, 'argv.log'));
 const stdin = () => readCalls(resolve(root, 'stdin.log'));
 const cloud =
   'id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY';
-
-/** The slice of the written Pi `models.json` these tests inspect. */
-interface PiModelsJson {
-  providers: Record<string, Record<string, unknown>>;
-}
 
 describe('cache write access', () => {
   it.each([
@@ -211,138 +206,6 @@ describe('providers input', () => {
     expect(stepWithId(action, 'restore-providers').if).toContain(
       "inputs.providers-refresh != 'true'",
     );
-  });
-});
-
-describe('workflow Pi catalog', () => {
-  it('loads discovered Ollama models without repository or unrelated store configuration', () => {
-    const env = resolve(root, 'github-env');
-    writeFileSync(env, '');
-    const workspace = resolve(root, 'workspace');
-    mkdirSync(resolve(workspace, '.pi'), { recursive: true });
-    writeFileSync(
-      resolve(workspace, '.pi', 'models.json'),
-      '{"providers":{"repo-only":{}}}',
-    );
-    writeFileSync(
-      resolve(workspace, '.pi', 'settings.json'),
-      '{"defaultModel":"repo-only"}',
-    );
-    const result = runStep('pi-catalog', {
-      AGENT_BIN: agent,
-      STORE: store,
-      PROVIDERS: cloud,
-      GITHUB_ENV: env,
-      GITHUB_WORKSPACE: workspace,
-      FAKE_CURRENT: JSON.stringify({
-        api: 'openai-completions',
-        baseUrl: 'https://ollama.com/v1',
-        supportsDeveloperRole: false,
-        models: [
-          {
-            id: 'gpt-oss:120b',
-            reasoning: true,
-            input: ['text'],
-            thinkingLevelMap: { high: 'high' },
-            supportsStrictMode: false,
-          },
-        ],
-      }),
-    });
-    expect(result.status, result.stderr).toBe(0);
-    const dir = readFileSync(env, 'utf8').trim().split('=')[1];
-    expect(
-      JSON.parse(readFileSync(resolve(dir, 'models.json'), 'utf8')),
-    ).toEqual({
-      providers: {
-        'ollama-cloud': {
-          api: 'openai-completions',
-          baseUrl: 'https://ollama.com/v1',
-          apiKey: '$OLLAMA_API_KEY',
-          compat: { supportsDeveloperRole: false },
-          models: [
-            {
-              id: 'gpt-oss:120b',
-              reasoning: true,
-              input: ['text'],
-              thinkingLevelMap: { high: 'high' },
-              compat: { supportsStrictMode: false },
-            },
-          ],
-        },
-      },
-    });
-    expect(
-      JSON.parse(readFileSync(resolve(dir, 'settings.json'), 'utf8')),
-    ).toEqual({ enableInstallTelemetry: false });
-    expect(argv()).toEqual([`providers list --json --root ${store}`]);
-  });
-
-  it('supports keyless providers without inventing a key reference', () => {
-    const env = resolve(root, 'github-env');
-    writeFileSync(env, '');
-    const result = runStep('pi-catalog', {
-      AGENT_BIN: agent,
-      STORE: store,
-      GITHUB_ENV: env,
-      PROVIDERS: 'id=local base-url=http://localhost:11434/v1',
-      FAKE_ID: 'local',
-      FAKE_CURRENT: JSON.stringify({
-        api: 'openai-completions',
-        baseUrl: 'http://localhost:11434/v1',
-        models: [{ id: 'llama3.2' }],
-      }),
-    });
-    expect(result.status, result.stderr).toBe(0);
-    const dir = readFileSync(env, 'utf8').trim().split('=')[1];
-    expect(
-      (
-        JSON.parse(
-          readFileSync(resolve(dir, 'models.json'), 'utf8'),
-        ) as PiModelsJson
-      ).providers.local,
-    ).not.toHaveProperty('apiKey');
-    expect(
-      (
-        JSON.parse(
-          readFileSync(resolve(dir, 'models.json'), 'utf8'),
-        ) as PiModelsJson
-      ).providers.local,
-    ).not.toHaveProperty('compat');
-  });
-
-  it('preserves the default message role for other OpenAI-compatible providers', () => {
-    const env = resolve(root, 'github-env');
-    writeFileSync(env, '');
-    const result = runStep('pi-catalog', {
-      AGENT_BIN: agent,
-      STORE: store,
-      GITHUB_ENV: env,
-      PROVIDERS: 'id=other base-url=https://provider.example/v1',
-      FAKE_ID: 'other',
-      FAKE_CURRENT: JSON.stringify({
-        api: 'openai-completions',
-        baseUrl: 'https://provider.example/v1',
-        models: [{ id: 'reasoning-model', reasoning: true }],
-      }),
-    });
-    expect(result.status, result.stderr).toBe(0);
-    const dir = readFileSync(env, 'utf8').trim().split('=')[1];
-    const config = JSON.parse(
-      readFileSync(resolve(dir, 'models.json'), 'utf8'),
-    ) as PiModelsJson;
-    expect(config.providers.other).not.toHaveProperty('compat');
-  });
-
-  it('fails before running the daemon when discovery has no models', () => {
-    const result = runStep('pi-catalog', {
-      AGENT_BIN: agent,
-      STORE: store,
-      PROVIDERS: cloud,
-      FAKE_CURRENT: '{"models":[]}',
-    });
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('has no discovered models');
   });
 });
 
@@ -874,7 +737,12 @@ describe('installed daemon version', () => {
         GITHUB_PATH: path,
       });
       expect(result.status).toBe(0);
-      expect(outputs().version).toBe('0.67.1');
+      expect(outputs()).toMatchObject({
+        version: '0.67.1',
+        bin: resolve(binDir, 'moltnet-agent'),
+      });
+      expect(readFileSync(env, 'utf8')).toBe('');
+      expect(readFileSync(path, 'utf8')).toBe('');
     },
   );
 });
@@ -888,7 +756,7 @@ describe('daemon command', () => {
     // Act
     const result = runStep('daemon', {
       DAEMON_VERSION: 'latest',
-      MOLTNET_AGENT_BIN: silent,
+      INSTALLED_BIN: silent,
       PROVIDERS: cloud,
     });
 
@@ -905,7 +773,7 @@ describe('daemon command', () => {
     const result = runStep('daemon', {
       DAEMON_VERSION: '0.67.1',
       INSTALLED_VERSION: '0.67.1',
-      MOLTNET_AGENT_BIN: silent,
+      INSTALLED_BIN: silent,
       PROVIDERS: cloud,
     });
     expect(result.status).toBe(0);
@@ -923,7 +791,7 @@ describe('daemon command', () => {
     const result = runStep('daemon', {
       DAEMON_VERSION: 'latest',
       INSTALLED_VERSION: '1.2.3',
-      MOLTNET_AGENT_BIN: versioned,
+      INSTALLED_BIN: versioned,
       PROVIDERS: '',
       GITHUB_ENV: env,
     });
@@ -935,6 +803,120 @@ describe('daemon command', () => {
       version: '1.2.3',
     });
     expect(readFileSync(env, 'utf8')).toBe('');
+  });
+});
+
+describe('invocation isolation', () => {
+  it('does not export configuration into later workflow steps', () => {
+    for (const step of action.runs.steps) {
+      expect(step.run ?? '').not.toMatch(/>>?\s*["']?\$GITHUB_ENV/);
+    }
+  });
+
+  it('keeps two provider runs and their cleanup files independent', () => {
+    const envFile = resolve(root, 'github-env');
+    writeFileSync(envFile, '');
+    const dirs: string[] = [];
+    for (let i = 0; i < 2; i++) {
+      writeFileSync(output, '');
+      expect(runStep('invocation', { RUNNER_TEMP: root }).status).toBe(0);
+      const dir = outputs().path;
+      dirs.push(dir);
+      const check = runStepScript(
+        stepByName(action, 'Check the providers configuration'),
+        {
+          GITHUB_ENV: envFile,
+        },
+      );
+      expect(check.status).toBe(0);
+      expect(
+        runProviders({
+          ACTION_TEMP: dir,
+          PROVIDERS: cloud,
+          OLLAMA_API_KEY: 'fixture-key',
+        }).status,
+      ).toBe(0);
+      expect(existsSync(resolve(dir, 'moltnet-configured-providers'))).toBe(
+        true,
+      );
+      const cleanup = runStep('cleanup-providers', {
+        ACTION_TEMP: dir,
+        STORE: store,
+        AGENT_BIN: agent,
+      });
+      expect(cleanup.status, cleanup.stderr).toBe(0);
+    }
+    expect(dirs[0]).not.toBe(dirs[1]);
+    expect(readFileSync(envFile, 'utf8')).toBe('');
+    expect(
+      argv().filter((line) => line.includes('--api-key-stdin')),
+    ).toHaveLength(2);
+    expect(
+      argv().filter((line) => line.includes('--clear-api-key')),
+    ).toHaveLength(2);
+  });
+
+  it('restores auth in an explicit Pi directory without providers', () => {
+    const pi = resolve(root, 'caller-pi');
+    mkdirSync(pi);
+    writeFileSync(resolve(pi, 'auth.json'), '{"operator":{}}');
+    const auth = runStepScript(
+      stepByName(action, 'Materialize Pi auth.json (when PI_AUTH_JSON is set)'),
+      {
+        ACTION_TEMP: root,
+        PROVIDERS: '',
+        PI_CODING_AGENT_DIR: pi,
+        PI_AUTH_JSON: '{"workflow":{}}',
+      },
+    );
+    expect(auth.status, auth.stderr).toBe(0);
+    expect(readFileSync(resolve(pi, 'auth.json'), 'utf8')).toBe(
+      '{"workflow":{}}',
+    );
+    expect(
+      runStep('cleanup-providers', { STORE: '', AGENT_BIN: '' }).status,
+    ).toBe(0);
+    expect(readFileSync(resolve(pi, 'auth.json'), 'utf8')).toBe(
+      '{"operator":{}}',
+    );
+  });
+
+  it('rejects an older daemon before executing a provider-backed task', () => {
+    writeExecutable(
+      agent,
+      'if [[ "$*" == *--help* ]]; then echo old-help; exit 0; fi; exit 42',
+    );
+    const result = runStep('run', {
+      AGENT_BIN: agent,
+      DAEMON_MODE: 'once',
+      TASK_ID: 'task',
+      PROFILE_OVERRIDE: 'profile',
+      MOLTNET_AGENT_NAME: 'worker',
+      PROVIDERS: cloud,
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('upgrade daemon-version');
+  });
+
+  it('passes provider-store composition to the daemon without exporting a Pi override', () => {
+    const calls = resolve(root, 'runtime.log');
+    writeExecutable(
+      agent,
+      `if [[ "$*" == *--help* ]]; then echo --no-repo-pi; exit 0; fi\nprintf '%s\\n' "$*|pi=$PI_CODING_AGENT_DIR" >> "${calls}"`,
+    );
+    const result = runStep('run', {
+      AGENT_BIN: agent,
+      DAEMON_MODE: 'once',
+      TASK_ID: 'task',
+      PROFILE_OVERRIDE: 'profile',
+      MOLTNET_AGENT_NAME: 'worker',
+      PROVIDERS: cloud,
+      PI_CODING_AGENT_DIR: '',
+    });
+    expect(result.status, result.stderr).toBe(0);
+    expect(readCalls(calls)).toEqual([
+      'once --agent worker --profile profile --task-id task --no-repo-pi|pi=',
+    ]);
   });
 });
 
@@ -960,12 +942,14 @@ describe('providers checks', () => {
     const env = resolve(root, 'github-env');
     writeFileSync(env, '');
     const result = runStepScript(stepByName(action, 'Configure Pi agent dir'), {
-      RUNNER_TEMP: root,
+      ACTION_TEMP: root,
       GITHUB_WORKSPACE: workspace,
       GITHUB_ENV: env,
+      GITHUB_OUTPUT: output,
     });
     expect(result.status).toBe(0);
-    const dir = readFileSync(env, 'utf8').trim().split('=')[1];
+    expect(readFileSync(env, 'utf8')).toBe('');
+    const dir = outputs().path;
     expect(existsSync(resolve(dir, 'models.json'))).toBe(false);
     expect(existsSync(resolve(dir, 'settings.json'))).toBe(false);
   });
@@ -973,7 +957,7 @@ describe('providers checks', () => {
   function runAuth(env: Record<string, string>) {
     return runStepScript(
       stepByName(action, 'Materialize Pi auth.json (when PI_AUTH_JSON is set)'),
-      { HOME: root, RUNNER_TEMP: root, ...env },
+      { HOME: root, ACTION_TEMP: root, ...env },
     );
   }
 
@@ -1039,7 +1023,10 @@ describe('provider cleanup', () => {
   it('clears the keys it stored through the CLI and removes the Pi auth it wrote', () => {
     // Arrange
     writeFileSync(resolve(store, 'pi/auth.json'), '{"ci":{}}');
-    writeFileSync(resolve(root, 'moltnet-pi-auth.written'), '');
+    writeFileSync(
+      resolve(root, 'moltnet-pi-auth.written'),
+      resolve(store, 'pi/auth.json'),
+    );
     writeFileSync(
       resolve(root, 'moltnet-configured-providers'),
       'ollama-cloud\nopenai\n',
@@ -1060,7 +1047,10 @@ describe('provider cleanup', () => {
   it('puts back an operator login it had set aside', () => {
     // Arrange
     writeFileSync(resolve(store, 'pi/auth.json'), '{"ci":{}}');
-    writeFileSync(resolve(root, 'moltnet-pi-auth.written'), '');
+    writeFileSync(
+      resolve(root, 'moltnet-pi-auth.written'),
+      resolve(store, 'pi/auth.json'),
+    );
     writeFileSync(
       resolve(root, 'moltnet-pi-auth.json.previous'),
       '{"operator":{}}',
@@ -1090,10 +1080,33 @@ describe('provider cleanup', () => {
     expect(argv()).toEqual([]);
   });
 
+  it.each([false, true])(
+    'restores provider metadata after a run (existing=%s)',
+    (existing) => {
+      const original = '{"operator":{"models":[]}}';
+      if (existing) writeFileSync(resolve(store, 'providers.json'), original);
+      expect(
+        runStep('store', { AGENT_BIN: agent, FAKE_STORE_ROOT: store }).status,
+      ).toBe(0);
+      writeFileSync(
+        resolve(store, 'providers.json'),
+        '{"workflow":{"models":[]}}',
+      );
+
+      expect(runCleanup({}).status).toBe(0);
+
+      if (existing)
+        expect(readFileSync(resolve(store, 'providers.json'), 'utf8')).toBe(
+          original,
+        );
+      else expect(existsSync(resolve(store, 'providers.json'))).toBe(false);
+    },
+  );
+
   it('runs whenever the store was resolved, even after a failure', () => {
     // Assert
     expect(stepById(action, 'cleanup-providers').if).toBe(
-      "always() && inputs.providers != '' && steps.store.outputs.path != ''",
+      "always() && steps.invocation.outputs.path != ''",
     );
   });
 });

@@ -2,4 +2,4 @@
 # Files this action runs from outside its package; a change here must
 # ship as a fix or feat commit so release-please releases the action.
 5e481192e4a9e49f8cd8c6272e31e4bb622d863aca0a0e1211a3511924926ae3  .github/workflows/docs-impact-review-reusable.yml
-3a0ad2a1e91c9224a681d4f3e1a8bec443fcc0b72c507815978de0a07aaeaad8  packages/agent-daemon-action/action.yml
+1cd8696d81f30dffdf4ce498c427ca66adb5298d865af10c710760d25755e604  packages/agent-daemon-action/action.yml

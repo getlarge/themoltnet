@@ -197,6 +197,14 @@ runs:
   # action — every shell below sees them via process.env without having
   # to re-list each one in a child `env:` block.
   steps:
+    - name: Allocate invocation directory
+      id: invocation
+      shell: bash
+      run: |
+        set -euo pipefail
+        dir="$(mktemp -d "$RUNNER_TEMP/moltnet-action-XXXXXX")"
+        echo "path=$dir" >> "$GITHUB_OUTPUT"
+
     - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
       with:
         node-version: ${{ inputs.node-version }}
@@ -204,6 +212,8 @@ runs:
     - name: Detect cache write access
       id: cache-write-access
       shell: bash
+      env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
       run: |
         case "${ACTIONS_CACHE_MODE:-write}" in
           read|none) echo 'writable=false' >> "$GITHUB_OUTPUT" ;;
@@ -225,6 +235,8 @@ runs:
       if: runner.os == 'Linux'
       id: apt-cache-key
       shell: bash
+      env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
       run: |
         echo "value=${{ runner.os }}-${{ runner.arch }}-apt-gondolin-v1-qemu-utils-qemu-system-x86" >> "$GITHUB_OUTPUT"
 
@@ -239,6 +251,7 @@ runs:
     - name: Install gondolin sandbox dependencies
       shell: bash
       env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
         APT_CACHE_HIT: ${{ steps.restore-apt-cache.outputs.cache-hit }}
       run: |
         set -euo pipefail
@@ -306,6 +319,8 @@ runs:
     - name: Enable KVM for the gondolin sandbox
       if: runner.os == 'Linux'
       shell: bash
+      env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
       run: |
         set -euo pipefail
         if [ ! -e /dev/kvm ]; then
@@ -338,6 +353,7 @@ runs:
       id: cli
       shell: bash
       env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
         ACTION_PATH: ${{ github.action_path }}
       run: |
         set -euo pipefail
@@ -351,8 +367,10 @@ runs:
         echo "package=@themoltnet/cli@$version" >> "$GITHUB_OUTPUT"
 
     - name: Materialize MoltNet agent dir from env
+      id: identity
       shell: bash
       env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
         # Only the input override is forwarded explicitly — caller-env
         # inheritance handles the rest. When inputs.agent-name is unset,
         # the script falls through to the inherited MOLTNET_AGENT_NAME.
@@ -367,8 +385,8 @@ runs:
           exit 1
         fi
         # Validate BOTH sources: the value becomes a $HOME path segment and is
-        # written into GITHUB_ENV, where a newline injects arbitrary environment
-        # variables into every later step and "../" escapes the identity store.
+        # written into GITHUB_OUTPUT, where a newline injects arbitrary output
+        # values into later steps and "../" escapes the identity store.
         # Same grammar as agentNamePattern (Go CLI) and IDENTITY_ALIAS_PATTERN.
         if ! printf '%s' "$MOLTNET_AGENT_NAME" \
           | LC_ALL=C grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$'; then
@@ -443,7 +461,7 @@ runs:
             echo "MOLTNET_AGENT_NAME=$MOLTNET_AGENT_NAME"
             echo "MOLTNET_ACTIVE_IDENTITY=$MOLTNET_AGENT_NAME"
             echo "MOLTNET_API_URL=$MOLTNET_API_URL"
-          } >> "$GITHUB_ENV"
+          } >> "$GITHUB_OUTPUT"
           echo "::notice::Using configless MoltNet agent-key authentication"
           exit 0
         fi
@@ -507,14 +525,22 @@ runs:
           exit 1
         fi
         {
+          echo "MOLTNET_API_URL=$MOLTNET_API_URL"
           echo "GIT_CONFIG_GLOBAL=$AGENT_DIR/gitconfig"
           echo "MOLTNET_AGENT_DIR=$AGENT_DIR"
           echo "MOLTNET_AGENT_NAME=$MOLTNET_AGENT_NAME"
           echo "MOLTNET_ACTIVE_IDENTITY=$MOLTNET_AGENT_NAME"
-        } >> "$GITHUB_ENV"
+        } >> "$GITHUB_OUTPUT"
 
     - name: Verify GitHub App PEM is well-formed
       shell: bash
+      env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
+        MOLTNET_AGENT_DIR: ${{ steps.identity.outputs.MOLTNET_AGENT_DIR || env.MOLTNET_AGENT_DIR }}
+        MOLTNET_AGENT_NAME: ${{ steps.identity.outputs.MOLTNET_AGENT_NAME || env.MOLTNET_AGENT_NAME }}
+        MOLTNET_ACTIVE_IDENTITY: ${{ steps.identity.outputs.MOLTNET_ACTIVE_IDENTITY || env.MOLTNET_ACTIVE_IDENTITY }}
+        MOLTNET_API_URL: ${{ steps.identity.outputs.MOLTNET_API_URL || env.MOLTNET_API_URL }}
+        GIT_CONFIG_GLOBAL: ${{ steps.identity.outputs.GIT_CONFIG_GLOBAL || env.GIT_CONFIG_GLOBAL }}
       run: |
         set -euo pipefail
         PEM="$MOLTNET_AGENT_DIR/$MOLTNET_AGENT_NAME.pem"
@@ -534,26 +560,41 @@ runs:
     - name: Check the providers configuration
       if: inputs.providers != ''
       shell: bash
+      env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
+        MOLTNET_AGENT_DIR: ${{ steps.identity.outputs.MOLTNET_AGENT_DIR || env.MOLTNET_AGENT_DIR }}
+        MOLTNET_AGENT_NAME: ${{ steps.identity.outputs.MOLTNET_AGENT_NAME || env.MOLTNET_AGENT_NAME }}
+        MOLTNET_ACTIVE_IDENTITY: ${{ steps.identity.outputs.MOLTNET_ACTIVE_IDENTITY || env.MOLTNET_ACTIVE_IDENTITY }}
+        MOLTNET_API_URL: ${{ steps.identity.outputs.MOLTNET_API_URL || env.MOLTNET_API_URL }}
+        GIT_CONFIG_GLOBAL: ${{ steps.identity.outputs.GIT_CONFIG_GLOBAL || env.GIT_CONFIG_GLOBAL }}
       run: |
         if [ -n "${PI_CODING_AGENT_DIR:-}" ]; then
           echo "::error::PI_CODING_AGENT_DIR is set, so the daemon would ignore the providers input; unset it or drop providers" >&2
           exit 1
         fi
 
-    # Provider-backed runs get their private catalog after discovery below.
+    # Provider-backed runs let the daemon compose its store configuration.
     - name: Configure Pi agent dir
+      id: pi-dir
       if: inputs.providers == ''
       shell: bash
+      env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
+        MOLTNET_AGENT_DIR: ${{ steps.identity.outputs.MOLTNET_AGENT_DIR || env.MOLTNET_AGENT_DIR }}
+        MOLTNET_AGENT_NAME: ${{ steps.identity.outputs.MOLTNET_AGENT_NAME || env.MOLTNET_AGENT_NAME }}
+        MOLTNET_ACTIVE_IDENTITY: ${{ steps.identity.outputs.MOLTNET_ACTIVE_IDENTITY || env.MOLTNET_ACTIVE_IDENTITY }}
+        MOLTNET_API_URL: ${{ steps.identity.outputs.MOLTNET_API_URL || env.MOLTNET_API_URL }}
+        GIT_CONFIG_GLOBAL: ${{ steps.identity.outputs.GIT_CONFIG_GLOBAL || env.GIT_CONFIG_GLOBAL }}
       run: |
         set -euo pipefail
         # GitHub Actions runs should be hermetic: do not let the daemon
         # fall back to repo-local .pi or to the runner user's home dir.
         # Callers may still provide PI_CODING_AGENT_DIR explicitly.
-        PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$RUNNER_TEMP/.pi/agent}"
+        PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$ACTION_TEMP/pi}"
         mkdir -p "$PI_AGENT_DIR"
         {
-          echo "PI_CODING_AGENT_DIR=$PI_AGENT_DIR"
-        } >> "$GITHUB_ENV"
+          echo "path=$PI_AGENT_DIR"
+        } >> "$GITHUB_OUTPUT"
         echo "::notice::Pi agent dir set to $PI_AGENT_DIR"
 
     # Cache the gondolin snapshot (the alpine guest qcow2 + cli/gh
@@ -568,6 +609,13 @@ runs:
       if: runner.os == 'Linux'
       id: gondolin-cache-key
       shell: bash
+      env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
+        MOLTNET_AGENT_DIR: ${{ steps.identity.outputs.MOLTNET_AGENT_DIR || env.MOLTNET_AGENT_DIR }}
+        MOLTNET_AGENT_NAME: ${{ steps.identity.outputs.MOLTNET_AGENT_NAME || env.MOLTNET_AGENT_NAME }}
+        MOLTNET_ACTIVE_IDENTITY: ${{ steps.identity.outputs.MOLTNET_ACTIVE_IDENTITY || env.MOLTNET_ACTIVE_IDENTITY }}
+        MOLTNET_API_URL: ${{ steps.identity.outputs.MOLTNET_API_URL || env.MOLTNET_API_URL }}
+        GIT_CONFIG_GLOBAL: ${{ steps.identity.outputs.GIT_CONFIG_GLOBAL || env.GIT_CONFIG_GLOBAL }}
       run: |
         echo "value=${{ runner.os }}-${{ runner.arch }}-gondolin-snapshot-v1-daemon-${{ inputs.daemon-version }}" >> "$GITHUB_OUTPUT"
 
@@ -583,6 +631,12 @@ runs:
       id: profile
       shell: bash
       env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
+        MOLTNET_AGENT_DIR: ${{ steps.identity.outputs.MOLTNET_AGENT_DIR || env.MOLTNET_AGENT_DIR }}
+        MOLTNET_AGENT_NAME: ${{ steps.identity.outputs.MOLTNET_AGENT_NAME || env.MOLTNET_AGENT_NAME }}
+        MOLTNET_ACTIVE_IDENTITY: ${{ steps.identity.outputs.MOLTNET_ACTIVE_IDENTITY || env.MOLTNET_ACTIVE_IDENTITY }}
+        MOLTNET_API_URL: ${{ steps.identity.outputs.MOLTNET_API_URL || env.MOLTNET_API_URL }}
+        GIT_CONFIG_GLOBAL: ${{ steps.identity.outputs.GIT_CONFIG_GLOBAL || env.GIT_CONFIG_GLOBAL }}
         MOLTNET_CLI_PACKAGE: ${{ steps.cli.outputs.package }}
         PROFILE_OVERRIDE: ${{ inputs.profile }}
       run: |
@@ -609,6 +663,12 @@ runs:
       if: ${{ inputs.task-id == '' && inputs.task-spec-path != '' && inputs.cancel-superseded == 'true' }}
       shell: bash
       env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
+        MOLTNET_AGENT_DIR: ${{ steps.identity.outputs.MOLTNET_AGENT_DIR || env.MOLTNET_AGENT_DIR }}
+        MOLTNET_AGENT_NAME: ${{ steps.identity.outputs.MOLTNET_AGENT_NAME || env.MOLTNET_AGENT_NAME }}
+        MOLTNET_ACTIVE_IDENTITY: ${{ steps.identity.outputs.MOLTNET_ACTIVE_IDENTITY || env.MOLTNET_ACTIVE_IDENTITY }}
+        MOLTNET_API_URL: ${{ steps.identity.outputs.MOLTNET_API_URL || env.MOLTNET_API_URL }}
+        GIT_CONFIG_GLOBAL: ${{ steps.identity.outputs.GIT_CONFIG_GLOBAL || env.GIT_CONFIG_GLOBAL }}
         MOLTNET_ACTION_COMMAND: cancel-superseded
         TASK_SPEC_PATH: ${{ inputs.task-spec-path }}
         SUPERSESSION_TAGS: ${{ inputs.supersession-tags }}
@@ -618,6 +678,12 @@ runs:
       if: ${{ inputs.task-id == '' && inputs.task-spec-path != '' }}
       shell: bash
       env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
+        MOLTNET_AGENT_DIR: ${{ steps.identity.outputs.MOLTNET_AGENT_DIR || env.MOLTNET_AGENT_DIR }}
+        MOLTNET_AGENT_NAME: ${{ steps.identity.outputs.MOLTNET_AGENT_NAME || env.MOLTNET_AGENT_NAME }}
+        MOLTNET_ACTIVE_IDENTITY: ${{ steps.identity.outputs.MOLTNET_ACTIVE_IDENTITY || env.MOLTNET_ACTIVE_IDENTITY }}
+        MOLTNET_API_URL: ${{ steps.identity.outputs.MOLTNET_API_URL || env.MOLTNET_API_URL }}
+        GIT_CONFIG_GLOBAL: ${{ steps.identity.outputs.GIT_CONFIG_GLOBAL || env.GIT_CONFIG_GLOBAL }}
         MOLTNET_CLI_PACKAGE: ${{ steps.cli.outputs.package }}
         TASK_SPEC_PATH: ${{ inputs.task-spec-path }}
         TASK_TAGS: ${{ inputs.tags }}
@@ -663,7 +729,7 @@ runs:
           exit 1
         fi
 
-        INPUT_PATH="$RUNNER_TEMP/moltnet-task-input.json"
+        INPUT_PATH="$ACTION_TEMP/moltnet-task-input.json"
         jq '.input' "$TASK_SPEC_PATH" > "$INPUT_PATH"
         TAGS=$(jq -r --arg actionTags "$TASK_TAGS" '
           def trim: gsub("^\\s+|\\s+$"; "");
@@ -766,6 +832,12 @@ runs:
       if: ${{ inputs.task-id == '' && inputs.task-spec-path == '' && inputs.mode != 'drain' && github.event_name == 'issue_comment' }}
       shell: bash
       env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
+        MOLTNET_AGENT_DIR: ${{ steps.identity.outputs.MOLTNET_AGENT_DIR || env.MOLTNET_AGENT_DIR }}
+        MOLTNET_AGENT_NAME: ${{ steps.identity.outputs.MOLTNET_AGENT_NAME || env.MOLTNET_AGENT_NAME }}
+        MOLTNET_ACTIVE_IDENTITY: ${{ steps.identity.outputs.MOLTNET_ACTIVE_IDENTITY || env.MOLTNET_ACTIVE_IDENTITY }}
+        MOLTNET_API_URL: ${{ steps.identity.outputs.MOLTNET_API_URL || env.MOLTNET_API_URL }}
+        GIT_CONFIG_GLOBAL: ${{ steps.identity.outputs.GIT_CONFIG_GLOBAL || env.GIT_CONFIG_GLOBAL }}
         # Pass-through for `running-timeout-sec` action input. Read by
         # the dispatcher's `parseRunningTimeout` and forwarded to
         # `tasks.create` as `runningTimeoutSec`. Empty = use server
@@ -803,6 +875,12 @@ runs:
       if: ${{ inputs.daemon-version != 'workspace' }}
       shell: bash
       env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
+        MOLTNET_AGENT_DIR: ${{ steps.identity.outputs.MOLTNET_AGENT_DIR || env.MOLTNET_AGENT_DIR }}
+        MOLTNET_AGENT_NAME: ${{ steps.identity.outputs.MOLTNET_AGENT_NAME || env.MOLTNET_AGENT_NAME }}
+        MOLTNET_ACTIVE_IDENTITY: ${{ steps.identity.outputs.MOLTNET_ACTIVE_IDENTITY || env.MOLTNET_ACTIVE_IDENTITY }}
+        MOLTNET_API_URL: ${{ steps.identity.outputs.MOLTNET_API_URL || env.MOLTNET_API_URL }}
+        GIT_CONFIG_GLOBAL: ${{ steps.identity.outputs.GIT_CONFIG_GLOBAL || env.GIT_CONFIG_GLOBAL }}
         MOLTNET_AGENT_VERSION: ${{ inputs.daemon-version }}
       run: |
         set -euo pipefail
@@ -812,8 +890,7 @@ runs:
           echo "::error::agent bundle installed but $bin is not executable" >&2
           exit 1
         fi
-        echo "MOLTNET_AGENT_BIN=$bin" >> "$GITHUB_ENV"
-        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        echo "bin=$bin" >> "$GITHUB_OUTPUT"
         # Read the signed install's manifest; older daemons have no --version.
         version="$(node -e 'const fs = require("node:fs"); const path = require("node:path"); const bin = fs.realpathSync(process.argv[1]); const manifest = JSON.parse(fs.readFileSync(path.resolve(path.dirname(bin), "../manifest.json"), "utf8")); process.stdout.write(manifest.version);' "$bin")"
         if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -832,13 +909,20 @@ runs:
       id: daemon
       shell: bash
       env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
+        MOLTNET_AGENT_DIR: ${{ steps.identity.outputs.MOLTNET_AGENT_DIR || env.MOLTNET_AGENT_DIR }}
+        MOLTNET_AGENT_NAME: ${{ steps.identity.outputs.MOLTNET_AGENT_NAME || env.MOLTNET_AGENT_NAME }}
+        MOLTNET_ACTIVE_IDENTITY: ${{ steps.identity.outputs.MOLTNET_ACTIVE_IDENTITY || env.MOLTNET_ACTIVE_IDENTITY }}
+        MOLTNET_API_URL: ${{ steps.identity.outputs.MOLTNET_API_URL || env.MOLTNET_API_URL }}
+        GIT_CONFIG_GLOBAL: ${{ steps.identity.outputs.GIT_CONFIG_GLOBAL || env.GIT_CONFIG_GLOBAL }}
         DAEMON_VERSION: ${{ inputs.daemon-version }}
         PROVIDERS: ${{ inputs.providers }}
         INSTALLED_VERSION: ${{ steps.install-daemon.outputs.version }}
+        INSTALLED_BIN: ${{ steps.install-daemon.outputs.bin }}
       run: |
         set -euo pipefail
         if [ "$DAEMON_VERSION" = "workspace" ]; then
-          bin="$RUNNER_TEMP/moltnet-agent-workspace"
+          bin="$ACTION_TEMP/moltnet-agent-workspace"
           {
             echo '#!/usr/bin/env bash'
             echo 'exec node --import tsx "$GITHUB_WORKSPACE/apps/agent-daemon/src/main.ts" "$@"'
@@ -854,7 +938,7 @@ runs:
         else
           # The signed release bundle ships its own Node runtime and gondolin
           # natives, verified by the installer's signature check.
-          bin="$MOLTNET_AGENT_BIN"
+          bin="$INSTALLED_BIN"
           version="${INSTALLED_VERSION:-}"
         fi
         # The version keys the provider cache; without it a cache would be
@@ -878,6 +962,12 @@ runs:
       if: inputs.providers != ''
       shell: bash
       env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
+        MOLTNET_AGENT_DIR: ${{ steps.identity.outputs.MOLTNET_AGENT_DIR || env.MOLTNET_AGENT_DIR }}
+        MOLTNET_AGENT_NAME: ${{ steps.identity.outputs.MOLTNET_AGENT_NAME || env.MOLTNET_AGENT_NAME }}
+        MOLTNET_ACTIVE_IDENTITY: ${{ steps.identity.outputs.MOLTNET_ACTIVE_IDENTITY || env.MOLTNET_ACTIVE_IDENTITY }}
+        MOLTNET_API_URL: ${{ steps.identity.outputs.MOLTNET_API_URL || env.MOLTNET_API_URL }}
+        GIT_CONFIG_GLOBAL: ${{ steps.identity.outputs.GIT_CONFIG_GLOBAL || env.GIT_CONFIG_GLOBAL }}
         AGENT_BIN: ${{ steps.daemon.outputs.bin }}
       run: |
         set -euo pipefail
@@ -895,16 +985,25 @@ runs:
         existing=false
         if [ -f "$store/providers.json" ]; then
           existing=true
+          cp -p "$store/providers.json" "$ACTION_TEMP/providers.json.previous"
           echo "::notice::provider store $store already has providers: the provider cache is not used, and providers configured there are left as they are"
         fi
+        : > "$ACTION_TEMP/provider-store.resolved"
         echo "path=$store" >> "$GITHUB_OUTPUT"
         echo "existing=$existing" >> "$GITHUB_OUTPUT"
 
     - name: Materialize Pi auth.json (when PI_AUTH_JSON is set)
       shell: bash
       env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
+        MOLTNET_AGENT_DIR: ${{ steps.identity.outputs.MOLTNET_AGENT_DIR || env.MOLTNET_AGENT_DIR }}
+        MOLTNET_AGENT_NAME: ${{ steps.identity.outputs.MOLTNET_AGENT_NAME || env.MOLTNET_AGENT_NAME }}
+        MOLTNET_ACTIVE_IDENTITY: ${{ steps.identity.outputs.MOLTNET_ACTIVE_IDENTITY || env.MOLTNET_ACTIVE_IDENTITY }}
+        MOLTNET_API_URL: ${{ steps.identity.outputs.MOLTNET_API_URL || env.MOLTNET_API_URL }}
+        GIT_CONFIG_GLOBAL: ${{ steps.identity.outputs.GIT_CONFIG_GLOBAL || env.GIT_CONFIG_GLOBAL }}
         PROVIDERS: ${{ inputs.providers }}
         STORE: ${{ steps.store.outputs.path }}
+        PI_CODING_AGENT_DIR: ${{ steps.pi-dir.outputs.path }}
       run: |
         set -euo pipefail
         # When the caller exports PI_AUTH_JSON (the contents of an
@@ -933,10 +1032,6 @@ runs:
           auth_dir="${STORE:?the provider store must be resolved before materializing Pi auth}/pi"
           mkdir -p "$auth_dir"
           chmod 700 "$auth_dir"
-          if [ -f "$auth_dir/auth.json" ]; then
-            cp -p "$auth_dir/auth.json" "$RUNNER_TEMP/moltnet-pi-auth.json.previous"
-          fi
-          : > "$RUNNER_TEMP/moltnet-pi-auth.written"
         else
           # Pi looks for auth at $PI_CODING_AGENT_DIR/auth.json or,
           # when that env is unset, $HOME/.pi/agent/auth.json (see
@@ -949,6 +1044,10 @@ runs:
           mkdir -p "$auth_dir"
         fi
         auth="$auth_dir/auth.json"
+        if [ -f "$auth" ]; then
+          cp -p "$auth" "$ACTION_TEMP/moltnet-pi-auth.json.previous"
+        fi
+        printf '%s' "$auth" > "$ACTION_TEMP/moltnet-pi-auth.written"
         printf '%s' "$PI_AUTH_JSON" > "$auth"
         chmod 600 "$auth"
         echo "::notice::Pi auth.json materialized at $auth"
@@ -993,6 +1092,12 @@ runs:
       if: inputs.providers != ''
       shell: bash
       env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
+        MOLTNET_AGENT_DIR: ${{ steps.identity.outputs.MOLTNET_AGENT_DIR || env.MOLTNET_AGENT_DIR }}
+        MOLTNET_AGENT_NAME: ${{ steps.identity.outputs.MOLTNET_AGENT_NAME || env.MOLTNET_AGENT_NAME }}
+        MOLTNET_ACTIVE_IDENTITY: ${{ steps.identity.outputs.MOLTNET_ACTIVE_IDENTITY || env.MOLTNET_ACTIVE_IDENTITY }}
+        MOLTNET_API_URL: ${{ steps.identity.outputs.MOLTNET_API_URL || env.MOLTNET_API_URL }}
+        GIT_CONFIG_GLOBAL: ${{ steps.identity.outputs.GIT_CONFIG_GLOBAL || env.GIT_CONFIG_GLOBAL }}
         PROVIDERS: ${{ inputs.providers }}
         DAEMON_RESOLVED: ${{ steps.daemon.outputs.version }}
         RUNNER_OS_NAME: ${{ runner.os }}
@@ -1017,6 +1122,12 @@ runs:
       if: inputs.providers != ''
       shell: bash
       env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
+        MOLTNET_AGENT_DIR: ${{ steps.identity.outputs.MOLTNET_AGENT_DIR || env.MOLTNET_AGENT_DIR }}
+        MOLTNET_AGENT_NAME: ${{ steps.identity.outputs.MOLTNET_AGENT_NAME || env.MOLTNET_AGENT_NAME }}
+        MOLTNET_ACTIVE_IDENTITY: ${{ steps.identity.outputs.MOLTNET_ACTIVE_IDENTITY || env.MOLTNET_ACTIVE_IDENTITY }}
+        MOLTNET_API_URL: ${{ steps.identity.outputs.MOLTNET_API_URL || env.MOLTNET_API_URL }}
+        GIT_CONFIG_GLOBAL: ${{ steps.identity.outputs.GIT_CONFIG_GLOBAL || env.GIT_CONFIG_GLOBAL }}
         PROVIDERS: ${{ inputs.providers }}
         CACHE_HIT: ${{ steps.restore-providers.outputs.cache-hit }}
         AGENT_BIN: ${{ steps.daemon.outputs.bin }}
@@ -1027,7 +1138,7 @@ runs:
         agent=("$AGENT_BIN")
         providers_file="$STORE/providers.json"
         # Ids whose keys this run stored, for the cleanup step to clear.
-        configured="$RUNNER_TEMP/moltnet-configured-providers"
+        configured="$ACTION_TEMP/moltnet-configured-providers"
         : > "$configured"
         cacheable=true
         # One discovery (listings retried by the daemon, probes once each) is
@@ -1141,7 +1252,7 @@ runs:
             continue
           fi
           # Keep the previous model list if this discovery turns out partial.
-          backup="$RUNNER_TEMP/moltnet-providers-backup.json"
+          backup="$ACTION_TEMP/moltnet-providers-backup.json"
           cp "$providers_file" "$backup"
           if ! discovered="$(${bounded[@]+"${bounded[@]}"} "${agent[@]}" providers discover "$id" --save --json --root "$STORE" < /dev/null)"; then
             cp "$backup" "$providers_file"
@@ -1175,53 +1286,6 @@ runs:
         done <<< "$PROVIDERS"
         echo "cacheable=$cacheable" >> "$GITHUB_OUTPUT"
 
-    - name: Compose workflow Pi catalog
-      id: pi-catalog
-      if: inputs.providers != ''
-      shell: bash
-      env:
-        AGENT_BIN: ${{ steps.daemon.outputs.bin }}
-        STORE: ${{ steps.store.outputs.path }}
-        PROVIDERS: ${{ inputs.providers }}
-      run: |
-        set -euo pipefail
-        catalog="$RUNNER_TEMP/moltnet-workflow-providers.json"
-        "$AGENT_BIN" providers list --json --root "$STORE" < /dev/null > "$catalog"
-        export WORKFLOW_PROVIDER_CATALOG="$catalog"
-        node <<'NODE'
-        const fs = require('node:fs');
-        const path = require('node:path');
-        const configured = JSON.parse(fs.readFileSync(process.env.WORKFLOW_PROVIDER_CATALOG, 'utf8')).configuredProviders;
-        const providers = {};
-        for (const line of process.env.PROVIDERS.split('\n')) {
-          if (!line.trim() || line.trimStart().startsWith('#')) continue;
-          const fields = Object.fromEntries(line.trim().split(/\s+/).map(token => {
-            const separator = token.indexOf('=');
-            return [token.slice(0, separator), token.slice(separator + 1)];
-          }));
-          const provider = configured[fields.id];
-          if (!provider?.models?.length) throw new Error(`Provider ${fields.id} has no discovered models`);
-          providers[fields.id] = {
-            api: provider.api,
-            baseUrl: provider.baseUrl,
-            ...(fields['key-env'] ? { apiKey: `$${fields['key-env']}` } : {}),
-            ...(provider.supportsDeveloperRole !== undefined
-              ? { compat: { supportsDeveloperRole: provider.supportsDeveloperRole } }
-              : {}),
-            models: provider.models.map(({ supportsStrictMode, ...model }) => ({
-              ...model,
-              ...(supportsStrictMode !== undefined ? { compat: { supportsStrictMode } } : {}),
-            })),
-          };
-        }
-        const dir = fs.mkdtempSync(path.join(process.env.RUNNER_TEMP, 'moltnet-workflow-pi-'));
-        fs.writeFileSync(path.join(dir, 'models.json'), JSON.stringify({ providers }), { mode: 0o600 });
-        fs.writeFileSync(path.join(dir, 'settings.json'), JSON.stringify({ enableInstallTelemetry: false }), { mode: 0o600 });
-        fs.symlinkSync(path.join(process.env.STORE, 'pi', 'auth.json'), path.join(dir, 'auth.json'));
-        fs.appendFileSync(process.env.GITHUB_ENV, `PI_CODING_AGENT_DIR=${dir}\n`);
-        NODE
-        rm -f "$catalog"
-
     - name: Save provider cache
       if: inputs.providers != '' && steps.store.outputs.existing != 'true' && steps.restore-providers.outputs.cache-hit != 'true' && steps.providers.outputs.cacheable == 'true' && steps.cache-write-access.outputs.writable == 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -1232,6 +1296,12 @@ runs:
     - id: run
       shell: bash
       env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
+        MOLTNET_AGENT_DIR: ${{ steps.identity.outputs.MOLTNET_AGENT_DIR || env.MOLTNET_AGENT_DIR }}
+        MOLTNET_AGENT_NAME: ${{ steps.identity.outputs.MOLTNET_AGENT_NAME || env.MOLTNET_AGENT_NAME }}
+        MOLTNET_ACTIVE_IDENTITY: ${{ steps.identity.outputs.MOLTNET_ACTIVE_IDENTITY || env.MOLTNET_ACTIVE_IDENTITY }}
+        MOLTNET_API_URL: ${{ steps.identity.outputs.MOLTNET_API_URL || env.MOLTNET_API_URL }}
+        GIT_CONFIG_GLOBAL: ${{ steps.identity.outputs.GIT_CONFIG_GLOBAL || env.GIT_CONFIG_GLOBAL }}
         TASK_ID: ${{ inputs.task-id || steps.create-task.outputs.task-id || steps.dispatch.outputs.task-id }}
         PROFILE_OVERRIDE: ${{ steps.profile.outputs.id }}
         TASK_TYPES: ${{ inputs.task-types }}
@@ -1243,6 +1313,8 @@ runs:
         DAEMON_MODE: ${{ inputs.mode }}
         AGENT_BIN: ${{ steps.daemon.outputs.bin }}
         PROJECT_ID: ${{ inputs.project-id }}
+        PROVIDERS: ${{ inputs.providers }}
+        PI_CODING_AGENT_DIR: ${{ steps.pi-dir.outputs.path }}
       run: |
         set -euo pipefail
         # Normalise project-id once, exactly like dispatch.ts: empty means
@@ -1304,6 +1376,15 @@ runs:
         # Resolved once by the "Resolve the daemon command" step: the signed
         # release bundle, or a wrapper running the workspace source.
         daemon_cmd=("$AGENT_BIN")
+        if [ -n "${PROVIDERS:-}" ]; then
+          # Let the daemon compose models/auth from the CLI-managed store,
+          # without layering repository-local Pi configuration into CI.
+          if ! "${daemon_cmd[@]}" "$DAEMON_MODE" --help | grep -q -- '--no-repo-pi'; then
+            echo "::error::providers requires a daemon with --no-repo-pi; upgrade daemon-version" >&2
+            exit 1
+          fi
+          daemon_args+=(--no-repo-pi)
+        fi
 
         if [ -n "${PROJECT_ID:-}" ]; then
           uuid_re='^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
@@ -1326,7 +1407,7 @@ runs:
           # binding carries team, endpoint and source, so --team and --source
           # are redundant; its apiUrl must equal the daemon's endpoint.
           # Owner-only mode: the daemon rejects group/world-writable configs.
-          BINDINGS="$RUNNER_TEMP/moltnet-action-projects.json"
+          BINDINGS="$ACTION_TEMP/moltnet-action-projects.json"
           (
             umask 077
             jq -n \
@@ -1366,9 +1447,15 @@ runs:
     # secret layout. Nothing to do when the store was never resolved.
     - name: Remove provider keys from the store
       id: cleanup-providers
-      if: always() && inputs.providers != '' && steps.store.outputs.path != ''
+      if: always() && steps.invocation.outputs.path != ''
       shell: bash
       env:
+        ACTION_TEMP: ${{ steps.invocation.outputs.path }}
+        MOLTNET_AGENT_DIR: ${{ steps.identity.outputs.MOLTNET_AGENT_DIR || env.MOLTNET_AGENT_DIR }}
+        MOLTNET_AGENT_NAME: ${{ steps.identity.outputs.MOLTNET_AGENT_NAME || env.MOLTNET_AGENT_NAME }}
+        MOLTNET_ACTIVE_IDENTITY: ${{ steps.identity.outputs.MOLTNET_ACTIVE_IDENTITY || env.MOLTNET_ACTIVE_IDENTITY }}
+        MOLTNET_API_URL: ${{ steps.identity.outputs.MOLTNET_API_URL || env.MOLTNET_API_URL }}
+        GIT_CONFIG_GLOBAL: ${{ steps.identity.outputs.GIT_CONFIG_GLOBAL || env.GIT_CONFIG_GLOBAL }}
         STORE: ${{ steps.store.outputs.path }}
         AGENT_BIN: ${{ steps.daemon.outputs.bin }}
       run: |
@@ -1376,14 +1463,15 @@ runs:
         status=0
         # Undo only what this run wrote: its Pi auth (putting back an
         # operator's own login), and the keys it stored.
-        if [ -f "$RUNNER_TEMP/moltnet-pi-auth.written" ]; then
-          if [ -f "$RUNNER_TEMP/moltnet-pi-auth.json.previous" ]; then
-            mv -f "$RUNNER_TEMP/moltnet-pi-auth.json.previous" "$STORE/pi/auth.json" || status=1
+        if [ -f "$ACTION_TEMP/moltnet-pi-auth.written" ]; then
+          auth="$(cat "$ACTION_TEMP/moltnet-pi-auth.written")"
+          if [ -f "$ACTION_TEMP/moltnet-pi-auth.json.previous" ]; then
+            mv -f "$ACTION_TEMP/moltnet-pi-auth.json.previous" "$auth" || status=1
           else
-            rm -f "$STORE/pi/auth.json" || status=1
+            rm -f "$auth" || status=1
           fi
         fi
-        configured="$RUNNER_TEMP/moltnet-configured-providers"
+        configured="$ACTION_TEMP/moltnet-configured-providers"
         if [ -n "$AGENT_BIN" ] && [ -f "$configured" ]; then
           while IFS= read -r id; do
             [ -n "$id" ] || continue
@@ -1393,4 +1481,19 @@ runs:
             fi
           done < "$configured"
         fi
+        if [ "$status" = 0 ] && [ -f "$ACTION_TEMP/provider-store.resolved" ]; then
+          if [ -f "$ACTION_TEMP/providers.json.previous" ]; then
+            mv -f "$ACTION_TEMP/providers.json.previous" "$STORE/providers.json" || status=1
+          else
+            rm -f "$STORE/providers.json" || status=1
+          fi
+        fi
         exit "$status"
+
+    - name: Remove invocation directory
+      if: always() && steps.invocation.outputs.path != ''
+      shell: bash
+      env:
+        INVOCATION_DIR: ${{ steps.invocation.outputs.path }}
+      run: |
+        rm -rf -- "$INVOCATION_DIR"

@@ -368,17 +368,23 @@ undoes only what it wrote: it clears the keys it stored, through the daemon
 CLI, and removes the `pi/auth.json` it wrote, putting back an operator's own
 login if there was one. Keys are never cached.
 
-With `providers` set, the action generates a private Pi catalog from the
-configured providers and their discovered models, then selects it through
-`PI_CODING_AGENT_DIR`. Model capabilities and thinking metadata are preserved;
-API keys use the declared `key-env` variables. `PI_AUTH_JSON` is written into
-the store and linked into this directory. A caller-set `PI_CODING_AGENT_DIR`
-conflicts with the generated catalog, so the action refuses that combination.
+With `providers` set, the action configures and discovers models through the
+daemon CLI. The daemon composes its runtime configuration from that provider
+store with `--no-repo-pi`, preserving model capabilities and authentication
+without loading repository-local Pi models, settings, or login files. Use a
+daemon release that supports `--no-repo-pi` (or `daemon-version: workspace`);
+older releases fail with an upgrade message. A caller-set
+`PI_CODING_AGENT_DIR` conflicts with this store configuration and is rejected.
 
-Without `providers`, the action uses an empty `$RUNNER_TEMP/.pi/agent`
-directory for Pi's built-in providers and environment-based authentication.
-A caller may select an explicit runner-local directory with
-`PI_CODING_AGENT_DIR`.
+Without `providers`, the action uses a fresh, empty Pi directory for built-in
+providers and environment-based authentication. A caller may select an
+explicit runner-local directory with `PI_CODING_AGENT_DIR`.
+
+Each invocation owns a private temporary directory. Identity, binary and Pi
+paths are passed through step outputs and step-local environment variables;
+they are not exported into later workflow steps. Cleanup restores provider
+metadata and any login file the action replaced, clears the provider keys it
+stored, and removes its temporary directory, including after a failed run.
 
 ## Pi provider auth
 
@@ -420,7 +426,7 @@ gh secret set PI_AUTH_JSON \
 
 The action's materialize step writes `$PI_AUTH_JSON` to
 `$RUNNER_TEMP/.pi/agent/auth.json` and exports
-`PI_CODING_AGENT_DIR=$RUNNER_TEMP/.pi/agent` so pi-extension reads
+a step-local `PI_CODING_AGENT_DIR` pointing at its private Pi directory so pi-extension reads
 from the runner-local copy. The daemon resolves Pi auth from that
 directory on the host and mirrors the auth blob into the guest VM for
 the Pi session there.
