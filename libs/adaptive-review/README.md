@@ -149,5 +149,8 @@ truncated, and pull requests that change a protected path. Fork and
 Dependabot pull requests are screened from the event before the runtime is
 installed; the other rules need the file list and run in the installed CLI.
 The job skips unless that check explicitly admits the pull request.
+Only the prepare job installs and builds the runtime. It uploads the bundled
+action with a digest output, and the route and review jobs set up Node,
+download that bundle, and refuse to run it unless its digest matches.
 For private repositories, bind workers to a private diary; the review report
 does not require a public diary.

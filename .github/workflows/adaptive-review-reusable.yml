@@ -106,6 +106,7 @@ jobs:
       review-enabled: ${{ steps.plan.outputs.review-enabled }}
       runtime-repository: ${{ steps.runtime.outputs.repository }}
       runtime-sha: ${{ steps.runtime-pin.outputs.sha }}
+      action-digest: ${{ steps.bundle.outputs.digest }}
     steps:
       - name: Resolve trusted review runtime
         id: runtime
@@ -196,6 +197,20 @@ jobs:
           ADAPTIVE_PREPARED: ${{ github.workspace }}/adaptive-prepared.json
         with:
           step: plan
+      # Later jobs run this bundle instead of reinstalling the workspace; the
+      # digest output lets them check they run exactly what was built here.
+      - name: Record the review action bundle
+        id: bundle
+        if: steps.plan.outputs.review-enabled == 'true'
+        run: bash .adaptive-review-runtime/tools/adaptive-review-action-digest.sh .adaptive-review-runtime/packages/adaptive-review-action/dist >> "$GITHUB_OUTPUT"
+      - name: Upload the review action bundle
+        if: steps.plan.outputs.review-enabled == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: adaptive-review-action-${{ github.repository_id }}-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+          path: .adaptive-review-runtime/packages/adaptive-review-action/dist
+          if-no-files-found: error
+          retention-days: 1
 
   route:
     needs: prepare
@@ -241,7 +256,18 @@ jobs:
           ref: ${{ needs.prepare.outputs.runtime-sha }}
           path: .adaptive-review-runtime
           persist-credentials: false
-      - uses: ./.adaptive-review-runtime/packages/adaptive-review-action/setup
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .adaptive-review-runtime/.tool-versions
+      - name: Download the review action bundle
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: adaptive-review-action-${{ github.repository_id }}-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+          path: .adaptive-review-runtime/packages/adaptive-review-action/dist
+      - name: Verify the review action bundle
+        env:
+          EXPECTED_DIGEST: ${{ needs.prepare.outputs.action-digest }}
+        run: bash .adaptive-review-runtime/tools/adaptive-review-action-digest.sh --verify "$EXPECTED_DIGEST" .adaptive-review-runtime/packages/adaptive-review-action/dist
       - name: Fetch reviewed head as inert Git data
         env:
           BASE_SHA: ${{ needs.prepare.outputs.base }}
@@ -308,7 +334,18 @@ jobs:
           ref: ${{ needs.prepare.outputs.runtime-sha }}
           path: .adaptive-review-runtime
           persist-credentials: false
-      - uses: ./.adaptive-review-runtime/packages/adaptive-review-action/setup
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .adaptive-review-runtime/.tool-versions
+      - name: Download the review action bundle
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: adaptive-review-action-${{ github.repository_id }}-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+          path: .adaptive-review-runtime/packages/adaptive-review-action/dist
+      - name: Verify the review action bundle
+        env:
+          EXPECTED_DIGEST: ${{ needs.prepare.outputs.action-digest }}
+        run: bash .adaptive-review-runtime/tools/adaptive-review-action-digest.sh --verify "$EXPECTED_DIGEST" .adaptive-review-runtime/packages/adaptive-review-action/dist
       - name: Fetch reviewed head as inert Git data
         env:
           BASE_SHA: ${{ needs.prepare.outputs.base }}

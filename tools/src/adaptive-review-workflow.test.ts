@@ -58,6 +58,10 @@ const fetchScriptPath = fileURLToPath(
   new URL('../fetch-adaptive-review-head.sh', import.meta.url),
 );
 const fetchScript = readFileSync(fetchScriptPath, 'utf8');
+const digestScriptPath = fileURLToPath(
+  new URL('../adaptive-review-action-digest.sh', import.meta.url),
+);
+const BUNDLE = '.adaptive-review-runtime/packages/adaptive-review-action/dist';
 
 const RUNTIME_ACTION =
   './.adaptive-review-runtime/packages/adaptive-review-action';
@@ -78,6 +82,40 @@ function stepIndex(name: string, predicate: (step: Step) => boolean): number {
 
 function step(name: string, predicate: (step: Step) => boolean): Step {
   return job(name).steps[stepIndex(name, predicate)];
+}
+
+/** Runs a step's inline script the way Actions does, returning its outputs. */
+function runStep(
+  run: string | undefined,
+  env: Record<string, string>,
+): { status: number | null; stderr: string; outputs: Record<string, string> } {
+  const temp = mkdtempSync(join(tmpdir(), 'adaptive-step-'));
+  try {
+    const script = join(temp, 'step.sh');
+    const output = join(temp, 'output');
+    writeFileSync(script, run ?? '');
+    writeFileSync(output, '');
+    const result = spawnSync(
+      'bash',
+      ['--noprofile', '--norc', '-eo', 'pipefail', script],
+      {
+        env: { PATH: process.env.PATH ?? '', ...env, GITHUB_OUTPUT: output },
+        encoding: 'utf8',
+      },
+    );
+    const outputs = Object.fromEntries(
+      readFileSync(output, 'utf8')
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => [
+          line.slice(0, line.indexOf('=')),
+          line.slice(line.indexOf('=') + 1),
+        ]),
+    );
+    return { status: result.status, stderr: result.stderr, outputs };
+  } finally {
+    rmSync(temp, { recursive: true, force: true });
+  }
 }
 
 function workerAction(name: string): Step {
@@ -139,7 +177,8 @@ describe('adaptive review workflow trust gates', () => {
       PROTECTED_PATHS: '${{ inputs.protected-paths }}',
     });
     const pinAt = stepIndex('prepare', (item) => item.id === 'pin');
-    const gated = job('prepare').steps.slice(pinAt + 1);
+    const planAt = stepIndex('prepare', (item) => item.id === 'plan');
+    const gated = job('prepare').steps.slice(pinAt + 1, planAt + 1);
     expect(gated.map((item) => item.name ?? item.id)).toEqual([
       FETCH_STEP,
       'Write pinned planner input',
@@ -182,23 +221,21 @@ describe('adaptive review workflow trust gates', () => {
     ]);
   });
 
-  it('builds the action from the pinned runtime in every stage job', () => {
-    for (const name of ['prepare', 'route', 'review']) {
-      const runtime = stepIndex(
-        name,
-        (item) => item.with?.path === '.adaptive-review-runtime',
-      );
-      const setup = stepIndex(
-        name,
-        (item) => item.uses === `${RUNTIME_ACTION}/setup`,
-      );
-      const firstStage = stepIndex(
-        name,
-        (item) => item.uses === RUNTIME_ACTION,
-      );
-      expect(runtime).toBeLessThan(setup);
-      expect(setup).toBeLessThan(firstStage);
-    }
+  it('builds the action from the pinned runtime in prepare', () => {
+    const runtime = stepIndex(
+      'prepare',
+      (item) => item.with?.path === '.adaptive-review-runtime',
+    );
+    const setup = stepIndex(
+      'prepare',
+      (item) => item.uses === `${RUNTIME_ACTION}/setup`,
+    );
+    const firstStage = stepIndex(
+      'prepare',
+      (item) => item.uses === RUNTIME_ACTION,
+    );
+    expect(runtime).toBeLessThan(setup);
+    expect(setup).toBeLessThan(firstStage);
     for (const name of ['route', 'review'])
       expect(
         step(name, (item) => item.with?.path === '.adaptive-review-runtime')
@@ -422,5 +459,169 @@ describe('adaptive review workflow trust gates', () => {
     expect(caller.jobs.review.with['runtime-ref']).toBe(
       '${{ github.event.pull_request.base.sha }}',
     );
+  });
+
+  it('builds the review action once and verifies it before later jobs run it', () => {
+    const prepare = job('prepare');
+    const plan = stepIndex('prepare', (item) => item.id === 'plan');
+    const bundle = stepIndex('prepare', (item) => item.id === 'bundle');
+    const upload = stepIndex(
+      'prepare',
+      (item) =>
+        Boolean(item.uses?.startsWith('actions/upload-artifact@')) &&
+        item.with?.path === BUNDLE,
+    );
+    expect(plan).toBeLessThan(bundle);
+    expect(bundle).toBeLessThan(upload);
+    expect(prepare.outputs?.['action-digest']).toBe(
+      '${{ steps.bundle.outputs.digest }}',
+    );
+    const artifact = prepare.steps[upload].with?.name;
+    for (const name of ['route', 'review']) {
+      const steps = job(name).steps;
+      expect(
+        steps.some((item) =>
+          item.uses?.endsWith('/adaptive-review-action/setup'),
+        ),
+      ).toBe(false);
+      const download = stepIndex(
+        name,
+        (item) =>
+          Boolean(item.uses?.startsWith('actions/download-artifact@')) &&
+          item.with?.path === BUNDLE,
+      );
+      expect(steps[download].with?.name).toBe(artifact);
+      const verify = stepIndex(name, (item) =>
+        Boolean(
+          item.run?.includes('adaptive-review-action-digest.sh --verify'),
+        ),
+      );
+      expect(steps[verify].env?.EXPECTED_DIGEST).toBe(
+        '${{ needs.prepare.outputs.action-digest }}',
+      );
+      const firstAction = stepIndex(
+        name,
+        (item) => item.uses === RUNTIME_ACTION,
+      );
+      expect(download).toBeLessThan(verify);
+      expect(verify).toBeLessThan(firstAction);
+    }
+  });
+});
+
+describe('review action bundle digest', () => {
+  function bundle(files: Record<string, string>): string {
+    const dir = mkdtempSync(join(tmpdir(), 'adaptive-bundle-'));
+    for (const [name, content] of Object.entries(files)) {
+      mkdirSync(join(dir, name, '..'), { recursive: true });
+      writeFileSync(join(dir, name), content);
+    }
+    return dir;
+  }
+
+  function digest(dir: string): string {
+    return execFileSync('bash', [digestScriptPath, dir], { encoding: 'utf8' })
+      .trim()
+      .replace(/^digest=/, '');
+  }
+
+  function verify(expected: string, dir: string) {
+    return spawnSync('bash', [digestScriptPath, '--verify', expected, dir], {
+      encoding: 'utf8',
+    });
+  }
+
+  it('verifies an identical bundle and rejects any change', () => {
+    const original = bundle({ 'review.js': 'ab', 'chunks/c.js': '' });
+    const variants = [
+      bundle({ 'review.js': 'ab', 'chunks/c.js': '' }),
+      bundle({ 'review.js': 'a', 'chunks/c.js': 'b' }),
+      bundle({ 'renamed.js': 'ab', 'chunks/c.js': '' }),
+      bundle({ 'review.js': 'ab', 'chunks/c.js': '', 'extra.js': '' }),
+    ];
+    try {
+      const expected = digest(original);
+      expect(expected).toMatch(/^[0-9a-f]{64}$/);
+      expect(variants.map((dir) => verify(expected, dir).status)).toEqual([
+        0, 1, 1, 1,
+      ]);
+      expect(verify('not-a-digest', original).status).toBe(1);
+      expect(verify(expected, join(original, 'missing')).status).toBe(1);
+    } finally {
+      for (const dir of [original, ...variants])
+        rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('adaptive review inline step scripts', () => {
+  const runtimeStep = () => step('prepare', (item) => item.id === 'runtime');
+  const sha = 'c'.repeat(40);
+  const runtimeEnv = {
+    WORKFLOW_REPOSITORY: 'getlarge/themoltnet',
+    WORKFLOW_SHA: sha,
+    RUNTIME_REF: '',
+    PROVIDERS: 'id=ollama-cloud base-url=https://ollama.com/v1',
+  };
+
+  it('resolves the runtime from the workflow commit or an explicit ref', () => {
+    expect(runStep(runtimeStep().run, runtimeEnv).outputs).toEqual({
+      repository: 'getlarge/themoltnet',
+      ref: sha,
+    });
+    const ref = 'd'.repeat(40);
+    expect(
+      runStep(runtimeStep().run, { ...runtimeEnv, RUNTIME_REF: ref }).outputs
+        .ref,
+    ).toBe(ref);
+  });
+
+  it.each([
+    [{ PROVIDERS: '  # only a comment' }, 'providers needs at least one'],
+    [{ WORKFLOW_REPOSITORY: '' }, 'job.workflow_repository is required'],
+    [{ RUNTIME_REF: 'main' }, 'must be a full commit SHA'],
+    [{ WORKFLOW_SHA: 'C'.repeat(40) }, 'must be a full commit SHA'],
+  ])('refuses runtime input %j', (env, message) => {
+    const result = runStep(runtimeStep().run, { ...runtimeEnv, ...env });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(message);
+    expect(result.outputs).toEqual({});
+  });
+
+  it.each([
+    ['getlarge/themoltnet', 'someone', 'true'],
+    ['someone/themoltnet', 'someone', 'false'],
+    ['', 'someone', 'false'],
+    ['getlarge/themoltnet', 'dependabot[bot]', 'false'],
+  ])('screens head %j by %j as eligible=%s', (head, author, eligible) => {
+    const screen = step('prepare', (item) => item.id === 'screen');
+    expect(
+      runStep(screen.run, {
+        GITHUB_REPOSITORY: 'getlarge/themoltnet',
+        HEAD_REPOSITORY: head,
+        AUTHOR: author,
+      }).outputs,
+    ).toEqual({ eligible });
+  });
+
+  it('detects only a nonempty review report', () => {
+    const detect = step('review', (item) => item.id === 'report-file');
+    const temp = mkdtempSync(join(tmpdir(), 'adaptive-report-'));
+    try {
+      const report = join(temp, 'report.json');
+      expect(runStep(detect.run, { ADAPTIVE_REPORT: report }).outputs).toEqual(
+        {},
+      );
+      writeFileSync(report, '');
+      expect(runStep(detect.run, { ADAPTIVE_REPORT: report }).outputs).toEqual(
+        {},
+      );
+      writeFileSync(report, '{}');
+      expect(runStep(detect.run, { ADAPTIVE_REPORT: report }).outputs).toEqual({
+        exists: 'true',
+      });
+    } finally {
+      rmSync(temp, { recursive: true, force: true });
+    }
   });
 });
