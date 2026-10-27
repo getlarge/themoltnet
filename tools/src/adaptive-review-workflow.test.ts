@@ -166,6 +166,7 @@ describe('adaptive review workflow trust gates', () => {
     expect(caller.jobs.review.with['protected-paths'].split('\n')).toEqual(
       expect.arrayContaining([
         'libs/docs-impact-review/src/eligibility.ts',
+        'tools/adaptive-review-action-digest.sh',
         'tools/fetch-adaptive-review-head.sh',
       ]),
     );
