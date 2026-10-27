@@ -16,7 +16,7 @@ const requiredAssets = [
 
 export function advancePin(source, version) {
   const pattern =
-    /(\n {6}daemon-version:\n(?: {8}.*\n)*? {8}default: )'([^']+)'/g;
+    /(\n {6}daemon-version:\r?\n(?: {8}.*\r?\n)*? {8}default: )'([^']+)'/g;
   if (!pattern.test(source)) throw new Error('daemon pin not found');
   return source.replace(pattern, (match, prefix, current) =>
     compareVersions(version, current) > 0 ? `${prefix}'${version}'` : match,

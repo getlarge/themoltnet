@@ -40,16 +40,26 @@ function release(tag, overrides = {}) {
   };
 }
 
-test('advances only the daemon-version default and never rolls back', () => {
-  const advanced = advancePin(workflow, '0.73.1');
-  assert.equal(advanced, workflow.replace("'0.72.2'", "'0.73.1'"));
-  assert.equal(advancePin(advanced, '0.73.1'), advanced);
-  assert.equal(advancePin(advanced, '0.72.2'), advanced);
-  assert.throws(
-    () => advancePin("      runtime-ref:\n        default: ''\n", '0.73.1'),
-    /daemon pin not found/,
-  );
-});
+for (const [name, newline] of [
+  ['LF', '\n'],
+  ['CRLF', '\r\n'],
+]) {
+  test(`advances only the daemon-version default and never rolls back (${name})`, () => {
+    const source = workflow.replaceAll('\n', newline);
+    const advanced = advancePin(source, '0.73.1');
+    assert.equal(advanced, source.replace("'0.72.2'", "'0.73.1'"));
+    assert.equal(advancePin(advanced, '0.73.1'), advanced);
+    assert.equal(advancePin(advanced, '0.72.2'), advanced);
+    assert.throws(
+      () =>
+        advancePin(
+          `      runtime-ref:${newline}        default: ''${newline}`,
+          '0.73.1',
+        ),
+      /daemon pin not found/,
+    );
+  });
+}
 
 test('picks the newest published daemon release by version', () => {
   assert.equal(
