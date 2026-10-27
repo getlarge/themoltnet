@@ -1,5 +1,6 @@
-import { execFileSync } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
+import { promisify } from 'node:util';
 
 import { createGit } from '@moltnet/docs-impact-review';
 import { connect } from '@themoltnet/sdk/node';
@@ -12,6 +13,11 @@ import {
   required,
 } from './config.js';
 import { loadAdaptivePolicy } from './snapshot.js';
+import {
+  type WorkerJob,
+  type WorkerLiveness,
+  workflowWorkerLiveness,
+} from './workers.js';
 import {
   type AdaptivePreparation,
   classifierTaskPossible,
@@ -28,6 +34,41 @@ interface Prepared {
   base: string;
   head: string;
   correlationId: string;
+}
+
+/** Watches this run's worker jobs; absent outside GitHub Actions. */
+function runWorkerLiveness(): WorkerLiveness | undefined {
+  const { GITHUB_REPOSITORY, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT } = env();
+  if (!GITHUB_REPOSITORY || !GITHUB_RUN_ID) return undefined;
+  const path = `repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT || '1'}/jobs?per_page=100`;
+  let reported = false;
+  return workflowWorkerLiveness({
+    profiles: {
+      docs: env().ADAPTIVE_DOCS_PROFILE || undefined,
+      complexity: env().ADAPTIVE_COMPLEXITY_PROFILE || undefined,
+      security: env().ADAPTIVE_SECURITY_PROFILE || undefined,
+      focused: env().ADAPTIVE_FOCUSED_PROFILE || undefined,
+    },
+    async listJobs() {
+      const { stdout } = await promisify(execFile)(
+        'gh',
+        ['api', '--paginate', path, '--jq', '.jobs[] | {name, status}'],
+        { encoding: 'utf8' },
+      );
+      return stdout
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => JSON.parse(line) as WorkerJob);
+    },
+    onLookupError() {
+      // Liveness is advisory: keep waiting on the task budgets instead.
+      if (reported) return;
+      reported = true;
+      process.stderr.write(
+        'Adaptive worker liveness unavailable; waiting on task budgets.\n',
+      );
+    },
+  });
 }
 
 async function main() {
@@ -123,6 +164,7 @@ async function main() {
         : {}),
     },
     projectId: env().MOLTNET_PROJECT_ID || undefined,
+    workers: runWorkerLiveness(),
   };
   if (stage === 'route') {
     const preparation = await prepareAdaptiveReview(options);

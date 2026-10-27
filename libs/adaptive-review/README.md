@@ -60,10 +60,21 @@ another System One classifier without changing this library. Classifier
 scores determine which enabled lanes receive deeper review. A classifier
 failure routes every enabled lane for review. The report names the failed
 packet and a diagnostic code, and the workflow log adds the classifier task ID.
+A binary patch hides what changed, so it routes every enabled lane as
+incomplete. Lockfile summaries and generated paths are deliberate and do not;
+the report still lists them as not reviewed.
+
+The route and review jobs watch the run's worker jobs. Once every worker that
+could claim a task has exited, for example because it failed to start, the
+waiting packet or lane fails with `worker-unavailable` instead of holding the
+job until its timeout. If the job list cannot be read, the review waits on the
+task budgets as before.
 
 When a lane's review is incomplete, the comment lists what it could not assess
 under "Not fully assessed". For the docs lane, these are the documents, hunks,
-and stages the docs impact review reported as gaps.
+and stages the docs impact review reported as gaps. For the complexity lane,
+the summary names the coverage gap or the number of rubric criteria it could
+not assess, and each unassessed criterion follows with its rationale.
 
 `task-budgets` is optional. Use a YAML block to override only the limits that
 need to change for your selected profiles:
@@ -124,7 +135,8 @@ tasks, and docs and complexity can have multiple stages.
 
 For a caller repository, add a `pull_request` workflow that invokes
 `getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml` at a
-trusted commit or release tag, passes `secrets: inherit`, and names an
+trusted commit or release tag, grants the calling job `actions: read`,
+`contents: read`, and `pull-requests: write`, passes `secrets: inherit`, and names an
 environment containing the MoltNet agent and provider keys. Pass at least a
 classifier profile, a nonempty `providers` definition, and
 profiles for each lane enabled in `.github/adaptive-review.json`.

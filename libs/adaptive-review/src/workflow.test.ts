@@ -259,6 +259,8 @@ describe('adaptive review orchestration', () => {
         }
         if (args[0] === 'diff' && args.includes('--name-status'))
           return `M\0${sourcePath}\0`;
+        if (args[0] === 'log')
+          return 'feat: first\n\nBody\n\0\nfix: second\n\0\n';
         return '';
       }),
     );
@@ -528,9 +530,65 @@ describe('adaptive review orchestration', () => {
       report.results.find((result) => result.lane === 'complexity'),
     ).toMatchObject({
       status: 'unclear',
-      summary:
-        'Low complexity Incomplete coverage: 1 domain segment was not reviewed.',
+      summary: 'Incomplete coverage: 1 domain segment was not reviewed.',
+      unclear: [],
     });
+  });
+
+  it('names unassessed complexity criteria instead of the verdict', async () => {
+    mocks.runComplexityReview.mockResolvedValue({
+      taskIds: ['complexity-task'],
+      output: {
+        verdict: 'Pass',
+        scores: [
+          { criterionId: 'state', status: 'pass', rationale: 'Local state.' },
+          {
+            criterionId: 'coupling',
+            status: 'unclear',
+            rationale: 'Callers were not inspected.',
+          },
+        ],
+      },
+      unreviewedDomainWork: 0,
+    });
+    const { tasks } = harness({ selected: 'complexity' });
+
+    const report = await review(tasks);
+
+    expect(
+      report.results.find((result) => result.lane === 'complexity'),
+    ).toMatchObject({
+      status: 'unclear',
+      summary: '1 rubric criterion could not be assessed.',
+      unclear: ['coupling: Callers were not inspected.'],
+    });
+  });
+
+  it('passes PR commit messages to the complexity review oldest first', async () => {
+    mocks.runComplexityReview.mockResolvedValue({
+      taskIds: ['complexity-task'],
+      output: { verdict: 'Low complexity', scores: [] },
+      unreviewedDomainWork: 0,
+    });
+    const { tasks } = harness({ selected: 'complexity' });
+
+    await review(tasks);
+
+    expect(gitCalls).toContainEqual([
+      'log',
+      '--reverse',
+      '--max-count=100',
+      '--format=%B%x00',
+      `${identity.base}..${identity.head}`,
+    ]);
+    expect(mocks.runComplexityReview).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        commits: ['feat: first\n\nBody', 'fix: second'],
+      }),
+      expect.anything(),
+      expect.anything(),
+    );
   });
 
   it('rejects a focused finding cited outside changed lines', async () => {
@@ -900,6 +958,41 @@ describe('adaptive review orchestration', () => {
     expect(log.mock.calls.flat().join('')).not.toContain('private token');
   });
 
+  it('fails waiting work with worker-unavailable once its workers stopped', async () => {
+    const { tasks, createTask } = harness({ selected: 'security' });
+    const log = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+    const stopped = new Set(['classifier', 'security']);
+
+    const report = await runAdaptiveReview({
+      ...reviewOptions(tasks),
+      workers: { stopped: (pool) => Promise.resolve(stopped.has(pool)) },
+    });
+
+    expect(report.gaps).toEqual([
+      'Classifier failed for packet 1 (worker-unavailable); inspect workflow logs.',
+    ]);
+    expect(
+      report.results.find((result) => result.lane === 'security'),
+    ).toMatchObject({
+      status: 'failed',
+      summary:
+        'security review failed before a task was created; inspect workflow logs.',
+      taskIds: [],
+    });
+    expect(
+      report.results.find((result) => result.lane === 'tests'),
+    ).toMatchObject({ status: 'clear' });
+    expect(createTask.mock.calls.map(([body]) => body.taskType)).not.toContain(
+      'classify',
+    );
+    expect(log).toHaveBeenCalledWith(
+      'Adaptive classifier failure: packet=1 stage=before-task code=worker-unavailable taskId=none\n',
+    );
+    expect(log).toHaveBeenCalledWith(
+      'Adaptive lane failure: lane=security stage=before-task code=worker-unavailable taskIds=none\n',
+    );
+  });
+
   it('retains a docs task when polling fails before stage timing is recorded', async () => {
     const { tasks } = harness({ selected: 'docs' });
     const log = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
@@ -1072,10 +1165,14 @@ describe('adaptive review orchestration', () => {
       bytes: evidence.bytes + Buffer.byteLength(generatedPatch),
       generatedPaths: [generatedPath],
     });
-    const { tasks, created } = harness();
+    const { tasks, created } = harness({ selected: 'security' });
     const report = await review(tasks);
 
-    expect(report.routing.routes.every((route) => route.run)).toBe(true);
+    // Generated paths are excluded by policy; they do not make routing
+    // incomplete, but the report still lists them.
+    expect(
+      report.routing.routes.some((route) => route.reason === 'incomplete'),
+    ).toBe(false);
     expect(report.gaps).toContain(
       `Generated path not classified: ${generatedPath}`,
     );

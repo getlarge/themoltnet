@@ -156,9 +156,10 @@ export function packetize(evidence: ReviewEvidence): Packet[] {
       id: String(packets.length + 1),
       files,
       bytes,
+      // Lockfile and generated summaries are deliberate; a binary patch hides
+      // what changed from the classifier.
       incomplete: files.some(
         (file) =>
-          file.summarized ||
           file.patch.includes('GIT binary patch') ||
           file.patch.includes('Binary files '),
       ),
@@ -347,7 +348,6 @@ export function decideRoutes(
   packets: readonly Packet[],
   answers: readonly PacketAnswer[],
   concerns: readonly MechanicalConcern[],
-  generatedPaths: readonly string[],
 ): RoutingDecision {
   const answerById = new Map(
     answers.map((answer) => [answer.packetId, answer]),
@@ -355,8 +355,7 @@ export function decideRoutes(
   const classifierFailed =
     packets.length === 0 ||
     packets.some((packet) => !answerById.has(packet.id));
-  const incomplete =
-    packets.some((packet) => packet.incomplete) || generatedPaths.length > 0;
+  const incomplete = packets.some((packet) => packet.incomplete);
   const routes = lanes.map((lane): LaneRoute => {
     const probabilities = answers.map((answer) => {
       const item = answer.answers[lane];
