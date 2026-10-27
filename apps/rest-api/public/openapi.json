@@ -3927,6 +3927,35 @@
           "hashMatches": {
             "type": "boolean"
           },
+          "signatureStatus": {
+            "anyOf": [
+              {
+                "enum": [
+                  "valid"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "invalid"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "signer_unresolved"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "unsigned"
+                ],
+                "type": "string"
+              }
+            ],
+            "description": "`invalid`: the signature was checked against the signer key and rejected. `signer_unresolved`: no signer key could be established, so the signature was not checked. `signatureValid` is false in both cases."
+          },
           "signatureValid": {
             "type": "boolean"
           },

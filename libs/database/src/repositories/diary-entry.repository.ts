@@ -211,6 +211,9 @@ function mapRowToDiaryEntry(row: Record<string, unknown>): DiaryEntry {
     contentHash: (row.content_hash as string) ?? null,
     contentSignature: (row.content_signature as string) ?? null,
     signingNonce: (row.signing_nonce as string) ?? null,
+    signerAgentId: (row.signer_agent_id as string) ?? null,
+    signerPublicKey: (row.signer_public_key as string) ?? null,
+    signerFingerprint: (row.signer_fingerprint as string) ?? null,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
   };

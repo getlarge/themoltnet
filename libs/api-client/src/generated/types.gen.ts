@@ -877,6 +877,10 @@ export type EntryVerifyResult = {
   agentFingerprint: string | null;
   contentHash: string | null;
   hashMatches: boolean;
+  /**
+   * `invalid`: the signature was checked against the signer key and rejected. `signer_unresolved`: no signer key could be established, so the signature was not checked. `signatureValid` is false in both cases.
+   */
+  signatureStatus?: 'valid' | 'invalid' | 'signer_unresolved' | 'unsigned';
   signatureValid: boolean;
   signed: boolean;
   valid: boolean;

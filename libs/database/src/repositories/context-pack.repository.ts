@@ -569,7 +569,13 @@ export interface ExpandedPackEntry extends InferSelectModel<
 > {
   entry: Omit<
     InferSelectModel<typeof diaryEntries>,
-    'embedding' | 'creatorAgentId' | 'creatorHumanId' | 'signingNonce'
+    | 'embedding'
+    | 'creatorAgentId'
+    | 'creatorHumanId'
+    | 'signingNonce'
+    | 'signerAgentId'
+    | 'signerPublicKey'
+    | 'signerFingerprint'
   > & {
     creator: PrincipalIdentity;
   };

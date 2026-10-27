@@ -210,6 +210,17 @@ export function deriveSignatureState({
     };
   }
 
+  // No key was tried, so this is "cannot tell", not a failed check.
+  if (verification.signatureStatus === 'signer_unresolved') {
+    return {
+      state: 'unverified',
+      label: 'Signer unresolved',
+      explanation:
+        'The signature could not be checked: the server could not establish which key signed this entry. This is not evidence that the entry was tampered with. The bytes still match the recorded content hash.',
+      signer: unresolvedSigner(),
+    };
+  }
+
   return {
     state: 'invalid',
     label: 'Signature not verified',

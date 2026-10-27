@@ -18655,9 +18655,13 @@ type EntryVerifyResult struct {
 	AgentFingerprint NilString `json:"agentFingerprint"`
 	ContentHash      NilString `json:"contentHash"`
 	HashMatches      bool      `json:"hashMatches"`
-	SignatureValid   bool      `json:"signatureValid"`
-	Signed           bool      `json:"signed"`
-	Valid            bool      `json:"valid"`
+	// `invalid`: the signature was checked against the signer key and rejected. `signer_unresolved`: no
+	// signer key could be established, so the signature was not checked. `signatureValid` is false in both
+	// cases.
+	SignatureStatus OptEntryVerifyResultSignatureStatus `json:"signatureStatus"`
+	SignatureValid  bool                                `json:"signatureValid"`
+	Signed          bool                                `json:"signed"`
+	Valid           bool                                `json:"valid"`
 }
 
 // GetAgentFingerprint returns the value of AgentFingerprint.
@@ -18673,6 +18677,11 @@ func (s *EntryVerifyResult) GetContentHash() NilString {
 // GetHashMatches returns the value of HashMatches.
 func (s *EntryVerifyResult) GetHashMatches() bool {
 	return s.HashMatches
+}
+
+// GetSignatureStatus returns the value of SignatureStatus.
+func (s *EntryVerifyResult) GetSignatureStatus() OptEntryVerifyResultSignatureStatus {
+	return s.SignatureStatus
 }
 
 // GetSignatureValid returns the value of SignatureValid.
@@ -18705,6 +18714,11 @@ func (s *EntryVerifyResult) SetHashMatches(val bool) {
 	s.HashMatches = val
 }
 
+// SetSignatureStatus sets the value of SignatureStatus.
+func (s *EntryVerifyResult) SetSignatureStatus(val OptEntryVerifyResultSignatureStatus) {
+	s.SignatureStatus = val
+}
+
 // SetSignatureValid sets the value of SignatureValid.
 func (s *EntryVerifyResult) SetSignatureValid(val bool) {
 	s.SignatureValid = val
@@ -18721,6 +18735,64 @@ func (s *EntryVerifyResult) SetValid(val bool) {
 }
 
 func (*EntryVerifyResult) verifyDiaryEntryByIdRes() {}
+
+// `invalid`: the signature was checked against the signer key and rejected. `signer_unresolved`: no
+// signer key could be established, so the signature was not checked. `signatureValid` is false in both
+// cases.
+type EntryVerifyResultSignatureStatus string
+
+const (
+	EntryVerifyResultSignatureStatusValid            EntryVerifyResultSignatureStatus = "valid"
+	EntryVerifyResultSignatureStatusInvalid          EntryVerifyResultSignatureStatus = "invalid"
+	EntryVerifyResultSignatureStatusSignerUnresolved EntryVerifyResultSignatureStatus = "signer_unresolved"
+	EntryVerifyResultSignatureStatusUnsigned         EntryVerifyResultSignatureStatus = "unsigned"
+)
+
+// AllValues returns all EntryVerifyResultSignatureStatus values.
+func (EntryVerifyResultSignatureStatus) AllValues() []EntryVerifyResultSignatureStatus {
+	return []EntryVerifyResultSignatureStatus{
+		EntryVerifyResultSignatureStatusValid,
+		EntryVerifyResultSignatureStatusInvalid,
+		EntryVerifyResultSignatureStatusSignerUnresolved,
+		EntryVerifyResultSignatureStatusUnsigned,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s EntryVerifyResultSignatureStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case EntryVerifyResultSignatureStatusValid:
+		return []byte(s), nil
+	case EntryVerifyResultSignatureStatusInvalid:
+		return []byte(s), nil
+	case EntryVerifyResultSignatureStatusSignerUnresolved:
+		return []byte(s), nil
+	case EntryVerifyResultSignatureStatusUnsigned:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *EntryVerifyResultSignatureStatus) UnmarshalText(data []byte) error {
+	switch EntryVerifyResultSignatureStatus(data) {
+	case EntryVerifyResultSignatureStatusValid:
+		*s = EntryVerifyResultSignatureStatusValid
+		return nil
+	case EntryVerifyResultSignatureStatusInvalid:
+		*s = EntryVerifyResultSignatureStatusInvalid
+		return nil
+	case EntryVerifyResultSignatureStatusSignerUnresolved:
+		*s = EntryVerifyResultSignatureStatusSignerUnresolved
+		return nil
+	case EntryVerifyResultSignatureStatusUnsigned:
+		*s = EntryVerifyResultSignatureStatusUnsigned
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 // Ref: #/components/schemas/ExecutorTrustLevel
 type ExecutorTrustLevel string
@@ -37980,6 +38052,52 @@ func (o OptDateTime) Get() (v time.Time, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptDateTime) Or(d time.Time) time.Time {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptEntryVerifyResultSignatureStatus returns new OptEntryVerifyResultSignatureStatus with value set to v.
+func NewOptEntryVerifyResultSignatureStatus(v EntryVerifyResultSignatureStatus) OptEntryVerifyResultSignatureStatus {
+	return OptEntryVerifyResultSignatureStatus{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptEntryVerifyResultSignatureStatus is optional EntryVerifyResultSignatureStatus.
+type OptEntryVerifyResultSignatureStatus struct {
+	Value EntryVerifyResultSignatureStatus
+	Set   bool
+}
+
+// IsSet returns true if OptEntryVerifyResultSignatureStatus was set.
+func (o OptEntryVerifyResultSignatureStatus) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptEntryVerifyResultSignatureStatus) Reset() {
+	var v EntryVerifyResultSignatureStatus
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptEntryVerifyResultSignatureStatus) SetTo(v EntryVerifyResultSignatureStatus) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptEntryVerifyResultSignatureStatus) Get() (v EntryVerifyResultSignatureStatus, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptEntryVerifyResultSignatureStatus) Or(d EntryVerifyResultSignatureStatus) EntryVerifyResultSignatureStatus {
 	if v, ok := o.Get(); ok {
 		return v
 	}

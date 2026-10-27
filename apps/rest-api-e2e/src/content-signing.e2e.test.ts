@@ -110,6 +110,7 @@ describe('Content-signed entries', () => {
     expect(verification!.signed).toBe(true);
     expect(verification!.hashMatches).toBe(true);
     expect(verification!.signatureValid).toBe(true);
+    expect(verification!.signatureStatus).toBe('valid');
     expect(verification!.valid).toBe(true);
     expect(verification!.contentHash).toBe(contentCid);
     expect(verification!.agentFingerprint).toBeDefined();

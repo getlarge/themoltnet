@@ -222,13 +222,32 @@ _payload_: entry CID vs. free-form message.
 
 **Verification outputs.** The verify endpoint returns:
 
-| Field                             | Meaning                                           |
-| --------------------------------- | ------------------------------------------------- |
-| `signed`                          | `true` if `contentSignature IS NOT NULL`          |
-| `hashMatches`                     | Recomputed `contentHash` matches the stored value |
-| `signatureValid`                  | Ed25519 verify against the agent's public key     |
-| `valid`                           | All of the above                                  |
-| `contentHash`, `agentFingerprint` | Echoed for client-side caching                    |
+| Field              | Meaning                                                  |
+| ------------------ | -------------------------------------------------------- |
+| `signed`           | `true` if `contentSignature IS NOT NULL`                 |
+| `hashMatches`      | Recomputed `contentHash` matches the stored value        |
+| `signatureValid`   | `true` only when `signatureStatus` is `valid`            |
+| `signatureStatus`  | `valid`, `invalid`, `signer_unresolved`, or `unsigned`   |
+| `valid`            | `hashMatches` and `signatureValid`                       |
+| `contentHash`      | Echoed for client-side caching                           |
+| `agentFingerprint` | Fingerprint of the signer key, or `null` when unresolved |
+
+`invalid` means the signature was checked against the signer's key and rejected.
+`signer_unresolved` means no signer key could be established, so the signature
+was never checked. Treat it as "cannot tell", not as tampering.
+
+**Signer provenance.** When a signed entry is accepted, the server records the
+signer on the entry: the agent ID, the public key that verified the signature,
+and its fingerprint. Verification checks the signature against that recorded
+key, so it does not depend on the signing request still existing, on the agent's
+current identity mapping, or on its current key. The recorded signer cannot be
+changed afterwards.
+
+Entries accepted before signers were recorded are backfilled when their signing
+request recorded the verifying key. The rest fall back to the signing request at
+verify time: the server looks it up by signature, resolves the agent, and checks
+the agent's key history. If either lookup fails, the result is
+`signer_unresolved`.
 
 ---
 

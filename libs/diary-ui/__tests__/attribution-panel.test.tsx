@@ -148,6 +148,24 @@ describe('AttributionPanel signature state', () => {
       screen.queryByText(/content changed since signing/i),
     ).not.toBeInTheDocument();
   });
+
+  it('reports an unresolved signer as unchecked, not as a failed signature', () => {
+    renderPanel({
+      entry: makeEntry({ contentSignature: 'c2lnbmF0dXJl' }),
+      verification: {
+        ...VERIFIED_VERIFICATION,
+        signatureValid: false,
+        signatureStatus: 'signer_unresolved',
+        valid: false,
+        agentFingerprint: null,
+      },
+    });
+
+    expect(screen.getByText(/could not be checked/i)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/signature did not verify/i),
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe('AttributionPanel signer attribution', () => {

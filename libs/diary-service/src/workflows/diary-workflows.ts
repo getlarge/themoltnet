@@ -200,6 +200,9 @@ export function initDiaryWorkflows(): void {
               contentHash: input.contentHash,
               contentSignature: input.contentSignature,
               signingNonce: input.signingNonce,
+              signerAgentId: input.signer?.agentId,
+              signerPublicKey: input.signer?.publicKey,
+              signerFingerprint: input.signer?.fingerprint,
             });
           },
           { name: 'diary.create.persist' },

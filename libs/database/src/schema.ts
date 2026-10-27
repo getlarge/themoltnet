@@ -317,6 +317,15 @@ export const diaryEntries = pgTable(
     contentHash: varchar('content_hash', { length: 100 }),
     contentSignature: text('content_signature'),
     signingNonce: uuid('signing_nonce'),
+    // Signer provenance, captured when the entry is accepted: the agent whose
+    // key verified the signature, and a snapshot of that key. Verification
+    // reads these, so it survives signing-request cleanup, identity relinking,
+    // and key rotation. All three are set together or not at all.
+    signerAgentId: uuid('signer_agent_id').references(() => agents.id, {
+      onDelete: 'restrict',
+    }),
+    signerPublicKey: text('signer_public_key'),
+    signerFingerprint: varchar('signer_fingerprint', { length: 19 }),
 
     // Timestamps
     createdAt: timestamp('created_at', { withTimezone: true })
@@ -337,6 +346,10 @@ export const diaryEntries = pgTable(
     check(
       'diary_entries_creator_xor',
       sql`(creator_agent_id IS NOT NULL) <> (creator_human_id IS NOT NULL)`,
+    ),
+    check(
+      'diary_entries_signer_complete',
+      sql`(signer_agent_id IS NULL AND signer_public_key IS NULL AND signer_fingerprint IS NULL) OR (signer_agent_id IS NOT NULL AND signer_public_key IS NOT NULL AND signer_fingerprint IS NOT NULL AND content_signature IS NOT NULL)`,
     ),
 
     // Index for entry type filtering (memory system)
