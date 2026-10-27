@@ -1,0 +1,50 @@
+{
+  "name": "@moltnet/retrieval-eval",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "@moltnet/database": "workspace:*",
+    "@moltnet/diary-service": "workspace:*",
+    "@moltnet/embedding-service": "workspace:*"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "catalog:",
+    "drizzle-orm": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "targets": {
+      "eval": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "tsx libs/retrieval-eval/src/cli.ts"
+        }
+      },
+      "test:integration": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "vitest run --config libs/retrieval-eval/vitest.integration.config.ts"
+        }
+      }
+    },
+    "tags": [
+      "type:app",
+      "scope:server",
+      "platform:node"
+    ]
+  }
+}
