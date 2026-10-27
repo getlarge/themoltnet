@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.6.1](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.6.0...tasks-orchestrator-v0.6.1) (2026-10-26)
+
+
+### Bug Fixes
+
+* **pi-runtime:** build packed siblings before the pack smoke ([124bcd1](https://github.com/getlarge/themoltnet/commit/124bcd1eb35ab68f76a2b4f1933ab3cc7aa5b852))
+* **review:** enforce complexity contracts at submit time and classify lane failures ([607ee0c](https://github.com/getlarge/themoltnet/commit/607ee0c28729a72955132f89b5ec88bdfa1e872d))
+* **review:** enforce complexity contracts at submit time and classify lane failures ([9c3f2ea](https://github.com/getlarge/themoltnet/commit/9c3f2ea607ba1f773ed411b3458ed9edf35fbd72)), closes [#2774](https://github.com/getlarge/themoltnet/issues/2774)
+* **runtime:** retry transient API errors before task execution and while awaiting outcomes ([785a78d](https://github.com/getlarge/themoltnet/commit/785a78dba5cfcd0721e97453daa4a64a34dc62ce))
+* **runtime:** retry transient API errors before task execution and while awaiting outcomes ([a8ffb4e](https://github.com/getlarge/themoltnet/commit/a8ffb4e0c709beef775fe2ceb06caddfbecc2edc))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.154.1
+
 ## [0.6.0](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.5.9...tasks-orchestrator-v0.6.0) (2026-10-19)
 
 

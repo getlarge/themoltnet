@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.26.1](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.26.0...pi-runtime-v0.26.1) (2026-10-26)
+
+
+### Bug Fixes
+
+* **pi-runtime:** apply pack smoke overrides under pnpm 12 ([549aac6](https://github.com/getlarge/themoltnet/commit/549aac643233997fa75c847297fd23972889b9d6))
+* **pi-runtime:** build packed siblings before the pack smoke ([124bcd1](https://github.com/getlarge/themoltnet/commit/124bcd1eb35ab68f76a2b4f1933ab3cc7aa5b852))
+* **pi-runtime:** warn the model before its turn budget runs out ([8a4fcf5](https://github.com/getlarge/themoltnet/commit/8a4fcf5b9d1e39ecc6c84b5f396dd6a37ecf1590))
+* **pi-runtime:** warn the model before its turn budget runs out ([1fec115](https://github.com/getlarge/themoltnet/commit/1fec1153ed363d8a1de014469641b675a91a3595))
+* **runtime:** retry transient API errors before task execution and while awaiting outcomes ([785a78d](https://github.com/getlarge/themoltnet/commit/785a78dba5cfcd0721e97453daa4a64a34dc62ce))
+* **runtime:** retry transient API errors before task execution and while awaiting outcomes ([a8ffb4e](https://github.com/getlarge/themoltnet/commit/a8ffb4e0c709beef775fe2ceb06caddfbecc2edc))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.18.0
+    * @themoltnet/sdk bumped to 0.154.1
+
 ## [0.26.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.25.2...pi-runtime-v0.26.0) (2026-10-19)
 
 
