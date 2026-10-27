@@ -14,7 +14,8 @@ import {
   type ToolRegistration,
 } from '@earendil-works/pi-durable';
 import type { TelemetryContext } from '@earendil-works/pi-telemetry';
-import { ROOT_CONTEXT, trace } from '@opentelemetry/api';
+import { propagation, ROOT_CONTEXT, trace } from '@opentelemetry/api';
+import { W3CTraceContextPropagator } from '@opentelemetry/core';
 import {
   BasicTracerProvider,
   InMemorySpanExporter,
@@ -1180,6 +1181,7 @@ it('executes models.classify inside native codemode using the registered provide
 });
 
 it('connects native Durable and model spans to the task trace without recording conversation content', async () => {
+  propagation.setGlobalPropagator(new W3CTraceContextPropagator());
   const exporter = new InMemorySpanExporter();
   const provider = new BasicTracerProvider({
     spanProcessors: [new SimpleSpanProcessor(exporter)],
@@ -1209,6 +1211,9 @@ it('connects native Durable and model spans to the task trace without recording 
       ]),
     );
     const request = spans.find((span) => span.name === 'pi.ai.request')!;
+    const submit = spans.find((span) => span.name === 'pi.durable.submit')!;
+    const phase = spans.find((span) => span.name === 'pi.durable.phase')!;
+    expect(phase.parentSpanContext?.spanId).toBe(submit.spanContext().spanId);
     expect(
       spans.find(
         (span) =>
@@ -1230,6 +1235,7 @@ it('connects native Durable and model spans to the task trace without recording 
       ),
     ).not.toContain(summary);
   } finally {
+    propagation.disable();
     host.end();
     await provider.shutdown();
   }
