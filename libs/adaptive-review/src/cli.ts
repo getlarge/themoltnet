@@ -16,7 +16,11 @@ import {
 } from './config.js';
 import type { Lane } from './core.js';
 import { loadAdaptivePolicy } from './snapshot.js';
-import { type WorkerLiveness, type WorkerPool, workerPool } from './workers.js';
+import {
+  type SpecialistPool,
+  type WorkerLiveness,
+  workerPool,
+} from './workers.js';
 import {
   type AdaptivePreparation,
   classifierTaskPossible,
@@ -67,9 +71,8 @@ interface PullRequestEvent {
   };
 }
 
-type SpecialistPool = Exclude<WorkerPool, 'classifier'>;
-
-const PROFILE_ENV: Record<SpecialistPool, string> = {
+/** The environment variable naming each specialist pool's runtime profile. */
+export const PROFILE_ENV: Record<SpecialistPool, string> = {
   docs: 'ADAPTIVE_DOCS_PROFILE',
   complexity: 'ADAPTIVE_COMPLEXITY_PROFILE',
   security: 'ADAPTIVE_SECURITY_PROFILE',
@@ -88,6 +91,35 @@ export function jsonLines<T>(stdout: string): T[] {
     .split('\n')
     .filter(Boolean)
     .map((line) => JSON.parse(line) as T);
+}
+
+/** Keeps the fields of a pull request files API page the trust gate reads. */
+export function pullRequestFiles(pages: unknown): PullRequestFile[] {
+  if (!Array.isArray(pages)) throw new Error('unexpected pull request files');
+  return pages.flat().map((item: unknown) => {
+    const file = item as { filename?: unknown; previous_filename?: unknown };
+    if (typeof file.filename !== 'string')
+      throw new Error('pull request file has no filename');
+    return typeof file.previous_filename === 'string'
+      ? { filename: file.filename, previous_filename: file.previous_filename }
+      : { filename: file.filename };
+  });
+}
+
+/** Annotates a failed stage and returns the process exit code. */
+export function reportStageFailure(
+  stage: string | undefined,
+  error: unknown,
+  write: { stdout(text: string): void; stderr(text: string): void },
+): number {
+  const message = error instanceof Error ? error.message : String(error);
+  write.stdout(
+    `::error::Adaptive ${workflowCommandValue(stage || 'unknown')} stage failed: ${workflowCommandValue(message)}\n`,
+  );
+  write.stderr(
+    `${error instanceof Error && error.stack ? error.stack : message}\n`,
+  );
+  return 1;
 }
 
 /** One drain worker per runnable task, grouped by the profile that claims it. */
@@ -205,17 +237,67 @@ async function runOptions(
     cwd: deps.cwd,
     runtimeSha: required('ADAPTIVE_RUNTIME_SHA', env),
     taskBudgets,
-    profiles: {
-      ...Object.fromEntries(
-        [...new Set(lanes.map(workerPool))].map((pool) => [
-          pool,
-          resolve(required(PROFILE_ENV[pool], env)),
-        ]),
-      ),
-    },
+    profiles: Object.fromEntries(
+      [...new Set(lanes.map(workerPool))].map((pool) => [
+        pool,
+        resolve(required(PROFILE_ENV[pool], env)),
+      ]),
+    ),
     projectId: env.MOLTNET_PROJECT_ID || undefined,
     workers: deps.workers(),
   };
+}
+
+function plan(deps: CliDeps, prepared: Prepared, enabled: boolean): number {
+  if (!enabled)
+    deps.stdout(
+      `::notice::Adaptive review skipped: no adaptive review policy on base ${prepared.base}\n`,
+    );
+  writeOutputs(deps.env, {
+    'review-enabled': enabled,
+    'classifier-needed':
+      enabled && classifierTaskPossible(deps.cwd, prepared.base, prepared.head),
+  });
+  return 0;
+}
+
+async function route(deps: CliDeps, options: RunOptions): Promise<number> {
+  const { env } = deps;
+  const preparation = await prepareAdaptiveReview(options);
+  writeFileSync(
+    required('ADAPTIVE_ROUTE', env),
+    `${JSON.stringify(preparation, null, 2)}\n`,
+    { mode: 0o600 },
+  );
+  const matrix = specialistMatrix(preparation, env);
+  writeOutputs(env, {
+    specialists: JSON.stringify(matrix),
+    'has-specialists': matrix.include.length > 0,
+  });
+  deps.stdout(
+    `Adaptive routing finished: ${preparation.routing.routes
+      .filter((item) => item.run)
+      .map((item) => item.lane)
+      .join(', ')}\n`,
+  );
+  return 0;
+}
+
+async function review(deps: CliDeps, options: RunOptions): Promise<number> {
+  const { env } = deps;
+  const preparation = JSON.parse(
+    readFileSync(required('ADAPTIVE_ROUTE', env), 'utf8'),
+  ) as AdaptivePreparation;
+  const report = await runRoutedAdaptiveReview(options, preparation);
+  writeFileSync(
+    required('ADAPTIVE_REPORT', env),
+    `${JSON.stringify(report, null, 2)}\n`,
+    { mode: 0o600 },
+  );
+  deps.stdout(
+    `Adaptive review finished: ${report.results.map((result) => `${result.lane}=${result.status}`).join(', ')}\n`,
+  );
+  return report.results.some((result) => result.status === 'failed') ? 1 : 0;
 }
 
 /**
@@ -241,54 +323,9 @@ export async function runAdaptiveStage(
       `PR revisions changed after preparation: head ${prepared.head} -> ${current.head}, base ${prepared.base} -> ${current.base}`,
     );
   const snapshot = loadAdaptivePolicy(createGit(deps.cwd), prepared.base);
-  if (stage === 'plan') {
-    const enabled = snapshot !== null;
-    if (!enabled)
-      deps.stdout(
-        `::notice::Adaptive review skipped: no adaptive review policy on base ${prepared.base}\n`,
-      );
-    writeOutputs(env, {
-      'review-enabled': enabled,
-      'classifier-needed':
-        enabled &&
-        classifierTaskPossible(deps.cwd, prepared.base, prepared.head),
-    });
-    return 0;
-  }
+  if (stage === 'plan') return plan(deps, prepared, snapshot !== null);
   if (!snapshot)
     throw new Error('adaptive review policy is absent on the base');
   const options = await runOptions(deps, prepared, snapshot.policy.lanes);
-  if (stage === 'route') {
-    const preparation = await prepareAdaptiveReview(options);
-    writeFileSync(
-      required('ADAPTIVE_ROUTE', env),
-      `${JSON.stringify(preparation, null, 2)}\n`,
-      { mode: 0o600 },
-    );
-    const matrix = specialistMatrix(preparation, env);
-    writeOutputs(env, {
-      specialists: JSON.stringify(matrix),
-      'has-specialists': matrix.include.length > 0,
-    });
-    deps.stdout(
-      `Adaptive routing finished: ${preparation.routing.routes
-        .filter((route) => route.run)
-        .map((route) => route.lane)
-        .join(', ')}\n`,
-    );
-    return 0;
-  }
-  const preparation = JSON.parse(
-    readFileSync(required('ADAPTIVE_ROUTE', env), 'utf8'),
-  ) as AdaptivePreparation;
-  const report = await runRoutedAdaptiveReview(options, preparation);
-  writeFileSync(
-    required('ADAPTIVE_REPORT', env),
-    `${JSON.stringify(report, null, 2)}\n`,
-    { mode: 0o600 },
-  );
-  deps.stdout(
-    `Adaptive review finished: ${report.results.map((result) => `${result.lane}=${result.status}`).join(', ')}\n`,
-  );
-  return report.results.some((result) => result.status === 'failed') ? 1 : 0;
+  return stage === 'route' ? route(deps, options) : review(deps, options);
 }

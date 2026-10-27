@@ -34,10 +34,16 @@ import {
   type LaneResult,
   logClassifierFailure,
   logLaneFailure,
+  withCreateHook,
 } from './lane.js';
 import { runSecurityLane } from './security-lane.js';
 import { changedPaths, loadAdaptivePolicy } from './snapshot.js';
-import { guardWorkers, type WorkerLiveness, workerPool } from './workers.js';
+import {
+  guardWorkers,
+  type SpecialistPool,
+  type WorkerLiveness,
+  workerPool,
+} from './workers.js';
 
 export type { LaneResult } from './lane.js';
 
@@ -88,9 +94,7 @@ export interface RunOptions {
   mode: Mode;
   tasks: TaskClient;
   cwd: string;
-  profiles: Partial<
-    Record<'docs' | 'complexity' | 'security' | 'focused', string>
-  >;
+  profiles: Partial<Record<SpecialistPool, string>>;
   taskBudgets: ReviewTaskBudgets;
   runtimeSha: string;
   projectId?: string;
@@ -114,17 +118,7 @@ function classifyOutput(output: unknown): ClassifyOutput {
 
 /** Records the IDs of tasks a lane creates, for failure reporting. */
 function trackingTaskClient(tasks: TaskClient, taskIds: string[]): TaskClient {
-  const listMessages = tasks.listMessages?.bind(tasks);
-  return {
-    async createTask(body, options) {
-      const task = await tasks.createTask(body, options);
-      taskIds.push(task.id);
-      return task;
-    },
-    getTask: (id) => tasks.getTask(id),
-    listAttempts: (id) => tasks.listAttempts(id),
-    ...(listMessages ? { listMessages } : {}),
-  };
+  return withCreateHook(tasks, (task) => taskIds.push(task.id));
 }
 
 const LANE_RUNNERS: Record<Lane, (ctx: LaneContext) => Promise<LaneResult>> = {

@@ -10,8 +10,11 @@ export type WorkerPool =
   | 'security'
   | 'focused';
 
+/** A pool of specialist workers, each running one runtime profile. */
+export type SpecialistPool = Exclude<WorkerPool, 'classifier'>;
+
 /** The specialist pool whose workers claim a lane's tasks. */
-export function workerPool(lane: Lane): Exclude<WorkerPool, 'classifier'> {
+export function workerPool(lane: Lane): SpecialistPool {
   return lane === 'tests' || lane === 'conventions' || lane === 'blast-radius'
     ? 'focused'
     : lane;

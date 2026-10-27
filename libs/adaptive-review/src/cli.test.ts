@@ -16,6 +16,8 @@ import {
   type CliDeps,
   jsonLines,
   type Prepared,
+  pullRequestFiles,
+  reportStageFailure,
   runAdaptiveStage,
   specialistMatrix,
 } from './cli.js';
@@ -450,6 +452,65 @@ describe('route and review failures', () => {
     );
     expect(readFileSync(file('github-output'), 'utf8')).toBe('');
   });
+});
+
+describe('stage dispatch', () => {
+  it.each(['', 'publish', 'Plan'])('rejects stage %j', async (stage) => {
+    const { deps: cli } = deps();
+
+    await expect(runAdaptiveStage(stage, cli)).rejects.toThrow(
+      'ADAPTIVE_STAGE must be prepare, plan, route, or review',
+    );
+  });
+
+  it('scopes worker tasks to the configured project', async () => {
+    writeFileSync(file('prepared.json'), JSON.stringify(prepared));
+    mocks.prepareAdaptiveReview.mockResolvedValue({
+      routing: { routes: [] },
+      docsTaskPossible: false,
+    });
+    const { deps: cli } = deps();
+
+    await runAdaptiveStage('route', {
+      ...cli,
+      env: { ...cli.env, MOLTNET_PROJECT_ID: 'project-1' },
+    });
+
+    expect(mocks.prepareAdaptiveReview).toHaveBeenCalledWith(
+      expect.objectContaining({ projectId: 'project-1' }),
+    );
+  });
+
+  it('annotates a failed stage with an escaped message and keeps the stack', () => {
+    const stdout = vi.fn();
+    const stderr = vi.fn();
+    const error = new Error('bad\n::error::forged');
+
+    expect(reportStageFailure(undefined, error, { stdout, stderr })).toBe(1);
+
+    expect(stdout).toHaveBeenCalledWith(
+      '::error::Adaptive unknown stage failed: bad%0A::error::forged\n',
+    );
+    expect(stderr).toHaveBeenCalledWith(`${error.stack}\n`);
+  });
+});
+
+describe('pullRequestFiles', () => {
+  it('keeps the old path of a rename across pages', () => {
+    expect(
+      pullRequestFiles([
+        [{ filename: 'a', status: 'modified', patch: '@@' }],
+        [{ filename: 'b', previous_filename: 'c', status: 'renamed' }],
+      ]),
+    ).toEqual([{ filename: 'a' }, { filename: 'b', previous_filename: 'c' }]);
+  });
+
+  it.each([[{}], [[{ status: 'added' }]]])(
+    'rejects a malformed response %j',
+    (pages) => {
+      expect(() => pullRequestFiles(pages)).toThrow();
+    },
+  );
 });
 
 describe('jsonLines', () => {

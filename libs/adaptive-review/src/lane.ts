@@ -1,5 +1,6 @@
 import type { ReviewEvidence } from '@moltnet/complexity-review/evidence';
 import { createSleepingContext, type Git } from '@moltnet/docs-impact-review';
+import { workflowCommandValue } from '@moltnet/docs-impact-review/workflow-command';
 import {
   type TaskClient,
   TaskOutcomeError,
@@ -59,8 +60,6 @@ export function laneFailureCode(reason: unknown): string {
     return 'invalid-complexity-rubric';
   if (reason.message.startsWith('missing runtime profile for enabled '))
     return 'missing-profile';
-  if (reason.message.startsWith('missing task budget for enabled '))
-    return 'missing-budget';
   if (/^invalid (tests|conventions|blast-radius) result$/.test(reason.message))
     return 'invalid-focused-result';
   if (/ finding does not cite a changed line$/.test(reason.message))
@@ -88,9 +87,32 @@ export function logLaneFailure(
 ): void {
   // Report errors can contain untrusted PR text or credentials. Log only
   // fixed diagnostic fields and task IDs; never log the raw error.
-  process.stderr.write(
-    `Adaptive lane failure: lane=${lane} stage=${stage} code=${code} taskIds=${taskIds.join(',') || 'none'}\n`,
+  const fields = `lane=${lane} stage=${stage} code=${code} taskIds=${taskIds.join(',') || 'none'}`;
+  process.stderr.write(`Adaptive lane failure: ${fields}\n`);
+  process.stdout.write(
+    `::error title=Adaptive lane failed::${workflowCommandValue(fields)}\n`,
   );
+}
+
+/** Passes every call through, running `hook` after each task is created. */
+export function withCreateHook(
+  tasks: TaskClient,
+  hook: (
+    task: Awaited<ReturnType<TaskClient['createTask']>>,
+    body: Parameters<TaskClient['createTask']>[0],
+  ) => void,
+): TaskClient {
+  const listMessages = tasks.listMessages?.bind(tasks);
+  return {
+    async createTask(body, options) {
+      const task = await tasks.createTask(body, options);
+      hook(task, body);
+      return task;
+    },
+    getTask: (id) => tasks.getTask(id),
+    listAttempts: (id) => tasks.listAttempts(id),
+    ...(listMessages ? { listMessages } : {}),
+  };
 }
 
 export function logClassifierFailure(

@@ -1,13 +1,19 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
-import type { PullRequestFile } from '@moltnet/docs-impact-review/eligibility';
 import { workflowCommandValue } from '@moltnet/docs-impact-review/workflow-command';
 import { connect } from '@themoltnet/sdk/node';
 import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 
-import { type CliDeps, jsonLines, runAdaptiveStage } from './cli.js';
-import { env, required } from './config.js';
+import {
+  type CliDeps,
+  jsonLines,
+  PROFILE_ENV,
+  pullRequestFiles,
+  reportStageFailure,
+  runAdaptiveStage,
+} from './cli.js';
+import { env } from './config.js';
 import {
   type WorkerJob,
   type WorkerLiveness,
@@ -29,12 +35,12 @@ function runWorkerLiveness(): WorkerLiveness | undefined {
   const path = `repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT || '1'}/jobs?per_page=100`;
   let reported = false;
   return workflowWorkerLiveness({
-    profiles: {
-      docs: env().ADAPTIVE_DOCS_PROFILE || undefined,
-      complexity: env().ADAPTIVE_COMPLEXITY_PROFILE || undefined,
-      security: env().ADAPTIVE_SECURITY_PROFILE || undefined,
-      focused: env().ADAPTIVE_FOCUSED_PROFILE || undefined,
-    },
+    profiles: Object.fromEntries(
+      Object.entries(PROFILE_ENV).map(([pool, name]) => [
+        pool,
+        env()[name] || undefined,
+      ]),
+    ),
     async listJobs() {
       return jsonLines<WorkerJob>(
         await gh([
@@ -46,12 +52,17 @@ function runWorkerLiveness(): WorkerLiveness | undefined {
         ]),
       );
     },
-    onLookupError() {
+    onLookupError(error) {
       // Liveness is advisory: keep waiting on the task budgets instead.
       if (reported) return;
       reported = true;
-      process.stderr.write(
-        'Adaptive worker liveness unavailable; waiting on task budgets.\n',
+      const cause = (error instanceof Error ? error.message : String(error))
+        .trim()
+        .split('\n')
+        .at(-1)
+        ?.slice(0, 200);
+      process.stdout.write(
+        `::warning::Adaptive worker liveness unavailable (${workflowCommandValue(cause ?? 'unknown error')}); waiting on task budgets.\n`,
       );
     },
   });
@@ -76,14 +87,15 @@ const deps: CliDeps = {
       return { head: current.headRefOid, base: current.baseRefOid };
     },
     async files(repo, pr) {
-      return jsonLines<PullRequestFile>(
-        await gh([
-          'api',
-          '--paginate',
-          `repos/${repo}/pulls/${pr}/files?per_page=100`,
-          '--jq',
-          '.[] | {filename} + (if .previous_filename then {previous_filename} else {} end)',
-        ]),
+      return pullRequestFiles(
+        JSON.parse(
+          await gh([
+            'api',
+            '--paginate',
+            '--slurp',
+            `repos/${repo}/pulls/${pr}/files?per_page=100`,
+          ]),
+        ),
       );
     },
   },
@@ -101,17 +113,14 @@ const deps: CliDeps = {
 };
 
 async function main(): Promise<void> {
-  const stage = env().ADAPTIVE_STAGE ?? '';
+  const stage = env().ADAPTIVE_STAGE;
   try {
-    process.exitCode = await runAdaptiveStage(required('ADAPTIVE_STAGE'), deps);
+    process.exitCode = await runAdaptiveStage(stage ?? '', deps);
   } catch (error) {
-    process.stdout.write(
-      `::error::Adaptive ${workflowCommandValue(stage || 'review')} stage failed: ${workflowCommandValue(error instanceof Error ? error.message : String(error))}\n`,
-    );
-    process.stderr.write(
-      `${error instanceof Error && error.stack ? error.stack : String(error)}\n`,
-    );
-    process.exitCode = 1;
+    process.exitCode = reportStageFailure(stage, error, {
+      stdout: (text) => process.stdout.write(text),
+      stderr: (text) => process.stderr.write(text),
+    });
   }
 }
 
