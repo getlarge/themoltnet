@@ -26,6 +26,7 @@ const Attempts = defineDocFamily({
   version: 1,
   scope: 'session',
   family: true,
+  checkpointWhen: () => false,
   initial: (conversationId: number) => ({ conversationId }),
 });
 // Only persisted ownership is needed; a worker never executes this task.
