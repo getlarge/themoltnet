@@ -145,6 +145,9 @@ profiles for each lane enabled in `.github/adaptive-review.json`.
 include the caller workflow and any trusted runtime configuration it owns.
 The prepare job applies the docs impact review's eligibility rules: it skips
 fork and Dependabot pull requests, pull requests whose file list GitHub
-truncated, and pull requests that change a protected path.
+truncated, and pull requests that change a protected path. Fork and
+Dependabot pull requests are screened from the event before the runtime is
+installed; the other rules need the file list and run in the installed CLI.
+The job skips unless that check explicitly admits the pull request.
 For private repositories, bind workers to a private diary; the review report
 does not require a public diary.

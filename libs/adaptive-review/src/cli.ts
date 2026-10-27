@@ -9,10 +9,14 @@ import {
 import { workflowCommandValue } from '@moltnet/docs-impact-review/workflow-command';
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 
-import { formatReviewTaskBudgets, parseReviewTaskBudgets } from './config.js';
+import {
+  formatReviewTaskBudgets,
+  parseReviewTaskBudgets,
+  required,
+} from './config.js';
 import type { Lane } from './core.js';
 import { loadAdaptivePolicy } from './snapshot.js';
-import type { WorkerLiveness } from './workers.js';
+import { type WorkerLiveness, type WorkerPool, workerPool } from './workers.js';
 import {
   type AdaptivePreparation,
   classifierTaskPossible,
@@ -63,14 +67,28 @@ interface PullRequestEvent {
   };
 }
 
-const PROFILE_ENV: Record<Lane, string> = {
+type SpecialistPool = Exclude<WorkerPool, 'classifier'>;
+
+const PROFILE_ENV: Record<SpecialistPool, string> = {
   docs: 'ADAPTIVE_DOCS_PROFILE',
   complexity: 'ADAPTIVE_COMPLEXITY_PROFILE',
   security: 'ADAPTIVE_SECURITY_PROFILE',
-  tests: 'ADAPTIVE_FOCUSED_PROFILE',
-  conventions: 'ADAPTIVE_FOCUSED_PROFILE',
-  'blast-radius': 'ADAPTIVE_FOCUSED_PROFILE',
+  focused: 'ADAPTIVE_FOCUSED_PROFILE',
 };
+
+function profileEnv(lane: Lane): string {
+  const name = PROFILE_ENV[workerPool(lane)];
+  if (!name) throw new Error(`Unknown review lane: ${lane}`);
+  return name;
+}
+
+/** `gh api --paginate --jq` output: one JSON value per line. */
+export function jsonLines<T>(stdout: string): T[] {
+  return stdout
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => JSON.parse(line) as T);
+}
 
 /** One drain worker per runnable task, grouped by the profile that claims it. */
 export function specialistMatrix(
@@ -81,8 +99,7 @@ export function specialistMatrix(
   for (const route of preparation.routing.routes) {
     if (!route.run) continue;
     if (route.lane === 'docs' && !preparation.docsTaskPossible) continue;
-    const profile = env[PROFILE_ENV[route.lane]];
-    if (!profile) throw new Error(`${PROFILE_ENV[route.lane]} is required`);
+    const profile = required(profileEnv(route.lane), env);
     capacity.set(profile, (capacity.get(profile) ?? 0) + 1);
   }
   return {
@@ -95,29 +112,24 @@ export function specialistMatrix(
   };
 }
 
-function required(env: NodeJS.ProcessEnv, name: string): string {
-  const value = env[name];
-  if (!value) throw new Error(`${name} is required`);
-  return value;
-}
-
 function writeOutputs(
   env: NodeJS.ProcessEnv,
   outputs: Record<string, string | boolean>,
 ): void {
-  appendFileSync(
-    required(env, 'GITHUB_OUTPUT'),
-    Object.entries(outputs)
-      .map(([key, value]) => `${key}=${String(value)}\n`)
-      .join(''),
-  );
+  const lines = Object.entries(outputs).map(([key, value]) => {
+    // One line per output: a newline would let a value set another output.
+    if (/[\r\n]/.test(String(value)))
+      throw new Error(`output ${key} must be a single line`);
+    return `${key}=${String(value)}\n`;
+  });
+  appendFileSync(required('GITHUB_OUTPUT', env), lines.join(''));
 }
 
 async function prepare(deps: CliDeps): Promise<number> {
   const { env } = deps;
-  const repo = required(env, 'GITHUB_REPOSITORY');
+  const repo = required('GITHUB_REPOSITORY', env);
   const event = JSON.parse(
-    readFileSync(required(env, 'GITHUB_EVENT_PATH'), 'utf8'),
+    readFileSync(required('GITHUB_EVENT_PATH', env), 'utf8'),
   ) as PullRequestEvent;
   const pr = event.pull_request;
   const eligibility = checkEligibility({
@@ -160,7 +172,7 @@ async function runOptions(
   lanes: readonly Lane[],
 ): Promise<RunOptions> {
   const { env } = deps;
-  const mode = required(env, 'ADAPTIVE_MODE');
+  const mode = required('ADAPTIVE_MODE', env);
   if (mode !== 'shadow' && mode !== 'active')
     throw new Error('ADAPTIVE_MODE must be shadow or active');
   const taskBudgets = parseReviewTaskBudgets(env.ADAPTIVE_TASK_BUDGETS, lanes);
@@ -169,7 +181,7 @@ async function runOptions(
       env.GITHUB_STEP_SUMMARY,
       formatReviewTaskBudgets(taskBudgets),
     );
-  const teamId = required(env, 'MOLTNET_TEAM_ID');
+  const teamId = required('MOLTNET_TEAM_ID', env);
   const client = await deps.connect();
   const items = await client.profiles(teamId);
   const resolve = (name: string): string => {
@@ -179,35 +191,27 @@ async function runOptions(
     if (!profile) throw new Error(`runtime profile ${name} not found`);
     return profile.id;
   };
-  const enabled = (...candidates: Lane[]) =>
-    candidates.some((lane) => lanes.includes(lane));
   return {
     identity: {
       ...prepared,
       teamId,
-      diaryId: required(env, 'MOLTNET_DIARY_ID'),
+      diaryId: required('MOLTNET_DIARY_ID', env),
       classifierProfileId: resolve(
-        required(env, 'ADAPTIVE_CLASSIFIER_PROFILE'),
+        required('ADAPTIVE_CLASSIFIER_PROFILE', env),
       ),
     },
     mode,
     tasks: client.tasks,
     cwd: deps.cwd,
-    runtimeSha: required(env, 'ADAPTIVE_RUNTIME_SHA'),
+    runtimeSha: required('ADAPTIVE_RUNTIME_SHA', env),
     taskBudgets,
     profiles: {
-      ...(enabled('docs')
-        ? { docs: resolve(required(env, 'ADAPTIVE_DOCS_PROFILE')) }
-        : {}),
-      ...(enabled('complexity')
-        ? { complexity: resolve(required(env, 'ADAPTIVE_COMPLEXITY_PROFILE')) }
-        : {}),
-      ...(enabled('security')
-        ? { security: resolve(required(env, 'ADAPTIVE_SECURITY_PROFILE')) }
-        : {}),
-      ...(enabled('tests', 'conventions', 'blast-radius')
-        ? { focused: resolve(required(env, 'ADAPTIVE_FOCUSED_PROFILE')) }
-        : {}),
+      ...Object.fromEntries(
+        [...new Set(lanes.map(workerPool))].map((pool) => [
+          pool,
+          resolve(required(PROFILE_ENV[pool], env)),
+        ]),
+      ),
     },
     projectId: env.MOLTNET_PROJECT_ID || undefined,
     workers: deps.workers(),
@@ -229,14 +233,20 @@ export async function runAdaptiveStage(
   if (stage !== 'plan' && stage !== 'route' && stage !== 'review')
     throw new Error('ADAPTIVE_STAGE must be prepare, plan, route, or review');
   const prepared = JSON.parse(
-    readFileSync(required(env, 'ADAPTIVE_PREPARED'), 'utf8'),
+    readFileSync(required('ADAPTIVE_PREPARED', env), 'utf8'),
   ) as Prepared;
   const current = await deps.github.revisions(prepared.repo, prepared.pr);
   if (current.head !== prepared.head || current.base !== prepared.base)
-    throw new Error('PR revisions changed after preparation');
+    throw new Error(
+      `PR revisions changed after preparation: head ${prepared.head} -> ${current.head}, base ${prepared.base} -> ${current.base}`,
+    );
   const snapshot = loadAdaptivePolicy(createGit(deps.cwd), prepared.base);
   if (stage === 'plan') {
     const enabled = snapshot !== null;
+    if (!enabled)
+      deps.stdout(
+        `::notice::Adaptive review skipped: no adaptive review policy on base ${prepared.base}\n`,
+      );
     writeOutputs(env, {
       'review-enabled': enabled,
       'classifier-needed':
@@ -251,7 +261,7 @@ export async function runAdaptiveStage(
   if (stage === 'route') {
     const preparation = await prepareAdaptiveReview(options);
     writeFileSync(
-      required(env, 'ADAPTIVE_ROUTE'),
+      required('ADAPTIVE_ROUTE', env),
       `${JSON.stringify(preparation, null, 2)}\n`,
       { mode: 0o600 },
     );
@@ -269,11 +279,11 @@ export async function runAdaptiveStage(
     return 0;
   }
   const preparation = JSON.parse(
-    readFileSync(required(env, 'ADAPTIVE_ROUTE'), 'utf8'),
+    readFileSync(required('ADAPTIVE_ROUTE', env), 'utf8'),
   ) as AdaptivePreparation;
   const report = await runRoutedAdaptiveReview(options, preparation);
   writeFileSync(
-    required(env, 'ADAPTIVE_REPORT'),
+    required('ADAPTIVE_REPORT', env),
     `${JSON.stringify(report, null, 2)}\n`,
     { mode: 0o600 },
   );

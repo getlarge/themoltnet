@@ -163,8 +163,11 @@ export function env(): NodeJS.ProcessEnv {
   return process.env;
 }
 
-export function required(name: string): string {
-  const value = env()[name];
+export function required(
+  name: string,
+  source: NodeJS.ProcessEnv = env(),
+): string {
+  const value = source[name];
   if (!value) throw new Error(`${name} is required`);
   return value;
 }

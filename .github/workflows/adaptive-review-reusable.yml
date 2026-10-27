@@ -96,7 +96,8 @@ jobs:
       contents: read
       pull-requests: read
     outputs:
-      skip: ${{ steps.pin.outputs.skip == 'true' || steps.plan.outputs.review-enabled != 'true' }}
+      # Fail closed: only an explicit pin verdict of false lets the review run.
+      skip: ${{ steps.pin.outputs.skip != 'false' || steps.plan.outputs.review-enabled != 'true' }}
       prepared: ${{ steps.pin.outputs.prepared }}
       base: ${{ steps.pin.outputs.base }}
       head: ${{ steps.pin.outputs.head }}
@@ -145,9 +146,28 @@ jobs:
       - name: Pin runtime commit
         id: runtime-pin
         run: echo "sha=$(git -C .adaptive-review-runtime rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      # Fork and Dependabot PRs are ineligible from the event alone; skip them
+      # before the install. The pin step still applies every eligibility rule.
+      - name: Screen pull request source
+        id: screen
+        env:
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          if [ "$HEAD_REPOSITORY" != "$GITHUB_REPOSITORY" ]; then
+            echo '::notice::Adaptive review skipped: fork pull requests are not reviewed'
+            echo 'eligible=false' >> "$GITHUB_OUTPUT"
+          elif [ "$AUTHOR" = 'dependabot[bot]' ]; then
+            echo '::notice::Adaptive review skipped: Dependabot pull requests are not reviewed'
+            echo 'eligible=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'eligible=true' >> "$GITHUB_OUTPUT"
+          fi
       - uses: ./.adaptive-review-runtime/packages/adaptive-review-action/setup
+        if: steps.screen.outputs.eligible == 'true'
       - name: Pin reviewed PR and protect the runtime
         id: pin
+        if: steps.screen.outputs.eligible == 'true'
         uses: ./.adaptive-review-runtime/packages/adaptive-review-action
         env:
           GH_TOKEN: ${{ github.token }}

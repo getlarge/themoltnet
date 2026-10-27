@@ -26,7 +26,7 @@ import {
   taskKey,
 } from './core.js';
 import { runDocsLane } from './docs-lane.js';
-import { runFocused } from './focused-lane.js';
+import { runFocusedLane } from './focused-lane.js';
 import {
   accepted,
   type LaneContext,
@@ -35,13 +35,9 @@ import {
   logClassifierFailure,
   logLaneFailure,
 } from './lane.js';
-import { runSecurity } from './security-lane.js';
+import { runSecurityLane } from './security-lane.js';
 import { changedPaths, loadAdaptivePolicy } from './snapshot.js';
-import {
-  guardWorkers,
-  type WorkerLiveness,
-  type WorkerPool,
-} from './workers.js';
+import { guardWorkers, type WorkerLiveness, workerPool } from './workers.js';
 
 export type { LaneResult } from './lane.js';
 
@@ -102,12 +98,6 @@ export interface RunOptions {
   workers?: WorkerLiveness;
 }
 
-function workerPool(lane: Lane): Exclude<WorkerPool, 'classifier'> {
-  return lane === 'tests' || lane === 'conventions' || lane === 'blast-radius'
-    ? 'focused'
-    : lane;
-}
-
 function requiredProfile(options: RunOptions, lane: Lane): string {
   const value = options.profiles[workerPool(lane)];
   if (!value)
@@ -140,10 +130,10 @@ function trackingTaskClient(tasks: TaskClient, taskIds: string[]): TaskClient {
 const LANE_RUNNERS: Record<Lane, (ctx: LaneContext) => Promise<LaneResult>> = {
   docs: runDocsLane,
   complexity: runComplexityLane,
-  security: runSecurity,
-  tests: (ctx) => runFocused('tests', ctx),
-  conventions: (ctx) => runFocused('conventions', ctx),
-  'blast-radius': (ctx) => runFocused('blast-radius', ctx),
+  security: runSecurityLane,
+  tests: (ctx) => runFocusedLane('tests', ctx),
+  conventions: (ctx) => runFocusedLane('conventions', ctx),
+  'blast-radius': (ctx) => runFocusedLane('blast-radius', ctx),
 };
 
 function projectScopedTaskClient(

@@ -1,26 +1,17 @@
-import type { ReviewEvidence } from '@moltnet/complexity-review/evidence';
 import { changedLines } from '@moltnet/security-review/review';
 import { toOutputContractSchema } from '@moltnet/task-schemas';
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 import { Type } from 'typebox';
 import { Value } from 'typebox/value';
 
-import type { TaskBudget } from './config.js';
-import {
-  applicableRules,
-  type ChangedPath,
-  mechanicalConcerns,
-  type ReviewIdentity,
-  taskKey,
-} from './core.js';
+import { applicableRules, mechanicalConcerns, taskKey } from './core.js';
 import {
   accepted,
   type LaneContext,
   type LaneResult,
-  MAX_FOCUSED_DIFF_BYTES,
+  MAX_INLINE_DIFF_BYTES,
   unwrap,
 } from './lane.js';
-import type { AdaptivePolicy } from './policy.js';
 
 export type FocusedLane = 'tests' | 'conventions' | 'blast-radius';
 
@@ -47,13 +38,8 @@ const FocusedOutput = Type.Object(
   { additionalProperties: false },
 );
 
-function focusBrief(
-  lane: FocusedLane,
-  identity: ReviewIdentity,
-  evidence: ReviewEvidence,
-  changes: readonly ChangedPath[],
-  policy: AdaptivePolicy,
-): string {
+function focusBrief(lane: FocusedLane, ctx: LaneContext): string {
+  const { identity, evidence, changes, policy } = ctx;
   const heading: Record<FocusedLane, string> = {
     tests:
       'Check whether behavior introduced by changed lines has proportional tests. Inspect relevant tests and callers. Report a concern only when a concrete changed behavior lacks meaningful coverage or a test was weakened.',
@@ -77,7 +63,7 @@ function focusBrief(
     `Mechanical candidates: ${JSON.stringify(concerns)}`,
     `Generated paths omitted from inline evidence: ${JSON.stringify(evidence.generatedPaths)}`,
     `Manifest:\n${evidence.manifest}`,
-    ...(evidence.bytes <= MAX_FOCUSED_DIFF_BYTES
+    ...(evidence.bytes <= MAX_INLINE_DIFF_BYTES
       ? evidence.files.map(
           (file) => `Path ${JSON.stringify(file.path)}:\n${file.patch}`,
         )
@@ -87,15 +73,8 @@ function focusBrief(
   ].join('\n\n');
 }
 
-function createFocusedBody(
-  lane: FocusedLane,
-  identity: ReviewIdentity,
-  evidence: ReviewEvidence,
-  changes: readonly ChangedPath[],
-  policy: AdaptivePolicy,
-  profileId: string,
-  budget: TaskBudget,
-) {
+function createFocusedBody(lane: FocusedLane, ctx: LaneContext) {
+  const { identity, profileId, budget } = ctx;
   return {
     taskType: 'freeform' as const,
     title: `Adaptive ${lane} review ${identity.repo}#${identity.pr}`,
@@ -113,7 +92,7 @@ function createFocusedBody(
       `revision:${identity.head}`,
     ],
     input: {
-      brief: focusBrief(lane, identity, evidence, changes, policy),
+      brief: focusBrief(lane, ctx),
       expectedOutput:
         'Submit the requested structured result and a short summary.',
       outputContract: {
@@ -133,25 +112,14 @@ function createFocusedBody(
   } satisfies Parameters<TaskClient['createTask']>[0];
 }
 
-export async function runFocused(
+export async function runFocusedLane(
   lane: FocusedLane,
   ctx: LaneContext,
 ): Promise<LaneResult> {
-  const { identity, evidence, changes, policy, tasks, profileId, budget } = ctx;
-  const task = await tasks.createTask(
-    createFocusedBody(
-      lane,
-      identity,
-      evidence,
-      changes,
-      policy,
-      profileId,
-      budget,
-    ),
-    {
-      idempotencyKey: taskKey(identity, lane),
-    },
-  );
+  const { identity, evidence, tasks } = ctx;
+  const task = await tasks.createTask(createFocusedBody(lane, ctx), {
+    idempotencyKey: taskKey(identity, lane),
+  });
   const changed = changedLines(
     evidence.files.map((file) => file.patch).join('\n'),
   );

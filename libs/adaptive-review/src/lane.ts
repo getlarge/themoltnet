@@ -12,7 +12,7 @@ import type { AdaptivePolicy } from './policy.js';
 import { WorkerUnavailableError } from './workers.js';
 
 /** Inline diff budget shared by the focused and security briefs. */
-export const MAX_FOCUSED_DIFF_BYTES = 120_000;
+export const MAX_INLINE_DIFF_BYTES = 120_000;
 
 export interface LaneResult {
   lane: Lane;

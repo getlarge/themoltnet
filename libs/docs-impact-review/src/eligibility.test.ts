@@ -16,17 +16,45 @@ const PROTECTED = [
 ];
 
 function pr(overrides: Partial<PullRequestFacts> = {}): PullRequestFacts {
+  const files = overrides.files ?? [{ filename: 'apps/cli/src/flags.ts' }];
   return {
     headRepo: REPO,
     baseRepo: REPO,
     author: 'someone',
-    files: [{ filename: 'apps/cli/src/flags.ts' }],
+    files,
+    changedFiles: files.length,
     protectedPaths: PROTECTED,
     ...overrides,
   };
 }
 
 describe('checkEligibility', () => {
+  it('admits a file list longer than the reported count', () => {
+    // Act / Assert
+    expect(checkEligibility(pr({ changedFiles: 0 }))).toEqual({
+      eligible: true,
+    });
+  });
+
+  it.each([
+    './libs/docs-impact-review/',
+    '/libs/docs-impact-review/',
+    '  libs/docs-impact-review/  ',
+    'libs/docs-impact-review/\r',
+    './/libs/docs-impact-review/',
+  ])('normalizes the protected prefix %j', (prefix) => {
+    // Act
+    const result = checkEligibility(
+      pr({
+        files: [{ filename: 'libs/docs-impact-review/src/review.ts' }],
+        protectedPaths: [prefix],
+      }),
+    );
+
+    // Assert
+    expect(result).toMatchObject({ eligible: false });
+  });
+
   it('admits a same-repository PR that leaves the runtime alone', () => {
     // Act / Assert
     expect(checkEligibility(pr())).toEqual({ eligible: true });

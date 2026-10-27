@@ -26,6 +26,7 @@ interface Step {
 
 interface Job {
   if?: string;
+  env?: Record<string, string>;
   needs?: string | string[];
   permissions?: Record<string, string>;
   outputs?: Record<string, string>;
@@ -69,16 +70,14 @@ function job(name: string): Job {
   return value;
 }
 
-function step(name: string, predicate: (step: Step) => boolean): Step {
-  const found = job(name).steps.find(predicate);
-  if (!found) throw new Error(`Step is missing in ${name}`);
-  return found;
-}
-
 function stepIndex(name: string, predicate: (step: Step) => boolean): number {
   const index = job(name).steps.findIndex(predicate);
   if (index < 0) throw new Error(`Step is missing in ${name}`);
   return index;
+}
+
+function step(name: string, predicate: (step: Step) => boolean): Step {
+  return job(name).steps[stepIndex(name, predicate)];
 }
 
 function workerAction(name: string): Step {
@@ -102,6 +101,27 @@ describe('adaptive review workflow trust gates', () => {
     expect(job('classifier-worker').needs).toBe('prepare');
     expect(job('review').needs).toEqual(['prepare', 'route']);
     expect(job('specialist-workers').needs).toEqual(['prepare', 'route']);
+  });
+
+  it('skips unless the pin step explicitly admits the pull request', () => {
+    // Fail closed: a pin that never ran (pre-screened, or failed) skips.
+    expect(job('prepare').outputs?.skip).toBe(
+      "${{ steps.pin.outputs.skip != 'false' || steps.plan.outputs.review-enabled != 'true' }}",
+    );
+  });
+
+  it('screens fork and Dependabot pull requests before installing', () => {
+    const screen = stepIndex('prepare', (item) => item.id === 'screen');
+    const setup = stepIndex('prepare', (item) =>
+      Boolean(item.uses?.endsWith('/adaptive-review-action/setup')),
+    );
+    const pin = stepIndex('prepare', (item) => item.id === 'pin');
+    expect(screen).toBeLessThan(setup);
+    for (const index of [setup, pin]) {
+      expect(job('prepare').steps[index].if).toBe(
+        "steps.screen.outputs.eligible == 'true'",
+      );
+    }
   });
 
   it('checks eligibility in the pinned runtime before fetching head data', () => {
@@ -383,10 +403,9 @@ describe('adaptive review workflow trust gates', () => {
       WORKFLOW_SHA: '${{ job.workflow_sha }}',
     });
     for (const name of ['route', 'review'])
-      expect(
-        (job(name) as Job & { env: Record<string, string> }).env
-          .ADAPTIVE_RUNTIME_SHA,
-      ).toBe('${{ needs.prepare.outputs.runtime-sha }}');
+      expect(job(name).env?.ADAPTIVE_RUNTIME_SHA).toBe(
+        '${{ needs.prepare.outputs.runtime-sha }}',
+      );
     expect(fetchScript).toContain(
       'authenticated_fetch --depth=1 origin "$HEAD_SHA"',
     );

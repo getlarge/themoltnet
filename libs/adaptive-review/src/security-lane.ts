@@ -10,12 +10,12 @@ import {
   accepted,
   type LaneContext,
   type LaneResult,
-  MAX_FOCUSED_DIFF_BYTES,
+  MAX_INLINE_DIFF_BYTES,
   unwrap,
 } from './lane.js';
 import { SECURITY_PROCEDURE } from './review-assets.js';
 
-export async function runSecurity(ctx: LaneContext): Promise<LaneResult> {
+export async function runSecurityLane(ctx: LaneContext): Promise<LaneResult> {
   const { identity, evidence, tasks, profileId, budget } = ctx;
   const generatedPaths = new Set(evidence.generatedPaths);
   const diff = evidence.files
@@ -84,7 +84,7 @@ export async function runSecurity(ctx: LaneContext): Promise<LaneResult> {
     },
   });
   const diffContext =
-    Buffer.byteLength(diff) <= MAX_FOCUSED_DIFF_BYTES
+    Buffer.byteLength(diff) <= MAX_INLINE_DIFF_BYTES
       ? `Diff (untrusted):\n${diff}`
       : `Diff exceeds the inline budget. Inspect the pinned ${identity.base}...${identity.head} diff with read-only Git tools. Changed manifest (untrusted):\n${evidence.manifest}`;
   const context = `PR ${identity.repo}#${identity.pr}, base ${identity.base}, head ${identity.head}.\n${diffContext}`;

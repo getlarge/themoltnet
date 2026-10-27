@@ -2,10 +2,11 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
 import type { PullRequestFile } from '@moltnet/docs-impact-review/eligibility';
+import { workflowCommandValue } from '@moltnet/docs-impact-review/workflow-command';
 import { connect } from '@themoltnet/sdk/node';
 import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 
-import { type CliDeps, runAdaptiveStage } from './cli.js';
+import { type CliDeps, jsonLines, runAdaptiveStage } from './cli.js';
 import { env, required } from './config.js';
 import {
   type WorkerJob,
@@ -19,14 +20,6 @@ async function gh(args: string[]): Promise<string> {
     maxBuffer: 64 * 1024 * 1024,
   });
   return stdout;
-}
-
-/** `gh api --paginate --jq` output: one JSON value per line. */
-function jsonLines<T>(stdout: string): T[] {
-  return stdout
-    .split('\n')
-    .filter(Boolean)
-    .map((line) => JSON.parse(line) as T);
 }
 
 /** Watches this run's worker jobs; absent outside GitHub Actions. */
@@ -107,14 +100,19 @@ const deps: CliDeps = {
   stdout: (text) => process.stdout.write(text),
 };
 
-Promise.resolve()
-  .then(() => runAdaptiveStage(required('ADAPTIVE_STAGE'), deps))
-  .then(
-    (code) => {
-      process.exitCode = code;
-    },
-    (error: unknown) => {
-      process.stderr.write(`${String(error)}\n`);
-      process.exitCode = 1;
-    },
-  );
+async function main(): Promise<void> {
+  const stage = env().ADAPTIVE_STAGE ?? '';
+  try {
+    process.exitCode = await runAdaptiveStage(required('ADAPTIVE_STAGE'), deps);
+  } catch (error) {
+    process.stdout.write(
+      `::error::Adaptive ${workflowCommandValue(stage || 'review')} stage failed: ${workflowCommandValue(error instanceof Error ? error.message : String(error))}\n`,
+    );
+    process.stderr.write(
+      `${error instanceof Error && error.stack ? error.stack : String(error)}\n`,
+    );
+    process.exitCode = 1;
+  }
+}
+
+void main();

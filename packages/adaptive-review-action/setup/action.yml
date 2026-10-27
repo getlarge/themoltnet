@@ -1,27 +1,23 @@
 name: Set up the adaptive review runtime
 description: >
   Install and build the adaptive review action from the pinned runtime
-  checkout. Use it from that checkout, so the steps run at the pinned commit.
+  checkout at `.adaptive-review-runtime`. Use it from that checkout, so the
+  steps run at the pinned commit.
 author: getlarge
-inputs:
-  runtime-path:
-    description: Path of the pinned runtime checkout.
-    required: false
-    default: .adaptive-review-runtime
 runs:
   using: composite
   steps:
     - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       with:
-        package_json_file: ${{ inputs.runtime-path }}/package.json
+        package_json_file: .adaptive-review-runtime/package.json
     - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
       with:
-        node-version-file: ${{ inputs.runtime-path }}/.tool-versions
+        node-version-file: .adaptive-review-runtime/.tool-versions
         cache: pnpm
-        cache-dependency-path: ${{ inputs.runtime-path }}/pnpm-lock.yaml
+        cache-dependency-path: .adaptive-review-runtime/pnpm-lock.yaml
     - name: Install and build the trusted action
       shell: bash
-      working-directory: ${{ inputs.runtime-path }}
+      working-directory: .adaptive-review-runtime
       run: |
         pnpm install --frozen-lockfile
         pnpm exec nx run @themoltnet/adaptive-review-action:build --excludeTaskDependencies

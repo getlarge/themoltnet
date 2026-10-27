@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   type CliDeps,
+  jsonLines,
   type Prepared,
   runAdaptiveStage,
   specialistMatrix,
@@ -117,6 +118,7 @@ function writeEvent(
     headRepo: string;
     changedFiles: number;
     title: string;
+    body: string;
   }> = {},
 ) {
   writeFileSync(
@@ -125,7 +127,7 @@ function writeEvent(
       pull_request: {
         number: 42,
         title: overrides.title ?? 'Change the API',
-        body: null,
+        body: overrides.body ?? null,
         changed_files: overrides.changedFiles ?? 1,
         user: { login: overrides.author ?? 'contributor' },
         base: { sha: BASE },
@@ -222,6 +224,33 @@ describe('prepare stage', () => {
   });
 });
 
+describe('prepare stage edges', () => {
+  it('truncates a long body', async () => {
+    writeEvent({ body: 'b'.repeat(5000) });
+    const { deps: cli } = deps();
+
+    await runAdaptiveStage('prepare', cli);
+
+    expect((JSON.parse(outputs().prepared) as Prepared).body).toBe(
+      'b'.repeat(4000),
+    );
+  });
+
+  it('escapes workflow commands in a skip reason', async () => {
+    writeEvent();
+    const { deps: cli, stdout, files } = deps();
+    files.mockResolvedValue([
+      { filename: 'libs/adaptive-review/x\n::error::forged' },
+    ]);
+
+    await runAdaptiveStage('prepare', cli);
+
+    const [notice] = stdout.mock.calls[0] as [string];
+    expect(notice).not.toContain('\n::error::');
+    expect(notice).toContain('%0A::error::forged');
+  });
+});
+
 describe('plan stage', () => {
   beforeEach(() => {
     writeFileSync(file('prepared.json'), JSON.stringify(prepared));
@@ -248,18 +277,35 @@ describe('plan stage', () => {
     },
   );
 
-  it('refuses a pull request that moved after preparation', async () => {
-    const { deps: cli } = deps({
-      github: {
-        revisions: () => Promise.resolve({ head: 'd'.repeat(40), base: BASE }),
-        files: () => Promise.resolve([]),
-      },
-    });
+  it('says why the review is disabled', async () => {
+    mocks.loadAdaptivePolicy.mockReturnValue(null);
+    const { deps: cli, stdout } = deps();
 
-    await expect(runAdaptiveStage('plan', cli)).rejects.toThrow(
-      'PR revisions changed after preparation',
+    await runAdaptiveStage('plan', cli);
+
+    expect(stdout).toHaveBeenCalledWith(
+      `::notice::Adaptive review skipped: no adaptive review policy on base ${BASE}\n`,
     );
   });
+
+  it.each([
+    ['head', { head: 'd'.repeat(40), base: BASE }],
+    ['base', { head: HEAD, base: 'e'.repeat(40) }],
+  ])(
+    'refuses a pull request whose %s moved after preparation',
+    async (_moved, current) => {
+      const { deps: cli } = deps({
+        github: {
+          revisions: () => Promise.resolve(current),
+          files: () => Promise.resolve([]),
+        },
+      });
+
+      await expect(runAdaptiveStage('plan', cli)).rejects.toThrow(
+        `head ${HEAD} -> ${current.head}, base ${BASE} -> ${current.base}`,
+      );
+    },
+  );
 });
 
 describe('route to review handoff', () => {
@@ -337,6 +383,85 @@ describe('route to review handoff', () => {
   });
 });
 
+describe('route and review failures', () => {
+  beforeEach(() => {
+    writeFileSync(file('prepared.json'), JSON.stringify(prepared));
+  });
+
+  it.each([
+    [{ ADAPTIVE_MODE: 'loud' }, 'ADAPTIVE_MODE must be shadow or active'],
+    [{ ADAPTIVE_DOCS_PROFILE: 'missing' }, 'runtime profile missing not found'],
+    [{ ADAPTIVE_FOCUSED_PROFILE: '' }, 'ADAPTIVE_FOCUSED_PROFILE is required'],
+  ])('rejects %j', async (env, message) => {
+    const { deps: cli } = deps();
+
+    await expect(
+      runAdaptiveStage('route', { ...cli, env: { ...cli.env, ...env } }),
+    ).rejects.toThrow(message);
+  });
+
+  it('resolves profiles only for enabled lanes', async () => {
+    mocks.prepareAdaptiveReview.mockResolvedValue({
+      routing: { routes: [] },
+      docsTaskPossible: false,
+    });
+    const { deps: cli } = deps();
+
+    await runAdaptiveStage('route', cli);
+
+    const [options] = mocks.prepareAdaptiveReview.mock.calls[0] as [
+      { profiles: Record<string, string> },
+    ];
+    expect(Object.keys(options.profiles).sort()).toEqual([
+      'docs',
+      'focused',
+      'security',
+    ]);
+  });
+
+  it('exits 0 and records task budgets when no lane failed', async () => {
+    writeFileSync(file('route.json'), JSON.stringify({ routing: {} }));
+    writeFileSync(file('summary'), '');
+    mocks.runRoutedAdaptiveReview.mockResolvedValue({
+      results: [{ lane: 'docs', status: 'concern' }],
+    });
+    const { deps: cli } = deps();
+
+    await expect(
+      runAdaptiveStage('review', {
+        ...cli,
+        env: { ...cli.env, GITHUB_STEP_SUMMARY: file('summary') },
+      }),
+    ).resolves.toBe(0);
+    expect(readFileSync(file('summary'), 'utf8')).toContain('| docs |');
+  });
+
+  it('refuses an output value spanning lines', async () => {
+    writeEvent();
+    const event = JSON.parse(readFileSync(file('event.json'), 'utf8')) as {
+      pull_request: { base: { sha: string } };
+    };
+    event.pull_request.base.sha = `${BASE}\nskip=false`;
+    writeFileSync(file('event.json'), JSON.stringify(event));
+    const { deps: cli } = deps();
+
+    await expect(runAdaptiveStage('prepare', cli)).rejects.toThrow(
+      'output base must be a single line',
+    );
+    expect(readFileSync(file('github-output'), 'utf8')).toBe('');
+  });
+});
+
+describe('jsonLines', () => {
+  it('parses one JSON value per line and ignores blank lines', () => {
+    expect(
+      jsonLines<PullRequestFile>(
+        '{"filename":"a"}\n\n{"filename":"b","previous_filename":"c"}\n',
+      ),
+    ).toEqual([{ filename: 'a' }, { filename: 'b', previous_filename: 'c' }]);
+  });
+});
+
 describe('specialistMatrix', () => {
   const env = {
     ADAPTIVE_DOCS_PROFILE: 'docs',
@@ -369,6 +494,20 @@ describe('specialistMatrix', () => {
         { profile: 'focused', worker: 3 },
       ],
     });
+  });
+
+  it('names an unknown lane', () => {
+    expect(() =>
+      specialistMatrix(
+        {
+          docsTaskPossible: true,
+          routing: {
+            routes: [{ lane: 'style', run: true }],
+          } as unknown as AdaptivePreparation['routing'],
+        },
+        env,
+      ),
+    ).toThrow('Unknown review lane: style');
   });
 
   it('requires a profile for every runnable lane', () => {
