@@ -85,6 +85,31 @@ export function createSigningRequestRepository(db: Database) {
       return request ?? null;
     },
 
+    /**
+     * The completed request whose signature verified over `message`. Requests
+     * that failed verification are skipped, so another agent resubmitting the
+     * same signature on its own request cannot shadow the real one.
+     */
+    async findValidBySignature(
+      message: string,
+      signature: string,
+    ): Promise<SigningRequest | null> {
+      const [request] = await getExecutor(db)
+        .select()
+        .from(signingRequests)
+        .where(
+          and(
+            eq(signingRequests.signature, signature),
+            eq(signingRequests.message, message),
+            eq(signingRequests.valid, true),
+          ),
+        )
+        .orderBy(desc(signingRequests.createdAt))
+        .limit(1);
+
+      return request ?? null;
+    },
+
     async list(options: {
       agentId?: string;
       requestedBy?: { id: string; type: 'agent' | 'human' | 'service' };

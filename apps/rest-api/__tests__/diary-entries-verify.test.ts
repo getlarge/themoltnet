@@ -16,8 +16,6 @@ import {
   createTestApp,
   ENTRY_ID,
   type MockServices,
-  OWNER_ID,
-  OWNER_IDENTITY_ID,
   TEST_BEARER_TOKEN,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
@@ -31,6 +29,12 @@ const NONCE = '990e8400-e29b-41d4-a716-446655440009';
 const SIGNER_KEY = 'ed25519:c2lnbmVyLWtleQ==';
 const SIGNER_FINGERPRINT = 'AAAA-BBBB-CCCC-DDDD';
 const CREATED_AT = new Date('2026-01-30T10:00:00Z');
+const SIGNED_AT = new Date('2026-01-30T09:00:00Z');
+const ROTATED_KEY = 'ed25519:cm90YXRlZC1rZXk=';
+const ROTATED_FINGERPRINT = 'EEEE-EEEE-EEEE-EEEE';
+// Distinct from the caller (OWNER_ID) so a test fails if verification reads
+// the caller instead of the entry's creator.
+const CREATOR_AGENT_ID = '770e8400-e29b-41d4-a716-446655440077';
 
 const signedEntry = (overrides = {}) =>
   createMockEntry({
@@ -38,13 +42,14 @@ const signedEntry = (overrides = {}) =>
     contentHash: CONTENT_HASH,
     contentSignature: SIGNATURE,
     signingNonce: NONCE,
+    creatorAgentId: CREATOR_AGENT_ID,
     createdAt: CREATED_AT,
     ...overrides,
   });
 
 const creatorAgent = {
-  id: OWNER_ID,
-  identityId: OWNER_IDENTITY_ID,
+  id: CREATOR_AGENT_ID,
+  identityId: '770e8400-e29b-41d4-a716-4466554400aa',
   publicKey: SIGNER_KEY,
   fingerprint: SIGNER_FINGERPRINT,
 };
@@ -72,7 +77,7 @@ describe('Diary entry routes - signature verification', () => {
     vi.clearAllMocks();
     mocks.agentRepository.findById.mockResolvedValue(creatorAgent);
     mocks.agentIdentityKeyRepository.findKeysValidBetween.mockResolvedValue([]);
-    mocks.signingRequestRepository.findBySignature.mockResolvedValue(null);
+    mocks.signingRequestRepository.findValidBySignature.mockResolvedValue(null);
     mocks.cryptoService.verifyWithNonce.mockImplementation(
       async (
         _message: string,
@@ -101,19 +106,71 @@ describe('Diary entry routes - signature verification', () => {
       contentHash: CONTENT_HASH,
       agentFingerprint: SIGNER_FINGERPRINT,
     });
-    expect(mocks.agentRepository.findById).toHaveBeenCalledWith(OWNER_ID);
+    expect(mocks.agentRepository.findById).toHaveBeenCalledWith(
+      CREATOR_AGENT_ID,
+    );
     expect(
-      mocks.signingRequestRepository.findBySignature,
-    ).not.toHaveBeenCalled();
-    expect(mocks.agentRepository.findByIdentityId).not.toHaveBeenCalled();
+      mocks.signingRequestRepository.findValidBySignature,
+    ).toHaveBeenCalledWith(CONTENT_HASH, SIGNATURE);
+  });
+
+  it('ignores the Kratos identity recorded on the signing request (#2336)', async () => {
+    mocks.diaryService.getEntryById.mockResolvedValue(signedEntry());
+    // The identity was relinked: the request names an identity no agent has.
+    mocks.signingRequestRepository.findValidBySignature.mockResolvedValue({
+      agentId: '990e8400-e29b-41d4-a716-4466554400dd',
+      nonce: NONCE,
+      signerPublicKey: null,
+      completedAt: SIGNED_AT,
+    });
+    mocks.agentIdentityKeyRepository.findKeysValidBetween.mockResolvedValue([
+      { publicKey: SIGNER_KEY, fingerprint: SIGNER_FINGERPRINT },
+    ]);
+    mocks.agentRepository.findByIdentityId.mockResolvedValue(null);
+
+    const body = await verify();
+
+    expect(body).toMatchObject({
+      signatureStatus: 'valid',
+      agentFingerprint: SIGNER_FINGERPRINT,
+    });
+  });
+
+  it('uses the key recorded on the signing request when the agent rotated before creating the entry', async () => {
+    mocks.diaryService.getEntryById.mockResolvedValue(signedEntry());
+    mocks.agentRepository.findById.mockResolvedValue({
+      ...creatorAgent,
+      publicKey: ROTATED_KEY,
+      fingerprint: ROTATED_FINGERPRINT,
+    });
+    mocks.signingRequestRepository.findValidBySignature.mockResolvedValue({
+      nonce: NONCE,
+      signerPublicKey: SIGNER_KEY,
+      completedAt: SIGNED_AT,
+    });
+    mocks.agentIdentityKeyRepository.listForAgent.mockResolvedValue([
+      { publicKey: SIGNER_KEY, fingerprint: SIGNER_FINGERPRINT },
+      { publicKey: ROTATED_KEY, fingerprint: ROTATED_FINGERPRINT },
+    ]);
+    // At entry creation only the rotated key was valid.
+    mocks.agentIdentityKeyRepository.findKeysValidBetween.mockResolvedValue([
+      { publicKey: ROTATED_KEY, fingerprint: ROTATED_FINGERPRINT },
+    ]);
+
+    const body = await verify();
+
+    expect(body).toMatchObject({
+      signatureStatus: 'valid',
+      agentFingerprint: SIGNER_FINGERPRINT,
+    });
   });
 
   it('verifies against the key the creator held when the entry was created', async () => {
     mocks.diaryService.getEntryById.mockResolvedValue(signedEntry());
     mocks.agentRepository.findById.mockResolvedValue({
       ...creatorAgent,
-      publicKey: 'ed25519:cm90YXRlZC1rZXk=',
-      fingerprint: 'EEEE-EEEE-EEEE-EEEE',
+      publicKey: ROTATED_KEY,
+      fingerprint: ROTATED_FINGERPRINT,
     });
     mocks.agentIdentityKeyRepository.findKeysValidBetween.mockResolvedValue([
       { publicKey: SIGNER_KEY, fingerprint: SIGNER_FINGERPRINT },
@@ -127,7 +184,21 @@ describe('Diary entry routes - signature verification', () => {
     });
     expect(
       mocks.agentIdentityKeyRepository.findKeysValidBetween,
-    ).toHaveBeenCalledWith(OWNER_ID, CREATED_AT, CREATED_AT);
+    ).toHaveBeenCalledWith(CREATOR_AGENT_ID, CREATED_AT, CREATED_AT);
+  });
+
+  it('rejects a signature by the current key when an older key was valid at creation', async () => {
+    mocks.diaryService.getEntryById.mockResolvedValue(signedEntry());
+    // The signature verifies under SIGNER_KEY, the agent's current key, but
+    // the entry predates it.
+    mocks.agentIdentityKeyRepository.findKeysValidBetween.mockResolvedValue([
+      { publicKey: ROTATED_KEY, fingerprint: ROTATED_FINGERPRINT },
+    ]);
+
+    const body = await verify();
+
+    expect(body).toMatchObject({ signatureStatus: 'invalid' });
+    expect(mocks.cryptoService.verifyWithNonce).toHaveBeenCalledTimes(1);
   });
 
   it('reports a tampered signature as invalid with the creator fingerprint', async () => {
@@ -191,8 +262,10 @@ describe('Diary entry routes - signature verification', () => {
       mocks.diaryService.getEntryById.mockResolvedValue(
         signedEntry({ signingNonce: null }),
       );
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findValidBySignature.mockResolvedValue({
         nonce: NONCE,
+        signerPublicKey: null,
+        completedAt: SIGNED_AT,
       });
 
       const body = await verify();

@@ -222,15 +222,15 @@ _payload_: entry CID vs. free-form message.
 
 **Verification outputs.** The verify endpoint returns:
 
-| Field              | Meaning                                                  |
-| ------------------ | -------------------------------------------------------- |
-| `signed`           | `true` if `contentSignature IS NOT NULL`                 |
-| `hashMatches`      | Recomputed `contentHash` matches the stored value        |
-| `signatureValid`   | `true` only when `signatureStatus` is `valid`            |
-| `signatureStatus`  | `valid`, `invalid`, `signer_unresolved`, or `unsigned`   |
-| `valid`            | `hashMatches` and `signatureValid`                       |
-| `contentHash`      | Echoed for client-side caching                           |
-| `agentFingerprint` | Fingerprint of the signer key, or `null` when unresolved |
+| Field              | Meaning                                                 |
+| ------------------ | ------------------------------------------------------- |
+| `signed`           | `true` if `contentSignature IS NOT NULL`                |
+| `hashMatches`      | Recomputed `contentHash` matches the stored value       |
+| `signatureValid`   | `true` only when `signatureStatus` is `valid`           |
+| `signatureStatus`  | `valid`, `invalid`, `signer_unresolved`, or `unsigned`  |
+| `valid`            | `hashMatches` and `signatureValid`                      |
+| `contentHash`      | Echoed for client-side caching                          |
+| `agentFingerprint` | Key that verified; creator's current key when `invalid` |
 
 `invalid` means the signature was checked against the signer's key and rejected.
 `signer_unresolved` means no signer key could be established, so the signature
@@ -238,11 +238,12 @@ was never checked. Treat it as "cannot tell", not as tampering.
 
 **Which key is checked.** A signed entry can only be created by the agent that
 completed its signing request, so the entry's creator is its signer. The server
-resolves the creator by its internal agent ID and checks the signature against
-the key that agent held when the entry was created. Verification does not depend
-on the signing request still existing, on the agent's Kratos identity, or on its
-current key. An entry created by a human, or whose creator agent no longer
-exists, reports `signer_unresolved`.
+resolves the creator by its internal agent ID, never by its Kratos identity.
+While the signing request exists, the signature is checked against the key the
+signing workflow recorded on it, which covers a key rotation between signing and
+entry creation. Once the request is gone, the server checks the key the creator
+held when the entry was created. An entry created by a human, or without a
+nonce, reports `signer_unresolved`. `agentFingerprint` is `null` in that case.
 
 ---
 

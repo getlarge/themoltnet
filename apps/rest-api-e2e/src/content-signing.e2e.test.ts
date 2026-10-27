@@ -17,6 +17,8 @@ import {
   verifyDiaryEntryById,
 } from '@moltnet/api-client';
 import { computeContentCid, cryptoService } from '@moltnet/crypto-service';
+import { diaryEntries } from '@moltnet/database';
+import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, type TestAgent } from './helpers.js';
@@ -114,6 +116,60 @@ describe('Content-signed entries', () => {
     expect(verification!.valid).toBe(true);
     expect(verification!.contentHash).toBe(contentCid);
     expect(verification!.agentFingerprint).toBeDefined();
+  });
+
+  it('reports a stored signature by another key as invalid', async () => {
+    const content = 'Signature swapped in the database';
+    const contentCid = computeContentCid('semantic', null, content, null);
+    const { data: signingRequest } = await createSigningRequest({
+      client,
+      auth: () => agent.accessToken,
+      body: { message: contentCid },
+    });
+    const signature = await cryptoService.signWithNonce(
+      contentCid,
+      signingRequest!.nonce,
+      agent.keyPair.privateKey,
+    );
+    await submitSignature({
+      client,
+      auth: () => agent.accessToken,
+      path: { id: signingRequest!.id },
+      body: { signature },
+    });
+    const { data: entry } = await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryId: agent.privateDiaryId },
+      body: {
+        content,
+        contentHash: contentCid,
+        signingRequestId: signingRequest!.id,
+      },
+    });
+    const otherKey = await cryptoService.generateKeyPair();
+    const forged = await cryptoService.signWithNonce(
+      contentCid,
+      signingRequest!.nonce,
+      otherKey.privateKey,
+    );
+    await harness.db
+      .update(diaryEntries)
+      .set({ contentSignature: forged })
+      .where(eq(diaryEntries.id, entry!.id));
+
+    const { data: verification } = await verifyDiaryEntryById({
+      client,
+      auth: () => agent.accessToken,
+      path: { entryId: entry!.id },
+    });
+
+    expect(verification).toMatchObject({
+      hashMatches: true,
+      signatureValid: false,
+      signatureStatus: 'invalid',
+      valid: false,
+    });
   });
 
   // ── Simplified flow: signingRequestId only ───────────────────

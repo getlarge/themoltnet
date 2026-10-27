@@ -216,7 +216,7 @@ export function deriveSignatureState({
       state: 'unverified',
       label: 'Signer unresolved',
       explanation:
-        'The signature could not be checked: the server could not establish which key signed this entry. This is not evidence that the entry was tampered with. The bytes still match the recorded content hash.',
+        'The signature could not be checked: the server could not establish which key signed this entry. This is not evidence that the entry was tampered with.',
       signer: unresolvedSigner(),
     };
   }

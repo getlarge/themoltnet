@@ -530,47 +530,53 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
   };
 
   /**
-   * Check an entry's signature against its creator's key. A signed entry can
-   * only be created by the agent that completed its signing request, so the
-   * creator is the signer. `creatorAgentId` is the internal agent ID, which
-   * survives Kratos identity relinking, and the key comes from the agent's
-   * history at the entry's creation time, which survives rotation.
-   *
-   * `signer_unresolved` means no key was tried (a human creator, a missing
-   * agent or nonce), so it must not read as a rejected signature.
+   * Check an entry's signature against its creator's key: only the agent that
+   * completed the signing request can create the entry, so creator = signer.
+   * See docs/reference/diary-entry-state-model.md, "Which key is checked".
    */
   const checkEntrySignature = async (entry: {
+    id: string;
     contentHash: string;
     contentSignature: string;
     signingNonce: string | null;
     creatorAgentId: string | null;
     createdAt: Date;
   }): Promise<{
-    signatureStatus: 'valid' | 'invalid' | 'signer_unresolved';
+    signatureStatus: Exclude<
+      EntryVerifyResult['signatureStatus'],
+      'unsigned' | undefined
+    >;
     agentFingerprint: string | null;
   }> => {
-    const unresolved = {
-      signatureStatus: 'signer_unresolved',
-      agentFingerprint: null,
-    } as const;
-    if (!entry.creatorAgentId) return unresolved;
+    const unresolved = (reason: string) => {
+      fastify.log.info(
+        { entryId: entry.id, creatorAgentId: entry.creatorAgentId, reason },
+        'entry signer unresolved',
+      );
+      return {
+        signatureStatus: 'signer_unresolved',
+        agentFingerprint: null,
+      } as const;
+    };
+    if (!entry.creatorAgentId) return unresolved('no_creator_agent');
     const signer = await fastify.agentRepository.findById(entry.creatorAgentId);
-    // Entries from before the nonce moved onto the entry keep it only on
-    // their signing request.
-    const nonce =
-      entry.signingNonce ??
-      (
-        await fastify.signingRequestRepository.findBySignature(
-          entry.contentSignature,
-        )
-      )?.nonce ??
-      null;
-    if (!signer || !nonce) return unresolved;
+    if (!signer) return unresolved('creator_agent_missing');
+
+    // The request, while it exists, records the key the signature was checked
+    // with at signing time, which survives a rotation before the entry was
+    // created. Older entries also keep their nonce only on the request.
+    const signingRequest =
+      await fastify.signingRequestRepository.findValidBySignature(
+        entry.contentHash,
+        entry.contentSignature,
+      );
+    const nonce = entry.signingNonce ?? signingRequest?.nonce ?? null;
+    if (!nonce) return unresolved('nonce_missing');
 
     const signedBy = await verifyWithSigningKeys(
       fastify,
       signer,
-      { completedAt: entry.createdAt, signerPublicKey: null },
+      signingRequest ?? { completedAt: entry.createdAt, signerPublicKey: null },
       (publicKey) =>
         fastify.cryptoService.verifyWithNonce(
           entry.contentHash,
@@ -579,6 +585,16 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           publicKey,
         ),
     );
+    if (!signedBy) {
+      fastify.log.warn(
+        {
+          entryId: entry.id,
+          creatorAgentId: signer.id,
+          signingRequestFound: signingRequest !== null,
+        },
+        'entry signature did not verify',
+      );
+    }
     return {
       signatureStatus: signedBy ? 'valid' : 'invalid',
       agentFingerprint: signedBy ?? signer.fingerprint,
