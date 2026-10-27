@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.20.0](https://github.com/getlarge/themoltnet/compare/cli-v3.19.0...cli-v3.20.0) (2026-10-26)
+
+
+### Bug Fixes
+
+* address deferred review notes on activation team key bypass ([cf3a719](https://github.com/getlarge/themoltnet/commit/cf3a719f67b2bf0a6469c8c026731287e3c4bae2))
+* address review round 1 on activation team key bypass ([0498738](https://github.com/getlarge/themoltnet/commit/049873864ec9ac54a39afc23f5862bb1861da435))
+* address review round 2 on activation team key bypass ([2ac1924](https://github.com/getlarge/themoltnet/commit/2ac192450fc0940f5da947e2f8d14dd6bb624415))
+* **cli:** activation honours OAuth2 when selected team has no agent key ([5d5667e](https://github.com/getlarge/themoltnet/commit/5d5667e59994b8e115a8e29021f367b6db0e57ba))
+* **cli:** derive structured activation warnings offline ([a69e032](https://github.com/getlarge/themoltnet/commit/a69e0327a0c502414b43174707d6935330a9e38f))
+* **cli:** report unverified daemon credential in activation JSON ([60b83fc](https://github.com/getlarge/themoltnet/commit/60b83fcb79a88b578b1dfe8dcd252f10e91aa3a2))
+
 ## [3.19.0](https://github.com/getlarge/themoltnet/compare/cli-v3.18.0...cli-v3.19.0) (2026-10-21)
 
 

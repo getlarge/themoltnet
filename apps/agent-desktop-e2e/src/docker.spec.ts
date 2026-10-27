@@ -125,23 +125,12 @@ describe('Personal Desktop journey against Docker services', () => {
       await expect($('button=Stop')).not.toExist({ wait: 20000 });
       await lifecycle('stop_agent_server');
       expect((await lifecycle('start_agent_server'))?.state).toBe('running');
-      const state = await browser.tauri.execute<
-        Promise<{
-          runs: {
-            workspace?: { projectId: string | null; location?: string };
-            active: boolean;
-          }[];
-        }>,
-        []
-      >(
-        ({ core }) =>
-          core.invoke('desktop_control_status') as Promise<{
-            runs: {
-              workspace?: { projectId: string | null; location?: string };
-              active: boolean;
-            }[];
-          }>,
-      );
+      const state = await lifecycle<{
+        runs: {
+          workspace?: { projectId: string | null; location?: string };
+          active: boolean;
+        }[];
+      }>('desktop_control_status');
       expect(state.runs).toHaveLength(2);
       expect(state.runs.every((run) => !run.active)).toBe(true);
       expect(state.runs.map((run) => run.workspace?.projectId)).toEqual(
