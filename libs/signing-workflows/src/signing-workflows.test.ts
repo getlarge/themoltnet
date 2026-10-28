@@ -247,6 +247,8 @@ describe('Signing Workflows', () => {
       setSigningKeyLookup({
         getPublicKeyByAgentId: vi.fn().mockResolvedValue(null),
       });
+      const reporter = vi.fn();
+      setSigningWorkflowErrorReporter(reporter);
 
       const result = await signingWorkflows.requestSignature(
         REQUEST_ID,
@@ -257,6 +259,13 @@ describe('Signing Workflows', () => {
 
       expect(result.status).toBe('completed');
       expect(result.valid).toBe(false);
+      expect(reporter).toHaveBeenCalledWith(
+        expect.any(Error),
+        expect.objectContaining({
+          operation: 'lookup_public_key',
+          requestId: REQUEST_ID,
+        }),
+      );
     });
 
     it('marks as invalid when signature verification fails', async () => {

@@ -196,7 +196,6 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
 
       if (input.verificationMethod === VERIFICATION_METHOD.AgentEd25519) {
         try {
-          // The key comes from the requester row, never the Kratos identity.
           const workflowHandle = await (
             deps.startAgentSigningWorkflow ?? startAgentSigningWorkflow
           )({

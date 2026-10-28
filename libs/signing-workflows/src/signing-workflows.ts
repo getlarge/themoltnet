@@ -317,7 +317,7 @@ let signingWorkflowErrorReporter:
   | ((
       error: unknown,
       context: {
-        operation: 'verify_receipt' | 'verify_signature';
+        operation: 'verify_receipt' | 'verify_signature' | 'lookup_public_key';
         requestId: string;
         verificationMethod: VerificationMethod;
         reason?: SigningReceiptInvalidError['reason'];
@@ -670,9 +670,15 @@ export function initSigningWorkflows(): void {
           return result;
         }
 
-        // 3. Look up the requester agent's public key
+        // 3. Look up the requester's key; a human requester has none.
         const publicKey = await lookupPublicKeyStep(requester);
         if (!publicKey) {
+          if (requester.kind === 'agent') {
+            signingWorkflowErrorReporter?.(
+              new Error('Requester agent has no public key'),
+              { operation: 'lookup_public_key', requestId, verificationMethod },
+            );
+          }
           await persistStatusStep(
             requestId,
             'completed',
