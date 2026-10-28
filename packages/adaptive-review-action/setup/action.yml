@@ -18,6 +18,10 @@ runs:
     - name: Install and build the trusted action
       shell: bash
       working-directory: .adaptive-review-runtime
+      env:
+        # This isolated build has no Nx Cloud pipeline or agent lifecycle.
+        NX_NO_CLOUD: 'true'
+        NX_DAEMON: 'false'
       run: |
         pnpm install --frozen-lockfile
         pnpm exec nx run @themoltnet/adaptive-review-action:build --excludeTaskDependencies

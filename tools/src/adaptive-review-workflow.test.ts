@@ -213,6 +213,7 @@ describe('adaptive review workflow trust gates', () => {
     expect(job('route').outputs).toEqual({
       specialists: stepOutput('route', 'specialists'),
       'has-specialists': stepOutput('route', 'has-specialists'),
+      'route-artifact-id': '${{ steps.route-artifact.outputs.artifact-id }}',
     });
     expect(
       action.runs.steps
@@ -286,17 +287,29 @@ describe('adaptive review workflow trust gates', () => {
       );
   });
 
-  it('keeps route artifacts distinct across rerun attempts', () => {
+  it('consumes the producer artifact when only a failed downstream job is rerun', () => {
     const name =
       'adaptive-route-${{ github.repository_id }}-${{ github.event.pull_request.number }}-${{ github.run_attempt }}';
     expect(
       step('route', (item) => item.name === 'Upload routing decision').with
         ?.name,
     ).toBe(name);
+    expect(job('route').outputs?.['route-artifact-id']).toBe(
+      '${{ steps.route-artifact.outputs.artifact-id }}',
+    );
+    expect(
+      step('route', (item) => item.name === 'Upload routing decision').id,
+    ).toBe('route-artifact');
+    expect(
+      step('review', (item) => item.name === 'Download routing decision').with,
+    ).toMatchObject({
+      'artifact-ids': '${{ needs.route.outputs.route-artifact-id }}',
+      'merge-multiple': true,
+    });
     expect(
       step('review', (item) => item.name === 'Download routing decision').with
         ?.name,
-    ).toBe(name);
+    ).toBeUndefined();
     expect(
       step('review', (item) => item.name === 'Upload review report').with?.name,
     ).toBe(
@@ -465,6 +478,23 @@ describe('adaptive review workflow trust gates', () => {
     );
   });
 
+  it('installs and builds the standalone action without an Nx Cloud lifecycle', () => {
+    const setup = parse(
+      read('../../packages/adaptive-review-action/setup/action.yml'),
+    ) as { runs: { steps: Step[] } };
+    const build = setup.runs.steps.find(
+      (item) => item.name === 'Install and build the trusted action',
+    )!;
+    expect(build.env).toMatchObject({
+      NX_NO_CLOUD: 'true',
+      NX_DAEMON: 'false',
+    });
+    expect(build.run).toContain('pnpm install --frozen-lockfile');
+    expect(build.run).toContain(
+      'pnpm exec nx run @themoltnet/adaptive-review-action:build',
+    );
+  });
+
   it('builds the review action once and verifies it before later jobs run it', () => {
     const prepare = job('prepare');
     const plan = stepIndex('prepare', (item) => item.id === 'plan');
@@ -480,7 +510,11 @@ describe('adaptive review workflow trust gates', () => {
     expect(prepare.outputs?.['action-digest']).toBe(
       '${{ steps.bundle.outputs.digest }}',
     );
-    const artifact = prepare.steps[upload].with?.name;
+    expect(prepare.steps[upload].id).toBe('action-artifact');
+    expect(prepare.outputs?.['action-artifact-id']).toBe(
+      '${{ steps.action-artifact.outputs.artifact-id }}',
+    );
+    expect(prepare.steps[upload].with?.['retention-days']).toBe(14);
     for (const name of ['route', 'review']) {
       const steps = job(name).steps;
       expect(
@@ -494,7 +528,11 @@ describe('adaptive review workflow trust gates', () => {
           Boolean(item.uses?.startsWith('actions/download-artifact@')) &&
           item.with?.path === BUNDLE,
       );
-      expect(steps[download].with?.name).toBe(artifact);
+      expect(steps[download].with).toMatchObject({
+        'artifact-ids': '${{ needs.prepare.outputs.action-artifact-id }}',
+        'merge-multiple': true,
+      });
+      expect(steps[download].with?.name).toBeUndefined();
       const verify = stepIndex(name, (item) =>
         Boolean(
           item.run?.includes('adaptive-review-action-digest.sh --verify'),
