@@ -11,6 +11,7 @@ export {
 } from './await-engine.js';
 export { beginWorkflowStep, completeWorkflowStep } from './checkpoint.js';
 export { createInlineContext, inlineContext } from './context.js';
+export { createFreeformRepairTask } from './freeform-repair.js';
 export { isWorkflowInterruption } from './interruption.js';
 export {
   joinCondition,

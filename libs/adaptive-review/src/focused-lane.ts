@@ -6,7 +6,7 @@ import { Value } from 'typebox/value';
 
 import { applicableRules, mechanicalConcerns, taskKey } from './core.js';
 import {
-  accepted,
+  acceptedReview,
   type LaneContext,
   type LaneResult,
   MAX_INLINE_DIFF_BYTES,
@@ -117,19 +117,23 @@ export async function runFocusedLane(
   ctx: LaneContext,
 ): Promise<LaneResult> {
   const { identity, evidence, tasks } = ctx;
-  const task = await tasks.createTask(createFocusedBody(lane, ctx), {
+  const body = createFocusedBody(lane, ctx);
+  const taskIds: string[] = [];
+  const task = await tasks.createTask(body, {
     idempotencyKey: taskKey(identity, lane),
   });
   const changed = changedLines(
     evidence.files.map((file) => file.patch).join('\n'),
   );
-  const result = await accepted(tasks, task.id, (raw) => {
+  const result = await acceptedReview(tasks, task, body, taskIds, (raw) => {
     const value = unwrap(raw);
     if (!Value.Check(FocusedOutput, value))
       throw new Error(`invalid ${lane} result`);
     for (const finding of value.findings) {
       if (!changed.get(finding.path)?.[finding.side].has(finding.line)) {
-        throw new Error(`${lane} finding does not cite a changed line`);
+        throw new Error(
+          `${lane} ${JSON.stringify({ path: finding.path, side: finding.side, line: finding.line })} finding does not cite a changed line`,
+        );
       }
     }
     return value;
@@ -142,7 +146,7 @@ export async function runFocusedLane(
         ? 'unclear'
         : 'clear',
     summary: result.summary,
-    taskIds: [task.id],
+    taskIds,
     findings: result.findings.map(({ path, side, line, concern, action }) => ({
       path,
       side,

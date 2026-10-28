@@ -1,10 +1,11 @@
 import {
+  createFreeformRepairTask,
   createInlineContext,
   type Logger,
   type SdkTaskAttempt,
   type TaskClient,
   type TaskMessage,
-  waitForTaskOutcome,
+  waitForValidatedTask,
   type WorkflowContext,
 } from '@themoltnet/tasks-orchestrator';
 
@@ -197,7 +198,7 @@ async function runStage<T>(
   const pollIntervalSec = input.pollIntervalSec ?? DEFAULT_POLL_INTERVAL_SEC;
   const createdAt = now();
   const task = await deps.tasks.createTask(body);
-  const outcome = await waitForTaskOutcome(task.id, {
+  const outcome = await waitForValidatedTask(task, {
     tasks: withReadRetries(deps.tasks, deps.ctx, pollIntervalSec, deps.logger),
     ctx: deps.ctx,
     pollIntervalSec,
@@ -205,6 +206,9 @@ async function runStage<T>(
     logger: deps.logger,
     description: `docs-impact ${stage}`,
     logPrefix: 'docs_impact',
+    maxRepairs: 1,
+    createRepairTask: (args) =>
+      createFreeformRepairTask(deps.tasks, body, args),
   });
   const observedMs = now() - createdAt;
   const finalTask =
@@ -212,13 +216,13 @@ async function runStage<T>(
   const attempt =
     outcome.kind === 'accepted'
       ? outcome.result.attempt
-      : outcome.kind === 'invalid_output'
+      : outcome.kind === 'exhausted'
         ? outcome.attempt
         : outcome.attempts.at(-1);
   timings[stage] = stageTiming({
     task: finalTask,
     attempt,
-    messages: await transcriptHead(deps.tasks, task.id, attempt),
+    messages: await transcriptHead(deps.tasks, finalTask.id, attempt),
     observedMs,
   });
   if (outcome.kind === 'accepted') return outcome.result.state;
@@ -231,7 +235,9 @@ async function runStage<T>(
       )
     : undefined;
   if (budgetReason) throw new StageBudgetExceeded(stage, budgetReason);
-  throw new Error(`${stage} stage: ${outcome.reason}`);
+  throw new Error(
+    `${stage} stage: ${outcome.kind === 'exhausted' ? 'invalid output after correction: ' : ''}${outcome.reason}`,
+  );
 }
 
 function manifestText(files: ChangedFile[], maxLines: number): string {

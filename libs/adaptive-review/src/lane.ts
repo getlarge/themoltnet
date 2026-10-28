@@ -2,9 +2,12 @@ import type { ReviewEvidence } from '@moltnet/complexity-review/evidence';
 import { createSleepingContext, type Git } from '@moltnet/docs-impact-review';
 import { workflowCommandValue } from '@moltnet/docs-impact-review/workflow-command';
 import {
+  createFreeformRepairTask,
+  type SdkTask,
   type TaskClient,
   TaskOutcomeError,
   waitForAcceptedTask,
+  waitForValidatedTask,
 } from '@themoltnet/tasks-orchestrator';
 
 import type { TaskBudget } from './config.js';
@@ -145,4 +148,34 @@ export async function accepted<T>(
     parse,
   });
   return result.state;
+}
+
+/** One semantic correction; execution failures and exhausted repairs stay failures. */
+export async function acceptedReview<T>(
+  tasks: TaskClient,
+  task: SdkTask,
+  body: Parameters<TaskClient['createTask']>[0],
+  taskIds: string[],
+  parse: (output: unknown) => T,
+): Promise<T> {
+  taskIds.push(task.id);
+  const outcome = await waitForValidatedTask(task, {
+    tasks,
+    ctx: { ...createSleepingContext(), executionId: task.id },
+    pollIntervalSec: 2,
+    parse,
+    maxRepairs: 1,
+    createRepairTask: async (args) => {
+      const repair = await createFreeformRepairTask(tasks, body, args);
+      taskIds.push(repair.id);
+      return repair;
+    },
+  });
+  if (outcome.kind === 'accepted') return outcome.result.state;
+  throw new TaskOutcomeError(
+    outcome.task.id,
+    outcome.kind === 'failed'
+      ? outcome
+      : { ...outcome, kind: 'invalid_output' },
+  );
 }

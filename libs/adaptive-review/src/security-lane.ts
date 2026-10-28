@@ -7,7 +7,7 @@ import {
 
 import { taskKey } from './core.js';
 import {
-  accepted,
+  acceptedReview,
   type LaneContext,
   type LaneResult,
   MAX_INLINE_DIFF_BYTES,
@@ -99,23 +99,32 @@ export async function runSecurityLane(ctx: LaneContext): Promise<LaneResult> {
       ? `Diff (untrusted):\n${diff}`
       : `Diff exceeds the inline budget. Inspect the pinned ${identity.base}...${identity.head} diff with read-only Git tools. Changed manifest (untrusted):\n${evidence.manifest}`;
   const context = `PR ${identity.repo}#${identity.pr}, base ${identity.base}, head ${identity.head}.\n${diffContext}`;
-  const hunt = await tasks.createTask(
-    makeTask(
-      'hunt',
-      `This is the hunt stage: follow steps 1 and 2 of the trusted security-review procedure only. A separate verification task performs steps 3 to 5, so do not trace each candidate to a verdict here. Map changed trust boundaries and list plausible security regressions introduced by changed lines. Read only the surrounding code needed to state each hypothesis, then submit. Use at most 12 read/search tool calls. Prioritize changed trust boundaries; deduplicate and return at most 5 candidates. Do not retain hypotheses already disproved by a guard or ordinary correctness issues without a security impact. Set coverage to partial if any changed boundary remains unassessed, evidence is unavailable, or the candidate limit leaves additional hypotheses unreported. Empty findings is not clearance when coverage is partial. Cite old or new diff lines. Return result {"summary":"...","coverage":"complete|partial","findings":[{"id":"...","path":"...","side":"new","line":1,"title":"...","hypothesis":"..."}]}. Empty findings is valid.\n${context}`,
-      HUNT_SCHEMA,
-    ),
-    { idempotencyKey: taskKey(identity, 'security-hunt-v2') },
+  const taskIds: string[] = [];
+  const huntBody = makeTask(
+    'hunt',
+    `This is the hunt stage: follow steps 1 and 2 of the trusted security-review procedure only. A separate verification task performs steps 3 to 5, so do not trace each candidate to a verdict here. Map changed trust boundaries and list plausible security regressions introduced by changed lines. Read only the surrounding code needed to state each hypothesis, then submit. Use at most 12 read/search tool calls. Prioritize changed trust boundaries; deduplicate and return at most 5 candidates. Do not retain hypotheses already disproved by a guard or ordinary correctness issues without a security impact. Set coverage to partial if any changed boundary remains unassessed, evidence is unavailable, or the candidate limit leaves additional hypotheses unreported. Empty findings is not clearance when coverage is partial. Cite old or new diff lines. Return result {"summary":"...","coverage":"complete|partial","findings":[{"id":"...","path":"...","side":"new","line":1,"title":"...","hypothesis":"..."}]}. Empty findings is valid.\n${context}`,
+    HUNT_SCHEMA,
   );
-  const huntResult = await accepted(tasks, hunt.id, (raw) => {
-    const value = unwrap(raw) as { coverage?: unknown } | null;
-    if (value?.coverage !== 'complete' && value?.coverage !== 'partial')
-      throw new Error('security hunt must report complete or partial coverage');
-    const candidates = validateCandidates(value, diff);
-    if (candidates.length > 5)
-      throw new Error('security hunt must return at most 5 candidates');
-    return { candidates, coverage: value.coverage };
+  const hunt = await tasks.createTask(huntBody, {
+    idempotencyKey: taskKey(identity, 'security-hunt-v2'),
   });
+  const huntResult = await acceptedReview(
+    tasks,
+    hunt,
+    huntBody,
+    taskIds,
+    (raw) => {
+      const value = unwrap(raw) as { coverage?: unknown } | null;
+      if (value?.coverage !== 'complete' && value?.coverage !== 'partial')
+        throw new Error(
+          'security hunt must report complete or partial coverage',
+        );
+      const candidates = validateCandidates(value, diff);
+      if (candidates.length > 5)
+        throw new Error('security hunt must return at most 5 candidates');
+      return { candidates, coverage: value.coverage };
+    },
+  );
   const { candidates } = huntResult;
   evidenceGap ||= huntResult.coverage === 'partial';
   if (!candidates.length) {
@@ -125,20 +134,24 @@ export async function runSecurityLane(ctx: LaneContext): Promise<LaneResult> {
       summary: evidenceGap
         ? 'Retained source reviewed; some changed contents remain unassessed.'
         : 'No candidate regression identified; this is not a security certificate.',
-      taskIds: [hunt.id],
+      taskIds,
       findings: [],
     };
   }
-  const verify = await tasks.createTask(
-    makeTask(
-      'verify',
-      `Follow the trusted security-review procedure. Perform steps 3 to 5 only; do not start a new hunt. Independently challenge every candidate against guards, callers, and reachability. Use at most 4 read/search tool calls per candidate. Stop investigating a candidate once a guard disproves it or a reachable impact is established. If decisive evidence is absent from this checkout, mark that candidate unclear and name the missing evidence in its private result; do not keep searching for unavailable dependency source. Return exactly one confirmed, unclear, or refuted entry per candidate using the established security result contract.\nCandidates (untrusted): ${JSON.stringify(candidates)}\n${context}`,
-      RESULT_SCHEMA,
-    ),
-    { idempotencyKey: taskKey(identity, 'security-verify-v2') },
+  const verifyBody = makeTask(
+    'verify',
+    `Follow the trusted security-review procedure. Perform steps 3 to 5 only; do not start a new hunt. Independently challenge every candidate against guards, callers, and reachability. Use at most 4 read/search tool calls per candidate. Stop investigating a candidate once a guard disproves it or a reachable impact is established. If decisive evidence is absent from this checkout, mark that candidate unclear and name the missing evidence in its private result; do not keep searching for unavailable dependency source. Return exactly one confirmed, unclear, or refuted entry per candidate using the established security result contract.\nCandidates (untrusted): ${JSON.stringify(candidates)}\n${context}`,
+    RESULT_SCHEMA,
   );
-  const result = await accepted(tasks, verify.id, (raw) =>
-    validateResult(unwrap(raw), candidates, diff),
+  const verify = await tasks.createTask(verifyBody, {
+    idempotencyKey: taskKey(identity, 'security-verify-v2'),
+  });
+  const result = await acceptedReview(
+    tasks,
+    verify,
+    verifyBody,
+    taskIds,
+    (raw) => validateResult(unwrap(raw), candidates, diff),
   );
   const confirmed = result.findings.filter(
     (finding) => finding.status === 'confirmed',
@@ -162,7 +175,7 @@ export async function runSecurityLane(ctx: LaneContext): Promise<LaneResult> {
             'Security coverage remains incomplete; inspect the team-scoped tasks.',
           ]
         : [],
-    taskIds: [hunt.id, verify.id],
+    taskIds,
     findings: [],
   };
 }
