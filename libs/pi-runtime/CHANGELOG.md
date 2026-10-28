@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.27.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.26.1...pi-runtime-v0.27.0) (2026-10-28)
+
+
+### Features
+
+* **pi-runtime:** bridge native Durable telemetry to OpenTelemetry ([f8883b1](https://github.com/getlarge/themoltnet/commit/f8883b125979455b12101f9f90c433eabe970ad2))
+* **pi-runtime:** bridge native Durable telemetry to OpenTelemetry ([7491bde](https://github.com/getlarge/themoltnet/commit/7491bdea49c396cbd400139c35f8ae5ce3516fe3))
+* **pi-runtime:** bridge native Durable telemetry to OpenTelemetry ([d8fbe54](https://github.com/getlarge/themoltnet/commit/d8fbe54f92d4d0a9b91377c9e0ed6034d85730a4))
+* **pi-runtime:** connect native Durable telemetry to OpenTelemetry ([15a1d50](https://github.com/getlarge/themoltnet/commit/15a1d50a13acebe8ed1b6c6a1878e2a46e160ee9))
+
+
+### Bug Fixes
+
+* address review round 3 on signing request requesters ([6eb3856](https://github.com/getlarge/themoltnet/commit/6eb38561e48bbd7d95f4957948b0e07bd082707a))
+* **api:** describe a signing request's requester as a PrincipalIdentity ([e7d9238](https://github.com/getlarge/themoltnet/commit/e7d923835e8ba4d9551b19bfe50e975203a76b4b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.19.0
+    * @themoltnet/sandbox-gondolin bumped to 0.8.1
+    * @themoltnet/sdk bumped to 0.154.2
+
 ## [0.26.1](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.26.0...pi-runtime-v0.26.1) (2026-10-26)
 
 

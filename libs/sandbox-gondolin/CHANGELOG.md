@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/getlarge/themoltnet/compare/sandbox-gondolin-v0.8.0...sandbox-gondolin-v0.8.1) (2026-10-28)
+
+
+### Bug Fixes
+
+* **sandbox-gondolin:** recover transient snapshot bootstrap failures ([f259572](https://github.com/getlarge/themoltnet/commit/f259572019d622e73ad9d11d5879ccaac57ce6c6))
+
 ## [0.8.0](https://github.com/getlarge/themoltnet/compare/sandbox-gondolin-v0.7.0...sandbox-gondolin-v0.8.0) (2026-10-14)
 
 

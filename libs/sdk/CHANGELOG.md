@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.154.2](https://github.com/getlarge/themoltnet/compare/sdk-v0.154.1...sdk-v0.154.2) (2026-10-28)
+
+
+### Bug Fixes
+
+* **api:** report entry signature checks through signatureStatus only ([202ef6e](https://github.com/getlarge/themoltnet/commit/202ef6e2479b932cdbe37578b5d7966699cd1974))
+
 ## [0.154.1](https://github.com/getlarge/themoltnet/compare/sdk-v0.154.0...sdk-v0.154.1) (2026-10-26)
 
 
