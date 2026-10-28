@@ -48,7 +48,9 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
       const { signature } = request.body;
 
       const signingRequest =
-        await fastify.signingRequestRepository.findBySignature(signature);
+        await fastify.signingRequestRepository.findVerifiedBySignature(
+          signature,
+        );
       if (!signingRequest) {
         request.log.debug({ reason: 'no_signing_request' }, 'crypto.verify');
         return { valid: false };

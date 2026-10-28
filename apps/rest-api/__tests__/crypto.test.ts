@@ -31,7 +31,7 @@ describe('Crypto routes', () => {
     const CRYPTO_AGENT_ID = '660e8400-e29b-41d4-a716-446655440021';
 
     it('verifies signature via signing request lookup', async () => {
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
         id: 'sr-1',
         requesterAgentId: CRYPTO_AGENT_ID,
         message: 'test message',
@@ -56,42 +56,8 @@ describe('Crypto routes', () => {
       );
     });
 
-    it('verifies against the verified request the signature lookup returns', async () => {
-      // The repository skips requests whose signature did not verify, so a
-      // newer request reusing this signature never reaches the route.
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
-        id: 'sr-verified',
-        requesterAgentId: CRYPTO_AGENT_ID,
-        message: 'genuine message',
-        nonce: 'nonce-genuine',
-        valid: true,
-      } as any);
-      mocks.agentRepository.findById.mockResolvedValue({
-        ...createMockAgent(),
-        id: CRYPTO_AGENT_ID,
-      });
-      mocks.cryptoService.verifyWithNonce.mockResolvedValue(true);
-
-      const response = await app.inject({
-        method: 'POST',
-        url: '/crypto/verify',
-        payload: { signature: 'shared_sig' },
-      });
-
-      expect(response.json().valid).toBe(true);
-      expect(
-        mocks.signingRequestRepository.findBySignature,
-      ).toHaveBeenCalledWith('shared_sig');
-      expect(mocks.cryptoService.verifyWithNonce).toHaveBeenCalledWith(
-        'genuine message',
-        'nonce-genuine',
-        'shared_sig',
-        createMockAgent().publicKey,
-      );
-    });
-
     it('returns false for a request created by a human', async () => {
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
         id: 'sr-1',
         requesterAgentId: null,
         requesterHumanId: '660e8400-e29b-41d4-a716-446655440022',
@@ -112,7 +78,9 @@ describe('Crypto routes', () => {
     });
 
     it('returns false when signature not found', async () => {
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue(null);
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue(
+        null,
+      );
 
       const response = await app.inject({
         method: 'POST',
@@ -125,7 +93,7 @@ describe('Crypto routes', () => {
     });
 
     it('returns false when agent not found', async () => {
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
         id: 'sr-1',
         requesterAgentId: CRYPTO_AGENT_ID,
         message: 'test message',

@@ -190,7 +190,7 @@ describe('SigningRequestRepository (integration)', () => {
       ).resolves.toMatchObject({ id: newest.id });
     });
 
-    it('findBySignature ignores a newer request whose signature did not verify', async () => {
+    it('findVerifiedBySignature ignores a newer request whose signature did not verify', async () => {
       const [verified] = await insert({
         message: 'bafy-hash',
         signature: 'sig',
@@ -199,19 +199,19 @@ describe('SigningRequestRepository (integration)', () => {
       });
       await insert({ message: 'bafy-other', signature: 'sig', valid: false });
 
-      await expect(repo.findBySignature('sig')).resolves.toMatchObject({
+      await expect(repo.findVerifiedBySignature('sig')).resolves.toMatchObject({
         id: verified.id,
       });
     });
 
-    it('findBySignature returns null when no request verified', async () => {
+    it('findVerifiedBySignature returns null when no request verified', async () => {
       await insert({ message: 'bafy-hash', signature: 'sig', valid: false });
       await insert({ message: 'bafy-hash', signature: 'sig', valid: null });
 
-      await expect(repo.findBySignature('sig')).resolves.toBeNull();
+      await expect(repo.findVerifiedBySignature('sig')).resolves.toBeNull();
     });
 
-    it('findBySignature returns the newest verified request', async () => {
+    it('findVerifiedBySignature returns the newest verified request', async () => {
       await insert({
         message: 'bafy-hash',
         signature: 'sig',
@@ -224,7 +224,7 @@ describe('SigningRequestRepository (integration)', () => {
         valid: true,
       });
 
-      await expect(repo.findBySignature('sig')).resolves.toMatchObject({
+      await expect(repo.findVerifiedBySignature('sig')).resolves.toMatchObject({
         id: newest.id,
       });
     });

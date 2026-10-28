@@ -76,7 +76,7 @@ describe('Agent routes', () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent(),
       );
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
         id: 'sr-1',
         requesterAgentId: OWNER_ID,
         message: 'test message',
@@ -97,45 +97,15 @@ describe('Agent routes', () => {
       expect(body.valid).toBe(true);
       expect(body.signer.fingerprint).toBe('C212-DAFA-27C5-6C57');
       expect(
-        mocks.signingRequestRepository.findBySignature,
+        mocks.signingRequestRepository.findVerifiedBySignature,
       ).toHaveBeenCalledWith('valid_sig');
-    });
-
-    it('verifies against the verified request the signature lookup returns', async () => {
-      // The repository skips requests whose signature did not verify, so a
-      // newer request reusing this signature never reaches the route.
-      mocks.agentRepository.findByFingerprint.mockResolvedValue(
-        createMockAgent(),
-      );
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
-        id: 'sr-verified',
-        requesterAgentId: OWNER_ID,
-        message: 'genuine message',
-        nonce: 'nonce-genuine',
-        valid: true,
-      } as any);
-      mocks.cryptoService.verifyWithNonce.mockResolvedValue(true);
-
-      const response = await app.inject({
-        method: 'POST',
-        url: '/agents/C212-DAFA-27C5-6C57/verify',
-        payload: { signature: 'shared_sig' },
-      });
-
-      expect(response.json().valid).toBe(true);
-      expect(mocks.cryptoService.verifyWithNonce).toHaveBeenCalledWith(
-        'genuine message',
-        'nonce-genuine',
-        'shared_sig',
-        createMockAgent().publicKey,
-      );
     });
 
     it('verifies for an agent whose Kratos identity was unlinked', async () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent({ identityId: null }),
       );
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
         id: 'sr-1',
         requesterAgentId: OWNER_ID,
         message: 'test message',
@@ -159,7 +129,7 @@ describe('Agent routes', () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent(),
       );
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
         id: 'sr-1',
         requesterAgentId: OWNER_ID,
         message: 'test message',
@@ -199,7 +169,7 @@ describe('Agent routes', () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent(),
       );
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
         id: 'sr-1',
         requesterAgentId: OWNER_ID,
         message: 'test message',
@@ -239,7 +209,7 @@ describe('Agent routes', () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent(),
       );
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
         id: 'sr-1',
         requesterAgentId: OWNER_ID,
         message: 'test message',
@@ -267,7 +237,7 @@ describe('Agent routes', () => {
         fingerprint: 'A0A0-0000-0000-0001',
       });
       mocks.agentRepository.findById.mockResolvedValue(createMockAgent());
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
         id: 'sr-1',
         requesterAgentId: OWNER_ID,
         message: 'test message',
@@ -290,7 +260,7 @@ describe('Agent routes', () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent(),
       );
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
         id: 'sr-1',
         requesterAgentId: OWNER_ID,
         message: 'test message',
@@ -309,7 +279,7 @@ describe('Agent routes', () => {
       expect(response.statusCode).toBe(200);
       expect(response.json().valid).toBe(false);
       expect(
-        mocks.signingRequestRepository.findBySignature,
+        mocks.signingRequestRepository.findVerifiedBySignature,
       ).toHaveBeenCalledWith('bad_sig');
     });
 
@@ -317,7 +287,7 @@ describe('Agent routes', () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent(),
       );
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
         id: 'sr-2',
         requesterAgentId: OTHER_AGENT_ID,
         message: 'test message',
@@ -342,7 +312,7 @@ describe('Agent routes', () => {
         createMockAgent(),
       );
       // Same id value as the agent: only the kind tells them apart.
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
         id: 'sr-3',
         requesterAgentId: null,
         requesterHumanId: OWNER_ID,

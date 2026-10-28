@@ -112,7 +112,9 @@ export async function agentRoutes(fastify: FastifyInstance) {
       }
 
       const signingRequest =
-        await fastify.signingRequestRepository.findBySignature(signature);
+        await fastify.signingRequestRepository.findVerifiedBySignature(
+          signature,
+        );
       if (!signingRequest) {
         request.log.debug({ reason: 'no_signing_request' }, 'agents.verify');
         return { valid: false };
