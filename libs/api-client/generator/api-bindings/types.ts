@@ -87,20 +87,10 @@ type RequestFn = <
   },
 ) => RequestResult<TData, TError, ThrowOnError, TResponseStyle>;
 
-/**
- * Shape of hey-api's Server-Sent Events result, declared so the generated SDK
- * typechecks for SSE operations. A request executor resolves one parsed body
- * per request and cannot stream, so this client's `sse` methods always reject.
- */
-export interface ServerSentEventsResult<
-  TData = unknown,
-  TReturn = void,
-  TNext = unknown,
-> {
+/** Declared so the generated SDK typechecks; `sse.get` always rejects. */
+export interface ServerSentEventsResult<TData = unknown> {
   stream: AsyncGenerator<
-    TData extends Record<string, unknown> ? TData[keyof TData] : TData,
-    TReturn,
-    TNext
+    TData extends Record<string, unknown> ? TData[keyof TData] : TData
   >;
 }
 
@@ -112,17 +102,6 @@ type SseFn = <
 >(
   options: Omit<RequestOptions<TResponseStyle, ThrowOnError>, 'method'>,
 ) => Promise<ServerSentEventsResult<TData>>;
-
-type HttpMethod =
-  | 'connect'
-  | 'delete'
-  | 'get'
-  | 'head'
-  | 'options'
-  | 'patch'
-  | 'post'
-  | 'put'
-  | 'trace';
 
 export interface Client {
   buildUrl: (
@@ -139,7 +118,8 @@ export interface Client {
   put: MethodFn;
   request: RequestFn;
   setConfig: (config: Config) => Config;
-  sse: { [K in HttpMethod]: SseFn };
+  /** The generated SDK only emits GET event streams. */
+  sse: { get: SseFn };
   trace: MethodFn;
 }
 
@@ -157,10 +137,7 @@ export interface TDataShape {
 
 type OmitKeys<T, K> = Pick<T, Exclude<keyof T, K>>;
 
-/**
- * `TResponse` keeps the generated SDK's type-argument order (hey-api passes the
- * response type third); it types only SSE callbacks, which this client lacks.
- */
+/** `TResponse` is a placeholder for the SDK's third type argument. */
 export type Options<
   TData extends TDataShape = TDataShape,
   ThrowOnError extends boolean = boolean,

@@ -42,15 +42,26 @@ describe('API bindings', () => {
     const requestExecutor = vi.fn();
     const client = createClient({ requestExecutor });
 
-    const result = watchTaskConversation({
-      client,
-      headers: { 'x-moltnet-team-id': 'team-id' },
-      path: { conversationId: 'conversation-id', id: 'task-id', n: 1 },
-    });
-
-    await expect(result).rejects.toThrow(
+    await expect(
+      watchTaskConversation({
+        client,
+        headers: { 'x-moltnet-team-id': 'team-id' },
+        path: { conversationId: 'conversation-id', id: 'task-id', n: 1 },
+      }),
+    ).rejects.toThrow(
       'Server-Sent Events are not supported by request executors',
     );
     expect(requestExecutor).not.toHaveBeenCalled();
+  });
+
+  it('rejects with the executor error under the default configuration', async () => {
+    const failure = new Error('network down');
+    const client = createClient({
+      requestExecutor: vi.fn().mockRejectedValue(failure),
+    });
+
+    await expect(
+      getTask({ client, path: { id: '33333333-3333-4333-8333-333333333333' } }),
+    ).rejects.toBe(failure);
   });
 });

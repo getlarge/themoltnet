@@ -10,8 +10,8 @@ import {
 export interface Config extends Client.Config {
   name: string;
   /**
-   * Throw on non-2xx responses instead of returning `{ error }`. hey-api's
-   * built-in clients declare this on their own config types.
+   * Shapes the generated SDK's result types only. This client always rejects
+   * when the request executor throws.
    */
   throwOnError?: boolean;
 }
@@ -29,20 +29,17 @@ const defaultConfig: Plugin.Config<ApiBindingsPlugin> = {
   config: {
     ...clientDefaultConfig,
     bundle: true,
-    // Matches hey-api's built-in clients. clientDefaultConfig no longer sets
-    // it, and leaving it unset widens ThrowOnError to `boolean` in the
-    // generated client, which makes every `response` possibly undefined.
+    // Unset, ThrowOnError widens to `boolean` and every `response` may be undefined.
     throwOnError: false,
   },
-  // clientPluginHandler is typed against hey-api's built-in client plugin
-  // names; this plugin reuses it for a custom client with the same config
-  // shape, so adapt the handler argument at this single boundary.
+  // The handler is typed for hey-api's built-in client names only.
   handler: ({ plugin }) =>
     clientPluginHandler({
       plugin,
     } as unknown as Parameters<typeof clientPluginHandler>[0]),
   // Overridden with the absolute source path by the generator config.
   name: '',
+  // Emit the client under the same artifact key as hey-api's built-in clients.
   symbolMeta() {
     return { artifact: 'client' };
   },
