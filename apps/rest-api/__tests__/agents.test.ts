@@ -101,6 +101,28 @@ describe('Agent routes', () => {
       ).toHaveBeenCalledWith('valid_sig');
     });
 
+    it('verifies for an agent whose Kratos identity was unlinked', async () => {
+      mocks.agentRepository.findByFingerprint.mockResolvedValue(
+        createMockAgent({ identityId: null }),
+      );
+      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+        id: 'sr-1',
+        requesterAgentId: OWNER_ID,
+        message: 'test message',
+        nonce: 'nonce-1',
+      } as any);
+      mocks.cryptoService.verifyWithNonce.mockResolvedValue(true);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/agents/C212-DAFA-27C5-6C57/verify',
+        payload: { signature: 'valid_sig' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().valid).toBe(true);
+    });
+
     it('verifies a signature made with a key the agent has since rotated away from', async () => {
       const createdAt = new Date('2026-09-01T10:00:00Z');
       const completedAt = new Date('2026-09-01T10:00:05Z');

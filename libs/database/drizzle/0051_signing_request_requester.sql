@@ -20,21 +20,19 @@ FROM "humans" h
 WHERE sr."requester_agent_id" IS NULL AND sr."requester_human_id" IS NULL
   AND sr."requested_by"->>'type' = 'human'
   AND h."id"::text = sr."requested_by"->>'id';--> statement-breakpoint
--- 3. The signing workflow recorded the key that verified the signature.
+-- 3. The signing workflow recorded the key it checked the signature with.
+-- `agent_identity_keys` holds every key an agent has had, current included.
 UPDATE "signing_requests" sr SET "requester_agent_id" = k."agent_id"
 FROM "agent_identity_keys" k
 WHERE sr."requester_agent_id" IS NULL AND sr."requester_human_id" IS NULL
   AND k."public_key" = sr."signer_public_key";--> statement-breakpoint
-UPDATE "signing_requests" sr SET "requester_agent_id" = a."id"
-FROM "agents" a
-WHERE sr."requester_agent_id" IS NULL AND sr."requester_human_id" IS NULL
-  AND a."public_key" = sr."signer_public_key";--> statement-breakpoint
--- 4. The request's signature backs an entry; only its requester could have
--- created that entry.
+-- 4. The request's verified signature backs an entry; only its requester
+-- could have created that entry. A failed request may carry a copied
+-- signature, so it proves nothing.
 UPDATE "signing_requests" sr SET "requester_agent_id" = e."creator_agent_id"
 FROM "diary_entries" e
 WHERE sr."requester_agent_id" IS NULL AND sr."requester_human_id" IS NULL
-  AND e."content_signature" = sr."signature"
+  AND sr."valid" AND e."content_signature" = sr."signature"
   AND e."creator_agent_id" IS NOT NULL;--> statement-breakpoint
 -- 5. The identity's other requests go to the creator its signatures resolved
 -- to, applied only when that creator is unique for the identity.
@@ -43,7 +41,7 @@ FROM (
   SELECT s."agent_id", min(e."creator_agent_id"::text)::uuid AS "creator_agent_id"
   FROM "signing_requests" s
   JOIN "diary_entries" e ON e."content_signature" = s."signature"
-  WHERE e."creator_agent_id" IS NOT NULL
+  WHERE s."valid" AND e."creator_agent_id" IS NOT NULL
   GROUP BY s."agent_id"
   HAVING count(DISTINCT e."creator_agent_id") = 1
 ) m

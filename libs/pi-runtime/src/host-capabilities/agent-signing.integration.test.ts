@@ -82,7 +82,7 @@ describeVm('agent-signing capability in a real Gondolin VM', () => {
           get: vi.fn(() =>
             Promise.resolve({
               id: requestId,
-              agentId: identity.subjectId,
+              requestedBy: { id: identity.subjectId, type: 'agent' },
               verificationMethod: 'agent-ed25519',
               status: 'pending',
               message: 'bafkreitest',

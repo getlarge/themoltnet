@@ -29,6 +29,7 @@ const DEAD_UNKNOWN_IDENTITY = '90000000-0000-4000-a000-000000000005';
 const DEAD_SHARED_IDENTITY = '90000000-0000-4000-a000-000000000006';
 const DEAD_REQUESTED_BY_AGENT_IDENTITY = '90000000-0000-4000-a000-000000000007';
 const DEAD_SIGNER_KEY_IDENTITY = '90000000-0000-4000-a000-000000000008';
+const DEAD_REPLAY_IDENTITY = '90000000-0000-4000-a000-000000000009';
 const TEAM = '20000000-0000-4000-a000-000000000051';
 const DIARY = '30000000-0000-4000-a000-000000000051';
 
@@ -126,7 +127,14 @@ describe('migration 0051 signing request requester', () => {
         -- The live identity wins over a conflicting requested_by.
         ('40000000-0000-4000-a000-000000000012', '${AGENT_IDENTITY}',
           '{"id": "${RECREATED_AGENT}", "type": "agent"}', 'precedence',
-          now(), 'completed', 'sig-12', NULL);
+          now(), 'completed', 'sig-12', NULL),
+        -- A failed request carrying a copied signature proves nothing.
+        ('40000000-0000-4000-a000-000000000013', '${DEAD_REPLAY_IDENTITY}',
+          NULL, 'replayed', now(), 'completed', 'sig-dead-agent-entry', NULL);
+      UPDATE signing_requests SET valid = (status = 'completed')
+      WHERE id <> '40000000-0000-4000-a000-000000000013';
+      UPDATE signing_requests SET valid = false
+      WHERE id = '40000000-0000-4000-a000-000000000013';
     `);
 
     await migrate(drizzle(pool), { migrationsFolder: migrationFolder });
@@ -193,6 +201,7 @@ describe('migration 0051 signing request requester', () => {
         requester_agent_id: AGENT,
         requester_human_id: null,
       },
+      // 13 failed verification, so its copied signature is not evidence.
     ]);
 
     const columns = await pool.query<{ column_name: string }>(`
