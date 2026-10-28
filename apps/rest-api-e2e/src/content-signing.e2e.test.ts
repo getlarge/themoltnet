@@ -115,7 +115,7 @@ describe('Content-signed entries', () => {
     expect(verification!.signatureStatus).toBe('valid');
     expect(verification!.valid).toBe(true);
     expect(verification!.contentHash).toBe(contentCid);
-    expect(verification!.agentFingerprint).toBeDefined();
+    expect(verification!.agentFingerprint).toBe(agent.keyPair.fingerprint);
   });
 
   it('reports a stored signature by another key as invalid', async () => {

@@ -30,8 +30,10 @@ const SIGNER_KEY = 'ed25519:c2lnbmVyLWtleQ==';
 const SIGNER_FINGERPRINT = 'AAAA-BBBB-CCCC-DDDD';
 const CREATED_AT = new Date('2026-01-30T10:00:00Z');
 const SIGNED_AT = new Date('2026-01-30T09:00:00Z');
-const ROTATED_KEY = 'ed25519:cm90YXRlZC1rZXk=';
-const ROTATED_FINGERPRINT = 'EEEE-EEEE-EEEE-EEEE';
+// SIGNER_KEY signed the fixtures; OTHER_KEY is another key of the same agent,
+// older or newer depending on the test.
+const OTHER_KEY = 'ed25519:cm90YXRlZC1rZXk=';
+const OTHER_FINGERPRINT = 'EEEE-EEEE-EEEE-EEEE';
 // Distinct from the caller (OWNER_ID) so a test fails if verification reads
 // the caller instead of the entry's creator.
 const CREATOR_AGENT_ID = '770e8400-e29b-41d4-a716-446655440077';
@@ -120,6 +122,7 @@ describe('Diary entry routes - signature verification', () => {
     mocks.signingRequestRepository.findValidBySignature.mockResolvedValue({
       agentId: '990e8400-e29b-41d4-a716-4466554400dd',
       nonce: NONCE,
+      verificationMethod: 'agent-ed25519',
       signerPublicKey: null,
       completedAt: SIGNED_AT,
     });
@@ -140,21 +143,22 @@ describe('Diary entry routes - signature verification', () => {
     mocks.diaryService.getEntryById.mockResolvedValue(signedEntry());
     mocks.agentRepository.findById.mockResolvedValue({
       ...creatorAgent,
-      publicKey: ROTATED_KEY,
-      fingerprint: ROTATED_FINGERPRINT,
+      publicKey: OTHER_KEY,
+      fingerprint: OTHER_FINGERPRINT,
     });
     mocks.signingRequestRepository.findValidBySignature.mockResolvedValue({
       nonce: NONCE,
+      verificationMethod: 'agent-ed25519',
       signerPublicKey: SIGNER_KEY,
       completedAt: SIGNED_AT,
     });
     mocks.agentIdentityKeyRepository.listForAgent.mockResolvedValue([
       { publicKey: SIGNER_KEY, fingerprint: SIGNER_FINGERPRINT },
-      { publicKey: ROTATED_KEY, fingerprint: ROTATED_FINGERPRINT },
+      { publicKey: OTHER_KEY, fingerprint: OTHER_FINGERPRINT },
     ]);
     // At entry creation only the rotated key was valid.
     mocks.agentIdentityKeyRepository.findKeysValidBetween.mockResolvedValue([
-      { publicKey: ROTATED_KEY, fingerprint: ROTATED_FINGERPRINT },
+      { publicKey: OTHER_KEY, fingerprint: OTHER_FINGERPRINT },
     ]);
 
     const body = await verify();
@@ -169,8 +173,8 @@ describe('Diary entry routes - signature verification', () => {
     mocks.diaryService.getEntryById.mockResolvedValue(signedEntry());
     mocks.agentRepository.findById.mockResolvedValue({
       ...creatorAgent,
-      publicKey: ROTATED_KEY,
-      fingerprint: ROTATED_FINGERPRINT,
+      publicKey: OTHER_KEY,
+      fingerprint: OTHER_FINGERPRINT,
     });
     mocks.agentIdentityKeyRepository.findKeysValidBetween.mockResolvedValue([
       { publicKey: SIGNER_KEY, fingerprint: SIGNER_FINGERPRINT },
@@ -192,7 +196,7 @@ describe('Diary entry routes - signature verification', () => {
     // The signature verifies under SIGNER_KEY, the agent's current key, but
     // the entry predates it.
     mocks.agentIdentityKeyRepository.findKeysValidBetween.mockResolvedValue([
-      { publicKey: ROTATED_KEY, fingerprint: ROTATED_FINGERPRINT },
+      { publicKey: OTHER_KEY, fingerprint: OTHER_FINGERPRINT },
     ]);
 
     const body = await verify();
@@ -230,6 +234,39 @@ describe('Diary entry routes - signature verification', () => {
     });
   });
 
+  it('rejects a recorded signer key the creator never held', async () => {
+    mocks.diaryService.getEntryById.mockResolvedValue(signedEntry());
+    mocks.signingRequestRepository.findValidBySignature.mockResolvedValue({
+      nonce: NONCE,
+      verificationMethod: 'agent-ed25519',
+      signerPublicKey: 'ed25519:Zm9yZWlnbi1rZXk=',
+      completedAt: SIGNED_AT,
+    });
+    mocks.agentIdentityKeyRepository.listForAgent.mockResolvedValue([
+      { publicKey: SIGNER_KEY, fingerprint: SIGNER_FINGERPRINT },
+    ]);
+
+    const body = await verify();
+
+    expect(body).toMatchObject({ signatureStatus: 'invalid' });
+    expect(mocks.cryptoService.verifyWithNonce).not.toHaveBeenCalled();
+  });
+
+  it('reports a hardware-key signing request as unresolved, not invalid', async () => {
+    mocks.diaryService.getEntryById.mockResolvedValue(signedEntry());
+    mocks.signingRequestRepository.findValidBySignature.mockResolvedValue({
+      nonce: NONCE,
+      verificationMethod: 'human-hardware-previewsign',
+      signerPublicKey: null,
+      completedAt: SIGNED_AT,
+    });
+
+    const body = await verify();
+
+    expect(body).toMatchObject({ signatureStatus: 'signer_unresolved' });
+    expect(mocks.cryptoService.verifyWithNonce).not.toHaveBeenCalled();
+  });
+
   it('reports a human-created entry as unresolved, not invalid', async () => {
     mocks.diaryService.getEntryById.mockResolvedValue(
       signedEntry({
@@ -248,15 +285,6 @@ describe('Diary entry routes - signature verification', () => {
     expect(mocks.cryptoService.verifyWithNonce).not.toHaveBeenCalled();
   });
 
-  it('reports a missing creator agent as unresolved, not invalid', async () => {
-    mocks.diaryService.getEntryById.mockResolvedValue(signedEntry());
-    mocks.agentRepository.findById.mockResolvedValue(null);
-
-    const body = await verify();
-
-    expect(body).toMatchObject({ signatureStatus: 'signer_unresolved' });
-  });
-
   describe('entries without a nonce on the row', () => {
     it('takes the nonce from the signing request', async () => {
       mocks.diaryService.getEntryById.mockResolvedValue(
@@ -264,6 +292,7 @@ describe('Diary entry routes - signature verification', () => {
       );
       mocks.signingRequestRepository.findValidBySignature.mockResolvedValue({
         nonce: NONCE,
+        verificationMethod: 'agent-ed25519',
         signerPublicKey: null,
         completedAt: SIGNED_AT,
       });
@@ -271,6 +300,25 @@ describe('Diary entry routes - signature verification', () => {
       const body = await verify();
 
       expect(body).toMatchObject({ signatureStatus: 'valid' });
+      expect(mocks.cryptoService.verifyWithNonce).toHaveBeenCalledWith(
+        CONTENT_HASH,
+        NONCE,
+        SIGNATURE,
+        SIGNER_KEY,
+      );
+    });
+
+    it('prefers the nonce stored on the entry', async () => {
+      mocks.diaryService.getEntryById.mockResolvedValue(signedEntry());
+      mocks.signingRequestRepository.findValidBySignature.mockResolvedValue({
+        nonce: '990e8400-e29b-41d4-a716-44665544ffff',
+        verificationMethod: 'agent-ed25519',
+        signerPublicKey: SIGNER_KEY,
+        completedAt: SIGNED_AT,
+      });
+
+      await verify();
+
       expect(mocks.cryptoService.verifyWithNonce).toHaveBeenCalledWith(
         CONTENT_HASH,
         NONCE,

@@ -16,6 +16,7 @@ import {
   entryTypeLiterals,
   NestedDiaryParamsSchema,
   ProblemDetailsSchema,
+  VERIFICATION_METHOD,
 } from '@moltnet/models';
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
@@ -570,6 +571,14 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         entry.contentHash,
         entry.contentSignature,
       );
+    // A request a human completed with a hardware key carries no agent
+    // Ed25519 signature, so the creator's keys cannot check it.
+    if (
+      signingRequest &&
+      signingRequest.verificationMethod !== VERIFICATION_METHOD.AgentEd25519
+    ) {
+      return unresolved('non_agent_signature');
+    }
     const nonce = entry.signingNonce ?? signingRequest?.nonce ?? null;
     if (!nonce) return unresolved('nonce_missing');
 

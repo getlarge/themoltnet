@@ -67,4 +67,68 @@ describe('SigningRequestRepository (integration)', () => {
       earliestExpiresAt: liveExpiry,
     });
   });
+
+  describe('findValidBySignature', () => {
+    const insert = (row: {
+      message: string;
+      signature: string;
+      valid: boolean | null;
+      createdAt?: Date;
+    }) =>
+      db
+        .insert(signingRequests)
+        .values({
+          agentId: AGENT_ID,
+          expiresAt: new Date(Date.now() + 60_000),
+          status: 'completed',
+          ...row,
+        })
+        .returning();
+
+    it('returns the completed request whose signature verified over the message', async () => {
+      const [request] = await insert({
+        message: 'bafy-hash',
+        signature: 'sig',
+        valid: true,
+      });
+
+      await expect(
+        repo.findValidBySignature('bafy-hash', 'sig'),
+      ).resolves.toMatchObject({ id: request.id });
+    });
+
+    it('ignores a request whose signature did not verify', async () => {
+      await insert({ message: 'bafy-hash', signature: 'sig', valid: false });
+
+      await expect(
+        repo.findValidBySignature('bafy-hash', 'sig'),
+      ).resolves.toBeNull();
+    });
+
+    it('ignores a request over a different message', async () => {
+      await insert({ message: 'bafy-other', signature: 'sig', valid: true });
+
+      await expect(
+        repo.findValidBySignature('bafy-hash', 'sig'),
+      ).resolves.toBeNull();
+    });
+
+    it('returns the newest of several matches', async () => {
+      await insert({
+        message: 'bafy-hash',
+        signature: 'sig',
+        valid: true,
+        createdAt: new Date(Date.now() - 60_000),
+      });
+      const [newest] = await insert({
+        message: 'bafy-hash',
+        signature: 'sig',
+        valid: true,
+      });
+
+      await expect(
+        repo.findValidBySignature('bafy-hash', 'sig'),
+      ).resolves.toMatchObject({ id: newest.id });
+    });
+  });
 });
