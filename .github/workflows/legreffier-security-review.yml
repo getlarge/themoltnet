@@ -106,6 +106,22 @@ jobs:
         run: |
           npx -y @themoltnet/cli@${MOLTNET_CLI_VERSION} task attempts "${{ steps.verify.outputs.task-id }}" \
             --team-id "$MOLTNET_TEAM_ID" --accepted-only --field output > "$REVIEW_OUTPUT"
+      - name: Collect workflow spend
+        id: spend
+        if: always() && steps.prepare.outputs.correlation != '' && steps.prepare.outputs.skip != 'true'
+        continue-on-error: true
+        env:
+          MOLTNET_ACTION_COMMAND: spend
+          SPEND_CORRELATION: ${{ steps.prepare.outputs.correlation }}
+        run: node --import tsx packages/agent-daemon-action/src/main.ts
+      - name: Upload workflow spend report
+        if: always() && steps.spend.outputs.report != ''
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ${{ steps.spend.outputs.artifact-name }}
+          path: ${{ steps.spend.outputs.report }}
+          retention-days: 14
       - name: Mint publisher token
         id: app-token
         if: steps.prepare.outputs.skip != 'true'
@@ -121,4 +137,5 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           APP_LOGIN: ${{ steps.app-token.outputs.app-slug }}[bot]
           REVIEW_TASK_ID: ${{ steps.verify.outputs.task-id }}
+          WORKFLOW_SPEND_SUMMARY: ${{ steps.spend.outputs.summary }}
         run: node --import tsx libs/security-review/src/main.ts publish

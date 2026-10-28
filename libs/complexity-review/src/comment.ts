@@ -3,7 +3,7 @@ import { parseArgs } from 'node:util';
 
 import { Value } from 'typebox/value';
 
-import { githubToken } from './config.js';
+import { actionEnv, githubToken } from './config.js';
 import {
   type ComplexityReviewOutput,
   ComplexityReviewOutput as ComplexityReviewOutputSchema,
@@ -220,13 +220,25 @@ class GitHubApi {
     if (existing) {
       await this.request(`/repos/${this.repo}/issues/comments/${existing.id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ body }),
+        body: JSON.stringify({
+          body:
+            body +
+            (actionEnv().WORKFLOW_SPEND_SUMMARY
+              ? `\n\n${readFileSync(actionEnv().WORKFLOW_SPEND_SUMMARY!, 'utf8')}`
+              : ''),
+        }),
       });
       return;
     }
     await this.request(`/repos/${this.repo}/issues/${prNumber}/comments`, {
       method: 'POST',
-      body: JSON.stringify({ body }),
+      body: JSON.stringify({
+        body:
+          body +
+          (actionEnv().WORKFLOW_SPEND_SUMMARY
+            ? `\n\n${readFileSync(actionEnv().WORKFLOW_SPEND_SUMMARY!, 'utf8')}`
+            : ''),
+      }),
     });
   }
 }

@@ -457,7 +457,7 @@ function prepareClassifier() {
   );
 }
 
-function publish() {
+async function publish() {
   const snapshot = JSON.parse(readFileSync(process.env.SNAPSHOT, 'utf8'));
   assertCorrelation(
     snapshot,
@@ -516,21 +516,33 @@ function publish() {
   if (labels.includes(opposite)) {
     gh('DELETE', `${path}/labels/${encodeURIComponent(opposite)}`);
   }
+  const { mergeWorkflowSpend, formatWorkflowSpend } =
+    await import('../../libs/tasks/src/spend.ts');
+  const spendReports = [
+    process.env.EXTRACTION_SPEND_REPORT,
+    process.env.CLASSIFIER_SPEND_REPORT,
+  ]
+    .filter(Boolean)
+    .map((path) => JSON.parse(readFileSync(path, 'utf8')));
+  const spendSummary = spendReports.length
+    ? `\n\n${formatWorkflowSpend(mergeWorkflowSpend(spendReports))}`
+    : '';
   gh('POST', `${path}/comments`, {
-    body: renderComment(
-      criteria,
-      classification,
-      snapshot.correlationId,
-      selectedCategoryLabel,
-      {
-        runUrl:
-          process.env.GITHUB_SERVER_URL && process.env.GITHUB_RUN_ID
-            ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
-            : null,
-        extractionTaskId: process.env.EXTRACTION_TASK_ID,
-        classifierTaskId: process.env.CLASSIFIER_TASK_ID,
-      },
-    ),
+    body:
+      renderComment(
+        criteria,
+        classification,
+        snapshot.correlationId,
+        selectedCategoryLabel,
+        {
+          runUrl:
+            process.env.GITHUB_SERVER_URL && process.env.GITHUB_RUN_ID
+              ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+              : null,
+          extractionTaskId: process.env.EXTRACTION_TASK_ID,
+          classifierTaskId: process.env.CLASSIFIER_TASK_ID,
+        },
+      ) + spendSummary,
   });
 }
 

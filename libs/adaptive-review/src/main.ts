@@ -99,13 +99,16 @@ const deps: CliDeps = {
       );
     },
   },
-  async connect() {
-    const agent = await connect();
+  async connect(teamId, signal) {
+    const agent = await connect({ signal });
     return {
       async profiles(teamId) {
         return (await agent.runtimeProfiles.list({ teamId })).items;
       },
-      tasks: createSdkTaskClient(agent),
+      tasks: {
+        ...createSdkTaskClient(agent),
+        listAttempts: (id) => agent.tasks.listAttempts(id, { teamId }),
+      },
     };
   },
   workers: runWorkerLiveness,

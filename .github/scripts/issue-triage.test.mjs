@@ -345,10 +345,43 @@ test('prepares the next task from the accepted attempt and preserves labels if c
   );
 
   // The fake classifier returns the extraction shape, which must be rejected.
+  const spendPath = join(dir, 'spend.json');
+  writeFileSync(
+    spendPath,
+    JSON.stringify({
+      version: 1,
+      records: [
+        {
+          taskId: 'extract-task',
+          stage: 'extraction',
+          missing: false,
+          models: [],
+          spend: {
+            attempts: 2,
+            inputTokens: 10,
+            outputTokens: 2,
+            cacheReadTokens: 0,
+            cacheWriteTokens: 0,
+            reasoningTokens: 0,
+            estimatedCostUsd: 0.01,
+            costComplete: true,
+            durationMs: 1000,
+          },
+        },
+      ],
+    }),
+  );
+  env.EXTRACTION_SPEND_REPORT = spendPath;
+  env.CLASSIFIER_SPEND_REPORT = spendPath; // A reused task must not be charged twice.
   const published = run('publish');
   assert.equal(published.status, 0, published.stderr);
   assert.match(published.stderr, /Classifier pilot result unavailable/);
   const fallbackComment = JSON.parse(readFileSync(bodyPath, 'utf8')).body;
+  assert.match(fallbackComment, /Agent workflow spend/);
+  assert.match(
+    fallbackComment,
+    /\| \*\*Total\*\* \| \| 2 \| 10 \| 2 \| 0 \/ 0 \| \$0.0100/,
+  );
   assert.match(
     fallbackComment,
     /\[view on GitHub\]\(https:\/\/github.com\/getlarge\/themoltnet\/actions\/runs\/123456\)/,

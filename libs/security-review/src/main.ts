@@ -208,7 +208,12 @@ function publish() {
     patch,
   );
   validateResult(unwrap(requireEnv('REVIEW_OUTPUT')), candidates, patch);
-  const body = renderComment(meta.headRefOid, requireEnv('REVIEW_TASK_ID'));
+  const body =
+    renderComment(meta.headRefOid, requireEnv('REVIEW_TASK_ID')) +
+    [env.WORKFLOW_SPEND_SUMMARY]
+      .filter((path): path is string => Boolean(path))
+      .map((path) => `\n\n${readFileSync(path, 'utf8')}`)
+      .join('');
   const author = requireEnv('APP_LOGIN');
   const comments = gh([
     'api',

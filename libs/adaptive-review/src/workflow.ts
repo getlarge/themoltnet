@@ -8,7 +8,7 @@ import {
   docsGlobs,
   loadReviewConfig,
 } from '@moltnet/docs-impact-review';
-import type { ClassifyOutput } from '@moltnet/tasks';
+import type { ClassifyOutput, WorkflowSpendReport } from '@moltnet/tasks';
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 
 import { runComplexityLane } from './complexity-lane.js';
@@ -51,6 +51,7 @@ const FullOid = /^[0-9a-f]{40}$/;
 const MAX_CLASSIFIER_PACKETS = 4;
 
 export interface AdaptiveReport {
+  spend?: WorkflowSpendReport;
   version: 1;
   mode: Mode;
   repo: string;

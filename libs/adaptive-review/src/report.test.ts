@@ -60,11 +60,14 @@ it('labels screening honestly and neutralizes model-authored text', () => {
           : [],
     })),
   };
+  report.spend = { version: 1, records: [], discoveryIncomplete: true };
   const comment = renderAdaptiveComment(
     report,
     'https://github.com/getlarge/themoltnet/actions/runs/1',
   );
   expect(comment).toContain('screened, not verified');
+  expect(comment).toContain('### Agent workflow spend');
+  expect(comment).toContain('Task discovery is incomplete');
   expect(comment).toContain('@\u200bowner \\[click\\](bad) &lt;script&gt;');
   expect(comment).toContain(
     '\\[owned\\].ts:7: #\u200b123 @\u200bmaintainer &lt;b&gt;',

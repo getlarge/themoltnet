@@ -13,8 +13,13 @@ import { getOctokit } from '@actions/github';
 
 import { runCancelSupersededFromEnv } from './cancel-superseded.js';
 import { dispatch } from './dispatch.js';
+import { reportActionSpend } from './spend.js';
 
 async function main(): Promise<void> {
+  if (process.env.MOLTNET_ACTION_COMMAND === 'spend') {
+    await reportActionSpend();
+    return;
+  }
   if (process.env['MOLTNET_ACTION_COMMAND'] === 'cancel-superseded') {
     const cancelled = await runCancelSupersededFromEnv();
     core.info(

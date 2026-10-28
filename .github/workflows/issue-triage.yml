@@ -156,6 +156,8 @@ jobs:
       - name: Apply validated result
         if: steps.extract.outputs.task-id != ''
         env:
+          EXTRACTION_SPEND_REPORT: ${{ steps.extract.outputs.spend-report }}
+          CLASSIFIER_SPEND_REPORT: ${{ steps.classify.outputs.spend-report }}
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           SNAPSHOT: ${{ steps.prepare.outputs.snapshot }}
           EXTRACTION_TASK_ID: ${{ steps.extract.outputs.task-id }}

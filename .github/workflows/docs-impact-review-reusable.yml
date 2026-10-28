@@ -180,7 +180,9 @@ jobs:
           repository: ${{ steps.runtime.outputs.repository }}
           ref: ${{ steps.runtime.outputs.ref }}
           path: .docs-impact-runtime
-          sparse-checkout: packages/docs-impact-review-action
+          sparse-checkout: |
+            packages/docs-impact-review-action
+            packages/agent-daemon-action
           persist-credentials: false
 
       # A branch runtime-ref is resolved once, so the review and the workers
@@ -238,7 +240,9 @@ jobs:
           repository: ${{ needs.prepare.outputs.runtime-repository }}
           ref: ${{ needs.prepare.outputs.runtime-sha }}
           path: .docs-impact-runtime
-          sparse-checkout: packages/docs-impact-review-action
+          sparse-checkout: |
+            packages/docs-impact-review-action
+            packages/agent-daemon-action
           persist-credentials: false
       - name: Fetch the reviewed revisions as inert git data
         env:
