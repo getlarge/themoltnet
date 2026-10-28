@@ -38,8 +38,8 @@ import {
 } from '../schemas.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 import {
-  toSigningResponseOf,
-  toSigningResponses,
+  shapeSigningRequest,
+  shapeSigningRequests,
 } from '../utils/signing-response.js';
 import { throwSigningServiceProblem } from '../utils/signing-service-error.js';
 
@@ -109,12 +109,14 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           {
             signingId: created.id,
             identityId: request.authContext!.identityId,
+            requesterAgentId: created.requesterAgentId,
+            requesterHumanId: created.requesterHumanId,
           },
           'crypto.signature_prepared',
         );
         return await reply
           .status(201)
-          .send(await toSigningResponseOf(created, fastify));
+          .send(await shapeSigningRequest(created, fastify));
       } catch (error) {
         throwSigningServiceProblem(error);
       }
@@ -182,7 +184,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           offset,
         });
         return {
-          items: await toSigningResponses(result.items, fastify),
+          items: await shapeSigningRequests(result.items, fastify),
           total: result.total,
           limit: limit ?? 20,
           offset: offset ?? 0,
@@ -226,7 +228,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           actor: request.authContext!,
           requestId: id,
         });
-        return await toSigningResponseOf(signingRequest, fastify);
+        return await shapeSigningRequest(signingRequest, fastify);
       } catch (error) {
         throwSigningServiceProblem(error);
       }
@@ -285,7 +287,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           },
           'crypto.signing_request_claimed',
         );
-        return await toSigningResponseOf(claimed, fastify);
+        return await shapeSigningRequest(claimed, fastify);
       } catch (error) {
         throwSigningServiceProblem(error);
       }
@@ -343,7 +345,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           },
           'crypto.signing_request_completed',
         );
-        return await toSigningResponseOf(completed, fastify);
+        return await shapeSigningRequest(completed, fastify);
       } catch (error) {
         throwSigningServiceProblem(error);
       }
@@ -400,7 +402,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           },
           'crypto.signing_request_rejected',
         );
-        return await toSigningResponseOf(rejected, fastify);
+        return await shapeSigningRequest(rejected, fastify);
       } catch (error) {
         throwSigningServiceProblem(error);
       }
@@ -454,7 +456,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           { signingId: id, valid: updated.valid },
           'crypto.signature_submitted',
         );
-        return await toSigningResponseOf(updated, fastify);
+        return await shapeSigningRequest(updated, fastify);
       } catch (error) {
         throwSigningServiceProblem(error);
       }

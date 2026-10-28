@@ -120,7 +120,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
       if (
         !isSigningRequester(signingRequest, { kind: 'agent', id: agent.id })
       ) {
-        request.log.debug(
+        request.log.info(
           { signingRequestId: signingRequest.id, reason: 'other_requester' },
           'agents.verify',
         );

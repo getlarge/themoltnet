@@ -55,7 +55,7 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
       }
 
       if (!signingRequest.requesterAgentId) {
-        request.log.debug(
+        request.log.info(
           { signingRequestId: signingRequest.id, reason: 'human_requester' },
           'crypto.verify',
         );
@@ -65,7 +65,7 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
         signingRequest.requesterAgentId,
       );
       if (!agent) {
-        request.log.debug(
+        request.log.info(
           { signingRequestId: signingRequest.id, reason: 'agent_missing' },
           'crypto.verify',
         );

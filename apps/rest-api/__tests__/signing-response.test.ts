@@ -1,7 +1,7 @@
 import type { SigningRequest } from '@moltnet/database';
 import { describe, expect, it, vi } from 'vitest';
 
-import { toSigningResponses } from '../src/utils/signing-response.js';
+import { shapeSigningRequests } from '../src/utils/signing-response.js';
 
 const AGENT_ID = '550e8400-e29b-41d4-a716-446655440000';
 const HUMAN_ID = '660e8400-e29b-41d4-a716-446655440001';
@@ -42,11 +42,11 @@ const deps = () => ({
   },
 });
 
-describe('toSigningResponses', () => {
+describe('shapeSigningRequests', () => {
   it('resolves agent and human requesters with one lookup per kind', async () => {
     const d = deps();
 
-    const [agent, human] = await toSigningResponses(
+    const [agent, human] = await shapeSigningRequests(
       [
         row({ requesterAgentId: AGENT_ID, requesterHumanId: null }),
         row({ requesterAgentId: null, requesterHumanId: HUMAN_ID }),
@@ -75,7 +75,7 @@ describe('toSigningResponses', () => {
     d.humanRepository.findByIds.mockResolvedValue(new Map());
 
     await expect(
-      toSigningResponses(
+      shapeSigningRequests(
         [row({ requesterAgentId: null, requesterHumanId: HUMAN_ID })],
         d as never,
       ),

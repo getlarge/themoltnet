@@ -1,64 +1,32 @@
 import { buildSigningBytes } from '@moltnet/crypto-service';
-import {
-  type Agent,
-  type Human,
-  PrincipalAgentNotFoundError,
-  PrincipalHumanNotFoundError,
-  type PrincipalIdentity,
-  type SigningRequest,
-  type SigningRequester,
-  signingRequester,
-} from '@moltnet/database';
-import type { FastifyInstance } from 'fastify';
+import type { PrincipalIdentity, SigningRequest } from '@moltnet/database';
 
-export type PrincipalDeps = Pick<
-  FastifyInstance,
-  'agentRepository' | 'humanRepository'
->;
+import { batchInflateRowsWithCreator } from './auth-principal.js';
 
-function requesterIdentity(
-  requester: SigningRequester,
-  agents: Map<string, Agent>,
-  humans: Map<string, Human>,
-): PrincipalIdentity {
-  if (requester.kind === 'agent') {
-    const agent = agents.get(requester.id);
-    if (!agent) throw new PrincipalAgentNotFoundError(requester.id);
-    return {
-      kind: 'agent',
-      agentId: agent.id,
-      identityId: agent.identityId,
-      fingerprint: agent.fingerprint,
-      publicKey: agent.publicKey,
-    };
-  }
-  const human = humans.get(requester.id);
-  if (!human) throw new PrincipalHumanNotFoundError(requester.id);
-  return { kind: 'human', humanId: human.id, identityId: human.identityId };
-}
-
-/** Shape rows for the API, resolving every requester in one query per kind. */
-export async function toSigningResponses(
+/**
+ * Shape signing requests for the API, resolving every requester with one
+ * agents and one humans lookup.
+ */
+export async function shapeSigningRequests(
   rows: readonly SigningRequest[],
-  deps: PrincipalDeps,
+  deps: Parameters<typeof batchInflateRowsWithCreator>[1],
 ) {
-  const requesters = rows.map(signingRequester);
-  const idsOf = (kind: SigningRequester['kind']) =>
-    requesters.filter((r) => r.kind === kind).map((r) => r.id);
-  const [agents, humans] = await Promise.all([
-    deps.agentRepository.findByIds(idsOf('agent')),
-    deps.humanRepository.findByIds(idsOf('human')),
-  ]);
-  return rows.map((row, i) =>
-    toSigningResponse(row, requesterIdentity(requesters[i], agents, humans)),
+  const inflated = await batchInflateRowsWithCreator(
+    rows.map((row) => ({
+      row,
+      creatorAgentId: row.requesterAgentId,
+      creatorHumanId: row.requesterHumanId,
+    })),
+    deps,
   );
+  return inflated.map(({ row, creator }) => toSigningResponse(row, creator));
 }
 
-export async function toSigningResponseOf(
+export async function shapeSigningRequest(
   row: SigningRequest,
-  deps: PrincipalDeps,
+  deps: Parameters<typeof batchInflateRowsWithCreator>[1],
 ) {
-  const [response] = await toSigningResponses([row], deps);
+  const [response] = await shapeSigningRequests([row], deps);
   return response;
 }
 

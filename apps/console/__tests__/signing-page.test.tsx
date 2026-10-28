@@ -109,6 +109,30 @@ describe('SigningPage', () => {
     expect(screen.getByText('Companion connected')).toBeVisible();
   });
 
+  it.each([
+    [
+      'a human requester by id',
+      { kind: 'human', humanId: 'human-requester', identityId: null },
+      'human-requester',
+    ],
+    // An older API, during a rollout where the console deploys first.
+    [
+      'a legacy requester shape',
+      { id: 'legacy-requester', type: 'agent' },
+      'legacy-requester',
+    ],
+    ['a missing requester', undefined, '—'],
+  ])('shows %s', (_case, requestedBy, label) => {
+    controllerState.requests = [{ ...request, requestedBy } as never];
+    try {
+      render(<SigningPage />, { wrapper: Wrapper });
+
+      expect(screen.getByText(label)).toBeVisible();
+    } finally {
+      controllerState.requests = [request];
+    }
+  });
+
   it('requires explicit review before opening the companion ceremony', async () => {
     render(<SigningPage />, { wrapper: Wrapper });
 
