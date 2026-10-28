@@ -5,6 +5,27 @@ import type { AdaptiveReport } from './workflow.js';
 
 export const ADAPTIVE_REVIEW_MARKER = '<!-- moltnet:adaptive-review -->';
 
+/** Coverage refers to selected investigations, never to screened-out lanes. */
+export function hasIncompleteCoverage(report: AdaptiveReport): boolean {
+  return (
+    report.gaps.length > 0 ||
+    report.results.some(
+      (result) =>
+        result.status === 'failed' ||
+        result.status === 'unclear' ||
+        Boolean(result.unclear?.length),
+    ) ||
+    report.routing.routes.some(
+      (route) =>
+        route.run &&
+        !report.results.some(
+          (result) =>
+            result.lane === route.lane && result.status !== 'screened',
+        ),
+    )
+  );
+}
+
 /** Replaces a result whose pull request moved while it was being published. */
 export function renderAdaptiveStale(
   report: Pick<AdaptiveReport, 'head' | 'base'>,
@@ -31,9 +52,11 @@ export function renderAdaptiveComment(
 ): string {
   const lines = [
     ADAPTIVE_REVIEW_MARKER,
-    '## Experimental adaptive review',
+    hasIncompleteCoverage(report)
+      ? '## Experimental adaptive review: incomplete coverage'
+      : '## Experimental adaptive review',
     '',
-    `${report.mode === 'shadow' ? 'Shadow run: every enabled lane was investigated.' : 'Classifier-selected investigations.'} Head \`${report.head.slice(0, 7)}\` · [workflow run](${runUrl}).`,
+    `${report.mode === 'shadow' ? 'Shadow run: every enabled lane was selected for investigation.' : 'Classifier-selected investigations.'} Head \`${report.head.slice(0, 7)}\` · [workflow run](${runUrl}).`,
     '',
     '| Lane | Classifier concern | Investigation |',
     '| --- | ---: | --- |',
@@ -71,7 +94,7 @@ export function renderAdaptiveComment(
     }
   }
   const security = report.results.find((result) => result.lane === 'security');
-  if (security?.status === 'concern' || security?.status === 'unclear') {
+  if (security && ['concern', 'unclear', 'failed'].includes(security.status)) {
     lines.push(
       '',
       'Security investigation needs specialist follow-up. Details remain in the team-scoped review tasks.',
@@ -81,13 +104,14 @@ export function renderAdaptiveComment(
     ...report.gaps,
     ...report.results
       .filter(
-        (result) => result.status === 'failed' || result.status === 'unclear',
+        (result) =>
+          result.status === 'failed' ||
+          result.status === 'unclear' ||
+          Boolean(result.unclear?.length),
       )
       .flatMap((result) => [
         `${result.lane}: ${result.summary}`,
-        ...(result.status === 'unclear' ? (result.unclear ?? []) : []).map(
-          (item) => `${result.lane}: ${item}`,
-        ),
+        ...(result.unclear ?? []).map((item) => `${result.lane}: ${item}`),
       ]),
   ];
   if (gaps.length) {

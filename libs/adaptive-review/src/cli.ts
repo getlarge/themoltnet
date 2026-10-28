@@ -16,6 +16,7 @@ import {
   required,
 } from './config.js';
 import type { Lane } from './core.js';
+import { hasIncompleteCoverage } from './report.js';
 import { loadAdaptivePolicy } from './snapshot.js';
 import {
   type SpecialistPool,
@@ -309,6 +310,14 @@ async function review(deps: CliDeps, options: RunOptions): Promise<number> {
   deps.stdout(
     `Adaptive review finished: ${report.results.map((result) => `${result.lane}=${result.status}`).join(', ')}\n`,
   );
+  if (hasIncompleteCoverage(report)) {
+    const message =
+      'Adaptive review has incomplete coverage. Task completion is not review clearance; inspect the report and team-scoped tasks.';
+    // Fixed text only: private security evidence must not enter annotations.
+    deps.stdout(`::warning title=Incomplete adaptive review::${message}\n`);
+    if (env.GITHUB_STEP_SUMMARY)
+      appendFileSync(env.GITHUB_STEP_SUMMARY, `\n**${message}**\n`);
+  }
   return report.results.some((result) => result.status === 'failed') ? 1 : 0;
 }
 
