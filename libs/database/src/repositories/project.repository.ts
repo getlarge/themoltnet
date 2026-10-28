@@ -1,3 +1,4 @@
+import type { PrincipalRef } from '@moltnet/models';
 import { and, asc, eq } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
@@ -10,7 +11,7 @@ export type ProjectChanges = Partial<
 >;
 export interface ProjectRepository {
   create(input: {
-    creator: { kind: 'agent' | 'human'; id: string };
+    creator: PrincipalRef;
     teamId: string;
     name: string;
     description?: string | null;

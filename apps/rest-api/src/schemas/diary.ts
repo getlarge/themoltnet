@@ -4,7 +4,7 @@ import {
   PublicKeySchema,
   visibilityLiterals,
 } from '@moltnet/models';
-import { Type } from 'typebox';
+import { type Static, Type } from 'typebox';
 
 import { DateTime, EntryTypeSchema } from './atoms.js';
 import { PrincipalIdentitySchema } from './principal.js';
@@ -191,10 +191,23 @@ export const EntryVerifyResultSchema = Type.Object(
   {
     signed: Type.Boolean(),
     hashMatches: Type.Boolean(),
-    signatureValid: Type.Boolean(),
+    signatureStatus: Type.Union(
+      [
+        Type.Literal('valid'),
+        Type.Literal('invalid'),
+        Type.Literal('signer_unresolved'),
+        Type.Literal('unsigned'),
+      ],
+      {
+        description:
+          '`valid`: the signature verified against the signer key. `invalid`: it was checked against the signer key and rejected. `signer_unresolved`: no signer key could be established, so it was not checked. `unsigned`: the entry carries no signature.',
+      },
+    ),
     valid: Type.Boolean(),
     contentHash: Type.Union([Type.String(), Type.Null()]),
     agentFingerprint: Type.Union([Type.String(), Type.Null()]),
   },
   { $id: 'EntryVerifyResult' },
 );
+
+export type EntryVerifyResult = Static<typeof EntryVerifyResultSchema>;

@@ -308,8 +308,8 @@ func TestE2E_DiaryCommit_Signed(t *testing.T) {
 	if !verifyResult.HashMatches {
 		t.Error("expected hashMatches=true")
 	}
-	if !verifyResult.SignatureValid {
-		t.Error("expected signatureValid=true")
+	if verifyResult.SignatureStatus != moltnetapi.EntryVerifyResultSignatureStatusValid {
+		t.Errorf("expected signatureStatus=valid, got %s", verifyResult.SignatureStatus)
 	}
 	t.Logf("Signed entry verified: %s (CID: %s)", entryUUID, verifyResult.ContentHash.Value)
 }

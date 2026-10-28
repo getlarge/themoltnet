@@ -113,6 +113,7 @@ describe('Signing Workflows', () => {
   describe('requestSignature workflow', () => {
     const REQUEST_ID = '770e8400-e29b-41d4-a716-446655440002';
     const AGENT_ID = '550e8400-e29b-41d4-a716-446655440000';
+    const REQUESTER = { kind: 'agent', id: AGENT_ID } as const;
     const MESSAGE = 'Hello, world!';
     const NONCE = '880e8400-e29b-41d4-a716-446655440003';
     const SIGNATURE = 'ed25519:sig123';
@@ -126,7 +127,7 @@ describe('Signing Workflows', () => {
         verifyWithNonce: vi.fn().mockResolvedValue(true),
       });
       setSigningKeyLookup({
-        getPublicKey: vi.fn().mockResolvedValue(PUBLIC_KEY),
+        getPublicKeyByAgentId: vi.fn().mockResolvedValue(PUBLIC_KEY),
       });
       setSigningRequestPersistence({
         completeAgentRequest: vi.fn().mockResolvedValue(undefined),
@@ -143,7 +144,7 @@ describe('Signing Workflows', () => {
 
       const result = await signingWorkflows.requestSignature(
         REQUEST_ID,
-        AGENT_ID,
+        REQUESTER,
         MESSAGE,
         NONCE,
       );
@@ -172,7 +173,7 @@ describe('Signing Workflows', () => {
 
       await signingWorkflows.requestSignature(
         REQUEST_ID,
-        AGENT_ID,
+        REQUESTER,
         MESSAGE,
         NONCE,
       );
@@ -186,12 +187,53 @@ describe('Signing Workflows', () => {
       );
     });
 
+    it('resolves the key by the requester agent id', async () => {
+      const getPublicKeyByAgentId = vi.fn().mockResolvedValue(PUBLIC_KEY);
+      setSigningKeyLookup({ getPublicKeyByAgentId });
+      vi.mocked(DBOS.recv).mockResolvedValue({ signature: SIGNATURE });
+
+      const result = await signingWorkflows.requestSignature(
+        REQUEST_ID,
+        REQUESTER,
+        MESSAGE,
+        NONCE,
+      );
+
+      expect(getPublicKeyByAgentId).toHaveBeenCalledWith(AGENT_ID);
+      expect(result.valid).toBe(true);
+    });
+
+    it('completes as invalid for a human requester without looking up a key', async () => {
+      const getPublicKeyByAgentId = vi.fn();
+      const completeAgentRequest = vi.fn().mockResolvedValue(undefined);
+      setSigningKeyLookup({ getPublicKeyByAgentId });
+      setSigningRequestPersistence({ completeAgentRequest });
+      vi.mocked(DBOS.recv).mockResolvedValue({ signature: SIGNATURE });
+
+      const result = await signingWorkflows.requestSignature(
+        REQUEST_ID,
+        { kind: 'human', id: '660e8400-e29b-41d4-a716-446655440001' },
+        MESSAGE,
+        NONCE,
+      );
+
+      expect(getPublicKeyByAgentId).not.toHaveBeenCalled();
+      expect(completeAgentRequest).toHaveBeenCalledWith(
+        expect.objectContaining({ id: REQUEST_ID, valid: false }),
+      );
+      expect(result).toEqual({
+        requestId: REQUEST_ID,
+        status: 'completed',
+        valid: false,
+      });
+    });
+
     it('marks as expired when signature times out', async () => {
       vi.mocked(DBOS.recv).mockResolvedValue(null);
 
       const result = await signingWorkflows.requestSignature(
         REQUEST_ID,
-        AGENT_ID,
+        REQUESTER,
         MESSAGE,
         NONCE,
       );
@@ -203,18 +245,27 @@ describe('Signing Workflows', () => {
     it('marks as invalid when public key not found', async () => {
       vi.mocked(DBOS.recv).mockResolvedValue({ signature: SIGNATURE });
       setSigningKeyLookup({
-        getPublicKey: vi.fn().mockResolvedValue(null),
+        getPublicKeyByAgentId: vi.fn().mockResolvedValue(null),
       });
+      const reporter = vi.fn();
+      setSigningWorkflowErrorReporter(reporter);
 
       const result = await signingWorkflows.requestSignature(
         REQUEST_ID,
-        AGENT_ID,
+        REQUESTER,
         MESSAGE,
         NONCE,
       );
 
       expect(result.status).toBe('completed');
       expect(result.valid).toBe(false);
+      expect(reporter).toHaveBeenCalledWith(
+        expect.any(Error),
+        expect.objectContaining({
+          operation: 'lookup_public_key',
+          requestId: REQUEST_ID,
+        }),
+      );
     });
 
     it('marks as invalid when signature verification fails', async () => {
@@ -226,7 +277,7 @@ describe('Signing Workflows', () => {
 
       const result = await signingWorkflows.requestSignature(
         REQUEST_ID,
-        AGENT_ID,
+        REQUESTER,
         MESSAGE,
         NONCE,
       );
@@ -244,7 +295,7 @@ describe('Signing Workflows', () => {
 
       const result = await signingWorkflows.requestSignature(
         REQUEST_ID,
-        AGENT_ID,
+        REQUESTER,
         MESSAGE,
         NONCE,
         'human-hardware-previewsign',
@@ -273,7 +324,7 @@ describe('Signing Workflows', () => {
 
       const result = await signingWorkflows.requestSignature(
         REQUEST_ID,
-        AGENT_ID,
+        REQUESTER,
         MESSAGE,
         NONCE,
       );
@@ -319,7 +370,12 @@ describe('Signing Workflows', () => {
       vi.mocked(DBOS.recv).mockResolvedValue({ signature: SIGNATURE });
 
       await expect(
-        signingWorkflows.requestSignature(REQUEST_ID, AGENT_ID, MESSAGE, NONCE),
+        signingWorkflows.requestSignature(
+          REQUEST_ID,
+          REQUESTER,
+          MESSAGE,
+          NONCE,
+        ),
       ).rejects.toEqual(
         expect.objectContaining({
           name: 'SigningWorkflowConfigurationError',
@@ -337,12 +393,17 @@ describe('Signing Workflows', () => {
         verifyWithNonce: vi.fn().mockResolvedValue(true),
       });
       setSigningKeyLookup({
-        getPublicKey: vi.fn().mockResolvedValue(PUBLIC_KEY),
+        getPublicKeyByAgentId: vi.fn().mockResolvedValue(PUBLIC_KEY),
       });
       vi.mocked(DBOS.recv).mockResolvedValue(null);
 
       await expect(
-        signingWorkflows.requestSignature(REQUEST_ID, AGENT_ID, MESSAGE, NONCE),
+        signingWorkflows.requestSignature(
+          REQUEST_ID,
+          REQUESTER,
+          MESSAGE,
+          NONCE,
+        ),
       ).rejects.toEqual(
         expect.objectContaining({
           name: 'SigningWorkflowConfigurationError',

@@ -135,7 +135,7 @@ const NO_SIGNER: SignerAttribution = {
  * Map an entry plus its verification result onto an honest signature state.
  *
  * The one rule that matters: **`signed` is checked first.** The API returns
- * `{signed: false, hashMatches: false, signatureValid: false, valid: false}`
+ * `{signed: false, hashMatches: false, signatureStatus: 'unsigned', valid: false}`
  * for an entry that was never signed, so reading `valid` on its own would
  * report a perfectly ordinary unsigned entry as a failure. Signing is opt-in
  * in MoltNet (diary entry `beece2e2` — "signing opt-in is the only
@@ -207,6 +207,17 @@ export function deriveSignatureState({
       explanation:
         'Content changed since signing — the entry no longer hashes to the content hash that was signed.',
       signer,
+    };
+  }
+
+  // No key was tried, so this is "cannot tell", not a failed check.
+  if (verification.signatureStatus === 'signer_unresolved') {
+    return {
+      state: 'unverified',
+      label: 'Signer unresolved',
+      explanation:
+        'The signature could not be checked: the server could not establish which key signed this entry. This is not evidence that the entry was tampered with.',
+      signer: unresolvedSigner(),
     };
   }
 

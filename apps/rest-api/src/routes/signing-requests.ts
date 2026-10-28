@@ -6,15 +6,14 @@
  *
  * ## Authorization
  *
- * Agent Ed25519 requests remain identity-owned and use a direct `agentId`
- * comparison. Delegated requests are team-scoped: Keto establishes team role
- * and group membership, while the persisted signer constraint selects which
- * eligible human may claim and complete the request.
+ * Agent Ed25519 requests are owned by the principal that created them
+ * (`requester_agent_id` / `requester_human_id`). Delegated requests are
+ * team-scoped: Keto establishes team role and group membership, while the
+ * persisted signer constraint selects which eligible human may claim and
+ * complete the request.
  */
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
-import { buildSigningBytes } from '@moltnet/crypto-service';
-import type { SigningRequest } from '@moltnet/database';
 import {
   ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
@@ -38,37 +37,11 @@ import {
   SigningRequestSchema,
 } from '../schemas.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
+import {
+  shapeSigningRequest,
+  shapeSigningRequests,
+} from '../utils/signing-response.js';
 import { throwSigningServiceProblem } from '../utils/signing-service-error.js';
-
-function toSigningResponse(row: SigningRequest) {
-  return {
-    id: row.id,
-    agentId: row.agentId,
-    verificationMethod: row.verificationMethod,
-    requestedBy: row.requestedBy ?? null,
-    signerConstraint: row.signerConstraint ?? null,
-    teamId: row.teamId ?? null,
-    purpose: row.purpose ?? null,
-    claimedByHumanId: row.claimedByHumanId ?? null,
-    signingCredentialId: row.signingCredentialId ?? null,
-    challenge: row.challenge ?? null,
-    receipt: row.receipt ?? null,
-    message: row.message,
-    nonce: row.nonce,
-    signingInput: Buffer.from(
-      buildSigningBytes(row.message, row.nonce),
-    ).toString('base64'),
-    status: row.status,
-    signature: row.signature,
-    valid: row.valid,
-    createdAt: row.createdAt,
-    expiresAt: row.expiresAt,
-    completedAt: row.completedAt,
-    claimedAt: row.claimedAt ?? null,
-    rejectedAt: row.rejectedAt ?? null,
-    rejectionReason: row.rejectionReason ?? null,
-  };
-}
 
 const SIGNING_JSON_BODY_LIMIT = 64 * 1024;
 
@@ -136,10 +109,14 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           {
             signingId: created.id,
             identityId: request.authContext!.identityId,
+            requesterAgentId: created.requesterAgentId,
+            requesterHumanId: created.requesterHumanId,
           },
           'crypto.signature_prepared',
         );
-        return await reply.status(201).send(toSigningResponse(created));
+        return await reply
+          .status(201)
+          .send(await shapeSigningRequest(created, fastify));
       } catch (error) {
         throwSigningServiceProblem(error);
       }
@@ -207,7 +184,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           offset,
         });
         return {
-          items: result.items.map(toSigningResponse),
+          items: await shapeSigningRequests(result.items, fastify),
           total: result.total,
           limit: limit ?? 20,
           offset: offset ?? 0,
@@ -251,7 +228,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           actor: request.authContext!,
           requestId: id,
         });
-        return toSigningResponse(signingRequest);
+        return await shapeSigningRequest(signingRequest, fastify);
       } catch (error) {
         throwSigningServiceProblem(error);
       }
@@ -310,7 +287,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           },
           'crypto.signing_request_claimed',
         );
-        return toSigningResponse(claimed);
+        return await shapeSigningRequest(claimed, fastify);
       } catch (error) {
         throwSigningServiceProblem(error);
       }
@@ -368,7 +345,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           },
           'crypto.signing_request_completed',
         );
-        return toSigningResponse(completed);
+        return await shapeSigningRequest(completed, fastify);
       } catch (error) {
         throwSigningServiceProblem(error);
       }
@@ -425,7 +402,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           },
           'crypto.signing_request_rejected',
         );
-        return toSigningResponse(rejected);
+        return await shapeSigningRequest(rejected, fastify);
       } catch (error) {
         throwSigningServiceProblem(error);
       }
@@ -479,7 +456,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           { signingId: id, valid: updated.valid },
           'crypto.signature_submitted',
         );
-        return toSigningResponse(updated);
+        return await shapeSigningRequest(updated, fastify);
       } catch (error) {
         throwSigningServiceProblem(error);
       }

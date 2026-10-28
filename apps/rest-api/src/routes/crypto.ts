@@ -48,15 +48,29 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
       const { signature } = request.body;
 
       const signingRequest =
-        await fastify.signingRequestRepository.findBySignature(signature);
+        await fastify.signingRequestRepository.findVerifiedBySignature(
+          signature,
+        );
       if (!signingRequest) {
+        request.log.debug({ reason: 'no_signing_request' }, 'crypto.verify');
         return { valid: false };
       }
 
-      const agent = await fastify.agentRepository.findByIdentityId(
-        signingRequest.agentId,
+      if (!signingRequest.requesterAgentId) {
+        request.log.info(
+          { signingRequestId: signingRequest.id, reason: 'human_requester' },
+          'crypto.verify',
+        );
+        return { valid: false };
+      }
+      const agent = await fastify.agentRepository.findById(
+        signingRequest.requesterAgentId,
       );
       if (!agent) {
+        request.log.info(
+          { signingRequestId: signingRequest.id, reason: 'agent_missing' },
+          'crypto.verify',
+        );
         return { valid: false };
       }
 
@@ -73,6 +87,12 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
           ),
       );
 
+      if (!signedBy) {
+        request.log.debug(
+          { signingRequestId: signingRequest.id, reason: 'no_key_matched' },
+          'crypto.verify',
+        );
+      }
       return { valid: signedBy !== null };
     },
   );

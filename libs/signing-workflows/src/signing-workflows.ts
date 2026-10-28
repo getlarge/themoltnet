@@ -13,7 +13,11 @@
  */
 
 import { DBOS } from '@dbos-inc/dbos-sdk';
-import { VERIFICATION_METHOD, type VerificationMethod } from '@moltnet/models';
+import {
+  type PrincipalRef,
+  VERIFICATION_METHOD,
+  type VerificationMethod,
+} from '@moltnet/models';
 
 export {
   VERIFICATION_METHOD,
@@ -253,12 +257,15 @@ export class Ed25519Verifier implements SigningVerifier {
   }
 }
 
+/** The requester of a signing request; only an agent holds an Ed25519 key. */
+export type SigningWorkflowRequester = PrincipalRef;
+
 /**
  * Interface for looking up an agent's public key.
  * Implemented by the agent repository.
  */
 export interface AgentKeyLookup {
-  getPublicKey(agentId: string): Promise<string | null>;
+  getPublicKeyByAgentId(agentId: string): Promise<string | null>;
 }
 
 /**
@@ -306,7 +313,7 @@ let signingWorkflowErrorReporter:
   | ((
       error: unknown,
       context: {
-        operation: 'verify_receipt' | 'verify_signature';
+        operation: 'verify_receipt' | 'verify_signature' | 'lookup_public_key';
         requestId: string;
         verificationMethod: VerificationMethod;
         reason?: SigningReceiptInvalidError['reason'];
@@ -548,7 +555,7 @@ const signingStepConfig = {
 let _workflows: {
   requestSignature: (
     requestId: string,
-    agentId: string,
+    requester: SigningWorkflowRequester,
     message: string,
     nonce: string,
     verificationMethod?: VerificationMethod,
@@ -566,9 +573,10 @@ export function initSigningWorkflows(): void {
 
   // ── Steps ──────────────────────────────────────────────────────────
   const lookupPublicKeyStep = DBOS.registerStep(
-    async (agentId: string): Promise<string | null> => {
-      return getAgentKeyLookup().getPublicKey(agentId);
-    },
+    async (requester: SigningWorkflowRequester): Promise<string | null> =>
+      requester.kind === 'agent'
+        ? getAgentKeyLookup().getPublicKeyByAgentId(requester.id)
+        : null,
     { name: 'signing.step.lookupPublicKey', ...signingStepConfig },
   );
 
@@ -631,7 +639,7 @@ export function initSigningWorkflows(): void {
     requestSignature: DBOS.registerWorkflow(
       async (
         requestId: string,
-        agentId: string,
+        requester: SigningWorkflowRequester,
         message: string,
         nonce: string,
         verificationMethod: VerificationMethod = VERIFICATION_METHOD.AgentEd25519,
@@ -658,10 +666,15 @@ export function initSigningWorkflows(): void {
           return result;
         }
 
-        // 3. Look up the agent's public key
-        const publicKey = await lookupPublicKeyStep(agentId);
+        // 3. Look up the requester's key; a human requester has none.
+        const publicKey = await lookupPublicKeyStep(requester);
         if (!publicKey) {
-          // Agent not found — mark as completed with invalid
+          if (requester.kind === 'agent') {
+            signingWorkflowErrorReporter?.(
+              new Error('Requester agent has no public key'),
+              { operation: 'lookup_public_key', requestId, verificationMethod },
+            );
+          }
           await persistStatusStep(
             requestId,
             'completed',

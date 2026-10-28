@@ -13,6 +13,18 @@ import { useSigningController } from '../signing/useSigningController.js';
 import { canManageTeam } from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
 
+/**
+ * The console can deploy before the API. An older API sends `requestedBy` as
+ * `{ id, type }`, or omits it on early requests.
+ */
+function requesterLabel(requestedBy: unknown): string {
+  if (!requestedBy || typeof requestedBy !== 'object') return '—';
+  const r = requestedBy as Record<string, unknown>;
+  const label =
+    r.kind === 'agent' ? r.fingerprint : r.kind === 'human' ? r.humanId : r.id;
+  return typeof label === 'string' ? label : '—';
+}
+
 export function SigningPage() {
   const theme = useTheme();
   const { selectedTeam } = useTeam();
@@ -196,7 +208,7 @@ export function SigningPage() {
                           fontFamily: theme.font.family.mono,
                         }}
                       >
-                        {request.requestedBy?.id ?? request.agentId}
+                        {requesterLabel(request.requestedBy)}
                       </dd>
                       <dt style={{ color: theme.color.text.muted }}>
                         Intended signer

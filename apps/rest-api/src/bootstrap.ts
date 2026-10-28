@@ -528,8 +528,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           'crypto.signing_methods_registered',
         );
         setSigningKeyLookup({
-          getPublicKey: async (agentId: string) => {
-            const agent = await agentRepository.findByIdentityId(agentId);
+          getPublicKeyByAgentId: async (agentId: string) => {
+            const agent = await agentRepository.findById(agentId);
             return agent?.publicKey ?? null;
           },
         });

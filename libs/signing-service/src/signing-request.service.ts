@@ -1,9 +1,18 @@
 import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 
-import { type AuthContext, teamRelationToRole } from '@moltnet/auth';
+import {
+  type AuthContext,
+  authPrincipalRef,
+  teamRelationToRole,
+} from '@moltnet/auth';
 import { buildSigningBytes } from '@moltnet/crypto-service';
-import { DBOS, type SigningRequest } from '@moltnet/database';
+import {
+  DBOS,
+  isSigningRequester,
+  type SigningRequest,
+  type SigningRequester,
+} from '@moltnet/database';
 import { SIGNER_CONSTRAINT_TYPE, VERIFICATION_METHOD } from '@moltnet/models';
 import {
   assertSigningVerifierRegistered,
@@ -44,13 +53,9 @@ function signingPayload(row: SigningRequest): string {
   );
 }
 
-function requester(actor: AuthContext) {
-  return { id: subjectId(actor), type: actor.subjectType } as const;
-}
-
 async function startAgentSigningWorkflow(input: {
   id: string;
-  agentId: string;
+  requester: SigningRequester;
   message: string;
   nonce: string;
   verificationMethod: VerificationMethod;
@@ -59,7 +64,7 @@ async function startAgentSigningWorkflow(input: {
     workflowID: `signing-${input.id}`,
   })(
     input.id,
-    input.agentId,
+    input.requester,
     input.message,
     input.nonce,
     input.verificationMethod,
@@ -131,6 +136,16 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
       } catch (error) {
         mapWorkflowError(error);
       }
+      if (
+        input.verificationMethod === VERIFICATION_METHOD.AgentEd25519 &&
+        input.actor.subjectType !== 'agent'
+      ) {
+        // Only an agent holds the Ed25519 identity key this method checks.
+        throw new SigningServiceError(
+          'validation_failed',
+          `${VERIFICATION_METHOD.AgentEd25519} signing requests can only be created by an agent`,
+        );
+      }
       if (input.verificationMethod !== VERIFICATION_METHOD.AgentEd25519) {
         if (!input.teamId || !input.purpose || !input.signerConstraint) {
           throw new SigningServiceError(
@@ -149,7 +164,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
         }
       }
 
-      const agentId = input.actor.identityId;
+      const requester = authPrincipalRef(input.actor);
       const expiresAt = new Date(
         now().getTime() + deps.signingTimeoutSeconds * 1000,
       );
@@ -158,10 +173,12 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
       // committed insert before deciding whether capacity remains.
       const created = await deps.transactionRunner.runInTransaction(
         async () => {
-          await deps.signingRequestRepository.acquirePendingCreateLock(agentId);
+          await deps.signingRequestRepository.acquirePendingCreateLock(
+            requester,
+          );
           const pending =
-            await deps.signingRequestRepository.getActivePendingSummaryByAgent(
-              agentId,
+            await deps.signingRequestRepository.getActivePendingSummaryByRequester(
+              requester,
             );
           if (pending.count >= deps.maxPendingSigningRequests) {
             const earliestExpiry = pending.earliestExpiresAt?.getTime();
@@ -178,11 +195,10 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
             );
           }
           return deps.signingRequestRepository.create({
-            agentId,
+            requester,
             message: input.message,
             expiresAt,
             verificationMethod: input.verificationMethod,
-            requestedBy: requester(input.actor),
             signerConstraint: input.signerConstraint,
             teamId: input.teamId,
             purpose: input.purpose,
@@ -193,12 +209,11 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
 
       if (input.verificationMethod === VERIFICATION_METHOD.AgentEd25519) {
         try {
-          // This legacy workflow call and its signing bytes remain unchanged.
           const workflowHandle = await (
             deps.startAgentSigningWorkflow ?? startAgentSigningWorkflow
           )({
             id: created.id,
-            agentId,
+            requester,
             message: input.message,
             nonce: created.nonce,
             verificationMethod: created.verificationMethod,
@@ -222,7 +237,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
             {
               err,
               signingId: created.id,
-              agentId,
+              requester: `${requester.kind}:${requester.id}`,
               cleanupError,
             },
             'signing_request.workflow_start_failed',
@@ -269,7 +284,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
             offset: input.offset,
           })
         : deps.signingRequestRepository.list({
-            agentId: input.actor.identityId,
+            requester: authPrincipalRef(input.actor),
             status: input.status,
             limit: input.limit,
             offset: input.offset,
@@ -278,11 +293,12 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
 
     async get(input: { actor: AuthContext; requestId: string }) {
       const row = await deps.signingRequestRepository.findById(input.requestId);
+      const isClaimant =
+        input.actor.subjectType === 'human' &&
+        row?.claimedByHumanId === input.actor.humanId;
       if (
         !row ||
-        (row.agentId !== input.actor.identityId &&
-          row.claimedByHumanId !==
-            (input.actor.subjectType === 'human' ? input.actor.humanId : null))
+        (!isSigningRequester(row, authPrincipalRef(input.actor)) && !isClaimant)
       ) {
         throw new SigningServiceError('not_found', 'Signing request not found');
       }
@@ -577,7 +593,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
       signature: string;
     }) {
       const row = await deps.signingRequestRepository.findById(input.requestId);
-      if (!row || row.agentId !== input.actor.identityId) {
+      if (!row || !isSigningRequester(row, authPrincipalRef(input.actor))) {
         throw new SigningServiceError('not_found', 'Signing request not found');
       }
       if (row.verificationMethod !== VERIFICATION_METHOD.AgentEd25519) {

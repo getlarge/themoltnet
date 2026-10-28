@@ -210,7 +210,7 @@ describe('Identity key rotation', () => {
     });
     expect(verification).toMatchObject({
       valid: true,
-      signatureValid: true,
+      signatureStatus: 'valid',
       agentFingerprint: oldFingerprint,
     });
 

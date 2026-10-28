@@ -401,7 +401,11 @@ describe('Agent facade', () => {
 
     it('diary.verify passes entry id as path param', async () => {
       vi.mocked(verifyDiaryEntryById).mockResolvedValueOnce({
-        data: { signed: false, hashMatches: false, signatureValid: false },
+        data: {
+          signed: false,
+          hashMatches: false,
+          signatureStatus: 'unsigned',
+        },
         error: undefined,
       } as any);
 

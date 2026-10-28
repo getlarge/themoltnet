@@ -3,7 +3,7 @@
  */
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
-import type { Agent } from '@moltnet/database';
+import { type Agent, isSigningRequester } from '@moltnet/database';
 import { ProblemDetailsSchema } from '@moltnet/models';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
@@ -111,21 +111,21 @@ export async function agentRoutes(fastify: FastifyInstance) {
         );
       }
 
-      // `signing_requests.agent_id` still stores a Kratos identity, not
-      // `agents.id`: the column carries no foreign key, so migration 0041's
-      // FK-driven rewrite never reached it, and the actor there may be a human
-      // as well as an agent. Retargeting it needs its own migration.
-      //
-      // Until then, an agent with no live identity can own no signing request.
-      // Say so explicitly rather than letting `null !== <uuid>` decide it as a
-      // side effect of identityId having become nullable.
-      if (!agent.identityId) {
+      const signingRequest =
+        await fastify.signingRequestRepository.findVerifiedBySignature(
+          signature,
+        );
+      if (!signingRequest) {
+        request.log.debug({ reason: 'no_signing_request' }, 'agents.verify');
         return { valid: false };
       }
-
-      const signingRequest =
-        await fastify.signingRequestRepository.findBySignature(signature);
-      if (!signingRequest || signingRequest.agentId !== agent.identityId) {
+      if (
+        !isSigningRequester(signingRequest, { kind: 'agent', id: agent.id })
+      ) {
+        request.log.info(
+          { signingRequestId: signingRequest.id, reason: 'other_requester' },
+          'agents.verify',
+        );
         return { valid: false };
       }
 

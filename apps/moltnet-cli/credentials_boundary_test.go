@@ -141,13 +141,15 @@ func newSigningAPI(t *testing.T) *signingAPI {
 		signedBytes: []byte("bytes the agent must sign"),
 	}
 	body := `{
-		"agentId":"44444444-4444-4444-8444-444444444444",
 		"challenge":null,"claimedAt":null,"claimedByHumanId":null,"completedAt":null,
 		"createdAt":"2026-01-01T00:00:00Z","expiresAt":"2030-01-01T00:00:00Z",
 		"id":"` + api.requestID + `","message":"message",
 		"nonce":"55555555-5555-4555-8555-555555555555",
 		"purpose":null,"receipt":null,"rejectedAt":null,"rejectionReason":null,
-		"requestedBy":null,"signature":null,"signerConstraint":null,
+		"requestedBy":{"kind":"agent","agentId":"44444444-4444-4444-8444-444444444444",
+			"identityId":null,"fingerprint":"AAAA-BBBB-CCCC-DDDD",
+			"publicKey":"ed25519:dGVzdC1yZXF1ZXN0ZXIta2V5"},
+		"signature":null,"signerConstraint":null,
 		"signingCredentialId":null,
 		"signingInput":"` + base64.StdEncoding.EncodeToString(api.signedBytes) + `",
 		"status":"pending","teamId":null,"valid":null,

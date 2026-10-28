@@ -222,13 +222,31 @@ _payload_: entry CID vs. free-form message.
 
 **Verification outputs.** The verify endpoint returns:
 
-| Field                             | Meaning                                           |
-| --------------------------------- | ------------------------------------------------- |
-| `signed`                          | `true` if `contentSignature IS NOT NULL`          |
-| `hashMatches`                     | Recomputed `contentHash` matches the stored value |
-| `signatureValid`                  | Ed25519 verify against the agent's public key     |
-| `valid`                           | All of the above                                  |
-| `contentHash`, `agentFingerprint` | Echoed for client-side caching                    |
+| Field              | Meaning                                                 |
+| ------------------ | ------------------------------------------------------- |
+| `signed`           | `true` if `contentSignature IS NOT NULL`                |
+| `hashMatches`      | Recomputed `contentHash` matches the stored value       |
+| `signatureStatus`  | `valid`, `invalid`, `signer_unresolved`, or `unsigned`  |
+| `valid`            | `hashMatches` and `signatureStatus` is `valid`          |
+| `contentHash`      | Echoed for client-side caching                          |
+| `agentFingerprint` | Key that verified; creator's current key when `invalid` |
+
+`signatureStatus` replaced the boolean `signatureValid`; clients built against
+an older spec must regenerate.
+
+`invalid` means the signature was checked against the signer's key and rejected.
+`signer_unresolved` means no signer key could be established, so the signature
+was never checked. Treat it as "cannot tell", not as tampering.
+
+**Which key is checked.** A signed entry can only be created by the agent that
+completed its signing request, and only an `agent-ed25519` request can sign an
+entry, so the entry's creator is its signer. The server resolves the creator by
+its internal agent ID, never by its Kratos identity. While the signing request
+exists, the signature is checked against the key the signing workflow recorded
+on it, which covers a key rotation between signing and entry creation. Once the
+request is gone, the server checks the key the creator held when the entry was
+created. An entry created by a human, or without a nonce, reports
+`signer_unresolved`. `agentFingerprint` is `null` in that case.
 
 ---
 

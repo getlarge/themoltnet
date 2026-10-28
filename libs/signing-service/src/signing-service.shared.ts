@@ -1,9 +1,5 @@
 import type { KetoNamespace } from '@moltnet/auth';
-import {
-  type AuthContext,
-  authPrincipal,
-  authPrincipalCreator,
-} from '@moltnet/auth';
+import { type AuthContext, authPrincipal } from '@moltnet/auth';
 import type { SigningMethodJson } from '@moltnet/signing-workflows';
 import {
   SigningCredentialError,
@@ -31,17 +27,6 @@ export function namespace(actor: AuthContext): KetoNamespace {
  */
 export function subjectId(actor: AuthContext): string {
   return authPrincipal(actor).subjectId;
-}
-
-/**
- * The actor as a principal record for creator/owner/actor columns, whose
- * foreign keys target `agents.id` / `humans.id`.
- */
-export function actorPrincipal(actor: AuthContext): {
-  readonly kind: 'agent' | 'human';
-  readonly id: string;
-} {
-  return authPrincipalCreator(actor);
 }
 
 export function requireHuman(

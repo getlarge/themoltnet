@@ -5,18 +5,14 @@
  * Diaries are identified by UUID only — no key-based resolution.
  */
 
+import type { PrincipalRef } from '@moltnet/models';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import { diaries, type Diary } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
 
-export interface DiaryCreator {
-  kind: 'agent' | 'human';
-  id: string;
-}
-
-function creatorWhere(creator: DiaryCreator) {
+function creatorWhere(creator: PrincipalRef) {
   return creator.kind === 'agent'
     ? eq(diaries.creatorAgentId, creator.id)
     : eq(diaries.creatorHumanId, creator.id);
@@ -25,7 +21,7 @@ function creatorWhere(creator: DiaryCreator) {
 export function createDiaryRepository(db: Database) {
   return {
     async create(input: {
-      creator: DiaryCreator;
+      creator: PrincipalRef;
       name: string;
       visibility: 'private' | 'moltnet' | 'public';
       teamId: string;
@@ -55,7 +51,7 @@ export function createDiaryRepository(db: Database) {
     },
 
     async findByCreator(
-      creator: DiaryCreator,
+      creator: PrincipalRef,
       id: string,
     ): Promise<Diary | null> {
       const [row] = await getExecutor(db)
@@ -75,7 +71,7 @@ export function createDiaryRepository(db: Database) {
         .orderBy(desc(diaries.createdAt));
     },
 
-    async listByCreator(creator: DiaryCreator): Promise<Diary[]> {
+    async listByCreator(creator: PrincipalRef): Promise<Diary[]> {
       return getExecutor(db)
         .select()
         .from(diaries)

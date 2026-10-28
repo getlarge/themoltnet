@@ -17,6 +17,8 @@ import {
   verifyDiaryEntryById,
 } from '@moltnet/api-client';
 import { computeContentCid, cryptoService } from '@moltnet/crypto-service';
+import { diaryEntries } from '@moltnet/database';
+import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, type TestAgent } from './helpers.js';
@@ -109,10 +111,52 @@ describe('Content-signed entries', () => {
     expect(verifyError).toBeUndefined();
     expect(verification!.signed).toBe(true);
     expect(verification!.hashMatches).toBe(true);
-    expect(verification!.signatureValid).toBe(true);
+    expect(verification!.signatureStatus).toBe('valid');
     expect(verification!.valid).toBe(true);
     expect(verification!.contentHash).toBe(contentCid);
-    expect(verification!.agentFingerprint).toBeDefined();
+    expect(verification!.agentFingerprint).toBe(agent.keyPair.fingerprint);
+  });
+
+  it('reports a stored signature by another key as invalid', async () => {
+    const content = 'Invalid signature seeded in the database';
+    const contentCid = computeContentCid('semantic', null, content, null);
+    const { data: signingRequest } = await createSigningRequest({
+      client,
+      auth: () => agent.accessToken,
+      body: { message: contentCid },
+    });
+    const { data: entry, error: createError } = await createDiaryEntry({
+      client,
+      auth: () => agent.accessToken,
+      path: { diaryId: agent.privateDiaryId },
+      body: { content },
+    });
+    expect(createError).toBeUndefined();
+    expect(entry!.contentSignature).toBeNull();
+    const otherKey = await cryptoService.generateKeyPair();
+    const forged = await cryptoService.signWithNonce(
+      contentCid,
+      signingRequest!.nonce,
+      otherKey.privateKey,
+    );
+    // Seed an invalid signed fixture while the row is still unsigned. The
+    // immutability trigger correctly rejects changes to an already signed row.
+    await harness.db
+      .update(diaryEntries)
+      .set({ contentSignature: forged, signingNonce: signingRequest!.nonce })
+      .where(eq(diaryEntries.id, entry!.id));
+
+    const { data: verification } = await verifyDiaryEntryById({
+      client,
+      auth: () => agent.accessToken,
+      path: { entryId: entry!.id },
+    });
+
+    expect(verification).toMatchObject({
+      hashMatches: true,
+      signatureStatus: 'invalid',
+      valid: false,
+    });
   });
 
   // ── Simplified flow: signingRequestId only ───────────────────
