@@ -389,10 +389,7 @@ async function run(
   for (let attempt = 0; ; attempt++) {
     const r = await vm.exec(cmd);
     if (r.exitCode === 0) return;
-    const output = [r.stdout, r.stderr]
-      .filter(Boolean)
-      .join('\n')
-      .slice(-800);
+    const output = [r.stdout, r.stderr].filter(Boolean).join('\n').slice(-800);
     const message = `snapshot build "${label}" failed (exit ${r.exitCode}):\n${output}`;
     if (attempt === retries) throw new Error(message);
     log(`${message}\nretrying (${attempt + 1}/${retries})...`);
@@ -417,12 +414,7 @@ async function buildSnapshot(
     2,
   );
   // Resize filesystem to fill overlay
-  await run(
-    vm,
-    log,
-    'resizing rootfs...',
-    'resize2fs /dev/vda',
-  );
+  await run(vm, log, 'resizing rootfs...', 'resize2fs /dev/vda');
 
   // Install base Alpine packages
   await run(
