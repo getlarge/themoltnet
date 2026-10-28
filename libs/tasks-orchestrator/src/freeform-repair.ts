@@ -1,11 +1,11 @@
-import type { CreateRepairTaskArgs, TaskClient } from './types.js';
+import type { CreateRepairTaskArgs, SdkTask, TaskClient } from './types.js';
 
 /** Continue a completed freeform task without changing its scope or contract. */
 export function createFreeformRepairTask(
   tasks: TaskClient,
   body: Parameters<TaskClient['createTask']>[0],
   { task, attempt, reason, repairN, idempotencyKey }: CreateRepairTaskArgs,
-) {
+): Promise<SdkTask> {
   if (body.taskType !== 'freeform' || typeof body.input.brief !== 'string') {
     throw new TypeError('Semantic repair requires a freeform task brief');
   }

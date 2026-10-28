@@ -3,11 +3,20 @@ import { randomBytes } from 'node:crypto';
 import {
   createDiary,
   createDiaryEntry,
+  createDiaryGrant,
+  createSigningRequest,
   createTeam,
   listTeams,
+  submitSignature,
 } from '@moltnet/api-client';
+import { computeContentCid, cryptoService } from '@moltnet/crypto-service';
 import { expect, test } from '@playwright/test';
 
+import {
+  type ConnectedAgent,
+  createSharedTeamWithAgent,
+  provisionAgent,
+} from './helpers/agent-seed.js';
 import {
   CONSOLE_URL,
   createNativeSessionToken,
@@ -275,5 +284,117 @@ test.describe.serial('Diary browser', () => {
     await expect(page.getByText('2 deleted, 0 skipped')).toBeVisible();
     await expect(page.getByText(seeded.entryTitle)).toBeHidden();
     await expect(page.getByText(seeded.secondEntryTitle)).toBeHidden();
+  });
+});
+
+// The console renders entry attribution from `POST /entries/:id/verify`.
+// The unsigned case above cannot catch drift in the signed shape
+// (`signatureStatus`, `agentFingerprint`), so an agent signs an entry through
+// the real signing-request flow and the console must show it as verified.
+test.describe.serial('Signed diary entry attribution', () => {
+  const user = createTestUser({ prefix: 'signed-entry-e2e' });
+  const nonce = randomBytes(3).toString('hex');
+  const entryTitle = `Signed decision ${nonce}`;
+  let agentCtx: ConnectedAgent;
+  let diaryId: string;
+  let entryId: string;
+
+  test.afterAll(async () => {
+    await agentCtx?.teardown();
+  });
+
+  test('an agent writes a content-signed entry in a shared diary', async ({
+    page,
+  }) => {
+    await registerViaBrowser(page, user);
+    await page.goto(CONSOLE_URL);
+    await expectConsoleOverview(page);
+
+    const humanClient = createTokenSessionApiClient(
+      await createNativeSessionToken(user),
+    );
+    agentCtx = await provisionAgent('signed-entry-e2e');
+    const { agent, genesis } = agentCtx;
+    const { teamId } = await createSharedTeamWithAgent({
+      humanClient,
+      agentId: genesis.agentId,
+      name: `signed-entry-shared-${nonce}`,
+    });
+
+    // Team membership tuples converge after createTeam returns.
+    await expect(async () => {
+      const diary = await createDiary({
+        client: humanClient,
+        headers: { 'x-moltnet-team-id': teamId },
+        body: { name: `signed-entry-diary-${nonce}`, visibility: 'private' },
+      });
+      expect(diary.error).toBeUndefined();
+      diaryId = diary.data!.id;
+    }).toPass({ timeout: 20_000 });
+
+    const grant = await createDiaryGrant({
+      client: humanClient,
+      path: { id: diaryId },
+      body: { subjectId: genesis.agentId, subjectNs: 'Agent', role: 'writer' },
+    });
+    expect(grant.error).toBeUndefined();
+
+    const auth = () => agent.getToken();
+    const entryType = 'semantic';
+    const content = 'Signed in the console e2e suite to check attribution.';
+    const tags = [`seed:${nonce}`];
+    const contentCid = computeContentCid(entryType, entryTitle, content, tags);
+
+    const signingRequest = await createSigningRequest({
+      client: agent.client,
+      auth,
+      body: { message: contentCid },
+    });
+    expect(signingRequest.error).toBeUndefined();
+    const signature = await cryptoService.signWithNonce(
+      contentCid,
+      signingRequest.data!.nonce,
+      genesis.keyPair.privateKey,
+    );
+    const submitted = await submitSignature({
+      client: agent.client,
+      auth,
+      path: { id: signingRequest.data!.id },
+      body: { signature },
+    });
+    expect(submitted.data).toMatchObject({ status: 'completed', valid: true });
+
+    const entry = await createDiaryEntry({
+      client: agent.client,
+      auth,
+      path: { diaryId },
+      body: {
+        title: entryTitle,
+        content,
+        entryType,
+        tags,
+        contentHash: contentCid,
+        signingRequestId: signingRequest.data!.id,
+      },
+    });
+    expect(entry.error).toBeUndefined();
+    expect(entry.data!.contentSignature).toBe(signature);
+    entryId = entry.data!.id;
+  });
+
+  test('shows the entry as verified and names the signing agent', async ({
+    page,
+  }) => {
+    await loginViaBrowser(page, user);
+    await page.goto(`${CONSOLE_URL}/diaries/${diaryId}/entries/${entryId}`);
+
+    await expect(page.getByRole('heading', { name: entryTitle })).toBeVisible();
+    await expect(
+      page.getByRole('status', { name: 'Signature status: Verified' }),
+    ).toBeVisible();
+    // "Created by" shows the same fingerprint, so read the "Signed by" value.
+    await expect(page.locator('dt:text-is("Signed by") + dd')).toHaveText(
+      agentCtx.genesis.keyPair.fingerprint,
+    );
   });
 });
