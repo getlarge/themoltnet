@@ -87,19 +87,27 @@ When a pull request closes, the outcomes workflow
 (`adaptive-review-outcomes-reusable.yml`) reads the reviewer's threads and
 writes one signed diary entry per pull request, tagged
 `review:adaptive-outcomes`, `repo:<owner/repo>`, `pr:<number>`, and one
-`lane:<lane>` per lane with findings. Each finding is recorded as:
+`lane:<lane>` per lane with findings. For each thread it records what GitHub
+shows, not a verdict:
 
-- `fixed`: a later commit changed the anchored line (GitHub marks the thread
-  outdated). This is a proxy; an unrelated edit to the line also counts.
-- `dismissed`: resolved with the line unchanged. The latest reply from
-  someone other than the reviewer is kept as the reason.
-- `ignored`: still unresolved when the pull request closed.
+- `resolved`, and who resolved it.
+- `outdated`: a later commit changed the anchored line. This does not mean the
+  concern was fixed, and a fix made elsewhere leaves the thread current.
+- The latest reply from someone other than the reviewer.
 
-The entry ends with a JSON block (`version: 1`) holding every finding's key,
-lane, path, reviewed head, concern, outcome, and reason, for eval tooling. A
-pull request with no threads writes nothing, and a reopened pull request
-that closes again keeps its first entry. Confirm a `fixed` label before
-using the finding as an eval case.
+Each finding also carries its thread ID and URL, the head it was raised on,
+the workflow run and review correlation ID that produced it, and
+`adjudication: "unverified"`. A person or an eval decides later whether a
+finding was a true or false positive. The entry ends with a JSON block
+(`version: 1`) holding this data for eval tooling.
+
+The run records only the closure that triggered it. If the pull request was
+reopened, pushed to, or closed again before the run started, it records
+nothing and the run for the latest closure records instead. Runs for one pull
+request do not overlap. A pull request with no threads writes nothing, and a
+reopened pull request that closes again keeps its first entry. Findings
+without a thread are not recorded: security findings, which stay in the
+team-scoped tasks, and findings that cite no line.
 
 The classifier is selected by the caller's profile. MoltNet uses Ollama Cloud
 `clef:27b` through its issue-classifier-v2 profile; other repositories can select

@@ -1,9 +1,9 @@
 name: Adaptive review outcomes (reusable)
 
 # Runs when a pull request closes. Reads the adaptive reviewer's review
-# threads and writes one signed diary entry with each finding's outcome:
-# fixed (a later commit changed the anchored line), dismissed (resolved with
-# the line unchanged), or ignored (still open). It reads no PR code.
+# threads and writes one signed diary entry with each thread's observed state
+# (resolved, outdated, the latest reply) for later adjudication. It records
+# only the closure that triggered it and reads no PR code.
 
 on:
   workflow_call:
@@ -44,6 +44,11 @@ jobs:
       github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Close, reopen, and close again run one at a time per PR; a pending run
+    # replaced by a newer closure would only find itself superseded.
+    concurrency:
+      group: adaptive-review-outcomes-${{ github.repository }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
     environment: ${{ inputs.environment }}
     permissions:
       contents: read
