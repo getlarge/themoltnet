@@ -28,16 +28,18 @@ describe('Crypto routes', () => {
   });
 
   describe('POST /crypto/verify', () => {
+    const CRYPTO_AGENT_ID = '660e8400-e29b-41d4-a716-446655440021';
+
     it('verifies signature via signing request lookup', async () => {
       mocks.signingRequestRepository.findBySignature.mockResolvedValue({
         id: 'sr-1',
-        requesterAgentId: 'agent-1',
+        requesterAgentId: CRYPTO_AGENT_ID,
         message: 'test message',
         nonce: 'nonce-1',
       } as any);
       mocks.agentRepository.findById.mockResolvedValue({
         ...createMockAgent(),
-        id: 'agent-1',
+        id: CRYPTO_AGENT_ID,
       });
       mocks.cryptoService.verifyWithNonce.mockResolvedValue(true);
 
@@ -49,6 +51,30 @@ describe('Crypto routes', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json().valid).toBe(true);
+      expect(mocks.agentRepository.findById).toHaveBeenCalledWith(
+        CRYPTO_AGENT_ID,
+      );
+    });
+
+    it('returns false for a request created by a human', async () => {
+      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+        id: 'sr-1',
+        requesterAgentId: null,
+        requesterHumanId: '660e8400-e29b-41d4-a716-446655440022',
+        message: 'test message',
+        nonce: 'nonce-1',
+      } as any);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/crypto/verify',
+        payload: { signature: 'sig' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().valid).toBe(false);
+      expect(mocks.agentRepository.findById).not.toHaveBeenCalled();
+      expect(mocks.cryptoService.verifyWithNonce).not.toHaveBeenCalled();
     });
 
     it('returns false when signature not found', async () => {
@@ -67,7 +93,7 @@ describe('Crypto routes', () => {
     it('returns false when agent not found', async () => {
       mocks.signingRequestRepository.findBySignature.mockResolvedValue({
         id: 'sr-1',
-        requesterAgentId: 'agent-1',
+        requesterAgentId: CRYPTO_AGENT_ID,
         message: 'test message',
         nonce: 'nonce-1',
       } as any);

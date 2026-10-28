@@ -45,7 +45,6 @@ function toSigningResponse(row: SigningRequest) {
   const requester = signingRequester(row);
   return {
     id: row.id,
-    agentId: requester.id,
     verificationMethod: row.verificationMethod,
     requestedBy: { id: requester.id, type: requester.kind },
     signerConstraint: row.signerConstraint ?? null,

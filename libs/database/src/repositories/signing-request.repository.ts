@@ -47,6 +47,16 @@ export function signingRequester(
   throw new Error('Signing request has no requester');
 }
 
+/** Whether `principal` created the row. */
+export function isSigningRequester(
+  row: Pick<SigningRequest, 'requesterAgentId' | 'requesterHumanId'>,
+  principal: SigningRequester,
+): boolean {
+  const column =
+    principal.kind === 'agent' ? row.requesterAgentId : row.requesterHumanId;
+  return column === principal.id;
+}
+
 function requesterIs(requester: SigningRequester) {
   return requester.kind === 'agent'
     ? eq(signingRequests.requesterAgentId, requester.id)

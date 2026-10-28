@@ -403,6 +403,7 @@ describe('Signing request routes', () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body.id).toBe(REQUEST_ID);
+      expect(body.requestedBy).toEqual({ id: OWNER_ID, type: 'agent' });
       expect(body.verificationMethod).toBe('agent-ed25519');
       expect(body.signingInput).toBe(
         expectedSigningInput(

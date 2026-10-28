@@ -23,7 +23,7 @@ export interface SigningServiceDeps {
   logger?: SigningServiceLogger;
   startAgentSigningWorkflow?: (input: {
     id: string;
-    agentId: string;
+    signerIdentityId: string;
     message: string;
     nonce: string;
     verificationMethod: VerificationMethod;

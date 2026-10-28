@@ -82981,55 +82981,6 @@ func (s *OptNilRuntimeProfileModelsGenerationThinkingLevel) UnmarshalJSON(data [
 	return s.Decode(d)
 }
 
-// Encode encodes SigningRequestRequestedBy as json.
-func (o OptNilSigningRequestRequestedBy) Encode(e *jx.Encoder) {
-	if !o.Set {
-		return
-	}
-	if o.Null {
-		e.Null()
-		return
-	}
-	o.Value.Encode(e)
-}
-
-// Decode decodes SigningRequestRequestedBy from json.
-func (o *OptNilSigningRequestRequestedBy) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode OptNilSigningRequestRequestedBy to nil")
-	}
-	if d.Next() == jx.Null {
-		if err := d.Null(); err != nil {
-			return err
-		}
-
-		var v SigningRequestRequestedBy
-		o.Value = v
-		o.Set = true
-		o.Null = true
-		return nil
-	}
-	o.Set = true
-	o.Null = false
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s OptNilSigningRequestRequestedBy) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptNilSigningRequestRequestedBy) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes SigningRequestSignerConstraint as json.
 func (o OptNilSigningRequestSignerConstraint) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -111913,10 +111864,6 @@ func (s *SigningRequest) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *SigningRequest) encodeFields(e *jx.Encoder) {
 	{
-		e.FieldStart("agentId")
-		json.EncodeUUID(e, s.AgentId)
-	}
-	{
 		if s.Challenge.Set {
 			e.FieldStart("challenge")
 			s.Challenge.Encode(e)
@@ -111983,10 +111930,8 @@ func (s *SigningRequest) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		if s.RequestedBy.Set {
-			e.FieldStart("requestedBy")
-			s.RequestedBy.Encode(e)
-		}
+		e.FieldStart("requestedBy")
+		s.RequestedBy.Encode(e)
 	}
 	{
 		e.FieldStart("signature")
@@ -112028,30 +111973,29 @@ func (s *SigningRequest) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfSigningRequest = [23]string{
-	0:  "agentId",
-	1:  "challenge",
-	2:  "claimedAt",
-	3:  "claimedByHumanId",
-	4:  "completedAt",
-	5:  "createdAt",
-	6:  "expiresAt",
-	7:  "id",
-	8:  "message",
-	9:  "nonce",
-	10: "purpose",
-	11: "receipt",
-	12: "rejectedAt",
-	13: "rejectionReason",
-	14: "requestedBy",
-	15: "signature",
-	16: "signerConstraint",
-	17: "signingCredentialId",
-	18: "signingInput",
-	19: "status",
-	20: "teamId",
-	21: "valid",
-	22: "verificationMethod",
+var jsonFieldsNameOfSigningRequest = [22]string{
+	0:  "challenge",
+	1:  "claimedAt",
+	2:  "claimedByHumanId",
+	3:  "completedAt",
+	4:  "createdAt",
+	5:  "expiresAt",
+	6:  "id",
+	7:  "message",
+	8:  "nonce",
+	9:  "purpose",
+	10: "receipt",
+	11: "rejectedAt",
+	12: "rejectionReason",
+	13: "requestedBy",
+	14: "signature",
+	15: "signerConstraint",
+	16: "signingCredentialId",
+	17: "signingInput",
+	18: "status",
+	19: "teamId",
+	20: "valid",
+	21: "verificationMethod",
 }
 
 // Decode decodes SigningRequest from json.
@@ -112063,18 +112007,6 @@ func (s *SigningRequest) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "agentId":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.AgentId = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"agentId\"")
-			}
 		case "challenge":
 			if err := func() error {
 				s.Challenge.Reset()
@@ -112106,7 +112038,7 @@ func (s *SigningRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"claimedByHumanId\"")
 			}
 		case "completedAt":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				if err := s.CompletedAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
@@ -112116,7 +112048,7 @@ func (s *SigningRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"completedAt\"")
 			}
 		case "createdAt":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.CreatedAt = v
@@ -112128,7 +112060,7 @@ func (s *SigningRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
 		case "expiresAt":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.ExpiresAt = v
@@ -112140,7 +112072,7 @@ func (s *SigningRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"expiresAt\"")
 			}
 		case "id":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -112152,7 +112084,7 @@ func (s *SigningRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "message":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.Message = string(v)
@@ -112164,7 +112096,7 @@ func (s *SigningRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"message\"")
 			}
 		case "nonce":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.Nonce = v
@@ -112216,8 +112148,8 @@ func (s *SigningRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"rejectionReason\"")
 			}
 		case "requestedBy":
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
-				s.RequestedBy.Reset()
 				if err := s.RequestedBy.Decode(d); err != nil {
 					return err
 				}
@@ -112226,7 +112158,7 @@ func (s *SigningRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requestedBy\"")
 			}
 		case "signature":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				if err := s.Signature.Decode(d); err != nil {
 					return err
@@ -112256,7 +112188,7 @@ func (s *SigningRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"signingCredentialId\"")
 			}
 		case "signingInput":
-			requiredBitSet[2] |= 1 << 2
+			requiredBitSet[2] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.SigningInput = string(v)
@@ -112268,7 +112200,7 @@ func (s *SigningRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"signingInput\"")
 			}
 		case "status":
-			requiredBitSet[2] |= 1 << 3
+			requiredBitSet[2] |= 1 << 2
 			if err := func() error {
 				if err := s.Status.Decode(d); err != nil {
 					return err
@@ -112288,7 +112220,7 @@ func (s *SigningRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "valid":
-			requiredBitSet[2] |= 1 << 5
+			requiredBitSet[2] |= 1 << 4
 			if err := func() error {
 				if err := s.Valid.Decode(d); err != nil {
 					return err
@@ -112298,7 +112230,7 @@ func (s *SigningRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"valid\"")
 			}
 		case "verificationMethod":
-			requiredBitSet[2] |= 1 << 6
+			requiredBitSet[2] |= 1 << 5
 			if err := func() error {
 				if err := s.VerificationMethod.Decode(d); err != nil {
 					return err
@@ -112317,9 +112249,9 @@ func (s *SigningRequest) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [3]uint8{
-		0b11110001,
-		0b10000011,
-		0b01101100,
+		0b11111000,
+		0b01100001,
+		0b00110110,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -112533,7 +112465,7 @@ func (s *SigningRequestRequestedBy) Encode(e *jx.Encoder) {
 func (s *SigningRequestRequestedBy) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("id")
-		e.Str(s.ID)
+		json.EncodeUUID(e, s.ID)
 	}
 	{
 		e.FieldStart("type")
@@ -112558,8 +112490,8 @@ func (s *SigningRequestRequestedBy) Decode(d *jx.Decoder) error {
 		case "id":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Str()
-				s.ID = string(v)
+				v, err := json.DecodeUUID(d)
+				s.ID = v
 				if err != nil {
 					return err
 				}
@@ -112653,8 +112585,6 @@ func (s *SigningRequestRequestedByType) Decode(d *jx.Decoder) error {
 		*s = SigningRequestRequestedByTypeAgent
 	case SigningRequestRequestedByTypeHuman:
 		*s = SigningRequestRequestedByTypeHuman
-	case SigningRequestRequestedByTypeService:
-		*s = SigningRequestRequestedByTypeService
 	default:
 		*s = SigningRequestRequestedByType(v)
 	}

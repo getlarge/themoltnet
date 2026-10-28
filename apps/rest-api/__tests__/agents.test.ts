@@ -285,6 +285,30 @@ describe('Agent routes', () => {
       expect(mocks.cryptoService.verifyWithNonce).not.toHaveBeenCalled();
     });
 
+    it('returns invalid when a human created the signing request', async () => {
+      mocks.agentRepository.findByFingerprint.mockResolvedValue(
+        createMockAgent(),
+      );
+      // Same id value as the agent: only the kind tells them apart.
+      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+        id: 'sr-3',
+        requesterAgentId: null,
+        requesterHumanId: OWNER_ID,
+        message: 'test message',
+        nonce: 'nonce-3',
+      } as any);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/agents/C212-DAFA-27C5-6C57/verify',
+        payload: { signature: 'sig' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().valid).toBe(false);
+      expect(mocks.cryptoService.verifyWithNonce).not.toHaveBeenCalled();
+    });
+
     it('returns 404 when agent not found', async () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(null);
 

@@ -184,6 +184,7 @@ export {
 } from './repositories/signing-credential.repository.js';
 export {
   createSigningRequestRepository,
+  isSigningRequester,
   type SigningRequester,
   signingRequester,
   type SigningRequestRepository,

@@ -26,6 +26,10 @@ const HUMAN_IDENTITY = '90000000-0000-4000-a000-000000000002';
 const DEAD_AGENT_IDENTITY = '90000000-0000-4000-a000-000000000003';
 const DEAD_HUMAN_IDENTITY = '90000000-0000-4000-a000-000000000004';
 const DEAD_UNKNOWN_IDENTITY = '90000000-0000-4000-a000-000000000005';
+const DEAD_SHARED_IDENTITY = '90000000-0000-4000-a000-000000000006';
+const DEAD_REQUESTED_BY_AGENT_IDENTITY = '90000000-0000-4000-a000-000000000007';
+const TEAM = '20000000-0000-4000-a000-000000000051';
+const DIARY = '30000000-0000-4000-a000-000000000051';
 
 describe('migration 0051 signing request requester', () => {
   let pool: Pool;
@@ -77,18 +81,18 @@ describe('migration 0051 signing request requester', () => {
         ('${RECREATED_AGENT}', NULL, 'ed25519:b', 'MIGR-ATIO-N005-1002');
       INSERT INTO humans (id, identity_id) VALUES ('${HUMAN}', '${HUMAN_IDENTITY}');
       INSERT INTO teams (id, name, creator_agent_id)
-      VALUES ('20000000-0000-4000-a000-000000000051', 'Team', '${AGENT}');
+      VALUES ('${TEAM}', 'Team', '${AGENT}');
       INSERT INTO diaries (id, creator_agent_id, team_id, name, visibility)
-      VALUES (
-        '30000000-0000-4000-a000-000000000051', '${AGENT}',
-        '20000000-0000-4000-a000-000000000051', 'Diary', 'private'
-      );
+      VALUES ('${DIARY}', '${AGENT}', '${TEAM}', 'Diary', 'private');
       INSERT INTO diary_entries (
         diary_id, content, creator_agent_id, content_hash, content_signature
-      ) VALUES (
-        '30000000-0000-4000-a000-000000000051', 'signed', '${RECREATED_AGENT}',
-        'bafy-entry', 'sig-dead-agent-entry'
-      );
+      ) VALUES
+        ('${DIARY}', 'signed', '${RECREATED_AGENT}', 'bafy-entry',
+          'sig-dead-agent-entry'),
+        -- One identity whose signatures created entries under two agents.
+        ('${DIARY}', 'shared a', '${AGENT}', 'bafy-shared-a', 'sig-shared-a'),
+        ('${DIARY}', 'shared b', '${RECREATED_AGENT}', 'bafy-shared-b',
+          'sig-shared-b');
       INSERT INTO signing_requests (
         id, agent_id, requested_by, message, expires_at, status, signature
       ) VALUES
@@ -104,7 +108,15 @@ describe('migration 0051 signing request requester', () => {
         ('40000000-0000-4000-a000-000000000005', '${DEAD_AGENT_IDENTITY}', NULL,
           'same identity, no entry', now(), 'expired', NULL),
         ('40000000-0000-4000-a000-000000000006', '${DEAD_UNKNOWN_IDENTITY}',
-          NULL, 'unattributable', now(), 'completed', 'sig-6');
+          NULL, 'unattributable', now(), 'completed', 'sig-6'),
+        ('40000000-0000-4000-a000-000000000007',
+          '${DEAD_REQUESTED_BY_AGENT_IDENTITY}',
+          '{"id": "${RECREATED_AGENT}", "type": "agent"}', 'requested_by agent',
+          now(), 'completed', 'sig-7'),
+        ('40000000-0000-4000-a000-000000000008', '${DEAD_SHARED_IDENTITY}',
+          NULL, 'ambiguous a', now(), 'completed', 'sig-shared-a'),
+        ('40000000-0000-4000-a000-000000000009', '${DEAD_SHARED_IDENTITY}',
+          NULL, 'ambiguous b', now(), 'completed', 'sig-shared-b');
     `);
 
     await migrate(drizzle(pool), { migrationsFolder: migrationFolder });
@@ -140,6 +152,12 @@ describe('migration 0051 signing request requester', () => {
       },
       {
         id: '40000000-0000-4000-a000-000000000005',
+        requester_agent_id: RECREATED_AGENT,
+        requester_human_id: null,
+      },
+      // 6 (unattributable) and 8, 9 (two candidate creators) are deleted.
+      {
+        id: '40000000-0000-4000-a000-000000000007',
         requester_agent_id: RECREATED_AGENT,
         requester_human_id: null,
       },

@@ -745,7 +745,8 @@ export const signingRequests = pgTable(
       table.requesterHumanId,
       table.status,
     ),
-    // Bound the cap check to the small live-pending range under its agent lock.
+    // Bound the cap check to the small live-pending range under the
+    // requester's create lock.
     index('signing_requests_active_pending_agent_idx')
       .on(table.requesterAgentId, table.expiresAt)
       .where(sql`status = 'pending'`),

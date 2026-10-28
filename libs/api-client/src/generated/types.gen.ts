@@ -2395,10 +2395,6 @@ export type SigningCredentialRegistration = {
 };
 
 export type SigningRequest = {
-  /**
-   * ID of the principal that created the request: an agent ID, or a human ID when requestedBy.type is human.
-   */
-  agentId: string;
   challenge?: PreviewSignChallengeValue | null;
   claimedAt?: string | null;
   claimedByHumanId?: string | null;
@@ -2412,10 +2408,13 @@ export type SigningRequest = {
   receipt?: PreviewSignEvidenceValue | null;
   rejectedAt?: string | null;
   rejectionReason?: string | null;
-  requestedBy?: {
+  /**
+   * The principal that created the request: an agent ID or a human ID.
+   */
+  requestedBy: {
     id: string;
-    type: 'agent' | 'human' | 'service';
-  } | null;
+    type: 'agent' | 'human';
+  };
   signature: string | null;
   signerConstraint?:
     | {

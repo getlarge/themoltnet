@@ -98,7 +98,7 @@ var (
 func signingCommandRequest() *moltnetapi.SigningRequest {
 	return &moltnetapi.SigningRequest{
 		ID:                 signingCommandRequestID,
-		AgentId:            uuid.New(),
+		RequestedBy:        moltnetapi.SigningRequestRequestedBy{ID: uuid.New(), Type: moltnetapi.SigningRequestRequestedByTypeAgent},
 		Message:            "approve release",
 		Nonce:              uuid.New(),
 		SigningInput:       "cGF5bG9hZA==",

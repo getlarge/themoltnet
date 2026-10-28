@@ -32617,15 +32617,8 @@ func (s *SigningRequest) Validate() error {
 		})
 	}
 	if err := func() error {
-		if value, ok := s.RequestedBy.Get(); ok {
-			if err := func() error {
-				if err := value.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
+		if err := s.RequestedBy.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -32781,8 +32774,6 @@ func (s SigningRequestRequestedByType) Validate() error {
 	case "agent":
 		return nil
 	case "human":
-		return nil
-	case "service":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)

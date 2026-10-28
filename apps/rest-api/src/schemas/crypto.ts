@@ -142,24 +142,16 @@ export const PreviewSignEvidenceValueSchema = Type.Object(
 export const SigningRequestSchema = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
-    agentId: Type.String({
-      format: 'uuid',
-      description:
-        'ID of the principal that created the request: an agent ID, or a human ID when requestedBy.type is human.',
-    }),
     verificationMethod: VerificationMethodSchema,
-    requestedBy: Type.Optional(
-      Type.Union([
-        Type.Object({
-          id: Type.String(),
-          type: Type.Union([
-            Type.Literal('agent'),
-            Type.Literal('human'),
-            Type.Literal('service'),
-          ]),
-        }),
-        Type.Null(),
-      ]),
+    requestedBy: Type.Object(
+      {
+        id: Type.String({ format: 'uuid' }),
+        type: Type.Union([Type.Literal('agent'), Type.Literal('human')]),
+      },
+      {
+        description:
+          'The principal that created the request: an agent ID or a human ID.',
+      },
     ),
     signerConstraint: Type.Optional(
       Type.Union([SignerConstraintSchema, Type.Null()]),

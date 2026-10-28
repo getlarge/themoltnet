@@ -5,7 +5,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { createDatabase, type Database } from '../src/db.js';
 import { runMigrations } from '../src/migrate.js';
 import { createSigningRequestRepository } from '../src/repositories/signing-request.repository.js';
-import { agents, signingRequests } from '../src/schema.js';
+import { agents, humans, signingRequests } from '../src/schema.js';
 
 describe('SigningRequestRepository (integration)', () => {
   let db: Database;
@@ -14,6 +14,7 @@ describe('SigningRequestRepository (integration)', () => {
   let stopContainer: () => Promise<void>;
 
   const AGENT_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const HUMAN_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 
   beforeAll(async () => {
     const container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
@@ -31,6 +32,7 @@ describe('SigningRequestRepository (integration)', () => {
       publicKey: 'ed25519:signing-request-integration',
       fingerprint: 'SIGN-REQU-ESTS-0001',
     });
+    await db.insert(humans).values({ id: HUMAN_ID });
   }, 60_000);
 
   afterEach(async () => {
@@ -76,6 +78,55 @@ describe('SigningRequestRepository (integration)', () => {
     });
   });
 
+  it('keeps agent and human requesters apart', async () => {
+    const expiresAt = new Date(Date.now() + 120_000);
+    await repo.create({
+      requester: { kind: 'agent', id: AGENT_ID },
+      message: 'agent request',
+      expiresAt,
+    });
+    await repo.create({
+      requester: { kind: 'human', id: HUMAN_ID },
+      message: 'human request',
+      expiresAt,
+    });
+
+    const human = { kind: 'human', id: HUMAN_ID } as const;
+    const listed = await repo.list({ requester: human });
+    const summary = await repo.getActivePendingSummaryByRequester(human);
+
+    expect(listed.items.map((row) => row.message)).toEqual(['human request']);
+    expect(listed.items[0]).toMatchObject({
+      requesterAgentId: null,
+      requesterHumanId: HUMAN_ID,
+    });
+    expect(summary.count).toBe(1);
+  });
+
+  it('rejects a row with both requesters or neither', async () => {
+    const expiresAt = new Date(Date.now() + 120_000);
+
+    await expect(
+      db.insert(signingRequests).values({
+        requesterAgentId: AGENT_ID,
+        requesterHumanId: HUMAN_ID,
+        message: 'both',
+        expiresAt,
+      }),
+    ).rejects.toMatchObject({
+      cause: expect.objectContaining({
+        constraint: 'signing_requests_requester_xor',
+      }),
+    });
+    await expect(
+      db.insert(signingRequests).values({ message: 'neither', expiresAt }),
+    ).rejects.toMatchObject({
+      cause: expect.objectContaining({
+        constraint: 'signing_requests_requester_xor',
+      }),
+    });
+  });
+
   describe('findValidBySignature', () => {
     const insert = (row: {
       message: string;
@@ -86,7 +137,7 @@ describe('SigningRequestRepository (integration)', () => {
       db
         .insert(signingRequests)
         .values({
-          agentId: AGENT_ID,
+          requesterAgentId: AGENT_ID,
           expiresAt: new Date(Date.now() + 60_000),
           status: 'completed',
           ...row,

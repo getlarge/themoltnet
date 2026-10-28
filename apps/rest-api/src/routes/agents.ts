@@ -3,7 +3,7 @@
  */
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
-import type { Agent } from '@moltnet/database';
+import { type Agent, isSigningRequester } from '@moltnet/database';
 import { ProblemDetailsSchema } from '@moltnet/models';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
@@ -113,7 +113,10 @@ export async function agentRoutes(fastify: FastifyInstance) {
 
       const signingRequest =
         await fastify.signingRequestRepository.findBySignature(signature);
-      if (!signingRequest || signingRequest.requesterAgentId !== agent.id) {
+      if (
+        !signingRequest ||
+        !isSigningRequester(signingRequest, { kind: 'agent', id: agent.id })
+      ) {
         return { valid: false };
       }
 

@@ -39421,74 +39421,6 @@ func (o OptNilRuntimeProfileModelsGenerationThinkingLevel) Or(d RuntimeProfileMo
 	return d
 }
 
-// NewOptNilSigningRequestRequestedBy returns new OptNilSigningRequestRequestedBy with value set to v.
-func NewOptNilSigningRequestRequestedBy(v SigningRequestRequestedBy) OptNilSigningRequestRequestedBy {
-	return OptNilSigningRequestRequestedBy{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptNilSigningRequestRequestedBy is optional nullable SigningRequestRequestedBy.
-type OptNilSigningRequestRequestedBy struct {
-	Value SigningRequestRequestedBy
-	Set   bool
-	Null  bool
-}
-
-// IsSet returns true if OptNilSigningRequestRequestedBy was set.
-func (o OptNilSigningRequestRequestedBy) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptNilSigningRequestRequestedBy) Reset() {
-	var v SigningRequestRequestedBy
-	o.Value = v
-	o.Set = false
-	o.Null = false
-}
-
-// SetTo sets value to v.
-func (o *OptNilSigningRequestRequestedBy) SetTo(v SigningRequestRequestedBy) {
-	o.Set = true
-	o.Null = false
-	o.Value = v
-}
-
-// IsNull returns true if value is Null.
-func (o OptNilSigningRequestRequestedBy) IsNull() bool { return o.Null }
-
-// SetToNull sets value to null.
-func (o *OptNilSigningRequestRequestedBy) SetToNull() {
-	o.Set = true
-	o.Null = true
-	var v SigningRequestRequestedBy
-	o.Value = v
-}
-
-// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
-func (o OptNilSigningRequestRequestedBy) IsEmpty() bool {
-	return !o.Set && !o.Null
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptNilSigningRequestRequestedBy) Get() (v SigningRequestRequestedBy, ok bool) {
-	if o.Null {
-		return v, false
-	}
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptNilSigningRequestRequestedBy) Or(d SigningRequestRequestedBy) SigningRequestRequestedBy {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptNilSigningRequestSignerConstraint returns new OptNilSigningRequestSignerConstraint with value set to v.
 func NewOptNilSigningRequestSignerConstraint(v SigningRequestSignerConstraint) OptNilSigningRequestSignerConstraint {
 	return OptNilSigningRequestSignerConstraint{
@@ -53153,23 +53085,21 @@ func (s *SigningCredentialVerificationMethod) UnmarshalText(data []byte) error {
 
 // Ref: #/components/schemas/SigningRequest
 type SigningRequest struct {
-	// ID of the principal that created the request: an agent ID, or a human ID when requestedBy.type is
-	// human.
-	AgentId             uuid.UUID                            `json:"agentId"`
-	Challenge           OptNilPreviewSignChallengeValue      `json:"challenge"`
-	ClaimedAt           OptNilDateTime                       `json:"claimedAt"`
-	ClaimedByHumanId    OptNilUUID                           `json:"claimedByHumanId"`
-	CompletedAt         NilDateTime                          `json:"completedAt"`
-	CreatedAt           time.Time                            `json:"createdAt"`
-	ExpiresAt           time.Time                            `json:"expiresAt"`
-	ID                  uuid.UUID                            `json:"id"`
-	Message             string                               `json:"message"`
-	Nonce               uuid.UUID                            `json:"nonce"`
-	Purpose             OptNilString                         `json:"purpose"`
-	Receipt             OptNilPreviewSignEvidenceValue       `json:"receipt"`
-	RejectedAt          OptNilDateTime                       `json:"rejectedAt"`
-	RejectionReason     OptNilString                         `json:"rejectionReason"`
-	RequestedBy         OptNilSigningRequestRequestedBy      `json:"requestedBy"`
+	Challenge        OptNilPreviewSignChallengeValue `json:"challenge"`
+	ClaimedAt        OptNilDateTime                  `json:"claimedAt"`
+	ClaimedByHumanId OptNilUUID                      `json:"claimedByHumanId"`
+	CompletedAt      NilDateTime                     `json:"completedAt"`
+	CreatedAt        time.Time                       `json:"createdAt"`
+	ExpiresAt        time.Time                       `json:"expiresAt"`
+	ID               uuid.UUID                       `json:"id"`
+	Message          string                          `json:"message"`
+	Nonce            uuid.UUID                       `json:"nonce"`
+	Purpose          OptNilString                    `json:"purpose"`
+	Receipt          OptNilPreviewSignEvidenceValue  `json:"receipt"`
+	RejectedAt       OptNilDateTime                  `json:"rejectedAt"`
+	RejectionReason  OptNilString                    `json:"rejectionReason"`
+	// The principal that created the request: an agent ID or a human ID.
+	RequestedBy         SigningRequestRequestedBy            `json:"requestedBy"`
 	Signature           NilString                            `json:"signature"`
 	SignerConstraint    OptNilSigningRequestSignerConstraint `json:"signerConstraint"`
 	SigningCredentialId OptNilUUID                           `json:"signingCredentialId"`
@@ -53181,11 +53111,6 @@ type SigningRequest struct {
 	Valid        NilBool              `json:"valid"`
 	// Stable signing verification method identifier.
 	VerificationMethod SigningRequestVerificationMethod `json:"verificationMethod"`
-}
-
-// GetAgentId returns the value of AgentId.
-func (s *SigningRequest) GetAgentId() uuid.UUID {
-	return s.AgentId
 }
 
 // GetChallenge returns the value of Challenge.
@@ -53254,7 +53179,7 @@ func (s *SigningRequest) GetRejectionReason() OptNilString {
 }
 
 // GetRequestedBy returns the value of RequestedBy.
-func (s *SigningRequest) GetRequestedBy() OptNilSigningRequestRequestedBy {
+func (s *SigningRequest) GetRequestedBy() SigningRequestRequestedBy {
 	return s.RequestedBy
 }
 
@@ -53296,11 +53221,6 @@ func (s *SigningRequest) GetValid() NilBool {
 // GetVerificationMethod returns the value of VerificationMethod.
 func (s *SigningRequest) GetVerificationMethod() SigningRequestVerificationMethod {
 	return s.VerificationMethod
-}
-
-// SetAgentId sets the value of AgentId.
-func (s *SigningRequest) SetAgentId(val uuid.UUID) {
-	s.AgentId = val
 }
 
 // SetChallenge sets the value of Challenge.
@@ -53369,7 +53289,7 @@ func (s *SigningRequest) SetRejectionReason(val OptNilString) {
 }
 
 // SetRequestedBy sets the value of RequestedBy.
-func (s *SigningRequest) SetRequestedBy(val OptNilSigningRequestRequestedBy) {
+func (s *SigningRequest) SetRequestedBy(val SigningRequestRequestedBy) {
 	s.RequestedBy = val
 }
 
@@ -53470,13 +53390,14 @@ func (s *SigningRequestList) SetTotal(val float64) {
 
 func (*SigningRequestList) listSigningRequestsRes() {}
 
+// The principal that created the request: an agent ID or a human ID.
 type SigningRequestRequestedBy struct {
-	ID   string                        `json:"id"`
+	ID   uuid.UUID                     `json:"id"`
 	Type SigningRequestRequestedByType `json:"type"`
 }
 
 // GetID returns the value of ID.
-func (s *SigningRequestRequestedBy) GetID() string {
+func (s *SigningRequestRequestedBy) GetID() uuid.UUID {
 	return s.ID
 }
 
@@ -53486,7 +53407,7 @@ func (s *SigningRequestRequestedBy) GetType() SigningRequestRequestedByType {
 }
 
 // SetID sets the value of ID.
-func (s *SigningRequestRequestedBy) SetID(val string) {
+func (s *SigningRequestRequestedBy) SetID(val uuid.UUID) {
 	s.ID = val
 }
 
@@ -53498,9 +53419,8 @@ func (s *SigningRequestRequestedBy) SetType(val SigningRequestRequestedByType) {
 type SigningRequestRequestedByType string
 
 const (
-	SigningRequestRequestedByTypeAgent   SigningRequestRequestedByType = "agent"
-	SigningRequestRequestedByTypeHuman   SigningRequestRequestedByType = "human"
-	SigningRequestRequestedByTypeService SigningRequestRequestedByType = "service"
+	SigningRequestRequestedByTypeAgent SigningRequestRequestedByType = "agent"
+	SigningRequestRequestedByTypeHuman SigningRequestRequestedByType = "human"
 )
 
 // AllValues returns all SigningRequestRequestedByType values.
@@ -53508,7 +53428,6 @@ func (SigningRequestRequestedByType) AllValues() []SigningRequestRequestedByType
 	return []SigningRequestRequestedByType{
 		SigningRequestRequestedByTypeAgent,
 		SigningRequestRequestedByTypeHuman,
-		SigningRequestRequestedByTypeService,
 	}
 }
 
@@ -53518,8 +53437,6 @@ func (s SigningRequestRequestedByType) MarshalText() ([]byte, error) {
 	case SigningRequestRequestedByTypeAgent:
 		return []byte(s), nil
 	case SigningRequestRequestedByTypeHuman:
-		return []byte(s), nil
-	case SigningRequestRequestedByTypeService:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -53534,9 +53451,6 @@ func (s *SigningRequestRequestedByType) UnmarshalText(data []byte) error {
 		return nil
 	case SigningRequestRequestedByTypeHuman:
 		*s = SigningRequestRequestedByTypeHuman
-		return nil
-	case SigningRequestRequestedByTypeService:
-		*s = SigningRequestRequestedByTypeService
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

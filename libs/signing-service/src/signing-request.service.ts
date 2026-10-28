@@ -48,7 +48,7 @@ function signingPayload(row: SigningRequest): string {
 
 async function startAgentSigningWorkflow(input: {
   id: string;
-  agentId: string;
+  signerIdentityId: string;
   message: string;
   nonce: string;
   verificationMethod: VerificationMethod;
@@ -57,7 +57,7 @@ async function startAgentSigningWorkflow(input: {
     workflowID: `signing-${input.id}`,
   })(
     input.id,
-    input.agentId,
+    input.signerIdentityId,
     input.message,
     input.nonce,
     input.verificationMethod,
@@ -149,7 +149,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
 
       // The signing workflow looks the key up by the live caller's identity;
       // the persisted requester is the principal row, which outlives it.
-      const agentId = input.actor.identityId;
+      const signerIdentityId = input.actor.identityId;
       const requester = actorPrincipal(input.actor);
       const expiresAt = new Date(
         now().getTime() + deps.signingTimeoutSeconds * 1000,
@@ -200,7 +200,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
             deps.startAgentSigningWorkflow ?? startAgentSigningWorkflow
           )({
             id: created.id,
-            agentId,
+            signerIdentityId,
             message: input.message,
             nonce: created.nonce,
             verificationMethod: created.verificationMethod,
@@ -224,7 +224,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
             {
               err,
               signingId: created.id,
-              agentId,
+              signerIdentityId,
               cleanupError,
             },
             'signing_request.workflow_start_failed',
@@ -280,12 +280,10 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
 
     async get(input: { actor: AuthContext; requestId: string }) {
       const row = await deps.signingRequestRepository.findById(input.requestId);
-      if (
-        !row ||
-        (!isRequester(row, input.actor) &&
-          row.claimedByHumanId !==
-            (input.actor.subjectType === 'human' ? input.actor.humanId : null))
-      ) {
+      const isClaimant =
+        input.actor.subjectType === 'human' &&
+        row?.claimedByHumanId === input.actor.humanId;
+      if (!row || (!isRequester(row, input.actor) && !isClaimant)) {
         throw new SigningServiceError('not_found', 'Signing request not found');
       }
       return row;

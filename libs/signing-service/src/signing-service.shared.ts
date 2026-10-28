@@ -4,7 +4,7 @@ import {
   authPrincipal,
   authPrincipalCreator,
 } from '@moltnet/auth';
-import type { SigningRequest } from '@moltnet/database';
+import { isSigningRequester, type SigningRequest } from '@moltnet/database';
 import type { SigningMethodJson } from '@moltnet/signing-workflows';
 import {
   SigningCredentialError,
@@ -50,10 +50,7 @@ export function isRequester(
   row: Pick<SigningRequest, 'requesterAgentId' | 'requesterHumanId'>,
   actor: AuthContext,
 ): boolean {
-  const { kind, id } = actorPrincipal(actor);
-  return (
-    (kind === 'agent' ? row.requesterAgentId : row.requesterHumanId) === id
-  );
+  return isSigningRequester(row, actorPrincipal(actor));
 }
 
 export function requireHuman(

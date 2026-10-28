@@ -1,3 +1,4 @@
+import { computeContentCid } from '@moltnet/crypto-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import type { FastifyInstance } from 'fastify';
 import {
@@ -16,6 +17,7 @@ import {
   createTestApp,
   DIARY_ID,
   type MockServices,
+  OTHER_AGENT_ID,
   OWNER_ID,
   OWNER_IDENTITY_ID,
   TEST_BEARER_TOKEN,
@@ -201,6 +203,86 @@ describe('Diary entry routes - create and list', () => {
 
       expect(response.statusCode).toBe(201);
       expect(response.json()).not.toHaveProperty('embedding');
+    });
+  });
+
+  describe('POST signed entries: signing request ownership', () => {
+    const CONTENT = 'Signed content';
+    const CONTENT_HASH = computeContentCid('semantic', null, CONTENT, null);
+    const SIGNING_REQUEST_ID = '990e8400-e29b-41d4-a716-446655440010';
+
+    const completedRequest = (requester: {
+      requesterAgentId: string | null;
+      requesterHumanId: string | null;
+    }) => ({
+      id: SIGNING_REQUEST_ID,
+      ...requester,
+      message: CONTENT_HASH,
+      nonce: '990e8400-e29b-41d4-a716-446655440011',
+      status: 'completed',
+      valid: true,
+      signature: 'c2lnbmF0dXJl',
+    });
+
+    const createSigned = () =>
+      app.inject({
+        method: 'POST',
+        url: `/diaries/${DIARY_ID}/entries`,
+        headers: authHeaders,
+        payload: {
+          content: CONTENT,
+          contentHash: CONTENT_HASH,
+          signingRequestId: SIGNING_REQUEST_ID,
+        },
+      });
+
+    it('creates the entry when the caller created the signing request', async () => {
+      mocks.signingRequestRepository.findById.mockResolvedValue(
+        completedRequest({
+          requesterAgentId: OWNER_ID,
+          requesterHumanId: null,
+        }),
+      );
+      mocks.diaryService.createEntry.mockResolvedValue(
+        createMockEntry({ content: CONTENT }),
+      );
+
+      const response = await createSigned();
+
+      expect(response.statusCode).toBe(201);
+      expect(mocks.diaryService.createEntry).toHaveBeenCalledWith(
+        expect.objectContaining({ contentSignature: 'c2lnbmF0dXJl' }),
+        OWNER_ID,
+        expect.anything(),
+      );
+    });
+
+    it('rejects a signing request created by another agent', async () => {
+      mocks.signingRequestRepository.findById.mockResolvedValue(
+        completedRequest({
+          requesterAgentId: OTHER_AGENT_ID,
+          requesterHumanId: null,
+        }),
+      );
+
+      const response = await createSigned();
+
+      expect(response.statusCode).toBe(403);
+      expect(mocks.diaryService.createEntry).not.toHaveBeenCalled();
+    });
+
+    it('rejects a human-created request whose id equals the agent id', async () => {
+      mocks.signingRequestRepository.findById.mockResolvedValue(
+        completedRequest({
+          requesterAgentId: null,
+          requesterHumanId: OWNER_ID,
+        }),
+      );
+
+      const response = await createSigned();
+
+      expect(response.statusCode).toBe(403);
+      expect(mocks.diaryService.createEntry).not.toHaveBeenCalled();
     });
   });
 

@@ -46,7 +46,10 @@ export function createLocalSeedSigner(input: {
       // tracked as a follow-up; a cross-scope deputy therefore requires an
       // already-compromised same-identity task in the same attempt.
       const request = await agent.crypto.signingRequests.get(signingRequestId);
-      if (request.agentId !== identity.subjectId) {
+      if (
+        request.requestedBy.type !== 'agent' ||
+        request.requestedBy.id !== identity.subjectId
+      ) {
         throw new SigningRequestNotOwnedError(
           'signing request is not owned by this agent subject',
         );

@@ -196,7 +196,7 @@ export function SigningPage() {
                           fontFamily: theme.font.family.mono,
                         }}
                       >
-                        {request.requestedBy?.id ?? request.agentId}
+                        {request.requestedBy.id}
                       </dd>
                       <dt style={{ color: theme.color.text.muted }}>
                         Intended signer

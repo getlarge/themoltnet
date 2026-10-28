@@ -241,6 +241,94 @@ describe('createSigningService', () => {
     expect(service.challengeValidation).toBeDefined();
   });
 
+  describe('requester ownership', () => {
+    const ownedBy = (owner: {
+      requesterAgentId?: string | null;
+      requesterHumanId?: string | null;
+      claimedByHumanId?: string | null;
+    }) =>
+      createSigningService(
+        createDeps({
+          signingRequestRepository: {
+            findById: vi.fn().mockResolvedValue({
+              ...pendingRequest(),
+              requesterAgentId: null,
+              requesterHumanId: null,
+              claimedByHumanId: null,
+              verificationMethod: VERIFICATION_METHOD.AgentEd25519,
+              ...owner,
+            }),
+            list: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+          } as never,
+        }),
+      );
+
+    it('returns a request to the agent that created it', async () => {
+      const service = ownedBy({ requesterAgentId: agent.agentId });
+
+      await expect(
+        service.requests.get({ actor: agent, requestId: REQUEST_ID }),
+      ).resolves.toMatchObject({ id: REQUEST_ID });
+    });
+
+    it('hides a request created by another agent', async () => {
+      const service = ownedBy({ requesterAgentId: 'other-agent-id' });
+
+      await expect(
+        service.requests.get({ actor: agent, requestId: REQUEST_ID }),
+      ).rejects.toMatchObject({ code: 'not_found' });
+      await expect(
+        service.requests.submitAgentSignature({
+          actor: agent,
+          requestId: REQUEST_ID,
+          signature: 'signature',
+        }),
+      ).rejects.toMatchObject({ code: 'not_found' });
+    });
+
+    it('does not match an agent to a human-created request with the same id', async () => {
+      const service = ownedBy({ requesterHumanId: agent.agentId });
+
+      await expect(
+        service.requests.get({ actor: agent, requestId: REQUEST_ID }),
+      ).rejects.toMatchObject({ code: 'not_found' });
+    });
+
+    it('returns a request to the human that created it', async () => {
+      const service = ownedBy({ requesterHumanId: human.humanId });
+
+      await expect(
+        service.requests.get({ actor: human, requestId: REQUEST_ID }),
+      ).resolves.toMatchObject({ id: REQUEST_ID });
+    });
+
+    it('returns a request to the human that claimed it', async () => {
+      const service = ownedBy({
+        requesterAgentId: 'other-agent-id',
+        claimedByHumanId: human.humanId,
+      });
+
+      await expect(
+        service.requests.get({ actor: human, requestId: REQUEST_ID }),
+      ).resolves.toMatchObject({ id: REQUEST_ID });
+    });
+
+    it('lists by the actor principal, not the Kratos identity', async () => {
+      const list = vi.fn().mockResolvedValue({ items: [], total: 0 });
+      const service = createSigningService(
+        createDeps({ signingRequestRepository: { list } as never }),
+      );
+
+      await service.requests.list({ actor: human, scope: 'requested' });
+
+      expect(list).toHaveBeenCalledWith(
+        expect.objectContaining({
+          requester: { kind: 'human', id: human.humanId },
+        }),
+      );
+    });
+  });
+
   it('rejects an agent signature after the request was rejected', async () => {
     const send = vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
     const service = createSigningService(
@@ -679,7 +767,7 @@ describe('createSigningService', () => {
     });
     expect(startAgentSigningWorkflow).toHaveBeenCalledWith({
       id: created.id,
-      agentId: agent.identityId,
+      signerIdentityId: agent.identityId,
       message: created.message,
       nonce: created.nonce,
       verificationMethod: VERIFICATION_METHOD.AgentEd25519,
@@ -688,7 +776,7 @@ describe('createSigningService', () => {
       {
         err: startupError,
         signingId: created.id,
-        agentId: agent.identityId,
+        signerIdentityId: agent.identityId,
         cleanupError: undefined,
       },
       'signing_request.workflow_start_failed',

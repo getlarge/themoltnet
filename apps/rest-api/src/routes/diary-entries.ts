@@ -8,7 +8,7 @@ import {
   requireAuth,
 } from '@moltnet/auth';
 import { computeContentCid } from '@moltnet/crypto-service';
-import { type RelationAtDepth, signingRequester } from '@moltnet/database';
+import { isSigningRequester, type RelationAtDepth } from '@moltnet/database';
 import type { ListInput, ListTagsInput } from '@moltnet/diary-service';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import {
@@ -199,12 +199,15 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           if (!signingRequest) {
             throw createProblem('not-found', 'Signing request not found');
           }
-          const requester = signingRequester(signingRequest);
-          const caller = authPrincipalCreator(request.authContext!);
-          if (requester.kind !== caller.kind || requester.id !== caller.id) {
+          if (
+            !isSigningRequester(
+              signingRequest,
+              authPrincipalCreator(request.authContext!),
+            )
+          ) {
             throw createProblem(
               'forbidden',
-              'Signing request belongs to a different agent',
+              'Signing request belongs to a different principal',
             );
           }
           if (signingRequest.status !== 'completed') {

@@ -127,7 +127,7 @@ func (h *stubSigningHandler) GetSigningRequest(_ context.Context, params moltnet
 		SigningInput:       signingInput,
 		Status:             moltnetapi.SigningRequestStatusPending,
 		VerificationMethod: h.verificationMethod,
-		AgentId:            uuid.New(),
+		RequestedBy:        moltnetapi.SigningRequestRequestedBy{ID: uuid.New(), Type: moltnetapi.SigningRequestRequestedByTypeAgent},
 		CreatedAt:          time.Now(),
 		ExpiresAt:          time.Now().Add(5 * time.Minute),
 	}, nil
@@ -141,7 +141,7 @@ func (h *stubSigningHandler) SubmitSignature(_ context.Context, req *moltnetapi.
 		Nonce:              h.nonce,
 		Status:             moltnetapi.SigningRequestStatusCompleted,
 		VerificationMethod: h.verificationMethod,
-		AgentId:            uuid.New(),
+		RequestedBy:        moltnetapi.SigningRequestRequestedBy{ID: uuid.New(), Type: moltnetapi.SigningRequestRequestedByTypeAgent},
 		CreatedAt:          time.Now(),
 		ExpiresAt:          time.Now().Add(5 * time.Minute),
 	}, nil
