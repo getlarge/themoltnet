@@ -123,6 +123,70 @@ describe('anonymous System One compatibility', () => {
     );
   });
 
+  it.each(['model', 'options'] as const)(
+    'preserves explicit authorization from %s headers',
+    async (source) => {
+      const fetch = vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValue(success());
+      const headers = { Authorization: 'Bearer explicit-test-key' };
+      await classify(
+        { ...model, ...(source === 'model' ? { headers } : {}) },
+        context,
+        { apiKey: '', fetch, ...(source === 'options' ? { headers } : {}) },
+      );
+      expect(
+        new Headers(fetch.mock.calls[0][1]?.headers).get('authorization'),
+      ).toBe('Bearer explicit-test-key');
+    },
+  );
+
+  it.each(['assets', 'state-image-urls'] as const)(
+    'uses Pi image encoding for anonymous classifiers with %s compatibility',
+    async (imageInput) => {
+      const fetch = vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValue(success());
+      const result = await classify(
+        {
+          ...model,
+          input: ['text', 'image'],
+          compat: { imageInput, sendImageOptInHeader: true },
+        },
+        {
+          ...context,
+          images: [{ type: 'image', mimeType: 'image/png', data: 'aW1hZ2U=' }],
+        },
+        { apiKey: '', fetch },
+      );
+      expect(result.stopReason).toBe('stop');
+      const init = fetch.mock.calls[0][1];
+      const payload = JSON.parse(requestBody(init));
+      if (imageInput === 'assets') {
+        expect(payload.assets).toEqual({
+          '<image-1>': {
+            type: 'image',
+            format: 'png',
+            data_base64: 'aW1hZ2U=',
+          },
+        });
+        expect(payload.state).toEqual(['<image-1>', context.state]);
+      } else {
+        expect(payload.state).toEqual([
+          {
+            type: 'image_url',
+            image_url: { url: 'data:image/png;base64,aW1hZ2U=' },
+          },
+          context.state,
+        ]);
+        expect(payload).not.toHaveProperty('assets');
+      }
+      const headers = new Headers(init?.headers);
+      expect(headers.get('authorization')).toBeNull();
+      expect(headers.get('TypeSafe-Danger-Zone-Images')).toBe('true');
+    },
+  );
+
   it('delegates keyed requests and retains missing-key failures', async () => {
     const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(success());
     expect(
