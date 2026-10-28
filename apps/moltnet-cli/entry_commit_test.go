@@ -291,7 +291,7 @@ func (h *stubCommitHandler) CreateSigningRequest(_ context.Context, req *moltnet
 		SigningInput:       signingInput,
 		Status:             moltnetapi.SigningRequestStatusPending,
 		VerificationMethod: moltnetapi.SigningRequestVerificationMethodAgentEd25519,
-		RequestedBy:        moltnetapi.SigningRequestRequestedBy{ID: uuid.New(), Type: moltnetapi.SigningRequestRequestedByTypeAgent},
+		RequestedBy:        testAgentRequester(),
 		CreatedAt:          time.Now(),
 		ExpiresAt:          time.Now().Add(5 * time.Minute),
 	}, nil
@@ -308,7 +308,7 @@ func (h *stubCommitHandler) GetSigningRequest(_ context.Context, params moltneta
 		SigningInput:       signingInput,
 		Status:             moltnetapi.SigningRequestStatusPending,
 		VerificationMethod: moltnetapi.SigningRequestVerificationMethodAgentEd25519,
-		RequestedBy:        moltnetapi.SigningRequestRequestedBy{ID: uuid.New(), Type: moltnetapi.SigningRequestRequestedByTypeAgent},
+		RequestedBy:        testAgentRequester(),
 		CreatedAt:          time.Now(),
 		ExpiresAt:          time.Now().Add(5 * time.Minute),
 	}, nil
@@ -321,7 +321,7 @@ func (h *stubCommitHandler) SubmitSignature(_ context.Context, req *moltnetapi.S
 		Nonce:              h.nonce,
 		Status:             moltnetapi.SigningRequestStatusCompleted,
 		VerificationMethod: moltnetapi.SigningRequestVerificationMethodAgentEd25519,
-		RequestedBy:        moltnetapi.SigningRequestRequestedBy{ID: uuid.New(), Type: moltnetapi.SigningRequestRequestedByTypeAgent},
+		RequestedBy:        testAgentRequester(),
 		CreatedAt:          time.Now(),
 		ExpiresAt:          time.Now().Add(5 * time.Minute),
 	}, nil

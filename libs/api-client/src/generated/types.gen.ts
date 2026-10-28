@@ -2408,13 +2408,31 @@ export type SigningRequest = {
   receipt?: PreviewSignEvidenceValue | null;
   rejectedAt?: string | null;
   rejectionReason?: string | null;
-  /**
-   * The principal that created the request: an agent ID or a human ID.
-   */
-  requestedBy: {
-    id: string;
-    type: 'agent' | 'human';
-  };
+  requestedBy:
+    | {
+        /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        identityId: string | null;
+        kind: 'agent';
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        /**
+         * UUID v4 identifier
+         */
+        humanId: string;
+        identityId: string | null;
+        kind: 'human';
+      };
   signature: string | null;
   signerConstraint?:
     | {

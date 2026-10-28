@@ -78,6 +78,12 @@ const VALID_AUTH_CONTEXT: AuthContext = {
   currentTeamId: null,
 };
 
+const REQUESTER_AGENT = {
+  identityId: OWNER_IDENTITY_ID,
+  fingerprint: 'C212-DAFA-27C5-6C57',
+  publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
+};
+
 function createMockSigningRequest(
   overrides: Partial<SigningRequestRecord> = {},
 ): SigningRequestRecord {
@@ -147,11 +153,19 @@ function createApp(
       delete: vi.fn(),
       reflect: vi.fn(),
     } as unknown as DiaryService,
+    humanRepository: {
+      findByIds: vi.fn().mockResolvedValue(new Map()),
+    } as never,
     diaryRepository: new Proxy(
       {},
       { get: () => vi.fn().mockResolvedValue(null) },
     ) as never,
     agentRepository: {
+      // Every requester id resolves to the test agent.
+      findByIds: vi.fn(
+        async (ids: readonly string[]) =>
+          new Map(ids.map((id) => [id, { ...REQUESTER_AGENT, id }])),
+      ),
       findByFingerprint: vi.fn(),
       findByIdentityId: vi.fn(),
       findByPublicKey: vi.fn(),
@@ -403,7 +417,13 @@ describe('Signing request routes', () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body.id).toBe(REQUEST_ID);
-      expect(body.requestedBy).toEqual({ id: OWNER_ID, type: 'agent' });
+      expect(body.requestedBy).toEqual({
+        kind: 'agent',
+        agentId: OWNER_ID,
+        identityId: OWNER_IDENTITY_ID,
+        fingerprint: REQUESTER_AGENT.fingerprint,
+        publicKey: REQUESTER_AGENT.publicKey,
+      });
       expect(body.verificationMethod).toBe('agent-ed25519');
       expect(body.signingInput).toBe(
         expectedSigningInput(

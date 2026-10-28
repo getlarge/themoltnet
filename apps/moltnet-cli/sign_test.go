@@ -127,7 +127,7 @@ func (h *stubSigningHandler) GetSigningRequest(_ context.Context, params moltnet
 		SigningInput:       signingInput,
 		Status:             moltnetapi.SigningRequestStatusPending,
 		VerificationMethod: h.verificationMethod,
-		RequestedBy:        moltnetapi.SigningRequestRequestedBy{ID: uuid.New(), Type: moltnetapi.SigningRequestRequestedByTypeAgent},
+		RequestedBy:        testAgentRequester(),
 		CreatedAt:          time.Now(),
 		ExpiresAt:          time.Now().Add(5 * time.Minute),
 	}, nil
@@ -141,7 +141,7 @@ func (h *stubSigningHandler) SubmitSignature(_ context.Context, req *moltnetapi.
 		Nonce:              h.nonce,
 		Status:             moltnetapi.SigningRequestStatusCompleted,
 		VerificationMethod: h.verificationMethod,
-		RequestedBy:        moltnetapi.SigningRequestRequestedBy{ID: uuid.New(), Type: moltnetapi.SigningRequestRequestedByTypeAgent},
+		RequestedBy:        testAgentRequester(),
 		CreatedAt:          time.Now(),
 		ExpiresAt:          time.Now().Add(5 * time.Minute),
 	}, nil
@@ -308,4 +308,15 @@ func TestSignWithRequestIDRejectsNonAgentVerificationMethod(t *testing.T) {
 	if handler.gotSig != "" {
 		t.Error("non-agent request must not submit an Ed25519 signature")
 	}
+}
+
+// testAgentRequester is the requestedBy of a signing request an agent made.
+func testAgentRequester() moltnetapi.SigningRequestRequestedBy {
+	return moltnetapi.NewAgentPrincipalSigningRequestRequestedBy(moltnetapi.AgentPrincipal{
+		AgentId:     uuid.New(),
+		Fingerprint: "AAAA-BBBB-CCCC-DDDD",
+		IdentityId:  moltnetapi.NilUUID{Null: true},
+		Kind:        moltnetapi.AgentPrincipalKindAgent,
+		PublicKey:   "ed25519:dGVzdC1yZXF1ZXN0ZXIta2V5",
+	})
 }

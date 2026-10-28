@@ -14,8 +14,6 @@
  */
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
-import { buildSigningBytes } from '@moltnet/crypto-service';
-import { type SigningRequest, signingRequester } from '@moltnet/database';
 import {
   ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
@@ -39,37 +37,11 @@ import {
   SigningRequestSchema,
 } from '../schemas.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
+import {
+  toSigningResponseOf,
+  toSigningResponses,
+} from '../utils/signing-response.js';
 import { throwSigningServiceProblem } from '../utils/signing-service-error.js';
-
-function toSigningResponse(row: SigningRequest) {
-  const requester = signingRequester(row);
-  return {
-    id: row.id,
-    verificationMethod: row.verificationMethod,
-    requestedBy: { id: requester.id, type: requester.kind },
-    signerConstraint: row.signerConstraint ?? null,
-    teamId: row.teamId ?? null,
-    purpose: row.purpose ?? null,
-    claimedByHumanId: row.claimedByHumanId ?? null,
-    signingCredentialId: row.signingCredentialId ?? null,
-    challenge: row.challenge ?? null,
-    receipt: row.receipt ?? null,
-    message: row.message,
-    nonce: row.nonce,
-    signingInput: Buffer.from(
-      buildSigningBytes(row.message, row.nonce),
-    ).toString('base64'),
-    status: row.status,
-    signature: row.signature,
-    valid: row.valid,
-    createdAt: row.createdAt,
-    expiresAt: row.expiresAt,
-    completedAt: row.completedAt,
-    claimedAt: row.claimedAt ?? null,
-    rejectedAt: row.rejectedAt ?? null,
-    rejectionReason: row.rejectionReason ?? null,
-  };
-}
 
 const SIGNING_JSON_BODY_LIMIT = 64 * 1024;
 
@@ -140,7 +112,9 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           },
           'crypto.signature_prepared',
         );
-        return await reply.status(201).send(toSigningResponse(created));
+        return await reply
+          .status(201)
+          .send(await toSigningResponseOf(created, fastify));
       } catch (error) {
         throwSigningServiceProblem(error);
       }
@@ -208,7 +182,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           offset,
         });
         return {
-          items: result.items.map(toSigningResponse),
+          items: await toSigningResponses(result.items, fastify),
           total: result.total,
           limit: limit ?? 20,
           offset: offset ?? 0,
@@ -252,7 +226,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           actor: request.authContext!,
           requestId: id,
         });
-        return toSigningResponse(signingRequest);
+        return await toSigningResponseOf(signingRequest, fastify);
       } catch (error) {
         throwSigningServiceProblem(error);
       }
@@ -311,7 +285,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           },
           'crypto.signing_request_claimed',
         );
-        return toSigningResponse(claimed);
+        return await toSigningResponseOf(claimed, fastify);
       } catch (error) {
         throwSigningServiceProblem(error);
       }
@@ -369,7 +343,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           },
           'crypto.signing_request_completed',
         );
-        return toSigningResponse(completed);
+        return await toSigningResponseOf(completed, fastify);
       } catch (error) {
         throwSigningServiceProblem(error);
       }
@@ -426,7 +400,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           },
           'crypto.signing_request_rejected',
         );
-        return toSigningResponse(rejected);
+        return await toSigningResponseOf(rejected, fastify);
       } catch (error) {
         throwSigningServiceProblem(error);
       }
@@ -480,7 +454,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           { signingId: id, valid: updated.valid },
           'crypto.signature_submitted',
         );
-        return toSigningResponse(updated);
+        return await toSigningResponseOf(updated, fastify);
       } catch (error) {
         throwSigningServiceProblem(error);
       }

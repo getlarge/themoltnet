@@ -53085,20 +53085,19 @@ func (s *SigningCredentialVerificationMethod) UnmarshalText(data []byte) error {
 
 // Ref: #/components/schemas/SigningRequest
 type SigningRequest struct {
-	Challenge        OptNilPreviewSignChallengeValue `json:"challenge"`
-	ClaimedAt        OptNilDateTime                  `json:"claimedAt"`
-	ClaimedByHumanId OptNilUUID                      `json:"claimedByHumanId"`
-	CompletedAt      NilDateTime                     `json:"completedAt"`
-	CreatedAt        time.Time                       `json:"createdAt"`
-	ExpiresAt        time.Time                       `json:"expiresAt"`
-	ID               uuid.UUID                       `json:"id"`
-	Message          string                          `json:"message"`
-	Nonce            uuid.UUID                       `json:"nonce"`
-	Purpose          OptNilString                    `json:"purpose"`
-	Receipt          OptNilPreviewSignEvidenceValue  `json:"receipt"`
-	RejectedAt       OptNilDateTime                  `json:"rejectedAt"`
-	RejectionReason  OptNilString                    `json:"rejectionReason"`
-	// The principal that created the request: an agent ID or a human ID.
+	Challenge           OptNilPreviewSignChallengeValue      `json:"challenge"`
+	ClaimedAt           OptNilDateTime                       `json:"claimedAt"`
+	ClaimedByHumanId    OptNilUUID                           `json:"claimedByHumanId"`
+	CompletedAt         NilDateTime                          `json:"completedAt"`
+	CreatedAt           time.Time                            `json:"createdAt"`
+	ExpiresAt           time.Time                            `json:"expiresAt"`
+	ID                  uuid.UUID                            `json:"id"`
+	Message             string                               `json:"message"`
+	Nonce               uuid.UUID                            `json:"nonce"`
+	Purpose             OptNilString                         `json:"purpose"`
+	Receipt             OptNilPreviewSignEvidenceValue       `json:"receipt"`
+	RejectedAt          OptNilDateTime                       `json:"rejectedAt"`
+	RejectionReason     OptNilString                         `json:"rejectionReason"`
 	RequestedBy         SigningRequestRequestedBy            `json:"requestedBy"`
 	Signature           NilString                            `json:"signature"`
 	SignerConstraint    OptNilSigningRequestSignerConstraint `json:"signerConstraint"`
@@ -53390,71 +53389,73 @@ func (s *SigningRequestList) SetTotal(val float64) {
 
 func (*SigningRequestList) listSigningRequestsRes() {}
 
-// The principal that created the request: an agent ID or a human ID.
+// SigningRequestRequestedBy represents sum type.
 type SigningRequestRequestedBy struct {
-	ID   uuid.UUID                     `json:"id"`
-	Type SigningRequestRequestedByType `json:"type"`
+	// Type selects the active sum variant, switch on this field.
+	Type           SigningRequestRequestedByType
+	AgentPrincipal AgentPrincipal
+	HumanPrincipal HumanPrincipal
 }
 
-// GetID returns the value of ID.
-func (s *SigningRequestRequestedBy) GetID() uuid.UUID {
-	return s.ID
-}
-
-// GetType returns the value of Type.
-func (s *SigningRequestRequestedBy) GetType() SigningRequestRequestedByType {
-	return s.Type
-}
-
-// SetID sets the value of ID.
-func (s *SigningRequestRequestedBy) SetID(val uuid.UUID) {
-	s.ID = val
-}
-
-// SetType sets the value of Type.
-func (s *SigningRequestRequestedBy) SetType(val SigningRequestRequestedByType) {
-	s.Type = val
-}
-
+// SigningRequestRequestedByType is oneOf type of SigningRequestRequestedBy.
 type SigningRequestRequestedByType string
 
+// Possible values for SigningRequestRequestedByType.
 const (
-	SigningRequestRequestedByTypeAgent SigningRequestRequestedByType = "agent"
-	SigningRequestRequestedByTypeHuman SigningRequestRequestedByType = "human"
+	AgentPrincipalSigningRequestRequestedBy SigningRequestRequestedByType = "agent"
+	HumanPrincipalSigningRequestRequestedBy SigningRequestRequestedByType = "human"
 )
 
-// AllValues returns all SigningRequestRequestedByType values.
-func (SigningRequestRequestedByType) AllValues() []SigningRequestRequestedByType {
-	return []SigningRequestRequestedByType{
-		SigningRequestRequestedByTypeAgent,
-		SigningRequestRequestedByTypeHuman,
-	}
+// IsAgentPrincipal reports whether SigningRequestRequestedBy is AgentPrincipal.
+func (s SigningRequestRequestedBy) IsAgentPrincipal() bool {
+	return s.Type == AgentPrincipalSigningRequestRequestedBy
 }
 
-// MarshalText implements encoding.TextMarshaler.
-func (s SigningRequestRequestedByType) MarshalText() ([]byte, error) {
-	switch s {
-	case SigningRequestRequestedByTypeAgent:
-		return []byte(s), nil
-	case SigningRequestRequestedByTypeHuman:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
+// IsHumanPrincipal reports whether SigningRequestRequestedBy is HumanPrincipal.
+func (s SigningRequestRequestedBy) IsHumanPrincipal() bool {
+	return s.Type == HumanPrincipalSigningRequestRequestedBy
 }
 
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *SigningRequestRequestedByType) UnmarshalText(data []byte) error {
-	switch SigningRequestRequestedByType(data) {
-	case SigningRequestRequestedByTypeAgent:
-		*s = SigningRequestRequestedByTypeAgent
-		return nil
-	case SigningRequestRequestedByTypeHuman:
-		*s = SigningRequestRequestedByTypeHuman
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
+// SetAgentPrincipal sets SigningRequestRequestedBy to AgentPrincipal.
+func (s *SigningRequestRequestedBy) SetAgentPrincipal(v AgentPrincipal) {
+	s.Type = AgentPrincipalSigningRequestRequestedBy
+	s.AgentPrincipal = v
+}
+
+// GetAgentPrincipal returns AgentPrincipal and true boolean if SigningRequestRequestedBy is AgentPrincipal.
+func (s SigningRequestRequestedBy) GetAgentPrincipal() (v AgentPrincipal, ok bool) {
+	if !s.IsAgentPrincipal() {
+		return v, false
 	}
+	return s.AgentPrincipal, true
+}
+
+// NewAgentPrincipalSigningRequestRequestedBy returns new SigningRequestRequestedBy from AgentPrincipal.
+func NewAgentPrincipalSigningRequestRequestedBy(v AgentPrincipal) SigningRequestRequestedBy {
+	var s SigningRequestRequestedBy
+	s.SetAgentPrincipal(v)
+	return s
+}
+
+// SetHumanPrincipal sets SigningRequestRequestedBy to HumanPrincipal.
+func (s *SigningRequestRequestedBy) SetHumanPrincipal(v HumanPrincipal) {
+	s.Type = HumanPrincipalSigningRequestRequestedBy
+	s.HumanPrincipal = v
+}
+
+// GetHumanPrincipal returns HumanPrincipal and true boolean if SigningRequestRequestedBy is HumanPrincipal.
+func (s SigningRequestRequestedBy) GetHumanPrincipal() (v HumanPrincipal, ok bool) {
+	if !s.IsHumanPrincipal() {
+		return v, false
+	}
+	return s.HumanPrincipal, true
+}
+
+// NewHumanPrincipalSigningRequestRequestedBy returns new SigningRequestRequestedBy from HumanPrincipal.
+func NewHumanPrincipalSigningRequestRequestedBy(v HumanPrincipal) SigningRequestRequestedBy {
+	var s SigningRequestRequestedBy
+	s.SetHumanPrincipal(v)
+	return s
 }
 
 // SigningRequestSignerConstraint represents sum type.

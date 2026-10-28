@@ -264,9 +264,9 @@ describe('Signing credential and delegated request lifecycle', () => {
       },
     });
     expect(created.error).toBeUndefined();
-    expect(created.data!.requestedBy).toEqual({
-      id: requester.agentId,
-      type: 'agent',
+    expect(created.data!.requestedBy).toMatchObject({
+      kind: 'agent',
+      agentId: requester.agentId,
     });
 
     const signable = await listSigningRequests({

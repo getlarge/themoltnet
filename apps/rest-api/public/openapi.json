@@ -11139,34 +11139,91 @@
             ]
           },
           "requestedBy": {
-            "description": "The principal that created the request: an agent ID or a human ID.",
-            "properties": {
-              "id": {
-                "format": "uuid",
-                "type": "string"
-              },
-              "type": {
-                "anyOf": [
-                  {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "agentId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "fingerprint": {
+                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "anyOf": [
+                      {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "kind": {
                     "enum": [
                       "agent"
                     ],
                     "type": "string"
                   },
-                  {
+                  "publicKey": {
+                    "description": "Ed25519 public key with prefix",
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "agentId",
+                  "identityId",
+                  "fingerprint",
+                  "publicKey"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "humanId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "anyOf": [
+                      {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "kind": {
                     "enum": [
                       "human"
                     ],
                     "type": "string"
                   }
-                ]
+                },
+                "required": [
+                  "kind",
+                  "humanId",
+                  "identityId"
+                ],
+                "type": "object"
               }
-            },
-            "required": [
-              "id",
-              "type"
             ],
-            "type": "object"
+            "discriminator": {
+              "propertyName": "kind"
+            }
           },
           "signature": {
             "anyOf": [

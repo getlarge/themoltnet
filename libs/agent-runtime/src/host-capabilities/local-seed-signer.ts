@@ -47,8 +47,8 @@ export function createLocalSeedSigner(input: {
       // already-compromised same-identity task in the same attempt.
       const request = await agent.crypto.signingRequests.get(signingRequestId);
       if (
-        request.requestedBy.type !== 'agent' ||
-        request.requestedBy.id !== identity.subjectId
+        request.requestedBy.kind !== 'agent' ||
+        request.requestedBy.agentId !== identity.subjectId
       ) {
         throw new SigningRequestNotOwnedError(
           'signing request is not owned by this agent subject',

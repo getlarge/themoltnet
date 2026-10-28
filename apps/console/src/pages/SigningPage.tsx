@@ -197,7 +197,11 @@ export function SigningPage() {
                         }}
                       >
                         {/* An API older than this console omits it on old rows. */}
-                        {request.requestedBy?.id ?? '—'}
+                        {request.requestedBy
+                          ? request.requestedBy.kind === 'agent'
+                            ? request.requestedBy.fingerprint
+                            : request.requestedBy.humanId
+                          : '—'}
                       </dd>
                       <dt style={{ color: theme.color.text.muted }}>
                         Intended signer

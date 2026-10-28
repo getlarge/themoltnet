@@ -78,7 +78,11 @@ describe('Signing requests', () => {
     expect(data!.nonce).toBeDefined();
     expect(data!.status).toBe('pending');
     // The requester is the agent row, never the recreatable Kratos identity.
-    expect(data!.requestedBy).toEqual({ id: agent.agentId, type: 'agent' });
+    expect(data!.requestedBy).toMatchObject({
+      kind: 'agent',
+      agentId: agent.agentId,
+      fingerprint: agent.keyPair.fingerprint,
+    });
     expect(data!.expiresAt).toBeDefined();
     await completeRequest(data!, agent);
   });

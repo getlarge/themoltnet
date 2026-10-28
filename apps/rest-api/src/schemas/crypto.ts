@@ -143,16 +143,7 @@ export const SigningRequestSchema = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
     verificationMethod: VerificationMethodSchema,
-    requestedBy: Type.Object(
-      {
-        id: Type.String({ format: 'uuid' }),
-        type: Type.Union([Type.Literal('agent'), Type.Literal('human')]),
-      },
-      {
-        description:
-          'The principal that created the request: an agent ID or a human ID.',
-      },
-    ),
+    requestedBy: PrincipalIdentitySchema,
     signerConstraint: Type.Optional(
       Type.Union([SignerConstraintSchema, Type.Null()]),
     ),

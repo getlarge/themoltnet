@@ -112454,28 +112454,52 @@ func (s *SigningRequestList) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode implements json.Marshaler.
-func (s *SigningRequestRequestedBy) Encode(e *jx.Encoder) {
+// Encode encodes SigningRequestRequestedBy as json.
+func (s SigningRequestRequestedBy) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
-// encodeFields encodes fields.
-func (s *SigningRequestRequestedBy) encodeFields(e *jx.Encoder) {
-	{
-		e.FieldStart("id")
-		json.EncodeUUID(e, s.ID)
+func (s SigningRequestRequestedBy) encodeFields(e *jx.Encoder) {
+	switch s.Type {
+	case AgentPrincipalSigningRequestRequestedBy:
+		e.FieldStart("kind")
+		e.Str("agent")
+		{
+			s := s.AgentPrincipal
+			{
+				e.FieldStart("agentId")
+				json.EncodeUUID(e, s.AgentId)
+			}
+			{
+				e.FieldStart("fingerprint")
+				e.Str(s.Fingerprint)
+			}
+			{
+				e.FieldStart("identityId")
+				s.IdentityId.Encode(e)
+			}
+			{
+				e.FieldStart("publicKey")
+				e.Str(s.PublicKey)
+			}
+		}
+	case HumanPrincipalSigningRequestRequestedBy:
+		e.FieldStart("kind")
+		e.Str("human")
+		{
+			s := s.HumanPrincipal
+			{
+				e.FieldStart("humanId")
+				json.EncodeUUID(e, s.HumanId)
+			}
+			{
+				e.FieldStart("identityId")
+				s.IdentityId.Encode(e)
+			}
+		}
 	}
-	{
-		e.FieldStart("type")
-		s.Type.Encode(e)
-	}
-}
-
-var jsonFieldsNameOfSigningRequestRequestedBy = [2]string{
-	0: "id",
-	1: "type",
 }
 
 // Decode decodes SigningRequestRequestedBy from json.
@@ -112483,77 +112507,60 @@ func (s *SigningRequestRequestedBy) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode SigningRequestRequestedBy to nil")
 	}
-	var requiredBitSet [1]uint8
+	// Sum type discriminator.
+	if typ := d.Next(); typ != jx.Object {
+		return errors.Errorf("unexpected json type %q", typ)
+	}
 
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		switch string(k) {
-		case "id":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.ID = v
+	var found bool
+	if err := d.Capture(func(d *jx.Decoder) error {
+		return d.ObjBytes(func(d *jx.Decoder, key []byte) error {
+			if found {
+				return d.Skip()
+			}
+			switch string(key) {
+			case "kind":
+				typ, err := d.Str()
 				if err != nil {
 					return err
 				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"id\"")
-			}
-		case "type":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				if err := s.Type.Decode(d); err != nil {
-					return err
+				switch typ {
+				case "agent":
+					s.Type = AgentPrincipalSigningRequestRequestedBy
+					found = true
+				case "human":
+					s.Type = HumanPrincipalSigningRequestRequestedBy
+					found = true
+				default:
+					return errors.Errorf("unknown type %s", typ)
 				}
 				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"type\"")
 			}
-		default:
 			return d.Skip()
-		}
-		return nil
+		})
 	}); err != nil {
-		return errors.Wrap(err, "decode SigningRequestRequestedBy")
+		return errors.Wrap(err, "capture")
 	}
-	// Validate required fields.
-	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00000011,
-	} {
-		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
-			// Mask only required fields and check equality to mask using XOR.
-			//
-			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
-			// Bits of fields which would be set are actually bits of missed fields.
-			missed := bits.OnesCount8(result)
-			for bitN := 0; bitN < missed; bitN++ {
-				bitIdx := bits.TrailingZeros8(result)
-				fieldIdx := i*8 + bitIdx
-				var name string
-				if fieldIdx < len(jsonFieldsNameOfSigningRequestRequestedBy) {
-					name = jsonFieldsNameOfSigningRequestRequestedBy[fieldIdx]
-				} else {
-					name = strconv.Itoa(fieldIdx)
-				}
-				failures = append(failures, validate.FieldError{
-					Name:  name,
-					Error: validate.ErrFieldRequired,
-				})
-				// Reset bit.
-				result &^= 1 << bitIdx
-			}
+	if !found {
+		return errors.New("unable to detect sum type variant")
+	}
+	switch s.Type {
+	case AgentPrincipalSigningRequestRequestedBy:
+		if err := s.AgentPrincipal.Decode(d); err != nil {
+			return err
 		}
+	case HumanPrincipalSigningRequestRequestedBy:
+		if err := s.HumanPrincipal.Decode(d); err != nil {
+			return err
+		}
+	default:
+		return errors.Errorf("inferred invalid type: %s", s.Type)
 	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *SigningRequestRequestedBy) MarshalJSON() ([]byte, error) {
+func (s SigningRequestRequestedBy) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
@@ -112561,46 +112568,6 @@ func (s *SigningRequestRequestedBy) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *SigningRequestRequestedBy) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes SigningRequestRequestedByType as json.
-func (s SigningRequestRequestedByType) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes SigningRequestRequestedByType from json.
-func (s *SigningRequestRequestedByType) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode SigningRequestRequestedByType to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch SigningRequestRequestedByType(v) {
-	case SigningRequestRequestedByTypeAgent:
-		*s = SigningRequestRequestedByTypeAgent
-	case SigningRequestRequestedByTypeHuman:
-		*s = SigningRequestRequestedByTypeHuman
-	default:
-		*s = SigningRequestRequestedByType(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s SigningRequestRequestedByType) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *SigningRequestRequestedByType) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
