@@ -21,6 +21,7 @@
  * agent identity is load-bearing for what's under test.
  */
 
+import { type Client, createTeam, getWhoami } from '@moltnet/api-client';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- Browser e2e setup runs in Node and provisions agents through the server bootstrap.
 import { createE2EAgentHarness, type GenesisAgent } from '@moltnet/bootstrap';
 import {
@@ -208,4 +209,43 @@ export async function provisionAgent(
     genesis,
     teardown: () => harness.teardown(),
   };
+}
+
+export interface SharedTeam {
+  teamId: string;
+  /** The human's MoltNet subject id (`humans.id`), not the Kratos identity. */
+  humanSubjectId: string;
+}
+
+/**
+ * Create a non-personal team with the human as owner and the agent as manager.
+ * Personal teams reject membership changes, so a cross-principal flow needs a
+ * fresh shared team. Keto tuples converge after this returns; callers that act
+ * in the team straight away should retry their first team-scoped call.
+ */
+export async function createSharedTeamWithAgent(options: {
+  humanClient: Client;
+  agentId: string;
+  name: string;
+}): Promise<SharedTeam> {
+  const { humanClient, agentId, name } = options;
+  const humanSubjectId = (await getWhoami({ client: humanClient })).data
+    ?.subjectId;
+  if (!humanSubjectId) {
+    throw new Error('whoami did not return a subject id');
+  }
+  const created = await createTeam({
+    client: humanClient,
+    body: {
+      name,
+      foundingMembers: [
+        { subjectId: humanSubjectId, subjectNs: 'Human', role: 'owner' },
+        { subjectId: agentId, subjectNs: 'Agent', role: 'manager' },
+      ],
+    },
+  });
+  if (!created.data?.id) {
+    throw new Error(`createTeam failed: ${JSON.stringify(created.error)}`);
+  }
+  return { teamId: created.data.id, humanSubjectId };
 }

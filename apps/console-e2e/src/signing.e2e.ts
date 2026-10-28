@@ -1,8 +1,18 @@
+import { randomBytes } from 'node:crypto';
+
+import { createSigningRequest } from '@moltnet/api-client';
 import { expect, test } from '@playwright/test';
 
 import {
+  type ConnectedAgent,
+  createSharedTeamWithAgent,
+  provisionAgent,
+} from './helpers/agent-seed.js';
+import {
   CONSOLE_URL,
+  createNativeSessionToken,
   createTestUser,
+  createTokenSessionApiClient,
   expectConsoleOverview,
   loginViaBrowser,
   registerViaBrowser,
@@ -94,5 +104,72 @@ test.describe.serial('Signing surface', () => {
     ).toBeVisible();
     await expect(page.getByText('Companion connected')).toBeVisible();
     await expect(page.getByText('Companion unavailable')).toBeHidden();
+  });
+});
+
+// `SigningRequest.requestedBy` is a `PrincipalIdentity`; the console shows an
+// agent requester by fingerprint. Listing signable requests needs no enrolled
+// credential, so this runs without the host-side companion.
+test.describe.serial('Signing request requester', () => {
+  const user = createTestUser({ prefix: 'signing-requester-e2e' });
+  const nonce = randomBytes(3).toString('hex');
+  const purpose = `Approve console e2e release ${nonce}`;
+  let agentCtx: ConnectedAgent;
+
+  test.afterAll(async () => {
+    await agentCtx?.teardown();
+  });
+
+  test('an agent requests a delegated signature from a team human', async ({
+    page,
+  }) => {
+    await registerViaBrowser(page, user);
+    await page.goto(`${CONSOLE_URL}/`);
+    await expectConsoleOverview(page);
+
+    const humanClient = createTokenSessionApiClient(
+      await createNativeSessionToken(user),
+    );
+    agentCtx = await provisionAgent('signing-requester-e2e');
+    const { agent, genesis } = agentCtx;
+    const { teamId, humanSubjectId } = await createSharedTeamWithAgent({
+      humanClient,
+      agentId: genesis.agentId,
+      name: `signing-requester-shared-${nonce}`,
+    });
+
+    // Team membership tuples converge after createTeam returns.
+    await expect(async () => {
+      const created = await createSigningRequest({
+        client: agent.client,
+        auth: () => agent.getToken(),
+        body: {
+          message: `console e2e release ${nonce}`,
+          verificationMethod: 'human-hardware-previewsign',
+          teamId,
+          purpose,
+          signerConstraint: { type: 'human', id: humanSubjectId },
+        },
+      });
+      expect(created.error).toBeUndefined();
+      expect(created.data!.requestedBy).toMatchObject({
+        kind: 'agent',
+        agentId: genesis.agentId,
+        fingerprint: genesis.keyPair.fingerprint,
+      });
+    }).toPass({ timeout: 20_000 });
+  });
+
+  test('lists the request with the agent fingerprint as requester', async ({
+    page,
+  }) => {
+    await loginViaBrowser(page, user);
+    await page.goto(`${CONSOLE_URL}/signing`);
+
+    const request = page.locator('article').filter({ hasText: purpose });
+    await expect(request).toBeVisible();
+    await expect(request.locator('dt:text-is("Requester") + dd')).toHaveText(
+      agentCtx.genesis.keyPair.fingerprint,
+    );
   });
 });
