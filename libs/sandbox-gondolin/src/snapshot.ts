@@ -28,6 +28,8 @@ import {
   VM,
 } from '@earendil-works/gondolin';
 
+import { delay } from './abort-utils.js';
+
 // ---------------------------------------------------------------------------
 // Sandbox config (loaded from sandbox.json or --sandbox-config flag)
 // ---------------------------------------------------------------------------
@@ -381,17 +383,20 @@ async function run(
   log: (msg: string) => void,
   label: string,
   cmd: string,
+  retries = 0,
 ): Promise<void> {
   log(label);
-  const r = await vm.exec(cmd);
-  if (r.exitCode !== 0) {
-    const output = [r.stderr, r.stdout]
+  for (let attempt = 0; ; attempt++) {
+    const r = await vm.exec(cmd);
+    if (r.exitCode === 0) return;
+    const output = [r.stdout, r.stderr]
       .filter(Boolean)
       .join('\n')
-      .slice(0, 800);
-    throw new Error(
-      `snapshot build "${label}" failed (exit ${r.exitCode}):\n${output}`,
-    );
+      .slice(-800);
+    const message = `snapshot build "${label}" failed (exit ${r.exitCode}):\n${output}`;
+    if (attempt === retries) throw new Error(message);
+    log(`${message}\nretrying (${attempt + 1}/${retries})...`);
+    await delay(2_000, undefined, label);
   }
 }
 
@@ -402,12 +407,21 @@ async function buildSnapshot(
 ): Promise<void> {
   // ── Base layer (always) ─────────────────────────────────────────────
 
+  // Package downloads can fail transiently on a freshly booted guest. Retry
+  // installation only; a filesystem resize failure must remain fatal.
+  await run(
+    vm,
+    log,
+    'installing rootfs resize tools...',
+    'apk add --no-cache e2fsprogs-extra',
+    2,
+  );
   // Resize filesystem to fill overlay
   await run(
     vm,
     log,
     'resizing rootfs...',
-    'apk add --no-cache e2fsprogs-extra >/dev/null 2>&1 && resize2fs /dev/vda 2>/dev/null',
+    'resize2fs /dev/vda',
   );
 
   // Install base Alpine packages
