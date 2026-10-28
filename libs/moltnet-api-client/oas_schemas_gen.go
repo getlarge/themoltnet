@@ -18655,13 +18655,12 @@ type EntryVerifyResult struct {
 	AgentFingerprint NilString `json:"agentFingerprint"`
 	ContentHash      NilString `json:"contentHash"`
 	HashMatches      bool      `json:"hashMatches"`
-	// `invalid`: the signature was checked against the signer key and rejected. `signer_unresolved`: no
-	// signer key could be established, so the signature was not checked. `signatureValid` is false in both
-	// cases.
-	SignatureStatus OptEntryVerifyResultSignatureStatus `json:"signatureStatus"`
-	SignatureValid  bool                                `json:"signatureValid"`
-	Signed          bool                                `json:"signed"`
-	Valid           bool                                `json:"valid"`
+	// `valid`: the signature verified against the signer key. `invalid`: it was checked against the signer
+	// key and rejected. `signer_unresolved`: no signer key could be established, so it was not checked.
+	// `unsigned`: the entry carries no signature.
+	SignatureStatus EntryVerifyResultSignatureStatus `json:"signatureStatus"`
+	Signed          bool                             `json:"signed"`
+	Valid           bool                             `json:"valid"`
 }
 
 // GetAgentFingerprint returns the value of AgentFingerprint.
@@ -18680,13 +18679,8 @@ func (s *EntryVerifyResult) GetHashMatches() bool {
 }
 
 // GetSignatureStatus returns the value of SignatureStatus.
-func (s *EntryVerifyResult) GetSignatureStatus() OptEntryVerifyResultSignatureStatus {
+func (s *EntryVerifyResult) GetSignatureStatus() EntryVerifyResultSignatureStatus {
 	return s.SignatureStatus
-}
-
-// GetSignatureValid returns the value of SignatureValid.
-func (s *EntryVerifyResult) GetSignatureValid() bool {
-	return s.SignatureValid
 }
 
 // GetSigned returns the value of Signed.
@@ -18715,13 +18709,8 @@ func (s *EntryVerifyResult) SetHashMatches(val bool) {
 }
 
 // SetSignatureStatus sets the value of SignatureStatus.
-func (s *EntryVerifyResult) SetSignatureStatus(val OptEntryVerifyResultSignatureStatus) {
+func (s *EntryVerifyResult) SetSignatureStatus(val EntryVerifyResultSignatureStatus) {
 	s.SignatureStatus = val
-}
-
-// SetSignatureValid sets the value of SignatureValid.
-func (s *EntryVerifyResult) SetSignatureValid(val bool) {
-	s.SignatureValid = val
 }
 
 // SetSigned sets the value of Signed.
@@ -18736,9 +18725,9 @@ func (s *EntryVerifyResult) SetValid(val bool) {
 
 func (*EntryVerifyResult) verifyDiaryEntryByIdRes() {}
 
-// `invalid`: the signature was checked against the signer key and rejected. `signer_unresolved`: no
-// signer key could be established, so the signature was not checked. `signatureValid` is false in both
-// cases.
+// `valid`: the signature verified against the signer key. `invalid`: it was checked against the signer
+// key and rejected. `signer_unresolved`: no signer key could be established, so it was not checked.
+// `unsigned`: the entry carries no signature.
 type EntryVerifyResultSignatureStatus string
 
 const (
@@ -38052,52 +38041,6 @@ func (o OptDateTime) Get() (v time.Time, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptDateTime) Or(d time.Time) time.Time {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptEntryVerifyResultSignatureStatus returns new OptEntryVerifyResultSignatureStatus with value set to v.
-func NewOptEntryVerifyResultSignatureStatus(v EntryVerifyResultSignatureStatus) OptEntryVerifyResultSignatureStatus {
-	return OptEntryVerifyResultSignatureStatus{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptEntryVerifyResultSignatureStatus is optional EntryVerifyResultSignatureStatus.
-type OptEntryVerifyResultSignatureStatus struct {
-	Value EntryVerifyResultSignatureStatus
-	Set   bool
-}
-
-// IsSet returns true if OptEntryVerifyResultSignatureStatus was set.
-func (o OptEntryVerifyResultSignatureStatus) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptEntryVerifyResultSignatureStatus) Reset() {
-	var v EntryVerifyResultSignatureStatus
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptEntryVerifyResultSignatureStatus) SetTo(v EntryVerifyResultSignatureStatus) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptEntryVerifyResultSignatureStatus) Get() (v EntryVerifyResultSignatureStatus, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptEntryVerifyResultSignatureStatus) Or(d EntryVerifyResultSignatureStatus) EntryVerifyResultSignatureStatus {
 	if v, ok := o.Get(); ok {
 		return v
 	}

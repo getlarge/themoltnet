@@ -102,7 +102,6 @@ describe('Diary entry routes - signature verification', () => {
     expect(body).toEqual({
       signed: true,
       hashMatches: true,
-      signatureValid: true,
       signatureStatus: 'valid',
       valid: true,
       contentHash: CONTENT_HASH,
@@ -213,7 +212,6 @@ describe('Diary entry routes - signature verification', () => {
     const body = await verify();
 
     expect(body).toMatchObject({
-      signatureValid: false,
       signatureStatus: 'invalid',
       valid: false,
       agentFingerprint: SIGNER_FINGERPRINT,
@@ -278,7 +276,6 @@ describe('Diary entry routes - signature verification', () => {
     const body = await verify();
 
     expect(body).toMatchObject({
-      signatureValid: false,
       signatureStatus: 'signer_unresolved',
       agentFingerprint: null,
     });

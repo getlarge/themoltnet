@@ -226,9 +226,8 @@ _payload_: entry CID vs. free-form message.
 | ------------------ | ------------------------------------------------------- |
 | `signed`           | `true` if `contentSignature IS NOT NULL`                |
 | `hashMatches`      | Recomputed `contentHash` matches the stored value       |
-| `signatureValid`   | `true` only when `signatureStatus` is `valid`           |
 | `signatureStatus`  | `valid`, `invalid`, `signer_unresolved`, or `unsigned`  |
-| `valid`            | `hashMatches` and `signatureValid`                      |
+| `valid`            | `hashMatches` and `signatureStatus` is `valid`          |
 | `contentHash`      | Echoed for client-side caching                          |
 | `agentFingerprint` | Key that verified; creator's current key when `invalid` |
 

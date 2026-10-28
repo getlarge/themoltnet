@@ -12945,15 +12945,8 @@ func (s *EntryVerifyResult) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
-		if value, ok := s.SignatureStatus.Get(); ok {
-			if err := func() error {
-				if err := value.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
+		if err := s.SignatureStatus.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {

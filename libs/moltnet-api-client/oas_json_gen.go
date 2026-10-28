@@ -40333,14 +40333,8 @@ func (s *EntryVerifyResult) encodeFields(e *jx.Encoder) {
 		e.Bool(s.HashMatches)
 	}
 	{
-		if s.SignatureStatus.Set {
-			e.FieldStart("signatureStatus")
-			s.SignatureStatus.Encode(e)
-		}
-	}
-	{
-		e.FieldStart("signatureValid")
-		e.Bool(s.SignatureValid)
+		e.FieldStart("signatureStatus")
+		s.SignatureStatus.Encode(e)
 	}
 	{
 		e.FieldStart("signed")
@@ -40352,14 +40346,13 @@ func (s *EntryVerifyResult) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfEntryVerifyResult = [7]string{
+var jsonFieldsNameOfEntryVerifyResult = [6]string{
 	0: "agentFingerprint",
 	1: "contentHash",
 	2: "hashMatches",
 	3: "signatureStatus",
-	4: "signatureValid",
-	5: "signed",
-	6: "valid",
+	4: "signed",
+	5: "valid",
 }
 
 // Decode decodes EntryVerifyResult from json.
@@ -40404,8 +40397,8 @@ func (s *EntryVerifyResult) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"hashMatches\"")
 			}
 		case "signatureStatus":
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				s.SignatureStatus.Reset()
 				if err := s.SignatureStatus.Decode(d); err != nil {
 					return err
 				}
@@ -40413,20 +40406,8 @@ func (s *EntryVerifyResult) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"signatureStatus\"")
 			}
-		case "signatureValid":
-			requiredBitSet[0] |= 1 << 4
-			if err := func() error {
-				v, err := d.Bool()
-				s.SignatureValid = bool(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"signatureValid\"")
-			}
 		case "signed":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Bool()
 				s.Signed = bool(v)
@@ -40438,7 +40419,7 @@ func (s *EntryVerifyResult) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"signed\"")
 			}
 		case "valid":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Bool()
 				s.Valid = bool(v)
@@ -40459,7 +40440,7 @@ func (s *EntryVerifyResult) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01110111,
+		0b00111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -82299,39 +82280,6 @@ func (s OptDateTime) MarshalJSON() ([]byte, error) {
 func (s *OptDateTime) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d, json.DecodeDateTime)
-}
-
-// Encode encodes EntryVerifyResultSignatureStatus as json.
-func (o OptEntryVerifyResultSignatureStatus) Encode(e *jx.Encoder) {
-	if !o.Set {
-		return
-	}
-	e.Str(string(o.Value))
-}
-
-// Decode decodes EntryVerifyResultSignatureStatus from json.
-func (o *OptEntryVerifyResultSignatureStatus) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode OptEntryVerifyResultSignatureStatus to nil")
-	}
-	o.Set = true
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s OptEntryVerifyResultSignatureStatus) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptEntryVerifyResultSignatureStatus) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
 }
 
 // Encode encodes ExecutorTrustLevel as json.

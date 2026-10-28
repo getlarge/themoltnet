@@ -111,7 +111,6 @@ describe('Content-signed entries', () => {
     expect(verifyError).toBeUndefined();
     expect(verification!.signed).toBe(true);
     expect(verification!.hashMatches).toBe(true);
-    expect(verification!.signatureValid).toBe(true);
     expect(verification!.signatureStatus).toBe('valid');
     expect(verification!.valid).toBe(true);
     expect(verification!.contentHash).toBe(contentCid);
@@ -155,7 +154,6 @@ describe('Content-signed entries', () => {
 
     expect(verification).toMatchObject({
       hashMatches: true,
-      signatureValid: false,
       signatureStatus: 'invalid',
       valid: false,
     });

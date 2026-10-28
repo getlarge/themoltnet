@@ -878,10 +878,9 @@ export type EntryVerifyResult = {
   contentHash: string | null;
   hashMatches: boolean;
   /**
-   * `invalid`: the signature was checked against the signer key and rejected. `signer_unresolved`: no signer key could be established, so the signature was not checked. `signatureValid` is false in both cases.
+   * `valid`: the signature verified against the signer key. `invalid`: it was checked against the signer key and rejected. `signer_unresolved`: no signer key could be established, so it was not checked. `unsigned`: the entry carries no signature.
    */
-  signatureStatus?: 'valid' | 'invalid' | 'signer_unresolved' | 'unsigned';
-  signatureValid: boolean;
+  signatureStatus: 'valid' | 'invalid' | 'signer_unresolved' | 'unsigned';
   signed: boolean;
   valid: boolean;
 };

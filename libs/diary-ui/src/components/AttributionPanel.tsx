@@ -135,7 +135,7 @@ const NO_SIGNER: SignerAttribution = {
  * Map an entry plus its verification result onto an honest signature state.
  *
  * The one rule that matters: **`signed` is checked first.** The API returns
- * `{signed: false, hashMatches: false, signatureValid: false, valid: false}`
+ * `{signed: false, hashMatches: false, signatureStatus: 'unsigned', valid: false}`
  * for an entry that was never signed, so reading `valid` on its own would
  * report a perfectly ordinary unsigned entry as a failure. Signing is opt-in
  * in MoltNet (diary entry `beece2e2` — "signing opt-in is the only

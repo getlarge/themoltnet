@@ -496,7 +496,6 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       return {
         signed: false,
         hashMatches: false,
-        signatureValid: false,
         signatureStatus: 'unsigned',
         valid: false,
         contentHash: null,
@@ -517,14 +516,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       contentHash: entry.contentHash,
       contentSignature: entry.contentSignature,
     });
-    const signatureValid = signatureStatus === 'valid';
 
     return {
       signed: true,
       hashMatches,
-      signatureValid,
       signatureStatus,
-      valid: hashMatches && signatureValid,
+      valid: hashMatches && signatureStatus === 'valid',
       contentHash: entry.contentHash,
       agentFingerprint,
     };
@@ -543,10 +540,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
     creatorAgentId: string | null;
     createdAt: Date;
   }): Promise<{
-    signatureStatus: Exclude<
-      EntryVerifyResult['signatureStatus'],
-      'unsigned' | undefined
-    >;
+    signatureStatus: Exclude<EntryVerifyResult['signatureStatus'], 'unsigned'>;
     agentFingerprint: string | null;
   }> => {
     const unresolved = (reason: string) => {

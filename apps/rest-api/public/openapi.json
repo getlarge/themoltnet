@@ -3954,10 +3954,7 @@
                 "type": "string"
               }
             ],
-            "description": "`invalid`: the signature was checked against the signer key and rejected. `signer_unresolved`: no signer key could be established, so the signature was not checked. `signatureValid` is false in both cases."
-          },
-          "signatureValid": {
-            "type": "boolean"
+            "description": "`valid`: the signature verified against the signer key. `invalid`: it was checked against the signer key and rejected. `signer_unresolved`: no signer key could be established, so it was not checked. `unsigned`: the entry carries no signature."
           },
           "signed": {
             "type": "boolean"
@@ -3969,7 +3966,7 @@
         "required": [
           "signed",
           "hashMatches",
-          "signatureValid",
+          "signatureStatus",
           "valid",
           "contentHash",
           "agentFingerprint"

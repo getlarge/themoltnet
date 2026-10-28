@@ -104,8 +104,8 @@ func TestE2E_CLI_EntryCreateSigned(t *testing.T) {
 	if !verify.Signed {
 		t.Errorf("expected signed=true, got %+v", verify)
 	}
-	if !verify.SignatureValid {
-		t.Errorf("expected signatureValid=true, got %+v", verify)
+	if verify.SignatureStatus != moltnetapi.EntryVerifyResultSignatureStatusValid {
+		t.Errorf("expected signatureStatus=valid, got %+v", verify)
 	}
 }
 

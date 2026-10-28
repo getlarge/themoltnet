@@ -191,22 +191,17 @@ export const EntryVerifyResultSchema = Type.Object(
   {
     signed: Type.Boolean(),
     hashMatches: Type.Boolean(),
-    signatureValid: Type.Boolean(),
-    // Optional in the contract so clients built against it still decode
-    // responses from servers that predate the field; this server always sets it.
-    signatureStatus: Type.Optional(
-      Type.Union(
-        [
-          Type.Literal('valid'),
-          Type.Literal('invalid'),
-          Type.Literal('signer_unresolved'),
-          Type.Literal('unsigned'),
-        ],
-        {
-          description:
-            '`invalid`: the signature was checked against the signer key and rejected. `signer_unresolved`: no signer key could be established, so the signature was not checked. `signatureValid` is false in both cases.',
-        },
-      ),
+    signatureStatus: Type.Union(
+      [
+        Type.Literal('valid'),
+        Type.Literal('invalid'),
+        Type.Literal('signer_unresolved'),
+        Type.Literal('unsigned'),
+      ],
+      {
+        description:
+          '`valid`: the signature verified against the signer key. `invalid`: it was checked against the signer key and rejected. `signer_unresolved`: no signer key could be established, so it was not checked. `unsigned`: the entry carries no signature.',
+      },
     ),
     valid: Type.Boolean(),
     contentHash: Type.Union([Type.String(), Type.Null()]),
