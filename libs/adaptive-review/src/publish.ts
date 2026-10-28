@@ -3,13 +3,20 @@ import { readFileSync } from 'node:fs';
 import {
   findPaginated,
   GitHubApi,
+  listPaginated,
 } from '@moltnet/docs-impact-review/github-api';
 
 import { env } from './config.js';
 import {
   ADAPTIVE_REVIEW_MARKER,
+  findingKey,
+  type InlineFinding,
+  inlineFindings,
+  postedFindingKey,
   renderAdaptiveComment,
   renderAdaptiveStale,
+  renderFindingComment,
+  type ThreadSummary,
 } from './report.js';
 import type { AdaptiveReport } from './workflow.js';
 
@@ -23,6 +30,8 @@ interface PublishOptions {
   request: Request;
   runUrl: string;
   appLogin: string;
+  /** Post each cited finding as a review thread; on unless set to false. */
+  inlineFindings?: boolean;
   expected: Pick<
     AdaptiveReport,
     | 'repo'
@@ -105,9 +114,88 @@ function assertExpected(
     );
 }
 
+type ReviewComment = { body: string; user: { login: string } };
+
+/** Keys of the findings this reviewer already has a thread for on the PR. */
+async function postedFindings(
+  request: Request,
+  report: AdaptiveReport,
+  appLogin: string,
+): Promise<Set<string>> {
+  const comments = await listPaginated<ReviewComment>(
+    (path) => request(path) as Promise<ReviewComment[]>,
+    `/repos/${report.repo}/pulls/${report.pr}/comments`,
+  );
+  const keys = new Set<string>();
+  for (const comment of comments) {
+    if (comment.user.login !== appLogin) continue;
+    const key = postedFindingKey(comment.body);
+    if (key) keys.add(key);
+  }
+  return keys;
+}
+
+function isUnprocessable(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'status' in error &&
+    error.status === 422
+  );
+}
+
+/**
+ * Opens one review thread per finding not already posted, anchored to the
+ * reviewed head. GitHub rejects the whole review when one anchor is outside
+ * the diff; the summary then lists the findings instead, so none is lost.
+ */
+async function publishFindingThreads(
+  request: Request,
+  report: AdaptiveReport,
+  appLogin: string,
+  candidates: InlineFinding[],
+): Promise<ThreadSummary> {
+  const existing = await postedFindings(request, report, appLogin);
+  const fresh = candidates.filter(
+    (finding) => !existing.has(findingKey(finding)),
+  );
+  const open = candidates.length - fresh.length;
+  const keys = new Set(
+    candidates.map(findingKey).filter((key) => existing.has(key)),
+  );
+  if (!fresh.length) return { posted: 0, existing: open, keys };
+  try {
+    await request(`/repos/${report.repo}/pulls/${report.pr}/reviews`, 'POST', {
+      commit_id: report.head,
+      event: 'COMMENT',
+      body: `Adaptive review of \`${report.head.slice(0, 7)}\`: ${fresh.length} new finding${fresh.length === 1 ? '' : 's'}.`,
+      comments: fresh.map((finding) => ({
+        path: finding.path,
+        line: finding.line,
+        side: finding.side === 'old' ? 'LEFT' : 'RIGHT',
+        body: renderFindingComment(finding),
+      })),
+    });
+  } catch (error) {
+    if (!isUnprocessable(error)) throw error;
+    process.stdout.write(
+      '::warning::GitHub rejected the review threads; the summary lists the findings instead.\n',
+    );
+    return { posted: 0, existing: open, keys };
+  }
+  for (const finding of fresh) keys.add(findingKey(finding));
+  return { posted: fresh.length, existing: open, keys };
+}
+
 export async function publishAdaptiveReport(
   report: AdaptiveReport,
-  { request, runUrl, appLogin, expected }: PublishOptions,
+  {
+    request,
+    runUrl,
+    appLogin,
+    expected,
+    inlineFindings: inline,
+  }: PublishOptions,
 ): Promise<void> {
   assertReport(report);
   assertExpected(report, expected);
@@ -119,7 +207,11 @@ export async function publishAdaptiveReport(
     throw new Error('PR head changed; refusing to publish stale review');
   if (current.base.sha !== report.base)
     throw new Error('PR base changed; refusing to publish stale review');
-  const body = renderAdaptiveComment(report, runUrl);
+  const candidates = inline === false ? [] : inlineFindings(report.results);
+  const threads = candidates.length
+    ? await publishFindingThreads(request, report, appLogin, candidates)
+    : undefined;
+  const body = renderAdaptiveComment(report, runUrl, threads);
   type Comment = { id: number; body: string; user: { login: string } };
   const previous = await findPaginated<Comment>(
     (path) => request(path) as Promise<Comment[]>,
@@ -208,5 +300,11 @@ export async function publishAdaptiveReportFromEnv(): Promise<void> {
       method,
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
-  await publishAdaptiveReport(report, { request, runUrl, appLogin, expected });
+  await publishAdaptiveReport(report, {
+    request,
+    runUrl,
+    appLogin,
+    expected,
+    inlineFindings: env().ADAPTIVE_INLINE_FINDINGS !== 'false',
+  });
 }

@@ -1,13 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { publishAdaptiveReport } from './publish.js';
-import { ADAPTIVE_REVIEW_MARKER } from './report.js';
-import type { AdaptiveReport } from './workflow.js';
+import { ADAPTIVE_FINDING_MARKER, ADAPTIVE_REVIEW_MARKER } from './report.js';
+import type { AdaptiveReport, LaneResult } from './workflow.js';
 
 const HEAD = 'a'.repeat(40);
 const BASE = 'b'.repeat(40);
 const PR_PATH = '/repos/getlarge/themoltnet/pulls/42';
 const COMMENTS_PATH = '/repos/getlarge/themoltnet/issues/42/comments';
+const REVIEW_COMMENTS_PATH = '/repos/getlarge/themoltnet/pulls/42/comments';
+const REVIEWS_PATH = '/repos/getlarge/themoltnet/pulls/42/reviews';
 const OPTIONS = {
   runUrl: 'https://github.com/getlarge/themoltnet/actions/runs/1',
   appLogin: 'moltnet-review[bot]',
@@ -298,5 +300,249 @@ describe('publishAdaptiveReport', () => {
       publishAdaptiveReport(report(), { ...OPTIONS, appLogin: '', request }),
     ).rejects.toThrow('GitHub App login is required');
     expect(request).not.toHaveBeenCalled();
+  });
+});
+
+function concern(
+  lane: LaneResult['lane'],
+  findings: LaneResult['findings'],
+): LaneResult {
+  return {
+    lane,
+    status: 'concern',
+    summary: `${lane} summary`,
+    taskIds: [],
+    findings,
+  };
+}
+
+const TESTS_FINDING = {
+  path: 'src/a.ts',
+  side: 'new' as const,
+  line: 7,
+  concern: 'No test covers the new branch',
+  action: 'Add a case to a.test.ts',
+};
+const CONVENTIONS_FINDING = {
+  path: 'src/b.ts',
+  side: 'old' as const,
+  line: 3,
+  concern: 'Removed the config.ts indirection',
+};
+const TESTS_KEY = 'tests:new:7:src%2Fa.ts';
+
+interface Calls {
+  reviews: object[];
+  summaries: string[];
+}
+
+/** A PR that never moves, with `reviewComments` already on it. */
+function stableRequest(
+  reviewComments: Array<{ login: string; body: string }>,
+  calls: Calls,
+  reviewResponse: () => Promise<unknown> = () => Promise.resolve({ id: 1 }),
+) {
+  return vi.fn((url: string, method = 'GET', body?: object) => {
+    if (url === PR_PATH)
+      return Promise.resolve({ head: { sha: HEAD }, base: { sha: BASE } });
+    if (url === `${REVIEW_COMMENTS_PATH}?per_page=100&page=1`)
+      return Promise.resolve(
+        reviewComments.map((item) => ({
+          user: { login: item.login },
+          body: item.body,
+        })),
+      );
+    if (url === `${COMMENTS_PATH}?per_page=100&page=1`)
+      return Promise.resolve([]);
+    if (url === REVIEWS_PATH && method === 'POST') {
+      calls.reviews.push(body ?? {});
+      return reviewResponse();
+    }
+    if (url === COMMENTS_PATH && method === 'POST') {
+      calls.summaries.push((body as { body: string }).body);
+      return Promise.resolve({ id: 9 });
+    }
+    throw new Error(`Unexpected request: ${method} ${url}`);
+  });
+}
+
+describe('publishAdaptiveReport inline threads', () => {
+  it('posts each cited finding as a review thread on the reviewed head', async () => {
+    // Arrange
+    const calls: Calls = { reviews: [], summaries: [] };
+    const request = stableRequest([], calls);
+    const withFindings = {
+      ...report(),
+      results: [
+        concern('tests', [TESTS_FINDING]),
+        concern('conventions', [CONVENTIONS_FINDING]),
+        concern('security', [
+          { path: 'src/c.ts', side: 'new', line: 1, concern: 'secret' },
+        ]),
+        concern('complexity', [{ path: '', concern: 'blast_radius: wide' }]),
+      ],
+    };
+
+    // Act
+    await publishAdaptiveReport(withFindings, { ...OPTIONS, request });
+
+    // Assert
+    expect(calls.reviews).toHaveLength(1);
+    expect(calls.reviews[0]).toMatchObject({
+      commit_id: HEAD,
+      event: 'COMMENT',
+      comments: [
+        { path: 'src/a.ts', line: 7, side: 'RIGHT' },
+        { path: 'src/b.ts', line: 3, side: 'LEFT' },
+      ],
+    });
+    const [first] = (calls.reviews[0] as { comments: Array<{ body: string }> })
+      .comments;
+    expect(
+      first.body.startsWith(`${ADAPTIVE_FINDING_MARKER}${TESTS_KEY} -->`),
+    ).toBe(true);
+    expect(first.body).toContain('Suggested action: Add a case to a.test.ts');
+    expect(first.body).toContain('resolve this thread with a short reason');
+    expect(JSON.stringify(calls.reviews[0])).not.toContain('secret');
+    expect(calls.summaries[0]).toContain(
+      'Findings: 3 (2 posted as new review threads, 0 already open from an earlier run, 1 listed below)',
+    );
+    expect(calls.summaries[0]).toContain('blast_radius: wide');
+    expect(calls.summaries[0]).not.toContain('src/a.ts:7');
+  });
+
+  it('does not repeat a finding the reviewer already has a thread for', async () => {
+    // Arrange
+    const calls: Calls = { reviews: [], summaries: [] };
+    const request = stableRequest(
+      [
+        {
+          login: OPTIONS.appLogin,
+          body: `${ADAPTIVE_FINDING_MARKER}${TESTS_KEY} -->\nolder`,
+        },
+        {
+          login: 'human',
+          body: `${ADAPTIVE_FINDING_MARKER}conventions:old:3:src%2Fb.ts -->`,
+        },
+      ],
+      calls,
+    );
+    const withFindings = {
+      ...report(),
+      results: [
+        concern('tests', [TESTS_FINDING]),
+        concern('conventions', [CONVENTIONS_FINDING]),
+      ],
+    };
+
+    // Act
+    await publishAdaptiveReport(withFindings, { ...OPTIONS, request });
+
+    // Assert
+    expect(calls.reviews).toHaveLength(1);
+    expect(calls.reviews[0]).toMatchObject({
+      comments: [{ path: 'src/b.ts', line: 3, side: 'LEFT' }],
+    });
+    expect((calls.reviews[0] as { comments: unknown[] }).comments).toHaveLength(
+      1,
+    );
+    expect(calls.summaries[0]).toContain(
+      'Findings: 2 (1 posted as new review threads, 1 already open from an earlier run)',
+    );
+  });
+
+  it('skips the review call when every finding already has a thread', async () => {
+    // Arrange
+    const calls: Calls = { reviews: [], summaries: [] };
+    const request = stableRequest(
+      [
+        {
+          login: OPTIONS.appLogin,
+          body: `${ADAPTIVE_FINDING_MARKER}${TESTS_KEY} -->`,
+        },
+      ],
+      calls,
+    );
+
+    // Act
+    await publishAdaptiveReport(
+      { ...report(), results: [concern('tests', [TESTS_FINDING])] },
+      { ...OPTIONS, request },
+    );
+
+    // Assert
+    expect(calls.reviews).toHaveLength(0);
+    expect(calls.summaries[0]).toContain(
+      'Findings: 1 (0 posted as new review threads, 1 already open from an earlier run)',
+    );
+  });
+
+  it('lists the findings in the summary when GitHub rejects the threads', async () => {
+    // Arrange
+    const calls: Calls = { reviews: [], summaries: [] };
+    const request = stableRequest([], calls, () =>
+      Promise.reject(
+        Object.assign(new Error('Unprocessable'), { status: 422 }),
+      ),
+    );
+    const write = vi
+      .spyOn(process.stdout, 'write')
+      .mockImplementation(() => true);
+
+    // Act
+    await publishAdaptiveReport(
+      { ...report(), results: [concern('tests', [TESTS_FINDING])] },
+      { ...OPTIONS, request },
+    );
+
+    // Assert
+    write.mockRestore();
+    expect(calls.reviews).toHaveLength(1);
+    expect(calls.summaries[0]).toContain(
+      'Findings: 1 (0 posted as new review threads, 0 already open from an earlier run, 1 listed below)',
+    );
+    expect(calls.summaries[0]).toContain(
+      'src/a.ts:7: No test covers the new branch',
+    );
+  });
+
+  it('fails on any other review error without writing the summary', async () => {
+    // Arrange
+    const calls: Calls = { reviews: [], summaries: [] };
+    const request = stableRequest([], calls, () =>
+      Promise.reject(Object.assign(new Error('Forbidden'), { status: 403 })),
+    );
+
+    // Act
+    const published = publishAdaptiveReport(
+      { ...report(), results: [concern('tests', [TESTS_FINDING])] },
+      { ...OPTIONS, request },
+    );
+
+    // Assert
+    await expect(published).rejects.toThrow('Forbidden');
+    expect(calls.summaries).toHaveLength(0);
+  });
+
+  it('keeps every finding in the summary when inline threads are disabled', async () => {
+    // Arrange
+    const calls: Calls = { reviews: [], summaries: [] };
+    const request = stableRequest([], calls);
+
+    // Act
+    await publishAdaptiveReport(
+      { ...report(), results: [concern('tests', [TESTS_FINDING])] },
+      { ...OPTIONS, request, inlineFindings: false },
+    );
+
+    // Assert
+    expect(calls.reviews).toHaveLength(0);
+    expect(request).not.toHaveBeenCalledWith(
+      `${REVIEW_COMMENTS_PATH}?per_page=100&page=1`,
+    );
+    expect(calls.summaries[0]).toContain('Findings: 1.');
+    expect(calls.summaries[0]).toContain(
+      'src/a.ts:7: No test covers the new branch',
+    );
   });
 });

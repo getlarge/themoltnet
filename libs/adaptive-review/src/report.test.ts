@@ -1,7 +1,13 @@
 import { expect, it } from 'vitest';
 
 import { LANES } from './core.js';
-import { hasIncompleteCoverage, renderAdaptiveComment } from './report.js';
+import {
+  findingKey,
+  hasIncompleteCoverage,
+  postedFindingKey,
+  renderAdaptiveComment,
+  renderFindingComment,
+} from './report.js';
 import type { AdaptiveReport } from './workflow.js';
 
 it('labels screening honestly and neutralizes model-authored text', () => {
@@ -185,3 +191,72 @@ it.each(['clear', 'concern', 'unclear', 'failed', 'screened'] as const)(
     expect(hasIncompleteCoverage(report)).toBe(true);
   },
 );
+
+it('says plainly when nothing needs fixing', () => {
+  // Arrange
+  const report: AdaptiveReport = {
+    version: 1,
+    mode: 'active',
+    repo: 'getlarge/themoltnet',
+    pr: 42,
+    base: 'a'.repeat(40),
+    head: 'b'.repeat(40),
+    correlationId: 'id',
+    policyDigest: 'd'.repeat(64),
+    referenceDigests: {},
+    runtimeSha: 'c'.repeat(40),
+    packetCount: 1,
+    taskIds: [],
+    gaps: [],
+    durationMs: 100,
+    routing: {
+      classifierFailed: false,
+      scores: { 'code-complexity': 0, 'review-effort': 0 },
+      routes: [
+        { lane: 'tests', probability: 0.9, run: true, reason: 'selected' },
+      ],
+    },
+    results: [
+      {
+        lane: 'tests',
+        status: 'clear',
+        summary: 'Covered',
+        taskIds: [],
+        findings: [],
+      },
+    ],
+  };
+
+  // Act
+  const comment = renderAdaptiveComment(report, 'https://example.com/run');
+
+  // Assert
+  expect(comment).toContain('Findings: 0. Nothing needs fixing from this run.');
+});
+
+it('round-trips a finding key through the thread marker and neutralizes the body', () => {
+  // Arrange
+  const finding = {
+    lane: 'conventions' as const,
+    path: 'libs/a b/[x].ts',
+    side: 'new' as const,
+    line: 12,
+    concern: '@owner reads process.env <b>',
+    action: 'Use [config](bad).ts',
+  };
+
+  // Act
+  const body = renderFindingComment(finding);
+
+  // Assert
+  expect(postedFindingKey(body)).toBe(findingKey(finding));
+  expect(findingKey(finding)).toBe(
+    'conventions:new:12:libs%2Fa%20b%2F%5Bx%5D.ts',
+  );
+  expect(body).toContain('@​owner reads process.env &lt;b&gt;');
+  expect(body).toContain('Suggested action: Use \\[config\\](bad).ts');
+  expect(postedFindingKey('plain comment')).toBeUndefined();
+  expect(
+    postedFindingKey('<!-- moltnet:adaptive-finding  -->'),
+  ).toBeUndefined();
+});

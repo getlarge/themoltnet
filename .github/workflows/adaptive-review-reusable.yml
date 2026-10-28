@@ -46,6 +46,10 @@ on:
       mode:
         type: string
         default: shadow
+      inline-findings:
+        description: Post each cited finding as a review thread on its line ('true' or 'false').
+        type: string
+        default: 'true'
       providers:
         type: string
         required: true
@@ -405,6 +409,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           ADAPTIVE_APP_LOGIN: ${{ steps.app-token.outputs.app-slug }}[bot]
+          ADAPTIVE_INLINE_FINDINGS: ${{ inputs.inline-findings }}
           ADAPTIVE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           step: publish

@@ -55,6 +55,21 @@ again before a comment is published. The PR head and base are read once more
 after the comment is written. If either moved, the comment is replaced with a
 stale notice, and the publish step fails.
 
+Findings that cite a changed line are published as review threads, one per
+finding, anchored to that line on the reviewed head. Each thread asks the
+author to fix the finding or resolve the thread with a reason; with "require
+conversation resolution" on the branch, that answer becomes part of merging.
+A finding is identified by its lane, side, line, and path. A run does not post
+a thread the reviewer already opened for the same finding, so a re-run or a
+push that leaves the finding in place does not repeat it; a finding that moved
+with the diff gets a new thread. The summary comment starts with the number of
+findings and how many were posted, were already open, or are listed in the
+summary because they cite no line. Security findings stay in the team-scoped
+tasks. If GitHub rejects the review (for example, an anchor outside the diff),
+the publish step warns, lists the findings in the summary, and succeeds. Set
+the caller input `inline-findings: 'false'` to keep every finding in the
+summary comment.
+
 The classifier is selected by the caller's profile. MoltNet uses Ollama Cloud
 `clef:27b` through its issue-classifier-v2 profile; other repositories can select
 another System One classifier without changing this library. Classifier

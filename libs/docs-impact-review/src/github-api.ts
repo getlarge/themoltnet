@@ -50,6 +50,16 @@ async function* pages<T>(
   }
 }
 
+/** Every item across all pages; use `findPaginated` when one match is enough. */
+export async function listPaginated<T>(
+  request: (path: string) => Promise<T[]>,
+  path: string,
+): Promise<T[]> {
+  const items: T[] = [];
+  for await (const batch of pages(request, path)) items.push(...batch);
+  return items;
+}
+
 /** Stops requesting pages as soon as a matching item is found. */
 export async function findPaginated<T>(
   request: (path: string) => Promise<T[]>,
