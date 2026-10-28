@@ -282,7 +282,7 @@ describe('Diary entry routes - signature verification', () => {
     expect(mocks.cryptoService.verifyWithNonce).not.toHaveBeenCalled();
   });
 
-  describe('entries without a nonce on the row', () => {
+  describe('nonce resolution', () => {
     it('takes the nonce from the signing request', async () => {
       mocks.diaryService.getEntryById.mockResolvedValue(
         signedEntry({ signingNonce: null }),

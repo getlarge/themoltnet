@@ -231,6 +231,9 @@ _payload_: entry CID vs. free-form message.
 | `contentHash`      | Echoed for client-side caching                          |
 | `agentFingerprint` | Key that verified; creator's current key when `invalid` |
 
+`signatureStatus` replaced the boolean `signatureValid`; clients built against
+an older spec must regenerate.
+
 `invalid` means the signature was checked against the signer's key and rejected.
 `signer_unresolved` means no signer key could be established, so the signature
 was never checked. Treat it as "cannot tell", not as tampering.

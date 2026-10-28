@@ -579,6 +579,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
     const signedBy = await verifyWithSigningKeys(
       fastify,
       signer,
+      // Without the request, the key held when the entry was created.
       signingRequest ?? { completedAt: entry.createdAt, signerPublicKey: null },
       (publicKey) =>
         fastify.cryptoService.verifyWithNonce(

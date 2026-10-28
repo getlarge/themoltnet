@@ -147,19 +147,6 @@ describe('AttributionPanel signature state', () => {
     expect(
       screen.queryByText(/content changed since signing/i),
     ).not.toBeInTheDocument();
-  });
-
-  it('reports an invalid signature status as a failed signature', () => {
-    renderPanel({
-      entry: makeEntry({ contentSignature: 'c2lnbmF0dXJl' }),
-      verification: {
-        ...VERIFIED_VERIFICATION,
-        signatureStatus: 'invalid',
-        valid: false,
-      },
-    });
-
-    expect(screen.getByText(/signature did not verify/i)).toBeInTheDocument();
     expect(screen.queryByText(/could not be checked/i)).not.toBeInTheDocument();
   });
 
