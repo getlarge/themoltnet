@@ -1249,6 +1249,17 @@ jobs:
             echo "::error::Generated API bindings are out of date. Run 'pnpm run generate' and commit the changes."
             exit 1
           fi
+          # git diff ignores untracked files, which a generator upgrade can add.
+          untracked=$(git status --porcelain --untracked-files=all -- \
+            apps/rest-api/public/ libs/api-client/src/generated/ \
+            libs/api-client/src/generated-api-bindings/ \
+            libs/signer-api-client/src/generated/ \
+            libs/agent-daemon-api-client/src/generated/)
+          if [ -n "$untracked" ]; then
+            echo "$untracked"
+            echo "::error::Generated files are not committed. Run 'pnpm run generate' and commit the changes."
+            exit 1
+          fi
           if ! git diff --exit-code apps/moltnet-signer/openapi.json; then
             echo "::error::Signer companion OpenAPI spec is out of date. Run 'pnpm run generate' and commit the changes."
             exit 1
