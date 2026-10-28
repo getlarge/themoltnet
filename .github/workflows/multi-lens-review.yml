@@ -302,12 +302,31 @@ jobs:
         if: always()
         run: .trusted-workflow/apps/multi-lens-review/scripts/fly-database-proxy.sh stop
 
+      - name: Collect workflow spend
+        id: spend
+        if: always()
+        continue-on-error: true
+        env:
+          MOLTNET_ACTION_COMMAND: spend
+          SPEND_CORRELATION: ${{ needs.prepare.outputs.correlation-id }}
+        run: node --import tsx packages/agent-daemon-action/src/main.ts
+
+      - name: Upload workflow spend report
+        if: always() && steps.spend.outputs.report != ''
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ${{ steps.spend.outputs.artifact-name }}
+          path: ${{ steps.spend.outputs.report }}
+          retention-days: 14
+
       - name: Upsert consolidated review comment
         # `act` sets ACT=true. Local trusted-runtime acceptance must never
         # mutate the PR fixture.
         if: always() && env.ACT != 'true'
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
+          WORKFLOW_SPEND_SUMMARY: ${{ steps.spend.outputs.summary }}
           RESULT_PATH: ${{ steps.review.outputs.result }}
           REVIEW_OUTCOME: ${{ steps.review.outcome }}
           CORRELATION_ID: ${{ needs.prepare.outputs.correlation-id }}
@@ -336,6 +355,7 @@ jobs:
               body = `${marker}\n## MoltNet multi-lens review\n\n` +
                 `The review run failed. ${runDetails}.`;
             }
+            if (process.env.WORKFLOW_SPEND_SUMMARY) body += '\n\n' + fs.readFileSync(process.env.WORKFLOW_SPEND_SUMMARY, 'utf8');
             const comments = await github.paginate(
               github.rest.issues.listComments,
               {
