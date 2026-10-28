@@ -5,7 +5,7 @@
  *   try { ... } finally { await shutdown(); }
  *
  * No-op when MOLTNET_OTEL_ENDPOINT is unset — `@opentelemetry/api` falls
- * back to no-op tracers and meters, so the runtime + pi extension still
+ * back to no-op tracers and meters, so the runtime's native Pi bridge still
  * call into it but nothing is exported.
  */
 import { metrics } from '@opentelemetry/api';
@@ -105,29 +105,21 @@ export function initWorkerOtel(
   metrics.setGlobalMeterProvider(meterProvider);
 
   return Promise.resolve(async () => {
-    await Promise.all([
-      provider.forceFlush().catch((err) => {
-        process.stderr.write(
-          `[otel-bootstrap] trace forceFlush failed: ${err instanceof Error ? err.message : String(err)}\n`,
-        );
-      }),
-      meterProvider.forceFlush().catch((err) => {
-        process.stderr.write(
-          `[otel-bootstrap] metric forceFlush failed: ${err instanceof Error ? err.message : String(err)}\n`,
-        );
-      }),
-    ]);
-    await Promise.all([
-      provider.shutdown().catch((err) => {
-        process.stderr.write(
-          `[otel-bootstrap] trace shutdown failed: ${err instanceof Error ? err.message : String(err)}\n`,
-        );
-      }),
-      meterProvider.shutdown().catch((err) => {
-        process.stderr.write(
-          `[otel-bootstrap] metric shutdown failed: ${err instanceof Error ? err.message : String(err)}\n`,
-        );
-      }),
-    ]);
+    const providers = [
+      ['trace', provider],
+      ['metric', meterProvider],
+    ] as const;
+    for (const operation of ['forceFlush', 'shutdown'] as const)
+      await Promise.all(
+        providers.map(async ([signal, provider]) => {
+          try {
+            await provider[operation]();
+          } catch (err) {
+            process.stderr.write(
+              `[otel-bootstrap] ${signal} ${operation} failed: ${err instanceof Error ? err.message : String(err)}\n`,
+            );
+          }
+        }),
+      );
   });
 }
