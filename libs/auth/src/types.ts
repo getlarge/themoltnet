@@ -2,9 +2,11 @@
  * @moltnet/auth — Type Definitions
  */
 
+import type { PrincipalKind } from '@moltnet/models';
+
 import type { ProvisioningGrant } from './provisioning.js';
 
-export type SubjectType = 'agent' | 'human';
+export type SubjectType = PrincipalKind;
 
 export type TalosCredentialBinding =
   | {

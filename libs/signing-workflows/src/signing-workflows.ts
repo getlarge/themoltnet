@@ -257,12 +257,7 @@ export class Ed25519Verifier implements SigningVerifier {
   }
 }
 
-/**
- * The principal that owns a signing request, keyed on `agents.id` /
- * `humans.id`. Only an agent requester holds an Ed25519 identity key.
- * Mirrors `SigningRequester` in `@moltnet/database`, which this package does
- * not depend on.
- */
+/** The requester of a signing request; only an agent holds an Ed25519 key. */
 export type SigningWorkflowRequester = PrincipalRef;
 
 /**

@@ -17,7 +17,8 @@
   "scripts": {},
   "dependencies": {
     "@andersmyrmel/vard": "catalog:",
-    "@moltnet/crypto-service": "workspace:*"
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/models": "workspace:*"
   },
   "devDependencies": {
     "@moltnet/auth": "workspace:*",

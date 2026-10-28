@@ -14,12 +14,10 @@ import { type Group, groups } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
 import { translateUniqueViolation } from '../unique-violation.js';
 
-export type GroupCreator = PrincipalRef;
-
 export interface CreateGroupInput {
   name: string;
   teamId: string;
-  creator: GroupCreator;
+  creator: PrincipalRef;
 }
 
 export interface GroupRepository {

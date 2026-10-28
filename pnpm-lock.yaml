@@ -2618,6 +2618,9 @@ importers:
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../crypto-service
+      '@moltnet/models':
+        specifier: workspace:*
+        version: link:../models
     devDependencies:
       '@moltnet/auth':
         specifier: workspace:*

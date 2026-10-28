@@ -69,5 +69,5 @@ export function authPrincipalCreator(
   authContext: PrincipalSource,
 ): PrincipalRef {
   const { subjectType, subjectId } = authPrincipal(authContext);
-  return { kind: subjectType, id: subjectId } as const;
+  return { kind: subjectType, id: subjectId };
 }

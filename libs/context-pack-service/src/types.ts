@@ -12,10 +12,7 @@ import type { PrincipalRef } from '@moltnet/models';
 
 export type { PackDiffCompressionLevel, PackDiffRow };
 
-/**
- * Discriminated principal — caller resolves (subjectId, ns) at the auth
- * boundary. For human, `id` is humans.id (NOT the Kratos identityId).
- */
+/** Resolved by the caller at the auth boundary. */
 export type PackCreator = PrincipalRef;
 
 export interface SelectedEntry {

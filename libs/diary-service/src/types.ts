@@ -16,6 +16,7 @@ import type {
   EntryRelationRepository,
 } from '@moltnet/database';
 import type { EmbeddingService } from '@moltnet/embedding-service';
+import type { PrincipalRef } from '@moltnet/models';
 
 /**
  * Service-layer DiaryEntry derived from the Drizzle-inferred row type.
@@ -32,15 +33,10 @@ export type DiaryEntry = _DiaryEntry;
 export type Diary = _Diary;
 
 /**
- * Discriminated principal used everywhere in the diary service to identify
- * who created or owns a resource. Mirrors the REST PrincipalIdentity DTO
- * but is structurally minimal (no fingerprint/publicKey here — those come
- * from JOINs and live in the response layer).
+ * Who created or owns a resource in the diary service. Fingerprint and public
+ * key come from JOINs in the response layer.
  */
-export interface ServicePrincipal {
-  kind: 'agent' | 'human';
-  id: string;
-}
+export type ServicePrincipal = PrincipalRef;
 
 /**
  * Minimal structured logger interface — framework-agnostic.

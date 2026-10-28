@@ -126,7 +126,9 @@ export type PrincipalIdentity = AgentPrincipal | HumanPrincipal;
  * `humans.id` (never the Kratos identity id). The write-side shape behind
  * every creator/owner/requester column pair.
  */
+export type PrincipalKind = 'agent' | 'human';
+
 export interface PrincipalRef {
-  readonly kind: 'agent' | 'human';
+  readonly kind: PrincipalKind;
   readonly id: string;
 }
