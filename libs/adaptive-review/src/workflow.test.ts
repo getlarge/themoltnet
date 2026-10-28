@@ -63,6 +63,8 @@ vi.mock('@themoltnet/tasks-orchestrator', async (importOriginal) => {
   return {
     ...original,
     waitForTaskOutcome: mocks.waitForTaskOutcome,
+    waitForValidatedTask: (task: { id: string }, opts: unknown) =>
+      mocks.waitForTaskOutcome(task.id, opts) as Promise<unknown>,
     // The real helper calls the unmocked module-internal poll; mirror it.
     waitForAcceptedTask: async (id: string, opts: unknown) => {
       const outcome = (await mocks.waitForTaskOutcome(id, opts)) as {

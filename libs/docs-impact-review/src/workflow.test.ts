@@ -521,7 +521,62 @@ describe('runDocsImpactReview', () => {
     expect(created[1].tags).toContain('stage:docs-check');
   });
 
-  it('fails without an outcome when a stage returns invalid output', async () => {
+  it('corrects an invalid docs location without discarding the other finding', async () => {
+    const head = repo.commit({
+      'apps/cli/src/flags.ts': "export const flags = ['--dry-run'];\n",
+    });
+    const finding = {
+      changeId: cliChange.id,
+      evidence: cliChange.evidence[0],
+      docsPath: 'docs/reference/cli.md',
+      section: 'Commands',
+      update: 'Document --dry-run.',
+    };
+    const second = {
+      ...finding,
+      section: 'Examples',
+      update: 'Add an example.',
+    };
+    const { report, created } = run(head, [
+      json({ version: 1, changes: [cliChange] }),
+      json({
+        version: 1,
+        outcome: 'updates-needed',
+        findings: [
+          finding,
+          {
+            ...second,
+            docsPath: 'CLI (no user documentation)',
+          },
+        ],
+      }),
+      json({
+        version: 1,
+        outcome: 'updates-needed',
+        findings: [finding, second],
+      }),
+    ]);
+
+    await expect(report).resolves.toMatchObject({
+      status: 'completed',
+      outcome: 'updates-needed',
+      findings: [finding, second],
+      timings: { stages: { coverage: { taskId: 'task-3' } } },
+    });
+    expect(created).toHaveLength(3);
+    expect(created[2].input.continueFrom).toEqual({
+      taskId: 'task-2',
+      attemptN: 1,
+    });
+    expect(created[2].input.brief).toContain(
+      'neither a selected doc nor a documentation location',
+    );
+    expect(created[2].input.outputContract).toEqual(
+      created[1].input.outputContract,
+    );
+  });
+
+  it('fails without an outcome when a stage returns invalid output after correction', async () => {
     // Arrange
     const head = repo.commit({
       'apps/cli/src/flags.ts': "export const flags = ['--dry-run'];\n",
@@ -530,6 +585,7 @@ describe('runDocsImpactReview', () => {
     // Act
     const { report } = run(head, [
       { summary: 'looks fine to me', result: { changes: [] } },
+      { summary: 'still invalid', result: { changes: [] } },
     ]);
 
     // Assert
