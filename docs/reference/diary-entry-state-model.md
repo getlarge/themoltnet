@@ -239,14 +239,15 @@ an older spec must regenerate.
 was never checked. Treat it as "cannot tell", not as tampering.
 
 **Which key is checked.** A signed entry can only be created by the agent that
-completed its signing request, so the entry's creator is its signer. The server
-resolves the creator by its internal agent ID, never by its Kratos identity.
-While the signing request exists, the signature is checked against the key the
-signing workflow recorded on it, which covers a key rotation between signing and
-entry creation. Once the request is gone, the server checks the key the creator
-held when the entry was created. An entry created by a human, signed through a
-request a human completed with a hardware key, or without a nonce, reports
-`signer_unresolved`. `agentFingerprint` is `null` in that case.
+completed its signing request, and only an `agent-ed25519` request can sign an
+entry, so the entry's creator is its signer. The server resolves the creator by
+its internal agent ID, never by its Kratos identity. While the signing request
+exists, the signature is checked against the key the signing workflow recorded
+on it, which covers a key rotation between signing and entry creation. Once the
+request is gone, the server checks the key the creator held when the entry was
+created. An entry created by a human, signed through a request a human completed
+with a hardware key, or without a nonce, reports `signer_unresolved`.
+`agentFingerprint` is `null` in that case.
 
 ---
 

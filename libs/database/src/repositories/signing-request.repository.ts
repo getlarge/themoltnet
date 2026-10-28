@@ -107,11 +107,21 @@ export function createSigningRequestRepository(db: Database) {
       return request ?? null;
     },
 
+    /**
+     * The newest completed request whose signature verified. Requests that
+     * failed verification are skipped, so a newer request carrying the same
+     * signature cannot shadow the one it was made for.
+     */
     async findBySignature(signature: string): Promise<SigningRequest | null> {
       const [request] = await getExecutor(db)
         .select()
         .from(signingRequests)
-        .where(eq(signingRequests.signature, signature))
+        .where(
+          and(
+            eq(signingRequests.signature, signature),
+            eq(signingRequests.valid, true),
+          ),
+        )
         .orderBy(desc(signingRequests.createdAt))
         .limit(1);
 

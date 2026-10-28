@@ -101,6 +101,36 @@ describe('Agent routes', () => {
       ).toHaveBeenCalledWith('valid_sig');
     });
 
+    it('verifies against the verified request the signature lookup returns', async () => {
+      // The repository skips requests whose signature did not verify, so a
+      // newer request reusing this signature never reaches the route.
+      mocks.agentRepository.findByFingerprint.mockResolvedValue(
+        createMockAgent(),
+      );
+      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+        id: 'sr-verified',
+        requesterAgentId: OWNER_ID,
+        message: 'genuine message',
+        nonce: 'nonce-genuine',
+        valid: true,
+      } as any);
+      mocks.cryptoService.verifyWithNonce.mockResolvedValue(true);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/agents/C212-DAFA-27C5-6C57/verify',
+        payload: { signature: 'shared_sig' },
+      });
+
+      expect(response.json().valid).toBe(true);
+      expect(mocks.cryptoService.verifyWithNonce).toHaveBeenCalledWith(
+        'genuine message',
+        'nonce-genuine',
+        'shared_sig',
+        createMockAgent().publicKey,
+      );
+    });
+
     it('verifies for an agent whose Kratos identity was unlinked', async () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent({ identityId: null }),

@@ -210,6 +210,15 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
               'Signing request belongs to a different principal',
             );
           }
+          if (
+            signingRequest.verificationMethod !==
+            VERIFICATION_METHOD.AgentEd25519
+          ) {
+            throw createProblem(
+              'validation-failed',
+              `Only ${VERIFICATION_METHOD.AgentEd25519} signing requests can sign a diary entry`,
+            );
+          }
           if (signingRequest.status !== 'completed') {
             throw createProblem(
               'validation-failed',

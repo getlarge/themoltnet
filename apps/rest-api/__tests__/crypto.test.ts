@@ -56,6 +56,40 @@ describe('Crypto routes', () => {
       );
     });
 
+    it('verifies against the verified request the signature lookup returns', async () => {
+      // The repository skips requests whose signature did not verify, so a
+      // newer request reusing this signature never reaches the route.
+      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+        id: 'sr-verified',
+        requesterAgentId: CRYPTO_AGENT_ID,
+        message: 'genuine message',
+        nonce: 'nonce-genuine',
+        valid: true,
+      } as any);
+      mocks.agentRepository.findById.mockResolvedValue({
+        ...createMockAgent(),
+        id: CRYPTO_AGENT_ID,
+      });
+      mocks.cryptoService.verifyWithNonce.mockResolvedValue(true);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/crypto/verify',
+        payload: { signature: 'shared_sig' },
+      });
+
+      expect(response.json().valid).toBe(true);
+      expect(
+        mocks.signingRequestRepository.findBySignature,
+      ).toHaveBeenCalledWith('shared_sig');
+      expect(mocks.cryptoService.verifyWithNonce).toHaveBeenCalledWith(
+        'genuine message',
+        'nonce-genuine',
+        'shared_sig',
+        createMockAgent().publicKey,
+      );
+    });
+
     it('returns false for a request created by a human', async () => {
       mocks.signingRequestRepository.findBySignature.mockResolvedValue({
         id: 'sr-1',

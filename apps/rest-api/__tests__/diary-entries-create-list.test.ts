@@ -219,6 +219,7 @@ describe('Diary entry routes - create and list', () => {
       ...requester,
       message: CONTENT_HASH,
       nonce: '990e8400-e29b-41d4-a716-446655440011',
+      verificationMethod: 'agent-ed25519',
       status: 'completed',
       valid: true,
       signature: 'c2lnbmF0dXJl',
@@ -282,6 +283,25 @@ describe('Diary entry routes - create and list', () => {
       const response = await createSigned();
 
       expect(response.statusCode).toBe(403);
+      expect(mocks.diaryService.createEntry).not.toHaveBeenCalled();
+    });
+
+    it('rejects a hardware-key signing request', async () => {
+      mocks.signingRequestRepository.findById.mockResolvedValue({
+        ...completedRequest({
+          requesterAgentId: OWNER_ID,
+          requesterHumanId: null,
+        }),
+        verificationMethod: 'human-hardware-previewsign',
+        signature: null,
+      });
+
+      const response = await createSigned();
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().detail).toContain(
+        'Only agent-ed25519 signing requests can sign a diary entry',
+      );
       expect(mocks.diaryService.createEntry).not.toHaveBeenCalled();
     });
   });
