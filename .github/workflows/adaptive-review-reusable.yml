@@ -57,7 +57,7 @@ on:
         default: ''
       daemon-version:
         type: string
-        default: '0.73.1'
+        default: '0.74.0'
     outputs:
       skip:
         value: ${{ jobs.prepare.outputs.skip }}
@@ -437,7 +437,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh
       - name: Drain this review's tasks
-        uses: getlarge/themoltnet/packages/agent-daemon-action@e82895cd187297d4531f853661e7d667a1243b35 # v0
+        uses: getlarge/themoltnet/packages/agent-daemon-action@dd4a984b5accb43c948a85a7211d306098926b3c # v0.7.0
         env:
           MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
           MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
@@ -494,7 +494,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh
       - name: Drain selected review tasks
-        uses: getlarge/themoltnet/packages/agent-daemon-action@e82895cd187297d4531f853661e7d667a1243b35 # v0
+        uses: getlarge/themoltnet/packages/agent-daemon-action@dd4a984b5accb43c948a85a7211d306098926b3c # v0.7.0
         env:
           MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
           MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
