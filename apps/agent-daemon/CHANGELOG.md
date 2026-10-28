@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.74.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.73.1...agent-daemon-v0.74.0) (2026-10-28)
+
+
+### Features
+
+* **pi-runtime:** connect native Durable telemetry to OpenTelemetry ([15a1d50](https://github.com/getlarge/themoltnet/commit/15a1d50a13acebe8ed1b6c6a1878e2a46e160ee9))
+
+
+### Bug Fixes
+
+* **agent-daemon-action:** isolate invocations and use daemon provider config ([eb81860](https://github.com/getlarge/themoltnet/commit/eb8186076c6040662a44c942f55623c8624ade96))
+* **agent-daemon-action:** isolate invocations and use daemon provider config ([82cb7b5](https://github.com/getlarge/themoltnet/commit/82cb7b54060db00a3ed23ec3bae426f7c04f0d83))
+* **agent-daemon:** clarify Pi repository config option name ([b5c6b72](https://github.com/getlarge/themoltnet/commit/b5c6b72f58d28caf300bf421cdabaf3a4a78fca9))
+* **agent-daemon:** name repository config option positively ([b2f5c60](https://github.com/getlarge/themoltnet/commit/b2f5c6059fc48107a49e09509a95d312f22b81cf))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 1.19.0
+    * @themoltnet/pi-runtime bumped to 0.27.0
+    * @themoltnet/sdk bumped to 0.154.2
+
 ## [0.73.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.73.0...agent-daemon-v0.73.1) (2026-10-26)
 
 

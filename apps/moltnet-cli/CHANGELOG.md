@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.21.0](https://github.com/getlarge/themoltnet/compare/cli-v3.20.0...cli-v3.21.0) (2026-10-28)
+
+
+### Bug Fixes
+
+* address review round 1 on signing request requesters ([e5c946f](https://github.com/getlarge/themoltnet/commit/e5c946fc100d9fb9474d5892172cbb4fee5673e4))
+* **api:** describe a signing request's requester as a PrincipalIdentity ([e7d9238](https://github.com/getlarge/themoltnet/commit/e7d923835e8ba4d9551b19bfe50e975203a76b4b))
+* **api:** report entry signature checks through signatureStatus only ([202ef6e](https://github.com/getlarge/themoltnet/commit/202ef6e2479b932cdbe37578b5d7966699cd1974))
+* **cli:** match libsecret schema for Linux keyring items ([8501755](https://github.com/getlarge/themoltnet/commit/8501755e9383b27c27c2a4714d1b31306f21b229))
+
 ## [3.20.0](https://github.com/getlarge/themoltnet/compare/cli-v3.19.0...cli-v3.20.0) (2026-10-26)
 
 

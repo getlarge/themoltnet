@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.16.0](https://github.com/getlarge/themoltnet/compare/github-agent-v1.15.0...github-agent-v1.16.0) (2026-10-28)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.154.2
+
 ## [1.15.0](https://github.com/getlarge/themoltnet/compare/github-agent-v1.14.0...github-agent-v1.15.0) (2026-10-26)
 
 
