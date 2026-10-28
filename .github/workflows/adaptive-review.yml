@@ -32,6 +32,8 @@ jobs:
       protected-paths: |
         .github/workflows/adaptive-review.yml
         .github/workflows/adaptive-review-reusable.yml
+        .github/workflows/adaptive-review-outcomes.yml
+        .github/workflows/adaptive-review-outcomes-reusable.yml
         .github/runtime-profiles/legreffier-adaptive-
         .github/runtime-policies/
         libs/adaptive-review/

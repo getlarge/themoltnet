@@ -1,0 +1,18 @@
+name: Adaptive review outcomes
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions: {}
+
+jobs:
+  record:
+    if: vars.MOLTNET_ADAPTIVE_REVIEW_CLEF_ENABLED == 'true'
+    uses: getlarge/themoltnet/.github/workflows/adaptive-review-outcomes-reusable.yml@main
+    permissions:
+      contents: read
+    secrets: inherit
+    with:
+      environment: legreffier
+      runtime-ref: ${{ github.event.pull_request.base.sha }}
