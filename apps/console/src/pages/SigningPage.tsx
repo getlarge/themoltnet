@@ -196,7 +196,8 @@ export function SigningPage() {
                           fontFamily: theme.font.family.mono,
                         }}
                       >
-                        {request.requestedBy.id}
+                        {/* An API older than this console omits it on old rows. */}
+                        {request.requestedBy?.id ?? '—'}
                       </dd>
                       <dt style={{ color: theme.color.text.muted }}>
                         Intended signer
