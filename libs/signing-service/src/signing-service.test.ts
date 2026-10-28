@@ -29,6 +29,7 @@ const NOW = () => new Date('2026-08-01T12:00:00.000Z');
 const agent = {
   subjectType: 'agent',
   identityId: 'agent-identity',
+  agentId: 'agent-id',
 } as Extract<AuthContext, { subjectType: 'agent' }>;
 
 const human = {
@@ -147,9 +148,9 @@ function createDeps(
 function pendingRequest() {
   return {
     id: REQUEST_ID,
-    agentId: 'requester-agent',
+    requesterAgentId: 'requester-agent',
+    requesterHumanId: null,
     verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
-    requestedBy: { id: 'requester-agent', type: 'agent' as const },
     signerConstraint: { id: human.humanId, type: 'human' as const },
     teamId: TEAM_ID,
     purpose: 'Approve production deployment',
@@ -240,6 +241,110 @@ describe('createSigningService', () => {
     expect(service.challengeValidation).toBeDefined();
   });
 
+  describe('requester ownership', () => {
+    const ownedBy = (owner: {
+      requesterAgentId?: string | null;
+      requesterHumanId?: string | null;
+      claimedByHumanId?: string | null;
+    }) =>
+      createSigningService(
+        createDeps({
+          signingRequestRepository: {
+            findById: vi.fn().mockResolvedValue({
+              ...pendingRequest(),
+              requesterAgentId: null,
+              requesterHumanId: null,
+              claimedByHumanId: null,
+              verificationMethod: VERIFICATION_METHOD.AgentEd25519,
+              ...owner,
+            }),
+            list: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+          } as never,
+        }),
+      );
+
+    it('returns a request to the agent that created it', async () => {
+      const service = ownedBy({ requesterAgentId: agent.agentId });
+
+      await expect(
+        service.requests.get({ actor: agent, requestId: REQUEST_ID }),
+      ).resolves.toMatchObject({ id: REQUEST_ID });
+    });
+
+    it('hides a request created by another agent', async () => {
+      const service = ownedBy({ requesterAgentId: 'other-agent-id' });
+
+      await expect(
+        service.requests.get({ actor: agent, requestId: REQUEST_ID }),
+      ).rejects.toMatchObject({ code: 'not_found' });
+      await expect(
+        service.requests.submitAgentSignature({
+          actor: agent,
+          requestId: REQUEST_ID,
+          signature: 'signature',
+        }),
+      ).rejects.toMatchObject({ code: 'not_found' });
+    });
+
+    it('does not match an agent to a human-created request with the same id', async () => {
+      const service = ownedBy({ requesterHumanId: agent.agentId });
+
+      await expect(
+        service.requests.get({ actor: agent, requestId: REQUEST_ID }),
+      ).rejects.toMatchObject({ code: 'not_found' });
+    });
+
+    it('returns a request to the human that created it', async () => {
+      const service = ownedBy({ requesterHumanId: human.humanId });
+
+      await expect(
+        service.requests.get({ actor: human, requestId: REQUEST_ID }),
+      ).resolves.toMatchObject({ id: REQUEST_ID });
+    });
+
+    it('returns a request to the human that claimed it', async () => {
+      const service = ownedBy({
+        requesterAgentId: 'other-agent-id',
+        claimedByHumanId: human.humanId,
+      });
+
+      await expect(
+        service.requests.get({ actor: human, requestId: REQUEST_ID }),
+      ).resolves.toMatchObject({ id: REQUEST_ID });
+    });
+
+    it('hides a request created by another human', async () => {
+      const service = ownedBy({ requesterHumanId: 'other-human-id' });
+
+      await expect(
+        service.requests.get({ actor: human, requestId: REQUEST_ID }),
+      ).rejects.toMatchObject({ code: 'not_found' });
+    });
+
+    it('does not match a human to an agent-created request with the same id', async () => {
+      const service = ownedBy({ requesterAgentId: human.humanId });
+
+      await expect(
+        service.requests.get({ actor: human, requestId: REQUEST_ID }),
+      ).rejects.toMatchObject({ code: 'not_found' });
+    });
+
+    it('lists by the actor principal, not the Kratos identity', async () => {
+      const list = vi.fn().mockResolvedValue({ items: [], total: 0 });
+      const service = createSigningService(
+        createDeps({ signingRequestRepository: { list } as never }),
+      );
+
+      await service.requests.list({ actor: human, scope: 'requested' });
+
+      expect(list).toHaveBeenCalledWith(
+        expect.objectContaining({
+          requester: { kind: 'human', id: human.humanId },
+        }),
+      );
+    });
+  });
+
   it('rejects an agent signature after the request was rejected', async () => {
     const send = vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
     const service = createSigningService(
@@ -247,7 +352,7 @@ describe('createSigningService', () => {
         signingRequestRepository: {
           findById: vi.fn().mockResolvedValue({
             ...pendingRequest(),
-            agentId: agent.identityId,
+            requesterAgentId: agent.agentId,
             verificationMethod: VERIFICATION_METHOD.AgentEd25519,
             status: 'rejected',
             workflowId: `signing-${REQUEST_ID}`,
@@ -271,7 +376,7 @@ describe('createSigningService', () => {
     const send = vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
     const pending = {
       ...pendingRequest(),
-      agentId: agent.identityId,
+      requesterAgentId: agent.agentId,
       verificationMethod: VERIFICATION_METHOD.AgentEd25519,
       workflowId: `signing-${REQUEST_ID}`,
     };
@@ -548,7 +653,7 @@ describe('createSigningService', () => {
 
   it('rejects creation when the requester has reached the pending cap', async () => {
     const acquirePendingCreateLock = vi.fn().mockResolvedValue(undefined);
-    const getActivePendingSummaryByAgent = vi.fn().mockResolvedValue({
+    const getActivePendingSummaryByRequester = vi.fn().mockResolvedValue({
       count: MAX_PENDING_SIGNING_REQUESTS,
       earliestExpiresAt: new Date('2026-08-01T12:02:00.000Z'),
     });
@@ -560,7 +665,7 @@ describe('createSigningService', () => {
       createDeps({
         signingRequestRepository: {
           acquirePendingCreateLock,
-          getActivePendingSummaryByAgent,
+          getActivePendingSummaryByRequester,
           create,
         } as never,
         transactionRunner: transactionRunner as never,
@@ -584,17 +689,16 @@ describe('createSigningService', () => {
       expect.any(Function),
       { name: 'create-signing-request' },
     );
-    expect(acquirePendingCreateLock).toHaveBeenCalledWith(agent.identityId);
-    expect(getActivePendingSummaryByAgent).toHaveBeenCalledWith(
-      agent.identityId,
-    );
+    const requester = { kind: 'agent', id: agent.agentId };
+    expect(acquirePendingCreateLock).toHaveBeenCalledWith(requester);
+    expect(getActivePendingSummaryByRequester).toHaveBeenCalledWith(requester);
     expect(create).not.toHaveBeenCalled();
   });
 
   it('creates below the pending cap inside the guarded transaction', async () => {
     const created = pendingRequest();
     const acquirePendingCreateLock = vi.fn().mockResolvedValue(undefined);
-    const getActivePendingSummaryByAgent = vi.fn().mockResolvedValue({
+    const getActivePendingSummaryByRequester = vi.fn().mockResolvedValue({
       count: MAX_PENDING_SIGNING_REQUESTS - 1,
       earliestExpiresAt: new Date('2026-08-01T12:02:00.000Z'),
     });
@@ -606,7 +710,7 @@ describe('createSigningService', () => {
       createDeps({
         signingRequestRepository: {
           acquirePendingCreateLock,
-          getActivePendingSummaryByAgent,
+          getActivePendingSummaryByRequester,
           create,
         } as never,
         transactionRunner: transactionRunner as never,
@@ -624,18 +728,38 @@ describe('createSigningService', () => {
       }),
     ).resolves.toBe(created);
     expect(acquirePendingCreateLock).toHaveBeenCalledBefore(
-      getActivePendingSummaryByAgent,
+      getActivePendingSummaryByRequester,
     );
-    expect(getActivePendingSummaryByAgent).toHaveBeenCalledBefore(create);
+    expect(getActivePendingSummaryByRequester).toHaveBeenCalledBefore(create);
+  });
+
+  it('rejects an agent-ed25519 request from a human', async () => {
+    const create = vi.fn();
+    const startAgentSigningWorkflow = vi.fn();
+    const service = createSigningService(
+      createDeps({
+        startAgentSigningWorkflow,
+        signingRequestRepository: { create } as never,
+      }),
+    );
+
+    await expect(
+      service.requests.create({
+        actor: human,
+        message: 'bafy-message',
+        verificationMethod: VERIFICATION_METHOD.AgentEd25519,
+      }),
+    ).rejects.toMatchObject({ code: 'validation_failed' });
+    expect(create).not.toHaveBeenCalled();
+    expect(startAgentSigningWorkflow).not.toHaveBeenCalled();
   });
 
   it('expires and logs an agent request when workflow startup fails', async () => {
     const now = new Date('2026-08-01T12:00:00.000Z');
     const created = {
       ...pendingRequest(),
-      agentId: agent.identityId,
+      requesterAgentId: agent.agentId,
       verificationMethod: VERIFICATION_METHOD.AgentEd25519,
-      requestedBy: { id: agent.identityId, type: 'agent' as const },
     };
     const startupError = new Error('DBOS unavailable');
     const startAgentSigningWorkflow = vi.fn().mockRejectedValue(startupError);
@@ -652,7 +776,7 @@ describe('createSigningService', () => {
         startAgentSigningWorkflow,
         signingRequestRepository: {
           acquirePendingCreateLock: vi.fn(),
-          getActivePendingSummaryByAgent: vi.fn().mockResolvedValue({
+          getActivePendingSummaryByRequester: vi.fn().mockResolvedValue({
             count: 0,
             earliestExpiresAt: null,
           }),
@@ -680,7 +804,7 @@ describe('createSigningService', () => {
     });
     expect(startAgentSigningWorkflow).toHaveBeenCalledWith({
       id: created.id,
-      agentId: agent.identityId,
+      requester: { kind: 'agent', id: agent.agentId },
       message: created.message,
       nonce: created.nonce,
       verificationMethod: VERIFICATION_METHOD.AgentEd25519,
@@ -689,7 +813,7 @@ describe('createSigningService', () => {
       {
         err: startupError,
         signingId: created.id,
-        agentId: agent.identityId,
+        requester: `agent:${agent.agentId}`,
         cleanupError: undefined,
       },
       'signing_request.workflow_start_failed',

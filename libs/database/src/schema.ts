@@ -519,11 +519,6 @@ export interface SigningMethodValue {
   value: unknown;
 }
 
-export interface SigningRequestRequester {
-  id: string;
-  type: 'agent' | 'human' | 'service';
-}
-
 export type SigningRequestSignerConstraint = SignerConstraint;
 
 /**
@@ -675,16 +670,21 @@ export const signingRequests = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
 
-    // The agent who must sign (Ory Kratos identity ID)
-    agentId: uuid('agent_id').notNull(),
+    // The principal who created the request. For agent Ed25519 requests this
+    // is also the signer; delegated requests are signed by the claiming human.
+    // Exactly one is set. Never a Kratos identity: identities are recreatable.
+    requesterAgentId: uuid('requester_agent_id').references(() => agents.id, {
+      onDelete: 'restrict',
+    }),
+    requesterHumanId: uuid('requester_human_id').references(() => humans.id, {
+      onDelete: 'restrict',
+    }),
 
     // Explicit verification dispatch; agent Ed25519 remains the default.
     verificationMethod: verificationMethodEnum('verification_method')
       .default(VERIFICATION_METHOD.AgentEd25519)
       .notNull(),
 
-    // Reserved for delegated signing phases (requester may differ from signer).
-    requestedBy: jsonb('requested_by').$type<SigningRequestRequester>(),
     signerConstraint:
       jsonb('signer_constraint').$type<SigningRequestSignerConstraint>(),
     teamId: uuid('team_id').references(() => teams.id, {
@@ -736,11 +736,22 @@ export const signingRequests = pgTable(
     rejectionReason: text('rejection_reason'),
   },
   (table) => [
-    // Find requests by agent and status (common query pattern)
-    index('signing_requests_agent_status_idx').on(table.agentId, table.status),
-    // Bound the cap check to the small live-pending range under its agent lock.
-    index('signing_requests_active_pending_idx')
-      .on(table.agentId, table.expiresAt)
+    // Find requests by requester and status (common query pattern)
+    index('signing_requests_requester_agent_status_idx').on(
+      table.requesterAgentId,
+      table.status,
+    ),
+    index('signing_requests_requester_human_status_idx').on(
+      table.requesterHumanId,
+      table.status,
+    ),
+    // Bound the cap check to the small live-pending range under the
+    // requester's create lock.
+    index('signing_requests_active_pending_agent_idx')
+      .on(table.requesterAgentId, table.expiresAt)
+      .where(sql`status = 'pending'`),
+    index('signing_requests_active_pending_human_idx')
+      .on(table.requesterHumanId, table.expiresAt)
       .where(sql`status = 'pending'`),
 
     // Lookup by signature (public verification path)
@@ -748,7 +759,6 @@ export const signingRequests = pgTable(
 
     // Lookup by DBOS workflow ID
     uniqueIndex('signing_requests_workflow_idx').on(table.workflowId),
-    index('signing_requests_requested_by_idx').using('gin', table.requestedBy),
     index('signing_requests_team_status_idx').on(
       table.teamId,
       table.status,
@@ -768,7 +778,11 @@ export const signingRequests = pgTable(
       .where(sql`status IN ('pending', 'claimed')`),
     check(
       'signing_requests_delegated_context',
-      sql`verification_method = 'agent-ed25519' OR (team_id IS NOT NULL AND requested_by IS NOT NULL AND signer_constraint IS NOT NULL)`,
+      sql`verification_method = 'agent-ed25519' OR (team_id IS NOT NULL AND signer_constraint IS NOT NULL)`,
+    ),
+    check(
+      'signing_requests_requester_xor',
+      sql`(requester_agent_id IS NOT NULL) <> (requester_human_id IS NOT NULL)`,
     ),
     check(
       'signing_requests_claimed_state',

@@ -52,7 +52,13 @@
         "inputs": [
           "{projectRoot}/openapi-bindings.config.ts",
           "{projectRoot}/generator/api-bindings/**/*",
-          "{workspaceRoot}/apps/rest-api/public/openapi.json"
+          "{workspaceRoot}/apps/rest-api/public/openapi.json",
+          {
+            "externalDependencies": [
+              "@hey-api/openapi-ts",
+              "prettier"
+            ]
+          }
         ],
         "outputs": [
           "{projectRoot}/src/generated-api-bindings"

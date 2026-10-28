@@ -226,12 +226,12 @@ type stubSignedEntryHandler struct {
 
 func (h *stubSignedEntryHandler) CreateSigningRequest(_ context.Context, req *moltnetapi.CreateSigningRequestReq) (moltnetapi.CreateSigningRequestRes, error) {
 	return &moltnetapi.SigningRequest{ID: h.requestID, Message: req.Message, Status: moltnetapi.SigningRequestStatusPending,
-		VerificationMethod: moltnetapi.SigningRequestVerificationMethodAgentEd25519, AgentId: uuid.New()}, nil
+		VerificationMethod: moltnetapi.SigningRequestVerificationMethodAgentEd25519, RequestedBy: testAgentRequester()}, nil
 }
 
 func (h *stubSignedEntryHandler) GetSigningRequest(_ context.Context, params moltnetapi.GetSigningRequestParams) (moltnetapi.GetSigningRequestRes, error) {
 	return &moltnetapi.SigningRequest{ID: params.ID, Status: moltnetapi.SigningRequestStatusCompleted,
-		VerificationMethod: moltnetapi.SigningRequestVerificationMethodAgentEd25519, AgentId: uuid.New(),
+		VerificationMethod: moltnetapi.SigningRequestVerificationMethodAgentEd25519, RequestedBy: testAgentRequester(),
 		Signature: moltnetapi.NewNilString("c2ln")}, nil
 }
 

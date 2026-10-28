@@ -877,7 +877,10 @@ export type EntryVerifyResult = {
   agentFingerprint: string | null;
   contentHash: string | null;
   hashMatches: boolean;
-  signatureValid: boolean;
+  /**
+   * `valid`: the signature verified against the signer key. `invalid`: it was checked against the signer key and rejected. `signer_unresolved`: no signer key could be established, so it was not checked. `unsigned`: the entry carries no signature.
+   */
+  signatureStatus: 'valid' | 'invalid' | 'signer_unresolved' | 'unsigned';
   signed: boolean;
   valid: boolean;
 };
@@ -2392,7 +2395,6 @@ export type SigningCredentialRegistration = {
 };
 
 export type SigningRequest = {
-  agentId: string;
   challenge?: PreviewSignChallengeValue | null;
   claimedAt?: string | null;
   claimedByHumanId?: string | null;
@@ -2406,10 +2408,31 @@ export type SigningRequest = {
   receipt?: PreviewSignEvidenceValue | null;
   rejectedAt?: string | null;
   rejectionReason?: string | null;
-  requestedBy?: {
-    id: string;
-    type: 'agent' | 'human' | 'service';
-  } | null;
+  requestedBy:
+    | {
+        /**
+         * UUID v4 identifier
+         */
+        agentId: string;
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        identityId: string | null;
+        kind: 'agent';
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        /**
+         * UUID v4 identifier
+         */
+        humanId: string;
+        identityId: string | null;
+        kind: 'human';
+      };
   signature: string | null;
   signerConstraint?:
     | {

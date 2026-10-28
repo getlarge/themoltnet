@@ -38,12 +38,13 @@ function createMockDb() {
 
 const AGENT_ID = '550e8400-e29b-41d4-a716-446655440000';
 const REQUEST_ID = '770e8400-e29b-41d4-a716-446655440002';
+const REQUESTER = { kind: 'agent', id: AGENT_ID } as const;
 
 const mockRequest: SigningRequest = {
   id: REQUEST_ID,
-  agentId: AGENT_ID,
+  requesterAgentId: AGENT_ID,
+  requesterHumanId: null,
   verificationMethod: 'agent-ed25519',
-  requestedBy: null,
   signerConstraint: null,
   teamId: null,
   purpose: null,
@@ -80,13 +81,15 @@ describe('createSigningRequestRepository', () => {
       db._chain.returning.mockResolvedValueOnce([mockRequest]);
 
       const result = await repo.create({
-        agentId: AGENT_ID,
+        requester: REQUESTER,
         message: 'Hello, world!',
       });
 
       expect(db.insert).toHaveBeenCalled();
       expect(db._chain.values).toHaveBeenCalledWith(
         expect.objectContaining({
+          requesterAgentId: AGENT_ID,
+          requesterHumanId: null,
           verificationMethod: 'agent-ed25519',
         }),
       );
@@ -102,7 +105,7 @@ describe('createSigningRequestRepository', () => {
       ]);
 
       await repo.create({
-        agentId: AGENT_ID,
+        requester: REQUESTER,
         message: 'Hello, world!',
         expiresAt: new Date(Date.now() + 5 * 60 * 1000),
         verificationMethod: 'human-hardware-previewsign',
@@ -122,7 +125,7 @@ describe('createSigningRequestRepository', () => {
       ]);
 
       const result = await repo.create({
-        agentId: AGENT_ID,
+        requester: REQUESTER,
         message: 'Hello, world!',
         expiresAt: customExpiry,
       });
@@ -341,7 +344,7 @@ describe('createSigningRequestRepository', () => {
       const earliestExpiresAt = new Date(Date.now() + 60_000);
       db._chain.where.mockResolvedValueOnce([{ count: 3, earliestExpiresAt }]);
 
-      const result = await repo.getActivePendingSummaryByAgent(AGENT_ID);
+      const result = await repo.getActivePendingSummaryByRequester(REQUESTER);
 
       expect(db.select).toHaveBeenCalled();
       expect(result).toEqual({ count: 3, earliestExpiresAt });
@@ -349,7 +352,7 @@ describe('createSigningRequestRepository', () => {
 
     it('requires an ambient transaction for the advisory lock', async () => {
       await expect(
-        repo.acquirePendingCreateLock(AGENT_ID),
+        repo.acquirePendingCreateLock(REQUESTER),
       ).rejects.toThrowError(/must be called inside/);
       expect(db.execute).not.toHaveBeenCalled();
     });
@@ -358,7 +361,7 @@ describe('createSigningRequestRepository', () => {
       const transactionRunner = createDrizzleTransactionRunner(db);
 
       await transactionRunner.runInTransaction(() =>
-        repo.acquirePendingCreateLock(AGENT_ID),
+        repo.acquirePendingCreateLock(REQUESTER),
       );
 
       expect(db.execute).toHaveBeenCalledTimes(1);

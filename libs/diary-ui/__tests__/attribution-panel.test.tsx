@@ -46,7 +46,7 @@ function makeEntry(
 const UNSIGNED_VERIFICATION: EntryVerifyResult = {
   signed: false,
   hashMatches: false,
-  signatureValid: false,
+  signatureStatus: 'unsigned',
   valid: false,
   contentHash: null,
   agentFingerprint: null,
@@ -55,7 +55,7 @@ const UNSIGNED_VERIFICATION: EntryVerifyResult = {
 const VERIFIED_VERIFICATION: EntryVerifyResult = {
   signed: true,
   hashMatches: true,
-  signatureValid: true,
+  signatureStatus: 'valid',
   valid: true,
   contentHash: CID,
   agentFingerprint: SIGNER_FINGERPRINT,
@@ -122,7 +122,7 @@ describe('AttributionPanel signature state', () => {
       verification: {
         ...VERIFIED_VERIFICATION,
         hashMatches: false,
-        signatureValid: true,
+        signatureStatus: 'valid',
         valid: false,
       },
     });
@@ -138,7 +138,7 @@ describe('AttributionPanel signature state', () => {
       verification: {
         ...VERIFIED_VERIFICATION,
         hashMatches: true,
-        signatureValid: false,
+        signatureStatus: 'invalid',
         valid: false,
       },
     });
@@ -146,6 +146,24 @@ describe('AttributionPanel signature state', () => {
     expect(screen.getByText(/signature did not verify/i)).toBeInTheDocument();
     expect(
       screen.queryByText(/content changed since signing/i),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/could not be checked/i)).not.toBeInTheDocument();
+  });
+
+  it('reports an unresolved signer as unchecked, not as a failed signature', () => {
+    renderPanel({
+      entry: makeEntry({ contentSignature: 'c2lnbmF0dXJl' }),
+      verification: {
+        ...VERIFIED_VERIFICATION,
+        signatureStatus: 'signer_unresolved',
+        valid: false,
+        agentFingerprint: null,
+      },
+    });
+
+    expect(screen.getByText(/could not be checked/i)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/signature did not verify/i),
     ).not.toBeInTheDocument();
   });
 });
@@ -159,7 +177,7 @@ describe('AttributionPanel signer attribution', () => {
       verification: {
         ...VERIFIED_VERIFICATION,
         agentFingerprint: null,
-        signatureValid: false,
+        signatureStatus: 'invalid',
         valid: false,
       },
     });

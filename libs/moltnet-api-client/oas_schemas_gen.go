@@ -18655,9 +18655,12 @@ type EntryVerifyResult struct {
 	AgentFingerprint NilString `json:"agentFingerprint"`
 	ContentHash      NilString `json:"contentHash"`
 	HashMatches      bool      `json:"hashMatches"`
-	SignatureValid   bool      `json:"signatureValid"`
-	Signed           bool      `json:"signed"`
-	Valid            bool      `json:"valid"`
+	// `valid`: the signature verified against the signer key. `invalid`: it was checked against the signer
+	// key and rejected. `signer_unresolved`: no signer key could be established, so it was not checked.
+	// `unsigned`: the entry carries no signature.
+	SignatureStatus EntryVerifyResultSignatureStatus `json:"signatureStatus"`
+	Signed          bool                             `json:"signed"`
+	Valid           bool                             `json:"valid"`
 }
 
 // GetAgentFingerprint returns the value of AgentFingerprint.
@@ -18675,9 +18678,9 @@ func (s *EntryVerifyResult) GetHashMatches() bool {
 	return s.HashMatches
 }
 
-// GetSignatureValid returns the value of SignatureValid.
-func (s *EntryVerifyResult) GetSignatureValid() bool {
-	return s.SignatureValid
+// GetSignatureStatus returns the value of SignatureStatus.
+func (s *EntryVerifyResult) GetSignatureStatus() EntryVerifyResultSignatureStatus {
+	return s.SignatureStatus
 }
 
 // GetSigned returns the value of Signed.
@@ -18705,9 +18708,9 @@ func (s *EntryVerifyResult) SetHashMatches(val bool) {
 	s.HashMatches = val
 }
 
-// SetSignatureValid sets the value of SignatureValid.
-func (s *EntryVerifyResult) SetSignatureValid(val bool) {
-	s.SignatureValid = val
+// SetSignatureStatus sets the value of SignatureStatus.
+func (s *EntryVerifyResult) SetSignatureStatus(val EntryVerifyResultSignatureStatus) {
+	s.SignatureStatus = val
 }
 
 // SetSigned sets the value of Signed.
@@ -18721,6 +18724,64 @@ func (s *EntryVerifyResult) SetValid(val bool) {
 }
 
 func (*EntryVerifyResult) verifyDiaryEntryByIdRes() {}
+
+// `valid`: the signature verified against the signer key. `invalid`: it was checked against the signer
+// key and rejected. `signer_unresolved`: no signer key could be established, so it was not checked.
+// `unsigned`: the entry carries no signature.
+type EntryVerifyResultSignatureStatus string
+
+const (
+	EntryVerifyResultSignatureStatusValid            EntryVerifyResultSignatureStatus = "valid"
+	EntryVerifyResultSignatureStatusInvalid          EntryVerifyResultSignatureStatus = "invalid"
+	EntryVerifyResultSignatureStatusSignerUnresolved EntryVerifyResultSignatureStatus = "signer_unresolved"
+	EntryVerifyResultSignatureStatusUnsigned         EntryVerifyResultSignatureStatus = "unsigned"
+)
+
+// AllValues returns all EntryVerifyResultSignatureStatus values.
+func (EntryVerifyResultSignatureStatus) AllValues() []EntryVerifyResultSignatureStatus {
+	return []EntryVerifyResultSignatureStatus{
+		EntryVerifyResultSignatureStatusValid,
+		EntryVerifyResultSignatureStatusInvalid,
+		EntryVerifyResultSignatureStatusSignerUnresolved,
+		EntryVerifyResultSignatureStatusUnsigned,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s EntryVerifyResultSignatureStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case EntryVerifyResultSignatureStatusValid:
+		return []byte(s), nil
+	case EntryVerifyResultSignatureStatusInvalid:
+		return []byte(s), nil
+	case EntryVerifyResultSignatureStatusSignerUnresolved:
+		return []byte(s), nil
+	case EntryVerifyResultSignatureStatusUnsigned:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *EntryVerifyResultSignatureStatus) UnmarshalText(data []byte) error {
+	switch EntryVerifyResultSignatureStatus(data) {
+	case EntryVerifyResultSignatureStatusValid:
+		*s = EntryVerifyResultSignatureStatusValid
+		return nil
+	case EntryVerifyResultSignatureStatusInvalid:
+		*s = EntryVerifyResultSignatureStatusInvalid
+		return nil
+	case EntryVerifyResultSignatureStatusSignerUnresolved:
+		*s = EntryVerifyResultSignatureStatusSignerUnresolved
+		return nil
+	case EntryVerifyResultSignatureStatusUnsigned:
+		*s = EntryVerifyResultSignatureStatusUnsigned
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 // Ref: #/components/schemas/ExecutorTrustLevel
 type ExecutorTrustLevel string
@@ -39360,74 +39421,6 @@ func (o OptNilRuntimeProfileModelsGenerationThinkingLevel) Or(d RuntimeProfileMo
 	return d
 }
 
-// NewOptNilSigningRequestRequestedBy returns new OptNilSigningRequestRequestedBy with value set to v.
-func NewOptNilSigningRequestRequestedBy(v SigningRequestRequestedBy) OptNilSigningRequestRequestedBy {
-	return OptNilSigningRequestRequestedBy{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptNilSigningRequestRequestedBy is optional nullable SigningRequestRequestedBy.
-type OptNilSigningRequestRequestedBy struct {
-	Value SigningRequestRequestedBy
-	Set   bool
-	Null  bool
-}
-
-// IsSet returns true if OptNilSigningRequestRequestedBy was set.
-func (o OptNilSigningRequestRequestedBy) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptNilSigningRequestRequestedBy) Reset() {
-	var v SigningRequestRequestedBy
-	o.Value = v
-	o.Set = false
-	o.Null = false
-}
-
-// SetTo sets value to v.
-func (o *OptNilSigningRequestRequestedBy) SetTo(v SigningRequestRequestedBy) {
-	o.Set = true
-	o.Null = false
-	o.Value = v
-}
-
-// IsNull returns true if value is Null.
-func (o OptNilSigningRequestRequestedBy) IsNull() bool { return o.Null }
-
-// SetToNull sets value to null.
-func (o *OptNilSigningRequestRequestedBy) SetToNull() {
-	o.Set = true
-	o.Null = true
-	var v SigningRequestRequestedBy
-	o.Value = v
-}
-
-// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
-func (o OptNilSigningRequestRequestedBy) IsEmpty() bool {
-	return !o.Set && !o.Null
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptNilSigningRequestRequestedBy) Get() (v SigningRequestRequestedBy, ok bool) {
-	if o.Null {
-		return v, false
-	}
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptNilSigningRequestRequestedBy) Or(d SigningRequestRequestedBy) SigningRequestRequestedBy {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptNilSigningRequestSignerConstraint returns new OptNilSigningRequestSignerConstraint with value set to v.
 func NewOptNilSigningRequestSignerConstraint(v SigningRequestSignerConstraint) OptNilSigningRequestSignerConstraint {
 	return OptNilSigningRequestSignerConstraint{
@@ -53092,7 +53085,6 @@ func (s *SigningCredentialVerificationMethod) UnmarshalText(data []byte) error {
 
 // Ref: #/components/schemas/SigningRequest
 type SigningRequest struct {
-	AgentId             uuid.UUID                            `json:"agentId"`
 	Challenge           OptNilPreviewSignChallengeValue      `json:"challenge"`
 	ClaimedAt           OptNilDateTime                       `json:"claimedAt"`
 	ClaimedByHumanId    OptNilUUID                           `json:"claimedByHumanId"`
@@ -53106,7 +53098,7 @@ type SigningRequest struct {
 	Receipt             OptNilPreviewSignEvidenceValue       `json:"receipt"`
 	RejectedAt          OptNilDateTime                       `json:"rejectedAt"`
 	RejectionReason     OptNilString                         `json:"rejectionReason"`
-	RequestedBy         OptNilSigningRequestRequestedBy      `json:"requestedBy"`
+	RequestedBy         SigningRequestRequestedBy            `json:"requestedBy"`
 	Signature           NilString                            `json:"signature"`
 	SignerConstraint    OptNilSigningRequestSignerConstraint `json:"signerConstraint"`
 	SigningCredentialId OptNilUUID                           `json:"signingCredentialId"`
@@ -53118,11 +53110,6 @@ type SigningRequest struct {
 	Valid        NilBool              `json:"valid"`
 	// Stable signing verification method identifier.
 	VerificationMethod SigningRequestVerificationMethod `json:"verificationMethod"`
-}
-
-// GetAgentId returns the value of AgentId.
-func (s *SigningRequest) GetAgentId() uuid.UUID {
-	return s.AgentId
 }
 
 // GetChallenge returns the value of Challenge.
@@ -53191,7 +53178,7 @@ func (s *SigningRequest) GetRejectionReason() OptNilString {
 }
 
 // GetRequestedBy returns the value of RequestedBy.
-func (s *SigningRequest) GetRequestedBy() OptNilSigningRequestRequestedBy {
+func (s *SigningRequest) GetRequestedBy() SigningRequestRequestedBy {
 	return s.RequestedBy
 }
 
@@ -53233,11 +53220,6 @@ func (s *SigningRequest) GetValid() NilBool {
 // GetVerificationMethod returns the value of VerificationMethod.
 func (s *SigningRequest) GetVerificationMethod() SigningRequestVerificationMethod {
 	return s.VerificationMethod
-}
-
-// SetAgentId sets the value of AgentId.
-func (s *SigningRequest) SetAgentId(val uuid.UUID) {
-	s.AgentId = val
 }
 
 // SetChallenge sets the value of Challenge.
@@ -53306,7 +53288,7 @@ func (s *SigningRequest) SetRejectionReason(val OptNilString) {
 }
 
 // SetRequestedBy sets the value of RequestedBy.
-func (s *SigningRequest) SetRequestedBy(val OptNilSigningRequestRequestedBy) {
+func (s *SigningRequest) SetRequestedBy(val SigningRequestRequestedBy) {
 	s.RequestedBy = val
 }
 
@@ -53407,77 +53389,73 @@ func (s *SigningRequestList) SetTotal(val float64) {
 
 func (*SigningRequestList) listSigningRequestsRes() {}
 
+// SigningRequestRequestedBy represents sum type.
 type SigningRequestRequestedBy struct {
-	ID   string                        `json:"id"`
-	Type SigningRequestRequestedByType `json:"type"`
+	// Type selects the active sum variant, switch on this field.
+	Type           SigningRequestRequestedByType
+	AgentPrincipal AgentPrincipal
+	HumanPrincipal HumanPrincipal
 }
 
-// GetID returns the value of ID.
-func (s *SigningRequestRequestedBy) GetID() string {
-	return s.ID
-}
-
-// GetType returns the value of Type.
-func (s *SigningRequestRequestedBy) GetType() SigningRequestRequestedByType {
-	return s.Type
-}
-
-// SetID sets the value of ID.
-func (s *SigningRequestRequestedBy) SetID(val string) {
-	s.ID = val
-}
-
-// SetType sets the value of Type.
-func (s *SigningRequestRequestedBy) SetType(val SigningRequestRequestedByType) {
-	s.Type = val
-}
-
+// SigningRequestRequestedByType is oneOf type of SigningRequestRequestedBy.
 type SigningRequestRequestedByType string
 
+// Possible values for SigningRequestRequestedByType.
 const (
-	SigningRequestRequestedByTypeAgent   SigningRequestRequestedByType = "agent"
-	SigningRequestRequestedByTypeHuman   SigningRequestRequestedByType = "human"
-	SigningRequestRequestedByTypeService SigningRequestRequestedByType = "service"
+	AgentPrincipalSigningRequestRequestedBy SigningRequestRequestedByType = "agent"
+	HumanPrincipalSigningRequestRequestedBy SigningRequestRequestedByType = "human"
 )
 
-// AllValues returns all SigningRequestRequestedByType values.
-func (SigningRequestRequestedByType) AllValues() []SigningRequestRequestedByType {
-	return []SigningRequestRequestedByType{
-		SigningRequestRequestedByTypeAgent,
-		SigningRequestRequestedByTypeHuman,
-		SigningRequestRequestedByTypeService,
-	}
+// IsAgentPrincipal reports whether SigningRequestRequestedBy is AgentPrincipal.
+func (s SigningRequestRequestedBy) IsAgentPrincipal() bool {
+	return s.Type == AgentPrincipalSigningRequestRequestedBy
 }
 
-// MarshalText implements encoding.TextMarshaler.
-func (s SigningRequestRequestedByType) MarshalText() ([]byte, error) {
-	switch s {
-	case SigningRequestRequestedByTypeAgent:
-		return []byte(s), nil
-	case SigningRequestRequestedByTypeHuman:
-		return []byte(s), nil
-	case SigningRequestRequestedByTypeService:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
+// IsHumanPrincipal reports whether SigningRequestRequestedBy is HumanPrincipal.
+func (s SigningRequestRequestedBy) IsHumanPrincipal() bool {
+	return s.Type == HumanPrincipalSigningRequestRequestedBy
 }
 
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *SigningRequestRequestedByType) UnmarshalText(data []byte) error {
-	switch SigningRequestRequestedByType(data) {
-	case SigningRequestRequestedByTypeAgent:
-		*s = SigningRequestRequestedByTypeAgent
-		return nil
-	case SigningRequestRequestedByTypeHuman:
-		*s = SigningRequestRequestedByTypeHuman
-		return nil
-	case SigningRequestRequestedByTypeService:
-		*s = SigningRequestRequestedByTypeService
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
+// SetAgentPrincipal sets SigningRequestRequestedBy to AgentPrincipal.
+func (s *SigningRequestRequestedBy) SetAgentPrincipal(v AgentPrincipal) {
+	s.Type = AgentPrincipalSigningRequestRequestedBy
+	s.AgentPrincipal = v
+}
+
+// GetAgentPrincipal returns AgentPrincipal and true boolean if SigningRequestRequestedBy is AgentPrincipal.
+func (s SigningRequestRequestedBy) GetAgentPrincipal() (v AgentPrincipal, ok bool) {
+	if !s.IsAgentPrincipal() {
+		return v, false
 	}
+	return s.AgentPrincipal, true
+}
+
+// NewAgentPrincipalSigningRequestRequestedBy returns new SigningRequestRequestedBy from AgentPrincipal.
+func NewAgentPrincipalSigningRequestRequestedBy(v AgentPrincipal) SigningRequestRequestedBy {
+	var s SigningRequestRequestedBy
+	s.SetAgentPrincipal(v)
+	return s
+}
+
+// SetHumanPrincipal sets SigningRequestRequestedBy to HumanPrincipal.
+func (s *SigningRequestRequestedBy) SetHumanPrincipal(v HumanPrincipal) {
+	s.Type = HumanPrincipalSigningRequestRequestedBy
+	s.HumanPrincipal = v
+}
+
+// GetHumanPrincipal returns HumanPrincipal and true boolean if SigningRequestRequestedBy is HumanPrincipal.
+func (s SigningRequestRequestedBy) GetHumanPrincipal() (v HumanPrincipal, ok bool) {
+	if !s.IsHumanPrincipal() {
+		return v, false
+	}
+	return s.HumanPrincipal, true
+}
+
+// NewHumanPrincipalSigningRequestRequestedBy returns new SigningRequestRequestedBy from HumanPrincipal.
+func NewHumanPrincipalSigningRequestRequestedBy(v HumanPrincipal) SigningRequestRequestedBy {
+	var s SigningRequestRequestedBy
+	s.SetHumanPrincipal(v)
+	return s
 }
 
 // SigningRequestSignerConstraint represents sum type.

@@ -1245,6 +1245,17 @@ jobs:
             echo "::error::Generated API client is out of date. Run 'pnpm run generate' and commit the changes."
             exit 1
           fi
+          # Covers files a generator adds, which git diff does not see.
+          drift=$(git status --porcelain --untracked-files=all -- \
+            apps/rest-api/public/openapi.json libs/api-client/src/generated/ \
+            libs/api-client/src/generated-api-bindings/ \
+            apps/moltnet-signer/openapi.json libs/signer-api-client/src/generated/ \
+            apps/agent-daemon/openapi.json libs/agent-daemon-api-client/src/generated/)
+          if [ -n "$drift" ]; then
+            echo "$drift"
+            echo "::error::Generated files are out of date or not committed. Run 'pnpm run generate' and commit the changes."
+            exit 1
+          fi
           if ! git diff --exit-code apps/moltnet-signer/openapi.json; then
             echo "::error::Signer companion OpenAPI spec is out of date. Run 'pnpm run generate' and commit the changes."
             exit 1

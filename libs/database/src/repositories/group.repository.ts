@@ -6,6 +6,7 @@
  * group metadata only.
  */
 
+import type { PrincipalRef } from '@moltnet/models';
 import { eq, inArray } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
@@ -13,15 +14,10 @@ import { type Group, groups } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
 import { translateUniqueViolation } from '../unique-violation.js';
 
-export interface GroupCreator {
-  kind: 'agent' | 'human';
-  id: string;
-}
-
 export interface CreateGroupInput {
   name: string;
   teamId: string;
-  creator: GroupCreator;
+  creator: PrincipalRef;
 }
 
 export interface GroupRepository {

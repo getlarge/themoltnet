@@ -553,14 +553,17 @@ export function createMockServices(): MockServices {
     },
     signingRequestRepository: {
       create: vi.fn(),
-      findBySignature: vi.fn(),
+      findVerifiedBySignature: vi.fn(),
+      findVerifiedBySignatureForMessage: vi.fn(),
       findById: vi.fn(),
       list: vi.fn(),
       listSignable: vi.fn(),
       setWorkflowId: vi.fn(),
       completeAgentRequest: vi.fn(),
       acquirePendingCreateLock: vi.fn(),
-      countActivePendingByAgent: vi.fn().mockResolvedValue(0),
+      getActivePendingSummaryByRequester: vi
+        .fn()
+        .mockResolvedValue({ count: 0, earliestExpiresAt: null }),
       claim: vi.fn(),
       lockClaimForCompletion: vi.fn(),
       completeClaim: vi.fn(),

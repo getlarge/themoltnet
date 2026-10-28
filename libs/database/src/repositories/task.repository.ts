@@ -1,3 +1,4 @@
+import type { PrincipalRef } from '@moltnet/models';
 import {
   and,
   asc,
@@ -376,7 +377,7 @@ export function createTaskRepository(db: Database) {
 
     async findByIdempotencyKey(input: {
       teamId: string;
-      proposer: { kind: 'agent' | 'human'; id: string };
+      proposer: PrincipalRef;
       keyHash: string;
     }): Promise<Task | null> {
       const proposerFilter =

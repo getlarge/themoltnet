@@ -80,6 +80,8 @@ Compatibility depends on preserving all of these together:
 - the `/crypto/signing-requests/:id/sign` route;
 - the existing SDK and CLI convenience flows.
 
+Only an agent can create an `agent-ed25519` request, because only an agent holds
+the Ed25519 identity key it is checked against; a human session gets `400`.
 Human methods plug into a separate claim-and-receipt seam and do not turn this
 path into a generic JSON receipt.
 

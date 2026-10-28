@@ -120,3 +120,15 @@ export const PrincipalIdentitySchemaInline = Type.Union(
 export type AgentPrincipal = Static<typeof AgentPrincipalSchema>;
 export type HumanPrincipal = Static<typeof HumanPrincipalSchema>;
 export type PrincipalIdentity = AgentPrincipal | HumanPrincipal;
+
+export type PrincipalKind = 'agent' | 'human';
+
+/**
+ * A compact reference to an agent or human principal, keyed on `agents.id` /
+ * `humans.id` (never the Kratos identity id). The write-side shape behind
+ * every creator/owner/requester column pair.
+ */
+export interface PrincipalRef {
+  readonly kind: PrincipalKind;
+  readonly id: string;
+}

@@ -373,6 +373,12 @@ export interface EntriesNamespace {
 
   search(body: SearchDiaryData['body']): Promise<DiarySearchResult>;
 
+  /**
+   * Check an entry's content hash and signature. `valid` is true only when
+   * both hold. `signatureStatus` tells a rejected signature (`invalid`) apart
+   * from one that could not be checked (`signer_unresolved`) and from an
+   * unsigned entry (`unsigned`).
+   */
   verify(entryId: string): Promise<EntryVerifyResult>;
 
   /**

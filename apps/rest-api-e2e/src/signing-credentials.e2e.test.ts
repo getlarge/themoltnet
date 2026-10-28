@@ -264,9 +264,9 @@ describe('Signing credential and delegated request lifecycle', () => {
       },
     });
     expect(created.error).toBeUndefined();
-    expect(created.data!.requestedBy).toEqual({
-      id: requester.agentId,
-      type: 'agent',
+    expect(created.data!.requestedBy).toMatchObject({
+      kind: 'agent',
+      agentId: requester.agentId,
     });
 
     const signable = await listSigningRequests({
@@ -604,6 +604,16 @@ describe('Signing credential and delegated request lifecycle', () => {
     });
 
     expect(approval.response?.status).toBe(409);
+  });
+
+  it('rejects an agent-ed25519 signing request from a human session', async () => {
+    // Without a method the request defaults to agent-ed25519.
+    const created = await createSigningRequest({
+      client: signerClient,
+      body: { message: 'human cannot sign this' },
+    });
+
+    expect(created.response?.status).toBe(400);
   });
 
   it('rejects unsupported constraints and allows an eligible signer to reject', async () => {

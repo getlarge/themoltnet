@@ -8,17 +8,9 @@ import type {
   PrincipalIdentity,
   RenderedPackWithCreator,
 } from '@moltnet/database';
+import type { PrincipalRef } from '@moltnet/models';
 
 export type { PackDiffCompressionLevel, PackDiffRow };
-
-/**
- * Discriminated principal — caller resolves (subjectId, ns) at the auth
- * boundary. For human, `id` is humans.id (NOT the Kratos identityId).
- */
-export interface PackCreator {
-  kind: 'agent' | 'human';
-  id: string;
-}
 
 export interface SelectedEntry {
   entryId: string;
@@ -65,7 +57,7 @@ export interface CreateCustomPackInput {
   params: Record<string, unknown>;
   tokenBudget?: number;
   pinned?: boolean;
-  creator: PackCreator;
+  creator: PrincipalRef;
   ttlDays?: number;
   /**
    * The pack this one replaces.
@@ -87,7 +79,7 @@ export interface CreateRenderedPackInput {
   sourcePackId: string;
   renderedMarkdown?: string;
   renderMethod: string;
-  creator: PackCreator;
+  creator: PrincipalRef;
   pinned?: boolean;
   ttlDays?: number;
 }

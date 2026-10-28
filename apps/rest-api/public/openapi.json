@@ -3927,8 +3927,34 @@
           "hashMatches": {
             "type": "boolean"
           },
-          "signatureValid": {
-            "type": "boolean"
+          "signatureStatus": {
+            "anyOf": [
+              {
+                "enum": [
+                  "valid"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "invalid"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "signer_unresolved"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "unsigned"
+                ],
+                "type": "string"
+              }
+            ],
+            "description": "`valid`: the signature verified against the signer key. `invalid`: it was checked against the signer key and rejected. `signer_unresolved`: no signer key could be established, so it was not checked. `unsigned`: the entry carries no signature."
           },
           "signed": {
             "type": "boolean"
@@ -3940,7 +3966,7 @@
         "required": [
           "signed",
           "hashMatches",
-          "signatureValid",
+          "signatureStatus",
           "valid",
           "contentHash",
           "agentFingerprint"
@@ -11009,10 +11035,6 @@
       },
       "SigningRequest": {
         "properties": {
-          "agentId": {
-            "format": "uuid",
-            "type": "string"
-          },
           "challenge": {
             "anyOf": [
               {
@@ -11119,43 +11141,89 @@
           "requestedBy": {
             "anyOf": [
               {
+                "additionalProperties": false,
                 "properties": {
-                  "id": {
+                  "agentId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
                     "type": "string"
                   },
-                  "type": {
+                  "fingerprint": {
+                    "description": "Key fingerprint (A1B2-C3D4-E5F6-G7H8)",
+                    "pattern": "^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$",
+                    "type": "string"
+                  },
+                  "identityId": {
                     "anyOf": [
                       {
-                        "enum": [
-                          "agent"
-                        ],
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
                         "type": "string"
                       },
                       {
-                        "enum": [
-                          "human"
-                        ],
-                        "type": "string"
-                      },
-                      {
-                        "enum": [
-                          "service"
-                        ],
-                        "type": "string"
+                        "type": "null"
                       }
                     ]
+                  },
+                  "kind": {
+                    "enum": [
+                      "agent"
+                    ],
+                    "type": "string"
+                  },
+                  "publicKey": {
+                    "description": "Ed25519 public key with prefix",
+                    "pattern": "^ed25519:[A-Za-z0-9+/=]+$",
+                    "type": "string"
                   }
                 },
                 "required": [
-                  "id",
-                  "type"
+                  "kind",
+                  "agentId",
+                  "identityId",
+                  "fingerprint",
+                  "publicKey"
                 ],
                 "type": "object"
               },
               {
-                "type": "null"
+                "additionalProperties": false,
+                "properties": {
+                  "humanId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "identityId": {
+                    "anyOf": [
+                      {
+                        "description": "UUID v4 identifier",
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "kind": {
+                    "enum": [
+                      "human"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "humanId",
+                  "identityId"
+                ],
+                "type": "object"
               }
-            ]
+            ],
+            "discriminator": {
+              "propertyName": "kind"
+            }
           },
           "signature": {
             "anyOf": [
@@ -11349,8 +11417,8 @@
         },
         "required": [
           "id",
-          "agentId",
           "verificationMethod",
+          "requestedBy",
           "message",
           "nonce",
           "signingInput",

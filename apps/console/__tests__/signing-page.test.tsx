@@ -28,7 +28,13 @@ const request = {
   expiresAt: '2030-08-01T12:05:00.000Z',
   status: 'pending' as const,
   verificationMethod: 'human-hardware-previewsign' as const,
-  requestedBy: { id: 'agent-1', type: 'agent' as const },
+  requestedBy: {
+    kind: 'agent' as const,
+    agentId: '550e8400-e29b-41d4-a716-446655440000',
+    identityId: null,
+    fingerprint: 'A1B2-C3D4-E5F6-A7B8',
+    publicKey: 'ed25519:a2V5',
+  },
   signerConstraint: { id: 'manager', type: 'team-role' as const },
 };
 
@@ -95,12 +101,36 @@ describe('SigningPage', () => {
       screen.getByRole('heading', { name: 'Signing' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Approve production deployment')).toBeVisible();
-    expect(screen.getByText('agent-1')).toBeVisible();
+    expect(screen.getByText('A1B2-C3D4-E5F6-A7B8')).toBeVisible();
     expect(screen.getAllByText('human-hardware-previewsign')[0]).toBeVisible();
     expect(screen.getByText('team-role: manager')).toBeVisible();
     expect(screen.getByText('pending')).toBeVisible();
     expect(screen.getByText(/expires/i)).toBeVisible();
     expect(screen.getByText('Companion connected')).toBeVisible();
+  });
+
+  it.each([
+    [
+      'a human requester by id',
+      { kind: 'human', humanId: 'human-requester', identityId: null },
+      'human-requester',
+    ],
+    // An older API, during a rollout where the console deploys first.
+    [
+      'a legacy requester shape',
+      { id: 'legacy-requester', type: 'agent' },
+      'legacy-requester',
+    ],
+    ['a missing requester', undefined, '—'],
+  ])('shows %s', (_case, requestedBy, label) => {
+    controllerState.requests = [{ ...request, requestedBy } as never];
+    try {
+      render(<SigningPage />, { wrapper: Wrapper });
+
+      expect(screen.getByText(label)).toBeVisible();
+    } finally {
+      controllerState.requests = [request];
+    }
   });
 
   it('requires explicit review before opening the companion ceremony', async () => {

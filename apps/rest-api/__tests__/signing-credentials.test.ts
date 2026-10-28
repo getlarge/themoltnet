@@ -135,9 +135,9 @@ function createPendingRequest(
 ) {
   return {
     id: CREDENTIAL_ID,
-    agentId: OWNER_ID,
+    requesterAgentId: OWNER_ID,
+    requesterHumanId: null,
     verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
-    requestedBy: { id: OWNER_ID, type: 'agent' as const },
     signerConstraint,
     teamId: TEAM_ID,
     purpose: 'Approve production deployment',

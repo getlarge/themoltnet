@@ -76,12 +76,9 @@ describe('Agent routes', () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent(),
       );
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
         id: 'sr-1',
-        // `signing_requests.agent_id` stores a Kratos identity, not agents.id:
-        // the column carries no foreign key, so migration 0041's FK-driven
-        // rewrite never reached it. Retargeting it needs its own migration.
-        agentId: OWNER_IDENTITY_ID,
+        requesterAgentId: OWNER_ID,
         message: 'test message',
         nonce: 'nonce-1',
       } as any);
@@ -100,8 +97,30 @@ describe('Agent routes', () => {
       expect(body.valid).toBe(true);
       expect(body.signer.fingerprint).toBe('C212-DAFA-27C5-6C57');
       expect(
-        mocks.signingRequestRepository.findBySignature,
+        mocks.signingRequestRepository.findVerifiedBySignature,
       ).toHaveBeenCalledWith('valid_sig');
+    });
+
+    it('verifies for an agent whose Kratos identity was unlinked', async () => {
+      mocks.agentRepository.findByFingerprint.mockResolvedValue(
+        createMockAgent({ identityId: null }),
+      );
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
+        id: 'sr-1',
+        requesterAgentId: OWNER_ID,
+        message: 'test message',
+        nonce: 'nonce-1',
+      } as any);
+      mocks.cryptoService.verifyWithNonce.mockResolvedValue(true);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/agents/C212-DAFA-27C5-6C57/verify',
+        payload: { signature: 'valid_sig' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().valid).toBe(true);
     });
 
     it('verifies a signature made with a key the agent has since rotated away from', async () => {
@@ -110,9 +129,9 @@ describe('Agent routes', () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent(),
       );
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
         id: 'sr-1',
-        agentId: OWNER_IDENTITY_ID,
+        requesterAgentId: OWNER_ID,
         message: 'test message',
         nonce: 'nonce-1',
         createdAt,
@@ -150,9 +169,9 @@ describe('Agent routes', () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent(),
       );
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
         id: 'sr-1',
-        agentId: OWNER_IDENTITY_ID,
+        requesterAgentId: OWNER_ID,
         message: 'test message',
         nonce: 'nonce-1',
         completedAt,
@@ -190,9 +209,9 @@ describe('Agent routes', () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent(),
       );
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
         id: 'sr-1',
-        agentId: OWNER_IDENTITY_ID,
+        requesterAgentId: OWNER_ID,
         message: 'test message',
         nonce: 'nonce-1',
         completedAt: new Date(),
@@ -218,9 +237,9 @@ describe('Agent routes', () => {
         fingerprint: 'A0A0-0000-0000-0001',
       });
       mocks.agentRepository.findById.mockResolvedValue(createMockAgent());
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
         id: 'sr-1',
-        agentId: OWNER_IDENTITY_ID,
+        requesterAgentId: OWNER_ID,
         message: 'test message',
         nonce: 'nonce-1',
       } as any);
@@ -241,9 +260,9 @@ describe('Agent routes', () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent(),
       );
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
         id: 'sr-1',
-        agentId: OWNER_ID,
+        requesterAgentId: OWNER_ID,
         message: 'test message',
         nonce: 'nonce-1',
       } as any);
@@ -260,7 +279,7 @@ describe('Agent routes', () => {
       expect(response.statusCode).toBe(200);
       expect(response.json().valid).toBe(false);
       expect(
-        mocks.signingRequestRepository.findBySignature,
+        mocks.signingRequestRepository.findVerifiedBySignature,
       ).toHaveBeenCalledWith('bad_sig');
     });
 
@@ -268,9 +287,9 @@ describe('Agent routes', () => {
       mocks.agentRepository.findByFingerprint.mockResolvedValue(
         createMockAgent(),
       );
-      mocks.signingRequestRepository.findBySignature.mockResolvedValue({
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
         id: 'sr-2',
-        agentId: OTHER_AGENT_ID,
+        requesterAgentId: OTHER_AGENT_ID,
         message: 'test message',
         nonce: 'nonce-2',
       } as any);
@@ -281,6 +300,30 @@ describe('Agent routes', () => {
         payload: {
           signature: 'sig',
         },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().valid).toBe(false);
+      expect(mocks.cryptoService.verifyWithNonce).not.toHaveBeenCalled();
+    });
+
+    it('returns invalid when a human created the signing request', async () => {
+      mocks.agentRepository.findByFingerprint.mockResolvedValue(
+        createMockAgent(),
+      );
+      // Same id value as the agent: only the kind tells them apart.
+      mocks.signingRequestRepository.findVerifiedBySignature.mockResolvedValue({
+        id: 'sr-3',
+        requesterAgentId: null,
+        requesterHumanId: OWNER_ID,
+        message: 'test message',
+        nonce: 'nonce-3',
+      } as any);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/agents/C212-DAFA-27C5-6C57/verify',
+        payload: { signature: 'sig' },
       });
 
       expect(response.statusCode).toBe(200);

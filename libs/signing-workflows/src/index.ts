@@ -50,6 +50,7 @@ export {
   type SigningWorkflowDependency,
   SigningWorkflowError,
   type SigningWorkflowErrorCode,
+  type SigningWorkflowRequester,
   signingWorkflows,
   toSigningMethodReceipt,
   type ValidateSigningCredentialInput,

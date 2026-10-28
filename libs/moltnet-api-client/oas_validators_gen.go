@@ -12938,6 +12938,44 @@ func (s *EntryRelationWithDepth) Validate() error {
 	return nil
 }
 
+func (s *EntryVerifyResult) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.SignatureStatus.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "signatureStatus",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s EntryVerifyResultSignatureStatus) Validate() error {
+	switch s {
+	case "valid":
+		return nil
+	case "invalid":
+		return nil
+	case "signer_unresolved":
+		return nil
+	case "unsigned":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s ExecutorTrustLevel) Validate() error {
 	switch s {
 	case "selfDeclared":
@@ -32579,15 +32617,8 @@ func (s *SigningRequest) Validate() error {
 		})
 	}
 	if err := func() error {
-		if value, ok := s.RequestedBy.Get(); ok {
-			if err := func() error {
-				if err := value.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
+		if err := s.RequestedBy.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -32715,39 +32746,20 @@ func (s *SigningRequestList) Validate() error {
 	return nil
 }
 
-func (s *SigningRequestRequestedBy) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if err := s.Type.Validate(); err != nil {
+func (s SigningRequestRequestedBy) Validate() error {
+	switch s.Type {
+	case AgentPrincipalSigningRequestRequestedBy:
+		if err := s.AgentPrincipal.Validate(); err != nil {
 			return err
 		}
 		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "type",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s SigningRequestRequestedByType) Validate() error {
-	switch s {
-	case "agent":
-		return nil
-	case "human":
-		return nil
-	case "service":
+	case HumanPrincipalSigningRequestRequestedBy:
+		if err := s.HumanPrincipal.Validate(); err != nil {
+			return err
+		}
 		return nil
 	default:
-		return errors.Errorf("invalid value: %v", s)
+		return errors.Errorf("invalid type %q", s.Type)
 	}
 }
 
