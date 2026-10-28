@@ -22,7 +22,7 @@ export {
   resolveHostExecBaseEnv,
   type TrackedError,
 } from './moltnet/tools.js';
-export { createPiOtelExtension, type PiOtelOptions } from './otel/index.js';
+export { createPiTelemetry } from './otel/durable.js';
 export type { GondolinDurableTaskOptions } from './runtime/durable-task-options.js';
 export type {
   PiTaskExecutionPlan,

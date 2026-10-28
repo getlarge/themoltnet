@@ -30,6 +30,7 @@ import { Value } from 'typebox/value';
 
 import { resolvePiCodingAgentDir } from '../config.js';
 import { taskUsageFromState } from '../durable-usage.js';
+import { withClassifierTelemetry } from '../otel/classifier.js';
 import {
   PI_CLASSIFIER_API,
   PI_CLASSIFIER_APIS,
@@ -67,6 +68,7 @@ export async function createRuntimeModels(
     authPath: join(piDir, 'auth.json'),
     modelsPath,
   });
+  models.classify = withClassifierTelemetry(models.classify.bind(models));
   if (models.getError()) return models;
   let document: {
     providers?: Record<

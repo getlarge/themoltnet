@@ -129,6 +129,19 @@ configuration. Pi resolves the selected provider's credentials for
 create a separate provider identity. Keep the coding runtime's primary model a
 chat model.
 
+For anonymous local System One servers, the runtime resolves an explicitly empty
+key. Its internal compatibility shim supplies a sentinel to satisfy Pi 1.4's
+nonempty-key check and removes the generated Authorization header before fetch.
+Configured credentials and explicit authorization headers retain precedence;
+extensions should keep using the normal resolver.
+
+Classifier usage is priced from the registered model's `cost` rates in USD per
+million tokens (`input`, `output`, `cacheRead`, `cacheWrite`). Configure those
+rates for custom paid models. Missing rates default to zero; task reports omit
+unpriced costs rather than claim a complete zero-dollar estimate. Prices are
+catalog estimates, not provider invoice reconciliation. Missing response usage
+cannot be reconstructed. Billed usage survives malformed classifier answers.
+
 Set the runtime profile's optional `models.classification` to
 `{ "provider": "team", "model": "decisions" }`. The same Pi runtime then handles
 standalone `classify` tasks without starting a coding VM and exposes a
@@ -151,6 +164,33 @@ default of 8192 tokens. See
 and CLI setup, endpoint compatibility, and model ID requirements.
 
 ## Pi Durable execution
+
+`createDurableTaskExecutor` accepts an optional `telemetry` value implementing
+Pi's `TelemetryContext`. By default it uses `createPiTelemetry()`, exported from
+`@themoltnet/pi-runtime`, to bridge native Durable spans and metrics to the
+host's OpenTelemetry providers. Configure the host SDK/exporters before running
+tasks; the runtime installs neither and is inert without them. Custom embedders
+can pass `telemetry: createPiTelemetry({ parentContext, tracer, meter })` or
+their own Pi telemetry implementation. W3C `traceparent` and `tracestate`
+reconnect resumed work; baggage is not persisted.
+
+The old hook-based `createPiOtelExtension` and `PiOtelOptions` exports have been
+removed from both `@themoltnet/pi-runtime` and `@themoltnet/pi-extension`.
+Remove those extension registrations and use native Durable telemetry instead.
+Interactive hook instrumentation is no longer provided. The daemon retains one
+host tracer/meter bootstrap and OTLP export pipeline for task spans, native Pi
+instrumentation and HTTP/log correlation.
+
+Models created through the runtime also emit a `pi.ai.request` span for each
+classification, with `operation: classify`, plus `pi.ai.request.duration`,
+`pi.ai.tokens` and `pi.ai.cost`. This fills Pi 1.4's streaming-only model
+instrumentation gap for builtin and custom classifiers. Retries count as one
+logical request; billed error results retain their usage. No prompts, answers,
+credentials or raw error text are recorded. A zero `pi.ai.cost` sample means the
+model reported zero estimated cost and can also indicate missing prices; use
+task usage's cost coverage when assessing completeness. Telemetry measures
+executed requests; persisted task usage remains the accounting record across
+recovery and is not re-emitted merely by replaying stored results.
 
 The default `gondolin_pi` daemon runtime uses Pi Durable. Apply the
 runtime-store migration and configure runtime-session object storage before

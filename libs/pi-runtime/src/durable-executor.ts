@@ -25,6 +25,7 @@ import {
   type UsageState,
 } from '@earendil-works/pi-durable';
 import type { ExecutionEnv } from '@earendil-works/pi-durable/env';
+import type { TelemetryContext } from '@earendil-works/pi-telemetry';
 import { computeJsonCid } from '@moltnet/crypto-service/json-cid';
 import {
   materializeTaskOutput,
@@ -45,6 +46,7 @@ import {
 import { Value } from 'typebox/value';
 
 import { taskUsageFromState, usageSince } from './durable-usage.js';
+import { createPiTelemetry } from './otel/durable.js';
 import { classifyProviderFailure } from './runtime/provider-error-classification.js';
 import { redactRetryTriageSecrets } from './runtime/retry-triage.js';
 import { SubagentToolParameters } from './runtime/subagent-parameters.js';
@@ -202,6 +204,8 @@ function attemptUsage(
 /** No filesystem artifacts: this executor's complete continuation state lives in Storage. */
 export function createDurableTaskExecutor(options: {
   models: Models;
+  /** Defaults to native Pi instrumentation through the host OTel providers. */
+  telemetry?: TelemetryContext;
   model: { provider: string; modelId: string };
   agent?: Omit<AgentChange, 'model'>;
   maxTurns?: number;
@@ -529,6 +533,7 @@ export function createDurableTaskExecutor(options: {
         connected.storage,
         {
           models: options.models,
+          telemetry: options.telemetry ?? createPiTelemetry(),
           registry,
           settings: { toolExecution: 'sequential' },
           env: () => {

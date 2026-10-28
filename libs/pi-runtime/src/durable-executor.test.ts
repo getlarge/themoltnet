@@ -13,6 +13,14 @@ import {
   type Extension,
   type ToolRegistration,
 } from '@earendil-works/pi-durable';
+import type { TelemetryContext } from '@earendil-works/pi-telemetry';
+import { propagation, ROOT_CONTEXT, trace } from '@opentelemetry/api';
+import { W3CTraceContextPropagator } from '@opentelemetry/core';
+import {
+  BasicTracerProvider,
+  InMemorySpanExporter,
+  SimpleSpanProcessor,
+} from '@opentelemetry/sdk-trace-base';
 import {
   AgentRuntime,
   ApiTaskReporter,
@@ -28,6 +36,7 @@ import { remoteLog } from '../__tests__/durable-log.js';
 import { createDurableTaskExecutor } from './durable-executor.js';
 import { ApiDurableStorage } from './durable-storage.js';
 import { acquireDurableTransport } from './durable-transport.js';
+import { createPiTelemetry } from './otel/durable.js';
 import { piCodemode } from './runtime-definition.js';
 
 function task(
@@ -67,6 +76,7 @@ function setup(
   maxTurns?: number,
   subagentExtensions?: readonly Extension[],
   overrides: {
+    telemetry?: TelemetryContext;
     maxBashTimeouts?: number;
     tools?: readonly ToolRegistration[];
     extensions?: readonly Extension[];
@@ -95,6 +105,7 @@ function setup(
   }));
   const execute = createDurableTaskExecutor({
     models,
+    telemetry: overrides.telemetry,
     maxTurns,
     maxBashTimeouts: overrides.maxBashTimeouts,
     subagentContracts: createSubagentContractRegistry([
@@ -1167,4 +1178,65 @@ it('executes models.classify inside native codemode using the registered provide
     ]),
   );
   expect(transcript).toContain('0.8');
+});
+
+it('connects native Durable and model spans to the task trace without recording conversation content', async () => {
+  propagation.setGlobalPropagator(new W3CTraceContextPropagator());
+  const exporter = new InMemorySpanExporter();
+  const provider = new BasicTracerProvider({
+    spanProcessors: [new SimpleSpanProcessor(exporter)],
+  });
+  const tracer = provider.getTracer('durable-integration');
+  const host = tracer.startSpan('moltnet.task.execute');
+  try {
+    const telemetry = createPiTelemetry({
+      tracer,
+      parentContext: trace.setSpan(ROOT_CONTEXT, host),
+    });
+    const { faux, execute } = setup(false, undefined, undefined, { telemetry });
+    const summary = 'Unique private submission content';
+    faux.setResponses([
+      fauxAssistantMessage(
+        fauxToolCall('submit_freeform_output', { summary }),
+        { stopReason: 'toolUse' },
+      ),
+    ]);
+    expect((await execute(task(), reporter())).status).toBe('completed');
+    const spans = exporter.getFinishedSpans();
+    expect(spans.map((span) => span.name)).toEqual(
+      expect.arrayContaining([
+        'pi.durable.submit',
+        'pi.durable.phase',
+        'pi.ai.request',
+      ]),
+    );
+    const request = spans.find((span) => span.name === 'pi.ai.request')!;
+    const submit = spans.find((span) => span.name === 'pi.durable.submit')!;
+    const phase = spans.find((span) => span.name === 'pi.durable.phase')!;
+    expect(phase.parentSpanContext?.spanId).toBe(submit.spanContext().spanId);
+    expect(
+      spans.find(
+        (span) =>
+          span.spanContext().spanId === request.parentSpanContext?.spanId,
+      )?.name,
+    ).toBe('pi.durable.phase');
+    expect(
+      spans.every(
+        (span) => span.spanContext().traceId === host.spanContext().traceId,
+      ),
+    ).toBe(true);
+    expect(
+      JSON.stringify(
+        spans.map((span) => ({
+          attributes: span.attributes,
+          events: span.events,
+          status: span.status,
+        })),
+      ),
+    ).not.toContain(summary);
+  } finally {
+    propagation.disable();
+    host.end();
+    await provider.shutdown();
+  }
 });
