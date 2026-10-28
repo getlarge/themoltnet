@@ -40,11 +40,11 @@ export interface SigningRequester {
 
 /** The row's requester; the `signing_requests_requester_xor` check holds one. */
 export function signingRequester(
-  row: Pick<SigningRequest, 'requesterAgentId' | 'requesterHumanId'>,
+  row: Pick<SigningRequest, 'id' | 'requesterAgentId' | 'requesterHumanId'>,
 ): SigningRequester {
   if (row.requesterAgentId) return { kind: 'agent', id: row.requesterAgentId };
   if (row.requesterHumanId) return { kind: 'human', id: row.requesterHumanId };
-  throw new Error('Signing request has no requester');
+  throw new Error(`Signing request ${row.id} has no requester`);
 }
 
 /** Whether `principal` created the row. */
@@ -57,7 +57,7 @@ export function isSigningRequester(
   return column === principal.id;
 }
 
-function requesterIs(requester: SigningRequester) {
+function whereRequester(requester: SigningRequester) {
   return requester.kind === 'agent'
     ? eq(signingRequests.requesterAgentId, requester.id)
     : eq(signingRequests.requesterHumanId, requester.id);
@@ -162,7 +162,7 @@ export function createSigningRequestRepository(db: Database) {
 
       const conditions = [];
       if (requester) {
-        conditions.push(requesterIs(requester));
+        conditions.push(whereRequester(requester));
       }
       if (teamIds?.length) {
         conditions.push(inArray(signingRequests.teamId, teamIds));
@@ -440,7 +440,7 @@ export function createSigningRequestRepository(db: Database) {
         .from(signingRequests)
         .where(
           and(
-            requesterIs(requester),
+            whereRequester(requester),
             eq(signingRequests.status, 'pending'),
             gt(signingRequests.expiresAt, sql`now()`),
           ),

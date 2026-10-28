@@ -20,21 +20,37 @@ FROM "humans" h
 WHERE sr."requester_agent_id" IS NULL AND sr."requester_human_id" IS NULL
   AND sr."requested_by"->>'type' = 'human'
   AND h."id"::text = sr."requested_by"->>'id';--> statement-breakpoint
--- 3. An identity whose signatures created entries maps to their creator
--- agent, applied only when that creator is unique for the identity.
+-- 3. The signing workflow recorded the key that verified the signature.
+UPDATE "signing_requests" sr SET "requester_agent_id" = k."agent_id"
+FROM "agent_identity_keys" k
+WHERE sr."requester_agent_id" IS NULL AND sr."requester_human_id" IS NULL
+  AND k."public_key" = sr."signer_public_key";--> statement-breakpoint
+UPDATE "signing_requests" sr SET "requester_agent_id" = a."id"
+FROM "agents" a
+WHERE sr."requester_agent_id" IS NULL AND sr."requester_human_id" IS NULL
+  AND a."public_key" = sr."signer_public_key";--> statement-breakpoint
+-- 4. The request's signature backs an entry; only its requester could have
+-- created that entry.
+UPDATE "signing_requests" sr SET "requester_agent_id" = e."creator_agent_id"
+FROM "diary_entries" e
+WHERE sr."requester_agent_id" IS NULL AND sr."requester_human_id" IS NULL
+  AND e."content_signature" = sr."signature"
+  AND e."creator_agent_id" IS NOT NULL;--> statement-breakpoint
+-- 5. The identity's other requests go to the creator its signatures resolved
+-- to, applied only when that creator is unique for the identity.
 UPDATE "signing_requests" sr SET "requester_agent_id" = m."creator_agent_id"
 FROM (
   SELECT s."agent_id", min(e."creator_agent_id"::text)::uuid AS "creator_agent_id"
   FROM "signing_requests" s
   JOIN "diary_entries" e ON e."content_signature" = s."signature"
-  WHERE s."requester_agent_id" IS NULL AND s."requester_human_id" IS NULL
-    AND e."creator_agent_id" IS NOT NULL
+  WHERE e."creator_agent_id" IS NOT NULL
   GROUP BY s."agent_id"
   HAVING count(DISTINCT e."creator_agent_id") = 1
 ) m
 WHERE sr."agent_id" = m."agent_id"
   AND sr."requester_agent_id" IS NULL AND sr."requester_human_id" IS NULL;--> statement-breakpoint
--- 4. Requests that resolve to no principal cannot be attributed.
+-- 6. Requests that resolve to no principal cannot be attributed and are
+-- deleted; signatures they hold no longer verify.
 DELETE FROM "signing_requests"
 WHERE "requester_agent_id" IS NULL AND "requester_human_id" IS NULL;--> statement-breakpoint
 ALTER TABLE "signing_requests" DROP CONSTRAINT "signing_requests_delegated_context";--> statement-breakpoint

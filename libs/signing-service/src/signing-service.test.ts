@@ -313,6 +313,22 @@ describe('createSigningService', () => {
       ).resolves.toMatchObject({ id: REQUEST_ID });
     });
 
+    it('hides a request created by another human', async () => {
+      const service = ownedBy({ requesterHumanId: 'other-human-id' });
+
+      await expect(
+        service.requests.get({ actor: human, requestId: REQUEST_ID }),
+      ).rejects.toMatchObject({ code: 'not_found' });
+    });
+
+    it('does not match a human to an agent-created request with the same id', async () => {
+      const service = ownedBy({ requesterAgentId: human.humanId });
+
+      await expect(
+        service.requests.get({ actor: human, requestId: REQUEST_ID }),
+      ).rejects.toMatchObject({ code: 'not_found' });
+    });
+
     it('lists by the actor principal, not the Kratos identity', async () => {
       const list = vi.fn().mockResolvedValue({ items: [], total: 0 });
       const service = createSigningService(
@@ -777,6 +793,7 @@ describe('createSigningService', () => {
         err: startupError,
         signingId: created.id,
         signerIdentityId: agent.identityId,
+        requester: `agent:${agent.agentId}`,
         cleanupError: undefined,
       },
       'signing_request.workflow_start_failed',

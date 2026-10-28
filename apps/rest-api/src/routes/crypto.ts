@@ -50,6 +50,7 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
       const signingRequest =
         await fastify.signingRequestRepository.findBySignature(signature);
       if (!signingRequest) {
+        request.log.debug({ reason: 'no_signing_request' }, 'crypto.verify');
         return { valid: false };
       }
 
@@ -59,6 +60,15 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
           )
         : null;
       if (!agent) {
+        request.log.debug(
+          {
+            signingRequestId: signingRequest.id,
+            reason: signingRequest.requesterAgentId
+              ? 'agent_missing'
+              : 'human_requester',
+          },
+          'crypto.verify',
+        );
         return { valid: false };
       }
 

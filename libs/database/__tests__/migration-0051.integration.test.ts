@@ -28,6 +28,7 @@ const DEAD_HUMAN_IDENTITY = '90000000-0000-4000-a000-000000000004';
 const DEAD_UNKNOWN_IDENTITY = '90000000-0000-4000-a000-000000000005';
 const DEAD_SHARED_IDENTITY = '90000000-0000-4000-a000-000000000006';
 const DEAD_REQUESTED_BY_AGENT_IDENTITY = '90000000-0000-4000-a000-000000000007';
+const DEAD_SIGNER_KEY_IDENTITY = '90000000-0000-4000-a000-000000000008';
 const TEAM = '20000000-0000-4000-a000-000000000051';
 const DIARY = '30000000-0000-4000-a000-000000000051';
 
@@ -94,29 +95,38 @@ describe('migration 0051 signing request requester', () => {
         ('${DIARY}', 'shared b', '${RECREATED_AGENT}', 'bafy-shared-b',
           'sig-shared-b');
       INSERT INTO signing_requests (
-        id, agent_id, requested_by, message, expires_at, status, signature
+        id, agent_id, requested_by, message, expires_at, status, signature,
+        signer_public_key
       ) VALUES
         ('40000000-0000-4000-a000-000000000001', '${AGENT_IDENTITY}', NULL,
-          'live agent', now(), 'completed', 'sig-1'),
+          'live agent', now(), 'completed', 'sig-1', NULL),
         ('40000000-0000-4000-a000-000000000002', '${HUMAN_IDENTITY}', NULL,
-          'live human', now(), 'completed', 'sig-2'),
+          'live human', now(), 'completed', 'sig-2', NULL),
         ('40000000-0000-4000-a000-000000000003', '${DEAD_HUMAN_IDENTITY}',
           '{"id": "${HUMAN}", "type": "human"}', 'requested_by', now(),
-          'completed', 'sig-3'),
+          'completed', 'sig-3', NULL),
         ('40000000-0000-4000-a000-000000000004', '${DEAD_AGENT_IDENTITY}', NULL,
-          'used by an entry', now(), 'completed', 'sig-dead-agent-entry'),
+          'used by an entry', now(), 'completed', 'sig-dead-agent-entry', NULL),
         ('40000000-0000-4000-a000-000000000005', '${DEAD_AGENT_IDENTITY}', NULL,
-          'same identity, no entry', now(), 'expired', NULL),
+          'same identity, no entry', now(), 'expired', NULL, NULL),
         ('40000000-0000-4000-a000-000000000006', '${DEAD_UNKNOWN_IDENTITY}',
-          NULL, 'unattributable', now(), 'completed', 'sig-6'),
+          NULL, 'unattributable', now(), 'completed', 'sig-6', NULL),
         ('40000000-0000-4000-a000-000000000007',
           '${DEAD_REQUESTED_BY_AGENT_IDENTITY}',
           '{"id": "${RECREATED_AGENT}", "type": "agent"}', 'requested_by agent',
-          now(), 'completed', 'sig-7'),
+          now(), 'completed', 'sig-7', NULL),
         ('40000000-0000-4000-a000-000000000008', '${DEAD_SHARED_IDENTITY}',
-          NULL, 'ambiguous a', now(), 'completed', 'sig-shared-a'),
+          NULL, 'ambiguous a', now(), 'completed', 'sig-shared-a', NULL),
         ('40000000-0000-4000-a000-000000000009', '${DEAD_SHARED_IDENTITY}',
-          NULL, 'ambiguous b', now(), 'completed', 'sig-shared-b');
+          NULL, 'ambiguous b', now(), 'completed', 'sig-shared-b', NULL),
+        ('40000000-0000-4000-a000-000000000010', '${DEAD_SHARED_IDENTITY}',
+          NULL, 'ambiguous, no entry', now(), 'expired', NULL, NULL),
+        ('40000000-0000-4000-a000-000000000011', '${DEAD_SIGNER_KEY_IDENTITY}',
+          NULL, 'signer key', now(), 'completed', 'sig-11', 'ed25519:b'),
+        -- The live identity wins over a conflicting requested_by.
+        ('40000000-0000-4000-a000-000000000012', '${AGENT_IDENTITY}',
+          '{"id": "${RECREATED_AGENT}", "type": "agent"}', 'precedence',
+          now(), 'completed', 'sig-12', NULL);
     `);
 
     await migrate(drizzle(pool), { migrationsFolder: migrationFolder });
@@ -155,10 +165,32 @@ describe('migration 0051 signing request requester', () => {
         requester_agent_id: RECREATED_AGENT,
         requester_human_id: null,
       },
-      // 6 (unattributable) and 8, 9 (two candidate creators) are deleted.
+      // 6 is unattributable and deleted.
       {
         id: '40000000-0000-4000-a000-000000000007',
         requester_agent_id: RECREATED_AGENT,
+        requester_human_id: null,
+      },
+      // 8 and 9 each back one entry; 10 shares their identity, whose
+      // entries have two creators, so it is deleted.
+      {
+        id: '40000000-0000-4000-a000-000000000008',
+        requester_agent_id: AGENT,
+        requester_human_id: null,
+      },
+      {
+        id: '40000000-0000-4000-a000-000000000009',
+        requester_agent_id: RECREATED_AGENT,
+        requester_human_id: null,
+      },
+      {
+        id: '40000000-0000-4000-a000-000000000011',
+        requester_agent_id: RECREATED_AGENT,
+        requester_human_id: null,
+      },
+      {
+        id: '40000000-0000-4000-a000-000000000012',
+        requester_agent_id: AGENT,
         requester_human_id: null,
       },
     ]);

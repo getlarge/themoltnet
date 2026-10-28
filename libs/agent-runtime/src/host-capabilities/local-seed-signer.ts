@@ -39,7 +39,7 @@ export function createLocalSeedSigner(input: {
       return { signature: await sign(sshsig) };
     },
     async signDiaryEntry({ signingRequestId }) {
-      // Enforceable now: the request must be owned by this identity, use the
+      // Enforceable now: the request must be owned by this agent principal, use the
       // agent-ed25519 method, be pending, and carry a bounded signingInput.
       // Binding the signature to the active task/team/purpose/expected content
       // needs a server-side provenance field on the signing request and is

@@ -3,7 +3,11 @@ import { isDeepStrictEqual } from 'node:util';
 
 import { type AuthContext, teamRelationToRole } from '@moltnet/auth';
 import { buildSigningBytes } from '@moltnet/crypto-service';
-import { DBOS, type SigningRequest } from '@moltnet/database';
+import {
+  DBOS,
+  isSigningRequester,
+  type SigningRequest,
+} from '@moltnet/database';
 import { SIGNER_CONSTRAINT_TYPE, VERIFICATION_METHOD } from '@moltnet/models';
 import {
   assertSigningVerifierRegistered,
@@ -20,7 +24,6 @@ import {
 import {
   actorPrincipal,
   asSigningMethodJson,
-  isRequester,
   mapWorkflowError,
   namespace,
   requireHuman,
@@ -225,6 +228,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
               err,
               signingId: created.id,
               signerIdentityId,
+              requester: `${requester.kind}:${requester.id}`,
               cleanupError,
             },
             'signing_request.workflow_start_failed',
@@ -283,7 +287,10 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
       const isClaimant =
         input.actor.subjectType === 'human' &&
         row?.claimedByHumanId === input.actor.humanId;
-      if (!row || (!isRequester(row, input.actor) && !isClaimant)) {
+      if (
+        !row ||
+        (!isSigningRequester(row, actorPrincipal(input.actor)) && !isClaimant)
+      ) {
         throw new SigningServiceError('not_found', 'Signing request not found');
       }
       return row;
@@ -577,7 +584,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
       signature: string;
     }) {
       const row = await deps.signingRequestRepository.findById(input.requestId);
-      if (!row || !isRequester(row, input.actor)) {
+      if (!row || !isSigningRequester(row, actorPrincipal(input.actor))) {
         throw new SigningServiceError('not_found', 'Signing request not found');
       }
       if (row.verificationMethod !== VERIFICATION_METHOD.AgentEd25519) {
