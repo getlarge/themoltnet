@@ -36,7 +36,6 @@ import { getExecutor } from '../transaction-context.js';
 
 export type SigningRequestStatus = SigningRequest['status'];
 
-/** The principal that created a signing request. */
 export type SigningRequester = PrincipalRef;
 
 /** The row's requester; the `signing_requests_requester_xor` check holds one. */

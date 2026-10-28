@@ -3,7 +3,7 @@ import { isDeepStrictEqual } from 'node:util';
 
 import {
   type AuthContext,
-  authPrincipalCreator,
+  authPrincipalRef,
   teamRelationToRole,
 } from '@moltnet/auth';
 import { buildSigningBytes } from '@moltnet/crypto-service';
@@ -164,7 +164,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
         }
       }
 
-      const requester = authPrincipalCreator(input.actor);
+      const requester = authPrincipalRef(input.actor);
       const expiresAt = new Date(
         now().getTime() + deps.signingTimeoutSeconds * 1000,
       );
@@ -284,7 +284,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
             offset: input.offset,
           })
         : deps.signingRequestRepository.list({
-            requester: authPrincipalCreator(input.actor),
+            requester: authPrincipalRef(input.actor),
             status: input.status,
             limit: input.limit,
             offset: input.offset,
@@ -298,8 +298,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
         row?.claimedByHumanId === input.actor.humanId;
       if (
         !row ||
-        (!isSigningRequester(row, authPrincipalCreator(input.actor)) &&
-          !isClaimant)
+        (!isSigningRequester(row, authPrincipalRef(input.actor)) && !isClaimant)
       ) {
         throw new SigningServiceError('not_found', 'Signing request not found');
       }
@@ -594,7 +593,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
       signature: string;
     }) {
       const row = await deps.signingRequestRepository.findById(input.requestId);
-      if (!row || !isSigningRequester(row, authPrincipalCreator(input.actor))) {
+      if (!row || !isSigningRequester(row, authPrincipalRef(input.actor))) {
         throw new SigningServiceError('not_found', 'Signing request not found');
       }
       if (row.verificationMethod !== VERIFICATION_METHOD.AgentEd25519) {

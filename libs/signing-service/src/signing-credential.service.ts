@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import {
   type AuthContext,
-  authPrincipalCreator,
+  authPrincipalRef,
   KetoNamespace,
 } from '@moltnet/auth';
 import type { SigningCredential, SigningRequest } from '@moltnet/database';
@@ -294,7 +294,7 @@ export function createSigningCredentialService(deps: SigningServiceDeps) {
           'Team credential management permission is required',
         );
       }
-      const actor = authPrincipalCreator(input.actor);
+      const actor = authPrincipalRef(input.actor);
       const result = await deps.transactionRunner.runInTransaction(
         () =>
           deps.signingCredentialRepository.transition({

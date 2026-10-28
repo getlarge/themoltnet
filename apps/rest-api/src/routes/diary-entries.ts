@@ -3,7 +3,7 @@
  */
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import {
-  authPrincipalCreator,
+  authPrincipalRef,
   type KetoNamespace,
   requireAuth,
 } from '@moltnet/auth';
@@ -202,7 +202,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
           if (
             !isSigningRequester(
               signingRequest,
-              authPrincipalCreator(request.authContext!),
+              authPrincipalRef(request.authContext!),
             )
           ) {
             throw createProblem(

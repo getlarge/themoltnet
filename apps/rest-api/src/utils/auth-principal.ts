@@ -18,11 +18,11 @@
  * - Agents are no longer the easy case. `agents.id` is the FK target,
  *   not `agents.identity_id`, and the two are unrelated UUIDs since the
  *   decoupling — so both principals need the same translation, and the
- *   mapping is `authPrincipalCreator` from the auth layer rather than a
+ *   mapping is `authPrincipalRef` from the auth layer rather than a
  *   copy kept here.
  */
 
-import { authPrincipalCreator } from '@moltnet/auth';
+import { authPrincipalRef } from '@moltnet/auth';
 import type {
   AgentRepository,
   HumanRepository,
@@ -66,11 +66,9 @@ interface RequestWithAuthContext {
   };
 }
 
-export type RepositoryCreator = PrincipalRef;
-
 export function authContextToCreator(
   request: RequestWithAuthContext,
-): RepositoryCreator {
+): PrincipalRef {
   const ctx = request.authContext;
   if (!ctx) {
     throw new Error(
@@ -81,11 +79,11 @@ export function authContextToCreator(
   // *_human_id column FKs to the internal id since the decoupling, so writing
   // identityId here would violate the constraint for any agent whose identity
   // has moved — which, with fresh internal ids, is every agent.
-  return authPrincipalCreator(ctx);
+  return authPrincipalRef(ctx);
 }
 
 /**
- * Inflate a `RepositoryCreator { kind, id }` (compact write-side shape)
+ * Inflate a `PrincipalRef { kind, id }` (compact write-side shape)
  * into the full `PrincipalIdentity` discriminated union returned by
  * REST responses. Looks up agent fingerprint+publicKey or human identityId
  * as needed.
@@ -97,7 +95,7 @@ export function authContextToCreator(
  * second SELECT.
  */
 export async function inflateCreator(
-  creator: RepositoryCreator,
+  creator: PrincipalRef,
   deps: { agentRepository: AgentRepository; humanRepository: HumanRepository },
 ): Promise<PrincipalIdentity> {
   if (creator.kind === 'agent') {

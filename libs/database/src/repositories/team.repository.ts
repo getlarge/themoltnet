@@ -24,12 +24,10 @@ import { getExecutor } from '../transaction-context.js';
 
 const INVITE_CODE_PREFIX = 'mlt_inv_';
 
-export type TeamCreator = PrincipalRef;
-
 export interface CreateTeamInput {
   name: string;
   personal: boolean;
-  creator: TeamCreator;
+  creator: PrincipalRef;
   status: 'founding' | 'active' | 'archived';
 }
 
@@ -37,7 +35,7 @@ export interface CreateInviteInput {
   teamId: string;
   role: 'manager' | 'executor' | 'member';
   expiresAt: Date;
-  creator: TeamCreator;
+  creator: PrincipalRef;
 }
 
 export interface CreateFoundingAcceptanceInput {
@@ -51,7 +49,7 @@ export interface TeamRepository {
   create(input: CreateTeamInput): Promise<Team>;
   findById(id: string): Promise<Team | null>;
   listByIds(ids: string[]): Promise<Team[]>;
-  findPersonalByCreator(creator: TeamCreator): Promise<Team | null>;
+  findPersonalByCreator(creator: PrincipalRef): Promise<Team | null>;
   updateStatus(
     id: string,
     status: 'founding' | 'active' | 'archived',

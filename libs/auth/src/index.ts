@@ -69,7 +69,7 @@ export {
 export {
   type AuthPrincipal,
   authPrincipal,
-  authPrincipalCreator,
+  authPrincipalRef,
   type PrincipalSource,
 } from './principal.js';
 export * from './provisioning.js';

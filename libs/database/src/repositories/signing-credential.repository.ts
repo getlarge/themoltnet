@@ -29,13 +29,11 @@ import { getExecutor, hasActiveTransaction } from '../transaction-context.js';
 export type SigningCredentialStatus = SigningCredential['status'];
 export const SIGNING_REGISTRATION_RETENTION_MS = 24 * 60 * 60 * 1000;
 
-export type SigningCredentialOwner = PrincipalRef;
-
 export type CreateSigningCredentialInput = Omit<
   NewSigningCredential,
   'id' | 'createdAt' | 'updatedAt' | 'ownerAgentId' | 'ownerHumanId'
 > & {
-  owner: SigningCredentialOwner;
+  owner: PrincipalRef;
 };
 
 export function createSigningCredentialRepository(db: Database) {
@@ -235,7 +233,7 @@ export function createSigningCredentialRepository(db: Database) {
       from: SigningCredentialStatus[];
       to: SigningCredentialStatus;
       approvedByHumanId?: string;
-      actor: SigningCredentialOwner;
+      actor: PrincipalRef;
       reason?: string;
       now?: Date;
     }): Promise<{

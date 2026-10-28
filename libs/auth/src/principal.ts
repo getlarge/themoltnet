@@ -65,9 +65,7 @@ export function authPrincipal(authContext: PrincipalSource): AuthPrincipal {
  * The principal as a repository creator record, whose foreign keys target
  * `agents.id` / `humans.id`.
  */
-export function authPrincipalCreator(
-  authContext: PrincipalSource,
-): PrincipalRef {
+export function authPrincipalRef(authContext: PrincipalSource): PrincipalRef {
   const { subjectType, subjectId } = authPrincipal(authContext);
   return { kind: subjectType, id: subjectId };
 }

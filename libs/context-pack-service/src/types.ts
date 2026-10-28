@@ -12,9 +12,6 @@ import type { PrincipalRef } from '@moltnet/models';
 
 export type { PackDiffCompressionLevel, PackDiffRow };
 
-/** Resolved by the caller at the auth boundary. */
-export type PackCreator = PrincipalRef;
-
 export interface SelectedEntry {
   entryId: string;
   rank: number;
@@ -60,7 +57,7 @@ export interface CreateCustomPackInput {
   params: Record<string, unknown>;
   tokenBudget?: number;
   pinned?: boolean;
-  creator: PackCreator;
+  creator: PrincipalRef;
   ttlDays?: number;
   /**
    * The pack this one replaces.
@@ -82,7 +79,7 @@ export interface CreateRenderedPackInput {
   sourcePackId: string;
   renderedMarkdown?: string;
   renderMethod: string;
-  creator: PackCreator;
+  creator: PrincipalRef;
   pinned?: boolean;
   ttlDays?: number;
 }
