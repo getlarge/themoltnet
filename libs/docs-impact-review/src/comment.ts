@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 
-import { githubApiUrl, githubToken } from './config.js';
+import { actionEnv, githubApiUrl, githubToken } from './config.js';
 import { requireFullOid } from './git.js';
 import { GitHubApi, type GitHubApiOptions } from './github-api.js';
 import { DOCS_IMPACT_COMMENT_MARKER, renderComment } from './report.js';
@@ -147,7 +147,13 @@ class CommentApi {
   async edit(id: number, body: string): Promise<void> {
     await this.api.request(`/repos/${this.repo}/issues/comments/${id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ body }),
+      body: JSON.stringify({
+        body:
+          body +
+          (actionEnv().WORKFLOW_SPEND_SUMMARY
+            ? `\n\n${readFileSync(actionEnv().WORKFLOW_SPEND_SUMMARY!, 'utf8')}`
+            : ''),
+      }),
     });
   }
 
@@ -159,7 +165,13 @@ class CommentApi {
     }
     await this.api.request(`/repos/${this.repo}/issues/${prNumber}/comments`, {
       method: 'POST',
-      body: JSON.stringify({ body }),
+      body: JSON.stringify({
+        body:
+          body +
+          (actionEnv().WORKFLOW_SPEND_SUMMARY
+            ? `\n\n${readFileSync(actionEnv().WORKFLOW_SPEND_SUMMARY!, 'utf8')}`
+            : ''),
+      }),
     });
   }
 }

@@ -116,7 +116,9 @@ jobs:
           repository: ${{ steps.runtime.outputs.repository }}
           ref: ${{ steps.runtime.outputs.ref }}
           path: .complexity-runtime
-          sparse-checkout: packages/complexity-review-action
+          sparse-checkout: |
+            packages/complexity-review-action
+            packages/agent-daemon-action
           persist-credentials: false
       - name: Pin runtime commit
         id: pin
@@ -156,7 +158,9 @@ jobs:
           repository: ${{ needs.prepare.outputs.runtime-repository }}
           ref: ${{ needs.prepare.outputs.runtime-sha }}
           path: .complexity-runtime
-          sparse-checkout: packages/complexity-review-action
+          sparse-checkout: |
+            packages/complexity-review-action
+            packages/agent-daemon-action
           persist-credentials: false
       - name: Fetch reviewed revisions as inert git data
         env:

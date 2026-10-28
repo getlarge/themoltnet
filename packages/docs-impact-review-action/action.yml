@@ -231,11 +231,32 @@ runs:
         node "$DIST/review.js" "${args[@]}" > "$summary" 2> >(tee "$errors" >&2)
         echo "exit-code=$?" >> "$GITHUB_OUTPUT"
 
+    - name: Collect workflow spend
+      id: spend
+      if: always() && inputs.step == 'review' && steps.check-review.outputs.correlation-id != ''
+      continue-on-error: true
+      shell: bash
+      env:
+        MOLTNET_ACTION_COMMAND: spend
+        MOLTNET_TEAM_ID: ${{ inputs.team-id }}
+        SPEND_CORRELATION: ${{ steps.check-review.outputs.correlation-id }}
+      run: node "${{ github.action_path }}/../agent-daemon-action/dist/main.js"
+
+    - name: Upload workflow spend report
+      if: always() && steps.spend.outputs.report != ''
+      continue-on-error: true
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+      with:
+        name: ${{ steps.spend.outputs.artifact-name }}
+        path: ${{ steps.spend.outputs.report }}
+        retention-days: 14
+
     - name: Publish the review comment
       id: publish
       if: always() && !cancelled() && inputs.step == 'review' && steps.review.outputs.summary != ''
       shell: bash
       env:
+        WORKFLOW_SPEND_SUMMARY: ${{ steps.spend.outputs.summary }}
         GITHUB_TOKEN: ${{ steps.app-token.outputs.token || inputs.github-token }}
         DIST: ${{ github.action_path }}/dist
         CORRELATION_ID: ${{ steps.check-review.outputs.correlation-id }}

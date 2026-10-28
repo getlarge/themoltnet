@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { renderProgress, updateDocsImpactComment } from './comment.js';
 import { DOCS_IMPACT_COMMENT_MARKER } from './report.js';
@@ -65,6 +65,7 @@ describe('updateDocsImpactComment', () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     rmSync(dir, { recursive: true, force: true });
   });
 
@@ -134,6 +135,25 @@ describe('updateDocsImpactComment', () => {
     const [write] = writes(api.calls);
     expect(write.method).toBe('POST');
     expect(write.body?.body).toContain('Docs impact: reviewing');
+  });
+
+  it('includes the collected spend on the existing revision-aware comment', async () => {
+    const path = join(dir, 'spend.md');
+    writeFileSync(
+      path,
+      '### Agent workflow spend\nKnown lower bound: ≥$0.0100',
+    );
+    vi.stubEnv('WORKFLOW_SPEND_SUMMARY', path);
+    const api = github({ head: HEAD });
+    await updateDocsImpactComment({
+      ...base,
+      mode: 'publish',
+      reportPath: reportFile({}),
+      fetchImpl: api.fetchImpl,
+    });
+    expect(writes(api.calls)[0].body?.body).toContain(
+      'Known lower bound: ≥$0.0100',
+    );
   });
 
   it('names the correlation id under a published result', async () => {

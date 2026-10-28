@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   COMPLEXITY_REVIEW_COMMENT_MARKER,
@@ -18,6 +18,7 @@ const RUN_URL = 'https://github.com/getlarge/themoltnet/actions/runs/1';
 const tempDirs: string[] = [];
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true });
 });
 
@@ -224,6 +225,12 @@ describe('complexity review comment lifecycle', () => {
   it('publishes the accepted structured result for the still-current head', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'complexity-review-'));
     tempDirs.push(dir);
+    const spendPath = join(dir, 'spend.md');
+    writeFileSync(
+      spendPath,
+      '### Agent workflow spend\nEstimated cost: ≥$0.0100',
+    );
+    vi.stubEnv('WORKFLOW_SPEND_SUMMARY', spendPath);
     const resultPath = join(dir, 'result.json');
     writeFileSync(
       resultPath,
@@ -254,6 +261,7 @@ describe('complexity review comment lifecycle', () => {
     const post = github.calls.find((call) => call.init?.method === 'POST');
     const body = JSON.parse(String(post?.init?.body)) as { body: string };
     expect(body.body).toContain(COMPLEXITY_REVIEW_COMMENT_MARKER);
+    expect(body.body).toContain('Estimated cost: ≥$0.0100');
     expect(body.body).toContain(
       'Weighted composite (assessed criteria only):** 1.00',
     );
