@@ -5,16 +5,14 @@
  * Diaries are identified by UUID only — no key-based resolution.
  */
 
+import type { PrincipalRef } from '@moltnet/models';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import { diaries, type Diary } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
 
-export interface DiaryCreator {
-  kind: 'agent' | 'human';
-  id: string;
-}
+export type DiaryCreator = PrincipalRef;
 
 function creatorWhere(creator: DiaryCreator) {
   return creator.kind === 'agent'

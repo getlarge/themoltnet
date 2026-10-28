@@ -13,7 +13,11 @@
  */
 
 import { DBOS } from '@dbos-inc/dbos-sdk';
-import { VERIFICATION_METHOD, type VerificationMethod } from '@moltnet/models';
+import {
+  type PrincipalRef,
+  VERIFICATION_METHOD,
+  type VerificationMethod,
+} from '@moltnet/models';
 
 export {
   VERIFICATION_METHOD,
@@ -259,10 +263,7 @@ export class Ed25519Verifier implements SigningVerifier {
  * Mirrors `SigningRequester` in `@moltnet/database`, which this package does
  * not depend on.
  */
-export interface SigningWorkflowRequester {
-  readonly kind: 'agent' | 'human';
-  readonly id: string;
-}
+export type SigningWorkflowRequester = PrincipalRef;
 
 /**
  * Interface for looking up an agent's public key.

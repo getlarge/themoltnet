@@ -35,6 +35,7 @@ import {
   PrincipalXorViolatedError,
   resolvePrincipal,
 } from '@moltnet/database';
+import type { PrincipalRef } from '@moltnet/models';
 
 /**
  * Structural shape of the request used by helpers in this module.
@@ -65,14 +66,7 @@ interface RequestWithAuthContext {
   };
 }
 
-export interface RepositoryCreator {
-  kind: 'agent' | 'human';
-  /**
-   * For `agent`: agents.identity_id (= Kratos identity_id).
-   * For `human`: humans.id (NOT humans.identity_id — see file header).
-   */
-  id: string;
-}
+export type RepositoryCreator = PrincipalRef;
 
 export function authContextToCreator(
   request: RequestWithAuthContext,

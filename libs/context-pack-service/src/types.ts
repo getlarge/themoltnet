@@ -8,6 +8,7 @@ import type {
   PrincipalIdentity,
   RenderedPackWithCreator,
 } from '@moltnet/database';
+import type { PrincipalRef } from '@moltnet/models';
 
 export type { PackDiffCompressionLevel, PackDiffRow };
 
@@ -15,10 +16,7 @@ export type { PackDiffCompressionLevel, PackDiffRow };
  * Discriminated principal — caller resolves (subjectId, ns) at the auth
  * boundary. For human, `id` is humans.id (NOT the Kratos identityId).
  */
-export interface PackCreator {
-  kind: 'agent' | 'human';
-  id: string;
-}
+export type PackCreator = PrincipalRef;
 
 export interface SelectedEntry {
   entryId: string;

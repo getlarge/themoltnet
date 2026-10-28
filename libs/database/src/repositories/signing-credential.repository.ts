@@ -1,3 +1,4 @@
+import type { PrincipalRef } from '@moltnet/models';
 import {
   and,
   count,
@@ -28,10 +29,7 @@ import { getExecutor, hasActiveTransaction } from '../transaction-context.js';
 export type SigningCredentialStatus = SigningCredential['status'];
 export const SIGNING_REGISTRATION_RETENTION_MS = 24 * 60 * 60 * 1000;
 
-export interface SigningCredentialOwner {
-  kind: 'agent' | 'human';
-  id: string;
-}
+export type SigningCredentialOwner = PrincipalRef;
 
 export type CreateSigningCredentialInput = Omit<
   NewSigningCredential,

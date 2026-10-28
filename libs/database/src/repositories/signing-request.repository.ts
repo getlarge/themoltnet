@@ -6,7 +6,11 @@
  * submission, verifies it, and persists the result.
  */
 
-import { SIGNER_CONSTRAINT_TYPE, VERIFICATION_METHOD } from '@moltnet/models';
+import {
+  type PrincipalRef,
+  SIGNER_CONSTRAINT_TYPE,
+  VERIFICATION_METHOD,
+} from '@moltnet/models';
 import {
   and,
   count,
@@ -33,10 +37,7 @@ import { getExecutor } from '../transaction-context.js';
 export type SigningRequestStatus = SigningRequest['status'];
 
 /** The principal that created a request, keyed on `agents.id` / `humans.id`. */
-export interface SigningRequester {
-  readonly kind: 'agent' | 'human';
-  readonly id: string;
-}
+export type SigningRequester = PrincipalRef;
 
 /** The row's requester; the `signing_requests_requester_xor` check holds one. */
 export function signingRequester(

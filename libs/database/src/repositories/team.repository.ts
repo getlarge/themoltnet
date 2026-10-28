@@ -8,6 +8,7 @@
 
 import { randomBytes } from 'node:crypto';
 
+import type { PrincipalRef } from '@moltnet/models';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
@@ -23,10 +24,7 @@ import { getExecutor } from '../transaction-context.js';
 
 const INVITE_CODE_PREFIX = 'mlt_inv_';
 
-export interface TeamCreator {
-  kind: 'agent' | 'human';
-  id: string;
-}
+export type TeamCreator = PrincipalRef;
 
 export interface CreateTeamInput {
   name: string;

@@ -1,3 +1,5 @@
+import type { PrincipalRef } from '@moltnet/models';
+
 import { KetoNamespace } from './keto-constants.js';
 import type { SubjectType } from './types.js';
 
@@ -63,10 +65,9 @@ export function authPrincipal(authContext: PrincipalSource): AuthPrincipal {
  * The principal as a repository creator record, whose foreign keys target
  * `agents.id` / `humans.id`.
  */
-export function authPrincipalCreator(authContext: PrincipalSource): {
-  readonly kind: 'agent' | 'human';
-  readonly id: string;
-} {
+export function authPrincipalCreator(
+  authContext: PrincipalSource,
+): PrincipalRef {
   const { subjectType, subjectId } = authPrincipal(authContext);
   return { kind: subjectType, id: subjectId } as const;
 }
