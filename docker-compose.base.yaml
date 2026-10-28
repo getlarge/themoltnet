@@ -26,7 +26,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-moltnet}:${POSTGRES_PASSWORD:-moltnet_secret}@app-db:5432/${POSTGRES_DB:-moltnet}
 
   issue-lifecycle-db:
-    image: postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
+    image: postgres:16@sha256:1beaa3084eee2676f20a9cd9928f0bf2c5bf674f8e49f81017912183d377c61c
     ports:
       - '55434:5432'
     environment:
@@ -62,7 +62,7 @@ services:
         uvx absurdctl create-queue "$${ABSURD_QUEUE_NAME}"
 
   kratos-postgres:
-    image: postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
+    image: postgres:16@sha256:1beaa3084eee2676f20a9cd9928f0bf2c5bf674f8e49f81017912183d377c61c
     environment:
       POSTGRES_USER: kratos
       POSTGRES_PASSWORD: kratos_secret
@@ -130,7 +130,7 @@ services:
       start_period: 15s
 
   hydra-postgres:
-    image: postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
+    image: postgres:16@sha256:1beaa3084eee2676f20a9cd9928f0bf2c5bf674f8e49f81017912183d377c61c
     environment:
       POSTGRES_USER: hydra
       POSTGRES_PASSWORD: hydra_secret
@@ -168,7 +168,7 @@ services:
       start_period: 10s
 
   keto-postgres:
-    image: postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
+    image: postgres:16@sha256:1beaa3084eee2676f20a9cd9928f0bf2c5bf674f8e49f81017912183d377c61c
     environment:
       POSTGRES_USER: keto
       POSTGRES_PASSWORD: keto_secret
