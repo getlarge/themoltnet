@@ -3,6 +3,7 @@ import type {
   TelemetrySpan,
 } from '@earendil-works/pi-telemetry';
 import {
+  createTraceState,
   propagation,
   ROOT_CONTEXT,
   SpanStatusCode,
@@ -104,7 +105,19 @@ describe('native Pi OTel bridge', () => {
   });
 
   it('resumes from a serialized carrier and links to a settled span without carrying baggage', async () => {
-    const { exporter, provider, tracer, telemetry } = setup();
+    const { exporter, provider, tracer } = setup();
+    const telemetry = createPiTelemetry({
+      tracer,
+      parentContext: propagation.setBaggage(
+        trace.setSpanContext(ROOT_CONTEXT, {
+          traceId: '12345678901234567890123456789012',
+          spanId: '1234567890123456',
+          traceFlags: 1,
+          traceState: createTraceState('vendor=opaque'),
+        }),
+        propagation.createBaggage({ private: { value: 'not-for-storage' } }),
+      ),
+    });
     let carrier: TelemetryCarrier | undefined;
     let settled: TelemetrySpan | undefined;
     try {
@@ -112,10 +125,15 @@ describe('native Pi OTel bridge', () => {
         settled = span;
         carrier = span.propagation!.inject(span);
       });
-      expect(Object.keys(carrier!)).toEqual(['traceparent']);
+      expect(Object.keys(carrier!).sort()).toEqual([
+        'traceparent',
+        'tracestate',
+      ]);
+      expect(carrier!.tracestate).toBe('vendor=opaque');
       const fresh = createPiTelemetry({ tracer, parentContext: ROOT_CONTEXT });
+      const persisted = JSON.parse(JSON.stringify(carrier)) as TelemetryCarrier;
       const parent = fresh.propagation!.extract({
-        ...JSON.parse(JSON.stringify(carrier)),
+        ...persisted,
         baggage: 'private=value',
       });
       expect(parent.metrics).toBeDefined();
@@ -132,6 +150,9 @@ describe('native Pi OTel bridge', () => {
       );
       expect(resumed.spanContext().traceId).toBe(
         original.spanContext().traceId,
+      );
+      expect(resumed.spanContext().traceState?.serialize()).toBe(
+        'vendor=opaque',
       );
       expect(resumed.links).toHaveLength(2);
       expect(resumed.links[1].attributes).toEqual({ reason: 'resume' });
