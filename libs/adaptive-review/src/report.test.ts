@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 
 import { LANES } from './core.js';
-import { renderAdaptiveComment } from './report.js';
+import { hasIncompleteCoverage, renderAdaptiveComment } from './report.js';
 import type { AdaptiveReport } from './workflow.js';
 
 it('labels screening honestly and neutralizes model-authored text', () => {
@@ -126,3 +126,59 @@ it('labels a focused citation from the old side of the diff', () => {
     'src/route.ts:7 (old): Guard was removed',
   );
 });
+
+it.each(['clear', 'concern', 'unclear', 'failed', 'screened'] as const)(
+  'distinguishes selected security coverage from %s execution results',
+  (status) => {
+    const report: AdaptiveReport = {
+      version: 1,
+      mode: 'shadow',
+      repo: 'getlarge/themoltnet',
+      pr: 42,
+      base: 'a'.repeat(40),
+      head: 'b'.repeat(40),
+      runtimeSha: 'c'.repeat(40),
+      correlationId: 'id',
+      policyDigest: 'd'.repeat(64),
+      referenceDigests: {},
+      packetCount: 1,
+      taskIds: [],
+      gaps: [],
+      durationMs: 100,
+      routing: {
+        classifierFailed: false,
+        scores: { 'code-complexity': null, 'review-effort': null },
+        routes: [
+          { lane: 'security', probability: 0.9, run: true, reason: 'selected' },
+        ],
+      },
+      results: [
+        {
+          lane: 'security',
+          status,
+          summary: 'Details remain in team-scoped tasks.',
+          taskIds: [],
+          findings: [],
+        },
+      ],
+    };
+    const incomplete = status !== 'clear' && status !== 'concern';
+    expect(hasIncompleteCoverage(report)).toBe(incomplete);
+    expect(
+      renderAdaptiveComment(report, 'https://example.com/run').includes(
+        'review: incomplete coverage',
+      ),
+    ).toBe(incomplete);
+    report.results[0].unclear = ['Some changed contents remain unassessed.'];
+    expect(hasIncompleteCoverage(report)).toBe(true);
+    expect(renderAdaptiveComment(report, 'https://example.com/run')).toContain(
+      'incomplete coverage',
+    );
+    report.results = [];
+    expect(hasIncompleteCoverage(report)).toBe(true);
+    report.routing.routes[0].run = false;
+    expect(hasIncompleteCoverage(report)).toBe(false);
+    report.gaps = ['Truncated diff'];
+    expect(hasIncompleteCoverage(report)).toBe(true);
+  },
+);
