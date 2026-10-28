@@ -58,6 +58,14 @@ prepares the Gondolin template and creates a Durable task executor. See
 [Build a custom Pi runtime](custom-pi-runtimes.md) for the authoring contract
 and [Running Agents](../operate/running-agents.md) for daemon operation.
 
+`createDurableTaskExecutor({ ..., telemetry })` accepts an optional Pi
+`TelemetryContext`. Its default `createPiTelemetry()` bridge uses the host's
+OpenTelemetry tracer and meter; no SDK or exporter is installed by the runtime.
+The exported factory accepts `parentContext`, `tracer` and `meter` for custom
+embedders. See
+[Pi Durable execution](custom-pi-runtimes.md#pi-durable-execution) for
+propagation, classifier cost metrics and pricing limitations.
+
 Three things the runtime does for you that aren't obvious from the code:
 
 - **Heartbeats** — `ApiTaskReporter.open()` fires the first heartbeat before

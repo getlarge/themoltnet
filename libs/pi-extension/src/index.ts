@@ -52,10 +52,6 @@ import {
   registerResolveIssueCommand,
   registerSandboxCommand,
 } from './commands/index.js';
-export {
-  createPiOtelExtension,
-  type PiOtelOptions,
-} from '@themoltnet/pi-runtime';
 
 export async function retirePiExtensionVm(config: {
   activeVm: Pick<VM, 'close'>;
