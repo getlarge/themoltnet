@@ -133,6 +133,16 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
       } catch (error) {
         mapWorkflowError(error);
       }
+      if (
+        input.verificationMethod === VERIFICATION_METHOD.AgentEd25519 &&
+        input.actor.subjectType !== 'agent'
+      ) {
+        // Only an agent holds the Ed25519 identity key this method checks.
+        throw new SigningServiceError(
+          'validation_failed',
+          `${VERIFICATION_METHOD.AgentEd25519} signing requests can only be created by an agent`,
+        );
+      }
       if (input.verificationMethod !== VERIFICATION_METHOD.AgentEd25519) {
         if (!input.teamId || !input.purpose || !input.signerConstraint) {
           throw new SigningServiceError(

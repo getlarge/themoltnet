@@ -733,45 +733,25 @@ describe('createSigningService', () => {
     expect(getActivePendingSummaryByRequester).toHaveBeenCalledBefore(create);
   });
 
-  it('starts the agent signing workflow with a human requester', async () => {
-    const created = {
-      ...pendingRequest(),
-      requesterAgentId: null,
-      requesterHumanId: human.humanId,
-      verificationMethod: VERIFICATION_METHOD.AgentEd25519,
-    };
-    const startAgentSigningWorkflow = vi
-      .fn()
-      .mockResolvedValue({ workflowID: `signing-${created.id}` });
+  it('rejects an agent-ed25519 request from a human', async () => {
+    const create = vi.fn();
+    const startAgentSigningWorkflow = vi.fn();
     const service = createSigningService(
       createDeps({
         startAgentSigningWorkflow,
-        signingRequestRepository: {
-          acquirePendingCreateLock: vi.fn(),
-          getActivePendingSummaryByRequester: vi.fn().mockResolvedValue({
-            count: 0,
-            earliestExpiresAt: null,
-          }),
-          create: vi.fn().mockResolvedValue(created),
-          setWorkflowId: vi.fn(),
-        } as never,
-        transactionRunner: {
-          runInTransaction: vi.fn(runInTransaction),
-        } as never,
+        signingRequestRepository: { create } as never,
       }),
     );
 
-    await service.requests.create({
-      actor: human,
-      message: created.message,
-      verificationMethod: VERIFICATION_METHOD.AgentEd25519,
-    });
-
-    expect(startAgentSigningWorkflow).toHaveBeenCalledWith(
-      expect.objectContaining({
-        requester: { kind: 'human', id: human.humanId },
+    await expect(
+      service.requests.create({
+        actor: human,
+        message: 'bafy-message',
+        verificationMethod: VERIFICATION_METHOD.AgentEd25519,
       }),
-    );
+    ).rejects.toMatchObject({ code: 'validation_failed' });
+    expect(create).not.toHaveBeenCalled();
+    expect(startAgentSigningWorkflow).not.toHaveBeenCalled();
   });
 
   it('expires and logs an agent request when workflow startup fails', async () => {
