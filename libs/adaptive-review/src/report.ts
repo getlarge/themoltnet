@@ -1,4 +1,5 @@
 import { shorten } from '@moltnet/docs-impact-review';
+import { formatWorkflowSpend } from '@moltnet/tasks';
 
 import type { AdaptiveReport } from './workflow.js';
 
@@ -99,5 +100,6 @@ export function renderAdaptiveComment(
     '',
     '_This is an advisory experiment. A screened lane has not been verified._',
   );
+  if (report.spend) lines.push('', formatWorkflowSpend(report.spend));
   return lines.join('\n');
 }

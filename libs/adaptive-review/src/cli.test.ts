@@ -438,6 +438,57 @@ describe('route and review failures', () => {
     expect(readFileSync(file('summary'), 'utf8')).toContain('| docs |');
   });
 
+  it('records classifier and failed-lane spend in the report and CI summary', async () => {
+    writeFileSync(file('route.json'), JSON.stringify({ routing: {} }));
+    mocks.runRoutedAdaptiveReview.mockResolvedValue({
+      taskIds: ['classifier', 'hunt', 'hunt'],
+      results: [{ lane: 'security', status: 'failed', taskIds: ['hunt'] }],
+    });
+    const { deps: cli, tasks } = deps();
+    const listAttempts = vi.fn().mockResolvedValue([
+      {
+        claimedAt: '2026-01-01',
+        startedAt: null,
+        completedAt: '2026-01-02',
+        usage: {
+          inputTokens: 10,
+          outputTokens: 1,
+          model: 'model',
+          provider: 'provider',
+          cost: {
+            currency: 'USD',
+            total: 0.01,
+            input: 0.01,
+            output: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+            complete: true,
+          },
+        },
+        output: 'private task evidence',
+      },
+    ]);
+    tasks.listAttempts = listAttempts;
+    expect(
+      await runAdaptiveStage('review', {
+        ...cli,
+        env: { ...cli.env, GITHUB_STEP_SUMMARY: file('summary') },
+      }),
+    ).toBe(1);
+    expect(listAttempts).toHaveBeenCalledTimes(2);
+    const saved = readFileSync(file('report.json'), 'utf8');
+    expect(JSON.parse(saved)).toMatchObject({
+      spend: {
+        records: [
+          { taskId: 'classifier', stage: 'classifier' },
+          { taskId: 'hunt', stage: 'security' },
+        ],
+      },
+    });
+    expect(saved).not.toContain('private task evidence');
+    expect(readFileSync(file('summary'), 'utf8')).toContain('$0.0200');
+  });
+
   it('refuses an output value spanning lines', async () => {
     writeEvent();
     const event = JSON.parse(readFileSync(file('event.json'), 'utf8')) as {

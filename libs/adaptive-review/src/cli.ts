@@ -7,6 +7,7 @@ import {
   type PullRequestFile,
 } from '@moltnet/docs-impact-review/eligibility';
 import { workflowCommandValue } from '@moltnet/docs-impact-review/workflow-command';
+import { collectWorkflowSpend, formatWorkflowSpend } from '@moltnet/tasks';
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 
 import {
@@ -289,6 +290,17 @@ async function review(deps: CliDeps, options: RunOptions): Promise<number> {
     readFileSync(required('ADAPTIVE_ROUTE', env), 'utf8'),
   ) as AdaptivePreparation;
   const report = await runRoutedAdaptiveReview(options, preparation);
+  report.spend = await collectWorkflowSpend(
+    (report.taskIds ?? []).map((taskId) => ({
+      taskId,
+      stage:
+        report.results.find((result) => result.taskIds?.includes(taskId))
+          ?.lane ?? 'classifier',
+    })),
+    (id) => options.tasks.listAttempts(id),
+  );
+  if (env.GITHUB_STEP_SUMMARY)
+    appendFileSync(env.GITHUB_STEP_SUMMARY, formatWorkflowSpend(report.spend));
   writeFileSync(
     required('ADAPTIVE_REPORT', env),
     `${JSON.stringify(report, null, 2)}\n`,
