@@ -8,7 +8,6 @@ const HEAD = 'a'.repeat(40);
 const BASE = 'b'.repeat(40);
 const PR_PATH = '/repos/getlarge/themoltnet/pulls/42';
 const COMMENTS_PATH = '/repos/getlarge/themoltnet/issues/42/comments';
-const REVIEW_COMMENTS_PATH = '/repos/getlarge/themoltnet/pulls/42/comments';
 const REVIEWS_PATH = '/repos/getlarge/themoltnet/pulls/42/reviews';
 const OPTIONS = {
   runUrl: 'https://github.com/getlarge/themoltnet/actions/runs/1',
@@ -334,43 +333,103 @@ const TESTS_KEY = 'tests:new:7:src%2Fa.ts';
 interface Calls {
   reviews: object[];
   summaries: string[];
+  deleted: string[];
 }
 
-/** A PR that never moves, with `reviewComments` already on it. */
+function calls(): Calls {
+  return { reviews: [], summaries: [], deleted: [] };
+}
+
+interface ExistingThread {
+  login: string;
+  body: string;
+  isResolved?: boolean;
+}
+
+/** GraphQL `reviewThreads` for the given threads, in one page. */
+function threadsGraphQL(threads: ExistingThread[]) {
+  return vi.fn(() =>
+    Promise.resolve({
+      repository: {
+        pullRequest: {
+          reviewThreads: {
+            pageInfo: { hasNextPage: false, endCursor: null },
+            nodes: threads.map((thread, index) => ({
+              id: `T${index}`,
+              isResolved: thread.isResolved ?? false,
+              isOutdated: false,
+              path: 'src/a.ts',
+              resolvedBy: null,
+              comments: {
+                nodes: [
+                  {
+                    // GraphQL drops the [bot] suffix REST logins carry.
+                    author: { login: thread.login.replace(/\[bot\]$/, '') },
+                    body: thread.body,
+                    url: `https://github.com/x/${index}`,
+                    originalCommit: { oid: HEAD },
+                  },
+                ],
+              },
+            })),
+          },
+        },
+      },
+    }),
+  );
+}
+
+/**
+ * A PR that stays on the reviewed head, or moves to `movedHead` once the
+ * summary is written.
+ */
 function stableRequest(
-  reviewComments: Array<{ login: string; body: string }>,
-  calls: Calls,
+  recorded: Calls,
   reviewResponse: () => Promise<unknown> = () => Promise.resolve({ id: 1 }),
+  movedHead?: string,
 ) {
   return vi.fn((url: string, method = 'GET', body?: object) => {
     if (url === PR_PATH)
-      return Promise.resolve({ head: { sha: HEAD }, base: { sha: BASE } });
-    if (url === `${REVIEW_COMMENTS_PATH}?per_page=100&page=1`)
-      return Promise.resolve(
-        reviewComments.map((item) => ({
-          user: { login: item.login },
-          body: item.body,
-        })),
-      );
+      return Promise.resolve({
+        head: {
+          sha: movedHead && recorded.summaries.length ? movedHead : HEAD,
+        },
+        base: { sha: BASE },
+      });
     if (url === `${COMMENTS_PATH}?per_page=100&page=1`)
       return Promise.resolve([]);
     if (url === REVIEWS_PATH && method === 'POST') {
-      calls.reviews.push(body ?? {});
+      recorded.reviews.push(body ?? {});
       return reviewResponse();
     }
+    if (url === `${REVIEWS_PATH}/1/comments?per_page=100&page=1`)
+      return Promise.resolve([{ id: 11 }, { id: 12 }]);
+    if (method === 'DELETE') {
+      recorded.deleted.push(url);
+      return Promise.resolve(undefined);
+    }
     if (url === COMMENTS_PATH && method === 'POST') {
-      calls.summaries.push((body as { body: string }).body);
+      recorded.summaries.push((body as { body: string }).body);
       return Promise.resolve({ id: 9 });
+    }
+    if (url === '/repos/getlarge/themoltnet/issues/comments/9') {
+      recorded.summaries.push((body as { body: string }).body);
+      return Promise.resolve({});
     }
     throw new Error(`Unexpected request: ${method} ${url}`);
   });
 }
 
+function reviewComments(review: object): Array<{ path: string; body: string }> {
+  return (review as { comments: Array<{ path: string; body: string }> })
+    .comments;
+}
+
 describe('publishAdaptiveReport inline threads', () => {
   it('posts each cited finding as a review thread on the reviewed head', async () => {
     // Arrange
-    const calls: Calls = { reviews: [], summaries: [] };
-    const request = stableRequest([], calls);
+    const recorded = calls();
+    const request = stableRequest(recorded);
     const withFindings = {
       ...report(),
       results: [
@@ -384,11 +443,15 @@ describe('publishAdaptiveReport inline threads', () => {
     };
 
     // Act
-    await publishAdaptiveReport(withFindings, { ...OPTIONS, request });
+    await publishAdaptiveReport(withFindings, {
+      ...OPTIONS,
+      request,
+      graphql: threadsGraphQL([]),
+    });
 
     // Assert
-    expect(calls.reviews).toHaveLength(1);
-    expect(calls.reviews[0]).toMatchObject({
+    expect(recorded.reviews).toHaveLength(1);
+    expect(recorded.reviews[0]).toMatchObject({
       commit_id: HEAD,
       event: 'COMMENT',
       comments: [
@@ -396,37 +459,36 @@ describe('publishAdaptiveReport inline threads', () => {
         { path: 'src/b.ts', line: 3, side: 'LEFT' },
       ],
     });
-    const [first] = (calls.reviews[0] as { comments: Array<{ body: string }> })
-      .comments;
+    const [first] = reviewComments(recorded.reviews[0]);
     expect(
-      first.body.startsWith(`${ADAPTIVE_FINDING_MARKER}${TESTS_KEY} -->`),
+      first.body.startsWith(
+        `${ADAPTIVE_FINDING_MARKER}${TESTS_KEY} run=${OPTIONS.runUrl} correlation=test -->`,
+      ),
     ).toBe(true);
     expect(first.body).toContain('Suggested action: Add a case to a.test.ts');
     expect(first.body).toContain('resolve this thread with a short reason');
-    expect(JSON.stringify(calls.reviews[0])).not.toContain('secret');
-    expect(calls.summaries[0]).toContain(
+    expect(JSON.stringify(recorded.reviews[0])).not.toContain('secret');
+    expect(recorded.summaries[0]).toContain(
       'Findings: 3 (2 posted as new review threads, 0 already open from an earlier run, 1 listed below)',
     );
-    expect(calls.summaries[0]).toContain('blast_radius: wide');
-    expect(calls.summaries[0]).not.toContain('src/a.ts:7');
+    expect(recorded.summaries[0]).toContain('blast_radius: wide');
+    expect(recorded.summaries[0]).not.toContain('src/a.ts:7');
   });
 
-  it('does not repeat a finding the reviewer already has a thread for', async () => {
+  it('does not repeat a finding the reviewer has an open thread for', async () => {
     // Arrange
-    const calls: Calls = { reviews: [], summaries: [] };
-    const request = stableRequest(
-      [
-        {
-          login: OPTIONS.appLogin,
-          body: `${ADAPTIVE_FINDING_MARKER}${TESTS_KEY} -->\nolder`,
-        },
-        {
-          login: 'human',
-          body: `${ADAPTIVE_FINDING_MARKER}conventions:old:3:src%2Fb.ts -->`,
-        },
-      ],
-      calls,
-    );
+    const recorded = calls();
+    const request = stableRequest(recorded);
+    const graphql = threadsGraphQL([
+      {
+        login: OPTIONS.appLogin,
+        body: `${ADAPTIVE_FINDING_MARKER}${TESTS_KEY} run=x correlation=y -->\nolder`,
+      },
+      {
+        login: 'human',
+        body: `${ADAPTIVE_FINDING_MARKER}conventions:old:3:src%2Fb.ts -->`,
+      },
+    ]);
     const withFindings = {
       ...report(),
       results: [
@@ -436,51 +498,102 @@ describe('publishAdaptiveReport inline threads', () => {
     };
 
     // Act
-    await publishAdaptiveReport(withFindings, { ...OPTIONS, request });
+    await publishAdaptiveReport(withFindings, {
+      ...OPTIONS,
+      request,
+      graphql,
+    });
 
     // Assert
-    expect(calls.reviews).toHaveLength(1);
-    expect(calls.reviews[0]).toMatchObject({
+    expect(reviewComments(recorded.reviews[0])).toHaveLength(1);
+    expect(recorded.reviews[0]).toMatchObject({
       comments: [{ path: 'src/b.ts', line: 3, side: 'LEFT' }],
     });
-    expect((calls.reviews[0] as { comments: unknown[] }).comments).toHaveLength(
-      1,
-    );
-    expect(calls.summaries[0]).toContain(
+    expect(recorded.summaries[0]).toContain(
       'Findings: 2 (1 posted as new review threads, 1 already open from an earlier run)',
     );
   });
 
-  it('skips the review call when every finding already has a thread', async () => {
+  it('lists a finding whose earlier thread was resolved instead of reopening it', async () => {
     // Arrange
-    const calls: Calls = { reviews: [], summaries: [] };
-    const request = stableRequest(
-      [
-        {
-          login: OPTIONS.appLogin,
-          body: `${ADAPTIVE_FINDING_MARKER}${TESTS_KEY} -->`,
-        },
-      ],
-      calls,
-    );
+    const recorded = calls();
+    const request = stableRequest(recorded);
+    const graphql = threadsGraphQL([
+      {
+        login: OPTIONS.appLogin,
+        body: `${ADAPTIVE_FINDING_MARKER}${TESTS_KEY} -->\nan older concern`,
+        isResolved: true,
+      },
+    ]);
 
     // Act
     await publishAdaptiveReport(
       { ...report(), results: [concern('tests', [TESTS_FINDING])] },
-      { ...OPTIONS, request },
+      { ...OPTIONS, request, graphql },
     );
 
     // Assert
-    expect(calls.reviews).toHaveLength(0);
-    expect(calls.summaries[0]).toContain(
+    expect(recorded.reviews).toHaveLength(0);
+    expect(recorded.summaries[0]).toContain(
+      'Findings: 1 (0 posted as new review threads, 0 already open from an earlier run, 1 listed below)',
+    );
+    expect(recorded.summaries[0]).toContain(
+      'src/a.ts:7: No test covers the new branch _(an earlier thread on this line was resolved)_',
+    );
+  });
+
+  it('treats a key as open when one of its threads is still open', async () => {
+    // Arrange
+    const recorded = calls();
+    const request = stableRequest(recorded);
+    const body = `${ADAPTIVE_FINDING_MARKER}${TESTS_KEY} -->`;
+    const graphql = threadsGraphQL([
+      { login: OPTIONS.appLogin, body, isResolved: true },
+      { login: OPTIONS.appLogin, body },
+    ]);
+
+    // Act
+    await publishAdaptiveReport(
+      { ...report(), results: [concern('tests', [TESTS_FINDING])] },
+      { ...OPTIONS, request, graphql },
+    );
+
+    // Assert
+    expect(recorded.reviews).toHaveLength(0);
+    expect(recorded.summaries[0]).toContain(
+      '1 already open from an earlier run',
+    );
+    expect(recorded.summaries[0]).not.toContain('was resolved');
+  });
+
+  it('skips the review call when every finding already has a thread', async () => {
+    // Arrange
+    const recorded = calls();
+    const request = stableRequest(recorded);
+    const graphql = threadsGraphQL([
+      {
+        login: OPTIONS.appLogin,
+        body: `${ADAPTIVE_FINDING_MARKER}${TESTS_KEY} -->`,
+      },
+    ]);
+
+    // Act
+    await publishAdaptiveReport(
+      { ...report(), results: [concern('tests', [TESTS_FINDING])] },
+      { ...OPTIONS, request, graphql },
+    );
+
+    // Assert
+    expect(recorded.reviews).toHaveLength(0);
+    expect(recorded.summaries[0]).toContain(
       'Findings: 1 (0 posted as new review threads, 1 already open from an earlier run)',
     );
   });
 
-  it('lists the findings in the summary when GitHub rejects the threads', async () => {
+  it('lists every finding of a lane in the summary when GitHub rejects the threads', async () => {
     // Arrange
-    const calls: Calls = { reviews: [], summaries: [] };
-    const request = stableRequest([], calls, () =>
+    const recorded = calls();
+    const request = stableRequest(recorded, () =>
       Promise.reject(
         Object.assign(new Error('Unprocessable'), { status: 422 }),
       ),
@@ -488,30 +601,133 @@ describe('publishAdaptiveReport inline threads', () => {
     const write = vi
       .spyOn(process.stdout, 'write')
       .mockImplementation(() => true);
+    const findings = [3, 5, 7, 9].map((line) => ({
+      ...TESTS_FINDING,
+      line,
+      concern: `Untested branch at ${line}`,
+    }));
 
     // Act
     await publishAdaptiveReport(
-      { ...report(), results: [concern('tests', [TESTS_FINDING])] },
-      { ...OPTIONS, request },
+      { ...report(), results: [concern('tests', findings)] },
+      { ...OPTIONS, request, graphql: threadsGraphQL([]) },
     );
 
     // Assert
     write.mockRestore();
-    expect(calls.reviews).toHaveLength(1);
-    expect(calls.summaries[0]).toContain(
-      'Findings: 1 (0 posted as new review threads, 0 already open from an earlier run, 1 listed below)',
+    expect(recorded.reviews).toHaveLength(1);
+    expect(recorded.summaries[0]).toContain(
+      'Findings: 4 (0 posted as new review threads, 0 already open from an earlier run, 4 listed below)',
     );
-    expect(calls.summaries[0]).toContain(
-      'src/a.ts:7: No test covers the new branch',
+    for (const line of [3, 5, 7, 9])
+      expect(recorded.summaries[0]).toContain(
+        `src/a.ts:${line}: Untested branch at ${line}`,
+      );
+  });
+
+  it('caps the listed findings and points at the run for the rest', async () => {
+    // Arrange
+    const recorded = calls();
+    const request = stableRequest(recorded);
+    const findings = Array.from({ length: 33 }, (_, index) => ({
+      path: `src/f${index}.ts`,
+      concern: `unanchored ${index}`,
+    }));
+
+    // Act
+    await publishAdaptiveReport(
+      { ...report(), results: [concern('tests', findings)] },
+      { ...OPTIONS, request, graphql: threadsGraphQL([]) },
+    );
+
+    // Assert
+    expect(recorded.summaries[0]).toContain('src/f29.ts: unanchored 29');
+    expect(recorded.summaries[0]).not.toContain('src/f30.ts');
+    expect(recorded.summaries[0]).toContain(
+      `3 more findings are not shown here; the [workflow run](${OPTIONS.runUrl}) has the full report.`,
     );
   });
 
   it('fails on any other review error without writing the summary', async () => {
     // Arrange
-    const calls: Calls = { reviews: [], summaries: [] };
-    const request = stableRequest([], calls, () =>
+    const recorded = calls();
+    const request = stableRequest(recorded, () =>
       Promise.reject(Object.assign(new Error('Forbidden'), { status: 403 })),
     );
+
+    // Act
+    const published = publishAdaptiveReport(
+      { ...report(), results: [concern('tests', [TESTS_FINDING])] },
+      { ...OPTIONS, request, graphql: threadsGraphQL([]) },
+    );
+
+    // Assert
+    await expect(published).rejects.toThrow('Forbidden');
+    expect(recorded.summaries).toHaveLength(0);
+  });
+
+  it('opens no thread when the head moves before the last pre-write check', async () => {
+    // Arrange
+    const recorded = calls();
+    let headReads = 0;
+    const request = vi.fn((url: string, method = 'GET', body?: object) => {
+      if (url === PR_PATH) {
+        headReads++;
+        return Promise.resolve({
+          head: { sha: headReads === 1 ? HEAD : 'e'.repeat(40) },
+          base: { sha: BASE },
+        });
+      }
+      if (url === `${COMMENTS_PATH}?per_page=100&page=1`)
+        return Promise.resolve([]);
+      recorded.reviews.push(body ?? {});
+      throw new Error(`Unexpected request: ${method} ${url}`);
+    });
+    const graphql = threadsGraphQL([]);
+
+    // Act
+    const published = publishAdaptiveReport(
+      { ...report(), results: [concern('tests', [TESTS_FINDING])] },
+      { ...OPTIONS, request, graphql },
+    );
+
+    // Assert
+    await expect(published).rejects.toThrow(
+      'PR head changed before publishing',
+    );
+    expect(recorded.reviews).toHaveLength(0);
+    expect(graphql).not.toHaveBeenCalled();
+  });
+
+  it('withdraws the threads it opened when the head moves after publishing', async () => {
+    // Arrange
+    const recorded = calls();
+    const request = stableRequest(
+      recorded,
+      () => Promise.resolve({ id: 1 }),
+      'e'.repeat(40),
+    );
+
+    // Act
+    const published = publishAdaptiveReport(
+      { ...report(), results: [concern('tests', [TESTS_FINDING])] },
+      { ...OPTIONS, request, graphql: threadsGraphQL([]) },
+    );
+
+    // Assert
+    await expect(published).rejects.toThrow('replaced it with a stale notice');
+    expect(recorded.reviews).toHaveLength(1);
+    expect(recorded.summaries.at(-1)).toContain('stale');
+    expect(recorded.deleted).toEqual([
+      '/repos/getlarge/themoltnet/pulls/comments/11',
+      '/repos/getlarge/themoltnet/pulls/comments/12',
+    ]);
+  });
+
+  it('requires a GraphQL client before writing anything when findings exist', async () => {
+    // Arrange
+    const recorded = calls();
+    const request = stableRequest(recorded);
 
     // Act
     const published = publishAdaptiveReport(
@@ -520,28 +736,27 @@ describe('publishAdaptiveReport inline threads', () => {
     );
 
     // Assert
-    await expect(published).rejects.toThrow('Forbidden');
-    expect(calls.summaries).toHaveLength(0);
+    await expect(published).rejects.toThrow('GraphQL client is required');
+    expect(recorded.summaries).toHaveLength(0);
   });
 
   it('keeps every finding in the summary when inline threads are disabled', async () => {
     // Arrange
-    const calls: Calls = { reviews: [], summaries: [] };
-    const request = stableRequest([], calls);
+    const recorded = calls();
+    const request = stableRequest(recorded);
+    const graphql = threadsGraphQL([]);
 
     // Act
     await publishAdaptiveReport(
       { ...report(), results: [concern('tests', [TESTS_FINDING])] },
-      { ...OPTIONS, request, inlineFindings: false },
+      { ...OPTIONS, request, graphql, inlineFindings: false },
     );
 
     // Assert
-    expect(calls.reviews).toHaveLength(0);
-    expect(request).not.toHaveBeenCalledWith(
-      `${REVIEW_COMMENTS_PATH}?per_page=100&page=1`,
-    );
-    expect(calls.summaries[0]).toContain('Findings: 1.');
-    expect(calls.summaries[0]).toContain(
+    expect(recorded.reviews).toHaveLength(0);
+    expect(graphql).not.toHaveBeenCalled();
+    expect(recorded.summaries[0]).toContain('Findings: 1.');
+    expect(recorded.summaries[0]).toContain(
       'src/a.ts:7: No test covers the new branch',
     );
   });

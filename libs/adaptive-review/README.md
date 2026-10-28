@@ -59,16 +59,29 @@ Findings that cite a changed line are published as review threads, one per
 finding, anchored to that line on the reviewed head. Each thread asks the
 author to fix the finding or resolve the thread with a reason; with "require
 conversation resolution" on the branch, that answer becomes part of merging.
-A finding is identified by its lane, side, line, and path. A run does not post
-a thread the reviewer already opened for the same finding, so a re-run or a
-push that leaves the finding in place does not repeat it; a finding that moved
-with the diff gets a new thread. The summary comment starts with the number of
-findings and how many were posted, were already open, or are listed in the
-summary because they cite no line. Security findings stay in the team-scoped
-tasks. If GitHub rejects the review (for example, an anchor outside the diff),
-the publish step warns, lists the findings in the summary, and succeeds. Set
-the caller input `inline-findings: 'false'` to keep every finding in the
-summary comment.
+A finding is identified by its lane, side, line, and path. Before posting, the
+run reads the reviewer's existing threads and their state:
+
+- An open thread at the same location covers the finding, so a re-run or a
+  push that leaves the finding in place does not repeat it.
+- A resolved thread at the same location is not reopened. The summary lists
+  the finding and notes that an earlier thread on that line was resolved, so a
+  new concern at a settled line stays visible without arguing the old one again.
+- A finding that moved with the diff gets a new thread.
+
+Each thread's hidden marker also carries the producing workflow run and the
+review correlation ID. Threads are posted only after the last check that the
+pull request still points at the reviewed head. If the head or base moves
+while publishing, the summary is replaced with a stale notice and this run's
+threads are deleted.
+
+The summary comment starts with the number of findings and how many were
+posted, were already open, or are listed in the summary. It lists up to 30
+findings and points at the workflow run's report for the rest. Security
+findings stay in the team-scoped tasks. If GitHub rejects the review (for
+example, an anchor outside the diff), the publish step warns, lists the
+findings in the summary, and succeeds. Set the caller input
+`inline-findings: 'false'` to keep every finding in the summary comment.
 
 The classifier is selected by the caller's profile. MoltNet uses Ollama Cloud
 `clef:27b` through its issue-classifier-v2 profile; other repositories can select

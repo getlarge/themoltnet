@@ -2,8 +2,10 @@ import { expect, it } from 'vitest';
 
 import { LANES } from './core.js';
 import {
+  ADAPTIVE_FINDING_MARKER,
   findingKey,
   hasIncompleteCoverage,
+  parseFindingMarker,
   postedFindingKey,
   renderAdaptiveComment,
   renderFindingComment,
@@ -259,4 +261,29 @@ it('round-trips a finding key through the thread marker and neutralizes the body
   expect(
     postedFindingKey('<!-- moltnet:adaptive-finding  -->'),
   ).toBeUndefined();
+});
+
+it('records the producing run and tasks in the marker without changing the key', () => {
+  // Arrange
+  const finding = {
+    lane: 'tests' as const,
+    path: 'src/a.ts',
+    side: 'new' as const,
+    line: 3,
+    concern: 'untested',
+  };
+  const source = {
+    runUrl: 'https://github.com/getlarge/themoltnet/actions/runs/9',
+    correlationId: 'adaptive review/42',
+  };
+
+  // Act
+  const marker = parseFindingMarker(renderFindingComment(finding, source));
+  const legacy = parseFindingMarker(
+    `${ADAPTIVE_FINDING_MARKER}${findingKey(finding)} -->`,
+  );
+
+  // Assert
+  expect(marker).toEqual({ key: findingKey(finding), ...source });
+  expect(legacy).toEqual({ key: findingKey(finding) });
 });

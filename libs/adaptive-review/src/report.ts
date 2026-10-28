@@ -24,9 +24,23 @@ export interface ThreadSummary {
   posted: number;
   /** Findings that already had a thread from an earlier run. */
   existing: number;
-  /** Keys of findings that have a thread, posted now or earlier. */
+  /** Keys of findings with an open thread, posted now or earlier. */
   keys: ReadonlySet<string>;
+  /**
+   * Keys whose earlier thread was resolved. The finding is listed in the
+   * summary instead of reopening a thread the author already closed.
+   */
+  resolved: ReadonlySet<string>;
 }
+
+/** Where a finding came from: the run and the review tasks that raised it. */
+export interface FindingSource {
+  runUrl: string;
+  correlationId: string;
+}
+
+/** The most findings the summary lists before pointing at the run. */
+export const MAX_LISTED_FINDINGS = 30;
 
 /**
  * The identity of a finding across runs. A finding repeated at the same
@@ -63,19 +77,51 @@ export function inlineFindings(
     );
 }
 
-/** Reads the finding key back from a review comment this reviewer posted. */
-export function postedFindingKey(body: string): string | undefined {
+/** Reads the key and source back from a thread this reviewer posted. */
+export function parseFindingMarker(
+  body: string,
+): ({ key: string } & Partial<FindingSource>) | undefined {
   if (!body.startsWith(ADAPTIVE_FINDING_MARKER)) return undefined;
   const end = body.indexOf(' -->');
-  return end > ADAPTIVE_FINDING_MARKER.length
-    ? body.slice(ADAPTIVE_FINDING_MARKER.length, end)
-    : undefined;
+  if (end <= ADAPTIVE_FINDING_MARKER.length) return undefined;
+  const [key, ...fields] = body
+    .slice(ADAPTIVE_FINDING_MARKER.length, end)
+    .split(' ');
+  if (!key) return undefined;
+  const value = (name: string, decode: (raw: string) => string) => {
+    const raw = fields
+      .find((field) => field.startsWith(`${name}=`))
+      ?.slice(name.length + 1);
+    try {
+      return raw ? decode(raw) : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  const runUrl = value('run', decodeURI);
+  const correlationId = value('correlation', decodeURIComponent);
+  return {
+    key,
+    ...(runUrl ? { runUrl } : {}),
+    ...(correlationId ? { correlationId } : {}),
+  };
+}
+
+/** Reads the finding key back from a review comment this reviewer posted. */
+export function postedFindingKey(body: string): string | undefined {
+  return parseFindingMarker(body)?.key;
 }
 
 /** The body of one review thread. Every thread asks for a fix or a reason. */
-export function renderFindingComment(finding: InlineFinding): string {
+export function renderFindingComment(
+  finding: InlineFinding,
+  source?: FindingSource,
+): string {
+  const origin = source
+    ? ` run=${encodeURI(source.runUrl)} correlation=${encodeURIComponent(source.correlationId)}`
+    : '';
   return [
-    `${ADAPTIVE_FINDING_MARKER}${findingKey(finding)} -->`,
+    `${ADAPTIVE_FINDING_MARKER}${findingKey(finding)}${origin} -->`,
     `**Adaptive review · ${finding.lane}**`,
     '',
     shorten(finding.concern, 2000),
@@ -187,31 +233,33 @@ export function renderAdaptiveComment(
       threads,
     ),
   );
+  let listed = 0;
   if (concerns.length) {
     lines.push('', 'Investigated concerns:');
     for (const result of concerns) {
       lines.push(`- **${result.lane}**: ${shorten(result.summary, 240)}`);
-      const listed = result.findings.filter(
-        (finding) =>
-          !threads ||
-          !finding.path ||
-          !finding.side ||
-          !finding.line ||
-          !threads.keys.has(
-            findingKey({
-              lane: result.lane,
-              path: finding.path,
-              side: finding.side,
-              line: finding.line,
-            }),
-          ),
-      );
-      for (const finding of listed.slice(0, 2)) {
+      for (const finding of result.findings) {
+        const key =
+          finding.path && finding.side && finding.line
+            ? findingKey({
+                lane: result.lane,
+                path: finding.path,
+                side: finding.side,
+                line: finding.line,
+              })
+            : undefined;
+        if (key && threads?.keys.has(key)) continue;
+        listed += 1;
+        if (listed > MAX_LISTED_FINDINGS) continue;
         lines.push(
-          `  - ${shorten(finding.path, 120)}${finding.line ? `:${finding.line}` : ''}${finding.side === 'old' ? ' (old)' : ''}: ${shorten(finding.concern, 240)}`,
+          `  - ${shorten(finding.path, 120)}${finding.line ? `:${finding.line}` : ''}${finding.side === 'old' ? ' (old)' : ''}: ${shorten(finding.concern, 240)}${key && threads?.resolved.has(key) ? ' _(an earlier thread on this line was resolved)_' : ''}`,
         );
       }
     }
+    if (listed > MAX_LISTED_FINDINGS)
+      lines.push(
+        `- ${listed - MAX_LISTED_FINDINGS} more findings are not shown here; the [workflow run](${runUrl}) has the full report.`,
+      );
   }
   const security = report.results.find((result) => result.lane === 'security');
   if (security && ['concern', 'unclear', 'failed'].includes(security.status)) {

@@ -18,6 +18,12 @@ import {
   renderFindingComment,
   type ThreadSummary,
 } from './report.js';
+import {
+  createGraphQL,
+  fetchReviewThreads,
+  type GraphQL,
+  isReviewerThread,
+} from './threads.js';
 import type { AdaptiveReport } from './workflow.js';
 
 type Request = (
@@ -28,6 +34,8 @@ type Request = (
 
 interface PublishOptions {
   request: Request;
+  /** Reads thread state; required unless inline findings are off. */
+  graphql?: GraphQL;
   runUrl: string;
   appLogin: string;
   /** Post each cited finding as a review thread; on unless set to false. */
@@ -114,25 +122,27 @@ function assertExpected(
     );
 }
 
-type ReviewComment = { body: string; user: { login: string } };
-
-/** Keys of the findings this reviewer already has a thread for on the PR. */
-async function postedFindings(
-  request: Request,
+/**
+ * The reviewer's existing threads by finding key. A key with any open thread
+ * is open; a key whose threads are all resolved is resolved.
+ */
+async function threadState(
+  graphql: GraphQL,
   report: AdaptiveReport,
   appLogin: string,
-): Promise<Set<string>> {
-  const comments = await listPaginated<ReviewComment>(
-    (path) => request(path) as Promise<ReviewComment[]>,
-    `/repos/${report.repo}/pulls/${report.pr}/comments`,
-  );
-  const keys = new Set<string>();
-  for (const comment of comments) {
-    if (comment.user.login !== appLogin) continue;
-    const key = postedFindingKey(comment.body);
-    if (key) keys.add(key);
+): Promise<{ open: Set<string>; resolved: Set<string> }> {
+  const threads = await fetchReviewThreads(graphql, report.repo, report.pr);
+  const open = new Set<string>();
+  const resolved = new Set<string>();
+  for (const thread of threads) {
+    if (!isReviewerThread(thread, appLogin)) continue;
+    const key = postedFindingKey(thread.comments.nodes[0]?.body ?? '');
+    if (!key) continue;
+    if (thread.isResolved) resolved.add(key);
+    else open.add(key);
   }
-  return keys;
+  for (const key of open) resolved.delete(key);
+  return { open, resolved };
 }
 
 function isUnprocessable(error: unknown): boolean {
@@ -144,53 +154,102 @@ function isUnprocessable(error: unknown): boolean {
   );
 }
 
+interface PostedThreads {
+  summary: ThreadSummary;
+  /** The review that holds this run's threads, if one was created. */
+  reviewId?: number;
+}
+
 /**
- * Opens one review thread per finding not already posted, anchored to the
- * reviewed head. GitHub rejects the whole review when one anchor is outside
- * the diff; the summary then lists the findings instead, so none is lost.
+ * Opens one review thread per finding that has no thread yet, anchored to
+ * the reviewed head. Identity is the finding's location, so an open thread
+ * covers any finding at the same lane and line. A resolved thread is not
+ * reopened: the summary lists the finding instead, so a new concern at a
+ * line the author already settled stays visible without repeating a thread.
+ * GitHub rejects the whole review when one anchor is outside the diff; the
+ * summary then lists every finding instead.
  */
 async function publishFindingThreads(
   request: Request,
+  graphql: GraphQL,
   report: AdaptiveReport,
-  appLogin: string,
+  { appLogin, runUrl }: { appLogin: string; runUrl: string },
   candidates: InlineFinding[],
-): Promise<ThreadSummary> {
-  const existing = await postedFindings(request, report, appLogin);
-  const fresh = candidates.filter(
-    (finding) => !existing.has(findingKey(finding)),
-  );
-  const open = candidates.length - fresh.length;
-  const keys = new Set(
-    candidates.map(findingKey).filter((key) => existing.has(key)),
-  );
-  if (!fresh.length) return { posted: 0, existing: open, keys };
+): Promise<PostedThreads> {
+  const { open, resolved } = await threadState(graphql, report, appLogin);
+  const fresh = candidates.filter((finding) => {
+    const key = findingKey(finding);
+    return !open.has(key) && !resolved.has(key);
+  });
+  const existing = candidates.filter((finding) =>
+    open.has(findingKey(finding)),
+  ).length;
+  const keys = new Set(candidates.map(findingKey).filter((k) => open.has(k)));
+  const summary = (posted: number): ThreadSummary => ({
+    posted,
+    existing,
+    keys,
+    resolved,
+  });
+  if (!fresh.length) return { summary: summary(0) };
+  const source = { runUrl, correlationId: report.correlationId };
+  let created: { id?: number };
   try {
-    await request(`/repos/${report.repo}/pulls/${report.pr}/reviews`, 'POST', {
-      commit_id: report.head,
-      event: 'COMMENT',
-      body: `Adaptive review of \`${report.head.slice(0, 7)}\`: ${fresh.length} new finding${fresh.length === 1 ? '' : 's'}.`,
-      comments: fresh.map((finding) => ({
-        path: finding.path,
-        line: finding.line,
-        side: finding.side === 'old' ? 'LEFT' : 'RIGHT',
-        body: renderFindingComment(finding),
-      })),
-    });
+    created = (await request(
+      `/repos/${report.repo}/pulls/${report.pr}/reviews`,
+      'POST',
+      {
+        commit_id: report.head,
+        event: 'COMMENT',
+        body: `Adaptive review of \`${report.head.slice(0, 7)}\`: ${fresh.length} new finding${fresh.length === 1 ? '' : 's'}.`,
+        comments: fresh.map((finding) => ({
+          path: finding.path,
+          line: finding.line,
+          side: finding.side === 'old' ? 'LEFT' : 'RIGHT',
+          body: renderFindingComment(finding, source),
+        })),
+      },
+    )) as { id?: number };
   } catch (error) {
     if (!isUnprocessable(error)) throw error;
     process.stdout.write(
       '::warning::GitHub rejected the review threads; the summary lists the findings instead.\n',
     );
-    return { posted: 0, existing: open, keys };
+    return { summary: summary(0) };
   }
   for (const finding of fresh) keys.add(findingKey(finding));
-  return { posted: fresh.length, existing: open, keys };
+  return {
+    summary: summary(fresh.length),
+    ...(typeof created.id === 'number' ? { reviewId: created.id } : {}),
+  };
+}
+
+/**
+ * Deletes the threads a stale run opened. They anchor to a head that is no
+ * longer current, and GitHub would later mark them outdated, which reads as
+ * a fix to anyone counting outcomes.
+ */
+async function withdrawThreads(
+  request: Request,
+  report: AdaptiveReport,
+  reviewId: number,
+): Promise<void> {
+  const comments = await listPaginated<{ id: number }>(
+    (path) => request(path) as Promise<Array<{ id: number }>>,
+    `/repos/${report.repo}/pulls/${report.pr}/reviews/${reviewId}/comments`,
+  );
+  for (const comment of comments)
+    await request(
+      `/repos/${report.repo}/pulls/comments/${comment.id}`,
+      'DELETE',
+    );
 }
 
 export async function publishAdaptiveReport(
   report: AdaptiveReport,
   {
     request,
+    graphql,
     runUrl,
     appLogin,
     expected,
@@ -208,10 +267,8 @@ export async function publishAdaptiveReport(
   if (current.base.sha !== report.base)
     throw new Error('PR base changed; refusing to publish stale review');
   const candidates = inline === false ? [] : inlineFindings(report.results);
-  const threads = candidates.length
-    ? await publishFindingThreads(request, report, appLogin, candidates)
-    : undefined;
-  const body = renderAdaptiveComment(report, runUrl, threads);
+  if (candidates.length && !graphql)
+    throw new Error('a GraphQL client is required to publish review threads');
   type Comment = { id: number; body: string; user: { login: string } };
   const previous = await findPaginated<Comment>(
     (path) => request(path) as Promise<Comment[]>,
@@ -230,6 +287,19 @@ export async function publishAdaptiveReport(
     throw new Error('PR head changed before publishing review');
   if (latest.base.sha !== report.base)
     throw new Error('PR base changed before publishing review');
+  // Threads go out only after the last pre-write check, so a run that is
+  // already stale opens none; a run that goes stale below withdraws them.
+  const posted =
+    candidates.length && graphql
+      ? await publishFindingThreads(
+          request,
+          graphql,
+          report,
+          { appLogin, runUrl },
+          candidates,
+        )
+      : undefined;
+  const body = renderAdaptiveComment(report, runUrl, posted?.summary);
   let commentId: number;
   if (previous) {
     await request(
@@ -252,6 +322,8 @@ export async function publishAdaptiveReport(
     `/repos/${expected.repo}/pulls/${expected.pr}`,
   )) as { head: { sha: string }; base: { sha: string } };
   if (after.head.sha === report.head && after.base.sha === report.base) return;
+  if (posted?.reviewId !== undefined)
+    await withdrawThreads(request, report, posted.reviewId);
   await request(
     `/repos/${expected.repo}/issues/comments/${commentId}`,
     'PATCH',
@@ -302,6 +374,7 @@ export async function publishAdaptiveReportFromEnv(): Promise<void> {
     });
   await publishAdaptiveReport(report, {
     request,
+    graphql: createGraphQL(token, env().GITHUB_GRAPHQL_URL || undefined),
     runUrl,
     appLogin,
     expected,
