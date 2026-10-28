@@ -7,6 +7,7 @@ export const SECURITY_PROCEDURE = `Review the pinned diff for security regressio
 3. Challenge each hypothesis against the changed branch, surrounding guards, callers, schemas, and alternate paths.
 4. Confirm only a reachable boundary-to-impact chain. Mark unresolved evidence unclear and disproved candidates refuted.
 5. Deduplicate by root cause. Return one confirmed, unclear, or refuted result per hunt candidate.
+Investigation limits count tool calls, including multiple calls in one turn. Reserve time to submit; when a runtime notice asks you to finish, submit the evidence collected so far immediately instead of making another read/search call. Do not repeat a search without a new, specific evidence question. An unavailable dependency implementation is an evidence gap, not a reason to audit unrelated callers.
 Do not restate dependency alerts, secret-scanner matches, missing tests, or broad review burden as security findings. Do not write files or publish comments.`;
 
 /** Portable fallback when an enabled complexity lane has no repository rubric. */

@@ -107,6 +107,7 @@ jobs:
       runtime-repository: ${{ steps.runtime.outputs.repository }}
       runtime-sha: ${{ steps.runtime-pin.outputs.sha }}
       action-digest: ${{ steps.bundle.outputs.digest }}
+      action-artifact-id: ${{ steps.action-artifact.outputs.artifact-id }}
     steps:
       - name: Resolve trusted review runtime
         id: runtime
@@ -204,13 +205,14 @@ jobs:
         if: steps.plan.outputs.review-enabled == 'true'
         run: bash .adaptive-review-runtime/tools/adaptive-review-action-digest.sh .adaptive-review-runtime/packages/adaptive-review-action/dist >> "$GITHUB_OUTPUT"
       - name: Upload the review action bundle
+        id: action-artifact
         if: steps.plan.outputs.review-enabled == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: adaptive-review-action-${{ github.repository_id }}-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
           path: .adaptive-review-runtime/packages/adaptive-review-action/dist
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 14
 
   route:
     needs: prepare
@@ -226,6 +228,7 @@ jobs:
     outputs:
       specialists: ${{ steps.route.outputs.specialists }}
       has-specialists: ${{ steps.route.outputs.has-specialists }}
+      route-artifact-id: ${{ steps.route-artifact.outputs.artifact-id }}
     env:
       ADAPTIVE_MODE: ${{ inputs.mode }}
       ADAPTIVE_PREPARED: ${{ github.workspace }}/adaptive-prepared.json
@@ -262,7 +265,8 @@ jobs:
       - name: Download the review action bundle
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          name: adaptive-review-action-${{ github.repository_id }}-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+          artifact-ids: ${{ needs.prepare.outputs.action-artifact-id }}
+          merge-multiple: true
           path: .adaptive-review-runtime/packages/adaptive-review-action/dist
       - name: Verify the review action bundle
         env:
@@ -287,6 +291,7 @@ jobs:
         with:
           step: route
       - name: Upload routing decision
+        id: route-artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: adaptive-route-${{ github.repository_id }}-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
@@ -340,7 +345,8 @@ jobs:
       - name: Download the review action bundle
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          name: adaptive-review-action-${{ github.repository_id }}-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+          artifact-ids: ${{ needs.prepare.outputs.action-artifact-id }}
+          merge-multiple: true
           path: .adaptive-review-runtime/packages/adaptive-review-action/dist
       - name: Verify the review action bundle
         env:
@@ -360,7 +366,8 @@ jobs:
       - name: Download routing decision
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          name: adaptive-route-${{ github.repository_id }}-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+          artifact-ids: ${{ needs.route.outputs.route-artifact-id }}
+          merge-multiple: true
           path: ${{ github.workspace }}
       - name: Run selected review lanes
         id: review

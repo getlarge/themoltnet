@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import type { ReviewEvidence } from '@moltnet/complexity-review/evidence';
+import type { Candidate } from '@moltnet/security-review/review';
 import type { ClassifyOutput } from '@moltnet/tasks';
 import type {
   TaskClient,
@@ -122,6 +123,8 @@ function harness(
   options: {
     classifierFails?: boolean;
     selected?: string;
+    securityCoverage?: string;
+    securityCandidateCount?: number;
     securityFindingStatus?: 'confirmed' | 'unclear' | 'refuted';
     invalidFocusedOutput?: boolean;
     focusedResult?: {
@@ -163,7 +166,7 @@ function harness(
       if (task.taskType === 'classify') {
         raw = { answers: answers(options.selected) };
       } else if (task.title?.includes('security hunt')) {
-        const findings = [];
+        const findings: Candidate[] = [];
         if (options.securityFindingStatus) {
           findings.push({
             id: 'changed-route',
@@ -174,7 +177,19 @@ function harness(
             hypothesis: 'The new route might skip a guard.',
           });
         }
-        raw = { result: { summary: 'Security hunt complete', findings } };
+        const candidates = options.securityCandidateCount
+          ? Array.from({ length: options.securityCandidateCount }, (_, i) => ({
+              ...findings[0],
+              id: `candidate-${i}`,
+            }))
+          : findings;
+        raw = {
+          result: {
+            summary: 'Security hunt complete',
+            coverage: options.securityCoverage ?? 'complete',
+            findings: candidates,
+          },
+        };
       } else if (task.title?.includes('security verify')) {
         raw = {
           result: {
@@ -1187,6 +1202,40 @@ describe('adaptive review orchestration', () => {
     );
     expect(securityHunt?.input.brief).toContain(patch);
     expect(securityHunt?.input.brief).not.toContain(generatedContent);
+  });
+
+  it.each([undefined, 'refuted', 'confirmed'] as const)(
+    'preserves partial hunt coverage with %s candidates',
+    async (securityFindingStatus) => {
+      const { tasks } = harness({
+        selected: 'security',
+        securityCoverage: 'partial',
+        securityFindingStatus,
+      });
+      const report = await review(tasks);
+      const result = report.results.find((item) => item.lane === 'security');
+      expect(result?.status).toBe(
+        securityFindingStatus === 'confirmed' ? 'concern' : 'unclear',
+      );
+      expect(result?.summary).toContain('unassessed');
+      if (securityFindingStatus) expect(result?.unclear).not.toHaveLength(0);
+    },
+  );
+
+  it.each([
+    { securityCoverage: 'missing' },
+    { securityCandidateCount: 6, securityFindingStatus: 'refuted' as const },
+  ])('fails closed on an invalid hunt contract: %j', async (options) => {
+    const { tasks, created } = harness({ selected: 'security', ...options });
+    const report = await review(tasks);
+    expect(
+      report.results.find((item) => item.lane === 'security')?.status,
+    ).toBe('failed');
+    expect(
+      [...created.values()].some((task) =>
+        task.title?.includes('security verify'),
+      ),
+    ).toBe(false);
   });
 
   it('marks binary contents as unassessed after a candidate-free security hunt', async () => {

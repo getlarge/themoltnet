@@ -320,11 +320,13 @@ describe('route to review handoff', () => {
       packetCount: 1,
     } as unknown as AdaptivePreparation;
     const report = {
+      gaps: [],
+      routing: preparation.routing,
       results: [
         { lane: 'docs', status: 'clear' },
         { lane: 'tests', status: 'failed' },
       ],
-    } as AdaptiveReport;
+    } as unknown as AdaptiveReport;
     mocks.prepareAdaptiveReview.mockResolvedValue(preparation);
     mocks.runRoutedAdaptiveReview.mockResolvedValue(report);
     const { deps: route, tasks } = deps();
@@ -426,6 +428,8 @@ describe('route and review failures', () => {
     writeFileSync(file('summary'), '');
     mocks.runRoutedAdaptiveReview.mockResolvedValue({
       results: [{ lane: 'docs', status: 'concern' }],
+      gaps: [],
+      routing: { routes: [] },
     });
     const { deps: cli } = deps();
 
@@ -437,6 +441,36 @@ describe('route and review failures', () => {
     ).resolves.toBe(0);
     expect(readFileSync(file('summary'), 'utf8')).toContain('| docs |');
   });
+
+  it.each(['unclear', 'failed'] as const)(
+    'warns about %s coverage without publishing private evidence',
+    async (status) => {
+      writeFileSync(file('route.json'), JSON.stringify({ routing: {} }));
+      mocks.runRoutedAdaptiveReview.mockResolvedValue({
+        results: [{ lane: 'security', status, summary: 'private evidence' }],
+        gaps: [],
+        routing: { routes: [] },
+      });
+      const { deps: cli, stdout } = deps();
+      const code = await runAdaptiveStage('review', {
+        ...cli,
+        env: { ...cli.env, GITHUB_STEP_SUMMARY: file('summary') },
+      });
+      expect(code).toBe(status === 'failed' ? 1 : 0);
+      expect(stdout).toHaveBeenCalledWith(
+        expect.stringContaining('::warning title=Incomplete adaptive review::'),
+      );
+      expect(readFileSync(file('summary'), 'utf8')).toContain(
+        'incomplete coverage',
+      );
+      expect(JSON.stringify(stdout.mock.calls)).not.toContain(
+        'private evidence',
+      );
+      expect(readFileSync(file('summary'), 'utf8')).not.toContain(
+        'private evidence',
+      );
+    },
+  );
 
   it('refuses an output value spanning lines', async () => {
     writeEvent();
