@@ -13,6 +13,7 @@ export type {
   RequestOptions,
   RequestResult,
   ResponseStyle,
+  ServerSentEventsResult,
   TDataShape,
 } from './types.js';
 

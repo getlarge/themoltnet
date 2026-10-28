@@ -87,6 +87,43 @@ type RequestFn = <
   },
 ) => RequestResult<TData, TError, ThrowOnError, TResponseStyle>;
 
+/**
+ * Shape of hey-api's Server-Sent Events result, declared so the generated SDK
+ * typechecks for SSE operations. A request executor resolves one parsed body
+ * per request and cannot stream, so this client's `sse` methods always reject.
+ */
+export interface ServerSentEventsResult<
+  TData = unknown,
+  TReturn = void,
+  TNext = unknown,
+> {
+  stream: AsyncGenerator<
+    TData extends Record<string, unknown> ? TData[keyof TData] : TData,
+    TReturn,
+    TNext
+  >;
+}
+
+type SseFn = <
+  TData = unknown,
+  _TError = unknown,
+  ThrowOnError extends boolean = false,
+  TResponseStyle extends ResponseStyle = 'fields',
+>(
+  options: Omit<RequestOptions<TResponseStyle, ThrowOnError>, 'method'>,
+) => Promise<ServerSentEventsResult<TData>>;
+
+type HttpMethod =
+  | 'connect'
+  | 'delete'
+  | 'get'
+  | 'head'
+  | 'options'
+  | 'patch'
+  | 'post'
+  | 'put'
+  | 'trace';
+
 export interface Client {
   buildUrl: (
     options: Pick<RequestOptions, 'baseUrl' | 'path' | 'query' | 'url'>,
@@ -102,6 +139,7 @@ export interface Client {
   put: MethodFn;
   request: RequestFn;
   setConfig: (config: Config) => Config;
+  sse: { [K in HttpMethod]: SseFn };
   trace: MethodFn;
 }
 
@@ -119,9 +157,15 @@ export interface TDataShape {
 
 type OmitKeys<T, K> = Pick<T, Exclude<keyof T, K>>;
 
+/**
+ * `TResponse` keeps the generated SDK's type-argument order (hey-api passes the
+ * response type third); it types only SSE callbacks, which this client lacks.
+ */
 export type Options<
   TData extends TDataShape = TDataShape,
   ThrowOnError extends boolean = boolean,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  TResponse = unknown,
   TResponseStyle extends ResponseStyle = 'fields',
 > = OmitKeys<
   RequestOptions<TResponseStyle, ThrowOnError>,

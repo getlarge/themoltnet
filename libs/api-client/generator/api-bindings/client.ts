@@ -71,6 +71,11 @@ export const createClient = (initial: Config = {}): Client => {
   };
   const method = (name: string) => (options: RequestOptions) =>
     request({ ...options, method: name });
+  // A request executor returns one parsed body, so it cannot carry a stream.
+  const sse = () =>
+    Promise.reject(
+      new Error('Server-Sent Events are not supported by request executors'),
+    );
   return {
     buildUrl,
     connect: method('CONNECT'),
@@ -84,6 +89,17 @@ export const createClient = (initial: Config = {}): Client => {
     put: method('PUT'),
     request,
     setConfig: (next) => (config = { ...config, ...next }),
+    sse: {
+      connect: sse,
+      delete: sse,
+      get: sse,
+      head: sse,
+      options: sse,
+      patch: sse,
+      post: sse,
+      put: sse,
+      trace: sse,
+    },
     trace: method('TRACE'),
   } as Client;
 };

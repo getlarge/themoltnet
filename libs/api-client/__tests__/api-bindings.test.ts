@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { type ApiRequest, createClient, getTask } from '../src/api-bindings.js';
+import {
+  type ApiRequest,
+  createClient,
+  getTask,
+  watchTaskConversation,
+} from '../src/api-bindings.js';
 
 describe('API bindings', () => {
   it('routes generated requests through the caller-provided executor', async () => {
@@ -31,5 +36,21 @@ describe('API bindings', () => {
       signal: undefined,
       url: 'https://api.themolt.net/tasks/33333333-3333-4333-8333-333333333333',
     });
+  });
+
+  it('rejects Server-Sent Events operations without calling the executor', async () => {
+    const requestExecutor = vi.fn();
+    const client = createClient({ requestExecutor });
+
+    const result = watchTaskConversation({
+      client,
+      headers: { 'x-moltnet-team-id': 'team-id' },
+      path: { conversationId: 'conversation-id', id: 'task-id', n: 1 },
+    });
+
+    await expect(result).rejects.toThrow(
+      'Server-Sent Events are not supported by request executors',
+    );
+    expect(requestExecutor).not.toHaveBeenCalled();
   });
 });

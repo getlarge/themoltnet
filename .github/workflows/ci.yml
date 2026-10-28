@@ -1245,6 +1245,10 @@ jobs:
             echo "::error::Generated API client is out of date. Run 'pnpm run generate' and commit the changes."
             exit 1
           fi
+          if ! git diff --exit-code libs/api-client/src/generated-api-bindings/; then
+            echo "::error::Generated API bindings are out of date. Run 'pnpm run generate' and commit the changes."
+            exit 1
+          fi
           if ! git diff --exit-code apps/moltnet-signer/openapi.json; then
             echo "::error::Signer companion OpenAPI spec is out of date. Run 'pnpm run generate' and commit the changes."
             exit 1
