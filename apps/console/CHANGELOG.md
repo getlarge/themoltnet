@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.22.9](https://github.com/getlarge/themoltnet/compare/console-v0.22.8...console-v0.22.9) (2026-10-28)
+
+
+### Bug Fixes
+
+* address review round 1 on signing request requesters ([e5c946f](https://github.com/getlarge/themoltnet/commit/e5c946fc100d9fb9474d5892172cbb4fee5673e4))
+* address review round 4 on signing request requesters ([132c3fe](https://github.com/getlarge/themoltnet/commit/132c3feb1696962d500578e9acfcf468f78dcd3a))
+* **api:** describe a signing request's requester as a PrincipalIdentity ([e7d9238](https://github.com/getlarge/themoltnet/commit/e7d923835e8ba4d9551b19bfe50e975203a76b4b))
+* **console:** tolerate a missing signing requester during rollout ([2ad8e0c](https://github.com/getlarge/themoltnet/commit/2ad8e0ccfa4db3545090a785e44da4600dcd0556))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @moltnet/database bumped to 0.18.3
+    * @themoltnet/sdk bumped to 0.154.2
+
 ## [0.22.8](https://github.com/getlarge/themoltnet/compare/console-v0.22.7...console-v0.22.8) (2026-10-26)
 
 

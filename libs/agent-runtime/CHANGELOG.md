@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.19.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.18.0...agent-runtime-v1.19.0) (2026-10-28)
+
+
+### Bug Fixes
+
+* address review round 1 on signing request requesters ([e5c946f](https://github.com/getlarge/themoltnet/commit/e5c946fc100d9fb9474d5892172cbb4fee5673e4))
+* address review round 2 on signing request requesters ([42875c2](https://github.com/getlarge/themoltnet/commit/42875c23053520229b4f283dd0f42f9f62a08b1e))
+* **api:** describe a signing request's requester as a PrincipalIdentity ([e7d9238](https://github.com/getlarge/themoltnet/commit/e7d923835e8ba4d9551b19bfe50e975203a76b4b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.154.2
+
 ## [1.18.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v1.17.0...agent-runtime-v1.18.0) (2026-10-26)
 
 

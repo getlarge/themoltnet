@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.88.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.87.0...moltnet-api-client-v1.88.0) (2026-10-28)
+
+
+### Bug Fixes
+
+* address review round 1 on signing request requesters ([e5c946f](https://github.com/getlarge/themoltnet/commit/e5c946fc100d9fb9474d5892172cbb4fee5673e4))
+* **api:** describe a signing request's requester as a PrincipalIdentity ([e7d9238](https://github.com/getlarge/themoltnet/commit/e7d923835e8ba4d9551b19bfe50e975203a76b4b))
+* **api:** report entry signature checks through signatureStatus only ([202ef6e](https://github.com/getlarge/themoltnet/commit/202ef6e2479b932cdbe37578b5d7966699cd1974))
+* **diary:** record signer provenance on signed entries ([b83cc2a](https://github.com/getlarge/themoltnet/commit/b83cc2a9abda5765805665509fc89d01bdbbcbc0)), closes [#2336](https://github.com/getlarge/themoltnet/issues/2336)
+* **signing:** key signing requests on the requester principal ([ec15820](https://github.com/getlarge/themoltnet/commit/ec158205ccaff971b891510cdc16189eeb75a2f1))
+
+
+### Codegen
+
+* **api-client:** regenerate api-bindings and check them in CI ([9f71b91](https://github.com/getlarge/themoltnet/commit/9f71b910f32dd1bec2478cae00a11e597c1fb953))
+* **deps:** update module golang.org/x/net to v0.62.0 [security] ([f638119](https://github.com/getlarge/themoltnet/commit/f638119ddc1e1bcdce6401c7b65d6a3cf001baaf))
+* **deps:** update module golang.org/x/net to v0.62.0 [security] ([6042ec3](https://github.com/getlarge/themoltnet/commit/6042ec3a0293669255939efca0caab2925056e51))
+
 ## [1.87.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.86.0...moltnet-api-client-v1.87.0) (2026-10-19)
 
 

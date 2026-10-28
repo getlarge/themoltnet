@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/complexity-review-action-v0.5.0...complexity-review-action-v0.6.0) (2026-10-28)
+
+
+### Features
+
+* **ci:** report agent workflow spend in summaries and comments ([b9c66c3](https://github.com/getlarge/themoltnet/commit/b9c66c3597843c751cf093247438c263cc0b33ca))
+* **review-actions:** publish correlated workflow spend ([678b9ac](https://github.com/getlarge/themoltnet/commit/678b9ac6f0dc03f627bea578aee34c3bfbd5f342))
+
+
+### Bug Fixes
+
+* **agent-daemon-action:** isolate invocations and use daemon provider config ([eb81860](https://github.com/getlarge/themoltnet/commit/eb8186076c6040662a44c942f55623c8624ade96))
+* **agent-daemon-action:** isolate invocations and use daemon provider config ([82cb7b5](https://github.com/getlarge/themoltnet/commit/82cb7b54060db00a3ed23ec3bae426f7c04f0d83))
+* **agent-daemon:** clarify Pi repository config option name ([b5c6b72](https://github.com/getlarge/themoltnet/commit/b5c6b72f58d28caf300bf421cdabaf3a4a78fca9))
+* **agent-daemon:** name repository config option positively ([b2f5c60](https://github.com/getlarge/themoltnet/commit/b2f5c6059fc48107a49e09509a95d312f22b81cf))
+* **ci:** address review round 1 on workflow spend ([c55e203](https://github.com/getlarge/themoltnet/commit/c55e203e41c3f1bd133f0cfbb6ad9034a8a97727))
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/complexity-review-action-v0.4.4...complexity-review-action-v0.5.0) (2026-10-21)
 
 

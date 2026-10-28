@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.18.3](https://github.com/getlarge/themoltnet/compare/database-v0.18.2...database-v0.18.3) (2026-10-28)
+
+
+### Bug Fixes
+
+* address review round 1 on entry signature verification ([be87640](https://github.com/getlarge/themoltnet/commit/be876407b96a27e3f9676a7c9f8bd891626b3330))
+* address review round 1 on signing request requesters ([e5c946f](https://github.com/getlarge/themoltnet/commit/e5c946fc100d9fb9474d5892172cbb4fee5673e4))
+* address review round 1 on verified signature lookups ([f9b8194](https://github.com/getlarge/themoltnet/commit/f9b8194b0c4a0eacca7bf28b0117856fb3096a71))
+* address review round 2 on entry signature verification ([5e97533](https://github.com/getlarge/themoltnet/commit/5e97533e2e51a8fdf576097cd89c3376f2c94a1a))
+* address review round 2 on signing request requesters ([42875c2](https://github.com/getlarge/themoltnet/commit/42875c23053520229b4f283dd0f42f9f62a08b1e))
+* address review round 2 on verified signature lookups ([904eacc](https://github.com/getlarge/themoltnet/commit/904eacc127f860fc1ddf7a1be427292bd2fee957))
+* address review round 3 on signing request requesters ([6eb3856](https://github.com/getlarge/themoltnet/commit/6eb38561e48bbd7d95f4957948b0e07bd082707a))
+* **diary:** record signer provenance on signed entries ([b83cc2a](https://github.com/getlarge/themoltnet/commit/b83cc2a9abda5765805665509fc89d01bdbbcbc0)), closes [#2336](https://github.com/getlarge/themoltnet/issues/2336)
+* **diary:** verify signed entries through the creator agent ([b0ed552](https://github.com/getlarge/themoltnet/commit/b0ed552af5258ff30bc03de6c92c28f27ad0295d))
+* **signing:** key signing requests on the requester principal ([ec15820](https://github.com/getlarge/themoltnet/commit/ec158205ccaff971b891510cdc16189eeb75a2f1))
+* **signing:** only verified requests back signatures ([97f404c](https://github.com/getlarge/themoltnet/commit/97f404c6d3a4b7552feb20cb075b432ab276f42d))
+
 ## [0.18.2](https://github.com/getlarge/themoltnet/compare/database-v0.18.1...database-v0.18.2) (2026-10-21)
 
 

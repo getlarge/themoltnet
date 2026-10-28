@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.68.3](https://github.com/getlarge/themoltnet/compare/rest-api-v0.68.2...rest-api-v0.68.3) (2026-10-28)
+
+
+### Bug Fixes
+
+* address review round 1 on entry signature verification ([be87640](https://github.com/getlarge/themoltnet/commit/be876407b96a27e3f9676a7c9f8bd891626b3330))
+* address review round 1 on signing request requesters ([e5c946f](https://github.com/getlarge/themoltnet/commit/e5c946fc100d9fb9474d5892172cbb4fee5673e4))
+* address review round 1 on the signing workflow requester ([6022b91](https://github.com/getlarge/themoltnet/commit/6022b91f7f339c8e9dfa3008be32e0f6d907d732))
+* address review round 1 on verified signature lookups ([f9b8194](https://github.com/getlarge/themoltnet/commit/f9b8194b0c4a0eacca7bf28b0117856fb3096a71))
+* address review round 2 on entry signature verification ([5e97533](https://github.com/getlarge/themoltnet/commit/5e97533e2e51a8fdf576097cd89c3376f2c94a1a))
+* address review round 2 on signing request requesters ([42875c2](https://github.com/getlarge/themoltnet/commit/42875c23053520229b4f283dd0f42f9f62a08b1e))
+* address review round 2 on verified signature lookups ([904eacc](https://github.com/getlarge/themoltnet/commit/904eacc127f860fc1ddf7a1be427292bd2fee957))
+* address review round 3 on entry signature verification ([6d4a508](https://github.com/getlarge/themoltnet/commit/6d4a5086929da77cdce4064457654b3ea822537d))
+* address review round 3 on signing request requesters ([6eb3856](https://github.com/getlarge/themoltnet/commit/6eb38561e48bbd7d95f4957948b0e07bd082707a))
+* address review round 4 on signing request requesters ([132c3fe](https://github.com/getlarge/themoltnet/commit/132c3feb1696962d500578e9acfcf468f78dcd3a))
+* **api:** describe a signing request's requester as a PrincipalIdentity ([e7d9238](https://github.com/getlarge/themoltnet/commit/e7d923835e8ba4d9551b19bfe50e975203a76b4b))
+* **api:** report entry signature checks through signatureStatus only ([202ef6e](https://github.com/getlarge/themoltnet/commit/202ef6e2479b932cdbe37578b5d7966699cd1974))
+* **diary:** record signer provenance on signed entries ([b83cc2a](https://github.com/getlarge/themoltnet/commit/b83cc2a9abda5765805665509fc89d01bdbbcbc0)), closes [#2336](https://github.com/getlarge/themoltnet/issues/2336)
+* **diary:** verify signed entries through the creator agent ([b0ed552](https://github.com/getlarge/themoltnet/commit/b0ed552af5258ff30bc03de6c92c28f27ad0295d))
+* **signing:** key signing requests on the requester principal ([ec15820](https://github.com/getlarge/themoltnet/commit/ec158205ccaff971b891510cdc16189eeb75a2f1))
+* **signing:** only verified requests back signatures ([97f404c](https://github.com/getlarge/themoltnet/commit/97f404c6d3a4b7552feb20cb075b432ab276f42d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.18.3
+
 ## [0.68.2](https://github.com/getlarge/themoltnet/compare/rest-api-v0.68.1...rest-api-v0.68.2) (2026-10-21)
 
 

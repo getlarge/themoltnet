@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.7.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.6.6...agent-daemon-action-v0.7.0) (2026-10-28)
+
+
+### Features
+
+* **agent-action:** report spend for single and drain workers ([8ebcfac](https://github.com/getlarge/themoltnet/commit/8ebcfaccdd3abe326ebfb9cf8d6d7a557922ee82))
+* **ci:** report agent workflow spend in summaries and comments ([b9c66c3](https://github.com/getlarge/themoltnet/commit/b9c66c3597843c751cf093247438c263cc0b33ca))
+
+
+### Bug Fixes
+
+* **agent-daemon-action:** isolate invocations and use daemon provider config ([eb81860](https://github.com/getlarge/themoltnet/commit/eb8186076c6040662a44c942f55623c8624ade96))
+* **agent-daemon-action:** isolate invocations and use daemon provider config ([82cb7b5](https://github.com/getlarge/themoltnet/commit/82cb7b54060db00a3ed23ec3bae426f7c04f0d83))
+* **agent-daemon:** clarify Pi repository config option name ([b5c6b72](https://github.com/getlarge/themoltnet/commit/b5c6b72f58d28caf300bf421cdabaf3a4a78fca9))
+* **agent-daemon:** name repository config option positively ([b2f5c60](https://github.com/getlarge/themoltnet/commit/b2f5c6059fc48107a49e09509a95d312f22b81cf))
+* **ci:** address review round 1 on workflow spend ([c55e203](https://github.com/getlarge/themoltnet/commit/c55e203e41c3f1bd133f0cfbb6ad9034a8a97727))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.154.2
+
 ## [0.6.6](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.6.5...agent-daemon-action-v0.6.6) (2026-10-26)
 
 

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.43.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.42.4...pi-extension-v0.43.0) (2026-10-28)
+
+
+### Features
+
+* **pi-runtime:** connect native Durable telemetry to OpenTelemetry ([15a1d50](https://github.com/getlarge/themoltnet/commit/15a1d50a13acebe8ed1b6c6a1878e2a46e160ee9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-runtime bumped to 0.27.0
+    * @themoltnet/sdk bumped to 0.154.2
+
 ## [0.42.4](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.42.3...pi-extension-v0.42.4) (2026-10-26)
 
 
