@@ -83,6 +83,24 @@ example, an anchor outside the diff), the publish step warns, lists the
 findings in the summary, and succeeds. Set the caller input
 `inline-findings: 'false'` to keep every finding in the summary comment.
 
+When a pull request closes, the outcomes workflow
+(`adaptive-review-outcomes-reusable.yml`) reads the reviewer's threads and
+writes one signed diary entry per pull request, tagged
+`review:adaptive-outcomes`, `repo:<owner/repo>`, `pr:<number>`, and one
+`lane:<lane>` per lane with findings. Each finding is recorded as:
+
+- `fixed`: a later commit changed the anchored line (GitHub marks the thread
+  outdated). This is a proxy; an unrelated edit to the line also counts.
+- `dismissed`: resolved with the line unchanged. The latest reply from
+  someone other than the reviewer is kept as the reason.
+- `ignored`: still unresolved when the pull request closed.
+
+The entry ends with a JSON block (`version: 1`) holding every finding's key,
+lane, path, reviewed head, concern, outcome, and reason, for eval tooling. A
+pull request with no threads writes nothing, and a reopened pull request
+that closes again keeps its first entry. Confirm a `fixed` label before
+using the finding as an eval case.
+
 The classifier is selected by the caller's profile. MoltNet uses Ollama Cloud
 `clef:27b` through its issue-classifier-v2 profile; other repositories can select
 another System One classifier without changing this library. Classifier
