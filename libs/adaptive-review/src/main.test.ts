@@ -1,3 +1,4 @@
+import { connect } from '@themoltnet/sdk/node';
 import { expect, it, vi } from 'vitest';
 
 import type { CliDeps } from './cli.js';
@@ -26,7 +27,9 @@ import './main.js';
 
 it('reads attempts for a prior-job task with explicit team context', async () => {
   const deps = mocks.runAdaptiveStage.mock.calls[0][1] as CliDeps;
-  const client = await deps.connect('review-team');
+  const signal = new AbortController().signal;
+  const client = await deps.connect('review-team', signal);
+  expect(connect).toHaveBeenCalledWith({ signal });
   await client.tasks.listAttempts('classifier-from-route-job');
   expect(mocks.listAttempts).toHaveBeenCalledWith('classifier-from-route-job', {
     teamId: 'review-team',

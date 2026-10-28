@@ -53,7 +53,10 @@ export interface CliDeps {
     ): Promise<{ head: string; base: string }>;
     files(repo: string, pr: number): Promise<PullRequestFile[]>;
   };
-  connect(teamId: string): Promise<{
+  connect(
+    teamId: string,
+    signal?: AbortSignal,
+  ): Promise<{
     profiles(teamId: string): Promise<Array<{ id: string; name: string }>>;
     tasks: TaskClient;
   }>;
@@ -291,6 +294,12 @@ async function review(deps: CliDeps, options: RunOptions): Promise<number> {
     readFileSync(required('ADAPTIVE_ROUTE', env), 'utf8'),
   ) as AdaptivePreparation;
   const report = await runRoutedAdaptiveReview(options, preparation);
+  const spendTasks = report.taskIds?.length
+    ? await deps
+        .connect(options.identity.teamId, AbortSignal.timeout(30_000))
+        .then((client) => client.tasks)
+        .catch(() => undefined)
+    : undefined;
   report.spend = await collectWorkflowSpend(
     (report.taskIds ?? []).map((taskId) => ({
       taskId,
@@ -298,7 +307,10 @@ async function review(deps: CliDeps, options: RunOptions): Promise<number> {
         report.results.find((result) => result.taskIds?.includes(taskId))
           ?.lane ?? 'classifier',
     })),
-    (id) => options.tasks.listAttempts(id),
+    (id) => {
+      if (!spendTasks) throw new Error('Spend connection unavailable');
+      return spendTasks.listAttempts(id);
+    },
   );
   if (env.GITHUB_STEP_SUMMARY)
     appendFileSync(env.GITHUB_STEP_SUMMARY, formatWorkflowSpend(report.spend));

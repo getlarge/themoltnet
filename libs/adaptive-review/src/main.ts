@@ -99,8 +99,8 @@ const deps: CliDeps = {
       );
     },
   },
-  async connect(teamId) {
-    const agent = await connect();
+  async connect(teamId, signal) {
+    const agent = await connect({ signal });
     return {
       async profiles(teamId) {
         return (await agent.runtimeProfiles.list({ teamId })).items;

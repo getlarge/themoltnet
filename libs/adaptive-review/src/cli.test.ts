@@ -494,6 +494,54 @@ describe('route and review failures', () => {
     expect(saved).not.toContain('private task evidence');
     expect(readFileSync(file('summary'), 'utf8')).toContain('$0.0200');
   });
+  it('saves the review when its separate accounting connection times out', async () => {
+    writeFileSync(file('route.json'), JSON.stringify({ routing: {} }));
+    mocks.runRoutedAdaptiveReview.mockResolvedValue({
+      taskIds: ['classifier'],
+      results: [],
+      gaps: [],
+      routing: { routes: [] },
+    });
+    const { deps: cli } = deps();
+    const primaryConnect = cli.connect.bind(cli);
+    const controller = new AbortController();
+    const timeout = vi
+      .spyOn(AbortSignal, 'timeout')
+      .mockReturnValue(controller.signal);
+    const accountingConnect = vi.fn<CliDeps['connect']>((teamId, signal) => {
+      if (!signal) return primaryConnect(teamId);
+      return new Promise<Awaited<ReturnType<CliDeps['connect']>>>(
+        (_, reject) => {
+          signal.addEventListener(
+            'abort',
+            () => reject(new Error('accounting timeout')),
+            { once: true },
+          );
+          queueMicrotask(() => controller.abort());
+        },
+      );
+    });
+    cli.connect = accountingConnect;
+    try {
+      expect(await runAdaptiveStage('review', cli)).toBe(0);
+      expect(accountingConnect).toHaveBeenNthCalledWith(1, 'team');
+      expect(accountingConnect).toHaveBeenNthCalledWith(
+        2,
+        'team',
+        controller.signal,
+      );
+      expect(timeout).toHaveBeenCalledWith(30_000);
+      expect(
+        JSON.parse(readFileSync(file('report.json'), 'utf8')),
+      ).toMatchObject({
+        results: [],
+        spend: { records: [{ taskId: 'classifier', missing: true }] },
+      });
+    } finally {
+      timeout.mockRestore();
+    }
+  });
+
   it.each(['unclear', 'failed'] as const)(
     'warns about %s coverage without publishing private evidence',
     async (status) => {
