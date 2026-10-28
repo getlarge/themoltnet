@@ -532,10 +532,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
             const agent = await agentRepository.findById(agentId);
             return agent?.publicKey ?? null;
           },
-          getPublicKeyByIdentityId: async (identityId: string) => {
-            const agent = await agentRepository.findByIdentityId(identityId);
-            return agent?.publicKey ?? null;
-          },
         });
       },
       () => initTaskWorkflows(),

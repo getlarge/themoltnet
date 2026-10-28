@@ -733,6 +733,47 @@ describe('createSigningService', () => {
     expect(getActivePendingSummaryByRequester).toHaveBeenCalledBefore(create);
   });
 
+  it('starts the agent signing workflow with a human requester', async () => {
+    const created = {
+      ...pendingRequest(),
+      requesterAgentId: null,
+      requesterHumanId: human.humanId,
+      verificationMethod: VERIFICATION_METHOD.AgentEd25519,
+    };
+    const startAgentSigningWorkflow = vi
+      .fn()
+      .mockResolvedValue({ workflowID: `signing-${created.id}` });
+    const service = createSigningService(
+      createDeps({
+        startAgentSigningWorkflow,
+        signingRequestRepository: {
+          acquirePendingCreateLock: vi.fn(),
+          getActivePendingSummaryByRequester: vi.fn().mockResolvedValue({
+            count: 0,
+            earliestExpiresAt: null,
+          }),
+          create: vi.fn().mockResolvedValue(created),
+          setWorkflowId: vi.fn(),
+        } as never,
+        transactionRunner: {
+          runInTransaction: vi.fn(runInTransaction),
+        } as never,
+      }),
+    );
+
+    await service.requests.create({
+      actor: human,
+      message: created.message,
+      verificationMethod: VERIFICATION_METHOD.AgentEd25519,
+    });
+
+    expect(startAgentSigningWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requester: { kind: 'human', id: human.humanId },
+      }),
+    );
+  });
+
   it('expires and logs an agent request when workflow startup fails', async () => {
     const now = new Date('2026-08-01T12:00:00.000Z');
     const created = {

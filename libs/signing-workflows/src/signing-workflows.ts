@@ -256,6 +256,8 @@ export class Ed25519Verifier implements SigningVerifier {
 /**
  * The principal that owns a signing request, keyed on `agents.id` /
  * `humans.id`. Only an agent requester holds an Ed25519 identity key.
+ * Mirrors `SigningRequester` in `@moltnet/database`, which this package does
+ * not depend on.
  */
 export interface SigningWorkflowRequester {
   readonly kind: 'agent' | 'human';
@@ -263,23 +265,11 @@ export interface SigningWorkflowRequester {
 }
 
 /**
- * The signer argument recorded for `signing.requestSignature`.
- *
- * Workflows started before the requester principal was passed recorded the
- * caller's Kratos identity id as a bare string, and recovery replays them with
- * that argument. A bare string is therefore always read as an identity id; new
- * workflows pass the tagged requester instead.
- */
-export type SigningWorkflowSigner = SigningWorkflowRequester | string;
-
-/**
  * Interface for looking up an agent's public key.
  * Implemented by the agent repository.
  */
 export interface AgentKeyLookup {
   getPublicKeyByAgentId(agentId: string): Promise<string | null>;
-  /** Only for workflows recorded with a Kratos identity id. */
-  getPublicKeyByIdentityId(identityId: string): Promise<string | null>;
 }
 
 /**
@@ -569,7 +559,7 @@ const signingStepConfig = {
 let _workflows: {
   requestSignature: (
     requestId: string,
-    signer: SigningWorkflowSigner,
+    requester: SigningWorkflowRequester,
     message: string,
     nonce: string,
     verificationMethod?: VerificationMethod,
@@ -587,15 +577,10 @@ export function initSigningWorkflows(): void {
 
   // ── Steps ──────────────────────────────────────────────────────────
   const lookupPublicKeyStep = DBOS.registerStep(
-    async (signer: SigningWorkflowSigner): Promise<string | null> => {
-      const lookup = getAgentKeyLookup();
-      if (typeof signer === 'string') {
-        return lookup.getPublicKeyByIdentityId(signer);
-      }
-      return signer.kind === 'agent'
-        ? lookup.getPublicKeyByAgentId(signer.id)
-        : null;
-    },
+    async (requester: SigningWorkflowRequester): Promise<string | null> =>
+      requester.kind === 'agent'
+        ? getAgentKeyLookup().getPublicKeyByAgentId(requester.id)
+        : null,
     { name: 'signing.step.lookupPublicKey', ...signingStepConfig },
   );
 
@@ -658,7 +643,7 @@ export function initSigningWorkflows(): void {
     requestSignature: DBOS.registerWorkflow(
       async (
         requestId: string,
-        signer: SigningWorkflowSigner,
+        requester: SigningWorkflowRequester,
         message: string,
         nonce: string,
         verificationMethod: VerificationMethod = VERIFICATION_METHOD.AgentEd25519,
@@ -686,9 +671,8 @@ export function initSigningWorkflows(): void {
         }
 
         // 3. Look up the requester agent's public key
-        const publicKey = await lookupPublicKeyStep(signer);
+        const publicKey = await lookupPublicKeyStep(requester);
         if (!publicKey) {
-          // No agent key for the signer — mark as completed with invalid
           await persistStatusStep(
             requestId,
             'completed',

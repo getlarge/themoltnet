@@ -8,7 +8,6 @@ import {
   isSigningRequester,
   type SigningRequest,
   type SigningRequester,
-  signingRequester,
 } from '@moltnet/database';
 import { SIGNER_CONSTRAINT_TYPE, VERIFICATION_METHOD } from '@moltnet/models';
 import {
@@ -197,14 +196,12 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
 
       if (input.verificationMethod === VERIFICATION_METHOD.AgentEd25519) {
         try {
-          // The workflow resolves the key from the persisted requester, so a
-          // relinked or recreated Kratos identity cannot change it. A human
-          // requester holds no agent key and completes as invalid, as before.
+          // The key comes from the requester row, never the Kratos identity.
           const workflowHandle = await (
             deps.startAgentSigningWorkflow ?? startAgentSigningWorkflow
           )({
             id: created.id,
-            requester: signingRequester(created),
+            requester,
             message: input.message,
             nonce: created.nonce,
             verificationMethod: created.verificationMethod,
