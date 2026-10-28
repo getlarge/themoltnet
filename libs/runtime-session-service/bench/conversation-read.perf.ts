@@ -48,6 +48,7 @@ const Attempts = defineDocFamily({
   version: 1,
   scope: 'session',
   family: true,
+  checkpointWhen: () => false,
   initial: (conversationId: number) => ({ conversationId }),
 });
 const input = {
