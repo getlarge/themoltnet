@@ -129,3 +129,39 @@ it('keeps pipefail and collects spend after failed execution before cleanup', ()
     action.runs.steps.findIndex((s) => s.id === 'run'),
   );
 });
+
+it('bounds a stalled reporting connection and still writes incomplete coverage', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'spend-test-'));
+  dirs.push(dir);
+  const controller = new AbortController();
+  const timeout = vi
+    .spyOn(AbortSignal, 'timeout')
+    .mockReturnValue(controller.signal);
+  mocks.connect.mockImplementation(
+    ({ signal }: { signal: AbortSignal }) =>
+      new Promise((_, reject) => {
+        signal.addEventListener(
+          'abort',
+          () => reject(new Error('reporting aborted')),
+          {
+            once: true,
+          },
+        );
+      }),
+  );
+  try {
+    const reporting = reportActionSpend({
+      RUNNER_TEMP: dir,
+      GITHUB_STEP_SUMMARY: join(dir, 'summary'),
+      SPEND_CORRELATION: 'correlation',
+      MOLTNET_TEAM_ID: 'team',
+    });
+    controller.abort();
+    await reporting;
+    expect(timeout).toHaveBeenCalledWith(30_000);
+    expect(readFileSync(join(dir, 'summary'), 'utf8')).toContain('incomplete');
+    expect(mocks.setOutput).toHaveBeenCalledWith('report', expect.any(String));
+  } finally {
+    timeout.mockRestore();
+  }
+});

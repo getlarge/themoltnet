@@ -50,7 +50,9 @@ export async function reportActionSpend(
   }));
   if (!tasks.length && !env.SPEND_CORRELATION) return;
   // Connection failures are coverage gaps too; never turn unknown spend into zero.
-  const agent = await connect().catch(() => undefined);
+  const agent = await connect({ signal: AbortSignal.timeout(30_000) }).catch(
+    () => undefined,
+  );
   let discoveryIncomplete = false;
   if (env.SPEND_CORRELATION) {
     if (!env.MOLTNET_TEAM_ID)

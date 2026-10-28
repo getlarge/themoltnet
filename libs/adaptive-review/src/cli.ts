@@ -52,7 +52,7 @@ export interface CliDeps {
     ): Promise<{ head: string; base: string }>;
     files(repo: string, pr: number): Promise<PullRequestFile[]>;
   };
-  connect(): Promise<{
+  connect(teamId: string): Promise<{
     profiles(teamId: string): Promise<Array<{ id: string; name: string }>>;
     tasks: TaskClient;
   }>;
@@ -215,7 +215,7 @@ async function runOptions(
       formatReviewTaskBudgets(taskBudgets),
     );
   const teamId = required('MOLTNET_TEAM_ID', env);
-  const client = await deps.connect();
+  const client = await deps.connect(teamId);
   const items = await client.profiles(teamId);
   const resolve = (name: string): string => {
     const profile = items.find(
