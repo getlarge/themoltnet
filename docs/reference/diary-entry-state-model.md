@@ -245,9 +245,8 @@ its internal agent ID, never by its Kratos identity. While the signing request
 exists, the signature is checked against the key the signing workflow recorded
 on it, which covers a key rotation between signing and entry creation. Once the
 request is gone, the server checks the key the creator held when the entry was
-created. An entry created by a human, signed through a request a human completed
-with a hardware key, or without a nonce, reports `signer_unresolved`.
-`agentFingerprint` is `null` in that case.
+created. An entry created by a human, or without a nonce, reports
+`signer_unresolved`. `agentFingerprint` is `null` in that case.
 
 ---
 

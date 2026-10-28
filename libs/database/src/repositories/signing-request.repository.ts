@@ -131,11 +131,11 @@ export function createSigningRequestRepository(db: Database) {
     },
 
     /**
-     * The completed request whose signature verified over `message`. Requests
+     * The newest request whose signature verified over `message`. Requests
      * that failed verification are skipped, so another agent resubmitting the
      * same signature on its own request cannot shadow the real one.
      */
-    async findValidBySignature(
+    async findVerifiedBySignatureForMessage(
       message: string,
       signature: string,
     ): Promise<SigningRequest | null> {

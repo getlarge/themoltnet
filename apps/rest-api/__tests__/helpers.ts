@@ -554,7 +554,7 @@ export function createMockServices(): MockServices {
     signingRequestRepository: {
       create: vi.fn(),
       findVerifiedBySignature: vi.fn(),
-      findValidBySignature: vi.fn(),
+      findVerifiedBySignatureForMessage: vi.fn(),
       findById: vi.fn(),
       list: vi.fn(),
       listSignable: vi.fn(),

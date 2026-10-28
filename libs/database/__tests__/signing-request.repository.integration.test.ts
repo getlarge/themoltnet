@@ -144,88 +144,108 @@ describe('SigningRequestRepository (integration)', () => {
         })
         .returning();
 
-    it('returns the completed request whose signature verified over the message', async () => {
-      const [request] = await insert({
-        message: 'bafy-hash',
-        signature: 'sig',
-        valid: true,
+    describe('findVerifiedBySignatureForMessage', () => {
+      it('returns the request whose signature verified over the message', async () => {
+        const [request] = await insert({
+          message: 'bafy-hash',
+          signature: 'sig',
+          valid: true,
+        });
+
+        await expect(
+          repo.findVerifiedBySignatureForMessage('bafy-hash', 'sig'),
+        ).resolves.toMatchObject({ id: request.id });
       });
 
-      await expect(
-        repo.findValidBySignature('bafy-hash', 'sig'),
-      ).resolves.toMatchObject({ id: request.id });
-    });
+      it('ignores a request whose signature did not verify', async () => {
+        await insert({ message: 'bafy-hash', signature: 'sig', valid: false });
 
-    it('ignores a request whose signature did not verify', async () => {
-      await insert({ message: 'bafy-hash', signature: 'sig', valid: false });
-
-      await expect(
-        repo.findValidBySignature('bafy-hash', 'sig'),
-      ).resolves.toBeNull();
-    });
-
-    it('ignores a request over a different message', async () => {
-      await insert({ message: 'bafy-other', signature: 'sig', valid: true });
-
-      await expect(
-        repo.findValidBySignature('bafy-hash', 'sig'),
-      ).resolves.toBeNull();
-    });
-
-    it('returns the newest of several matches', async () => {
-      await insert({
-        message: 'bafy-hash',
-        signature: 'sig',
-        valid: true,
-        createdAt: new Date(Date.now() - 60_000),
-      });
-      const [newest] = await insert({
-        message: 'bafy-hash',
-        signature: 'sig',
-        valid: true,
+        await expect(
+          repo.findVerifiedBySignatureForMessage('bafy-hash', 'sig'),
+        ).resolves.toBeNull();
       });
 
-      await expect(
-        repo.findValidBySignature('bafy-hash', 'sig'),
-      ).resolves.toMatchObject({ id: newest.id });
-    });
+      it('ignores a request over a different message', async () => {
+        await insert({ message: 'bafy-other', signature: 'sig', valid: true });
 
-    it('findVerifiedBySignature ignores a newer request whose signature did not verify', async () => {
-      const [verified] = await insert({
-        message: 'bafy-hash',
-        signature: 'sig',
-        valid: true,
-        createdAt: new Date(Date.now() - 60_000),
+        await expect(
+          repo.findVerifiedBySignatureForMessage('bafy-hash', 'sig'),
+        ).resolves.toBeNull();
       });
-      await insert({ message: 'bafy-other', signature: 'sig', valid: false });
 
-      await expect(repo.findVerifiedBySignature('sig')).resolves.toMatchObject({
-        id: verified.id,
+      it('returns the newest of several matches', async () => {
+        await insert({
+          message: 'bafy-hash',
+          signature: 'sig',
+          valid: true,
+          createdAt: new Date(Date.now() - 60_000),
+        });
+        const [newest] = await insert({
+          message: 'bafy-hash',
+          signature: 'sig',
+          valid: true,
+        });
+
+        await expect(
+          repo.findVerifiedBySignatureForMessage('bafy-hash', 'sig'),
+        ).resolves.toMatchObject({ id: newest.id });
       });
     });
 
-    it('findVerifiedBySignature returns null when no request verified', async () => {
-      await insert({ message: 'bafy-hash', signature: 'sig', valid: false });
-      await insert({ message: 'bafy-hash', signature: 'sig', valid: null });
+    describe('findVerifiedBySignature', () => {
+      it('ignores newer requests whose signature did not verify', async () => {
+        const now = Date.now();
+        const [verified] = await insert({
+          message: 'bafy-hash',
+          signature: 'sig',
+          valid: true,
+          createdAt: new Date(now - 60_000),
+        });
+        await insert({
+          message: 'bafy-other',
+          signature: 'sig',
+          valid: false,
+          createdAt: new Date(now - 30_000),
+        });
+        await insert({
+          message: 'bafy-pending',
+          signature: 'sig',
+          valid: null,
+          createdAt: new Date(now),
+        });
 
-      await expect(repo.findVerifiedBySignature('sig')).resolves.toBeNull();
-    });
-
-    it('findVerifiedBySignature returns the newest verified request', async () => {
-      await insert({
-        message: 'bafy-hash',
-        signature: 'sig',
-        valid: true,
-        createdAt: new Date(Date.now() - 60_000),
+        await expect(
+          repo.findVerifiedBySignature('sig'),
+        ).resolves.toMatchObject({
+          id: verified.id,
+        });
       });
-      const [newest] = await insert({
-        message: 'bafy-other',
-        signature: 'sig',
-        valid: true,
+
+      it('returns null when no request verified', async () => {
+        await insert({ message: 'bafy-hash', signature: 'sig', valid: false });
+        await insert({ message: 'bafy-hash', signature: 'sig', valid: null });
+
+        await expect(repo.findVerifiedBySignature('sig')).resolves.toBeNull();
       });
 
-      await expect(repo.findVerifiedBySignature('sig')).resolves.toMatchObject({
-        id: newest.id,
+      it('returns the newest verified request', async () => {
+        await insert({
+          message: 'bafy-hash',
+          signature: 'sig',
+          valid: true,
+          createdAt: new Date(Date.now() - 60_000),
+        });
+        const [newest] = await insert({
+          message: 'bafy-other',
+          signature: 'sig',
+          valid: true,
+        });
+
+        await expect(
+          repo.findVerifiedBySignature('sig'),
+        ).resolves.toMatchObject({
+          id: newest.id,
+        });
       });
     });
   });

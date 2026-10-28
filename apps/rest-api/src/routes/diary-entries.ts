@@ -571,7 +571,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
     // with at signing time, which survives a rotation before the entry was
     // created. Older entries also keep their nonce only on the request.
     const signingRequest =
-      await fastify.signingRequestRepository.findValidBySignature(
+      await fastify.signingRequestRepository.findVerifiedBySignatureForMessage(
         entry.contentHash,
         entry.contentSignature,
       );
