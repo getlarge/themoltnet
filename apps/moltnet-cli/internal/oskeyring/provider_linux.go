@@ -11,9 +11,11 @@ import (
 
 func linuxAttributes(service, key string) map[string]string {
 	return map[string]string{
-		"account":  key,
-		"service":  service,
-		"username": key,
+		// libsecret matches this schema name when keytar reads Go-written items.
+		"xdg:schema": "org.freedesktop.Secret.Generic",
+		"account":    key,
+		"service":    service,
+		"username":   key,
 	}
 }
 
