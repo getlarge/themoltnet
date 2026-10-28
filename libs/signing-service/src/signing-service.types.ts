@@ -2,6 +2,7 @@ import type { PermissionChecker, RelationshipReader } from '@moltnet/auth';
 import type {
   GroupRepository,
   SigningCredentialRepository,
+  SigningRequester,
   SigningRequestRepository,
   TransactionRunner,
 } from '@moltnet/database';
@@ -23,7 +24,7 @@ export interface SigningServiceDeps {
   logger?: SigningServiceLogger;
   startAgentSigningWorkflow?: (input: {
     id: string;
-    signerIdentityId: string;
+    requester: SigningRequester;
     message: string;
     nonce: string;
     verificationMethod: VerificationMethod;

@@ -783,7 +783,7 @@ describe('createSigningService', () => {
     });
     expect(startAgentSigningWorkflow).toHaveBeenCalledWith({
       id: created.id,
-      signerIdentityId: agent.identityId,
+      requester: { kind: 'agent', id: agent.agentId },
       message: created.message,
       nonce: created.nonce,
       verificationMethod: VERIFICATION_METHOD.AgentEd25519,
@@ -792,7 +792,6 @@ describe('createSigningService', () => {
       {
         err: startupError,
         signingId: created.id,
-        signerIdentityId: agent.identityId,
         requester: `agent:${agent.agentId}`,
         cleanupError: undefined,
       },

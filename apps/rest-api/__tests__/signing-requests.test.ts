@@ -60,8 +60,8 @@ vi.mock('@moltnet/signing-workflows', async (importOriginal) => {
 });
 
 const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
-// Distinct from OWNER_ID: requests are owned by the agent row, while the
-// signing workflow still looks the key up by the live caller's identity.
+// Distinct from OWNER_ID: requests are owned by the agent row, and the
+// signing workflow resolves the key from that row, not the Kratos identity.
 const OWNER_IDENTITY_ID = '550e8400-e29b-41d4-a716-4466554400ff';
 const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
 const REQUEST_ID = '990e8400-e29b-41d4-a716-446655440010';
@@ -282,7 +282,7 @@ describe('Signing request routes', () => {
       const workflow = vi.mocked(DBOS.startWorkflow).mock.results[0].value;
       expect(workflow).toHaveBeenCalledWith(
         REQUEST_ID,
-        OWNER_IDENTITY_ID,
+        { kind: 'agent', id: OWNER_ID },
         'Hello, world!',
         'aaa08400-e29b-41d4-a716-446655440011',
         'agent-ed25519',

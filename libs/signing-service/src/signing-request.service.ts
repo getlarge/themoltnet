@@ -7,6 +7,8 @@ import {
   DBOS,
   isSigningRequester,
   type SigningRequest,
+  type SigningRequester,
+  signingRequester,
 } from '@moltnet/database';
 import { SIGNER_CONSTRAINT_TYPE, VERIFICATION_METHOD } from '@moltnet/models';
 import {
@@ -51,7 +53,7 @@ function signingPayload(row: SigningRequest): string {
 
 async function startAgentSigningWorkflow(input: {
   id: string;
-  signerIdentityId: string;
+  requester: SigningRequester;
   message: string;
   nonce: string;
   verificationMethod: VerificationMethod;
@@ -60,7 +62,7 @@ async function startAgentSigningWorkflow(input: {
     workflowID: `signing-${input.id}`,
   })(
     input.id,
-    input.signerIdentityId,
+    input.requester,
     input.message,
     input.nonce,
     input.verificationMethod,
@@ -150,9 +152,6 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
         }
       }
 
-      // The signing workflow looks the key up by the live caller's identity;
-      // the persisted requester is the principal row, which outlives it.
-      const signerIdentityId = input.actor.identityId;
       const requester = actorPrincipal(input.actor);
       const expiresAt = new Date(
         now().getTime() + deps.signingTimeoutSeconds * 1000,
@@ -198,12 +197,14 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
 
       if (input.verificationMethod === VERIFICATION_METHOD.AgentEd25519) {
         try {
-          // This legacy workflow call and its signing bytes remain unchanged.
+          // The workflow resolves the key from the persisted requester, so a
+          // relinked or recreated Kratos identity cannot change it. A human
+          // requester holds no agent key and completes as invalid, as before.
           const workflowHandle = await (
             deps.startAgentSigningWorkflow ?? startAgentSigningWorkflow
           )({
             id: created.id,
-            signerIdentityId,
+            requester: signingRequester(created),
             message: input.message,
             nonce: created.nonce,
             verificationMethod: created.verificationMethod,
@@ -227,7 +228,6 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
             {
               err,
               signingId: created.id,
-              signerIdentityId,
               requester: `${requester.kind}:${requester.id}`,
               cleanupError,
             },
