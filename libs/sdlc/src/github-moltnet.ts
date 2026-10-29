@@ -1,18 +1,33 @@
 import type { Agent, AgentSigningCapability } from '@themoltnet/sdk';
-import { createOrchestrationAbsurdApp } from '@themoltnet/tasks-orchestrator';
+import {
+  createOrchestrationAbsurdApp,
+  createTaskStep,
+} from '@themoltnet/tasks-orchestrator';
 
 import {
   SDLC_ASSESSMENT_TASK,
   SDLC_DELIVERY_TASK,
   SDLC_OUTCOME_TASK,
   SDLC_PREPARATION_TASK,
+  SDLC_REVIEW_START_TASK,
 } from './absurd.js';
-import { type AssessmentInput, runAssessment } from './assessment.js';
+import {
+  type AssessmentInput,
+  runAssessment,
+  verifyAcceptedAssessment,
+} from './assessment.js';
+import { type AcceptedWork, sameRevision } from './contracts.js';
 import { runDelivery } from './delivery.js';
+import {
+  githubPullRequestNumber,
+  verifyGithubChange,
+} from './github-change.js';
 import type { GithubRequest } from './github-coordination.js';
 import { createGithubDeliveryRepository } from './github-delivery.js';
 import { githubOutcomeIsCurrent } from './github-outcome.js';
 import { createGithubBriefPresenter } from './github-preparation.js';
+import { markGithubReady } from './github-ready.js';
+import { publishGithubStatus } from './github-status.js';
 import { createMoltNetDeliveryPort } from './moltnet-delivery.js';
 import { type OutcomeInput, runOutcome } from './outcome.js';
 import { type PreparationInput, runPreparation } from './preparation.js';
@@ -139,26 +154,10 @@ function deliveryRepository(
   github: GithubDeliveryInput['github'],
   teamId: string,
 ) {
-  const request = { teamId };
   return createGithubDeliveryRepository({
     ...github,
     request: requestGithub,
-    async readAcceptedOutput(work) {
-      const task = await agent.tasks.get(work.taskId, request);
-      const attempts = await agent.tasks.listAttempts(work.taskId, request);
-      const attempt = attempts.find((value) => value.attemptN === work.attempt);
-      if (
-        task.status !== 'completed' ||
-        task.acceptedAttemptN !== work.attempt ||
-        !attempt ||
-        attempt.taskId !== task.id ||
-        attempt.status !== 'completed' ||
-        attempt.outputCid !== work.outputCid ||
-        !attempt.output
-      )
-        throw new Error('Accepted output no longer matches handoff');
-      return attempt.output;
-    },
+    readAcceptedOutput: (work) => acceptedOutput(agent, teamId, work),
   });
 }
 
@@ -183,5 +182,138 @@ export function createGithubMoltNetOutcomeApp(options: {
         },
         ctx,
       ),
+  });
+}
+
+async function acceptedOutput(
+  agent: Agent,
+  teamId: string,
+  work: AcceptedWork,
+) {
+  const task = await agent.tasks.get(work.taskId, { teamId });
+  const attempts = await agent.tasks.listAttempts(work.taskId, { teamId });
+  const attempt = attempts.find((value) => value.attemptN === work.attempt);
+  if (
+    task.status !== 'completed' ||
+    task.acceptedAttemptN !== work.attempt ||
+    !attempt ||
+    attempt.taskId !== task.id ||
+    attempt.status !== 'completed' ||
+    attempt.outputCid !== work.outputCid ||
+    !attempt.output
+  )
+    throw new Error('Accepted output no longer matches handoff');
+  return attempt.output;
+}
+
+export type GithubReviewStartInput = Pick<
+  GithubAssessmentInput,
+  'brief' | 'delivery' | 'github'
+> & { assessment: AcceptedWork };
+export function createGithubMoltNetReviewStartApp(options: {
+  databaseUrl: string;
+  queueName: string;
+  agent: Agent;
+  request: GithubRequest;
+}) {
+  return createOrchestrationAbsurdApp<GithubReviewStartInput>({
+    databaseUrl: options.databaseUrl,
+    queueName: options.queueName,
+    taskName: SDLC_REVIEW_START_TASK,
+    async run(input, ctx) {
+      const frozen = await ctx.step('review-start.input', () =>
+        Promise.resolve(structuredClone(input)),
+      );
+      const principal = await options.agent.agents.whoami();
+      if (principal.subjectType !== 'agent')
+        throw new Error('Review start requires an agent principal');
+      const owner = await ctx.step('review-start.principal', () =>
+        Promise.resolve(principal.subjectId),
+      );
+      if (owner !== principal.subjectId)
+        throw new Error('Review-start principal changed during recovery');
+      const repository = deliveryRepository(
+        options.agent,
+        options.request,
+        frozen.github,
+        frozen.brief.delivery.teamId,
+      );
+      const output = await acceptedOutput(
+        options.agent,
+        frozen.brief.delivery.teamId,
+        frozen.delivery.acceptedWork,
+      );
+      const pr = githubPullRequestNumber(
+        output.pullRequestUrl,
+        frozen.github.repository,
+      );
+      const branch = output.branch;
+      if (!pr || typeof branch !== 'string')
+        throw new Error('Invalid accepted PR identity');
+      const isAuthorized = async () => {
+        if (!(await verifyAcceptedAssessment(frozen, options.agent)))
+          return false;
+        const admission = await repository.admission(frozen.brief);
+        if (admission?.approvalEventId !== frozen.delivery.generation)
+          return false;
+        const current = await verifyGithubChange({
+          request: options.request,
+          repository: frozen.github.repository,
+          pr,
+          expectedHead: frozen.delivery.revision.head,
+          expectedBranch: branch,
+          baseBranch: frozen.github.policy.baseBranch,
+          allowedPaths: frozen.github.policy.allowedPaths,
+          protectedPaths: frozen.github.policy.protectedPaths,
+        });
+        return Boolean(
+          current &&
+          sameRevision(
+            { ...frozen.delivery.revision, ...current },
+            frozen.delivery.revision,
+          ),
+        );
+      };
+      const started = await createTaskStep(
+        ctx,
+        'review-start.ready',
+        ({ idempotencyKey }) => {
+          if (!idempotencyKey)
+            throw new Error('Missing review-start operation identity');
+          return markGithubReady({
+            request: options.request,
+            repository: frozen.github.repository,
+            pr,
+            revision: frozen.delivery.revision,
+            key: idempotencyKey,
+            isAuthorized,
+          });
+        },
+      );
+      if (!started) return { started: false, published: false };
+      const publication = await ctx.step('review-start.publish', () =>
+        publishGithubStatus({
+          ...frozen.github,
+          request: options.request,
+          caseKey: `github:${frozen.github.repository.toLowerCase()}:${frozen.github.issueNumber}`,
+          body: `### SDLC review
+
+Independent assessment passed for head \`${frozen.delivery.revision.head}\`. CI and review may now run.
+
+A human remains responsible for merging.`,
+          projection: {
+            stage: frozen.github.policy.deliveredStage,
+            policy: frozen.github.policy.labels,
+            expectedIssueDigest: frozen.github.presentation.issueDigest,
+            stopLabels: [
+              frozen.github.policy.pauseLabel,
+              frozen.github.policy.cancelLabel,
+            ],
+          },
+          isCurrent: isAuthorized,
+        }),
+      );
+      return { started: true, published: publication.published };
+    },
   });
 }

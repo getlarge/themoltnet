@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from 'node:util';
+
 import type { Agent } from '@themoltnet/sdk';
 import {
   beginWorkflowStep,
@@ -219,4 +221,74 @@ export async function runAssessment(
     }
     await ctx.sleepFor('assessment.poll', frozen.pollIntervalSec);
   }
+}
+
+/** Revalidate an accepted judgment before allowing a repository mutation. */
+export async function verifyAcceptedAssessment(
+  input: { brief: PreparedBrief; delivery: Handoff; assessment: AcceptedWork },
+  agent: Agent,
+): Promise<boolean> {
+  const options = { teamId: input.brief.delivery.teamId };
+  const source = await agent.tasks.get(
+    input.delivery.acceptedWork.taskId,
+    options,
+  );
+  const producer = (await agent.tasks.listAttempts(source.id, options)).find(
+    (attempt) => attempt.attemptN === input.delivery.acceptedWork.attempt,
+  );
+  if (
+    !producer ||
+    producer.outputCid !== input.delivery.acceptedWork.outputCid ||
+    input.delivery.revision.briefDigest !== input.brief.digest ||
+    input.delivery.revision.policyDigest !== input.brief.policyDigest
+  )
+    return false;
+  const built = assessmentRequest(input.brief, source, producer);
+  const verification = producer.output?.verification;
+  if (
+    !verification ||
+    typeof verification !== 'object' ||
+    !('passed' in verification) ||
+    verification.passed !== true ||
+    !('inputCid' in verification) ||
+    verification.inputCid !== source.inputCid
+  )
+    return false;
+  const task = await agent.tasks.get(input.assessment.taskId, options);
+  const attempt = (await agent.tasks.listAttempts(task.id, options)).find(
+    (value) => value.attemptN === input.assessment.attempt,
+  );
+  if (
+    task.taskType !== 'assess_brief' ||
+    task.status !== 'completed' ||
+    task.acceptedAttemptN !== input.assessment.attempt ||
+    task.teamId !== built.teamId ||
+    task.diaryId !== built.body.diaryId ||
+    task.correlationId !== built.body.correlationId ||
+    !isDeepStrictEqual(task.input, built.body.input) ||
+    !task.references.some(
+      (reference) =>
+        reference.role === 'judged_work' &&
+        reference.taskId === source.id &&
+        reference.outputCid === producer.outputCid,
+    ) ||
+    !attempt ||
+    attempt.taskId !== task.id ||
+    attempt.status !== 'completed' ||
+    !attempt.output ||
+    attempt.outputCid !== input.assessment.outputCid ||
+    attempt.claimedByAgentId === producer.claimedByAgentId ||
+    attempt.runtimeProfileId !== input.brief.assessment.profileId
+  )
+    return false;
+  const assessment = built.body.input as Parameters<
+    Agent['tasks']['buildAssessBrief']
+  >[0];
+  return (
+    evaluateAssessment(
+      assessment.successCriteria.rubric?.criteria ?? [],
+      attempt.output,
+      input.delivery.revision,
+    ).status === 'passed'
+  );
 }

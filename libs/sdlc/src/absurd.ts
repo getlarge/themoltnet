@@ -87,3 +87,5 @@ export function createOutcomeApp(args: {
     run: (input, ctx) => runOutcome(input, args.deps(input), ctx),
   });
 }
+
+export const SDLC_REVIEW_START_TASK = 'sdlc_review_start_v1';

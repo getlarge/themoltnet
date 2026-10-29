@@ -22,6 +22,7 @@ import {
   SDLC_DELIVERY_TASK,
   SDLC_OUTCOME_TASK,
   SDLC_PREPARATION_TASK,
+  SDLC_REVIEW_START_TASK,
 } from '@moltnet/sdlc';
 import {
   createGithubEvidenceObserver,
@@ -32,8 +33,10 @@ import {
   createGithubMoltNetAssessmentApp,
   createGithubMoltNetDeliveryApp,
   createGithubMoltNetOutcomeApp,
+  createGithubMoltNetReviewStartApp,
   createGithubPreparationApp,
   type GithubDeliveryInput,
+  type GithubReviewStartInput,
 } from '@moltnet/sdlc/github-moltnet';
 import { createMoltNetRepairAdapter } from '@moltnet/sdlc/moltnet';
 import {
@@ -260,6 +263,8 @@ describe('SDLC repair adapter against the task service', () => {
       stages: { preparation: 'stage:approval', delivered: 'stage:convergence' },
     };
     const head = 'a'.repeat(40);
+    let draft = true;
+    let readyMutations = 0;
     const issue = {
       state: 'open',
       title: 'Protocol fixture',
@@ -300,6 +305,19 @@ describe('SDLC repair adapter against the task service', () => {
           (value) => value !== decodeURIComponent(path.split('/').at(-1) ?? ''),
         );
         return Promise.resolve({});
+      }
+      if (
+        method === 'POST' &&
+        path === '/graphql' &&
+        (payload as { query: string }).query.includes(
+          'markPullRequestReadyForReview',
+        )
+      ) {
+        draft = false;
+        readyMutations += 1;
+        return Promise.reject(
+          new Error('Lost ready-for-review acknowledgement'),
+        );
       }
       if (method === 'POST' && path === '/graphql')
         return Promise.resolve({
@@ -356,7 +374,8 @@ describe('SDLC repair adapter against the task service', () => {
       if (path.endsWith('/pulls/2'))
         return Promise.resolve({
           state: 'open',
-          draft: true,
+          draft,
+          node_id: 'pr-node',
           merged: false,
           changed_files: 1,
           head: {
@@ -666,6 +685,22 @@ describe('SDLC repair adapter against the task service', () => {
                 : { reason: 'assessment:not-independent' }),
             },
           });
+          expect(
+            await startReviewExperiment(agent, request, {
+              brief,
+              delivery: handoff,
+              github,
+              assessment: {
+                taskId: assessmentTask.id,
+                attempt: judgeClaim.attempt.attemptN,
+                outputCid: judgmentCid,
+              },
+            }),
+          ).toEqual({
+            started: useIndependentAgent,
+            published: useIndependentAgent,
+          });
+          expect(readyMutations).toBe(useIndependentAgent ? 1 : 0);
           if (useIndependentAgent) {
             if (assessmentResult.state !== 'completed')
               throw new Error('Assessment incomplete');
@@ -928,6 +963,36 @@ async function recordOutcomeExperiment(
     expect(signatures).toBe(1);
   } finally {
     spy.mockRestore();
+    await worker?.close();
+    await app.dropQueue(queueName);
+    await app.close();
+  }
+}
+
+async function startReviewExperiment(
+  agent: Agent,
+  request: GithubRequest,
+  input: GithubReviewStartInput,
+) {
+  const queueName = `sdlc-review-start-${randomUUID()}`;
+  const app = createGithubMoltNetReviewStartApp({
+    databaseUrl: ABSURD_URL,
+    queueName,
+    agent,
+    request,
+  });
+  let worker: Awaited<ReturnType<typeof app.startWorker>> | undefined;
+  try {
+    await app.createQueue(queueName);
+    const run = await app.spawn(SDLC_REVIEW_START_TASK, input, {
+      queue: queueName,
+    });
+    worker = await app.startWorker({ concurrency: 1, pollInterval: 0.05 });
+    const result = await app.awaitTaskResult(run.taskID, { timeout: 20 });
+    if (result.state !== 'completed')
+      throw new Error(`Review start failed: ${JSON.stringify(result)}`);
+    return result.result;
+  } finally {
     await worker?.close();
     await app.dropQueue(queueName);
     await app.close();

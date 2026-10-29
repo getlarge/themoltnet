@@ -6,5 +6,6 @@ export * from './github-delivery.js';
 export * from './github-evidence.js';
 export * from './github-outcome.js';
 export * from './github-preparation.js';
+export * from './github-ready.js';
 export * from './github-status.js';
 export * from './github-threads.js';

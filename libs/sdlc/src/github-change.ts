@@ -1,7 +1,15 @@
 import type { GithubRequest } from './github-coordination.js';
 
 /** Validate a delivered draft using provider data, including both sides of renames. */
-export async function verifyGithubDraft(input: {
+export function verifyGithubDraft(
+  input: Omit<Parameters<typeof verifyGithubChange>[0], 'draft'>,
+) {
+  return verifyGithubChange({ ...input, draft: true });
+}
+
+/** Verify either phase of an open change; callers decide whether draft status is required. */
+export async function verifyGithubChange(input: {
+  draft?: boolean;
   request: GithubRequest;
   repository: string;
   pr: number;
@@ -127,11 +135,11 @@ function snapshot(value: unknown) {
 }
 function eligible(
   pr: ReturnType<typeof snapshot>,
-  input: Parameters<typeof verifyGithubDraft>[0],
+  input: Parameters<typeof verifyGithubChange>[0],
 ): boolean {
   return (
     pr.open &&
-    pr.draft &&
+    (input.draft === undefined || pr.draft === input.draft) &&
     !pr.merged &&
     pr.head === input.expectedHead &&
     pr.branch === input.expectedBranch &&

@@ -154,6 +154,23 @@ convergence with provider evidence readers.
 GitHub is simulated and executor completions are supplied by the test: this is
 not a live model-driven issue pilot.
 
+## Review-start gate
+
+`createGithubMoltNetReviewStartApp` runs after delivery and independent
+assessment. It verifies both accepted task receipts, the original rubric, the
+assessor identity and runtime profile, current admission, paths, and revision
+before marking the draft ready for review. Self-assessment cannot start CI.
+Lost mutation acknowledgements reconcile against the current PR state without
+repeating the mutation. This stage never merges.
+
+GitHub does not expose an expected-head condition on its ready mutation. A
+concurrent push or revoked admission can race the mutation; the adapter rereads
+and refuses a successful handoff if the state changed, but cannot prevent an
+intermediate ready state. Downstream evidence must still bind the exact revision.
+
+The real task-service integration test exercises this gate with simulated
+GitHub responses, including a lost ready acknowledgement.
+
 ## Convergence evidence and retained findings
 
 `createGithubEvidenceObserver` combines independent assessment evidence,
@@ -213,7 +230,6 @@ records PR closures; generic cancellation observations require another adapter.
 ## Remaining integration
 
 Before retiring the legacy runner, wire repository policy and operational stage
-dispatch and persist their evidence bindings, implement the ready-for-review
-gate, and run a
-supervised live GitHub pilot. Human admission and final merge remain explicit
+dispatch and persist their evidence bindings, then run a supervised live
+GitHub pilot. Human admission and final merge remain explicit
 boundaries. No workflow here merges a pull request.
