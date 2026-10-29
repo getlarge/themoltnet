@@ -1302,6 +1302,14 @@ describe('adaptive review orchestration', () => {
         taskIds: ['task-2', 'task-3'],
         findings: [],
       });
+      const privateIds = report.results.find(
+        (result) => result.lane === 'security',
+      )?.privateFindingIds;
+      expect(privateIds).toHaveLength(
+        securityFindingStatus === 'refuted' ? 0 : 1,
+      );
+      if (securityFindingStatus !== 'refuted')
+        expect(privateIds?.[0]).toMatch(/^v2:[a-f0-9]{64}$/);
       expect(report.taskIds).toEqual(['task-1', 'task-2', 'task-3']);
     },
   );

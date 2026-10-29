@@ -28,8 +28,11 @@ export interface LaneResult {
     side?: 'old' | 'new';
     line?: number;
     concern: string;
+    problemId?: string;
     action?: string;
   }>;
+  /** Opaque problem identities; details remain in team-scoped review tasks. */
+  privateFindingIds?: string[];
   unclear?: string[];
 }
 

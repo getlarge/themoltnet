@@ -90,7 +90,11 @@ export function observeThreads(
       .at(-1);
     findings.push({
       key: marker.key,
-      lane: marker.key.split(':')[0] ?? 'unknown',
+      lane:
+        marker.lane ??
+        (marker.key.startsWith('v2:')
+          ? 'unknown'
+          : (marker.key.split(':')[0] ?? 'unknown')),
       path: thread.path,
       threadId: thread.id,
       url: first.url || null,

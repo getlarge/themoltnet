@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./out-tsc",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
+  },
+  "exclude": ["src/**/*.test.ts", "node_modules", "dist"],
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../adaptive-review/tsconfig.lib.json"
+    },
+    {
+      "path": "../sdk/tsconfig.lib.json"
+    },
+    {
+      "path": "../tasks-orchestrator/tsconfig.lib.json"
+    }
+  ]
+}

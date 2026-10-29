@@ -406,3 +406,35 @@ describe('classifier-first routing', () => {
     ).toThrow('reference');
   });
 });
+
+describe('repository routing overrides', () => {
+  it('uses thresholds and required lanes without weakening failure fallback', () => {
+    const packets = packetize(evidence);
+    const classified = [{ packetId: packets[0].id, answers: answers(0.12) }];
+    const routing = {
+      thresholds: { docs: 0.01, security: 0.5 },
+      requiredLanes: ['tests' as const],
+    };
+    const routes = decideRoutes(
+      'active',
+      policy.lanes,
+      packets,
+      classified,
+      [],
+      routing,
+    ).routes;
+    expect(routes.find((route) => route.lane === 'docs')?.run).toBe(true);
+    expect(routes.find((route) => route.lane === 'security')?.run).toBe(false);
+    expect(routes.find((route) => route.lane === 'tests')?.run).toBe(true);
+    expect(
+      decideRoutes(
+        'active',
+        policy.lanes,
+        packets,
+        [],
+        [],
+        routing,
+      ).routes.every((route) => route.run),
+    ).toBe(true);
+  });
+});

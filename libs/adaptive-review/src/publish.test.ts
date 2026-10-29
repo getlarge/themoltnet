@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { publishAdaptiveReport } from './publish.js';
-import { ADAPTIVE_FINDING_MARKER, ADAPTIVE_REVIEW_MARKER } from './report.js';
+import {
+  ADAPTIVE_FINDING_MARKER,
+  ADAPTIVE_REVIEW_MARKER,
+  findingKey,
+} from './report.js';
 import type { AdaptiveReport, LaneResult } from './workflow.js';
 
 const HEAD = 'a'.repeat(40);
@@ -328,7 +332,7 @@ const CONVENTIONS_FINDING = {
   line: 3,
   concern: 'Removed the config.ts indirection',
 };
-const TESTS_KEY = 'tests:new:7:src%2Fa.ts';
+const TESTS_KEY = findingKey(TESTS_FINDING);
 
 interface Calls {
   reviews: object[];
@@ -462,7 +466,7 @@ describe('publishAdaptiveReport inline threads', () => {
     const [first] = reviewComments(recorded.reviews[0]);
     expect(
       first.body.startsWith(
-        `${ADAPTIVE_FINDING_MARKER}${TESTS_KEY} run=${OPTIONS.runUrl} correlation=test -->`,
+        `${ADAPTIVE_FINDING_MARKER}${TESTS_KEY} lane=tests run=${OPTIONS.runUrl} correlation=test -->`,
       ),
     ).toBe(true);
     expect(first.body).toContain('Suggested action: Add a case to a.test.ts');
@@ -486,7 +490,7 @@ describe('publishAdaptiveReport inline threads', () => {
       },
       {
         login: 'human',
-        body: `${ADAPTIVE_FINDING_MARKER}conventions:old:3:src%2Fb.ts -->`,
+        body: `${ADAPTIVE_FINDING_MARKER}${findingKey(CONVENTIONS_FINDING)} -->`,
       },
     ]);
     const withFindings = {
@@ -538,7 +542,7 @@ describe('publishAdaptiveReport inline threads', () => {
       'Findings: 1 (0 posted as new review threads, 0 already open from an earlier run, 1 listed below)',
     );
     expect(recorded.summaries[0]).toContain(
-      'src/a.ts:7: No test covers the new branch _(an earlier thread on this line was resolved)_',
+      'src/a.ts:7: No test covers the new branch _(thread resolved; current finding still requires verification)_',
     );
   });
 

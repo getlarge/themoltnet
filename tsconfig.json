@@ -284,6 +284,9 @@
     },
     {
       "path": "./packages/adaptive-review-action"
+    },
+    {
+      "path": "./libs/sdlc"
     }
   ]
 }

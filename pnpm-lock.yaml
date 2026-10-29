@@ -1653,6 +1653,9 @@ importers:
 
   apps/orchestration-e2e:
     dependencies:
+      '@moltnet/sdlc':
+        specifier: workspace:*
+        version: link:../../libs/sdlc
       '@themoltnet/issue-lifecycle':
         specifier: workspace:*
         version: link:../issue-lifecycle
@@ -1943,6 +1946,9 @@ importers:
       '@moltnet/models':
         specifier: workspace:*
         version: link:../../libs/models
+      '@moltnet/sdlc':
+        specifier: workspace:*
+        version: link:../../libs/sdlc
       '@ory/client-fetch':
         specifier: 'catalog:'
         version: 1.22.66
@@ -3531,6 +3537,28 @@ importers:
       vite-plugin-dts:
         specifier: 'catalog:'
         version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(supports-color@10.2.2)(typescript@5.9.3)(vite@8.3.4(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1))
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
+
+  libs/sdlc:
+    dependencies:
+      '@moltnet/adaptive-review':
+        specifier: workspace:*
+        version: link:../adaptive-review
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      '@themoltnet/tasks-orchestrator':
+        specifier: workspace:*
+        version: link:../tasks-orchestrator
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.19
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
