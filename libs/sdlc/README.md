@@ -4,8 +4,8 @@ Internal, transport-neutral contracts and pure decisions for the replacement
 SDLC workflows. Preparation, delivery, assessment, and convergence register
 independent Absurd workflows. Preparation, delivery, and assessment have composed GitHub and
 MoltNet adapters. Convergence can collect bound GitHub CI checks, human
-conversations, and internal adaptive-review reports. The operational runner and
-outcome recording remain unfinished.
+conversations, and internal adaptive-review reports. The operational runner remains unfinished. Outcome recording has a separate
+signed diary stage.
 
 `admit` accepts only an eligible open work item with an authorized approval
 bound to its current brief digest. The adapter must establish actor authority
@@ -186,10 +186,34 @@ Conflicting dispositions remain open. Security finding text stays in
 team-scoped tasks; only opaque identities enter the ledger. No separate
 case-management database is introduced.
 
+## Signed outcome recording
+
+`createGithubMoltNetOutcomeApp` independently records a merged or unmerged PR
+closure. It verifies the exact provider closure time, head, and merge commit,
+and checks the accepted delivery attempt, output CID, correlation, team, and
+diary before signing. Observed closure facts and finding adjudications remain
+separate: a merge or resolved thread does not mark a problem fixed.
+
+The workflow freezes its body, checkpoints the signing request before invoking
+the signer capability, and reuses that request for entry creation. The server's
+unique content-signature constraint prevents duplicate entries for that saved
+request. Reconciliation validates the operation tag, content CID, creator, and
+entry signature; an existing valid entry is recovered even if the PR later
+reopens. The integration test loses both a signing acknowledgement and an entry
+creation acknowledgement and verifies one signature, one entry, and a valid
+signature after recovery.
+
+The dispatcher must use one idempotent Absurd execution per closure. Separate
+concurrent executions are not serialized by diary tags. A crash before saving a
+new signing-request receipt can leave an unused request that expires; it cannot
+create an entry because signing only begins after the receipt checkpoint.
+Expired or rejected saved signing requests fail explicitly. The GitHub adapter
+records PR closures; generic cancellation observations require another adapter.
+
 ## Remaining integration
 
 Before retiring the legacy runner, wire repository policy and operational stage
 dispatch and persist their evidence bindings, implement the ready-for-review
-gate and outcome recording, and run a
+gate, and run a
 supervised live GitHub pilot. Human admission and final merge remain explicit
 boundaries. No workflow here merges a pull request.

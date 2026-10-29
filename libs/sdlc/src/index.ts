@@ -7,5 +7,6 @@ export * from './convergence.js';
 export * from './coordination.js';
 export * from './delivery.js';
 export * from './evidence.js';
+export * from './outcome.js';
 export * from './preparation.js';
 export * from './verdict.js';

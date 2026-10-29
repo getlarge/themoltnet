@@ -7,6 +7,7 @@ import {
   runConvergence,
 } from './convergence.js';
 import { type DeliveryPort, runDelivery } from './delivery.js';
+import { type OutcomeInput, runOutcome } from './outcome.js';
 import { type PreparationInput, runPreparation } from './preparation.js';
 
 export const SDLC_CONVERGENCE_TASK = 'sdlc_convergence_v1';
@@ -70,5 +71,19 @@ export function createPreparationApp(args: {
     queueName: args.queueName,
     taskName: SDLC_PREPARATION_TASK,
     run: (input, ctx) => runPreparation(input, args.port(input), ctx),
+  });
+}
+
+export const SDLC_OUTCOME_TASK = 'sdlc_outcome_v1';
+export function createOutcomeApp(args: {
+  databaseUrl: string;
+  queueName: string;
+  deps: (input: OutcomeInput) => Parameters<typeof runOutcome>[1];
+}) {
+  return createOrchestrationAbsurdApp<OutcomeInput>({
+    databaseUrl: args.databaseUrl,
+    queueName: args.queueName,
+    taskName: SDLC_OUTCOME_TASK,
+    run: (input, ctx) => runOutcome(input, args.deps(input), ctx),
   });
 }

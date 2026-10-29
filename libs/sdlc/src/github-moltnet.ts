@@ -1,17 +1,20 @@
-import type { Agent } from '@themoltnet/sdk';
+import type { Agent, AgentSigningCapability } from '@themoltnet/sdk';
 import { createOrchestrationAbsurdApp } from '@themoltnet/tasks-orchestrator';
 
 import {
   SDLC_ASSESSMENT_TASK,
   SDLC_DELIVERY_TASK,
+  SDLC_OUTCOME_TASK,
   SDLC_PREPARATION_TASK,
 } from './absurd.js';
 import { type AssessmentInput, runAssessment } from './assessment.js';
 import { runDelivery } from './delivery.js';
 import type { GithubRequest } from './github-coordination.js';
 import { createGithubDeliveryRepository } from './github-delivery.js';
+import { githubOutcomeIsCurrent } from './github-outcome.js';
 import { createGithubBriefPresenter } from './github-preparation.js';
 import { createMoltNetDeliveryPort } from './moltnet-delivery.js';
+import { type OutcomeInput, runOutcome } from './outcome.js';
 import { type PreparationInput, runPreparation } from './preparation.js';
 
 export type GithubDeliveryInput = Parameters<typeof runDelivery>[0] & {
@@ -156,5 +159,29 @@ function deliveryRepository(
         throw new Error('Accepted output no longer matches handoff');
       return attempt.output;
     },
+  });
+}
+
+export function createGithubMoltNetOutcomeApp(options: {
+  databaseUrl: string;
+  queueName: string;
+  agent: Agent;
+  signer: Pick<AgentSigningCapability, 'signDiaryEntry'>;
+  request: GithubRequest;
+}) {
+  return createOrchestrationAbsurdApp<OutcomeInput>({
+    databaseUrl: options.databaseUrl,
+    queueName: options.queueName,
+    taskName: SDLC_OUTCOME_TASK,
+    run: (input, ctx) =>
+      runOutcome(
+        input,
+        {
+          agent: options.agent,
+          signer: options.signer,
+          isCurrent: (value) => githubOutcomeIsCurrent(value, options.request),
+        },
+        ctx,
+      ),
   });
 }

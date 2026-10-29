@@ -7,6 +7,7 @@ import {
   buildExecutorRegistrationAttestationPayload,
   computeExecutorManifestCid,
   computeJsonCid,
+  cryptoService,
   signExecutorAttestation,
 } from '@moltnet/crypto-service';
 import {
@@ -14,10 +15,12 @@ import {
   type BriefPresentation,
   createConvergenceApp,
   type Handoff,
+  type OutcomeInput,
   prepareBrief,
   SDLC_ASSESSMENT_TASK,
   SDLC_CONVERGENCE_TASK,
   SDLC_DELIVERY_TASK,
+  SDLC_OUTCOME_TASK,
   SDLC_PREPARATION_TASK,
 } from '@moltnet/sdlc';
 import {
@@ -28,6 +31,7 @@ import {
 import {
   createGithubMoltNetAssessmentApp,
   createGithubMoltNetDeliveryApp,
+  createGithubMoltNetOutcomeApp,
   createGithubPreparationApp,
   type GithubDeliveryInput,
 } from '@moltnet/sdlc/github-moltnet';
@@ -37,7 +41,7 @@ import {
   buildRubricSuccessCriteria,
   connect,
 } from '@themoltnet/sdk';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { createAgent, pollUntil, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
@@ -670,6 +674,7 @@ describe('SDLC repair adapter against the task service', () => {
               handoff,
               assessmentResult.result as unknown as AssessmentResult,
             );
+            await recordOutcomeExperiment(agent, proposer, handoff);
             issue.labels.push('paused');
             const stopped = await assessmentApp.spawn(
               SDLC_ASSESSMENT_TASK,
@@ -824,6 +829,105 @@ async function convergeWithProviderEvidence(
       result: { verdict: { status: 'ready' }, repairs: [] },
     });
   } finally {
+    await worker?.close();
+    await app.dropQueue(queueName);
+    await app.close();
+  }
+}
+
+async function recordOutcomeExperiment(
+  agent: Agent,
+  proposer: TestAgent,
+  handoff: Handoff,
+) {
+  const queueName = `sdlc-outcome-${randomUUID()}`;
+  const observation: OutcomeInput['observation'] = {
+    state: 'merged',
+    occurredAt: '2026-10-29T10:30:00Z',
+    providerUrl: 'https://github.com/example/repo/pull/2',
+    mergeCommit: 'merged-sha',
+  };
+  const create = agent.entries.create.bind(agent.entries);
+  let writes = 0;
+  let signatures = 0;
+  const spy = vi
+    .spyOn(agent.entries, 'create')
+    .mockImplementation(async (diaryId, body) => {
+      const entry = await create(diaryId, body);
+      writes += 1;
+      if (writes === 1) throw new Error('Lost signed entry acknowledgement');
+      return entry;
+    });
+  const app = createGithubMoltNetOutcomeApp({
+    databaseUrl: ABSURD_URL,
+    queueName,
+    agent,
+    request: () =>
+      Promise.resolve({
+        state: 'closed',
+        head: { sha: handoff.revision.head },
+        closed_at: observation.occurredAt,
+        merged: true,
+        merge_commit_sha: observation.mergeCommit,
+      }),
+    signer: {
+      async signDiaryEntry({ signingRequestId }) {
+        const request =
+          await agent.crypto.signingRequests.get(signingRequestId);
+        await agent.crypto.signingRequests.submit(signingRequestId, {
+          signature: await cryptoService.signWithNonce(
+            request.message,
+            request.nonce,
+            proposer.keyPair.privateKey,
+          ),
+        });
+        signatures += 1;
+        if (signatures === 1) throw new Error('Lost signer acknowledgement');
+        return { signingRequestId };
+      },
+    },
+  });
+  let worker: Awaited<ReturnType<typeof app.startWorker>> | undefined;
+  try {
+    await app.createQueue(queueName);
+    const run = await app.spawn(
+      SDLC_OUTCOME_TASK,
+      {
+        diaryId: proposer.privateDiaryId,
+        teamId: proposer.personalTeamId,
+        handoff,
+        observation,
+        findings: [
+          { id: 'unverified-problem', origin: 'unknown', disposition: 'open' },
+        ],
+      },
+      {
+        queue: queueName,
+        idempotencyKey: `outcome:${handoff.correlationId}`,
+      },
+    );
+    worker = await app.startWorker({ concurrency: 1, pollInterval: 0.05 });
+    const result = await app.awaitTaskResult(run.taskID, { timeout: 20 });
+    expect(result).toMatchObject({
+      state: 'completed',
+      result: { recorded: true },
+    });
+    const entries = await agent.entries.list(proposer.privateDiaryId, {
+      tags: ['sdlc:outcome'],
+    });
+    expect(entries.items).toHaveLength(1);
+    expect(entries.items[0].content).toContain('"verifiedForRevision": false');
+    expect(entries.items[0].content).toContain('"disposition": "open"');
+    expect((await agent.entries.verify(entries.items[0].id)).valid).toBe(true);
+    expect(writes).toBe(1);
+    expect(signatures).toBe(1);
+    expect(await app.awaitTaskResult(run.taskID, { timeout: 20 })).toEqual(
+      result,
+    );
+    expect(writes).toBe(1);
+    expect(signatures).toBe(1);
+  } finally {
+    spy.mockRestore();
     await worker?.close();
     await app.dropQueue(queueName);
     await app.close();
