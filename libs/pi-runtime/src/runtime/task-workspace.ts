@@ -7,7 +7,7 @@ import {
   realpathSync,
   rmSync,
 } from 'node:fs';
-import { join, relative, sep } from 'node:path';
+import { isAbsolute, join, relative, sep } from 'node:path';
 
 import type { ClaimedTask } from '@themoltnet/agent-runtime';
 import { findMainWorktree } from '@themoltnet/sandbox-gondolin';
@@ -121,11 +121,25 @@ export function prepareTaskWorkspace(
   const workspaceId = executionPlan?.workspaceId ?? `task-${task.id}`;
   const worktreeDir = resolveTaskWorktreePath(mainRepo, workspaceId);
 
-  const relMount = relative(mainRepo, requestedMountPath);
-  const cwdPath =
-    relMount === '' || relMount.startsWith('..')
-      ? worktreeDir
-      : join(worktreeDir, relMount);
+  // The source checkout may itself be a nested or sibling worktree. Only
+  // carry its repository-relative subdirectory into the task worktree.
+  const sourceRoot = execFileSync(
+    'git',
+    ['-C', requestedMountPath, 'rev-parse', '--show-toplevel'],
+    { encoding: 'utf8', stdio: 'pipe' },
+  ).trim();
+  const relMount = relative(
+    realpathSync(sourceRoot),
+    realpathSync(requestedMountPath),
+  );
+  if (
+    relMount === '..' ||
+    relMount.startsWith(`..${sep}`) ||
+    isAbsolute(relMount)
+  ) {
+    throw new Error('Task source must be within its Git checkout');
+  }
+  const cwdPath = join(worktreeDir, relMount);
   const keepWorkspace =
     executionPlan?.workspaceScope === 'session' &&
     executionPlan.sessionKey !== null;
