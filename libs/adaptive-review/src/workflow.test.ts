@@ -1423,6 +1423,11 @@ describe('adaptive review orchestration', () => {
             ]
           : [],
       );
+      expect(result?.privateFindingIds).toHaveLength(
+        securityFindingStatus === 'unclear' ? 1 : 0,
+      );
+      if (securityFindingStatus === 'unclear')
+        expect(result?.privateFindingIds?.[0]).toMatch(/^v2:[a-f0-9]{64}$/);
       expect(report.taskIds).toEqual(['task-1', 'task-2', 'task-3']);
     },
   );

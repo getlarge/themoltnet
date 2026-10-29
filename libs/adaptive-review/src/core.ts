@@ -356,6 +356,7 @@ export function decideRoutes(
   packets: readonly Packet[],
   answers: readonly PacketAnswer[],
   concerns: readonly MechanicalConcern[],
+  routing?: AdaptivePolicy['routing'],
 ): RoutingDecision {
   const answerById = new Map(
     answers.map((answer) => [answer.packetId, answer]),
@@ -376,8 +377,11 @@ export function decideRoutes(
       );
     const probability =
       valid && probabilities.length ? Math.max(...probabilities) : null;
-    const forced = lane === 'conventions' && concerns.length > 0;
-    const threshold = lane === 'security' ? 0.1 : 0.2;
+    const forced =
+      routing?.requiredLanes?.includes(lane) ||
+      (lane === 'conventions' && concerns.length > 0);
+    const threshold =
+      routing?.thresholds?.[lane] ?? (lane === 'security' ? 0.1 : 0.2);
     let reason: RouteReason;
     if (classifierFailed || !valid) reason = 'classifier-error';
     else if (incomplete) reason = 'incomplete';

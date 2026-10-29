@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import { shorten } from '@moltnet/docs-impact-review';
 import { formatWorkflowSpend } from '@moltnet/tasks';
 
@@ -15,6 +17,7 @@ export interface InlineFinding {
   side: 'old' | 'new';
   line: number;
   concern: string;
+  problemId?: string;
   action?: string;
 }
 
@@ -42,15 +45,15 @@ export interface FindingSource {
 /** The most findings the summary lists before pointing at the run. */
 export const MAX_LISTED_FINDINGS = 30;
 
-/**
- * The identity of a finding across runs. A finding repeated at the same
- * lane, side, line, and path is the same thread and is not posted twice; a
- * finding that moved with the diff gets a new thread.
- */
+/** Problem identity ignores line movement and lane; explicit root-cause IDs survive rewording. */
 export function findingKey(
-  finding: Pick<InlineFinding, 'lane' | 'path' | 'side' | 'line'>,
+  finding: Pick<InlineFinding, 'path' | 'concern'> & Partial<InlineFinding>,
 ): string {
-  return `${finding.lane}:${finding.side}:${finding.line}:${encodeURIComponent(finding.path)}`;
+  const problem =
+    finding.problemId?.trim() || finding.concern.trim().replace(/\s+/g, ' ');
+  return `v2:${createHash('sha256')
+    .update(JSON.stringify([finding.path, problem]))
+    .digest('hex')}`;
 }
 
 /** Findings that cite a line. */
@@ -67,6 +70,7 @@ export function inlineFindings(
               side: finding.side,
               line: finding.line,
               concern: finding.concern,
+              ...(finding.problemId ? { problemId: finding.problemId } : {}),
               ...(finding.action ? { action: finding.action } : {}),
             },
           ]
@@ -78,7 +82,7 @@ export function inlineFindings(
 /** Reads the key and source back from a thread this reviewer posted. */
 export function parseFindingMarker(
   body: string,
-): ({ key: string } & Partial<FindingSource>) | undefined {
+): ({ key: string; lane?: string } & Partial<FindingSource>) | undefined {
   if (!body.startsWith(ADAPTIVE_FINDING_MARKER)) return undefined;
   const end = body.indexOf(' -->');
   if (end <= ADAPTIVE_FINDING_MARKER.length) return undefined;
@@ -96,10 +100,12 @@ export function parseFindingMarker(
       return undefined;
     }
   };
+  const lane = value('lane', decodeURIComponent);
   const runUrl = value('run', decodeURI);
   const correlationId = value('correlation', decodeURIComponent);
   return {
     key,
+    ...(lane ? { lane } : {}),
     ...(runUrl ? { runUrl } : {}),
     ...(correlationId ? { correlationId } : {}),
   };
@@ -119,7 +125,7 @@ export function renderFindingComment(
     ? ` run=${encodeURI(source.runUrl)} correlation=${encodeURIComponent(source.correlationId)}`
     : '';
   return [
-    `${ADAPTIVE_FINDING_MARKER}${findingKey(finding)}${origin} -->`,
+    `${ADAPTIVE_FINDING_MARKER}${findingKey(finding)} lane=${finding.lane}${origin} -->`,
     `**Adaptive review · ${finding.lane}**`,
     '',
     shorten(finding.concern, 2000),
@@ -240,17 +246,16 @@ export function renderAdaptiveComment(
         const key =
           finding.path && finding.side && finding.line
             ? findingKey({
-                lane: result.lane,
                 path: finding.path,
-                side: finding.side,
-                line: finding.line,
+                concern: finding.concern,
+                problemId: finding.problemId,
               })
             : undefined;
         if (key && threads?.keys.has(key)) continue;
         listed += 1;
         if (listed > MAX_LISTED_FINDINGS) continue;
         lines.push(
-          `  - ${shorten(finding.path, 120)}${finding.line ? `:${finding.line}` : ''}${finding.side === 'old' ? ' (old)' : ''}: ${shorten(finding.concern, 240)}${key && threads?.resolved.has(key) ? ' _(an earlier thread on this line was resolved)_' : ''}`,
+          `  - ${shorten(finding.path, 120)}${finding.line ? `:${finding.line}` : ''}${finding.side === 'old' ? ' (old)' : ''}: ${shorten(finding.concern, 240)}${key && threads?.resolved.has(key) ? ' _(thread resolved; current finding still requires verification)_' : ''}`,
         );
       }
     }

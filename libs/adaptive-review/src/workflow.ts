@@ -231,6 +231,7 @@ export async function prepareAdaptiveReview(
     packets,
     answers,
     mechanicalConcerns(changes, evidence.files, snapshot.policy.checks),
+    snapshot.policy.routing,
   );
   let docsTaskPossible = false;
   if (routing.routes.some((route) => route.lane === 'docs' && route.run)) {

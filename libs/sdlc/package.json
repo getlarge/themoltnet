@@ -1,0 +1,29 @@
+{
+  "name": "@moltnet/sdlc",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "Transport-neutral SDLC handoffs and convergence decisions",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:feature",
+      "scope:agent",
+      "platform:server"
+    ]
+  },
+  "dependencies": {
+    "@moltnet/adaptive-review": "workspace:*"
+  }
+}
