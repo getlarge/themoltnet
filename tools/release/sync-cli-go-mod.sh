@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Advance the internal Go module pins in apps/moltnet-cli/go.mod to the versions
-# recorded in the release manifest. The caller opens the resulting reviewable PR.
+# recorded in the release manifest. sync-cli-go-mod.yml opens the result as a
+# reviewable PR; release.yml's release-cli job runs it on its own checkout right
+# before GoReleaser, so the shipped binary never links the previous client.
 #
 # go.work makes every local build resolve the worktree source, so a stale pin is
 # invisible until the release runs goreleaser with GOWORK=off and silently ships

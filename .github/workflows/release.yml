@@ -1363,7 +1363,9 @@ jobs:
   # $RUNNER_TEMP for the GoReleaser step only and removed afterwards.
   release-cli:
     name: Release CLI binaries
-    needs: resolve-publish
+    # release-api-client pushes the libs/moltnet-api-client/vX.Y.Z tag that the
+    # in-job go.mod sync below resolves. A failed tag job fails this one closed.
+    needs: [resolve-publish, release-api-client]
     if: ${{ always() && needs.resolve-publish.outputs.cli == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -1466,6 +1468,23 @@ jobs:
           chmod 600 "$notary_key"
           echo "notary-key-file=$notary_key" >> "$GITHUB_OUTPUT"
           echo "sign-darwin=true" >> "$GITHUB_OUTPUT"
+
+      # The release PR bumps the client in the manifest, but its go.mod still
+      # pins the previous release: the new tag cannot exist before the merge,
+      # and GOWORK=off makes GoReleaser honour that stale pin. Advance it here,
+      # on this runner's checkout only, to the version released in this run.
+      # Nothing is pushed; propose-cli-go-mod-sync brings main up afterwards.
+      # The tagged go.mod therefore lags the binary, which `go version -m`
+      # reports truthfully; --skip=validate already accepts the dirty tree.
+      # GOPRIVATE reads our own module straight from git, so a proxy that has
+      # not yet indexed the minutes-old tag cannot leave the pin behind.
+      - name: Pin the moltnet-api-client released in this run
+        env:
+          GOPRIVATE: github.com/getlarge/themoltnet
+        run: |
+          set -euo pipefail
+          bash tools/release/sync-cli-go-mod.sh
+          (cd apps/moltnet-cli && GOWORK=off go list -m github.com/getlarge/themoltnet/libs/moltnet-api-client)
 
       - uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7
         with:
@@ -2640,9 +2659,9 @@ jobs:
       agent-bundle-artifact: ${{ needs.resolve-publish.outputs.agent-daemon == 'true' && 'signed-agent-bundle-linux-x64' || '' }}
 
   # release-please's "go" release type tags the lib but never edits go.mod in
-  # dependent modules, and goreleaser builds the CLI with GOWORK=off — so a pin
-  # left behind here silently ships an old client. This opens the bump as a
-  # reviewable PR once the libs/<name>/vX.Y.Z tags the Go proxy resolves exist.
+  # dependent modules. release-cli advances the pin on its own checkout before
+  # GoReleaser; this opens the same bump as a reviewable PR so main catches up
+  # once the libs/<name>/vX.Y.Z tags the Go proxy resolves exist.
   propose-cli-go-mod-sync:
     name: Propose CLI go.mod sync
     needs: [resolve-publish, release-api-client]
