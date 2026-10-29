@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.3](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.6.2...tasks-orchestrator-v0.6.3) (2026-10-28)
+
+
+### Bug Fixes
+
+* **review:** correct invalid agent results with bounded continuations ([2953d49](https://github.com/getlarge/themoltnet/commit/2953d497d901f8ff80d81db83f3cfebf6724cba4))
+* **tasks-orchestrator:** keep repair return type public ([1cdd17e](https://github.com/getlarge/themoltnet/commit/1cdd17e68b5b7656c603b210a21b651237933c82))
+
 ## [0.6.2](https://github.com/getlarge/themoltnet/compare/tasks-orchestrator-v0.6.1...tasks-orchestrator-v0.6.2) (2026-10-28)
 
 

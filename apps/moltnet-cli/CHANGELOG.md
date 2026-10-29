@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.22.0](https://github.com/getlarge/themoltnet/compare/cli-v3.21.0...cli-v3.22.0) (2026-10-28)
+
+
+### Bug Fixes
+
+* **tasks-orchestrator:** keep repair return type public ([1cdd17e](https://github.com/getlarge/themoltnet/commit/1cdd17e68b5b7656c603b210a21b651237933c82))
+
 ## [3.21.0](https://github.com/getlarge/themoltnet/compare/cli-v3.20.0...cli-v3.21.0) (2026-10-28)
 
 
