@@ -1,11 +1,92 @@
-# SDLC decisions
+# SDLC stages and rollout
 
-Internal, transport-neutral contracts and pure decisions for the replacement
-SDLC workflows. Preparation, delivery, assessment, and convergence register
-independent Absurd workflows. Preparation, delivery, and assessment have composed GitHub and
-MoltNet adapters. Convergence can collect bound GitHub CI checks, human
-conversations, and internal adaptive-review reports. The operational runner remains unfinished. Outcome recording has a separate
-signed diary stage.
+The replacement separates brief preparation, delivery, independent assessment,
+review start, convergence, and outcome recording into independent durable
+stages. GitHub supplies repository signals and shows progress; MoltNet owns
+agent tasks and signed memory; Absurd persists stage execution and recovery.
+
+## Architecture
+
+Solid arrows show implemented interfaces. Dashed arrows show operational
+coordination still to be built. The local integration test connects the stage
+applications explicitly; there is no production dispatcher connecting them yet.
+
+```mermaid
+flowchart TB
+    Policy["Repository policy + issue brief"] --> Operator["Preparation operator<br/>plan / run"]
+    Policy -.-> Dispatch["PENDING: dispatcher<br/>active-case reservations + receipt routing"]
+    Operator -->|"prepare only"| Stages["Six independent durable stage apps<br/>Prepare · Deliver · Assess<br/>Start review · Converge · Outcome"]
+    Dispatch -.-> Stages
+
+    GitHub["GitHub adapters<br/>issues, labels, PRs, checks, conversations"] <-->|"read signals / project progress"| Stages
+    Reports["CI bindings + internal review reports<br/>full findings + opaque private IDs"] -->|"revision-bound evidence"| Stages
+    Stages -->|"inputs, checkpoints, deadlines, results"| Absurd[("Absurd / Postgres")]
+    Stages <-->|"fulfill, assess, repair / accepted receipts"| Tasks["MoltNet task service<br/>claims, attempts, output CIDs"]
+    Tasks <--> Agents["Agent executors"]
+    Stages -->|"signed closure + adjudications"| Diary[("MoltNet diary")]
+```
+
+Labels and the case comment are progress projections, not locks. Task claims
+coordinate executors; Absurd checkpoints coordinate each durable stage.
+The pending dispatcher must reserve active cases and retain trusted dispatch
+receipts for CI and review. Worker concurrency alone does not bound cases
+waiting between stages.
+
+## Signals and handoffs
+
+This sequence describes the stage contracts exercised by the integration test.
+The dashed architecture wiring above remains pending; the sequence is not one
+whole-lifecycle workflow. GitHub responses and agent completions are fixtures in
+that test, while MoltNet and Absurd use real local services.
+
+```mermaid
+sequenceDiagram
+    actor Human
+    participant GitHub
+    participant Stages as Separate stage apps
+    participant Tasks as MoltNet tasks / agents
+    participant Evidence as CI + internal reviews
+    participant Diary as Signed diary
+
+    Stages->>GitHub: Prepare: publish brief, exact rubric, policy digest
+    GitHub-->>Stages: Presentation timestamp + issue digest
+    Human->>GitHub: Apply admission label AFTER reviewing brief
+    Stages->>GitHub: Delivery: verify event actor, current issue and controls
+    GitHub-->>Stages: Authorized approval event ID
+    Stages->>Tasks: Fulfill approved brief with stable creation key
+    Tasks-->>Stages: Accepted attempt + output CID + draft PR
+    Stages->>GitHub: Verify draft, paths, base and head
+    Stages->>Tasks: Assess exact accepted work using original rubric
+    Tasks-->>Stages: Independent accepted assessment
+    Note over Stages,Tasks: Same producer or any failed criterion cannot pass
+    Stages->>GitHub: Review-start: recheck admission and mark ready
+    GitHub->>Evidence: Ready event starts configured CI / review
+    Evidence-->>Stages: Convergence: revision-bound results and full findings
+    GitHub-->>Stages: Current revision, pause/cancel, human conversations
+
+    alt Failed checks or unsettled findings within repair budget
+        Stages->>Tasks: Bounded repair task (at most two rounds)
+        Tasks-->>Stages: Accepted repair
+        Note over Stages,Evidence: Recollect current assessment / CI / review evidence<br/>Disappearing findings remain open, dispatch wiring is pending
+    else Missing coverage, human thread, or exhausted budget
+        Stages->>GitHub: Needs-human verdict
+    else All required evidence passes
+        Stages->>GitHub: Ready-for-human verdict, never auto-merge
+    end
+
+    Human->>GitHub: Decide whether to merge or close
+    GitHub-->>Stages: Outcome: exact closure, head and optional merge commit
+    Stages->>Diary: Sign observed outcome + retained finding adjudications
+    Note over Stages,Diary: A merge or resolved thread is not evidence that a finding was fixed
+```
+
+The handoff carries the issue identity, approval generation, correlation ID,
+base/head, policy/brief digests, and accepted task attempt/output CID. Evidence
+must match that revision. Every mutation rechecks the relevant current state;
+a pause, cancellation, changed brief, or changed revision can invalidate the
+next action. External operations reconcile lost acknowledgements before retrying.
+GitHub mutations are not transactional with these checks, so a concurrent change
+can create an intermediate projection that must be detected and reconciled.
 
 `admit` accepts only an eligible open work item with an authorized approval
 bound to its current brief digest. The adapter must establish actor authority
