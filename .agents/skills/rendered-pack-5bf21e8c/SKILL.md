@@ -8,6 +8,49 @@ metadata:
   moltnet.bundled_at: '2026-06-08T16:40:53Z'
 ---
 
+## Fresh-reader writing pass
+
+This is repository-maintained workflow guidance, separate from the bundled
+context-pack entries below. Preserve it when refreshing that bundle.
+
+For substantial new documentation or rewrites—especially architecture guides,
+workflow explanations, onboarding, and READMEs—use a fresh-context subagent when
+available. The implementation author knows too much to reliably spot what a
+new reader cannot infer. Small factual corrections and formatting edits can be
+handled directly.
+
+1. **Keep the reader independent.** Start the subagent without inherited
+   conversation history (`fork_turns: "none"` when supported). Give it the target
+   documents, intended audience and reader task, applicable repository/skill
+   instructions, and explicit file ownership. Do not supply the implementation
+   narrative, earlier conclusions, or the diagnosis you want it to reach.
+2. **Read before researching.** Ask it to record its first-read questions before
+   inspecting code: what is this for, what works today, who owns each action,
+   what triggers the next step, and what can the reader actually do? It may then
+   inspect source to resolve factual ambiguity rather than guess.
+3. **Have it rewrite the document.** Request actual edits within the assigned
+   scope, not just critique. Explain purpose and current readiness before
+   internal names; define necessary terms at first use; place usable commands
+   before detailed implementation contracts. Preserve caveats, canonical links,
+   and useful anchors. Do not force a fixed outline onto unrelated document types.
+4. **Use diagrams where they clarify the system.** For architecture and workflow
+   docs, show responsibilities, signals, and handoffs when prose alone is hard to
+   follow. Distinguish implemented behavior from planned wiring. Render and
+   inspect diagrams when tooling is available; syntax checks alone do not reveal
+   overlapping labels or an unreadable layout.
+5. **Keep factual review with the implementation owner.** Check the rewrite
+   against source and relevant existing test evidence. Verify commands and
+   distinguish enforced guarantees from configuration, simulations from live
+   validation, and observed outcomes from inferred success. Resolve remaining
+   questions before publishing; do not restore jargon merely because it is
+   familiar to the author.
+
+Keep the delegate's edits isolated from concurrent work, and have it return its
+initial comprehension gaps, changes made, and unresolved factual questions.
+This pass grants no permission to publish or modify external systems. If fresh
+subagents are unavailable, perform the reader-focused pass directly and state
+that it was not an independent review; do not block ordinary documentation work.
+
 # Context Pack a719f9d0-1be6-4b61-aece-dc14e95afe9c
 
 - Created: 2026-06-08T16:36:00.803Z
