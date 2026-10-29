@@ -89,6 +89,18 @@ describe('durable convergence', () => {
     const result = await runConvergence(policy, port, ctx);
     expect(result.verdict.status).toBe('ready');
     expect(result.repairs).toEqual([{ taskId: 'repair-1' }]);
+    expect(result.findings).toEqual([
+      {
+        id: 'defect',
+        origin: 'introduced',
+        disposition: 'fixed',
+        verification: {
+          revision: result.revision,
+          evidence: 'independent-verification',
+        },
+      },
+    ]);
+    expect([...publications.values()][0]).not.toHaveProperty('findings');
     ctx.resetForReplay();
     expect(await runConvergence(policy, port, ctx)).toEqual(result);
     expect(receipts.size).toBe(1);
@@ -106,6 +118,9 @@ describe('durable convergence', () => {
       status: 'needs-human',
       reasons: ['finding:defect'],
     });
+    expect(result.findings).toEqual([
+      { id: 'defect', origin: 'introduced', disposition: 'open' },
+    ]);
     expect(receipts.size).toBe(2);
     ctx.resetForReplay();
     expect(await runConvergence(policy, port, ctx)).toEqual(result);
@@ -150,6 +165,9 @@ describe('durable convergence', () => {
       ctx,
     );
     expect(result.verdict.status).toBe('needs-human');
+    expect(result.findings).toEqual([
+      { id: 'defect', origin: 'introduced', disposition: 'open' },
+    ]);
     expect(receipts.size).toBe(2);
   });
   it('preserves the evidence deadline across a worker interruption', async () => {

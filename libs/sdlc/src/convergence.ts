@@ -54,6 +54,8 @@ export interface ConvergenceResult {
   verdict: Verdict;
   revision: Revision;
   repairs: RepairReceipt[];
+  /** Retained adjudications for the independently dispatched outcome stage. */
+  findings: Finding[];
   published: boolean;
 }
 
@@ -210,17 +212,23 @@ export async function runConvergence(
   async function finish(decision: {
     revision: Revision;
     verdict: Verdict;
+    findings: Finding[];
   }): Promise<ConvergenceResult> {
     const published = await createTaskStep(
       ctx,
       'convergence.publish',
       ({ idempotencyKey }) =>
-        port.publish({ key: requireKey(idempotencyKey), ...decision }),
+        port.publish({
+          key: requireKey(idempotencyKey),
+          revision: decision.revision,
+          verdict: decision.verdict,
+        }),
     );
     return {
       revision: decision.revision,
       verdict: decision.verdict,
       repairs,
+      findings: structuredClone(decision.findings),
       published,
     };
   }

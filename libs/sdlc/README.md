@@ -203,6 +203,13 @@ Conflicting dispositions remain open. Security finding text stays in
 team-scoped tasks; only opaque identities enter the ledger. No separate
 case-management database is introduced.
 
+The terminal convergence result includes its retained finding ledger for the
+outcome dispatcher. It preserves both verified dispositions and unresolved
+findings across replay. The public verdict publication port receives only the
+revision and verdict codes, not the ledger. The integration test carries an
+opaque private finding from an internal review report through convergence into
+the signed closure entry; observing a merge leaves that finding open.
+
 ## Signed outcome recording
 
 `createGithubMoltNetOutcomeApp` independently records a merged or unmerged PR

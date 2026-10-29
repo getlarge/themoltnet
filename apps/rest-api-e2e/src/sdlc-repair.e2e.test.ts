@@ -13,6 +13,7 @@ import {
 import {
   type AssessmentResult,
   type BriefPresentation,
+  type ConvergenceResult,
   createConvergenceApp,
   type Handoff,
   type OutcomeInput,
@@ -704,12 +705,17 @@ describe('SDLC repair adapter against the task service', () => {
           if (useIndependentAgent) {
             if (assessmentResult.state !== 'completed')
               throw new Error('Assessment incomplete');
-            await convergeWithProviderEvidence(
+            const convergence = await convergeWithProviderEvidence(
               request,
               handoff,
               assessmentResult.result as unknown as AssessmentResult,
             );
-            await recordOutcomeExperiment(agent, proposer, handoff);
+            await recordOutcomeExperiment(
+              agent,
+              proposer,
+              handoff,
+              convergence,
+            );
             issue.labels.push('paused');
             const stopped = await assessmentApp.spawn(
               SDLC_ASSESSMENT_TASK,
@@ -762,6 +768,7 @@ async function convergeWithProviderEvidence(
   assessment: AssessmentResult,
 ) {
   const revision = handoff.revision;
+  let reportHasFinding = false;
   const observe = createGithubEvidenceObserver({
     request,
     repository: 'example/repo',
@@ -821,6 +828,9 @@ async function convergeWithProviderEvidence(
                 summary: 'Fixture',
                 taskIds: [],
                 findings: [],
+                privateFindingIds: reportHasFinding
+                  ? ['unverified-problem']
+                  : [],
               },
             ],
           },
@@ -863,6 +873,31 @@ async function convergeWithProviderEvidence(
       state: 'completed',
       result: { verdict: { status: 'ready' }, repairs: [] },
     });
+    reportHasFinding = true;
+    const unsettled = await app.spawn(
+      SDLC_CONVERGENCE_TASK,
+      {
+        changeKey: 'example/repo:2',
+        policy: {
+          maxRepairRounds: 0,
+          pollIntervalSec: 1,
+          evidenceTimeoutSec: 10,
+          repairTimeoutSec: 10,
+        },
+      },
+      { queue: queueName },
+    );
+    const result = await app.awaitTaskResult(unsettled.taskID, { timeout: 20 });
+    expect(result).toMatchObject({
+      state: 'completed',
+      result: {
+        verdict: { status: 'needs-human' },
+        repairs: [],
+        findings: [{ id: 'unverified-problem', disposition: 'open' }],
+      },
+    });
+    if (result.state !== 'completed') throw new Error('Convergence incomplete');
+    return result.result as unknown as ConvergenceResult;
   } finally {
     await worker?.close();
     await app.dropQueue(queueName);
@@ -874,6 +909,7 @@ async function recordOutcomeExperiment(
   agent: Agent,
   proposer: TestAgent,
   handoff: Handoff,
+  convergence: ConvergenceResult,
 ) {
   const queueName = `sdlc-outcome-${randomUUID()}`;
   const observation: OutcomeInput['observation'] = {
@@ -932,9 +968,7 @@ async function recordOutcomeExperiment(
         teamId: proposer.personalTeamId,
         handoff,
         observation,
-        findings: [
-          { id: 'unverified-problem', origin: 'unknown', disposition: 'open' },
-        ],
+        findings: convergence.findings,
       },
       {
         queue: queueName,
