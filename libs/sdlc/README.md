@@ -240,3 +240,53 @@ Before retiring the legacy runner, wire repository policy and operational stage
 dispatch and persist their evidence bindings, then run a supervised live
 GitHub pilot. Human admission and final merge remain explicit
 boundaries. No workflow here merges a pull request.
+
+## Preparation operator
+
+Use the `@moltnet/tools:sdlc:prepare` target to review a dispatch plan or run the
+independent preparation stage. The examples contain placeholder team, diary,
+App-user, profile, correlation, and issue IDs; they are not deployment settings.
+Replace them with your selected agent's repository-scoped configuration before
+running against GitHub. Keep that configuration outside version control when it
+contains operational details you do not intend to publish.
+
+From the workspace root, inspect an offline example:
+
+```bash
+NX_LOAD_DOT_ENV_FILES=false pnpm exec nx run @moltnet/tools:sdlc:prepare -- plan ../libs/sdlc/examples/pilot-policy.json ../libs/sdlc/examples/preparation-request.json
+```
+
+Paths are relative to `tools/`, where Nx executes the target. `plan` validates
+configuration and the rubric, then prints the effective input, policy snapshot,
+brief digest, and deterministic dispatch key without connecting to GitHub or a
+database. Policy fields are strict: misspellings fail, admission requires write
+or admin permission, labels must be disjoint, and paths are exact files or
+directory prefixes rather than globs. Pilot limits allow at most two repair
+rounds and two active cases. These are configuration bounds, not proof of active
+case admission or spending enforcement. Runtime profiles currently bind IDs;
+immutable profile-revision pinning remains required for rollout.
+
+For `run`, select `ABSURD_DATABASE_URL` and an isolated
+`SDLC_PREPARATION_QUEUE` explicitly, and run from a checkout whose GitHub origin
+matches the policy repository. Use absolute paths to your configured files:
+
+```bash
+NX_LOAD_DOT_ENV_FILES=false pnpm exec nx run @moltnet/tools:sdlc:prepare -- run /absolute/path/policy.json /absolute/path/request.json
+```
+
+The request's `issueDigest` is `issueDigest({title, body})` from the GitHub
+adapter, computed from a fresh issue read. The stage refuses publication if the
+issue changes. The released `moltnet github exec` wrapper supplies the activated
+agent's repository-scoped App token; no human-token fallback is used. Bodies
+travel through stdin without shell interpolation. The command prints the
+Absurd task receipt before waiting, so interrupted operators can inspect the
+same execution. Retry the exact same plan to recover it; do not change queues
+when recovering. Serialize preparation for a given issue: distinct changed
+briefs are distinct executions, and GitHub comments are not locks.
+
+Preparation only presents a brief. It does not grant admission or start delivery.
+The human admission event must follow the presentation. The policy snapshot is
+stored in the queued task parameters for subsequent dispatch validation. The
+operator still needs to review the policy file as well as the presented rubric.
+Multi-case reservations, downstream dispatch, and trusted CI/review receipts
+remain unfinished; do not retire the legacy runner on the basis of this command.

@@ -17,12 +17,12 @@ import {
   createConvergenceApp,
   type Handoff,
   type OutcomeInput,
+  planGithubPreparation,
   prepareBrief,
   SDLC_ASSESSMENT_TASK,
   SDLC_CONVERGENCE_TASK,
   SDLC_DELIVERY_TASK,
   SDLC_OUTCOME_TASK,
-  SDLC_PREPARATION_TASK,
   SDLC_REVIEW_START_TASK,
 } from '@moltnet/sdlc';
 import {
@@ -259,9 +259,16 @@ describe('SDLC repair adapter against the task service', () => {
         }),
       },
     };
-    const brief = prepareBrief(authoring);
     const labels = {
-      stages: { preparation: 'stage:approval', delivered: 'stage:convergence' },
+      stages: {
+        preparation: 'stage:approval',
+        delivery: 'stage:delivery',
+        review: 'stage:convergence',
+        ready: 'stage:ready',
+        'needs-human': 'stage:human',
+        paused: 'stage:paused',
+        cancelled: 'stage:cancelled',
+      },
     };
     const head = 'a'.repeat(40);
     let draft = true;
@@ -272,6 +279,50 @@ describe('SDLC repair adapter against the task service', () => {
       body: 'Acceptance criteria',
       labels: ['ready', 'approved'],
     };
+    const preparationPlan = planGithubPreparation(
+      {
+        version: 1,
+        repository: 'example/repo',
+        teamId: proposer.personalTeamId,
+        diaryId: proposer.privateDiaryId,
+        appUserId: 42,
+        github: {
+          eligibleLabels: ['ready'],
+          approvalLabel: 'approved',
+          pauseLabel: 'paused',
+          cancelLabel: 'cancelled',
+          allowedPermissions: ['admin'],
+          baseBranch: 'main',
+          allowedPaths: ['docs/'],
+          protectedPaths: ['.github/'],
+          labels,
+          deliveredStage: 'review',
+        },
+        executors: { delivery: executor, assessment: executor },
+        limits: {
+          maxActiveCases: 2,
+          stageTimeoutSec: 30,
+          convergence: {
+            maxRepairRounds: 2,
+            pollIntervalSec: 1,
+            evidenceTimeoutSec: 30,
+            repairTimeoutSec: 30,
+          },
+        },
+        evidence: {
+          requiredChecks: ['ci'],
+          requiredLanes: ['tests'],
+          auditLanes: ['tests'],
+        },
+      },
+      {
+        issueNumber: 1,
+        issueDigest: issueDigest(issue),
+        correlationId,
+        brief: authoring.brief,
+      },
+    );
+    const brief = prepareBrief(preparationPlan.params.authoring);
     const comments: {
       id: number;
       body: string;
@@ -413,22 +464,22 @@ describe('SDLC repair adapter against the task service', () => {
       try {
         await prepareApp.createQueue(prepareQueue);
         const prepared = await prepareApp.spawn(
-          SDLC_PREPARATION_TASK,
+          preparationPlan.taskName,
+          preparationPlan.params,
           {
-            authoring,
-            issueDigest: issueDigest(issue),
-            github: {
-              repository: 'example/repo',
-              issueNumber: 1,
-              appUserId: 42,
-              approvalLabel: 'approved',
-              stage: 'preparation',
-              labels,
-              stopLabels: ['paused', 'cancelled'],
-            },
+            queue: prepareQueue,
+            idempotencyKey: preparationPlan.idempotencyKey,
           },
-          { queue: prepareQueue },
         );
+        const replayed = await prepareApp.spawn(
+          preparationPlan.taskName,
+          preparationPlan.params,
+          {
+            queue: prepareQueue,
+            idempotencyKey: preparationPlan.idempotencyKey,
+          },
+        );
+        expect(replayed.taskID).toBe(prepared.taskID);
         prepareWorker = await prepareApp.startWorker({
           concurrency: 1,
           pollInterval: 0.05,
@@ -460,18 +511,7 @@ describe('SDLC repair adapter against the task service', () => {
         issueNumber: 1,
         appUserId: 42,
         presentation,
-        policy: {
-          eligibleLabels: ['ready'],
-          approvalLabel: 'approved',
-          pauseLabel: 'paused',
-          cancelLabel: 'cancelled',
-          allowedPermissions: ['admin'],
-          baseBranch: 'main',
-          allowedPaths: ['docs/'],
-          protectedPaths: [],
-          labels,
-          deliveredStage: 'delivered',
-        },
+        policy: preparationPlan.policy.github,
       };
       const spawned = await app.spawn(
         SDLC_DELIVERY_TASK,

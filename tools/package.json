@@ -19,7 +19,8 @@
     "bench:task-readiness": "tsx src/bench-task-readiness.ts",
     "smtp:test": "tsx src/test-smtp.ts",
     "test:agent-bundle": "node --test release/agent-bundle/agent-bundle.test.mjs release/cli/install.test.mjs release/cli/p12-chain.test.mjs release/sync-cli-consumer-pins.test.mjs release/sync-daemon-consumer-pins.test.mjs",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "sdlc:prepare": "node --import tsx src/sdlc/prepare.ts"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "catalog:",
@@ -36,6 +37,7 @@
     "@moltnet/models": "workspace:*",
     "@moltnet/rest-api": "workspace:*",
     "@moltnet/runtime-profiles": "workspace:*",
+    "@moltnet/sdlc": "workspace:*",
     "@moltnet/tasks": "workspace:*",
     "@ory/client-fetch": "catalog:",
     "@themoltnet/agent-runtime": "workspace:*",
