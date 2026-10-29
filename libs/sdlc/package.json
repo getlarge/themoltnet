@@ -9,6 +9,18 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
+    },
+    "./github": {
+      "import": "./src/github.ts",
+      "types": "./src/github.ts"
+    },
+    "./moltnet": {
+      "import": "./src/moltnet.ts",
+      "types": "./src/moltnet.ts"
+    },
+    "./github-moltnet": {
+      "import": "./src/github-moltnet.ts",
+      "types": "./src/github-moltnet.ts"
     }
   },
   "devDependencies": {
@@ -24,6 +36,8 @@
     ]
   },
   "dependencies": {
+    "@themoltnet/tasks-orchestrator": "workspace:*",
+    "@themoltnet/sdk": "workspace:*",
     "@moltnet/adaptive-review": "workspace:*"
   }
 }
