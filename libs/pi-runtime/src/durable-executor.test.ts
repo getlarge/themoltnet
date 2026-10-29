@@ -700,6 +700,82 @@ it('resumes after interrupted unsafe tool intent without executing the tool twic
   expect(faux.state.callCount).toBe(2);
 });
 
+it.each([true, false])(
+  'checkpoints long pending children and recovers after submitted=%s',
+  async (submittedChild) => {
+    const s = setup(true, 35);
+    const verdict = 'x'.repeat(32 * 1024);
+    s.faux.setResponses([
+      fauxAssistantMessage(
+        fauxToolCall('subagent', { task: 'Inspect', output_schema: 'verdict' }),
+        { stopReason: 'toolUse' },
+      ),
+      ...Array.from({ length: 35 }, (_, n) =>
+        fauxAssistantMessage(
+          fauxToolCall(
+            'submit_subagent_output',
+            // A numeric verdict is coerced to a valid string; omit the required key.
+            submittedChild && n === 34 ? { verdict } : {},
+          ),
+          { stopReason: 'toolUse' },
+        ),
+      ),
+      submitted(),
+    ]);
+    const result = await s.execute(task(), reporter());
+    expect(result.status).toBe('completed');
+    const create = s.commits
+      .flatMap((c) => c.writes)
+      .find(
+        (w) =>
+          w.type === 'document.create' && w.record.kind === 'moltnet.subagent',
+      );
+    if (!create || create.type !== 'document.create')
+      throw new Error('Missing child');
+    const changes = s.commits
+      .flatMap((c) => c.writes)
+      .filter((w) => w.type === 'document.change' && w.id === create.record.id);
+    const bases = changes.filter(
+      (w) => w.type === 'document.change' && w.content.kind === 'base',
+    );
+    expect(bases).toHaveLength(1);
+    expect(bases[0]).toMatchObject({
+      content: { value: { turns: 34, output: null } },
+    });
+    const baseCommit = s.commits.find((c) => c.writes.includes(bases[0]));
+    expect(baseCommit?.writes).toHaveLength(1);
+    expect(
+      Buffer.byteLength(
+        JSON.stringify({ format: 'pi-durable.v1', writes: baseCommit?.writes }),
+      ),
+    ).toBeLessThan(1024);
+    expect(changes).toHaveLength(submittedChild ? 35 : 34);
+    expect(changes[31]).toMatchObject({ content: { kind: 'delta' } });
+    expect(changes[32]).toEqual(bases[0]);
+    expect(changes.at(-1)).toMatchObject({ content: { kind: 'delta' } });
+    const immutable = structuredClone(s.commits);
+    const reopened = await ApiDurableStorage.open(
+      s.transport,
+      BACKGROUND_CONTEXT,
+    );
+    const state = await reopened.document(
+      create.record.id,
+      'current',
+      BACKGROUND_CONTEXT,
+    );
+    expect(state?.value).toEqual({
+      turns: 35,
+      output: submittedChild ? { verdict } : null,
+    });
+    expect(state?.deltasSinceBase).toBe(submittedChild ? 2 : 1);
+    await reopened.close(BACKGROUND_CONTEXT);
+    const calls = s.faux.state.callCount;
+    expect(await s.execute(task(), reporter())).toEqual(result);
+    expect(s.faux.state.callCount).toBe(calls);
+    expect(s.commits).toEqual(immutable);
+  },
+);
+
 it('persists child output with its parent and reconciles without spawning again', async () => {
   const s = setup(true);
   let childTranscript = '';
