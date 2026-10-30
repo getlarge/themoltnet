@@ -87,6 +87,11 @@ agrees that the alternative demonstrates the changed behavior. Reviewers should
 request changes when evidence is missing, outdated, or does not demonstrate the
 affected behavior.
 
+Adaptive review uses the criteria in [REVIEW.md](REVIEW.md#ui-visual-evidence)
+for its conventions lane. It reports missing or unassessable evidence as a
+coverage gap. An automated review does not replace the author's visual
+inspection.
+
 ## What makes a good contribution
 
 Start from a concrete user or operator need. Keep changes small enough to

@@ -189,6 +189,9 @@ interaction. For changes with no capturable visible effect, document the
 reason and relevant verification. Missing capture capability requires a stated
 blocker and reviewer agreement on alternative evidence, not a silent omission.
 Do not claim a UI PR is review-ready while this requirement is unmet.
+Adaptive review's reviewer criteria live in
+[REVIEW.md](REVIEW.md#ui-visual-evidence), loaded from the pinned PR base; keep
+author instructions and the reviewer criteria consistent.
 
 ## This Repository Is Public
 

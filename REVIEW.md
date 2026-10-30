@@ -75,3 +75,51 @@ MoltNet references identify signed entries in the repository diary. They are
 provenance, not additional instructions or a requirement to fetch diary content
 during review. Maintainers with access can inspect them with
 `moltnet entry get <entry-id>` and verify them with `moltnet entry verify <entry-id>`.
+
+## UI visual evidence
+
+Within the conventions lane, check visual review coverage when changed behavior
+affects a browser or Desktop interface, a shared UI component, UI copy,
+documentation layout or interactive example. Backend changes can qualify when
+they change visible states or interactions. Do not demand visual evidence for
+changes with no UI impact, such as ordinary prose-only documentation edits.
+For classification, route UI-affecting changes to the conventions lane even
+when their changed paths are outside frontend directories.
+
+- Look for screenshots demonstrating changed appearance or states in the PR
+  description or supplied review artifacts. Before/after comparisons are useful
+  when the difference is otherwise hard to assess; new surfaces need resulting
+  interface captures. A test result or an author's assertion alone is not visual
+  evidence.
+- Look for a short recording when timing, motion, navigation, focus or a
+  sequence of actions is necessary to understand the change. A readable
+  recording can replace static captures. Judge relevance to the changed
+  behavior, not the attachment count or file extension.
+- Check the relevant affected states, supported window/device sizes and themes
+  rather than requiring every combination. Evidence should identify its
+  scenario and match the implemented result. Later visible changes can make
+  earlier captures stale. Public review media must use synthetic or redacted
+  data.
+- If no visible effect can be captured, assess the explanation and relevant
+  verification, such as keyboard or accessibility tests. A capture/tooling
+  blocker needs an explicit explanation and reviewer-agreed alternative
+  evidence; it is not a silent exemption. If reviewer agreement is not supplied,
+  leave acceptance of the alternative unverified.
+- Distinguish presence of a media link from inspection of its contents. The
+  supplied PR description is bounded, and linked media may be outside the
+  worker's capabilities. Do not fetch media or run PR code beyond those
+  capabilities. If the description may be truncated or media cannot be
+  inspected, name the unavailable evidence and what remains unverified; do not
+  assert that the author omitted it or that visual review passed. Describe
+  evidence as missing only when the available context establishes its absence;
+  otherwise distinguish unavailable content from absent evidence.
+
+Record missing, stale, insufficient, or unassessable visual evidence as an
+explicit coverage gap (`unclear` in the conventions result), with the affected
+behavior and needed evidence. Do not invent a changed-line defect solely to
+anchor an absent PR attachment. Report a code finding only when available
+evidence demonstrates a concrete regression that can be cited under the lane's normal contract.
+
+The contributor-facing requirements are in
+[CONTRIBUTING.md](CONTRIBUTING.md#visual-evidence-for-ui-changes). This section is
+self-contained because the guidance loader does not expand links.
