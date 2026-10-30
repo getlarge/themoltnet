@@ -120,6 +120,31 @@ describe('planMoves', () => {
     expect(plan.moves.has('libs/lib/src/cli.ts')).toBe(false);
   });
 
+  it('moves Vitest snapshots with their test', () => {
+    // Act
+    const plan = planMoves({
+      projects: [
+        {
+          project,
+          files: [
+            'src/prompts/snapshot.test.ts',
+            'src/prompts/__snapshots__/snapshot.test.ts.snap',
+          ],
+        },
+      ],
+      referencesOf: () => [],
+      pinnedFiles: () => new Set(),
+      usesTestFramework: () => false,
+    });
+
+    // Assert
+    expect(
+      plan.moves.get(
+        'libs/lib/src/prompts/__snapshots__/snapshot.test.ts.snap',
+      ),
+    ).toBe('libs/lib/__tests__/prompts/__snapshots__/snapshot.spec.ts.snap');
+  });
+
   it('refuses two sources mapping to one target', () => {
     // Act & Assert
     expect(() =>

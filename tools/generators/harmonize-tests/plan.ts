@@ -128,6 +128,23 @@ export function planMoves(input: PlanInput): MovePlan {
       }
     }
 
+    // Vitest snapshots live in `__snapshots__/<test file>.snap` next to
+    // their test and must follow it, or the renamed test writes a new one.
+    for (const file of files) {
+      const match = /^(.*?)__snapshots__\/([^/]+)\.snap$/.exec(file);
+      const test = match && local.get(`${match[1]}${match[2]}`);
+      if (test) {
+        local.set(
+          file,
+          path.join(
+            path.dirname(test),
+            '__snapshots__',
+            `${path.basename(test)}.snap`,
+          ),
+        );
+      }
+    }
+
     if (!e2e) {
       for (const file of findSupportFiles(input, project, files, local)) {
         local.set(file, relocateUnderTests(file));
