@@ -208,10 +208,18 @@ bundle commit SHA** from the component's GitHub release notes. Do not pin a
 component version tag (`<component>-vX.Y.Z`): it marks the source commit, which
 has no bundle.
 
-For PR reviews, call the adaptive review workflow at a trusted commit:
-`getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml@<sha>`. A
-classifier routes each pull request to the review lanes your policy enables. The
-workflow builds its own runtime from that commit. See the
+For PR reviews, call the adaptive review workflow pinned to the action bundle
+commit SHA from the `adaptive-review-action` release notes, with the major tag
+as a comment so dependency bots can update it:
+
+```yaml
+uses: getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml@<bundle-sha> # adaptive-review-action-v0
+```
+
+The workflow runs with your repository's secrets, so pin the SHA rather than the
+moving `adaptive-review-action-v0` tag. A classifier routes each pull request to
+the review lanes your policy enables. The bundle commit holds the built review
+action, so the workflow runs it without installing the workspace. See the
 [adaptive review setup](https://github.com/getlarge/themoltnet/tree/main/libs/adaptive-review#readme).
 
 For OAuth-based jobs, the provisioning loop is:

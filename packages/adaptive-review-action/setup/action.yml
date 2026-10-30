@@ -1,21 +1,44 @@
 name: Set up the adaptive review runtime
 description: >
-  Install and build the adaptive review action from the pinned runtime
-  checkout at `.adaptive-review-runtime`. Use it from that checkout, so the
-  steps run at the pinned commit.
+  Prepare the adaptive review action in the pinned runtime checkout at
+  `.adaptive-review-runtime`. A released `adaptive-review-action-v*` commit
+  already holds the built bundle; any other commit installs and builds it.
+  Use it from that checkout, so the steps run at the pinned commit.
 author: getlarge
 runs:
   using: composite
   steps:
+    # Bundles are ignored on main, so only a release commit has them tracked.
+    - name: Detect a released bundle
+      id: bundle
+      shell: bash
+      working-directory: .adaptive-review-runtime
+      run: |
+        if git ls-files --error-unmatch \
+          packages/adaptive-review-action/dist/review.js \
+          packages/adaptive-review-action/dist/publish.js \
+          packages/adaptive-review-action/dist/outcomes.js >/dev/null 2>&1; then
+          echo 'released=true' >> "$GITHUB_OUTPUT"
+        else
+          echo 'released=false' >> "$GITHUB_OUTPUT"
+        fi
     - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      if: steps.bundle.outputs.released != 'true'
       with:
         package_json_file: .adaptive-review-runtime/package.json
     - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      if: steps.bundle.outputs.released != 'true'
       with:
         node-version-file: .adaptive-review-runtime/.tool-versions
         cache: pnpm
         cache-dependency-path: .adaptive-review-runtime/pnpm-lock.yaml
+    # The bundle imports only Node built-ins, so it needs no install.
+    - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      if: steps.bundle.outputs.released == 'true'
+      with:
+        node-version-file: .adaptive-review-runtime/.tool-versions
     - name: Install and build the trusted action
+      if: steps.bundle.outputs.released != 'true'
       shell: bash
       working-directory: .adaptive-review-runtime
       env:

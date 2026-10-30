@@ -30,7 +30,17 @@
       "platform:gha"
     ],
     "targets": {
-      "check:externals": {}
+      "check:externals": {},
+      "publish-action": {
+        "executor": "nx:run-commands",
+        "dependsOn": [
+          "build"
+        ],
+        "options": {
+          "cwd": "{workspaceRoot}",
+          "command": "node --import tsx tools/src/release/github-action-publisher.ts --project @themoltnet/adaptive-review-action --entries review.js,publish.js,outcomes.js --stable-major-tag-prefix adaptive-review-action-v"
+        }
+      }
     }
   }
 }

@@ -523,7 +523,7 @@ jobs:
           fi
 
           # Include transitive source changes and version changes on release PRs.
-          if contains "@themoltnet/agent-daemon-action" ||
+          if contains "@themoltnet/agent-daemon-action" "@themoltnet/adaptive-review-action" ||
             ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- .release-please-manifest.json; then
             echo "check-dist-actions=true" >> "$GITHUB_OUTPUT"
           else

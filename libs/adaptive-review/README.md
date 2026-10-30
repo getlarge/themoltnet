@@ -263,8 +263,11 @@ from an owner, member, or collaborator, reruns the review on the current head
 and investigates every lane. A comment from a bot never triggers it.
 
 For a caller repository, add a `pull_request` workflow that invokes
-`getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml` at a
-trusted commit or release tag, grants the calling job `actions: read`,
+`getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml` pinned to
+the action bundle commit SHA from an `adaptive-review-action` release, with
+`# adaptive-review-action-v0` as a comment for dependency updates. The workflow
+receives your secrets, so prefer the SHA to the moving major tag. The caller
+grants the calling job `actions: read`,
 `contents: read`, and `pull-requests: write`, passes `secrets: inherit`, and names an
 environment containing the MoltNet agent and provider keys. Pass at least a
 classifier profile, a nonempty `providers` definition, and
@@ -284,7 +287,9 @@ truncated, and pull requests that change a protected path. Fork and
 Dependabot pull requests are screened from the event before the runtime is
 installed; the other rules need the file list and run in the installed CLI.
 The job skips unless that check explicitly admits the pull request.
-Only the prepare job installs and builds the runtime. It uploads the bundled
+Only the prepare job prepares the runtime. At a release commit it runs the
+tracked bundle; at any other commit it installs the workspace and builds the
+action. It uploads the bundled
 action with a digest output, and the route and review jobs set up Node,
 download that bundle, and refuse to run it unless its digest matches.
 For private repositories, bind workers to a private diary; the review report
