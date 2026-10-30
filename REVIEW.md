@@ -48,6 +48,16 @@ Apply these checks when the change touches the corresponding behavior:
   while the worker can still correct its output, with actionable field errors.
   Source: [#2593](https://github.com/getlarge/themoltnet/pull/2593).
   MoltNet entry: `59f381c9-4ce2-496c-84fa-3d9b3acbeb70`.
+- When changing Nx targets, inspect the resolved `nx show project <name> --json`
+  configuration and the CI task graph, not just the edited manifest. Follow the
+  repository convention: non-atomized `test-ci` delegates to `test`, including
+  its additional test dependencies; atomized projects retain their per-file
+  targets. Check that existing suites remain reachable and cache inputs include
+  consumed helper files and toolchain configuration. A passing new test target
+  alone does not establish correct aggregate wiring.
+  Sources: [CI convention](.github/workflows/ci.yml),
+  [#2865](https://github.com/getlarge/themoltnet/pull/2865).
+  MoltNet entry: `400c61bd-3179-46aa-9c4a-417045bf0b72`.
 - When changing package smoke tests or dependency overrides, verify that the
   consumer installs the newly built local tarballs, including sibling packages,
   using configuration honored by the package-manager versions under test. A
