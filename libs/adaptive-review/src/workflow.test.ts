@@ -915,8 +915,12 @@ describe('adaptive review orchestration', () => {
     );
     expect(preparation.classifierTaskIds).toEqual([]);
     expect(createTask).not.toHaveBeenCalled();
-    expect(preparation.routing.classifierFailed).toBe(true);
-    expect(preparation.routing.routes.every((route) => route.run)).toBe(true);
+    expect(preparation.routing.classifierFailed).toBe(false);
+    expect(
+      preparation.routing.routes.every(
+        (route) => route.run && route.reason === 'classifier-skipped',
+      ),
+    ).toBe(true);
     expect(preparation.gaps).toContain(
       'Classifier packet budget exceeded: 5 > 4; all lanes routed for review.',
     );

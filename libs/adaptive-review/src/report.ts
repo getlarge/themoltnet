@@ -291,7 +291,9 @@ export function renderAdaptiveComment(
   }
   lines.push(
     '',
-    '_Advisory review. A screened lane was not investigated. Comment `/review` to investigate every lane._',
+    report.routing.routes.some((route) => !route.run)
+      ? '_Advisory review. A screened lane was not investigated. Comment `/review` to investigate every lane._'
+      : '_Advisory review._',
   );
   if (report.spend) lines.push('', formatWorkflowSpend(report.spend));
   return lines.join('\n');
