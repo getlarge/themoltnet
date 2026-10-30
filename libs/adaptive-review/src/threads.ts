@@ -127,7 +127,7 @@ export function createGraphQL(
 /** Historical discussion is untrusted evidence, not reviewer instructions. */
 export interface PreviousFinding {
   key: string;
-  lane: 'tests' | 'conventions' | 'blast-radius';
+  lane: 'tests' | 'conventions' | 'blast-radius' | 'performance';
   path: string;
   line: number | null;
   side: 'old' | 'new' | null;
@@ -158,7 +158,10 @@ export function previousFindings(
     const lane = marker?.key.split(':')[0];
     if (
       !marker ||
-      (lane !== 'tests' && lane !== 'conventions' && lane !== 'blast-radius')
+      (lane !== 'tests' &&
+        lane !== 'conventions' &&
+        lane !== 'blast-radius' &&
+        lane !== 'performance')
     )
       return [];
     if ((counts.get(lane) ?? 0) >= 20) return [];

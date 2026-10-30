@@ -152,6 +152,58 @@ describe('prior focused review context', () => {
     );
   });
 
+  it('reuses a prior performance concern without mixing other lane history into the brief', async () => {
+    const performanceKey = key.replace('tests:', 'performance:');
+    const performanceThread = {
+      ...thread,
+      comments: {
+        nodes: [
+          {
+            ...thread.comments.nodes[0],
+            body: `<!-- moltnet:adaptive-finding ${performanceKey} -->\nThe list route performs one query per item.`,
+          },
+        ],
+      },
+    };
+    const tasks = new FakeTasks([
+      {
+        result: {
+          summary: 'The same repeated I/O remains.',
+          findings: [
+            {
+              path,
+              side: 'new',
+              line: 560,
+              concern: 'The list route still performs one query per item.',
+              action: 'Restore batching.',
+              existingFindingKey: performanceKey,
+            },
+          ],
+          unclear: [],
+        },
+      },
+    ]);
+    const ctx = context(tasks);
+    ctx.policy = { ...ctx.policy, lanes: ['performance'] };
+    ctx.previousFindings = previousFindings([thread, performanceThread], app);
+    const result = await runFocusedLane('performance', ctx);
+    expect(ctx.previousFindings.map((finding) => finding.lane)).toEqual([
+      'performance',
+      'tests',
+    ]);
+    expect(tasks.created[0].input.brief).toContain(
+      'The list route performs one query per item.',
+    );
+    expect(tasks.created[0].input.brief).not.toContain(
+      'Provenance guard needs coverage.',
+    );
+    expect(result).toMatchObject({
+      lane: 'performance',
+      status: 'concern',
+      findings: [{ line: 560, existingFindingKey: performanceKey }],
+    });
+  });
+
   it('keeps only marked threads opened by the configured App, retaining replies and revision', () => {
     const human = {
       ...thread,
