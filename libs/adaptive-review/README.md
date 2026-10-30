@@ -125,7 +125,7 @@ a live model follows the criteria or whether guidance improves finding quality.
 
 ## Optional diary context
 
-Focused reviewers (`tests`, `conventions`, and `blast-radius`) can search
+Focused reviewers (`tests`, `conventions`, `blast-radius`, and `performance`) can search
 selected diaries for past decisions and incidents. This is **off by
 default**. An operator enables it in the trusted caller workflow with
 `focused-diary-ids` and a matching knowledge review profile; the repository's

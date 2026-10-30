@@ -90,8 +90,8 @@ Once the classifier profile is provisioned and `OLLAMA_API_KEY` is set in the
 
 ### Optional diary context for focused reviews
 
-Diary context lets focused reviewers (`tests`, `conventions`, and
-`blast-radius`) investigate past decisions and incidents while checking current
+Diary context lets focused reviewers (`tests`, `conventions`,
+`blast-radius`, and `performance`) investigate past decisions and incidents while checking current
 code. It is **off by default**: the caller's `focused-diary-ids` input
 is `[]`, and the ordinary focused profile has no diary tools. The classifier,
 docs, security, and complexity profiles keep their existing capabilities.
