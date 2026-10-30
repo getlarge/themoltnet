@@ -117,6 +117,160 @@ async function fixture() {
 }
 
 describe('conversation projection conforms to Pi storage', () => {
+  it('reuses idle payload reads and misses only at the same store and published sequence', async () => {
+    const f = await fixture();
+    const append = () =>
+      f.session.commit(
+        (tx) =>
+          tx.appendEntry(f.root, {
+            kind: 'pi.user',
+            model: [{ role: 'user', content: 'message', timestamp: 1 }],
+          }),
+        context,
+      );
+    await append();
+    const setLive = (text: string) =>
+      f.session.commit(async (tx) => {
+        const live = await tx.doc(LiveDoc, f.root);
+        live.generation = {
+          attempt: 1,
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text }],
+          } as never,
+        };
+      }, context);
+    await setLive('first');
+    const address = {
+      kind: 'pi.live',
+      scope: { kind: 'conversation' as const, conversationId: f.root },
+    };
+    const missing = { ...address, key: 'missing' };
+    const records = vi.spyOn(f.repo, 'conversationRecord');
+    const lists = vi.spyOn(f.repo, 'conversationList');
+    const documents = vi.spyOn(f.repo, 'conversationDocument');
+    const entries = vi.spyOn(f.repo, 'conversationEntries');
+    const read = async () => {
+      await f.reader.at('store', f.head());
+      const record = await f.reader.findDocument(address);
+      const live = await f.reader.document(record!.id);
+      expect(await f.reader.findDocument(missing)).toBeUndefined();
+      expect(await f.reader.document(9999 as DocumentId)).toBeUndefined();
+      const page = await f.reader.scanEntries({ conversationId: f.root }, 10);
+      for (const entry of page.items)
+        expect((await f.reader.entry(entry.id))?.entry).toEqual(entry);
+      return { live, page };
+    };
+    const original = await read();
+    for (const spy of [records, lists, documents, entries]) spy.mockClear();
+    expect(await read()).toEqual(original);
+    for (const spy of [records, lists, documents, entries])
+      expect(spy).not.toHaveBeenCalled();
+
+    await setLive('second');
+    await append();
+    for (const spy of [records, lists, documents, entries]) spy.mockClear();
+    const updated = await read();
+    expect(JSON.stringify(updated.live)).toContain('second');
+    expect(updated.page.items).toHaveLength(2);
+    for (const spy of [records, lists, documents, entries])
+      expect(spy).toHaveBeenCalled();
+
+    // A different store with the same sequence/IDs cannot reuse cached payloads.
+    f.rows.push(
+      ...structuredClone(f.rows).map((row) => ({
+        ...row,
+        storeId: 'other',
+        value:
+          row.type === 'entry'
+            ? { ...row.value, kind: 'other-store' }
+            : row.value,
+      })),
+    );
+    for (const spy of [records, lists, documents, entries]) spy.mockClear();
+    await f.reader.at('other', f.head());
+    const other = await f.reader.scanEntries({ conversationId: f.root }, 10);
+    expect(other.items.every((entry) => entry.kind === 'other-store')).toBe(
+      true,
+    );
+    await f.reader.findDocument(missing);
+    for (const spy of [records, lists, documents, entries])
+      expect(spy).toHaveBeenCalled();
+    await f.session.close(context);
+  });
+
+  it('retains only the latest page and its metadata when cursors and limits alternate', async () => {
+    const f = await fixture();
+    for (let i = 0; i < 5; i++)
+      await f.session.commit(
+        (tx) =>
+          tx.appendEntry(f.root, {
+            kind: 'pi.user',
+            model: [{ role: 'user', content: String(i), timestamp: i }],
+          }),
+        context,
+      );
+    await f.reader.at('store', f.head());
+    const entries = vi.spyOn(f.repo, 'conversationEntries');
+    const records = vi.spyOn(f.repo, 'conversationRecord');
+    const query = { conversationId: f.root };
+    const first = await f.reader.scanEntries(query, 1);
+    expect(await f.reader.scanEntries(query, 1)).toEqual(first);
+    expect(entries).toHaveBeenCalledTimes(1);
+    const before = first.items[0].id - 1;
+    const second = await f.reader.scanEntries(
+      { ...query, maxEntryId: before },
+      1,
+    );
+    expect(second.items[0].id).toBeLessThan(first.items[0].id);
+    expect((await f.reader.entry(second.items[0].id))?.entry).toEqual(
+      second.items[0],
+    );
+    expect(records).not.toHaveBeenCalled();
+    // A row from the evicted page must use the repository, not stale metadata.
+    expect((await f.reader.entry(first.items[0].id))?.entry).toEqual(
+      first.items[0],
+    );
+    expect(records).toHaveBeenCalledTimes(1);
+    expect(await f.reader.scanEntries(query, 1)).toEqual(first);
+    expect(entries).toHaveBeenCalledTimes(3);
+    const wider = await f.reader.scanEntries(query, 3);
+    expect(wider.items).toHaveLength(3);
+    expect(entries).toHaveBeenCalledTimes(4);
+    records.mockClear();
+    for (const entry of wider.items)
+      expect((await f.reader.entry(entry.id))?.entry).toEqual(entry);
+    expect(records).not.toHaveBeenCalled();
+    await f.session.close(context);
+  });
+
+  it('retries failed sequence loads and bounds document-address misses', async () => {
+    const f = await fixture();
+    const lists = vi
+      .spyOn(f.repo, 'conversationList')
+      .mockRejectedValueOnce(new Error('database unavailable'));
+    await expect(f.reader.at('store', f.head())).rejects.toThrow(
+      'database unavailable',
+    );
+    await f.reader.at('store', f.head());
+    expect(lists).toHaveBeenCalledTimes(2);
+    const documents = vi.spyOn(f.repo, 'conversationDocument');
+    const address = (key: string) => ({
+      kind: 'pi.live',
+      scope: { kind: 'conversation' as const, conversationId: f.root },
+      key,
+    });
+    for (let i = 0; i < 129; i++)
+      await f.reader.findDocument(address(String(i)));
+    await f.reader.findDocument(address('128'));
+    expect(documents).toHaveBeenCalledTimes(129);
+    await f.reader.findDocument(address('0'));
+    expect(documents).toHaveBeenCalledTimes(130);
+    await f.reader.close();
+    await f.reader.at('store', f.head());
+    expect(lists).toHaveBeenCalledTimes(3);
+    await f.session.close(context);
+  });
   it('pages immutable entries and preserves historical commit boundaries', async () => {
     const f = await fixture();
     for (let i = 0; i < 110; i++)

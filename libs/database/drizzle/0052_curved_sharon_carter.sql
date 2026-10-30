@@ -19,4 +19,6 @@ ALTER TABLE "runtime_conversation_heads" ADD CONSTRAINT "runtime_conversation_he
 ALTER TABLE "runtime_conversation_records" ADD CONSTRAINT "runtime_conversation_records_store_id_runtime_stores_id_fk" FOREIGN KEY ("store_id") REFERENCES "public"."runtime_stores"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "runtime_conversation_entries_idx" ON "runtime_conversation_records" USING btree ("store_id","type","conversation_id","id");--> statement-breakpoint
 CREATE INDEX "runtime_conversation_address_idx" ON "runtime_conversation_records" USING btree ("store_id","address","seq");--> statement-breakpoint
-CREATE INDEX "runtime_store_commits_attempt_seq_idx" ON "runtime_store_commits" USING btree ("store_id","task_id","attempt_n","seq");
+/* moltnet:post-commit
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "runtime_store_commits_attempt_seq_idx" ON "public"."runtime_store_commits" USING btree ("store_id","task_id","attempt_n","seq");
+*/

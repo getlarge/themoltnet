@@ -200,22 +200,46 @@ export async function projectConversationCommit(
   await repo.saveConversationRecords(storeId, seq, rows);
 }
 
-/** Query-sized reads; no process-local replay cache or object downloads. */
+/** Query-sized reads with bounded reuse at one immutable published sequence. */
 export function createConversationProjectionReader(
   repo: RuntimeStoreRepository,
 ) {
   let storeId = '';
   let seq = 0;
   let maxEntryId = 0;
+  let loaded = false;
   let conversations: Row[] = [];
   const pageEntries = new Map<number, Row>();
-  const foundDocuments = new Map<number, Document>();
+  const foundDocuments = new Map<number, Document | undefined>();
+  const documentAddresses = new Map<string, Document | undefined>();
+  let lastPage:
+    | {
+        conversationId: number;
+        upper: number;
+        limit: number;
+        result: { items: EntryRecord[]; next: object | undefined };
+      }
+    | undefined;
+  function cache<K>(
+    map: Map<K, Document | undefined>,
+    key: K,
+    value: Document | undefined,
+  ) {
+    map.delete(key);
+    map.set(key, value);
+    if (map.size > 128) map.delete(map.keys().next().value!);
+  }
   return {
     async at(store: string, throughSeq: number) {
+      if (loaded && storeId === store && seq === throughSeq)
+        return conversations;
+      loaded = false;
       storeId = store;
       seq = throughSeq;
       pageEntries.clear();
       foundDocuments.clear();
+      documentAddresses.clear();
+      lastPage = undefined;
       const boundary = await timedRead('database.projection', () =>
         repo.conversationRecord(storeId, 'entry-boundary', 0, seq),
       );
@@ -223,23 +247,27 @@ export function createConversationProjectionReader(
       conversations = await timedRead('database.projection', () =>
         repo.conversationList(storeId, seq),
       );
+      loaded = true;
       return conversations;
     },
     async findDocument(address: DocumentAddress) {
+      const key = documentAddress(address);
+      if (documentAddresses.has(key)) return documentAddresses.get(key)?.record;
       const row = await timedRead('database.projection', () =>
-        repo.conversationDocument(storeId, documentAddress(address), seq),
+        repo.conversationDocument(storeId, key, seq),
       );
       const doc = row?.value as unknown as Document | undefined;
-      if (doc && !doc.retired) foundDocuments.set(doc.record.id, doc);
+      cache(documentAddresses, key, doc && !doc.retired ? doc : undefined);
+      if (doc && !doc.retired) cache(foundDocuments, doc.record.id, doc);
       return doc && !doc.retired ? doc.record : undefined;
     },
     async document(id: DocumentId) {
-      const cached = foundDocuments.get(id);
-      if (cached) return cached;
+      if (foundDocuments.has(id)) return foundDocuments.get(id);
       const row = await timedRead('database.projection', () =>
         repo.conversationRecord(storeId, 'document', id, seq),
       );
       const doc = row?.value as unknown as Document | undefined;
+      cache(foundDocuments, id, doc && !doc.retired ? doc : undefined);
       return doc && !doc.retired ? doc : undefined;
     },
     async scanConversations() {
@@ -267,10 +295,18 @@ export function createConversationProjectionReader(
       query: { conversationId: number; maxEntryId?: number },
       limit: number,
     ) {
+      const initialUpper = Math.min(query.maxEntryId ?? maxEntryId, maxEntryId);
+      if (
+        lastPage?.conversationId === query.conversationId &&
+        lastPage.upper === initialUpper &&
+        lastPage.limit === limit
+      )
+        return lastPage.result;
+      lastPage = undefined;
       const items: EntryRecord[] = [];
       pageEntries.clear();
       let id: number | undefined = query.conversationId;
-      let upper = Math.min(query.maxEntryId ?? maxEntryId, maxEntryId);
+      let upper = initialUpper;
       const seen = new Set<number>();
       // Pi scans each fork segment newest first, then its parent through parent.at.
       while (id !== undefined && items.length <= limit) {
@@ -294,11 +330,25 @@ export function createConversationProjectionReader(
         upper = Math.min(upper, conversation.parent?.at ?? upper);
         id = conversation.parent?.conversationId;
       }
-      return {
+      const result = {
         items: items.slice(0, limit),
         next: items.length > limit ? {} : undefined,
       };
+      lastPage = {
+        conversationId: query.conversationId,
+        upper: initialUpper,
+        limit,
+        result,
+      };
+      return result;
     },
-    async close() {},
+    async close() {
+      loaded = false;
+      conversations = [];
+      pageEntries.clear();
+      foundDocuments.clear();
+      documentAddresses.clear();
+      lastPage = undefined;
+    },
   };
 }

@@ -55,17 +55,21 @@ export function createRuntimeStoreRepository(db: Database) {
       rows: Omit<typeof records.$inferInsert, 'storeId' | 'seq'>[],
     ) {
       transactionRequired();
-      if (rows.length)
+      // A valid sub-MiB commit can contain enough small records to exceed
+      // PostgreSQL's 65,535 bind-parameter limit in one INSERT. Keep each
+      // statement bounded; the caller's transaction still publishes all or none.
+      for (let offset = 0; offset < rows.length; offset += 1000) {
         await getExecutor(db)
           .insert(records)
           .values(
-            rows.map((row) => ({
+            rows.slice(offset, offset + 1000).map((row) => ({
               ...row,
               storeId,
               seq,
               retired: row.value.retired === true,
             })),
           );
+      }
       await getExecutor(db)
         .insert(runtimeConversationHeads)
         .values({ storeId, seq })
