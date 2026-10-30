@@ -1,0 +1,268 @@
+import assert from 'node:assert/strict';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import process from 'node:process';
+import { fileURLToPath } from 'node:url';
+import { after, before, describe, it } from 'node:test';
+
+const here = fileURLToPath(new URL('../../../release/cli/', import.meta.url));
+const verifier = join(here, 'verify-apple-p12.sh');
+const fixture = mkdtempSync(join(tmpdir(), 'moltnet-p12-chain-test-'));
+const password = 'test-password';
+// Fixtures and the verifier must use the same OpenSSL 3 build: runners can put
+// OpenSSL 1.1.1 first on PATH, which builds and checks chains differently.
+const opensslBin = execFileSync('sh', [join(here, 'resolve-openssl.sh')], {
+  encoding: 'utf8',
+}).trim();
+const pkcs12LegacySupported = (() => {
+  const result = spawnSync(opensslBin, ['pkcs12', '-help'], {
+    encoding: 'utf8',
+  });
+  return `${result.stdout}${result.stderr}`.includes('-legacy');
+})();
+
+function openssl(args) {
+  execFileSync(opensslBin, args, { cwd: fixture, stdio: 'ignore' });
+}
+
+function exportPkcs12(args) {
+  openssl([
+    'pkcs12',
+    '-export',
+    ...(pkcs12LegacySupported ? ['-legacy'] : []),
+    ...args,
+  ]);
+}
+
+function verify(p12, suppliedPassword = password, opensslPath = opensslBin) {
+  return spawnSync('sh', [verifier, '--p12', join(fixture, p12)], {
+    cwd: fixture,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      APPLE_CERT_PASSWORD: suppliedPassword,
+      OPENSSL: opensslPath,
+    },
+  });
+}
+
+before(() => {
+  writeFileSync(
+    join(fixture, 'intermediate.ext'),
+    'basicConstraints=critical,CA:TRUE\nkeyUsage=critical,keyCertSign,cRLSign\n',
+  );
+  writeFileSync(
+    join(fixture, 'leaf.ext'),
+    'basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=codeSigning\n',
+  );
+
+  openssl([
+    'req',
+    '-x509',
+    '-newkey',
+    'rsa:2048',
+    '-nodes',
+    '-days',
+    '2',
+    '-subj',
+    '/CN=Apple Root CA/O=Apple Inc./C=US',
+    '-addext',
+    'basicConstraints=critical,CA:TRUE',
+    '-keyout',
+    'root.key',
+    '-out',
+    'root.pem',
+  ]);
+  openssl([
+    'req',
+    '-newkey',
+    'rsa:2048',
+    '-nodes',
+    '-subj',
+    '/CN=Developer ID Certification Authority/OU=G2/O=Apple Inc./C=US',
+    '-keyout',
+    'intermediate.key',
+    '-out',
+    'intermediate.csr',
+  ]);
+  openssl([
+    'x509',
+    '-req',
+    '-days',
+    '2',
+    '-in',
+    'intermediate.csr',
+    '-CA',
+    'root.pem',
+    '-CAkey',
+    'root.key',
+    '-CAcreateserial',
+    '-extfile',
+    'intermediate.ext',
+    '-out',
+    'intermediate.pem',
+  ]);
+  openssl([
+    'req',
+    '-newkey',
+    'rsa:2048',
+    '-nodes',
+    '-subj',
+    '/CN=Developer ID Application: Test/OU=TESTTEAM/O=Test/C=US',
+    '-keyout',
+    'leaf.key',
+    '-out',
+    'leaf.csr',
+  ]);
+  openssl([
+    'x509',
+    '-req',
+    '-days',
+    '2',
+    '-in',
+    'leaf.csr',
+    '-CA',
+    'intermediate.pem',
+    '-CAkey',
+    'intermediate.key',
+    '-CAcreateserial',
+    '-extfile',
+    'leaf.ext',
+    '-out',
+    'leaf.pem',
+  ]);
+
+  writeFileSync(
+    join(fixture, 'full-chain.pem'),
+    readFileSync(join(fixture, 'intermediate.pem'), 'utf8') +
+      readFileSync(join(fixture, 'root.pem'), 'utf8'),
+  );
+  exportPkcs12([
+    '-inkey',
+    'leaf.key',
+    '-in',
+    'leaf.pem',
+    '-certfile',
+    'full-chain.pem',
+    '-passout',
+    `pass:${password}`,
+    '-out',
+    'full-chain.p12',
+  ]);
+  exportPkcs12([
+    '-inkey',
+    'leaf.key',
+    '-in',
+    'leaf.pem',
+    '-certfile',
+    'intermediate.pem',
+    '-passout',
+    `pass:${password}`,
+    '-out',
+    'missing-root.p12',
+  ]);
+
+  // A second self-signed root carrying the same CN as the real one. A bundle
+  // built on it passes the count, CN and self-signed checks and fails only the
+  // cryptographic verify — the one branch whose reason the script used to
+  // discard, and the branch the macOS runner currently trips.
+  openssl([
+    'req',
+    '-x509',
+    '-newkey',
+    'rsa:2048',
+    '-nodes',
+    '-days',
+    '2',
+    '-subj',
+    '/CN=Apple Root CA/O=Apple Inc./C=US',
+    '-addext',
+    'basicConstraints=critical,CA:TRUE',
+    '-keyout',
+    'foreign-root.key',
+    '-out',
+    'foreign-root.pem',
+  ]);
+  writeFileSync(
+    join(fixture, 'foreign-chain.pem'),
+    readFileSync(join(fixture, 'intermediate.pem'), 'utf8') +
+      readFileSync(join(fixture, 'foreign-root.pem'), 'utf8'),
+  );
+  exportPkcs12([
+    '-inkey',
+    'leaf.key',
+    '-in',
+    'leaf.pem',
+    '-certfile',
+    'foreign-chain.pem',
+    '-passout',
+    `pass:${password}`,
+    '-out',
+    'foreign-root.p12',
+  ]);
+});
+
+after(() => {
+  rmSync(fixture, { recursive: true, force: true });
+});
+
+describe('Apple signing P12 validation', () => {
+  it('refuses to run with an OpenSSL older than 3', () => {
+    // Arrange
+    const fakeOpenssl = join(fixture, 'openssl-1.1.1');
+    writeFileSync(
+      fakeOpenssl,
+      '#!/bin/sh\necho "OpenSSL 1.1.1w  11 Sep 2023"\n',
+      {
+        mode: 0o755,
+      },
+    );
+
+    // Act
+    const result = verify('full-chain.p12', password, fakeOpenssl);
+
+    // Assert
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /is not OpenSSL 3\+/);
+  });
+
+  it('accepts a leaf, intermediate, and self-signed root chain', () => {
+    const result = verify('full-chain.p12');
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /valid 3-certificate Developer ID chain/);
+  });
+
+  it('rejects the leaf and intermediate bundle that Quill misclassifies', () => {
+    const result = verify('missing-root.p12');
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /exactly 3 certificates.*found 2/);
+  });
+
+  it('does not disclose the password when decoding fails', () => {
+    const result = verify('full-chain.p12', 'wrong-password');
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /could not be decoded/);
+    assert.doesNotMatch(result.stderr, /wrong-password/);
+    // The captured OpenSSL output must not smuggle the password back out.
+    assert.match(result.stderr, /openssl: /);
+  });
+
+  it('reports the OpenSSL build and reason when the chain does not verify', () => {
+    const result = verify('foreign-root.p12');
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /does not contain a valid Developer ID/);
+    // Without these the failure is unactionable: which OpenSSL ran, and what
+    // it actually objected to.
+    assert.match(result.stderr, /openssl: \S/);
+    assert.match(
+      result.stderr,
+      /unable to get local issuer|certificate signature failure|self[- ]signed/iu,
+    );
+  });
+});

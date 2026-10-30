@@ -21,9 +21,7 @@
       "id": "test-dynamic-import",
       "kind": "added-line",
       "paths": [
-        "**/*.test.ts",
         "**/*.spec.ts",
-        "**/*.test.tsx",
         "**/*.spec.tsx",
         "**/__tests__/**/*.ts",
         "**/__tests__/**/*.tsx"
@@ -171,9 +169,7 @@
       "id": "test-dynamic-import",
       "kind": "mechanical",
       "paths": [
-        "**/*.test.ts",
         "**/*.spec.ts",
-        "**/*.test.tsx",
         "**/*.spec.tsx",
         "**/__tests__/**/*.ts",
         "**/__tests__/**/*.tsx"
@@ -185,9 +181,7 @@
       "id": "test-structure",
       "kind": "semantic",
       "paths": [
-        "**/*.test.ts",
         "**/*.spec.ts",
-        "**/*.test.tsx",
         "**/*.spec.tsx",
         "**/__tests__/**/*.ts",
         "**/__tests__/**/*.tsx"
@@ -199,7 +193,6 @@
       "id": "fixture-secretlint",
       "kind": "semantic",
       "paths": [
-        "**/*.test.ts",
         "**/*.spec.ts",
         "**/fixtures/**",
         "**/.secretlintrc*",

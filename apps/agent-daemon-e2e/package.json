@@ -38,30 +38,30 @@
         "configurations": {
           "runtime": {
             "args": [
-              "--exclude=src/agent-server.e2e.test.ts",
-              "--exclude=src/agent-key.e2e.test.ts",
-              "--exclude=src/provider-store-daemon.e2e.test.ts",
-              "--exclude=src/live-ollama.e2e.test.ts",
-              "--exclude=src/live-ollama-evals-partition-0.e2e.test.ts",
-              "--exclude=src/live-ollama-evals-partition-1.e2e.test.ts"
+              "--exclude=src/agent-server.e2e.spec.ts",
+              "--exclude=src/agent-key.e2e.spec.ts",
+              "--exclude=src/provider-store-daemon.e2e.spec.ts",
+              "--exclude=src/live-ollama.e2e.spec.ts",
+              "--exclude=src/live-ollama-evals-partition-0.e2e.spec.ts",
+              "--exclude=src/live-ollama-evals-partition-1.e2e.spec.ts"
             ]
           },
           "control": {
             "args": [
-              "src/agent-server.e2e.test.ts",
-              "src/agent-key.e2e.test.ts",
-              "src/provider-store-daemon.e2e.test.ts"
+              "src/agent-server.e2e.spec.ts",
+              "src/agent-key.e2e.spec.ts",
+              "src/provider-store-daemon.e2e.spec.ts"
             ]
           },
           "live-evals-0": {
             "args": [
-              "src/live-ollama.e2e.test.ts",
-              "src/live-ollama-evals-partition-0.e2e.test.ts"
+              "src/live-ollama.e2e.spec.ts",
+              "src/live-ollama-evals-partition-0.e2e.spec.ts"
             ]
           },
           "live-evals-1": {
             "args": [
-              "src/live-ollama-evals-partition-1.e2e.test.ts"
+              "src/live-ollama-evals-partition-1.e2e.spec.ts"
             ]
           }
         },
@@ -143,7 +143,7 @@
           }
         ],
         "options": {
-          "command": "vitest run --config vitest.config.ts src/ab-artifact-safety.e2e.test.ts",
+          "command": "vitest run --config vitest.config.ts src/ab-artifact-safety.e2e.spec.ts",
           "cwd": "apps/agent-daemon-e2e"
         },
         "outputs": []
@@ -174,7 +174,7 @@
           }
         ],
         "options": {
-          "command": "vitest run --config vitest.config.ts src/eval-matrix.e2e.test.ts",
+          "command": "vitest run --config vitest.config.ts src/eval-matrix.e2e.spec.ts",
           "cwd": "apps/agent-daemon-e2e"
         },
         "outputs": []

@@ -5,13 +5,7 @@
     "rootDir": "./src",
     "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
   },
-  "exclude": [
-    "node_modules",
-    "dist",
-    "__tests__",
-    "src/**/*.test.ts",
-    "src/**/*.spec.ts"
-  ],
+  "exclude": ["node_modules", "dist", "__tests__"],
   "extends": "./tsconfig.json",
   "include": ["src/**/*.ts"],
   "references": [

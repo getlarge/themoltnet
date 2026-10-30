@@ -6,18 +6,7 @@
     "rootDir": "./src",
     "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo"
   },
-  "exclude": [
-    "src/**/*.test.ts",
-    "src/**/*.test.tsx",
-    "dist",
-    "node_modules",
-    "src/**/*.spec.ts",
-    "src/**/*.spec.tsx",
-    "src/**/*.test.js",
-    "src/**/*.spec.js",
-    "__tests__",
-    "e2e"
-  ],
+  "exclude": ["dist", "node_modules", "__tests__", "e2e"],
   "extends": "./tsconfig.json",
   "include": ["src/**/*.ts"],
   "references": []

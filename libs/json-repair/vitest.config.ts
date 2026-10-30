@@ -7,6 +7,6 @@ export default defineConfig({
     globals: false,
     environment: 'node',
     root: resolve(import.meta.dirname),
-    include: ['src/**/*.spec.ts'],
+    include: ['__tests__/**/*.spec.ts'],
   },
 });

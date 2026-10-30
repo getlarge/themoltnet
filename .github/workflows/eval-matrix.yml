@@ -8,7 +8,7 @@
 # This is NOT a per-PR gate. It runs on a schedule (and on demand) because a
 # full model matrix x real LLM latency far exceeds the 15-min per-PR e2e budget
 # and spends Ollama tokens per run. The per-PR tripwire is the gate-only smoke
-# in apps/agent-daemon-e2e/src/live-ollama-evals.e2e.test.ts.
+# in apps/agent-daemon-e2e/src/live-ollama-evals.e2e.spec.ts.
 #
 # Uses the moving :ci-main image tags published by the last main build, so it
 # needs no per-run image build. If :ci-main does not yet exist (before the first

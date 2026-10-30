@@ -1,0 +1,77 @@
+import { describe, expect, it, vi } from 'vitest';
+
+import { createSubmitCompletionCoordinator } from '../../src/runtime/submit-completion-coordinator.js';
+
+type Handler = (event: { toolCallId: string }) => void;
+
+function installCoordinator(options: {
+  onDrained: (toolCallCount: number) => void | Promise<void>;
+  onError?: (error: unknown) => void | Promise<void>;
+}) {
+  const handlers = new Map<string, Handler>();
+  const coordinator = createSubmitCompletionCoordinator({
+    onDrained: options.onDrained,
+    onError: options.onError ?? (() => undefined),
+  });
+  coordinator.extension({
+    on: (name: string, handler: Handler) => {
+      handlers.set(name, handler);
+    },
+  } as never);
+  return { coordinator, handlers };
+}
+
+describe('createSubmitCompletionCoordinator', () => {
+  it('waits for every parallel tool call before completing', () => {
+    const onDrained = vi.fn();
+    const { coordinator, handlers } = installCoordinator({ onDrained });
+
+    handlers.get('tool_execution_start')?.({ toolCallId: 'submit' });
+    handlers.get('tool_execution_start')?.({ toolCallId: 'artifact-write' });
+    coordinator.requestCompletion();
+    handlers.get('tool_execution_end')?.({ toolCallId: 'submit' });
+
+    expect(onDrained).not.toHaveBeenCalled();
+    expect(coordinator.hasRequestedCompletion()).toBe(true);
+    expect(coordinator.hasStartedCompletion()).toBe(false);
+
+    handlers.get('tool_execution_end')?.({ toolCallId: 'artifact-write' });
+    expect(onDrained).toHaveBeenCalledExactlyOnceWith(2);
+    expect(coordinator.hasStartedCompletion()).toBe(true);
+
+    coordinator.requestCompletion();
+    expect(onDrained).toHaveBeenCalledOnce();
+  });
+
+  it('reports asynchronous completion failures once', async () => {
+    const error = new Error('abort failed');
+    const onError = vi.fn();
+    const { coordinator } = installCoordinator({
+      onDrained: () => Promise.reject(error),
+      onError,
+    });
+
+    coordinator.requestCompletion();
+    await vi.waitFor(() => expect(onError).toHaveBeenCalledWith(error));
+  });
+
+  it('retains a completion request when Pi omits a tool end event', () => {
+    const onDrained = vi.fn();
+    const { coordinator, handlers } = installCoordinator({ onDrained });
+    handlers.get('tool_execution_start')?.({ toolCallId: 'submit' });
+    coordinator.requestCompletion();
+    expect(coordinator.hasRequestedCompletion()).toBe(true);
+    expect(coordinator.hasStartedCompletion()).toBe(false);
+    expect(onDrained).not.toHaveBeenCalled();
+  });
+
+  it('identifies a lone submit so Pi can terminate without an abort', () => {
+    const onDrained = vi.fn();
+    const { coordinator, handlers } = installCoordinator({ onDrained });
+    handlers.get('turn_start')?.({ toolCallId: '' });
+    handlers.get('tool_execution_start')?.({ toolCallId: 'submit' });
+    coordinator.requestCompletion();
+    handlers.get('tool_execution_end')?.({ toolCallId: 'submit' });
+    expect(onDrained).toHaveBeenCalledExactlyOnceWith(1);
+  });
+});

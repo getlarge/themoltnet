@@ -10,7 +10,7 @@ export default [
     },
   },
   {
-    files: ['src/**/*.test.ts'],
+    files: ['src/**/*.spec.ts'],
     rules: {
       // MCP structuredContent is an untyped JSON protocol boundary in the SDK.
       '@typescript-eslint/no-unsafe-argument': 'off',

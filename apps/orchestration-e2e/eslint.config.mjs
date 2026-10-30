@@ -12,7 +12,7 @@ export default [
     },
   },
   {
-    files: ['src/app-factories.e2e.test.ts'],
+    files: ['src/app-factories.e2e.spec.ts'],
     rules: {
       // This integration suite intentionally crosses app boundaries to execute
       // the actual registered workflow factories against real Absurd storage.

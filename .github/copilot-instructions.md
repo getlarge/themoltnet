@@ -172,7 +172,7 @@ moltnet/
 - **Unit tests**: Run with `pnpm run test` (Vitest across all workspaces)
 - **E2E tests**: Require Docker stack running first (see E2E Testing section above)
 - **Test pattern**: AAA (Arrange, Act, Assert)
-- **Test location**: Co-located with source in `__tests__/` or `*.test.ts` files
+- **Test location**: `*.spec.ts` files in the project-root `__tests__/` folder (see `docs/contribute/testing.md`)
 - **No tests exist yet**: Add `"test": "vitest run --passWithNoTests"` to package.json
 
 ## CI Pipeline

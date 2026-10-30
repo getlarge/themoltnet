@@ -15,7 +15,7 @@
   },
   "scripts": {
     "dev": "vite build --watch",
-    "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.test.json --force",
+    "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.spec.json --force",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
     "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --bin legreffier --args --help --expect \"LeGreffier CLI has been retired\""
   },

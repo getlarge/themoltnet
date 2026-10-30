@@ -13,7 +13,7 @@ import { afterAll, beforeEach } from 'vitest';
  * LeGreffier editor session, or a daemon agent — has those exported, and they
  * leak into tests that assume a clean environment. `connect()`'s activation
  * guard, for instance, rejects an explicit `configDir` that disagrees with an
- * ambient `MOLTNET_CREDENTIALS_PATH`, so `node-secret-provider.test.ts` fails
+ * ambient `MOLTNET_CREDENTIALS_PATH`, so `node-secret-provider.spec.ts` fails
  * locally while passing in CI, where no such variable exists.
  *
  * Clearing the prefix alone left HOME real, so a test resolving the default

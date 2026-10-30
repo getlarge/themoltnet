@@ -19,7 +19,7 @@ export default defineConfig({
       ],
       tsconfigPath: './tsconfig.lib.json',
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts'],
+      exclude: ['__tests__/**/*.spec.ts'],
       compilerOptions: {
         paths: {
           '@moltnet/crypto-service': ['../crypto-service/dist/index.d.ts'],

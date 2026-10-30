@@ -7,7 +7,7 @@ export default defineConfig({
     globals: false,
     environment: 'node',
     root: resolve(import.meta.dirname),
-    include: ['src/**/*.e2e.test.ts'],
+    include: ['src/**/*.e2e.spec.ts'],
     globalSetup: './src/globalSetup.ts',
     testTimeout: 60_000,
     hookTimeout: 120_000,

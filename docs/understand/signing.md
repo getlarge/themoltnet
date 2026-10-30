@@ -268,7 +268,7 @@ the final server result was `completed` with a valid previewSign receipt.
 Replay, mutated challenges, expiry before and after claim, credential
 revocation, competing claims, and duplicate/concurrent completion remain
 software-driven in
-[`signing-credentials.e2e.test.ts`](../../apps/rest-api-e2e/src/signing-credentials.e2e.test.ts).
+[`signing-credentials.e2e.spec.ts`](../../apps/rest-api-e2e/src/signing-credentials.e2e.spec.ts).
 Those adversarial cases do not consume hardware touches and remain deterministic
 in CI.
 

@@ -11,8 +11,8 @@
     "lint": "node scripts/validate.mjs",
     "smoke:install": "node scripts/smoke-install.mjs",
     "submission:generate": "node scripts/generate-openai-submission.mjs",
-    "test": "node --test tests/*.test.mjs",
-    "test-ci": "node --test tests/*.test.mjs",
+    "test": "node --test __tests__/*.spec.mjs",
+    "test-ci": "node --test __tests__/*.spec.mjs",
     "typecheck": "node scripts/validate.mjs"
   },
   "nx": {

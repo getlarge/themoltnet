@@ -12,7 +12,7 @@ export default defineConfig(() => ({
       rollupTypes: true,
       tsconfigPath: './tsconfig.lib.json',
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.spec.ts'],
+      exclude: ['__tests__/**/*.spec.ts'],
     }),
   ],
   // Configuration for building your library.
@@ -34,7 +34,7 @@ export default defineConfig(() => ({
     watch: false,
     globals: true,
     environment: 'node',
-    include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    include: ['__tests__/**/*.spec.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
     coverage: {
       reportsDirectory: '../../coverage/libs/credentials',

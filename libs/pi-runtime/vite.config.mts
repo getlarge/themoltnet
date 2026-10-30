@@ -19,7 +19,7 @@ export default defineConfig({
       ],
       tsconfigPath: './tsconfig.lib.json',
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts'],
+      exclude: ['__tests__/**/*.spec.ts'],
       compilerOptions: {
         // api-extractor must read the pre-built declarations of bundled
         // private packages, not their source-direct exports.
