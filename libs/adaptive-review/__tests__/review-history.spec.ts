@@ -1,9 +1,9 @@
 import { FakeTasks } from '@themoltnet/tasks-orchestrator/testing';
 import { describe, expect, it } from 'vitest';
 
-import { runFocusedLane } from './focused-lane.js';
-import type { LaneContext } from './lane.js';
-import { previousFindings, type ReviewThread } from './threads.js';
+import { runFocusedLane } from '../src/focused-lane.js';
+import type { LaneContext } from '../src/lane.js';
+import { previousFindings, type ReviewThread } from '../src/threads.js';
 
 const path = '.github/scripts/issue-triage.mjs';
 const key = `tests:new:562:${encodeURIComponent(path)}`;
