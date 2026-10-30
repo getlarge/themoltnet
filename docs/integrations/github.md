@@ -202,11 +202,11 @@ Use the released major tag for the daemon action:
 - uses: getlarge/themoltnet/packages/agent-daemon-action@v0
 ```
 
-The major tag includes the built bundle and follows the latest release. For an
-exact pin, replace the tag after `@` with the **action bundle commit SHA**
-recorded in the component's GitHub release notes. In this release process,
-component version tags (`<component>-vX.Y.Z`) stay on the source commit without
-bundles, so they cannot run the action.
+The major tag points at a commit that includes the built bundle and follows the
+latest release. For an exact pin, replace the tag after `@` with the **action
+bundle commit SHA** from the component's GitHub release notes. Do not pin a
+component version tag (`<component>-vX.Y.Z`): it marks the source commit, which
+has no bundle.
 
 For PR reviews, call the adaptive review workflow at a trusted commit:
 `getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml@<sha>`. A
