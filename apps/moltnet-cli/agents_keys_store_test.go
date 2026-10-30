@@ -822,6 +822,76 @@ func TestEnrollmentStoreReportsUnverifiedDestinationWrite(t *testing.T) {
 	}
 }
 
+func TestRotationStorePreservesDefinitiveAPIRejections(t *testing.T) {
+	for _, tc := range []struct {
+		name           string
+		status         int
+		code, detail   string
+		retainRecovery bool
+	}{
+		{"inactive conflict", http.StatusConflict, "CONFLICT", "This key is inactive. No replacement could be identified; do not retry rotation with another key.", true},
+		{"invalid request", http.StatusBadRequest, "VALIDATION_FAILED", "Invalid rotation request", false},
+		{"rate limited", http.StatusTooManyRequests, "RATE_LIMIT_EXCEEDED", "Retry after the rate limit expires", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			path := writeAgentKeyStoreFixture(t, testAgentID)
+			unchanged := assertCredentialReferencesUnchanged(t, path)
+			defer unchanged()
+			registry, provider := newMemorySecretProviderRegistry()
+			capture := newRecoveryCapture(t)
+			provider.values[TeamAgentKeyKey(testAgentID, testTeamID)] = "old-secret"
+			calls := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calls++
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(tc.status)
+				body := map[string]any{"type": "https://themolt.net/problems/conflict", "title": tc.name, "status": tc.status, "code": tc.code, "detail": tc.detail}
+				if tc.status == http.StatusConflict {
+					body["conflict"] = map[string]any{}
+				}
+				if tc.status == http.StatusBadRequest {
+					body["errors"] = []any{}
+				}
+				_ = json.NewEncoder(w).Encode(body)
+			}))
+			defer server.Close()
+			client, err := newAgentKeyAuthenticatedClient(server.URL, "independent-manager")
+			if err != nil {
+				t.Fatal(err)
+			}
+			var out, errOut bytes.Buffer
+			err = runAgentsKeysRotateWithClient(context.Background(), client, agentsKeysRotateOpts{
+				apiURL: server.URL, credPath: path, teamID: testTeamID, keyID: "existing-key",
+				store: storeOpts(registry, capture), out: &out, errOut: &errOut,
+			})
+			if err == nil || !strings.Contains(err.Error(), tc.detail) || strings.Contains(err.Error(), "rotation outcome is unknown") {
+				t.Fatalf("definitive rejection was hidden: %v", err)
+			}
+			if calls != 1 {
+				t.Fatalf("rotation retried automatically: %d calls", calls)
+			}
+			if provider.values[TeamAgentKeyKey(testAgentID, testTeamID)] != "old-secret" {
+				t.Fatal("rejection changed stored key")
+			}
+			_, statErr := os.Stat(capture.paths[0])
+			if tc.retainRecovery {
+				if statErr != nil {
+					t.Fatal("conflict discarded reconciliation journal")
+				}
+				if !strings.Contains(err.Error(), "does not extend expiry") {
+					t.Fatalf("expiry guidance missing: %v", err)
+				}
+			} else if !os.IsNotExist(statErr) {
+				t.Fatal("pre-issuance rejection retained misleading recovery journal")
+			}
+			assertNoSecret(t, "old-secret", &out, &errOut)
+			if strings.Contains(err.Error(), "old-secret") {
+				t.Fatal("secret leaked into error")
+			}
+		})
+	}
+}
+
 func TestRotationLostResponseReconcilesReplacement(t *testing.T) {
 	path := writeAgentKeyStoreFixture(t, testAgentID)
 	registry, provider := newMemorySecretProviderRegistry()

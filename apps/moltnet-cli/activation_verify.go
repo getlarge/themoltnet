@@ -235,9 +235,10 @@ func fetchAgentWhoami(ctx context.Context, client *moltnetapi.Client) (*moltneta
 		if _, unauthorized := res.(*moltnetapi.GetWhoamiUnauthorized); unauthorized {
 			return nil, fmt.Errorf(
 				"the server rejected this credential (%w).\n"+
-					"It may have been revoked, rotated, or bound to a different identity. "+
-					"Re-check the selected identity with `moltnet config identity list`, "+
-					"or rotate with `moltnet agents credentials rotate`",
+					"It may be expired, revoked, rotated, or bound to a different identity. "+
+					"Re-check the selected identity with `moltnet config identity list`. "+
+					"For an expired agent key, issue and store a replacement using authorized management credentials; see `moltnet agents keys create --help`. "+
+					"Agent key rotation preserves expiry; OAuth2 client-secret rotation does not replace an agent key.",
 				formatAPIError(res),
 			)
 		}

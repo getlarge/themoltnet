@@ -18,7 +18,7 @@ import {
   enrollIdentityTeam,
   listIdentityEnrollmentRecoveries,
 } from './enrollment.js';
-import type { OperatorOAuth } from './operator-oauth.js';
+import { OperatorApprovalError, type OperatorOAuth } from './operator-oauth.js';
 import { AgentServerStore } from './store.js';
 
 const roots: string[] = [];
@@ -87,6 +87,30 @@ async function fixture(activated = true) {
 }
 
 describe('local team enrollment boundary', () => {
+  it.each(['denied', 'team_access', 'expired', 'failed'] as const)(
+    'preserves the %s approval result without provisioning or recovery',
+    async (reason) => {
+      const f = await fixture();
+      const fetcher = vi.spyOn(globalThis, 'fetch');
+      const error = new OperatorApprovalError(reason);
+      f.authorize.mockRejectedValue(error);
+      await expect(
+        enrollIdentityTeam({
+          ...f.options,
+          input: {
+            teamId: 'team',
+            idempotencyKey: 'denied-approval',
+            mode: 'replace',
+          },
+        }),
+      ).rejects.toBe(error);
+      expect(fetcher).not.toHaveBeenCalled();
+      expect((await listIdentityEnrollmentRecoveries(f.options)).items).toEqual(
+        [],
+      );
+    },
+  );
+
   it.each([
     { scopes: [...AGENT_CREDENTIAL_SCOPES, 'team:manage'] },
     {
