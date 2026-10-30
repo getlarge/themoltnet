@@ -577,6 +577,65 @@ describe('Durable task integration', () => {
       ]);
     },
   );
+  it.each(['extend', 'fork'])(
+    'continues through %s after the parent corrects an invalid submission',
+    async (mode) => {
+      const { faux, execute, transport } = setup();
+      const append = transport.append;
+      transport.append = async (input, context) => {
+        await new Promise((resolve) => {
+          setTimeout(resolve, 1);
+        });
+        return append(input, context);
+      };
+      faux.setResponses([
+        fauxAssistantMessage(
+          fauxToolCall('submit_freeform_output', {
+            summary: 'Invalid',
+            result: {},
+          }),
+          { stopReason: 'toolUse' },
+        ),
+        fauxAssistantMessage(
+          fauxToolCall('submit_freeform_output', {
+            summary: 'Corrected',
+            result: { answer: 'yes' },
+          }),
+          { stopReason: 'toolUse' },
+        ),
+        submitted(),
+      ]);
+      const parent = await execute(
+        task(undefined, {
+          brief: 'Do it',
+          outputContract: {
+            version: 1,
+            schema: {
+              type: 'object',
+              properties: { answer: { type: 'string' } },
+              required: ['answer'],
+              additionalProperties: false,
+            },
+          },
+        }),
+        reporter(),
+      );
+      expect(parent.status).toBe('completed');
+      const child = await execute(
+        task('aaaaaaaa-0000-4000-8000-000000000002', {
+          brief: 'Correct the domain-invalid output',
+          continueFrom: {
+            taskId: 'aaaaaaaa-0000-4000-8000-000000000001',
+            attemptN: 1,
+            mode,
+          },
+        }),
+        reporter(),
+      );
+      expect(child.status).toBe('completed');
+      expect(faux.state.callCount).toBe(3);
+    },
+  );
   it('bounds missing-output reminders and persists failure', async () => {
     const { faux, execute } = setup();
     faux.setResponses(
