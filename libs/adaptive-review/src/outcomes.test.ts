@@ -11,7 +11,7 @@ import {
   OUTCOMES_TAG,
   recordReviewOutcomes,
 } from './outcomes.js';
-import { renderFindingComment } from './report.js';
+import { findingKey, renderFindingComment } from './report.js';
 import type { ReviewThread } from './threads.js';
 
 const APP = 'legreffier[bot]';
@@ -100,7 +100,7 @@ describe('observeThreads', () => {
     // Assert
     expect(findings).toEqual([
       expect.objectContaining({
-        key: 'tests:new:1:src%2Fa.ts',
+        key: findingKey({ path: 'src/a.ts', concern: 'tests concern at 1' }),
         lane: 'tests',
         resolved: true,
         outdated: true,
@@ -114,18 +114,24 @@ describe('observeThreads', () => {
         adjudication: 'unverified',
       }),
       expect.objectContaining({
-        key: 'tests:new:2:src%2Fa.ts',
+        key: findingKey({ path: 'src/a.ts', concern: 'tests concern at 2' }),
         resolved: true,
         outdated: false,
         reply: 'Intentional: the guard moved to the caller.',
       }),
       expect.objectContaining({
-        key: 'conventions:new:3:src%2Fa.ts',
+        key: findingKey({
+          path: 'src/a.ts',
+          concern: 'conventions concern at 3',
+        }),
         resolved: false,
         outdated: true,
       }),
       expect.objectContaining({
-        key: 'conventions:new:4:src%2Fa.ts',
+        key: findingKey({
+          path: 'src/a.ts',
+          concern: 'conventions concern at 4',
+        }),
         resolved: false,
         outdated: false,
       }),
@@ -246,12 +252,24 @@ describe('recordReviewOutcomes', () => {
       closedAt: PULL.closedAt,
       findings: [
         {
-          key: 'tests:new:1:src%2Fa.ts',
+          key: findingKey({ path: 'src/a.ts', concern: 'tests concern at 1' }),
           outdated: true,
           adjudication: 'unverified',
         },
-        { key: 'conventions:new:3:src%2Fa.ts', resolved: true },
-        { key: 'conventions:new:4:src%2Fa.ts', resolved: false },
+        {
+          key: findingKey({
+            path: 'src/a.ts',
+            concern: 'conventions concern at 3',
+          }),
+          resolved: true,
+        },
+        {
+          key: findingKey({
+            path: 'src/a.ts',
+            concern: 'conventions concern at 4',
+          }),
+          resolved: false,
+        },
       ],
     });
   });

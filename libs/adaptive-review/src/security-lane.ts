@@ -14,6 +14,7 @@ import {
   MAX_INLINE_DIFF_BYTES,
   unwrap,
 } from './lane.js';
+import { findingKey } from './report.js';
 import { SECURITY_PROCEDURE } from './review-assets.js';
 
 // Keep the adaptive hunt contract separate from the standalone security reviewer.
@@ -242,6 +243,9 @@ export async function runSecurityLane(ctx: LaneContext): Promise<LaneResult> {
       ...gaps,
     ],
     taskIds,
+    privateFindingIds: unclear.map((finding) =>
+      findingKey({ path: finding.path, concern: finding.title }),
+    ),
     findings: confirmed.map((finding) => ({
       path: finding.path,
       side: finding.side,

@@ -162,10 +162,9 @@ interface PostedThreads {
 
 /**
  * Opens one review thread per finding that has no thread yet, anchored to
- * the reviewed head. Identity is the finding's location, so an open thread
- * covers any finding at the same lane and line. A resolved thread is not
- * reopened: the summary lists the finding instead, so a new concern at a
- * line the author already settled stays visible without repeating a thread.
+ * the reviewed head. Identity follows the problem rather than its line or lane.
+ * A resolved thread is not reopened; any repeated finding remains visible in
+ * the summary and still requires independent verification before convergence.
  * GitHub rejects the whole review when one anchor is outside the diff; the
  * summary then lists every finding instead.
  */
@@ -176,6 +175,11 @@ async function publishFindingThreads(
   { appLogin, runUrl }: { appLogin: string; runUrl: string },
   candidates: InlineFinding[],
 ): Promise<PostedThreads> {
+  candidates = [
+    ...new Map(
+      candidates.map((finding) => [findingKey(finding), finding]),
+    ).values(),
+  ];
   const { open, resolved } = await threadState(graphql, report, appLogin);
   const fresh = candidates.filter((finding) => {
     const key = findingKey(finding);

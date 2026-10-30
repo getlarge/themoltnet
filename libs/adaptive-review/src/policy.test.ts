@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   matchesPolicyGlob,
   matchesPolicyPaths,
+  parseAdaptivePolicy,
   validatePolicyGlob,
 } from './policy.js';
 
@@ -74,5 +75,26 @@ describe('policy globs', () => {
     expect(() => validatePolicyGlob(pattern)).toThrow(
       `invalid policy glob: ${pattern}`,
     );
+  });
+});
+
+describe('routing policy', () => {
+  const base = { version: 1, lanes: ['tests'], checks: [], rules: [] };
+  it('accepts a partial threshold map', () => {
+    expect(
+      parseAdaptivePolicy({
+        ...base,
+        routing: { thresholds: { tests: 0.4 }, requiredLanes: ['tests'] },
+      }).routing?.thresholds?.tests,
+    ).toBe(0.4);
+  });
+  it.each([
+    { thresholds: { tests: -1 } },
+    { thresholds: { tests: 1.1 } },
+    { requiredLanes: ['security'] },
+    { requiredLanes: ['tests', 'tests'] },
+    { thresholds: { security: 0.1 } },
+  ])('rejects invalid routing %j', (routing) => {
+    expect(() => parseAdaptivePolicy({ ...base, routing })).toThrow();
   });
 });

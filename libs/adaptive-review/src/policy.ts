@@ -78,6 +78,21 @@ export const AdaptivePolicySchema = Type.Object(
       minItems: 1,
       maxItems: LANES.length,
     }),
+    routing: Type.Optional(
+      Type.Object(
+        {
+          thresholds: Type.Optional(
+            Type.Partial(
+              Type.Record(LaneSchema, Type.Number({ minimum: 0, maximum: 1 })),
+            ),
+          ),
+          requiredLanes: Type.Optional(
+            Type.Array(LaneSchema, { uniqueItems: true }),
+          ),
+        },
+        { additionalProperties: false },
+      ),
+    ),
     rules: Type.Array(ConventionRuleSchema, { maxItems: 256 }),
     checks: Type.Array(MechanicalCheckSchema, { maxItems: 256 }),
     docs: Type.Optional(
@@ -130,6 +145,13 @@ export function parseAdaptivePolicy(value: unknown): AdaptivePolicy {
   }
   if (new Set(value.lanes).size !== value.lanes.length) {
     throw new Error('adaptive review lanes must be unique');
+  }
+  for (const lane of [
+    ...(value.routing?.requiredLanes ?? []),
+    ...Object.keys(value.routing?.thresholds ?? {}),
+  ]) {
+    if (!value.lanes.includes(lane as Lane))
+      throw new Error(`routing references disabled lane: ${lane}`);
   }
   const ruleIds = new Set<string>();
   for (const rule of value.rules) {

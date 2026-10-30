@@ -314,9 +314,7 @@ it('round-trips a finding key through the thread marker and neutralizes the body
 
   // Assert
   expect(postedFindingKey(body)).toBe(findingKey(finding));
-  expect(findingKey(finding)).toBe(
-    'conventions:new:12:libs%2Fa%20b%2F%5Bx%5D.ts',
-  );
+  expect(findingKey(finding)).toMatch(/^v2:[a-f0-9]{64}$/);
   expect(body).toContain('@​owner reads process.env &lt;b&gt;');
   expect(body).toContain('Suggested action: Use \\[config\\](bad).ts');
   expect(postedFindingKey('plain comment')).toBeUndefined();
@@ -346,6 +344,33 @@ it('records the producing run and tasks in the marker without changing the key',
   );
 
   // Assert
-  expect(marker).toEqual({ key: findingKey(finding), ...source });
+  expect(marker).toEqual({
+    key: findingKey(finding),
+    lane: finding.lane,
+    ...source,
+  });
   expect(legacy).toEqual({ key: findingKey(finding) });
+});
+
+it('keeps problem identity across movement and separates distinct concerns on the same line', () => {
+  const original = {
+    lane: 'tests' as const,
+    path: 'src/a.ts',
+    side: 'new' as const,
+    line: 7,
+    concern: 'Missing empty-input case',
+  };
+  expect(findingKey({ ...original, line: 20, lane: 'conventions' })).toBe(
+    findingKey(original),
+  );
+  expect(
+    findingKey({ ...original, concern: 'Invalid resource cleanup' }),
+  ).not.toBe(findingKey(original));
+  expect(
+    findingKey({
+      ...original,
+      problemId: 'empty-input',
+      concern: 'Reworded finding',
+    }),
+  ).toBe(findingKey({ ...original, problemId: 'empty-input' }));
 });
