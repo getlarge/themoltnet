@@ -436,7 +436,12 @@ describe('publishAdaptiveReport inline threads', () => {
         concern('tests', [TESTS_FINDING]),
         concern('conventions', [CONVENTIONS_FINDING]),
         concern('security', [
-          { path: 'src/c.ts', side: 'new', line: 1, concern: 'secret' },
+          {
+            path: 'src/c.ts',
+            side: 'new',
+            line: 1,
+            concern: 'Medium severity: guard bypass',
+          },
         ]),
         concern('complexity', [{ path: '', concern: 'blast_radius: wide' }]),
       ],
@@ -457,6 +462,7 @@ describe('publishAdaptiveReport inline threads', () => {
       comments: [
         { path: 'src/a.ts', line: 7, side: 'RIGHT' },
         { path: 'src/b.ts', line: 3, side: 'LEFT' },
+        { path: 'src/c.ts', line: 1, side: 'RIGHT' },
       ],
     });
     const [first] = reviewComments(recorded.reviews[0]);
@@ -467,9 +473,11 @@ describe('publishAdaptiveReport inline threads', () => {
     ).toBe(true);
     expect(first.body).toContain('Suggested action: Add a case to a.test.ts');
     expect(first.body).toContain('resolve this thread with a short reason');
-    expect(JSON.stringify(recorded.reviews[0])).not.toContain('secret');
+    expect(reviewComments(recorded.reviews[0])[2].body).toContain(
+      '**Adaptive review · security**',
+    );
     expect(recorded.summaries[0]).toContain(
-      'Findings: 3 (2 posted as new review threads, 0 already open from an earlier run, 1 listed below)',
+      'Findings: 4 (3 posted as new review threads, 0 already open from an earlier run, 1 listed below)',
     );
     expect(recorded.summaries[0]).toContain('blast_radius: wide');
     expect(recorded.summaries[0]).not.toContain('src/a.ts:7');

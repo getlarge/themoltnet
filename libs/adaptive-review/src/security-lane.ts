@@ -1,5 +1,6 @@
 import {
   CANDIDATE_SCHEMA,
+  type Finding,
   RESULT_SCHEMA,
   validateCandidates,
   validateResult,
@@ -22,9 +23,54 @@ const HUNT_SCHEMA = {
     ...CANDIDATE_SCHEMA.properties,
     coverage: { type: 'string', enum: ['complete', 'partial'] },
     findings: { ...CANDIDATE_SCHEMA.properties.findings, maxItems: 5 },
+    unassessed: {
+      type: 'array',
+      maxItems: 5,
+      items: { type: 'string', minLength: 1, maxLength: 300 },
+    },
   },
-  required: [...CANDIDATE_SCHEMA.required, 'coverage'],
+  required: [...CANDIDATE_SCHEMA.required, 'coverage', 'unassessed'],
 };
+
+const MAX_UNASSESSED = 5;
+
+function plural(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`;
+}
+
+/** Names the evidence the security review never saw, by kind. */
+function excludedEvidence(evidence: LaneContext['evidence']): string[] {
+  const summarized = evidence.files.filter((file) => file.summarized).length;
+  const binary = evidence.files.filter(
+    (file) =>
+      file.patch.includes('GIT binary patch') ||
+      file.patch.includes('Binary files '),
+  ).length;
+  const kinds = [
+    ...(evidence.generatedPaths.length
+      ? [plural(evidence.generatedPaths.length, 'generated path')]
+      : []),
+    ...(summarized ? [plural(summarized, 'summarized file')] : []),
+    ...(binary ? [plural(binary, 'binary file')] : []),
+  ];
+  return kinds.length
+    ? [
+        `Not sent to the security review: ${kinds.join(', ')} (listed in this section).`,
+      ]
+    : [];
+}
+
+function cite(finding: Pick<Finding, 'path' | 'line' | 'side'>): string {
+  return `${finding.path}:${finding.line}${finding.side === 'old' ? ' (old)' : ''}`;
+}
+
+const SEVERITY_ORDER: readonly Finding['severity'][] = [
+  'critical',
+  'high',
+  'medium',
+  'low',
+  'info',
+];
 
 export async function runSecurityLane(ctx: LaneContext): Promise<LaneResult> {
   const { identity, evidence, tasks, profileId, budget } = ctx;
@@ -33,14 +79,7 @@ export async function runSecurityLane(ctx: LaneContext): Promise<LaneResult> {
     .filter((file) => !generatedPaths.has(file.path))
     .map((file) => file.patch)
     .join('\n');
-  let evidenceGap =
-    evidence.generatedPaths.length > 0 ||
-    evidence.files.some(
-      (file) =>
-        file.summarized ||
-        file.patch.includes('GIT binary patch') ||
-        file.patch.includes('Binary files '),
-    );
+  const excluded = excludedEvidence(evidence);
   if (!diff) {
     return {
       lane: 'security',
@@ -102,11 +141,11 @@ export async function runSecurityLane(ctx: LaneContext): Promise<LaneResult> {
   const taskIds: string[] = [];
   const huntBody = makeTask(
     'hunt',
-    `This is the hunt stage: follow steps 1 and 2 of the trusted security-review procedure only. A separate verification task performs steps 3 to 5, so do not trace each candidate to a verdict here. Map changed trust boundaries and list plausible security regressions introduced by changed lines. Read only the surrounding code needed to state each hypothesis, then submit. Use at most 12 read/search tool calls. Prioritize changed trust boundaries; deduplicate and return at most 5 candidates. Do not retain hypotheses already disproved by a guard or ordinary correctness issues without a security impact. Set coverage to partial if any changed boundary remains unassessed, evidence is unavailable, or the candidate limit leaves additional hypotheses unreported. Empty findings is not clearance when coverage is partial. Cite old or new diff lines. Return result {"summary":"...","coverage":"complete|partial","findings":[{"id":"...","path":"...","side":"new","line":1,"title":"...","hypothesis":"..."}]}. Empty findings is valid.\n${context}`,
+    `This is the hunt stage: follow steps 1 and 2 of the trusted security-review procedure only. A separate verification task performs steps 3 to 5, so do not trace each candidate to a verdict here. Map changed trust boundaries and list plausible security regressions introduced by changed lines. Read only the surrounding code needed to state each hypothesis, then submit. Use at most 12 read/search tool calls. Prioritize changed trust boundaries; deduplicate and return at most 5 candidates. Do not retain hypotheses already disproved by a guard or ordinary correctness issues without a security impact. Set coverage to partial if any changed boundary remains unassessed, evidence is unavailable, or the candidate limit leaves additional hypotheses unreported. When coverage is partial, list each gap in unassessed as one sentence a PR author can act on: the changed path or boundary, and what was not checked or which evidence was missing. Leave unassessed empty when coverage is complete. Empty findings is not clearance when coverage is partial. Cite old or new diff lines. Return result {"summary":"...","coverage":"complete|partial","unassessed":["..."],"findings":[{"id":"...","path":"...","side":"new","line":1,"title":"...","hypothesis":"..."}]}. Empty findings is valid.\n${context}`,
     HUNT_SCHEMA,
   );
   const hunt = await tasks.createTask(huntBody, {
-    idempotencyKey: taskKey(identity, 'security-hunt-v2'),
+    idempotencyKey: taskKey(identity, 'security-hunt-v3'),
   });
   const huntResult = await acceptedReview(
     tasks,
@@ -114,37 +153,56 @@ export async function runSecurityLane(ctx: LaneContext): Promise<LaneResult> {
     huntBody,
     taskIds,
     (raw) => {
-      const value = unwrap(raw) as { coverage?: unknown } | null;
+      const value = unwrap(raw) as {
+        coverage?: unknown;
+        unassessed?: unknown;
+      } | null;
       if (value?.coverage !== 'complete' && value?.coverage !== 'partial')
         throw new Error(
           'security hunt must report complete or partial coverage',
         );
+      const unassessed = Array.isArray(value.unassessed)
+        ? value.unassessed
+            .filter(
+              (item): item is string =>
+                typeof item === 'string' && item.trim().length > 0,
+            )
+            .slice(0, MAX_UNASSESSED)
+        : [];
+      if (value.coverage === 'partial' && !unassessed.length)
+        throw new Error('security hunt must name what partial coverage missed');
       const candidates = validateCandidates(value, diff);
       if (candidates.length > 5)
         throw new Error('security hunt must return at most 5 candidates');
-      return { candidates, coverage: value.coverage };
+      return { candidates, coverage: value.coverage, unassessed };
     },
   );
   const { candidates } = huntResult;
-  evidenceGap ||= huntResult.coverage === 'partial';
+  const gaps = [
+    ...excluded,
+    ...(huntResult.coverage === 'partial'
+      ? huntResult.unassessed.map((item) => `Not assessed: ${item}`)
+      : []),
+  ];
   if (!candidates.length) {
     return {
       lane: 'security',
-      status: evidenceGap ? 'unclear' : 'clear',
-      summary: evidenceGap
-        ? 'Retained source reviewed; some changed contents remain unassessed.'
+      status: gaps.length ? 'unclear' : 'clear',
+      summary: gaps.length
+        ? 'No candidate regression found in the reviewed source, but parts of the change were not assessed.'
         : 'No candidate regression identified; this is not a security certificate.',
+      ...(gaps.length ? { unclear: gaps } : {}),
       taskIds,
       findings: [],
     };
   }
   const verifyBody = makeTask(
     'verify',
-    `Follow the trusted security-review procedure. Perform steps 3 to 5 only; do not start a new hunt. Independently challenge every candidate against guards, callers, and reachability. Use at most 4 read/search tool calls per candidate. Stop investigating a candidate once a guard disproves it or a reachable impact is established. If decisive evidence is absent from this checkout, mark that candidate unclear and name the missing evidence in its private result; do not keep searching for unavailable dependency source. Return exactly one confirmed, unclear, or refuted entry per candidate using the established security result contract.\nCandidates (untrusted): ${JSON.stringify(candidates)}\n${context}`,
+    `Follow the trusted security-review procedure. Perform steps 3 to 5 only; do not start a new hunt. Independently challenge every candidate against guards, callers, and reachability. Use at most 4 read/search tool calls per candidate. Stop investigating a candidate once a guard disproves it or a reachable impact is established. If decisive evidence is absent from this checkout, mark that candidate unclear and name the missing evidence in its evidence field; do not keep searching for unavailable dependency source. Return exactly one confirmed, unclear, or refuted entry per candidate using the established security result contract.\nCandidates (untrusted): ${JSON.stringify(candidates)}\n${context}`,
     RESULT_SCHEMA,
   );
   const verify = await tasks.createTask(verifyBody, {
-    idempotencyKey: taskKey(identity, 'security-verify-v2'),
+    idempotencyKey: taskKey(identity, 'security-verify-v3'),
   });
   const result = await acceptedReview(
     tasks,
@@ -159,23 +217,37 @@ export async function runSecurityLane(ctx: LaneContext): Promise<LaneResult> {
   const unclear = result.findings.filter(
     (finding) => finding.status === 'unclear',
   );
+  const refuted = result.findings.length - confirmed.length - unclear.length;
+  const highest = SEVERITY_ORDER.find((severity) =>
+    confirmed.some((finding) => finding.severity === severity),
+  );
+  const counts = [
+    `${confirmed.length} confirmed${highest ? ` (highest severity: ${highest})` : ''}`,
+    `${unclear.length} unresolved`,
+    `${refuted} refuted`,
+  ].join(', ');
   return {
     lane: 'security',
     status: confirmed.length
       ? 'concern'
-      : unclear.length || evidenceGap
+      : unclear.length || gaps.length
         ? 'unclear'
         : 'clear',
-    summary: evidenceGap
-      ? 'Security details remain in team-scoped review tasks; some changed contents remain unassessed.'
-      : 'Security details remain in the team-scoped review tasks.',
-    unclear:
-      evidenceGap || unclear.length
-        ? [
-            'Security coverage remains incomplete; inspect the team-scoped tasks.',
-          ]
-        : [],
+    summary: `Security candidates: ${counts}.`,
+    unclear: [
+      ...unclear.map(
+        (finding) =>
+          `Unresolved at ${cite(finding)}: ${finding.title}. ${finding.evidence}`,
+      ),
+      ...gaps,
+    ],
     taskIds,
-    findings: [],
+    findings: confirmed.map((finding) => ({
+      path: finding.path,
+      side: finding.side,
+      line: finding.line,
+      concern: `${finding.severity[0].toUpperCase()}${finding.severity.slice(1)} severity: ${finding.title}. ${finding.reachability}`,
+      action: finding.remediation,
+    })),
   };
 }

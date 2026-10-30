@@ -53,28 +53,26 @@ export function findingKey(
   return `${finding.lane}:${finding.side}:${finding.line}:${encodeURIComponent(finding.path)}`;
 }
 
-/** Findings that cite a line. Security findings stay in the review tasks. */
+/** Findings that cite a line. */
 export function inlineFindings(
   results: readonly LaneResult[],
 ): InlineFinding[] {
-  return results
-    .filter((result) => result.lane !== 'security')
-    .flatMap((result) =>
-      result.findings.flatMap((finding) =>
-        finding.path && finding.side && finding.line
-          ? [
-              {
-                lane: result.lane,
-                path: finding.path,
-                side: finding.side,
-                line: finding.line,
-                concern: finding.concern,
-                ...(finding.action ? { action: finding.action } : {}),
-              },
-            ]
-          : [],
-      ),
-    );
+  return results.flatMap((result) =>
+    result.findings.flatMap((finding) =>
+      finding.path && finding.side && finding.line
+        ? [
+            {
+              lane: result.lane,
+              path: finding.path,
+              side: finding.side,
+              line: finding.line,
+              concern: finding.concern,
+              ...(finding.action ? { action: finding.action } : {}),
+            },
+          ]
+        : [],
+    ),
+  );
 }
 
 /** Reads the key and source back from a thread this reviewer posted. */
@@ -224,7 +222,7 @@ export function renderAdaptiveComment(
     `Classifier scores (0–3): code complexity ${complexity === null ? 'unavailable' : complexity.toFixed(1)}; review effort ${effort === null ? 'unavailable' : effort.toFixed(1)}. These describe screening, not review findings.`,
   );
   const concerns = report.results.filter(
-    (result) => result.status === 'concern' && result.lane !== 'security',
+    (result) => result.status === 'concern',
   );
   lines.push(
     '',
@@ -260,13 +258,6 @@ export function renderAdaptiveComment(
       lines.push(
         `- ${listed - MAX_LISTED_FINDINGS} more findings are not shown here; the [workflow run](${runUrl}) has the full report.`,
       );
-  }
-  const security = report.results.find((result) => result.lane === 'security');
-  if (security && ['concern', 'unclear', 'failed'].includes(security.status)) {
-    lines.push(
-      '',
-      'Security investigation needs specialist follow-up. Details remain in the team-scoped review tasks.',
-    );
   }
   const gaps = [
     ...report.gaps,
