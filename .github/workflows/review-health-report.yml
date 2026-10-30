@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       since:
-        description: 'Report start (RFC3339; leave empty for the last 7 days)'
+        description: 'Start date, e.g. 2026-10-01 (midnight UTC); empty = last 7 days'
         required: false
         type: string
       tags:
@@ -32,8 +32,10 @@ jobs:
         with:
           node-version-file: .tool-versions
 
-      - name: Install released MoltNet CLI
-        run: npm install --global @themoltnet/cli@3.22.0
+      - name: Install released MoltNet SDK
+        run: |
+          npm install --prefix "$RUNNER_TEMP/review-health" --no-package-lock --omit=optional @themoltnet/sdk@0.154.2
+          cp tools/review-health-report.mjs "$RUNNER_TEMP/review-health/report.mjs"
 
       - name: Generate report and publish run summary
         env:
@@ -43,16 +45,7 @@ jobs:
           REPORT_SINCE: ${{ inputs.since }}
           REPORT_TAGS: ${{ inputs.tags }}
         shell: bash
-        run: |
-          set -euo pipefail
-          : "${MOLTNET_AGENT_KEY:?MOLTNET_AGENT_KEY is required}"
-          : "${MOLTNET_TEAM_ID:?MOLTNET_TEAM_ID is required}"
-          args=(--team-id "$MOLTNET_TEAM_ID" --tags "$REPORT_TAGS")
-          if [[ -n "$REPORT_SINCE" ]]; then
-            args+=(--since "$REPORT_SINCE")
-          fi
-          node tools/review-health-report.mjs "${args[@]}" > "$RUNNER_TEMP/review-health-report.md"
-          cat "$RUNNER_TEMP/review-health-report.md" >> "$GITHUB_STEP_SUMMARY"
+        run: node "$RUNNER_TEMP/review-health/report.mjs"
 
       - name: Upload Markdown report
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

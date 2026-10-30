@@ -1,126 +1,135 @@
-import { spawnSync } from 'node:child_process';
-import {
-  chmodSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
-import { tmpdir } from 'node:os';
-import { delimiter, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { connect } from '@themoltnet/sdk/node';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { parse } from 'yaml';
 
-const script = fileURLToPath(
-  new URL('../review-health-report.mjs', import.meta.url),
-);
-const directories: string[] = [];
-afterEach(() => {
-  for (const directory of directories.splice(0))
-    rmSync(directory, { recursive: true, force: true });
-});
+import { generateReport, parseSince } from '../review-health-report.mjs';
 
-function runReport(failGroup = '', label = 'lane:focused') {
-  const directory = mkdtempSync(join(tmpdir(), 'review-health-report-'));
-  directories.push(directory);
-  const cli = join(directory, 'moltnet');
-  writeFileSync(
-    cli,
-    `#!/usr/bin/env bash
-set -euo pipefail
-printf '%s\\n' "$@" >> "$REPORT_CALLS"
-for group do :; done
-if [[ -n "$FAIL_GROUP" && "$group" == "$FAIL_GROUP" ]]; then
-  echo 'analytics unavailable' >&2
-  exit 7
-fi
-cat "$REPORT_FIXTURE"
-`,
-  );
-  chmodSync(cli, 0o755);
-  const fixture = join(directory, 'activity.json');
-  writeFileSync(
-    fixture,
-    JSON.stringify({
-      groups: [
-        {
-          label,
-          metrics: {
-            success: { taskCount: 2, terminalFailureTaskCount: 1 },
-            productivity: { attemptCount: 3, medianTimeToAcceptedMs: 65000 },
-            hurdles: { timeoutAttemptCount: 1, failedToolCallCount: 4 },
-            roi: { estimatedCostUsd: 1.23 },
-          },
-        },
-      ],
-    }),
-  );
-  const calls = join(directory, 'calls.txt');
-  const result = spawnSync(
-    process.execPath,
-    [
-      script,
-      '--team-id',
-      'test-team',
-      '--since',
-      '2026-10-01T00:00:00Z',
-      '--tags',
-      'review:adaptive',
-    ],
-    {
-      encoding: 'utf8',
-      env: {
-        ...process.env,
-        PATH: directory + delimiter + process.env.PATH,
-        REPORT_FIXTURE: fixture,
-        REPORT_CALLS: calls,
-        FAIL_GROUP: failGroup,
-      },
-    },
-  );
-  return { ...result, calls: readFileSync(calls, 'utf8') };
+vi.mock('@themoltnet/sdk/node', () => ({ connect: vi.fn() }));
+
+interface Workflow {
+  on: {
+    workflow_dispatch: {
+      inputs: Record<string, { default?: string; description: string }>;
+    };
+  };
+  permissions: Record<string, string>;
+  jobs: {
+    report: {
+      if: string;
+      environment: string;
+      steps: { run?: string; uses?: string }[];
+    };
+  };
 }
 
+const analytics = vi.fn();
+const args = ['--team-id', 'test-team', '--since', '2026-10-01'];
+function response(label = 'lane:focused') {
+  return {
+    groups: [
+      {
+        label,
+        metrics: {
+          success: { taskCount: 2, terminalFailureTaskCount: 1 },
+          productivity: { attemptCount: 3, medianTimeToAcceptedMs: 65000 },
+          hurdles: { timeoutAttemptCount: 1, failedToolCallCount: 4 },
+          roi: { estimatedCostUsd: 1.23 },
+        },
+      },
+    ],
+  };
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  analytics.mockReset().mockResolvedValue(response());
+  vi.mocked(connect).mockResolvedValue({
+    tasks: { getActivityAnalytics: analytics },
+  } as unknown as Awaited<ReturnType<typeof connect>>);
+});
+
 describe('review health report', () => {
-  it('renders model and lane reports using the released CLI interface', () => {
-    const result = runReport();
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain('### Per model');
-    expect(result.stdout).toContain('### Per lane');
-    expect(result.stdout).toContain(
+  it('uses SDK analytics with a team, tag arrays and actual model grouping', async () => {
+    const result = await generateReport([
+      ...args,
+      '--tags',
+      'review:adaptive, review:manual',
+    ]);
+    expect(result).toContain('### Per model');
+    expect(result).toContain('### Per lane');
+    expect(result).toContain(
       '| lane:focused | 2 | 3 | 1 | 1 | 4 | 1m 5s | $1.23 |',
     );
-    expect(result.calls).toContain('--group-by\nprofile');
-    expect(result.calls).toContain('--group-by\ntag');
-    expect(result.calls).toContain('--completed-after\n2026-10-01T00:00:00Z');
+    for (const [index, groupBy] of ['providerModel', 'tag'].entries()) {
+      expect(analytics).toHaveBeenNthCalledWith(
+        index + 1,
+        { teamId: 'test-team' },
+        {
+          completedAfter: '2026-10-01T00:00:00.000Z',
+          tags: ['review:adaptive', 'review:manual'],
+          groupBy,
+        },
+      );
+    }
   });
 
-  it('escapes table delimiters and line breaks in analytics labels', () => {
-    const result = runReport('', 'lane:focused|extra\nrow');
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain('| lane:focused\\|extra row |');
-  });
-
-  it('prints help without requiring credentials or querying analytics', () => {
-    const result = spawnSync(process.execPath, [script, '--help'], {
-      encoding: 'utf8',
-    });
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain(
-      'Usage: node tools/review-health-report.mjs',
+  it('escapes table delimiters and line breaks in analytics labels', async () => {
+    analytics.mockResolvedValue(response('lane:focused|extra\nrow'));
+    expect(await generateReport(args)).toContain(
+      '| lane:focused\\|extra row |',
     );
   });
 
-  it.each(['profile', 'tag'])('fails when %s analytics fail', (group) => {
-    const result = runReport(group);
-    expect(result.status).toBe(7);
-    expect(result.stderr).toContain('analytics unavailable');
-    expect(result.stdout).toBe('');
+  it('limits the lane table to lane tags', async () => {
+    analytics
+      .mockResolvedValueOnce(response())
+      .mockResolvedValueOnce(response('review:adaptive'));
+    const report = await generateReport(args);
+    expect(report.split('### Per lane')[1]).not.toContain('review:adaptive');
   });
 
-  it('offers manual dispatch on the default branch and publishes the report', () => {
+  it('prints help without connecting or querying analytics', async () => {
+    expect(await generateReport(['--help'])).toContain('--since 2026-10-01');
+    expect(connect).not.toHaveBeenCalled();
+  });
+
+  it.each([1, 2])(
+    'rejects rather than returning a partial report if query %s fails',
+    async (query) => {
+      if (query === 2) analytics.mockResolvedValueOnce(response());
+      analytics.mockRejectedValueOnce(new Error('analytics unavailable'));
+      await expect(generateReport(args)).rejects.toThrow(
+        'analytics unavailable',
+      );
+    },
+  );
+
+  it.each(['2026-02-30', 'yesterday', '1730000000', '2026-10-01T12:00:00'])(
+    'rejects invalid date %s before connecting',
+    async (date) => {
+      await expect(
+        generateReport(['--team-id', 'test-team', '--since', date]),
+      ).rejects.toThrow('--since must be a date like 2026-10-01');
+      expect(connect).not.toHaveBeenCalled();
+    },
+  );
+
+  it('accepts full timestamps with explicit timezones', () => {
+    expect(parseSince('2026-10-01T09:30:00Z')).toBe('2026-10-01T09:30:00.000Z');
+    expect(parseSince('2026-10-01T09:30:00+02:00')).toBe(
+      '2026-10-01T07:30:00.000Z',
+    );
+  });
+
+  it('defaults empty dates to the last seven days', () => {
+    expect(parseSince('', Date.parse('2026-10-30T12:00:00Z'))).toBe(
+      '2026-10-23T12:00:00.000Z',
+    );
+  });
+
+  it('offers understandable dates, manual dispatch and a pinned released SDK', () => {
     const workflow = parse(
       readFileSync(
         new URL(
@@ -129,25 +138,11 @@ describe('review health report', () => {
         ),
         'utf8',
       ),
-    ) as {
-      on: Record<string, { inputs: Record<string, { default?: string }> }>;
-      permissions: Record<string, string>;
-      jobs: Record<
-        string,
-        {
-          if: string;
-          environment: string;
-          steps: {
-            name?: string;
-            uses?: string;
-            run?: string;
-            env?: Record<string, string>;
-            with?: Record<string, string>;
-          }[];
-        }
-      >;
-    };
+    ) as Workflow;
     expect(Object.keys(workflow.on)).toEqual(['workflow_dispatch']);
+    expect(workflow.on.workflow_dispatch.inputs.since.description).toContain(
+      '2026-10-01',
+    );
     expect(workflow.on.workflow_dispatch.inputs.tags.default).toBe(
       'review:adaptive',
     );
@@ -155,18 +150,15 @@ describe('review health report', () => {
     const job = workflow.jobs.report;
     expect(job.if).toContain('github.event.repository.default_branch');
     expect(job.environment).toBe('legreffier');
-    const generate = job.steps.find((step) =>
-      step.name?.startsWith('Generate report'),
-    )!;
-    expect(generate.env?.REPORT_SINCE).toBe('${{ inputs.since }}');
-    expect(generate.env?.REPORT_TAGS).toBe('${{ inputs.tags }}');
-    expect(generate.run).not.toContain('${{');
-    expect(generate.run).toContain(
-      'node tools/review-health-report.mjs "${args[@]}"',
-    );
-    expect(generate.run).toContain('>> "$GITHUB_STEP_SUMMARY"');
+    const runs = job.steps
+      .map((step: { run?: string }) => step.run ?? '')
+      .join('\n');
+    expect(runs).toContain('@themoltnet/sdk@0.154.2');
+    expect(runs).not.toContain('@themoltnet/cli');
+    expect(runs).toContain('node "$RUNNER_TEMP/review-health/report.mjs"');
+    expect(runs).not.toContain('${{');
     expect(
-      job.steps.some((step) =>
+      job.steps.some((step: { uses?: string }) =>
         step.uses?.startsWith('actions/upload-artifact@'),
       ),
     ).toBe(true);
