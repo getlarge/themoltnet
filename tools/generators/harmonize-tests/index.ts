@@ -255,7 +255,7 @@ function updateProjectConfigs(
     } else if (JSON_CONFIG_PATTERN.test(child)) {
       const json = readJson(tree, file);
       const next = child.startsWith('tsconfig')
-        ? transformTsconfig(json, transform)
+        ? transformTsconfig(json, transform, child === 'tsconfig.spec.json')
         : mapStrings(json, transform);
       if (JSON.stringify(next) !== JSON.stringify(json)) {
         writeJson(tree, file, next);
@@ -337,6 +337,7 @@ type TsConfigJson = Record<string, unknown> & {
 function transformTsconfig(
   json: TsConfigJson,
   transform: (value: string) => string,
+  spec: boolean,
 ): TsConfigJson {
   const next = { ...json };
   for (const key of ['include', 'exclude', 'files'] as const) {
@@ -346,7 +347,37 @@ function transformTsconfig(
     if (key === 'exclude' && mapped.includes(TESTS_DIR)) {
       mapped = mapped.filter((p) => !p.startsWith(`${TESTS_DIR}/`));
     }
+    if (key === 'include' && spec) {
+      // Test support files (fixtures, setup, harnesses) sit next to the
+      // specs, and composite projects must list every file they compile.
+      mapped = [
+        ...new Set(
+          mapped.map((p) =>
+            p.replace(
+              new RegExp(`^${TESTS_DIR}/\\*\\*/\\*\\.spec\\.`),
+              `${TESTS_DIR}/**/*.`,
+            ),
+          ),
+        ),
+      ];
+      mapped = mapped.filter(
+        (p) =>
+          !p.startsWith(`${TESTS_DIR}/`) ||
+          p.includes('*') ||
+          !mapped.includes(`${TESTS_DIR}/**/*${path.extname(p)}`),
+      );
+    }
     next[key] = mapped;
+  }
+  const options = json['compilerOptions'] as
+    | Record<string, unknown>
+    | undefined;
+  if (
+    spec &&
+    options &&
+    ['src', './src'].includes(String(options['rootDir']))
+  ) {
+    next['compilerOptions'] = { ...options, rootDir: '.' };
   }
   return next;
 }

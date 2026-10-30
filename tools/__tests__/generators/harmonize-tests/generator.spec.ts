@@ -36,7 +36,10 @@ describe('harmonize-tests generator', () => {
     );
     tree.write(
       'libs/lib/tsconfig.spec.json',
-      JSON.stringify({ include: ['src/**/*.test.ts', 'src/**/*.d.ts'] }),
+      JSON.stringify({
+        compilerOptions: { rootDir: './src' },
+        include: ['src/**/*.test.ts', 'src/**/*.d.ts'],
+      }),
     );
   });
 
@@ -57,9 +60,9 @@ describe('harmonize-tests generator', () => {
     expect(tree.read('libs/lib/vitest.config.ts', 'utf-8')).toContain(
       "'__tests__/**/*.spec.ts'",
     );
-    expect(readJson(tree, 'libs/lib/tsconfig.spec.json').include).toEqual([
-      '__tests__/**/*.spec.ts',
-      'src/**/*.d.ts',
-    ]);
+    expect(readJson(tree, 'libs/lib/tsconfig.spec.json')).toEqual({
+      compilerOptions: { rootDir: '.' },
+      include: ['__tests__/**/*.ts', 'src/**/*.d.ts'],
+    });
   });
 });
