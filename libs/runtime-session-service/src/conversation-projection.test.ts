@@ -2,6 +2,8 @@ import { BACKGROUND_CONTEXT as context } from '@earendil-works/chord/context';
 import {
   createSession,
   defineDocFamily,
+  type DocumentCreate,
+  type DocumentId,
   type EntryId,
   LiveDoc,
   MemoryStorage,
@@ -205,6 +207,123 @@ describe('conversation projection conforms to Pi storage', () => {
     await f.storage.commit([{ type: 'document.retire', id: record!.id }]);
     await f.reader.at('store', f.head());
     expect(await f.reader.findDocument(address)).toBeUndefined();
+    await f.session.close(context);
+  });
+  it('copies historical and current documents independently after the source advances', async () => {
+    const f = await fixture();
+    const children = await f.session.commit(
+      (tx) =>
+        Promise.all([
+          tx.createConversation({ ownership: { kind: 'ownerless' } }),
+          tx.createConversation({ ownership: { kind: 'ownerless' } }),
+        ]),
+      context,
+    );
+    const sourceId = await f.storage.mintId<DocumentId>();
+    const record: DocumentCreate = {
+      id: sourceId,
+      kind: 'moltnet.attempt',
+      scope: { kind: 'conversation', conversationId: f.root },
+      history: 'rewindable',
+      fork: 'asOf',
+      key: 'source',
+    };
+    const createdAt = await f.storage.commit([
+      {
+        type: 'document.create',
+        record,
+        content: { kind: 'base', version: 2, value: { count: 1 } },
+      },
+    ]);
+    await f.storage.commit([
+      {
+        type: 'document.change',
+        id: sourceId,
+        content: { kind: 'delta', version: 2, ops: [['s', ['count'], 2]] },
+      },
+    ]);
+    const historicalId = await f.storage.mintId<DocumentId>();
+    const currentId = await f.storage.mintId<DocumentId>();
+    await f.storage.commit([
+      {
+        type: 'document.copy',
+        record: {
+          ...record,
+          id: historicalId,
+          scope: { kind: 'conversation', conversationId: children[0].id },
+        },
+        source: { id: sourceId, at: createdAt },
+      },
+      {
+        type: 'document.copy',
+        record: {
+          ...record,
+          id: currentId,
+          scope: { kind: 'conversation', conversationId: children[1].id },
+        },
+        source: { id: sourceId, at: 'current' },
+      },
+    ]);
+    const copyBoundary = f.head();
+    await f.storage.commit([
+      {
+        type: 'document.change',
+        id: sourceId,
+        content: { kind: 'base', version: 2, value: { count: 3 } },
+      },
+    ]);
+    for (const throughSeq of [copyBoundary, f.head()]) {
+      await f.reader.at('store', throughSeq);
+      for (const [id, count] of [
+        [historicalId, 1],
+        [currentId, 2],
+      ] as const) {
+        const actual = await f.reader.document(id);
+        const expected = await f.storage.document(id, 'current', context);
+        expect(actual).toEqual(expected);
+        expect(actual?.value).toEqual({ count });
+      }
+    }
+    await f.session.close(context);
+  });
+  it('bounds frozen pages by the cumulative ID ceiling even when IDs commit out of order', async () => {
+    const f = await fixture();
+    const ids = await Promise.all(
+      Array.from({ length: 4 }, () => f.storage.mintId<EntryId>()),
+    );
+    const append = (id: EntryId) =>
+      f.storage.commit([
+        {
+          type: 'entry',
+          value: { id, conversationId: f.root, kind: 'pi.user', model: [] },
+        },
+      ]);
+    await append(ids[2]);
+    await append(ids[0]);
+    const boundary = f.head();
+    await append(ids[3]);
+    // A later commit can consume a previously allocated lower ID as well.
+    await append(ids[1]);
+    await f.reader.at('store', boundary);
+    const reads = vi.spyOn(f.repo, 'conversationEntries');
+    expect(
+      (await f.reader.scanEntries({ conversationId: f.root }, 10)).items.map(
+        (e) => e.id,
+      ),
+    ).toEqual([ids[2], ids[0]]);
+    expect(reads).toHaveBeenLastCalledWith(
+      'store',
+      f.root,
+      boundary,
+      ids[2],
+      11,
+    );
+    await f.reader.at('store', f.head());
+    expect(
+      (await f.reader.scanEntries({ conversationId: f.root }, 10)).items.map(
+        (e) => e.id,
+      ),
+    ).toEqual([...ids].reverse());
     await f.session.close(context);
   });
   it('returns the same fork ancestry and pagination as Pi', async () => {

@@ -212,6 +212,119 @@ describe('Runtime store authority and serialization (PostgreSQL)', () => {
     expect(await repo.listCommits(store.id, 0, 100, 100)).toEqual([]);
     await db.delete(runtimeStores).where(eq(runtimeStores.id, store.id));
   });
+  it('preserves opaque JSON escapes across document lookup and forks', async () => {
+    const value = { text: 'nul\u0000high\ud800low\udfff', retired: false };
+    const source = await runner.runInTransaction(async () => {
+      const store = await repo.create(teamId);
+      await repo.append({
+        storeId: store.id,
+        seq: 1,
+        commitId: randomUUID(),
+        sha256: 'a'.repeat(64),
+        objectKey: 'opaque-json',
+        sizeBytes: 5,
+        taskId,
+        attemptN: 1,
+      });
+      await repo.saveConversationRecords(store.id, 1, [
+        { type: 'entry', id: 2, conversationId: 1, address: null, value },
+        // Recreated address must prefer its live incarnation even when the
+        // retired ID is larger. No SQL JSON extraction may decode the payload.
+        { type: 'document', id: 4, conversationId: 1, address: 'live', value },
+        {
+          type: 'document',
+          id: 5,
+          conversationId: 1,
+          address: 'live',
+          value: { ...value, retired: true },
+        },
+      ]);
+      return (await repo.lock(teamId, store.id))!;
+    });
+    const fork = await runner.runInTransaction(() => repo.fork(source));
+    for (const storeId of [source.id, fork.id]) {
+      expect(
+        (await repo.conversationRecord(storeId, 'entry', 2, 1))?.value,
+      ).toEqual(value);
+      const document = await repo.conversationDocument(storeId, 'live', 1);
+      expect(document?.id).toBe(4);
+      expect(document?.value).toEqual(value);
+      expect(
+        (await repo.conversationEntries(storeId, 1, 1, 2, 10))[0]?.value,
+      ).toEqual(value);
+    }
+    await db.delete(runtimeStores).where(eq(runtimeStores.id, fork.id));
+    await db.delete(runtimeStores).where(eq(runtimeStores.id, source.id));
+  });
+  it('bounds historical page index scans before a long continuation', async () => {
+    const store = await runner.runInTransaction(() => repo.create(teamId));
+    await pool.query(
+      `
+      INSERT INTO runtime_conversation_records
+        (store_id, type, id, seq, conversation_id, value)
+      SELECT $1, 'entry', id, CASE WHEN id <= 100 THEN 1 ELSE 2 END,
+        1, json_build_object('id', id)
+      FROM generate_series(1, 10100) id
+    `,
+      [store.id],
+    );
+    await runner.runInTransaction(async () => {
+      await repo.saveConversationRecords(store.id, 1, [
+        {
+          type: 'entry-boundary',
+          id: 0,
+          conversationId: null,
+          address: null,
+          value: { maxEntryId: 100 },
+        },
+      ]);
+      await repo.saveConversationRecords(store.id, 2, [
+        {
+          type: 'entry-boundary',
+          id: 0,
+          conversationId: null,
+          address: null,
+          value: { maxEntryId: 10100 },
+        },
+      ]);
+    });
+    await pool.query('ANALYZE runtime_conversation_records');
+    const boundary = await repo.conversationRecord(
+      store.id,
+      'entry-boundary',
+      0,
+      1,
+    );
+    const maxId = Number(boundary?.value.maxEntryId);
+    expect(maxId).toBe(100);
+    expect(
+      (await repo.conversationEntries(store.id, 1, 1, maxId, 10)).map(
+        (r) => r.id,
+      ),
+    ).toEqual([100, 99, 98, 97, 96, 95, 94, 93, 92, 91]);
+    const explain = async (upper: number) => {
+      const result = await pool.query(
+        `
+        EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT * FROM runtime_conversation_records
+        WHERE store_id = $1 AND type = 'entry' AND conversation_id = 1
+          AND seq <= 1 AND id <= $2 ORDER BY id DESC LIMIT 10
+      `,
+        [store.id, upper],
+      );
+      const plan = result.rows[0]['QUERY PLAN'][0].Plan as {
+        'Shared Hit Blocks': number;
+        'Shared Read Blocks': number;
+      };
+      return plan['Shared Hit Blocks'] + plan['Shared Read Blocks'];
+    };
+    // PostgreSQL may use either ID index: seq can be an index condition or
+    // a heap filter. Buffer work captures both plans without wall-clock limits.
+    const unboundedBlocks = await explain(Number.MAX_SAFE_INTEGER);
+    const boundedBlocks = await explain(maxId);
+    console.log({ unboundedBlocks, boundedBlocks });
+    expect(boundedBlocks).toBeLessThan(unboundedBlocks / 5);
+    await db.delete(runtimeStores).where(eq(runtimeStores.id, store.id));
+  });
   it('forks commit history without sharing subsequent writes', async () => {
     const source = await runner.runInTransaction(async () => {
       const store = await repo.create(teamId);
@@ -232,6 +345,13 @@ describe('Runtime store authority and serialization (PostgreSQL)', () => {
           conversationId: 1,
           address: null,
           value: { id: 10 },
+        },
+        {
+          type: 'entry-boundary',
+          id: 0,
+          conversationId: null,
+          address: null,
+          value: { maxEntryId: 10 },
         },
       ]);
       await repo.update(store.id, { nextId: 12 });
@@ -257,10 +377,20 @@ describe('Runtime store authority and serialization (PostgreSQL)', () => {
           address: null,
           value: { id: 11 },
         },
+        {
+          type: 'entry-boundary',
+          id: 0,
+          conversationId: null,
+          address: null,
+          value: { maxEntryId: 11 },
+        },
       ]);
     });
     const fork = await runner.runInTransaction(() => repo.fork(source!));
     expect(await repo.conversationHead(fork.id)).toBe(1);
+    expect(
+      (await repo.conversationRecord(fork.id, 'entry-boundary', 0, 100))?.value,
+    ).toEqual({ maxEntryId: 10 });
     expect(
       await repo.conversationRecord(fork.id, 'entry', 10, 100),
     ).toBeDefined();

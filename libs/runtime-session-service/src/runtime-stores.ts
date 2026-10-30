@@ -509,7 +509,8 @@ export function createRuntimeStoreService(deps: {
             budget: readAhead,
             cost: readCost,
           },
-          (row, signal) => readCommit(deps.storage, deps.maxBytes, row, signal),
+          (row, signal) =>
+            readCommit(deps.storage, deps.maxBytes, row, signal, input.signal),
           input.signal,
         ),
       };
@@ -526,25 +527,30 @@ async function readCommit(
   maxBytes: number,
   row: CommitRow,
   signal: AbortSignal,
+  callerSignal?: AbortSignal,
 ): Promise<RuntimeStoreCommit> {
-  const bytes = await timedRead('object.download', async (span) => {
-    const object = await storage.getObject(row.objectKey, signal);
-    addAbortSignal(signal, object.body);
-    const chunks: Buffer[] = [];
-    let size = 0;
-    for await (const chunk of object.body) {
-      const bytes = Buffer.from(chunk as Uint8Array);
-      size += bytes.length;
-      if (size > maxBytes)
-        throw createProblem(
-          'service-unavailable',
-          `Stored runtime commit ${row.seq} exceeds size limit`,
-        );
-      chunks.push(bytes);
-    }
-    span.setAttribute('moltnet.runtime.read.bytes', size);
-    return Buffer.concat(chunks, size);
-  });
+  const bytes = await timedRead(
+    'object.download',
+    async (span) => {
+      const object = await storage.getObject(row.objectKey, signal);
+      addAbortSignal(signal, object.body);
+      const chunks: Buffer[] = [];
+      let size = 0;
+      for await (const chunk of object.body) {
+        const bytes = Buffer.from(chunk as Uint8Array);
+        size += bytes.length;
+        if (size > maxBytes)
+          throw createProblem(
+            'service-unavailable',
+            `Stored runtime commit ${row.seq} exceeds size limit`,
+          );
+        chunks.push(bytes);
+      }
+      span.setAttribute('moltnet.runtime.read.bytes', size);
+      return Buffer.concat(chunks, size);
+    },
+    callerSignal,
+  );
   return timedRead('object.decode', async () => {
     if (createHash('sha256').update(bytes).digest('hex') !== row.sha256)
       throw createProblem(

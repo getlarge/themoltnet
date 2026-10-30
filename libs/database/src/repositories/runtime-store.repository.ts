@@ -1,4 +1,14 @@
-import { and, asc, desc, eq, gt, inArray, lte, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  getTableColumns,
+  gt,
+  inArray,
+  lte,
+  sql,
+} from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
@@ -29,6 +39,8 @@ export function createRuntimeStoreRepository(db: Database) {
       throw new Error('Runtime store mutation requires a transaction');
   };
   const records = runtimeConversationRecords;
+  // Internal ordering metadata is not part of the opaque projection record.
+  const { retired: _retired, ...recordColumns } = getTableColumns(records);
   return {
     async conversationHead(storeId: string) {
       const [row] = await getExecutor(db)
@@ -46,7 +58,14 @@ export function createRuntimeStoreRepository(db: Database) {
       if (rows.length)
         await getExecutor(db)
           .insert(records)
-          .values(rows.map((row) => ({ ...row, storeId, seq })));
+          .values(
+            rows.map((row) => ({
+              ...row,
+              storeId,
+              seq,
+              retired: row.value.retired === true,
+            })),
+          );
       await getExecutor(db)
         .insert(runtimeConversationHeads)
         .values({ storeId, seq })
@@ -62,7 +81,7 @@ export function createRuntimeStoreRepository(db: Database) {
       throughSeq: number,
     ) {
       const [row] = await getExecutor(db)
-        .select()
+        .select(recordColumns)
         .from(records)
         .where(
           and(
@@ -84,7 +103,7 @@ export function createRuntimeStoreRepository(db: Database) {
       // Retiring and recreating an address can happen in the same commit;
       // prefer its new live incarnation, regardless of allocation order.
       const [row] = await getExecutor(db)
-        .select()
+        .select(recordColumns)
         .from(records)
         .where(
           and(
@@ -93,17 +112,13 @@ export function createRuntimeStoreRepository(db: Database) {
             lte(records.seq, throughSeq),
           ),
         )
-        .orderBy(
-          desc(records.seq),
-          sql`CASE WHEN ${records.value}->>'retired' = 'true' THEN 1 ELSE 0 END`,
-          desc(records.id),
-        )
+        .orderBy(desc(records.seq), asc(records.retired), desc(records.id))
         .limit(1);
       return row;
     },
     async conversationList(storeId: string, throughSeq: number) {
       return getExecutor(db)
-        .select()
+        .select(recordColumns)
         .from(records)
         .where(
           and(
@@ -123,7 +138,7 @@ export function createRuntimeStoreRepository(db: Database) {
       limit: number,
     ) {
       return getExecutor(db)
-        .select()
+        .select(recordColumns)
         .from(records)
         .where(
           and(
@@ -242,8 +257,8 @@ export function createRuntimeStoreRepository(db: Database) {
         WHERE store_id = ${source.id} AND seq <= ${source.headSeq}
       `);
       await getExecutor(db).execute(sql`
-        INSERT INTO runtime_conversation_records (store_id, type, id, seq, conversation_id, address, value)
-        SELECT ${row.id}, type, id, seq, conversation_id, address, value
+        INSERT INTO runtime_conversation_records (store_id, type, id, seq, conversation_id, address, value, retired)
+        SELECT ${row.id}, type, id, seq, conversation_id, address, value, retired
         FROM runtime_conversation_records WHERE store_id = ${source.id} AND seq <= ${source.headSeq}
       `);
       await getExecutor(db).execute(sql`

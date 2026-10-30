@@ -10,7 +10,8 @@ CREATE TABLE "runtime_conversation_records" (
 	"seq" integer NOT NULL,
 	"conversation_id" bigint,
 	"address" text,
-	"value" jsonb NOT NULL,
+	"value" json NOT NULL,
+	"retired" boolean DEFAULT false NOT NULL,
 	CONSTRAINT "runtime_conversation_records_store_id_type_id_seq_pk" PRIMARY KEY("store_id","type","id","seq")
 );
 --> statement-breakpoint

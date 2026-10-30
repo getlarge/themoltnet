@@ -1,5 +1,5 @@
 {
-  "id": "a043793d-33de-42ab-a67b-61dccfe85109",
+  "id": "a0de0ef0-6640-40b2-84a1-a442edbe0428",
   "prevId": "9d84465c-ab2b-4ac8-a775-6a7cf4c68141",
   "version": "7",
   "dialect": "postgresql",
@@ -2717,9 +2717,16 @@
         },
         "value": {
           "name": "value",
-          "type": "jsonb",
+          "type": "json",
           "primaryKey": false,
           "notNull": true
+        },
+        "retired": {
+          "name": "retired",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         }
       },
       "indexes": {

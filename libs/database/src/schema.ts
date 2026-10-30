@@ -23,6 +23,7 @@ import {
   foreignKey,
   index,
   integer,
+  json,
   jsonb,
   pgEnum,
   pgTable,
@@ -2031,7 +2032,10 @@ export const runtimeConversationRecords = pgTable(
     seq: integer('seq').notNull(),
     conversationId: bigint('conversation_id', { mode: 'number' }),
     address: text('address'),
-    value: jsonb('value').$type<Record<string, unknown>>().notNull(),
+    // Opaque Pi JSON can contain NUL and unpaired-surrogate escapes.
+    // PostgreSQL json preserves these; jsonb and JSON extraction reject them.
+    value: json('value').$type<Record<string, unknown>>().notNull(),
+    retired: boolean('retired').notNull().default(false),
   },
   (t) => [
     primaryKey({ columns: [t.storeId, t.type, t.id, t.seq] }),

@@ -232,13 +232,18 @@ describe('Task conversations API', () => {
       'conversation-perf',
       { leaseTtlSec: 300 },
     );
+    const opaqueContent = 'tool output: file\u0000name\ud800';
     const seed = await openDurableSeed(
       { client, auth: () => owner.accessToken, headers: team() },
       authority,
       Array.from({ length: 120 }, (_, i) => ({
         kind: 'pi.user',
         model: [
-          { role: 'user' as const, content: `message ${i}`, timestamp: i },
+          {
+            role: 'user' as const,
+            content: i === 119 ? opaqueContent : `message ${i}`,
+            timestamp: i,
+          },
         ],
       })),
     );
@@ -254,7 +259,9 @@ describe('Task conversations API', () => {
       for (const target of [20, 250, 1000]) {
         while (updates < target) {
           if (updates % 50 === 0) await seed.renew();
-          await seed.partial(assistantMessage(`partial ${++updates}`, updates));
+          await seed.partial(
+            assistantMessage(`partial ${++updates} ${opaqueContent}`, updates),
+          );
         }
         // Break only this test's object references, leaving immutable blobs intact.
         // Any fallback to full-log download now fails. This works across cold
@@ -283,6 +290,9 @@ describe('Task conversations API', () => {
           ).toHaveLength(10);
           expect(JSON.stringify(latest.data!.messages.at(-1))).toContain(
             `partial ${updates}`,
+          );
+          expect(JSON.stringify(latest.data!.messages)).toContain(
+            JSON.stringify(opaqueContent),
           );
           const older = await getTaskConversation({
             ...request,
@@ -338,6 +348,9 @@ describe('Task conversations API', () => {
           query: { limit: 10 },
         });
         expect(afterBackfill.error).toBeUndefined();
+        expect(JSON.stringify(afterBackfill.data!.messages)).toContain(
+          JSON.stringify(opaqueContent),
+        );
         expect(JSON.stringify(afterBackfill.data!.messages.at(-1))).toContain(
           'partial 1000',
         );

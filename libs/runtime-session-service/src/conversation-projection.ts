@@ -70,6 +70,28 @@ export async function projectConversationCommit(
         documents.set(id, [...(documents.get(id) ?? []), write]);
     }
   }
+  const entryIds = rows
+    .filter((row) => row.type === 'entry')
+    .map((row) => row.id);
+  if (entryIds.length) {
+    const previous = await timedRead('database.projection', () =>
+      repo.conversationRecord(storeId, 'entry-boundary', 0, seq - 1),
+    );
+    // IDs can be allocated before they are committed. Keep a cumulative ceiling,
+    // rather than assuming that commit order and ID order are identical.
+    rows.push({
+      type: 'entry-boundary',
+      id: 0,
+      conversationId: null,
+      address: null,
+      value: {
+        maxEntryId: Math.max(
+          Number(previous?.value.maxEntryId ?? 0),
+          ...entryIds,
+        ),
+      },
+    });
+  }
   for (const [id, changes] of documents) {
     const creation = changes.find(
       (w) => w.type === 'document.create' || w.type === 'document.copy',
@@ -184,6 +206,7 @@ export function createConversationProjectionReader(
 ) {
   let storeId = '';
   let seq = 0;
+  let maxEntryId = 0;
   let conversations: Row[] = [];
   const pageEntries = new Map<number, Row>();
   const foundDocuments = new Map<number, Document>();
@@ -193,6 +216,10 @@ export function createConversationProjectionReader(
       seq = throughSeq;
       pageEntries.clear();
       foundDocuments.clear();
+      const boundary = await timedRead('database.projection', () =>
+        repo.conversationRecord(storeId, 'entry-boundary', 0, seq),
+      );
+      maxEntryId = Number(boundary?.value.maxEntryId ?? 0);
       conversations = await timedRead('database.projection', () =>
         repo.conversationList(storeId, seq),
       );
@@ -243,7 +270,7 @@ export function createConversationProjectionReader(
       const items: EntryRecord[] = [];
       pageEntries.clear();
       let id: number | undefined = query.conversationId;
-      let upper = query.maxEntryId ?? Number.MAX_SAFE_INTEGER;
+      let upper = Math.min(query.maxEntryId ?? maxEntryId, maxEntryId);
       const seen = new Set<number>();
       // Pi scans each fork segment newest first, then its parent through parent.at.
       while (id !== undefined && items.length <= limit) {

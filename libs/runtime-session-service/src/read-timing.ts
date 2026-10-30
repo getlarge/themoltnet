@@ -5,6 +5,7 @@ const tracer = trace.getTracer('@moltnet/runtime-session-service');
 export function timedRead<T>(
   phase: string,
   run: (span: Span) => Promise<T>,
+  callerSignal?: AbortSignal,
 ): Promise<T> {
   return tracer.startActiveSpan(
     `moltnet.runtime.read.${phase}`,
@@ -13,10 +14,22 @@ export function timedRead<T>(
       try {
         return await run(span);
       } catch (error) {
-        span.recordException(
-          error instanceof Error ? error : new Error(String(error)),
-        );
-        span.setStatus({ code: SpanStatusCode.ERROR });
+        const reason: unknown = callerSignal?.reason;
+        const callerCancelled =
+          callerSignal?.aborted &&
+          !(reason instanceof Error && reason.name === 'TimeoutError') &&
+          (error === reason ||
+            (error instanceof Error &&
+              error.name === 'AbortError' &&
+              (error.cause === undefined || error.cause === reason)));
+        if (callerCancelled) {
+          span.setAttribute('moltnet.runtime.read.aborted_by', 'caller');
+        } else {
+          span.recordException(
+            error instanceof Error ? error : new Error(String(error)),
+          );
+          span.setStatus({ code: SpanStatusCode.ERROR });
+        }
         throw error;
       } finally {
         span.end();
