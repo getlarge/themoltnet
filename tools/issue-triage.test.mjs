@@ -256,8 +256,13 @@ test('renders the verdict and per-criterion reasons', () => {
   );
 });
 
-test('prepares the next task from the accepted attempt and preserves labels if classification is unavailable', () => {
+// This integration case starts multiple Node processes for prepare/publish paths.
+// Match the tools release tests' 30s budget instead of the 5s unit-test default.
+test('prepares the next task from the accepted attempt and preserves labels if classification is unavailable', ({
+  onTestFinished,
+}) => {
   const dir = mkdtempSync(join(tmpdir(), 'issue-triage-chain-'));
+  onTestFinished(() => rmSync(dir, { recursive: true, force: true }));
   const snapshot = {
     ...issue,
     sourceRevision: 'c'.repeat(40),
@@ -379,6 +384,8 @@ if (args[2] === 'GET') {
   };
   const run = (mode) =>
     spawnSync('node', ['.github/scripts/issue-triage.mjs', mode], {
+      timeout: 10_000,
+      killSignal: 'SIGKILL',
       cwd: root,
       env,
       encoding: 'utf8',
@@ -528,6 +535,8 @@ if (args[2] === 'GET') {
     'node',
     ['.github/scripts/issue-triage.mjs', 'publish'],
     {
+      timeout: 10_000,
+      killSignal: 'SIGKILL',
       cwd: root,
       env: { ...env, CLASSIFIER_CORRELATION_ID: 'different-correlation' },
       encoding: 'utf8',
@@ -606,7 +615,7 @@ if (args[2] === 'GET') {
   assert.match(closed.stdout, /no current triage receipt/);
   assert.equal(readFileSync(outputPath, 'utf8'), '');
   assert.throws(() => readFileSync(receiptPath));
-});
+}, 30_000);
 
 test('validates accepted task provenance rather than trusting correlation alone', () => {
   const expected = buildSpec(issue, 'getlarge/themoltnet', false);
