@@ -62,7 +62,10 @@ const Subagents = defineDocFamily({
   version: 1,
   scope: 'session',
   family: true,
-  checkpointWhen: () => false,
+  // Pending child turn updates commit this tiny document on its own. Keep the
+  // default 30-turn run unchanged; never copy a potentially large final output.
+  checkpointWhen: (value, _ops, info) =>
+    value.output === null && info.deltasSinceBase >= 32,
   initial: (_seed: null) => ({ output: null as JsonObject | null, turns: 0 }),
 });
 

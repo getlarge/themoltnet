@@ -29,8 +29,12 @@ const Attempts = defineDocFamily({
   version: 1,
   scope: 'session',
   family: true,
-  checkpointWhen: () => false,
-  initial: (conversationId: number) => ({ conversationId }),
+  checkpointWhen: (value) => value.complete,
+  initial: (conversationId: number) => ({
+    conversationId,
+    turns: 0,
+    complete: false as boolean,
+  }),
 });
 async function fixture() {
   const commits: { seq: number; writes: StorageWrite[] }[] = [];
@@ -123,6 +127,39 @@ async function fixture() {
 }
 
 describe('read-only Durable conversations', () => {
+  it('replays mixed attempt deltas and a final base without changing messages or log', async () => {
+    const f = await fixture();
+    const before = await f.service.open(input);
+    const messages = (await before.snapshot(f.root)).messages;
+    await before.close();
+    for (let turn = 0; turn < 4; turn++)
+      await f.session.commit(async (tx) => {
+        (await tx.doc(Attempts, 'task/1', Number(f.root))).turns++;
+      }, context);
+    await f.session.commit(async (tx) => {
+      (await tx.doc(Attempts, 'task/1', Number(f.root))).complete = true;
+    }, context);
+    const writes = f.commits.flatMap((c) => c.writes);
+    expect(
+      writes.some(
+        (w) => w.type === 'document.change' && w.content.kind === 'delta',
+      ),
+    ).toBe(true);
+    expect(writes.at(-1)).toMatchObject({
+      type: 'document.change',
+      content: { kind: 'base', value: { turns: 4, complete: true } },
+    });
+    const immutable = structuredClone(f.commits);
+    const reader = await f.service.open(input);
+    expect(reader.list().items).toEqual([
+      { conversationId: f.root, parentConversationId: null, kind: 'main' },
+    ]);
+    expect((await reader.snapshot(f.root)).messages).toEqual(messages);
+    expect(f.commits).toEqual(immutable);
+    await reader.close();
+    await f.session.close(context);
+  });
+
   it('replays Pi document deltas and reconnects from persisted partials without writing', async () => {
     const f = await fixture();
     const count = f.commits.length;
