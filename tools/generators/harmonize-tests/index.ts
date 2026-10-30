@@ -55,7 +55,16 @@ export default async function harmonizeTestsGenerator(
   const projectFiles = selected.map((project) =>
     collectProjectFiles(tree, project, projects),
   );
-  const exists = (p: string) => tree.exists(p) && tree.isFile(p);
+  // Resolve against the tree as it was before any move: applyMoves deletes
+  // files while it walks, so a live tree.exists() would miss targets that
+  // already moved and leave their importers pointing at the old path.
+  const original = new Set<string>();
+  for (const root of SCANNED_ROOTS) {
+    if (tree.exists(root)) {
+      visitNotIgnoredFiles(tree, root, (file) => original.add(file));
+    }
+  }
+  const exists = (p: string) => original.has(p);
 
   const { moves, support } = planMoves({
     projects: projectFiles,

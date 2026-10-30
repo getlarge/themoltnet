@@ -547,6 +547,10 @@ export function transformTestGlob(
     .replace(/\.e2e\.(?=(?:ts|tsx|js|mjs|\{))/g, '.e2e.spec.');
 
   if (!options.e2e) {
+    value = value.replace(
+      /^\{(?:src|tests|__tests__)(?:,(?:src|tests|__tests__))*\}\//,
+      'src/',
+    );
     if (/^src\/(?:\*\*\/)?__tests__(\/|$)/.test(value)) {
       value = value.replace(/^src\/(?:\*\*\/)?__tests__/, TESTS_DIR);
     } else if (/^tests(\/|$)/.test(value)) {

@@ -242,6 +242,11 @@ describe('transformTestGlob', () => {
     ['./src/test-setup.ts', false, './__tests__/test-setup.ts'],
     ['src/**/*.e2e.ts', true, 'src/**/*.e2e.spec.ts'],
     ['src/**/*.e2e.test.ts', true, 'src/**/*.e2e.spec.ts'],
+    [
+      '{src,tests}/**/*.{test,spec}.{ts,tsx}',
+      false,
+      '__tests__/**/*.spec.{ts,tsx}',
+    ],
     ['src/**/*.ts', false, 'src/**/*.ts'],
     ['vitest', false, 'vitest'],
   ])('%s (e2e=%s) → %s', (glob, e2e, expected) => {
