@@ -145,6 +145,28 @@ describe('planMoves', () => {
     ).toBe('libs/lib/__tests__/prompts/__snapshots__/snapshot.spec.ts.snap');
   });
 
+  it('refuses to overwrite a file that stays in place', () => {
+    // Act & Assert
+    expect(() =>
+      planMoves({
+        projects: [
+          {
+            project,
+            files: [
+              'src/fixtures.ts',
+              'src/a.test.ts',
+              '__tests__/fixtures.ts',
+            ],
+          },
+        ],
+        referencesOf: (_, file) =>
+          file === 'src/a.test.ts' ? ['src/fixtures.ts'] : [],
+        pinnedFiles: () => new Set(),
+        usesTestFramework: () => false,
+      }),
+    ).toThrow(/src\/fixtures\.ts would overwrite __tests__\/fixtures\.ts/);
+  });
+
   it('refuses two sources mapping to one target', () => {
     // Act & Assert
     expect(() =>

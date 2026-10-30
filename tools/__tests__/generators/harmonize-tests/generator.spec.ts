@@ -3,7 +3,9 @@ import { addProjectConfiguration, readJson } from '@nx/devkit';
 import { createTreeWithEmptyWorkspace } from '@nx/devkit/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import harmonizeTestsGenerator from '../../../generators/harmonize-tests/index';
+import harmonizeTestsGenerator, {
+  transformConfigString,
+} from '../../../generators/harmonize-tests/index';
 
 describe('harmonize-tests generator', () => {
   let tree: Tree;
@@ -64,5 +66,22 @@ describe('harmonize-tests generator', () => {
       compilerOptions: { rootDir: '.' },
       include: ['__tests__/**/*.ts', 'src/**/*.d.ts'],
     });
+  });
+});
+
+describe('transformConfigString', () => {
+  const options = { e2e: false, moves: new Map<string, string>() };
+
+  it.each([
+    ['!src/**/*.test.ts', '!__tests__/**/*.spec.ts'],
+    ['{projectRoot}/src/**/*.test.ts', '{projectRoot}/__tests__/**/*.spec.ts'],
+    [
+      '!{projectRoot}/src/**/*.test.ts',
+      '!{projectRoot}/__tests__/**/*.spec.ts',
+    ],
+    ['node --test tests/*.test.mjs', 'node --test __tests__/*.spec.mjs'],
+  ])('%s → %s', (input, expected) => {
+    // Act & Assert
+    expect(transformConfigString(input, options)).toBe(expected);
   });
 });
