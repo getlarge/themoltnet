@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/schema",
+  "additionalProperties": false,
+  "cli": "nx",
+  "description": "Rename test files to *.spec.* and move them under each project's __tests__/ folder",
+  "properties": {
+    "all": {
+      "default": false,
+      "description": "Migrate every project.",
+      "type": "boolean"
+    },
+    "project": {
+      "description": "Project name to migrate. Omit when using --all.",
+      "type": "string"
+    },
+    "skipFormat": {
+      "default": false,
+      "description": "Skip formatting changed files.",
+      "type": "boolean"
+    }
+  },
+  "title": "Harmonize Test Conventions",
+  "type": "object"
+}

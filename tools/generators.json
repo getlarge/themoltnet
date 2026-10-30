@@ -1,5 +1,10 @@
 {
   "generators": {
+    "harmonize-tests": {
+      "description": "Rename test files to *.spec.* and move them under each project's __tests__/ folder",
+      "factory": "./generators/harmonize-tests/index.ts",
+      "schema": "./generators/harmonize-tests/schema.json"
+    },
     "split-tsconfigs": {
       "description": "Split project tsconfig.json files into solution, lib, and spec configs",
       "factory": "./generators/split-tsconfigs/index.ts",
