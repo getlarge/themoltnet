@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 
-import { createSigningRequest } from '@moltnet/api-client';
+import { createSigningRequest, listSigningRequests } from '@moltnet/api-client';
 import { expect, test } from '@playwright/test';
 
 import {
@@ -157,6 +157,20 @@ test.describe.serial('Signing request requester', () => {
         agentId: genesis.agentId,
         fingerprint: genesis.keyPair.fingerprint,
       });
+    }).toPass({ timeout: 20_000 });
+
+    // The signable list resolves the human's team roles through Keto, which
+    // converges separately from the agent's membership. Wait until the human
+    // can list the request so the page assertion checks rendering only.
+    await expect(async () => {
+      const listed = await listSigningRequests({
+        client: humanClient,
+        query: { scope: 'signable', status: ['pending', 'claimed'] },
+      });
+      expect(listed.error).toBeUndefined();
+      expect(listed.data!.items.some((item) => item.purpose === purpose)).toBe(
+        true,
+      );
     }).toPass({ timeout: 20_000 });
   });
 
