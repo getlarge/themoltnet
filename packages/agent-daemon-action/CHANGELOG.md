@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.7.0...agent-daemon-action-v0.7.1) (2026-10-30)
+
+
+### Bug Fixes
+
+* **agent-daemon:** remove repo-local Pi config fallback ([7933f48](https://github.com/getlarge/themoltnet/commit/7933f481ea95da82aca2d71fa2a1248438cafd79))
+
 ## [0.7.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.6.6...agent-daemon-action-v0.7.0) (2026-10-28)
 
 
