@@ -184,8 +184,9 @@ describe('adaptive review workflow trust gates', () => {
     expect(caller.on).toHaveProperty('issue_comment.types', ['created']);
     for (const guard of [
       'github.event.issue.pull_request != null',
-      "contains(github.event.comment.body, '@legreffier /review')",
-      "!endsWith(github.event.comment.user.login, '[bot]')",
+      "github.event.issue.state == 'open'",
+      "github.event.comment.body == '/review'",
+      "github.event.comment.user.type == 'User'",
       'contains(fromJSON(\'["OWNER","MEMBER","COLLABORATOR"]\'), github.event.comment.author_association)',
     ])
       expect(condition).toContain(guard);

@@ -87,7 +87,7 @@ The resolved profiles must enforce their policy and expose repository inspection
 tools only. The workflow uses each profile in both the task producer and worker.
 Once the classifier profile is provisioned and `OLLAMA_API_KEY` is set in the
 `legreffier` environment, set repository variable
-`MOLTNET_ADAPTIVE_REVIEW_CLEF_ENABLED=true` to start the caller workflow.
+`MOLTNET_ADAPTIVE_REVIEW_ENABLED=true` to start the caller workflow.
 
 ## Applying a definition
 
