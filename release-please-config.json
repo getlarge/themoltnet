@@ -183,6 +183,7 @@
     "packages/adaptive-review-action": {
       "bump-minor-pre-major": true,
       "component": "adaptive-review-action",
+      "initial-version": "0.1.0",
       "release-type": "node"
     },
     "packages/agent-daemon-action": {
