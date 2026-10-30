@@ -120,6 +120,35 @@
           "command": "tsx src/bench-durable-storage.ts",
           "cwd": "tools"
         }
+      },
+      "test:issue-triage": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node --test .github/scripts/issue-triage.test.mjs tools/issue-triage-workflow.test.mjs",
+          "cwd": "{workspaceRoot}"
+        },
+        "cache": true,
+        "inputs": [
+          "{workspaceRoot}/.github/scripts/issue-triage*.mjs",
+          "{workspaceRoot}/.github/workflows/issue-triage.yml",
+          "{projectRoot}/package.json",
+          "{workspaceRoot}/libs/tasks/src/**",
+          "{workspaceRoot}/pnpm-lock.yaml",
+          "{workspaceRoot}/pnpm-workspace.yaml",
+          "{workspaceRoot}/.github/actionlint.yaml",
+          "{projectRoot}/issue-triage-workflow.test.mjs"
+        ]
+      },
+      "test": {
+        "dependsOn": [
+          "test:issue-triage"
+        ]
+      },
+      "test-ci": {
+        "executor": "nx:noop",
+        "dependsOn": [
+          "test:issue-triage"
+        ]
       }
     }
   }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -14,6 +14,8 @@ import {
   parseVerdict,
   renderComment,
   CRITERIA,
+  issueContentDigest,
+  validateAcceptedTask,
 } from './issue-triage.mjs';
 
 const issue = {
@@ -86,6 +88,7 @@ test('rejects missing and duplicate criterion results before writing', () => {
           {
             ...criteria[0],
             evidence: ['Done when: status ...', 'Done when: status appears.'],
+            unexpected: 'Unbounded model data must not enter the receipt',
           },
           ...criteria.slice(1),
         ],
@@ -94,6 +97,7 @@ test('rejects missing and duplicate criterion results before writing', () => {
     issue,
   );
   assert.deepEqual(sanitized[0].evidence, ['Done when: status appears.']);
+  assert.equal(sanitized[0].unexpected, undefined);
   assert.deepEqual(
     buildClassifierSpec(issue, 'getlarge/themoltnet', 'correlation', sanitized)
       .input.state.evidence['acceptance-criteria'],
@@ -252,6 +256,7 @@ test('prepares the next task from the accepted attempt and preserves labels if c
   const dir = mkdtempSync(join(tmpdir(), 'issue-triage-chain-'));
   const snapshot = {
     ...issue,
+    sourceRevision: 'c'.repeat(40),
     updatedAt: '2026-10-13T10:00:00Z',
     correlationId: 'same-correlation',
   };
@@ -269,19 +274,72 @@ test('prepares the next task from the accepted attempt and preserves labels if c
   const cliPackagesPath = join(dir, 'cli-packages');
   const bodyPath = join(dir, 'gh-body');
   writeFileSync(snapshotPath, JSON.stringify(snapshot));
-  writeFileSync(extractionPath, JSON.stringify({ result: { criteria } }));
-  writeFileSync(classifierPath, JSON.stringify({ result: { criteria } }));
+  function fixture(id, spec, output) {
+    return {
+      task: {
+        id,
+        teamId: 'team-id',
+        taskType: spec.taskType,
+        status: 'completed',
+        correlationId: snapshot.correlationId,
+        inputCid: 'bafyinput',
+        acceptedAttemptN: 2,
+        tags: spec.tags,
+        input: spec.input,
+      },
+      attempt: {
+        taskId: id,
+        attemptN: 2,
+        status: 'completed',
+        outputCid: 'bafyoutput',
+        output,
+      },
+    };
+  }
+  const extractionFixture = fixture(
+    'extract-task',
+    buildSpec(issue, 'getlarge/themoltnet', false),
+    { result: { criteria } },
+  );
+  const classifierSpec = buildClassifierSpec(
+    issue,
+    'getlarge/themoltnet',
+    snapshot.correlationId,
+    criteria,
+  );
+  writeFileSync(extractionPath, JSON.stringify(extractionFixture));
+  writeFileSync(
+    classifierPath,
+    JSON.stringify(
+      fixture('classifier-task', classifierSpec, { result: { criteria } }),
+    ),
+  );
   writeFileSync(outputPath, '');
   writeFileSync(callsPath, '');
   writeFileSync(cliPackagesPath, '');
   writeFileSync(
     join(dir, 'npx'),
-    '#!/bin/sh\nprintf "%s\\n" "$2" >> "$CLI_PACKAGES"\nif [ "$5" = classifier-task ]; then cat "$CLASSIFIER_FIXTURE"; else cat "$EXTRACTION_FIXTURE"; fi\n',
+    `#!/usr/bin/env node
+const fs = require('node:fs');
+const args = process.argv.slice(2);
+fs.appendFileSync(process.env.CLI_PACKAGES, args[1] + '\\n');
+const data = JSON.parse(fs.readFileSync(args[4] === 'classifier-task' ? process.env.CLASSIFIER_FIXTURE : process.env.EXTRACTION_FIXTURE, 'utf8'));
+process.stdout.write(JSON.stringify(args[3] === 'get' ? data.task : data.attempt));
+`,
     { mode: 0o755 },
   );
   writeFileSync(
     join(dir, 'gh'),
-    '#!/bin/sh\nprintf "%s\\n" "$*" >> "$GH_CALLS"\nif [ "$3" = GET ]; then printf "%s" "$ISSUE_FIXTURE"; elif [ "$3" = POST ] && [ "$4" = repos/getlarge/themoltnet/issues/42/comments ]; then cat > "$GH_BODY"; fi\n',
+    `#!/usr/bin/env node
+const fs = require('node:fs');
+const args = process.argv.slice(2);
+fs.appendFileSync(process.env.GH_CALLS, args.join(' ') + '\\n');
+if (args[2] === 'GET') {
+  process.stdout.write(process.env.POST_WRITE_ISSUE && fs.existsSync(process.env.GH_BODY) ? process.env.POST_WRITE_ISSUE : process.env.ISSUE_FIXTURE);
+} else if (args[2] === 'POST' && args[3].endsWith('/comments')) {
+  fs.writeFileSync(process.env.GH_BODY, fs.readFileSync(0, 'utf8'));
+}
+`,
     { mode: 0o755 },
   );
   const env = {
@@ -309,6 +367,7 @@ test('prepares the next task from the accepted attempt and preserves labels if c
     GITHUB_REPOSITORY: 'getlarge/themoltnet',
     GITHUB_SERVER_URL: 'https://github.com',
     GITHUB_RUN_ID: '123456',
+    GITHUB_RUN_ATTEMPT: '2',
     ISSUE_NUMBER: '42',
     GITHUB_OUTPUT: outputPath,
     RUNNER_TEMP: dir,
@@ -328,6 +387,7 @@ test('prepares the next task from the accepted attempt and preserves labels if c
     readFileSync(join(dir, 'issue-triage-snapshot.json'), 'utf8'),
   );
   assert.equal(initialSpec.correlationId, initialSnapshot.correlationId);
+  assert.match(initialSnapshot.sourceRevision, /^[a-f0-9]{40}$/);
   assert.match(
     readFileSync(outputPath, 'utf8'),
     new RegExp(`correlation-id=${initialSpec.correlationId}`),
@@ -376,6 +436,33 @@ test('prepares the next task from the accepted attempt and preserves labels if c
   const published = run('publish');
   assert.equal(published.status, 0, published.stderr);
   assert.match(published.stderr, /Classifier pilot result unavailable/);
+  const receipt = JSON.parse(
+    readFileSync(join(dir, 'issue-triage-receipt.json'), 'utf8'),
+  );
+  assert.equal(receipt.version, 1);
+  assert.equal(
+    receipt.issue.contentDigest,
+    issueContentDigest('getlarge/themoltnet', snapshot),
+  );
+  assert.equal(receipt.issue.body, snapshot.body);
+  assert.deepEqual(receipt.extraction, {
+    taskId: 'extract-task',
+    attemptN: 2,
+    inputCid: 'bafyinput',
+    outputCid: 'bafyoutput',
+  });
+  assert.deepEqual(receipt.workflow, {
+    runId: '123456',
+    runAttempt: 2,
+    sourceRevision: snapshot.sourceRevision,
+  });
+  assert.equal(receipt.ready, true);
+  assert.equal(receipt.classification, undefined);
+  assert.match(receipt.meaning, /not delivery approval/);
+  assert.match(
+    readFileSync(outputPath, 'utf8'),
+    /receipt=.*issue-triage-receipt.json/,
+  );
   const fallbackComment = JSON.parse(readFileSync(bodyPath, 'utf8')).body;
   assert.match(fallbackComment, /Agent workflow spend/);
   assert.match(
@@ -406,10 +493,9 @@ test('prepares the next task from the accepted attempt and preserves labels if c
   };
   writeFileSync(
     classifierPath,
-    JSON.stringify({
-      version: 1,
-      answers,
-    }),
+    JSON.stringify(
+      fixture('classifier-task', classifierSpec, { version: 1, answers }),
+    ),
   );
   const classified = run('publish');
   assert.equal(classified.status, 0, classified.stderr);
@@ -444,4 +530,262 @@ test('prepares the next task from the accepted attempt and preserves labels if c
   assert.notEqual(mismatched.status, 0);
   assert.match(mismatched.stderr, /different correlation ID/);
   assert.equal(readFileSync(callsPath, 'utf8'), callsAfterClassification);
+
+  // An accepted task with the same correlation but different input is not this triage.
+  writeFileSync(
+    extractionPath,
+    JSON.stringify({
+      ...extractionFixture,
+      task: {
+        ...extractionFixture.task,
+        input: { ...extractionFixture.task.input, brief: 'Different issue' },
+      },
+    }),
+  );
+  const wrongTask = run('publish');
+  assert.notEqual(wrongTask.status, 0);
+  assert.match(wrongTask.stderr, /does not match the issue snapshot/);
+  assert.equal(readFileSync(callsPath, 'utf8'), callsAfterClassification);
+  writeFileSync(extractionPath, JSON.stringify(extractionFixture));
+
+  const receiptPath = join(dir, 'issue-triage-receipt.json');
+  rmSync(receiptPath);
+  writeFileSync(outputPath, '');
+  env.ISSUE_FIXTURE = JSON.stringify({
+    ...issue,
+    title: 'Changed before publication',
+    updated_at: snapshot.updatedAt,
+  });
+  const stale = run('publish');
+  assert.equal(stale.status, 0, stale.stderr);
+  assert.match(stale.stdout, /skipping stale result/);
+  assert.equal(readFileSync(outputPath, 'utf8'), '');
+  assert.throws(() => readFileSync(receiptPath));
+
+  // Writes legitimately change updated_at; unchanged content still emits a receipt.
+  env.ISSUE_FIXTURE = JSON.stringify({
+    ...issue,
+    updated_at: snapshot.updatedAt,
+  });
+  env.POST_WRITE_ISSUE = JSON.stringify({
+    ...issue,
+    updated_at: '2026-10-13T11:00:00Z',
+  });
+  rmSync(bodyPath);
+  const timestampOnly = run('publish');
+  assert.equal(timestampOnly.status, 0, timestampOnly.stderr);
+  assert.match(readFileSync(outputPath, 'utf8'), /receipt=/);
+
+  rmSync(receiptPath);
+  rmSync(bodyPath);
+  writeFileSync(outputPath, '');
+  env.POST_WRITE_ISSUE = JSON.stringify({
+    ...issue,
+    body: 'Changed during publication',
+    updated_at: '2026-10-13T11:00:00Z',
+  });
+  const changed = run('publish');
+  assert.equal(changed.status, 0, changed.stderr);
+  assert.match(changed.stdout, /no current triage receipt/);
+  assert.equal(readFileSync(outputPath, 'utf8'), '');
+  assert.throws(() => readFileSync(receiptPath));
+  rmSync(bodyPath);
+  env.POST_WRITE_ISSUE = JSON.stringify({
+    ...issue,
+    state: 'closed',
+    updated_at: '2026-10-13T11:00:00Z',
+  });
+  const closed = run('publish');
+  assert.equal(closed.status, 0, closed.stderr);
+  assert.match(closed.stdout, /no current triage receipt/);
+  assert.equal(readFileSync(outputPath, 'utf8'), '');
+  assert.throws(() => readFileSync(receiptPath));
+});
+
+test('validates accepted task provenance rather than trusting correlation alone', () => {
+  const expected = buildSpec(issue, 'getlarge/themoltnet', false);
+  const task = {
+    id: 'task',
+    teamId: 'team',
+    taskType: 'freeform',
+    status: 'completed',
+    correlationId: expected.correlationId,
+    inputCid: 'bafyinput',
+    input: expected.input,
+    tags: expected.tags,
+    acceptedAttemptN: 2,
+  };
+  const attempt = {
+    taskId: 'task',
+    attemptN: 2,
+    status: 'completed',
+    outputCid: 'bafyoutput',
+    output: { result: {} },
+  };
+  assert.equal(
+    validateAcceptedTask(task, attempt, expected, 'task', 'team').receipt
+      .attemptN,
+    2,
+  );
+  assert.throws(() =>
+    validateAcceptedTask(
+      { ...task, teamId: undefined },
+      attempt,
+      expected,
+      'task',
+      undefined,
+    ),
+  );
+  for (const patch of [
+    { id: 'other' },
+    { teamId: 'other' },
+    { taskType: 'classify' },
+    { status: 'failed' },
+    { correlationId: 'other' },
+    { inputCid: null },
+    { tags: [] },
+    { acceptedAttemptN: 1 },
+  ]) {
+    assert.throws(() =>
+      validateAcceptedTask(
+        { ...task, ...patch },
+        attempt,
+        expected,
+        'task',
+        'team',
+      ),
+    );
+  }
+  for (const patch of [
+    { taskId: 'other' },
+    { attemptN: 1 },
+    { status: 'running' },
+    { outputCid: null },
+    { output: null },
+  ]) {
+    assert.throws(() =>
+      validateAcceptedTask(
+        task,
+        { ...attempt, ...patch },
+        expected,
+        'task',
+        'team',
+      ),
+    );
+  }
+});
+
+test('binds the canonical service-normalized freeform input without accepting arbitrary criteria', () => {
+  const expected = buildSpec(issue, 'getlarge/themoltnet', false);
+  // The service adds this gate to older requests that omitted successCriteria.
+  // New requests state the identical contract so normalization is idempotent.
+  const { successCriteria: _explicitCriteria, ...olderRequestInput } =
+    expected.input;
+  const normalized = spawnSync(
+    process.execPath,
+    [
+      '--import',
+      'tsx',
+      '--input-type=module',
+      '-e',
+      `
+import {readFileSync} from 'node:fs';
+import {normalizeTaskInputForCreate} from './libs/tasks/src/validation.ts';
+const inputs = JSON.parse(readFileSync(0, 'utf8'));
+process.stdout.write(JSON.stringify(inputs.map(input => normalizeTaskInputForCreate('freeform', input))));
+`,
+    ],
+    {
+      input: JSON.stringify([olderRequestInput, expected.input]),
+      encoding: 'utf8',
+    },
+  );
+  assert.equal(normalized.status, 0, normalized.stderr);
+  const [normalizedInput, normalizedExplicitInput] = JSON.parse(
+    normalized.stdout,
+  );
+  assert.deepEqual(expected.input, normalizedExplicitInput);
+  assert.deepEqual(expected.input, normalizedInput);
+  const task = {
+    id: 'task',
+    teamId: 'team',
+    taskType: 'freeform',
+    status: 'completed',
+    correlationId: expected.correlationId,
+    inputCid: 'bafyinput',
+    input: normalizedInput,
+    tags: expected.tags,
+    acceptedAttemptN: 1,
+  };
+  const attempt = {
+    taskId: 'task',
+    attemptN: 1,
+    status: 'completed',
+    outputCid: 'bafyoutput',
+    output: { result: {} },
+  };
+  assert.equal(
+    validateAcceptedTask(task, attempt, expected, 'task', 'team').receipt
+      .attemptN,
+    1,
+  );
+  assert.throws(() =>
+    validateAcceptedTask(
+      { ...task, input: olderRequestInput },
+      attempt,
+      expected,
+      'task',
+      'team',
+    ),
+  );
+  assert.throws(() =>
+    validateAcceptedTask(
+      {
+        ...task,
+        input: {
+          ...normalizedInput,
+          successCriteria: {
+            ...normalizedInput.successCriteria,
+            rubric: { criteria: [] },
+          },
+        },
+      },
+      attempt,
+      expected,
+      'task',
+      'team',
+    ),
+  );
+});
+
+test('content digest is stable across projection changes and binds exact issue identity and text', () => {
+  const digest = issueContentDigest('getlarge/themoltnet', issue);
+  assert.equal(
+    digest,
+    issueContentDigest('GETLARGE/THEMOLTNET', {
+      ...issue,
+      labels: [],
+      updated_at: 'new',
+    }),
+  );
+  for (const patch of [
+    { number: 43 },
+    { title: 'Changed' },
+    { body: issue.body + ' ' },
+  ]) {
+    assert.notEqual(
+      digest,
+      issueContentDigest('getlarge/themoltnet', { ...issue, ...patch }),
+    );
+  }
+  assert.notEqual(digest, issueContentDigest('other/repo', issue));
+  assert.throws(
+    () =>
+      buildSpec(
+        { ...issue, body: 'x'.repeat(60_001) },
+        'getlarge/themoltnet',
+        false,
+      ),
+    /oversized/,
+  );
 });
