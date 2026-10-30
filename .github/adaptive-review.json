@@ -321,6 +321,13 @@
         "packages/*review-action/**"
       ],
       "source": ".github/workflows/adaptive-review-reusable.yml"
+    },
+    {
+      "description": "For changes that affect UI appearance, copy, states or interaction, assess screenshots or recordings and justified alternatives under the trusted UI visual evidence criteria. This can include backend changes with UI impact. Missing, stale, insufficient, truncated or uninspectable evidence is a coverage gap (unclear), not an invented code finding. Do not require visual evidence for changes with no UI impact.",
+      "id": "ui-visual-evidence",
+      "kind": "semantic",
+      "paths": ["**"],
+      "source": "REVIEW.md#ui-visual-evidence"
     }
   ],
   "version": 1

@@ -34,3 +34,19 @@ The classifier may also add `bug`, `enhancement`, or `question` when its
 selected category has at least 85% probability and the issue has no category
 label. It never assigns a label for `other` or replaces an existing category
 label.
+
+After publication, triage reads the issue again and retains an
+`issue-triage-<repository-id>-<issue>-<run-id>-<run-attempt>` artifact for 14
+days only if the issue remains open with the same title and body. Its versioned
+JSON receipt contains that exact issue snapshot and content digest, validated
+quality judgments, the accepted extraction attempt and input/output CIDs, and
+the producer run identity and checked-out source revision. Classification, when
+available, is advisory. CIDs are recorded from the authenticated task API; this
+producer does not independently recompute them.
+
+The receipt records issue quality, not human approval or a rubric proving an
+implementation is correct. A downstream reviewer must validate the producer
+workflow and artifact provenance, accepted task identity, and current issue
+content before using it. Labels, comment markers, and a supplied JSON file alone
+are not authority. Adaptive review does not consume these receipts yet; this
+handoff allows that integration without requiring a MoltNet delivery task.

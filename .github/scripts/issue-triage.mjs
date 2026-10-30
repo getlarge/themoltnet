@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { readFileSync, writeFileSync } from 'node:fs';
 
 export const CRITERIA = [
@@ -70,8 +71,9 @@ export function buildSpec(issue, repo, sweep) {
   if (sweep && !issue.labels.some((label) => label.name === 'needs-spec')) {
     return null;
   }
-  const body = (issue.body || '').slice(0, 60_000);
-  const title = issue.title.slice(0, 500);
+  validateIssueSnapshot(issue);
+  const body = issue.body || '';
+  const title = issue.title;
   const brief = [
     `Evaluate GitHub issue ${repo}#${issue.number} against these five quality criteria:`,
     '1. acceptance-criteria: a Done when, checklist, or acceptance criteria section with verifiable outcomes.',
@@ -97,6 +99,20 @@ export function buildSpec(issue, repo, sweep) {
       expectedOutput:
         'Put {"criteria":[{"id":"...","passed":true,"reason":"...","evidence":["exact issue excerpt"]}]} in result; add a brief summary.',
       outputContract: { version: 1, schema: RESULT_SCHEMA },
+      // Match the service's freeform normalization so persisted input can be
+      // compared exactly. This is a submission gate, not an issue-quality rubric.
+      successCriteria: {
+        version: 1,
+        gates: [
+          {
+            id: 'submit-output',
+            kind: 'submit-tool-call',
+            description:
+              'Call `submit_freeform_output` exactly once with valid structured output.',
+            required: true,
+          },
+        ],
+      },
       constraints: [
         'Use only the issue title and body in this brief.',
         'Do not call any tools except submit_freeform_output.',
@@ -141,7 +157,9 @@ export function parseVerdict(output, issue) {
   return CRITERIA.map((id) => {
     const item = criteria.find((candidate) => candidate.id === id);
     return {
-      ...item,
+      id: item.id,
+      passed: item.passed,
+      reason: item.reason,
       evidence: item.evidence.filter((quote) => source.includes(quote)),
     };
   });
@@ -388,6 +406,7 @@ function prepare() {
   writeFileSync(
     `${dir}/issue-triage-snapshot.json`,
     JSON.stringify({
+      sourceRevision: command('git', ['rev-parse', 'HEAD']),
       updatedAt: issue.updated_at,
       title: issue.title,
       body: issue.body || '',
@@ -408,7 +427,7 @@ function assertCorrelation(snapshot, actual, stage) {
   }
 }
 
-function taskOutput(taskId) {
+function taskRead(operation, taskId, extra = []) {
   const cliPackage =
     process.env.MOLTNET_CLI_PACKAGE ||
     `@themoltnet/cli@${process.env.MOLTNET_CLI_VERSION || 'latest'}`;
@@ -417,17 +436,159 @@ function taskOutput(taskId) {
       '-y',
       cliPackage,
       'task',
-      'attempts',
+      operation,
       taskId,
       '--team-id',
       process.env.MOLTNET_TEAM_ID,
-      '--accepted-only',
-      '--field',
-      'output',
+      ...extra,
       '--api-url',
       process.env.MOLTNET_API_URL || 'https://api.themolt.net',
     ]),
   );
+}
+
+function boundedIdentifier(value) {
+  return (
+    typeof value === 'string' &&
+    value.length > 0 &&
+    value.length <= 256 &&
+    !/\s/.test(value)
+  );
+}
+
+export function validateIssueSnapshot(issue) {
+  if (
+    !Number.isSafeInteger(issue?.number) ||
+    issue.number < 1 ||
+    typeof issue.title !== 'string' ||
+    !issue.title.trim() ||
+    issue.title.length > 500 ||
+    (issue.body != null && typeof issue.body !== 'string') ||
+    (issue.body || '').length > 60_000
+  ) {
+    throw new Error('invalid or oversized triage issue snapshot');
+  }
+}
+
+/** Explicit, canonical tuple: labels, timestamps and mutable projections are excluded. */
+export function issueContentDigest(repo, issue) {
+  issuePath(repo, issue.number);
+  validateIssueSnapshot(issue);
+  return createHash('sha256')
+    .update(
+      JSON.stringify([
+        repo.toLowerCase(),
+        issue.number,
+        issue.title,
+        issue.body || '',
+      ]),
+    )
+    .digest('hex');
+}
+
+export function validateAcceptedTask(task, attempt, expected, taskId, teamId) {
+  if (
+    !boundedIdentifier(taskId) ||
+    !boundedIdentifier(teamId) ||
+    !task ||
+    task.id !== taskId ||
+    task.teamId !== teamId ||
+    task.taskType !== expected.taskType ||
+    task.status !== 'completed' ||
+    task.correlationId !== expected.correlationId ||
+    !boundedIdentifier(task.inputCid) ||
+    !isDeepStrictEqual(task.input, expected.input) ||
+    !Array.isArray(task.tags) ||
+    !expected.tags.every((tag) => task.tags.includes(tag)) ||
+    !attempt ||
+    attempt.taskId !== taskId ||
+    attempt.status !== 'completed' ||
+    !Number.isSafeInteger(attempt.attemptN) ||
+    attempt.attemptN < 1 ||
+    task.acceptedAttemptN !== attempt.attemptN ||
+    !boundedIdentifier(attempt.outputCid) ||
+    !attempt.output ||
+    typeof attempt.output !== 'object' ||
+    Array.isArray(attempt.output)
+  ) {
+    throw new Error(
+      'accepted triage task does not match the issue snapshot and task contract',
+    );
+  }
+  return {
+    output: attempt.output,
+    receipt: {
+      taskId,
+      attemptN: attempt.attemptN,
+      inputCid: task.inputCid,
+      outputCid: attempt.outputCid,
+    },
+  };
+}
+
+function acceptedTask(taskId, expected) {
+  return validateAcceptedTask(
+    taskRead('get', taskId),
+    taskRead('attempts', taskId, ['--accepted-only']),
+    expected,
+    taskId,
+    process.env.MOLTNET_TEAM_ID,
+  );
+}
+
+function extractionFor(snapshot) {
+  const expected = buildSpec(
+    { ...snapshot, state: 'open' },
+    process.env.GITHUB_REPOSITORY,
+    false,
+  );
+  expected.correlationId = snapshot.correlationId;
+  return acceptedTask(process.env.EXTRACTION_TASK_ID, expected);
+}
+
+function buildTriageReceipt({
+  repo,
+  snapshot,
+  criteria,
+  extraction,
+  classification,
+  runId,
+  runAttempt,
+}) {
+  const issueDigest = issueContentDigest(repo, snapshot);
+  if (
+    !/^[1-9]\d{0,19}$/.test(String(runId)) ||
+    !Number.isSafeInteger(Number(runAttempt)) ||
+    Number(runAttempt) < 1 ||
+    !boundedIdentifier(snapshot.correlationId) ||
+    !/^[a-f0-9]{40}$/.test(snapshot.sourceRevision || '')
+  )
+    throw new Error('invalid triage workflow provenance');
+  return {
+    version: 1,
+    kind: 'issue-triage',
+    repository: repo,
+    issue: {
+      number: snapshot.number,
+      title: snapshot.title,
+      body: snapshot.body || '',
+      contentDigest: issueDigest,
+    },
+    correlationId: snapshot.correlationId,
+    extraction,
+    criteria,
+    ready: criteria.every((criterion) => criterion.passed),
+    meaning:
+      'Issue quality assessment only; not delivery approval or an implementation acceptance rubric.',
+    ...(classification
+      ? { classification: { advisory: true, ...classification } }
+      : {}),
+    workflow: {
+      runId: String(runId),
+      runAttempt: Number(runAttempt),
+      sourceRevision: snapshot.sourceRevision,
+    },
+  };
 }
 
 function prepareClassifier() {
@@ -438,10 +599,7 @@ function prepareClassifier() {
     'extraction',
   );
   const issue = { ...snapshot, number: snapshot.number };
-  const criteria = parseVerdict(
-    taskOutput(process.env.EXTRACTION_TASK_ID),
-    issue,
-  );
+  const criteria = parseVerdict(extractionFor(snapshot).output, issue);
   const spec = buildClassifierSpec(
     issue,
     process.env.GITHUB_REPOSITORY,
@@ -472,15 +630,21 @@ async function publish() {
     );
   }
   const path = issuePath(process.env.GITHUB_REPOSITORY, snapshot.number);
-  const criteria = parseVerdict(
-    taskOutput(process.env.EXTRACTION_TASK_ID),
-    snapshot,
-  );
+  const extraction = extractionFor(snapshot);
+  const criteria = parseVerdict(extraction.output, snapshot);
   let classification;
   if (process.env.CLASSIFIER_TASK_ID) {
     try {
       classification = parseClassification(
-        taskOutput(process.env.CLASSIFIER_TASK_ID),
+        acceptedTask(
+          process.env.CLASSIFIER_TASK_ID,
+          buildClassifierSpec(
+            snapshot,
+            process.env.GITHUB_REPOSITORY,
+            snapshot.correlationId,
+            criteria,
+          ),
+        ).output,
       );
     } catch (error) {
       process.stderr.write(
@@ -488,6 +652,15 @@ async function publish() {
       );
     }
   }
+  const receipt = buildTriageReceipt({
+    repo: process.env.GITHUB_REPOSITORY,
+    snapshot,
+    criteria,
+    extraction: extraction.receipt,
+    classification,
+    runId: process.env.GITHUB_RUN_ID,
+    runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+  });
   const issue = gh('GET', path);
   if (
     issue.state !== 'open' ||
@@ -543,6 +716,24 @@ async function publish() {
           classifierTaskId: process.env.CLASSIFIER_TASK_ID,
         },
       ) + spendSummary,
+  });
+  // Label/comment writes may change updated_at, so compare content and state here.
+  const current = gh('GET', path);
+  if (
+    current.state !== 'open' ||
+    current.pull_request ||
+    issueContentDigest(process.env.GITHUB_REPOSITORY, current) !==
+      receipt.issue.contentDigest
+  ) {
+    process.stdout.write(
+      'Issue changed during publication; no current triage receipt emitted.\n',
+    );
+    return;
+  }
+  const receiptPath = `${process.env.RUNNER_TEMP}/issue-triage-receipt.json`;
+  writeFileSync(receiptPath, JSON.stringify(receipt));
+  writeFileSync(process.env.GITHUB_OUTPUT, `receipt=${receiptPath}\n`, {
+    flag: 'a',
   });
 }
 
