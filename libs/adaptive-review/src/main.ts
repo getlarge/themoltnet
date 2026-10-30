@@ -9,6 +9,7 @@ import {
   type CliDeps,
   jsonLines,
   PROFILE_ENV,
+  type PullRequest,
   pullRequestFiles,
   reportStageFailure,
   runAdaptiveStage,
@@ -85,6 +86,11 @@ const deps: CliDeps = {
         ]),
       ) as { headRefOid: string; baseRefOid: string };
       return { head: current.headRefOid, base: current.baseRefOid };
+    },
+    async pullRequest(repo, pr) {
+      return JSON.parse(
+        await gh(['api', `repos/${repo}/pulls/${pr}`]),
+      ) as PullRequest;
     },
     async files(repo, pr) {
       return pullRequestFiles(

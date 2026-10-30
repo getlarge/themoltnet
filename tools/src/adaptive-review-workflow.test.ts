@@ -41,7 +41,8 @@ const workflow = parse(
   read('../../.github/workflows/adaptive-review-reusable.yml'),
 ) as { jobs: Record<string, Job> };
 const caller = parse(read('../../.github/workflows/adaptive-review.yml')) as {
-  jobs: Record<string, Job & { with: Record<string, string> }>;
+  on: Record<string, unknown>;
+  jobs: Record<string, Job & { uses: string; with: Record<string, string> }>;
 };
 const action = parse(
   read('../../packages/adaptive-review-action/action.yml'),
@@ -126,7 +127,9 @@ function workerAction(name: string): Step {
 
 describe('adaptive review workflow trust gates', () => {
   it('gates every downstream job that can reach credentials', () => {
-    expect(job('prepare').if).toBe('github.event.pull_request.draft == false');
+    expect(job('prepare').if).toBe(
+      "github.event_name == 'issue_comment' || github.event.pull_request.draft == false",
+    );
     expect(job('route').if).toContain("needs.prepare.outputs.skip == 'false'");
     expect(job('review').if).toBe("needs.route.result == 'success'");
     expect(job('classifier-worker').if).toBe(
@@ -162,13 +165,38 @@ describe('adaptive review workflow trust gates', () => {
     }
   });
 
-  it('protects the shared gate and head fetch script in the caller', () => {
-    expect(caller.jobs.review.with['protected-paths'].split('\n')).toEqual(
-      expect.arrayContaining([
-        'libs/docs-impact-review/src/eligibility.ts',
-        'tools/adaptive-review-action-digest.sh',
-        'tools/fetch-adaptive-review-head.sh',
-      ]),
+  it('protects only the callers that run from the pull request revision', () => {
+    // The reusable workflow is pinned to main and the runtime to the base
+    // commit, so review code changed by the PR never executes.
+    expect(caller.jobs.review.uses).toMatch(
+      /adaptive-review-reusable\.yml@main$/,
+    );
+    expect(
+      caller.jobs.review.with['protected-paths'].trim().split('\n'),
+    ).toEqual([
+      '.github/workflows/adaptive-review.yml',
+      '.github/workflows/adaptive-review-outcomes.yml',
+    ]);
+  });
+
+  it('reruns on a review request from a trusted commenter only', () => {
+    const condition = caller.jobs.review.if;
+    expect(caller.on).toHaveProperty('issue_comment.types', ['created']);
+    for (const guard of [
+      'github.event.issue.pull_request != null',
+      "github.event.issue.state == 'open'",
+      "github.event.comment.body == '/review'",
+      "github.event.comment.user.type == 'User'",
+      'contains(fromJSON(\'["OWNER","MEMBER","COLLABORATOR"]\'), github.event.comment.author_association)',
+    ])
+      expect(condition).toContain(guard);
+    expect(caller.jobs.review.with.mode).toBe(
+      "${{ github.event_name == 'issue_comment' && 'shadow' || vars.MOLTNET_ADAPTIVE_REVIEW_MODE || 'active' }}",
+    );
+    const resolve = step('prepare', (item) => item.id === 'pr');
+    expect(resolve.if).toBe("github.event_name == 'issue_comment'");
+    expect(stepIndex('prepare', (item) => item.id === 'pr')).toBeLessThan(
+      stepIndex('prepare', (item) => item.id === 'screen'),
     );
   });
 
@@ -195,7 +223,9 @@ describe('adaptive review workflow trust gates', () => {
         'prepare',
         (item) => item.uses?.startsWith('actions/checkout@') ?? false,
       ).with?.ref,
-    ).toBe('${{ github.event.pull_request.base.sha }}');
+    ).toBe(
+      '${{ github.event.pull_request.base.sha || steps.pr.outputs.base }}',
+    );
   });
 
   it('exposes the stage outputs the jobs consume', () => {
@@ -289,7 +319,7 @@ describe('adaptive review workflow trust gates', () => {
 
   it('consumes the producer artifact when only a failed downstream job is rerun', () => {
     const name =
-      'adaptive-route-${{ github.repository_id }}-${{ github.event.pull_request.number }}-${{ github.run_attempt }}';
+      'adaptive-route-${{ github.repository_id }}-${{ github.event.pull_request.number || github.event.issue.number }}-${{ github.run_attempt }}';
     expect(
       step('route', (item) => item.name === 'Upload routing decision').with
         ?.name,
@@ -313,7 +343,7 @@ describe('adaptive review workflow trust gates', () => {
     expect(
       step('review', (item) => item.name === 'Upload review report').with?.name,
     ).toBe(
-      'adaptive-review-${{ github.repository_id }}-${{ github.event.pull_request.number }}-${{ github.run_attempt }}',
+      'adaptive-review-${{ github.repository_id }}-${{ github.event.pull_request.number || github.event.issue.number }}-${{ github.run_attempt }}',
     );
   });
 

@@ -3,12 +3,26 @@ name: Adaptive review
 on:
   pull_request:
     types: [opened, ready_for_review, synchronize, reopened]
+  # A comment of exactly `/review` from an owner, member, or collaborator
+  # reruns the review on demand and investigates every enabled lane, like
+  # `/triage` on issues.
+  issue_comment:
+    types: [created]
 
 permissions: {}
 
 jobs:
   review:
-    if: vars.MOLTNET_ADAPTIVE_REVIEW_CLEF_ENABLED == 'true' && github.event.pull_request.draft == false
+    if: |
+      vars.MOLTNET_ADAPTIVE_REVIEW_ENABLED == 'true' &&
+      ((github.event_name == 'pull_request' &&
+          github.event.pull_request.draft == false) ||
+        (github.event_name == 'issue_comment' &&
+          github.event.issue.pull_request != null &&
+          github.event.issue.state == 'open' &&
+          github.event.comment.body == '/review' &&
+          github.event.comment.user.type == 'User' &&
+          contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)))
     uses: getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml@main
     permissions:
       actions: read
@@ -17,7 +31,9 @@ jobs:
     secrets: inherit
     with:
       environment: legreffier
-      mode: ${{ vars.MOLTNET_ADAPTIVE_REVIEW_MODE || 'shadow' }}
+      # A requested review investigates every lane; automatic runs follow
+      # the classifier.
+      mode: ${{ github.event_name == 'issue_comment' && 'shadow' || vars.MOLTNET_ADAPTIVE_REVIEW_MODE || 'active' }}
       classifier-profile: legreffier-issue-classifier-v2
       docs-profile: legreffier-adaptive-docs-review-v1
       complexity-profile: legreffier-complexity-review-v2
@@ -29,17 +45,13 @@ jobs:
         security:
           timeout: 15m
       providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY supports-developer-role=false
+      # Only these callers run from the pull request's own revision. The
+      # reusable workflow comes from main and the runtime from the base commit,
+      # so a pull request changing the review code is reviewed by the trusted
+      # version and its changes are read only as data.
       protected-paths: |
         .github/workflows/adaptive-review.yml
-        .github/workflows/adaptive-review-reusable.yml
         .github/workflows/adaptive-review-outcomes.yml
-        .github/workflows/adaptive-review-outcomes-reusable.yml
-        .github/runtime-profiles/legreffier-adaptive-
-        .github/runtime-policies/
-        libs/adaptive-review/
-        libs/docs-impact-review/src/eligibility.ts
-        packages/adaptive-review-action/
-        packages/agent-daemon-action/
-        tools/adaptive-review-action-digest.sh
-        tools/fetch-adaptive-review-head.sh
+      # A comment event carries no base commit; the runtime then comes from
+      # the trusted reusable workflow's commit on main.
       runtime-ref: ${{ github.event.pull_request.base.sha }}
