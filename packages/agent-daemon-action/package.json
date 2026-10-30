@@ -40,13 +40,6 @@
     "node": ">=22"
   },
   "nx": {
-    "namedInputs": {
-      "default": [
-        "{projectRoot}/**/*",
-        "sharedGlobals",
-        "{workspaceRoot}/.github/workflows/multi-lens-review.yml"
-      ]
-    },
     "implicitDependencies": [
       "@themoltnet/agent-daemon"
     ],

@@ -3,8 +3,7 @@
 This runbook covers DBOS workflows owned by the REST API. For the conceptual
 model, lifecycle boundaries, and transaction semantics, read
 [Architecture: DBOS durable workflows](../understand/architecture.md#dbos-durable-workflows).
-Absurd-backed Issue Lifecycle and Multi-Lens Review workflows are outside this
-runbook.
+The Absurd-backed Issue Lifecycle workflow is outside this runbook.
 
 Inventory queries are read-only unless a section is explicitly marked as a
 repair. Treat workflow errors and application identifiers as potentially

@@ -1,6 +1,6 @@
 ---
 name: absurd
-description: Author, test, debug, and operate Absurd durable workflows. Use when working with WorkflowContext, tasks-orchestrator, parallelTasks, issue-lifecycle, multi-lens-review, Absurd queues, checkpoints, events, retries, idempotency, worker recovery, absurd-sdk, or uvx absurdctl.
+description: Author, test, debug, and operate Absurd durable workflows. Use when working with WorkflowContext, tasks-orchestrator, parallelTasks, issue-lifecycle, Absurd queues, checkpoints, events, retries, idempotency, worker recovery, absurd-sdk, or uvx absurdctl.
 license: Apache-2.0
 ---
 

@@ -17,7 +17,6 @@ output redirection.
 | [`legreffier-security-review-readonly-v1.json`](./legreffier-security-review-readonly-v1.json)         | `legreffier-security-review-v2`                                                                  |
 | [`legreffier-complexity-review-input-only-v1.json`](./legreffier-complexity-review-input-only-v1.json) | `legreffier-complexity-review-v2`                                                                |
 | [`legreffier-issue-triage-input-only-v1.json`](./legreffier-issue-triage-input-only-v1.json)           | `legreffier-issue-triage-v1`, `legreffier-issue-classifier-v1`, `legreffier-issue-classifier-v2` |
-| [`multi-lens-review-readonly-v1.json`](./multi-lens-review-readonly-v1.json)                           | `multi-lens-review-v1`                                                                           |
 
 The definitions here are the reviewable source of truth. They are **not**
 applied automatically — the server holds the live state, and these files are

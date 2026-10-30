@@ -34,9 +34,6 @@
       "path": "./apps/issue-lifecycle"
     },
     {
-      "path": "./apps/multi-lens-review"
-    },
-    {
       "path": "./libs/docs-impact-review"
     },
     {

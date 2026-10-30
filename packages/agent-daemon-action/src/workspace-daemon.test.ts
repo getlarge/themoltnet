@@ -11,30 +11,17 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
-import { parse } from 'yaml';
 
 import { loadAction, stepById, stepByName } from './test-support.js';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const workspaceRoot = resolve(packageRoot, '../..');
-const multiLensWorkflowPath = resolve(
-  workspaceRoot,
-  '.github/workflows/multi-lens-review.yml',
-);
 const daemonSourcePath = resolve(
   workspaceRoot,
   'apps/agent-daemon/src/main.ts',
 );
 
-interface WorkflowFile {
-  jobs: Record<string, { env?: Record<string, string> }>;
-}
-
 const action = loadAction();
-const workflow = parse(
-  readFileSync(multiLensWorkflowPath, 'utf8'),
-) as WorkflowFile;
-
 const actionStep = (name: string) => stepByName(action, name);
 const actionStepById = (id: string) => stepById(action, id);
 
@@ -327,25 +314,6 @@ describe('workspace daemon action contract', () => {
     expect(run).toContain(
       'Agent-key authentication with a materialized agent tree',
     );
-  });
-
-  it('keeps multi-lens workers on the minimal configless secret set', () => {
-    const environments = [
-      workflow.jobs['runtime-preflight']?.env,
-      workflow.jobs['review-workers']?.env,
-    ];
-
-    for (const env of environments) {
-      expect(env).toMatchObject({
-        MOLTNET_AGENT_KEY: '${{ secrets.MOLTNET_AGENT_KEY }}',
-        MOLTNET_PRIVATE_KEY: '${{ secrets.MOLTNET_PRIVATE_KEY }}',
-      });
-      expect(env).not.toHaveProperty('MOLTNET_IDENTITY_ID');
-      expect(env).not.toHaveProperty('MOLTNET_CLIENT_ID');
-      expect(env).not.toHaveProperty('MOLTNET_CLIENT_SECRET');
-      expect(env).not.toHaveProperty('MOLTNET_PUBLIC_KEY');
-      expect(env).not.toHaveProperty('MOLTNET_FINGERPRINT');
-    }
   });
 
   it('boots the workspace daemon entrypoint with plain Node and tsx', () => {

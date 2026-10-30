@@ -8,7 +8,6 @@ export const pinFiles = [
   'libs/sandbox-gondolin/src/snapshot.ts',
   '.github/workflows/issue-triage.yml',
   '.github/workflows/legreffier-security-review.yml',
-  '.github/workflows/multi-lens-review.yml',
 ];
 const packages = ['cli', 'cli-linux-x64', 'cli-linux-arm64'];
 

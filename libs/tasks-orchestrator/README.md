@@ -290,10 +290,12 @@ import { inlineContext } from '@themoltnet/tasks-orchestrator';
 
 ## Example
 
-[`apps/multi-lens-review`](../../apps/multi-lens-review) is the canonical
-runnable fan-out + gated-join workflow: it fans out N specialist code reviews and
-joins them into one server-gated verdict, driving both `parallelTasks` and
-`joinCondition` end to end.
+[`libs/adaptive-review`](../adaptive-review) coordinates classifier-selected
+review tasks and validates their accepted outputs. See its
+[workflow guide](../../docs/workflows/index.md) for setup and operation.
+The orchestration primitives have focused examples in the
+[`parallelTasks` tests](./src/parallel.test.ts) and
+[`joinCondition` tests](./src/join.test.ts).
 
 ## License
 

@@ -3,13 +3,6 @@ import {
   GITHUB_ISSUE_LIFECYCLE_TASK,
   type GithubClient,
 } from '@themoltnet/issue-lifecycle';
-import {
-  createMultiLensReviewAbsurdApp,
-  MULTI_LENS_REVIEW_TASK,
-  type MultiLensReviewDeps,
-  type MultiLensReviewInput,
-  type ReviewManifest,
-} from '@themoltnet/multi-lens-review';
 import { FakeTasks } from '@themoltnet/tasks-orchestrator/testing';
 import { describe, expect, it } from 'vitest';
 
@@ -154,70 +147,6 @@ class SuccessfulGithub implements GithubClient {
   }
 }
 
-function reviewManifest(): ReviewManifest {
-  return {
-    version: 1,
-    rawDiffBytes: 4,
-    totalFiles: 1,
-    reviewableFiles: 1,
-    reviewableBytes: 4,
-    changedLoc: 2,
-    requiresPlanning: false,
-    files: [
-      {
-        path: 'src/change.ts',
-        status: 'modified',
-        additions: 1,
-        deletions: 1,
-        changedLoc: 2,
-        byteSize: 4,
-        patchSha256:
-          '9f64a747e1b97f131fabb6b447296c9b6f0201e79fb3c5356e6c77e89b6a806a',
-        language: 'typescript',
-        binary: false,
-        generated: false,
-        generatedSignals: [],
-        reviewable: true,
-        requiredLanes: ['correctness', 'dry-codebase-fit'],
-      },
-    ],
-    coverage: {
-      reviewableFiles: ['src/change.ts'],
-      excludedFiles: [],
-      primaryOwners: { 'src/change.ts': null },
-      laneCoverage: { 'src/change.ts': [] },
-      complete: false,
-    },
-    manifestArtifact: {
-      cid: 'bafkrei-manifest',
-      title: 'review-manifest.v1.json',
-      contentType: 'application/vnd.themoltnet.review-manifest+json;version=1',
-      sizeBytes: 100,
-    },
-  };
-}
-
-function multiLensDeps(tasks: FakeTasks): MultiLensReviewDeps {
-  let staged = 0;
-  return {
-    tasks,
-    patches: {
-      read: () => Promise.resolve(new Uint8Array([1, 2, 3, 4])),
-    },
-    artifacts: {
-      stage: (bytes, metadata) => {
-        staged += 1;
-        return Promise.resolve({
-          cid: `bafkrei-staged-${staged}`,
-          contentType: metadata.contentType,
-          sizeBytes: bytes.byteLength,
-        });
-      },
-      download: () => Promise.resolve(new Uint8Array([1, 2, 3, 4])),
-    },
-  };
-}
-
 describe('real orchestration app factories', () => {
   it('executes Issue Lifecycle through its registered Absurd task', async () => {
     const queueName = `issue-lifecycle-factory-${process.pid}-${Date.now()}`;
@@ -256,83 +185,6 @@ describe('real orchestration app factories', () => {
         new Set(tasks.creationOptions.map((options) => options?.idempotencyKey))
           .size,
       ).toBe(9);
-      expect(
-        tasks.creationOptions.every((options) =>
-          options?.idempotencyKey?.startsWith('absurd:'),
-        ),
-      ).toBe(true);
-    } finally {
-      await worker?.close();
-      await app.dropQueue(queueName).catch(() => undefined);
-      await app.close();
-    }
-  }, 60_000);
-
-  it('executes Multi-Lens Review through its registered Absurd task', async () => {
-    const queueName = `multi-lens-factory-${process.pid}-${Date.now()}`;
-    const topic = {
-      version: 1,
-      topicId: 'change',
-      laneResults: ['correctness', 'dry-codebase-fit'].map((lane) => ({
-        version: 1,
-        topicId: 'change',
-        lane,
-        findings: [],
-        reviewedFiles: ['src/change.ts'],
-        summary: 'Clean.',
-      })),
-    };
-    const tasks = new FakeTasks([
-      {
-        summary: JSON.stringify({
-          verdict: 'PROCEED',
-          summary: 'Proceed with the review.',
-        }),
-      },
-      { summary: JSON.stringify(topic) },
-      {
-        summary: JSON.stringify({
-          version: 1,
-          recommendation: 'approve',
-          findings: [],
-          summary: 'All topics clean.',
-          coverageComplete: true,
-        }),
-      },
-    ]);
-    const app = createMultiLensReviewAbsurdApp({
-      databaseUrl: ABSURD_URL,
-      queueName,
-      deps: multiLensDeps(tasks),
-    });
-    const input: MultiLensReviewInput = {
-      teamId: 'team',
-      diaryId: 'diary',
-      correlationId: 'factory-multi-lens',
-      target: 'pull request',
-      reviewBaseRevision: 'b'.repeat(40),
-      reviewRevision: 'a'.repeat(40),
-      reviewManifest: reviewManifest(),
-      pollIntervalSec: 1,
-    };
-    let worker: Awaited<ReturnType<typeof app.startWorker>> | null = null;
-    try {
-      await app.createQueue(queueName);
-      const spawned = await app.spawn(MULTI_LENS_REVIEW_TASK, input, {
-        queue: queueName,
-      });
-      worker = await app.startWorker({ concurrency: 1, claimTimeout: 10 });
-      const result = await app.awaitTaskResult(spawned.taskID, { timeout: 45 });
-
-      expect(result).toMatchObject({
-        state: 'completed',
-        result: { correlationId: input.correlationId, outcome: 'completed' },
-      });
-      expect(tasks.creationOptions).toHaveLength(3);
-      expect(
-        new Set(tasks.creationOptions.map((options) => options?.idempotencyKey))
-          .size,
-      ).toBe(3);
       expect(
         tasks.creationOptions.every((options) =>
           options?.idempotencyKey?.startsWith('absurd:'),
