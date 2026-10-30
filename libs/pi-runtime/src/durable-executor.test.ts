@@ -8,9 +8,13 @@ import {
 } from '@earendil-works/pi-ai';
 import { createProvider } from '@earendil-works/pi-ai/models';
 import {
+  type ConversationId,
   defineExtension,
   defineTool,
   type Extension,
+  type StorageWrite,
+  type SubmissionId,
+  type TaskId,
   type ToolRegistration,
 } from '@earendil-works/pi-durable';
 import type { TelemetryContext } from '@earendil-works/pi-telemetry';
@@ -634,6 +638,97 @@ describe('Durable task integration', () => {
       );
       expect(child.status).toBe('completed');
       expect(faux.state.callCount).toBe(3);
+    },
+  );
+  it.each(['tasks', 'submissions'] as const)(
+    'rejects outstanding %s with bounded, payload-free diagnostics',
+    async (kind) => {
+      const { faux, execute, transport, prepare } = setup();
+      faux.setResponses([submitted()]);
+      expect((await execute(task(), reporter())).status).toBe('completed');
+      const storage = await ApiDurableStorage.open(
+        transport,
+        BACKGROUND_CONTEXT,
+      );
+      const writes: StorageWrite[] = [];
+      for (let n = 0; n < 25; n++) {
+        writes.push(
+          kind === 'tasks'
+            ? {
+                type: 'task',
+                value: {
+                  id: await storage.mintId<TaskId<null>>(),
+                  conversationId: 1 as ConversationId,
+                  kind: 'test.unfinished',
+                  version: 1,
+                  input: { secret: 'private-task-input' },
+                  background: false,
+                  abortRequested: false,
+                  state: {
+                    status: 'pending',
+                    checkpoint: { secret: 'private-checkpoint' },
+                  },
+                },
+              }
+            : {
+                type: 'submission',
+                value: {
+                  id: await storage.mintId<SubmissionId>(),
+                  conversationId: 1 as ConversationId,
+                  requestId: 'private-request-key-' + n,
+                  type: 'input',
+                  status: 'queued',
+                },
+              },
+        );
+      }
+      await storage.commit(writes, BACKGROUND_CONTEXT);
+      await storage.close(BACKGROUND_CONTEXT);
+      const events = reporter();
+      await expect(
+        execute(
+          task('aaaaaaaa-0000-4000-8000-000000000002', {
+            brief: 'Continue',
+            continueFrom: {
+              taskId: 'aaaaaaaa-0000-4000-8000-000000000001',
+              attemptN: 1,
+            },
+          }),
+          events,
+        ),
+      ).rejects.toThrow('Parent Durable attempt has unfinished work');
+      const diagnostic = recorded(events).find(
+        (event) => event.payload.event === 'unfinished_parent_work',
+      );
+      expect(diagnostic).toMatchObject({
+        kind: 'error',
+        payload: {
+          phase: 'durable_continuation',
+          event: 'unfinished_parent_work',
+          taskCount: kind === 'tasks' ? 25 : 0,
+          submissionCount: kind === 'submissions' ? 25 : 0,
+        },
+      });
+      expect(diagnostic?.payload[kind]).toHaveLength(20);
+      expect(diagnostic?.payload[kind]).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining(
+            kind === 'tasks'
+              ? {
+                  conversationId: 1,
+                  kind: 'test.unfinished',
+                  ownerTaskId: null,
+                  status: 'pending',
+                  schedulerState: 'blocked',
+                  reason: 'missing_task',
+                }
+              : { conversationId: 1, type: 'input', status: 'queued' },
+          ),
+        ]),
+      );
+      expect(JSON.stringify(recorded(events))).not.toContain('private-');
+      expect(faux.state.callCount).toBe(1);
+      expect(prepare).toHaveBeenCalledOnce();
     },
   );
   it('bounds missing-output reminders and persists failure', async () => {
