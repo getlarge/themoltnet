@@ -258,9 +258,9 @@ The `mode` input decides which lanes run. In `active` mode, the classifier
 routes each pull request and only the lanes it selects are investigated; the
 summary marks the rest "screened, not investigated". In `shadow` mode every
 enabled lane is investigated. MoltNet runs `active` on every pull request and
-`shadow` on request: a comment containing `@legreffier /review` from an owner,
-member, or collaborator reruns the review on the current head and investigates
-every lane. A comment from a bot never triggers it.
+`shadow` on request: a comment of exactly `/review` on an open pull request,
+from an owner, member, or collaborator, reruns the review on the current head
+and investigates every lane. A comment from a bot never triggers it.
 
 For a caller repository, add a `pull_request` workflow that invokes
 `getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml` at a

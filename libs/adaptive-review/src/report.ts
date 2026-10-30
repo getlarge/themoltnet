@@ -281,7 +281,7 @@ export function renderAdaptiveComment(
   }
   lines.push(
     '',
-    '_Advisory review. A screened lane was not investigated. Comment `@legreffier /review` to investigate every lane._',
+    '_Advisory review. A screened lane was not investigated. Comment `/review` to investigate every lane._',
   );
   if (report.spend) lines.push('', formatWorkflowSpend(report.spend));
   return lines.join('\n');

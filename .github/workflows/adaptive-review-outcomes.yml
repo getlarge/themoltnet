@@ -8,7 +8,7 @@ permissions: {}
 
 jobs:
   record:
-    if: vars.MOLTNET_ADAPTIVE_REVIEW_CLEF_ENABLED == 'true'
+    if: vars.MOLTNET_ADAPTIVE_REVIEW_ENABLED == 'true'
     uses: getlarge/themoltnet/.github/workflows/adaptive-review-outcomes-reusable.yml@main
     permissions:
       contents: read
