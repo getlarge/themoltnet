@@ -12,12 +12,17 @@ import { join } from 'node:path';
 
 import { OPERATOR_OAUTH } from '@moltnet/models';
 import { exportJWK, generateKeyPair, SignJWT } from 'jose';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { type NativeProvisioning, OperatorOAuth } from './operator-oauth.js';
+import {
+  type NativeProvisioning,
+  OperatorApprovalError,
+  OperatorOAuth,
+} from './operator-oauth.js';
 
 const cleanup: Array<() => Promise<void> | void> = [];
 afterEach(async () => {
+  vi.useRealTimers();
   for (const fn of cleanup.splice(0)) await fn();
 });
 async function fixture(
@@ -136,6 +141,62 @@ async function fixture(
   };
 }
 describe('native PKCE operator', () => {
+  it.each([
+    { description: 'team_management_required', reason: 'team_access' },
+    { description: 'untrusted arbitrary description', reason: 'denied' },
+  ])(
+    'returns a safe denial for $description and accepts another attempt',
+    async ({ description, reason }) => {
+      const f = await fixture();
+      const pending = f.oauth.authorize();
+      const rejected = expect(pending).rejects.toMatchObject({
+        code: `approval_${reason}`,
+      });
+      const url = await f.openedPromise;
+      const callback = new URL(url.searchParams.get('redirect_uri')!);
+      callback.searchParams.set('state', 'wrong');
+      callback.searchParams.set('error', 'access_denied');
+      callback.searchParams.set('error_description', description);
+      expect((await fetch(callback)).status).toBe(400);
+      callback.searchParams.set('state', url.searchParams.get('state')!);
+      expect((await fetch(callback)).status).toBe(200);
+      await rejected;
+      expect(f.exchanges()).toBe(0);
+      expect(existsSync(join(f.root, 'operator.json'))).toBe(false);
+      const retry = f.oauth.authorize();
+      const cancelled = expect(retry).rejects.toThrow('cancelled');
+      f.oauth.cancel();
+      await cancelled;
+    },
+  );
+  it('expires an abandoned browser approval after five minutes and releases the listener', async () => {
+    const f = await fixture();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const pending = f.oauth.authorize();
+    const rejected = expect(pending).rejects.toMatchObject({
+      code: 'approval_expired',
+      statusCode: 408,
+    });
+    const url = await f.openedPromise;
+    await vi.advanceTimersByTimeAsync(
+      OPERATOR_OAUTH.nativeLifetimeSeconds * 1000,
+    );
+    await rejected;
+    vi.useRealTimers();
+    expect(f.exchanges()).toBe(0);
+    expect(f.oauth.operatorConfigured()).toBe(false);
+    await expect(
+      fetch(url.searchParams.get('redirect_uri')!),
+    ).rejects.toThrow();
+    const retry = f.oauth.authorize();
+    const cancelled = expect(retry).rejects.toThrow('cancelled');
+    f.oauth.cancel();
+    await cancelled;
+    expect(new OperatorApprovalError('expired').message).toContain(
+      'five minutes',
+    );
+  });
+
   it('rejects wrong state, exchanges once with its verifier, and stores no token', async () => {
     const f = await fixture();
     const pending = f.oauth.authorize();
