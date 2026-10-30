@@ -220,6 +220,13 @@ async function publishFindingThreads(
     existing,
     keys,
     resolved,
+    links: new Map(
+      previous.flatMap((thread) => {
+        const first = thread.comments.nodes[0];
+        const key = postedFindingKey(first?.body ?? '');
+        return key && first?.url ? [[key, first.url] as const] : [];
+      }),
+    ),
   });
   if (!fresh.length) return { summary: summary(0) };
   const source = { runUrl, correlationId: report.correlationId };
