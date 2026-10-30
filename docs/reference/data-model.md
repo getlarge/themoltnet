@@ -256,6 +256,22 @@ erDiagram
         timestamp created_at
     }
 
+    runtime_conversation_heads {
+        uuid store_id PK,FK "runtime_stores"
+        integer seq "last projected commit sequence"
+    }
+
+    runtime_conversation_records {
+        uuid store_id PK,FK "runtime_stores"
+        text type PK "conversation, entry, document, or entry-boundary"
+        bigint id PK "Pi record ID; zero for entry-boundary"
+        integer seq PK "version commit sequence"
+        bigint conversation_id "nullable; entry pagination"
+        text address "nullable; encoded document address"
+        json value "opaque Pi content or projection metadata"
+        boolean retired "document lookup ordering"
+    }
+
     %% ── Ory entities (external) ──
 
     kratos_identity {
@@ -361,6 +377,8 @@ erDiagram
     runtime_store_attempts |o--|| task_attempts : "attempt binding (task_id, attempt_n)"
     runtime_store_attempts }o--|| runtime_stores : "attached to store"
     runtime_store_commits }o--|| runtime_stores : "ordered commits"
+    runtime_conversation_heads |o--|| runtime_stores : "projection progress"
+    runtime_conversation_records }o--|| runtime_stores : "versioned read model"
 
     agents ||--|| kratos_identity : "mirrors identity"
     humans }o--o| kratos_identity : "linked after onboarding"
@@ -380,12 +398,14 @@ erDiagram
 
 ## Runtime profile and Durable storage tables
 
-| Table                    | Purpose                                                                                                                                          |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `runtime_profiles`       | Team-owned runtime configuration. The `models` JSONB column contains `generation`, `classification`, or both; each selects a provider and model. |
-| `runtime_stores`         | Team-owned Durable log metadata, committed head, record-ID allocator, and expiring writer lease.                                                 |
-| `runtime_store_attempts` | Binds a task attempt to its store. The composite primary key permits one binding per attempt; multiple attempts can share a store.               |
-| `runtime_store_commits`  | Ordered commit receipts and object-storage references. `(store_id, seq)` orders commits; `(store_id, commit_id)` makes retries idempotent.       |
+| Table                          | Purpose                                                                                                                                          |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `runtime_profiles`             | Team-owned runtime configuration. The `models` JSONB column contains `generation`, `classification`, or both; each selects a provider and model. |
+| `runtime_stores`               | Team-owned Durable log metadata, committed head, record-ID allocator, and expiring writer lease.                                                 |
+| `runtime_store_attempts`       | Binds a task attempt to its store. The composite primary key permits one binding per attempt; multiple attempts can share a store.               |
+| `runtime_store_commits`        | Ordered commit receipts and object-storage references. `(store_id, seq)` orders commits; `(store_id, commit_id)` makes retries idempotent.       |
+| `runtime_conversation_heads`   | Tracks the last projected commit for each store, allowing incremental backfill.                                                                  |
+| `runtime_conversation_records` | Rebuildable, versioned conversation records, entries, documents, and entry-ID boundaries for indexed reads.                                      |
 
 Commit payloads live in object storage, not in the receipt rows. The existing
 runtime-session storage configuration supplies the object-storage backend.
@@ -393,6 +413,20 @@ Extending a conversation attaches another attempt to the same store; forking
 creates a new store with copied commit receipts that reference the existing
 payload objects. Copied receipts retain the originating task and attempt for
 read authorization and provenance.
+
+The conversation tables form a persistent read model derived from the durable
+log. Stores created before the read model are backfilled on first read. Once a
+store is caught up, appends update its read model in the same transaction as
+their commit receipt. Versions are keyed by `(store_id, type, id, seq)`, so
+reads can retain a completed attempt's view while later attempts extend the
+store. Forks copy projection records through the captured source head. Opaque
+payloads use PostgreSQL `json` to preserve valid JSON string escapes, with
+retirement metadata stored separately.
+
+The `runtime_store_commits_attempt_seq_idx` index covers
+`(store_id, task_id, attempt_n, seq)` for attempt bounds. Conversation entry and
+document-address indexes support pagination and document lookup; versioned
+entry-ID boundaries exclude later high IDs from historical page scans.
 
 A writer must hold an unexpired store lease and active task-attempt authority.
 Appending checks the expected head before publishing the next receipt. Profile

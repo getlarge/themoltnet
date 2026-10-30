@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { addAbortSignal, Readable } from 'node:stream';
 
+import type { StorageWrite } from '@earendil-works/pi-durable';
 import type { PermissionChecker } from '@moltnet/auth';
 import type {
   RuntimeStore,
@@ -15,12 +16,14 @@ import type {
   RuntimeStoreWriter,
 } from '@moltnet/runtime-profiles';
 
+import { projectConversationCommit } from './conversation-projection.js';
 import { createProblem } from './problems.js';
 import {
   prefetchInOrder,
   READ_EXPANSION,
   ReadAheadBudget,
 } from './read-ahead.js';
+import { timedRead } from './read-timing.js';
 import type { RuntimeSessionStorage } from './runtime-session-storage.js';
 import type { RuntimeSessionSubject } from './runtime-sessions.js';
 
@@ -73,7 +76,9 @@ export function createRuntimeStoreService(deps: {
   async function commitTaskIds(store: RuntimeStore) {
     const cached = contributors.get(store.id);
     if (cached?.headSeq === store.headSeq) return cached.taskIds;
-    const taskIds = await repo.listCommitTaskIds(store.id);
+    const taskIds = await timedRead('database.contributors', () =>
+      repo.listCommitTaskIds(store.id),
+    );
     // The query can include newer commits: this is a conservative superset for
     // the captured head. Never label it with a head observed after the query.
     contributors.delete(store.id);
@@ -88,10 +93,12 @@ export function createRuntimeStoreService(deps: {
   }
   async function team(input: Subject) {
     if (
-      !(await deps.permissionChecker.canAccessTeam(
-        input.teamId,
-        input.subjectId,
-        input.subjectNs,
+      !(await timedRead('authorization.team', () =>
+        deps.permissionChecker.canAccessTeam(
+          input.teamId,
+          input.subjectId,
+          input.subjectNs,
+        ),
       ))
     )
       throw createProblem('not-found');
@@ -110,7 +117,9 @@ export function createRuntimeStoreService(deps: {
     storeId: string,
     commitTaskIds: string[],
   ) {
-    const bindings = await repo.listAttempts(input.teamId, storeId);
+    const bindings = await timedRead('database.attempts', () =>
+      repo.listAttempts(input.teamId, storeId),
+    );
     if (bindings.length === 0) throw createProblem('not-found');
     // Forks copy commits, not attempt bindings. Retain authorization for every
     // task whose content can be present in a replayed reader, even on empty pages.
@@ -120,10 +129,12 @@ export function createRuntimeStoreService(deps: {
         ...commitTaskIds,
       ]),
     ];
-    const permissions = await deps.permissionChecker.canViewTasks(
-      taskIds,
-      input.subjectId,
-      input.subjectNs,
+    const permissions = await timedRead('authorization.tasks', () =>
+      deps.permissionChecker.canViewTasks(
+        taskIds,
+        input.subjectId,
+        input.subjectNs,
+      ),
     );
     if (taskIds.some((taskId) => permissions.get(taskId) !== true))
       throw createProblem('not-found');
@@ -374,6 +385,14 @@ export function createRuntimeStoreService(deps: {
             taskId: input.taskId,
             attemptN: input.attemptN,
           });
+          if ((await repo.conversationHead(store.id)) === store.headSeq) {
+            await projectConversationCommit(
+              repo,
+              store.id,
+              seq,
+              input.writes as unknown as StorageWrite[],
+            );
+          }
           let nextId = store.nextId;
           for (const write of input.writes) {
             const record = (write.value ?? write.record) as
@@ -396,6 +415,57 @@ export function createRuntimeStoreService(deps: {
         { name: 'runtime.store.append' },
       );
     },
+    async authorizeRead(input: Subject & { storeId: string }) {
+      return timedRead('authorization', async () => {
+        await team(input);
+        const store = await repo.get(input.teamId, input.storeId);
+        if (!store) throw createProblem('not-found');
+        await reader(input, input.storeId, await commitTaskIds(store));
+      });
+    },
+    async ensureConversationProjection(
+      input: Subject & {
+        storeId: string;
+        throughSeq: number;
+        signal?: AbortSignal;
+      },
+    ) {
+      await this.authorizeRead(input);
+      let seq = await repo.conversationHead(input.storeId);
+      // Older stores are backfilled once. Network reads happen outside locks;
+      // each published page rechecks the head under the store lock.
+      while (seq < input.throughSeq) {
+        input.signal?.throwIfAborted();
+        const page = await this.read({ ...input, afterSeq: seq, limit: 100 });
+        for await (const commit of page.items) {
+          input.signal?.throwIfAborted();
+          await deps.transactionRunner.runInTransaction(
+            async () => {
+              const store = await repo.lock(input.teamId, input.storeId);
+              if (!store) throw createProblem('not-found');
+              const head = await repo.conversationHead(store.id);
+              if (head >= commit.seq) return;
+              if (head + 1 !== commit.seq)
+                throw createProblem('conflict', 'Conversation projection gap');
+              await projectConversationCommit(
+                repo,
+                store.id,
+                commit.seq,
+                commit.writes as unknown as StorageWrite[],
+              );
+            },
+            { name: 'runtime.conversation.project' },
+          );
+        }
+        const next = await repo.conversationHead(input.storeId);
+        if (next <= seq)
+          throw createProblem(
+            'service-unavailable',
+            'Incomplete conversation history',
+          );
+        seq = next;
+      }
+    },
     async read(
       input: Subject & {
         storeId: string;
@@ -407,17 +477,21 @@ export function createRuntimeStoreService(deps: {
     ) {
       input.signal?.throwIfAborted();
       await team(input);
-      const store = await repo.get(input.teamId, input.storeId);
+      const store = await timedRead('database.store', () =>
+        repo.get(input.teamId, input.storeId),
+      );
       if (!store) throw createProblem('not-found');
       const headSeq = Math.min(
         store.headSeq,
         input.throughSeq ?? store.headSeq,
       );
-      const rows = await repo.listCommits(
-        store.id,
-        input.afterSeq ?? 0,
-        Math.min(input.limit ?? 50, 100),
-        headSeq,
+      const rows = await timedRead('database.commits', () =>
+        repo.listCommits(
+          store.id,
+          input.afterSeq ?? 0,
+          Math.min(input.limit ?? 50, 100),
+          headSeq,
+        ),
       );
       await reader(input, input.storeId, [
         ...(await commitTaskIds(store)),
@@ -435,7 +509,8 @@ export function createRuntimeStoreService(deps: {
             budget: readAhead,
             cost: readCost,
           },
-          (row, signal) => readCommit(deps.storage, deps.maxBytes, row, signal),
+          (row, signal) =>
+            readCommit(deps.storage, deps.maxBytes, row, signal, input.signal),
           input.signal,
         ),
       };
@@ -452,44 +527,50 @@ async function readCommit(
   maxBytes: number,
   row: CommitRow,
   signal: AbortSignal,
+  callerSignal?: AbortSignal,
 ): Promise<RuntimeStoreCommit> {
-  const object = await storage.getObject(row.objectKey, signal);
-  addAbortSignal(signal, object.body);
-  // Hash while streaming; the chunks are the only copy until the final decode.
-  const hash = createHash('sha256');
-  const chunks: Buffer[] = [];
-  let size = 0;
-  // Leaving the loop early (limit, abort) destroys the body stream.
-  for await (const chunk of object.body) {
-    const bytes = Buffer.from(chunk as Uint8Array);
-    size += bytes.length;
-    if (size > maxBytes)
+  const bytes = await timedRead(
+    'object.download',
+    async (span) => {
+      const object = await storage.getObject(row.objectKey, signal);
+      addAbortSignal(signal, object.body);
+      const chunks: Buffer[] = [];
+      let size = 0;
+      for await (const chunk of object.body) {
+        const bytes = Buffer.from(chunk as Uint8Array);
+        size += bytes.length;
+        if (size > maxBytes)
+          throw createProblem(
+            'service-unavailable',
+            `Stored runtime commit ${row.seq} exceeds size limit`,
+          );
+        chunks.push(bytes);
+      }
+      span.setAttribute('moltnet.runtime.read.bytes', size);
+      return Buffer.concat(chunks, size);
+    },
+    callerSignal,
+  );
+  return timedRead('object.decode', async () => {
+    if (createHash('sha256').update(bytes).digest('hex') !== row.sha256)
       throw createProblem(
         'service-unavailable',
-        `Stored runtime commit ${row.seq} exceeds size limit`,
+        `Runtime commit ${row.seq} checksum mismatch`,
       );
-    hash.update(bytes);
-    chunks.push(bytes);
-  }
-  // Nothing is decoded, let alone applied, before the checksum matches.
-  if (hash.digest('hex') !== row.sha256)
-    throw createProblem(
-      'service-unavailable',
-      `Runtime commit ${row.seq} checksum mismatch`,
-    );
-  const payload = JSON.parse(Buffer.concat(chunks, size).toString()) as {
-    format: string;
-    writes: RuntimeStoreCommit['writes'];
-  };
-  if (payload.format !== FORMAT)
-    throw createProblem(
-      'conflict',
-      `Unsupported runtime store format in commit ${row.seq}`,
-    );
-  return {
-    seq: row.seq,
-    commitId: row.commitId,
-    sha256: row.sha256,
-    writes: payload.writes,
-  };
+    const payload = JSON.parse(bytes.toString()) as {
+      format: string;
+      writes: RuntimeStoreCommit['writes'];
+    };
+    if (payload.format !== FORMAT)
+      throw createProblem(
+        'conflict',
+        `Unsupported runtime store format in commit ${row.seq}`,
+      );
+    return {
+      seq: row.seq,
+      commitId: row.commitId,
+      sha256: row.sha256,
+      writes: payload.writes,
+    };
+  });
 }

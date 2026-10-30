@@ -56,11 +56,12 @@ export async function taskConversationRoutes(fastify: FastifyInstance) {
       storage: fastify.runtimeSessionStorage,
       permissionChecker: fastify.permissionChecker,
       maxBytes: Math.min(fastify.runtimeSessionMaxBytes, 1024 * 1024),
-      // Cold reads replay the whole history; overlap object fetches.
+      // Legacy stores backfill once; overlap their object fetches.
       readConcurrency: 8,
     }),
     repository: fastify.runtimeSessionRepository.durable,
     tasks: fastify.taskRepository,
+    projection: true,
   });
   const shutdown = new AbortController();
   // onClose waits for active responses; stop watchers before Fastify drains them.

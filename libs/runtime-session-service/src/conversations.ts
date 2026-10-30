@@ -18,6 +18,7 @@ import type {
 } from '@moltnet/runtime-profiles';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
 
+import { createConversationProjectionReader } from './conversation-projection.js';
 import { createProblem } from './problems.js';
 import type { RuntimeSessionSubject } from './runtime-sessions.js';
 import type { createRuntimeStoreService } from './runtime-stores.js';
@@ -72,6 +73,8 @@ export function createConversationService(deps: {
   repository: RuntimeStoreRepository;
   tasks: Pick<TaskRepository, 'findAttempt'>;
   now?: () => number;
+  /** Enable the persistent read model; replay remains a compatibility oracle. */
+  projection?: boolean;
 }) {
   type Reader = ReturnType<typeof createReader>;
   const readers = new Set<Reader>();
@@ -94,7 +97,10 @@ export function createConversationService(deps: {
     return true;
   }
   function createReader(input: Attempt) {
-    const storage = new MemoryStorage();
+    const projection = deps.projection
+      ? createConversationProjectionReader(deps.repository)
+      : undefined;
+    const storage = projection ?? new MemoryStorage();
     let seq = 0;
     let bytes = 0;
     let storeId: string | undefined;
@@ -223,90 +229,109 @@ export function createConversationService(deps: {
         'moltnet.conversation.target_seq': bounds.lastSeq,
         'moltnet.conversation.first_seq': bounds.firstSeq,
       });
-      // Timed from the first page read, so every page counts the same way.
-      const replayStart = performance.now();
-      // Every refresh reauthorizes *all* attempts sharing the store, even if its head did not move.
-      let page = await deps.stores.read({
-        ...input,
-        storeId,
-        afterSeq: seq,
-        signal,
-        throughSeq: bounds.lastSeq,
-        limit: 100,
-      });
-      if (bounds.lastSeq < seq)
-        throw createProblem('conflict', 'Conversation history changed');
-      const replayedFrom = seq;
-      const bytesBefore = bytes;
-      let applyMs = 0;
-      let pages = 0;
-      try {
-        while (seq < bounds.lastSeq) {
-          pages++;
-          const previous = seq;
-          for await (const commit of page.items) {
-            signal?.throwIfAborted();
-            if (commit.seq !== seq + 1)
+      if (projection) {
+        await deps.stores.ensureConversationProjection({
+          ...input,
+          storeId,
+          throughSeq: bounds.lastSeq,
+          signal,
+        });
+        const rows = await projection.at(storeId, bounds.lastSeq);
+        // Validate the complete, bounded conversation graph before ancestry walks.
+        parents.clear();
+        created.clear();
+        validateConversations(
+          rows.map((row) => ({ type: 'conversation', value: row.value })),
+        );
+        for (const row of rows) created.set(row.id, row.seq);
+        seq = bounds.lastSeq;
+        span.setAttribute('moltnet.conversation.read_model', true);
+      } else {
+        // Timed from the first page read, so every page counts the same way.
+        const replayStart = performance.now();
+        // Every refresh reauthorizes *all* attempts sharing the store, even if its head did not move.
+        let page = await deps.stores.read({
+          ...input,
+          storeId,
+          afterSeq: seq,
+          signal,
+          throughSeq: bounds.lastSeq,
+          limit: 100,
+        });
+        if (bounds.lastSeq < seq)
+          throw createProblem('conflict', 'Conversation history changed');
+        const replayedFrom = seq;
+        const bytesBefore = bytes;
+        let applyMs = 0;
+        let pages = 0;
+        try {
+          while (seq < bounds.lastSeq) {
+            pages++;
+            const previous = seq;
+            for await (const commit of page.items) {
+              signal?.throwIfAborted();
+              if (commit.seq !== seq + 1)
+                throw createProblem(
+                  'service-unavailable',
+                  'Incomplete conversation history',
+                );
+              const size = Buffer.byteLength(JSON.stringify(commit.writes));
+              if (bytes + size > MAX_REPLAY_BYTES)
+                throw createProblem(
+                  'service-unavailable',
+                  'Conversation replay exceeds the supported size',
+                );
+              while (totalBytes + size > MAX_TOTAL_REPLAY_BYTES) {
+                if (!(await evictOldest()))
+                  throw createProblem(
+                    'service-unavailable',
+                    'Conversation reader capacity reached',
+                  );
+              }
+              bytes += size;
+              totalBytes += size;
+              const applyStart = performance.now();
+              validateConversations(commit.writes);
+              (storage as MemoryStorage)
+                .prepareCommit(
+                  commit.writes as unknown as StorageWrite[],
+                  commit.seq as Seq,
+                )
+                .apply();
+              for (const write of commit.writes) {
+                if (write.type === 'conversation')
+                  created.set(Number(record(write.value).id), commit.seq);
+              }
+              applyMs += performance.now() - applyStart;
+              seq = commit.seq;
+            }
+            if (seq === previous)
               throw createProblem(
                 'service-unavailable',
                 'Incomplete conversation history',
               );
-            const size = Buffer.byteLength(JSON.stringify(commit.writes));
-            if (bytes + size > MAX_REPLAY_BYTES)
-              throw createProblem(
-                'service-unavailable',
-                'Conversation replay exceeds the supported size',
-              );
-            while (totalBytes + size > MAX_TOTAL_REPLAY_BYTES) {
-              if (!(await evictOldest()))
-                throw createProblem(
-                  'service-unavailable',
-                  'Conversation reader capacity reached',
-                );
+            if (seq < bounds.lastSeq) {
+              page = await deps.stores.read({
+                ...input,
+                storeId,
+                afterSeq: seq,
+                signal,
+                throughSeq: bounds.lastSeq,
+                limit: 100,
+              });
             }
-            bytes += size;
-            totalBytes += size;
-            const applyStart = performance.now();
-            validateConversations(commit.writes);
-            storage
-              .prepareCommit(
-                commit.writes as unknown as StorageWrite[],
-                commit.seq as Seq,
-              )
-              .apply();
-            for (const write of commit.writes) {
-              if (write.type === 'conversation')
-                created.set(Number(record(write.value).id), commit.seq);
-            }
-            applyMs += performance.now() - applyStart;
-            seq = commit.seq;
           }
-          if (seq === previous)
-            throw createProblem(
-              'service-unavailable',
-              'Incomplete conversation history',
-            );
-          if (seq < bounds.lastSeq) {
-            page = await deps.stores.read({
-              ...input,
-              storeId,
-              afterSeq: seq,
-              signal,
-              throughSeq: bounds.lastSeq,
-              limit: 100,
-            });
-          }
+        } finally {
+          const loopMs = performance.now() - replayStart;
+          span.setAttributes({
+            'moltnet.conversation.commits_replayed': seq - replayedFrom,
+            'moltnet.conversation.replay_bytes': bytes - bytesBefore,
+            'moltnet.conversation.pages': pages,
+            // read_wait_ms is the replay loop's time minus apply_ms.
+            'moltnet.conversation.read_wait_ms': Math.round(loopMs - applyMs),
+            'moltnet.conversation.apply_ms': Math.round(applyMs),
+          });
         }
-      } finally {
-        const loopMs = performance.now() - replayStart;
-        span.setAttributes({
-          'moltnet.conversation.commits_replayed': seq - replayedFrom,
-          'moltnet.conversation.replay_bytes': bytes - bytesBefore,
-          'moltnet.conversation.pages': pages,
-          // read_wait_ms is the replay loop's time minus apply_ms.
-          'moltnet.conversation.read_wait_ms': Math.round(loopMs - applyMs),
-          'moltnet.conversation.apply_ms': Math.round(applyMs),
-        });
       }
       const store = await deps.repository.get(input.teamId, storeId);
       writerActive =
