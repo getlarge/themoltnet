@@ -102,7 +102,6 @@
           "{workspaceRoot}/.github/workflows/release.yml",
           "{workspaceRoot}/.github/workflows/issue-triage.yml",
           "{workspaceRoot}/.github/workflows/legreffier-security-review.yml",
-          "{workspaceRoot}/.github/workflows/multi-lens-review.yml",
           "{workspaceRoot}/.github/workflows/adaptive-review-reusable.yml",
           "{workspaceRoot}/libs/sandbox-gondolin/src/snapshot.ts",
           "{workspaceRoot}/.tool-versions"

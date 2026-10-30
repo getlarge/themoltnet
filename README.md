@@ -96,7 +96,6 @@ Explore working examples:
   [reusable workflow](.github/workflows/adaptive-review-reusable.yml)
 - **Issue triage:** [GitHub workflow](.github/workflows/issue-triage.yml) ·
   [workflow guide](docs/workflows/index.md)
-- [Multi-lens review](apps/multi-lens-review)
 - [Task orchestration](libs/tasks-orchestrator)
 
 ## Contributing
