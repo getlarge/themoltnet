@@ -169,10 +169,14 @@ jobs:
         run: |
           node tools/release/sync-cli-consumer-pins.mjs
           node tools/release/sync-daemon-consumer-pins.mjs
+          # The adaptive-review runtime lock hashes the reusable workflow
+          # whose pin was just synced; refresh it in the same commit.
+          node tools/src/release/action-runtime-lock.ts --write
           git add -- libs/sandbox-gondolin/src/snapshot.ts \
             .github/workflows/issue-triage.yml \
             .github/workflows/legreffier-security-review.yml \
-            .github/workflows/adaptive-review-reusable.yml
+            .github/workflows/adaptive-review-reusable.yml \
+            packages/adaptive-review-action/runtime.lock
       - name: Commit consumer pins to release PR
         if: steps.release.outputs.prs_created == 'true'
         env:
