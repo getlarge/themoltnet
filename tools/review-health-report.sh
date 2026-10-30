@@ -13,6 +13,8 @@
 #       [--tags <csv>]
 #
 # Defaults: --tags review:adaptive, --since 7 days ago.
+# GitHub: Actions > Review health report > Run workflow (default branch).
+# The workflow publishes a run summary and a downloadable Markdown artifact.
 set -euo pipefail
 
 TEAM_ID=""
@@ -94,8 +96,10 @@ render() {
 echo "## Review health — $(date -u +%Y-%m-%d) (since \`$SINCE\`, tags \`$TAGS\`)"
 echo
 echo '### Per model'
-render "$(activity profile)"
+model_activity="$(activity profile)"
+render "$model_activity"
 echo
 echo '### Per lane'
-render "$(activity tag)" '.label | startswith("lane:")'
+lane_activity="$(activity tag)"
+render "$lane_activity" '.label | startswith("lane:")'
 echo
