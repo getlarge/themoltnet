@@ -58,16 +58,8 @@ environment variable is set. Otherwise it uses Pi's default
 `pi-extension` follows that same rule for host-side auth discovery before it
 mirrors `auth.json` into the VM. It does not choose a repository-local Pi
 directory by itself. Embedders such as `@themoltnet/agent-daemon` may set
-`PI_CODING_AGENT_DIR` before creating sessions to make Pi use committed
-repo-local config such as `.pi/settings.json` and `.pi/models.json`.
-
-Recommended file split for repo-local Pi config:
-
-| File                | Commit? | Notes                                                                                       |
-| ------------------- | ------- | ------------------------------------------------------------------------------------------- |
-| `.pi/settings.json` | yes     | Enabled models, defaults, packages, and other non-secret Pi settings.                       |
-| `.pi/models.json`   | yes     | Provider/model registry. Reference keys by env var name, e.g. `"apiKey": "OLLAMA_API_KEY"`. |
-| `.pi/auth.json`     | no      | Local subscription OAuth/API-key auth blob. Keep gitignored.                                |
+`PI_CODING_AGENT_DIR` before creating sessions to select an explicit Pi
+directory.
 
 ### Path remapping
 

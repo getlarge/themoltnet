@@ -231,7 +231,7 @@ export interface ProviderFailureContext {
   runtimeProfileId: string;
   runtimeProfileName: string;
   runtimeProfileRevision: number | null;
-  piAgentDirSource: 'env' | 'store' | 'repo';
+  piAgentDirSource: 'env' | 'store' | 'global';
 }
 
 export interface ProviderFailureDiagnostics {

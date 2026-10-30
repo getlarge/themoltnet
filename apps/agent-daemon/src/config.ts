@@ -28,7 +28,7 @@ export interface DaemonConfig {
   profilePrerequisitePath: string;
   /**
    * Optional Pi agent dir override. Empty = compose from the Agent Server
-   * provider store when one exists, else repo-local .pi.
+   * provider store when one exists, else the global Pi directory.
    */
   piCodingAgentDir: string;
   /** Effective shared MoltNet store root. */
