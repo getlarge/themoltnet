@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.68.5](https://github.com/getlarge/themoltnet/compare/rest-api-v0.68.4...rest-api-v0.68.5) (2026-10-30)
+
+
+### Performance Improvements
+
+* **runtime-session:** serve conversations from an indexed read model ([5e22c0e](https://github.com/getlarge/themoltnet/commit/5e22c0e9de8436bb7e0ffa6b5305c9cf80f1d9bd))
+* **runtime-session:** serve conversations from an indexed read model ([c951f70](https://github.com/getlarge/themoltnet/commit/c951f7059c2683d09189f31ca8ef39067bc360ba))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @moltnet/database bumped to 0.18.4
+
 ## [0.68.4](https://github.com/getlarge/themoltnet/compare/rest-api-v0.68.3...rest-api-v0.68.4) (2026-10-30)
 
 

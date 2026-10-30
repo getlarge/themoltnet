@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.1](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.1.0...adaptive-review-action-v0.1.1) (2026-10-30)
+
+
+### Bug Fixes
+
+* **adaptive-review:** give reruns prior finding context ([26a2f20](https://github.com/getlarge/themoltnet/commit/26a2f20480e22b6b8fffed86745d93de83c6473b))
+* **adaptive-review:** label binary patches, skipped classifier, and footer accurately ([4796040](https://github.com/getlarge/themoltnet/commit/4796040ad72720b701a8766ed5a242524a7fca41))
+* **adaptive-review:** label binary patches, skipped classifier, and footer accurately ([397a11b](https://github.com/getlarge/themoltnet/commit/397a11bfa0c2ddc67e2a988128cd1be25781598f))
+* **adaptive-review:** preserve prior finding context across reruns ([e148d6b](https://github.com/getlarge/themoltnet/commit/e148d6bbfcf4b28a9a8a1dfc0f54ed92d698ff66))
+
 ## 0.1.0 (2026-10-30)
 
 
