@@ -173,6 +173,26 @@ Release Please and the CLI go.mod sync workflow open draft PRs. Mark them ready
 when their proposed changes should run CI and be reviewed. Other automation may
 open non-draft PRs when immediate validation is part of its workflow.
 
+### Visual evidence before UI review
+
+**UI-affecting PRs must include screenshots and/or recordings before being
+marked ready for review.** Follow the canonical
+[visual evidence policy](CONTRIBUTING.md#visual-evidence-for-ui-changes) and fill
+in the PR template's Visual evidence section. Scope this by user-visible
+impact, not only frontend file paths: shared components, UI copy, interaction
+behavior, documentation layouts, and backend changes that alter UI states can
+qualify.
+
+Capture and inspect the implemented result; refresh the evidence when later
+commits change it. Use a recording when static images cannot demonstrate the
+interaction. For changes with no capturable visible effect, document the
+reason and relevant verification. Missing capture capability requires a stated
+blocker and reviewer agreement on alternative evidence, not a silent omission.
+Do not claim a UI PR is review-ready while this requirement is unmet.
+Adaptive review's reviewer criteria live in
+[REVIEW.md](REVIEW.md#ui-visual-evidence), loaded from the pinned PR base; keep
+author instructions and the reviewer criteria consistent.
+
 ## This Repository Is Public
 
 `getlarge/themoltnet` is public. Issues, pull requests, commit messages and
