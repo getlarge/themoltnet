@@ -9,10 +9,9 @@ permissions: {}
 jobs:
   record:
     if: vars.MOLTNET_ADAPTIVE_REVIEW_ENABLED == 'true'
-    uses: getlarge/themoltnet/.github/workflows/adaptive-review-outcomes-reusable.yml@main
+    uses: getlarge/themoltnet/.github/workflows/adaptive-review-outcomes-reusable.yml@3c0f9204cbbcbf575aec4d21e4e08468005ba0b5 # adaptive-review-action-v0
     permissions:
       contents: read
     secrets: inherit
     with:
       environment: legreffier
-      runtime-ref: ${{ github.event.pull_request.base.sha }}
