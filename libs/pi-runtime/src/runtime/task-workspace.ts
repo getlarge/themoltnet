@@ -121,25 +121,10 @@ export function prepareTaskWorkspace(
   const workspaceId = executionPlan?.workspaceId ?? `task-${task.id}`;
   const worktreeDir = resolveTaskWorktreePath(mainRepo, workspaceId);
 
-  // The source checkout may itself be a nested or sibling worktree. Only
-  // carry its repository-relative subdirectory into the task worktree.
-  const sourceRoot = execFileSync(
-    'git',
-    ['-C', requestedMountPath, 'rev-parse', '--show-toplevel'],
-    { encoding: 'utf8', stdio: 'pipe' },
-  ).trim();
-  const relMount = relative(
-    realpathSync(sourceRoot),
-    realpathSync(requestedMountPath),
+  const cwdPath = join(
+    worktreeDir,
+    resolveSourceSubdirectory(requestedMountPath),
   );
-  if (
-    relMount === '..' ||
-    relMount.startsWith(`..${sep}`) ||
-    isAbsolute(relMount)
-  ) {
-    throw new Error('Task source must be within its Git checkout');
-  }
-  const cwdPath = join(worktreeDir, relMount);
   const keepWorkspace =
     executionPlan?.workspaceScope === 'session' &&
     executionPlan.sessionKey !== null;
@@ -181,22 +166,68 @@ export function prepareTaskWorkspace(
     }
   }
 
+  const cleanup = keepWorkspace
+    ? () => {}
+    : () => {
+        execFileSync(
+          'git',
+          ['-C', mainRepo, 'worktree', 'remove', '--force', worktreeDir],
+          { stdio: 'pipe' },
+        );
+      };
+  try {
+    assertTaskCwdExists(cwdPath, branch ?? revision);
+  } catch (err) {
+    cleanup();
+    throw err;
+  }
+
   return {
     mountPath: mainRepo,
     cwdPath,
     mode: 'dedicated_worktree',
     branch,
     revision,
-    cleanup: keepWorkspace
-      ? () => {}
-      : () => {
-          execFileSync(
-            'git',
-            ['-C', mainRepo, 'worktree', 'remove', '--force', worktreeDir],
-            { stdio: 'pipe' },
-          );
-        },
+    cleanup,
   };
+}
+
+/**
+ * The source may be the main checkout or a nested/sibling worktree, so only
+ * its path relative to its own checkout root carries into the task worktree.
+ * Git resolves the toplevel from the physical directory, so a symlinked
+ * source is always contained; only a redirected work tree (`core.worktree`,
+ * `GIT_WORK_TREE`) can place the source outside it.
+ */
+function resolveSourceSubdirectory(sourcePath: string): string {
+  let sourceRoot: string;
+  try {
+    sourceRoot = execFileSync(
+      'git',
+      ['-C', sourcePath, 'rev-parse', '--show-toplevel'],
+      { encoding: 'utf8', stdio: 'pipe' },
+    ).trim();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `Dedicated worktree tasks require a source inside a Git work tree: ${message}`,
+    );
+  }
+  const subdir = relative(realpathSync(sourceRoot), realpathSync(sourcePath));
+  if (subdir === '..' || subdir.startsWith(`..${sep}`) || isAbsolute(subdir)) {
+    throw new Error('Task source must be within its Git checkout');
+  }
+  return subdir;
+}
+
+// Without this check the runtime would create the missing directory when it
+// writes its workspace marker, and the agent would start in an empty folder.
+function assertTaskCwdExists(cwdPath: string, ref: string | null): void {
+  if (!existsSync(cwdPath)) {
+    throw new Error(
+      `Task source subdirectory does not exist at ${ref}: ${cwdPath}`,
+    );
+  }
 }
 
 function assertWorkspaceRevision(

@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -191,51 +192,61 @@ describe('resuming a task workspace', () => {
   });
 });
 
+const pinnedContent: Record<string, string> = {
+  '': 'first\n',
+  src: 'pinned source\n',
+  '..config': 'pinned config\n',
+};
+
+type SourceLocation = 'main' | 'nested' | 'sibling';
+
+function sourceCheckout(
+  repo: ReturnType<typeof repository>,
+  location: SourceLocation,
+): string {
+  if (location === 'main') return repo.root;
+  const sourceRoot =
+    location === 'nested'
+      ? join(repo.root, '.worktrees', 'source')
+      : `${repo.root}-source`;
+  if (location === 'sibling') roots.push(sourceRoot);
+  execFileSync(
+    'git',
+    ['-C', repo.root, 'worktree', 'add', '--detach', sourceRoot, repo.second],
+    { stdio: 'pipe' },
+  );
+  return sourceRoot;
+}
+
 describe('dedicated workspace source checkout paths', () => {
-  it.each([
-    ['main', ''],
-    ['main', 'src'],
-    ['nested', ''],
-    ['nested', 'src'],
-    ['sibling', ''],
-    ['sibling', 'src'],
-    ['nested', '..config'],
-  ])(
-    'preserves the subdirectory for a %s checkout at %s',
+  const taskRoot = (repo: ReturnType<typeof repository>) =>
+    join(repo.root, '.worktrees', 'revision-test');
+
+  it.each(
+    (['main', 'nested', 'sibling'] as const).flatMap((location) =>
+      ['', 'src', '..config'].map((subdir) => [location, subdir] as const),
+    ),
+  )(
+    'preserves the subdirectory for a %s checkout at "%s"',
     (location, subdir) => {
       const repo = repository();
-      let sourceRoot = repo.root;
-      if (location !== 'main') {
-        sourceRoot =
-          location === 'nested'
-            ? join(repo.root, '.worktrees', 'source')
-            : `${repo.root}-source`;
-        if (location === 'sibling') roots.push(sourceRoot);
-        execFileSync(
-          'git',
-          [
-            '-C',
-            repo.root,
-            'worktree',
-            'add',
-            '--detach',
-            sourceRoot,
-            repo.second,
-          ],
-          { stdio: 'pipe' },
-        );
-      }
-      const requestedPath = join(sourceRoot, subdir);
+      const requestedPath = join(sourceCheckout(repo, location), subdir);
       writeFileSync(join(requestedPath, 'file.txt'), 'source-only edits\n');
       const executionPlan = plan('dedicated_worktree', repo.first);
+
       const workspace = prepareTaskWorkspace(
         task(),
         requestedPath,
         executionPlan,
       );
-      const taskRoot = join(repo.root, '.worktrees', 'revision-test');
+      const resumed = prepareTaskWorkspace(
+        task(),
+        requestedPath,
+        executionPlan,
+        { reuseExisting: true },
+      );
 
-      expect(workspace.cwdPath).toBe(join(taskRoot, subdir));
+      expect(workspace.cwdPath).toBe(join(taskRoot(repo), subdir));
       expect(workspace.mountPath).toBe(repo.root);
       expect(
         execFileSync('git', ['-C', workspace.cwdPath, 'rev-parse', 'HEAD'], {
@@ -243,17 +254,9 @@ describe('dedicated workspace source checkout paths', () => {
         }).trim(),
       ).toBe(repo.first);
       expect(readFileSync(join(workspace.cwdPath, 'file.txt'), 'utf8')).toBe(
-        subdir === 'src'
-          ? 'pinned source\n'
-          : subdir === '..config'
-            ? 'pinned config\n'
-            : 'first\n',
+        pinnedContent[subdir],
       );
-      expect(
-        prepareTaskWorkspace(task(), requestedPath, executionPlan, {
-          reuseExisting: true,
-        }).cwdPath,
-      ).toBe(workspace.cwdPath);
+      expect(resumed.cwdPath).toBe(workspace.cwdPath);
       workspace.cleanup();
       expect(readFileSync(join(requestedPath, 'file.txt'), 'utf8')).toBe(
         'source-only edits\n',
@@ -266,15 +269,69 @@ describe('dedicated workspace source checkout paths', () => {
     const alias = `${repo.root}-alias`;
     roots.push(alias);
     symlinkSync(join(repo.root, 'src'), alias);
+
     const workspace = prepareTaskWorkspace(
       task(),
       alias,
       plan('dedicated_worktree', repo.first),
     );
-    expect(workspace.cwdPath).toBe(
-      join(repo.root, '.worktrees', 'revision-test', 'src'),
-    );
+
+    expect(workspace.cwdPath).toBe(join(taskRoot(repo), 'src'));
     workspace.cleanup();
+  });
+
+  it('rejects a source outside its redirected Git work tree', () => {
+    const repo = repository();
+    const redirected = realpathSync(
+      mkdtempSync(join(tmpdir(), 'moltnet-redirected-worktree-')),
+    );
+    roots.push(redirected);
+    execFileSync('git', [
+      '-C',
+      repo.root,
+      'config',
+      'core.worktree',
+      redirected,
+    ]);
+
+    expect(() =>
+      prepareTaskWorkspace(
+        task(),
+        join(repo.root, 'src'),
+        plan('dedicated_worktree', repo.first),
+      ),
+    ).toThrow('Task source must be within its Git checkout');
+  });
+
+  it('fails and removes the worktree when the subdirectory is absent at the revision', () => {
+    const repo = repository();
+    mkdirSync(join(repo.root, 'later'));
+    writeFileSync(join(repo.root, 'later', 'file.txt'), 'added later\n');
+    execFileSync('git', ['-C', repo.root, 'add', 'later']);
+    execFileSync('git', ['-C', repo.root, 'commit', '-m', 'later']);
+
+    expect(() =>
+      prepareTaskWorkspace(
+        task(),
+        join(repo.root, 'later'),
+        plan('dedicated_worktree', repo.first),
+      ),
+    ).toThrow(`Task source subdirectory does not exist at ${repo.first}`);
+    expect(existsSync(taskRoot(repo))).toBe(false);
+  });
+
+  it('fails for a source inside the Git directory', () => {
+    const repo = repository();
+
+    expect(() =>
+      prepareTaskWorkspace(
+        task(),
+        join(repo.root, '.git'),
+        plan('dedicated_worktree', repo.first),
+      ),
+    ).toThrow(
+      'Dedicated worktree tasks require a source inside a Git work tree',
+    );
   });
 
   it('fails for a non-repository source without falling back to the shared checkout', () => {
