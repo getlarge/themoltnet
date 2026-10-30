@@ -35,10 +35,6 @@ import {
 } from './durable-gondolin-tools.js';
 import { ApiDurableStorage } from './durable-storage.js';
 import { acquireDurableTransport } from './durable-transport.js';
-import {
-  DIARY_READ_IDS_ENV,
-  parseDiaryReadIds,
-} from './moltnet/diary-read-scope.js';
 import { createAttemptMoltNetTools } from './moltnet/tools.js';
 import {
   applyExecutionPlanSandboxOverrides,
@@ -497,9 +493,6 @@ export function createGondolinDurableTaskExecutor(
                     capabilityRouter,
                     identity: options.agentIdentity,
                     agentEnv: managed.credentials.agentEnv,
-                    readDiaryIds: parseDiaryReadIds(
-                      options.sandboxConfig?.env?.[DIARY_READ_IDS_ENV],
-                    ),
                     hostExecAutoApprove:
                       options.hostExecAutoApprove ??
                       options.sandboxConfig?.hostExec?.autoApprove ??

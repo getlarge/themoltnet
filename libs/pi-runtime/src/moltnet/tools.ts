@@ -33,7 +33,6 @@ import { isResolvedPathInsideRoot } from '@themoltnet/sandbox-gondolin';
 import type { connect } from '@themoltnet/sdk';
 
 import { type GondolinToolLifecycle, toGuestPath } from '../tool-operations.js';
-import { createDiaryReadScope } from './diary-read-scope.js';
 import { type ExpandedPack, renderPhase6Markdown } from './render-phase6.js';
 
 type MoltNetAgent = Awaited<ReturnType<typeof connect>>;
@@ -49,8 +48,6 @@ export const MOLTNET_TOOL_NAMES = [
   'moltnet_list_entries',
   'moltnet_get_entry',
   'moltnet_search_entries',
-  'moltnet_search_review_entries',
-  'moltnet_get_review_entry',
   'moltnet_create_entry',
   'moltnet_get_task',
   'moltnet_list_task_attempts',
@@ -112,8 +109,6 @@ export interface MoltNetToolsConfig {
   getAgent(): MoltNetAgent | null;
   getDiaryId(): string | null;
   getTeamId(): string | null;
-  /** Host-owned source restriction for search/get. Undefined preserves ordinary agent behavior. */
-  readDiaryIds?: readonly string[];
   getSessionErrors(): readonly TrackedError[];
   clearSessionErrors(): void;
   /** Host working directory for host-exec commands (worktree path or cwd). */
@@ -399,10 +394,6 @@ export function compileTaskFilterTags(
 export function createMoltNetTools(
   config: MoltNetToolsConfig,
 ): ToolDefinition<any, any>[] {
-  const diaryReads =
-    config.readDiaryIds === undefined
-      ? undefined
-      : createDiaryReadScope(config.readDiaryIds);
   const getPack = defineTool({
     name: 'moltnet_pack_get',
     label: 'Get MoltNet Pack',
@@ -806,36 +797,15 @@ export function createMoltNetTools(
     description: 'Get the full content of a specific diary entry by ID.',
     parameters: Type.Object({
       entryId: Type.String({ description: 'The entry ID to fetch' }),
-      diaryId: Type.Optional(
-        Type.String({
-          description: 'Configured read source for restricted sessions.',
-        }),
-      ),
     }),
     async execute(_id, params) {
       const { agent } = ensureConnected(config);
-      const source = diaryReads?.diary(params.diaryId);
-      diaryReads?.takeCall();
-      // The diary-scoped endpoint checks membership before returning content.
-      const entry = source
-        ? (
-            await agent.entries.list(source, { ids: [params.entryId] })
-          ).items.find((item) => item.id === params.entryId)
-        : await agent.entries.get(params.entryId);
-      if (!entry)
-        throw new Error('Entry is unavailable in the configured source diary');
+      const entry = await agent.entries.get(params.entryId);
       const text = JSON.stringify(
         {
           id: entry.id,
           title: entry.title,
-          content: diaryReads ? entry.content.slice(0, 12000) : entry.content,
-          ...(diaryReads
-            ? {
-                diaryId: source,
-                contentHash: entry.contentHash,
-                truncated: entry.content.length > 12000,
-              }
-            : {}),
+          content: entry.content,
           tags: entry.tags,
           importance: entry.importance,
           createdAt: entry.createdAt,
@@ -851,9 +821,6 @@ export function createMoltNetTools(
     name: 'moltnet_search_entries',
     label: 'Search MoltNet Diary Entries',
     description:
-      (diaryReads
-        ? `Read-only sources: ${JSON.stringify(diaryReads.diaryIds)}. Use diaryId to choose a source. At most 8 live search/get calls per toolset, 5 results per search. Historical evidence is not current-code proof. `
-        : '') +
       'Hybrid (semantic + lexical) search over diary entries. ' +
       'Use proactively before non-trivial investigation, code changes, review, ' +
       'or episodic incident capture so prior decisions and recurring failures ' +
@@ -866,12 +833,6 @@ export function createMoltNetTools(
       'entries from fulfill_brief attempts. Filters apply server-side ' +
       'before ranking.',
     parameters: Type.Object({
-      diaryId: Type.Optional(
-        Type.String({
-          description:
-            'Configured read source; ordinary sessions can only select their current diary.',
-        }),
-      ),
       query: Type.String({
         description: 'Natural language search query',
       }),
@@ -920,18 +881,12 @@ export function createMoltNetTools(
     }),
     async execute(_id, params) {
       const { agent, diaryId } = ensureConnected(config);
-      const source = diaryReads ? diaryReads.diary(params.diaryId) : diaryId;
-      if (!diaryReads && params.diaryId && params.diaryId !== diaryId)
-        throw new Error('Diary is not the current source');
-      diaryReads?.takeCall();
       const expandedTags = compileTaskFilterTags(params.taskFilter);
       const allTags = [...(params.tags ?? []), ...expandedTags];
       const results = await agent.entries.search({
-        diaryId: source,
+        diaryId,
         query: params.query,
-        limit: diaryReads
-          ? Math.min(5, Math.max(1, Math.trunc(params.limit ?? 5)))
-          : (params.limit ?? 5),
+        limit: params.limit ?? 5,
         ...(allTags.length ? { tags: allTags } : {}),
         ...(params.excludeTags?.length
           ? { excludeTags: params.excludeTags }
@@ -943,14 +898,8 @@ export function createMoltNetTools(
           ? { entryTypes: params.entryTypes as never }
           : {}),
       });
-      const entries = diaryReads
-        ? results.results?.slice(0, 5)
-        : results.results;
       const text = JSON.stringify(
-        entries?.map((e: Record<string, unknown>) => ({
-          ...(diaryReads
-            ? { diaryId: source, contentHash: e.contentHash }
-            : {}),
+        results.results?.map((e: Record<string, unknown>) => ({
           id: e.id,
           title: e.title,
           tags: e.tags,
@@ -1665,30 +1614,7 @@ export function createMoltNetTools(
     },
   });
 
-  const searchReviewEntries = defineTool({
-    ...searchEntries,
-    name: 'moltnet_search_review_entries',
-    label: 'Search Review Source Diaries',
-    async execute(...args) {
-      if (!diaryReads)
-        throw new Error('Review diary sources are not configured');
-      return searchEntries.execute(...args);
-    },
-  });
-  const getReviewEntry = defineTool({
-    ...getEntry,
-    name: 'moltnet_get_review_entry',
-    label: 'Get Review Source Entry',
-    async execute(...args) {
-      if (!diaryReads)
-        throw new Error('Review diary sources are not configured');
-      return getEntry.execute(...args);
-    },
-  });
-
   return [
-    searchReviewEntries,
-    getReviewEntry,
     getPack,
     createPack,
     getPackProvenance,
@@ -1803,7 +1729,6 @@ export function createAttemptMoltNetTools(input: {
   identity?: AgentIdentity;
   agentEnv: Readonly<Record<string, string | undefined>>;
   hostExecAutoApprove?: HostExecAutoApproveConfig;
-  readDiaryIds?: readonly string[];
   onTaskProvenanceEvent?: MoltNetToolsConfig['onTaskProvenanceEvent'];
 }): ToolDefinition[] {
   const { task, attemptN } = input.claimedTask;
@@ -1814,7 +1739,6 @@ export function createAttemptMoltNetTools(input: {
         ? createPolicyCheckedSigner(input.capabilityRouter, input.identity)
         : null,
     getDiaryId: () => task.diaryId ?? '',
-    readDiaryIds: input.readDiaryIds,
     getTeamId: () => task.teamId ?? '',
     getSessionErrors: () => [],
     clearSessionErrors: () => {},

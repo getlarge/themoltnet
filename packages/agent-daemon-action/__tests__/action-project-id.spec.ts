@@ -242,6 +242,30 @@ describe('run step with project-id', () => {
 
   const daemonArgs = () => readFileSync(callLog, 'utf8').trim().split('\n');
 
+  it('forwards a trusted runtime module as one argument without shell expansion', () => {
+    const bin = installFakeDaemon();
+    const runtimeModule = '/trusted runtime/$(touch should-not-exist).js';
+    const result = runStep('run', {
+      ...runEnv(bin),
+      PROJECT_ID: '',
+      RUNTIME_MODULE: runtimeModule,
+    });
+    expect(result.status, result.stderr).toBe(0);
+    const args = daemonArgs();
+    expect(args[args.indexOf('--runtime') + 1]).toBe(runtimeModule);
+    expect(existsSync(resolve(root, 'should-not-exist'))).toBe(false);
+  });
+
+  it('leaves the built-in runtime selected when no module is configured', () => {
+    const result = runStep('run', {
+      ...runEnv(installFakeDaemon()),
+      PROJECT_ID: '',
+      RUNTIME_MODULE: '',
+    });
+    expect(result.status, result.stderr).toBe(0);
+    expect(daemonArgs()).not.toContain('--runtime');
+  });
+
   it.each(['once', 'drain'])(
     'binds the %s daemon to the project through a generated bindings file',
     (mode) => {

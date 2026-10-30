@@ -39,6 +39,10 @@ on:
       focused-profile:
         type: string
         default: ''
+      focused-diary-ids:
+        description: Optional JSON array of trusted diary UUIDs for the focused review runtime. Requires a matching adaptive_review_pi profile.
+        type: string
+        default: '[]'
       task-budgets:
         description: Optional YAML map of review timeout overrides (timeout, dispatch-timeout, expires-after; e.g. 12m).
         type: string
@@ -186,6 +190,8 @@ jobs:
           fi
       - uses: ./.adaptive-review-runtime/packages/adaptive-review-action/setup
         if: steps.screen.outputs.eligible == 'true'
+        with:
+          with-worker-action: ${{ inputs.focused-diary-ids != '[]' }}
       - name: Pin reviewed PR and protect the runtime
         id: pin
         if: steps.screen.outputs.eligible == 'true'
@@ -524,7 +530,31 @@ jobs:
           HEAD_SHA: ${{ needs.prepare.outputs.head }}
           GH_TOKEN: ${{ github.token }}
         run: bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        if: inputs.focused-diary-ids != '[]' && matrix.profile == inputs.focused-profile
+        with:
+          node-version: '24'
+      - name: Download optional review runtime bundle
+        if: inputs.focused-diary-ids != '[]' && matrix.profile == inputs.focused-profile
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          artifact-ids: ${{ needs.prepare.outputs.action-artifact-id }}
+          merge-multiple: true
+          path: .adaptive-review-runtime/packages/adaptive-review-action/dist
+      - name: Verify optional review runtime bundle
+        if: inputs.focused-diary-ids != '[]' && matrix.profile == inputs.focused-profile
+        env:
+          EXPECTED_DIGEST: ${{ needs.prepare.outputs.action-digest }}
+        run: bash .adaptive-review-runtime/tools/adaptive-review-action-digest.sh --verify "$EXPECTED_DIGEST" .adaptive-review-runtime/packages/adaptive-review-action/dist
+      - name: Install optional review runtime
+        id: diary-runtime
+        if: inputs.focused-diary-ids != '[]' && matrix.profile == inputs.focused-profile
+        env:
+          DAEMON_VERSION: ${{ inputs.daemon-version }}
+          ADAPTIVE_REVIEW_DIARY_IDS: ${{ inputs.focused-diary-ids }}
+        run: bash .adaptive-review-runtime/tools/setup-adaptive-review-diary-runtime.sh .adaptive-review-runtime
       - name: Drain selected review tasks
+        if: inputs.focused-diary-ids == '[]' || matrix.profile != inputs.focused-profile
         uses: getlarge/themoltnet/packages/agent-daemon-action@dd4a984b5accb43c948a85a7211d306098926b3c # v0.7.0
         env:
           MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
@@ -538,6 +568,34 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         with:
+          agent-name: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
+          mode: drain
+          task-types: freeform
+          correlation-id: ${{ needs.prepare.outputs.correlation }}
+          project-id: ${{ inputs.project-id }}
+          profile: ${{ matrix.profile }}
+          daemon-version: ${{ inputs.daemon-version }}
+          wait-for-first-task-sec: '900'
+          wait-after-task-sec: ${{ matrix.profile == inputs.focused-profile && '0' || '120' }}
+          max-poll-interval-ms: '3000'
+          providers: ${{ inputs.providers }}
+      - name: Drain diary-enabled focused review tasks
+        if: inputs.focused-diary-ids != '[]' && matrix.profile == inputs.focused-profile
+        uses: ./.adaptive-review-runtime/packages/agent-daemon-action
+        env:
+          ADAPTIVE_REVIEW_DIARY_IDS: ${{ inputs.focused-diary-ids }}
+          MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+          MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
+          MOLTNET_API_URL: ${{ inputs.api-url || vars.MOLTNET_API_URL }}
+          MOLTNET_TEAM_ID: ${{ inputs.team-id || vars.MOLTNET_TEAM_ID }}
+          MOLTNET_PRIVATE_KEY: ${{ secrets.MOLTNET_PRIVATE_KEY }}
+          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        with:
+          runtime-module: ${{ steps.diary-runtime.outputs.module }}
           agent-name: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
           mode: drain
           task-types: freeform

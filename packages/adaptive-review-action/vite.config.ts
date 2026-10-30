@@ -12,7 +12,10 @@ export default defineConfig({
         review: 'src/review.ts',
         publish: 'src/publish.ts',
         outcomes: 'src/outcomes.ts',
+        'diary-runtime': 'src/diary-runtime.ts',
       },
+      // The optional runtime resolves these from its isolated pinned install.
+      external: [/^@themoltnet\/(agent-daemon|pi-runtime)(\/|$)/],
       output: { format: 'esm', entryFileNames: '[name].js' },
     },
   },

@@ -114,17 +114,27 @@ a live model follows the criteria or whether guidance improves finding quality.
 
 ## Optional diary context
 
-Focused reviewers (`tests`, `conventions`, and `blast-radius`) can optionally
-search configured diaries for relevant decisions and incidents. This is off in
-the default profiles. Operators must deploy a supporting worker runtime, grant
-the worker read access, and create and select the separate knowledge profile;
-follow the [runtime policy setup](../../.github/runtime-policies/README.md#optional-diary-context-for-focused-reviews).
-The repository's `.github/adaptive-review.json` cannot enable this access.
+Focused reviewers (`tests`, `conventions`, and `blast-radius`) can search
+selected diaries for past decisions and incidents. This is **off by
+default**. An operator enables it in the trusted caller workflow with
+`focused-diary-ids` and a matching knowledge review profile; the repository's
+`.github/adaptive-review.json` cannot grant diary access. Follow the
+[runtime policy setup](../../.github/runtime-policies/README.md#optional-diary-context-for-focused-reviews)
+for provisioning, release requirements, caller inputs, and deployed validation.
+
+The workflow loads a review-owned runtime module into focused workers only.
+The worker identity must already have read access to the selected diaries.
+The host enforces the source list and a shared budget of eight search/fetch
+attempts per toolset context. Source access covers whole diaries, not just
+entries associated with this repository. The ordinary runtime and other
+review profiles do not gain diary capabilities.
 
 Diary entries guide investigation; findings still need evidence from current
 code. Closure outcomes recorded below are unverified observations, not judgments
-of correctness. Private diary contents must stay out of public findings; the
-profile gives this instruction but does not automatically redact model output.
+of correctness. The profile instructs reviewers to keep private diary contents
+out of public findings, but does not automatically redact model output. Local
+builds and mocked tests do not establish deployed access or finding quality;
+validate the enabled configuration with a controlled workflow run.
 
 ## Findings and outcomes
 

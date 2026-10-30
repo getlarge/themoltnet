@@ -2,7 +2,7 @@
 # Files this action runs from outside its package; a change here must
 # ship as a fix or feat commit so release-please releases the action.
 f10e406ffa6d57b09c77b3d7ae9d71470aeffa969d7fe072fbf162c5d5faa5bd  .github/workflows/adaptive-review-outcomes-reusable.yml
-1b27095a1485c51c96ba428c505501ada652b28a119853acad80ac935c2df8d3  .github/workflows/adaptive-review-reusable.yml
+1392f5f9d169cf1e02d56c202d9b1e928884d1649d8c895392002dc9979ec505  .github/workflows/adaptive-review-reusable.yml
 2748e43dc317ad666177dab9faca399ac46dea7392ff56a037193c2ae6548406  libs/adaptive-review/src/cli.ts
 2a2313a1f936b0153fb7d285652e75dd3a1a780d9310e6fa35f61883fc184b4e  libs/adaptive-review/src/complexity-lane.ts
 0a66839e9956984a6a7c351dc7caa958bd0ed46c1b70290149c63fb352c7ff8b  libs/adaptive-review/src/config.ts
@@ -52,5 +52,17 @@ a91b9dba49c831cddf2ca280b5e55d86bb7258d771371772adc426a599eafed4  libs/docs-impa
 ba39b405ecd7fcf78f19b902e63a602b3c93473da1bd32dd600448b19c7a5323  libs/security-review/src/config.ts
 70e75553cf32d473b9f1f383c2f9e3adef8e43cd2cf2e0cc98875f13c8a2876c  libs/security-review/src/main.ts
 9a857f32008579e0a6ecec06f48e4f3e8d101f2fed09bea62669d50167081cae  libs/security-review/src/review.ts
+a6db1e2223d09b33a63b6aa795e54cf1a8b16b774c32751016d9764ba921b2f2  packages/agent-daemon-action/action.yml
+7141099a79864656b06e54177355b62525ba00193e3e3039d6f6a4d0d4b051f9  packages/agent-daemon-action/package.json
+55319049edece2d90644604c1d48e10ed5cf35bb3119511ccf4bfaa23da3af31  packages/agent-daemon-action/src/cancel-superseded.ts
+ab6ce882766a822342455bc87baf9af571ab8e5f67c4c6c9e9c0dbb37e1a6733  packages/agent-daemon-action/src/create-task.ts
+f8f236bddc9a9ac441cb32cfd7c8996ae3149c25e3a332eb25e2a38a1640310a  packages/agent-daemon-action/src/dispatch.ts
+289747fb7ed81b7577d72222dc7b540a834338f21b01248bde504f7298554095  packages/agent-daemon-action/src/index.ts
+ff99d5a1cc1ccdc3c57b0956ae478d2e658e77dc084623f3edb9652a7acdf321  packages/agent-daemon-action/src/main.ts
+797250409e86cdee19e2c04f6d7fcdbed926dc37aa94446242330271c08fbd93  packages/agent-daemon-action/src/parse-mention.ts
+6b872a5518e2f91b15a40e1d2ae4c789ddef4dd038e42dd0f86a17e6b4ec8c34  packages/agent-daemon-action/src/resolve-correlation.ts
+8f4e6ac49b81b1c12732d58ebc6fa639eed4c5c10869d416f88d715b59157d50  packages/agent-daemon-action/src/spend.ts
+a914054fc9f72e37ebbd2fb42a85e48c33219d5819202fea13e0d65c0512d014  packages/agent-daemon-action/vite.config.ts
 9f35b88137e3e8040aea1a42f6413490553e3548605c3acda79696692b24aa77  tools/adaptive-review-action-digest.sh
 4b54f3b46ac33351313f21c964548bab596cfe353127a8d5f0ecd1e76f0f01fa  tools/fetch-adaptive-review-head.sh
+2c09e752d0500a8e3d5b7b56b0d885dbfceb6d12e897ebe2cd07ab90062a5ff4  tools/setup-adaptive-review-diary-runtime.sh

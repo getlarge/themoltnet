@@ -15,13 +15,16 @@
   "scripts": {
     "build": "vite build",
     "lint": "eslint src/",
-    "typecheck": "tsc -b --emitDeclarationOnly"
+    "typecheck": "tsc -b --emitDeclarationOnly",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@moltnet/adaptive-review": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:"
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "@earendil-works/pi-coding-agent": "catalog:"
   },
   "nx": {
     "tags": [
@@ -38,9 +41,14 @@
         ],
         "options": {
           "cwd": "{workspaceRoot}",
-          "command": "node --import tsx tools/src/release/github-action-publisher.ts --project @themoltnet/adaptive-review-action --entries review.js,publish.js,outcomes.js --stable-major-tag-prefix adaptive-review-action-v"
+          "command": "node --import tsx tools/src/release/github-action-publisher.ts --project @themoltnet/adaptive-review-action --entries review.js,publish.js,outcomes.js,diary-runtime.js --stable-major-tag-prefix adaptive-review-action-v"
         }
       }
     }
+  },
+  "dependencies": {
+    "@themoltnet/agent-daemon": "workspace:*",
+    "@themoltnet/pi-runtime": "workspace:*",
+    "typebox": "catalog:"
   }
 }

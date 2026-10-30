@@ -21,11 +21,12 @@
   },
   "name": "legreffier-adaptive-knowledge-review-v1",
   "requiredEnv": [],
-  "runtimeKind": "gondolin_pi",
+  "requiredTools": [
+    "moltnet_search_review_entries",
+    "moltnet_get_review_entry"
+  ],
+  "runtimeKind": "adaptive_review_pi",
   "sandbox": {
-    "env": {
-      "REVIEW_DIARY_IDS": "[]"
-    },
     "network": {
       "allowedHosts": [],
       "allowedInternalHosts": []
