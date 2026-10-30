@@ -1,9 +1,9 @@
 import { inlineContext } from '@themoltnet/tasks-orchestrator';
 import { describe, expect, it } from 'vitest';
 
-import { fakeDeps } from './test-fakes.js';
 import type { IssueLifecycleInput, WorkflowContext } from '../src/types.js';
 import { runGithubIssueLifecycle } from '../src/workflow.js';
+import { fakeDeps } from './test-fakes.js';
 
 const BASE_INPUT: IssueLifecycleInput = {
   repo: 'getlarge/themoltnet',

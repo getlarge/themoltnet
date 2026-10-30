@@ -2,13 +2,13 @@ import { inlineContext } from '@themoltnet/tasks-orchestrator';
 import { replayContext } from '@themoltnet/tasks-orchestrator/testing';
 import { describe, expect, it, vi } from 'vitest';
 
-import { fakeDeps } from './test-fakes.js';
 import type { AcceptedTaskResult, WorkflowContext } from '../src/types.js';
 import {
   ensureReadyForReviewComment,
   waitForApprovalLabel,
   waitForGreenPrChecks,
 } from '../src/workflow-steps.js';
+import { fakeDeps } from './test-fakes.js';
 
 describe('waitForApprovalLabel', () => {
   it('does not consume label-added events while the approval label is stale', async () => {

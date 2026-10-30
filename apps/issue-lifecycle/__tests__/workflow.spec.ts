@@ -3,10 +3,10 @@ import { inlineContext } from '@themoltnet/tasks-orchestrator';
 import { replayContext } from '@themoltnet/tasks-orchestrator/testing';
 import { describe, expect, it } from 'vitest';
 
-import type { FakeGithub } from './test-fakes.js';
-import { fakeDeps } from './test-fakes.js';
 import type { WorkflowContext } from '../src/types.js';
 import { runGithubIssueLifecycle } from '../src/workflow.js';
+import type { FakeGithub } from './test-fakes.js';
+import { fakeDeps } from './test-fakes.js';
 
 function assertionIds(taskInput: unknown): string[] {
   return (
