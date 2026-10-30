@@ -55,6 +55,65 @@ again before a comment is published. The PR head and base are read once more
 after the comment is written. If either moved, the comment is replaced with a
 stale notice, and the publish step fails.
 
+## Repository review guidance
+
+Add a `REVIEW.md` to your repository's base branch to tell reviewers what
+matters in your project. No additional JSON configuration is needed once
+adaptive review is enabled. For example, a root `REVIEW.md` can contain:
+
+```markdown
+# Review criteria
+
+- Check the intended behavior against the PR's acceptance criteria.
+- Report introduced defects with a concrete trigger, consequence, and file/line.
+- For API changes, check compatibility with existing callers and error handling.
+- Leave formatting and lint violations to automated checks.
+- State what evidence is missing when a conclusion cannot be established.
+```
+
+Root guidance applies throughout the repository. Add a nested file, such as
+`libs/auth/REVIEW.md`, for criteria that apply only to that directory and its
+descendants. More specific guidance refines broader guidance within its scope.
+Both the old and new paths of a rename select applicable guidance. Keep the
+criteria self-contained: the loader does not expand links or includes, or load
+`AGENTS.md` as review guidance.
+
+Only guidance committed at the PR's pinned **base revision** is trusted.
+Adding, editing, or deleting `REVIEW.md` in a PR changes future reviews after
+merge; it cannot replace that PR's review criteria. Working-tree copies are
+not read. Each loaded file's SHA-256 digest is recorded with the review's
+reference digests and included in the policy snapshot used for freshness
+checks before publication.
+
+The classifier receives guidance matching its packet's paths. Specialist
+tasks receive guidance matching the full changed-path manifest, including
+deletions and rename sources, with instructions to respect each file's scope.
+This covers the tests, conventions, blast-radius, security, docs, and complexity
+lanes, including their freeform stages and semantic repairs. Standalone docs
+and complexity workflows do not gain this behavior. Guidance supplies review
+criteria; it cannot change enabled lanes, output contracts, security procedures,
+or tool and runtime capabilities.
+
+When enabling guidance, update existing deployed review profiles to match the
+current templates, or adjust custom instruction prefixes to distinguish trusted
+base criteria from untrusted reviewed content. In particular, the `docs-review`
+template makes this distinction; updating the template in the runtime does not
+automatically update a deployed profile.
+
+Files must be named exactly `REVIEW.md` and be regular Git blobs containing
+UTF-8 text without NUL bytes. Symlinks and `REVIEW.md` submodule entries are
+rejected; submodules are not traversed. Limits are 16 KiB per file, 128 files,
+and 128 KiB total across the base repository, including guidance outside the
+changed paths. Invalid or oversized guidance fails configuration rather than
+being silently truncated. A repository without guidance keeps the built-in
+review criteria.
+
+Tests cover base-revision loading, scope selection, validation, digest tracking,
+and delivery into task inputs using mocked workers. They do not measure whether
+a live model follows the criteria or whether guidance improves finding quality.
+
+## Findings and outcomes
+
 Findings that cite a changed line are published as review threads, one per
 finding, anchored to that line on the reviewed head. Each thread asks the
 author to fix the finding or resolve the thread with a reason; with "require
