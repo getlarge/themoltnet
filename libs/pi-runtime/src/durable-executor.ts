@@ -993,7 +993,14 @@ export function createDurableTaskExecutor(options: {
       )
         throw new TaskExecutionInterrupted(
           'Durable execution interrupted; reconcile the attempt before resuming',
-          { cause: error },
+          {
+            // Closing the harness rejects pending work with "Harness is closed".
+            // Keep the reason that triggered that close (including its cause
+            // chain), rather than replacing it with the shutdown symptom.
+            cause: connection?.signal.aborted
+              ? (connection.signal.reason ?? error)
+              : error,
+          },
         );
       if (reporterOpen)
         await emit('error', {

@@ -54,16 +54,20 @@ export async function acquireDurableTransport(input: {
   deadline = Date.parse(handle.writerExpiresAt);
   let closed = false;
   let renewal: Promise<void> | undefined;
-  const fail = (error: unknown) => {
+  const fail = (
+    operation: 'renew' | 'read' | 'read_body' | 'mint_id' | 'commit' | 'expiry',
+    error: unknown,
+  ) => {
     lost.abort(
       new TaskExecutionInterrupted(
-        'Durable writer lost; reconcile the attempt before resuming',
+        `Durable writer lost during ${operation} (store ${handle.storeId}); reconcile the attempt before resuming`,
         { cause: error },
       ),
     );
   };
   const check = () => {
-    if (Date.now() >= deadline) fail(new Error('Writer lease expired'));
+    if (Date.now() >= deadline)
+      fail('expiry', new Error('Writer lease expired'));
     signal.throwIfAborted();
     if (closed) throw new Error('Durable writer closed');
   };
@@ -73,7 +77,7 @@ export async function acquireDurableTransport(input: {
   const scheduleExpiry = () => {
     clearTimeout(expiry);
     expiry = setTimeout(
-      () => fail(new Error('Writer lease expired')),
+      () => fail('expiry', new Error('Writer lease expired')),
       Math.max(0, deadline - Date.now()),
     );
     expiry.unref();
@@ -89,7 +93,7 @@ export async function acquireDurableTransport(input: {
       deadline = Date.parse(renewed.writerExpiresAt);
       scheduleExpiry();
     })()
-      .catch(fail)
+      .catch((error: unknown) => fail('renew', error))
       .finally(() => {
         renewal = undefined;
       });
@@ -101,7 +105,7 @@ export async function acquireDurableTransport(input: {
       const page = await stores
         .read(handle.storeId, afterSeq, request(context))
         .catch((error: unknown) => {
-          fail(error);
+          fail('read', error);
           throw lost.signal.reason;
         });
       async function* items(): AsyncGenerator<RuntimeCommit> {
@@ -111,7 +115,7 @@ export async function acquireDurableTransport(input: {
             yield commit as unknown as RuntimeCommit;
           }
         } catch (error) {
-          fail(error);
+          fail('read_body', error);
           throw lost.signal.reason;
         }
       }
@@ -135,7 +139,7 @@ export async function acquireDurableTransport(input: {
         await stores
           .mintId(handle.storeId, writer, request())
           .catch((error: unknown) => {
-            fail(error);
+            fail('mint_id', error);
             throw lost.signal.reason;
           })
       ).id;
@@ -154,7 +158,7 @@ export async function acquireDurableTransport(input: {
         })
         .catch(() => undefined);
     },
-    onUncertainCommit: fail,
+    onUncertainCommit: (error) => fail('commit', error),
   };
   return {
     transport,
