@@ -51,7 +51,7 @@ jobs:
           if [[ -n "$REPORT_SINCE" ]]; then
             args+=(--since "$REPORT_SINCE")
           fi
-          bash tools/review-health-report.sh "${args[@]}" > "$RUNNER_TEMP/review-health-report.md"
+          node tools/review-health-report.mjs "${args[@]}" > "$RUNNER_TEMP/review-health-report.md"
           cat "$RUNNER_TEMP/review-health-report.md" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Markdown report

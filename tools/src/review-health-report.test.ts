@@ -14,7 +14,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 
 const script = fileURLToPath(
-  new URL('../review-health-report.sh', import.meta.url),
+  new URL('../review-health-report.mjs', import.meta.url),
 );
 const directories: string[] = [];
 afterEach(() => {
@@ -22,7 +22,7 @@ afterEach(() => {
     rmSync(directory, { recursive: true, force: true });
 });
 
-function runReport(failGroup = '') {
+function runReport(failGroup = '', label = 'lane:focused') {
   const directory = mkdtempSync(join(tmpdir(), 'review-health-report-'));
   directories.push(directory);
   const cli = join(directory, 'moltnet');
@@ -46,7 +46,7 @@ cat "$REPORT_FIXTURE"
     JSON.stringify({
       groups: [
         {
-          label: 'lane:focused',
+          label,
           metrics: {
             success: { taskCount: 2, terminalFailureTaskCount: 1 },
             productivity: { attemptCount: 3, medianTimeToAcceptedMs: 65000 },
@@ -59,7 +59,7 @@ cat "$REPORT_FIXTURE"
   );
   const calls = join(directory, 'calls.txt');
   const result = spawnSync(
-    'bash',
+    process.execPath,
     [
       script,
       '--team-id',
@@ -97,10 +97,27 @@ describe('review health report', () => {
     expect(result.calls).toContain('--completed-after\n2026-10-01T00:00:00Z');
   });
 
+  it('escapes table delimiters and line breaks in analytics labels', () => {
+    const result = runReport('', 'lane:focused|extra\nrow');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('| lane:focused\\|extra row |');
+  });
+
+  it('prints help without requiring credentials or querying analytics', () => {
+    const result = spawnSync(process.execPath, [script, '--help'], {
+      encoding: 'utf8',
+    });
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(
+      'Usage: node tools/review-health-report.mjs',
+    );
+  });
+
   it.each(['profile', 'tag'])('fails when %s analytics fail', (group) => {
     const result = runReport(group);
     expect(result.status).toBe(7);
     expect(result.stderr).toContain('analytics unavailable');
+    expect(result.stdout).toBe('');
   });
 
   it('offers manual dispatch on the default branch and publishes the report', () => {
@@ -145,7 +162,7 @@ describe('review health report', () => {
     expect(generate.env?.REPORT_TAGS).toBe('${{ inputs.tags }}');
     expect(generate.run).not.toContain('${{');
     expect(generate.run).toContain(
-      'bash tools/review-health-report.sh "${args[@]}"',
+      'node tools/review-health-report.mjs "${args[@]}"',
     );
     expect(generate.run).toContain('>> "$GITHUB_STEP_SUMMARY"');
     expect(
