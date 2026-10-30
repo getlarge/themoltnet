@@ -15,7 +15,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createConversationProjectionReader,
   projectConversationCommit,
-} from './conversation-projection.js';
+} from '../src/conversation-projection.js';
 
 type Row = NonNullable<
   Awaited<ReturnType<RuntimeStoreRepository['conversationRecord']>>
