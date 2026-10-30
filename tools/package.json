@@ -73,7 +73,10 @@
         "{projectRoot}/**/*",
         "sharedGlobals",
         "{workspaceRoot}/.github/workflows/**/*",
-        "{workspaceRoot}/.github/actions/**/*"
+        "{workspaceRoot}/.github/actions/**/*",
+        "{workspaceRoot}/.github/scripts/issue-triage*.mjs",
+        "{workspaceRoot}/.github/actionlint.yaml",
+        "{workspaceRoot}/.tool-versions"
       ]
     },
     "tags": [
@@ -120,6 +123,12 @@
           "command": "tsx src/bench-durable-storage.ts",
           "cwd": "tools"
         }
+      },
+      "test-ci": {
+        "executor": "nx:noop",
+        "dependsOn": [
+          "test"
+        ]
       }
     }
   }

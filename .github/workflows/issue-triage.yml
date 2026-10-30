@@ -154,6 +154,7 @@ jobs:
           permission-issues: write
 
       - name: Apply validated result
+        id: publish
         if: steps.extract.outputs.task-id != ''
         env:
           EXTRACTION_SPEND_REPORT: ${{ steps.extract.outputs.spend-report }}
@@ -168,3 +169,14 @@ jobs:
           MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
           MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
         run: node .github/scripts/issue-triage.mjs publish
+
+      # The receipt is evidence of issue quality, not permission to implement.
+      # Consumers must verify the producer run and current issue contents.
+      - name: Retain triage receipt
+        if: steps.publish.outputs.receipt != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: issue-triage-${{ github.repository_id }}-${{ github.event.issue.number || inputs.issue }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.publish.outputs.receipt }}
+          if-no-files-found: error
+          retention-days: 14
