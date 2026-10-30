@@ -25,7 +25,7 @@ jobs:
       contents: read
       pull-requests: read
     env:
-      MOLTNET_CLI_VERSION: '3.21.0'
+      MOLTNET_CLI_VERSION: '3.22.0'
       MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
       MOLTNET_SUBJECT_ID: ${{ secrets.MOLTNET_SUBJECT_ID }}
       MOLTNET_SUBJECT_TYPE: agent
