@@ -382,12 +382,12 @@ if (args[2] === 'GET') {
     RUNNER_TEMP: dir,
     MOLTNET_TEAM_ID: 'team-id',
   };
-  const run = (mode) =>
+  const run = (mode, overrides = {}) =>
     spawnSync('node', ['.github/scripts/issue-triage.mjs', mode], {
       timeout: 10_000,
       killSignal: 'SIGKILL',
       cwd: root,
-      env,
+      env: { ...env, ...overrides },
       encoding: 'utf8',
     });
   const initial = run('prepare');
@@ -445,6 +445,41 @@ if (args[2] === 'GET') {
   );
   env.EXTRACTION_SPEND_REPORT = spendPath;
   env.CLASSIFIER_SPEND_REPORT = spendPath; // A reused task must not be charged twice.
+  // Workflow metadata must fail closed before any GitHub publication or receipt.
+  const callsBeforePublication = readFileSync(callsPath, 'utf8');
+  writeFileSync(outputPath, '');
+  for (const { snapshotPatch = {}, envPatch = {} } of [
+    { envPatch: { GITHUB_RUN_ID: 'not-a-run-id' } },
+    { envPatch: { GITHUB_RUN_ATTEMPT: '0' } },
+    { snapshotPatch: { sourceRevision: 'not-a-commit-sha' } },
+    { snapshotPatch: { correlationId: 'invalid correlation' } },
+  ]) {
+    const invalidSnapshot = { ...snapshot, ...snapshotPatch };
+    writeFileSync(snapshotPath, JSON.stringify(invalidSnapshot));
+    writeFileSync(
+      extractionPath,
+      JSON.stringify({
+        ...extractionFixture,
+        task: {
+          ...extractionFixture.task,
+          correlationId: invalidSnapshot.correlationId,
+        },
+      }),
+    );
+    const invalid = run('publish', {
+      ...envPatch,
+      EXTRACTION_CORRELATION_ID: invalidSnapshot.correlationId,
+      CLASSIFIER_TASK_ID: '',
+    });
+    assert.notEqual(invalid.status, 0);
+    assert.match(invalid.stderr, /invalid triage workflow provenance/);
+    assert.equal(readFileSync(callsPath, 'utf8'), callsBeforePublication);
+    assert.equal(readFileSync(outputPath, 'utf8'), '');
+    assert.throws(() => readFileSync(join(dir, 'issue-triage-receipt.json')));
+  }
+  writeFileSync(snapshotPath, JSON.stringify(snapshot));
+  writeFileSync(extractionPath, JSON.stringify(extractionFixture));
+
   const published = run('publish');
   assert.equal(published.status, 0, published.stderr);
   assert.match(published.stderr, /Classifier pilot result unavailable/);
@@ -511,6 +546,15 @@ if (args[2] === 'GET') {
   );
   const classified = run('publish');
   assert.equal(classified.status, 0, classified.stderr);
+  const classifiedReceipt = JSON.parse(
+    readFileSync(join(dir, 'issue-triage-receipt.json'), 'utf8'),
+  );
+  assert.deepEqual(classifiedReceipt.classification, {
+    advisory: true,
+    category: 'feature',
+    probabilities: answers.category.probabilities,
+    readiness: Object.fromEntries(CRITERIA.map((id) => [id, 0.75])),
+  });
   const comment = JSON.parse(readFileSync(bodyPath, 'utf8')).body;
   assert.match(comment, /Classifier pilot: \*\*feature\*\*/);
   assert.match(comment, /Added `enhancement` label/);
