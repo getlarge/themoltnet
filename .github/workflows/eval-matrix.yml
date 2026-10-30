@@ -25,7 +25,7 @@ on:
   workflow_dispatch:
     inputs:
       models:
-        description: 'Comma-separated producer models to sweep (ollama-cloud ids). Defaults are drawn from the maintained .pi/models.json list.'
+        description: 'Comma-separated producer models to sweep (ollama-cloud ids). Defaults are drawn from the @moltnet/provider-catalog list.'
         required: false
         default: 'gemma4:31b,glm-5.2,gpt-oss:120b,minimax-m3'
       judge_model:

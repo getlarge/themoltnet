@@ -2,9 +2,9 @@
  * Runtime locks for GitHub Actions released by release-please.
  *
  * release-please bumps a component only for commits under its package path,
- * but consumers pinned to `docs-impact-review-action-v0` also run the
- * reusable workflow and the agent-daemon action at that tag's commit. The
- * lock file inside the package records a hash of each of those files, so a
+ * but consumers pinned to an action's major tag may also run files outside
+ * that package at the tag's commit, such as a reusable workflow. The lock
+ * file inside the package records a hash of each of those files, so a
  * change to one must update the lock, which touches the package and cuts a
  * release. Bundles are not committed, so they are not locked: the release
  * job builds them into the commit the stable major tag points at.
@@ -25,19 +25,24 @@ export interface RuntimeLock {
   pathspecs: string[];
 }
 
+/** One entry per released action that runs files from outside its package. */
 export const RUNTIME_LOCKS: RuntimeLock[] = [
   {
-    lock: 'packages/complexity-review-action/runtime.lock',
+    // The reusable workflows and their scripts run from the tag's commit,
+    // and the bundle inlines the review libraries. Other bundled workspace
+    // libraries reach the tag at the action's next release.
+    lock: 'packages/adaptive-review-action/runtime.lock',
     pathspecs: [
-      '.github/workflows/complexity-review-reusable.yml',
-      'packages/agent-daemon-action/action.yml',
-    ],
-  },
-  {
-    lock: 'packages/docs-impact-review-action/runtime.lock',
-    pathspecs: [
-      '.github/workflows/docs-impact-review-reusable.yml',
-      'packages/agent-daemon-action/action.yml',
+      '.github/workflows/adaptive-review-reusable.yml',
+      '.github/workflows/adaptive-review-outcomes-reusable.yml',
+      'tools/adaptive-review-action-digest.sh',
+      'tools/fetch-adaptive-review-head.sh',
+      'libs/adaptive-review/src',
+      'libs/complexity-review/src',
+      'libs/docs-impact-review/src',
+      'libs/security-review/src',
+      ':(exclude,glob)**/*.test.ts',
+      ':(exclude,glob)**/*.spec.ts',
     ],
   },
 ];
@@ -75,6 +80,15 @@ export function computeLock(root: string, spec: RuntimeLock): string {
     files.set(path, readFileSync(join(root, path)));
   }
   return renderLock(files);
+}
+
+/** The locks that belong to the action project at `projectRoot`. */
+export function locksForProject(
+  projectRoot: string,
+  locks = RUNTIME_LOCKS,
+): RuntimeLock[] {
+  const prefix = `${projectRoot.replace(/\/+$/, '')}/`;
+  return locks.filter((lock) => lock.lock.startsWith(prefix));
 }
 
 /** Locks whose committed text differs from the files they cover. */

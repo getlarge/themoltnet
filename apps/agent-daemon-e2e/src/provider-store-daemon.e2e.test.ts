@@ -4,18 +4,12 @@
  *
  * The real CLI writes the provider store, the real `runOnce` claims a task
  * against the e2e stack, and a stub Pi executor checks what Pi would see: the
- * activated agent dir, the resolved API key, and a catalog that resolves both
- * the store model and a model only the repository `.pi/models.json` defines.
+ * activated agent dir, the resolved API key, and a catalog that resolves the
+ * store models.
  */
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -50,7 +44,6 @@ const DAEMON_ROOT = resolve(import.meta.dirname, '../../agent-daemon');
 const PROVIDER_ID = 'e2e-store';
 const PROVIDER_ENV = 'MOLTNET_PROVIDER_E2E_STORE_API_KEY';
 const STORE_MODEL = 'store-model';
-const REPO_MODEL = 'repo-only-model';
 const VISION_MODEL = 'vision-model';
 const RAW_API_KEY = 'e2e-store-key-never-in-pi-config';
 
@@ -151,7 +144,7 @@ describe('Agent daemon provider store for direct runs (e2e)', () => {
     await harness?.teardown();
   });
 
-  it('runs once with store providers layered over repo .pi, no PI_CODING_AGENT_DIR', async () => {
+  it('runs once with store providers, no PI_CODING_AGENT_DIR', async () => {
     // Arrange: provider store written by the real CLI.
     const storeRoot = tempDir('daemon-provider-store-');
     vi.stubEnv('MOLTNET_HOME', storeRoot);
@@ -175,8 +168,6 @@ describe('Agent daemon provider store for direct runs (e2e)', () => {
     );
     expect(set.code, set.stderr).toBe(0);
 
-    // Arrange: the agent root carries a repository catalog for the same
-    // provider with a model the store does not list.
     const agentRoot = tempDir('daemon-provider-store-root-');
     const sandboxRoot = tempDir('daemon-provider-store-cwd-');
     await provisionDaemonCredentials({
@@ -190,20 +181,6 @@ describe('Agent daemon provider store for direct runs (e2e)', () => {
       fingerprint: creds.keyPair.fingerprint,
       apiUrl: harness.restApiUrl,
     });
-    mkdirSync(join(agentRoot, '.pi'), { recursive: true });
-    writeFileSync(
-      join(agentRoot, '.pi', 'models.json'),
-      JSON.stringify({
-        providers: {
-          [PROVIDER_ID]: {
-            api: 'openai-completions',
-            apiKey: '$OLLAMA_API_KEY',
-            baseUrl: 'http://127.0.0.1:9/v1',
-            models: [{ id: REPO_MODEL, contextWindow: 8192 }],
-          },
-        },
-      }),
-    );
 
     let view: PiView | undefined;
     createDurableExecutorMock.mockImplementation(
@@ -217,7 +194,7 @@ describe('Agent daemon provider store for direct runs (e2e)', () => {
           const piAgentDir = process.env.PI_CODING_AGENT_DIR;
           const resolvable: string[] = [];
           const modalities: Record<string, readonly string[]> = {};
-          for (const model of [STORE_MODEL, REPO_MODEL, VISION_MODEL]) {
+          for (const model of [STORE_MODEL, VISION_MODEL]) {
             const { modelHandle } = await resolveRuntimeProfileModel(
               piAgentDir!,
               PROVIDER_ID,
@@ -274,7 +251,7 @@ describe('Agent daemon provider store for direct runs (e2e)', () => {
       {
         name: `provider-store-${randomUUID()}`,
         runtimeKind: 'gondolin_pi',
-        models: { generation: { provider: PROVIDER_ID, model: REPO_MODEL } },
+        models: { generation: { provider: PROVIDER_ID, model: STORE_MODEL } },
 
         sandbox: {},
       },
@@ -309,7 +286,7 @@ describe('Agent daemon provider store for direct runs (e2e)', () => {
     expect(view!.piAgentDir).toBeTruthy();
     expect(view!.piAgentDir).not.toBe(join(agentRoot, '.pi'));
     expect(view!.apiKey).toBe(RAW_API_KEY);
-    expect(view!.resolvable).toEqual([STORE_MODEL, REPO_MODEL, VISION_MODEL]);
+    expect(view!.resolvable).toEqual([STORE_MODEL, VISION_MODEL]);
     expect(view!.modelsJson).toContain(`$${PROVIDER_ENV}`);
     expect(view!.modelsJson).not.toContain(RAW_API_KEY);
     // A model declared with --model-input reaches Pi as image-capable; one

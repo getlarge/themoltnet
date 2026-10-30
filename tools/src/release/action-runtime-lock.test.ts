@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   computeLock,
+  locksForProject,
   RUNTIME_LOCKS,
   staleLocks,
 } from './action-runtime-lock.js';
@@ -66,12 +67,40 @@ describe('action runtime locks', () => {
 });
 
 describe('released action runtime inputs', () => {
-  it('locks runtime source files without including generated bundles', () => {
-    expect(RUNTIME_LOCKS).toHaveLength(2);
+  it('locks what the adaptive review runs from outside its package', () => {
+    const [adaptive] = RUNTIME_LOCKS;
+    expect(adaptive.lock).toBe('packages/adaptive-review-action/runtime.lock');
+    expect(adaptive.pathspecs).toEqual(
+      expect.arrayContaining([
+        '.github/workflows/adaptive-review-reusable.yml',
+        'libs/adaptive-review/src',
+        ':(exclude,glob)**/*.test.ts',
+      ]),
+    );
+  });
+
+  it('excludes both test file conventions', () => {
+    const [adaptive] = RUNTIME_LOCKS;
+    expect(adaptive.pathspecs).toEqual(
+      expect.arrayContaining([
+        ':(exclude,glob)**/*.test.ts',
+        ':(exclude,glob)**/*.spec.ts',
+      ]),
+    );
+  });
+
+  it("selects only the publishing project's locks", () => {
+    const locks = [
+      { lock: 'packages/a-action/runtime.lock', pathspecs: ['x'] },
+      { lock: 'packages/a-action-extra/runtime.lock', pathspecs: ['y'] },
+    ];
+    expect(locksForProject('packages/a-action', locks)).toEqual([locks[0]]);
+    expect(locksForProject('packages/a-action/', locks)).toEqual([locks[0]]);
+    expect(locksForProject('packages/b-action', locks)).toEqual([]);
+  });
+
+  it('never locks generated bundles', () => {
     for (const lock of RUNTIME_LOCKS) {
-      expect(lock.pathspecs).toContain(
-        'packages/agent-daemon-action/action.yml',
-      );
       expect(lock.pathspecs.some((path) => path.includes('/dist'))).toBe(false);
     }
   });

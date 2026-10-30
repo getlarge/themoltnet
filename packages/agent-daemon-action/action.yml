@@ -594,8 +594,8 @@ runs:
       run: |
         set -euo pipefail
         # GitHub Actions runs should be hermetic: do not let the daemon
-        # fall back to repo-local .pi or to the runner user's home dir.
-        # Callers may still provide PI_CODING_AGENT_DIR explicitly.
+        # fall back to the runner user's home Pi directory. Callers may
+        # still provide PI_CODING_AGENT_DIR explicitly.
         PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$ACTION_TEMP/pi}"
         mkdir -p "$PI_AGENT_DIR"
         {
@@ -832,7 +832,7 @@ runs:
 
     # Mention dispatch: turn the triggering comment into one task, then run it
     # once. Never in drain mode: a drain worker started by a comment (for
-    # example `@legreffier /docs-review`) claims tasks another job created,
+    # example `/review`) claims tasks another job created,
     # and must not treat the comment as a new request.
     - id: dispatch
       if: ${{ inputs.task-id == '' && inputs.task-spec-path == '' && inputs.mode != 'drain' && github.event_name == 'issue_comment' }}
@@ -1382,15 +1382,6 @@ runs:
         # Resolved once by the "Resolve the daemon command" step: the signed
         # release bundle, or a wrapper running the workspace source.
         daemon_cmd=("$AGENT_BIN")
-        if [ -n "${PROVIDERS:-}" ]; then
-          # Let the daemon compose models/auth from the CLI-managed store,
-          # without layering repository-local Pi configuration into CI.
-          if ! "${daemon_cmd[@]}" "$DAEMON_MODE" --help | grep -q -- '--include-pi-repo-config'; then
-            echo "::error::providers requires a daemon with --include-pi-repo-config; upgrade daemon-version" >&2
-            exit 1
-          fi
-          daemon_args+=(--include-pi-repo-config=false)
-        fi
 
         if [ -n "${PROJECT_ID:-}" ]; then
           uuid_re='^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'

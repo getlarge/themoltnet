@@ -8,7 +8,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { RuntimeProfileModels } from '@moltnet/runtime-profiles';
@@ -32,26 +32,6 @@ const STORE_OLLAMA: ProvidersState = {
     envName: 'MOLTNET_PROVIDER_OLLAMA_CLOUD_API_KEY',
     models: [{ id: 'glm-5.2', type: 'chat' }],
     apiKeyRef: 'file:providers/ollama-cloud/api-key',
-  },
-};
-
-const REPO_MODELS = {
-  providers: {
-    'ollama-cloud': {
-      api: 'openai-completions',
-      apiKey: '$OLLAMA_API_KEY',
-      baseUrl: 'https://ollama.com/v1',
-      models: [
-        { id: 'glm-5.2:cloud', contextWindow: 202752, reasoning: true },
-        { id: 'glm-5.2' },
-      ],
-    },
-    ollama: {
-      api: 'openai-completions',
-      apiKey: '$OLLAMA_API_KEY',
-      baseUrl: 'http://127.0.0.1:11434/v1',
-      models: [{ id: 'gemma4:12b' }],
-    },
   },
 };
 
@@ -92,32 +72,17 @@ describe('resolvePiAgentDir', () => {
     }
   }
 
-  function writeRepoPi(
-    agentRoot: string,
-    files: Partial<Record<'models' | 'auth' | 'settings', unknown>>,
-  ): void {
-    mkdirSync(join(agentRoot, '.pi'), { recursive: true });
-    for (const [name, content] of Object.entries(files)) {
-      writeFileSync(
-        join(agentRoot, '.pi', `${name}.json`),
-        JSON.stringify(content),
-      );
-    }
-  }
-
   function readJson(path: string): unknown {
     return JSON.parse(readFileSync(path, 'utf8'));
   }
 
   async function resolve(input: {
-    agentRoot: string;
     storeRoot: string;
     piCodingAgentDir?: string;
     env?: NodeJS.ProcessEnv;
     profiles?: ReadonlyArray<{ models: RuntimeProfileModels }>;
     secrets?: Record<string, string>;
     tempRoot?: string;
-    includePiRepoConfig?: boolean;
   }): Promise<PiAgentDir> {
     const secrets = input.secrets ?? {};
     const result = await resolvePiAgentDir(
@@ -126,7 +91,6 @@ describe('resolvePiAgentDir', () => {
         agentServerRoot: input.storeRoot,
         profilePrerequisiteEnv: input.env ?? {},
       },
-      input.agentRoot,
       input.profiles ?? [],
       {
         secretProviders: {
@@ -136,66 +100,11 @@ describe('resolvePiAgentDir', () => {
               : Promise.reject(new Error('secret not found')),
         },
         tempRoot: input.tempRoot ?? tempDir(),
-        includePiRepoConfig: input.includePiRepoConfig,
       },
     );
     resolved.push(result);
     return result;
   }
-
-  it('composes workflow configuration from the CLI store without repository overlays', async () => {
-    const storeRoot = tempDir();
-    const agentRoot = tempDir();
-    writeStore(storeRoot, { providers: STORE_OLLAMA, auth: { codex: {} } });
-    writeRepoPi(agentRoot, {
-      models: REPO_MODELS,
-      settings: { defaultModel: 'repo-only', enableInstallTelemetry: true },
-      auth: { repository: {} },
-    });
-
-    const result = await resolve({
-      agentRoot,
-      storeRoot,
-      includePiRepoConfig: false,
-      profiles: OLLAMA_CLOUD_PROFILE,
-      secrets: { 'providers/ollama-cloud/api-key': 'fixture-provider-key' },
-    });
-
-    expect(result.source).toBe('store');
-    expect(readJson(join(result.path, 'models.json'))).toMatchObject({
-      providers: {
-        'ollama-cloud': {
-          compat: { supportsDeveloperRole: false },
-          models: [{ id: 'glm-5.2' }],
-        },
-      },
-    });
-    expect(
-      JSON.stringify(readJson(join(result.path, 'models.json'))),
-    ).not.toContain('glm-5.2:cloud');
-    expect(readJson(join(result.path, 'settings.json'))).toEqual({
-      enableInstallTelemetry: false,
-    });
-    expect(readJson(join(result.path, 'auth.json'))).toEqual({ codex: {} });
-    expect(result.env.MOLTNET_PROVIDER_OLLAMA_CLOUD_API_KEY).toBe(
-      'fixture-provider-key',
-    );
-  });
-
-  it('does not fall back to repository auth when workflow store has no login', async () => {
-    const agentRoot = tempDir();
-    writeRepoPi(agentRoot, { auth: { repository: {} }, models: REPO_MODELS });
-    const result = await resolve({
-      agentRoot,
-      storeRoot: tempDir(),
-      includePiRepoConfig: false,
-    });
-    expect(result.source).toBe('store');
-    expect(readJson(join(result.path, 'models.json'))).toEqual({
-      providers: {},
-    });
-    expect(() => readJson(join(result.path, 'auth.json'))).toThrow();
-  });
 
   it('uses PI_CODING_AGENT_DIR unchanged even when a store exists', async () => {
     // Arrange
@@ -205,7 +114,6 @@ describe('resolvePiAgentDir', () => {
 
     // Act
     const result = await resolve({
-      agentRoot: tempDir(),
       storeRoot,
       piCodingAgentDir: explicit,
     });
@@ -215,21 +123,20 @@ describe('resolvePiAgentDir', () => {
     expect(statSync(explicit).isDirectory()).toBe(true);
   });
 
-  it('falls back to repo .pi when the store has no providers and no login', async () => {
+  it('falls back to the global Pi dir when the store has no providers and no login', async () => {
     // Arrange
-    const agentRoot = tempDir();
+    const storeRoot = join(tempDir(), 'missing');
 
     // Act
     const result = await resolve({
-      agentRoot,
-      storeRoot: join(tempDir(), 'missing'),
+      storeRoot,
       profiles: OLLAMA_CLOUD_PROFILE,
     });
 
     // Assert
     expect(result).toMatchObject({
-      path: join(agentRoot, '.pi'),
-      source: 'repo',
+      path: join(homedir(), '.pi', 'agent'),
+      source: 'global',
       env: {},
     });
   });
@@ -241,7 +148,6 @@ describe('resolvePiAgentDir', () => {
 
     // Act
     const result = await resolve({
-      agentRoot: tempDir(),
       storeRoot,
       profiles: OLLAMA_CLOUD_PROFILE,
       secrets: { 'providers/ollama-cloud/api-key': 'sk-store' },
@@ -275,6 +181,19 @@ describe('resolvePiAgentDir', () => {
     });
   });
 
+  it('links a dangling auth.json when the store has providers but no login', async () => {
+    // Arrange
+    const storeRoot = tempDir();
+    writeStore(storeRoot, { providers: STORE_OLLAMA });
+
+    // Act
+    const result = await resolve({ storeRoot });
+
+    // Assert
+    expect(result.source).toBe('store');
+    expect(() => readJson(join(result.path, 'auth.json'))).toThrow();
+  });
+
   it.each([false, true])(
     'resolves classification credentials with generation=%s',
     async (withGeneration) => {
@@ -290,7 +209,6 @@ describe('resolvePiAgentDir', () => {
         },
       });
       const result = await resolve({
-        agentRoot: tempDir(),
         storeRoot,
         profiles: [
           {
@@ -316,131 +234,6 @@ describe('resolvePiAgentDir', () => {
     },
   );
 
-  it('layers repo models and settings under the store catalog', async () => {
-    // Arrange
-    const agentRoot = tempDir();
-    const storeRoot = tempDir();
-    writeStore(storeRoot, { providers: STORE_OLLAMA });
-    writeRepoPi(agentRoot, {
-      models: REPO_MODELS,
-      settings: { transport: 'sse' },
-    });
-
-    // Act
-    const result = await resolve({
-      agentRoot,
-      storeRoot,
-      profiles: OLLAMA_CLOUD_PROFILE,
-      secrets: { 'providers/ollama-cloud/api-key': 'sk-store' },
-    });
-
-    // Assert
-    expect(readJson(join(result.path, 'models.json'))).toEqual({
-      providers: {
-        'ollama-cloud': {
-          api: 'openai-completions',
-          apiKey: '$MOLTNET_PROVIDER_OLLAMA_CLOUD_API_KEY',
-          baseUrl: 'https://ollama.com/v1',
-          compat: { supportsDeveloperRole: false },
-          models: [
-            {
-              id: 'glm-5.2',
-              type: 'chat',
-              cost: OLLAMA_CLOUD_COST,
-            },
-            { id: 'glm-5.2:cloud', contextWindow: 202752, reasoning: true },
-          ],
-        },
-        ollama: REPO_MODELS.providers.ollama,
-      },
-    });
-    expect(readJson(join(result.path, 'settings.json'))).toEqual({
-      transport: 'sse',
-    });
-  });
-
-  it('appends repo classifier models under an existing store provider', async () => {
-    const agentRoot = tempDir();
-    const storeRoot = tempDir();
-    writeStore(storeRoot, {
-      providers: {
-        'ollama-cloud': {
-          ...STORE_OLLAMA['ollama-cloud'],
-          models: [
-            { id: 'chat' },
-            { id: 'stored', type: 'classifier', api: 'typesafe-system-one' },
-          ],
-        },
-      },
-    });
-    writeRepoPi(agentRoot, {
-      models: {
-        providers: {
-          'ollama-cloud': {
-            api: 'openai-completions',
-            baseUrl: 'https://ollama.com/v1',
-            models: [
-              {
-                id: 'stored',
-                type: 'classifier',
-                api: 'typesafe-system-one',
-                contextWindow: 1000,
-              },
-              {
-                id: 'repo',
-                type: 'classifier',
-                api: 'typesafe-system-one',
-                contextWindow: 2000,
-              },
-            ],
-          },
-        },
-      },
-    });
-
-    const result = await resolve({ agentRoot, storeRoot });
-    expect(
-      (
-        readJson(join(result.path, 'models.json')) as {
-          providers: Record<string, { models: Array<{ type: string }> }>;
-        }
-      ).providers['ollama-cloud'].models.filter(
-        (model) => model.type === 'classifier',
-      ),
-    ).toEqual([
-      { id: 'stored', type: 'classifier', api: 'typesafe-system-one' },
-      {
-        id: 'repo',
-        type: 'classifier',
-        api: 'typesafe-system-one',
-        contextWindow: 2000,
-      },
-    ]);
-  });
-
-  it.each([
-    { storeLogin: true, expected: { codex: { access: 'store' } } },
-    { storeLogin: false, expected: { anthropic: { access: 'repo' } } },
-  ])(
-    'links one auth.json, never merged (store login: $storeLogin)',
-    async ({ storeLogin, expected }) => {
-      // Arrange
-      const agentRoot = tempDir();
-      const storeRoot = tempDir();
-      writeStore(storeRoot, {
-        providers: STORE_OLLAMA,
-        ...(storeLogin ? { auth: { codex: { access: 'store' } } } : {}),
-      });
-      writeRepoPi(agentRoot, { auth: { anthropic: { access: 'repo' } } });
-
-      // Act
-      const result = await resolve({ agentRoot, storeRoot });
-
-      // Assert
-      expect(readJson(join(result.path, 'auth.json'))).toEqual(expected);
-    },
-  );
-
   it('keeps a provider key already set in the environment', async () => {
     // Arrange
     const storeRoot = tempDir();
@@ -448,7 +241,6 @@ describe('resolvePiAgentDir', () => {
 
     // Act
     const result = await resolve({
-      agentRoot: tempDir(),
       storeRoot,
       profiles: OLLAMA_CLOUD_PROFILE,
       env: { MOLTNET_PROVIDER_OLLAMA_CLOUD_API_KEY: 'sk-operator' },
@@ -466,7 +258,6 @@ describe('resolvePiAgentDir', () => {
 
     // Act
     const attempt = resolve({
-      agentRoot: tempDir(),
       storeRoot,
       profiles: OLLAMA_CLOUD_PROFILE,
       tempRoot,
@@ -483,7 +274,7 @@ describe('resolvePiAgentDir', () => {
     // Arrange
     const storeRoot = tempDir();
     writeStore(storeRoot, { auth: { codex: {} } });
-    const result = await resolve({ agentRoot: tempDir(), storeRoot });
+    const result = await resolve({ storeRoot });
 
     // Act
     result.cleanup();

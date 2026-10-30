@@ -49,7 +49,7 @@ const STAGE_RUNNING_TIMEOUT_SEC = DEFAULT_BUDGETS.stageRunningTimeoutSec;
  * An unclaimed stage fails on the server after this long instead of waiting
  * for the review job's timeout, so a missing worker reads as unavailable.
  */
-export const STAGE_DISPATCH_TIMEOUT_SEC = 300;
+const STAGE_DISPATCH_TIMEOUT_SEC = 300;
 
 export interface StageContext {
   repo: string;

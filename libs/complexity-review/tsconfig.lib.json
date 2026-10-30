@@ -10,19 +10,13 @@
   "include": ["src/**/*.ts", "src/**/*.d.ts"],
   "references": [
     {
-      "path": "../task-schemas/tsconfig.lib.json"
-    },
-    {
       "path": "../tasks-orchestrator/tsconfig.lib.json"
     },
     {
-      "path": "../sdk/tsconfig.lib.json"
-    },
-    {
-      "path": "../os-keyring/tsconfig.lib.json"
-    },
-    {
       "path": "../tasks/tsconfig.lib.json"
+    },
+    {
+      "path": "../task-schemas/tsconfig.lib.json"
     }
   ]
 }

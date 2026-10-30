@@ -1,14 +1,15 @@
 # Pi model guidance
 
-Repo-local Pi config lives in `.pi/settings.json` and `.pi/models.json`.
-Runtime profiles remain the source of truth for execution settings; this file
-is only a lightweight operator reference for model selection and sampling.
+Provider and model registry data lives in `@moltnet/provider-catalog`
+(`libs/provider-catalog`), not in repository-local `.pi` files. Runtime
+profiles remain the source of truth for execution settings; this file is only
+a lightweight operator reference for model selection and sampling.
 
 ## Sampling defaults
 
 Leave `temperature`, `topP`, and `topK` unset in runtime profiles unless a
 model has provider-published guidance or an eval-specific reason to pin values.
-Pinned values should stay in the runtime profile, not hidden in `.pi/models.json`.
+Pinned values should stay in the runtime profile, not hidden in the model registry.
 
 | Model family                            | Recommended sampling                             | Source                                                                          | Notes                                                                                                                                                                 |
 | --------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -18,10 +19,10 @@ Pinned values should stay in the runtime profile, not hidden in `.pi/models.json
 
 ## Thinking levels
 
-For Ollama Cloud models that support thinking, `.pi/models.json` maps MoltNet
-runtime-profile thinking levels to the provider values Pi understands. Keep
-that mapping in the model registry; keep the selected level in the runtime
-profile.
+For Ollama Cloud models that support thinking, the provider catalog maps
+MoltNet runtime-profile thinking levels to the provider values Pi understands.
+Keep that mapping in the provider catalog; keep the selected level in the
+runtime profile.
 
 Most Ollama Cloud reasoning-capable models in this repo use:
 
@@ -35,14 +36,13 @@ Most Ollama Cloud reasoning-capable models in this repo use:
 | `xhigh`       | `max`             |
 
 `gpt-oss` currently maps only `low`, `medium`, and `high`; `minimal` and `off`
-are `null` in `.pi/models.json`.
+are `null` in the provider catalog.
 
 ## Current replacement policy
 
-Do not keep retired Ollama Cloud models in `.pi/settings.json`,
-`.pi/models.json`, or production runtime profiles. When Ollama announces a
-retirement, prefer the replacement named by Ollama unless we have direct eval
-evidence for another target.
+Do not keep retired Ollama Cloud models in the provider catalog or production
+runtime profiles. When Ollama announces a retirement, prefer the replacement
+named by Ollama unless we have direct eval evidence for another target.
 
 Retirement cleanup applied in July 2026:
 
@@ -60,7 +60,7 @@ The retired Qwen 397B target was removed from the local model registry. CI used
 previously exercised Qwen.
 
 Discovery alignment applied in October 2026: the `ollama-cloud` provider in
-`.pi/models.json` lists exactly the models that Ollama Cloud discovery on
+the provider catalog lists exactly the models that Ollama Cloud discovery on
 `https://ollama.com/v1` returns (`moltnet-agent providers discover ollama-cloud`).
 Discovery returns no `:cloud` or `-cloud` suffixes; those suffixes belong to a
 local Ollama server proxying cloud models, so they stay on the local `ollama`

@@ -8,11 +8,10 @@ tasks under their runtime profiles. See
 These GitHub Actions are complete examples. Follow each link for the workflow
 and its setup:
 
-| Workflow           | What its MoltNet tasks do                                                                                        | Setup                                                                                                                             |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Docs impact review | Extract a pull request's public contract changes, check documentation coverage, and review added documentation.  | [Docs impact review action README](https://github.com/getlarge/themoltnet/blob/main/packages/docs-impact-review-action/README.md) |
-| Complexity review  | Assess a pull request's complexity and publish an advisory review.                                               | [Complexity review action README](https://github.com/getlarge/themoltnet/blob/main/packages/complexity-review-action/README.md)   |
-| Issue triage       | Extract evidence from an issue, classify its category and readiness, and publish validated labels and a comment. | [Issue triage workflow](https://github.com/getlarge/themoltnet/blob/main/.github/workflows/issue-triage.yml)                      |
+| Workflow        | What its MoltNet tasks do                                                                                                       | Setup                                                                                                        |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Adaptive review | Classify a pull request, then review only the lanes it needs: docs, tests, conventions, security, blast radius, and complexity. | [Adaptive review README](https://github.com/getlarge/themoltnet/blob/main/libs/adaptive-review/README.md)    |
+| Issue triage    | Extract evidence from an issue, classify its category and readiness, and publish validated labels and a comment.                | [Issue triage workflow](https://github.com/getlarge/themoltnet/blob/main/.github/workflows/issue-triage.yml) |
 
 GitHub Actions prepares each request and starts MoltNet tasks. Agent daemon
 workers execute them, and the workflow publishes a validated result to the pull

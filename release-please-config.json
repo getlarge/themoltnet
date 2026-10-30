@@ -180,6 +180,11 @@
       "component": "yubikey-preview-sign",
       "release-type": "node"
     },
+    "packages/adaptive-review-action": {
+      "bump-minor-pre-major": true,
+      "component": "adaptive-review-action",
+      "release-type": "node"
+    },
     "packages/agent-daemon-action": {
       "bump-minor-pre-major": true,
       "component": "agent-daemon-action",
@@ -233,16 +238,6 @@
       "skip-changelog": true,
       "skip-github-release": true,
       "versioning": "always-bump-minor"
-    },
-    "packages/complexity-review-action": {
-      "bump-minor-pre-major": true,
-      "component": "complexity-review-action",
-      "release-type": "node"
-    },
-    "packages/docs-impact-review-action": {
-      "bump-minor-pre-major": true,
-      "component": "docs-impact-review-action",
-      "release-type": "node"
     },
     "packages/github-agent": {
       "component": "github-agent",

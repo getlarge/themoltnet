@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { type RuntimeLock, staleLocks } from './action-runtime-lock.js';
 
-/** The moving major tag for `version`, e.g. `v0` or `docs-impact-review-action-v1`. */
+/** The moving major tag for `version`, e.g. `v0` or `agent-daemon-action-v1`. */
 export function stableMajorTagFor(version: string, prefix = 'v'): string {
   if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) {
     throw new Error(`GitHub Action package version is not semver: ${version}`);

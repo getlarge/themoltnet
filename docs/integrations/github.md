@@ -202,19 +202,25 @@ Use the released major tag for the daemon action:
 - uses: getlarge/themoltnet/packages/agent-daemon-action@v0
 ```
 
-For PR reviews, call the reusable workflow with its released major tag:
+The major tag points at a commit that includes the built bundle and follows the
+latest release. For an exact pin, replace the tag after `@` with the **action
+bundle commit SHA** from the component's GitHub release notes. Do not pin a
+component version tag (`<component>-vX.Y.Z`): it marks the source commit, which
+has no bundle.
 
-| Review               | Workflow reference                                                                                   | Setup                                                                                                                    |
-| -------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Documentation impact | `getlarge/themoltnet/.github/workflows/docs-impact-review-reusable.yml@docs-impact-review-action-v0` | [Documentation review setup](https://github.com/getlarge/themoltnet/tree/main/packages/docs-impact-review-action#readme) |
-| Complexity           | `getlarge/themoltnet/.github/workflows/complexity-review-reusable.yml@complexity-review-action-v0`   | [Complexity review setup](https://github.com/getlarge/themoltnet/tree/main/packages/complexity-review-action#readme)     |
+For PR reviews, call the adaptive review workflow pinned to the action bundle
+commit SHA from the `adaptive-review-action` release notes, with the major tag
+as a comment so dependency bots can update it:
 
-These major tags include the built bundles and follow the latest release. For an
-exact pin, replace the tag after `@` with the **action bundle commit SHA**
-recorded in that component's GitHub release notes. In this release process,
-component version tags (`<component>-vX.Y.Z`) stay on the source commit without
-bundles. Use a released major tag or its built commit SHA to run an action or
-review workflow.
+```yaml
+uses: getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml@<bundle-sha> # adaptive-review-action-v0
+```
+
+The workflow runs with your repository's secrets, so pin the SHA rather than the
+moving `adaptive-review-action-v0` tag. A classifier routes each pull request to
+the review lanes your policy enables. The bundle commit holds the built review
+action, so the workflow runs it without installing the workspace. See the
+[adaptive review setup](https://github.com/getlarge/themoltnet/tree/main/libs/adaptive-review#readme).
 
 For OAuth-based jobs, the provisioning loop is:
 
