@@ -16,6 +16,7 @@ export interface InlineFinding {
   line: number;
   concern: string;
   action?: string;
+  existingFindingKey?: string;
 }
 
 /** How the findings were published, for the summary comment. */
@@ -45,11 +46,16 @@ export const MAX_LISTED_FINDINGS = 30;
 /**
  * The identity of a finding across runs. A finding repeated at the same
  * lane, side, line, and path is the same thread and is not posted twice; a
- * finding that moved with the diff gets a new thread.
+ * finding with a validated reference reuses its earlier thread identity even
+ * when the reviewer cites another changed line.
  */
 export function findingKey(
-  finding: Pick<InlineFinding, 'lane' | 'path' | 'side' | 'line'>,
+  finding: Pick<
+    InlineFinding,
+    'lane' | 'path' | 'side' | 'line' | 'existingFindingKey'
+  >,
 ): string {
+  if (finding.existingFindingKey) return finding.existingFindingKey;
   return `${finding.lane}:${finding.side}:${finding.line}:${encodeURIComponent(finding.path)}`;
 }
 
@@ -67,6 +73,9 @@ export function inlineFindings(
               side: finding.side,
               line: finding.line,
               concern: finding.concern,
+              ...(finding.existingFindingKey
+                ? { existingFindingKey: finding.existingFindingKey }
+                : {}),
               ...(finding.action ? { action: finding.action } : {}),
             },
           ]
@@ -244,13 +253,14 @@ export function renderAdaptiveComment(
                 path: finding.path,
                 side: finding.side,
                 line: finding.line,
+                existingFindingKey: finding.existingFindingKey,
               })
             : undefined;
         if (key && threads?.keys.has(key)) continue;
         listed += 1;
         if (listed > MAX_LISTED_FINDINGS) continue;
         lines.push(
-          `  - ${shorten(finding.path, 120)}${finding.line ? `:${finding.line}` : ''}${finding.side === 'old' ? ' (old)' : ''}: ${shorten(finding.concern, 240)}${key && threads?.resolved.has(key) ? ' _(an earlier thread on this line was resolved)_' : ''}`,
+          `  - ${shorten(finding.path, 120)}${finding.line ? `:${finding.line}` : ''}${finding.side === 'old' ? ' (old)' : ''}: ${shorten(finding.concern, 240)}${key && threads?.resolved.has(key) ? (finding.existingFindingKey ? ' _(the earlier thread for this concern was resolved)_' : ' _(an earlier thread on this line was resolved)_') : ''}`,
         );
       }
     }

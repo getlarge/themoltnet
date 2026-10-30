@@ -1,11 +1,15 @@
 import { GitHubApi } from '@moltnet/docs-impact-review/github-api';
 
+import { parseFindingMarker } from './report.js';
+
 /** One review thread as GraphQL `reviewThreads` returns it. */
 export interface ReviewThread {
   id: string;
   isResolved: boolean;
   isOutdated: boolean;
   path: string;
+  line?: number | null;
+  diffSide?: 'LEFT' | 'RIGHT';
   resolvedBy: { login: string } | null;
   comments: {
     nodes: Array<{
@@ -47,6 +51,8 @@ const THREADS_QUERY = `query($owner: String!, $repo: String!, $pr: Int!, $cursor
           isResolved
           isOutdated
           path
+          line
+          diffSide
           resolvedBy { login }
           comments(first: 50) {
             nodes { author { login } body url originalCommit { oid } }
@@ -115,4 +121,73 @@ export function createGraphQL(
       );
     return response.data;
   };
+}
+
+/** Historical discussion is untrusted evidence, not reviewer instructions. */
+export interface PreviousFinding {
+  key: string;
+  lane: 'tests' | 'conventions' | 'blast-radius';
+  path: string;
+  line: number | null;
+  side: 'old' | 'new' | null;
+  threadId: string;
+  url: string;
+  head: string | null;
+  isResolved: boolean;
+  isOutdated: boolean;
+  body: string;
+  replies: Array<{ author: string | null; body: string }>;
+}
+
+/** Bound each focused lane independently so other lanes cannot crowd it out. */
+export function previousFindings(
+  threads: readonly ReviewThread[],
+  appLogin: string,
+): PreviousFinding[] {
+  const counts = new Map<string, number>();
+  // GitHub returns threads in creation order. Keep recent open discussion
+  // before resolved history when a lane exceeds the prompt budget.
+  const ordered = [...threads]
+    .reverse()
+    .sort((a, b) => Number(a.isResolved) - Number(b.isResolved));
+  return ordered.flatMap((thread): PreviousFinding[] => {
+    if (!appLogin || !isReviewerThread(thread, appLogin)) return [];
+    const first = thread.comments.nodes[0];
+    const marker = parseFindingMarker(first.body);
+    const lane = marker?.key.split(':')[0];
+    if (
+      !marker ||
+      (lane !== 'tests' && lane !== 'conventions' && lane !== 'blast-radius')
+    )
+      return [];
+    if ((counts.get(lane) ?? 0) >= 20) return [];
+    counts.set(lane, (counts.get(lane) ?? 0) + 1);
+    return [
+      {
+        key: marker.key,
+        lane,
+        path: thread.path,
+        line: thread.line ?? null,
+        side:
+          thread.diffSide === 'LEFT'
+            ? 'old'
+            : thread.diffSide === 'RIGHT'
+              ? 'new'
+              : null,
+        threadId: thread.id,
+        url: first.url,
+        head: first.originalCommit?.oid ?? null,
+        isResolved: thread.isResolved,
+        isOutdated: thread.isOutdated,
+        body: first.body.slice(0, 4000),
+        replies: thread.comments.nodes
+          .slice(1)
+          .slice(-3)
+          .map((comment) => ({
+            author: comment.author?.login ?? null,
+            body: comment.body.slice(0, 1000),
+          })),
+      },
+    ];
+  });
 }
