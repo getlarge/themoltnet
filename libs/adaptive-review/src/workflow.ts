@@ -133,6 +133,7 @@ const LANE_RUNNERS: Record<Lane, (ctx: LaneContext) => Promise<LaneResult>> = {
   tests: (ctx) => runFocusedLane('tests', ctx),
   conventions: (ctx) => runFocusedLane('conventions', ctx),
   'blast-radius': (ctx) => runFocusedLane('blast-radius', ctx),
+  performance: (ctx) => runFocusedLane('performance', ctx),
 };
 
 function projectScopedTaskClient(

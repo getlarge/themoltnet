@@ -377,7 +377,7 @@ describe('adaptive review orchestration', () => {
     });
     expect(
       report.results.filter((result) => result.status === 'screened'),
-    ).toHaveLength(5);
+    ).toHaveLength(6);
     expect(createTask).toHaveBeenCalledTimes(2);
     expect(created.get('task-2')?.input.brief).toContain(sourcePath);
     expect(created.get('task-2')).toMatchObject({
@@ -415,7 +415,95 @@ describe('adaptive review orchestration', () => {
     },
   );
 
-  it.each(['tests', 'conventions', 'blast-radius', 'security'] as const)(
+  it.each([
+    {
+      name: 'introduced N+1 I/O',
+      result: {
+        summary: 'The list endpoint now performs a query per item.',
+        findings: [
+          {
+            path: sourcePath,
+            side: 'new' as const,
+            line: 1,
+            concern:
+              'The list route replaces one batch lookup with an awaited query for every item. A page of 100 items now performs 100 sequential queries.',
+            action: 'Retain the batch lookup for the page.',
+          },
+        ],
+        unclear: [],
+      },
+      status: 'concern',
+    },
+    {
+      name: 'bounded work with no established regression',
+      result: {
+        summary:
+          'The caller enforces a three-item bound; no material regression established.',
+        findings: [],
+        unclear: [],
+      },
+      status: 'clear',
+    },
+    {
+      name: 'missing workload evidence',
+      result: {
+        summary: 'The new allocation needs workload evidence.',
+        findings: [],
+        unclear: [
+          'Maximum input size and allocation measurements are unavailable.',
+        ],
+      },
+      status: 'unclear',
+    },
+  ])(
+    'preserves the performance result for $name using the focused worker',
+    async ({ result, status }) => {
+      // Controlled specialist outputs test orchestration, not model judgment.
+      const { tasks, createTask } = harness({
+        selected: 'performance',
+        focusedResult: result,
+      });
+      const report = await review(tasks);
+      const task = createTask.mock.calls
+        .map(([body]) => body)
+        .find((body) => body.taskType === 'freeform');
+      expect(task).toMatchObject({
+        allowedProfiles: [{ profileId: 'focused-profile' }],
+        ...taskBudgets.performance,
+        input: {
+          execution: {
+            revision: identity.head,
+            workspace: 'dedicated_worktree',
+          },
+        },
+      });
+      expect(JSON.stringify(task?.input)).toContain(
+        'Inspect existing limits, batching',
+      );
+      expect(JSON.stringify(task?.input)).toContain(
+        'Do not execute benchmarks or code from the PR',
+      );
+      expect(
+        report.results.find((item) => item.lane === 'performance'),
+      ).toMatchObject({ ...result, status });
+      const comment = renderAdaptiveComment(report, 'https://example.test/run');
+      expect(comment).toContain(
+        '| performance | 90% (selected) | ' + status + ' |',
+      );
+      if (status === 'unclear') expect(comment).toContain('Maximum input size');
+      if (status === 'concern')
+        expect(comment).toContain('100 sequential queries');
+      expect(createTask).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it.each([
+    'tests',
+    'conventions',
+    'blast-radius',
+    'performance',
+    'security',
+  ] as const)(
     'delivers base guidance to the classifier and %s tasks',
     async (lane) => {
       guidanceEnabled = true;
@@ -976,7 +1064,7 @@ describe('adaptive review orchestration', () => {
         task.title?.includes('security hunt'),
       ),
     ).toBe(true);
-    expect(createTask).toHaveBeenCalledTimes(5);
+    expect(createTask).toHaveBeenCalledTimes(6);
     for (const task of created.values()) {
       expect(task.tags).toEqual(
         expect.arrayContaining([
@@ -997,7 +1085,7 @@ describe('adaptive review orchestration', () => {
     const preparation = await prepareAdaptiveReview(options);
     await runRoutedAdaptiveReview(options, preparation);
 
-    expect(createTask).toHaveBeenCalledTimes(5);
+    expect(createTask).toHaveBeenCalledTimes(6);
     for (const [body] of createTask.mock.calls) {
       expect(body.projectId).toBe(projectId);
     }

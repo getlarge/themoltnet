@@ -27,11 +27,13 @@ const DEFAULT_RUNNING_SECONDS: Record<ReviewBudgetKey, number> = {
   tests: 720,
   conventions: 720,
   'blast-radius': 720,
+  performance: 720,
 };
 const FOCUSED_LANES: readonly string[] = [
   'tests',
   'conventions',
   'blast-radius',
+  'performance',
 ];
 const FIELDS = {
   timeout: 'runningTimeoutSec',

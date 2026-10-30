@@ -65,6 +65,7 @@
     "conventions",
     "security",
     "blast-radius",
+    "performance",
     "complexity"
   ],
   "rules": [

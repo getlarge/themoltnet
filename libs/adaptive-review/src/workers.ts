@@ -15,7 +15,10 @@ export type SpecialistPool = Exclude<WorkerPool, 'classifier'>;
 
 /** The specialist pool whose workers claim a lane's tasks. */
 export function workerPool(lane: Lane): SpecialistPool {
-  return lane === 'tests' || lane === 'conventions' || lane === 'blast-radius'
+  return lane === 'tests' ||
+    lane === 'conventions' ||
+    lane === 'blast-radius' ||
+    lane === 'performance'
     ? 'focused'
     : lane;
 }
