@@ -95,6 +95,9 @@ function deps(overrides: Partial<CliDeps> = {}) {
     github: {
       revisions: vi.fn(() => Promise.resolve({ head: HEAD, base: BASE })),
       files,
+      pullRequest: vi.fn(() =>
+        Promise.reject(new Error('the event carries the pull request')),
+      ),
     },
     connect: vi.fn(() =>
       Promise.resolve({
@@ -191,6 +194,48 @@ describe('prepare stage', () => {
       correlationId: out.correlation,
     });
     expect(files).toHaveBeenCalledWith(REPO, 42);
+  });
+
+  it('reads the pull request a review comment names from the API', async () => {
+    // Arrange
+    writeFileSync(
+      file('event.json'),
+      JSON.stringify({ issue: { number: 42, pull_request: {} } }),
+    );
+    const { deps: cli } = deps();
+    cli.env.GITHUB_EVENT_NAME = 'issue_comment';
+    const pullRequest = vi.fn(() =>
+      Promise.resolve({
+        number: 42,
+        title: 'Change the API',
+        body: null,
+        changed_files: 1,
+        user: { login: 'contributor' },
+        base: { sha: BASE },
+        head: { sha: HEAD, repo: { full_name: REPO } },
+      }),
+    );
+    cli.github.pullRequest = pullRequest;
+
+    // Act
+    await expect(runAdaptiveStage('prepare', cli)).resolves.toBe(0);
+
+    // Assert
+    expect(pullRequest).toHaveBeenCalledWith(REPO, 42);
+    expect(outputs()).toMatchObject({ skip: 'false', base: BASE, head: HEAD });
+  });
+
+  it('rejects a comment on an issue that is not a pull request', async () => {
+    writeFileSync(file('event.json'), JSON.stringify({ issue: { number: 7 } }));
+    const { deps: cli } = deps();
+    cli.env.GITHUB_EVENT_NAME = 'issue_comment';
+    const pullRequest = vi.fn();
+    cli.github.pullRequest = pullRequest;
+
+    await expect(runAdaptiveStage('prepare', cli)).rejects.toThrow(
+      "pull request's issue_comment",
+    );
+    expect(pullRequest).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -300,6 +345,7 @@ describe('plan stage', () => {
         github: {
           revisions: () => Promise.resolve(current),
           files: () => Promise.resolve([]),
+          pullRequest: () => Promise.reject(new Error('unused')),
         },
       });
 
