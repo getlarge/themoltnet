@@ -136,7 +136,8 @@
           "{workspaceRoot}/pnpm-lock.yaml",
           "{workspaceRoot}/pnpm-workspace.yaml",
           "{workspaceRoot}/.github/actionlint.yaml",
-          "{projectRoot}/issue-triage-workflow.test.mjs"
+          "{projectRoot}/issue-triage-workflow.test.mjs",
+          "{workspaceRoot}/.tool-versions"
         ]
       },
       "test": {
@@ -147,7 +148,7 @@
       "test-ci": {
         "executor": "nx:noop",
         "dependsOn": [
-          "test:issue-triage"
+          "test"
         ]
       }
     }
