@@ -77,7 +77,7 @@ Some tests cannot share the block-level app and **should** build their own
 - **Different baked-in `AuthContext`** — `createTestApp` injects the auth context
   at build time, so a "human caller" or "401 without auth" test needs its own
   instance (see `tasks.test.ts`).
-- **Stateful plugin behavior under test** — e.g. the `rate-limit-*.test.ts`
+- **Stateful plugin behavior under test** — e.g. the `rate-limit-*.spec.ts`
   files assert per-identity budgets. The rate limiter keeps in-memory counters on
   the app instance, so each test must start from a fresh app. **Do not** convert
   these to a shared `beforeAll` app — it would leak the counter across tests.

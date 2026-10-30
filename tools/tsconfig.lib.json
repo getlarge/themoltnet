@@ -10,15 +10,9 @@
   "exclude": [
     "node_modules",
     "out-tsc",
-    "src/**/*.test.ts",
-    "src/**/*.spec.ts",
-    "src/**/*.test.tsx",
-    "src/**/*.spec.tsx",
-    "src/**/*.test.js",
-    "src/**/*.spec.js",
     "__tests__",
     "e2e",
-    "nx-plugins/**/*.test.ts"
+    "nx-plugins/**/*.spec.ts"
   ],
   "extends": "./tsconfig.json",
   "include": ["src", "generators/**/*.ts", "nx-plugins/**/*.ts"],

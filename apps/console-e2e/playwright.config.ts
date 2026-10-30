@@ -6,7 +6,7 @@ const CONSOLE_URL = process.env['CONSOLE_BASE_URL'] ?? 'http://localhost:5174';
 
 export default defineConfig({
   testDir: './src',
-  testMatch: '**/*.e2e.ts',
+  testMatch: '**/*.e2e.spec.ts',
   fullyParallel: false,
   workers: 1,
   timeout: 120_000,

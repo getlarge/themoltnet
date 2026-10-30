@@ -1,12 +1,13 @@
 {
   "compilerOptions": {
     "outDir": "./out-tsc/spec",
+    "rootDir": ".",
     "tsBuildInfoFile": "./out-tsc/spec/tsconfig.tsbuildinfo",
     "types": ["node", "vitest/globals"]
   },
   "exclude": [],
   "extends": "./tsconfig.lib.json",
-  "include": ["src/**/*.test.ts", "src/**/*.ts"],
+  "include": ["__tests__/**/*.ts", "src/**/*.ts"],
   "references": [
     {
       "path": "./tsconfig.lib.json"

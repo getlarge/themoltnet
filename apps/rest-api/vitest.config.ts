@@ -7,7 +7,7 @@ export default defineConfig({
     globals: false,
     environment: 'node',
     root: resolve(import.meta.dirname),
-    include: ['__tests__/**/*.test.ts'],
+    include: ['__tests__/**/*.spec.ts'],
     // E2E tests require Docker infra and live in @moltnet/rest-api-e2e.
     exclude: ['__tests__/e2e/**'],
     // CI failure mode: '[vitest-worker]: Timeout calling "onTaskUpdate"'

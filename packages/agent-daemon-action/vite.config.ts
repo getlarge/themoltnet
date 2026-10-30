@@ -37,6 +37,6 @@ export default defineConfig({
     noExternal: true,
   },
   test: {
-    include: ['src/**/*.test.ts'],
+    include: ['__tests__/**/*.spec.ts'],
   },
 });

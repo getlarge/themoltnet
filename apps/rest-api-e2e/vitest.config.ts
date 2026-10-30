@@ -7,10 +7,10 @@ export default defineConfig({
     globals: false,
     environment: 'node',
     root: resolve(import.meta.dirname),
-    include: ['src/**/*.e2e.test.ts'],
+    include: ['src/**/*.e2e.spec.ts'],
     exclude: [
-      'src/durable-workflow-recovery.e2e.test.ts',
-      'src/team-invite-recovery.e2e.test.ts',
+      'src/durable-workflow-recovery.e2e.spec.ts',
+      'src/team-invite-recovery.e2e.spec.ts',
     ],
     globalSetup: ['./src/globalSetup.ts'],
     testTimeout: 30_000,

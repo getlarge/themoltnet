@@ -1,0 +1,513 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  _resetTaskWorkflowsForTesting,
+  enqueueTaskAttemptWorkflow,
+  initTaskWorkflows,
+  registerTaskWorkflowQueues,
+  setTaskWorkflowDeps,
+  type TaskAttemptFinalEvent,
+  type TaskProgressEvent,
+  type TaskWorkflowDeps,
+  taskWorkflows,
+} from '../src/task-workflows.js';
+
+vi.mock('@dbos-inc/dbos-sdk', () => {
+  const events: Record<string, unknown> = {};
+  return {
+    DBOS: {
+      registerStep: vi.fn(
+        (fn: (...args: unknown[]) => unknown, _config: { name: string }) => fn,
+      ),
+      registerWorkflow: vi.fn(
+        (fn: (...args: unknown[]) => unknown, _config: { name: string }) => fn,
+      ),
+      registerQueue: vi.fn(),
+      now: vi.fn(async () => Date.now()),
+      setEvent: vi.fn(async (key: string, value: unknown) => {
+        events[key] = value;
+      }),
+      recv: vi.fn(),
+      _events: events,
+    },
+  };
+});
+
+import { DBOS } from '@dbos-inc/dbos-sdk';
+
+const TASK_ID = '11111111-1111-1111-1111-111111111111';
+const AGENT_ID = '22222222-2222-2222-2222-222222222222';
+const WORKFLOW_ID = `task:${TASK_ID}:1`;
+const ATTEMPT_N = 1;
+const LEASE_TTL_SEC = 300;
+
+function makeDeps(overrides: Partial<TaskWorkflowDeps> = {}): TaskWorkflowDeps {
+  // Minimal stub — the recv-loop test path only needs these to resolve.
+  const runTransaction = async <T>(fn: () => Promise<T>): Promise<T> => fn();
+  return {
+    transactionRunner: { runInTransaction: runTransaction },
+    updateAttempt: vi.fn().mockResolvedValue(null),
+    updateTaskStatus: vi.fn().mockResolvedValue(null),
+    updateTaskStatusIfNotIn: vi.fn().mockResolvedValue(null),
+    removeClaimantTuple: vi.fn().mockResolvedValue(undefined),
+    recomputeAttemptActivityStats: vi.fn().mockResolvedValue(undefined),
+    notifyTaskStatusChanged: vi.fn().mockResolvedValue(undefined),
+    countAttempts: vi.fn().mockResolvedValue(1),
+    getMaxAttempts: vi.fn().mockResolvedValue(1),
+    findTaskById: vi
+      .fn()
+      .mockResolvedValue({ id: TASK_ID, status: 'running' } as never),
+    ...overrides,
+  };
+}
+
+function expectResultPublishedBeforeFollowUps(deps: TaskWorkflowDeps): void {
+  const resultOrder = vi.mocked(DBOS.setEvent).mock.invocationCallOrder.at(-1)!;
+  expect(resultOrder).toBeLessThan(
+    vi.mocked(deps.removeClaimantTuple).mock.invocationCallOrder.at(-1)!,
+  );
+  expect(resultOrder).toBeLessThan(
+    vi
+      .mocked(deps.recomputeAttemptActivityStats)
+      .mock.invocationCallOrder.at(-1)!,
+  );
+  expect(resultOrder).toBeLessThan(
+    vi.mocked(deps.notifyTaskStatusChanged!).mock.invocationCallOrder.at(-1)!,
+  );
+}
+
+describe('startAttemptWorkflow — timeout paths', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _resetTaskWorkflowsForTesting();
+  });
+
+  it('returns lease_expired when no progress event arrives after the first heartbeat', async () => {
+    const deps = makeDeps();
+    setTaskWorkflowDeps(deps);
+    initTaskWorkflows();
+
+    // First recv (dispatch phase) → 'started'.
+    // Second recv (running phase) → null (timed out, lease window).
+    const recvMock = vi.mocked(DBOS.recv);
+    recvMock.mockReset();
+    recvMock
+      .mockResolvedValueOnce({
+        kind: 'started',
+        leaseTtlSec: LEASE_TTL_SEC,
+      } as TaskProgressEvent)
+      .mockResolvedValueOnce(null);
+
+    const result: TaskAttemptFinalEvent =
+      await taskWorkflows.startAttemptWorkflow(
+        TASK_ID,
+        ATTEMPT_N,
+        AGENT_ID,
+        WORKFLOW_ID,
+        LEASE_TTL_SEC,
+        null,
+        null,
+        // runningTimeoutSec well above the test's wall-clock — we want to
+        // assert lease_expired, not running_total_exceeded.
+        3600,
+      );
+
+    expect(result.status).toBe('timed_out');
+    expect(result.timeoutReason).toBe('lease_expired');
+    expect(result.taskId).toBe(TASK_ID);
+    expect(result.attemptN).toBe(ATTEMPT_N);
+
+    // Attempt was marked timed_out with the right error code.
+    const updateAttempt = vi.mocked(deps.updateAttempt);
+    const timedOutCall = updateAttempt.mock.calls.find(
+      ([, , fields]) => fields.status === 'timed_out',
+    );
+    expect(timedOutCall).toBeDefined();
+    const errorField = timedOutCall![2].error as { code: string } | null;
+    expect(errorField?.code).toBe('lease_expired');
+
+    // Final event published.
+    expect(DBOS.setEvent).toHaveBeenCalledWith(
+      'result',
+      expect.objectContaining({
+        status: 'timed_out',
+        timeoutReason: 'lease_expired',
+      }),
+    );
+    expectResultPublishedBeforeFollowUps(deps);
+  });
+
+  it('returns running_total_exceeded when total budget elapses before any further event', async () => {
+    const deps = makeDeps();
+    setTaskWorkflowDeps(deps);
+    initTaskWorkflows();
+
+    const baseTime = new Date('2026-01-01T00:00:00Z');
+    vi.useFakeTimers();
+    vi.setSystemTime(baseTime);
+
+    try {
+      const recvMock = vi.mocked(DBOS.recv);
+      recvMock.mockReset();
+      recvMock
+        // Dispatch phase: 'started' arrives immediately at baseTime.
+        // After this returns, the workflow records startedAtMs via
+        // DBOS.now() — also baseTime.
+        .mockResolvedValueOnce({
+          kind: 'started',
+          leaseTtlSec: LEASE_TTL_SEC,
+        } as TaskProgressEvent)
+        // Running phase: jump the clock past startedAt + runningTimeoutSec
+        // (10s) BEFORE returning null. The workflow's recv-null branch
+        // then computes Date.now() >= totalDeadlineMs and must pick
+        // running_total_exceeded over lease_expired.
+        .mockImplementationOnce(async () => {
+          vi.setSystemTime(new Date(baseTime.getTime() + 11_000));
+          return null;
+        });
+
+      const result = await taskWorkflows.startAttemptWorkflow(
+        TASK_ID,
+        ATTEMPT_N,
+        AGENT_ID,
+        WORKFLOW_ID,
+        LEASE_TTL_SEC,
+        null,
+        null,
+        // runningTimeoutSec = 10s. totalDeadline = baseTime + 10s.
+        // We advance to baseTime + 11s before recv returns null, so
+        // the deadline check fires running_total_exceeded.
+        10,
+      );
+
+      expect(result.status).toBe('timed_out');
+      expect(result.timeoutReason).toBe('running_total_exceeded');
+
+      const updateAttempt = vi.mocked(deps.updateAttempt);
+      const timedOutCall = updateAttempt.mock.calls.find(
+        ([, , fields]) => fields.status === 'timed_out',
+      );
+      expect(timedOutCall).toBeDefined();
+      const errorField = timedOutCall![2].error as { code: string } | null;
+      expect(errorField?.code).toBe('running_total_exceeded');
+      expectResultPublishedBeforeFollowUps(deps);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each([
+    ['completed', { kind: 'completed', output: { ok: true } }],
+    ['failed', { kind: 'failed', error: { message: 'failed' } }],
+    ['aborted', { kind: 'aborted', error: { message: 'aborted' } }],
+  ] as const)(
+    'publishes %s before legacy cleanup, analytics, and promotion',
+    async (_status, terminalEvent) => {
+      const deps = makeDeps();
+      setTaskWorkflowDeps(deps);
+      initTaskWorkflows();
+      vi.mocked(DBOS.recv).mockResolvedValueOnce(terminalEvent);
+
+      await taskWorkflows.startAttemptWorkflow(
+        TASK_ID,
+        ATTEMPT_N,
+        AGENT_ID,
+        WORKFLOW_ID,
+        LEASE_TTL_SEC,
+      );
+
+      expectResultPublishedBeforeFollowUps(deps);
+    },
+  );
+
+  it('stamps the verified completion signature and signedAt on the completed attempt', async () => {
+    const deps = makeDeps();
+    setTaskWorkflowDeps(deps);
+    initTaskWorkflows();
+    vi.mocked(DBOS.recv).mockResolvedValueOnce({
+      kind: 'completed',
+      output: { ok: true },
+      outputCid: 'bafkreioutput',
+      completedExecutorFingerprint: 'bafkreiexecutor',
+      contentSignature: 'c2lnbmF0dXJl',
+    });
+
+    await taskWorkflows.startAttemptWorkflow(
+      TASK_ID,
+      ATTEMPT_N,
+      AGENT_ID,
+      WORKFLOW_ID,
+      LEASE_TTL_SEC,
+    );
+
+    const completedCall = vi
+      .mocked(deps.updateAttempt)
+      .mock.calls.find(([, , fields]) => fields.status === 'completed');
+    expect(completedCall).toBeDefined();
+    const fields = completedCall![2];
+    expect(fields.contentSignature).toBe('c2lnbmF0dXJl');
+    expect(fields.signedAt).toBeInstanceOf(Date);
+    expect(fields.signedAt).toEqual(fields.completedAt);
+  });
+
+  it.each([
+    ['completed without a signature', { kind: 'completed', output: {} }],
+    [
+      'failed',
+      {
+        kind: 'failed',
+        error: { message: 'failed' },
+        contentSignature: 'ignored',
+      },
+    ],
+  ] as const)(
+    'persists no signature for a %s attempt',
+    async (_label, terminalEvent) => {
+      const deps = makeDeps();
+      setTaskWorkflowDeps(deps);
+      initTaskWorkflows();
+      vi.mocked(DBOS.recv).mockResolvedValueOnce(
+        terminalEvent as unknown as TaskProgressEvent,
+      );
+
+      await taskWorkflows.startAttemptWorkflow(
+        TASK_ID,
+        ATTEMPT_N,
+        AGENT_ID,
+        WORKFLOW_ID,
+        LEASE_TTL_SEC,
+      );
+
+      const terminalCall = vi
+        .mocked(deps.updateAttempt)
+        .mock.calls.find(([, , fields]) => fields.completedAt !== undefined);
+      expect(terminalCall![2].contentSignature).toBeNull();
+      expect(terminalCall![2].signedAt).toBeNull();
+    },
+  );
+
+  it('propagates dependent-task promotion failure after publishing result', async () => {
+    const promotionError = new Error('promotion database unavailable');
+    const deps = makeDeps({
+      notifyTaskStatusChanged: vi.fn().mockRejectedValue(promotionError),
+    });
+    setTaskWorkflowDeps(deps);
+    initTaskWorkflows();
+    vi.mocked(DBOS.recv).mockResolvedValueOnce({
+      kind: 'completed',
+      output: { ok: true },
+    });
+
+    await expect(
+      taskWorkflows.startAttemptWorkflow(
+        TASK_ID,
+        ATTEMPT_N,
+        AGENT_ID,
+        WORKFLOW_ID,
+        LEASE_TTL_SEC,
+      ),
+    ).rejects.toThrow(promotionError);
+    expect(DBOS.setEvent).toHaveBeenCalledWith(
+      'result',
+      expect.objectContaining({ status: 'completed' }),
+    );
+  });
+
+  it('registers dependent-task promotion as a retry-enabled step', () => {
+    setTaskWorkflowDeps(makeDeps());
+    initTaskWorkflows();
+
+    const registration = vi
+      .mocked(DBOS.registerStep)
+      .mock.calls.find(
+        ([, config]) => config?.name === 'task.step.notifyTaskStatusChanged',
+      );
+    expect(registration?.[1]).toMatchObject({
+      retriesAllowed: true,
+      maxAttempts: 3,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    });
+  });
+});
+
+describe('enqueueTaskAttemptWorkflow', () => {
+  it('persists the task queue with latest-version conflict handling', async () => {
+    await registerTaskWorkflowQueues();
+
+    expect(DBOS.registerQueue).toHaveBeenCalledWith('task-attempts', {
+      onConflict: 'update_if_latest_version',
+    });
+  });
+
+  it('maps task attempt claims to the DBOS transactional enqueue payload', async () => {
+    const enqueueWorkflowInCurrentTransaction = vi.fn().mockResolvedValue({
+      workflowId: WORKFLOW_ID,
+    });
+
+    await enqueueTaskAttemptWorkflow(enqueueWorkflowInCurrentTransaction, {
+      taskId: TASK_ID,
+      attemptN: ATTEMPT_N,
+      callerId: AGENT_ID,
+      workflowId: WORKFLOW_ID,
+      leaseTtlSec: LEASE_TTL_SEC,
+      claimedExecutorFingerprint: 'executor-fingerprint',
+      dispatchTimeoutSec: 120,
+      runningTimeoutSec: 600,
+    });
+
+    expect(enqueueWorkflowInCurrentTransaction).toHaveBeenCalledWith({
+      workflowName: 'task.workflow.startAttempt',
+      queueName: 'task-attempts',
+      workflowId: WORKFLOW_ID,
+      positionalArgs: [
+        TASK_ID,
+        ATTEMPT_N,
+        AGENT_ID,
+        WORKFLOW_ID,
+        LEASE_TTL_SEC,
+        'executor-fingerprint',
+        120,
+        600,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+      ],
+    });
+  });
+});
+
+describe('startAttemptWorkflow — failed attempt retry policy', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _resetTaskWorkflowsForTesting();
+  });
+
+  it('requeues a failed attempt only when the error is explicitly retryable', async () => {
+    const deps = makeDeps({
+      countAttempts: vi.fn().mockResolvedValue(1),
+      getMaxAttempts: vi.fn().mockResolvedValue(2),
+    });
+    setTaskWorkflowDeps(deps);
+    initTaskWorkflows();
+
+    vi.mocked(DBOS.recv)
+      .mockReset()
+      .mockResolvedValueOnce({ kind: 'started' } as TaskProgressEvent)
+      .mockResolvedValueOnce({
+        kind: 'failed',
+        error: {
+          code: 'provider_timeout',
+          message: 'provider timed out',
+          retryable: true,
+        },
+      } as TaskProgressEvent);
+
+    const result = await taskWorkflows.startAttemptWorkflow(
+      TASK_ID,
+      ATTEMPT_N,
+      AGENT_ID,
+      WORKFLOW_ID,
+      LEASE_TTL_SEC,
+    );
+
+    expect(result.status).toBe('failed');
+    expect(deps.updateTaskStatusIfNotIn).toHaveBeenCalledWith(
+      TASK_ID,
+      'queued',
+      ['cancelled', 'completed', 'failed', 'expired'],
+      { claimAgentId: null, claimExpiresAt: null },
+    );
+  });
+
+  it('does not infer retryability from failed attempt error codes', async () => {
+    const deps = makeDeps({
+      countAttempts: vi.fn().mockResolvedValue(1),
+      getMaxAttempts: vi.fn().mockResolvedValue(2),
+    });
+    setTaskWorkflowDeps(deps);
+    initTaskWorkflows();
+
+    vi.mocked(DBOS.recv)
+      .mockReset()
+      .mockResolvedValueOnce({ kind: 'started' } as TaskProgressEvent)
+      .mockResolvedValueOnce({
+        kind: 'failed',
+        error: {
+          code: 'lease_expired',
+          message: 'looks transient but was not marked retryable',
+        },
+      } as TaskProgressEvent);
+
+    const result = await taskWorkflows.startAttemptWorkflow(
+      TASK_ID,
+      ATTEMPT_N,
+      AGENT_ID,
+      WORKFLOW_ID,
+      LEASE_TTL_SEC,
+    );
+
+    expect(result.status).toBe('failed');
+    expect(deps.updateTaskStatusIfNotIn).toHaveBeenCalledWith(
+      TASK_ID,
+      'failed',
+      ['cancelled', 'completed', 'failed', 'expired'],
+      { claimAgentId: null, claimExpiresAt: null },
+    );
+  });
+});
+
+describe('lifecycle transaction lock ordering', () => {
+  it.each([
+    [null],
+    [{ kind: 'started' }, null],
+    [{ kind: 'started' }, { kind: 'completed' }],
+    [{ kind: 'started' }, { kind: 'failed' }],
+  ])('updates tasks before attempts for events %j', async (...events) => {
+    vi.clearAllMocks();
+    _resetTaskWorkflowsForTesting();
+    const transactions: string[][] = [];
+    let writes: string[] = [];
+    const deps = makeDeps({
+      transactionRunner: {
+        runInTransaction: async (fn) => {
+          writes = [];
+          const result = await fn();
+          transactions.push(writes);
+          return result;
+        },
+      },
+      updateTaskStatus: async () => {
+        writes.push('task');
+        return null;
+      },
+      updateTaskStatusIfNotIn: async () => {
+        writes.push('task');
+        return null;
+      },
+      updateAttempt: async () => {
+        writes.push('attempt');
+        return null;
+      },
+    });
+    setTaskWorkflowDeps(deps);
+    initTaskWorkflows();
+    vi.mocked(DBOS.recv).mockReset();
+    for (const event of events)
+      vi.mocked(DBOS.recv).mockResolvedValueOnce(event);
+    await taskWorkflows.startAttemptWorkflow(
+      TASK_ID,
+      ATTEMPT_N,
+      AGENT_ID,
+      WORKFLOW_ID,
+      LEASE_TTL_SEC,
+      null,
+      null,
+      3600,
+    );
+    expect(transactions.length).toBeGreaterThan(0);
+    for (const transaction of transactions)
+      expect(transaction).toEqual(['task', 'attempt']);
+  });
+});

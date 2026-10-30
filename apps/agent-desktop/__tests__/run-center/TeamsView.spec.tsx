@@ -1,0 +1,826 @@
+import {
+  AGENT_CREDENTIAL_SCOPES,
+  DAEMON_MINIMUM_SCOPES,
+} from '@moltnet/models';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { INITIAL_STATUS } from '../../src/bridge.js';
+import { TeamsView } from '../../src/run-center/TeamsView.js';
+import type {
+  RunCenterActions,
+  RunCenterData,
+} from '../../src/run-center/types.js';
+import { createTestWrapper } from '../test-query-client.js';
+
+// A fresh cache per test; the wrapper also supplies the theme provider.
+let Wrapper = createTestWrapper();
+beforeEach(() => {
+  Wrapper = createTestWrapper();
+});
+
+const team = {
+  teamId: 'team-a',
+  teamName: 'Research',
+  available: false,
+  blockers: [
+    {
+      code: 'agent_key_unavailable',
+      message: 'Credential unavailable',
+      remedy: 'Renew team access.',
+    },
+  ],
+  diaries: [],
+  defaultDiaryId: null,
+  credential: {
+    keyId: 'old-key',
+    expiresAt: '2026-09-01T00:00:00Z',
+    verifiedAt: '2026-08-30T00:00:00Z',
+    scopes: [],
+  },
+};
+function fixture() {
+  const data: RunCenterData = {
+    server: { ...INITIAL_STATUS, state: 'running' },
+    status: {
+      version: '1',
+      platform: 'darwin',
+      subscriptions: [],
+      agents: [
+        {
+          kind: 'managed',
+          agentName: 'agent',
+          subjectId: 'subject',
+          fingerprint: 'fingerprint',
+          apiUrl: 'https://api.themolt.net',
+          createdAt: '2026-01-01T00:00:00Z',
+          hasAgentKey: true,
+          hasPrivateKey: true,
+        },
+      ],
+      identities: [],
+      selectedIdentity: 'agent',
+      providers: {},
+      runs: [],
+      runtimeSettings: { heartbeatIntervalMs: 1000, warmRetentionSec: 10 },
+    },
+    runs: [],
+    presets: [],
+    providers: {},
+    subscriptions: [],
+  };
+  const actions: RunCenterActions = {
+    catalogue: vi.fn().mockResolvedValue({
+      teams: [team],
+      hiddenTeamIds: [],
+      profiles: [],
+      projects: [],
+      projectErrors: [],
+      defaultTeamId: null,
+    }),
+    enrollTeam: vi.fn().mockResolvedValue({
+      state: 'persisted',
+      teamId: 'team-a',
+      keyId: 'new-key',
+      scopes: ['agent:profile', 'task:execute'],
+    }),
+    refresh: vi.fn().mockResolvedValue(undefined),
+    startRun: vi.fn(),
+    stopRun: vi.fn(),
+    savePreset: vi.fn(),
+    deletePreset: vi.fn(),
+    subscribeRunLogs: () => () => {},
+  };
+  return { data, actions };
+}
+function show(data: RunCenterData, actions: RunCenterActions) {
+  return render(
+    <Wrapper>
+      <TeamsView
+        data={data}
+        actions={actions}
+        now={Date.parse('2026-09-18T00:00:00Z')}
+      />
+    </Wrapper>,
+  );
+}
+
+describe('desktop team enrollment', () => {
+  it('keeps enrollment and permissions out of the overview until requested', async () => {
+    const { data, actions } = fixture();
+    show(data, actions);
+    await screen.findByRole('button', { name: 'Renew' });
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Team ID')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Enroll into a team' }));
+    expect(screen.getByLabelText('Team ID')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Create identity' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Back to team access' }),
+    );
+    expect(screen.getByRole('region', { name: 'Team access' })).toHaveFocus();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
+  it.each(['Renew', 'Renew access'])(
+    'moves focus to the review form when clicking %s',
+    async (label) => {
+      const { data, actions } = fixture();
+      if (label === 'Renew access')
+        actions.catalogue = vi.fn().mockResolvedValue({
+          teams: [],
+          hiddenTeamIds: ['team-a'],
+          profiles: [],
+          projects: [],
+          projectErrors: [],
+          defaultTeamId: null,
+        });
+      show(data, actions);
+      if (label === 'Renew access')
+        fireEvent.click(await screen.findByText('Removed from Desktop'));
+      fireEvent.click(await screen.findByRole('button', { name: label }));
+      const review = screen.getByRole('region', {
+        name: label === 'Renew' ? 'Renew Research' : 'Renew Team team-a',
+      });
+      expect(review).toHaveFocus();
+      expect(actions.enrollTeam).not.toHaveBeenCalled();
+    },
+  );
+  it.each([
+    {
+      message: 'Approval failed. No credential was issued.',
+      title: 'Approval failed',
+      hint: /try again later/,
+    },
+    {
+      message: 'Team approval denied. Permission required.',
+      title: 'Team access required',
+      hint: /Refreshing alone does not grant access/,
+    },
+    {
+      message: 'Approval expired. Start again.',
+      title: 'Approval timed out',
+      hint: /five-minute approval window ended/,
+    },
+    {
+      message: 'Approval denied. No credential was issued.',
+      title: 'Approval declined',
+      hint: /No credential was issued/,
+    },
+  ])(
+    'releases waiting approval on $title and keeps the renewal target',
+    async ({ message, title, hint }) => {
+      const { data, actions } = fixture();
+      let reject!: (error: Error) => void;
+      actions.enrollTeam = vi.fn<NonNullable<RunCenterActions['enrollTeam']>>(
+        () =>
+          new Promise((_, fail) => {
+            reject = fail;
+          }),
+      );
+      actions.cancelOperatorApproval = vi.fn();
+      show(data, actions);
+      fireEvent.click(await screen.findByRole('button', { name: 'Renew' }));
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Replace team credential' }),
+      );
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Replace credential' }),
+      );
+      expect(screen.getByText(/Expires in 5:00/)).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Cancel approval' }),
+      ).toBeEnabled();
+      act(() => reject(new Error(message)));
+      expect(await screen.findByText(title)).toBeInTheDocument();
+      expect(screen.getByText(title).closest('[tabindex]')).toHaveFocus();
+      expect(screen.getByRole('alert')).toHaveTextContent(hint);
+      expect(
+        screen.queryByRole('button', { name: 'Waiting for approval…' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Cancel approval' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Replace team credential' }),
+      ).toBeEnabled();
+      expect(
+        screen.getByRole('heading', { name: 'Renew Research' }),
+      ).toBeInTheDocument();
+      expect(actions.refresh).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps countdown ticks outside live regions and announces expiration separately', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+    const { data, actions } = fixture();
+    let reject!: (error: Error) => void;
+    actions.enrollTeam = vi.fn<NonNullable<RunCenterActions['enrollTeam']>>(
+      () =>
+        new Promise((_, fail) => {
+          reject = fail;
+        }),
+    );
+    const view = show(data, actions);
+    try {
+      fireEvent.click(await screen.findByRole('button', { name: 'Renew' }));
+      const begin = () => {
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Replace team credential' }),
+        );
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Replace credential' }),
+        );
+      };
+      begin();
+      const waiting = screen
+        .getByText('Waiting for browser approval')
+        .closest('[role="status"]');
+      expect(waiting).toHaveTextContent(/^Waiting for browser approval$/);
+      const countdown = screen.getByText(/Expires in 5:00/);
+      expect(countdown.closest('[aria-live="off"]')).not.toBeNull();
+      expect(
+        countdown.closest(
+          '[role="status"], [aria-live="polite"], [aria-live="assertive"]',
+        ),
+      ).toBeNull();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      expect(screen.getByText(/Expires in 4:59/)).toBeInTheDocument();
+      expect(waiting).toHaveTextContent(/^Waiting for browser approval$/);
+      expect(
+        screen.queryByText('Approval window expired'),
+      ).not.toBeInTheDocument();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(299000);
+      });
+      expect(
+        screen.getByText('Approval window expired').closest('[role="status"]'),
+      ).not.toBeNull();
+      act(() => reject(new Error('Approval expired. Start again.')));
+      await screen.findByText('Approval timed out');
+      begin();
+      expect(screen.getByText(/Expires in 5:00/)).toBeInTheDocument();
+      expect(
+        screen.queryByText('Approval window expired'),
+      ).not.toBeInTheDocument();
+    } finally {
+      view.unmount();
+      vi.useRealTimers();
+    }
+  });
+  it('removes a team locally and offers a way to restore it', async () => {
+    const { data, actions } = fixture();
+    actions.setTeamVisibility = vi.fn().mockResolvedValue(undefined);
+    show(data, actions);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Remove from Desktop' }),
+    );
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Remove from Desktop' }).at(-1)!,
+    );
+    await waitFor(() =>
+      expect(actions.setTeamVisibility).toHaveBeenCalledWith(
+        'agent',
+        'team-a',
+        true,
+      ),
+    );
+  });
+
+  it('reports a refresh failure after saving local team removal', async () => {
+    const { data, actions } = fixture();
+    actions.setTeamVisibility = vi.fn().mockResolvedValue(undefined);
+    actions.refresh = vi.fn().mockRejectedValue(new Error('Refresh failed'));
+    show(data, actions);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Remove from Desktop' }),
+    );
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Remove from Desktop' }).at(-1)!,
+    );
+    expect(
+      await screen.findByText('Team setting saved; refresh failed'),
+    ).toBeInTheDocument();
+    expect(actions.setTeamVisibility).toHaveBeenCalledWith(
+      'agent',
+      'team-a',
+      true,
+    );
+    expect(
+      screen.queryByText('Team setting could not be saved'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('restores a previously removed team', async () => {
+    const { data, actions } = fixture();
+    actions.setTeamVisibility = vi.fn().mockResolvedValue(undefined);
+    actions.catalogue = vi.fn().mockResolvedValue({
+      teams: [],
+      hiddenTeamIds: ['team-a'],
+      profiles: [],
+      projects: [],
+      projectErrors: [],
+      defaultTeamId: null,
+    });
+    show(data, actions);
+    fireEvent.click(await screen.findByText('Removed from Desktop'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Restore' }));
+    await waitFor(() =>
+      expect(actions.setTeamVisibility).toHaveBeenCalledWith(
+        'agent',
+        'team-a',
+        false,
+      ),
+    );
+  });
+  it('offers renewal for a hidden indexed team', async () => {
+    const { data, actions } = fixture();
+    actions.catalogue = vi.fn().mockResolvedValue({
+      teams: [],
+      hiddenTeamIds: ['team-a'],
+      profiles: [],
+      projects: [],
+      projectErrors: [],
+      defaultTeamId: null,
+    });
+    show(data, actions);
+    fireEvent.click(await screen.findByText('Removed from Desktop'));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Renew access' }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Replace team credential' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Replace credential' }));
+    await waitFor(() =>
+      expect(actions.enrollTeam).toHaveBeenCalledWith(
+        'agent',
+        expect.objectContaining({ teamId: 'team-a', mode: 'replace' }),
+      ),
+    );
+  });
+  it('shows the signed-in operator email', () => {
+    const { data, actions } = fixture();
+    show(
+      { ...data, operatorConfigured: true, operatorEmail: 'owner@example.com' },
+      actions,
+    );
+    expect(screen.getByText('owner@example.com')).toBeInTheDocument();
+  });
+
+  it('creates a first agent with a team invite code', async () => {
+    const { data, actions } = fixture();
+    data.status = { ...data.status!, agents: [], selectedIdentity: undefined };
+    actions.createManagedAgent = vi.fn().mockResolvedValue({
+      kind: 'managed',
+      agentName: 'first-agent',
+      subjectId: 'subject',
+      fingerprint: 'fingerprint',
+      apiUrl: 'https://api.themolt.net',
+      createdAt: '2026-09-23T00:00:00Z',
+      hasAgentKey: true,
+      hasPrivateKey: true,
+    });
+    show(data, actions);
+    fireEvent.change(screen.getByLabelText('Agent name'), {
+      target: { value: 'first-agent' },
+    });
+    fireEvent.change(screen.getByLabelText('Team invite code'), {
+      target: { value: 'mlt_inv_example' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create and enroll' }));
+    expect(actions.createManagedAgent).toHaveBeenCalledWith(
+      'first-agent',
+      'mlt_inv_example',
+    );
+    expect(
+      await screen.findByText('Agent identity created'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Identity')).toHaveValue('first-agent');
+  });
+
+  it('offers identity creation when agents already exist', () => {
+    const { data, actions } = fixture();
+    show(data, actions);
+    fireEvent.click(screen.getByRole('button', { name: 'Create identity' }));
+    expect(screen.getByLabelText('Team invite code')).toBeInTheDocument();
+  });
+
+  it('keeps the entered name after an unconfirmed registration', async () => {
+    const { data, actions } = fixture();
+    actions.createManagedAgent = vi
+      .fn()
+      .mockRejectedValue(new Error('unavailable'));
+    show(data, actions);
+    fireEvent.click(screen.getByRole('button', { name: 'Create identity' }));
+    fireEvent.change(screen.getByLabelText('Agent name'), {
+      target: { value: 'example-agent' },
+    });
+    fireEvent.change(screen.getByLabelText('Team invite code'), {
+      target: { value: 'mlt_inv_example' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create and enroll' }));
+    expect(
+      await screen.findByText('Identity creation could not be confirmed'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Agent name')).toHaveValue('example-agent');
+  });
+
+  it('shows a dismissible toast after sign-in completes', async () => {
+    const { data, actions } = fixture();
+    actions.signInOperator = vi.fn().mockResolvedValue(undefined);
+    actions.operatorTeams = vi.fn().mockResolvedValue({
+      items: [
+        { id: 'aaaaaaaa-0000-4000-8000-000000000001', name: 'Operations' },
+      ],
+    });
+    show(data, actions);
+    await screen.findByText('Research');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in as operator' }),
+    );
+    expect(
+      await screen.findByRole('status', { name: 'Approval completed' }),
+    ).toHaveTextContent('Local operator signed in');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Dismiss notification' }),
+    );
+    expect(
+      screen.queryByRole('status', { name: 'Approval completed' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Enroll into a team' }));
+    expect(
+      await screen.findByRole('option', { name: 'Operations' }),
+    ).toBeInTheDocument();
+  });
+  it('shows the persisted operator state and offers a team-list refresh', async () => {
+    const { data, actions } = fixture();
+    show({ ...data, operatorConfigured: true }, actions);
+    expect(await screen.findByText('Signed in')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Refresh operator teams' }),
+    ).toBeInTheDocument();
+  });
+  it('explains when the signed-in operator cannot manage an indexed team', async () => {
+    const { data, actions } = fixture();
+    actions.operatorTeams = vi.fn().mockResolvedValue({ items: [] });
+    show({ ...data, operatorConfigured: true }, actions);
+    fireEvent.click(await screen.findByRole('button', { name: 'Renew' }));
+    expect(
+      await screen.findByText('Operator access not confirmed'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Refreshing alone does not grant access/),
+    ).toBeInTheDocument();
+  });
+  it('selects a signed-in operator team by name for enrollment', async () => {
+    const { data, actions } = fixture();
+    const teamId = 'aaaaaaaa-0000-4000-8000-000000000001';
+    actions.operatorTeams = vi.fn().mockResolvedValue({
+      items: [{ id: teamId, name: 'Research' }],
+    });
+    show({ ...data, operatorConfigured: true }, actions);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Enroll into a team' }),
+    );
+    const selector = await screen.findByRole('combobox', { name: 'Team' });
+    fireEvent.change(selector, { target: { value: teamId } });
+    fireEvent.click(screen.getByRole('button', { name: 'Approve in browser' }));
+    expect(actions.enrollTeam).toHaveBeenCalledWith(
+      'agent',
+      expect.objectContaining({ teamId, mode: 'enroll' }),
+    );
+  });
+  it('cancels an abandoned sign-in and enables retry after native cancellation', async () => {
+    const { data, actions } = fixture();
+    let rejectApproval!: (error: Error) => void;
+    const signIn = vi.fn(
+      () =>
+        new Promise<void>((_, reject) => {
+          rejectApproval = reject;
+        }),
+    );
+    const cancel = vi.fn(async () => {
+      rejectApproval(new Error('Approval cancelled'));
+    });
+    actions.signInOperator = signIn;
+    actions.cancelOperatorApproval = cancel;
+    show(data, actions);
+    await screen.findByText('Research');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in as operator' }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Cancel approval' }),
+    );
+    expect(await screen.findByText('Approval cancelled')).toBeInTheDocument();
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole('button', { name: 'Sign in as operator' }),
+    ).toBeEnabled();
+  });
+  it('confirms the exact replacement and leaves active runs alone', async () => {
+    const { data, actions } = fixture();
+    show(data, actions);
+    expect(await screen.findByText('Expired')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Renew' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Replace team credential' }),
+    );
+    expect(actions.enrollTeam).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Replace credential' }));
+    await screen.findByText('Team credential renewed');
+    expect(actions.enrollTeam).toHaveBeenCalledWith(
+      'agent',
+      expect.objectContaining({
+        mode: 'replace',
+        teamId: 'team-a',
+      }),
+    );
+    expect(actions.refresh).toHaveBeenCalledOnce();
+    expect(actions.stopRun).not.toHaveBeenCalled();
+  });
+
+  it('starts renewal from verified scopes and submits an exact optional choice', async () => {
+    const { data, actions } = fixture();
+    actions.catalogue = vi.fn().mockResolvedValue({
+      teams: [
+        {
+          ...team,
+          credential: {
+            ...team.credential,
+            scopes: [...DAEMON_MINIMUM_SCOPES, 'diary:write'],
+          },
+        },
+      ],
+      profiles: [],
+      projects: [],
+      projectErrors: [],
+      defaultTeamId: null,
+    });
+    show(data, actions);
+    await screen.findByText('Research');
+    fireEvent.click(screen.getByRole('button', { name: 'Renew' }));
+    expect(screen.getByRole('checkbox', { name: /diary:write/ })).toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: /team:read/ }),
+    ).not.toBeChecked();
+    fireEvent.click(screen.getByRole('checkbox', { name: /diary:write/ }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Replace team credential' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Replace credential' }));
+    await screen.findByText('Team credential renewed');
+    expect(actions.enrollTeam).toHaveBeenCalledWith(
+      'agent',
+      expect.objectContaining({ scopes: [...DAEMON_MINIMUM_SCOPES] }),
+    );
+  });
+
+  it('warns when renewal will omit scopes held by an older team key', async () => {
+    const { data, actions } = fixture();
+    actions.catalogue = vi.fn().mockResolvedValue({
+      teams: [
+        {
+          ...team,
+          credential: {
+            ...team.credential,
+            scopes: [...DAEMON_MINIMUM_SCOPES, 'key:manage'],
+          },
+        },
+      ],
+      profiles: [],
+      projects: [],
+      projectErrors: [],
+      defaultTeamId: null,
+    });
+    show(data, actions);
+    fireEvent.click(await screen.findByRole('button', { name: 'Renew' }));
+    expect(screen.getByText('Permissions will change')).toBeInTheDocument();
+  });
+
+  it.each([
+    { error: 'HTTP 404', hint: /updated Agent Server/ },
+    { error: 'HTTP 503', hint: /Check the Agent Server connection/ },
+  ])('explains a recovery-list failure: $error', async ({ error, hint }) => {
+    const { data, actions } = fixture();
+    actions.listEnrollmentRecoveries = vi
+      .fn()
+      .mockRejectedValue(new Error(error));
+    show(data, actions);
+    expect(await screen.findByText(hint)).toBeInTheDocument();
+  });
+
+  it('keeps the default scope set when renewal metadata is unavailable', async () => {
+    const { data, actions } = fixture();
+    actions.catalogue = vi.fn().mockResolvedValue({
+      teams: [
+        { ...team, credential: { ...team.credential, scopes: undefined } },
+      ],
+      profiles: [],
+      projects: [],
+      projectErrors: [],
+      defaultTeamId: null,
+    });
+    show(data, actions);
+    await screen.findByText('Research');
+    fireEvent.click(screen.getByRole('button', { name: 'Renew' }));
+    expect(screen.getByRole('checkbox', { name: /team:read/ })).toBeChecked();
+  });
+
+  it('accepts persisted enrollment from an older server without scope metadata', async () => {
+    const { data, actions } = fixture();
+    vi.mocked(actions.enrollTeam!).mockResolvedValue({
+      state: 'persisted',
+      teamId: 'team-a',
+      keyId: 'issued-key',
+    } as Awaited<ReturnType<NonNullable<typeof actions.enrollTeam>>>);
+    show(data, actions);
+    await screen.findByText('Research');
+    fireEvent.click(screen.getByRole('button', { name: 'Enroll into a team' }));
+    fireEvent.change(screen.getByLabelText('Team ID'), {
+      target: { value: 'new-team' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Approve in browser' }));
+    expect(
+      await screen.findByText('Team enrollment complete'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Refresh team access to inspect the issued scopes/),
+    ).toBeInTheDocument();
+  });
+
+  it('submits the selected optional scope for a new enrollment', async () => {
+    const { data, actions } = fixture();
+    show(data, actions);
+    await screen.findByText('Research');
+    fireEvent.click(screen.getByRole('button', { name: 'Enroll into a team' }));
+    fireEvent.change(screen.getByLabelText('Team ID'), {
+      target: { value: 'new-team' },
+    });
+    fireEvent.click(screen.getByRole('checkbox', { name: /diary:write/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Approve in browser' }));
+    await screen.findByText('Team enrollment complete');
+    expect(actions.enrollTeam).toHaveBeenCalledWith(
+      'agent',
+      expect.objectContaining({
+        scopes: [...AGENT_CREDENTIAL_SCOPES, 'diary:write'],
+      }),
+    );
+  });
+
+  it('restores a captured credential through the Agent Server without exposing its secret', async () => {
+    const { data, actions } = fixture();
+    actions.listEnrollmentRecoveries = vi.fn().mockResolvedValue({
+      items: [
+        {
+          recoveryId: 'record.json',
+          secretCaptured: true,
+          teamId: 'team-a',
+          operation: 'renew',
+          createdAt: '2026-09-01T00:00:00Z',
+        },
+      ],
+    });
+    actions.restoreEnrollment = vi.fn().mockResolvedValue({
+      state: 'persisted',
+      teamId: 'team-a',
+      keyId: 'restored',
+    });
+    show(data, actions);
+    fireEvent.click(await screen.findByText('Credential recovery'));
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Restore captured credential',
+      }),
+    );
+    await screen.findByText('Credential restored');
+    expect(actions.restoreEnrollment).toHaveBeenCalledWith(
+      'agent',
+      'record.json',
+    );
+    expect(actions.catalogue).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([false, true])(
+    'confirms discarding a recovery record with captured secret %s',
+    async (secretCaptured) => {
+      const { data, actions } = fixture();
+      actions.listEnrollmentRecoveries = vi.fn().mockResolvedValue({
+        items: [
+          {
+            recoveryId: 'record.json',
+            secretCaptured,
+            teamId: 'team-a',
+            createdAt: '2026-09-01T00:00:00Z',
+          },
+        ],
+      });
+      actions.discardEnrollmentRecovery = vi.fn().mockResolvedValue({
+        state: 'discarded',
+      });
+      show(data, actions);
+      fireEvent.click(await screen.findByText('Credential recovery'));
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Discard record' }),
+      );
+      expect(actions.discardEnrollmentRecovery).not.toHaveBeenCalled();
+      expect(
+        screen.getByText(
+          secretCaptured
+            ? /may hold the only local copy/
+            : /retry context but no captured credential/,
+        ),
+      ).toBeInTheDocument();
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Discard local record' }),
+      );
+      expect(
+        await screen.findByText('Recovery record discarded'),
+      ).toBeInTheDocument();
+      expect(actions.discardEnrollmentRecovery).toHaveBeenCalledWith(
+        'agent',
+        'record.json',
+        secretCaptured,
+      );
+    },
+  );
+
+  it('shows lost-response recovery without claiming a captured secret', async () => {
+    const { data, actions } = fixture();
+    vi.mocked(actions.enrollTeam!).mockResolvedValue({
+      state: 'recovery_required',
+      secretCaptured: false,
+      issuedKeyId: 'issued-key',
+      recoveryId: 'record.json',
+      message: 'No credential secret was captured.',
+    });
+    show(data, actions);
+    await screen.findByText('Research');
+    fireEvent.click(screen.getByRole('button', { name: 'Enroll into a team' }));
+    fireEvent.change(screen.getByLabelText('Team ID'), {
+      target: { value: 'single-use-sentinel' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Approve in browser' }));
+    await screen.findByText('Enrollment needs recovery');
+    expect(
+      screen.getByText(/No credential secret was captured/),
+    ).toHaveTextContent('No secret is available to restore');
+    expect(
+      screen.queryByText('Credential saved for recovery'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('refreshes unavailable team access after an external renewal', async () => {
+    const { data, actions } = fixture();
+    show(data, actions);
+    await screen.findByText('Expired');
+    vi.mocked(actions.catalogue).mockResolvedValue({
+      hiddenTeamIds: [],
+      teams: [
+        {
+          ...team,
+          available: true,
+          blockers: [],
+          credential: {
+            ...team.credential,
+            keyId: 'renewed',
+            expiresAt: '2027-09-18T00:00:00Z',
+          },
+        },
+      ],
+      profiles: [],
+      projects: [],
+      projectErrors: [],
+      defaultTeamId: 'team-a',
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Refresh team access' }),
+    );
+    await screen.findByText('Healthy');
+    expect(actions.stopRun).not.toHaveBeenCalled();
+  });
+  it('clears a refresh error after team access is verified again', async () => {
+    const { data, actions } = fixture();
+    vi.mocked(actions.catalogue).mockRejectedValueOnce(new Error('offline'));
+    show(data, actions);
+    await screen.findByText('Team access could not be refreshed');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Refresh team access' }),
+    );
+    await screen.findByText('Research');
+    expect(
+      screen.queryByText('Team access could not be refreshed'),
+    ).not.toBeInTheDocument();
+  });
+});

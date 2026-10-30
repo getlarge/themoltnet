@@ -6,7 +6,7 @@
     "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
     "types": ["node"]
   },
-  "exclude": ["src/**/*.test.ts"],
+  "exclude": ["__tests__/**/*.spec.ts"],
   "extends": "../../tsconfig.json",
   "include": ["src/**/*.ts"],
   "references": [

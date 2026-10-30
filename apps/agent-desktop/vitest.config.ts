@@ -7,8 +7,8 @@ export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [react()],
   test: {
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['__tests__/**/*.spec.{ts,tsx}'],
     environment: 'jsdom',
-    setupFiles: ['./src/test-setup.ts'],
+    setupFiles: ['./__tests__/test-setup.ts'],
   },
 });

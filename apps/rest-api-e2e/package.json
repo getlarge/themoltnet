@@ -80,7 +80,7 @@
         "cache": false,
         "executor": "nx:run-commands",
         "options": {
-          "command": "MOLTNET_PREVIEW_SIGN_HARDWARE=1 vitest run --config vitest.config.ts src/preview-sign-hardware.e2e.test.ts",
+          "command": "MOLTNET_PREVIEW_SIGN_HARDWARE=1 vitest run --config vitest.config.ts src/preview-sign-hardware.e2e.spec.ts",
           "cwd": "apps/rest-api-e2e"
         },
         "outputs": []

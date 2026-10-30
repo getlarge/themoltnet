@@ -12,7 +12,7 @@ export default defineConfig({
       afterBuild: () => shareRolledUpEntries({ outDir: 'dist' }),
       tsconfigPath: './tsconfig.lib.json',
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts'],
+      exclude: ['__tests__/**/*.spec.ts'],
     }),
   ],
   build: {
