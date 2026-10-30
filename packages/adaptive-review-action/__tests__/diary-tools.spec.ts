@@ -2,7 +2,7 @@ import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import type { PiToolContext } from '@themoltnet/pi-runtime';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createReviewDiaryTools } from './diary-tools.js';
+import { createReviewDiaryTools } from '../src/diary-tools.js';
 
 const source = '11111111-1111-4111-8111-111111111111';
 const other = '22222222-2222-4222-8222-222222222222';
