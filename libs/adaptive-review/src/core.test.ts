@@ -64,6 +64,40 @@ function answers(security = 0.01): ClassifyOutput['answers'] {
 }
 
 describe('classifier-first routing', () => {
+  it('scopes base guidance to packet paths including the rename source', () => {
+    const [packet] = packetize(evidence);
+    const docs = [
+      'REVIEW.md',
+      'old/REVIEW.md',
+      'apps/rest-api/REVIEW.md',
+      'other/REVIEW.md',
+    ].map((path) => ({ path, content: path, digest: 'd'.repeat(64) }));
+    const task = buildClassifyTask(
+      identity,
+      evidence,
+      packet,
+      policy,
+      [
+        {
+          status: 'renamed',
+          path: evidence.files[0].path,
+          previousPath: 'old/foo.ts',
+        },
+      ],
+      undefined,
+      docs,
+    );
+    expect(
+      task.input.state.trustedReviewGuidance.map((doc) => doc.path),
+    ).toEqual(['REVIEW.md', 'old/REVIEW.md', 'apps/rest-api/REVIEW.md']);
+    const conventionQuestion = Object.entries(task.input.questions).find(
+      ([name]) => name === 'conventions',
+    )?.[1];
+    expect(conventionQuestion?.instructions).toContain(
+      '`rules` or `trustedReviewGuidance`',
+    );
+  });
+
   it('gives each bounded packet every independent question and applicable rule', () => {
     const [packet] = packetize(evidence);
     const task = buildClassifyTask(identity, evidence, packet, policy);
