@@ -127,6 +127,7 @@ function harness(
     classifierFails?: boolean;
     selected?: string;
     securityCoverage?: string;
+    securityUnassessed?: string[];
     securityCandidateCount?: number;
     securityFindingStatus?: 'confirmed' | 'unclear' | 'refuted';
     invalidFocusedOutput?: boolean;
@@ -190,6 +191,11 @@ function harness(
           result: {
             summary: 'Security hunt complete',
             coverage: options.securityCoverage ?? 'complete',
+            unassessed:
+              options.securityUnassessed ??
+              (options.securityCoverage === 'partial'
+                ? ['Caller of the changed route in src/server.ts not checked.']
+                : []),
             findings: candidates,
           },
         };
@@ -634,7 +640,8 @@ describe('adaptive review orchestration', () => {
     ).toMatchObject({
       status: 'failed',
       taskIds: ['task-2'],
-      summary: 'tests review failed; inspect its task outcome.',
+      summary:
+        'tests review failed (invalid-finding-citation); inspect task task-2.',
       findings: [],
     });
   });
@@ -958,7 +965,7 @@ describe('adaptive review orchestration', () => {
     ).toMatchObject({
       status: 'failed',
       summary:
-        'docs review failed before a task was created; inspect workflow logs.',
+        'docs review failed before a task was created (unexpected-error); inspect workflow logs.',
     });
     expect(
       report.results.find((result) => result.lane === 'tests'),
@@ -994,7 +1001,7 @@ describe('adaptive review orchestration', () => {
     ).toMatchObject({
       status: 'failed',
       summary:
-        'security review failed before a task was created; inspect workflow logs.',
+        'security review failed before a task was created (worker-unavailable); inspect workflow logs.',
       taskIds: [],
     });
     expect(
@@ -1163,7 +1170,8 @@ describe('adaptive review orchestration', () => {
       report.results.find((result) => result.lane === 'tests'),
     ).toMatchObject({
       status: 'failed',
-      summary: 'tests review failed; inspect its task outcome.',
+      summary:
+        'tests review failed (invalid-focused-result); inspect task task-2.',
       taskIds: ['task-2'],
     });
     expect(report.taskIds).toContain('task-2');
@@ -1230,13 +1238,15 @@ describe('adaptive review orchestration', () => {
       expect(result?.status).toBe(
         securityFindingStatus === 'confirmed' ? 'concern' : 'unclear',
       );
-      expect(result?.summary).toContain('unassessed');
-      if (securityFindingStatus) expect(result?.unclear).not.toHaveLength(0);
+      expect(result?.unclear).toContain(
+        'Not assessed: Caller of the changed route in src/server.ts not checked.',
+      );
     },
   );
 
   it.each([
     { securityCoverage: 'missing' },
+    { securityCoverage: 'partial', securityUnassessed: [] },
     { securityCandidateCount: 6, securityFindingStatus: 'refuted' as const },
   ])('fails closed on an invalid hunt contract: %j', async (options) => {
     const { tasks, created } = harness({ selected: 'security', ...options });
@@ -1306,13 +1316,37 @@ describe('adaptive review orchestration', () => {
       expect(created.get('task-3')?.input.brief).toContain(
         '"id":"changed-route"',
       );
-      expect(
-        report.results.find((result) => result.lane === 'security'),
-      ).toMatchObject({
-        status,
-        taskIds: ['task-2', 'task-3'],
-        findings: [],
-      });
+      const result = report.results.find((item) => item.lane === 'security');
+      expect(result).toMatchObject({ status, taskIds: ['task-2', 'task-3'] });
+      expect(result?.summary).toBe(
+        {
+          confirmed:
+            'Security candidates: 1 confirmed (highest severity: medium), 0 unresolved, 0 refuted.',
+          unclear: 'Security candidates: 0 confirmed, 1 unresolved, 0 refuted.',
+          refuted: 'Security candidates: 0 confirmed, 0 unresolved, 1 refuted.',
+        }[securityFindingStatus],
+      );
+      expect(result?.findings).toEqual(
+        securityFindingStatus === 'confirmed'
+          ? [
+              {
+                path: sourcePath,
+                side: 'new',
+                line: 1,
+                concern:
+                  'Medium severity: Changed route behavior. The route has a caller.',
+                action: 'Restore the guard if needed.',
+              },
+            ]
+          : [],
+      );
+      expect(result?.unclear).toEqual(
+        securityFindingStatus === 'unclear'
+          ? [
+              `Unresolved at ${sourcePath}:1: Changed route behavior. The changed route was inspected.`,
+            ]
+          : [],
+      );
       expect(report.taskIds).toEqual(['task-1', 'task-2', 'task-3']);
     },
   );

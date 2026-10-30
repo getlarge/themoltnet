@@ -77,11 +77,15 @@ threads are deleted.
 
 The summary comment starts with the number of findings and how many were
 posted, were already open, or are listed in the summary. It lists up to 30
-findings and points at the workflow run's report for the rest. Security
-findings stay in the team-scoped tasks. If GitHub rejects the review (for
+findings and points at the workflow run's report for the rest. If GitHub rejects the review (for
 example, an anchor outside the diff), the publish step warns, lists the
 findings in the summary, and succeeds. Set the caller input
 `inline-findings: 'false'` to keep every finding in the summary comment.
+
+Confirmed security findings are published like every other lane's: each
+thread states the severity, the title, and how the change is reachable, with
+the remediation as its suggested action. A pull request is unmerged code, so
+its review findings are not embargoed.
 
 When a pull request closes, the outcomes workflow
 (`adaptive-review-outcomes-reusable.yml`) reads the reviewer's threads and
@@ -106,8 +110,7 @@ reopened, pushed to, or closed again before the run started, it records
 nothing and the run for the latest closure records instead. Runs for one pull
 request do not overlap. A pull request with no threads writes nothing, and a
 reopened pull request that closes again keeps its first entry. Findings
-without a thread are not recorded: security findings, which stay in the
-team-scoped tasks, and findings that cite no line.
+that cite no line have no thread and are not recorded.
 
 The classifier is selected by the caller's profile. MoltNet uses Ollama Cloud
 `clef:27b` through its issue-classifier-v2 profile; other repositories can select
@@ -127,7 +130,11 @@ task budgets as before.
 
 When a lane's review is incomplete, the comment lists what it could not assess
 under "Not fully assessed". For the docs lane, these are the documents, hunks,
-and stages the docs impact review reported as gaps. For the complexity lane,
+and stages the docs impact review reported as gaps. For the security lane,
+they are the candidates verification could not resolve, each with its cited
+line and the missing evidence, and each gap the hunt named when it reported
+partial coverage. A failed lane names its diagnostic code and the task to
+inspect. For the complexity lane,
 the summary names the coverage gap or the number of rubric criteria it could
 not assess, and each unassessed criterion follows with its rationale.
 

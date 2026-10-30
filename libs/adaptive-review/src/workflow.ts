@@ -356,13 +356,14 @@ export async function runRoutedAdaptiveReview(
   const results = routed.map((item, index): LaneResult => {
     if (item.status === 'fulfilled') return item.value;
     const lane = routing.routes[index].lane;
-    logLaneFailure(lane, createdTaskIds[index], laneFailureCode(item.reason));
+    const code = laneFailureCode(item.reason);
+    logLaneFailure(lane, createdTaskIds[index], code);
     return {
       lane,
       status: 'failed',
       summary: createdTaskIds[index].length
-        ? `${lane} review failed; inspect its task outcome.`
-        : `${lane} review failed before a task was created; inspect workflow logs.`,
+        ? `${lane} review failed (${code}); inspect task ${createdTaskIds[index].at(-1)}.`
+        : `${lane} review failed before a task was created (${code}); inspect workflow logs.`,
       taskIds: createdTaskIds[index],
       findings: [],
     };

@@ -5,6 +5,7 @@ import {
   ADAPTIVE_FINDING_MARKER,
   findingKey,
   hasIncompleteCoverage,
+  inlineFindings,
   parseFindingMarker,
   postedFindingKey,
   renderAdaptiveComment,
@@ -167,7 +168,7 @@ it.each(['clear', 'concern', 'unclear', 'failed', 'screened'] as const)(
         {
           lane: 'security',
           status,
-          summary: 'Details remain in team-scoped tasks.',
+          summary: 'Security candidates: 0 confirmed, 0 unresolved, 0 refuted.',
           taskIds: [],
           findings: [],
         },
@@ -193,6 +194,67 @@ it.each(['clear', 'concern', 'unclear', 'failed', 'screened'] as const)(
     expect(hasIncompleteCoverage(report)).toBe(true);
   },
 );
+
+it('lists confirmed security findings and unresolved candidates', () => {
+  // Arrange
+  const report: AdaptiveReport = {
+    version: 1,
+    mode: 'active',
+    repo: 'getlarge/themoltnet',
+    pr: 42,
+    base: 'a'.repeat(40),
+    head: 'b'.repeat(40),
+    correlationId: 'id',
+    policyDigest: 'd'.repeat(64),
+    referenceDigests: {},
+    runtimeSha: 'c'.repeat(40),
+    packetCount: 1,
+    taskIds: [],
+    gaps: [],
+    durationMs: 100,
+    routing: {
+      classifierFailed: false,
+      scores: { 'code-complexity': null, 'review-effort': null },
+      routes: [
+        { lane: 'security', probability: 0.9, run: true, reason: 'selected' },
+      ],
+    },
+    results: [
+      {
+        lane: 'security',
+        status: 'concern',
+        summary:
+          'Security candidates: 1 confirmed (highest severity: medium), 1 unresolved, 0 refuted.',
+        unclear: [
+          'Unresolved at src/tag.ts:3: Mutable tag. Tag rulesets are not in the checkout.',
+        ],
+        taskIds: ['hunt', 'verify'],
+        findings: [
+          {
+            path: 'src/release.ts',
+            side: 'new',
+            line: 9,
+            concern: 'Medium severity: Checksum database bypassed.',
+            action: 'Verify the module hash.',
+          },
+        ],
+      },
+    ],
+  };
+
+  // Act
+  const comment = renderAdaptiveComment(report, 'https://example.com/run');
+
+  // Assert
+  expect(inlineFindings(report.results)).toHaveLength(1);
+  expect(comment).toContain(
+    'src/release.ts:9: Medium severity: Checksum database bypassed.',
+  );
+  expect(comment).toContain(
+    'security: Unresolved at src/tag.ts:3: Mutable tag. Tag rulesets are not in the checkout.',
+  );
+  expect(comment).not.toContain('team-scoped');
+});
 
 it('says plainly when nothing needs fixing', () => {
   // Arrange

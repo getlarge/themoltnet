@@ -43,8 +43,20 @@ const parse = (raw: unknown) => validateCandidates(unwrap(raw), diff);
 describe('review semantic correction', () => {
   it('runs verification after correcting the hunt and retains partial coverage', async () => {
     const tasks = new FakeTasks([
-      { result: { ...output(99).result, coverage: 'partial' } },
-      { result: { ...output(1).result, coverage: 'partial' } },
+      {
+        result: {
+          ...output(99).result,
+          coverage: 'partial',
+          unassessed: ['Callers outside src/example.ts were not read.'],
+        },
+      },
+      {
+        result: {
+          ...output(1).result,
+          coverage: 'partial',
+          unassessed: ['Callers outside src/example.ts were not read.'],
+        },
+      },
       {
         result: {
           summary: 'Checked candidate',
@@ -95,6 +107,9 @@ describe('review semantic correction', () => {
     });
 
     expect(result.status).toBe('unclear');
+    expect(result.unclear).toEqual([
+      'Not assessed: Callers outside src/example.ts were not read.',
+    ]);
     expect(result.taskIds).toHaveLength(3);
     expect(result.findings).toEqual([]);
     expect(tasks.created[1].input.continueFrom).toEqual({
