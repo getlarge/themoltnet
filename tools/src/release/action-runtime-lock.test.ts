@@ -66,6 +66,18 @@ describe('action runtime locks', () => {
 });
 
 describe('released action runtime inputs', () => {
+  it('locks what the adaptive review runs from outside its package', () => {
+    const [adaptive] = RUNTIME_LOCKS;
+    expect(adaptive.lock).toBe('packages/adaptive-review-action/runtime.lock');
+    expect(adaptive.pathspecs).toEqual(
+      expect.arrayContaining([
+        '.github/workflows/adaptive-review-reusable.yml',
+        'libs/adaptive-review/src',
+        ':(exclude,glob)**/*.test.ts',
+      ]),
+    );
+  });
+
   it('never locks generated bundles', () => {
     for (const lock of RUNTIME_LOCKS) {
       expect(lock.pathspecs.some((path) => path.includes('/dist'))).toBe(false);

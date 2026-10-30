@@ -9,6 +9,7 @@ import {
   readProjectsConfigurationFromProjectGraph,
 } from '@nx/devkit';
 
+import { RUNTIME_LOCKS } from './action-runtime-lock.js';
 import {
   authHeaderValue,
   createReleaseCommit,
@@ -177,6 +178,11 @@ async function main() {
     bundleDir,
     entries: options.entries,
     otherBundleDirs,
+    // The project's own lock: a stale one means the files it runs from
+    // outside its package changed without a release.
+    locks: RUNTIME_LOCKS.filter((lock) =>
+      lock.lock.startsWith(`${projectRoot}/`),
+    ),
   });
   if (problems.length > 0) {
     throw new Error(
