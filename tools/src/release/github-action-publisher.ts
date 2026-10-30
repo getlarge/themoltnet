@@ -181,7 +181,7 @@ async function main() {
   if (problems.length > 0) {
     throw new Error(
       `${options.project} is not ready to release:\n- ${problems.join('\n- ')}\n` +
-        'Build the required action bundles before releasing.',
+        'Build the required action bundles and refresh stale runtime locks before releasing.',
     );
   }
 

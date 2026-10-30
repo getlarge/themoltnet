@@ -803,7 +803,7 @@ jobs:
         with:
           go: 'false'
 
-      # Build and check required entries without moving refs.
+      # Build and check required entries and runtime locks without moving refs.
       - name: Verify the built bundles
         run: pnpm exec nx run ${{ matrix.project }}:publish-action
         env:

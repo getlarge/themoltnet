@@ -2,6 +2,8 @@ import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { type RuntimeLock, staleLocks } from './action-runtime-lock.js';
+
 /** The moving major tag for `version`, e.g. `v0` or `agent-daemon-action-v1`. */
 export function stableMajorTagFor(version: string, prefix = 'v'): string {
   if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) {
@@ -60,7 +62,7 @@ export function authHeaderValue(token: string): string {
 
 /**
  * Everything that must hold before an action release moves its tag: every
- * entry point is bundled and every included bundle exists. Bundles are built
+ * entry point is bundled and runtime locks are current. Bundles are built
  * at the version tag and included only in the stable major tag's commit.
  */
 export function releaseProblems(options: {
@@ -69,6 +71,7 @@ export function releaseProblems(options: {
   entries: readonly string[];
   /** Bundles of other actions this one runs from the same commit. */
   otherBundleDirs?: readonly string[];
+  locks?: RuntimeLock[];
 }): string[] {
   const problems: string[] = [];
   const missing = missingBundleEntries(
@@ -82,6 +85,9 @@ export function releaseProblems(options: {
     if (!existsSync(join(options.root, dir))) {
       problems.push(`${dir} is missing`);
     }
+  }
+  for (const lock of staleLocks(options.root, options.locks)) {
+    problems.push(`${lock} is out of date`);
   }
   return problems;
 }

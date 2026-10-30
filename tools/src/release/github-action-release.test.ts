@@ -5,6 +5,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { computeLock } from './action-runtime-lock.js';
 import { parsePublisherArgs } from './github-action-publisher.js';
 import {
   authHeaderValue,
@@ -105,7 +106,10 @@ describe('releaseProblems', () => {
       mkdirSync(join(root, dir), { recursive: true });
       writeFileSync(join(root, dir, 'main.js'), 'export {};\n');
     }
+    writeFileSync(join(root, 'workflow.yml'), 'on: push\n');
     writeFileSync(join(root, '.gitignore'), '**/dist/\n');
+    git('add', '-A');
+    writeFileSync(join(root, 'a/runtime.lock'), computeLock(root, lock));
     git('add', '-A');
     git('commit', '-qm', 'init');
   });
@@ -114,15 +118,20 @@ describe('releaseProblems', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  const lock = {
+    lock: 'a/runtime.lock',
+    pathspecs: ['workflow.yml'],
+  };
   const check = () =>
     releaseProblems({
       root,
       bundleDir: 'a/dist',
       entries: ['main.js'],
       otherBundleDirs: ['b/dist'],
+      locks: [lock],
     });
 
-  it('is ready when bundles are ignored', () => {
+  it('is ready when bundles are ignored and locks current', () => {
     // Act / Assert
     expect(check()).toEqual([]);
   });
@@ -133,6 +142,7 @@ describe('releaseProblems', () => {
       root,
       bundleDir: 'a/dist',
       entries: ['main.js', 'check.js'],
+      locks: [lock],
     });
 
     // Assert
@@ -188,6 +198,15 @@ describe('releaseProblems', () => {
     expect(() => createReleaseCommit(root, ['a/dist'], 'bundle')).toThrow(
       'clean tracked checkout',
     );
+  });
+
+  it('refuses a stale runtime lock', () => {
+    // Arrange
+    writeFileSync(join(root, 'workflow.yml'), 'on: pull_request\n');
+    git('commit', '-qam', 'change the workflow');
+
+    // Act / Assert
+    expect(check()).toEqual(['a/runtime.lock is out of date']);
   });
 });
 
