@@ -81,7 +81,7 @@ describe('workflow spend', () => {
     expect(markdown).toContain('p/two');
     expect(markdown).toContain('tool:summarizer');
     expect(markdown).toContain(
-      '| **Total** | | 2 | 17 | 4 | 0 / 0 | $4.0000 |',
+      '| **Total** | | 1 | 2 | 17 | 4 | 0 / 0 | 2m 0s | $4.0000 |',
     );
   });
 

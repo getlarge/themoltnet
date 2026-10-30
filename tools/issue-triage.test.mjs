@@ -514,7 +514,7 @@ if (args[2] === 'GET') {
   assert.match(fallbackComment, /Agent workflow spend/);
   assert.match(
     fallbackComment,
-    /\| \*\*Total\*\* \| \| 2 \| 10 \| 2 \| 0 \/ 0 \| \$0.0100/,
+    /\| \*\*Total\*\* \| \| 1 \| 2 \| 10 \| 2 \| 0 \/ 0 \| 1s \| \$0.0100/,
   );
   assert.match(
     fallbackComment,
