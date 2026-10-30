@@ -21,7 +21,7 @@ import {
 
 import { AgentServerHttpError } from './http-error.js';
 import { loadEnrollmentIdentity } from './identity.js';
-import type { OperatorOAuth } from './operator-oauth.js';
+import { OperatorApprovalError, type OperatorOAuth } from './operator-oauth.js';
 import type { AgentServerStore } from './store.js';
 import {
   TeamCredentialError,
@@ -306,6 +306,7 @@ export async function enrollIdentityTeam(options: {
     };
   } catch (error) {
     if (error instanceof ProvisioningNotStartedError) {
+      if (error.cause instanceof OperatorApprovalError) throw error.cause;
       if (error.cause instanceof ProvisioningRateLimitedError)
         return {
           state: 'retryable' as const,
