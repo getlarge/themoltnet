@@ -7,6 +7,7 @@ import {
   applicableRules,
   buildClassifyTask,
   decideRoutes,
+  isBinaryPatch,
   LANES,
   mechanicalConcerns,
   packetize,
@@ -236,6 +237,50 @@ describe('classifier-first routing', () => {
         [{ packetId: binaryPackets[0].id, answers: answers() }],
         [],
       ).routes.every((route) => route.run && route.reason === 'incomplete'),
+    ).toBe(true);
+  });
+
+  it('detects binary patches only from git headers, not from text lines', () => {
+    expect(
+      isBinaryPatch('diff --git a/a.png b/a.png\nBinary files differ\n'),
+    ).toBe(true);
+    expect(
+      isBinaryPatch(
+        'diff --git a/a.png b/a.png\nBinary files a/a.png and b/a.png differ\n',
+      ),
+    ).toBe(true);
+    expect(
+      isBinaryPatch(
+        'diff --git a/a.bin b/a.bin\nGIT binary patch\nliteral 4\n',
+      ),
+    ).toBe(true);
+    const deletedSource = [
+      'diff --git a/check.ts b/check.ts',
+      'deleted file mode 100644',
+      '@@ -1,2 +0,0 @@',
+      "-  (line) => line.startsWith('Binary files ') || line === 'GIT binary patch',",
+      '-export {};',
+    ].join('\n');
+    expect(isBinaryPatch(deletedSource)).toBe(false);
+    const packets = packetize({
+      ...evidence,
+      files: [
+        { path: 'check.ts', patch: deletedSource, bytes: deletedSource.length },
+      ],
+    });
+    expect(packets[0].incomplete).toBe(false);
+  });
+
+  it('labels a skipped classifier as skipped, not failed', () => {
+    const packets = packetize(evidence);
+    const routing = decideRoutes('active', policy.lanes, packets, [], [], {
+      classifierSkipped: true,
+    });
+    expect(routing.classifierFailed).toBe(false);
+    expect(
+      routing.routes.every(
+        (route) => route.run && route.reason === 'classifier-skipped',
+      ),
     ).toBe(true);
   });
 

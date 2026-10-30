@@ -16,6 +16,7 @@ import { type ReviewTaskBudgets, validateReviewTaskBudgets } from './config.js';
 import {
   buildClassifyTask,
   decideRoutes,
+  isBinaryPatch,
   type Lane,
   mechanicalConcerns,
   type Mode,
@@ -182,11 +183,7 @@ export async function prepareAdaptiveReview(
   );
   gaps.push(
     ...evidence.files
-      .filter(
-        (file) =>
-          file.patch.includes('GIT binary patch') ||
-          file.patch.includes('Binary files '),
-      )
+      .filter((file) => isBinaryPatch(file.patch))
       .map((file) => `Binary contents not reviewed: ${file.path}`),
   );
   const classifierTasks = guardWorkers(tasks, 'classifier', options.workers);
@@ -233,6 +230,7 @@ export async function prepareAdaptiveReview(
     packets,
     answers,
     mechanicalConcerns(changes, evidence.files, snapshot.policy.checks),
+    { classifierSkipped: packetBudgetReached },
   );
   let docsTaskPossible = false;
   if (routing.routes.some((route) => route.lane === 'docs' && route.run)) {

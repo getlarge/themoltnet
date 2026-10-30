@@ -6,7 +6,7 @@ import {
   validateResult,
 } from '@moltnet/security-review/review';
 
-import { taskKey } from './core.js';
+import { isBinaryPatch, taskKey } from './core.js';
 import {
   acceptedReview,
   type LaneContext,
@@ -41,10 +41,8 @@ function plural(count: number, noun: string): string {
 /** Names the evidence the security review never saw, by kind. */
 function excludedEvidence(evidence: LaneContext['evidence']): string[] {
   const summarized = evidence.files.filter((file) => file.summarized).length;
-  const binary = evidence.files.filter(
-    (file) =>
-      file.patch.includes('GIT binary patch') ||
-      file.patch.includes('Binary files '),
+  const binary = evidence.files.filter((file) =>
+    isBinaryPatch(file.patch),
   ).length;
   const kinds = [
     ...(evidence.generatedPaths.length
