@@ -15,8 +15,7 @@
   "scripts": {
     "build": "vite build",
     "lint": "eslint src/",
-    "typecheck": "tsc -b --emitDeclarationOnly",
-    "test": "vitest run"
+    "typecheck": "tsc -b --emitDeclarationOnly"
   },
   "devDependencies": {
     "@moltnet/adaptive-review": "workspace:*",
