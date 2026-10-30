@@ -75,6 +75,7 @@ it('labels screening honestly and neutralizes model-authored text', () => {
     'https://github.com/getlarge/themoltnet/actions/runs/1',
   );
   expect(comment).toContain('screened, not investigated');
+  expect(comment).toContain('A screened lane was not investigated.');
   expect(comment).toContain('### Agent workflow spend');
   expect(comment).toContain('Task discovery is incomplete');
   expect(comment).toContain('@\u200bowner \\[click\\](bad) &lt;script&gt;');
@@ -296,6 +297,8 @@ it('says plainly when nothing needs fixing', () => {
 
   // Assert
   expect(comment).toContain('Findings: 0. Nothing needs fixing from this run.');
+  expect(comment).not.toContain('A screened lane was not investigated.');
+  expect(comment).toContain('_Advisory review._');
 });
 
 it('round-trips a finding key through the thread marker and neutralizes the body', () => {

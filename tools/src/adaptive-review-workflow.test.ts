@@ -166,11 +166,13 @@ describe('adaptive review workflow trust gates', () => {
   });
 
   it('protects only the callers that run from the pull request revision', () => {
-    // The reusable workflow is pinned to main and the runtime to the base
-    // commit, so review code changed by the PR never executes.
+    // The reusable workflow is pinned to a released bundle commit and the
+    // runtime defaults to that commit, so review code changed by the PR
+    // never executes.
     expect(caller.jobs.review.uses).toMatch(
-      /adaptive-review-reusable\.yml@main$/,
+      /adaptive-review-reusable\.yml@[0-9a-f]{40}$/,
     );
+    expect(caller.jobs.review.with['runtime-ref']).toBeUndefined();
     expect(
       caller.jobs.review.with['protected-paths'].trim().split('\n'),
     ).toEqual([
@@ -503,9 +505,6 @@ describe('adaptive review workflow trust gates', () => {
     expect(caller.jobs.review.with['classifier-profile']).toBe(
       'legreffier-issue-classifier-v2',
     );
-    expect(caller.jobs.review.with['runtime-ref']).toBe(
-      '${{ github.event.pull_request.base.sha }}',
-    );
   });
 
   it('installs and builds the standalone action without an Nx Cloud lifecycle', () => {
@@ -695,5 +694,20 @@ describe('adaptive review inline step scripts', () => {
     } finally {
       rmSync(temp, { recursive: true, force: true });
     }
+  });
+});
+
+it('resolves the reviewer identity read-only before review and mints publication access later', () => {
+  const steps = job('review').steps;
+  const identity = steps.findIndex((step) => step.id === 'reviewer-app');
+  const review = steps.findIndex((step) => step.id === 'review');
+  const publishToken = steps.findIndex((step) => step.id === 'app-token');
+  expect(identity).toBeGreaterThan(-1);
+  expect(identity).toBeLessThan(review);
+  expect(publishToken).toBeGreaterThan(review);
+  expect(steps[identity].with?.['permission-pull-requests']).toBe('read');
+  expect(steps[review].env).toMatchObject({
+    GH_TOKEN: '${{ github.token }}',
+    ADAPTIVE_APP_LOGIN: '${{ steps.reviewer-app.outputs.app-slug }}[bot]',
   });
 });

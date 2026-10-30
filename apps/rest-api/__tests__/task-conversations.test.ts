@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { Readable } from 'node:stream';
 
+import type { RuntimeStoreRepository } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -33,6 +34,38 @@ describe('task conversation routes', () => {
       async (ids: string[]) => new Map(ids.map((id) => [id, true])),
     );
     const repo = mocks.runtimeSessionRepository.durable;
+    type Row = NonNullable<
+      Awaited<ReturnType<RuntimeStoreRepository['conversationRecord']>>
+    >;
+    const projected: Row[] = [];
+    let projectedHead = 0;
+    repo.conversationHead.mockImplementation(async () => projectedHead);
+    repo.saveConversationRecords.mockImplementation(
+      async (
+        storeId: string,
+        seq: number,
+        rows: Omit<Row, 'storeId' | 'seq'>[],
+      ) => {
+        projected.push(...rows.map((row) => ({ ...row, storeId, seq })));
+        projectedHead = seq;
+      },
+    );
+    repo.conversationRecord.mockImplementation(
+      async (_store, type, id, seq) =>
+        projected
+          .filter((r) => r.type === type && r.id === id && r.seq <= seq)
+          .sort((a, b) => b.seq - a.seq)[0],
+    );
+    repo.conversationDocument.mockImplementation(
+      async (_store, address, seq) =>
+        projected
+          .filter((r) => r.address === address && r.seq <= seq)
+          .sort((a, b) => b.seq - a.seq)[0],
+    );
+    repo.conversationList.mockImplementation(async (_store, seq) =>
+      projected.filter((r) => r.type === 'conversation' && r.seq <= seq),
+    );
+    repo.lock.mockImplementation(async () => repo.get(teamId, storeId));
     repo.findAttempt.mockResolvedValue({
       storeId,
       teamId,

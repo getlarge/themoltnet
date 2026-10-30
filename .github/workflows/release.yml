@@ -172,7 +172,6 @@ jobs:
           git add -- libs/sandbox-gondolin/src/snapshot.ts \
             .github/workflows/issue-triage.yml \
             .github/workflows/legreffier-security-review.yml \
-            .github/workflows/multi-lens-review.yml \
             .github/workflows/adaptive-review-reusable.yml
       - name: Commit consumer pins to release PR
         if: steps.release.outputs.prs_created == 'true'

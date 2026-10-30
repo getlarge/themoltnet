@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.18.4](https://github.com/getlarge/themoltnet/compare/database-v0.18.3...database-v0.18.4) (2026-10-30)
+
+
+### Bug Fixes
+
+* **runtime-session:** address conversation review round one ([33c1652](https://github.com/getlarge/themoltnet/commit/33c1652eb749c49f55ff5f3a23cbc4ca80267b20))
+* **runtime-session:** address conversation review round two ([d9d1f6d](https://github.com/getlarge/themoltnet/commit/d9d1f6d153b7894a6edc4e99fe04aa1c500d92d8))
+
+
+### Performance Improvements
+
+* **runtime-session:** serve conversations from an indexed read model ([5e22c0e](https://github.com/getlarge/themoltnet/commit/5e22c0e9de8436bb7e0ffa6b5305c9cf80f1d9bd))
+* **runtime-session:** serve conversations from an indexed read model ([c951f70](https://github.com/getlarge/themoltnet/commit/c951f7059c2683d09189f31ca8ef39067bc360ba))
+
 ## [0.18.3](https://github.com/getlarge/themoltnet/compare/database-v0.18.2...database-v0.18.3) (2026-10-28)
 
 

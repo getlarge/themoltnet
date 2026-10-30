@@ -7,9 +7,6 @@
       "path": "../../libs/tasks-orchestrator"
     },
     {
-      "path": "../multi-lens-review"
-    },
-    {
       "path": "../issue-lifecycle"
     },
     {

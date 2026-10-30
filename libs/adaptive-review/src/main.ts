@@ -14,7 +14,8 @@ import {
   reportStageFailure,
   runAdaptiveStage,
 } from './cli.js';
-import { env } from './config.js';
+import { env, required } from './config.js';
+import { createGraphQL, fetchReviewThreads } from './threads.js';
 import {
   type WorkerJob,
   type WorkerLiveness,
@@ -73,6 +74,15 @@ const deps: CliDeps = {
   env: env(),
   cwd: process.cwd(),
   github: {
+    reviewThreads: (repo, pr) =>
+      fetchReviewThreads(
+        createGraphQL(
+          required('GH_TOKEN', env()),
+          env().GITHUB_GRAPHQL_URL || undefined,
+        ),
+        repo,
+        pr,
+      ),
     async revisions(repo, pr) {
       const current = JSON.parse(
         await gh([

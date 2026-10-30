@@ -703,6 +703,13 @@ export function createMockServices(): MockServices {
     },
     runtimeSessionRepository: {
       durable: {
+        conversationHead: vi.fn().mockResolvedValue(0),
+        conversationRecord: vi.fn(),
+        conversationDocument: vi.fn(),
+        conversationList: vi.fn().mockResolvedValue([]),
+        conversationEntries: vi.fn().mockResolvedValue([]),
+        saveConversationRecords: vi.fn(),
+        fork: vi.fn(),
         lockAuthority: vi.fn(),
         findAttempt: vi.fn(),
         listCommitTaskIds: vi.fn().mockResolvedValue([]),

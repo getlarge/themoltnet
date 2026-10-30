@@ -5,7 +5,6 @@
   "type": "module",
   "dependencies": {
     "@themoltnet/issue-lifecycle": "workspace:*",
-    "@themoltnet/multi-lens-review": "workspace:*",
     "@themoltnet/tasks-orchestrator": "workspace:*",
     "pg": "catalog:"
   },
@@ -24,7 +23,6 @@
     ],
     "implicitDependencies": [
       "@themoltnet/issue-lifecycle",
-      "@themoltnet/multi-lens-review",
       "@themoltnet/tasks-orchestrator"
     ],
     "targets": {

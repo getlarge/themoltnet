@@ -769,3 +769,113 @@ describe('publishAdaptiveReport inline threads', () => {
     );
   });
 });
+
+describe('continuing focused findings', () => {
+  it('reuses an open thread at another anchor while publishing an unrelated concern', async () => {
+    const recorded = calls();
+    await publishAdaptiveReport(
+      {
+        ...report(),
+        results: [
+          concern('tests', [
+            { ...TESTS_FINDING, line: 9, existingFindingKey: TESTS_KEY },
+            {
+              ...TESTS_FINDING,
+              line: 10,
+              concern: 'A different changed branch needs coverage.',
+            },
+          ]),
+        ],
+      },
+      {
+        ...OPTIONS,
+        request: stableRequest(recorded),
+        graphql: threadsGraphQL([
+          {
+            login: OPTIONS.appLogin,
+            body: `${ADAPTIVE_FINDING_MARKER}${TESTS_KEY} -->`,
+          },
+        ]),
+      },
+    );
+    expect(recorded.reviews).toHaveLength(1);
+    expect(reviewComments(recorded.reviews[0])).toHaveLength(1);
+    expect(reviewComments(recorded.reviews[0])[0].body).toContain(
+      'A different changed branch',
+    );
+    expect(recorded.summaries[0]).toContain('1 already open');
+    expect(recorded.summaries[0]).not.toContain(TESTS_FINDING.concern);
+  });
+
+  it('keeps a concern visible in the summary if its thread resolves during review', async () => {
+    const recorded = calls();
+    await publishAdaptiveReport(
+      {
+        ...report(),
+        results: [
+          concern('tests', [
+            { ...TESTS_FINDING, line: 9, existingFindingKey: TESTS_KEY },
+          ]),
+        ],
+      },
+      {
+        ...OPTIONS,
+        request: stableRequest(recorded),
+        graphql: threadsGraphQL([
+          {
+            login: OPTIONS.appLogin,
+            isResolved: true,
+            body: `${ADAPTIVE_FINDING_MARKER}${TESTS_KEY} -->`,
+          },
+        ]),
+      },
+    );
+    expect(recorded.reviews).toEqual([]);
+    expect(recorded.summaries[0]).toContain(TESTS_FINDING.concern);
+    expect(recorded.summaries[0]).toContain('src/a.ts:9');
+    expect(recorded.summaries[0]).toContain(
+      'the earlier thread for this concern was resolved',
+    );
+  });
+
+  it.each(['human', 'wrong-path', 'wrong-lane', 'missing'])(
+    'rejects %s references before publication',
+    async (kind) => {
+      const recorded = calls();
+      const finding = {
+        ...TESTS_FINDING,
+        line: 9,
+        existingFindingKey: TESTS_KEY,
+        ...(kind === 'wrong-path' ? { path: 'other.ts' } : {}),
+      };
+      await expect(
+        publishAdaptiveReport(
+          {
+            ...report(),
+            results: [
+              concern(kind === 'wrong-lane' ? 'conventions' : 'tests', [
+                finding,
+              ]),
+            ],
+          },
+          {
+            ...OPTIONS,
+            request: stableRequest(recorded),
+            graphql: threadsGraphQL(
+              kind === 'missing'
+                ? []
+                : [
+                    {
+                      login: kind === 'human' ? 'human' : OPTIONS.appLogin,
+                      body: `${ADAPTIVE_FINDING_MARKER}${TESTS_KEY} -->`,
+                    },
+                  ],
+            ),
+          },
+        ),
+      ).rejects.toThrow('unavailable prior review thread');
+      expect(recorded.reviews).toEqual([]);
+      expect(recorded.summaries).toEqual([]);
+    },
+  );
+});

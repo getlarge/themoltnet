@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.43.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.43.0...pi-extension-v0.43.1) (2026-10-30)
+
+
+### Bug Fixes
+
+* **agent-daemon:** remove repo-local Pi config fallback ([7933f48](https://github.com/getlarge/themoltnet/commit/7933f481ea95da82aca2d71fa2a1248438cafd79))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-runtime bumped to 0.28.0
+
 ## [0.43.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.42.4...pi-extension-v0.43.0) (2026-10-28)
 
 

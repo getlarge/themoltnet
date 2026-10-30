@@ -141,6 +141,7 @@ function harness(
         line: number;
         concern: string;
         action: string;
+        existingFindingKey?: string;
       }>;
       unclear: string[];
     };
@@ -514,6 +515,56 @@ describe('adaptive review orchestration', () => {
     });
   });
 
+  it('passes previous findings into the focused task and retains their validated reference', async () => {
+    const key = `tests:new:2:${encodeURIComponent(sourcePath)}`;
+    const { tasks, createTask } = harness({
+      selected: 'tests',
+      focusedResult: {
+        summary: 'Continuing concern',
+        unclear: [],
+        findings: [
+          {
+            path: sourcePath,
+            side: 'new',
+            line: 1,
+            concern: 'The new route is untested.',
+            action: 'Add a route test.',
+            existingFindingKey: key,
+          },
+        ],
+      },
+    });
+    const report = await runAdaptiveReview({
+      ...reviewOptions(tasks),
+      previousFindings: [
+        {
+          key,
+          lane: 'tests',
+          path: sourcePath,
+          line: 2,
+          side: 'new',
+          threadId: 'prior',
+          url: 'https://github.com/example/repo/pull/1#discussion_r1',
+          head: 'd'.repeat(40),
+          isResolved: false,
+          isOutdated: false,
+          body: 'Earlier route coverage concern',
+          replies: [],
+        },
+      ],
+    });
+    expect(
+      createTask.mock.calls.some(
+        ([body]) =>
+          typeof body.input.brief === 'string' &&
+          body.input.brief.includes('Earlier route coverage concern'),
+      ),
+    ).toBe(true);
+    expect(
+      report.results.find((result) => result.lane === 'tests')?.findings[0],
+    ).toMatchObject({ line: 1, existingFindingKey: key });
+  });
+
   it('preserves the old side for a finding on a deleted line', async () => {
     const { tasks } = harness({
       selected: 'tests',
@@ -864,8 +915,12 @@ describe('adaptive review orchestration', () => {
     );
     expect(preparation.classifierTaskIds).toEqual([]);
     expect(createTask).not.toHaveBeenCalled();
-    expect(preparation.routing.classifierFailed).toBe(true);
-    expect(preparation.routing.routes.every((route) => route.run)).toBe(true);
+    expect(preparation.routing.classifierFailed).toBe(false);
+    expect(
+      preparation.routing.routes.every(
+        (route) => route.run && route.reason === 'classifier-skipped',
+      ),
+    ).toBe(true);
     expect(preparation.gaps).toContain(
       'Classifier packet budget exceeded: 5 > 4; all lanes routed for review.',
     );

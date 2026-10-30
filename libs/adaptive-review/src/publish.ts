@@ -23,6 +23,7 @@ import {
   fetchReviewThreads,
   type GraphQL,
   isReviewerThread,
+  type ReviewThread,
 } from './threads.js';
 import type { AdaptiveReport } from './workflow.js';
 
@@ -88,7 +89,10 @@ function assertReport(value: unknown): asserts value is AdaptiveReport {
           (finding) =>
             finding &&
             typeof finding.path === 'string' &&
-            typeof finding.concern === 'string',
+            typeof finding.concern === 'string' &&
+            (finding.existingFindingKey === undefined ||
+              (typeof finding.existingFindingKey === 'string' &&
+                finding.existingFindingKey.length > 0)),
         ),
     )
   )
@@ -130,7 +134,11 @@ async function threadState(
   graphql: GraphQL,
   report: AdaptiveReport,
   appLogin: string,
-): Promise<{ open: Set<string>; resolved: Set<string> }> {
+): Promise<{
+  open: Set<string>;
+  resolved: Set<string>;
+  previous: ReviewThread[];
+}> {
   const threads = await fetchReviewThreads(graphql, report.repo, report.pr);
   const open = new Set<string>();
   const resolved = new Set<string>();
@@ -142,7 +150,11 @@ async function threadState(
     else open.add(key);
   }
   for (const key of open) resolved.delete(key);
-  return { open, resolved };
+  return {
+    open,
+    resolved,
+    previous: threads.filter((thread) => isReviewerThread(thread, appLogin)),
+  };
 }
 
 function isUnprocessable(error: unknown): boolean {
@@ -162,8 +174,9 @@ interface PostedThreads {
 
 /**
  * Opens one review thread per finding that has no thread yet, anchored to
- * the reviewed head. Identity is the finding's location, so an open thread
- * covers any finding at the same lane and line. A resolved thread is not
+ * the reviewed head. Identity defaults to location; focused findings may
+ * reference an earlier owned thread after validating its lane and path.
+ * A resolved thread is not
  * reopened: the summary lists the finding instead, so a new concern at a
  * line the author already settled stays visible without repeating a thread.
  * GitHub rejects the whole review when one anchor is outside the diff; the
@@ -176,7 +189,24 @@ async function publishFindingThreads(
   { appLogin, runUrl }: { appLogin: string; runUrl: string },
   candidates: InlineFinding[],
 ): Promise<PostedThreads> {
-  const { open, resolved } = await threadState(graphql, report, appLogin);
+  const { open, resolved, previous } = await threadState(
+    graphql,
+    report,
+    appLogin,
+  );
+  for (const finding of candidates) {
+    const reference = finding.existingFindingKey;
+    if (
+      reference &&
+      !previous.some(
+        (item) =>
+          postedFindingKey(item.comments.nodes[0]?.body ?? '') === reference &&
+          item.path === finding.path &&
+          reference.startsWith(`${finding.lane}:`),
+      )
+    )
+      throw new Error('finding references an unavailable prior review thread');
+  }
   const fresh = candidates.filter((finding) => {
     const key = findingKey(finding);
     return !open.has(key) && !resolved.has(key);

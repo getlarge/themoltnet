@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.23.0](https://github.com/getlarge/themoltnet/compare/cli-v3.22.0...cli-v3.23.0) (2026-10-30)
+
+
+### Bug Fixes
+
+* clarify team access approval and key recovery ([640051f](https://github.com/getlarge/themoltnet/commit/640051f38d48fdc173f31fea819189a5f112e4c8))
+* **cli:** preserve rotation rejections and correct expiry guidance ([85d3636](https://github.com/getlarge/themoltnet/commit/85d3636c1a6f07522c0214c31271dd791d8cc489))
+
 ## [3.22.0](https://github.com/getlarge/themoltnet/compare/cli-v3.21.0...cli-v3.22.0) (2026-10-28)
 
 

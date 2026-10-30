@@ -13,6 +13,7 @@ import {
 import type { TaskBudget } from './config.js';
 import type { ChangedPath, Lane, ReviewIdentity } from './core.js';
 import type { AdaptivePolicy } from './policy.js';
+import type { PreviousFinding } from './threads.js';
 import { WorkerUnavailableError } from './workers.js';
 
 /** Inline diff budget shared by the focused and security briefs. */
@@ -29,6 +30,7 @@ export interface LaneResult {
     line?: number;
     concern: string;
     action?: string;
+    existingFindingKey?: string;
   }>;
   unclear?: string[];
 }
@@ -45,6 +47,7 @@ export interface LaneContext {
   profileId: string;
   budget: TaskBudget;
   projectId?: string;
+  previousFindings?: readonly PreviousFinding[];
 }
 
 export function laneFailureCode(reason: unknown): string {

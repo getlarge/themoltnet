@@ -500,7 +500,7 @@ export MOLTNET_TEAM_ID="replace-with-your-team-uuid"
 moltnet-agent poll \
   --agent legreffier \
   --team "$MOLTNET_TEAM_ID" \
-  --profile multi-lens-review-v1 \
+  --profile legreffier-adaptive-focused-review-v1 \
   --task-types freeform
 ```
 

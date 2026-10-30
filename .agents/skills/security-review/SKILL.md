@@ -11,7 +11,7 @@ Review security risk introduced by the **pinned diff**. The changed lines define
 
 - Renovate proposes dependency updates and vulnerability remediation. GitHub Dependency Review checks changed dependencies against known advisories on non-draft PRs. Do not restate version age, available upgrades, or known CVEs as new findings. Review a dependency change only when the diff changes how it is used, adds a privileged install/build script, alters provenance or pinning, or changes a security boundary in a way those tools do not assess. Cite the concrete code path.
 - Automated code and secret scanning own pattern matches and known signatures. Do not repeat an existing alert. Investigate contextual failures such as authorization scope, state-transition bypasses, confused deputy behavior, trust-boundary mistakes, unsafe fallbacks, and reachable data-flow chains.
-- Complexity, docs, and general multi-lens reviews own their dimensions. A security finding must describe an abuse path or failure of a security invariant; missing tests, broad diffs, style, and routine operability feedback alone are outside scope.
+- The other adaptive review lanes own their dimensions. A security finding must describe an abuse path or failure of a security invariant; missing tests, broad diffs, style, and routine operability feedback alone are outside scope.
 
 ## Procedure
 
