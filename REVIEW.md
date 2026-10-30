@@ -65,6 +65,11 @@ Apply these checks when the change touches the corresponding behavior:
   using configuration honored by the package-manager versions under test. A
   matching registry version must not silently replace the artifact being tested.
   Source: [#2811](https://github.com/getlarge/themoltnet/pull/2811).
+- When adding tests, leave suffix and placement to `check:test-conventions`.
+  Check what it cannot see: a slow suite that touches a database, network or
+  container needs its `integration` or `e2e` kind marker so it stays out of the
+  unit target, and a helper copied into a second project's `__tests__/` should
+  be shared instead. Source: [#2880](https://github.com/getlarge/themoltnet/issues/2880).
 
 Use these past fixes to form hypotheses, not automatic findings. A missing test
 is actionable when it leaves a concrete changed behavior unverified. Distinguish
