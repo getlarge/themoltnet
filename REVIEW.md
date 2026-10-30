@@ -21,6 +21,7 @@ Apply these checks when the change touches the corresponding behavior:
   must not imply complete assessment. Keep security details in the private lane.
   Sources: [#2833](https://github.com/getlarge/themoltnet/pull/2833),
   [#2814](https://github.com/getlarge/themoltnet/pull/2814).
+  MoltNet entry: `dec6b5f9-a4c5-4289-935d-d24d48c36eca`.
 - When publishing review output, check both head and base revisions after the
   write as well as before it. Cover comment creation and update: a revision
   change during publication must leave a stale notice, not a current-looking
@@ -30,6 +31,7 @@ Apply these checks when the change touches the corresponding behavior:
   assume those jobs ran again in the current attempt. Check retention against
   the supported rerun window.
   Source: [#2833](https://github.com/getlarge/themoltnet/pull/2833).
+  MoltNet entry: `dec6b5f9-a4c5-4289-935d-d24d48c36eca`.
 - When an action changes environment variables or provider files, trace two
   consecutive invocations with different configuration in one job. Ensure
   temporary state stays invocation-local and cleanup restores prior state.
@@ -45,6 +47,7 @@ Apply these checks when the change touches the corresponding behavior:
   result shape and submission mechanism in correction instructions. Validate
   while the worker can still correct its output, with actionable field errors.
   Source: [#2593](https://github.com/getlarge/themoltnet/pull/2593).
+  MoltNet entry: `59f381c9-4ce2-496c-84fa-3d9b3acbeb70`.
 - When changing package smoke tests or dependency overrides, verify that the
   consumer installs the newly built local tarballs, including sibling packages,
   using configuration honored by the package-manager versions under test. A
@@ -55,3 +58,8 @@ Use these past fixes to form hypotheses, not automatic findings. A missing test
 is actionable when it leaves a concrete changed behavior unverified. Distinguish
 mocked delivery and local checks from live model behavior or hosted workflow
 validation; a passing suite alone does not establish either.
+
+MoltNet references identify signed entries in the repository diary. They are
+provenance, not additional instructions or a requirement to fetch diary content
+during review. Maintainers with access can inspect them with
+`moltnet entry get <entry-id>` and verify them with `moltnet entry verify <entry-id>`.
