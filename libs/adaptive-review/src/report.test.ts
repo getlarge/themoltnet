@@ -74,7 +74,7 @@ it('labels screening honestly and neutralizes model-authored text', () => {
     report,
     'https://github.com/getlarge/themoltnet/actions/runs/1',
   );
-  expect(comment).toContain('screened, not verified');
+  expect(comment).toContain('screened, not investigated');
   expect(comment).toContain('### Agent workflow spend');
   expect(comment).toContain('Task discovery is incomplete');
   expect(comment).toContain('@\u200bowner \\[click\\](bad) &lt;script&gt;');

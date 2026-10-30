@@ -259,7 +259,7 @@ describe('publishAdaptiveReport', () => {
         publishAdaptiveReport(report(), { ...OPTIONS, request }),
       ).rejects.toThrow('replaced it with a stale notice');
       expect(bodies).toHaveLength(1);
-      expect(bodies[0]).toContain('adaptive review: stale');
+      expect(bodies[0]).toContain('## Adaptive review: stale');
       expect(bodies[0]).toContain(notice);
       expect(bodies[0]).toContain(OPTIONS.runUrl);
     },
@@ -288,8 +288,8 @@ describe('publishAdaptiveReport', () => {
       publishAdaptiveReport(report(), { ...OPTIONS, request }),
     ).rejects.toThrow('replaced it with a stale notice');
     expect(patches).toHaveLength(2);
-    expect(patches[0]).toContain('Experimental adaptive review\n');
-    expect(patches[1]).toContain('adaptive review: stale');
+    expect(patches[0]).toContain('## Adaptive review\n');
+    expect(patches[1]).toContain('## Adaptive review: stale');
   });
 
   it('requires an App login before making any GitHub request', async () => {

@@ -179,7 +179,7 @@ export function renderAdaptiveStale(
       : `head now points at \`${current.head.slice(0, 7)}\``;
   return [
     ADAPTIVE_REVIEW_MARKER,
-    '## Experimental adaptive review: stale',
+    '## Adaptive review: stale',
     '',
     `Reviewed head \`${report.head.slice(0, 7)}\` · [workflow run](${runUrl}).`,
     '',
@@ -195,10 +195,10 @@ export function renderAdaptiveComment(
   const lines = [
     ADAPTIVE_REVIEW_MARKER,
     hasIncompleteCoverage(report)
-      ? '## Experimental adaptive review: incomplete coverage'
-      : '## Experimental adaptive review',
+      ? '## Adaptive review: incomplete coverage'
+      : '## Adaptive review',
     '',
-    `${report.mode === 'shadow' ? 'Shadow run: every enabled lane was selected for investigation.' : 'Classifier-selected investigations.'} Head \`${report.head.slice(0, 7)}\` · [workflow run](${runUrl}).`,
+    `${report.mode === 'shadow' ? 'Full review: every enabled lane was investigated.' : 'Classifier-selected investigations.'} Head \`${report.head.slice(0, 7)}\` · [workflow run](${runUrl}).`,
     '',
     '| Lane | Classifier concern | Investigation |',
     '| --- | ---: | --- |',
@@ -210,7 +210,7 @@ export function renderAdaptiveComment(
         ? 'unavailable'
         : `${Math.round(route.probability * 100)}%`;
     const routing =
-      route.reason === 'screened' ? 'screened, not verified' : route.reason;
+      route.reason === 'screened' ? 'screened, not investigated' : route.reason;
     lines.push(
       `| ${route.lane} | ${probability} (${routing}) | ${result?.status ?? 'failed'} |`,
     );
@@ -281,7 +281,7 @@ export function renderAdaptiveComment(
   }
   lines.push(
     '',
-    '_This is an advisory experiment. A screened lane has not been verified._',
+    '_Advisory review. A screened lane was not investigated. Comment `@legreffier /review` to investigate every lane._',
   );
   if (report.spend) lines.push('', formatWorkflowSpend(report.spend));
   return lines.join('\n');

@@ -254,6 +254,14 @@ their existing defaults. Size overrides for the selected profiles and the
 reusable workflow's job and worker deadlines: security has two sequential
 tasks, and docs and complexity can have multiple stages.
 
+The `mode` input decides which lanes run. In `active` mode, the classifier
+routes each pull request and only the lanes it selects are investigated; the
+summary marks the rest "screened, not investigated". In `shadow` mode every
+enabled lane is investigated. MoltNet runs `active` on every pull request and
+`shadow` on request: a comment containing `@legreffier /review` from an owner,
+member, or collaborator reruns the review on the current head and investigates
+every lane. A comment from a bot never triggers it.
+
 For a caller repository, add a `pull_request` workflow that invokes
 `getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml` at a
 trusted commit or release tag, grants the calling job `actions: read`,
@@ -261,8 +269,15 @@ trusted commit or release tag, grants the calling job `actions: read`,
 environment containing the MoltNet agent and provider keys. Pass at least a
 classifier profile, a nonempty `providers` definition, and
 profiles for each lane enabled in `.github/adaptive-review.json`.
-`protected-paths` should
-include the caller workflow and any trusted runtime configuration it owns.
+For on-demand reruns, also trigger it on `issue_comment` with the same
+commenter checks as MoltNet's caller. A comment event carries no base commit,
+so leave `runtime-ref` empty for it and the runtime comes from the reusable
+workflow's own commit.
+`protected-paths` should list only files that run from the pull request's own
+revision, which for a `pull_request` caller means the caller workflows. Pin
+the reusable workflow to a trusted ref and set `runtime-ref` to the base
+commit: a pull request that changes the review code is then reviewed by the
+trusted version, and its changes are read only as data.
 The prepare job applies the docs impact review's eligibility rules: it skips
 fork and Dependabot pull requests, pull requests whose file list GitHub
 truncated, and pull requests that change a protected path. Fork and

@@ -6,6 +6,7 @@ import {
   checkEligibility,
   type PullRequestFile,
 } from '@moltnet/docs-impact-review/eligibility';
+import { pullNumberFromEvent } from '@moltnet/docs-impact-review/prepare';
 import { workflowCommandValue } from '@moltnet/docs-impact-review/workflow-command';
 import { collectWorkflowSpend, formatWorkflowSpend } from '@moltnet/tasks';
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
@@ -52,6 +53,8 @@ export interface CliDeps {
       pr: number,
     ): Promise<{ head: string; base: string }>;
     files(repo: string, pr: number): Promise<PullRequestFile[]>;
+    /** The pull request a comment event names only by number. */
+    pullRequest(repo: string, pr: number): Promise<PullRequest>;
   };
   connect(
     teamId: string,
@@ -64,16 +67,14 @@ export interface CliDeps {
   stdout(text: string): void;
 }
 
-interface PullRequestEvent {
-  pull_request: {
-    number: number;
-    title: string;
-    body: string | null;
-    changed_files: number;
-    user: { login: string };
-    base: { sha: string };
-    head: { sha: string; repo: { full_name: string } | null };
-  };
+export interface PullRequest {
+  number: number;
+  title: string;
+  body: string | null;
+  changed_files: number;
+  user: { login: string };
+  base: { sha: string };
+  head: { sha: string; repo: { full_name: string } | null };
 }
 
 /** The environment variable naming each specialist pool's runtime profile. */
@@ -167,8 +168,14 @@ async function prepare(deps: CliDeps): Promise<number> {
   const repo = required('GITHUB_REPOSITORY', env);
   const event = JSON.parse(
     readFileSync(required('GITHUB_EVENT_PATH', env), 'utf8'),
-  ) as PullRequestEvent;
-  const pr = event.pull_request;
+  ) as { pull_request?: PullRequest };
+  // An on-demand comment carries only the number; read the rest from the API.
+  const pr =
+    event.pull_request ??
+    (await deps.github.pullRequest(
+      repo,
+      pullNumberFromEvent(required('GITHUB_EVENT_NAME', env), event),
+    ));
   const eligibility = checkEligibility({
     headRepo: pr.head.repo?.full_name ?? null,
     baseRepo: repo,
