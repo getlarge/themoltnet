@@ -50,9 +50,11 @@ Apply these checks when the change touches the corresponding behavior:
   MoltNet entry: `59f381c9-4ce2-496c-84fa-3d9b3acbeb70`.
 - When changing Nx targets, inspect the resolved `nx show project <name> --json`
   configuration and the CI task graph, not just the edited manifest. Follow the
-  repository convention: non-atomized `test-ci` delegates to `test`, including
-  its additional test dependencies; atomized projects retain their per-file
-  targets. Check that existing suites remain reachable and cache inputs include
+  repository convention: non-atomized `test-ci` delegates to `test`; atomized
+  projects retain their per-file targets. Add ordinary tests to the existing
+  project runner rather than introducing feature-specific targets or a second
+  test runner without a concrete requirement. Check that existing suites remain
+  reachable and cache inputs include
   consumed helper files and toolchain configuration. A passing new test target
   alone does not establish correct aggregate wiring.
   Sources: [CI convention](.github/workflows/ci.yml),
