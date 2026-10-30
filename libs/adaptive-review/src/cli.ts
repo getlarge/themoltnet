@@ -18,6 +18,7 @@ import {
 import type { Lane } from './core.js';
 import { hasIncompleteCoverage } from './report.js';
 import { loadAdaptivePolicy } from './snapshot.js';
+import { previousFindings, type ReviewThread } from './threads.js';
 import {
   type SpecialistPool,
   type WorkerLiveness,
@@ -47,6 +48,7 @@ export interface CliDeps {
   env: NodeJS.ProcessEnv;
   cwd: string;
   github: {
+    reviewThreads(repo: string, pr: number): Promise<ReviewThread[]>;
     revisions(
       repo: string,
       pr: number,
@@ -386,5 +388,11 @@ export async function runAdaptiveStage(
   if (!snapshot)
     throw new Error('adaptive review policy is absent on the base');
   const options = await runOptions(deps, prepared, snapshot.policy.lanes);
+  if (stage === 'review') {
+    options.previousFindings = previousFindings(
+      await deps.github.reviewThreads(prepared.repo, prepared.pr),
+      required('ADAPTIVE_APP_LOGIN', env),
+    );
+  }
   return stage === 'route' ? route(deps, options) : review(deps, options);
 }

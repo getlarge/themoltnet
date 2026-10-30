@@ -388,11 +388,22 @@ jobs:
           artifact-ids: ${{ needs.route.outputs.route-artifact-id }}
           merge-multiple: true
           path: ${{ github.workspace }}
+      # Resolve the publisher identity before reading its prior discussions.
+      # Mint the write token later so long reviews cannot exhaust its lifetime.
+      - name: Resolve reviewer App identity
+        id: reviewer-app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ inputs.app-id || vars.MOLTNET_GITHUB_APP_ID }}
+          private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
+          repositories: ${{ github.event.repository.name }}
+          permission-pull-requests: read
       - name: Run selected review lanes
         id: review
         uses: ./.adaptive-review-runtime/packages/adaptive-review-action
         env:
           GH_TOKEN: ${{ github.token }}
+          ADAPTIVE_APP_LOGIN: ${{ steps.reviewer-app.outputs.app-slug }}[bot]
         with:
           step: review
       - name: Detect review report

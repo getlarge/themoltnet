@@ -83,6 +83,7 @@ function deps(overrides: Partial<CliDeps> = {}) {
       ADAPTIVE_ROUTE: file('route.json'),
       ADAPTIVE_REPORT: file('report.json'),
       ADAPTIVE_MODE: 'shadow',
+      ADAPTIVE_APP_LOGIN: 'legreffier[bot]',
       ADAPTIVE_RUNTIME_SHA: RUNTIME,
       ADAPTIVE_CLASSIFIER_PROFILE: 'classifier-v2',
       ADAPTIVE_DOCS_PROFILE: 'docs-v1',
@@ -93,6 +94,7 @@ function deps(overrides: Partial<CliDeps> = {}) {
     },
     cwd: dir,
     github: {
+      reviewThreads: vi.fn().mockResolvedValue([]),
       revisions: vi.fn(() => Promise.resolve({ head: HEAD, base: BASE })),
       files,
       pullRequest: vi.fn(() =>
@@ -343,6 +345,7 @@ describe('plan stage', () => {
     async (_moved, current) => {
       const { deps: cli } = deps({
         github: {
+          reviewThreads: vi.fn().mockResolvedValue([]),
           revisions: () => Promise.resolve(current),
           files: () => Promise.resolve([]),
           pullRequest: () => Promise.reject(new Error('unused')),
@@ -409,7 +412,38 @@ describe('route to review handoff', () => {
     expect(outputs()['has-specialists']).toBe('true');
 
     const { deps: review } = deps();
+    const priorThread = {
+      id: 'earlier-thread',
+      path: 'src/a.ts',
+      isResolved: false,
+      isOutdated: false,
+      resolvedBy: null,
+      comments: {
+        nodes: [
+          {
+            author: { login: 'legreffier' },
+            body: '<!-- moltnet:adaptive-finding tests:new:1:src%2Fa.ts --> Earlier concern',
+            url: 'https://github.com/example/repo/pull/1#discussion_r1',
+            originalCommit: { oid: BASE },
+          },
+        ],
+      },
+    };
+    const readThreads = vi.fn().mockResolvedValue([priorThread]);
+    review.github.reviewThreads = readThreads;
     await expect(runAdaptiveStage('review', review)).resolves.toBe(1);
+    expect(readThreads).toHaveBeenCalledWith(REPO, prepared.pr);
+    expect(mocks.runRoutedAdaptiveReview).toHaveBeenCalledWith(
+      expect.objectContaining({
+        previousFindings: [
+          expect.objectContaining({
+            threadId: 'earlier-thread',
+            body: priorThread.comments.nodes[0].body,
+          }),
+        ],
+      }),
+      preparation,
+    );
 
     expect(mocks.runRoutedAdaptiveReview).toHaveBeenCalledWith(
       expect.objectContaining(options),

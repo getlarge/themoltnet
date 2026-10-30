@@ -697,3 +697,18 @@ describe('adaptive review inline step scripts', () => {
     }
   });
 });
+
+it('resolves the reviewer identity read-only before review and mints publication access later', () => {
+  const steps = job('review').steps;
+  const identity = steps.findIndex((step) => step.id === 'reviewer-app');
+  const review = steps.findIndex((step) => step.id === 'review');
+  const publishToken = steps.findIndex((step) => step.id === 'app-token');
+  expect(identity).toBeGreaterThan(-1);
+  expect(identity).toBeLessThan(review);
+  expect(publishToken).toBeGreaterThan(review);
+  expect(steps[identity].with?.['permission-pull-requests']).toBe('read');
+  expect(steps[review].env).toMatchObject({
+    GH_TOKEN: '${{ github.token }}',
+    ADAPTIVE_APP_LOGIN: '${{ steps.reviewer-app.outputs.app-slug }}[bot]',
+  });
+});

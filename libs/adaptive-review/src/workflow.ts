@@ -39,6 +39,7 @@ import {
 } from './lane.js';
 import { runSecurityLane } from './security-lane.js';
 import { changedPaths, loadAdaptivePolicy } from './snapshot.js';
+import type { PreviousFinding } from './threads.js';
 import {
   guardWorkers,
   type SpecialistPool,
@@ -100,6 +101,7 @@ export interface RunOptions {
   taskBudgets: ReviewTaskBudgets;
   runtimeSha: string;
   projectId?: string;
+  previousFindings?: readonly PreviousFinding[];
   /** Stops waiting on tasks once the workers that could claim them stopped. */
   workers?: WorkerLiveness;
 }
@@ -360,6 +362,7 @@ export async function runRoutedAdaptiveReview(
         profileId,
         budget: options.taskBudgets[route.lane],
         projectId: options.projectId,
+        previousFindings: options.previousFindings,
       });
     }),
   );
