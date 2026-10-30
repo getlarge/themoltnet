@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -106,6 +107,7 @@ const evidence: ReviewEvidence = {
   generatedPaths: [],
 };
 let policyOverride: string | undefined;
+let guidanceEnabled = false;
 const gitCalls: string[][] = [];
 
 function answers(selected?: string): ClassifyOutput['answers'] {
@@ -263,13 +265,22 @@ async function review(tasks: TaskClient) {
 describe('adaptive review orchestration', () => {
   beforeEach(() => {
     policyOverride = undefined;
+    guidanceEnabled = false;
     gitCalls.length = 0;
     mocks.createGit.mockImplementation(() =>
       vi.fn((args: string[]) => {
         gitCalls.push(args);
+        if (args[0] === 'ls-tree' && args.includes('-r'))
+          return guidanceEnabled
+            ? `100644 blob ${createHash('sha1').update('blob 37\0Require route compatibility evidence.').digest('hex')} 37\tREVIEW.md\0`
+            : '';
         if (args[0] === 'ls-tree') return String(args.at(-1));
+        if (args[0] === 'cat-file')
+          return 'Require route compatibility evidence.';
         if (args[0] === 'show') {
           const path = args[1].slice(args[1].indexOf(':') + 1);
+          if (path === 'REVIEW.md')
+            return 'Require route compatibility evidence.';
           if (path === '.github/adaptive-review.json' && policyOverride)
             return policyOverride;
           return readFileSync(resolve(cwd, path), 'utf8');
@@ -393,6 +404,71 @@ describe('adaptive review orchestration', () => {
       expect(call.mock.calls[0][1]).toMatchObject({
         taskBudget: budgets[lane],
       });
+    },
+  );
+
+  it.each(['tests', 'conventions', 'blast-radius', 'security'] as const)(
+    'delivers base guidance to the classifier and %s tasks',
+    async (lane) => {
+      guidanceEnabled = true;
+      const { tasks, createTask } = harness({
+        selected: lane,
+        ...(lane === 'security'
+          ? { securityFindingStatus: 'refuted' as const }
+          : {}),
+      });
+      const report = await review(tasks);
+      const bodies = createTask.mock.calls.map(([body]) => body);
+      const classifier = bodies.find((body) => body.taskType === 'classify');
+      expect(classifier?.input).toMatchObject({
+        state: {
+          trustedReviewGuidance: [
+            {
+              path: 'REVIEW.md',
+              content: 'Require route compatibility evidence.',
+            },
+          ],
+        },
+      });
+      const specialists = bodies.filter((body) => body.taskType === 'freeform');
+      expect(specialists.length).toBe(lane === 'security' ? 2 : 1);
+      for (const body of specialists)
+        expect(JSON.stringify(body.input)).toContain(
+          'Require route compatibility evidence.',
+        );
+      expect(report.referenceDigests['REVIEW.md']).toMatch(/^[a-f0-9]{64}$/);
+    },
+  );
+
+  it.each(['docs', 'complexity'] as const)(
+    'delivers guidance through the %s downstream task client',
+    async (lane) => {
+      guidanceEnabled = true;
+      const { tasks, createTask } = harness({ selected: lane });
+      await review(tasks);
+      const delegated =
+        lane === 'docs'
+          ? (
+              mocks.runDocsImpactReview.mock.calls[0][0] as {
+                tasks: TaskClient;
+              }
+            ).tasks
+          : (mocks.runComplexityReview.mock.calls[0][0] as TaskClient);
+      for (const stage of lane === 'docs'
+        ? ['extract', 'coverage', 'docs-check']
+        : ['map', 'domain', 'synthesis']) {
+        await delegated.createTask({
+          taskType: 'freeform',
+          title: stage,
+          diaryId: 'diary',
+          teamId: 'team',
+          input: { brief: `Review ${stage}` },
+        } as Parameters<TaskClient['createTask']>[0]);
+        const body = createTask.mock.calls.at(-1)?.[0];
+        expect(JSON.stringify(body?.input)).toContain(
+          'Require route compatibility evidence.',
+        );
+      }
     },
   );
 

@@ -27,6 +27,7 @@ import {
 } from './core.js';
 import { runDocsLane } from './docs-lane.js';
 import { runFocusedLane } from './focused-lane.js';
+import { withReviewGuidance } from './guidance-tasks.js';
 import {
   accepted,
   type LaneContext,
@@ -206,6 +207,7 @@ export async function prepareAdaptiveReview(
           snapshot.policy,
           changes,
           options.taskBudgets.classifier,
+          snapshot.guidance,
         ),
         {
           idempotencyKey: taskKey(reviewIdentity, `classify-${packet.id}`),
@@ -346,7 +348,15 @@ export async function runRoutedAdaptiveReview(
         evidence,
         changes,
         policy: snapshot.policy,
-        tasks: laneTasks,
+        tasks: withReviewGuidance(
+          laneTasks,
+          snapshot.guidance,
+          changes.flatMap((change) =>
+            change.previousPath
+              ? [change.previousPath, change.path]
+              : [change.path],
+          ),
+        ),
         profileId,
         budget: options.taskBudgets[route.lane],
         projectId: options.projectId,
