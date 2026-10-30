@@ -153,6 +153,11 @@ describe('desktop team enrollment', () => {
   );
   it.each([
     {
+      message: 'Approval failed. No credential was issued.',
+      title: 'Approval failed',
+      hint: /try again later/,
+    },
+    {
       message: 'Team approval denied. Permission required.',
       title: 'Team access required',
       hint: /Refreshing alone does not grant access/,
@@ -211,6 +216,65 @@ describe('desktop team enrollment', () => {
     },
   );
 
+  it('keeps countdown ticks outside live regions and announces expiration separately', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+    const { data, actions } = fixture();
+    let reject!: (error: Error) => void;
+    actions.enrollTeam = vi.fn<NonNullable<RunCenterActions['enrollTeam']>>(
+      () =>
+        new Promise((_, fail) => {
+          reject = fail;
+        }),
+    );
+    const view = show(data, actions);
+    try {
+      fireEvent.click(await screen.findByRole('button', { name: 'Renew' }));
+      const begin = () => {
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Replace team credential' }),
+        );
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Replace credential' }),
+        );
+      };
+      begin();
+      const waiting = screen
+        .getByText('Waiting for browser approval')
+        .closest('[role="status"]');
+      expect(waiting).toHaveTextContent(/^Waiting for browser approval$/);
+      const countdown = screen.getByText(/Expires in 5:00/);
+      expect(countdown.closest('[aria-live="off"]')).not.toBeNull();
+      expect(
+        countdown.closest(
+          '[role="status"], [aria-live="polite"], [aria-live="assertive"]',
+        ),
+      ).toBeNull();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      expect(screen.getByText(/Expires in 4:59/)).toBeInTheDocument();
+      expect(waiting).toHaveTextContent(/^Waiting for browser approval$/);
+      expect(
+        screen.queryByText('Approval window expired'),
+      ).not.toBeInTheDocument();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(299000);
+      });
+      expect(
+        screen.getByText('Approval window expired').closest('[role="status"]'),
+      ).not.toBeNull();
+      act(() => reject(new Error('Approval expired. Start again.')));
+      await screen.findByText('Approval timed out');
+      begin();
+      expect(screen.getByText(/Expires in 5:00/)).toBeInTheDocument();
+      expect(
+        screen.queryByText('Approval window expired'),
+      ).not.toBeInTheDocument();
+    } finally {
+      view.unmount();
+      vi.useRealTimers();
+    }
+  });
   it('removes a team locally and offers a way to restore it', async () => {
     const { data, actions } = fixture();
     actions.setTeamVisibility = vi.fn().mockResolvedValue(undefined);

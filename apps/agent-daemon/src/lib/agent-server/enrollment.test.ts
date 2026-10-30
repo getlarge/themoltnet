@@ -87,7 +87,7 @@ async function fixture(activated = true) {
 }
 
 describe('local team enrollment boundary', () => {
-  it.each(['denied', 'team_access', 'expired'] as const)(
+  it.each(['denied', 'team_access', 'expired', 'failed'] as const)(
     'preserves the %s approval result without provisioning or recovery',
     async (reason) => {
       const f = await fixture();

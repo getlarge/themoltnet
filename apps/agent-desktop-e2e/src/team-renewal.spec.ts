@@ -145,6 +145,31 @@ describe('Team credential renewal through the native bridge', () => {
       );
     });
   }
+  it('reports an approval-service failure without calling it a decline', async () => {
+    await browser.setWindowSize(820, 720);
+    await mount();
+    await approve('Renew');
+    await expect(
+      $('section[aria-labelledby="team-approval-heading"] [aria-live="off"]'),
+    ).toHaveText(expect.stringContaining('Expires in'));
+    await browser.execute(() =>
+      window.dispatchEvent(
+        new CustomEvent('desktop-test:approval-result', {
+          detail:
+            'Approval failed. No credential was issued. Start a new approval or try again later.',
+        }),
+      ),
+    );
+    await expect($('[role="alert"]')).toHaveText(
+      expect.stringContaining('Approval failed'),
+    );
+    await expect($('[role="alert"]')).not.toHaveText(
+      expect.stringContaining('Approval declined'),
+    );
+    await expect($('button=Replace team credential')).toBeEnabled();
+    await expect($('button=Cancel approval')).not.toExist();
+    await expectNoAxeViolations();
+  });
   it('recovers from an expired approval without labeling it cancellation', async () => {
     await browser.setWindowSize(820, 720);
     await mount();

@@ -169,6 +169,69 @@ describe('native PKCE operator', () => {
       await cancelled;
     },
   );
+  it.each([
+    {
+      label: 'server_error',
+      query: [
+        ['error', 'server_error'],
+        ['error_description', 'private-upstream-detail'],
+      ],
+    },
+    {
+      label: 'temporarily_unavailable',
+      query: [['error', 'temporarily_unavailable']],
+    },
+    { label: 'unknown error', query: [['error', 'unexpected_error']] },
+    { label: 'missing code', query: [] },
+    { label: 'empty code', query: [['code', '']] },
+    {
+      label: 'duplicate code',
+      query: [
+        ['code', 'first'],
+        ['code', 'second'],
+      ],
+    },
+    {
+      label: 'error and code',
+      query: [
+        ['error', 'access_denied'],
+        ['code', 'ambiguous'],
+      ],
+    },
+    {
+      label: 'duplicate error',
+      query: [
+        ['error', 'access_denied'],
+        ['error', 'server_error'],
+      ],
+    },
+  ])(
+    'reports $label as a safe failure instead of declined approval',
+    async ({ query }) => {
+      const f = await fixture();
+      const pending = f.oauth.authorize();
+      const settled = pending.catch((error: unknown) => error);
+      const url = await f.openedPromise;
+      const callback = new URL(url.searchParams.get('redirect_uri')!);
+      callback.searchParams.set('state', url.searchParams.get('state')!);
+      for (const [key, value] of query)
+        callback.searchParams.append(key, value);
+      const response = await fetch(callback);
+      expect(response.status).toBe(200);
+      expect(await response.text()).not.toContain('private-upstream-detail');
+      const failure = await settled;
+      expect(failure).toMatchObject({
+        code: 'approval_failed',
+        statusCode: 502,
+      });
+      expect(failure).toBeInstanceOf(OperatorApprovalError);
+      expect((failure as Error).message).toBe(
+        'Approval failed. No credential was issued. Start a new approval or try again later.',
+      );
+      expect(f.exchanges()).toBe(0);
+      expect(existsSync(join(f.root, 'operator.json'))).toBe(false);
+    },
+  );
   it('expires an abandoned browser approval after five minutes and releases the listener', async () => {
     const f = await fixture();
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
