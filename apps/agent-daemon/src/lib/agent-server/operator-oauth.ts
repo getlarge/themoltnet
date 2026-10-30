@@ -14,15 +14,19 @@ export class InvalidOperatorGrantError extends Error {}
 
 /** Safe messages cross the native bridge, which exposes errors as strings. */
 export class OperatorApprovalError extends AgentServerHttpError {
-  constructor(readonly reason: 'denied' | 'team_access' | 'expired') {
+  constructor(
+    readonly reason: 'denied' | 'team_access' | 'expired' | 'failed',
+  ) {
     super(
-      reason === 'expired' ? 408 : 403,
+      reason === 'expired' ? 408 : reason === 'failed' ? 502 : 403,
       `approval_${reason}`,
-      reason === 'expired'
-        ? 'Approval expired. Start a new approval and complete it within five minutes.'
-        : reason === 'team_access'
-          ? 'Team approval denied. Your signed-in account cannot manage credentials for this team. Ask a team owner to grant access; refreshing operator teams does not grant permission.'
-          : 'Approval denied. No credential was issued. Start a new approval when ready.',
+      reason === 'failed'
+        ? 'Approval failed. No credential was issued. Start a new approval or try again later.'
+        : reason === 'expired'
+          ? 'Approval expired. Start a new approval and complete it within five minutes.'
+          : reason === 'team_access'
+            ? 'Team approval denied. Your signed-in account cannot manage credentials for this team. Ask a team owner to grant access; refreshing operator teams does not grant permission.'
+            : 'Approval denied. No credential was issued. Start a new approval when ready.',
     );
   }
 }
@@ -250,11 +254,15 @@ export class OperatorOAuth {
             );
             reject(
               new OperatorApprovalError(
-                url.searchParams.get('error') === 'access_denied' &&
-                  url.searchParams.get('error_description') ===
-                    'team_management_required'
-                  ? 'team_access'
-                  : 'denied',
+                url.searchParams.getAll('error').length === 1 &&
+                  url.searchParams.get('error') === 'access_denied' &&
+                  !url.searchParams.has('code')
+                  ? url.searchParams.getAll('error_description').length === 1 &&
+                    url.searchParams.get('error_description') ===
+                      'team_management_required'
+                    ? 'team_access'
+                    : 'denied'
+                  : 'failed',
               ),
             );
             return;

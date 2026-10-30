@@ -62,6 +62,13 @@ function approvalFailure(error: unknown) {
         'The five-minute approval window ended. No credential was issued. Start a new approval when you are ready.',
       error: true,
     };
+  if (message.startsWith('Approval failed.'))
+    return {
+      title: 'Approval failed',
+      message:
+        'Approval could not be completed. No credential was issued. Start a new approval, or try again later.',
+      error: true,
+    };
   if (message.startsWith('Approval denied.'))
     return {
       title: 'Approval declined',
@@ -138,7 +145,9 @@ export function TeamsView({
     kind: 'sign-in' | 'enrollment';
     startedAt: number;
   } | null>(null);
-  const [approvalSecondsLeft, setApprovalSecondsLeft] = useState(0);
+  const [approvalSecondsLeft, setApprovalSecondsLeft] = useState(
+    OPERATOR_OAUTH.nativeLifetimeSeconds,
+  );
   useEffect(() => {
     if (!pendingApproval) return;
     const update = () =>
@@ -270,6 +279,7 @@ export function TeamsView({
     setConfirm(false);
     setBusy(true);
     setFeedback(null);
+    setApprovalSecondsLeft(OPERATOR_OAUTH.nativeLifetimeSeconds);
     setPendingApproval({ kind: 'enrollment', startedAt: Date.now() });
     try {
       if (!actions.enrollTeam) throw new Error('Enrollment unavailable');
@@ -406,12 +416,23 @@ export function TeamsView({
     <Stack gap={3}>
       <div role="status">
         <Text weight="semibold">Waiting for browser approval</Text>
+      </div>
+      <div aria-live="off">
         <Text variant="caption" color="secondary">
           {approvalSecondsLeft > 0
             ? `Complete approval in your browser. Expires in ${Math.floor(approvalSecondsLeft / 60)}:${String(approvalSecondsLeft % 60).padStart(2, '0')}.`
             : 'Approval is ending. You can cancel if the browser did not return.'}
         </Text>
       </div>
+      {approvalSecondsLeft === 0 ? (
+        <div role="status">
+          <Text weight="semibold">Approval window expired</Text>
+          <Text variant="caption" color="secondary">
+            Waiting for the Agent Server to finish. Cancel if it does not
+            return.
+          </Text>
+        </div>
+      ) : null}
       {actions.cancelOperatorApproval ? (
         <Button
           variant="secondary"
@@ -554,6 +575,9 @@ export function TeamsView({
                       cancellationRequested.current = false;
                       setBusy(true);
                       setFeedback(null);
+                      setApprovalSecondsLeft(
+                        OPERATOR_OAUTH.nativeLifetimeSeconds,
+                      );
                       setPendingApproval({
                         kind: 'sign-in',
                         startedAt: Date.now(),
