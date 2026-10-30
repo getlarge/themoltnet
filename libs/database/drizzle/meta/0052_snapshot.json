@@ -1,5 +1,5 @@
 {
-  "id": "def1534c-f5ca-4ffb-b51c-285db8366045",
+  "id": "a043793d-33de-42ab-a67b-61dccfe85109",
   "prevId": "9d84465c-ab2b-4ac8-a775-6a7cf4c68141",
   "version": "7",
   "dialect": "postgresql",
@@ -4372,6 +4372,39 @@
             }
           ],
           "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "runtime_store_commits_attempt_seq_idx": {
+          "name": "runtime_store_commits_attempt_seq_idx",
+          "columns": [
+            {
+              "expression": "store_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "task_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "attempt_n",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "seq",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
