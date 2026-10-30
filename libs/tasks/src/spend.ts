@@ -207,11 +207,30 @@ function cost(spend: ProducerSpend): string {
   return `${spend.costComplete ? '' : '≥'}$${spend.estimatedCostUsd.toFixed(4)}`;
 }
 
+/** `2m 0s`, `1h 2m 3s`, or `0s`; sub-second wall time rounds up to `1s`. */
+function formatDurationMs(ms: number): string {
+  if (!Number.isFinite(ms) || ms <= 0) return '0s';
+  const totalSeconds = Math.round(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const parts: string[] = [];
+  if (hours) parts.push(`${hours}h`);
+  if (minutes) parts.push(`${minutes}m`);
+  parts.push(`${seconds}s`);
+  return parts.join(' ');
+}
+
 export function formatWorkflowSpend(report: WorkflowSpendReport): string {
   const records = mergeWorkflowSpend([report]).records;
   const groups = new Map<
     string,
-    { stage: string; model: string; spends: ProducerSpend[] }
+    {
+      stage: string;
+      model: string;
+      spends: ProducerSpend[];
+      taskIds: Set<string>;
+    }
   >();
   for (const record of records) {
     for (const model of record.models.length
@@ -222,8 +241,10 @@ export function formatWorkflowSpend(report: WorkflowSpendReport): string {
         stage: record.stage,
         model: model.model,
         spends: [],
+        taskIds: new Set(),
       };
       group.spends.push(model.spend);
+      group.taskIds.add(record.taskId);
       groups.set(key, group);
     }
   }
@@ -232,25 +253,25 @@ export function formatWorkflowSpend(report: WorkflowSpendReport): string {
     '',
     'Estimated USD at standard catalog rates, including failed attempts and retries; not provider invoices or off-peak charges.',
     '',
-    '| Stage | Model | Attempts | Input tokens | Output tokens | Cache read / write | Estimated cost |',
-    '| --- | --- | ---: | ---: | ---: | ---: | ---: |',
+    '| Stage | Model | Tasks | Attempts | Input tokens | Output tokens | Cache read / write | Duration | Estimated cost |',
+    '| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |',
   ];
   for (const group of groups.values()) {
     const s = mergeProducerSpend(group.spends);
     lines.push(
-      `| ${cell(group.stage)} | ${cell(group.model)} | ${s.attempts} | ${s.inputTokens} | ${s.outputTokens} | ${s.cacheReadTokens} / ${s.cacheWriteTokens} | ${cost(s)} |`,
+      `| ${cell(group.stage)} | ${cell(group.model)} | ${group.taskIds.size} | ${s.attempts} | ${s.inputTokens} | ${s.outputTokens} | ${s.cacheReadTokens} / ${s.cacheWriteTokens} | ${formatDurationMs(s.durationMs)} | ${cost(s)} |`,
     );
   }
   const total = mergeProducerSpend(records.map((r) => r.spend));
   if (report.discoveryIncomplete) total.costComplete = false;
   lines.push(
-    `| **Total** | | ${total.attempts} | ${total.inputTokens} | ${total.outputTokens} | ${total.cacheReadTokens} / ${total.cacheWriteTokens} | ${records.length ? cost(total) : 'unknown'} |`,
+    `| **Total** | | ${records.length} | ${total.attempts} | ${total.inputTokens} | ${total.outputTokens} | ${total.cacheReadTokens} / ${total.cacheWriteTokens} | ${formatDurationMs(total.durationMs)} | ${records.length ? cost(total) : 'unknown'} |`,
     '',
   );
   const missing = records.filter((r) => r.missing).length;
   const priced = records.filter((r) => r.spend.costComplete).length;
   lines.push(
-    `Pricing coverage: ${priced}/${records.length} fully priced tasks; ${missing} with missing telemetry. “≥” marks a known lower bound. Model rows can share an attempt; the total counts each attempt once.`,
+    `Pricing coverage: ${priced}/${records.length} fully priced tasks; ${missing} with missing telemetry. “≥” marks a known lower bound. Model rows can share a task and its attempts; the Tasks and Attempts totals count each task and attempt once.`,
     '',
   );
   if (report.discoveryIncomplete)
