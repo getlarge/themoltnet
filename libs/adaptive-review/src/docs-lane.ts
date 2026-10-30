@@ -65,7 +65,8 @@ function docsResult(
       path: finding.docsPath,
       concern: finding.update,
     })),
-    ...(status === 'unclear'
+    // A known finding and incomplete coverage can coexist. Preserve both.
+    ...(status === 'unclear' || report.gaps?.length
       ? { unclear: report.gaps.map((gap) => `${gap.scope}: ${gap.reason}`) }
       : {}),
   };

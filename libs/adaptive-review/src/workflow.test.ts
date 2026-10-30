@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { parseReviewTaskBudgets } from './config.js';
 import { LANES, type ReviewIdentity } from './core.js';
+import { hasIncompleteCoverage, renderAdaptiveComment } from './report.js';
 import {
   classifierTaskPossible,
   prepareAdaptiveReview,
@@ -1094,7 +1095,10 @@ describe('adaptive review orchestration', () => {
       'updates-needed',
       'concern',
       [{ path: 'docs/use/entries.md', concern: 'Explain the changed route.' }],
-      undefined,
+      [
+        'docs/use/entries.md: patch truncated at the per-file budget (budgets.diffPerFileBytes)',
+        'docs-check stage: timed out',
+      ],
     ],
     [
       'incomplete',
@@ -1137,6 +1141,13 @@ describe('adaptive review orchestration', () => {
         findings,
         ...(unclear ? { unclear } : {}),
       });
+      expect(hasIncompleteCoverage(report)).toBe(true);
+      const comment = renderAdaptiveComment(report, 'https://example.test/run');
+      expect(comment).toContain('incomplete coverage');
+      expect(comment).toContain('Not fully assessed:');
+      for (const gap of unclear) expect(comment).toContain(gap);
+      for (const finding of findings)
+        expect(comment).toContain(finding.concern);
     },
   );
 
