@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { Readable } from 'node:stream';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context';
@@ -12,6 +14,8 @@ import { SpanStatusCode } from '@opentelemetry/api';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createConversationService } from './conversations.js';
+import { timedRead } from './read-timing.js';
+import { createRuntimeStoreService } from './runtime-stores.js';
 
 const spans = vi.hoisted(
   () =>
@@ -266,4 +270,175 @@ describe('conversation refresh telemetry', () => {
       'deadline',
     );
   });
+});
+
+it('separates database, permission, full-body download and decode spans', async () => {
+  const bytes = Buffer.from(
+    JSON.stringify({ format: 'pi-durable.v1', writes: [] }),
+  );
+  spans.length = 0;
+  function deferred() {
+    let resolve!: () => void;
+    const promise = new Promise<void>((done) => {
+      resolve = done;
+    });
+    return { promise, resolve };
+  }
+  const bodyGate = deferred();
+  const bodyStarted = deferred();
+  const service = downloadFixture(
+    bytes,
+    Readable.from(
+      (async function* () {
+        bodyStarted.resolve();
+        await bodyGate.promise;
+        yield bytes;
+      })(),
+    ),
+  );
+  const page = await service.read({ ...input, storeId: 'store' });
+  const consumed = (async () => {
+    for await (const commit of page.items) expect(commit.seq).toBe(1);
+  })();
+  await bodyStarted.promise;
+  try {
+    expect(
+      spans.find((s) => s.name === 'moltnet.runtime.read.object.download')
+        ?.ended,
+    ).toBe(false);
+    expect(
+      spans.some((s) => s.name === 'moltnet.runtime.read.object.decode'),
+    ).toBe(false);
+    for (const phase of [
+      'database.store',
+      'database.commits',
+      'database.attempts',
+      'database.contributors',
+      'authorization.team',
+      'authorization.tasks',
+    ]) {
+      expect(
+        spans.find((s) => s.name === `moltnet.runtime.read.${phase}`)?.ended,
+      ).toBe(true);
+    }
+  } finally {
+    bodyGate.resolve();
+    await consumed;
+  }
+  expect(
+    spans.find((s) => s.name === 'moltnet.runtime.read.object.download')?.ended,
+  ).toBe(true);
+  expect(
+    spans.find((s) => s.name === 'moltnet.runtime.read.object.decode')?.ended,
+  ).toBe(true);
+});
+
+function downloadFixture(bytes: Buffer, body: Readable) {
+  return createRuntimeStoreService({
+    repository: {
+      get: async () => ({ id: 'store', headSeq: 1 }),
+      listCommits: async () => [
+        {
+          seq: 1,
+          taskId: 'task',
+          commitId: 'commit',
+          objectKey: 'key',
+          sizeBytes: bytes.length,
+          sha256: createHash('sha256').update(bytes).digest('hex'),
+        },
+      ],
+      listCommitTaskIds: async () => ['task'],
+      listAttempts: async () => [{ taskId: 'task' }],
+    },
+    permissionChecker: {
+      canAccessTeam: async () => true,
+      canViewTasks: async () => new Map([['task', true]]),
+    },
+    storage: {
+      getObject: async () => ({ body }),
+    },
+    maxBytes: 1024,
+  } as unknown as Parameters<typeof createRuntimeStoreService>[0]);
+}
+
+it.each(['caller', 'deadline', 'storage-race'] as const)(
+  'classifies an interrupted full-body download: %s',
+  async (kind) => {
+    spans.length = 0;
+    let markStarted!: () => void;
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve;
+    });
+    const body = new Readable({
+      read() {
+        markStarted();
+      },
+    });
+    const service = downloadFixture(Buffer.from('pending'), body);
+    const controller = new AbortController();
+    const page = await service.read({
+      ...input,
+      storeId: 'store',
+      signal: controller.signal,
+    });
+    const consumed = (async () => {
+      for await (const _commit of page.items) {
+        /* consume */
+      }
+    })();
+    const failed = expect(consumed).rejects.toBeDefined();
+    await started;
+    if (kind === 'storage-race') {
+      body.destroy(new Error('storage failed'));
+      controller.abort();
+    } else {
+      controller.abort(
+        kind === 'deadline'
+          ? new DOMException('deadline', 'TimeoutError')
+          : undefined,
+      );
+    }
+    await failed;
+    const span = spans.find(
+      (s) => s.name === 'moltnet.runtime.read.object.download',
+    );
+    expect(span?.ended).toBe(true);
+    if (kind === 'caller') {
+      expect(span?.status).toBeUndefined();
+      expect(span?.exception).toBeUndefined();
+      expect(span?.attributes['moltnet.runtime.read.aborted_by']).toBe(
+        'caller',
+      );
+    } else {
+      expect(span?.status).toEqual({ code: SpanStatusCode.ERROR });
+      expect(span?.exception).toBeDefined();
+    }
+    expect(
+      spans.some((s) => s.name === 'moltnet.runtime.read.object.decode'),
+    ).toBe(false);
+  },
+);
+
+it('recognizes client AbortErrors that omit the signal reason', async () => {
+  spans.length = 0;
+  const controller = new AbortController();
+  const error = Object.assign(new Error('request aborted'), {
+    name: 'AbortError',
+  });
+  await expect(
+    timedRead(
+      'object.download',
+      () => {
+        controller.abort();
+        return Promise.reject(error);
+      },
+      controller.signal,
+    ),
+  ).rejects.toBe(error);
+  expect(spans[0]).toMatchObject({
+    ended: true,
+    attributes: { 'moltnet.runtime.read.aborted_by': 'caller' },
+  });
+  expect(spans[0].status).toBeUndefined();
+  expect(spans[0].exception).toBeUndefined();
 });

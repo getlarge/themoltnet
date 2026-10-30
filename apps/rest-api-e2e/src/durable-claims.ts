@@ -41,7 +41,19 @@ export async function claimPinnedAttempt(
   client: Client,
   agent: TestAgent,
   label: string,
-  { leaseTtlSec = DEFAULT_LEASE_TTL_SEC }: { leaseTtlSec?: number } = {},
+  {
+    leaseTtlSec = DEFAULT_LEASE_TTL_SEC,
+    continueFrom,
+    taskType = 'fulfill_brief',
+  }: {
+    leaseTtlSec?: number;
+    taskType?: 'freeform' | 'fulfill_brief';
+    continueFrom?: {
+      taskId: string;
+      attemptN: number;
+      mode: 'fork' | 'extend';
+    };
+  } = {},
 ): Promise<PinnedClaim> {
   const headers = { 'x-moltnet-team-id': agent.personalTeamId };
   const created = await createRuntimeProfile({
@@ -67,11 +79,11 @@ export async function claimPinnedAttempt(
     auth: () => agent.accessToken,
     headers,
     body: {
-      taskType: 'fulfill_brief',
+      taskType: continueFrom ? 'freeform' : taskType,
       title: label,
       diaryId: agent.privateDiaryId,
       allowedProfiles: [{ profileId: profile.id }],
-      input: { brief: label },
+      input: { brief: label, ...(continueFrom ? { continueFrom } : {}) },
     },
   });
   expect(createdTask.error).toBeUndefined();

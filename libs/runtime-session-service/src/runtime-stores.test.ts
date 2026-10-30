@@ -39,6 +39,9 @@ function setup(
     attemptN: 1,
   };
   const repository = {
+    conversationHead: vi.fn(async () => Number(row.headSeq) - 1),
+    conversationRecord: vi.fn(async () => undefined),
+    saveConversationRecords: vi.fn(),
     lockAuthority: vi.fn(async () => ({
       task: { input: {}, claimExpiresAt: new Date(now + 300_000) },
       attempt: {},
@@ -129,6 +132,71 @@ const writes = [
     },
   },
 ];
+
+describe('conversation projection backfill', () => {
+  it('rejects a sequence gap before publishing projection records', async () => {
+    const f = setup();
+    f.row.headSeq = 3;
+    const handle = await f.service.open(authority);
+    await f.service.append({
+      ...authority,
+      ...handle,
+      commitId: 'after-gap',
+      expectedSeq: 3,
+      writes,
+    });
+    f.repository.conversationHead.mockResolvedValue(2);
+    f.repository.saveConversationRecords.mockClear();
+
+    await expect(
+      f.service.ensureConversationProjection({
+        ...authority,
+        storeId: handle.storeId,
+        throughSeq: 4,
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'CONFLICT',
+      message: 'Conversation projection gap',
+    });
+    expect(f.repository.saveConversationRecords).not.toHaveBeenCalled();
+    expect(f.repository.listCommits).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails without retrying when backfill does not advance its head', async () => {
+    const f = setup();
+    const handle = await f.service.open(authority);
+    await f.service.append({
+      ...authority,
+      ...handle,
+      commitId: 'no-progress',
+      expectedSeq: 0,
+      writes,
+    });
+    // The write mock deliberately never advances the projection head.
+    f.repository.conversationHead.mockResolvedValue(0);
+    f.repository.saveConversationRecords.mockClear();
+
+    await expect(
+      f.service.ensureConversationProjection({
+        ...authority,
+        storeId: handle.storeId,
+        throughSeq: 1,
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 503,
+      code: 'SERVICE_UNAVAILABLE',
+      message: 'Incomplete conversation history',
+    });
+    expect(f.repository.saveConversationRecords).toHaveBeenCalledTimes(1);
+    expect(f.repository.saveConversationRecords).toHaveBeenCalledWith(
+      handle.storeId,
+      1,
+      expect.any(Array),
+    );
+    expect(f.repository.listCommits).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe('runtime store publication', () => {
   it('forks the parent commit head into an independent store', async () => {
