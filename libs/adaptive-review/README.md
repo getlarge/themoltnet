@@ -273,14 +273,13 @@ environment containing the MoltNet agent and provider keys. Pass at least a
 classifier profile, a nonempty `providers` definition, and
 profiles for each lane enabled in `.github/adaptive-review.json`.
 For on-demand reruns, also trigger it on `issue_comment` with the same
-commenter checks as MoltNet's caller. A comment event carries no base commit,
-so leave `runtime-ref` empty for it and the runtime comes from the reusable
-workflow's own commit.
+commenter checks as MoltNet's caller. Leave `runtime-ref` empty so the runtime
+is the pinned release commit itself.
 `protected-paths` should list only files that run from the pull request's own
-revision, which for a `pull_request` caller means the caller workflows. Pin
-the reusable workflow to a trusted ref and set `runtime-ref` to the base
-commit: a pull request that changes the review code is then reviewed by the
-trusted version, and its changes are read only as data.
+revision, which for a `pull_request` caller means the caller workflows. A pull
+request that changes the review code is then reviewed by the released version,
+and its changes are read only as data. MoltNet's own callers pin the latest
+release the same way.
 The prepare job applies the docs impact review's eligibility rules: it skips
 fork and Dependabot pull requests, pull requests whose file list GitHub
 truncated, and pull requests that change a protected path. Fork and

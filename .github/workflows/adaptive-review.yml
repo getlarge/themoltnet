@@ -23,7 +23,10 @@ jobs:
           github.event.comment.body == '/review' &&
           github.event.comment.user.type == 'User' &&
           contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)))
-    uses: getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml@main
+    # Pinned to the released bundle commit, so the prepare job runs the built
+    # action without installing the workspace. Bump it with each
+    # adaptive-review-action release.
+    uses: getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml@3c0f9204cbbcbf575aec4d21e4e08468005ba0b5 # adaptive-review-action-v0
     permissions:
       actions: read
       contents: read
@@ -46,12 +49,9 @@ jobs:
           timeout: 15m
       providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY supports-developer-role=false
       # Only these callers run from the pull request's own revision. The
-      # reusable workflow comes from main and the runtime from the base commit,
-      # so a pull request changing the review code is reviewed by the trusted
+      # reusable workflow and its runtime come from the pinned release, so a
+      # pull request changing the review code is reviewed by the released
       # version and its changes are read only as data.
       protected-paths: |
         .github/workflows/adaptive-review.yml
         .github/workflows/adaptive-review-outcomes.yml
-      # A comment event carries no base commit; the runtime then comes from
-      # the trusted reusable workflow's commit on main.
-      runtime-ref: ${{ github.event.pull_request.base.sha }}

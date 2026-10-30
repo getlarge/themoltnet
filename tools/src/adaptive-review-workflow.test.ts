@@ -166,11 +166,13 @@ describe('adaptive review workflow trust gates', () => {
   });
 
   it('protects only the callers that run from the pull request revision', () => {
-    // The reusable workflow is pinned to main and the runtime to the base
-    // commit, so review code changed by the PR never executes.
+    // The reusable workflow is pinned to a released bundle commit and the
+    // runtime defaults to that commit, so review code changed by the PR
+    // never executes.
     expect(caller.jobs.review.uses).toMatch(
-      /adaptive-review-reusable\.yml@main$/,
+      /adaptive-review-reusable\.yml@[0-9a-f]{40}$/,
     );
+    expect(caller.jobs.review.with['runtime-ref']).toBeUndefined();
     expect(
       caller.jobs.review.with['protected-paths'].trim().split('\n'),
     ).toEqual([
@@ -502,9 +504,6 @@ describe('adaptive review workflow trust gates', () => {
     expect(fetchScript).toContain('GIT_CONFIG_COUNT=1');
     expect(caller.jobs.review.with['classifier-profile']).toBe(
       'legreffier-issue-classifier-v2',
-    );
-    expect(caller.jobs.review.with['runtime-ref']).toBe(
-      '${{ github.event.pull_request.base.sha }}',
     );
   });
 
