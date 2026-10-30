@@ -812,8 +812,8 @@ and host-exec policy. See [Running Agents](../operate/running-agents.md) for how
 those two inputs are combined at runtime.
 
 It is also separate from Pi model/auth config, which comes from the
-`moltnet-agent providers` store and repo-local `.pi`. See
-[Running Agents: Repository Pi config](../operate/running-agents.md#repository-pi-config).
+`moltnet-agent providers` store (or the global Pi directory). See
+[Running Agents: Pi Directory Resolution](../operate/running-agents.md#pi-directory-resolution).
 
 ## Portable agent paths
 

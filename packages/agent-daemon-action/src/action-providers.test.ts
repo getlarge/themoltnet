@@ -881,28 +881,11 @@ describe('invocation isolation', () => {
     );
   });
 
-  it('rejects an older daemon before executing a provider-backed task', () => {
-    writeExecutable(
-      agent,
-      'if [[ "$*" == *--help* ]]; then echo old-help; exit 0; fi; exit 42',
-    );
-    const result = runStep('run', {
-      AGENT_BIN: agent,
-      DAEMON_MODE: 'once',
-      TASK_ID: 'task',
-      PROFILE_OVERRIDE: 'profile',
-      MOLTNET_AGENT_NAME: 'worker',
-      PROVIDERS: cloud,
-    });
-    expect(result.status).toBe(1);
-    expect(result.stderr).toContain('upgrade daemon-version');
-  });
-
   it('passes provider-store composition to the daemon without exporting a Pi override', () => {
     const calls = resolve(root, 'runtime.log');
     writeExecutable(
       agent,
-      `if [[ "$*" == *--help* ]]; then echo --include-pi-repo-config; exit 0; fi\nprintf '%s\\n' "$*|pi=$PI_CODING_AGENT_DIR" >> "${calls}"`,
+      `printf '%s\\n' "$*|pi=$PI_CODING_AGENT_DIR" >> "${calls}"`,
     );
     const result = runStep('run', {
       AGENT_BIN: agent,
@@ -915,7 +898,7 @@ describe('invocation isolation', () => {
     });
     expect(result.status, result.stderr).toBe(0);
     expect(readCalls(calls)).toEqual([
-      'once --agent worker --profile profile --task-id task --include-pi-repo-config=false|pi=',
+      'once --agent worker --profile profile --task-id task|pi=',
     ]);
   });
 });

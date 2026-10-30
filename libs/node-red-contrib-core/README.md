@@ -429,8 +429,8 @@ moltnet-agent poll \
   --profile deep-review-aggregate-v1
 ```
 
-The daemon host must have matching Pi model registry entries. This repo's
-`.pi/models.json` already declares the Ollama Cloud provider and these models.
+The daemon host must have matching Pi model registry entries: configure the
+provider with `moltnet-agent providers set` so these models resolve.
 
 ## Reproducing the issue-lifecycle shape
 

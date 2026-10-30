@@ -447,15 +447,9 @@ source ".moltnet/<agent>/env"
 test -n "$MOLTNET_TEAM_ID"
 test -n "$MOLTNET_DIARY_ID"
 
-# Pi/model config must exist before starting apps/agent-daemon.
-# The daemon defaults PI_CODING_AGENT_DIR to repo-local .pi.
-test -f ".pi/settings.json"
-test -f ".pi/models.json"
-
-# For subscription auth, use a local gitignored auth blob.
-# For API-key auth, keep .pi/auth.json absent and export the key referenced by
-# .pi/models.json, for example OLLAMA_API_KEY.
-test -f ".pi/auth.json" || test -n "${OLLAMA_API_KEY:-}"
+# Pi/model config comes from the provider store, not repository files:
+# configure it with `moltnet-agent providers set` (API-key) or `providers
+# login` (subscription) before starting apps/agent-daemon.
 
 # The daemon needs a sandbox policy for host commands and workspace mounting.
 test -f sandbox.json

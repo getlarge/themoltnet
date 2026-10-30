@@ -107,15 +107,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       'max-poll-interval-ms': { type: 'string' },
       'list-limit': { type: 'string' },
       sandbox: { type: 'string' },
-      'include-pi-repo-config': { type: 'string', default: 'true' },
       profile: { type: 'string', multiple: true },
     },
   });
-
-  if (!['true', 'false'].includes(values['include-pi-repo-config'])) {
-    console.error('--include-pi-repo-config must be true or false');
-    return 1;
-  }
 
   if (
     !values.team &&
@@ -400,12 +394,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     throw new Error(`No safe runtime profiles remain. ${details}`);
   }
   // PI_CODING_AGENT_DIR is process-wide, so every profile shares one Pi dir.
-  const piAgentDir = await resolvePiAgentDir(
-    cfg,
-    profiles[0].mountPath,
-    profiles,
-    { includePiRepoConfig: values['include-pi-repo-config'] === 'true' },
-  );
+  const piAgentDir = await resolvePiAgentDir(cfg, profiles);
   process.once('exit', piAgentDir.cleanup);
   activatePiCodingAgentDir(piAgentDir.path, piAgentDir.env);
   if (!runtimes.has(profiles[0].id)) {
