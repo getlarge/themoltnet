@@ -42,7 +42,7 @@ const SOURCE_TEST_EXCLUDES = [
   'e2e',
 ];
 
-const SOURCE_TEST_FILE_PATTERN = /(^|\/)src\/.*\.spec\.[cm]?[jt]sx?$/;
+export const SOURCE_TEST_FILE_PATTERN = /(^|\/)src\/.*\.spec\.[cm]?[jt]sx?$/;
 
 export default async function splitTsconfigsGenerator(
   tree: Tree,

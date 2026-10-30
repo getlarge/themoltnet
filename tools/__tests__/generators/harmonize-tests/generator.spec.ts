@@ -67,6 +67,66 @@ describe('harmonize-tests generator', () => {
       include: ['__tests__/**/*.ts', 'src/**/*.d.ts'],
     });
   });
+
+  it('keeps test-only helpers in src/ when they are run by name', async () => {
+    // Arrange
+    tree.write(
+      'libs/lib/package.json',
+      JSON.stringify({ name: 'lib', bin: { lib: './src/harness.ts' } }),
+    );
+    tree.write('libs/lib/src/harness.ts', 'export const h = 1;\n');
+    tree.write('libs/lib/src/test-cli.ts', '#!/usr/bin/env node\n');
+    tree.write(
+      'libs/lib/src/argv-fixture.ts',
+      'export const args = process.argv.slice(2);\n',
+    );
+    tree.write('libs/lib/src/data-fixtures.ts', 'export const d = 1;\n');
+    tree.write(
+      'libs/lib/src/y.test.ts',
+      [
+        "import './argv-fixture.js';",
+        "import './data-fixtures.js';",
+        "import './harness.js';",
+        "import './test-cli.js';",
+        '',
+      ].join('\n'),
+    );
+
+    // Act
+    await harmonizeTestsGenerator(tree, { project: 'lib', skipFormat: true });
+
+    // Assert
+    expect(tree.exists('libs/lib/src/harness.ts')).toBe(true);
+    expect(tree.exists('libs/lib/src/test-cli.ts')).toBe(true);
+    expect(tree.exists('libs/lib/src/argv-fixture.ts')).toBe(true);
+    expect(tree.exists('libs/lib/src/data-fixtures.ts')).toBe(false);
+    expect(tree.read('libs/lib/__tests__/y.spec.ts', 'utf-8')).toBe(
+      [
+        "import '../src/argv-fixture.js';",
+        "import './data-fixtures.js';",
+        "import '../src/harness.js';",
+        "import '../src/test-cli.js';",
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it('adds __tests__/ to a spec tsconfig that only includes directories', async () => {
+    // Arrange
+    tree.write(
+      'libs/lib/tsconfig.spec.json',
+      JSON.stringify({ include: ['src'] }),
+    );
+
+    // Act
+    await harmonizeTestsGenerator(tree, { project: 'lib', skipFormat: true });
+
+    // Assert
+    expect(readJson(tree, 'libs/lib/tsconfig.spec.json').include).toEqual([
+      'src',
+      '__tests__/**/*.ts',
+    ]);
+  });
 });
 
 describe('transformConfigString', () => {
