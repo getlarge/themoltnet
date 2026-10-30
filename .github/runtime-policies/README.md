@@ -88,6 +88,79 @@ Once the classifier profile is provisioned and `OLLAMA_API_KEY` is set in the
 `legreffier` environment, set repository variable
 `MOLTNET_ADAPTIVE_REVIEW_ENABLED=true` to start the caller workflow.
 
+### Optional diary context for focused reviews
+
+The default profiles do not give reviewers diary access. To let the `tests`,
+`conventions`, and `blast-radius` reviewers search past decisions and incidents,
+select the separate
+[`legreffier-adaptive-knowledge-review-v1` profile](../runtime-profiles/legreffier-adaptive-knowledge-review-v1.json).
+This changes the focused reviewers only; classifier, docs, security, and
+complexity profiles keep their existing capabilities.
+
+First deploy a daemon containing the review diary tools and source restrictions
+in `@themoltnet/pi-runtime`; publishing these JSON files or updating the review
+action alone does not upgrade the worker. Set the caller's `daemon-version` to
+that release. The worker identity also needs read access to each source diary
+(see [diary grants](../../docs/use/entries.md#team-scoped-diaries-and-grants)). A profile cannot grant that
+access by itself.
+
+Copy the profile template and replace `sandbox.env.REVIEW_DIARY_IDS` with a
+JSON-encoded array of the source diary UUIDs you intend to expose. For example,
+the field value is `"[\"<source-diary-uuid>\"]"`, with the placeholder replaced
+by a real UUID. The committed value `"[]"` permits no diary reads. Keep
+`toolEnforcement: "enforce"` and the template's review instructions.
+
+Create the policy and configured profile, bind them, then inspect the resolved
+allow-list (replace the local profile path below):
+
+```bash
+moltnet policy create \
+  --from-file .github/runtime-policies/legreffier-adaptive-knowledge-readonly-v1.json \
+  --team-id "$TEAM"
+moltnet profile create \
+  --from-file /path/to/configured-knowledge-review-profile.json --team-id "$TEAM"
+moltnet profile set-policies legreffier-adaptive-knowledge-review-v1 \
+  --policy legreffier-adaptive-knowledge-readonly-v1 --team-id "$TEAM"
+moltnet profile allowed-tools legreffier-adaptive-knowledge-review-v1 \
+  --team-id "$TEAM"
+```
+
+These are first-time creation commands. For an existing policy, use the
+[update procedure below](#applying-a-definition); use `moltnet profile update`
+to change an existing profile. `set-policies` replaces the entire policy set. The effective tools should be `find`, `grep`, `ls`, `read`,
+`moltnet_search_review_entries`, and `moltnet_get_review_entry`, with no shell
+commands. Select the profile in the caller workflow's existing `with` block:
+
+```yaml
+focused-profile: legreffier-adaptive-knowledge-review-v1
+```
+
+The host reads the source list from the profile, not from reviewer-controlled
+guest environment variables. It accepts at most eight diary UUIDs. Search and
+fetch share a budget of eight live lookups per toolset; searches return at most
+five entries with 200-character content previews, and fetched content is capped
+at 12,000 characters with a truncation flag. The lookup counter resets when the
+runtime creates a new toolset after a restart; it is not a persistent per-attempt
+quota. Fetch checks that the entry belongs
+to the selected source diary. An omitted source is accepted only when exactly
+one is configured. An absent source configuration rejects review lookups.
+
+Access is scoped to whole diaries, not automatically to the current repository
+or PR. Search tags can narrow a query but are not an authorization boundary.
+Choose only diaries approved for this reviewer, with content relevant to the
+public repository and suitable for this review context. The policy grants neither
+diary writes nor task reads, and keeps the guest network allow-list empty;
+diary calls use the host's authenticated SDK.
+
+Retrieved entries are untrusted investigation leads. The profile instructs the
+reviewer to verify current code and callers before reporting a defect, and to
+report uncertainty when lookups fail or the budget runs out. Historical review
+outcomes remain unverified observations, not evidence that a finding was
+correct. Public findings should describe independently verified code behavior;
+keep diary references in the task conversation and do not copy private diary
+content into comments. This is an instruction to the reviewer, not an automatic
+redaction guarantee.
+
 ## Applying a definition
 
 `create` and `update` are different operations, not two names for one apply

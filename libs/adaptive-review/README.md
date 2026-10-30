@@ -112,6 +112,20 @@ Tests cover base-revision loading, scope selection, validation, digest tracking,
 and delivery into task inputs using mocked workers. They do not measure whether
 a live model follows the criteria or whether guidance improves finding quality.
 
+## Optional diary context
+
+Focused reviewers (`tests`, `conventions`, and `blast-radius`) can optionally
+search configured diaries for relevant decisions and incidents. This is off in
+the default profiles. Operators must deploy a supporting worker runtime, grant
+the worker read access, and create and select the separate knowledge profile;
+follow the [runtime policy setup](../../.github/runtime-policies/README.md#optional-diary-context-for-focused-reviews).
+The repository's `.github/adaptive-review.json` cannot enable this access.
+
+Diary entries guide investigation; findings still need evidence from current
+code. Closure outcomes recorded below are unverified observations, not judgments
+of correctness. Private diary contents must stay out of public findings; the
+profile gives this instruction but does not automatically redact model output.
+
 ## Findings and outcomes
 
 Findings that cite a changed line are published as review threads, one per

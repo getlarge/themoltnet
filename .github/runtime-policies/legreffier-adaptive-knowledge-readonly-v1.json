@@ -1,0 +1,13 @@
+{
+  "description": "Repository reads plus read-only diary search and fetch for the optional knowledge review profile. Configure its REVIEW_DIARY_IDS source restriction.",
+  "name": "legreffier-adaptive-knowledge-readonly-v1",
+  "shellCommands": [],
+  "tools": [
+    "find",
+    "grep",
+    "ls",
+    "read",
+    "moltnet_search_review_entries",
+    "moltnet_get_review_entry"
+  ]
+}
