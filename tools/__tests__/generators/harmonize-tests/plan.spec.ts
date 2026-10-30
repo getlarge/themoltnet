@@ -249,3 +249,19 @@ describe('transformTestGlob', () => {
     expect(transformTestGlob(glob, { e2e, moves })).toBe(expected);
   });
 });
+
+describe('rewriteReferences for files that stay put', () => {
+  it('leaves references to unmoved targets untouched', () => {
+    // Act
+    const result = rewriteReferences({
+      code: "const root = new URL('.', import.meta.url);",
+      oldFile: 'apps/x-e2e/run.mjs',
+      newFile: 'apps/x-e2e/run.mjs',
+      moves: new Map(),
+      exists: () => false,
+    });
+
+    // Assert
+    expect(result.changed).toBe(false);
+  });
+});

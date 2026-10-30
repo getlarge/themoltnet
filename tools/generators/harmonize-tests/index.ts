@@ -332,7 +332,12 @@ function transformTsconfig(
   const next = { ...json };
   for (const key of ['include', 'exclude', 'files'] as const) {
     const list = json[key];
-    if (Array.isArray(list)) next[key] = [...new Set(list.map(transform))];
+    if (!Array.isArray(list)) continue;
+    let mapped = [...new Set(list.map(transform))];
+    if (key === 'exclude' && mapped.includes(TESTS_DIR)) {
+      mapped = mapped.filter((p) => !p.startsWith(`${TESTS_DIR}/`));
+    }
+    next[key] = mapped;
   }
   return next;
 }

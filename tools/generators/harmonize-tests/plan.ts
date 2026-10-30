@@ -479,6 +479,7 @@ export function rewriteReferences(options: {
       if (moved) newSpecPath = moved;
     }
 
+    if (oldDir === newDir && newSpecPath === specPath) continue;
     const next = toRelativeSpecifier(newDir, newSpecPath, keepSlash);
     if (next === ref.value) continue;
 
