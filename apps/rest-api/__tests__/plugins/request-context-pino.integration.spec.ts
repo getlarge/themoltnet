@@ -19,6 +19,7 @@
 import '@moltnet/auth';
 
 import { FastifyOtelInstrumentation } from '@fastify/otel';
+import type { AuthContext } from '@moltnet/auth';
 import {
   enterRequestContext,
   getRequestContextFields,
@@ -38,26 +39,44 @@ function makeOtelPlugin() {
   return inst.plugin();
 }
 
+interface StubPrincipal {
+  identityId: string;
+  subjectType: 'agent' | 'human';
+  clientId?: string;
+  currentTeamId?: string;
+}
+
+/** Builds a well-formed AuthContext for the stubbed principal. */
+function stubAuthContext(ctx: StubPrincipal): AuthContext {
+  const base = {
+    identityId: ctx.identityId,
+    scopes: [],
+    currentTeamId: ctx.currentTeamId ?? null,
+  };
+  return ctx.subjectType === 'agent'
+    ? {
+        ...base,
+        subjectType: 'agent',
+        agentId: ctx.identityId,
+        clientId: ctx.clientId ?? 'c',
+        publicKey: 'k',
+        fingerprint: 'fp',
+      }
+    : {
+        ...base,
+        subjectType: 'human',
+        humanId: ctx.identityId,
+        clientId: ctx.clientId ?? null,
+      };
+}
+
 /**
  * Test stand-in for the libs/auth `applyAuthContext` helper. Mirrors
  * the same writes (ALS fields + request.log child binding) so these
  * tests don't drag in the full auth plugin chain.
  */
-function authStub(
-  request: FastifyRequest,
-  ctx: {
-    identityId: string;
-    subjectType: 'agent' | 'human';
-    clientId?: string;
-    currentTeamId?: string;
-  },
-): void {
-  request.authContext = {
-    ...ctx,
-    scopes: [],
-    publicKey: 'k',
-    fingerprint: 'fp',
-  } as typeof request.authContext;
+function authStub(request: FastifyRequest, ctx: StubPrincipal): void {
+  request.authContext = stubAuthContext(ctx);
   setRequestContextField('identityId', ctx.identityId);
   setRequestContextField('subjectType', ctx.subjectType);
   if (ctx.clientId) setRequestContextField('clientId', ctx.clientId);
@@ -245,11 +264,8 @@ describe('request-context ALS propagation through pino', () => {
           subjectType: 'agent' as const,
           clientId: 'c',
           currentTeamId: 't',
-          scopes: [],
-          publicKey: 'k',
-          fingerprint: 'fp',
         };
-        request.authContext = ctx as typeof request.authContext;
+        request.authContext = stubAuthContext(ctx);
         setRequestContextField('identityId', ctx.identityId);
         setRequestContextField('subjectType', ctx.subjectType);
         setRequestContextField('clientId', ctx.clientId);

@@ -20,7 +20,7 @@
     "dev": "tsx watch src/main.ts",
     "seed:task-app": "tsx e2e/seed-task-app.ts",
     "start": "node dist/main.js",
-    "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.spec.json --force"
+    "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.spec.json --emitDeclarationOnly --force"
   },
   "dependencies": {
     "@fastify/otel": "catalog:",

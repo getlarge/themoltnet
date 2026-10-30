@@ -20,7 +20,7 @@
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
-    "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.spec.json --force",
+    "typecheck": "tsc -b --emitDeclarationOnly && tsc -b tsconfig.spec.json --emitDeclarationOnly --force",
     "download-model": "node ../../tools/download-embedding-model.mjs --cache-dir ./models"
   },
   "dependencies": {

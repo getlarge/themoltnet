@@ -3,6 +3,7 @@
  */
 
 import type { AuthContext } from '@moltnet/auth';
+import type * as DatabaseModule from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
 import {
   afterAll,
@@ -28,7 +29,7 @@ import {
 
 // Mock DBOS so workflows don't try to connect to a database
 vi.mock('@moltnet/database', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = await importOriginal<typeof DatabaseModule>();
   return {
     ...actual,
     DBOS: {

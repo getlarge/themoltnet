@@ -1,3 +1,4 @@
+import type { AuthContext } from '@moltnet/auth';
 import { DiaryServiceError } from '@moltnet/diary-service';
 import type { FastifyInstance } from 'fastify';
 import {
@@ -44,7 +45,7 @@ const project = {
 describe('shared team projects', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
-  let authContext = VALID_AUTH_CONTEXT;
+  let authContext: AuthContext = VALID_AUTH_CONTEXT;
   const repository = {
     create: vi.fn(),
     findById: vi.fn(),

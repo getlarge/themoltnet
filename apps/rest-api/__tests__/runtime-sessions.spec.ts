@@ -341,7 +341,8 @@ describe('incremental runtime sessions', () => {
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
     mocks.permissionChecker.canViewTask.mockResolvedValue(true);
     mocks.permissionChecker.canViewTasks.mockImplementation(
-      async (taskIds) => new Map(taskIds.map((taskId) => [taskId, true])),
+      async (taskIds: string[]) =>
+        new Map(taskIds.map((taskId) => [taskId, true])),
     );
     mocks.runtimeSessionRepository.durable.findAttempt.mockResolvedValue({
       storeId: SESSION_ID,

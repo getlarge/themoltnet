@@ -5,6 +5,7 @@
  * See: https://github.com/getlarge/themoltnet/pull/56
  */
 
+import type { OryClients } from '@moltnet/auth';
 import {
   cryptoService,
   generateRecoveryChallenge,
@@ -22,7 +23,6 @@ import {
   vi,
 } from 'vitest';
 
-import { buildApp } from '../src/app.js';
 import { agentOAuth2ClientId } from '../src/utils/agent-oauth2-client.js';
 import {
   createMockAgent,
@@ -33,7 +33,6 @@ import {
   OWNER_IDENTITY_ID,
   resetMockServices,
   TEST_RECOVERY_SECRET,
-  TEST_SECURITY_OPTIONS,
 } from './helpers.js';
 
 describe('Recovery routes', () => {
@@ -162,39 +161,8 @@ describe('Recovery routes', () => {
         }),
       };
       // Re-build app with mocked identity client
-      const testApp = await buildApp({
-        diaryService: mocks.diaryService as any,
-        diaryRepository: mocks.diaryRepository as any,
-        agentRepository: mocks.agentRepository as any,
-        cryptoService: mocks.cryptoService as any,
-        signingRequestRepository: mocks.signingRequestRepository as any,
-        nonceRepository: mocks.nonceRepository as any,
-        dataSource: mocks.dataSource as any,
-        transactionRunner: mocks.transactionRunner as any,
-        embeddingService: mocks.embeddingService as any,
-        permissionChecker: mocks.permissionChecker as any,
-        runtimeSessionRepository: mocks.runtimeSessionRepository as any,
-        runtimeSessionStorage: mocks.runtimeSessionStorage as any,
-        runtimeSessionMaxBytes: 1024 * 1024,
-        tokenValidator: {
-          introspect: vi.fn().mockResolvedValue({ active: false }),
-          resolveAuthContext: vi.fn().mockResolvedValue(null),
-        },
-        webhookApiKey: 'test-key',
-        recoverySecret: TEST_RECOVERY_SECRET,
-        oryClients: {
-          frontend: {} as any,
-          identity: mockIdentityClient as any,
-          oauth2: {
-            getOAuth2Client: vi.fn().mockResolvedValue({
-              client_id: 'test',
-              metadata: { identity_id: OWNER_ID },
-            }),
-          } as any,
-          permission: {} as any,
-          relationship: {} as any,
-        },
-        security: TEST_SECURITY_OPTIONS,
+      const testApp = await createTestApp(mocks, null, undefined, {
+        identityApi: mockIdentityClient,
       });
 
       try {
@@ -301,43 +269,12 @@ describe('Recovery routes', () => {
       mocks.cryptoService.verify.mockResolvedValue(true);
 
       // Build app with a failing identity client
-      const testApp = await buildApp({
-        diaryService: mocks.diaryService as any,
-        diaryRepository: mocks.diaryRepository as any,
-        agentRepository: mocks.agentRepository as any,
-        cryptoService: mocks.cryptoService as any,
-        signingRequestRepository: mocks.signingRequestRepository as any,
-        nonceRepository: mocks.nonceRepository as any,
-        dataSource: mocks.dataSource as any,
-        transactionRunner: mocks.transactionRunner as any,
-        embeddingService: mocks.embeddingService as any,
-        permissionChecker: mocks.permissionChecker as any,
-        runtimeSessionRepository: mocks.runtimeSessionRepository as any,
-        runtimeSessionStorage: mocks.runtimeSessionStorage as any,
-        runtimeSessionMaxBytes: 1024 * 1024,
-        tokenValidator: {
-          introspect: vi.fn().mockResolvedValue({ active: false }),
-          resolveAuthContext: vi.fn().mockResolvedValue(null),
+      const testApp = await createTestApp(mocks, null, undefined, {
+        identityApi: {
+          createRecoveryCodeForIdentity: vi
+            .fn()
+            .mockRejectedValue(new Error('Kratos unavailable')),
         },
-        webhookApiKey: 'test-key',
-        recoverySecret: TEST_RECOVERY_SECRET,
-        oryClients: {
-          frontend: {} as any,
-          identity: {
-            createRecoveryCodeForIdentity: vi
-              .fn()
-              .mockRejectedValue(new Error('Kratos unavailable')),
-          } as any,
-          oauth2: {
-            getOAuth2Client: vi.fn().mockResolvedValue({
-              client_id: 'test',
-              metadata: { identity_id: OWNER_ID },
-            }),
-          } as any,
-          permission: {} as any,
-          relationship: {} as any,
-        },
-        security: TEST_SECURITY_OPTIONS,
       });
 
       try {
@@ -416,38 +353,12 @@ describe('Recovery routes', () => {
     }
 
     const createCredentialsApp = (
-      oauth2: Record<string, unknown>,
+      oauth2: Partial<OryClients['oauth2']>,
       evictOAuthClient = vi.fn(),
     ) =>
-      buildApp({
-        diaryService: mocks.diaryService as any,
-        diaryRepository: mocks.diaryRepository as any,
-        agentRepository: mocks.agentRepository as any,
-        cryptoService: mocks.cryptoService as any,
-        signingRequestRepository: mocks.signingRequestRepository as any,
-        nonceRepository: mocks.nonceRepository as any,
-        dataSource: mocks.dataSource as any,
-        transactionRunner: mocks.transactionRunner as any,
-        embeddingService: mocks.embeddingService as any,
-        permissionChecker: mocks.permissionChecker as any,
-        runtimeSessionRepository: mocks.runtimeSessionRepository as any,
-        runtimeSessionStorage: mocks.runtimeSessionStorage as any,
-        runtimeSessionMaxBytes: 1024 * 1024,
-        tokenValidator: {
-          introspect: vi.fn().mockResolvedValue({ active: false }),
-          resolveAuthContext: vi.fn().mockResolvedValue(null),
-          evictOAuthClient,
-        } as any,
-        webhookApiKey: 'test-key',
-        recoverySecret: TEST_RECOVERY_SECRET,
-        oryClients: {
-          frontend: {} as any,
-          identity: {} as any,
-          oauth2: oauth2 as any,
-          permission: {} as any,
-          relationship: {} as any,
-        },
-        security: TEST_SECURITY_OPTIONS,
+      createTestApp(mocks, null, undefined, {
+        oauth2Api: oauth2,
+        evictOAuthClient,
       });
 
     const notFound = () =>
@@ -484,8 +395,9 @@ describe('Recovery routes', () => {
         publicKey: agent.publicKey,
       };
       mocks.agentRepository.findByPublicKey.mockResolvedValue(agent);
-      mocks.cryptoService.verify.mockImplementation((...args) =>
-        cryptoService.verify(...args),
+      mocks.cryptoService.verify.mockImplementation(
+        (...args: Parameters<typeof cryptoService.verify>) =>
+          cryptoService.verify(...args),
       );
       return { agent, keyPair, payload };
     }

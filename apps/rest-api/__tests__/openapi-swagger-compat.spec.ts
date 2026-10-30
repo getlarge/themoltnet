@@ -8,6 +8,10 @@ describe('OpenAPI Swagger compatibility', () => {
     try {
       await app.ready();
       const spec = app.swagger();
+      // Narrow the Swagger 2 | OpenAPI 3 union: this app emits OpenAPI 3.
+      if (!('openapi' in spec)) {
+        throw new Error('expected an OpenAPI 3 document');
+      }
 
       for (const path of [
         '/task-artifacts/staged',

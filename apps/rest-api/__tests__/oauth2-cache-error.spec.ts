@@ -16,7 +16,7 @@ function fakeRedis(): RedisLikeClient {
     get: vi.fn(async () => null),
     set: vi.fn(async () => 'OK'),
     del: vi.fn(async () => 1),
-    scan: vi.fn(async () => ['0', []]),
+    scan: vi.fn(async (): Promise<[string, string[]]> => ['0', []]),
   };
 }
 
