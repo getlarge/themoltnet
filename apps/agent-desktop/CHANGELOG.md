@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.12.2](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.12.1...agent-desktop-v0.12.2) (2026-10-30)
+
+
+### Bug Fixes
+
+* clarify team access approval and key recovery ([640051f](https://github.com/getlarge/themoltnet/commit/640051f38d48fdc173f31fea819189a5f112e4c8))
+* **desktop:** clarify identity and team access flows ([c571fac](https://github.com/getlarge/themoltnet/commit/c571fac8d65e31fe8858a13f3f00d68e34cb2559))
+* **desktop:** distinguish approval failures and quiet countdown updates ([ef43a69](https://github.com/getlarge/themoltnet/commit/ef43a691a592c581fdedaa9fd296224a586d0304))
+
 ## [0.12.1](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.12.0...agent-desktop-v0.12.1) (2026-10-13)
 
 

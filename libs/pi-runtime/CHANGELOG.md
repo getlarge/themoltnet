@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.28.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.27.0...pi-runtime-v0.28.0) (2026-10-30)
+
+
+### Features
+
+* **pi-runtime:** diagnose unfinished Durable parent work ([e4ec4e2](https://github.com/getlarge/themoltnet/commit/e4ec4e20d1601734b983ac83c88724022aaa38cd))
+* **pi-runtime:** diagnose unfinished Durable parent work ([1bfe03c](https://github.com/getlarge/themoltnet/commit/1bfe03c77d94c06e9ed859a7450807e6f6a17af0))
+
+
+### Bug Fixes
+
+* **agent-daemon:** remove repo-local Pi config fallback ([7933f48](https://github.com/getlarge/themoltnet/commit/7933f481ea95da82aca2d71fa2a1248438cafd79))
+* **pi-runtime:** fail when the task source subdirectory is absent ([68e922c](https://github.com/getlarge/themoltnet/commit/68e922c38ab9eb5916a35e1d585190246ccf63ee))
+* **pi-runtime:** preserve source checkout cwd in task worktrees ([9003e30](https://github.com/getlarge/themoltnet/commit/9003e3029e09cbc91e48913a28bda8385fc07205))
+* **pi-runtime:** preserve source checkout cwd in task worktrees ([8ea70df](https://github.com/getlarge/themoltnet/commit/8ea70dfee7e6fa5af8a35a80a1c8c6a925246fa5))
+
 ## [0.27.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.26.1...pi-runtime-v0.27.0) (2026-10-28)
 
 

@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.74.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.74.0...agent-daemon-v0.74.1) (2026-10-30)
+
+
+### Bug Fixes
+
+* **agent-daemon:** remove repo-local Pi config fallback ([7933f48](https://github.com/getlarge/themoltnet/commit/7933f481ea95da82aca2d71fa2a1248438cafd79))
+* **auth:** settle native approval denials and timeouts ([3438fc1](https://github.com/getlarge/themoltnet/commit/3438fc17088059db5a188acb8e70bd0137f099d5))
+* clarify team access approval and key recovery ([640051f](https://github.com/getlarge/themoltnet/commit/640051f38d48fdc173f31fea819189a5f112e4c8))
+* **desktop:** distinguish approval failures and quiet countdown updates ([ef43a69](https://github.com/getlarge/themoltnet/commit/ef43a691a592c581fdedaa9fd296224a586d0304))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-runtime bumped to 0.28.0
+
 ## [0.74.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.73.1...agent-daemon-v0.74.0) (2026-10-28)
 
 

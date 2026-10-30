@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.7](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.18.6...node-red-contrib-core-v0.18.7) (2026-10-30)
+
+
+### Bug Fixes
+
+* **agent-daemon:** remove repo-local Pi config fallback ([7933f48](https://github.com/getlarge/themoltnet/commit/7933f481ea95da82aca2d71fa2a1248438cafd79))
+
 ## [0.18.6](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.18.5...node-red-contrib-core-v0.18.6) (2026-10-28)
 
 
