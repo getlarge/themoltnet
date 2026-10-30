@@ -6,7 +6,6 @@ import {
   checkEligibility,
   type PullRequestFile,
 } from '@moltnet/docs-impact-review/eligibility';
-import { pullNumberFromEvent } from '@moltnet/docs-impact-review/prepare';
 import { workflowCommandValue } from '@moltnet/docs-impact-review/workflow-command';
 import { collectWorkflowSpend, formatWorkflowSpend } from '@moltnet/tasks';
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
@@ -65,6 +64,26 @@ export interface CliDeps {
   }>;
   workers(): WorkerLiveness | undefined;
   stdout(text: string): void;
+}
+
+/** The pull request a `pull_request` or `issue_comment` event is about. */
+export function pullNumberFromEvent(eventName: string, event: unknown): number {
+  const payload = event as {
+    pull_request?: { number?: number };
+    issue?: { number?: number; pull_request?: unknown };
+  };
+  const number =
+    eventName === 'issue_comment'
+      ? payload.issue?.pull_request
+        ? payload.issue.number
+        : undefined
+      : payload.pull_request?.number;
+  if (!number) {
+    throw new Error(
+      `run on pull_request or on a pull request's issue_comment (got ${eventName})`,
+    );
+  }
+  return number;
 }
 
 export interface PullRequest {

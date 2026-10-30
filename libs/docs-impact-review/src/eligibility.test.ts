@@ -1,14 +1,10 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-
 import { describe, expect, it } from 'vitest';
-import { parse } from 'yaml';
 
 import { checkEligibility, type PullRequestFacts } from './eligibility.js';
 
 const REPO = 'getlarge/themoltnet';
 const PROTECTED = [
-  '.github/workflows/docs-impact-review.yml',
+  '.github/workflows/review.yml',
   '.github/runtime-profiles/legreffier-docs-review-',
   '.github/runtime-policies/',
   'libs/docs-impact-review/',
@@ -86,7 +82,7 @@ describe('checkEligibility', () => {
   });
 
   it.each([
-    ['the workflow', '.github/workflows/docs-impact-review.yml'],
+    ['the workflow', '.github/workflows/review.yml'],
     [
       'a docs-review profile',
       '.github/runtime-profiles/legreffier-docs-review-gemma-v1.json',
@@ -148,7 +144,7 @@ describe('protected paths', () => {
     const result = checkEligibility(
       pr({
         protectedPaths: undefined,
-        files: [{ filename: '.github/workflows/docs-impact-review.yml' }],
+        files: [{ filename: '.github/workflows/review.yml' }],
       }),
     );
 
@@ -161,39 +157,5 @@ describe('protected paths', () => {
     expect(checkEligibility(pr({ protectedPaths: [''] }))).toEqual({
       eligible: true,
     });
-  });
-});
-
-describe("this repository's workflow", () => {
-  const workflow = parse(
-    readFileSync(
-      resolve(
-        import.meta.dirname,
-        '../../../.github/workflows/docs-impact-review.yml',
-      ),
-      'utf8',
-    ),
-  ) as { jobs: { review: { with: { 'protected-paths': string } } } };
-  const protectedPaths = workflow.jobs.review.with['protected-paths']
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  it.each([
-    '.github/workflows/docs-impact-review.yml',
-    '.github/workflows/docs-impact-review-reusable.yml',
-    '.github/runtime-profiles/legreffier-docs-review-gemma-v1.json',
-    '.github/runtime-policies/legreffier-review-readonly-v1.json',
-    'libs/docs-impact-review/src/stages.ts',
-    'packages/docs-impact-review-action/action.yml',
-    'packages/agent-daemon-action/action.yml',
-  ])('refuses to review a change to %s with itself', (filename) => {
-    // Act
-    const result = checkEligibility(
-      pr({ protectedPaths, files: [{ filename }] }),
-    );
-
-    // Assert
-    expect(result.eligible).toBe(false);
   });
 });

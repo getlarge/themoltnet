@@ -320,7 +320,7 @@
         "libs/*review*/**",
         "packages/*review-action/**"
       ],
-      "source": ".github/workflows/docs-impact-review.yml"
+      "source": ".github/workflows/adaptive-review-reusable.yml"
     }
   ],
   "version": 1

@@ -4,7 +4,6 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
-  MAX_PARALLEL_DOMAIN_WORK,
   MAX_SERIAL_DOMAIN_WORK,
   STAGE_DISPATCH_TIMEOUT_SEC,
   STAGE_RUNNING_TIMEOUT_SEC,
@@ -25,20 +24,6 @@ function jobTimeout(workflowName: string, job: string): number {
 }
 
 describe('complexity review deadlines', () => {
-  it('fits the maximum standalone batch into its two-worker review job', () => {
-    const waves = Math.ceil(MAX_PARALLEL_DOMAIN_WORK / 2);
-    const criticalPathSec = (waves + 2) * stageSec;
-
-    expect(
-      jobTimeout('complexity-review-reusable', 'review') - criticalPathSec,
-    ).toBeGreaterThanOrEqual(10 * 60);
-    expect(
-      jobTimeout('complexity-review-reusable', 'workers') -
-        420 -
-        criticalPathSec,
-    ).toBeGreaterThanOrEqual(5 * 60);
-  });
-
   it('fits serial domain work into the adaptive review job', () => {
     const criticalPathSec = (MAX_SERIAL_DOMAIN_WORK + 2) * stageSec;
 

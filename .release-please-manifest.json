@@ -34,8 +34,6 @@
   "packages/cli/npm/linux-x64": "3.22.0",
   "packages/cli/npm/win32-arm64": "3.22.0",
   "packages/cli/npm/win32-x64": "3.22.0",
-  "packages/complexity-review-action": "0.6.0",
-  "packages/docs-impact-review-action": "0.6.0",
   "packages/github-agent": "1.16.0",
   "packages/legreffier-cli": "0.40.0",
   "packages/legreffier-plugin": "0.12.0"

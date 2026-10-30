@@ -202,19 +202,17 @@ Use the released major tag for the daemon action:
 - uses: getlarge/themoltnet/packages/agent-daemon-action@v0
 ```
 
-For PR reviews, call the reusable workflow with its released major tag:
-
-| Review               | Workflow reference                                                                                   | Setup                                                                                                                    |
-| -------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Documentation impact | `getlarge/themoltnet/.github/workflows/docs-impact-review-reusable.yml@docs-impact-review-action-v0` | [Documentation review setup](https://github.com/getlarge/themoltnet/tree/main/packages/docs-impact-review-action#readme) |
-| Complexity           | `getlarge/themoltnet/.github/workflows/complexity-review-reusable.yml@complexity-review-action-v0`   | [Complexity review setup](https://github.com/getlarge/themoltnet/tree/main/packages/complexity-review-action#readme)     |
-
-These major tags include the built bundles and follow the latest release. For an
+The major tag includes the built bundle and follows the latest release. For an
 exact pin, replace the tag after `@` with the **action bundle commit SHA**
-recorded in that component's GitHub release notes. In this release process,
+recorded in the component's GitHub release notes. In this release process,
 component version tags (`<component>-vX.Y.Z`) stay on the source commit without
-bundles. Use a released major tag or its built commit SHA to run an action or
-review workflow.
+bundles, so they cannot run the action.
+
+For PR reviews, call the adaptive review workflow at a trusted commit:
+`getlarge/themoltnet/.github/workflows/adaptive-review-reusable.yml@<sha>`. A
+classifier routes each pull request to the review lanes your policy enables. The
+workflow builds its own runtime from that commit. See the
+[adaptive review setup](https://github.com/getlarge/themoltnet/tree/main/libs/adaptive-review#readme).
 
 For OAuth-based jobs, the provisioning loop is:
 

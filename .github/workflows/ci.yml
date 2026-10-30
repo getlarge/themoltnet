@@ -117,8 +117,6 @@ jobs:
             exit 1
           fi
 
-      - run: node tools/src/release/action-runtime-lock.ts --check
-
   wsl-agent-daemon:
     name: WSL2 agent daemon acceptance
     needs: [affected]
@@ -327,12 +325,6 @@ jobs:
         with:
           install-dependencies: 'false'
           go: 'false'
-      # Every pull request: cheap, and a path gate would have to copy the
-      # lock definitions. Files an action runs from outside its package are
-      # hashed into its runtime.lock, so changing them releases the action.
-      - name: Action runtime locks are current
-        if: github.event_name == 'pull_request'
-        run: node tools/src/release/action-runtime-lock.ts --check
       # Secretlint and Nx both skip paths matching .gitignore, so a tracked
       # file under an ignore rule would never be scanned for secrets.
       - name: No tracked file matches .gitignore
@@ -523,7 +515,7 @@ jobs:
           fi
 
           # Include transitive source changes and version changes on release PRs.
-          if contains "@themoltnet/agent-daemon-action" "@themoltnet/docs-impact-review-action" "@themoltnet/complexity-review-action" ||
+          if contains "@themoltnet/agent-daemon-action" ||
             ! git diff --quiet "$NX_BASE" "$NX_HEAD" -- .release-please-manifest.json; then
             echo "check-dist-actions=true" >> "$GITHUB_OUTPUT"
           else

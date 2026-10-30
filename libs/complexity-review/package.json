@@ -13,18 +13,6 @@
     "./workflow": {
       "import": "./src/workflow.ts",
       "types": "./src/workflow.ts"
-    },
-    "./main": {
-      "import": "./src/main.ts",
-      "types": "./src/main.ts"
-    },
-    "./comment": {
-      "import": "./src/comment.ts",
-      "types": "./src/comment.ts"
-    },
-    "./prepare": {
-      "import": "./src/prepare.ts",
-      "types": "./src/prepare.ts"
     }
   },
   "engines": {
@@ -37,8 +25,6 @@
   "dependencies": {
     "@moltnet/task-schemas": "workspace:*",
     "@moltnet/tasks": "workspace:*",
-    "@themoltnet/os-keyring": "workspace:*",
-    "@themoltnet/sdk": "workspace:*",
     "@themoltnet/tasks-orchestrator": "workspace:*",
     "multiformats": "catalog:",
     "typebox": "catalog:"

@@ -5,7 +5,6 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { computeLock } from './action-runtime-lock.js';
 import { parsePublisherArgs } from './github-action-publisher.js';
 import {
   authHeaderValue,
@@ -20,8 +19,8 @@ describe('stableMajorTagFor', () => {
   it.each([
     ['0.4.1', undefined, 'v0'],
     ['1.2.3', undefined, 'v1'],
-    ['0.2.0', 'docs-impact-review-action-v', 'docs-impact-review-action-v0'],
-    ['1.0.0', 'docs-impact-review-action-v', 'docs-impact-review-action-v1'],
+    ['0.2.0', 'agent-daemon-action-v', 'agent-daemon-action-v0'],
+    ['1.0.0', 'agent-daemon-action-v', 'agent-daemon-action-v1'],
   ])('%s with prefix %s moves %s', (version, prefix, expected) => {
     // Act / Assert
     expect(stableMajorTagFor(version, prefix)).toBe(expected);
@@ -106,10 +105,7 @@ describe('releaseProblems', () => {
       mkdirSync(join(root, dir), { recursive: true });
       writeFileSync(join(root, dir, 'main.js'), 'export {};\n');
     }
-    writeFileSync(join(root, 'workflow.yml'), 'on: push\n');
     writeFileSync(join(root, '.gitignore'), '**/dist/\n');
-    git('add', '-A');
-    writeFileSync(join(root, 'a/runtime.lock'), computeLock(root, lock));
     git('add', '-A');
     git('commit', '-qm', 'init');
   });
@@ -118,20 +114,15 @@ describe('releaseProblems', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  const lock = {
-    lock: 'a/runtime.lock',
-    pathspecs: ['workflow.yml'],
-  };
   const check = () =>
     releaseProblems({
       root,
       bundleDir: 'a/dist',
       entries: ['main.js'],
       otherBundleDirs: ['b/dist'],
-      locks: [lock],
     });
 
-  it('is ready when bundles are ignored and locks current', () => {
+  it('is ready when bundles are ignored', () => {
     // Act / Assert
     expect(check()).toEqual([]);
   });
@@ -142,7 +133,6 @@ describe('releaseProblems', () => {
       root,
       bundleDir: 'a/dist',
       entries: ['main.js', 'check.js'],
-      locks: [lock],
     });
 
     // Assert
@@ -199,15 +189,6 @@ describe('releaseProblems', () => {
       'clean tracked checkout',
     );
   });
-
-  it('refuses a stale runtime lock', () => {
-    // Arrange
-    writeFileSync(join(root, 'workflow.yml'), 'on: pull_request\n');
-    git('commit', '-qam', 'change the workflow');
-
-    // Act / Assert
-    expect(check()).toEqual(['a/runtime.lock is out of date']);
-  });
 });
 
 describe('parsePublisherArgs', () => {
@@ -215,20 +196,20 @@ describe('parsePublisherArgs', () => {
     // Act
     const options = parsePublisherArgs([
       '--project',
-      '@themoltnet/docs-impact-review-action',
+      '@themoltnet/example-action',
       '--entries',
       'prepare.js, review.js',
       '--also-include',
       '@themoltnet/agent-daemon-action',
       '--stable-major-tag-prefix',
-      'docs-impact-review-action-v',
+      'agent-daemon-action-v',
     ]);
 
     // Assert
     expect(options).toMatchObject({
       entries: ['prepare.js', 'review.js'],
       alsoInclude: ['@themoltnet/agent-daemon-action'],
-      stableMajorTagPrefix: 'docs-impact-review-action-v',
+      stableMajorTagPrefix: 'agent-daemon-action-v',
       dryRun: false,
     });
   });

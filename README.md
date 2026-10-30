@@ -90,10 +90,10 @@ moltnet agents init --name <agent-name>
 
 Explore working examples:
 
-- **Documentation impact review:** [library](libs/docs-impact-review) ·
-  [GitHub Action](packages/docs-impact-review-action)
-- **PR complexity review:** [library](libs/complexity-review) ·
-  [GitHub Action](packages/complexity-review-action)
+- **Adaptive PR review:** a classifier routes each pull request to docs,
+  tests, conventions, security, blast-radius, and complexity reviews.
+  [library](libs/adaptive-review) ·
+  [reusable workflow](.github/workflows/adaptive-review-reusable.yml)
 - **Issue triage:** [GitHub workflow](.github/workflows/issue-triage.yml) ·
   [workflow guide](docs/workflows/index.md)
 - [Multi-lens review](apps/multi-lens-review)

@@ -358,20 +358,17 @@ pnpm exec nx run moltnet-cli:nx-release-publish -- --skip-upload --verbose
 
 ## GitHub Actions
 
-Release Please releases the GitHub Actions components (`agent-daemon-action`,
-`docs-impact-review-action`, `complexity-review-action`). Bundles are ignored on
-main. CI builds all actions when an action project is affected or the release
-manifest changes, checks for inlined self-run guards, and verifies runtime
-locks.
+Release Please releases the GitHub Actions component `agent-daemon-action`.
+Bundles are ignored on main. CI builds all actions when an action project is
+affected or the release manifest changes, and checks for inlined self-run
+guards.
 
 `publish-actions` checks out each version tag, builds the required bundles,
-checks entry points and runtime locks, and publishes the draft release. It then
-creates a detached release-only commit containing `dist/`. Review action
-releases also include `agent-daemon-action/dist`, which their reusable workflows
-run from the same commit. Only the stable major tag (`v0`,
-`docs-impact-review-action-v0`, or `complexity-review-action-v0`) moves to this
-built commit. No branch is pushed. Release notes record the built SHA for exact
-pins; version tags contain sources and cannot be used to run the actions.
+checks entry points, and publishes the draft release. It then creates a detached
+release-only commit containing `dist/`. Only the stable major tag (`v0`) moves
+to this built commit. No branch is pushed. Release notes record the built SHA
+for exact pins; version tags contain sources and cannot be used to run the
+actions.
 
 Release-please's version tags must stay on main: its manifest uses their SHAs as
 previous-release boundaries while walking main's history. Moving those tags
