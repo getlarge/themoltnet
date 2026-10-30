@@ -1653,6 +1653,9 @@ importers:
 
   apps/orchestration-e2e:
     dependencies:
+      '@moltnet/sdlc':
+        specifier: workspace:*
+        version: link:../../libs/sdlc
       '@themoltnet/issue-lifecycle':
         specifier: workspace:*
         version: link:../issue-lifecycle
@@ -1943,6 +1946,9 @@ importers:
       '@moltnet/models':
         specifier: workspace:*
         version: link:../../libs/models
+      '@moltnet/sdlc':
+        specifier: workspace:*
+        version: link:../../libs/sdlc
       '@ory/client-fetch':
         specifier: 'catalog:'
         version: 1.22.66
@@ -3522,6 +3528,12 @@ importers:
       '@moltnet/adaptive-review':
         specifier: workspace:*
         version: link:../adaptive-review
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      '@themoltnet/tasks-orchestrator':
+        specifier: workspace:*
+        version: link:../tasks-orchestrator
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
