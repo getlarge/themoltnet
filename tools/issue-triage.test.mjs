@@ -3,7 +3,9 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { test } from 'node:test';
+import { fileURLToPath } from 'node:url';
+
+import { test } from 'vitest';
 
 import {
   buildSpec,
@@ -16,7 +18,9 @@ import {
   CRITERIA,
   issueContentDigest,
   validateAcceptedTask,
-} from './issue-triage.mjs';
+} from '../.github/scripts/issue-triage.mjs';
+
+const root = fileURLToPath(new URL('../', import.meta.url));
 
 const issue = {
   number: 42,
@@ -356,7 +360,7 @@ if (args[2] === 'GET') {
     CLI_PACKAGES: cliPackagesPath,
     MOLTNET_CLI_PACKAGE: '',
     MOLTNET_CLI_VERSION: readFileSync(
-      new URL('../workflows/issue-triage.yml', import.meta.url),
+      new URL('../.github/workflows/issue-triage.yml', import.meta.url),
       'utf8',
     ).match(/MOLTNET_CLI_VERSION: '([^']+)'/)[1],
     GH_BODY: bodyPath,
@@ -375,6 +379,7 @@ if (args[2] === 'GET') {
   };
   const run = (mode) =>
     spawnSync('node', ['.github/scripts/issue-triage.mjs', mode], {
+      cwd: root,
       env,
       encoding: 'utf8',
     });
@@ -523,6 +528,7 @@ if (args[2] === 'GET') {
     'node',
     ['.github/scripts/issue-triage.mjs', 'publish'],
     {
+      cwd: root,
       env: { ...env, CLASSIFIER_CORRELATION_ID: 'different-correlation' },
       encoding: 'utf8',
     },
@@ -679,8 +685,8 @@ test('binds the canonical service-normalized freeform input without accepting ar
   const expected = buildSpec(issue, 'getlarge/themoltnet', false);
   // The service adds this gate to older requests that omitted successCriteria.
   // New requests state the identical contract so normalization is idempotent.
-  const { successCriteria: _explicitCriteria, ...olderRequestInput } =
-    expected.input;
+  const olderRequestInput = { ...expected.input };
+  delete olderRequestInput.successCriteria;
   const normalized = spawnSync(
     process.execPath,
     [
@@ -696,6 +702,7 @@ process.stdout.write(JSON.stringify(inputs.map(input => normalizeTaskInputForCre
 `,
     ],
     {
+      cwd: root,
       input: JSON.stringify([olderRequestInput, expected.input]),
       encoding: 'utf8',
     },
