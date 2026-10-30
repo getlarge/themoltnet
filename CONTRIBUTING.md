@@ -48,6 +48,45 @@ For a focused first change:
 The repository uses pnpm workspaces and Nx. Prefer Nx targets for build, test,
 lint, typecheck, and serve tasks; `AGENTS.md` documents the exceptions.
 
+## Visual evidence for UI changes
+
+Before marking a UI-affecting PR ready for review, include visual evidence in
+its description. This applies to browser and Desktop interfaces, shared design
+system components, documentation layouts or interactive examples, and changes
+elsewhere that alter what users see or how they interact with a surface.
+
+- **Screenshots:** show the changed layout, copy, or visible state. Include
+  before and after captures when they help reviewers compare existing and
+  updated behavior; for a new surface, show the resulting interface.
+- **Recordings:** add a short recording when timing, motion, navigation, focus,
+  or a sequence of actions is necessary to understand the change. A recording
+  can replace static captures when it also makes the changed states readable.
+- **Coverage:** capture the states affected by the change, such as success,
+  error, loading, or empty states, at relevant supported window sizes or on
+  relevant devices. Include both themes when the change affects their
+  appearance. Keep the evidence proportional to the change; do not capture
+  unrelated states or pages.
+
+Capture the implemented result, inspect it yourself, and label each image or
+clip with the scenario and relevant theme or window size. Refresh evidence
+after later commits change the visible result. Use synthetic or redacted data;
+never publish secrets, private account data, or unrelated windows.
+
+Embed uploads or durable, reviewer-accessible links in the PR description.
+Local file paths and expiring CI artifacts are not sufficient. Commit media
+only when it also belongs in documentation or reusable fixtures; PR uploads
+are sufficient for review evidence alone.
+
+Tests complement visual evidence. If a UI-affecting change has no capturable
+visible effect, explain why in the PR's Visual evidence section and identify
+the relevant verification, such as keyboard or accessibility tests. Inability
+to run or capture the UI is a validation gap, not an automatic exemption:
+describe the blocker and propose alternative evidence, such as reproducible
+steps and relevant automated verification. Keep the PR in draft until a reviewer
+agrees that the alternative demonstrates the changed behavior. Reviewers should
+request changes when evidence is missing, outdated, or does not demonstrate the
+affected behavior.
+
 ## What makes a good contribution
 
 Start from a concrete user or operator need. Keep changes small enough to
