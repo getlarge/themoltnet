@@ -749,6 +749,9 @@ it('resumes after interrupted unsafe tool intent without executing the tool twic
   const models = createModels();
   models.setProvider(faux.provider);
   let controller = new AbortController();
+  const interruption = new TaskExecutionInterrupted('Durable writer lost', {
+    cause: new Error('renew request timed out'),
+  });
   let executions = 0;
   const execute = createDurableTaskExecutor({
     models,
@@ -771,7 +774,7 @@ it('resumes after interrupted unsafe tool intent without executing the tool twic
             replay: 'unsafe' as const,
             async execute() {
               executions++;
-              controller.abort(new Error('simulated process interruption'));
+              controller.abort(interruption);
               throw new Error('interrupted');
             },
           },
@@ -785,8 +788,13 @@ it('resumes after interrupted unsafe tool intent without executing the tool twic
     }),
     submitted(),
   ]);
-  await expect(execute(task(), reporter())).rejects.toBeInstanceOf(
-    TaskExecutionInterrupted,
+  const interrupted = await execute(task(), reporter()).catch(
+    (error: unknown) => error,
+  );
+  expect(interrupted).toBeInstanceOf(TaskExecutionInterrupted);
+  expect((interrupted as Error).cause).toBe(interruption);
+  expect(((interrupted as Error).cause as Error).cause).toEqual(
+    new Error('renew request timed out'),
   );
   controller = new AbortController();
   const result = await execute(task(), reporter());
