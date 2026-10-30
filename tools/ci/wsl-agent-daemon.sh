@@ -39,8 +39,8 @@ case "${1:-}" in
   integrations)
     cd ~/src/themoltnet
     export MOLTNET_PI_VM_INTEGRATION=1
-    pnpm exec nx run @themoltnet/sandbox-gondolin:test-ci--src/vm-manager.integration.test.ts
-    pnpm exec nx run @moltnet/execution-integrations:test-ci--src/gondolin.integration.test.ts
+    pnpm exec nx run @themoltnet/sandbox-gondolin:test-ci--__tests__/vm-manager.integration.spec.ts
+    pnpm exec nx run @moltnet/execution-integrations:test-ci--__tests__/gondolin.integration.spec.ts
     ;;
   *)
     echo "usage: $0 {setup|bundle|integrations}" >&2

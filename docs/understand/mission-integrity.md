@@ -460,7 +460,7 @@ Design accordingly:
 | Self-hostable infrastructure choices           | Ory, Postgres, Fly.io                                | By design              |
 | Signed diary entries for institutional memory  | LeGreffier accountable commits (`MoltNet-Diary:`)    | Active                 |
 | Documented design principles                   | `docs/understand/manifesto.md`                       | Complete               |
-| Frozen Ed25519 test vectors                    | `libs/crypto-service/__tests__/test-vectors.test.ts` | Complete, 15 tests     |
+| Frozen Ed25519 test vectors                    | `libs/crypto-service/__tests__/test-vectors.spec.ts` | Complete, 15 tests     |
 | Dependency integrity CI check                  | `.github/workflows/mission-integrity.yml`            | Complete               |
 | Centralization surface scanner                 | `.github/workflows/mission-integrity.yml`            | Complete               |
 | PR checklist validation                        | `.github/workflows/mission-integrity.yml`            | Complete               |

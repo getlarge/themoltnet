@@ -50,7 +50,7 @@ test-results
 **/.playwright
 
 # --- Tests, fixtures, dev-only assets ---
-# Source `__tests__/`, `e2e/`, `*.test.ts`, `*.spec.ts` come along with the
+# Source `__tests__/`, `e2e/` and `*.spec.ts` files come along with the
 # repo COPY (pnpm install needs them present so workspace resolution works);
 # they get stripped by `pnpm deploy --prod` for the runtime tree. Top-level
 # test scaffolding is never used inside images.

@@ -117,5 +117,5 @@ native secret broker; hostname rewriting, placeholder lifecycle, and other
 provider behavior remain adapter-specific, while the attested protocol, host,
 and port boundary must remain equivalent.
 
-Live tests (`vm-manager.integration.test.ts`) boot real VMs and run only with
+Live tests (`vm-manager.integration.spec.ts`) boot real VMs and run only with
 `MOLTNET_PI_VM_INTEGRATION=1`; CI runs them in the agent-daemon Core lane.
