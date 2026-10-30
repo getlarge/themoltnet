@@ -1,0 +1,23 @@
+{
+  "brief": {
+    "brief": "Document the approved behavior.",
+    "successCriteria": {
+      "rubric": {
+        "criteria": [
+          {
+            "description": "The example matches the tested behavior.",
+            "id": "accuracy",
+            "scoring": "llm_score",
+            "weight": 1
+          }
+        ],
+        "rubricId": "pilot",
+        "version": "v1"
+      },
+      "version": 1
+    }
+  },
+  "correlationId": "55555555-5555-4555-8555-555555555555",
+  "issueDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "issueNumber": 42
+}

@@ -1,0 +1,76 @@
+{
+  "appUserId": 1,
+  "diaryId": "22222222-2222-4222-8222-222222222222",
+  "evidence": {
+    "auditLanes": [
+      "docs",
+      "tests",
+      "conventions",
+      "security",
+      "blast-radius",
+      "complexity"
+    ],
+    "requiredChecks": ["ci"],
+    "requiredLanes": ["docs"]
+  },
+  "executors": {
+    "assessment": {
+      "dispatchTimeoutSec": 600,
+      "maxAttempts": 1,
+      "profileId": "44444444-4444-4444-8444-444444444444",
+      "runningTimeoutSec": 900
+    },
+    "delivery": {
+      "dispatchTimeoutSec": 600,
+      "maxAttempts": 1,
+      "profileId": "33333333-3333-4333-8333-333333333333",
+      "runningTimeoutSec": 1800
+    }
+  },
+  "github": {
+    "allowedPaths": ["docs/"],
+    "allowedPermissions": ["write", "admin"],
+    "approvalLabel": "agent:auto",
+    "baseBranch": "main",
+    "cancelLabel": "agent:cancel",
+    "deliveredStage": "review",
+    "eligibleLabels": ["ready-for-agent"],
+    "labels": {
+      "stages": {
+        "cancelled": "agent:cancelled",
+        "delivery": "agent:delivering",
+        "needs-human": "agent:needs-human",
+        "paused": "agent:paused",
+        "preparation": "agent:brief-ready",
+        "ready": "agent:ready-for-human",
+        "review": "agent:reviewing"
+      }
+    },
+    "pauseLabel": "agent:pause",
+    "protectedPaths": [
+      ".github/",
+      "libs/database/",
+      "libs/auth/",
+      "libs/crypto-service/",
+      "infra/",
+      "packages/",
+      "package.json",
+      "pnpm-lock.yaml",
+      "docs/understand/agent-security.md",
+      "docs/understand/mission-integrity.md"
+    ]
+  },
+  "limits": {
+    "convergence": {
+      "evidenceTimeoutSec": 3600,
+      "maxRepairRounds": 2,
+      "pollIntervalSec": 15,
+      "repairTimeoutSec": 3600
+    },
+    "maxActiveCases": 2,
+    "stageTimeoutSec": 3600
+  },
+  "repository": "getlarge/themoltnet",
+  "teamId": "11111111-1111-4111-8111-111111111111",
+  "version": 1
+}

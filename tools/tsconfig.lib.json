@@ -48,6 +48,9 @@
       "path": "../libs/tasks/tsconfig.lib.json"
     },
     {
+      "path": "../libs/sdlc/tsconfig.lib.json"
+    },
+    {
       "path": "../libs/runtime-profiles/tsconfig.lib.json"
     },
     {

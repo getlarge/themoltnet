@@ -4136,6 +4136,9 @@ importers:
       '@moltnet/runtime-profiles':
         specifier: workspace:*
         version: link:../libs/runtime-profiles
+      '@moltnet/sdlc':
+        specifier: workspace:*
+        version: link:../libs/sdlc
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../libs/tasks
