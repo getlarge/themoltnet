@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   computeLock,
+  locksForProject,
   RUNTIME_LOCKS,
   staleLocks,
 } from './action-runtime-lock.js';
@@ -76,6 +77,26 @@ describe('released action runtime inputs', () => {
         ':(exclude,glob)**/*.test.ts',
       ]),
     );
+  });
+
+  it('excludes both test file conventions', () => {
+    const [adaptive] = RUNTIME_LOCKS;
+    expect(adaptive.pathspecs).toEqual(
+      expect.arrayContaining([
+        ':(exclude,glob)**/*.test.ts',
+        ':(exclude,glob)**/*.spec.ts',
+      ]),
+    );
+  });
+
+  it("selects only the publishing project's locks", () => {
+    const locks = [
+      { lock: 'packages/a-action/runtime.lock', pathspecs: ['x'] },
+      { lock: 'packages/a-action-extra/runtime.lock', pathspecs: ['y'] },
+    ];
+    expect(locksForProject('packages/a-action', locks)).toEqual([locks[0]]);
+    expect(locksForProject('packages/a-action/', locks)).toEqual([locks[0]]);
+    expect(locksForProject('packages/b-action', locks)).toEqual([]);
   });
 
   it('never locks generated bundles', () => {

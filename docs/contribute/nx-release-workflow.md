@@ -358,17 +358,26 @@ pnpm exec nx run moltnet-cli:nx-release-publish -- --skip-upload --verbose
 
 ## GitHub Actions
 
-Release Please releases the GitHub Actions component `agent-daemon-action`.
-Bundles are ignored on main. CI builds all actions when an action project is
-affected or the release manifest changes, checks for inlined self-run guards,
-and verifies runtime locks.
+Release Please releases the GitHub Actions components `agent-daemon-action` and
+`adaptive-review-action` (stable major tag `adaptive-review-action-v0`). The
+release workflow's `republish` input accepts both. Bundles are ignored on main.
+CI builds all actions when an action project is affected or the release manifest
+changes, checks for inlined self-run guards, and verifies runtime locks.
+
+A runtime lock (`packages/<action>/runtime.lock`, defined in
+`tools/src/release/action-runtime-lock.ts`) hashes the files an action runs from
+outside its package. For `adaptive-review-action` these are the reusable
+workflows, their `tools/` scripts, and the review libraries' sources. When you
+change one, run `node tools/src/release/action-runtime-lock.ts --write` and
+commit the refreshed lock in a `fix` or `feat` commit: the lock lives in the
+package, so release-please releases the action.
 
 `publish-actions` checks out each version tag, builds the required bundles,
 checks entry points and runtime locks, and publishes the draft release. It then
 creates a detached release-only commit containing `dist/`. Only the stable major
-tag (`v0`) moves to this built commit. No branch is pushed. Release notes record
-the built SHA for exact pins; version tags contain sources and cannot be used to
-run the actions.
+tag (`v0` or `adaptive-review-action-v0`) moves to this built commit. No branch
+is pushed. Release notes record the built SHA for exact pins; version tags
+contain sources and cannot be used to run the actions.
 
 Release-please's version tags must stay on main: its manifest uses their SHAs as
 previous-release boundaries while walking main's history. Moving those tags

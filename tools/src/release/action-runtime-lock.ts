@@ -42,6 +42,7 @@ export const RUNTIME_LOCKS: RuntimeLock[] = [
       'libs/docs-impact-review/src',
       'libs/security-review/src',
       ':(exclude,glob)**/*.test.ts',
+      ':(exclude,glob)**/*.spec.ts',
     ],
   },
 ];
@@ -79,6 +80,15 @@ export function computeLock(root: string, spec: RuntimeLock): string {
     files.set(path, readFileSync(join(root, path)));
   }
   return renderLock(files);
+}
+
+/** The locks that belong to the action project at `projectRoot`. */
+export function locksForProject(
+  projectRoot: string,
+  locks = RUNTIME_LOCKS,
+): RuntimeLock[] {
+  const prefix = `${projectRoot.replace(/\/+$/, '')}/`;
+  return locks.filter((lock) => lock.lock.startsWith(prefix));
 }
 
 /** Locks whose committed text differs from the files they cover. */
