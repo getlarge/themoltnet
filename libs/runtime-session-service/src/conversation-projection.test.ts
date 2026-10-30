@@ -1,0 +1,260 @@
+import { BACKGROUND_CONTEXT as context } from '@earendil-works/chord/context';
+import {
+  createSession,
+  defineDocFamily,
+  type EntryId,
+  LiveDoc,
+  MemoryStorage,
+  type StorageWrite,
+} from '@earendil-works/pi-durable';
+import type { RuntimeStoreRepository } from '@moltnet/database';
+import { describe, expect, it, vi } from 'vitest';
+
+import {
+  createConversationProjectionReader,
+  projectConversationCommit,
+} from './conversation-projection.js';
+
+type Row = NonNullable<
+  Awaited<ReturnType<RuntimeStoreRepository['conversationRecord']>>
+>;
+function repository() {
+  const rows: Row[] = [];
+  let head = 0;
+  const repo = {
+    conversationRecord: async (
+      store: string,
+      type: string,
+      id: number,
+      seq: number,
+    ) =>
+      rows
+        .filter(
+          (r) =>
+            r.storeId === store &&
+            r.type === type &&
+            r.id === id &&
+            r.seq <= seq,
+        )
+        .sort((a, b) => b.seq - a.seq)[0],
+    conversationDocument: async (store: string, address: string, seq: number) =>
+      rows
+        .filter(
+          (r) => r.storeId === store && r.address === address && r.seq <= seq,
+        )
+        .sort((a, b) => b.seq - a.seq || b.id - a.id)[0],
+    conversationList: async (store: string, seq: number) =>
+      rows
+        .filter(
+          (r) =>
+            r.storeId === store && r.type === 'conversation' && r.seq <= seq,
+        )
+        .sort((a, b) => a.id - b.id),
+    conversationEntries: async (
+      store: string,
+      id: number,
+      seq: number,
+      max: number,
+      limit: number,
+    ) =>
+      rows
+        .filter(
+          (r) =>
+            r.storeId === store &&
+            r.type === 'entry' &&
+            r.conversationId === id &&
+            r.seq <= seq &&
+            r.id <= max,
+        )
+        .sort((a, b) => b.id - a.id)
+        .slice(0, limit),
+    saveConversationRecords: async (
+      storeId: string,
+      seq: number,
+      records: Omit<Row, 'storeId' | 'seq'>[],
+    ) => {
+      rows.push(
+        ...structuredClone(records).map((r) => ({ ...r, storeId, seq })),
+      );
+      head = seq;
+    },
+  } as unknown as RuntimeStoreRepository;
+  return { repo, rows, head: () => head };
+}
+const Attempt = defineDocFamily({
+  kind: 'moltnet.attempt',
+  version: 1,
+  scope: 'session',
+  family: true,
+  checkpointWhen: () => false,
+  initial: (conversationId: number) => ({ conversationId }),
+});
+
+async function fixture() {
+  const db = repository();
+  class Writer extends MemoryStorage {
+    override async commit(writes: readonly StorageWrite[]) {
+      const seq = await super.commit(writes, context);
+      await projectConversationCommit(db.repo, 'store', seq, [...writes]);
+      return seq;
+    }
+  }
+  const storage = new Writer();
+  const session = createSession(storage);
+  const reader = createConversationProjectionReader(db.repo);
+  const root = (
+    await session.commit(
+      (tx) => tx.createConversation({ ownership: { kind: 'ownerless' } }),
+      context,
+    )
+  ).id;
+  await session.commit(async (tx) => {
+    await tx.doc(Attempt, 'task/1', root);
+  }, context);
+  return { ...db, storage, session, reader, root };
+}
+
+describe('conversation projection conforms to Pi storage', () => {
+  it('pages immutable entries and preserves historical commit boundaries', async () => {
+    const f = await fixture();
+    for (let i = 0; i < 110; i++)
+      await f.session.commit(
+        (tx) =>
+          tx.appendEntry(f.root, {
+            kind: 'pi.user',
+            model: [{ role: 'user', content: String(i), timestamp: i }],
+          }),
+        context,
+      );
+    const boundary = f.head();
+    await f.session.commit(
+      (tx) =>
+        tx.appendEntry(f.root, {
+          kind: 'pi.user',
+          model: [{ role: 'user', content: 'later attempt', timestamp: 111 }],
+        }),
+      context,
+    );
+    await f.reader.at('store', boundary);
+    const recordReads = vi.spyOn(f.repo, 'conversationRecord');
+    let before: EntryId | undefined;
+    const seen: number[] = [];
+    for (let i = 0; i < 4; i++) {
+      const query = { conversationId: f.root, maxEntryId: before };
+      const actual = await f.reader.scanEntries(query, 30);
+      // Exclude the newer attempt's entry from the native oracle too.
+      const oracle = await f.storage.scanEntries(
+        {
+          ...query,
+          maxEntryId:
+            before ??
+            (
+              await f.storage.scanEntries(
+                { conversationId: f.root },
+                2,
+                undefined,
+                context,
+              )
+            ).items[1].id,
+        },
+        30,
+        undefined,
+        context,
+      );
+      expect(actual.items).toEqual(oracle.items);
+      for (const entry of actual.items)
+        expect((await f.reader.entry(entry.id))?.entry).toEqual(entry);
+      expect(recordReads).not.toHaveBeenCalled();
+      expect(Boolean(actual.next)).toBe(Boolean(oracle.next));
+      seen.push(...actual.items.map((e) => e.id));
+      before = (actual.items.at(-1)!.id - 1) as EntryId;
+    }
+    expect(new Set(seen).size).toBe(110);
+    await f.session.close(context);
+  });
+  it('materializes live deltas, retains the prior attempt view, and retires documents', async () => {
+    const f = await fixture();
+    await f.session.commit(async (tx) => {
+      const live = await tx.doc(LiveDoc, f.root);
+      live.generation = {
+        attempt: 1,
+        message: {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'first' }],
+        } as never,
+      };
+    }, context);
+    const boundary = f.head();
+    const address = {
+      kind: 'pi.live',
+      scope: { kind: 'conversation' as const, conversationId: f.root },
+    };
+    const record = await f.storage.findDocument(address, 'current', context);
+    await f.session.commit(async (tx) => {
+      const live = await tx.doc(LiveDoc, f.root);
+      live.generation!.message!.content[0] = { type: 'text', text: 'second' };
+    }, context);
+    await f.reader.at('store', f.head());
+    expect((await f.reader.document(record!.id))!.value).toEqual(
+      (await f.storage.document(record!.id, 'current', context))!.value,
+    );
+    await f.reader.at('store', boundary);
+    expect(
+      JSON.stringify((await f.reader.document(record!.id))!.value),
+    ).toContain('first');
+    await f.storage.commit([{ type: 'document.retire', id: record!.id }]);
+    await f.reader.at('store', f.head());
+    expect(await f.reader.findDocument(address)).toBeUndefined();
+    await f.session.close(context);
+  });
+  it('returns the same fork ancestry and pagination as Pi', async () => {
+    const f = await fixture();
+    const first = await f.session.commit(
+      (tx) =>
+        tx.appendEntry(f.root, {
+          kind: 'pi.user',
+          model: [{ role: 'user', content: 'inherited', timestamp: 1 }],
+        }),
+      context,
+    );
+    await f.session.commit(
+      (tx) =>
+        tx.appendEntry(f.root, {
+          kind: 'pi.user',
+          model: [{ role: 'user', content: 'excluded', timestamp: 2 }],
+        }),
+      context,
+    );
+    const fork = await f.session.commit(
+      (tx) =>
+        tx.forkConversation(f.root, first.id, {
+          ownership: { kind: 'ownerless' },
+        }),
+      context,
+    );
+    await f.session.commit(
+      (tx) =>
+        tx.appendEntry(fork.id, {
+          kind: 'pi.user',
+          model: [{ role: 'user', content: 'child', timestamp: 3 }],
+        }),
+      context,
+    );
+    await f.reader.at('store', f.head());
+    for (const limit of [1, 2, 100]) {
+      const actual = await f.reader.scanEntries(
+        { conversationId: fork.id },
+        limit,
+      );
+      const expected = await f.storage.scanEntries(
+        { conversationId: fork.id },
+        limit,
+        undefined,
+        context,
+      );
+      expect(actual.items).toEqual(expected.items);
+      expect(Boolean(actual.next)).toBe(Boolean(expected.next));
+    }
+    await f.session.close(context);
+  });
+});

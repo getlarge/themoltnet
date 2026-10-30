@@ -1,0 +1,1 @@
+CREATE INDEX "runtime_store_commits_attempt_seq_idx" ON "runtime_store_commits" USING btree ("store_id","task_id","attempt_n","seq");

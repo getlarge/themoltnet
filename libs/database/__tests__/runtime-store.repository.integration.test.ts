@@ -192,10 +192,23 @@ describe('Runtime store authority and serialization (PostgreSQL)', () => {
           taskId,
           attemptN: 1,
         });
+        await repo.saveConversationRecords(store.id, 1, [
+          {
+            type: 'entry',
+            id: 1,
+            conversationId: 1,
+            address: null,
+            value: { id: 1 },
+          },
+        ]);
         throw new Error('rollback');
       }),
     ).rejects.toThrow('rollback');
     expect((await repo.get(teamId, store.id))?.headSeq).toBe(0);
+    expect(await repo.conversationHead(store.id)).toBe(0);
+    expect(
+      await repo.conversationRecord(store.id, 'entry', 1, 1),
+    ).toBeUndefined();
     expect(await repo.listCommits(store.id, 0, 100, 100)).toEqual([]);
     await db.delete(runtimeStores).where(eq(runtimeStores.id, store.id));
   });
@@ -212,10 +225,49 @@ describe('Runtime store authority and serialization (PostgreSQL)', () => {
         taskId,
         attemptN: 1,
       });
+      await repo.saveConversationRecords(store.id, 1, [
+        {
+          type: 'entry',
+          id: 10,
+          conversationId: 1,
+          address: null,
+          value: { id: 10 },
+        },
+      ]);
       await repo.update(store.id, { nextId: 12 });
       return repo.lock(teamId, store.id);
     });
+    // A writer can advance the source after its head was captured for a fork.
+    await runner.runInTransaction(async () => {
+      await repo.append({
+        storeId: source!.id,
+        seq: 2,
+        commitId: randomUUID(),
+        sha256: 'c'.repeat(64),
+        objectKey: 'later-source-commit',
+        sizeBytes: 5,
+        taskId,
+        attemptN: 1,
+      });
+      await repo.saveConversationRecords(source!.id, 2, [
+        {
+          type: 'entry',
+          id: 11,
+          conversationId: 1,
+          address: null,
+          value: { id: 11 },
+        },
+      ]);
+    });
     const fork = await runner.runInTransaction(() => repo.fork(source!));
+    expect(await repo.conversationHead(fork.id)).toBe(1);
+    expect(
+      await repo.conversationRecord(fork.id, 'entry', 10, 100),
+    ).toBeDefined();
+    expect(
+      await repo.conversationRecord(fork.id, 'entry', 11, 100),
+    ).toBeUndefined();
+    expect(await repo.listCommits(fork.id, 0, 10, 100)).toHaveLength(1);
     expect(fork.id).not.toBe(source!.id);
     expect(fork.headSeq).toBe(1);
     expect(fork.nextId).toBe(12);
@@ -235,8 +287,8 @@ describe('Runtime store authority and serialization (PostgreSQL)', () => {
         attemptN: 1,
       }),
     );
-    expect((await repo.get(teamId, source!.id))?.headSeq).toBe(1);
-    expect(await repo.listCommits(source!.id, 0, 10, 2)).toHaveLength(1);
+    expect((await repo.get(teamId, source!.id))?.headSeq).toBe(2);
+    expect(await repo.listCommits(source!.id, 0, 10, 2)).toHaveLength(2);
     await db.delete(runtimeStores).where(eq(runtimeStores.id, fork.id));
     await db.delete(runtimeStores).where(eq(runtimeStores.id, source!.id));
   });

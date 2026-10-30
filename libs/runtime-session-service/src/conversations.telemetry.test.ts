@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { Readable } from 'node:stream';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context';
@@ -12,6 +14,7 @@ import { SpanStatusCode } from '@opentelemetry/api';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createConversationService } from './conversations.js';
+import { createRuntimeStoreService } from './runtime-stores.js';
 
 const spans = vi.hoisted(
   () =>
@@ -266,4 +269,88 @@ describe('conversation refresh telemetry', () => {
       'deadline',
     );
   });
+});
+
+it('separates database, permission, full-body download and decode spans', async () => {
+  const bytes = Buffer.from(
+    JSON.stringify({ format: 'pi-durable.v1', writes: [] }),
+  );
+  spans.length = 0;
+  function deferred() {
+    let resolve!: () => void;
+    const promise = new Promise<void>((done) => {
+      resolve = done;
+    });
+    return { promise, resolve };
+  }
+  const bodyGate = deferred();
+  const bodyStarted = deferred();
+  const service = createRuntimeStoreService({
+    repository: {
+      get: async () => ({ id: 'store', headSeq: 1 }),
+      listCommits: async () => [
+        {
+          seq: 1,
+          taskId: 'task',
+          commitId: 'commit',
+          objectKey: 'key',
+          sizeBytes: bytes.length,
+          sha256: createHash('sha256').update(bytes).digest('hex'),
+        },
+      ],
+      listCommitTaskIds: async () => ['task'],
+      listAttempts: async () => [{ taskId: 'task' }],
+    },
+    permissionChecker: {
+      canAccessTeam: async () => true,
+      canViewTasks: async () => new Map([['task', true]]),
+    },
+    storage: {
+      getObject: async () => ({
+        body: Readable.from(
+          (async function* () {
+            bodyStarted.resolve();
+            await bodyGate.promise;
+            yield bytes;
+          })(),
+        ),
+      }),
+    },
+    maxBytes: 1024,
+  } as unknown as Parameters<typeof createRuntimeStoreService>[0]);
+  const page = await service.read({ ...input, storeId: 'store' });
+  const consumed = (async () => {
+    for await (const commit of page.items) expect(commit.seq).toBe(1);
+  })();
+  await bodyStarted.promise;
+  try {
+    expect(
+      spans.find((s) => s.name === 'moltnet.runtime.read.object.download')
+        ?.ended,
+    ).toBe(false);
+    expect(
+      spans.some((s) => s.name === 'moltnet.runtime.read.object.decode'),
+    ).toBe(false);
+    for (const phase of [
+      'database.store',
+      'database.commits',
+      'database.attempts',
+      'database.contributors',
+      'authorization.team',
+      'authorization.tasks',
+    ]) {
+      expect(
+        spans.find((s) => s.name === `moltnet.runtime.read.${phase}`)?.ended,
+      ).toBe(true);
+    }
+  } finally {
+    bodyGate.resolve();
+    await consumed;
+  }
+  expect(
+    spans.find((s) => s.name === 'moltnet.runtime.read.object.download')?.ended,
+  ).toBe(true);
+  expect(
+    spans.find((s) => s.name === 'moltnet.runtime.read.object.decode')?.ended,
+  ).toBe(true);
 });

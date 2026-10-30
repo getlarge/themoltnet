@@ -2000,10 +2000,48 @@ export const runtimeStoreCommits = pgTable(
   (t) => [
     primaryKey({ columns: [t.storeId, t.seq] }),
     uniqueIndex('runtime_store_commits_request_idx').on(t.storeId, t.commitId),
+    index('runtime_store_commits_attempt_seq_idx').on(
+      t.storeId,
+      t.taskId,
+      t.attemptN,
+      t.seq,
+    ),
     check(
       'runtime_store_commits_valid',
       sql`${t.seq} > 0 AND ${t.sizeBytes} >= 0 AND ${t.sha256} ~ '^[0-9a-f]{64}$'`,
     ),
+  ],
+);
+
+/** Rebuildable conversation read model, versioned at durable commit boundaries. */
+export const runtimeConversationHeads = pgTable('runtime_conversation_heads', {
+  storeId: uuid('store_id')
+    .primaryKey()
+    .references(() => runtimeStores.id, { onDelete: 'cascade' }),
+  seq: integer('seq').notNull().default(0),
+});
+export const runtimeConversationRecords = pgTable(
+  'runtime_conversation_records',
+  {
+    storeId: uuid('store_id')
+      .notNull()
+      .references(() => runtimeStores.id, { onDelete: 'cascade' }),
+    type: text('type').notNull(),
+    id: bigint('id', { mode: 'number' }).notNull(),
+    seq: integer('seq').notNull(),
+    conversationId: bigint('conversation_id', { mode: 'number' }),
+    address: text('address'),
+    value: jsonb('value').$type<Record<string, unknown>>().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.storeId, t.type, t.id, t.seq] }),
+    index('runtime_conversation_entries_idx').on(
+      t.storeId,
+      t.type,
+      t.conversationId,
+      t.id,
+    ),
+    index('runtime_conversation_address_idx').on(t.storeId, t.address, t.seq),
   ],
 );
 

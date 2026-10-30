@@ -39,6 +39,9 @@ function setup(
     attemptN: 1,
   };
   const repository = {
+    conversationHead: vi.fn(async () => Number(row.headSeq) - 1),
+    conversationRecord: vi.fn(async () => undefined),
+    saveConversationRecords: vi.fn(),
     lockAuthority: vi.fn(async () => ({
       task: { input: {}, claimExpiresAt: new Date(now + 300_000) },
       attempt: {},
