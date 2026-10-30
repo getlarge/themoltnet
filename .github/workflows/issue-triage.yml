@@ -66,7 +66,7 @@ jobs:
     env:
       # The action defaults to the workspace CLI version, which may precede
       # its npm publication after a release-please merge.
-      MOLTNET_CLI_VERSION: '3.22.0'
+      MOLTNET_CLI_VERSION: '3.23.0'
     concurrency:
       group: issue-triage-pilot
       queue: max
