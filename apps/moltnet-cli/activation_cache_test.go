@@ -1080,6 +1080,14 @@ func TestAgentsActivationRefreshReportsRejectedCredential(t *testing.T) {
 	if !strings.Contains(err.Error(), "rejected this credential") {
 		t.Fatalf("error = %v", err)
 	}
+	for _, hint := range []string{"expired", "agents keys create --help", "rotation preserves expiry"} {
+		if !strings.Contains(err.Error(), hint) {
+			t.Fatalf("recovery guidance missing %q: %v", hint, err)
+		}
+	}
+	if strings.Contains(err.Error(), "or rotate with") {
+		t.Fatalf("rejected key was directed to OAuth secret rotation: %v", err)
+	}
 	if _, statErr := os.Stat(fixtureActivationCachePath(t, dir)); statErr == nil {
 		t.Fatal("an activation cache was written despite an unverified identity")
 	}

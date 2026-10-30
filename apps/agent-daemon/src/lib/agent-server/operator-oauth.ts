@@ -8,7 +8,28 @@ import { isLoopbackHostname } from '@moltnet/loopback-companion';
 import { OPERATOR_OAUTH } from '@moltnet/models';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
+import { AgentServerHttpError } from './http-error.js';
+
 export class InvalidOperatorGrantError extends Error {}
+
+/** Safe messages cross the native bridge, which exposes errors as strings. */
+export class OperatorApprovalError extends AgentServerHttpError {
+  constructor(
+    readonly reason: 'denied' | 'team_access' | 'expired' | 'failed',
+  ) {
+    super(
+      reason === 'expired' ? 408 : reason === 'failed' ? 502 : 403,
+      `approval_${reason}`,
+      reason === 'failed'
+        ? 'Approval failed. No credential was issued. Start a new approval or try again later.'
+        : reason === 'expired'
+          ? 'Approval expired. Start a new approval and complete it within five minutes.'
+          : reason === 'team_access'
+            ? 'Team approval denied. Your signed-in account cannot manage credentials for this team. Ask a team owner to grant access; refreshing operator teams does not grant permission.'
+            : 'Approval denied. No credential was issued. Start a new approval when ready.',
+    );
+  }
+}
 
 const LOCAL_SCOPE = OPERATOR_OAUTH.localControlScope;
 export interface OperatorOAuthConfig {
@@ -193,7 +214,7 @@ export class OperatorOAuth {
     const controller = new AbortController();
     this.pending = controller;
     const timeout = setTimeout(
-      () => controller.abort(),
+      () => controller.abort(new OperatorApprovalError('expired')),
       OPERATOR_OAUTH.nativeLifetimeSeconds * 1000,
     );
     const abort = () => controller.abort();
@@ -228,8 +249,22 @@ export class OperatorOAuth {
             url.searchParams.getAll('code').length !== 1 ||
             !url.searchParams.get('code')
           ) {
-            res.end('Approval cancelled. Return to Desktop.');
-            reject(new Error('Approval cancelled'));
+            res.end(
+              'Approval did not complete. Return to Desktop for details.',
+            );
+            reject(
+              new OperatorApprovalError(
+                url.searchParams.getAll('error').length === 1 &&
+                  url.searchParams.get('error') === 'access_denied' &&
+                  !url.searchParams.has('code')
+                  ? url.searchParams.getAll('error_description').length === 1 &&
+                    url.searchParams.get('error_description') ===
+                      'team_management_required'
+                    ? 'team_access'
+                    : 'denied'
+                  : 'failed',
+              ),
+            );
             return;
           }
           res.end('Approval received. Return to Desktop.');
@@ -238,7 +273,12 @@ export class OperatorOAuth {
         server.once('error', reject);
         controller.signal.addEventListener(
           'abort',
-          () => reject(new Error('Approval cancelled')),
+          () =>
+            reject(
+              controller.signal.reason instanceof OperatorApprovalError
+                ? controller.signal.reason
+                : new Error('Approval cancelled'),
+            ),
           { once: true },
         );
         server.listen(this.config.callbackPort, '127.0.0.1', () => {
@@ -370,6 +410,10 @@ export class OperatorOAuth {
         );
       }
       return tokens.access_token;
+    } catch (error) {
+      if (controller.signal.reason instanceof OperatorApprovalError)
+        throw controller.signal.reason;
+      throw error;
     } finally {
       clearTimeout(timeout);
       signal?.removeEventListener('abort', abort);

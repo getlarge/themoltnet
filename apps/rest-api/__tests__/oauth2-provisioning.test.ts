@@ -253,6 +253,22 @@ describe('OAuth consent target validation', () => {
     expect(displayed.body).toContain('Agent');
     expect(displayed.body).toContain('Execute and report task attempts');
     mocks.permissionChecker.canManageTeamMembers.mockResolvedValue(false);
+    app.oauth2Client.rejectOAuth2ConsentRequest = vi.fn().mockResolvedValue({
+      redirect_to: 'https://ory.example/denied',
+    });
+    const blockedPage = await app.inject({
+      url: '/oauth2/consent?consent_challenge=challenge',
+      headers: { cookie: 'ory_kratos_session=session' },
+    });
+    expect(blockedPage.statusCode).toBe(303);
+    expect(blockedPage.headers.location).toBe('https://ory.example/denied');
+    expect(app.oauth2Client.rejectOAuth2ConsentRequest).toHaveBeenCalledWith({
+      consentChallenge: 'challenge',
+      rejectOAuth2Request: {
+        error: 'access_denied',
+        error_description: 'team_management_required',
+      },
+    });
     const rejected = await app.inject({
       method: 'POST',
       url: '/oauth2/consent',
@@ -265,7 +281,8 @@ describe('OAuth consent target validation', () => {
         decision: 'allow',
       }).toString(),
     });
-    expect(rejected.statusCode).toBe(403);
+    expect(rejected.statusCode).toBe(303);
+    expect(rejected.headers.location).toBe('https://ory.example/denied');
     expect(app.oauth2Client.acceptOAuth2ConsentRequest).not.toHaveBeenCalled();
     app.oauth2Client.rejectOAuth2ConsentRequest = vi.fn().mockResolvedValue({
       redirect_to: 'https://ory.example/denied',
@@ -295,6 +312,27 @@ describe('OAuth consent target validation', () => {
     const original = await app.oauth2Client.getOAuth2ConsentRequest({
       consentChallenge: 'challenge',
     });
+    const deniedRenewal = new URL(url);
+    deniedRenewal.searchParams.set(
+      'provisioning',
+      JSON.stringify({ ...grant, operation: 'renew' }),
+    );
+    vi.mocked(app.oauth2Client.getOAuth2ConsentRequest).mockResolvedValue({
+      ...original,
+      request_url: deniedRenewal.href,
+    });
+    mocks.permissionChecker.canManageTeamCredentials.mockResolvedValue(false);
+    const deniedRenewalPage = await app.inject({
+      url: '/oauth2/consent?consent_challenge=challenge',
+      headers: { cookie: 'ory_kratos_session=session' },
+    });
+    expect(deniedRenewalPage.statusCode).toBe(303);
+    expect(deniedRenewalPage.headers.location).toBe(
+      'https://ory.example/denied',
+    );
+    mocks.permissionChecker.canManageTeamCredentials.mockResolvedValue(true);
+    // Invalid subjects, clients, redirects and PKCE must never reach rejection.
+    vi.mocked(app.oauth2Client.rejectOAuth2ConsentRequest).mockClear();
     const plainPkce = new URL(url);
     plainPkce.searchParams.set('code_challenge_method', 'plain');
     const malformed = new URL(url);
@@ -344,6 +382,7 @@ describe('OAuth consent target validation', () => {
     vi.mocked(app.oauth2Client.getOAuth2ConsentRequest).mockResolvedValue(
       original,
     );
+    expect(app.oauth2Client.rejectOAuth2ConsentRequest).not.toHaveBeenCalled();
     human.scopes = human.scopes.filter((scope) => scope !== 'diary:write');
     const nonDelegable = await app.inject({
       method: 'POST',

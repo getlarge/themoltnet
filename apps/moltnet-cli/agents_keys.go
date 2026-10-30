@@ -519,7 +519,7 @@ func runAgentsKeysRotateWithClient(ctx context.Context, client *moltnetapi.Clien
 			switch response := res.(type) {
 			case *moltnetapi.ConflictProblemDetails:
 				return store.reconcileRotation(response, opts.keyID)
-			case *moltnetapi.RotateAgentKeyUnauthorized, *moltnetapi.RotateAgentKeyForbidden, *moltnetapi.RotateAgentKeyNotFound:
+			case *moltnetapi.ValidationProblemDetails, *moltnetapi.RotateAgentKeyUnauthorized, *moltnetapi.RotateAgentKeyForbidden, *moltnetapi.RotateAgentKeyNotFound, *moltnetapi.RotateAgentKeyTooManyRequests:
 				store.retainRecovery = false
 			default:
 				return store.rotationOutcomeUnknown()

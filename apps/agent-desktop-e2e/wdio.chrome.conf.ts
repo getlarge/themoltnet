@@ -17,6 +17,7 @@ export const config = {
     './src/chrome.spec.ts',
     './src/run-flow.spec.ts',
     './src/projects.spec.ts',
+    './src/team-renewal.spec.ts',
   ],
   maxInstances: 1,
   framework: 'mocha',

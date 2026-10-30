@@ -149,7 +149,14 @@ func (t *agentKeyStoreTarget) rotationOutcomeUnknown() error {
 // A completed rotation returns its exact successor without another issuance.
 func (t *agentKeyStoreTarget) reconcileRotation(problem *moltnetapi.ConflictProblemDetails, previousKeyID string) error {
 	target, ok := problem.Conflict.Target.Get()
-	if !ok || target.Resource != "agent-key" {
+	if !ok {
+		// A declared conflict is an API rejection, not a lost response. Keep
+		// the journal because it still cannot prove whether an older attempt
+		// issued a replacement, but preserve the server's explanation and do
+		// not direct an inactive-key rejection into another blind retry.
+		return fmt.Errorf("rotation request returned a conflict (%w); rotation does not extend expiry; retain protected recovery file %s and inspect this key using independent management credentials before retrying; do not rotate another key", formatAPIError(problem), t.recoveryPath)
+	}
+	if target.Resource != "agent-key" {
 		return t.rotationOutcomeUnknown()
 	}
 	keys, ok := target.Keys.Get()

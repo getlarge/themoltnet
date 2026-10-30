@@ -35,6 +35,15 @@ const NATIVE_REDIRECT_URI = `http://127.0.0.1:${OPERATOR_OAUTH.callbackPort}/oau
 const PROVISION_AUDIENCE = OPERATOR_OAUTH.provisioningAudience;
 const LOCAL_AUDIENCE = OPERATOR_OAUTH.localControlAudience;
 
+/** Only this validated native-consent denial is returned through OAuth. */
+class TeamManagementRequiredError extends Error {
+  readonly statusCode = 403;
+  readonly code = 'FORBIDDEN';
+  constructor() {
+    super('Team credential or membership management is required');
+  }
+}
+
 /** Special paths require configured IDs and matching Ory client metadata. */
 export async function oauth2ApprovalRoutes(
   app: FastifyInstance,
@@ -131,10 +140,7 @@ export async function oauth2ApprovalRoutes(
           ns,
         )))
     ) {
-      throw createProblem(
-        'forbidden',
-        'Team credential or membership management is required',
-      );
+      throw new TeamManagementRequiredError();
     }
     const [agent, team] = await Promise.all([
       app.agentRepository.findById(grant.agentId),
@@ -396,6 +402,26 @@ export async function oauth2ApprovalRoutes(
       'The requested client, scope, and audience combination is not allowed',
     );
   }
+  async function consentOutcome(request: FastifyRequest, value: string) {
+    try {
+      return await consent(request, value);
+    } catch (error) {
+      if (!(error instanceof TeamManagementRequiredError)) throw error;
+      // `consent` has verified the human, native client, redirect, PKCE and
+      // provisioning target. Let Hydra deliver the denial with the original
+      // state; never construct a callback from browser-supplied parameters.
+      const rejected = await oryRequest('rejectOAuth2ConsentRequest', () =>
+        oauth.rejectOAuth2ConsentRequest({
+          consentChallenge: value,
+          rejectOAuth2Request: {
+            error: 'access_denied',
+            error_description: 'team_management_required',
+          },
+        }),
+      );
+      return { deniedRedirect: rejected.redirect_to };
+    }
+  }
   async function approveConsent(
     value: string,
     result: Awaited<ReturnType<typeof consent>>,
@@ -482,7 +508,9 @@ export async function oauth2ApprovalRoutes(
         typeof query.consent_challenge === 'string'
           ? query.consent_challenge
           : '';
-      const result = await consent(request, value);
+      const result = await consentOutcome(request, value);
+      if ('deniedRedirect' in result)
+        return reply.code(303).redirect(result.deniedRedirect);
       if (result.consent.skip === true) {
         const accepted = await approveConsent(value, result);
         return reply.code(303).redirect(accepted.redirect_to);
@@ -561,7 +589,9 @@ export async function oauth2ApprovalRoutes(
         );
         return reply.code(303).redirect(rejected.redirect_to);
       }
-      const result = await consent(request, value);
+      const result = await consentOutcome(request, value);
+      if ('deniedRedirect' in result)
+        return reply.code(303).redirect(result.deniedRedirect);
       const accepted = await approveConsent(value, result);
       return reply.code(303).redirect(accepted.redirect_to);
     },

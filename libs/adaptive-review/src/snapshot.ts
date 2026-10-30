@@ -4,6 +4,7 @@ import { canonicalJson } from '@moltnet/crypto-service';
 import type { Git } from '@moltnet/docs-impact-review';
 
 import type { ChangedPath } from './core.js';
+import { loadReviewGuidance, type ReviewGuidance } from './guidance.js';
 import { type AdaptivePolicy, parseAdaptivePolicy } from './policy.js';
 
 export const ADAPTIVE_POLICY_PATH = '.github/adaptive-review.json';
@@ -17,6 +18,7 @@ export interface PolicySnapshot {
   digest: string;
   referenceDigests: Record<string, string>;
   source: string;
+  guidance: ReviewGuidance[];
 }
 
 /** Missing policy means opt-out; malformed policy and missing references fail. */
@@ -64,9 +66,22 @@ export function loadAdaptivePolicy(
       throw new Error(`missing adaptive policy reference: ${path}@${base}`);
     referenceDigests[path] = sha256(git(['show', `${base}:${path}`]));
   }
+  const guidance = loadReviewGuidance(git, base);
+  for (const document of guidance)
+    referenceDigests[document.path] = document.digest;
   return {
     policy,
-    digest: sha256(canonicalJson(policy)),
+    guidance,
+    digest: sha256(
+      canonicalJson(
+        guidance.length
+          ? {
+              policy,
+              guidance: guidance.map(({ path, digest }) => ({ path, digest })),
+            }
+          : policy,
+      ),
+    ),
     referenceDigests,
     source: `${ADAPTIVE_POLICY_PATH}@${base}`,
   };
