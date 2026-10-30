@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.1.1...adaptive-review-action-v0.1.2) (2026-10-30)
+
+
+### Bug Fixes
+
+* **release:** refresh the adaptive-review runtime lock when syncing consumer pins ([05a8f74](https://github.com/getlarge/themoltnet/commit/05a8f740a31b779ac5a4d60970791c0485125c39))
+* **release:** refresh the adaptive-review runtime lock when syncing consumer pins ([a0f603c](https://github.com/getlarge/themoltnet/commit/a0f603c37f14d74cd8e17986a6a9d376009daf7c))
+
 ## [0.1.1](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.1.0...adaptive-review-action-v0.1.1) (2026-10-30)
 
 
