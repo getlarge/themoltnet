@@ -8,7 +8,7 @@
 // Usage: node tools/src/check-test-conventions.ts
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import process from 'node:process';
 
 const SCANNED = /^(?:apps|libs|packages)\/[^/]+\/|^tools\//;
@@ -83,7 +83,8 @@ export function findViolations(
 function main() {
   const files = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' })
     .split('\0')
-    .filter(Boolean);
+    // Skip index entries deleted in the working tree (staged moves).
+    .filter((file) => file && existsSync(file));
   const violations = findViolations(files, (file) =>
     readFileSync(file, 'utf8'),
   );
