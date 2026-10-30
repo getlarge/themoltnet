@@ -574,8 +574,34 @@ export function createDurableTaskExecutor(options: {
       } else {
         // A new MoltNet attempt cannot adopt another attempt's outstanding work.
         const live = await harness.inspect(context);
-        if (live.tasks.length || live.submissions.length)
+        if (live.tasks.length || live.submissions.length) {
+          // Keep payloads and raw scheduler errors out of task telemetry. The
+          // bounded record identities are enough to locate outstanding work.
+          const limit = 20;
+          await emit('error', {
+            phase: 'durable_continuation',
+            event: 'unfinished_parent_work',
+            scheduling: live.scheduling,
+            taskCount: live.tasks.length,
+            submissionCount: live.submissions.length,
+            tasks: live.tasks.slice(0, limit).map(({ record, state }) => ({
+              id: record.id,
+              conversationId: record.conversationId,
+              kind: record.kind.slice(0, 120),
+              ownerTaskId: record.owner ?? null,
+              status: record.state.status,
+              schedulerState: state.kind,
+              ...(state.kind === 'blocked' ? { reason: state.reason } : {}),
+            })),
+            submissions: live.submissions.slice(0, limit).map((record) => ({
+              id: record.id,
+              conversationId: record.conversationId,
+              type: record.type,
+              status: record.status,
+            })),
+          });
           throw new Error('Parent Durable attempt has unfinished work');
+        }
         const parent = (
           task.input as {
             continueFrom?: { taskId: string; attemptN: number; mode: string };
