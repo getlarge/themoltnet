@@ -2325,12 +2325,6 @@ importers:
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../tasks
-      '@themoltnet/os-keyring':
-        specifier: workspace:*
-        version: link:../os-keyring
-      '@themoltnet/sdk':
-        specifier: workspace:*
-        version: link:../sdk
       '@themoltnet/tasks-orchestrator':
         specifier: workspace:*
         version: link:../tasks-orchestrator
@@ -2697,12 +2691,6 @@ importers:
       '@moltnet/task-schemas':
         specifier: workspace:*
         version: link:../task-schemas
-      '@themoltnet/os-keyring':
-        specifier: workspace:*
-        version: link:../os-keyring
-      '@themoltnet/sdk':
-        specifier: workspace:*
-        version: link:../sdk
       '@themoltnet/tasks-orchestrator':
         specifier: workspace:*
         version: link:../tasks-orchestrator
@@ -2713,9 +2701,6 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.19
-      tsx:
-        specifier: 'catalog:'
-        version: 4.23.15
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -2725,9 +2710,6 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
-      yaml:
-        specifier: '>=2.8.3 <3'
-        version: 2.9.1
 
   libs/dts-entry-shims:
     dependencies:
@@ -4033,45 +4015,6 @@ importers:
   packages/cli/npm/win32-arm64: {}
 
   packages/cli/npm/win32-x64: {}
-
-  packages/complexity-review-action:
-    devDependencies:
-      '@moltnet/complexity-review':
-        specifier: workspace:*
-        version: link:../../libs/complexity-review
-      '@types/node':
-        specifier: 'catalog:'
-        version: 22.19.19
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
-      vite:
-        specifier: 'catalog:'
-        version: 8.3.4(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
-      vitest:
-        specifier: 'catalog:'
-        version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
-
-  packages/docs-impact-review-action:
-    devDependencies:
-      '@moltnet/docs-impact-review':
-        specifier: workspace:*
-        version: link:../../libs/docs-impact-review
-      '@types/node':
-        specifier: 'catalog:'
-        version: 22.19.19
-      typescript:
-        specifier: 'catalog:'
-        version: 5.9.3
-      vite:
-        specifier: 'catalog:'
-        version: 8.3.4(@types/node@22.19.19)(esbuild@0.28.2)(jiti@2.4.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
-      vitest:
-        specifier: 'catalog:'
-        version: 3.2.7(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.7)(jiti@2.4.2)(jsdom@25.0.1(supports-color@10.2.2))(lightningcss@1.33.0)(supports-color@10.2.2)(terser@5.47.1)(tsx@4.23.15)(yaml@2.9.1)
-      yaml:
-        specifier: '>=2.8.3 <3'
-        version: 2.9.1
 
   packages/github-agent:
     dependencies:

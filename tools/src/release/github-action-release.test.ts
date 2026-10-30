@@ -20,8 +20,8 @@ describe('stableMajorTagFor', () => {
   it.each([
     ['0.4.1', undefined, 'v0'],
     ['1.2.3', undefined, 'v1'],
-    ['0.2.0', 'docs-impact-review-action-v', 'docs-impact-review-action-v0'],
-    ['1.0.0', 'docs-impact-review-action-v', 'docs-impact-review-action-v1'],
+    ['0.2.0', 'agent-daemon-action-v', 'agent-daemon-action-v0'],
+    ['1.0.0', 'agent-daemon-action-v', 'agent-daemon-action-v1'],
   ])('%s with prefix %s moves %s', (version, prefix, expected) => {
     // Act / Assert
     expect(stableMajorTagFor(version, prefix)).toBe(expected);
@@ -215,20 +215,20 @@ describe('parsePublisherArgs', () => {
     // Act
     const options = parsePublisherArgs([
       '--project',
-      '@themoltnet/docs-impact-review-action',
+      '@themoltnet/example-action',
       '--entries',
       'prepare.js, review.js',
       '--also-include',
       '@themoltnet/agent-daemon-action',
       '--stable-major-tag-prefix',
-      'docs-impact-review-action-v',
+      'agent-daemon-action-v',
     ]);
 
     // Assert
     expect(options).toMatchObject({
       entries: ['prepare.js', 'review.js'],
       alsoInclude: ['@themoltnet/agent-daemon-action'],
-      stableMajorTagPrefix: 'docs-impact-review-action-v',
+      stableMajorTagPrefix: 'agent-daemon-action-v',
       dryRun: false,
     });
   });

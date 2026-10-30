@@ -66,12 +66,8 @@ describe('action runtime locks', () => {
 });
 
 describe('released action runtime inputs', () => {
-  it('locks runtime source files without including generated bundles', () => {
-    expect(RUNTIME_LOCKS).toHaveLength(2);
+  it('never locks generated bundles', () => {
     for (const lock of RUNTIME_LOCKS) {
-      expect(lock.pathspecs).toContain(
-        'packages/agent-daemon-action/action.yml',
-      );
       expect(lock.pathspecs.some((path) => path.includes('/dist'))).toBe(false);
     }
   });

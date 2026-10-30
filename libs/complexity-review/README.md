@@ -1,19 +1,18 @@
 # Complexity review
 
-This library owns the LeGreffier PR complexity review. The reusable GitHub workflow pins a PR's
-base and head, then runs trusted code from the base revision. The library reads the
-immutable diff and runs three stages: a change-map task groups every changed
+This library owns the LeGreffier PR complexity review. It runs as the
+complexity lane of the [adaptive review](../adaptive-review/README.md), which
+pins a PR's base and head and runs trusted code from the base revision. The
+library reads the immutable diff and runs three stages: a change-map task groups every changed
 file by domain, focused domain tasks review the full patches in parallel, and
 a synthesis task marks each criterion pass, fail, or unclear. Trusted code
 calculates the composite from assessed criteria and supplies reviewed paths
-from the pinned diff. It validates file coverage and stage output before
-the workflow publishes a
-revision-aware comment with the LeGreffier GitHub App token.
+from the pinned diff. It validates file coverage and stage output before the
+adaptive review reports the result.
 
 Focused tasks receive evidence packets of at most 96 KB and have no optional
 tools. Larger source patches are split into numbered segments without dropping
-bytes. The standalone workflow reviews at most six domain segments with two
-workers; adaptive review uses at most four serial segments. Synthesis names
+bytes. The adaptive review reviews at most four serial segments. Synthesis names
 any remaining segments as unreviewed, so a large change cannot appear fully
 covered when it exceeds the review deadline budget.
 
@@ -46,10 +45,7 @@ reconciles test assertions across domains, distinguishes unit from integration
 coverage, and marks insufficient evidence unclear. Test files alone establish
 neither adequate coverage nor its absence.
 
-Each task has one attempt and a 180-second running budget. Two drain workers
-claim focused tasks under one correlation ID. The standalone review job allows
-45 minutes for mapping, three two-task waves, synthesis, and publishing. The
-final comment leads with a compact burden, head, and elapsed-time line.
+Each task has one attempt and a 180-second running budget.
 
 The source-controlled runtime assets are
 [`legreffier-complexity-review-v2.json`](../../.github/runtime-profiles/legreffier-complexity-review-v2.json)
@@ -75,30 +71,3 @@ moltnet profile allowed-tools legreffier-complexity-review-v2 --team-id "$TEAM"
 The resolved view must show `enforcement: "enforce"` with empty
 `allowedTools` and `allowedShellCommands` arrays. Recheck it whenever either
 runtime asset is applied.
-
-For a read-only local ingestion trial, the command prints the change-map task:
-
-```bash
-node --import tsx packages/complexity-review-action/src/review.ts \
-  --repo getlarge/themoltnet --pr 2545 \
-  --base <base-oid> --head <head-oid> --dry-run
-```
-
-For a model trial, start two MoltNet daemon workers with profile
-`legreffier-complexity-review-v2` and task type `freeform`, then add
-`--team`, `--diary`, `--profile`, and `--correlation` to the command above.
-Use the installed `moltnet-agent` binary for each worker and pass the same
-correlation ID to both workers and the library:
-
-```bash
-moltnet-agent drain --agent legreffier --team "$TEAM" \
-  --profile legreffier-complexity-review-v2 --task-types freeform \
-  --correlation-id "$CORRELATION" --general \
-  --wait-for-first-task-sec 300 --wait-after-task-sec 30
-```
-
-Each stage requires a typed freeform `result`. The task service validates its
-shape before accepting the output; the trusted library then assigns every
-changed path and calculates the final rubric score.
-The app prints `{ taskId, taskIds, output, durationMs, stageDurationsMs,
-base, head, pr }` as JSON.

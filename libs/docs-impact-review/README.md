@@ -1,15 +1,15 @@
 # @moltnet/docs-impact-review
 
-Experimental documentation-impact reviewer for pull requests
+Documentation-impact reviewer for pull requests
 ([#2373](https://github.com/getlarge/themoltnet/issues/2373)). It answers one
 question: **does this PR leave users, operators, or contributors with missing
 or incorrect instructions?** It is not a correctness, security, style, or
 general docs review.
 
-This library is the reviewer. CI runs it through
-[`docs-impact-review-action`](../../packages/docs-impact-review-action/README.md),
-which bundles it; locally, the `cli` target runs it against existing pull
-requests to measure precision and per-stage latency.
+This library is the reviewer. It runs as the docs lane of the
+[adaptive review](../adaptive-review/README.md), which decides when a pull
+request needs it, supplies the task budgets and runtime profile, and publishes
+its findings.
 
 ## Pipeline
 
@@ -92,121 +92,17 @@ never skews the split:
 | `modelMs`           | first model event → completed                                                      |
 | `observedMs`        | client-observed create → terminal, including poll delay                            |
 
-Polling defaults to 2 s (`--poll-interval`). Faster polling trips the REST
-API's per-principal read limit, shared with a daemon running as the same
-identity, and the SDK then stalls on `Retry-After`. The corpus summary prints
-p50/p95 for each phase, plus ingest, retrieval, and total wall time.
+Polling defaults to 2 s. Faster polling trips the REST API's per-principal
+read limit, shared with a daemon running as the same identity, and the SDK
+then stalls on `Retry-After`.
 
-## Run against existing PRs
+## Runtime profile
 
-Run from a checkout of the reviewed repository with `gh` authenticated.
-
-Ingestion and routing only, no tasks:
-
-```bash
-pnpm exec nx run @moltnet/docs-impact-review:cli -- \
-  --repo getlarge/themoltnet --pr 2462 --pr 2464 --dry-run
-```
-
-Full review, which needs the runtime profile and a daemon claiming it.
-`--project` scopes the tasks to a project location. Use it for a daemon started
-from a project binding, such as the Desktop; a CI worker whose workspace is the
-checkout itself doesn't need it.
-
-The profile and its read-only tool policy are created once per team. The
-steps, with ready-to-apply definitions, are in the action's
-[Set up the runtime profile](../../packages/docs-impact-review-action/README.md#set-up-the-runtime-profile);
-MoltNet's own profiles are in `.github/runtime-profiles/` and
-`.github/runtime-policies/`.
-
-```bash
-
-# terminal 1: a daemon that claims the review stages
-# --binding: the coverage stage needs a git worktree of the reviewed repo
-moltnet-agent poll --agent "$MOLTNET_AGENT_NAME" --team "$MOLTNET_TEAM_ID" \
-  --profile legreffier-docs-review-v1 --task-types freeform --binding themoltnet
-
-# terminal 2: review a corpus, write per-PR reports
-pnpm exec nx run @moltnet/docs-impact-review:cli -- \
-  --repo getlarge/themoltnet --pr 2462 --pr 2454 --pr 2459 \
-  --team "$MOLTNET_TEAM_ID" --diary "$MOLTNET_DIARY_ID" \
-  --profile legreffier-docs-review-v1 --project "$MOLTNET_PROJECT_ID" \
-  --config .github/docs-impact-review.json --out /tmp/docs-impact
-```
-
-Each stage task is tagged `review:docs-impact`,
-`stage:<extract|coverage|docs-check>`,
-`pr:<n>`, and `revision:<head>`, and shares one correlation id per PR.
-
-## In CI
-
-In this repository,
-[`docs-impact-review.yml`](../../.github/workflows/docs-impact-review.yml) calls
-the reusable workflow
-[`docs-impact-review-reusable.yml`](../../.github/workflows/docs-impact-review-reusable.yml),
-which runs
-[`docs-impact-review-action`](../../packages/docs-impact-review-action/README.md)
-(bundling this library) and its workers. The action README describes the trust
-model and how other repositories set the review up. The review is advisory:
-its comment never blocks a merge.
-
-```mermaid
-sequenceDiagram
-  autonumber
-  participant GH as GitHub
-  participant P as prepare job
-  participant R as review job
-  participant W as worker jobs (one per profile)
-  participant M as MoltNet
-  GH->>P: pull_request, or @legreffier /docs-review
-  P->>GH: read the pull request and its files
-  P->>P: pin base and head, derive correlation id, eligibility gate
-  par review
-    P-->>R: pinned revisions, correlation id, profiles
-    R->>GH: "reviewing" comment
-    R->>M: create extract task
-  and workers
-    P-->>W: correlation id, profile
-    W->>M: drain tasks with this correlation id
-  end
-  M-->>W: claim extract, run it in a sandboxed VM
-  W->>M: submit output
-  R->>M: poll, then create coverage and docs-check tasks
-  M-->>W: each profile's worker claims its stage
-  W->>M: submit outputs
-  R->>M: poll outcomes, validate, resolve
-  R->>GH: publish the comment, or "stale" if the head moved
-  W->>W: exit after 120 s without new tasks
-```
-
-**Triggers.** Non-draft pull requests on `opened`, `ready_for_review`,
-`synchronize` and `reopened`. An owner, member or collaborator can rerun it on
-any pull request, drafts included, by commenting `@legreffier /docs-review`. A
-new push cancels the run for the previous head.
-
-**Protected paths.** A pull request that changes the review runtime is not
-reviewed by it: the workflow, the `legreffier-docs-review-*` profiles, the
-runtime policies, this library, the action, and `agent-daemon-action`.
-
-**Comment identity.** The comment is written by the LeGreffier GitHub App, from
-the `legreffier` environment's `MOLTNET_GITHUB_APP_ID` variable and
-`MOLTNET_GITHUB_APP_PRIVATE_KEY` secret.
-
-**Configuration** (repository variables; the `prepare` job computes the
-worker list outside the `legreffier` environment, so environment-scoped
-variables are not visible to it):
-
-| Variable                                 | Purpose                                         |
-| ---------------------------------------- | ----------------------------------------------- |
-| `MOLTNET_DOCS_IMPACT_REVIEW_ENABLED`     | `true` to enable the workflow                   |
-| `MOLTNET_DOCS_IMPACT_PROFILE`            | default profile, used by every stage (required) |
-| `MOLTNET_DOCS_IMPACT_COVERAGE_PROFILE`   | optional profile for the coverage stage         |
-| `MOLTNET_DOCS_IMPACT_DOCS_CHECK_PROFILE` | optional profile for the docs check             |
-
-The target is a review in about 2–3 minutes, a little more when the runner
-starts cold. Stage budgets (the running timeout and the profile's turn limit)
-and input budgets are described in [Budgets](#budgets). The run summary records the
-per-stage timing breakdown and token counts.
+Each stage runs as a freeform task under a read-only runtime profile created
+once per team. MoltNet's adaptive docs profile is in `.github/runtime-profiles/`
+and its tool policy in `.github/runtime-policies/`. Each stage task is tagged
+`stage:<extract|coverage|docs-check>`, `pr:<n>`, and `revision:<head>`, and
+shares one correlation id per PR.
 
 ## Repository configuration
 

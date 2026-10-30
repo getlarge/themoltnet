@@ -56,17 +56,9 @@ export type ConfigurableBudget =
   | 'stageRunningTimeoutSec';
 
 /**
- * Seconds of each review job left for checkout, ingest, polling, and the
- * comment once both chained stages used their dispatch and running limits.
- */
-export const REVIEW_JOB_MARGIN_SEC = 240;
-
-/**
  * Accepted range per configurable budget. Upper bounds keep a stage within
- * a model's context and the review job's timeout: two chained stages of at
- * most 300 s dispatch plus 180 s running take 16 minutes, leaving
- * `REVIEW_JOB_MARGIN_SEC` of the reusable workflow's 20-minute job (a test
- * holds the two together).
+ * a model's context and bound how long two chained stages can hold the
+ * adaptive review's docs lane.
  */
 export const BUDGET_LIMITS: Readonly<
   Record<ConfigurableBudget, { minimum: number; maximum: number }>

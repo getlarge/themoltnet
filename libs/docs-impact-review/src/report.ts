@@ -74,7 +74,7 @@ function fileLink(report: DocsImpactReport, path: string): string {
  * Inline code that `text` cannot break out of: the fence is longer than any
  * backtick run inside, and newlines are flattened.
  */
-export function codeSpan(text: string, max = Number.POSITIVE_INFINITY): string {
+function codeSpan(text: string, max = Number.POSITIVE_INFINITY): string {
   const collapsed = text.replace(/\s+/g, ' ').trim();
   const flat =
     collapsed.length <= max

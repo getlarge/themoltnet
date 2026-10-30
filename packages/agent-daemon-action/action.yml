@@ -832,7 +832,7 @@ runs:
 
     # Mention dispatch: turn the triggering comment into one task, then run it
     # once. Never in drain mode: a drain worker started by a comment (for
-    # example `@legreffier /docs-review`) claims tasks another job created,
+    # example `/review`) claims tasks another job created,
     # and must not treat the comment as a new request.
     - id: dispatch
       if: ${{ inputs.task-id == '' && inputs.task-spec-path == '' && inputs.mode != 'drain' && github.event_name == 'issue_comment' }}

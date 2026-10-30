@@ -10,14 +10,14 @@ of the bound policies is what a session actually enforces.
 `{ "argvPrefix": ["git", "diff"] }` allows only `git diff`. No shell rule allows
 output redirection.
 
-| Definition                                                                                             | Profile                                                                                                                                                                                             |
-| ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`legreffier-review-readonly-v1.json`](./legreffier-review-readonly-v1.json)                           | `legreffier-review-v1`, `legreffier-docs-review-v1`, `legreffier-docs-review-codex-v1`, `legreffier-docs-review-gemma-v1`, `legreffier-docs-review-gptoss-v1`, `legreffier-docs-review-deepseek-v1` |
-| [`legreffier-adaptive-focused-readonly-v1.json`](./legreffier-adaptive-focused-readonly-v1.json)       | `legreffier-adaptive-focused-review-v1`, `legreffier-adaptive-docs-review-v1`                                                                                                                       |
-| [`legreffier-security-review-readonly-v1.json`](./legreffier-security-review-readonly-v1.json)         | `legreffier-security-review-v2`                                                                                                                                                                     |
-| [`legreffier-complexity-review-input-only-v1.json`](./legreffier-complexity-review-input-only-v1.json) | `legreffier-complexity-review-v2`                                                                                                                                                                   |
-| [`legreffier-issue-triage-input-only-v1.json`](./legreffier-issue-triage-input-only-v1.json)           | `legreffier-issue-triage-v1`, `legreffier-issue-classifier-v1`, `legreffier-issue-classifier-v2`                                                                                                    |
-| [`multi-lens-review-readonly-v1.json`](./multi-lens-review-readonly-v1.json)                           | `multi-lens-review-v1`                                                                                                                                                                              |
+| Definition                                                                                             | Profile                                                                                          |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| [`legreffier-review-readonly-v1.json`](./legreffier-review-readonly-v1.json)                           | `legreffier-review-v1`                                                                           |
+| [`legreffier-adaptive-focused-readonly-v1.json`](./legreffier-adaptive-focused-readonly-v1.json)       | `legreffier-adaptive-focused-review-v1`, `legreffier-adaptive-docs-review-v1`                    |
+| [`legreffier-security-review-readonly-v1.json`](./legreffier-security-review-readonly-v1.json)         | `legreffier-security-review-v2`                                                                  |
+| [`legreffier-complexity-review-input-only-v1.json`](./legreffier-complexity-review-input-only-v1.json) | `legreffier-complexity-review-v2`                                                                |
+| [`legreffier-issue-triage-input-only-v1.json`](./legreffier-issue-triage-input-only-v1.json)           | `legreffier-issue-triage-v1`, `legreffier-issue-classifier-v1`, `legreffier-issue-classifier-v2` |
+| [`multi-lens-review-readonly-v1.json`](./multi-lens-review-readonly-v1.json)                           | `multi-lens-review-v1`                                                                           |
 
 The definitions here are the reviewable source of truth. They are **not**
 applied automatically — the server holds the live state, and these files are
