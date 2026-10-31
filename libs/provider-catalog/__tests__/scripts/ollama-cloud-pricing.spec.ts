@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseOllamaCloudPricing } from '../../scripts/ollama-cloud-pricing.js';
+import {
+  parseOllamaCloudPricing,
+  pricingForCapabilities,
+} from '../../scripts/ollama-cloud-pricing.js';
 
 const page = (rows: string) => `<section id="model-pricing"><table>
   <thead><tr><th>Model</th><th>Input</th><th>Cached input</th><th>Output</th></tr></thead>
@@ -58,5 +61,40 @@ describe('Ollama Cloud pricing', () => {
     page(row('classifier', '$0.24', '-', '-')),
   ])('rejects a missing or unparseable price table', (html) => {
     expect(() => parseOllamaCloudPricing(html)).toThrow();
+  });
+
+  describe('capability check', () => {
+    const chat = {
+      cost: { input: 0.5, output: 1.5, cacheRead: 0.5, cacheWrite: 0 },
+    };
+    const classifier = {
+      classifierCost: {
+        input: 0.24,
+        output: 0,
+        cacheRead: 0.24,
+        cacheWrite: 0,
+      },
+    };
+
+    it.each([
+      [['decision', 'vision'], classifier],
+      [['completion', 'tools'], chat],
+      [['completion', 'decision'], chat],
+      [['decision'], undefined],
+    ])('accepts %j priced as %j', (capabilities, pricing) => {
+      expect(pricingForCapabilities('model', capabilities, pricing)).toBe(
+        pricing,
+      );
+    });
+
+    it.each([
+      [['completion', 'tools'], classifier],
+      [['completion', 'decision'], classifier],
+      [['decision', 'vision'], chat],
+    ])('rejects %j priced as %j', (capabilities, pricing) => {
+      expect(() =>
+        pricingForCapabilities('model', capabilities, pricing),
+      ).toThrow();
+    });
   });
 });

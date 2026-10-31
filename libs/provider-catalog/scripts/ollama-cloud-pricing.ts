@@ -77,3 +77,22 @@ export function parseOllamaCloudPricing(
     throw new Error('Ollama pricing table has no chat prices');
   return prices;
 }
+
+/**
+ * Prices a model only in the shape its `/api/show` capabilities allow: an
+ * input-only rate belongs to a decision model without text completion, and
+ * such a model has no chat rate. A mismatch means the pricing page changed.
+ */
+export function pricingForCapabilities(
+  id: string,
+  capabilities: readonly unknown[],
+  pricing: OllamaCloudPricing | undefined,
+): OllamaCloudPricing | undefined {
+  const classifier =
+    capabilities.includes('decision') && !capabilities.includes('completion');
+  if (pricing && 'classifierCost' in pricing && !classifier)
+    throw new Error(`Input-only Ollama price for non-classifier model: ${id}`);
+  if (pricing && 'cost' in pricing && classifier)
+    throw new Error(`Chat Ollama price for classifier model: ${id}`);
+  return pricing;
+}

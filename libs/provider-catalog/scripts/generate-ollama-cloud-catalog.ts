@@ -3,7 +3,10 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { format } from 'prettier';
 
 import type { ModelCostRates } from '../src/types.js';
-import { parseOllamaCloudPricing } from './ollama-cloud-pricing.js';
+import {
+  parseOllamaCloudPricing,
+  pricingForCapabilities,
+} from './ollama-cloud-pricing.js';
 
 // Ollama Cloud's public endpoints (no API key): the OpenAI-compatible model
 // list gives the ids the `ollama-cloud` provider accepts at
@@ -53,7 +56,9 @@ function thinkingLevel(value: unknown): string {
   throw new Error(`unexpected Ollama thinking value ${JSON.stringify(value)}`);
 }
 
-async function describe(id: string): Promise<OllamaCloudModel> {
+async function describe(
+  id: string,
+): Promise<{ model: OllamaCloudModel; capabilities: unknown[] }> {
   const show = (await getJson('/api/show', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -74,18 +79,21 @@ async function describe(id: string): Promise<OllamaCloudModel> {
     vision: capabilities.includes('vision'),
     tools: capabilities.includes('tools'),
   };
-  if (!capabilities.includes('thinking')) return model;
+  if (!capabilities.includes('thinking')) return { model, capabilities };
   const values = Array.isArray(show.thinking?.values)
     ? show.thinking.values.map(thinkingLevel)
     : ['on'];
   const fallback = values.includes('off') ? 'off' : values[0];
   return {
-    ...model,
-    thinkingLevels: values,
-    defaultThinkingLevel:
-      show.thinking?.default === undefined
-        ? fallback
-        : thinkingLevel(show.thinking.default),
+    capabilities,
+    model: {
+      ...model,
+      thinkingLevels: values,
+      defaultThinkingLevel:
+        show.thinking?.default === undefined
+          ? fallback
+          : thinkingLevel(show.thinking.default),
+    },
   };
 }
 
@@ -104,10 +112,17 @@ const models: OllamaCloudModel[] = [];
 for (let index = 0; index < ids.length; index += SHOW_CONCURRENCY) {
   models.push(
     ...(await Promise.all(
-      ids.slice(index, index + SHOW_CONCURRENCY).map(async (id) => ({
-        ...(await describe(id)),
-        ...(pricing.get(id) ?? pricing.get(id.split(':')[0])),
-      })),
+      ids.slice(index, index + SHOW_CONCURRENCY).map(async (id) => {
+        const { model, capabilities } = await describe(id);
+        return {
+          ...model,
+          ...pricingForCapabilities(
+            id,
+            capabilities,
+            pricing.get(id) ?? pricing.get(id.split(':')[0]),
+          ),
+        };
+      }),
     )),
   );
 }
