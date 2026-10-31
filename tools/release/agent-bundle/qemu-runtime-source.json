@@ -20,10 +20,44 @@
     "--disable-modules",
     "--disable-debug-info"
   ],
+  "dependencies": [
+    {
+      "homepage": "https://github.com/facebook/zstd",
+      "license": "BSD-3-Clause OR GPL-2.0-only",
+      "licenseFiles": ["LICENSE", "COPYING"],
+      "name": "zstd",
+      "sourceSha256": "eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3",
+      "sourceUrl": "https://github.com/facebook/zstd/releases/download/v1.5.7/zstd-1.5.7.tar.gz",
+      "version": "1.5.7"
+    },
+    {
+      "homepage": "https://gitlab.gnome.org/GNOME/glib",
+      "license": "LGPL-2.1-or-later",
+      "licenseFiles": ["COPYING"],
+      "mesonArgs": [
+        "--buildtype=release",
+        "--force-fallback-for=libffi,intl,libpcre2-8",
+        "-Ddefault_library=shared",
+        "-Dtests=false",
+        "-Dintrospection=disabled",
+        "-Ddocumentation=false",
+        "-Dman-pages=disabled",
+        "-Dnls=disabled",
+        "-Dsysprof=disabled",
+        "-Dlibelf=disabled",
+        "-Ddtrace=disabled",
+        "-Dsystemtap=disabled"
+      ],
+      "name": "glib",
+      "sourceSha256": "25fd169f3b2f91fe2391ad297883ce0fcf30c69fc789ffd1c9672d1332b1c5a8",
+      "sourceUrl": "https://download.gnome.org/sources/glib/2.88/glib-2.88.4.tar.xz",
+      "version": "2.88.4"
+    }
+  ],
   "minimumMacosVersion": "15.0",
   "platform": "darwin-arm64",
   "qemuVersion": "11.1.1",
-  "runtimeVersion": "11.1.1-r1",
+  "runtimeVersion": "11.1.1-r2",
   "schemaVersion": 1,
   "signatureNote": "The detached signature is cryptographically valid for the fingerprint advertised by qemu.org; the advertised key was expired when QEMU 11.1.1 was signed.",
   "signatureSha256": "6d7b0e9381641ee0fbd07977713c9d061203d8e0fb4844e6a0f49c960b4a2800",

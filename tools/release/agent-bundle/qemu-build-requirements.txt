@@ -1,0 +1,4 @@
+# Build-time tools for build-qemu-runtime.mjs (GLib needs Meson >= 1.4).
+# Install with: pip install --require-hashes --only-binary=:all: -r <this file>
+meson==1.12.1 \
+    --hash=sha256:930bc7542cbd9f57009e182fd014eba48cf1a0180a7b9006d2d32d8f168d8b02
