@@ -14,8 +14,8 @@ describe('createRetryFetch', () => {
     vi.useRealTimers();
   });
 
-  function flushRetryDelay(): Promise<void> {
-    return vi.advanceTimersByTimeAsync(15_000);
+  async function flushRetryDelay(): Promise<void> {
+    await vi.advanceTimersByTimeAsync(15_000);
   }
 
   it('returns immediately on 200 without retrying', async () => {

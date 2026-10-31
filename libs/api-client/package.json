@@ -28,7 +28,7 @@
     "@tanstack/react-query": "^5.0.0"
   },
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b tsconfig.lib.json",
     "generate": "openapi-ts",
     "generate:api-bindings": "openapi-ts --file openapi-bindings.config.ts",
     "dev": "tsc --watch"
@@ -69,16 +69,10 @@
         }
       },
       "typecheck": {
-        "executor": "nx:noop",
         "dependsOn": [
+          "^typecheck",
           "build"
-        ],
-        "cache": true,
-        "inputs": [
-          "production",
-          "^production"
-        ],
-        "outputs": []
+        ]
       }
     }
   }

@@ -37,7 +37,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b tsconfig.lib.json",
     "dev": "tsc --watch"
   },
   "dependencies": {
@@ -59,16 +59,10 @@
     ],
     "targets": {
       "typecheck": {
-        "executor": "nx:noop",
         "dependsOn": [
+          "^typecheck",
           "build"
-        ],
-        "cache": true,
-        "inputs": [
-          "production",
-          "^production"
-        ],
-        "outputs": []
+        ]
       }
     }
   }

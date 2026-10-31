@@ -16,6 +16,19 @@ import {
   stageScenarioInputArtifacts,
 } from '../src/scenario-fixtures.js';
 
+function scenarioWithFixtures(fixtures: Scenario['fixtures']): Scenario {
+  return {
+    slug: 'fixture-scenario',
+    taskType: 'run_eval',
+    scoring: 'gates_only',
+    blocking: true,
+    prompt: 'do the thing',
+    execution: { mode: 'vitro', workspace: 'none' },
+    fixtures,
+    gates: {},
+  };
+}
+
 describe('scenario fixtures', () => {
   let root: string;
 
@@ -31,20 +44,18 @@ describe('scenario fixtures', () => {
     // Arrange
     const inputPath = join(root, 'manifest.json');
     writeFileSync(inputPath, '{"version":1}\n');
-    const scenario = {
-      fixtures: {
-        inputArtifacts: [
-          {
-            path: 'manifest.json',
-            sourcePath: inputPath,
-            role: 'reviewed_diff',
-            kind: 'review-manifest',
-            title: 'manifest.json',
-            contentType: 'application/json',
-          },
-        ],
-      },
-    } as Scenario;
+    const scenario = scenarioWithFixtures({
+      inputArtifacts: [
+        {
+          path: 'manifest.json',
+          sourcePath: inputPath,
+          role: 'reviewed_diff',
+          kind: 'review-manifest',
+          title: 'manifest.json',
+          contentType: 'application/json',
+        },
+      ],
+    });
     const stage = vi.fn().mockResolvedValue({
       cid: 'bafkreimanifest',
       contentType: 'application/json',
@@ -90,12 +101,10 @@ describe('scenario fixtures', () => {
       join(seedRoot, 'src', 'index.ts'),
       'export const value = 1;\n',
     );
-    const scenario = {
-      fixtures: {
-        workspaceSeedPath: seedRoot,
-        inputArtifacts: [],
-      },
-    } as Scenario;
+    const scenario = scenarioWithFixtures({
+      workspaceSeedPath: seedRoot,
+      inputArtifacts: [],
+    });
 
     // Act
     seedScenarioWorkspace(scenario, sandboxRoot);

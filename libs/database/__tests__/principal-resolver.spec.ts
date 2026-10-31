@@ -65,6 +65,7 @@ describe('resolvePrincipal', () => {
   it('throws PrincipalXorViolatedError with both IDs in context', () => {
     const row: PrincipalRow = {
       creatorAgentId: '11111111-1111-1111-1111-111111111111',
+      creatorAgentIdentityId: null,
       creatorAgentFingerprint: 'A1B2-C3D4-E5F6-1234',
       creatorAgentPublicKey: 'ed25519:x',
       creatorHumanId: '22222222-2222-2222-2222-222222222222',
@@ -102,6 +103,7 @@ describe('resolvePrincipal', () => {
   it('throws PrincipalAgentJoinFailedError with missing-field details', () => {
     const row: PrincipalRow = {
       creatorAgentId: '11111111-1111-1111-1111-111111111111',
+      creatorAgentIdentityId: null,
       creatorAgentFingerprint: null,
       creatorAgentPublicKey: null,
       creatorHumanId: null,
@@ -130,6 +132,7 @@ describe('resolvePrincipal', () => {
   it('PrincipalAgentJoinFailedError reports only the missing field', () => {
     const row: PrincipalRow = {
       creatorAgentId: '11111111-1111-1111-1111-111111111111',
+      creatorAgentIdentityId: null,
       creatorAgentFingerprint: 'A1B2-C3D4-E5F6-1234',
       creatorAgentPublicKey: null,
       creatorHumanId: null,

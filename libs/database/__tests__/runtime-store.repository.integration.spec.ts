@@ -23,6 +23,14 @@ import {
   getExecutor,
 } from '../src/transaction-context.js';
 
+function deferred(): { promise: Promise<void>; resolve: () => void } {
+  let resolve!: () => void;
+  const promise = new Promise<void>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
 describe('Runtime store authority and serialization (PostgreSQL)', () => {
   let db: Database;
   let pool: Pool;
@@ -153,8 +161,8 @@ describe('Runtime store authority and serialization (PostgreSQL)', () => {
     expect(await repo.get(randomUUID(), store.id)).toBeNull();
   });
   it('allows reporter message foreign keys while Durable holds authority locks', async () => {
-    const locked = Promise.withResolvers<void>();
-    const release = Promise.withResolvers<void>();
+    const locked = deferred();
+    const release = deferred();
     const writer = runner.runInTransaction(async () => {
       await repo.lockAuthority(authority);
       locked.resolve();
@@ -169,6 +177,7 @@ describe('Runtime store authority and serialization (PostgreSQL)', () => {
             taskId,
             attemptN: 1,
             kind: 'info',
+            timestamp: new Date(),
             payload: { event: 'prompt_assembled' },
           },
         ]);

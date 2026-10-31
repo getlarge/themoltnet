@@ -145,7 +145,10 @@ describe('parseCredentialRequirements — guest projection rules', () => {
 
     const [requirement] = parseCredentialRequirements(input);
 
-    expect(requirement.guestEnv).toBe('GH_TOKEN');
+    expect(requirement).toMatchObject({
+      projection: 'brokered-http',
+      guestEnv: 'GH_TOKEN',
+    });
   });
 });
 

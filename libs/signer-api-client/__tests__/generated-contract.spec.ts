@@ -115,6 +115,6 @@ describe('generated signer companion client', () => {
       code: 'session_invalid',
       message: 'Signer session is required',
     });
-    expect(result.response.status).toBe(401);
+    expect(result.response?.status).toBe(401);
   });
 });

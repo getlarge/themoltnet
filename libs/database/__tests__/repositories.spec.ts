@@ -6,7 +6,7 @@ import { createContextPackRepository } from '../src/repositories/context-pack.re
 import { createDiaryRepository } from '../src/repositories/diary.repository.js';
 import { createDiaryEntryRepository } from '../src/repositories/diary-entry.repository.js';
 import { createEntryRelationRepository } from '../src/repositories/entry-relation.repository.js';
-import type { Agent, DiaryEntry } from '../src/schema.js';
+import type { Agent, ContextPack, Diary } from '../src/schema.js';
 
 // Helper to create a mock Drizzle database
 function createMockDb() {
@@ -42,34 +42,31 @@ function createMockDb() {
 }
 
 const AGENT_ID = '550e8400-e29b-41d4-a716-446655440000';
+const IDENTITY_ID = '450e8400-e29b-41d4-a716-44665544000a';
+const DIARY_ID = '770e8400-e29b-41d4-a716-446655440003';
+const TEAM_ID = '00000000-0000-4000-b000-000000000001';
 const ENTRY_ID = '660e8400-e29b-41d4-a716-446655440001';
 const PACK_ID = '770e8400-e29b-41d4-a716-446655440002';
 const RELATION_ID = '880e8400-e29b-41d4-a716-446655440003';
 
 const mockAgent: Agent = {
-  identityId: AGENT_ID,
+  id: AGENT_ID,
+  identityId: IDENTITY_ID,
   publicKey: 'ed25519:dGVzdA==',
   fingerprint: 'A1B2-C3D4-E5F6-07A8',
+  alias: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
 
-const mockEntry: DiaryEntry = {
-  id: ENTRY_ID,
-  diaryId: '770e8400-e29b-41d4-a716-446655440003',
-  createdBy: AGENT_ID,
-  title: 'Test Entry',
-  content: 'Hello world',
-  embedding: null,
-  tags: ['test'],
-  injectionRisk: false,
-  importance: 5,
-  accessCount: 0,
-  lastAccessedAt: null,
-  entryType: 'semantic',
-  contentHash: null,
-  contentSignature: null,
-  signingNonce: null,
+const mockDiary: Diary = {
+  id: DIARY_ID,
+  creatorAgentId: AGENT_ID,
+  creatorHumanId: null,
+  teamId: TEAM_ID,
+  name: 'Test Diary',
+  visibility: 'private',
+  signed: false,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -88,18 +85,16 @@ const mockRelation = {
   updatedAt: new Date(),
 };
 
-const mockPack = {
+const mockPack: ContextPack = {
   id: PACK_ID,
   diaryId: 'aa0e8400-e29b-41d4-a716-446655440005',
   packCid: 'bafy-pack',
   packCodec: 'dag-cbor',
+  packType: 'custom',
+  params: {},
   payload: {},
-  taskPromptHash: 'task-hash',
-  tokenBudget: 4000,
-  lambda: 0.5,
-  wRecency: 0.3,
-  wImportance: 0.2,
-  createdBy: AGENT_ID,
+  creatorAgentId: AGENT_ID,
+  creatorHumanId: null,
   supersedesPackId: null,
   pinned: false,
   expiresAt: new Date(Date.now() + 60_000),
@@ -119,7 +114,7 @@ describe('createAgentRepository', () => {
     db._chain.returning.mockResolvedValue([mockAgent]);
 
     const result = await repo.upsert({
-      identityId: AGENT_ID,
+      identityId: IDENTITY_ID,
       publicKey: 'ed25519:dGVzdA==',
       fingerprint: 'A1B2-C3D4-E5F6-07A8',
     });
@@ -131,7 +126,7 @@ describe('createAgentRepository', () => {
   it('findByIdentityId returns agent when found', async () => {
     db._chain.limit.mockResolvedValue([mockAgent]);
 
-    const result = await repo.findByIdentityId(AGENT_ID);
+    const result = await repo.findByIdentityId(IDENTITY_ID);
 
     expect(db.select).toHaveBeenCalled();
     expect(result).toEqual(mockAgent);
@@ -183,9 +178,9 @@ describe('createAgentRepository', () => {
   });
 
   it('delete returns true when agent deleted', async () => {
-    db._chain.returning.mockResolvedValue([{ identityId: AGENT_ID }]);
+    db._chain.returning.mockResolvedValue([{ identityId: IDENTITY_ID }]);
 
-    const result = await repo.delete(AGENT_ID);
+    const result = await repo.delete(IDENTITY_ID);
     expect(result).toBe(true);
   });
 
@@ -206,61 +201,71 @@ describe('createDiaryRepository', () => {
     repo = createDiaryRepository(db);
   });
 
-  it('create inserts an entry and returns it', async () => {
-    db._chain.returning.mockResolvedValue([mockEntry]);
+  it('create inserts a diary and returns it', async () => {
+    db._chain.returning.mockResolvedValue([mockDiary]);
 
     const result = await repo.create({
       creator: { kind: 'agent', id: AGENT_ID },
-      teamId: '00000000-0000-4000-b000-000000000001',
+      teamId: TEAM_ID,
       name: 'Test Diary',
       visibility: 'private' as const,
     });
 
     expect(db.insert).toHaveBeenCalled();
-    expect(result).toEqual(mockEntry);
+    expect(db._chain.values).toHaveBeenCalledWith({
+      creatorAgentId: AGENT_ID,
+      creatorHumanId: null,
+      name: 'Test Diary',
+      visibility: 'private',
+      teamId: TEAM_ID,
+    });
+    expect(result).toEqual(mockDiary);
   });
 
-  it('findById returns entry by ID', async () => {
-    db._chain.limit.mockResolvedValue([mockEntry]);
+  it('findById returns diary by ID', async () => {
+    db._chain.limit.mockResolvedValue([mockDiary]);
 
-    const result = await repo.findById(ENTRY_ID);
-    expect(result).toEqual(mockEntry);
+    const result = await repo.findById(DIARY_ID);
+    expect(result).toEqual(mockDiary);
   });
 
-  it('findById returns null when entry not found', async () => {
+  it('findById returns null when diary not found', async () => {
     db._chain.limit.mockResolvedValue([]);
 
     const result = await repo.findById('nonexistent');
     expect(result).toBeNull();
   });
 
-  it('update returns updated entry', async () => {
-    const updated = { ...mockEntry, title: 'Updated' };
+  it('update returns updated diary', async () => {
+    const updated = { ...mockDiary, name: 'Updated' };
     db._chain.returning.mockResolvedValue([updated]);
 
-    const result = await repo.update(ENTRY_ID, { title: 'Updated' });
+    const result = await repo.update(DIARY_ID, { name: 'Updated' });
     expect(db.update).toHaveBeenCalled();
+    expect(db._chain.set).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Updated', updatedAt: expect.any(Date) }),
+    );
     expect(result).toEqual(updated);
   });
 
-  it('update returns null when entry not found', async () => {
+  it('update returns null when diary not found', async () => {
     db._chain.returning.mockResolvedValue([]);
 
-    const result = await repo.update(ENTRY_ID, { title: 'Hacked' });
+    const result = await repo.update(DIARY_ID, { name: 'Hacked' });
     expect(result).toBeNull();
   });
 
-  it('delete returns true when entry deleted', async () => {
-    db._chain.returning.mockResolvedValue([{ id: ENTRY_ID }]);
+  it('delete returns true when diary deleted', async () => {
+    db._chain.returning.mockResolvedValue([{ id: DIARY_ID }]);
 
-    const result = await repo.delete(ENTRY_ID);
+    const result = await repo.delete(DIARY_ID);
     expect(result).toBe(true);
   });
 
-  it('delete returns false when entry not found', async () => {
+  it('delete returns false when diary not found', async () => {
     db._chain.returning.mockResolvedValue([]);
 
-    const result = await repo.delete(ENTRY_ID);
+    const result = await repo.delete(DIARY_ID);
     expect(result).toBe(false);
   });
 });
@@ -407,12 +412,17 @@ describe('createContextPackRepository', () => {
     const result = await repo.createPack({
       diaryId: mockPack.diaryId,
       packCid: mockPack.packCid,
-      tokenBudget: mockPack.tokenBudget,
       payload: mockPack.payload,
-      createdBy: mockPack.createdBy,
+      creatorAgentId: mockPack.creatorAgentId,
     });
 
     expect(db.insert).toHaveBeenCalled();
+    expect(db._chain.values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        diaryId: mockPack.diaryId,
+        creatorAgentId: AGENT_ID,
+      }),
+    );
     expect(result).toEqual(mockPack);
   });
 

@@ -2,7 +2,11 @@ import {
   enterRequestContext,
   getRequestContextFields,
 } from '@moltnet/observability';
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, {
+  type FastifyBaseLogger,
+  type FastifyInstance,
+  type FastifySchema,
+} from 'fastify';
 import { pino } from 'pino';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,6 +21,15 @@ import { RemoteAuthenticationError } from '../src/remote-auth-error.js';
 import type { AuthContext, HumanAuthContext } from '../src/types.js';
 
 const VALID_TOKEN = 'ory_at_valid_token_123';
+
+// `operationId` is an OpenAPI extension key (typed by @fastify/swagger in the
+// apps); the plugin reads it from the untyped route schema, so tests attach it
+// the same way without pulling in swagger's FastifySchema augmentation.
+function schemaWithOperationId(
+  operationId: string,
+): FastifySchema & { operationId: string } {
+  return { operationId };
+}
 // The two ids are deliberately DIFFERENT. They were the same UUID, which made
 // every assertion below pass whether the code reached for the durable
 // `agents.id` or the disposable Kratos identity — the precise conflation this
@@ -183,20 +196,19 @@ describe('authPlugin', () => {
   it('warns with a structured remote failure while public routes continue', async () => {
     await app.close();
     const records: Record<string, unknown>[] = [];
-    app = Fastify({
-      loggerInstance: pino(
-        { level: 'warn' },
-        {
-          write(chunk: string) {
-            for (const line of chunk.split('\n')) {
-              if (line) {
-                records.push(JSON.parse(line) as Record<string, unknown>);
-              }
+    const logger: FastifyBaseLogger = pino(
+      { level: 'warn' },
+      {
+        write(chunk: string) {
+          for (const line of chunk.split('\n')) {
+            if (line) {
+              records.push(JSON.parse(line) as Record<string, unknown>);
             }
-          },
+          }
         },
-      ),
-    });
+      },
+    );
+    app = Fastify({ loggerInstance: logger });
     await app.register(authPlugin, {
       tokenValidator: mockTokenValidator,
       permissionChecker: mockPermissionChecker,
@@ -585,7 +597,7 @@ describe('requireAuth preHandler', () => {
     // request.log child bindings produce inspectable log records.
     await app.close();
     const records: Record<string, unknown>[] = [];
-    const logger = pino(
+    const logger: FastifyBaseLogger = pino(
       { level: 'info' },
       {
         write(chunk: string) {
@@ -1037,7 +1049,7 @@ describe('declarative route scope enforcement', () => {
             requiredScopes: ['task:execute'],
           },
         },
-        schema: { operationId: 'executeTask' },
+        schema: schemaWithOperationId('executeTask'),
         preHandler: [requireAuth],
       },
       async () => ({ ok: true }),
@@ -1095,7 +1107,7 @@ describe('declarative route scope enforcement', () => {
             requiredScopes: ['task:execute'],
           },
         },
-        schema: { operationId: 'executeTask' },
+        schema: schemaWithOperationId('executeTask'),
         preHandler: [requireAuth],
       },
       async () => ({ ok: true }),
@@ -1142,7 +1154,7 @@ describe('declarative route scope enforcement', () => {
             requiredScopes: ['task:execute'],
           },
         },
-        schema: { operationId: 'executeTask' },
+        schema: schemaWithOperationId('executeTask'),
         preHandler: [requireAuth],
       },
       async () => ({ ok: true }),

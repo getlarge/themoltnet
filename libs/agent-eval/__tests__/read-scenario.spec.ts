@@ -98,7 +98,8 @@ describe('readScenario', () => {
     expect(scenario.prompt).toContain('Call the submit tool exactly once.');
     expect(scenario.execution).toEqual({ mode: 'vitro', workspace: 'none' });
     expect(scenario.fixtures).toEqual({ inputArtifacts: [] });
-    expect(scenario.rubric.criteria).toHaveLength(2);
+    expect(scenario.rubric).toBeDefined();
+    expect(scenario.rubric?.criteria).toHaveLength(2);
     expect(scenario.gates.requireCleanSubmit).toBe(true);
     expect(scenario.blocking).toBe(true); // default when eval.json omits it
   });

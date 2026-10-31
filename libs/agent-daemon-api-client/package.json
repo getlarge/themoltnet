@@ -13,7 +13,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b tsconfig.lib.json",
     "generate": "openapi-ts",
     "test": "vitest run --passWithNoTests"
   },
@@ -27,16 +27,10 @@
     ],
     "targets": {
       "typecheck": {
-        "executor": "nx:noop",
         "dependsOn": [
+          "^typecheck",
           "build"
-        ],
-        "cache": true,
-        "inputs": [
-          "production",
-          "^production"
-        ],
-        "outputs": []
+        ]
       }
     }
   },

@@ -10,6 +10,9 @@
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
+      "path": "../../libs/design-system/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/tasks/tsconfig.lib.json"
     },
     {
@@ -25,22 +28,13 @@
       "path": "../../libs/runtime-policy-service/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/provider-catalog"
-    },
-    {
-      "path": "../../libs/oauth-token-cache/tsconfig.lib.json"
+      "path": "../../libs/provider-catalog/tsconfig.lib.json"
     },
     {
       "path": "../../libs/embedding-service/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/discovery/tsconfig.lib.json"
-    },
-    {
       "path": "../../libs/context-distill/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/agent-key-service/tsconfig.lib.json"
     },
     {
       "path": "../../libs/bootstrap/tsconfig.lib.json"
@@ -55,13 +49,19 @@
       "path": "../../libs/signing-workflows/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/models/tsconfig.lib.json"
+      "path": "../../libs/discovery/tsconfig.lib.json"
     },
     {
       "path": "../../libs/observability/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/crypto-service/tsconfig.lib.json"
+      "path": "../../libs/agent-key-service/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/oauth-token-cache/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/models/tsconfig.lib.json"
     },
     {
       "path": "../../libs/task-artifact-service/tsconfig.lib.json"
@@ -82,10 +82,10 @@
       "path": "../../libs/diary-service/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/auth/tsconfig.lib.json"
+      "path": "../../libs/crypto-service/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/design-system/tsconfig.lib.json"
+      "path": "../../libs/auth/tsconfig.lib.json"
     }
   ]
 }

@@ -42,7 +42,7 @@
     "wasm"
   ],
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b tsconfig.lib.json",
     "dev": "tsc --watch",
     "generate:gtfobins": "node scripts/generate-gtfobins.mjs",
     "wasm:sync": "node scripts/sync-wasm.mjs",
@@ -64,16 +64,10 @@
     ],
     "targets": {
       "typecheck": {
-        "executor": "nx:noop",
         "dependsOn": [
+          "^typecheck",
           "build"
-        ],
-        "cache": true,
-        "inputs": [
-          "production",
-          "^production"
-        ],
-        "outputs": []
+        ]
       },
       "generate:gtfobins": {
         "executor": "nx:run-commands",

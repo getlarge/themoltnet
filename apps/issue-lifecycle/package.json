@@ -39,7 +39,6 @@
     "cli": "tsx src/main.ts",
     "start": "node dist/main.js",
     "build": "vite build",
-    "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint .",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
     "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --local-dependency ../../libs/sdk --local-dependency ../../packages/github-agent --bin moltnet-issue-lifecycle --args --help --expect \"drive a GitHub issue through the MoltNet task lifecycle\""

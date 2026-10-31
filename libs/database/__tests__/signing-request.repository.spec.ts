@@ -50,6 +50,7 @@ const mockRequest: SigningRequest = {
   purpose: null,
   claimedByHumanId: null,
   signingCredentialId: null,
+  signerPublicKey: null,
   challenge: null,
   methodState: null,
   receipt: null,
@@ -77,12 +78,13 @@ describe('createSigningRequestRepository', () => {
   });
 
   describe('create', () => {
-    it('creates a signing request with default expiry', async () => {
+    it('creates an agent request with the default verification method', async () => {
       db._chain.returning.mockResolvedValueOnce([mockRequest]);
 
       const result = await repo.create({
         requester: REQUESTER,
         message: 'Hello, world!',
+        expiresAt: mockRequest.expiresAt,
       });
 
       expect(db.insert).toHaveBeenCalled();

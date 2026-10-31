@@ -327,9 +327,9 @@ describe('RemoteAuthCache', () => {
       'talos',
       'hit',
     );
-    expect(JSON.stringify(metrics.recordCacheAccess.mock.calls)).not.toContain(
-      'raw-secret',
-    );
+    expect(
+      JSON.stringify(vi.mocked(metrics.recordCacheAccess).mock.calls),
+    ).not.toContain('raw-secret');
   });
 });
 

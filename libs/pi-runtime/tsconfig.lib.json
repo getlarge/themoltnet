@@ -12,19 +12,7 @@
   "include": ["src"],
   "references": [
     {
-      "path": "../shell-command-analyzer/tsconfig.lib.json"
-    },
-    {
-      "path": "../sdk/tsconfig.lib.json"
-    },
-    {
-      "path": "../sandbox-gondolin/tsconfig.lib.json"
-    },
-    {
       "path": "../os-keyring/tsconfig.lib.json"
-    },
-    {
-      "path": "../tasks/tsconfig.lib.json"
     },
     {
       "path": "../secret-scanner/tsconfig.lib.json"
@@ -33,19 +21,31 @@
       "path": "../runtime-profiles/tsconfig.lib.json"
     },
     {
-      "path": "../provider-catalog"
-    },
-    {
       "path": "../models/tsconfig.lib.json"
     },
     {
       "path": "../json-repair/tsconfig.lib.json"
     },
     {
+      "path": "../shell-command-analyzer/tsconfig.lib.json"
+    },
+    {
+      "path": "../provider-catalog/tsconfig.lib.json"
+    },
+    {
+      "path": "../sandbox-gondolin/tsconfig.lib.json"
+    },
+    {
       "path": "../crypto-service/tsconfig.lib.json"
     },
     {
+      "path": "../sdk/tsconfig.lib.json"
+    },
+    {
       "path": "../agent-runtime/tsconfig.lib.json"
+    },
+    {
+      "path": "../tasks/tsconfig.lib.json"
     }
   ]
 }

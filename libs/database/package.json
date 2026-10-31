@@ -90,16 +90,10 @@
         }
       },
       "typecheck": {
-        "executor": "nx:noop",
         "dependsOn": [
+          "^typecheck",
           "build"
-        ],
-        "cache": true,
-        "inputs": [
-          "production",
-          "^production"
-        ],
-        "outputs": []
+        ]
       }
     }
   }
