@@ -15,7 +15,8 @@
   "dependencies": {
     "@moltnet/database": "workspace:*",
     "@moltnet/diary-service": "workspace:*",
-    "@moltnet/embedding-service": "workspace:*"
+    "@moltnet/embedding-service": "workspace:*",
+    "@moltnet/secret-scanner": "workspace:*"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "catalog:",
@@ -39,10 +40,31 @@
         "options": {
           "command": "vitest run --config libs/retrieval-eval/vitest.integration.config.ts"
         }
+      },
+      "potato": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "tsx libs/retrieval-eval/src/potato-cli.ts"
+        }
+      },
+      "workspace": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "tsx libs/retrieval-eval/src/review/workspace-cli.ts"
+        }
+      },
+      "capture": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "tsx libs/retrieval-eval/src/capture-cli.ts"
+        }
       }
     },
     "tags": [
-      "type:app",
+      "type:tool",
       "scope:server",
       "platform:node"
     ]
