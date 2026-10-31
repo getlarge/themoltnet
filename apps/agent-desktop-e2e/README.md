@@ -34,5 +34,3 @@ through the production run manager, including isolated HOME and absolute project
 
 The two native keyboard/layout checks require AppKit and run only on macOS;
 Linux retains Chrome keyboard coverage and the native lifecycle/project checks.
-
-<!-- TEMP: forces the macos-26 native e2e run on this PR; reverted before merge. -->
