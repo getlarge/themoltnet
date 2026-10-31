@@ -361,10 +361,6 @@ describe('runtime profile routes', () => {
         },
         payload: {
           name: `invalid-${Object.keys(modelOptions)[0]}`,
-          models: {
-            generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
-          },
-
           sandbox: {},
           ...modelOptions,
         },

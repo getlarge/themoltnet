@@ -15,6 +15,7 @@ import type { EntryVerifyResult } from '../src/types.js';
 
 const AGENT_CREATOR = {
   kind: 'agent' as const,
+  agentId: 'a854b555-aeef-4f13-ab22-8d0b819d478e',
   fingerprint: '1671-B080-99BF-4270',
   identityId: 'a854b555-aeef-4f13-ab22-8d0b819d478e',
   publicKey: 'ed25519:wBkbENwyQSOnY+OZIsVX1F3b35JvQ42juWDXyqTapN4=',

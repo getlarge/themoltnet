@@ -233,15 +233,13 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y gnome-keyring libsecret-1-dev dbus dbus-x11
-      # No macOS keychain provisioning step: it was tried and does not help.
-      # The Go provider drives /usr/bin/security, which blocks on an access
-      # prompt regardless of whether the keychain is unlocked, so those tests
-      # skip on darwin (see requireOSKeyringTestable). The TypeScript suite
-      # provisions its own keychain and binds Security.framework directly.
+      # Native suites share the runner user's credential store. In particular,
+      # the Node suite changes and restores the macOS default keychain; running
+      # Go keyring operations concurrently can target a keychain being removed.
       - uses: dtolnay/rust-toolchain@49fda20b3f489226feadfba7767be1db54e2cee1 # 1.90.0
       - name: Test affected native keyring projects
         if: runner.os != 'Linux'
-        run: pnpm exec nx affected -t test-native
+        run: pnpm exec nx affected -t test-native --parallel=1
       - name: Test affected native keyring projects with Secret Service
         if: runner.os == 'Linux'
         shell: bash

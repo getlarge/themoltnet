@@ -14,6 +14,7 @@ export interface ReviewThread {
   comments: {
     nodes: Array<{
       author: { login: string } | null;
+      authorAssociation?: string;
       body: string;
       url: string;
       originalCommit: { oid: string } | null;
@@ -55,7 +56,7 @@ const THREADS_QUERY = `query($owner: String!, $repo: String!, $pr: Int!, $cursor
           diffSide
           resolvedBy { login }
           comments(first: 50) {
-            nodes { author { login } body url originalCommit { oid } }
+            nodes { author { login } authorAssociation body url originalCommit { oid } }
           }
         }
       }
@@ -126,7 +127,7 @@ export function createGraphQL(
 /** Historical discussion is untrusted evidence, not reviewer instructions. */
 export interface PreviousFinding {
   key: string;
-  lane: 'tests' | 'conventions' | 'blast-radius';
+  lane: 'tests' | 'conventions' | 'blast-radius' | 'performance';
   path: string;
   line: number | null;
   side: 'old' | 'new' | null;
@@ -157,7 +158,10 @@ export function previousFindings(
     const lane = marker?.key.split(':')[0];
     if (
       !marker ||
-      (lane !== 'tests' && lane !== 'conventions' && lane !== 'blast-radius')
+      (lane !== 'tests' &&
+        lane !== 'conventions' &&
+        lane !== 'blast-radius' &&
+        lane !== 'performance')
     )
       return [];
     if ((counts.get(lane) ?? 0) >= 20) return [];
@@ -182,6 +186,15 @@ export function previousFindings(
         body: first.body.slice(0, 4000),
         replies: thread.comments.nodes
           .slice(1)
+          .filter((comment) =>
+            Boolean(
+              comment.author &&
+              (sameLogin(comment.author.login, appLogin) ||
+                ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(
+                  comment.authorAssociation ?? '',
+                )),
+            ),
+          )
           .slice(-3)
           .map((comment) => ({
             author: comment.author?.login ?? null,

@@ -108,20 +108,23 @@ describe('PrincipalIdentitySchema', () => {
     });
 
     it('rejects an agent-variant payload that omits fingerprint', () => {
-      const incomplete = {
-        kind: 'agent' as const,
-        identityId: AGENT_FIXTURE.identityId,
-        publicKey: AGENT_FIXTURE.publicKey,
-      };
+      // Every other required field is present, so fingerprint alone decides.
+      const { fingerprint: _omitted, ...incomplete } = AGENT_FIXTURE;
       expect(Value.Check(PrincipalIdentitySchema, incomplete)).toBe(false);
     });
 
     it('AgentPrincipalSchema (named) carries additionalProperties: false', () => {
-      expect(AgentPrincipalSchema.additionalProperties).toBe(false);
+      expect(AgentPrincipalSchema).toHaveProperty(
+        'additionalProperties',
+        false,
+      );
     });
 
     it('HumanPrincipalSchema (named) carries additionalProperties: false', () => {
-      expect(HumanPrincipalSchema.additionalProperties).toBe(false);
+      expect(HumanPrincipalSchema).toHaveProperty(
+        'additionalProperties',
+        false,
+      );
     });
   });
 

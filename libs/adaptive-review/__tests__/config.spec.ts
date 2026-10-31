@@ -48,6 +48,7 @@ complexity:
     });
     expect(budgets.conventions).toEqual(budgets.focused);
     expect(budgets['blast-radius']).toEqual(budgets.focused);
+    expect(budgets.performance).toEqual(budgets.focused);
     expect(budgets.security).toEqual({
       runningTimeoutSec: 1200,
       dispatchTimeoutSec: 300,
@@ -59,6 +60,8 @@ complexity:
   });
 
   it.each([
+    // Invalid independent lane overrides fail before a task is created.
+    ['performance: { timeout: 0s }', 'positive whole duration'],
     ['{', 'valid YAML'],
     ['[]', 'map of review names'],
     ['null', 'map of review names'],

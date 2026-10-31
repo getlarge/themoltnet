@@ -109,7 +109,7 @@ describe('classifier-first routing', () => {
       'pr:42',
       `revision:${identity.head}`,
     ]);
-    expect(Object.keys(task.input.questions)).toHaveLength(8);
+    expect(Object.keys(task.input.questions)).toHaveLength(9);
     expect(task.input.state.packet[0].patch).toContain('+new');
     expect(
       applicableRules(['apps/rest-api/src/routes/foo.ts'], policy.rules).map(
@@ -215,6 +215,30 @@ describe('classifier-first routing', () => {
       reason: 'screened',
     });
     expect(active.scores['review-effort']).toBe(2);
+  });
+
+  it('asks and routes performance independently of complexity', () => {
+    const packets = packetize(evidence);
+    const task = buildClassifyTask(identity, evidence, packets[0], policy);
+    const question = Object.entries(task.input.questions).find(
+      ([key]) => key === 'performance',
+    )?.[1];
+    expect(question?.instructions).toContain('repeated I/O');
+    const classified = answers();
+    classified.performance = { type: 'bool', probability: 0.9 };
+    const routing = decideRoutes(
+      'active',
+      policy.lanes,
+      packets,
+      [{ packetId: packets[0].id, answers: classified }],
+      [],
+    );
+    expect(
+      routing.routes.find((route) => route.lane === 'performance'),
+    ).toMatchObject({ run: true, reason: 'selected' });
+    expect(
+      routing.routes.find((route) => route.lane === 'complexity'),
+    ).toMatchObject({ run: false, reason: 'screened' });
   });
 
   it('routes all lanes on missing answers or incomplete evidence', () => {

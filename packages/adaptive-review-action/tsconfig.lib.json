@@ -7,5 +7,15 @@
   },
   "extends": "./tsconfig.json",
   "include": ["src/**/*.ts"],
-  "references": [{ "path": "../../libs/adaptive-review/tsconfig.lib.json" }]
+  "references": [
+    {
+      "path": "../../libs/pi-runtime/tsconfig.lib.json"
+    },
+    {
+      "path": "../../apps/agent-daemon/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/adaptive-review/tsconfig.lib.json"
+    }
+  ]
 }

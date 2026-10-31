@@ -23,6 +23,7 @@ function callerBudgets() {
     'conventions',
     'security',
     'blast-radius',
+    'performance',
   ]);
   if (!budgets.focused || !budgets.security)
     throw new Error('adaptive review caller is missing a deep lane budget');

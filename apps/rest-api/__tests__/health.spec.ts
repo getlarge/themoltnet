@@ -7,6 +7,7 @@ import {
   describe,
   expect,
   it,
+  type MockInstance,
   vi,
 } from 'vitest';
 
@@ -107,7 +108,7 @@ describe('API metadata', () => {
 
   it('declares shared auth-provider failures on protected routes', async () => {
     await app.ready();
-    const operation = app.swagger().paths['/diaries']?.get;
+    const operation = app.swagger().paths?.['/diaries']?.get;
 
     expect(operation?.responses).toHaveProperty('429');
     expect(operation?.responses).toHaveProperty('503');
@@ -117,7 +118,7 @@ describe('API metadata', () => {
 describe('Health readiness probes', () => {
   let mocks: MockServices;
   let app: FastifyInstance;
-  let fetchSpy: ReturnType<typeof vi.spyOn>;
+  let fetchSpy: MockInstance<typeof fetch>;
 
   beforeEach(() => {
     mocks = createMockServices();

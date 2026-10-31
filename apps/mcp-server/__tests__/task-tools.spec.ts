@@ -507,6 +507,9 @@ describe('Task tools', () => {
     it('returns the API error when cancellation is forbidden', async () => {
       vi.mocked(cancelTask).mockResolvedValue(
         sdkErr({
+          error: 'Forbidden',
+          message: 'Forbidden',
+          statusCode: 403,
           title: 'Forbidden',
           detail: 'Task management access required',
         }) as never,
@@ -529,10 +532,17 @@ describe('Task tools', () => {
     it('returns one task with a console URL', async () => {
       vi.mocked(getTask).mockResolvedValue(sdkOk(mockTask) as never);
 
-      const result = await handleTasksGet({ id: TASK_ID }, deps, context);
+      const result = await handleTasksGet(
+        { id: TASK_ID, team_id: TEAM_ID },
+        deps,
+        context,
+      );
 
       expect(getTask).toHaveBeenCalledWith(
-        expect.objectContaining({ path: { id: TASK_ID } }),
+        expect.objectContaining({
+          headers: { 'x-moltnet-team-id': TEAM_ID },
+          path: { id: TASK_ID },
+        }),
       );
       expect(parseResult<{ consoleUrl: string }>(result).consoleUrl).toBe(
         `https://console.example.com/tasks/${TASK_ID}`,

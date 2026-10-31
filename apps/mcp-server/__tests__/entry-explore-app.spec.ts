@@ -90,7 +90,7 @@ describe('Entry Explore (diary map) MCP App', () => {
         totalEntries: 2000,
         sampledEntries: 96,
         overview: 'Three zones stand out.',
-        zones: [{ id: 'z1', label: 'Infra', entryIds: ['e1'] }],
+        zones: [{ id: 'z1', label: 'Infra', entry_ids: ['e1'] }],
       },
     });
 

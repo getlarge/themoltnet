@@ -371,9 +371,7 @@ describe('Hook routes', () => {
 
     it('enriches token with human claims from session', async () => {
       // Client has no MoltNet agent metadata (DCR client)
-      (
-        app as { oauth2Client: { getOAuth2Client: ReturnType<typeof vi.fn> } }
-      ).oauth2Client.getOAuth2Client.mockResolvedValueOnce({
+      vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
         client_id: 'dcr-client',
         metadata: {},
       });
@@ -661,11 +659,11 @@ describe('Hook routes', () => {
       },
     ])(
       'rejects invalid administrative scope binding $approved / $granted',
-      async ({ approved, granted, clientId = 'native-client' }) => {
+      async ({ approved, granted }) => {
         vi.stubEnv('MOLTNET_NATIVE_OAUTH_CLIENT_ID', 'native-client');
         try {
           vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
-            client_id: clientId,
+            client_id: 'native-client',
             metadata: {},
           });
           const response = await app.inject({
@@ -694,7 +692,7 @@ describe('Hook routes', () => {
                 },
               },
               request: {
-                client_id: clientId,
+                client_id: 'native-client',
                 grant_types: ['authorization_code'],
                 granted_scopes: granted,
               },
@@ -711,9 +709,7 @@ describe('Hook routes', () => {
     it('denies a self-registered client granted a scope above the DCR cap', async () => {
       // Arrange: a DCR client (no MoltNet metadata) whose grant carries
       // key:manage — the scope that would let it mint agent keys.
-      (
-        app as { oauth2Client: { getOAuth2Client: ReturnType<typeof vi.fn> } }
-      ).oauth2Client.getOAuth2Client.mockResolvedValueOnce({
+      vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
         client_id: 'dcr-client',
         metadata: {},
       });
@@ -753,9 +749,7 @@ describe('Hook routes', () => {
       // path does not need it. On this path it is the only evidence of what
       // the token carries, so absent must fail closed — otherwise a malformed
       // payload mints a human-subject token past the cap.
-      (
-        app as { oauth2Client: { getOAuth2Client: ReturnType<typeof vi.fn> } }
-      ).oauth2Client.getOAuth2Client.mockResolvedValueOnce({
+      vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
         client_id: 'dcr-client',
         metadata: {},
       });
@@ -789,9 +783,7 @@ describe('Hook routes', () => {
     it('bounds an oversized over-grant instead of echoing it', async () => {
       // The list is attacker-controlled in length and content and reaches both
       // a log sink and a response body.
-      (
-        app as { oauth2Client: { getOAuth2Client: ReturnType<typeof vi.fn> } }
-      ).oauth2Client.getOAuth2Client.mockResolvedValueOnce({
+      vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
         client_id: 'dcr-client',
         metadata: {},
       });
@@ -819,9 +811,7 @@ describe('Hook routes', () => {
 
     it('names every over-granted scope so the registrant can re-register', async () => {
       // Arrange
-      (
-        app as { oauth2Client: { getOAuth2Client: ReturnType<typeof vi.fn> } }
-      ).oauth2Client.getOAuth2Client.mockResolvedValueOnce({
+      vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
         client_id: 'dcr-client',
         metadata: {},
       });
@@ -861,9 +851,7 @@ describe('Hook routes', () => {
 
     it('admits a self-registered client granted exactly the MCP tool surface', async () => {
       // Arrange
-      (
-        app as { oauth2Client: { getOAuth2Client: ReturnType<typeof vi.fn> } }
-      ).oauth2Client.getOAuth2Client.mockResolvedValueOnce({
+      vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
         client_id: 'dcr-client',
         metadata: {},
       });
@@ -950,9 +938,7 @@ describe('Hook routes', () => {
 
     it('rejects with 403 when no identity found', async () => {
       // Client has no MoltNet metadata, no session claims
-      (
-        app as { oauth2Client: { getOAuth2Client: ReturnType<typeof vi.fn> } }
-      ).oauth2Client.getOAuth2Client.mockResolvedValueOnce({
+      vi.mocked(app.oauth2Client.getOAuth2Client).mockResolvedValueOnce({
         client_id: 'unknown-client',
         metadata: {},
       });
@@ -979,9 +965,7 @@ describe('Hook routes', () => {
     });
 
     it('returns 500 when OAuth2 client fetch fails', async () => {
-      (
-        app as { oauth2Client: { getOAuth2Client: ReturnType<typeof vi.fn> } }
-      ).oauth2Client.getOAuth2Client.mockRejectedValueOnce(
+      vi.mocked(app.oauth2Client.getOAuth2Client).mockRejectedValueOnce(
         new Error('Hydra connection error'),
       );
 

@@ -551,3 +551,11 @@ for the shared release process.
 ## License
 
 AGPL-3.0-only.
+
+### Custom runtime modules
+
+The optional `runtime-module` input forwards a trusted local module path or
+installed package name to the daemon's `--runtime` option. The caller must
+supply the module and its dependencies before invoking the action. Loading it
+executes host code: use a pinned trusted checkout or verified artifact, never
+files from the PR head. Omit the input to use the built-in runtime.

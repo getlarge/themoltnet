@@ -711,3 +711,80 @@ it('resolves the reviewer identity read-only before review and mints publication
     ADAPTIVE_APP_LOGIN: '${{ steps.reviewer-app.outputs.app-slug }}[bot]',
   });
 });
+
+describe('optional focused diary runtime delivery', () => {
+  it('keeps the default worker and gates the trusted custom runtime separately', () => {
+    const normal = step(
+      'specialist-workers',
+      (item) => item.name === 'Drain selected review tasks',
+    );
+    const custom = step(
+      'specialist-workers',
+      (item) => item.name === 'Drain diary-enabled focused review tasks',
+    );
+    expect(normal.uses).toContain('agent-daemon-action@');
+    expect(normal.if).toBe(
+      "inputs.focused-diary-ids == '[]' || matrix.profile != inputs.focused-profile",
+    );
+    expect(custom.if).toBe(
+      "inputs.focused-diary-ids != '[]' && matrix.profile == inputs.focused-profile",
+    );
+    expect(custom.uses).toBe(
+      './.adaptive-review-runtime/packages/agent-daemon-action',
+    );
+    expect(custom.with?.['runtime-module']).toBe(
+      '${{ steps.diary-runtime.outputs.module }}',
+    );
+    expect(custom.env?.ADAPTIVE_REVIEW_DIARY_IDS).toBe(
+      '${{ inputs.focused-diary-ids }}',
+    );
+    expect(
+      stepIndex(
+        'specialist-workers',
+        (item) => item.name === 'Verify optional review runtime bundle',
+      ),
+    ).toBeLessThan(
+      stepIndex('specialist-workers', (item) => item.id === 'diary-runtime'),
+    );
+    expect(
+      step(
+        'specialist-workers',
+        (item) => item.name === 'Download optional review runtime bundle',
+      ).with?.['artifact-ids'],
+    ).toBe('${{ needs.prepare.outputs.action-artifact-id }}');
+  });
+
+  it.each([
+    ['latest', '["11111111-1111-4111-8111-111111111111"]'],
+    ['workspace', '["11111111-1111-4111-8111-111111111111"]'],
+    ['0.74.1', '[]'],
+    ['0.74.1', '["untrusted-source"]'],
+  ])(
+    'rejects invalid runtime setup before installing dependencies (%s, %s)',
+    (version, ids) => {
+      const result = spawnSync(
+        'bash',
+        [
+          fileURLToPath(
+            new URL(
+              '../setup-adaptive-review-diary-runtime.sh',
+              import.meta.url,
+            ),
+          ),
+          '/nonexistent',
+        ],
+        {
+          env: {
+            ...process.env,
+            DAEMON_VERSION: version,
+            ADAPTIVE_REVIEW_DIARY_IDS: ids,
+          },
+          encoding: 'utf8',
+        },
+      );
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).not.toContain('npm error');
+      expect(result.stderr).toMatch(/exact released|1–8 UUIDs/);
+    },
+  );
+});

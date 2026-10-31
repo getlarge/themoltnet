@@ -132,6 +132,8 @@ describe('Rate limiter observability (#1336 part 4)', () => {
       globalAuthLimit: 10,
       globalAnonLimit: 10,
       tokenIpLimit: 10,
+      oauthConsentLimit: 10,
+      oauthProvisionLimit: 10,
       embeddingLimit: 10,
       signingLimit: 10,
       agentKeyLimit: 10,

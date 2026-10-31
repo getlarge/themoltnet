@@ -757,6 +757,7 @@ describe('specialistMatrix', () => {
               { lane: 'conventions', run: true },
               { lane: 'security', run: false },
               { lane: 'blast-radius', run: true },
+              { lane: 'performance', run: true },
             ],
           } as AdaptivePreparation['routing'],
         },
@@ -767,6 +768,7 @@ describe('specialistMatrix', () => {
         { profile: 'focused', worker: 1 },
         { profile: 'focused', worker: 2 },
         { profile: 'focused', worker: 3 },
+        { profile: 'focused', worker: 4 },
       ],
     });
   });

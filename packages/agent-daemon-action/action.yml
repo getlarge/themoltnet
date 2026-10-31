@@ -169,6 +169,10 @@ inputs:
       a fallback retry for real executor/provider failures.
     required: false
     default: ''
+  runtime-module:
+    description: Trusted local runtime module path or installed package, forwarded to daemon --runtime. Never use PR-controlled code.
+    required: false
+    default: ''
   node-version:
     description: >
       Node.js version for the runner. Default is 24 because the
@@ -1317,6 +1321,7 @@ runs:
         MAX_POLL_INTERVAL_MS: ${{ inputs.max-poll-interval-ms }}
         DAEMON_VERSION: ${{ inputs.daemon-version }}
         DAEMON_MODE: ${{ inputs.mode }}
+        RUNTIME_MODULE: ${{ inputs.runtime-module }}
         AGENT_BIN: ${{ steps.daemon.outputs.bin }}
         PROJECT_ID: ${{ inputs.project-id }}
         PROVIDERS: ${{ inputs.providers }}
@@ -1358,6 +1363,9 @@ runs:
           --agent "$MOLTNET_AGENT_NAME"
           --profile "$PROFILE"
         )
+        if [ -n "${RUNTIME_MODULE:-}" ]; then
+          daemon_args+=(--runtime "$RUNTIME_MODULE")
+        fi
         if [ "$DAEMON_MODE" = "once" ]; then
           daemon_args+=(--task-id "$TASK_ID")
         else

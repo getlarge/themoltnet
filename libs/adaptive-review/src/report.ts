@@ -32,6 +32,8 @@ export interface ThreadSummary {
    * summary instead of reopening a thread the author already closed.
    */
   resolved: ReadonlySet<string>;
+  /** URLs read from the reviewer's existing GitHub threads. */
+  links?: ReadonlyMap<string, string>;
 }
 
 /** Where a finding came from: the run and the review tasks that raised it. */
@@ -40,7 +42,7 @@ export interface FindingSource {
   correlationId: string;
 }
 
-/** The most findings the summary lists before pointing at the run. */
+/** Ordinary summary limit; explicit references remain visible for comparison. */
 export const MAX_LISTED_FINDINGS = 30;
 
 /**
@@ -143,16 +145,17 @@ export function renderFindingComment(
 function findingCount(
   total: number,
   threads: ThreadSummary | undefined,
+  hasReferences: boolean,
 ): string {
   if (total === 0) return 'Findings: 0. Nothing needs fixing from this run.';
   if (!threads) return `Findings: ${total}.`;
   const listed = total - threads.posted - threads.existing;
   const parts = [
     `${threads.posted} posted as new review threads`,
-    `${threads.existing} already open from an earlier run`,
+    `${threads.existing} ${hasReferences ? 'linked to open threads from earlier runs' : 'already open from an earlier run'}`,
     ...(listed > 0 ? [`${listed} listed below`] : []),
   ];
-  return `Findings: ${total} (${parts.join(', ')}). Fix each one, or resolve its thread with a reason.`;
+  return `Findings: ${total} (${parts.join(', ')}). Fix each one, or resolve its thread with a reason.${hasReferences ? ' Current findings referencing earlier threads are also shown below for comparison.' : ''}`;
 }
 
 /** Coverage refers to selected investigations, never to screened-out lanes. */
@@ -238,9 +241,13 @@ export function renderAdaptiveComment(
     findingCount(
       concerns.reduce((count, result) => count + result.findings.length, 0),
       threads,
+      concerns.some((result) =>
+        result.findings.some((finding) => Boolean(finding.existingFindingKey)),
+      ),
     ),
   );
   let listed = 0;
+  let omitted = 0;
   if (concerns.length) {
     lines.push('', 'Investigated concerns:');
     for (const result of concerns) {
@@ -256,17 +263,26 @@ export function renderAdaptiveComment(
                 existingFindingKey: finding.existingFindingKey,
               })
             : undefined;
-        if (key && threads?.keys.has(key)) continue;
+        // A reference is the model's match, not proof of equivalent concerns.
+        // Keep the current finding visible even when its thread is reused.
+        if (key && threads?.keys.has(key) && !finding.existingFindingKey)
+          continue;
+        if (listed >= MAX_LISTED_FINDINGS && !finding.existingFindingKey) {
+          omitted += 1;
+          continue;
+        }
         listed += 1;
-        if (listed > MAX_LISTED_FINDINGS) continue;
+        const threadUrl =
+          finding.existingFindingKey &&
+          threads?.links?.get(finding.existingFindingKey);
         lines.push(
-          `  - ${shorten(finding.path, 120)}${finding.line ? `:${finding.line}` : ''}${finding.side === 'old' ? ' (old)' : ''}: ${shorten(finding.concern, 240)}${key && threads?.resolved.has(key) ? (finding.existingFindingKey ? ' _(the earlier thread for this concern was resolved)_' : ' _(an earlier thread on this line was resolved)_') : ''}`,
+          `  - ${shorten(finding.path, 120)}${finding.line ? `:${finding.line}` : ''}${finding.side === 'old' ? ' (old)' : ''}: ${shorten(finding.concern, 240)}${key && threads?.resolved.has(key) ? (finding.existingFindingKey ? ' _(the referenced earlier thread was resolved)_' : ' _(an earlier thread on this line was resolved)_') : ''}${threadUrl ? ` · [Referenced earlier thread](${threadUrl})` : ''}`,
         );
       }
     }
-    if (listed > MAX_LISTED_FINDINGS)
+    if (omitted > 0)
       lines.push(
-        `- ${listed - MAX_LISTED_FINDINGS} more findings are not shown here; the [workflow run](${runUrl}) has the full report.`,
+        `- ${omitted} more findings are not shown here; the [workflow run](${runUrl}) has the full report.`,
       );
   }
   const gaps = [

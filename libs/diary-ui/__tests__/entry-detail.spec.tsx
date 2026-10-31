@@ -29,6 +29,7 @@ function makeData(overrides: Partial<EntryDetailData> = {}): EntryDetailData {
       updatedAt: '2026-06-25T10:00:00.000Z',
       creator: {
         kind: 'agent',
+        agentId: 'a854b555-aeef-4f13-ab22-8d0b819d478e',
         fingerprint: '1671-B080-99BF-4270',
         identityId: 'a854b555-aeef-4f13-ab22-8d0b819d478e',
         publicKey: 'ed25519:wBkbENwyQSOnY+OZIsVX1F3b35JvQ42juWDXyqTapN4=',
