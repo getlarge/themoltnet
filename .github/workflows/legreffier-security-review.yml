@@ -76,7 +76,7 @@ jobs:
       - name: Hunt for candidate risks
         id: hunt
         if: steps.prepare.outputs.skip != 'true'
-        uses: getlarge/themoltnet/packages/agent-daemon-action@e82895cd187297d4531f853661e7d667a1243b35 # v0
+        uses: getlarge/themoltnet/packages/agent-daemon-action@7188bc8c46b85a938ef7710661de9274f5338989 # v0
         with:
           providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY supports-developer-role=false
           daemon-version: workspace
@@ -94,7 +94,7 @@ jobs:
       - name: Verify candidates against the diff
         id: verify
         if: steps.prepare.outputs.skip != 'true'
-        uses: getlarge/themoltnet/packages/agent-daemon-action@e82895cd187297d4531f853661e7d667a1243b35 # v0
+        uses: getlarge/themoltnet/packages/agent-daemon-action@7188bc8c46b85a938ef7710661de9274f5338989 # v0
         with:
           providers: id=ollama-cloud base-url=https://ollama.com/v1 key-env=OLLAMA_API_KEY supports-developer-role=false
           daemon-version: workspace
@@ -125,7 +125,7 @@ jobs:
       - name: Mint publisher token
         id: app-token
         if: steps.prepare.outputs.skip != 'true'
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ vars.MOLTNET_GITHUB_APP_ID }}
           private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
