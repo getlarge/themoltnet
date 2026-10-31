@@ -138,7 +138,8 @@ it('labels a focused citation from the old side of the diff', () => {
   report.results.push({
     lane: 'complexity',
     status: 'concern',
-    summary: 'Overall acceptable.',
+    summary:
+      'Overall acceptable. [click](https://example.com) <img src=x> @owner\n# Heading',
     taskIds: [],
     // Compatibility with a report produced before rubric failures stopped
     // being converted into pathless findings.
@@ -149,6 +150,10 @@ it('labels a focused citation from the old side of the diff', () => {
   expect(rendered).toContain('Findings: 1.');
   expect(rendered).toContain('### Complexity assessment');
   expect(rendered).toContain('cognitive_load: Added branching.');
+  expect(rendered).toContain('\\[click\\](https://example.com)');
+  expect(rendered).toContain('&lt;img src=x&gt;');
+  expect(rendered).not.toContain('@owner');
+  expect(rendered).not.toContain('\n# Heading');
   for (const posted of [0, 1]) {
     const comment = renderAdaptiveComment(report, 'https://example.com/run', {
       posted,

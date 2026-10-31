@@ -135,9 +135,38 @@ describe('prior finding accounting', () => {
     expect(comment).toContain(prior().url);
     expect(comment).toContain('bbbbbbb');
     expect(comment).toContain('GitHub threads are not automatically resolved');
-    expect(comment).not.toContain('Nothing needs fixing');
+    expect(comment).toContain(
+      'Inline findings: 0. See the prior-finding assessments below.',
+    );
     expect(comment).not.toContain('<script>');
     expect(comment).not.toContain('@someone');
+  });
+
+  it('counts new findings alongside prior-finding assessments', () => {
+    const result = report(
+      [prior()],
+      [
+        {
+          ...lane([]),
+          status: 'concern',
+          findings: [
+            {
+              path: 'other.ts',
+              side: 'new',
+              line: 7,
+              concern: 'Missing timeout',
+            },
+          ],
+        },
+      ],
+    );
+
+    const comment = renderAdaptiveComment(result, 'https://example.com/run');
+
+    expect(comment).toContain('Findings: 1.');
+    expect(comment).toContain('other.ts:7: Missing timeout');
+    expect(comment).toContain('### Previous open findings');
+    expect(comment).not.toContain('Inline findings: 0.');
   });
 
   it('keeps every result in the artifact and explicitly counts outcomes omitted from a bounded comment', () => {
