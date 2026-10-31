@@ -13,6 +13,7 @@ import {
   loadServerConfig,
   loadTaskOrphanSweeperConfig,
   loadWebhookConfig,
+  type OryConfig,
   parseTrustProxy,
   resolveOryUrls,
   resolveRedisConfig,
@@ -518,8 +519,19 @@ describe('cross-leak prevention', () => {
 // ============================================================================
 
 describe('resolveOryUrls', () => {
+  // resolveOryUrls takes a full OryConfig; the cache/timeout knobs are
+  // irrelevant to URL resolution, so every case uses the schema defaults.
+  const ORY_CACHE_DEFAULTS = {
+    ORY_KETO_PERMISSION_CACHE_TTL_MS: 30_000,
+    ORY_KETO_PERMISSION_CACHE_MAX_ENTRIES: 10_000,
+    ORY_AUTH_CACHE_TTL_MS: 60_000,
+    ORY_AUTH_CACHE_MAX_ENTRIES: 10_000,
+    ORY_AUTH_REQUEST_TIMEOUT_MS: 5_000,
+  } satisfies Partial<OryConfig>;
+
   it('uses individual URLs when set', () => {
     const resolved = resolveOryUrls({
+      ...ORY_CACHE_DEFAULTS,
       ORY_PROJECT_URL: 'https://ory.example.com',
       ORY_KRATOS_PUBLIC_URL: 'http://kratos:4433',
       ORY_KRATOS_ADMIN_URL: 'http://kratos:4434',
@@ -542,6 +554,7 @@ describe('resolveOryUrls', () => {
 
   it('falls back to ORY_PROJECT_URL when individual URLs are missing', () => {
     const resolved = resolveOryUrls({
+      ...ORY_CACHE_DEFAULTS,
       ORY_PROJECT_URL: 'https://ory.example.com',
       ORY_API_KEY: 'ory_pat_xxx',
     });
@@ -557,6 +570,7 @@ describe('resolveOryUrls', () => {
 
   it('individual URLs take precedence over ORY_PROJECT_URL', () => {
     const resolved = resolveOryUrls({
+      ...ORY_CACHE_DEFAULTS,
       ORY_PROJECT_URL: 'https://ory.example.com',
       ORY_KRATOS_PUBLIC_URL: 'http://kratos-custom:4433',
     });
@@ -565,13 +579,14 @@ describe('resolveOryUrls', () => {
   });
 
   it('throws when neither individual URL nor ORY_PROJECT_URL is set', () => {
-    expect(() => resolveOryUrls({})).toThrow(
+    expect(() => resolveOryUrls({ ...ORY_CACHE_DEFAULTS })).toThrow(
       'Cannot resolve Kratos public URL',
     );
   });
 
   it('passes through apiKey as undefined when not set', () => {
     const resolved = resolveOryUrls({
+      ...ORY_CACHE_DEFAULTS,
       ORY_PROJECT_URL: 'https://ory.example.com',
     });
     expect(resolved.apiKey).toBeUndefined();
@@ -579,6 +594,7 @@ describe('resolveOryUrls', () => {
 
   it('leaves Talos disabled for self-hosted Ory unless its URL is set', () => {
     const resolved = resolveOryUrls({
+      ...ORY_CACHE_DEFAULTS,
       ORY_KRATOS_PUBLIC_URL: 'http://kratos:4433',
       ORY_KRATOS_ADMIN_URL: 'http://kratos:4434',
       ORY_HYDRA_PUBLIC_URL: 'http://hydra:4444',

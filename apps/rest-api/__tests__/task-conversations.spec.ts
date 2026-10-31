@@ -415,10 +415,14 @@ describe('task conversation routes', () => {
         });
       });
       const address = await app.listen({ host: '127.0.0.1', port: 0 });
-      const gate = Promise.withResolvers<void>();
+      // Promise.withResolvers is ES2024; the workspace lib is ES2022.
+      let releaseGate: () => void = () => undefined;
+      const gate = new Promise<void>((resolve) => {
+        releaseGate = resolve;
+      });
       const auth = vi.spyOn(app.tokenValidator, 'resolveAuthContext');
       auth.mockImplementationOnce(async () => {
-        await gate.promise;
+        await gate;
         return {
           ...VALID_AUTH_CONTEXT,
           scopes: [...VALID_AUTH_CONTEXT.scopes],
@@ -436,13 +440,13 @@ describe('task conversation routes', () => {
         controller.abort();
         await failed;
         await vi.waitFor(() => expect(disconnected).toBe(true));
-        gate.resolve();
+        releaseGate();
         await vi.waitFor(() => expect(signals).toHaveBeenCalled());
         expect(signals.mock.results[0].value.aborted).toBe(true);
         expect(mocks.taskRepository.findAttempt).not.toHaveBeenCalled();
         expect(mocks.runtimeSessionStorage.getObject).not.toHaveBeenCalled();
       } finally {
-        gate.resolve();
+        releaseGate();
         controller.abort();
         auth.mockRestore();
         signals.mockRestore();

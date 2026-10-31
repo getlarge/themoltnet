@@ -4,8 +4,10 @@
 
 import {
   AGENT_OAUTH_SCOPES,
+  type AgentAuthContext,
   type AuthContext,
   HUMAN_SESSION_SCOPES,
+  type HumanAuthContext,
   type OryClients,
   type PermissionChecker,
   type RelationshipReader,
@@ -20,7 +22,7 @@ import type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
 import type { FastifyInstance } from 'fastify';
 import { vi } from 'vitest';
 
-import { type AppOptions, buildApp } from '../src/app.js';
+import { type AppOptions, buildApp, type SecurityOptions } from '../src/app.js';
 import { createAssertDiaryReadable } from '../src/services/diary-readable.js';
 import type {
   AgentIdentityKeyRepository,
@@ -62,7 +64,7 @@ export const TEST_PACK_GC_TTL_DAYS = 11;
 export const TEST_BEARER_TOKEN = 'test-token';
 export const TEST_RELEASE_SIGNER_PUBLIC_KEY =
   'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITestKeyOnly';
-export const TEST_SECURITY_OPTIONS = {
+export const TEST_SECURITY_OPTIONS: SecurityOptions = {
   corsOrigins: 'http://localhost:3000,http://localhost:8000',
   rateLimitGlobalAuth: 1000, // Higher limits for tests
   rateLimitGlobalAnon: 1000,
@@ -100,7 +102,7 @@ export const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
 export const ENTRY_ID = '770e8400-e29b-41d4-a716-446655440002';
 export const DIARY_ID = '880e8400-e29b-41d4-a716-446655440004';
 
-export const VALID_AUTH_CONTEXT: AuthContext = {
+export const VALID_AUTH_CONTEXT: AgentAuthContext = {
   subjectType: 'agent',
   agentId: OWNER_ID,
   identityId: OWNER_IDENTITY_ID,
@@ -112,7 +114,7 @@ export const VALID_AUTH_CONTEXT: AuthContext = {
 };
 
 /** Agent authenticated via a team-bound agent key (carries a credential binding). */
-export const KEY_AUTH_CONTEXT: AuthContext = {
+export const KEY_AUTH_CONTEXT: AgentAuthContext = {
   ...VALID_AUTH_CONTEXT,
   credentialBinding: {
     expiresAt: null,
@@ -123,7 +125,7 @@ export const KEY_AUTH_CONTEXT: AuthContext = {
 };
 
 /** Human principal (e.g. Kratos session / OAuth2 auth-code). */
-export const HUMAN_AUTH_CONTEXT: AuthContext = {
+export const HUMAN_AUTH_CONTEXT: HumanAuthContext = {
   subjectType: 'human',
   // humanId is the Keto subject and FK target; identityId is the Kratos
   // binding. Distinct on purpose — see OWNER_IDENTITY_ID.
@@ -174,6 +176,7 @@ export function createMockAgent(overrides: Partial<Agent> = {}): Agent {
     identityId: OWNER_IDENTITY_ID,
     publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
     fingerprint: 'C212-DAFA-27C5-6C57',
+    alias: null,
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
     ...overrides,
@@ -349,6 +352,7 @@ export function createMockServices(): MockServices {
       searchAccessible: vi.fn(),
       updateEntry: vi.fn(),
       deleteEntry: vi.fn(),
+      deleteEntries: vi.fn(),
       // Diary container operations
       createDiary: vi.fn(),
       listDiaries: vi.fn().mockResolvedValue([]),
@@ -447,8 +451,8 @@ export function createMockServices(): MockServices {
           updatedAt: new Date(),
         }),
       ),
-      setIdentityId: vi.fn(),
-      clearIdentityId: vi.fn(),
+      bindIdentityId: vi.fn(),
+      clearIdentityIdIfMatches: vi.fn(),
     },
     // No recorded history by default: verification falls back to the
     // agent's current key, as it does for an agent without history rows.
@@ -546,6 +550,8 @@ export function createMockServices(): MockServices {
       getFingerprintFromPublicKey: vi.fn(),
       createIdentityProof: vi.fn(),
       verifyIdentityProof: vi.fn(),
+      deriveX25519PrivateKey: vi.fn(),
+      deriveX25519PublicKey: vi.fn(),
     },
     embeddingService: {
       embedPassage: vi.fn().mockResolvedValue([]),
@@ -593,6 +599,7 @@ export function createMockServices(): MockServices {
       canViewEntry: vi.fn(),
       canEditEntry: vi.fn(),
       canDeleteEntry: vi.fn(),
+      canDeleteEntries: vi.fn(),
       canEditAnyEntry: vi.fn(),
       canReadPack: vi.fn(),
       canReadPacks: vi.fn().mockResolvedValue(new Map()),
@@ -612,6 +619,10 @@ export function createMockServices(): MockServices {
       checkTaskCreatePermissions: vi.fn(),
       canClaimTask: vi.fn(),
       canCancelTask: vi.fn(),
+      canCancelTasks: vi.fn(),
+      canDeleteTask: vi.fn(),
+      canDeleteTasks: vi.fn(),
+      canForceDeleteTasks: vi.fn(),
       canReportTask: vi.fn(),
     },
     relationshipWriter: {
@@ -622,6 +633,8 @@ export function createMockServices(): MockServices {
       grantPackParent: vi.fn(),
       registerAgent: vi.fn(),
       registerHuman: vi.fn(),
+      removeAgentRelations: vi.fn(),
+      removeHumanRelations: vi.fn(),
       grantTeamOwners: vi.fn(),
       grantTeamManagers: vi.fn(),
       grantTeamExecutors: vi.fn(),
@@ -699,6 +712,7 @@ export function createMockServices(): MockServices {
       begin: vi.fn(),
       finish: vi.fn(),
       findLatestByTaskAttempt: vi.fn(),
+      list: vi.fn(),
       findByIdInTeam: vi.fn(),
     },
     runtimeSessionRepository: {
@@ -727,6 +741,8 @@ export function createMockServices(): MockServices {
       upsertActive: vi.fn(),
       findActiveByTaskAttempt: vi.fn(),
       findByIdInTeam: vi.fn(),
+      listCleanupRefsForTasks: vi.fn(),
+      detachChildren: vi.fn(),
     },
     runtimeSessionStorage: {
       putObject: vi.fn(),
@@ -737,16 +753,21 @@ export function createMockServices(): MockServices {
     taskArtifactRepository: {
       createForAttempt: vi.fn(),
       findExistingForAttempt: vi.fn().mockResolvedValue(null),
+      createManyForTask: vi.fn(),
       findByCidForAttempt: vi.fn(),
+      findByCidForTask: vi.fn(),
       listForTask: vi.fn().mockResolvedValue({
         artifacts: [],
         nextCursor: null,
       }),
+      listCleanupRefsForTasks: vi.fn(),
+      listObjectKeysStillReferenced: vi.fn(),
     },
     taskArtifactStorage: {
       putObject: vi.fn(),
       getObject: vi.fn(),
       headObject: vi.fn(),
+      listObjects: vi.fn(),
       deleteObject: vi.fn(),
       deleteObjects: vi.fn(),
     },
@@ -790,20 +811,53 @@ export function createMockServices(): MockServices {
     taskRepository: {
       create: vi.fn(),
       findById: vi.fn(),
+      findByIdInTeam: vi.fn(),
+      findByIdempotencyKey: vi.fn(),
+      clearIdempotencyKey: vi.fn(),
       findByIds: vi.fn().mockResolvedValue([]),
+      findByIdsInTeam: vi.fn(),
+      findSealedTaskIds: vi.fn(),
+      deleteCorrelationSealsForTasks: vi.fn(),
+      lockIdsIfStatusIn: vi.fn(),
+      deleteMany: vi.fn(),
+      deleteManyIfStatusIn: vi.fn(),
+      listExpiredNonTerminalTasks: vi.fn(),
+      expireIfStillNonTerminal: vi.fn(),
+      expireManyIfStillNonTerminal: vi.fn(),
+      listTerminalTasksPastRetention: vi.fn(),
+      updateMetadata: vi.fn(),
+      findByCorrelationId: vi.fn(),
+      acquireTaskCreateGuardLock: vi.fn(),
+      tryAcquireContinuationLock: vi.fn(),
+      findActiveTaskByInputMatch: vi.fn(),
       list: vi.fn(),
+      count: vi.fn(),
+      claimIfQueued: vi.fn(),
       updateStatus: vi.fn(),
+      updateStatusIfNotIn: vi.fn(),
       listWaitingTasks: vi.fn().mockResolvedValue([]),
+      listWaitingTasksReferencingTask: vi.fn(),
       promoteWaitingTasks: vi.fn().mockResolvedValue([]),
       createAttempt: vi.fn(),
+      upsertExecutorManifest: vi.fn(),
+      findExecutorManifest: vi.fn(),
+      upsertExecutorManifestRegistration: vi.fn(),
+      findExecutorManifestRegistration: vi.fn(),
+      upsertExecutorManifestVerification: vi.fn(),
+      findExecutorManifestVerification: vi.fn(),
       findAttempt: vi.fn(),
+      findAttemptWithManifests: vi.fn(),
       updateAttempt: vi.fn(),
       listAttempts: vi.fn().mockResolvedValue([]),
       countAttempts: vi.fn().mockResolvedValue(0),
       getMaxAttempts: vi.fn().mockResolvedValue(1),
+      listOrphanedTasks: vi.fn(),
       findMaxMessageSeq: vi.fn().mockResolvedValue(-1),
       appendMessages: vi.fn(),
       listMessages: vi.fn().mockResolvedValue({ items: [], hasMore: false }),
+      recomputeAttemptActivityStats: vi.fn(),
+      listMissingAttemptActivityStats: vi.fn(),
+      getTaskActivityAnalytics: vi.fn(),
     },
     taskAnalyticsService: {
       recomputeAttemptActivityStats: vi.fn(),
@@ -818,13 +872,15 @@ export function createMockServices(): MockServices {
       heartbeat: vi.fn(),
       complete: vi.fn(),
       failAttempt: vi.fn(),
-      fail: vi.fn(),
+      abort: vi.fn(),
       cancel: vi.fn(),
       listAttempts: vi.fn(),
       listMessages: vi.fn(),
       appendMessages: vi.fn(),
       planDeleteMany: vi.fn(),
       deleteMany: vi.fn(),
+      promoteSatisfiedWaitingTasks: vi.fn(),
+      registerExecutorManifest: vi.fn(),
     },
   };
 }
@@ -890,9 +946,13 @@ export async function createTestApp(
     pool?: { query(sql: string): Promise<unknown> };
     dbosReady?: () => boolean;
     oryProjectUrl?: string;
-    identityApi?: Pick<OryClients['identity'], 'getIdentity'>;
+    /** Merged over the default identity mock (schemas listing). */
+    identityApi?: Partial<OryClients['identity']>;
+    /** Replaces the default OAuth2 admin mock entirely when provided. */
+    oauth2Api?: Partial<OryClients['oauth2']>;
     talosApi?: { getJwks(): Promise<unknown> };
     relationshipApi?: OryClients['relationship'];
+    evictOAuthClient?: TokenValidator['evictOAuthClient'];
   },
   /**
    * Override how a bearer token resolves to an AuthContext. Defaults to always
@@ -905,7 +965,7 @@ export async function createTestApp(
   logger?: AppOptions['logger'],
 ): Promise<FastifyInstance> {
   const mockTokenValidator: TokenValidator = {
-    evictOAuthClient: vi.fn(),
+    evictOAuthClient: healthOptions?.evictOAuthClient ?? vi.fn(),
     introspect: vi.fn().mockResolvedValue({ active: false }),
     evictTalosKey: vi.fn(),
     resolveAuthContext: vi.fn(async (token: string) => {
@@ -945,10 +1005,13 @@ export async function createTestApp(
       ...mockIdentityApi,
       ...healthOptions?.identityApi,
     } as OryClients['identity'],
-    oauth2: mockOAuth2Api,
+    oauth2: healthOptions?.oauth2Api
+      ? (healthOptions.oauth2Api as OryClients['oauth2'])
+      : mockOAuth2Api,
     permission: {} as OryClients['permission'],
     relationship:
       healthOptions?.relationshipApi ?? ({} as OryClients['relationship']),
+    relationshipRead: {} as OryClients['relationshipRead'],
     ...(healthOptions?.talosApi
       ? { apiKeys: healthOptions.talosApi as OryClients['apiKeys'] }
       : {}),

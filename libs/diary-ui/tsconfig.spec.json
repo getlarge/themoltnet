@@ -9,7 +9,12 @@
     "types": ["vitest/globals", "vitest", "node"]
   },
   "extends": "./tsconfig.json",
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "__tests__/**/*.ts",
+    "__tests__/**/*.tsx"
+  ],
   "references": [
     {
       "path": "./tsconfig.lib.json"

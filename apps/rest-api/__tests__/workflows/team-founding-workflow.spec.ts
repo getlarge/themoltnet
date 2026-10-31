@@ -1,8 +1,10 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
+type Registered = (...args: unknown[]) => unknown;
+
 const { registerStep, registerWorkflow } = vi.hoisted(() => ({
-  registerStep: vi.fn((fn) => fn),
-  registerWorkflow: vi.fn((fn) => fn),
+  registerStep: vi.fn((fn: Registered, _options: { name: string }) => fn),
+  registerWorkflow: vi.fn((fn: Registered) => fn),
 }));
 
 vi.mock('@moltnet/database', async (importOriginal) => ({

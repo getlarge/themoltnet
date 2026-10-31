@@ -86,7 +86,8 @@ vi.mock('@dbos-inc/dbos-sdk', () => ({
 }));
 
 vi.mock('@moltnet/database', async () => {
-  const actual = await vi.importActual<DatabaseModule>('@moltnet/database');
+  const actual =
+    await vi.importActual<typeof DatabaseModule>('@moltnet/database');
   return {
     ...actual,
     DBOS: dbosMock,
@@ -181,9 +182,6 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
     updateAttempt: vi.fn().mockResolvedValue(null),
     updateStatus: vi.fn().mockResolvedValue(null),
   };
-  const dataSource = {
-    runTransaction: vi.fn(async (fn: () => Promise<unknown>) => fn()),
-  };
   const transactionRunner = {
     runInTransaction: vi.fn(async (fn: () => Promise<unknown>) => {
       if (inStep.active) {
@@ -241,7 +239,6 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
     databaseCapacityRepository,
     taskArtifactStorage,
     runtimeSessionStorage,
-    dataSource,
     transactionRunner,
     relationshipWriter,
     logger,
@@ -552,7 +549,6 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
       }),
     );
     expect(deps.transactionRunner.runInTransaction).toHaveBeenCalledTimes(1);
-    expect(deps.dataSource.runTransaction).not.toHaveBeenCalled();
     // Backstop emitted a warn log so production occurrences stay visible.
     const warnCall = logger.warn.mock.calls.find(
       ([, msg]) =>
@@ -1130,6 +1126,7 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
       deps.taskArtifactRepository.listCleanupRefsForTasks,
     ).mockResolvedValue([
       {
+        id: '22222222-2222-2222-2222-222222222292',
         taskId: queuedTask.id,
         objectKey: 'artifacts/raced',
         sizeBytes: 10,
@@ -1205,6 +1202,7 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
       deps.taskArtifactRepository.listCleanupRefsForTasks,
     ).mockResolvedValue([
       {
+        id: '22222222-2222-2222-2222-222222222293',
         taskId: queuedTask.id,
         objectKey: 'artifacts/sealed-race',
         sizeBytes: 10,

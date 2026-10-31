@@ -294,7 +294,12 @@ describe('POST /oauth2/token caching', () => {
       trustProxy: ['172.16.0.0/12'],
     });
     fetchMock.mockResolvedValue(tokenResponse());
-    const cases = [
+    type ClientIpHeaders = Record<string, string | string[]>;
+    const cases: Array<{
+      peer: string;
+      first: ClientIpHeaders;
+      second: ClientIpHeaders;
+    }> = [
       {
         peer: '172.16.1.1',
         first: {},

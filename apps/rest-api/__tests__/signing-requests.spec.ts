@@ -1,12 +1,6 @@
-import type {
-  AuthContext,
-  OryClients,
-  PermissionChecker,
-  RelationshipWriter,
-  TokenValidator,
-} from '@moltnet/auth';
+import type { AuthContext } from '@moltnet/auth';
 import { buildSigningBytes } from '@moltnet/crypto-service';
-import { DBOS } from '@moltnet/database';
+import { DBOS, type SigningRequest } from '@moltnet/database';
 import type * as SigningWorkflowModule from '@moltnet/signing-workflows';
 import {
   assertSigningVerifierRegistered,
@@ -17,15 +11,7 @@ import {
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { buildApp } from '../src/app.js';
-import type {
-  AgentRepository,
-  CryptoService,
-  DiaryService,
-  SigningRequestRecord,
-  SigningRequestRepository,
-} from '../src/types.js';
-import { createMockServices } from './helpers.js';
+import { createMockServices, createTestApp } from './helpers.js';
 
 function expectedSigningInput(message: string, nonce: string): string {
   return Buffer.from(buildSigningBytes(message, nonce)).toString('base64');
@@ -85,23 +71,34 @@ const REQUESTER_AGENT = {
 };
 
 function createMockSigningRequest(
-  overrides: Partial<SigningRequestRecord> = {},
-): SigningRequestRecord {
+  overrides: Partial<SigningRequest> = {},
+): SigningRequest {
   return {
     id: REQUEST_ID,
     requesterAgentId: OWNER_ID,
     requesterHumanId: null,
     verificationMethod: 'agent-ed25519',
     signerConstraint: null,
+    teamId: null,
+    purpose: null,
+    claimedByHumanId: null,
+    signingCredentialId: null,
+    challenge: null,
+    methodState: null,
+    receipt: null,
     message: 'Hello, world!',
     nonce: 'aaa08400-e29b-41d4-a716-446655440011',
     status: 'pending',
     signature: null,
     valid: null,
+    signerPublicKey: null,
     workflowId: 'workflow-123',
     createdAt: new Date(),
     expiresAt: new Date(Date.now() + 300_000),
     completedAt: null,
+    claimedAt: null,
+    rejectedAt: null,
+    rejectionReason: null,
     ...overrides,
   };
 }
@@ -125,116 +122,16 @@ function createApp(
   signingRepo: ReturnType<typeof createSigningRepo>,
   authContext: AuthContext | null = VALID_AUTH_CONTEXT,
 ) {
-  const mockTokenValidator: TokenValidator = {
-    evictOAuthClient: vi.fn(),
-    evictTalosKey: vi.fn(),
-    introspect: vi.fn().mockResolvedValue({ active: false }),
-    resolveAuthContext: vi.fn().mockResolvedValue(authContext),
-  };
-
-  const mockOAuth2Api = {
-    getOAuth2Client: vi.fn().mockResolvedValue({
-      data: {
-        client_id: 'test-client-id',
-        metadata: { identity_id: OWNER_ID },
-      },
-    }),
-  } as unknown as OryClients['oauth2'];
-
-  return buildApp({
-    runtimeSessionRepository: createMockServices()
-      .runtimeSessionRepository as never,
-    diaryService: {
-      create: vi.fn(),
-      getById: vi.fn(),
-      list: vi.fn(),
-      search: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-      reflect: vi.fn(),
-    } as unknown as DiaryService,
-    humanRepository: {
-      findByIds: vi.fn().mockResolvedValue(new Map()),
-    } as never,
-    diaryRepository: new Proxy(
-      {},
-      { get: () => vi.fn().mockResolvedValue(null) },
-    ) as never,
-    agentRepository: {
-      // Every requester id resolves to the test agent.
-      findByIds: vi.fn(
-        async (ids: readonly string[]) =>
-          new Map(ids.map((id) => [id, { ...REQUESTER_AGENT, id }])),
-      ),
-      findByFingerprint: vi.fn(),
-      findByIdentityId: vi.fn(),
-      findByPublicKey: vi.fn(),
-      upsert: vi.fn(),
-    } as unknown as AgentRepository,
-    cryptoService: {
-      sign: vi.fn(),
-      verify: vi.fn(),
-      parsePublicKey: vi.fn(),
-    } as unknown as CryptoService,
-    signingRequestRepository:
-      signingRepo as unknown as SigningRequestRepository,
-    maxPendingSigningRequests: MAX_PENDING_SIGNING_REQUESTS,
-    dataSource: {
-      client: { __mock: 'transactionalClient' },
-      runTransaction: vi.fn().mockImplementation(async (fn) => fn()),
-    },
-    nonceRepository: {
-      consume: vi.fn().mockResolvedValue(true),
-      cleanup: vi.fn(),
-    } as never,
-    transactionRunner: {
-      runInTransaction: vi.fn().mockImplementation(async (fn) => fn()),
-    } as never,
-    embeddingService: {
-      embedPassage: vi.fn().mockResolvedValue([]),
-      embedQuery: vi.fn().mockResolvedValue([]),
-    } as never,
-    permissionChecker: {
-      canViewEntry: vi.fn(),
-      canEditEntry: vi.fn(),
-      canDeleteEntry: vi.fn(),
-    } as unknown as PermissionChecker,
-    relationshipWriter: {
-      grantEntryParent: vi.fn(),
-      registerAgent: vi.fn(),
-      removeEntryRelations: vi.fn(),
-    } as unknown as RelationshipWriter,
-    tokenValidator: mockTokenValidator,
-    teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
-    teamRepository: new Proxy(
-      {},
-      { get: () => vi.fn().mockResolvedValue(null) },
-    ) as never,
-    relationshipReader: {
-      listTeamIdsBySubject: vi.fn().mockResolvedValue([]),
-      listTeamMembers: vi.fn().mockResolvedValue([]),
-    } as never,
-    webhookApiKey: 'test-webhook-api-key',
-    recoverySecret: 'test-recovery-secret-at-least-16-chars',
-    oryClients: {
-      frontend: {} as OryClients['frontend'],
-      identity: {} as OryClients['identity'],
-      oauth2: mockOAuth2Api,
-      permission: {} as OryClients['permission'],
-      relationship: {} as OryClients['relationship'],
-    },
-    security: {
-      corsOrigins: 'http://localhost:3000',
-      rateLimitGlobalAuth: 1000,
-      rateLimitGlobalAnon: 1000,
-      rateLimitEmbedding: 1000,
-      rateLimitSigning: 1000,
-      rateLimitAgentKey: 1000,
-      rateLimitRecovery: 1000,
-      rateLimitPublicVerify: 1000,
-      rateLimitPublicSearch: 1000,
-    },
-  });
+  const mocks = createMockServices();
+  // Route the app through this suite's signing repository so tests keep
+  // configuring and asserting on `signingRepo` directly.
+  Object.assign(mocks.signingRequestRepository, signingRepo);
+  // Every requester id resolves to the test agent.
+  mocks.agentRepository.findByIds.mockImplementation(
+    async (ids: readonly string[]) =>
+      new Map(ids.map((id) => [id, { ...REQUESTER_AGENT, id }])),
+  );
+  return createTestApp(mocks, authContext);
 }
 
 describe('Signing request routes', () => {
