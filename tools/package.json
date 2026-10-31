@@ -133,6 +133,21 @@
         "dependsOn": [
           "test"
         ]
+      },
+      "test:potato": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "default",
+          "{workspaceRoot}/tools/potato/requirements.txt",
+          "{workspaceRoot}/tools/potato/run-tests.mjs",
+          {
+            "env": "POTATO_PYTHON"
+          }
+        ],
+        "options": {
+          "command": "node tools/potato/run-tests.mjs tools/potato/scripts tools/__tests__/potato"
+        }
       }
     }
   }
