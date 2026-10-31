@@ -1,9 +1,8 @@
 import type { ModelCostRates } from '../src/types.js';
 
-export type OllamaCloudPricing = {
-  cost: ModelCostRates;
-  offPeakCost?: ModelCostRates;
-};
+export type OllamaCloudPricing =
+  | { cost: ModelCostRates; offPeakCost?: ModelCostRates }
+  | { classifierCost: ModelCostRates };
 
 /** Parse the published model table; never substitute zero for a missing price. */
 export function parseOllamaCloudPricing(
@@ -39,19 +38,34 @@ export function parseOllamaCloudPricing(
     if (!cells.length) continue;
     if (cells.length !== 4) throw new Error('Invalid Ollama model pricing row');
     const [name, input, cacheRead, output] = cells;
-    // Input-only classifiers do not belong to the chat model catalog.
-    if (output === '-') continue;
+    const id = name.replace(/ \(Off-Peak\)$/, '');
+    const existing = prices.get(id);
+    // Without a cache discount, input is charged at the ordinary input rate.
+    const cacheReadRate = cacheRead === '-' ? price(input) : price(cacheRead);
+    if (output === '-') {
+      // An input-only classifier emits no output tokens. Its rate stays out
+      // of `cost`, so no chat model is ever priced at a zero output rate.
+      // Off-peak classifier rates are not used.
+      if (id !== name) continue;
+      if (existing) throw new Error(`Duplicate Ollama model price: ${id}`);
+      prices.set(id, {
+        classifierCost: {
+          input: price(input),
+          output: 0,
+          cacheRead: cacheReadRate,
+          cacheWrite: 0,
+        },
+      });
+      continue;
+    }
     const cost = {
       input: price(input),
       output: price(output),
-      // Without a cache discount, input is charged at the ordinary input rate.
-      cacheRead: cacheRead === '-' ? price(input) : price(cacheRead),
+      cacheRead: cacheReadRate,
       cacheWrite: 0,
     };
-    const id = name.replace(/ \(Off-Peak\)$/, '');
-    const existing = prices.get(id);
     if (id !== name) {
-      if (!existing || existing.offPeakCost)
+      if (!existing || !('cost' in existing) || existing.offPeakCost)
         throw new Error(`Unexpected Ollama off-peak row: ${name}`);
       existing.offPeakCost = cost;
     } else {
@@ -59,6 +73,7 @@ export function parseOllamaCloudPricing(
       prices.set(id, { cost });
     }
   }
-  if (!prices.size) throw new Error('Ollama pricing table has no chat prices');
+  if (![...prices.values()].some((pricing) => 'cost' in pricing))
+    throw new Error('Ollama pricing table has no chat prices');
   return prices;
 }

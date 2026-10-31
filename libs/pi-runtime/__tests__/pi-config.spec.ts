@@ -205,6 +205,42 @@ it('prices the Ollama Cloud endpoint while preserving explicit custom rates', ()
   }
 });
 
+it('prices an Ollama Cloud classifier by its input-only rate alone', () => {
+  const piDir = mkdtempSync(join(tmpdir(), 'pi-classifier-pricing-'));
+  const classifier = ollamaCloudModelData.find((model) => model.classifierCost);
+  const chat = ollamaCloudModelData.find((model) => model.cost);
+  try {
+    if (!classifier?.classifierCost || !chat) throw new Error('no fixtures');
+    writePiConfig({
+      piDir,
+      providers: {
+        cloud: {
+          api: 'openai-completions',
+          baseUrl: 'https://ollama.com/v1',
+          models: [
+            { id: classifier.id, type: 'classifier' },
+            { id: chat.id, type: 'classifier' },
+          ],
+        },
+        chat: {
+          api: 'openai-completions',
+          baseUrl: 'https://ollama.com/v1',
+          models: [{ id: classifier.id }],
+        },
+      },
+    });
+    const { providers } = JSON.parse(
+      readFileSync(join(piDir, 'models.json'), 'utf8'),
+    ) as PiConfig;
+
+    expect(providers.cloud.models[0].cost).toEqual(classifier.classifierCost);
+    expect(providers.cloud.models[1]).not.toHaveProperty('cost');
+    expect(providers.chat.models[0]).not.toHaveProperty('cost');
+  } finally {
+    rmSync(piDir, { recursive: true, force: true });
+  }
+});
+
 it('declares strict tool support for an opted-in single-provider model', () => {
   const piDir = mkdtempSync(join(tmpdir(), 'pi-strict-config-'));
   try {

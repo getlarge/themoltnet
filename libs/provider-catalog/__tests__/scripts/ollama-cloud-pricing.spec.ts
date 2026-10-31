@@ -29,7 +29,7 @@ describe('Ollama Cloud pricing', () => {
     expect(prices.size).toBe(1);
   });
 
-  it('does not interpret unavailable prices as free token categories', () => {
+  it('prices input-only classifiers apart from chat models', () => {
     const prices = parseOllamaCloudPricing(
       page(
         row('classifier', '$0.24', '-', '-') +
@@ -37,8 +37,15 @@ describe('Ollama Cloud pricing', () => {
       ),
     );
 
-    expect(prices.has('classifier')).toBe(false);
-    expect(prices.get('chat')?.cost.cacheRead).toBe(0.5);
+    expect(prices.get('classifier')).toEqual({
+      classifierCost: {
+        input: 0.24,
+        output: 0,
+        cacheRead: 0.24,
+        cacheWrite: 0,
+      },
+    });
+    expect(prices.get('chat')).toMatchObject({ cost: { cacheRead: 0.5 } });
   });
 
   it.each([
@@ -48,6 +55,7 @@ describe('Ollama Cloud pricing', () => {
     page(row('<span>model</span>', '$0.10', '$0.01', '$1.00')),
     page(row('model', '<b>$0.10</b>', '$0.01', '$1.00')),
     page(''),
+    page(row('classifier', '$0.24', '-', '-')),
   ])('rejects a missing or unparseable price table', (html) => {
     expect(() => parseOllamaCloudPricing(html)).toThrow();
   });
