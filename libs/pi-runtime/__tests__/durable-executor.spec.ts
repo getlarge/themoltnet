@@ -8,10 +8,15 @@ import {
 } from '@earendil-works/pi-ai';
 import { createProvider } from '@earendil-works/pi-ai/models';
 import {
+  type CompactionResult,
+  CompactionTask,
   type ConversationId,
+  createRegistry,
   defineExtension,
   defineTool,
   type Extension,
+  Harness,
+  LiveDoc,
   type StorageWrite,
   type SubmissionId,
   type TaskId,
@@ -132,6 +137,96 @@ function setup(
   });
   return { ...remote, faux, models, execute, prepare };
 }
+// Synthetic pending summarize state: no production transcript or raw log.
+async function pendingCompactions(
+  fixture: ReturnType<typeof setup>,
+  overrides: Partial<
+    Pick<
+      Extract<StorageWrite, { type: 'task' }>['value'],
+      'background' | 'kind' | 'conversationId' | 'owner' | 'version'
+    >
+  > = {},
+  count = 2,
+) {
+  const storage = await ApiDurableStorage.open(
+    fixture.transport,
+    BACKGROUND_CONTEXT,
+  );
+  const history = await storage.scanEntries(
+    { conversationId: 1 as ConversationId },
+    100,
+    undefined,
+    BACKGROUND_CONTEXT,
+  );
+  const ids: TaskId<CompactionResult>[] = [];
+  for (let n = 0; n < count; n++) {
+    const id = await storage.mintId<TaskId<CompactionResult>>();
+    ids.push(id);
+    await storage.commit(
+      [
+        {
+          type: 'task',
+          value: {
+            id,
+            conversationId: 1 as ConversationId,
+            kind: CompactionTask.definition.name,
+            version: CompactionTask.definition.version,
+            background: true,
+            abortRequested: false,
+            input: { reason: 'threshold' },
+            state: {
+              status: 'pending',
+              checkpoint: {
+                phase: 'summarize',
+                attempt: 1,
+                model: {
+                  provider: fixture.faux.provider.id,
+                  modelId: fixture.faux.models[0].id,
+                },
+                thinkingLevel: 'off',
+                streamOptions: {},
+                maxTokens: 128,
+                tail: history.items[0].id,
+                firstKept: history.items[1].id,
+              },
+            },
+            ...overrides,
+          },
+        },
+      ],
+      BACKGROUND_CONTEXT,
+    );
+  }
+  const harness = await Harness.open(
+    storage,
+    {
+      models: fixture.models,
+      registry: createRegistry(),
+    },
+    BACKGROUND_CONTEXT,
+  );
+  await harness.commit(async (tx) => {
+    const live = await tx.doc(LiveDoc, 1 as ConversationId);
+    live.compactions = ids.map((taskId) => ({
+      taskId,
+      reason: 'threshold',
+      blocking: false,
+      attempt: 1,
+    }));
+  }, BACKGROUND_CONTEXT);
+  await harness.close(BACKGROUND_CONTEXT);
+  return ids;
+}
+const continuation = (mode?: string) =>
+  task('aaaaaaaa-0000-4000-8000-000000000002', {
+    brief: 'Continue',
+    continueFrom: {
+      taskId: task().task.id,
+      attemptN: 1,
+      ...(mode ? { mode } : {}),
+    },
+  });
+
 /** A `bash` stand-in that fails the way the Durable bash tool does. */
 function failingBash(message: string) {
   const execute = vi.fn(async (): Promise<never> => {
@@ -640,6 +735,258 @@ describe('Durable task integration', () => {
       expect(faux.state.callCount).toBe(3);
     },
   );
+  it.each([undefined, 'extend', 'fork'])(
+    'reconciles pending background compactions for %s without model spend or history loss',
+    async (mode) => {
+      const fixture = setup();
+      fixture.faux.setResponses([submitted(), submitted()]);
+      const parent = await fixture.execute(task(), reporter());
+      const ids = await pendingCompactions(fixture);
+      const before = await ApiDurableStorage.open(
+        fixture.transport,
+        BACKGROUND_CONTEXT,
+      );
+      const history = await before.scanEntries(
+        { conversationId: 1 as ConversationId },
+        100,
+        undefined,
+        BACKGROUND_CONTEXT,
+      );
+      const beforeHarness = await Harness.open(
+        before,
+        { models: fixture.models, registry: createRegistry() },
+        BACKGROUND_CONTEXT,
+      );
+      const usageBefore = await beforeHarness.usage(BACKGROUND_CONTEXT);
+      await beforeHarness.close(BACKGROUND_CONTEXT);
+      // A replay of the same completed attempt still returns its persisted result.
+      expect(await fixture.execute(task(), reporter())).toEqual(parent);
+      fixture.prepare.mockImplementationOnce(async () => {
+        // Cleanup has completed before environment preparation or another model call.
+        expect(fixture.faux.state.callCount).toBe(1);
+        const storage = await ApiDurableStorage.open(
+          fixture.transport,
+          BACKGROUND_CONTEXT,
+        );
+        for (const id of ids)
+          expect(
+            (await storage.task(id, BACKGROUND_CONTEXT))?.state,
+          ).toMatchObject({
+            status: 'terminal',
+            outcome: { status: 'aborted' },
+          });
+        const harness = await Harness.open(
+          storage,
+          { models: fixture.models, registry: createRegistry() },
+          BACKGROUND_CONTEXT,
+        );
+        expect(
+          (
+            await harness.snapshot(
+              LiveDoc,
+              1 as ConversationId,
+              BACKGROUND_CONTEXT,
+            )
+          )?.compactions,
+        ).toBeUndefined();
+        expect(await harness.usage(BACKGROUND_CONTEXT)).toEqual(usageBefore);
+        expect((await harness.inspect(BACKGROUND_CONTEXT)).tasks).toEqual([]);
+        const after = await storage.scanEntries(
+          { conversationId: 1 as ConversationId },
+          100,
+          undefined,
+          BACKGROUND_CONTEXT,
+        );
+        expect(after).toEqual(history);
+        await harness.close(BACKGROUND_CONTEXT);
+        return {
+          authorizeTool: vi.fn(async () => undefined),
+          extensions: undefined,
+          subagentExtensions: undefined,
+          close: vi.fn(),
+        };
+      });
+      const events = reporter();
+      const child = await fixture.execute(continuation(mode), events);
+      expect(child.status).toBe('completed');
+      expect(child.usage.outputTokens).toBe(parent.usage.outputTokens);
+      expect(child.usage.models).toEqual([
+        expect.objectContaining({
+          inputTokens: child.usage.inputTokens,
+          outputTokens: child.usage.outputTokens,
+        }),
+      ]);
+      expect(fixture.faux.state.callCount).toBe(2);
+      expect(recorded(events)).toContainEqual(
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            event: 'parent_background_compactions_reconciled',
+            taskCount: 2,
+          }),
+        }),
+      );
+      expect(await fixture.execute(continuation(mode), reporter())).toEqual(
+        child,
+      );
+      expect(fixture.faux.state.callCount).toBe(2);
+    },
+  );
+
+  it.each([
+    { background: false },
+    { kind: 'other.background' },
+    { conversationId: 999 as ConversationId },
+    { owner: 999 as TaskId },
+    { version: CompactionTask.definition.version + 1 },
+  ])(
+    'rejects ineligible compaction %j without cleaning eligible work',
+    async (override) => {
+      const fixture = setup();
+      fixture.faux.setResponses([submitted()]);
+      await fixture.execute(task(), reporter());
+      const eligible = await pendingCompactions(fixture);
+      await pendingCompactions(fixture, override, 1);
+      await expect(fixture.execute(continuation(), reporter())).rejects.toThrow(
+        'Parent Durable attempt has unfinished work',
+      );
+      const storage = await ApiDurableStorage.open(
+        fixture.transport,
+        BACKGROUND_CONTEXT,
+      );
+      for (const id of eligible)
+        expect(
+          (await storage.task(id, BACKGROUND_CONTEXT))?.abortRequested,
+        ).toBe(false);
+      await storage.close(BACKGROUND_CONTEXT);
+      expect(fixture.prepare).toHaveBeenCalledOnce();
+      expect(fixture.faux.state.callCount).toBe(1);
+    },
+  );
+
+  it('rejects compaction alongside an unsettled submission', async () => {
+    const fixture = setup();
+    fixture.faux.setResponses([submitted()]);
+    await fixture.execute(task(), reporter());
+    const ids = await pendingCompactions(fixture);
+    const storage = await ApiDurableStorage.open(
+      fixture.transport,
+      BACKGROUND_CONTEXT,
+    );
+    await storage.commit(
+      [
+        {
+          type: 'submission',
+          value: {
+            id: await storage.mintId<SubmissionId>(),
+            conversationId: 1 as ConversationId,
+            type: 'input',
+            status: 'queued',
+          },
+        },
+      ],
+      BACKGROUND_CONTEXT,
+    );
+    await storage.close(BACKGROUND_CONTEXT);
+    await expect(fixture.execute(continuation(), reporter())).rejects.toThrow(
+      'Parent Durable attempt has unfinished work',
+    );
+    const reopened = await ApiDurableStorage.open(
+      fixture.transport,
+      BACKGROUND_CONTEXT,
+    );
+    for (const id of ids)
+      expect(
+        (await reopened.task(id, BACKGROUND_CONTEXT))?.abortRequested,
+      ).toBe(false);
+    await reopened.close(BACKGROUND_CONTEXT);
+    expect(fixture.prepare).toHaveBeenCalledOnce();
+    expect(fixture.faux.state.callCount).toBe(1);
+  });
+
+  it.each([
+    'cancel-mark',
+    'storage-mark',
+    'cancel-settlement',
+    'storage-settlement',
+  ] as const)(
+    'recovers idempotently after %s interrupts compaction cleanup',
+    async (failure) => {
+      const fixture = setup();
+      fixture.faux.setResponses([submitted(), submitted()]);
+      await fixture.execute(task(), reporter());
+      const ids = await pendingCompactions(fixture);
+      const append = fixture.transport.append;
+      const controller = new AbortController();
+      const interruption = new Error('cleanup interrupted');
+      let marked = false;
+      fixture.transport.append = async (input, context) => {
+        const marks = input.writes.some(
+          (write) =>
+            write.type === 'task' &&
+            ids.some((id) => id === write.value.id) &&
+            write.value.abortRequested &&
+            (failure.endsWith('settlement')
+              ? write.value.state.status === 'terminal'
+              : write.value.state.status !== 'terminal'),
+        );
+        if (marks && !marked) {
+          marked = true;
+          if (failure.startsWith('storage')) throw interruption;
+          const result = await append(input, context);
+          controller.abort(interruption);
+          return result;
+        }
+        return append(input, context);
+      };
+      const events = { ...reporter(), cancelSignal: controller.signal };
+      await expect(fixture.execute(continuation(), events)).rejects.toThrow();
+      expect(marked).toBe(true);
+      expect(fixture.prepare).toHaveBeenCalledOnce();
+      expect(fixture.faux.state.callCount).toBe(1);
+      fixture.transport.append = append;
+      expect((await fixture.execute(continuation(), reporter())).status).toBe(
+        'completed',
+      );
+      expect(fixture.faux.state.callCount).toBe(2);
+      const storage = await ApiDurableStorage.open(
+        fixture.transport,
+        BACKGROUND_CONTEXT,
+      );
+      for (const id of ids)
+        expect(
+          (await storage.task(id, BACKGROUND_CONTEXT))?.state,
+        ).toMatchObject({ status: 'terminal', outcome: { status: 'aborted' } });
+      await storage.close(BACKGROUND_CONTEXT);
+    },
+  );
+
+  it('validates the parent before mutating inherited compaction', async () => {
+    const fixture = setup();
+    fixture.faux.setResponses([submitted()]);
+    await fixture.execute(task(), reporter());
+    const ids = await pendingCompactions(fixture);
+    await expect(
+      fixture.execute(
+        task('new-task', {
+          brief: 'Continue',
+          continueFrom: { taskId: 'missing-parent', attemptN: 1 },
+        }),
+        reporter(),
+      ),
+    ).rejects.toThrow('Parent Durable attempt is not complete');
+    const storage = await ApiDurableStorage.open(
+      fixture.transport,
+      BACKGROUND_CONTEXT,
+    );
+    for (const id of ids)
+      expect((await storage.task(id, BACKGROUND_CONTEXT))?.abortRequested).toBe(
+        false,
+      );
+    await storage.close(BACKGROUND_CONTEXT);
+    expect(fixture.prepare).toHaveBeenCalledOnce();
+    expect(fixture.faux.state.callCount).toBe(1);
+  });
+
   it.each(['tasks', 'submissions'] as const)(
     'rejects outstanding %s with bounded, payload-free diagnostics',
     async (kind) => {
