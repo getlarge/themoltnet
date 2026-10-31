@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.2.0...adaptive-review-action-v0.2.1) (2026-10-31)
+
+
+### Bug Fixes
+
+* **adaptive-review-action:** refresh the runtime lock ([729f71e](https://github.com/getlarge/themoltnet/commit/729f71e8a2a4b29cc8011c17496a976bd832d726))
+* **adaptive-review-action:** refresh the runtime lock ([a15ec4c](https://github.com/getlarge/themoltnet/commit/a15ec4c7d4358891959c24b02d04009a96ccdf55))
+
 ## [0.2.0](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.1.2...adaptive-review-action-v0.2.0) (2026-10-31)
 
 

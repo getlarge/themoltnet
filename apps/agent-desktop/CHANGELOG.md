@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.3](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.12.2...agent-desktop-v0.12.3) (2026-10-31)
+
+
+### Bug Fixes
+
+* **desktop:** require macOS 15.0 ([8124185](https://github.com/getlarge/themoltnet/commit/81241859c253b72d2210d9e3cd1994f061851677))
+
 ## [0.12.2](https://github.com/getlarge/themoltnet/compare/agent-desktop-v0.12.1...agent-desktop-v0.12.2) (2026-10-30)
 
 
