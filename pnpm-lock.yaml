@@ -3904,7 +3904,7 @@ importers:
     devDependencies:
       '@earendil-works/pi-coding-agent':
         specifier: 'catalog:'
-        version: 1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(@cfworker/json-schema@4.1.1)(supports-color@10.2.2)(zod@4.4.3))(@smithy/signature-v4@5.7.4)(supports-color@10.2.2)(ws@8.22.0)(zod@4.4.3)
+        version: 1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.1)(supports-color@10.2.2)(zod@4.4.3))(@smithy/signature-v4@5.7.4)(supports-color@10.2.2)(ws@8.22.0)(zod@4.4.3)
       '@moltnet/adaptive-review':
         specifier: workspace:*
         version: link:../../libs/adaptive-review
