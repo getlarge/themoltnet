@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.3.0](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.2.1...adaptive-review-action-v0.3.0) (2026-10-31)
+
+
+### Features
+
+* **adaptive-review:** assess prior open findings on reruns ([8f0e4cd](https://github.com/getlarge/themoltnet/commit/8f0e4cd916a8f55e308b8fc54e9c91a3f58ed576))
+* **adaptive-review:** assess prior open findings on reruns ([00dddee](https://github.com/getlarge/themoltnet/commit/00dddee660b3247750d44f4a12f533be592f89ad))
+
+
+### Bug Fixes
+
+* **adaptive-review:** clarify coverage and finding guidance ([2b6b19c](https://github.com/getlarge/themoltnet/commit/2b6b19cf342e7943c88872423c5eaa4936931749))
+* **adaptive-review:** separate complexity assessments from findings ([92d64cd](https://github.com/getlarge/themoltnet/commit/92d64cd4d152f1b5c93d3407faec0ea292cd8ff7))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-daemon bumped to 0.74.3
+    * @themoltnet/pi-runtime bumped to 0.29.1
+
 ## [0.2.1](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.2.0...adaptive-review-action-v0.2.1) (2026-10-31)
 
 
