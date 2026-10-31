@@ -76,6 +76,7 @@
         "{workspaceRoot}/.github/actions/**/*",
         "{workspaceRoot}/.github/scripts/issue-triage*.mjs",
         "{workspaceRoot}/.github/actionlint.yaml",
+        "{workspaceRoot}/renovate.json",
         "{workspaceRoot}/.tool-versions"
       ]
     },
