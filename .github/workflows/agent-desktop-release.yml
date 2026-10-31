@@ -149,7 +149,7 @@ jobs:
       matrix:
         include:
           - platform: mac-os
-            runner: macos-15
+            runner: macos-26
           - platform: linux
             runner: ubuntu-24.04
     runs-on: ${{ matrix.runner }}
