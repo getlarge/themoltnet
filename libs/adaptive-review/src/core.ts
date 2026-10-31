@@ -230,6 +230,13 @@ const BOOL_QUESTIONS: Record<
     true: 'A regression could propagate beyond the changed local component.',
     false: 'The affected behavior appears local and contained.',
   },
+  performance: {
+    instructions:
+      'Does this patch plausibly increase latency, CPU, memory, database or network work, or resource retention enough to warrant a performance investigation? Consider repeated I/O, input-dependent growth, concurrency, and removed bounds or batching. Select investigation rather than assume a regression; do not select merely for stylistic optimization opportunities.',
+    true: 'Changed execution or resource use may create a material performance regression.',
+    false:
+      'No material performance review surface is apparent, or the change is mechanical.',
+  },
   complexity: {
     instructions:
       'Does this patch contain interacting concepts or control flow that merits deeper complexity review?',

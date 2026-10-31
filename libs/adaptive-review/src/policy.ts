@@ -8,6 +8,7 @@ export const LANES = [
   'conventions',
   'security',
   'blast-radius',
+  'performance',
   'complexity',
 ] as const;
 export type Lane = (typeof LANES)[number];
@@ -17,6 +18,7 @@ const LaneSchema = Type.Union([
   Type.Literal('conventions'),
   Type.Literal('security'),
   Type.Literal('blast-radius'),
+  Type.Literal('performance'),
   Type.Literal('complexity'),
 ]);
 

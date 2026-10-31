@@ -16,8 +16,19 @@ review. An invalid file fails the review configuration step.
 ```
 
 `lanes` is a nonempty, unique subset of `docs`, `tests`, `conventions`,
-`security`, `blast-radius`, and `complexity`. The two score questions remain
+`security`, `blast-radius`, `performance`, and `complexity`. The two score questions remain
 part of each classifier task. Only enabled lanes may start specialist tasks.
+
+The `performance` lane investigates introduced latency, CPU, memory, I/O, and
+resource-retention regressions using the existing focused profile and worker
+pool. It traces the affected caller and workload, checking bounds, batching,
+pagination, caching, indexes, and cleanup before raising a concern. A new
+query per item replacing a batch query is a useful investigation target;
+a bounded loop or an unmeasured micro-optimization is not by itself a defect.
+Missing workload or measurement evidence remains `unclear`. Reviewers inspect
+code and existing measurements; they do not execute the PR or run benchmarks.
+Enable `performance` in the base policy after adopting a runtime release that
+supports it. No additional runtime profile or tool permissions are required.
 
 Rules provide `id`, `description`, `kind` (`mechanical` or `semantic`), `paths`,
 and `source`. Descriptions are the governing policy text. Sources are citations
@@ -88,7 +99,7 @@ checks before publication.
 The classifier receives guidance matching its packet's paths. Specialist
 tasks receive guidance matching the full changed-path manifest, including
 deletions and rename sources, with instructions to respect each file's scope.
-This covers the tests, conventions, blast-radius, security, docs, and complexity
+This covers the tests, conventions, blast-radius, performance, security, docs, and complexity
 lanes, including their freeform stages and semantic repairs. Standalone docs
 and complexity workflows do not gain this behavior. Guidance supplies review
 criteria; it cannot change enabled lanes, output contracts, security procedures,
@@ -114,7 +125,7 @@ a live model follows the criteria or whether guidance improves finding quality.
 
 ## Optional diary context
 
-Focused reviewers (`tests`, `conventions`, and `blast-radius`) can search
+Focused reviewers (`tests`, `conventions`, `blast-radius`, and `performance`) can search
 selected diaries for past decisions and incidents. This is **off by
 default**. An operator enables it in the trusted caller workflow with
 `focused-diary-ids` and a matching knowledge review profile; the repository's
@@ -252,9 +263,9 @@ seconds, minutes, or hours (`90s`, `12m`, `1h`).
 | `security`   | 15m                       |
 
 Every review defaults to a 5-minute dispatch timeout and 1-hour expiry.
-`focused` supplies defaults for `tests`, `conventions`, and `blast-radius`;
+`focused` supplies defaults for `tests`, `conventions`, `blast-radius`, and `performance`;
 each of those lane names also accepts its own overrides. Resolution happens
-per field: built-in defaults, then `focused` overrides for its three lanes,
+per field: built-in defaults, then `focused` overrides for its four lanes,
 then the individual lane override. Unknown names, duplicate fields, invalid
 durations, and expiry shorter than dispatch plus execution fail before tasks
 are submitted.

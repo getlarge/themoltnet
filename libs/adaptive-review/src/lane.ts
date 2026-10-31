@@ -66,7 +66,11 @@ export function laneFailureCode(reason: unknown): string {
     return 'invalid-complexity-rubric';
   if (reason.message.startsWith('missing runtime profile for enabled '))
     return 'missing-profile';
-  if (/^invalid (tests|conventions|blast-radius) result$/.test(reason.message))
+  if (
+    /^invalid (tests|conventions|blast-radius|performance) result$/.test(
+      reason.message,
+    )
+  )
     return 'invalid-focused-result';
   if (/ finding does not cite a changed line$/.test(reason.message))
     return 'invalid-finding-citation';
