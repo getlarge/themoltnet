@@ -51,6 +51,37 @@ describe('Ollama Cloud pricing', () => {
     expect(prices.get('chat')).toMatchObject({ cost: { cacheRead: 0.5 } });
   });
 
+  it('ignores an off-peak rate for an input-only classifier', () => {
+    const prices = parseOllamaCloudPricing(
+      page(
+        row('classifier', '$0.24', '-', '-') +
+          row('classifier (Off-Peak)', '$0.12', '-', '-') +
+          row('chat', '$0.50', '-', '$1.50'),
+      ),
+    );
+
+    expect(prices.get('classifier')).toEqual({
+      classifierCost: {
+        input: 0.24,
+        output: 0,
+        cacheRead: 0.24,
+        cacheWrite: 0,
+      },
+    });
+  });
+
+  it('rejects an off-peak chat rate for an input-only classifier', () => {
+    expect(() =>
+      parseOllamaCloudPricing(
+        page(
+          row('model', '$0.24', '-', '-') +
+            row('model (Off-Peak)', '$0.10', '$0.01', '$1.00') +
+            row('chat', '$0.50', '-', '$1.50'),
+        ),
+      ),
+    ).toThrow('Unexpected Ollama off-peak row: model (Off-Peak)');
+  });
+
   it.each([
     '<html>pricing unavailable</html>',
     page(row('model', 'contact sales', '$0.01', '$1.00')),
