@@ -37,7 +37,7 @@ jobs:
         with:
           go: 'false'
       - id: shas
-        uses: nrwl/nx-set-shas@afb73a62d26e41464e9254689e1fd6122ee683c1 # v5
+        uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5
         with:
           main-branch-name: main
       - name: Resolve affected range
@@ -68,7 +68,7 @@ jobs:
           fi
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
         if: steps.cache-projects.outputs.any == 'true'
-      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         if: steps.cache-projects.outputs.any == 'true'
         with:
           registry: ghcr.io

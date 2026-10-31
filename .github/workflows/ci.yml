@@ -363,7 +363,7 @@ jobs:
             pnpm exec secretlint --no-glob --secretlintrc .secretlintrc.json "${hidden[@]}"
           fi
       - id: shas
-        uses: nrwl/nx-set-shas@afb73a62d26e41464e9254689e1fd6122ee683c1 # v5
+        uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5
         with:
           main-branch-name: main
       # Fallback: if nx-set-shas couldn't resolve a base SHA (e.g. no prior
@@ -695,7 +695,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
       - name: Log in to GHCR
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -1341,7 +1341,7 @@ jobs:
           go: 'false'
       - name: Log in to GHCR
         if: needs.affected.outputs.e2e-node == 'true'
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -1399,7 +1399,7 @@ jobs:
           rust-cache-key: desktop-e2e
           agent-desktop-native: 'true'
       - name: Log in to GHCR
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -1572,7 +1572,7 @@ jobs:
             ${{ runner.os }}-${{ runner.arch }}-gondolin-snapshot-v2-agent-daemon-e2e-
       - name: Log in to GHCR
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -1683,7 +1683,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends qemu-utils qemu-system-x86
       - name: Log in to GHCR
         if: needs.affected.outputs.e2e-browser == 'true'
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -1766,7 +1766,7 @@ jobs:
         run: pnpm --filter @moltnet/mcp-host-e2e exec playwright install-deps chromium
       - name: Log in to GHCR
         if: needs.affected.outputs.e2e-mcp == 'true'
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -1840,7 +1840,7 @@ jobs:
           go-cache: 'true'
       - name: Log in to GHCR
         if: needs.affected.outputs.e2e-go-cli == 'true'
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -1909,7 +1909,7 @@ jobs:
         if: needs.affected.outputs.e2e-cpp-sdk == 'true'
       - name: Log in to GHCR
         if: needs.affected.outputs.e2e-cpp-sdk == 'true'
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
