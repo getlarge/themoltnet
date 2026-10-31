@@ -1,6 +1,6 @@
 {
   "apps/agent-daemon": "0.74.2",
-  "apps/agent-desktop": "0.12.2",
+  "apps/agent-desktop": "0.12.3",
   "apps/console": "0.22.10",
   "apps/mcp-host": "0.2.0",
   "apps/mcp-server": "0.30.5",
@@ -26,7 +26,7 @@
   "libs/shell-command-analyzer": "0.4.0",
   "libs/tasks-orchestrator": "0.6.3",
   "libs/yubikey-preview-sign": "0.4.1",
-  "packages/adaptive-review-action": "0.2.0",
+  "packages/adaptive-review-action": "0.2.1",
   "packages/agent-daemon-action": "0.8.0",
   "packages/cli": "3.23.0",
   "packages/cli/npm/darwin-arm64": "3.23.0",
