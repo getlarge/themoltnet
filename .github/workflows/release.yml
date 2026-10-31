@@ -162,13 +162,14 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
         if: steps.release.outputs.prs_created == 'true'
-      - name: Sync published CLI and daemon consumer pins
+      - name: Sync published CLI, daemon, and adaptive-review consumer pins
         if: steps.release.outputs.prs_created == 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           node tools/release/sync-cli-consumer-pins.mjs
           node tools/release/sync-daemon-consumer-pins.mjs
+          node tools/release/sync-adaptive-review-consumer-pins.mjs
           # The adaptive-review runtime lock hashes the reusable workflow
           # whose pin was just synced; refresh it in the same commit.
           node tools/src/release/action-runtime-lock.ts --write
@@ -176,6 +177,8 @@ jobs:
             .github/workflows/issue-triage.yml \
             .github/workflows/legreffier-security-review.yml \
             .github/workflows/adaptive-review-reusable.yml \
+            .github/workflows/adaptive-review.yml \
+            .github/workflows/adaptive-review-outcomes.yml \
             packages/adaptive-review-action/runtime.lock
       - name: Commit consumer pins to release PR
         if: steps.release.outputs.prs_created == 'true'
