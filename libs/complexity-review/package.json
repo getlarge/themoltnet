@@ -19,7 +19,6 @@
     "node": ">=22"
   },
   "scripts": {
-    "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint ."
   },
   "dependencies": {

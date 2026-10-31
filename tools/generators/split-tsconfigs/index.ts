@@ -24,14 +24,10 @@ type TsConfig = {
   references?: Array<{ path: string }>;
 };
 
-const TEST_PATTERNS = [
+const TEST_CONFIG_FILES = [
   'vitest.config.ts',
   'vitest.config.mts',
   'playwright.config.ts',
-  'src/**/*.spec.ts',
-  'src/**/*.spec.tsx',
-  'src/**/*.spec.js',
-  'src/**/*.d.ts',
 ];
 
 const SOURCE_TEST_EXCLUDES = [
@@ -43,6 +39,8 @@ const SOURCE_TEST_EXCLUDES = [
 ];
 
 export const SOURCE_TEST_FILE_PATTERN = /(^|\/)src\/.*\.spec\.[cm]?[jt]sx?$/;
+
+const TEST_FILE_PATTERN = /\.spec\.[cm]?[jt]sx?$/;
 
 export default async function splitTsconfigsGenerator(
   tree: Tree,
@@ -100,10 +98,6 @@ function migrateProject(
     'tsconfig.test.json',
   );
 
-  if (!options.force && tree.exists(libTsconfigPath)) {
-    return false;
-  }
-
   const root = readJson<TsConfig>(tree, rootTsconfigPath);
   const existingLib = tree.exists(libTsconfigPath)
     ? readJson<TsConfig>(tree, libTsconfigPath)
@@ -111,12 +105,24 @@ function migrateProject(
   const existingSpec = tree.exists(specTsconfigPath)
     ? readJson<TsConfig>(tree, specTsconfigPath)
     : undefined;
+
+  if (!options.force && existingLib) {
+    return addMissingSpecTsconfig(tree, options.root, existingSpec);
+  }
+
+  const e2eOnly = isE2eOnlyProject(options.name, options.root);
+  // An e2e-only project is already split once it has a spec config.
+  if (!options.force && e2eOnly && existingSpec) {
+    return false;
+  }
+
   const source =
     options.force && existingLib ? mergeTsconfig(root, existingLib) : root;
   const hasProjectTests =
-    existingSpec !== undefined || hasSourceTests(tree, options.root);
+    existingSpec !== undefined ||
+    hasSourceTests(tree, options.root) ||
+    hasTestsFolder(tree, options.root);
   const hasTestTsconfig = tree.exists(testTsconfigPath);
-  const e2eOnly = isE2eOnlyProject(options.name, options.root);
   const projectPackageJson = readProjectPackageJson(tree, options.root);
   const preserveDistOutDir = isTscBuildProject(projectPackageJson);
 
@@ -183,6 +189,37 @@ function migrateProject(
     });
   }
 
+  return true;
+}
+
+// A split project whose tests moved to __tests__/ after the split has no
+// spec config, so nothing typechecks its tests. Add one without touching the
+// existing lib config.
+function addMissingSpecTsconfig(
+  tree: Tree,
+  projectRoot: string,
+  existingSpec: TsConfig | undefined,
+): boolean {
+  if (existingSpec || !hasTestsFolder(tree, projectRoot)) {
+    return false;
+  }
+
+  writeJson(
+    tree,
+    joinPathFragments(projectRoot, 'tsconfig.spec.json'),
+    specTsconfig(tree, {}, projectRoot, undefined),
+  );
+  updateJson<TsConfig>(
+    tree,
+    joinPathFragments(projectRoot, 'tsconfig.json'),
+    (json) => {
+      json.references = [
+        ...(json.references ?? []),
+        { path: './tsconfig.spec.json' },
+      ];
+      return json;
+    },
+  );
   return true;
 }
 
@@ -309,6 +346,14 @@ function hasSourceTests(tree: Tree, projectRoot: string): boolean {
   );
 }
 
+function hasTestsFolder(tree: Tree, projectRoot: string): boolean {
+  const testsRoot = joinPathFragments(projectRoot, '__tests__');
+  return (
+    tree.exists(testsRoot) &&
+    hasMatchingFile(tree, testsRoot, (file) => TEST_FILE_PATTERN.test(file))
+  );
+}
+
 function hasMatchingFile(
   tree: Tree,
   filePath: string,
@@ -356,7 +401,7 @@ function specTsconfig(
       ]),
     },
     extends: './tsconfig.json',
-    include: specSource.include ?? specIncludes(tree, projectRoot),
+    include: existingSpec?.include ?? specIncludes(tree, projectRoot),
     references: [{ path: './tsconfig.lib.json' }],
   };
 }
@@ -370,7 +415,12 @@ function generatorIncludes(packageJson: Json): string[] {
 }
 
 function specIncludes(tree: Tree, projectRoot: string): string[] {
-  const includes = [...TEST_PATTERNS];
+  const includes = [
+    ...TEST_CONFIG_FILES.filter((file) =>
+      tree.exists(joinPathFragments(projectRoot, file)),
+    ),
+    'src/**/*.d.ts',
+  ];
   if (tree.exists(joinPathFragments(projectRoot, '__tests__'))) {
     includes.push('__tests__/**/*.ts', '__tests__/**/*.tsx');
   }

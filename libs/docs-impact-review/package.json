@@ -27,7 +27,6 @@
     "node": ">=22.20"
   },
   "scripts": {
-    "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint ."
   },
   "dependencies": {
