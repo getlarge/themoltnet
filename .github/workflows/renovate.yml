@@ -76,5 +76,5 @@ jobs:
           RENOVATE_REQUIRE_CONFIG: required
           RENOVATE_PLATFORM_COMMIT: enabled
           RENOVATE_LOG_LEVEL: ${{ github.event_name == 'workflow_dispatch' && inputs.debug && 'debug' || 'info' }}
-          # Permit only the workspace formatter declared in renovate.json.
-          RENOVATE_ALLOWED_COMMANDS: '["^node tools/renovate/format-pnpm-workspace\\.mjs$"]'
+          # Permit only the formatter and runtime-lock refresh declared in renovate.json.
+          RENOVATE_ALLOWED_COMMANDS: '["^node tools/renovate/format-pnpm-workspace\\.mjs$", "^node tools/src/release/action-runtime-lock\\.ts --write$"]'

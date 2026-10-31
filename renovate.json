@@ -131,7 +131,13 @@
       "description": "Review action and reusable workflow versions together, apart from toolchain inputs",
       "groupName": "GitHub Actions",
       "matchDepTypes": ["action", "workflow"],
-      "matchManagers": ["github-actions"]
+      "matchManagers": ["github-actions"],
+      "postUpgradeTasks": {
+        "commands": ["node tools/src/release/action-runtime-lock.ts --write"],
+        "executionMode": "branch",
+        "fileFilters": ["packages/*/runtime.lock"]
+      },
+      "semanticCommitType": "fix"
     },
     {
       "description": "The Rust action SHA is intentionally fixed to the repository's Rust 1.90.0 toolchain",
