@@ -135,9 +135,20 @@ it('labels a focused citation from the old side of the diff', () => {
     ],
   };
 
-  expect(renderAdaptiveComment(report, 'https://example.com/run')).toContain(
-    'src/route.ts:7 (old): Guard was removed',
-  );
+  report.results.push({
+    lane: 'complexity',
+    status: 'concern',
+    summary: 'Overall acceptable.',
+    taskIds: [],
+    // Compatibility with a report produced before rubric failures stopped
+    // being converted into pathless findings.
+    findings: [{ path: '', concern: 'cognitive_load: Added branching.' }],
+  });
+  const rendered = renderAdaptiveComment(report, 'https://example.com/run');
+  expect(rendered).toContain('src/route.ts:7 (old): Guard was removed');
+  expect(rendered).toContain('Findings: 1.');
+  expect(rendered).toContain('### Complexity assessment');
+  expect(rendered).toContain('cognitive_load: Added branching.');
   for (const posted of [0, 1]) {
     const comment = renderAdaptiveComment(report, 'https://example.com/run', {
       posted,
@@ -315,7 +326,9 @@ it('says plainly when nothing needs fixing', () => {
   const comment = renderAdaptiveComment(report, 'https://example.com/run');
 
   // Assert
-  expect(comment).toContain('Findings: 0. Nothing needs fixing from this run.');
+  expect(comment).toContain(
+    'Findings: 0. No actionable findings were reported.',
+  );
   expect(comment).not.toContain('A screened lane was not investigated.');
   expect(comment).toContain('_Advisory review._');
 });

@@ -534,7 +534,7 @@ describe('publishAdaptiveReport inline threads', () => {
       '**Adaptive review · security**',
     );
     expect(recorded.summaries[0]).toContain(
-      'Findings: 4 (3 posted as new review threads, 0 already open from an earlier run, 1 listed below)',
+      'Findings: 3 (3 posted as new review threads, 0 already open from an earlier run)',
     );
     expect(recorded.summaries[0]).toContain('blast_radius: wide');
     expect(recorded.summaries[0]).not.toContain('src/a.ts:7');
@@ -912,7 +912,7 @@ describe('continuing focused findings', () => {
             ...(overflow
               ? [
                   concern(
-                    'complexity',
+                    'docs',
                     Array.from({ length: 31 }, (_, index) => ({
                       path: '',
                       concern: `Other concern ${index}`,

@@ -147,7 +147,7 @@ function findingCount(
   threads: ThreadSummary | undefined,
   hasReferences: boolean,
 ): string {
-  if (total === 0) return 'Findings: 0. Nothing needs fixing from this run.';
+  if (total === 0) return 'Findings: 0. No actionable findings were reported.';
   if (!threads) return `Findings: ${total}.`;
   const listed = total - threads.posted - threads.existing;
   const parts = [
@@ -239,7 +239,7 @@ export function renderAdaptiveComment(
     `Classifier scores (0–3): code complexity ${complexity === null ? 'unavailable' : complexity.toFixed(1)}; review effort ${effort === null ? 'unavailable' : effort.toFixed(1)}. These describe screening, not review findings.`,
   );
   const concerns = report.results.filter(
-    (result) => result.status === 'concern',
+    (result) => result.status === 'concern' && result.lane !== 'complexity',
   );
   lines.push(
     '',
@@ -294,6 +294,27 @@ export function renderAdaptiveComment(
       lines.push(
         `- ${omitted} more findings are not shown here; the [workflow run](${runUrl}) has the full report.`,
       );
+  }
+  const complexityAssessment = report.results.find(
+    (result) =>
+      result.lane === 'complexity' &&
+      (result.status === 'clear' || result.status === 'concern'),
+  );
+  if (complexityAssessment) {
+    lines.push(
+      '',
+      '### Complexity assessment',
+      '',
+      'Rubric assessment, not counted as actionable findings.',
+      shorten(
+        [
+          complexityAssessment.summary,
+          // Older reports stored rubric rationales as pathless findings.
+          ...complexityAssessment.findings.map((finding) => finding.concern),
+        ].join('\n'),
+        1600,
+      ),
+    );
   }
   lines.push(...renderPriorFindings(report));
   const gaps = [

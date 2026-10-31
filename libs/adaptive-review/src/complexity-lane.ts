@@ -73,16 +73,23 @@ export async function runComplexityLane(ctx: LaneContext): Promise<LaneResult> {
     summary =
       coverage ||
       `${unclear.length} rubric criteri${unclear.length === 1 ? 'on' : 'a'} could not be assessed.`;
-  else if (coverage) summary = `${summary} ${coverage}`;
+  else {
+    summary = [
+      summary,
+      ...failed.map((score) => `${score.criterionId}: ${score.rationale}`),
+      coverage,
+    ]
+      .filter(Boolean)
+      .join('\n');
+  }
   return {
     lane: 'complexity',
     status,
     summary,
     taskIds: result.taskIds,
-    findings: failed.map((score) => ({
-      path: '',
-      concern: `${score.criterionId}: ${score.rationale}`,
-    })),
+    // Rubric failures assess review difficulty, not located code defects.
+    // Preserve their rationale in the assessment without fabricating findings.
+    findings: [],
     ...(status === 'unclear'
       ? {
           unclear: unclear.map(

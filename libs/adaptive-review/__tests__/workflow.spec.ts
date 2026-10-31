@@ -813,6 +813,38 @@ describe('adaptive review orchestration', () => {
     });
   });
 
+  it('keeps the PR 2923 branching observation as an assessment, not a finding', async () => {
+    mocks.runComplexityReview.mockResolvedValue({
+      taskIds: ['complexity-task'],
+      output: {
+        verdict:
+          'Overall acceptable, though reviewers must handle the added branching logic.',
+        scores: [
+          {
+            criterionId: 'cognitive_load',
+            status: 'fail',
+            rationale:
+              'New validation and abort branches introduce additional control flow.',
+          },
+        ],
+      },
+      unreviewedDomainWork: 0,
+    });
+    const { tasks } = harness({ selected: 'complexity' });
+
+    const report = await review(tasks);
+    const result = report.results.find((item) => item.lane === 'complexity');
+    expect(result).toMatchObject({ status: 'concern', findings: [] });
+    expect(result?.summary).toContain('cognitive_load: New validation');
+    const comment = renderAdaptiveComment(report, 'https://example.com/run');
+    expect(comment).toContain(
+      'Findings: 0. No actionable findings were reported.',
+    );
+    expect(comment).toContain('### Complexity assessment');
+    expect(comment).toContain('Overall acceptable');
+    expect(comment).not.toContain('Investigated concerns:');
+  });
+
   it('marks incomplete complexity coverage unclear even when reviewed scores pass', async () => {
     mocks.runComplexityReview.mockResolvedValue({
       taskIds: ['complexity-task'],
