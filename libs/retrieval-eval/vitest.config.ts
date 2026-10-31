@@ -3,7 +3,7 @@ export default defineConfig({
   test: {
     root: import.meta.dirname,
     environment: 'node',
-    include: ['__tests__/**/*.test.ts'],
-    exclude: ['**/*.integration.test.ts'],
+    include: ['__tests__/**/*.spec.ts'],
+    exclude: ['**/*.integration.spec.ts'],
   },
 });
