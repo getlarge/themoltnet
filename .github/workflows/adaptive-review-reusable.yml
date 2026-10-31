@@ -468,7 +468,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh
       - name: Drain this review's tasks
-        uses: getlarge/themoltnet/packages/agent-daemon-action@dd4a984b5accb43c948a85a7211d306098926b3c # v0.7.0
+        uses: getlarge/themoltnet/packages/agent-daemon-action@7188bc8c46b85a938ef7710661de9274f5338989 # v0.7.1
         env:
           MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
           MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}
@@ -525,7 +525,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: bash .adaptive-review-runtime/tools/fetch-adaptive-review-head.sh
       - name: Drain selected review tasks
-        uses: getlarge/themoltnet/packages/agent-daemon-action@dd4a984b5accb43c948a85a7211d306098926b3c # v0.7.0
+        uses: getlarge/themoltnet/packages/agent-daemon-action@7188bc8c46b85a938ef7710661de9274f5338989 # v0.7.1
         env:
           MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
           MOLTNET_AGENT_NAME: ${{ inputs.agent-name || vars.MOLTNET_AGENT_NAME }}

@@ -162,7 +162,7 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
         if: steps.release.outputs.prs_created == 'true'
-      - name: Sync published CLI, daemon, and adaptive-review consumer pins
+      - name: Sync published CLI, daemon/action pair, and adaptive-review consumer pins
         if: steps.release.outputs.prs_created == 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
