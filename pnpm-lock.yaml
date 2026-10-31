@@ -3302,6 +3302,9 @@ importers:
       '@moltnet/embedding-service':
         specifier: workspace:*
         version: link:../embedding-service
+      '@moltnet/secret-scanner':
+        specifier: workspace:*
+        version: link:../secret-scanner
     devDependencies:
       '@testcontainers/postgresql':
         specifier: 'catalog:'

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, open, readFile, rename } from 'node:fs/promises';
+import { link, mkdir, open, readFile, rename, unlink } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 
@@ -28,4 +28,19 @@ export async function saveJson(path: string, value: unknown): Promise<void> {
 }
 export async function readJson<T>(path: string): Promise<T> {
   return JSON.parse(await readFile(path, 'utf8')) as T;
+}
+
+/** Atomic, immutable publication: competing revisions cannot overwrite a winner. */
+export async function saveImmutableJson(
+  path: string,
+  value: unknown,
+): Promise<void> {
+  await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+  const temporary = `${path}.${randomUUID()}.tmp`;
+  await saveJson(temporary, value);
+  try {
+    await link(temporary, path);
+  } finally {
+    await unlink(temporary);
+  }
 }

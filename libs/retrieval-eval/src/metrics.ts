@@ -74,11 +74,53 @@ export function rescore(
   validateDataset(original);
   validateDataset(updated);
   if (
-    JSON.stringify(original.entries) !== JSON.stringify(updated.entries) ||
-    JSON.stringify(original.queries) !== JSON.stringify(updated.queries) ||
+    JSON.stringify(original.entries.map((e) => [e.id, e.contentHash])) !==
+      JSON.stringify(updated.entries.map((e) => [e.id, e.contentHash])) ||
+    JSON.stringify(
+      original.queries.map((q) => [q.id, q.textHash, q.family, q.split]),
+    ) !==
+      JSON.stringify(
+        updated.queries.map((q) => [q.id, q.textHash, q.family, q.split]),
+      ) ||
     original.timePolicy !== updated.timePolicy ||
     original.capturedAt !== updated.capturedAt
   )
     throw new Error('Rankings are incompatible with changed inputs');
   return rankings.map((r) => ({ ...r, metrics: score(updated, r) }));
+}
+
+/** Original fixture summaries; repeated trials remain diagnostic repetitions. */
+export function summarizeBinary(dataset: Dataset, rankings: Ranking[]) {
+  if (dataset.timePolicy !== 'historical-fixture-v1') return [];
+  const groups = new Map<string, Ranking[]>();
+  for (const r of rankings) {
+    const key = JSON.stringify([r.configuration, r.k]);
+    groups.set(key, [...(groups.get(key) ?? []), r]);
+  }
+  return [...groups.values()].map((group) => {
+    const metrics = group
+      .map((r) => score(dataset, r).binary)
+      .filter((m) => m !== null);
+    const answerable = metrics.filter((m) => m.recallAtK !== null),
+      noMatch = metrics.filter((m) => m.recallAtK === null);
+    return {
+      configuration: group[0].configuration,
+      k: group[0].k,
+      answerableTrials: answerable.length,
+      meanPrecisionAtK: answerable.length
+        ? answerable.reduce((sum, m) => sum + m.precisionAtK, 0) /
+          answerable.length
+        : null,
+      meanRecallAtK: answerable.length
+        ? answerable.reduce((sum, m) => sum + (m.recallAtK ?? 0), 0) /
+          answerable.length
+        : null,
+      noMatchMeanFalsePositives: noMatch.length
+        ? noMatch.reduce((sum, m) => sum + m.falsePositives, 0) / noMatch.length
+        : null,
+      noMatchEmptyResultRate: noMatch.length
+        ? noMatch.filter((m) => m.retrievedCount === 0).length / noMatch.length
+        : null,
+    };
+  });
 }
