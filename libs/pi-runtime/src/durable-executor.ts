@@ -6,6 +6,7 @@ import {
 import type { Models, UserMessage } from '@earendil-works/pi-ai';
 import {
   type AgentChange,
+  CompactionTask,
   configure,
   type Conversation,
   type ConversationId,
@@ -572,8 +573,67 @@ export function createDurableTaskExecutor(options: {
         if (!found) throw new Error('Durable attempt conversation is missing');
         conversation = found;
       } else {
+        const parent = (
+          task.input as {
+            continueFrom?: { taskId: string; attemptN: number; mode: string };
+          }
+        ).continueFrom;
+        let sourceConversation: Conversation | undefined;
+        if (parent) {
+          const source = await harness.snapshot(
+            Attempts,
+            `${parent.taskId}/${parent.attemptN}`,
+            context,
+          );
+          if (!source?.result)
+            throw new Error('Parent Durable attempt is not complete');
+          sourceConversation = await harness.conversation(
+            source.conversationId as ConversationId,
+            context,
+          );
+          if (!sourceConversation)
+            throw new Error('Parent Durable conversation is missing');
+        }
+        // Only obsolete background compaction may cross the continuation boundary.
+        // Validate the whole live set before mutating anything or enabling scheduling.
+        let live = await harness.inspect(context);
+        if (
+          sourceConversation &&
+          live.submissions.length === 0 &&
+          live.tasks.length > 0 &&
+          live.tasks.every(
+            ({ record }) =>
+              record.kind === CompactionTask.definition.name &&
+              record.version === CompactionTask.definition.version &&
+              record.background === true &&
+              record.owner === undefined &&
+              record.conversationId === sourceConversation.id,
+          )
+        ) {
+          const ids = live.tasks.map(({ record }) => record.id);
+          // abortTask does not enable scheduling. Mark ALL tasks first, so
+          // waiting for one cannot resume another task's summarization request.
+          for (const id of ids) {
+            connected.check();
+            await harness.abortTask(id, context);
+          }
+          for (const id of ids) {
+            connected.check();
+            const settled = await harness.waitForTask(id, context);
+            if (settled.state.outcome.status !== 'aborted')
+              throw new Error('Parent background compaction did not abort');
+          }
+          connected.check();
+          live = await harness.inspect(context);
+          await emit('info', {
+            phase: 'durable_continuation',
+            event: 'parent_background_compactions_reconciled',
+            conversationId: sourceConversation.id,
+            taskCount: ids.length,
+            taskIds: ids.slice(0, 20),
+          });
+        }
         // A new MoltNet attempt cannot adopt another attempt's outstanding work.
-        const live = await harness.inspect(context);
         if (live.tasks.length || live.submissions.length) {
           // Keep payloads and raw scheduler errors out of task telemetry. The
           // bounded record identities are enough to locate outstanding work.
@@ -589,6 +649,7 @@ export function createDurableTaskExecutor(options: {
               conversationId: record.conversationId,
               kind: record.kind.slice(0, 120),
               ownerTaskId: record.owner ?? null,
+              background: record.background,
               status: record.state.status,
               schedulerState: state.kind,
               ...(state.kind === 'blocked' ? { reason: state.reason } : {}),
@@ -602,24 +663,8 @@ export function createDurableTaskExecutor(options: {
           });
           throw new Error('Parent Durable attempt has unfinished work');
         }
-        const parent = (
-          task.input as {
-            continueFrom?: { taskId: string; attemptN: number; mode: string };
-          }
-        ).continueFrom;
-        if (parent) {
-          const source = await harness.snapshot(
-            Attempts,
-            `${parent.taskId}/${parent.attemptN}`,
-            context,
-          );
-          if (!source?.result)
-            throw new Error('Parent Durable attempt is not complete');
-          const found = await harness.conversation(
-            source.conversationId as ConversationId,
-            context,
-          );
-          if (!found) throw new Error('Parent Durable conversation is missing');
+        if (parent && sourceConversation) {
+          const found = sourceConversation;
           if (parent.mode === 'fork') {
             const history = await found.entries({}, 1, undefined, context);
             if (!history.items[0])
