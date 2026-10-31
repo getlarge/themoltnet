@@ -813,12 +813,31 @@ jobs:
       - uses: ./.github/actions/setup-workspace
         with:
           go: 'false'
+          install-dependencies: 'false'
+
+      - name: Check release source runtime locks
+        run: node tools/src/release/action-runtime-lock.ts --check
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       # Build and check required entries and runtime locks without moving refs.
       - name: Verify the built bundles
         run: pnpm exec nx run ${{ matrix.project }}:publish-action
         env:
           GITHUB_ACTION_RELEASE_SKIP_PUSH: 'true'
+
+      # The bundle commit includes reusable workflows from the source tree.
+      - name: Create action publishing token
+        id: action-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.MOLTNET_RELEASE_APP_ID }}
+          private-key: ${{ secrets.MOLTNET_RELEASE_APP_KEY }}
+          owner: getlarge
+          repositories: themoltnet
+          permission-contents: write
+          permission-workflows: write
 
       # Published before the stable major tag moves, so consumers of that tag
       # never land on a draft release.
@@ -837,7 +856,7 @@ jobs:
         id: bundle
         run: pnpm exec nx run ${{ matrix.project }}:publish-action
         env:
-          GITHUB_ACTION_RELEASE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTION_RELEASE_TOKEN: ${{ steps.action-token.outputs.token }}
 
       - name: Record the exact action pin in release notes
         env:
