@@ -14,7 +14,7 @@ export default defineConfig({
       bundledPackages: ['@moltnet/models', '@moltnet/tasks'],
       tsconfigPath: './tsconfig.lib.json',
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts'],
+      exclude: ['__tests__/**/*.spec.ts'],
     }),
   ],
   build: {

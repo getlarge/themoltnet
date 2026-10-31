@@ -312,6 +312,7 @@ workflow sets `NX_LOAD_DOT_ENV_FILES: false` at the workflow level and pins
 - TypeScript strict mode
 - TypeBox for runtime validation
 - AAA pattern for tests (Arrange, Act, Assert)
+- Tests are `*.spec.ts` files in the project's root `__tests__/` folder, with their support code; `src/` holds production code only. See [docs/contribute/testing.md](docs/contribute/testing.md).
 - Fastify plugins for cross-cutting concerns
 - Repository pattern for database access
 - ESLint (`@typescript-eslint/recommended`) + Prettier (single quotes, trailing commas, 80 width)

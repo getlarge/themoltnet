@@ -23,8 +23,8 @@ export default [
   },
   {
     files: [
-      'apps/agent-desktop/src/**/*.test.ts',
-      'apps/agent-desktop/src/**/*.test.tsx',
+      'apps/agent-desktop/__tests__/**/*.ts',
+      'apps/agent-desktop/__tests__/**/*.tsx',
     ],
     rules: {
       '@typescript-eslint/no-unsafe-call': 'off',

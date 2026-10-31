@@ -1,0 +1,142 @@
+import { mkdtempSync, realpathSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import type { ResolvedRuntimeProfile } from '@themoltnet/agent-runtime';
+import type { Agent } from '@themoltnet/sdk';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('../../src/lib/executor-attestation.js', () => ({
+  attestPreparedRuntime: (prepared: object) => ({
+    ...prepared,
+    attestor: { registration: vi.fn() },
+  }),
+}));
+
+import { prepareRuntimeProfile } from '../../src/lib/prepare-runtime-profile.js';
+import type { DaemonRuntimeAdapter } from '../../src/runtime.js';
+
+const profile = {
+  id: 'dddddddd-0000-4000-8000-000000000004',
+  name: 'reviewer',
+  teamId: 'bbbbbbbb-0000-4000-8000-000000000002',
+  runtimeKind: 'gondolin_pi',
+  definitionCid: 'bafyprofile',
+  models: {
+    generation: {
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-5',
+      thinkingLevel: null,
+      temperature: null,
+      topP: null,
+      topK: null,
+      maxOutputTokens: null,
+    },
+  },
+
+  maxTurns: 20,
+  maxBashTimeouts: 3,
+  defaultWorkspaceMode: null,
+  allowedWorkspaceModes: ['none'],
+  requiredEnv: [],
+  requiredTools: [],
+  requiredExecutables: [],
+  toolEnforcement: 'watch',
+  context: [],
+  sandboxConfig: {},
+  mountPath: '/tmp/profile',
+  source: 'runtime-profile:dddddddd-0000-4000-8000-000000000004',
+} satisfies ResolvedRuntimeProfile;
+
+function adapter(
+  overrides: {
+    runtimeKind?: string;
+    tools?: string[];
+    executables?: string[];
+  } = {},
+): DaemonRuntimeAdapter {
+  return {
+    runtimeKind: overrides.runtimeKind ?? 'gondolin_pi',
+    prepare: vi.fn().mockResolvedValue({
+      runtimeKind: overrides.runtimeKind ?? 'gondolin_pi',
+      manifest: {},
+      tools: overrides.tools ?? [],
+      executables: overrides.executables ?? [],
+      createTaskExecutor: vi.fn(),
+    }),
+  };
+}
+
+function prepare(
+  runtimeAdapter: DaemonRuntimeAdapter,
+  selectedProfile: ResolvedRuntimeProfile,
+  prerequisiteEnv: NodeJS.ProcessEnv = {},
+  stateRootDir?: string,
+) {
+  return prepareRuntimeProfile({
+    stateRootDir,
+    agent: {
+      tasks: { registerExecutorManifest: vi.fn() },
+    } as unknown as Agent,
+    agentName: 'legreffier',
+    profile: selectedProfile,
+    prerequisiteEnv,
+    runtimeAdapter,
+    runtimeInstanceId: 'worker-1',
+    signingPrivateKey: 'unused-by-mock',
+    sourceAttemptResolver: {} as never,
+  });
+}
+
+describe('prepareRuntimeProfile', () => {
+  it('rejects a runtime adapter mismatch before preparation', async () => {
+    const runtimeAdapter = adapter({ runtimeKind: 'other_runtime' });
+
+    await expect(prepare(runtimeAdapter, profile)).rejects.toThrow(
+      /requires "gondolin_pi".*provides "other_runtime"/,
+    );
+  });
+
+  it('rejects missing runtime prerequisites', async () => {
+    await expect(
+      prepare(adapter(), {
+        ...profile,
+        requiredEnv: ['REQUIRED_TOKEN'],
+        requiredTools: ['github.pr.create'],
+        requiredExecutables: ['git'],
+      }),
+    ).rejects.toThrow(
+      /missing env: REQUIRED_TOKEN.*missing tools: github\.pr\.create.*missing guest executables: git/,
+    );
+  });
+
+  it('rejects reserved environment names at the guest boundary', async () => {
+    await expect(
+      prepare(
+        adapter(),
+        { ...profile, requiredEnv: ['MOLTNET_PRIVATE_KEY'] },
+        { MOLTNET_PRIVATE_KEY: 'present' },
+      ),
+    ).rejects.toThrow(/refuses runtime-controlled environment variables/);
+  });
+});
+
+it('keeps profile mounting separate from explicit state and creates private directories', async () => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'separate-state-')));
+  try {
+    const prepared = await prepare(
+      adapter(),
+      { ...profile, mountPath: join(root, 'source') },
+      {},
+      join(root, 'state'),
+    );
+    expect(prepared.sandbox.rootDir).toBe(join(root, 'source'));
+    expect(prepared.stateDirs).toMatchObject({
+      rootDir: join(root, 'state', '.moltnet', 'd'),
+      mountPath: join(root, 'source'),
+    });
+    expect(statSync(prepared.stateDirs.rootDir).mode & 0o777).toBe(0o700);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

@@ -537,7 +537,7 @@ With the local E2E stack running, exercise standalone classification through
 `runOnce`, the real Pi HTTP transport, and task completion storage:
 
 ```bash
-NX_LOAD_DOT_ENV_FILES=false pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e src/classification.e2e.test.ts --skipNxCache
+NX_LOAD_DOT_ENV_FILES=false pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e src/classification.e2e.spec.ts --skipNxCache
 ```
 
 The regular suite uses a local System One HTTP fixture and covers all three
@@ -547,7 +547,7 @@ no model credentials or Gondolin VM.
 To also call live Jev, supply `TYPESAFE_API_KEY` in your shell environment and run:
 
 ```bash
-MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E=1 NX_LOAD_DOT_ENV_FILES=false pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e src/classification.e2e.test.ts --skipNxCache
+MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E=1 NX_LOAD_DOT_ENV_FILES=false pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e src/classification.e2e.spec.ts --skipNxCache
 ```
 
 The live test defaults to `jev-latest`; override it with

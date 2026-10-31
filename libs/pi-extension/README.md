@@ -327,7 +327,7 @@ Run the real VM integration check locally with:
 
 ```bash
 MOLTNET_PI_VM_INTEGRATION=1 \
-  pnpm exec nx run @themoltnet/pi-extension:test-ci--src/vm-manager.integration.test.ts
+  pnpm exec nx run @themoltnet/pi-extension:test-ci--__tests__/vm-manager.integration.spec.ts
 ```
 
 ### `env`

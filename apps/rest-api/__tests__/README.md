@@ -66,7 +66,7 @@ describe('GET /things', () => {
 });
 ```
 
-`#1512` migrated `tasks.test.ts` to this shape and cut it from **43s → 19s**;
+`#1512` migrated `tasks.spec.ts` to this shape and cut it from **43s → 19s**;
 the shared-app tests dropped from ~1.3s each to single-digit milliseconds.
 
 ### When a test legitimately needs its own app
@@ -76,8 +76,8 @@ Some tests cannot share the block-level app and **should** build their own
 
 - **Different baked-in `AuthContext`** — `createTestApp` injects the auth context
   at build time, so a "human caller" or "401 without auth" test needs its own
-  instance (see `tasks.test.ts`).
-- **Stateful plugin behavior under test** — e.g. the `rate-limit-*.test.ts`
+  instance (see `tasks.spec.ts`).
+- **Stateful plugin behavior under test** — e.g. the `rate-limit-*.spec.ts`
   files assert per-identity budgets. The rate limiter keeps in-memory counters on
   the app instance, so each test must start from a fresh app. **Do not** convert
   these to a shared `beforeAll` app — it would leak the counter across tests.
@@ -91,5 +91,5 @@ test. If the only per-test difference is mock behavior, share the app.
 After converting a file, run it shuffled to prove no cross-test state bleed:
 
 ```bash
-NX_LOAD_DOT_ENV_FILES=false pnpm exec vitest run __tests__/<file>.test.ts --sequence.shuffle=true
+NX_LOAD_DOT_ENV_FILES=false pnpm exec vitest run __tests__/<file>.spec.ts --sequence.shuffle=true
 ```

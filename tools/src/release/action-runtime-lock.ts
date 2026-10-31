@@ -41,7 +41,6 @@ export const RUNTIME_LOCKS: RuntimeLock[] = [
       'libs/complexity-review/src',
       'libs/docs-impact-review/src',
       'libs/security-review/src',
-      ':(exclude,glob)**/*.test.ts',
       ':(exclude,glob)**/*.spec.ts',
     ],
   },

@@ -8,8 +8,8 @@ export default defineConfig({
     environment: 'node',
     root: resolve(import.meta.dirname),
     include: [
-      'src/durable-workflow-recovery.e2e.test.ts',
-      'src/team-invite-recovery.e2e.test.ts',
+      'src/durable-workflow-recovery.e2e.spec.ts',
+      'src/team-invite-recovery.e2e.spec.ts',
     ],
     globalSetup: ['./src/globalSetup.ts'],
     testTimeout: 120_000,

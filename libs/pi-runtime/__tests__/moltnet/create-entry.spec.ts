@@ -1,0 +1,539 @@
+/**
+ * Tests for the task-context enforcement on `moltnet_create_entry`.
+ *
+ * Issue #979: during an active task, the tool must (1) force the entry into
+ * the task diary regardless of the env-derived diary, (2) reject explicit
+ * `diaryId` parameters that mismatch the task diary, (3) inject provenance
+ * tags. Outside a task, behaviour is unchanged.
+ */
+
+import { computeContentCid } from '@moltnet/crypto-service';
+import { describe, expect, it, vi } from 'vitest';
+
+import {
+  createMoltNetTools,
+  type MoltNetTaskContext,
+  type MoltNetToolsConfig,
+} from '../../src/moltnet/tools.js';
+
+interface CapturedCreate {
+  diaryId: string;
+  body: {
+    title: string;
+    content: string;
+    tags: string[];
+    importance: number;
+    entryType?: 'episodic' | 'semantic' | 'procedural' | 'reflection';
+  };
+}
+
+interface FakeAgent {
+  entries: {
+    create: (
+      diaryId: string,
+      body: CapturedCreate['body'],
+    ) => Promise<{
+      id: string;
+      title: string;
+      createdAt: string;
+      entryType: string;
+      importance: number;
+    }>;
+  };
+  packs: unknown;
+}
+
+function makeFakeAgent(captured: CapturedCreate[], createError?: Error) {
+  const agent: FakeAgent = {
+    entries: {
+      create: async (diaryId, body) => {
+        if (createError) throw createError;
+        captured.push({ diaryId, body });
+        return {
+          id: 'entry-fake',
+          title: body.title,
+          createdAt: '2026-04-29T00:00:00Z',
+          entryType: body.entryType ?? 'semantic',
+          importance: body.importance,
+        };
+      },
+    },
+    packs: {},
+  };
+  return agent;
+}
+
+function configFor(
+  agent: FakeAgent,
+  envDiaryId: string | null,
+  taskCtx: MoltNetTaskContext | null,
+): MoltNetToolsConfig {
+  return {
+    getAgent: () =>
+      agent as unknown as ReturnType<MoltNetToolsConfig['getAgent']>,
+    getDiaryId: () => envDiaryId,
+    getTeamId: () => null,
+    getSessionErrors: () => [],
+    clearSessionErrors: () => {},
+    getTaskContext: () => taskCtx,
+  };
+}
+
+function findCreateEntryTool(config: MoltNetToolsConfig) {
+  const tools = createMoltNetTools(config);
+  const tool = tools.find((t) => t.name === 'moltnet_create_entry');
+  if (!tool) throw new Error('moltnet_create_entry not registered');
+  return tool;
+}
+
+// Adapter — pi tool.execute takes (toolCallId, params, signal, onProgress, ctx).
+function callExecute(
+  tool: ReturnType<typeof findCreateEntryTool>,
+  params: Record<string, unknown>,
+) {
+  return tool.execute(
+    'call-id',
+    params as Parameters<typeof tool.execute>[1],
+    new AbortController().signal,
+    () => {},
+    null as unknown as Parameters<typeof tool.execute>[4],
+  );
+}
+
+describe('moltnet_create_entry — tool description', () => {
+  it('warns against shelling out to the moltnet entry CLI inside tasks', () => {
+    // #1094 P4: entry `2c7109f3` was created via `moltnet entry
+    // create-signed` from bash, bypassing this tool's auto-tag
+    // injection. The tool description must steer the agent here.
+    const tool = findCreateEntryTool(
+      configFor(makeFakeAgent([]), 'env-diary', null),
+    );
+    expect(tool.description).toMatch(/moltnet entry create/i);
+    expect(tool.description).toMatch(/bypass/i);
+  });
+
+  it('nudges agents to search before creating episodic incident entries', () => {
+    const tool = findCreateEntryTool(
+      configFor(makeFakeAgent([]), 'env-diary', null),
+    );
+    expect(tool.description).toMatch(/episodic incident/i);
+    expect(tool.description).toMatch(/moltnet_search_entries/);
+    expect(tool.description).toMatch(/taskFilter, tags, or entryTypes/);
+    expect(tool.description).toMatch(/isolated duplicate/i);
+  });
+});
+
+describe('moltnet_create_entry — task-context enforcement', () => {
+  const taskCtx: MoltNetTaskContext = {
+    taskId: 'task-123',
+    taskType: 'fulfill_brief',
+    attemptN: 2,
+    diaryId: 'task-diary',
+    correlationId: null,
+  };
+
+  it('lands the entry in the task diary even when env diary differs', async () => {
+    // Arrange
+    const captured: CapturedCreate[] = [];
+    const agent = makeFakeAgent(captured);
+    const config = configFor(agent, 'env-diary', taskCtx);
+    const tool = findCreateEntryTool(config);
+
+    // Act
+    await callExecute(tool, {
+      title: 'hello',
+      content: 'body',
+    });
+
+    // Assert
+    expect(captured).toHaveLength(1);
+    expect(captured[0].diaryId).toBe('task-diary');
+  });
+
+  it('records a recoverable provenance denial when the diary no longer allows writes', async () => {
+    const events: unknown[] = [];
+    const config = configFor(
+      makeFakeAgent([], new Error('403 Forbidden')),
+      'task-diary',
+      taskCtx,
+    );
+    config.onTaskProvenanceEvent = (event, details) => {
+      events.push({ event, details });
+    };
+    const tool = findCreateEntryTool(config);
+
+    await expect(
+      callExecute(tool, { title: 'handoff', content: 'body' }),
+    ).rejects.toThrow(/task and runtime session remain active/i);
+    expect(events).toEqual([
+      {
+        event: 'task.provenance.entry_denied',
+        details: expect.objectContaining({
+          taskId: 'task-123',
+          diaryId: 'task-diary',
+        }),
+      },
+    ]);
+  });
+
+  it('passes explicit entryType through to the SDK create call', async () => {
+    // Arrange
+    const captured: CapturedCreate[] = [];
+    const agent = makeFakeAgent(captured);
+    const config = configFor(agent, 'task-diary', taskCtx);
+    const tool = findCreateEntryTool(config);
+
+    // Act
+    await callExecute(tool, {
+      title: 'incident',
+      content: 'body',
+      entryType: 'episodic',
+    });
+
+    // Assert
+    expect(captured[0].body.entryType).toBe('episodic');
+  });
+
+  it('returns entryType and importance in the tool response', async () => {
+    // Arrange
+    const captured: CapturedCreate[] = [];
+    const agent = makeFakeAgent(captured);
+    const config = configFor(agent, 'task-diary', taskCtx);
+    const tool = findCreateEntryTool(config);
+
+    // Act
+    const result = await callExecute(tool, {
+      title: 'incident',
+      content: 'body',
+      importance: 7,
+      entryType: 'episodic',
+    });
+    const [content] = result.content;
+    expect(content.type).toBe('text');
+    if (content.type !== 'text') throw new Error('expected text response');
+    const payload = JSON.parse(content.text);
+
+    // Assert
+    expect(payload.entryType).toBe('episodic');
+    expect(payload.importance).toBe(7);
+  });
+
+  it('rejects an explicit diaryId mismatching the task diary', async () => {
+    // Arrange
+    const captured: CapturedCreate[] = [];
+    const agent = makeFakeAgent(captured);
+    const config = configFor(agent, 'task-diary', taskCtx);
+    const tool = findCreateEntryTool(config);
+
+    // Act / Assert
+    await expect(
+      callExecute(tool, {
+        title: 'hello',
+        content: 'body',
+        diaryId: 'some-other-diary',
+      }),
+    ).rejects.toThrow(/does not match the active task diary/);
+    expect(captured).toHaveLength(0);
+  });
+
+  it('accepts an explicit diaryId equal to the task diary', async () => {
+    // Arrange
+    const captured: CapturedCreate[] = [];
+    const agent = makeFakeAgent(captured);
+    const config = configFor(agent, 'env-diary', taskCtx);
+    const tool = findCreateEntryTool(config);
+
+    // Act
+    await callExecute(tool, {
+      title: 'hello',
+      content: 'body',
+      diaryId: 'task-diary',
+    });
+
+    // Assert
+    expect(captured[0].diaryId).toBe('task-diary');
+  });
+
+  it('injects task / task_type / attempt provenance tags during a task', async () => {
+    // Arrange
+    const captured: CapturedCreate[] = [];
+    const agent = makeFakeAgent(captured);
+    const config = configFor(agent, 'env-diary', taskCtx);
+    const tool = findCreateEntryTool(config);
+
+    // Act
+    await callExecute(tool, {
+      title: 'hello',
+      content: 'body',
+      tags: ['custom-tag'],
+    });
+
+    // Assert
+    expect(captured[0].body.tags).toEqual([
+      'task:id:task-123',
+      'task:type:fulfill_brief',
+      'task:attempt:2',
+      'custom-tag',
+    ]);
+  });
+
+  it('does not duplicate an auto-tag the agent supplied explicitly', async () => {
+    // Arrange
+    const captured: CapturedCreate[] = [];
+    const agent = makeFakeAgent(captured);
+    const config = configFor(agent, 'env-diary', taskCtx);
+    const tool = findCreateEntryTool(config);
+
+    // Act
+    await callExecute(tool, {
+      title: 'hello',
+      content: 'body',
+      tags: ['task:id:task-123', 'extra'],
+    });
+
+    // Assert
+    expect(captured[0].body.tags).toEqual([
+      'task:id:task-123',
+      'task:type:fulfill_brief',
+      'task:attempt:2',
+      'extra',
+    ]);
+  });
+
+  it('appends task:correlation:<id> when the task carries a correlationId', async () => {
+    // Arrange
+    const captured: CapturedCreate[] = [];
+    const agent = makeFakeAgent(captured);
+    const ctxWithCorrelation: MoltNetTaskContext = {
+      ...taskCtx,
+      correlationId: 'corr-abc',
+    };
+    const config = configFor(agent, 'env-diary', ctxWithCorrelation);
+    const tool = findCreateEntryTool(config);
+
+    // Act
+    await callExecute(tool, { title: 'hello', content: 'body' });
+
+    // Assert
+    expect(captured[0].body.tags).toEqual([
+      'task:id:task-123',
+      'task:type:fulfill_brief',
+      'task:attempt:2',
+      'task:correlation:corr-abc',
+    ]);
+  });
+
+  it('omits the correlation tag when correlationId is null', async () => {
+    // Arrange
+    const captured: CapturedCreate[] = [];
+    const agent = makeFakeAgent(captured);
+    const config = configFor(agent, 'env-diary', taskCtx); // correlationId: null
+    const tool = findCreateEntryTool(config);
+
+    // Act
+    await callExecute(tool, { title: 'hello', content: 'body' });
+
+    // Assert
+    expect(captured[0].body.tags).not.toContain(
+      expect.stringMatching(/^task:correlation:/),
+    );
+    expect(captured[0].body.tags).toEqual([
+      'task:id:task-123',
+      'task:type:fulfill_brief',
+      'task:attempt:2',
+    ]);
+  });
+});
+
+describe('moltnet_create_entry — interactive (no task context)', () => {
+  it('uses the env-derived diary when no task context is set', async () => {
+    // Arrange
+    const captured: CapturedCreate[] = [];
+    const agent = makeFakeAgent(captured);
+    const config = configFor(agent, 'env-diary', null);
+    const tool = findCreateEntryTool(config);
+
+    // Act
+    await callExecute(tool, { title: 'hello', content: 'body' });
+
+    // Assert
+    expect(captured[0].diaryId).toBe('env-diary');
+    expect(captured[0].body.tags).toEqual([]);
+  });
+
+  it('honours an explicit diaryId override outside a task', async () => {
+    // Arrange
+    const captured: CapturedCreate[] = [];
+    const agent = makeFakeAgent(captured);
+    const config = configFor(agent, 'env-diary', null);
+    const tool = findCreateEntryTool(config);
+
+    // Act
+    await callExecute(tool, {
+      title: 'hello',
+      content: 'body',
+      diaryId: 'override-diary',
+    });
+
+    // Assert
+    expect(captured[0].diaryId).toBe('override-diary');
+  });
+
+  it('does not inject provenance tags outside a task', async () => {
+    // Arrange
+    const captured: CapturedCreate[] = [];
+    const agent = makeFakeAgent(captured);
+    const config = configFor(agent, 'env-diary', null);
+    const tool = findCreateEntryTool(config);
+
+    // Act
+    await callExecute(tool, {
+      title: 'hello',
+      content: 'body',
+      tags: ['user-tag'],
+    });
+
+    // Assert
+    expect(captured[0].body.tags).toEqual(['user-tag']);
+  });
+});
+
+describe('moltnet_create_entry — signed entries through the injected signer', () => {
+  const taskCtx: MoltNetTaskContext = {
+    taskId: 'task-123',
+    taskType: 'fulfill_brief',
+    attemptN: 2,
+    diaryId: 'task-diary',
+    correlationId: null,
+  };
+
+  function makeSigningAgent(captured: CapturedCreate[]) {
+    const signingRequests = {
+      create: vi.fn((body: { message: string; verificationMethod: string }) =>
+        Promise.resolve({ id: 'req-1', message: body.message }),
+      ),
+    };
+    const created: Array<CapturedCreate & { signingRequestId?: string }> = [];
+    const agent = {
+      entries: {
+        create: (
+          diaryId: string,
+          body: CapturedCreate['body'] & { signingRequestId?: string },
+        ) => {
+          captured.push({ diaryId, body });
+          created.push({
+            diaryId,
+            body,
+            signingRequestId: body.signingRequestId,
+          });
+          return Promise.resolve({
+            id: 'entry-signed',
+            title: body.title,
+            createdAt: '2026-04-29T00:00:00Z',
+            entryType: body.entryType ?? 'semantic',
+            importance: body.importance,
+          });
+        },
+      },
+      crypto: { signingRequests },
+      packs: {},
+    };
+    return { agent, signingRequests, created };
+  }
+
+  it('creates a signing request for the content CID, signs it on the host, and links the entry', async () => {
+    const captured: CapturedCreate[] = [];
+    const { agent, signingRequests, created } = makeSigningAgent(captured);
+    const signer = {
+      identity: {} as never,
+      signDiaryEntry: vi.fn((input: { signingRequestId: string }) =>
+        Promise.resolve(input),
+      ),
+      signGitCommit: vi.fn(),
+    };
+    const config = {
+      ...configFor(agent as unknown as FakeAgent, 'env-diary', taskCtx),
+      getSigner: () => signer,
+    };
+    const tool = findCreateEntryTool(config);
+
+    const result = await callExecute(tool, {
+      title: 'hello',
+      content: 'body',
+      tags: ['decision'],
+      signed: true,
+    });
+
+    expect(signingRequests.create).toHaveBeenCalledWith({
+      message: computeContentCid('semantic', 'hello', 'body', [
+        'task:id:task-123',
+        'task:type:fulfill_brief',
+        'task:attempt:2',
+        'decision',
+      ]),
+      verificationMethod: 'agent-ed25519',
+    });
+    expect(signer.signDiaryEntry).toHaveBeenCalledWith({
+      signingRequestId: 'req-1',
+    });
+    expect(created[0]?.signingRequestId).toBe('req-1');
+    expect(
+      JSON.parse((result.content[0] as { text: string }).text),
+    ).toMatchObject({
+      id: 'entry-signed',
+      signed: true,
+    });
+  });
+
+  it('fails without a signer and creates nothing', async () => {
+    const captured: CapturedCreate[] = [];
+    const { agent, signingRequests } = makeSigningAgent(captured);
+    const config = configFor(
+      agent as unknown as FakeAgent,
+      'env-diary',
+      taskCtx,
+    );
+    const tool = findCreateEntryTool(config);
+
+    await expect(
+      callExecute(tool, { title: 'hello', content: 'body', signed: true }),
+    ).rejects.toThrow(/require the agent-signing capability/);
+    expect(signingRequests.create).not.toHaveBeenCalled();
+    expect(captured).toHaveLength(0);
+  });
+
+  it('creates no entry when the host signer refuses', async () => {
+    const captured: CapturedCreate[] = [];
+    const { agent, signingRequests } = makeSigningAgent(captured);
+    const signer = {
+      identity: {} as never,
+      signDiaryEntry: vi.fn(() =>
+        Promise.reject(new Error('host_capability_denied')),
+      ),
+      signGitCommit: vi.fn(),
+    };
+    const tool = findCreateEntryTool({
+      ...configFor(agent as unknown as FakeAgent, 'env-diary', taskCtx),
+      getSigner: () => signer,
+    });
+
+    await expect(
+      callExecute(tool, { title: 'hello', content: 'body', signed: true }),
+    ).rejects.toThrow(/host_capability_denied/);
+    expect(signingRequests.create).toHaveBeenCalledOnce();
+    expect(captured).toHaveLength(0);
+  });
+
+  it('leaves unsigned creation untouched', async () => {
+    const captured: CapturedCreate[] = [];
+    const { agent, signingRequests, created } = makeSigningAgent(captured);
+    const tool = findCreateEntryTool(
+      configFor(agent as unknown as FakeAgent, 'env-diary', taskCtx),
+    );
+
+    await callExecute(tool, { title: 'hello', content: 'body' });
+
+    expect(signingRequests.create).not.toHaveBeenCalled();
+    expect(created[0]?.signingRequestId).toBeUndefined();
+  });
+});

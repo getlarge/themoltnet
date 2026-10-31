@@ -1,0 +1,400 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MoltThemeProvider } from '@themoltnet/design-system';
+import { describe, expect, it, vi } from 'vitest';
+
+import {
+  CreateTaskDialog,
+  type CreateTaskRequest,
+} from '../src/create-task-dialog.js';
+
+function renderDialog(
+  props?: Partial<React.ComponentProps<typeof CreateTaskDialog>>,
+) {
+  const onSubmit = props?.onSubmit ?? vi.fn().mockResolvedValue('task-1');
+  const onCreated = props?.onCreated ?? vi.fn();
+  render(
+    <MoltThemeProvider mode="light">
+      <CreateTaskDialog
+        open
+        teamId="team-1"
+        diaries={[{ id: 'diary-1', name: 'My Diary' }]}
+        candidateTasks={[]}
+        availableTypes={['fulfill_brief', 'freeform']}
+        onClose={() => {}}
+        onSubmit={onSubmit}
+        onCreated={onCreated}
+        {...props}
+      />
+    </MoltThemeProvider>,
+  );
+  return { onSubmit, onCreated };
+}
+
+describe('CreateTaskDialog', () => {
+  it('renders the freeform brief field and a create button', () => {
+    renderDialog();
+    expect(screen.getByLabelText(/brief/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /create task/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('disables submit until a brief is entered', () => {
+    renderDialog();
+    expect(screen.getByRole('button', { name: /create task/i })).toBeDisabled();
+  });
+
+  it('submits the assembled freeform request and reports the new id', async () => {
+    const onSubmit = vi.fn().mockResolvedValue('new-task-id');
+    const onCreated = vi.fn();
+    renderDialog({ onSubmit, onCreated });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'Do the thing' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.teamId).toBe('team-1');
+    expect(request.diaryId).toBe('diary-1');
+    expect(request.taskType).toBe('freeform');
+    expect(request.input.brief).toBe('Do the thing');
+    await waitFor(() => expect(onCreated).toHaveBeenCalledWith('new-task-id'));
+  });
+
+  it('submits task title and tags as top-level metadata', async () => {
+    const onSubmit = vi.fn().mockResolvedValue('new-task-id');
+    renderDialog({ onSubmit });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'Do the thing' },
+    });
+    fireEvent.change(screen.getByLabelText(/title/i), {
+      target: { value: 'Task cohort probe' },
+    });
+    fireEvent.change(screen.getByLabelText(/tags/i), {
+      target: { value: 'observability, cohort, observability' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.title).toBe('Task cohort probe');
+    expect(request.tags).toEqual(['observability', 'cohort']);
+    expect(request.input).not.toHaveProperty('title');
+  });
+
+  it('shows an inline error when onSubmit rejects', async () => {
+    const onSubmit = vi.fn().mockRejectedValue(new Error('Boom'));
+    renderDialog({ onSubmit });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'Will fail' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
+
+    expect(await screen.findByText('Boom')).toBeInTheDocument();
+  });
+
+  it('includes authored rubric and required evidence in the request', async () => {
+    const onSubmit = vi.fn().mockResolvedValue('t1');
+    renderDialog({ onSubmit });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'Rubric task' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /success criteria/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add criterion/i }));
+    fireEvent.change(screen.getByLabelText('Rubric ID'), {
+      target: { value: 'custom-implementation' },
+    });
+    fireEvent.change(screen.getByLabelText('Minimum acceptable score (%)'), {
+      target: { value: '85' },
+    });
+    fireEvent.change(screen.getByLabelText('Criterion name'), {
+      target: { value: 'implementation quality' },
+    });
+    fireEvent.change(screen.getByLabelText('Weight (%)'), {
+      target: { value: '100' },
+    });
+    fireEvent.change(screen.getByLabelText('Scoring mode 1'), {
+      target: { value: 'boolean' },
+    });
+    fireEvent.change(screen.getByLabelText('Criterion description 1'), {
+      target: { value: 'Pass when the implementation is correct.' },
+    });
+    fireEvent.click(screen.getByLabelText(/require pr url/i));
+    fireEvent.change(screen.getByLabelText(/require at least n commits/i), {
+      target: { value: '1' },
+    });
+    fireEvent.click(screen.getByLabelText(/require diary entry/i));
+    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.input.successCriteria).toEqual({
+      version: 1,
+      assertions: [
+        {
+          id: 'a1',
+          path: 'pullRequestUrl',
+          op: 'matches',
+          value: '^https://github\\.com/.+/.+/pull/[0-9]+$',
+        },
+        { id: 'a2', path: 'commits', op: 'min-length', value: 1 },
+      ],
+      rubric: {
+        rubricId: 'custom-implementation',
+        version: 'v1',
+        criteria: [
+          {
+            id: 'implementation_quality',
+            description: 'Pass when the implementation is correct.',
+            weight: 1,
+            scoring: 'boolean',
+          },
+        ],
+      },
+      minComposite: 0.85,
+      sideEffects: { diaryEntryRequired: true },
+    });
+  });
+
+  it('surfaces invalid rubric weights before submit', async () => {
+    const onSubmit = vi.fn().mockResolvedValue('t1');
+    renderDialog({ onSubmit });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'Invalid rubric task' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /success criteria/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add criterion/i }));
+    fireEvent.change(screen.getByLabelText('Rubric ID'), {
+      target: { value: 'custom-implementation' },
+    });
+    fireEvent.change(screen.getByLabelText('Criterion name'), {
+      target: { value: 'implementation_quality' },
+    });
+    fireEvent.change(screen.getByLabelText('Weight (%)'), {
+      target: { value: '50' },
+    });
+
+    expect(
+      screen.getAllByText(/rubric weights must sum to 100%/i).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: /create task/i })).toBeDisabled();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('omits successCriteria when none authored', async () => {
+    const onSubmit = vi.fn().mockResolvedValue('t1');
+    renderDialog({ onSubmit });
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'Plain task' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.input.successCriteria).toBeUndefined();
+  });
+
+  it('omits execution from the payload when workspace stays default', async () => {
+    const onSubmit = vi.fn().mockResolvedValue('task-1');
+    renderDialog({ onSubmit });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'probe' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.input.execution).toBeUndefined();
+  });
+
+  it('emits the chosen workspace mode in input.execution.workspace', async () => {
+    const onSubmit = vi.fn().mockResolvedValue('task-1');
+    renderDialog({ onSubmit });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'scaffold candidate task type' },
+    });
+    fireEvent.change(screen.getByLabelText(/workspace/i), {
+      target: { value: 'dedicated_worktree' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.input.execution).toEqual({
+      workspace: 'dedicated_worktree',
+    });
+  });
+
+  it('emits the selected runtime profile as an allowlist', async () => {
+    const onSubmit = vi.fn().mockResolvedValue('task-1');
+    renderDialog({
+      onSubmit,
+      runtimeProfiles: [
+        {
+          id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          name: 'github-linear',
+          models: {
+            generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+          },
+        },
+      ],
+    });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'profile pinned task' },
+    });
+    fireEvent.change(screen.getByLabelText(/runtime profile/i), {
+      target: { value: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.allowedProfiles).toEqual([
+      { profileId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
+    ]);
+  });
+
+  it('omits profile allowlist when no runtime profile is selected', async () => {
+    const onSubmit = vi.fn().mockResolvedValue('task-1');
+    renderDialog({
+      onSubmit,
+      runtimeProfiles: [
+        {
+          id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          name: 'github-linear',
+          models: {
+            generation: { provider: 'anthropic', model: 'claude-sonnet-4-5' },
+          },
+        },
+      ],
+    });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'unrestricted task' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.allowedProfiles).toBeUndefined();
+  });
+});
+
+describe('CreateTaskDialog continuation mode', () => {
+  const continueFrom = {
+    taskId: '11111111-1111-4111-8111-111111111111',
+    attemptN: 2,
+    sourceTitle: 'Round 1',
+    correlationId: 'corr-1',
+    allowedProfiles: [{ profileId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' }],
+    requiredExecutorTrustLevel: 'agentSigned' as const,
+  };
+
+  it('switches dialog title and submit label', () => {
+    renderDialog({ continueFrom });
+
+    expect(screen.getAllByText('Continue task').length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole('button', { name: /continue task/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /create task/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('pre-fills title from the source attempt', () => {
+    renderDialog({ continueFrom });
+    expect(screen.getByLabelText(/title/i)).toHaveValue('Round 1');
+  });
+
+  it('hides workspace and depends-on fields', () => {
+    renderDialog({ continueFrom });
+    expect(screen.queryByLabelText(/workspace/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/runtime profile/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/depends on/i)).not.toBeInTheDocument();
+  });
+
+  it('packs continueFrom + parent-completed claim condition on submit', async () => {
+    const onSubmit = vi.fn().mockResolvedValue('continuation-id');
+    renderDialog({ continueFrom, onSubmit });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'Next step' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /continue task/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.taskType).toBe('freeform');
+    expect(request.correlationId).toBe('corr-1');
+    expect(request.input.brief).toBe('Next step');
+    expect(request.title).toBe('Round 1');
+    expect(request.input).not.toHaveProperty('title');
+    expect(request.input.execution).toBeUndefined();
+    expect(request.input.continueFrom).toEqual({
+      taskId: continueFrom.taskId,
+      attemptN: 2,
+    });
+    expect(request.claimCondition).toEqual({
+      op: 'task_status',
+      taskId: continueFrom.taskId,
+      statuses: ['completed'],
+    });
+  });
+
+  it('forwards profile allowlist + trust level from the source', async () => {
+    // Mirrors the MCP tasks_continue and Go CLI task continue wire
+    // contracts. Dropping these would let the continuation be claimed
+    // by a profile the parent's proposer explicitly excluded, or
+    // silently relax the trust-level pin.
+    const onSubmit = vi.fn().mockResolvedValue('continuation-id');
+    renderDialog({ continueFrom, onSubmit });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'Next step' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /continue task/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.allowedProfiles).toEqual([
+      { profileId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
+    ]);
+    expect(request.requiredExecutorTrustLevel).toBe('agentSigned');
+  });
+
+  it('omits profile pinning when the source did not pin', async () => {
+    // Standalone freeform tasks let the server fall back to the
+    // registry defaults; the dialog must not invent allowedProfiles
+    // entries or pick a trust level on the user's behalf.
+    const onSubmit = vi.fn().mockResolvedValue('continuation-id');
+    renderDialog({
+      continueFrom: {
+        taskId: continueFrom.taskId,
+        attemptN: continueFrom.attemptN,
+        sourceTitle: 'Untyped parent',
+        correlationId: null,
+      },
+      onSubmit,
+    });
+
+    fireEvent.change(screen.getByLabelText('Brief'), {
+      target: { value: 'Next step' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /continue task/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const request = onSubmit.mock.calls[0][0] as CreateTaskRequest;
+    expect(request.allowedProfiles).toBeUndefined();
+    expect(request.requiredExecutorTrustLevel).toBeUndefined();
+    expect(request.correlationId).toBeUndefined();
+  });
+});

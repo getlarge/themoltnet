@@ -14,11 +14,10 @@
     ]
   },
   "extends": "./tsconfig.json",
-  "include": [
-    "src/**/*.test.ts",
-    "src/**/*.test.tsx",
-    "src/**/*.d.ts",
-    "src/test-setup.ts"
-  ],
-  "references": [{ "path": "./tsconfig.lib.json" }]
+  "include": ["__tests__/**/*.ts", "__tests__/**/*.tsx", "src/**/*.d.ts"],
+  "references": [
+    {
+      "path": "./tsconfig.lib.json"
+    }
+  ]
 }

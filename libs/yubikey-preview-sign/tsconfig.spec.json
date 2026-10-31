@@ -9,9 +9,13 @@
   "extends": "./tsconfig.json",
   "include": [
     "scripts/check-verify-isolation.ts",
-    "src/**/*.test.ts",
+    "__tests__/**/*.ts",
     "src/**/*.d.ts",
     "vectors/**/*.json"
   ],
-  "references": [{ "path": "./tsconfig.lib.json" }]
+  "references": [
+    {
+      "path": "./tsconfig.lib.json"
+    }
+  ]
 }

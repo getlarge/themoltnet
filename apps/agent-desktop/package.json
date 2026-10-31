@@ -70,9 +70,9 @@
       ],
       "agentDesktopRendererProduction": [
         "agentDesktopRenderer",
-        "!{projectRoot}/src/**/*.test.ts",
-        "!{projectRoot}/src/**/*.test.tsx",
-        "!{projectRoot}/src/test-setup.ts",
+        "!{projectRoot}/__tests__/**/*.spec.ts",
+        "!{projectRoot}/__tests__/**/*.spec.tsx",
+        "!{projectRoot}/__tests__/test-setup.ts",
         "!{projectRoot}/vitest.config.ts",
         "!{projectRoot}/tsconfig.spec.json"
       ]

@@ -2,8 +2,8 @@
 set -euo pipefail
 
 node --test \
-  tools/release/agent-desktop/boundary.test.mjs \
-  tools/release/agent-desktop/release-contract.test.mjs
+  tools/__tests__/release/agent-desktop/boundary.spec.mjs \
+  tools/__tests__/release/agent-desktop/release-contract.spec.mjs
 
 repo=$(pwd)
 fixture=$(mktemp -d "${TMPDIR:-/tmp}/moltnet-agent-desktop-release.XXXXXX")

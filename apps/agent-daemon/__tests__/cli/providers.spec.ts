@@ -1,0 +1,846 @@
+import { mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import type { ModelRuntime } from '@earendil-works/pi-coding-agent';
+import { SecretProviderRegistry } from '@themoltnet/sdk';
+import { FileSecretProvider } from '@themoltnet/sdk/node';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { browserLaunchCommand, runProviders } from '../../src/cli/providers.js';
+import { writeStorePiConfig } from '../../src/lib/agent-server/pi-store-config.js';
+import { AgentServerStore } from '../../src/lib/agent-server/store.js';
+import { OAuthProviderService } from '../../src/lib/oauth-provider.js';
+import { ProviderConfigurationService } from '../../src/lib/provider-configuration.js';
+
+const cleanups: (() => void)[] = [];
+afterEach(() => {
+  for (const cleanup of cleanups.splice(0)) cleanup();
+});
+
+async function fixture(
+  options: {
+    login?: ModelRuntime['login'];
+    logout?: ModelRuntime['logout'];
+    fetchImpl?: typeof fetch;
+  } = {},
+) {
+  const root = mkdtempSync(join(tmpdir(), 'providers-cli-'));
+  cleanups.push(() => rmSync(root, { recursive: true, force: true }));
+  const store = new AgentServerStore(root).ensure();
+  const secrets = new FileSecretProvider({
+    root: store.secretsDir,
+    writable: true,
+  });
+  const configuration = new ProviderConfigurationService({
+    store,
+    secrets,
+    secretProviders: new SecretProviderRegistry().register(secrets),
+    fetchImpl:
+      options.fetchImpl ?? (async () => new Response(null, { status: 404 })),
+  });
+  const modelRuntime = {
+    getProviders: () => [
+      { id: 'anthropic', name: 'Anthropic', auth: { oauth: {} } },
+      { id: 'openai-codex', name: 'OpenAI Codex', auth: { oauth: {} } },
+    ],
+    login: options.login ?? vi.fn().mockResolvedValue({}),
+    logout: options.logout ?? vi.fn().mockResolvedValue(undefined),
+  } as unknown as ModelRuntime;
+  const oauth = await OAuthProviderService.create({
+    authPath: store.piAuthJsonPath,
+    modelRuntime,
+  });
+  const stdout: string[] = [];
+  const stderr: string[] = [];
+  return {
+    root,
+    store,
+    configuration,
+    modelRuntime,
+    stdout,
+    stderr,
+    dependencies: {
+      configuration,
+      oauth,
+      envRoot: root,
+      stdout: (value: string) => stdout.push(value),
+      stderr: (value: string) => stderr.push(value),
+    },
+  };
+}
+
+describe('moltnet-agent providers', () => {
+  it('sets an explicit developer role capability', async () => {
+    const test = await fixture();
+    expect(
+      await runProviders(
+        [
+          'set',
+          'local',
+          '--base-url',
+          'http://localhost:11434/v1',
+          '--supports-developer-role',
+          'false',
+        ],
+        test.dependencies,
+      ),
+    ).toBe(0);
+    expect(test.configuration.list().local?.supportsDeveloperRole).toBe(false);
+  });
+
+  it('configures classifier and chat models on one provider', async () => {
+    const test = await fixture();
+    expect(
+      await runProviders(
+        [
+          'set',
+          'remote',
+          '--base-url',
+          'https://provider.example/v1',
+          '--chat-model',
+          'chat',
+          '--classifier-model',
+          'decisions=4096',
+        ],
+        test.dependencies,
+      ),
+    ).toBe(0);
+    expect(test.configuration.list().remote.models).toEqual([
+      { type: 'chat', id: 'chat' },
+      {
+        id: 'decisions',
+        type: 'classifier',
+        api: 'typesafe-system-one',
+        contextWindow: 4096,
+      },
+    ]);
+    writeStorePiConfig(test.root, test.store.readProviders());
+    const pi = JSON.parse(
+      readFileSync(join(test.root, 'models.json'), 'utf8'),
+    ) as {
+      providers: Record<string, { models: unknown }>;
+    };
+    expect(pi.providers.remote).toMatchObject({
+      models: [
+        { id: 'chat', type: 'chat' },
+        {
+          id: 'decisions',
+          type: 'classifier',
+          api: 'typesafe-system-one',
+          contextWindow: 4096,
+        },
+      ],
+    });
+
+    expect(
+      await runProviders(
+        ['set', 'remote', '--classifier-model', 'second'],
+        test.dependencies,
+      ),
+    ).toBe(0);
+    expect(
+      test.configuration.list().remote.models?.map((model) => model.id),
+    ).toEqual(['chat', 'decisions', 'second']);
+    expect(
+      await runProviders(
+        ['set', 'remote', '--model-strict-mode', 'decisions=true'],
+        test.dependencies,
+      ),
+    ).toBe(1);
+    expect(
+      await runProviders(
+        ['set', 'remote', '--classifier-model', 'chat'],
+        test.dependencies,
+      ),
+    ).toBe(1);
+    expect(
+      await runProviders(
+        ['set', 'remote', '--model-input', 'decisions=text'],
+        test.dependencies,
+      ),
+    ).toBe(1);
+  });
+
+  it.each([
+    'typesafe-system-one',
+    'cloudflare-workers-ai-system-one',
+    'llama-cpp-classify',
+  ])('persists the explicit %s classifier API', async (api) => {
+    const test = await fixture();
+    expect(
+      await runProviders(
+        [
+          'set',
+          'remote',
+          '--base-url',
+          'https://provider.example/v1',
+          '--classifier-model',
+          'decisions',
+          '--classifier-api',
+          api,
+        ],
+        test.dependencies,
+      ),
+    ).toBe(0);
+    expect(test.configuration.list().remote.models).toEqual([
+      { id: 'decisions', type: 'classifier', api },
+    ]);
+    writeStorePiConfig(test.root, test.store.readProviders());
+    const config = JSON.parse(
+      readFileSync(join(test.root, 'models.json'), 'utf8'),
+    ) as {
+      providers: Record<string, { models: unknown[] }>;
+    };
+    expect(config.providers.remote.models).toEqual([
+      expect.objectContaining({ id: 'decisions', type: 'classifier', api }),
+    ]);
+  });
+
+  it('discovers and saves keyless Ollama decision models alongside chat and manual classifiers', async () => {
+    const test = await fixture({
+      fetchImpl: (input, init) => {
+        const url = input instanceof Request ? input.url : input.toString();
+        if (url.endsWith('/api/show')) {
+          const { model } = JSON.parse(
+            typeof init?.body === 'string' ? init.body : '{}',
+          ) as { model: string };
+          return Promise.resolve(
+            new Response(
+              JSON.stringify(
+                model === 'nimble:latest'
+                  ? {
+                      capabilities: ['decision'],
+                      model_info: { 'qwen35.context_length': 262144 },
+                    }
+                  : { capabilities: ['completion'] },
+              ),
+            ),
+          );
+        }
+        return Promise.resolve(
+          new Response(
+            JSON.stringify(
+              url.endsWith('/api/tags')
+                ? { models: [{ name: 'nimble:latest' }, { name: 'chat' }] }
+                : { data: [{ id: 'nimble:latest' }, { id: 'chat' }] },
+            ),
+          ),
+        );
+      },
+    });
+    expect(
+      await runProviders(
+        [
+          'set',
+          'ollama',
+          '--base-url',
+          'http://localhost:11434/v1',
+          '--chat-model',
+          'chat',
+          '--classifier-model',
+          'manual',
+        ],
+        test.dependencies,
+      ),
+    ).toBe(0);
+    expect(
+      await runProviders(['discover', 'ollama', '--save'], test.dependencies),
+    ).toBe(0);
+    const provider = test.configuration.list().ollama;
+    expect(provider.models).toEqual([
+      { id: 'chat', type: 'chat', reasoning: false },
+      {
+        id: 'nimble:latest',
+        type: 'classifier',
+        api: 'typesafe-system-one',
+        contextWindow: 262144,
+      },
+      { id: 'manual', type: 'classifier', api: 'typesafe-system-one' },
+    ]);
+    expect(provider.hasApiKey).toBe(false);
+  });
+
+  it('rejects conflicting or malformed classifier declarations', async () => {
+    const test = await fixture();
+    for (const args of [
+      ['--chat-model', 'chat', '--clear-models'],
+      ['--classifier-model', 'decisions=0'],
+      ['--classifier-model', 'decisions=1.5'],
+      ['--model', 'decisions', '--classifier-model', 'decisions'],
+      ['--classifier-model', 'decisions', '--clear-models'],
+      [
+        '--classifier-model',
+        'decisions',
+        '--classifier-api',
+        'openai-completions',
+      ],
+      ['--classifier-api', 'llama-cpp-classify'],
+    ]) {
+      expect(
+        await runProviders(['set', 'remote', ...args], test.dependencies),
+      ).toBe(1);
+    }
+    expect(test.configuration.list()).not.toHaveProperty('remote');
+  });
+
+  it('stores explicit reasoning metadata and shows it in JSON output', async () => {
+    const test = await fixture();
+    expect(
+      await runProviders(
+        [
+          'set',
+          'ollama-cloud',
+          '--base-url',
+          'https://ollama.com/v1',
+          '--model',
+          'deepseek:cloud',
+          '--model-reasoning',
+          'deepseek:cloud',
+          '--model-thinking-map',
+          'deepseek:cloud=off:none,low:low,high:high',
+          '--model-strict-mode',
+          'deepseek:cloud=true',
+        ],
+        { ...test.dependencies, interactive: false },
+      ),
+    ).toBe(0);
+
+    expect(await runProviders(['list', '--json'], test.dependencies)).toBe(0);
+    const listed = JSON.parse(test.stdout.at(-1) ?? '{}') as {
+      configuredProviders: Record<string, { models: unknown }>;
+    };
+    expect(listed.configuredProviders['ollama-cloud'].models).toEqual([
+      {
+        type: 'chat',
+        id: 'deepseek:cloud',
+        reasoning: true,
+        thinkingLevelMap: { off: 'none', low: 'low', high: 'high' },
+        supportsStrictMode: true,
+      },
+    ]);
+  });
+  it('updates strict mode without erasing other model capabilities', async () => {
+    const test = await fixture();
+    await test.configuration.set('remote', {
+      baseUrl: 'https://provider.example/v1',
+      models: [
+        { id: 'model-a', reasoning: true, input: ['text', 'image'] },
+        { id: 'model-b', input: ['text'] },
+      ],
+    });
+
+    expect(
+      await runProviders(
+        ['set', 'remote', '--model-strict-mode', 'model-a=true'],
+        test.dependencies,
+      ),
+    ).toBe(0);
+    expect(test.configuration.list().remote.models).toEqual([
+      {
+        type: 'chat',
+        id: 'model-a',
+        reasoning: true,
+        input: ['text', 'image'],
+        supportsStrictMode: true,
+      },
+      { type: 'chat', id: 'model-b', input: ['text'] },
+    ]);
+
+    expect(
+      await runProviders(
+        ['set', 'remote', '--model-strict-mode', 'model-a=false'],
+        test.dependencies,
+      ),
+    ).toBe(0);
+    expect(test.configuration.list().remote.models?.[0]).toMatchObject({
+      type: 'chat',
+      id: 'model-a',
+      reasoning: true,
+      supportsStrictMode: false,
+    });
+    expect(
+      await runProviders(
+        ['set', 'remote', '--model-strict-mode', 'model-a=default'],
+        test.dependencies,
+      ),
+    ).toBe(0);
+    expect(test.configuration.list().remote.models?.[0]).toEqual({
+      type: 'chat',
+      id: 'model-a',
+      reasoning: true,
+      input: ['text', 'image'],
+    });
+    expect(
+      await runProviders(
+        ['set', 'remote', '--model-strict-mode', 'model-typo=true'],
+        test.dependencies,
+      ),
+    ).toBe(1);
+    expect(test.stderr.at(-1)).toContain('existing chat model "model-typo"');
+    expect(test.configuration.list().remote.models).toHaveLength(2);
+  });
+  it.each([
+    { stdinIsTTY: true, stdoutIsTTY: true, accepted: false },
+    { stdinIsTTY: true, stdoutIsTTY: false, accepted: false },
+    { stdinIsTTY: false, stdoutIsTTY: true, accepted: true },
+    { stdinIsTTY: false, stdoutIsTTY: false, accepted: true },
+  ])(
+    'uses stdin TTY state for secret input: $stdinIsTTY/$stdoutIsTTY',
+    async ({ stdinIsTTY, stdoutIsTTY, accepted }) => {
+      const test = await fixture();
+      const readStdin = vi.fn(() => Promise.resolve('redirected-secret\n'));
+
+      const result = await runProviders(
+        [
+          'set',
+          'redirect-test',
+          '--base-url',
+          'https://provider.example/v1',
+          '--api-key-stdin',
+        ],
+        {
+          ...test.dependencies,
+          stdinIsTTY,
+          stdoutIsTTY,
+          readStdin,
+        },
+      );
+
+      expect(result).toBe(accepted ? 0 : 1);
+      expect(readStdin).toHaveBeenCalledTimes(accepted ? 1 : 0);
+      expect(test.stderr.join('\n')).not.toContain('redirected-secret');
+    },
+  );
+
+  it('parses set patches, reads the API key from stdin, and preserves omissions', async () => {
+    const test = await fixture();
+    expect(
+      await runProviders(
+        [
+          'set',
+          'ollama-cloud',
+          '--base-url',
+          'https://ollama.com/v1',
+          '--model',
+          'first',
+          '--api-key-stdin',
+        ],
+        {
+          ...test.dependencies,
+          interactive: false,
+          readStdin: () => Promise.resolve('secret-from-stdin\n'),
+        },
+      ),
+    ).toBe(0);
+    expect(
+      await runProviders(['set', 'ollama-cloud', '--model', 'second'], {
+        ...test.dependencies,
+        interactive: false,
+      }),
+    ).toBe(0);
+
+    expect(test.configuration.list()['ollama-cloud']).toMatchObject({
+      api: 'openai-completions',
+      baseUrl: 'https://ollama.com/v1',
+      models: [{ type: 'chat', id: 'second' }],
+      hasApiKey: true,
+    });
+    expect(JSON.stringify(test.configuration.list())).not.toContain(
+      'secret-from-stdin',
+    );
+  });
+
+  it('declares model input modalities and rejects malformed ones', async () => {
+    const test = await fixture();
+
+    expect(
+      await runProviders(
+        [
+          'set',
+          'ollama-cloud',
+          '--base-url',
+          'https://ollama.com/v1',
+          '--model',
+          'glm-5.2:cloud',
+          '--model-input',
+          'qwen3.5:397b-cloud=text,image',
+        ],
+        { ...test.dependencies, interactive: false },
+      ),
+    ).toBe(0);
+    expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
+      { type: 'chat', id: 'glm-5.2:cloud' },
+      { type: 'chat', id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
+    ]);
+
+    expect(
+      await runProviders(
+        ['set', 'ollama-cloud', '--model-input', 'qwen3.5:397b-cloud=video'],
+        { ...test.dependencies, interactive: false },
+      ),
+    ).toBe(1);
+    expect(test.stderr.join('\n')).toContain('unknown modality "video"');
+
+    expect(
+      await runProviders(['set', 'ollama-cloud', '--model-input', 'nosep'], {
+        ...test.dependencies,
+        interactive: false,
+      }),
+    ).toBe(1);
+    expect(test.stderr.join('\n')).toContain('--model-input expects');
+
+    // A rejected patch must not have disturbed the stored declaration.
+    expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
+      { type: 'chat', id: 'glm-5.2:cloud' },
+      { type: 'chat', id: 'qwen3.5:397b-cloud', input: ['text', 'image'] },
+    ]);
+  });
+
+  it('prints stable JSON keys for configured and OAuth providers', async () => {
+    const test = await fixture();
+    await test.configuration.set('local', {
+      baseUrl: 'http://localhost:11434/v1',
+    });
+
+    expect(
+      await runProviders(['list', '--json'], {
+        ...test.dependencies,
+        interactive: false,
+      }),
+    ).toBe(0);
+
+    expect(JSON.parse(test.stdout.at(-1) ?? '{}')).toMatchObject({
+      // Automation acts on the store the daemon resolved, not its own guess.
+      storeRoot: realpathSync(test.root),
+      configuredProviders: { local: { hasApiKey: false } },
+      oauthProviders: [
+        { id: 'anthropic', connected: false },
+        { id: 'openai-codex', connected: false },
+      ],
+    });
+  });
+
+  it('emits safe production service diagnostics on stderr', async () => {
+    const test = await fixture();
+    test.store.writeProviders({
+      remote: {
+        api: 'openai-completions',
+        baseUrl: 'https://provider.example/v1',
+        envName: 'MOLTNET_PROVIDER_REMOTE_API_KEY',
+        models: [],
+        apiKeyRef: 'file:missing-provider-key',
+      },
+    });
+
+    expect(
+      await runProviders(['discover', 'remote'], {
+        oauth: test.dependencies.oauth,
+        envRoot: test.root,
+        interactive: false,
+        stdout: test.dependencies.stdout,
+        stderr: test.dependencies.stderr,
+      }),
+    ).toBe(1);
+
+    expect(JSON.parse(test.stderr[0] ?? '{}')).toMatchObject({
+      level: 'warn',
+      code: 'agent_server_provider_secret_unavailable',
+      providerId: 'remote',
+    });
+    expect(test.stderr.join('\n')).not.toContain('missing-provider-key');
+  });
+
+  it('requires confirmation interactively or --yes for destructive commands', async () => {
+    const test = await fixture();
+    await test.configuration.set('local', {
+      baseUrl: 'http://localhost:11434/v1',
+    });
+
+    expect(
+      await runProviders(['remove', 'local'], {
+        ...test.dependencies,
+        interactive: false,
+      }),
+    ).toBe(1);
+    expect(test.configuration.list()).toHaveProperty('local');
+    expect(
+      await runProviders(['remove', 'local', '--yes'], {
+        ...test.dependencies,
+        interactive: false,
+      }),
+    ).toBe(0);
+    expect(test.configuration.list()).not.toHaveProperty('local');
+  });
+
+  it('discovers merged model catalogs and saves only when requested', async () => {
+    const fetchImpl = vi.fn<typeof fetch>((url) => {
+      const href =
+        typeof url === 'string' ? url : url instanceof URL ? url.href : url.url;
+      const body = href.endsWith('/api/tags')
+        ? {
+            models: [
+              {
+                name: 'gemma4:31b-cloud',
+                capabilities: ['completion', 'vision'],
+              },
+            ],
+          }
+        : href.endsWith('/api/show')
+          ? { capabilities: ['completion'] }
+          : { data: [{ id: 'local-model' }] };
+      return Promise.resolve(new Response(JSON.stringify(body)));
+    });
+    const test = await fixture({ fetchImpl });
+    await test.configuration.set('ollama-cloud', {
+      baseUrl: 'https://ollama.com/v1',
+      models: [
+        { id: 'existing' },
+        { id: 'decisions', type: 'classifier', api: 'typesafe-system-one' },
+      ],
+    });
+
+    expect(
+      await runProviders(['discover', 'ollama-cloud', '--json'], {
+        ...test.dependencies,
+        interactive: false,
+      }),
+    ).toBe(0);
+    expect(JSON.parse(test.stdout.at(-1) ?? '{}')).toEqual({
+      models: [
+        {
+          type: 'chat',
+          id: 'gemma4:31b-cloud',
+          input: ['text', 'image'],
+          reasoning: false,
+        },
+        { type: 'chat', id: 'local-model', reasoning: false },
+      ],
+      failures: [],
+      probeFailures: [],
+    });
+    expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
+      { type: 'chat', id: 'existing', reasoning: false },
+      { id: 'decisions', type: 'classifier', api: 'typesafe-system-one' },
+    ]);
+
+    expect(
+      await runProviders(['discover', 'ollama-cloud', '--save'], {
+        ...test.dependencies,
+        interactive: false,
+      }),
+    ).toBe(0);
+    expect(test.configuration.list()['ollama-cloud']?.models).toEqual([
+      {
+        type: 'chat',
+        id: 'gemma4:31b-cloud',
+        input: ['text', 'image'],
+        reasoning: false,
+      },
+      { type: 'chat', id: 'local-model', reasoning: false },
+      { id: 'decisions', type: 'classifier', api: 'typesafe-system-one' },
+    ]);
+  });
+
+  it('uses ModelRuntime logout after non-interactive confirmation', async () => {
+    const logout = vi.fn().mockResolvedValue(undefined);
+    const test = await fixture({ logout });
+
+    expect(
+      await runProviders(['logout', 'anthropic', '--yes'], {
+        ...test.dependencies,
+        interactive: false,
+      }),
+    ).toBe(0);
+    expect(logout).toHaveBeenCalledWith('anthropic');
+  });
+
+  it('surfaces browser and device-code callbacks and selects auth methods', async () => {
+    const login = vi.fn<ModelRuntime['login']>(
+      async (_providerId, _type, interaction) => {
+        interaction.notify({
+          type: 'auth_url',
+          url: 'https://provider.example/authorize',
+        });
+        interaction.notify({
+          type: 'device_code',
+          verificationUri: 'https://provider.example/device',
+          userCode: 'ABCD-1234',
+        });
+        await expect(
+          interaction.prompt({
+            type: 'select',
+            message: 'Choose a method',
+            options: [
+              { id: 'browser', label: 'Browser' },
+              { id: 'device', label: 'Device code' },
+            ],
+            signal: new AbortController().signal,
+          }),
+        ).resolves.toBe('device');
+        return { type: 'oauth', access: 'test', refresh: 'test', expires: 1 };
+      },
+    );
+    const test = await fixture({ login });
+    const opened: string[] = [];
+
+    expect(
+      await runProviders(['login', 'openai-codex', '--auth-method', 'device'], {
+        ...test.dependencies,
+        interactive: true,
+        question: () => Promise.resolve('unused'),
+        openUrl: (url) => {
+          opened.push(url);
+        },
+      }),
+    ).toBe(0);
+    expect(opened).toEqual(['https://provider.example/authorize']);
+    expect(test.stderr.join('\n')).toContain('ABCD-1234');
+  });
+
+  it('warns safely when automatic browser launch fails', async () => {
+    const login = vi.fn<ModelRuntime['login']>(
+      async (_providerId, _type, interaction) => {
+        interaction.notify({
+          type: 'auth_url',
+          url: 'https://provider.example/authorize?state=safe',
+        });
+        return { type: 'oauth', access: 'test', refresh: 'test', expires: 1 };
+      },
+    );
+    const test = await fixture({ login });
+
+    expect(
+      await runProviders(['login', 'anthropic'], {
+        ...test.dependencies,
+        interactive: true,
+        openUrl: () => Promise.reject(new Error('launch failed secret=bad')),
+      }),
+    ).toBe(0);
+    await vi.waitFor(() =>
+      expect(test.stderr).toContain(
+        'Could not open the browser automatically; open the authorization URL above manually.',
+      ),
+    );
+    expect(test.stderr.join('\n')).not.toContain('secret=bad');
+  });
+
+  it('cancels pending login and releases the OAuth lock for a retry', async () => {
+    const login = vi
+      .fn<ModelRuntime['login']>()
+      .mockImplementationOnce((_providerId, _type, interaction) => {
+        return new Promise((_resolve, reject) => {
+          interaction.signal?.addEventListener(
+            'abort',
+            () => reject(new Error('cancelled with secret=hidden')),
+            { once: true },
+          );
+        });
+      })
+      .mockResolvedValue({
+        type: 'oauth',
+        access: 'retry',
+        refresh: 'retry',
+        expires: 1,
+      });
+    const test = await fixture({ login });
+    const controller = new AbortController();
+
+    const pending = runProviders(['login', 'anthropic'], {
+      ...test.dependencies,
+      interactive: true,
+      signal: controller.signal,
+    });
+    await vi.waitFor(() => expect(login).toHaveBeenCalledOnce());
+    controller.abort(new Error('SIGINT'));
+
+    await expect(pending).resolves.toBe(1);
+    expect(test.stderr.at(-1)).toBe('Provider operation interrupted.');
+    expect(test.stderr.join('\n')).not.toContain('secret=hidden');
+    await expect(
+      runProviders(['login', 'anthropic'], {
+        ...test.dependencies,
+        interactive: true,
+      }),
+    ).resolves.toBe(0);
+    expect(login).toHaveBeenCalledTimes(2);
+  });
+
+  it('cancels pending discovery and permits a subsequent discovery', async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockImplementationOnce((_url, init) => {
+        return new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            'abort',
+            () => reject(new Error('cancelled with api_key=hidden')),
+            { once: true },
+          );
+        });
+      })
+      .mockResolvedValue(
+        new Response(JSON.stringify({ data: [{ id: 'retry-model' }] })),
+      );
+    const test = await fixture({ fetchImpl });
+    await test.configuration.set('remote', {
+      baseUrl: 'https://provider.example/v1',
+    });
+    const controller = new AbortController();
+
+    const pending = runProviders(['discover', 'remote'], {
+      ...test.dependencies,
+      interactive: false,
+      signal: controller.signal,
+    });
+    await vi.waitFor(() => expect(fetchImpl).toHaveBeenCalledOnce());
+    controller.abort(new Error('SIGINT'));
+
+    await expect(pending).resolves.toBe(1);
+    expect(test.stderr.at(-1)).toBe('Provider operation interrupted.');
+    expect(test.stderr.join('\n')).not.toContain('api_key=hidden');
+    await expect(
+      runProviders(['discover', 'remote'], {
+        ...test.dependencies,
+        interactive: false,
+      }),
+    ).resolves.toBe(0);
+    expect(test.stdout.at(-1)).toBe('retry-model');
+  });
+
+  it('fails login on non-TTY input and redacts upstream error messages', async () => {
+    const login = vi.fn<ModelRuntime['login']>(() =>
+      Promise.reject(new Error('access_token=super-secret')),
+    );
+    const test = await fixture({ login });
+
+    expect(
+      await runProviders(['login', 'anthropic'], {
+        ...test.dependencies,
+        interactive: false,
+      }),
+    ).toBe(1);
+    expect(login).not.toHaveBeenCalled();
+    expect(
+      await runProviders(['login', 'anthropic'], {
+        ...test.dependencies,
+        interactive: true,
+        question: () => Promise.resolve(''),
+        openUrl: () => undefined,
+      }),
+    ).toBe(1);
+    expect(test.stderr.join('\n')).not.toContain('super-secret');
+    expect(test.stderr.at(-1)).toBe('Provider operation failed.');
+  });
+});
+
+describe('OAuth browser launcher', () => {
+  it('passes adversarial Windows URLs directly to explorer.exe', () => {
+    const url =
+      'https://provider.example/authorize?state=abc&next=calc.exe|ignored';
+
+    expect(browserLaunchCommand('win32', url)).toEqual({
+      executable: 'explorer.exe',
+      args: [url],
+    });
+  });
+});

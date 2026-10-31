@@ -28,27 +28,21 @@ const TEST_PATTERNS = [
   'vitest.config.ts',
   'vitest.config.mts',
   'playwright.config.ts',
-  'src/**/*.test.ts',
   'src/**/*.spec.ts',
-  'src/**/*.test.tsx',
   'src/**/*.spec.tsx',
-  'src/**/*.test.js',
   'src/**/*.spec.js',
   'src/**/*.d.ts',
 ];
 
 const SOURCE_TEST_EXCLUDES = [
-  'src/**/*.test.ts',
   'src/**/*.spec.ts',
-  'src/**/*.test.tsx',
   'src/**/*.spec.tsx',
-  'src/**/*.test.js',
   'src/**/*.spec.js',
   '__tests__',
   'e2e',
 ];
 
-const SOURCE_TEST_FILE_PATTERN = /(^|\/)src\/.*\.(?:test|spec)\.[cm]?[jt]sx?$/;
+export const SOURCE_TEST_FILE_PATTERN = /(^|\/)src\/.*\.spec\.[cm]?[jt]sx?$/;
 
 export default async function splitTsconfigsGenerator(
   tree: Tree,
