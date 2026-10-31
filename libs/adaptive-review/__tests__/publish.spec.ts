@@ -806,8 +806,12 @@ describe('continuing focused findings', () => {
     expect(reviewComments(recorded.reviews[0])[0].body).toContain(
       'A different changed branch',
     );
-    expect(recorded.summaries[0]).toContain('1 already open');
-    expect(recorded.summaries[0]).not.toContain(TESTS_FINDING.concern);
+    expect(recorded.summaries[0]).toContain('1 linked to open threads');
+    expect(recorded.summaries[0]).toContain(TESTS_FINDING.concern);
+    expect(recorded.summaries[0]).toContain('src/a.ts:9');
+    expect(recorded.summaries[0]).toContain(
+      '[Referenced earlier thread](https://github.com/x/0)',
+    );
   });
 
   it('keeps a concern visible in the summary if its thread resolves during review', async () => {
@@ -837,9 +841,68 @@ describe('continuing focused findings', () => {
     expect(recorded.summaries[0]).toContain(TESTS_FINDING.concern);
     expect(recorded.summaries[0]).toContain('src/a.ts:9');
     expect(recorded.summaries[0]).toContain(
-      'the earlier thread for this concern was resolved',
+      'the referenced earlier thread was resolved',
     );
   });
+
+  it.each([false, true])(
+    'keeps a different current concern visible when it reuses an earlier key, including after summary overflow: %s',
+    async (overflow) => {
+      const recorded = calls();
+      const differentConcern =
+        'The changed retry path has no termination case in its tests.';
+      await publishAdaptiveReport(
+        {
+          ...report(),
+          results: [
+            ...(overflow
+              ? [
+                  concern(
+                    'complexity',
+                    Array.from({ length: 31 }, (_, index) => ({
+                      path: '',
+                      concern: `Other concern ${index}`,
+                    })),
+                  ),
+                ]
+              : []),
+            concern('tests', [
+              {
+                ...TESTS_FINDING,
+                line: 12,
+                concern: differentConcern,
+                existingFindingKey: TESTS_KEY,
+              },
+            ]),
+          ],
+        },
+        {
+          ...OPTIONS,
+          request: stableRequest(recorded),
+          graphql: threadsGraphQL([
+            {
+              login: OPTIONS.appLogin,
+              body: `${ADAPTIVE_FINDING_MARKER}${TESTS_KEY} -->\n${TESTS_FINDING.concern}`,
+            },
+          ]),
+        },
+      );
+      expect(recorded.reviews).toEqual([]);
+      expect(recorded.summaries[0]).toContain(
+        `src/a.ts:12: ${differentConcern}`,
+      );
+      expect(recorded.summaries[0]).toContain(
+        'also shown below for comparison',
+      );
+      expect(recorded.summaries[0]).toContain(
+        '[Referenced earlier thread](https://github.com/x/0)',
+      );
+      if (overflow)
+        expect(recorded.summaries[0]).toContain(
+          '1 more findings are not shown here',
+        );
+    },
+  );
 
   it.each(['human', 'wrong-path', 'wrong-lane', 'missing'])(
     'rejects %s references before publication',

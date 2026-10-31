@@ -1,0 +1,13 @@
+{
+  "description": "Repository reads plus bounded diary tools supplied by the optional adaptive review runtime module.",
+  "name": "legreffier-adaptive-knowledge-readonly-v1",
+  "shellCommands": [],
+  "tools": [
+    "find",
+    "grep",
+    "ls",
+    "read",
+    "moltnet_search_review_entries",
+    "moltnet_get_review_entry"
+  ]
+}

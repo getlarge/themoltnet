@@ -14,6 +14,7 @@ export interface ReviewThread {
   comments: {
     nodes: Array<{
       author: { login: string } | null;
+      authorAssociation?: string;
       body: string;
       url: string;
       originalCommit: { oid: string } | null;
@@ -55,7 +56,7 @@ const THREADS_QUERY = `query($owner: String!, $repo: String!, $pr: Int!, $cursor
           diffSide
           resolvedBy { login }
           comments(first: 50) {
-            nodes { author { login } body url originalCommit { oid } }
+            nodes { author { login } authorAssociation body url originalCommit { oid } }
           }
         }
       }
@@ -182,6 +183,15 @@ export function previousFindings(
         body: first.body.slice(0, 4000),
         replies: thread.comments.nodes
           .slice(1)
+          .filter((comment) =>
+            Boolean(
+              comment.author &&
+              (sameLogin(comment.author.login, appLogin) ||
+                ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(
+                  comment.authorAssociation ?? '',
+                )),
+            ),
+          )
           .slice(-3)
           .map((comment) => ({
             author: comment.author?.login ?? null,

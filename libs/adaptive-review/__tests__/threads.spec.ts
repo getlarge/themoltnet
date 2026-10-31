@@ -33,6 +33,7 @@ describe('fetchReviewThreads', () => {
 
     // Assert
     expect(threads.map((thread) => thread.id)).toEqual(['T1', 'T2']);
+    expect(graphql.mock.calls[0][0]).toContain('authorAssociation');
     expect(graphql).toHaveBeenLastCalledWith(expect.any(String), {
       owner: 'getlarge',
       repo: 'themoltnet',

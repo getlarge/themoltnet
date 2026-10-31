@@ -5,6 +5,10 @@ description: >
   already holds the built bundle; any other commit installs and builds it.
   Use it from that checkout, so the steps run at the pinned commit.
 author: getlarge
+inputs:
+  with-worker-action:
+    description: Build the trusted worker action for the optional review runtime.
+    default: 'false'
 runs:
   using: composite
   steps:
@@ -13,11 +17,14 @@ runs:
       id: bundle
       shell: bash
       working-directory: .adaptive-review-runtime
+      env:
+        WITH_WORKER_ACTION: ${{ inputs.with-worker-action }}
       run: |
-        if git ls-files --error-unmatch \
+        if [ "$WITH_WORKER_ACTION" != true ] && git ls-files --error-unmatch \
           packages/adaptive-review-action/dist/review.js \
           packages/adaptive-review-action/dist/publish.js \
-          packages/adaptive-review-action/dist/outcomes.js >/dev/null 2>&1; then
+          packages/adaptive-review-action/dist/outcomes.js \
+          packages/adaptive-review-action/dist/diary-runtime.js >/dev/null 2>&1; then
           echo 'released=true' >> "$GITHUB_OUTPUT"
         else
           echo 'released=false' >> "$GITHUB_OUTPUT"
@@ -32,7 +39,8 @@ runs:
         node-version-file: .adaptive-review-runtime/.tool-versions
         cache: pnpm
         cache-dependency-path: .adaptive-review-runtime/pnpm-lock.yaml
-    # The bundle imports only Node built-ins, so it needs no install.
+    # Planner/publisher entries need no install. The optional diary runtime
+    # gets its external dependencies separately in focused workers.
     - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
       if: steps.bundle.outputs.released == 'true'
       with:
@@ -45,6 +53,12 @@ runs:
         # This isolated build has no Nx Cloud pipeline or agent lifecycle.
         NX_NO_CLOUD: 'true'
         NX_DAEMON: 'false'
+        WITH_WORKER_ACTION: ${{ inputs.with-worker-action }}
       run: |
         pnpm install --frozen-lockfile
         pnpm exec nx run @themoltnet/adaptive-review-action:build --excludeTaskDependencies
+        if [ "$WITH_WORKER_ACTION" = true ]; then
+          pnpm exec nx run @themoltnet/agent-daemon-action:build --excludeTaskDependencies
+          mkdir -p packages/adaptive-review-action/dist/worker-action
+          cp -R packages/agent-daemon-action/dist/. packages/adaptive-review-action/dist/worker-action/
+        fi
