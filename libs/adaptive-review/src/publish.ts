@@ -5,8 +5,11 @@ import {
   GitHubApi,
   listPaginated,
 } from '@moltnet/docs-impact-review/github-api';
+import { Type } from 'typebox';
+import { Value } from 'typebox/value';
 
 import { env } from './config.js';
+import { PriorFindingReviewSchema } from './prior-findings.js';
 import {
   ADAPTIVE_REVIEW_MARKER,
   findingKey,
@@ -59,6 +62,11 @@ function assertReport(value: unknown): asserts value is AdaptiveReport {
     throw new Error('invalid adaptive report');
   const report = value as Partial<AdaptiveReport>;
   if (
+    (report.priorFindingOutcomes !== undefined &&
+      !Value.Check(
+        Type.Array(PriorFindingReviewSchema),
+        report.priorFindingOutcomes,
+      )) ||
     report.version !== 1 ||
     (report.mode !== 'active' && report.mode !== 'shadow') ||
     typeof report.repo !== 'string' ||

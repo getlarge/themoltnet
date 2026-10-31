@@ -140,12 +140,13 @@ export interface PreviousFinding {
   replies: Array<{ author: string | null; body: string }>;
 }
 
-/** Bound each focused lane independently so other lanes cannot crowd it out. */
+/** Retain every open finding for accounting; bound resolved historical context. */
 export function previousFindings(
   threads: readonly ReviewThread[],
   appLogin: string,
 ): PreviousFinding[] {
   const counts = new Map<string, number>();
+  const seen = new Set<string>();
   // GitHub returns threads in creation order. Keep recent open discussion
   // before resolved history when a lane exceeds the prompt budget.
   const ordered = [...threads]
@@ -164,7 +165,9 @@ export function previousFindings(
         lane !== 'performance')
     )
       return [];
-    if ((counts.get(lane) ?? 0) >= 20) return [];
+    if (seen.has(marker.key)) return [];
+    seen.add(marker.key);
+    if (thread.isResolved && (counts.get(lane) ?? 0) >= 20) return [];
     counts.set(lane, (counts.get(lane) ?? 0) + 1);
     return [
       {

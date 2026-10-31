@@ -138,7 +138,7 @@ export function renderFindingComment(
       ? ['', `Suggested action: ${shorten(finding.action, 2000)}`]
       : []),
     '',
-    '_Fix it, or resolve this thread with a short reason._',
+    '_Assess this finding; fix confirmed problems or explain why no change is needed._',
   ].join('\n');
 }
 
@@ -147,7 +147,7 @@ function findingCount(
   threads: ThreadSummary | undefined,
   hasReferences: boolean,
 ): string {
-  if (total === 0) return 'Findings: 0. Nothing needs fixing from this run.';
+  if (total === 0) return 'Findings: 0. No actionable findings were reported.';
   if (!threads) return `Findings: ${total}.`;
   const listed = total - threads.posted - threads.existing;
   const parts = [
@@ -155,13 +155,18 @@ function findingCount(
     `${threads.existing} ${hasReferences ? 'linked to open threads from earlier runs' : 'already open from an earlier run'}`,
     ...(listed > 0 ? [`${listed} listed below`] : []),
   ];
-  return `Findings: ${total} (${parts.join(', ')}). Fix each one, or resolve its thread with a reason.${hasReferences ? ' Current findings referencing earlier threads are also shown below for comparison.' : ''}`;
+  return `Findings: ${total} (${parts.join(', ')}). Assess each finding; fix confirmed problems or explain why no change is needed.${hasReferences ? ' Current findings referencing earlier threads are also shown below for comparison.' : ''}`;
 }
 
 /** Coverage refers to selected investigations, never to screened-out lanes. */
 export function hasIncompleteCoverage(report: AdaptiveReport): boolean {
   return (
     report.gaps.length > 0 ||
+    Boolean(
+      report.priorFindingOutcomes?.some(
+        (item) => item.status === 'not_checked',
+      ),
+    ) ||
     report.results.some(
       (result) =>
         result.status === 'failed' ||
@@ -210,7 +215,7 @@ export function renderAdaptiveComment(
       ? '## Adaptive review: incomplete coverage'
       : '## Adaptive review',
     '',
-    `${report.mode === 'shadow' ? 'Full review: every enabled lane was investigated.' : 'Classifier-selected investigations.'} Head \`${report.head.slice(0, 7)}\` · [workflow run](${runUrl}).`,
+    `${report.mode === 'shadow' ? 'All enabled lanes were selected for investigation. Selection does not imply complete coverage; see results and gaps below.' : 'Classifier-selected investigations.'} Head \`${report.head.slice(0, 7)}\` · [workflow run](${runUrl}).`,
     '',
     '| Lane | Classifier concern | Investigation |',
     '| --- | ---: | --- |',
@@ -234,17 +239,22 @@ export function renderAdaptiveComment(
     `Classifier scores (0–3): code complexity ${complexity === null ? 'unavailable' : complexity.toFixed(1)}; review effort ${effort === null ? 'unavailable' : effort.toFixed(1)}. These describe screening, not review findings.`,
   );
   const concerns = report.results.filter(
-    (result) => result.status === 'concern',
+    (result) => result.status === 'concern' && result.lane !== 'complexity',
   );
   lines.push(
     '',
-    findingCount(
-      concerns.reduce((count, result) => count + result.findings.length, 0),
-      threads,
-      concerns.some((result) =>
-        result.findings.some((finding) => Boolean(finding.existingFindingKey)),
-      ),
-    ),
+    report.priorFindingOutcomes?.length &&
+      concerns.every((result) => !result.findings.length)
+      ? 'Inline findings: 0. See the prior-finding assessments below.'
+      : findingCount(
+          concerns.reduce((count, result) => count + result.findings.length, 0),
+          threads,
+          concerns.some((result) =>
+            result.findings.some((finding) =>
+              Boolean(finding.existingFindingKey),
+            ),
+          ),
+        ),
   );
   let listed = 0;
   let omitted = 0;
@@ -285,6 +295,28 @@ export function renderAdaptiveComment(
         `- ${omitted} more findings are not shown here; the [workflow run](${runUrl}) has the full report.`,
       );
   }
+  const complexityAssessment = report.results.find(
+    (result) =>
+      result.lane === 'complexity' &&
+      (result.status === 'clear' || result.status === 'concern'),
+  );
+  if (complexityAssessment) {
+    lines.push(
+      '',
+      '### Complexity assessment',
+      '',
+      'Rubric assessment, not counted as actionable findings.',
+      shorten(
+        [
+          complexityAssessment.summary,
+          // Older reports stored rubric rationales as pathless findings.
+          ...complexityAssessment.findings.map((finding) => finding.concern),
+        ].join('\n'),
+        1600,
+      ),
+    );
+  }
+  lines.push(...renderPriorFindings(report));
   const gaps = [
     ...report.gaps,
     ...report.results
@@ -313,4 +345,52 @@ export function renderAdaptiveComment(
   );
   if (report.spend) lines.push('', formatWorkflowSpend(report.spend));
   return lines.join('\n');
+}
+
+function priorText(value: string, limit: number): string {
+  return shorten(value, limit)
+    .replace(/\r?\n/g, ' ')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/@/g, '&#64;')
+    .replace(/[\\`*_[\]~]/g, '\\$&');
+}
+
+function renderPriorFindings(report: AdaptiveReport): string[] {
+  const outcomes = report.priorFindingOutcomes ?? [];
+  if (!outcomes.length) return [];
+  const labels = {
+    still_present: 'Still present',
+    fixed: 'Fixed',
+    incorrect: 'Earlier finding was wrong',
+    not_checked: 'Not checked / uncertain',
+  };
+  const lines = [
+    '',
+    '### Previous open findings',
+    '',
+    'Assessments for this head, based on threads open when review started. These are reviewer conclusions; GitHub threads are not automatically resolved.',
+    '',
+    Object.entries(labels)
+      .map(
+        ([status, label]) =>
+          `${label}: ${outcomes.filter((item) => item.status === status).length}`,
+      )
+      .join(' · '),
+    '',
+  ];
+  for (const item of outcomes.slice(0, 40)) {
+    const url = /^https:\/\/[^\s<>]+$/.test(item.url)
+      ? item.url.replace(/\(/g, '%28').replace(/\)/g, '%29')
+      : undefined;
+    lines.push(
+      `- **${labels[item.status]}** · ${item.lane} · ${priorText(item.path, 120)}${url ? ` · [Earlier thread](${url})` : ''}: ${priorText(item.explanation, 600)}`,
+    );
+  }
+  if (outcomes.length > 40)
+    lines.push(
+      `- ${outcomes.length - 40} more individual assessments are in the workflow report; the counts above include them.`,
+    );
+  return lines;
 }

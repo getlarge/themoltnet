@@ -64,6 +64,58 @@ function expectPublishedBody(body: object | undefined): void {
 }
 
 describe('publishAdaptiveReport', () => {
+  it('publishes explicit prior assessments as advisory summary text without resolving or reopening threads', async () => {
+    const value = report();
+    value.priorFindingOutcomes = [
+      {
+        key: 'tests:new:1:file.ts',
+        lane: 'tests',
+        path: 'file.ts',
+        url: 'https://github.com/getlarge/themoltnet/pull/42#discussion_r1',
+        status: 'fixed',
+        explanation: 'The caller now passes its timeout at file.ts:12.',
+      },
+    ];
+    const graphql = vi.fn(() => {
+      throw new Error('No thread mutation or lookup needed');
+    });
+    const request = vi.fn((url: string, method?: string, body?: object) => {
+      if (url === PR_PATH)
+        return Promise.resolve({ head: { sha: HEAD }, base: { sha: BASE } });
+      if (url.startsWith(COMMENTS_PATH) && method !== 'POST')
+        return Promise.resolve([]);
+      if (url === COMMENTS_PATH && method === 'POST') {
+        expect(body).toMatchObject({
+          body: expect.stringContaining('**Fixed**'),
+        });
+        expect(body).toMatchObject({
+          body: expect.stringContaining('The caller now passes its timeout'),
+        });
+        return Promise.resolve({ id: 100 });
+      }
+      throw new Error(`Unexpected write: ${method} ${url}`);
+    });
+    await publishAdaptiveReport(value, { ...OPTIONS, request, graphql });
+    expect(graphql).not.toHaveBeenCalled();
+    expect(
+      request.mock.calls.filter(([, method]) => method === 'POST'),
+    ).toHaveLength(1);
+  });
+
+  it('rejects malformed prior assessments before any GitHub access', async () => {
+    const request = vi.fn();
+    await expect(
+      publishAdaptiveReport(
+        {
+          ...report(),
+          priorFindingOutcomes: [{ key: 'k', status: 'fixed' }],
+        } as unknown as AdaptiveReport,
+        { ...OPTIONS, request },
+      ),
+    ).rejects.toThrow('invalid adaptive report');
+    expect(request).not.toHaveBeenCalled();
+  });
+
   it('rejects a report for another repository before an API request', async () => {
     const request = vi.fn();
     await expect(
@@ -475,12 +527,14 @@ describe('publishAdaptiveReport inline threads', () => {
       ),
     ).toBe(true);
     expect(first.body).toContain('Suggested action: Add a case to a.test.ts');
-    expect(first.body).toContain('resolve this thread with a short reason');
+    expect(first.body).toContain(
+      'Assess this finding; fix confirmed problems or explain why no change is needed.',
+    );
     expect(reviewComments(recorded.reviews[0])[2].body).toContain(
       '**Adaptive review · security**',
     );
     expect(recorded.summaries[0]).toContain(
-      'Findings: 4 (3 posted as new review threads, 0 already open from an earlier run, 1 listed below)',
+      'Findings: 3 (3 posted as new review threads, 0 already open from an earlier run)',
     );
     expect(recorded.summaries[0]).toContain('blast_radius: wide');
     expect(recorded.summaries[0]).not.toContain('src/a.ts:7');
@@ -858,7 +912,7 @@ describe('continuing focused findings', () => {
             ...(overflow
               ? [
                   concern(
-                    'complexity',
+                    'docs',
                     Array.from({ length: 31 }, (_, index) => ({
                       path: '',
                       concern: `Other concern ${index}`,
