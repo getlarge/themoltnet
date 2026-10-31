@@ -16,6 +16,7 @@
  * - RelationshipWriter calls happen after transaction commits
  */
 
+import { KetoNamespace } from '@moltnet/auth';
 import {
   agents,
   configureDBOS,
@@ -24,6 +25,7 @@ import {
   createDiaryEntryRepository,
   createDiaryRepository,
   createEntryRelationRepository,
+  type DatabaseConnection,
   diaries,
   diaryEntries,
   enqueueWorkflowInCurrentTransaction,
@@ -36,7 +38,6 @@ import {
 } from '@moltnet/database';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { eq, sql } from 'drizzle-orm';
-import type { Pool } from 'pg';
 import {
   afterAll,
   afterEach,
@@ -78,7 +79,7 @@ describe('DiaryService (DBOS integration)', () => {
   let permissions: {
     [K in keyof PermissionChecker]: ReturnType<typeof vi.fn>;
   };
-  let pool: Pool;
+  let pool: DatabaseConnection['pool'];
   let DIARY_ID: string;
   let stopContainer: () => Promise<void>;
 
@@ -143,6 +144,11 @@ describe('DiaryService (DBOS integration)', () => {
       isTeamMember: vi.fn().mockResolvedValue(false),
       listGroupMembers: vi.fn().mockResolvedValue([]),
       listGroupIdsBySubject: vi.fn().mockResolvedValue([]),
+      listDiaryGrants: vi.fn().mockResolvedValue([]),
+      listTaskGrants: vi.fn().mockResolvedValue([]),
+      listRuntimeProfilePolicies: vi.fn().mockResolvedValue([]),
+      listRuntimePolicyTools: vi.fn().mockResolvedValue([]),
+      listRuntimePolicyShellCommands: vi.fn().mockResolvedValue([]),
     };
 
     mockRelationshipWriter = {
@@ -166,6 +172,25 @@ describe('DiaryService (DBOS integration)', () => {
       grantGroupMember: vi.fn().mockResolvedValue(undefined),
       removeGroupMember: vi.fn().mockResolvedValue(undefined),
       removeGroupRelations: vi.fn().mockResolvedValue(undefined),
+      grantDiaryWriters: vi.fn().mockResolvedValue(undefined),
+      grantDiaryManagers: vi.fn().mockResolvedValue(undefined),
+      revokeDiaryWriter: vi.fn().mockResolvedValue(undefined),
+      revokeDiaryManager: vi.fn().mockResolvedValue(undefined),
+      removeAgentRelations: vi.fn().mockResolvedValue(undefined),
+      removeHumanRelations: vi.fn().mockResolvedValue(undefined),
+      grantTaskOwnership: vi.fn().mockResolvedValue(undefined),
+      grantTaskTeam: vi.fn().mockResolvedValue(undefined),
+      grantTaskWriters: vi.fn().mockResolvedValue(undefined),
+      grantTaskManagers: vi.fn().mockResolvedValue(undefined),
+      revokeTaskWriter: vi.fn().mockResolvedValue(undefined),
+      revokeTaskManager: vi.fn().mockResolvedValue(undefined),
+      grantTaskClaimant: vi.fn().mockResolvedValue(undefined),
+      removeTaskRelations: vi.fn().mockResolvedValue(undefined),
+      removeTaskRelationsBatch: vi.fn().mockResolvedValue(undefined),
+      removeTaskClaimant: vi.fn().mockResolvedValue(undefined),
+      writeRuntimePolicyEdges: vi.fn().mockResolvedValue(undefined),
+      removeRuntimePolicyRelations: vi.fn().mockResolvedValue(undefined),
+      writeRuntimeProfilePolicyEdges: vi.fn().mockResolvedValue(undefined),
     };
 
     permissions = {
@@ -175,6 +200,31 @@ describe('DiaryService (DBOS integration)', () => {
       canReadDiary: vi.fn().mockResolvedValue(true),
       canWriteDiary: vi.fn().mockResolvedValue(true),
       canManageDiary: vi.fn().mockResolvedValue(true),
+      canDeleteEntries: vi.fn().mockResolvedValue(new Map()),
+      canEditAnyEntry: vi.fn().mockResolvedValue(false),
+      canReadPack: vi.fn().mockResolvedValue(false),
+      canReadPacks: vi.fn().mockResolvedValue(new Map()),
+      canWritePack: vi.fn().mockResolvedValue(false),
+      canManagePack: vi.fn().mockResolvedValue(false),
+      canVerifyClaimPack: vi.fn().mockResolvedValue(false),
+      canAccessTeam: vi.fn().mockResolvedValue(false),
+      canWriteTeam: vi.fn().mockResolvedValue(false),
+      canManageTeam: vi.fn().mockResolvedValue(false),
+      canManageTeamCredentials: vi.fn().mockResolvedValue(false),
+      canManageTeamRuntime: vi.fn().mockResolvedValue(false),
+      canManageTeamMembers: vi.fn().mockResolvedValue(false),
+      canViewTask: vi.fn().mockResolvedValue(false),
+      canEditTaskMetadata: vi.fn().mockResolvedValue(false),
+      canManageTask: vi.fn().mockResolvedValue(false),
+      canViewTasks: vi.fn().mockResolvedValue(new Map()),
+      checkTaskCreatePermissions: vi.fn(),
+      canClaimTask: vi.fn().mockResolvedValue(false),
+      canCancelTask: vi.fn().mockResolvedValue(false),
+      canCancelTasks: vi.fn().mockResolvedValue(new Map()),
+      canDeleteTask: vi.fn().mockResolvedValue(false),
+      canDeleteTasks: vi.fn().mockResolvedValue(new Map()),
+      canForceDeleteTasks: vi.fn().mockResolvedValue(new Map()),
+      canReportTask: vi.fn().mockResolvedValue(false),
     };
 
     const dbSetup = await setupDatabase(databaseUrl);
@@ -410,6 +460,7 @@ describe('DiaryService (DBOS integration)', () => {
           content: 'Test atomic create',
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       expect(entry.id).toBeDefined();
@@ -443,6 +494,7 @@ describe('DiaryService (DBOS integration)', () => {
           content: 'Should persist after Keto retry',
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       expect(entry.id).toBeDefined();
@@ -463,13 +515,18 @@ describe('DiaryService (DBOS integration)', () => {
           content: 'Entry to delete',
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       mockRelationshipWriter.removeEntryRelations.mockRejectedValueOnce(
         new Error('Keto temporarily unavailable'),
       );
 
-      const deleted = await service.deleteEntry(entry.id, OWNER_ID);
+      const deleted = await service.deleteEntry(
+        entry.id,
+        OWNER_ID,
+        KetoNamespace.Agent,
+      );
       expect(deleted).toBe(true);
 
       // Verify entry is deleted from database (DB write committed before Keto step)
@@ -493,6 +550,7 @@ describe('DiaryService (DBOS integration)', () => {
             content: `Entry ${i}`,
           },
           OWNER_ID,
+          KetoNamespace.Agent,
         ),
       );
 
@@ -527,13 +585,14 @@ describe('DiaryService (DBOS integration)', () => {
               content: `Entry ${i}`,
             },
             OWNER_ID,
+            KetoNamespace.Agent,
           ),
         ),
       );
 
       // Concurrently delete them all
       const deletePromises = entries.map((e) =>
-        service.deleteEntry(e.id, OWNER_ID),
+        service.deleteEntry(e.id, OWNER_ID, KetoNamespace.Agent),
       );
       await Promise.all(deletePromises);
 
@@ -562,6 +621,7 @@ describe('DiaryService (DBOS integration)', () => {
           content: 'Test workflow execution',
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
       expect(mockRelationshipWriter.grantEntryParent).toHaveBeenCalledTimes(1);
@@ -579,9 +639,10 @@ describe('DiaryService (DBOS integration)', () => {
           content: 'Entry to delete',
         },
         OWNER_ID,
+        KetoNamespace.Agent,
       );
 
-      await service.deleteEntry(entry.id, OWNER_ID);
+      await service.deleteEntry(entry.id, OWNER_ID, KetoNamespace.Agent);
 
       expect(mockRelationshipWriter.removeEntryRelations).toHaveBeenCalledTimes(
         1,

@@ -167,6 +167,22 @@ describe('DiaryService (integration)', () => {
       canManageTeam: vi.fn().mockResolvedValue(false),
       canManageTeamRuntime: vi.fn().mockResolvedValue(false),
       canManageTeamMembers: vi.fn().mockResolvedValue(false),
+      canDeleteEntries: vi.fn().mockResolvedValue(new Map()),
+      canWritePack: vi.fn().mockResolvedValue(false),
+      canVerifyClaimPack: vi.fn().mockResolvedValue(false),
+      canManageTeamCredentials: vi.fn().mockResolvedValue(false),
+      canViewTask: vi.fn().mockResolvedValue(false),
+      canEditTaskMetadata: vi.fn().mockResolvedValue(false),
+      canManageTask: vi.fn().mockResolvedValue(false),
+      canViewTasks: vi.fn().mockResolvedValue(new Map()),
+      checkTaskCreatePermissions: vi.fn(),
+      canClaimTask: vi.fn().mockResolvedValue(false),
+      canCancelTask: vi.fn().mockResolvedValue(false),
+      canCancelTasks: vi.fn().mockResolvedValue(new Map()),
+      canDeleteTask: vi.fn().mockResolvedValue(false),
+      canDeleteTasks: vi.fn().mockResolvedValue(new Map()),
+      canForceDeleteTasks: vi.fn().mockResolvedValue(new Map()),
+      canReportTask: vi.fn().mockResolvedValue(false),
     };
 
     relationshipReader = {
@@ -176,6 +192,11 @@ describe('DiaryService (integration)', () => {
       isTeamMember: vi.fn().mockResolvedValue(false),
       listGroupMembers: vi.fn().mockResolvedValue([]),
       listGroupIdsBySubject: vi.fn().mockResolvedValue([]),
+      listDiaryGrants: vi.fn().mockResolvedValue([]),
+      listTaskGrants: vi.fn().mockResolvedValue([]),
+      listRuntimeProfilePolicies: vi.fn().mockResolvedValue([]),
+      listRuntimePolicyTools: vi.fn().mockResolvedValue([]),
+      listRuntimePolicyShellCommands: vi.fn().mockResolvedValue([]),
     };
 
     relationshipWriter = {
@@ -199,6 +220,25 @@ describe('DiaryService (integration)', () => {
       grantGroupMember: vi.fn().mockResolvedValue(undefined),
       removeGroupMember: vi.fn().mockResolvedValue(undefined),
       removeGroupRelations: vi.fn().mockResolvedValue(undefined),
+      grantDiaryWriters: vi.fn().mockResolvedValue(undefined),
+      grantDiaryManagers: vi.fn().mockResolvedValue(undefined),
+      revokeDiaryWriter: vi.fn().mockResolvedValue(undefined),
+      revokeDiaryManager: vi.fn().mockResolvedValue(undefined),
+      removeAgentRelations: vi.fn().mockResolvedValue(undefined),
+      removeHumanRelations: vi.fn().mockResolvedValue(undefined),
+      grantTaskOwnership: vi.fn().mockResolvedValue(undefined),
+      grantTaskTeam: vi.fn().mockResolvedValue(undefined),
+      grantTaskWriters: vi.fn().mockResolvedValue(undefined),
+      grantTaskManagers: vi.fn().mockResolvedValue(undefined),
+      revokeTaskWriter: vi.fn().mockResolvedValue(undefined),
+      revokeTaskManager: vi.fn().mockResolvedValue(undefined),
+      grantTaskClaimant: vi.fn().mockResolvedValue(undefined),
+      removeTaskRelations: vi.fn().mockResolvedValue(undefined),
+      removeTaskRelationsBatch: vi.fn().mockResolvedValue(undefined),
+      removeTaskClaimant: vi.fn().mockResolvedValue(undefined),
+      writeRuntimePolicyEdges: vi.fn().mockResolvedValue(undefined),
+      removeRuntimePolicyRelations: vi.fn().mockResolvedValue(undefined),
+      writeRuntimeProfilePolicyEdges: vi.fn().mockResolvedValue(undefined),
     };
 
     const embeddingService = await loadEmbeddingService();

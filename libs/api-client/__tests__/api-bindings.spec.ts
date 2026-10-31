@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  type ApiRequest,
   createClient,
   getTask,
   watchTaskConversation,
@@ -9,10 +8,10 @@ import {
 
 describe('API bindings', () => {
   it('routes generated requests through the caller-provided executor', async () => {
-    const requestExecutor = vi.fn(async (_request: ApiRequest) => ({
+    const requestExecutor = vi.fn().mockResolvedValue({
       id: '33333333-3333-4333-8333-333333333333',
       status: 'running',
-    }));
+    });
     const client = createClient({
       baseUrl: 'https://api.themolt.net',
       requestExecutor,

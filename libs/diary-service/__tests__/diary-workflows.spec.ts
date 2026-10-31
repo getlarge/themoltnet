@@ -6,7 +6,7 @@ import type {
   DiaryEntryRepository,
   EmbeddingService,
   RelationshipWriter,
-} from '../src/types.js';
+} from '../src/index.js';
 
 // ── DBOS mock ──────────────────────────────────────────────────────
 const { mockRegisterStep, mockRegisterWorkflow, mockRunTransaction } =
@@ -44,10 +44,14 @@ function createMockEntry(overrides: Partial<DiaryEntry> = {}): DiaryEntry {
     embedding: null,
     tags: null,
     injectionRisk: false,
+    injectionThreats: [],
     importance: 5,
     accessCount: 0,
     lastAccessedAt: null,
     entryType: 'semantic' as const,
+    contentHash: null,
+    contentSignature: null,
+    signingNonce: null,
     createdAt: new Date('2026-01-30T10:00:00Z'),
     updatedAt: new Date('2026-01-30T10:00:00Z'),
     ...overrides,
@@ -64,6 +68,15 @@ function createMockDiaryEntryRepository(): {
     search: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    findByIds: vi.fn(),
+    deleteMany: vi.fn(),
+    fetchEmbeddings: vi.fn(),
+    searchPublic: vi.fn(),
+    listTags: vi.fn(),
+    listPublic: vi.fn(),
+    listPublicSince: vi.fn(),
+    countSignedByDiary: vi.fn(),
+    findPublicById: vi.fn(),
   };
 }
 
@@ -91,6 +104,25 @@ function createMockRelationshipWriter(): {
     grantGroupMember: vi.fn().mockResolvedValue(undefined),
     removeGroupMember: vi.fn().mockResolvedValue(undefined),
     removeGroupRelations: vi.fn().mockResolvedValue(undefined),
+    grantDiaryWriters: vi.fn().mockResolvedValue(undefined),
+    grantDiaryManagers: vi.fn().mockResolvedValue(undefined),
+    revokeDiaryWriter: vi.fn().mockResolvedValue(undefined),
+    revokeDiaryManager: vi.fn().mockResolvedValue(undefined),
+    removeAgentRelations: vi.fn().mockResolvedValue(undefined),
+    removeHumanRelations: vi.fn().mockResolvedValue(undefined),
+    grantTaskOwnership: vi.fn().mockResolvedValue(undefined),
+    grantTaskTeam: vi.fn().mockResolvedValue(undefined),
+    grantTaskWriters: vi.fn().mockResolvedValue(undefined),
+    grantTaskManagers: vi.fn().mockResolvedValue(undefined),
+    revokeTaskWriter: vi.fn().mockResolvedValue(undefined),
+    revokeTaskManager: vi.fn().mockResolvedValue(undefined),
+    grantTaskClaimant: vi.fn().mockResolvedValue(undefined),
+    removeTaskRelations: vi.fn().mockResolvedValue(undefined),
+    removeTaskRelationsBatch: vi.fn().mockResolvedValue(undefined),
+    removeTaskClaimant: vi.fn().mockResolvedValue(undefined),
+    writeRuntimePolicyEdges: vi.fn().mockResolvedValue(undefined),
+    removeRuntimePolicyRelations: vi.fn().mockResolvedValue(undefined),
+    writeRuntimeProfilePolicyEdges: vi.fn().mockResolvedValue(undefined),
   };
 }
 

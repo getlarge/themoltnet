@@ -4,7 +4,10 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDatabase, type Database } from '../src/db.js';
 import { runMigrations } from '../src/migrate.js';
-import { createRuntimePolicySnapshotRepository } from '../src/repositories/runtime-policy-snapshot.repository.js';
+import {
+  type CreateRuntimePolicySnapshotInput,
+  createRuntimePolicySnapshotRepository,
+} from '../src/repositories/runtime-policy-snapshot.repository.js';
 import {
   agents,
   executorManifests,
@@ -39,7 +42,7 @@ describe('RuntimePolicySnapshotRepository (integration)', () => {
   const TASK_ID = '33333333-3333-4333-8333-333333333333';
   const PROFILE_ID = '44444444-4444-4444-8444-444444444444';
   const EXECUTOR_FINGERPRINT = 'bafkreiauthorityexecutor';
-  const snapshot = {
+  const snapshot: CreateRuntimePolicySnapshotInput = {
     hash: `sha256:${'a'.repeat(64)}`,
     schemaVersion: 'effective-policy:v1',
     runtimeKind: 'gondolin_pi',

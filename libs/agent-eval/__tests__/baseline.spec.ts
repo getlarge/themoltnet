@@ -7,6 +7,7 @@ import {
 } from '../src/baseline.js';
 import type { GateResult } from '../src/check-gates.js';
 import type { Scenario } from '../src/scenario.js';
+import type { SubmitStructure } from '../src/score-matrix.js';
 
 function scenario(slug: string, taskType: Scenario['taskType']): Scenario {
   return {
@@ -64,7 +65,11 @@ describe('runBaseline', () => {
       ...scenario('shape', 'freeform'),
       scoring: 'gates_only' as const,
     };
-    const repairs = [[], ['optional_null'], ['json_string']];
+    const repairs: SubmitStructure['repairKinds'][] = [
+      [],
+      ['optional_null'],
+      ['json_string'],
+    ];
     const report = await runBaseline([shape], 'm', 4, {
       runProducer: (_scenario, run) =>
         Promise.resolve({
@@ -101,10 +106,10 @@ describe('runBaseline', () => {
       scoring: 'gates_only' as const,
     };
     const judged = scenario('judged', 'freeform');
-    const finalMessage = {
+    const finalMessage: SubmitStructure = {
       invalidSubmitCalls: 0,
       repairKinds: ['submit_gate_verification'],
-      outputSource: 'final_message' as const,
+      outputSource: 'final_message',
     };
     const report = await runBaseline([shape, judged], 'm', 2, {
       runProducer: (_scenario, run) =>

@@ -80,6 +80,7 @@ function makeDeps(
       listByTeam: vi.fn().mockResolvedValue({ items: [createdPack], total: 1 }),
       listEntriesExpanded: vi.fn().mockResolvedValue([]),
       listEntriesExpandedByPackIds: vi.fn().mockResolvedValue(new Map()),
+      diffPacks: vi.fn().mockResolvedValue([]),
     },
     renderedPackRepository: {
       create: vi.fn().mockResolvedValue(makeRenderedPackRow()),
@@ -148,7 +149,7 @@ describe('ContextPackService', () => {
       // advertised total must not include rows they cannot open.
       const deps = makeDeps({
         permissionChecker: {
-          canViewEntry: vi.fn().mockResolvedValue(true),
+          ...makeDeps().permissionChecker,
           canReadPacks: vi.fn().mockResolvedValue(new Map()),
         },
       });
@@ -242,7 +243,7 @@ describe('ContextPackService', () => {
         service.listPacksByEntry({
           entryId: 'missing-entry',
           actor: {
-            identityId: 'agent-uuid',
+            subjectId: 'agent-uuid',
             subjectNs: KetoNamespace.Agent,
           },
         }),
@@ -252,6 +253,7 @@ describe('ContextPackService', () => {
     it('throws forbidden when the actor cannot view the entry', async () => {
       const deps = makeDeps({
         permissionChecker: {
+          ...makeDeps().permissionChecker,
           canViewEntry: vi.fn().mockResolvedValue(false),
           canReadPacks: vi.fn(),
         },
@@ -262,7 +264,7 @@ describe('ContextPackService', () => {
         service.listPacksByEntry({
           entryId: 'entry-1',
           actor: {
-            identityId: 'agent-uuid',
+            subjectId: 'agent-uuid',
             subjectNs: KetoNamespace.Agent,
           },
         }),
@@ -299,7 +301,7 @@ describe('ContextPackService', () => {
         params: { recipe: 'test' },
         creator: { kind: 'agent' as const, id: 'agent-uuid' },
         supersedesPackId: 'pack-uuid',
-        actor: { subjectId: 'agent-uuid', subjectNs: 'Agent' as const },
+        actor: { subjectId: 'agent-uuid', subjectNs: KetoNamespace.Agent },
       });
 
       expect(deps.contextPackRepository.createPack).toHaveBeenCalledWith(
@@ -323,7 +325,7 @@ describe('ContextPackService', () => {
           params: { recipe: 'test' },
           creator: { kind: 'agent' as const, id: 'agent-uuid' },
           supersedesPackId: 'missing-pack',
-          actor: { subjectId: 'agent-uuid', subjectNs: 'Agent' as const },
+          actor: { subjectId: 'agent-uuid', subjectNs: KetoNamespace.Agent },
         }),
       ).rejects.toThrow(/not found/i);
     });
@@ -349,7 +351,7 @@ describe('ContextPackService', () => {
           params: { recipe: 'test' },
           creator: { kind: 'agent' as const, id: 'agent-uuid' },
           supersedesPackId: 'other',
-          actor: { subjectId: 'agent-uuid', subjectNs: 'Agent' as const },
+          actor: { subjectId: 'agent-uuid', subjectNs: KetoNamespace.Agent },
         }),
       ).rejects.toThrow(/same diary/i);
     });
@@ -372,7 +374,7 @@ describe('ContextPackService', () => {
           params: { recipe: 'test' },
           creator: { kind: 'agent' as const, id: 'agent-uuid' },
           supersedesPackId: 'pack-uuid',
-          actor: { subjectId: 'agent-uuid', subjectNs: 'Agent' as const },
+          actor: { subjectId: 'agent-uuid', subjectNs: KetoNamespace.Agent },
         }),
       ).rejects.toThrow(/not authorized/i);
     });
@@ -402,7 +404,6 @@ describe('ContextPackService', () => {
         packType: 'custom' as const,
         params: {},
         payload: {},
-        creator: { kind: 'agent' as const, id: 'agent-uuid' },
         supersedesPackId: null,
         pinned: false,
         expiresAt: null,
@@ -424,7 +425,11 @@ describe('ContextPackService', () => {
         creator: { kind: 'agent' as const, id: 'agent-uuid' },
       });
 
-      expect(result.packCid).toBeDefined();
+      expect(result).toMatchObject({
+        id: 'existing-pack',
+        packCid: 'bafyr-existing',
+        persisted: true,
+      });
       expect(deps.runTransaction).not.toHaveBeenCalled();
     });
   });

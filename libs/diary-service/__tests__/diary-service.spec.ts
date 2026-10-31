@@ -1,14 +1,13 @@
 import { KetoNamespace } from '@moltnet/auth';
 import { computeContentCid } from '@moltnet/crypto-service';
-import type { FastifyBaseLogger } from 'fastify';
-import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const logger = {
-  info: vi.fn(),
-  warn: vi.fn(),
-  debug: vi.fn(),
-  error: vi.fn(),
-} as unknown as FastifyBaseLogger;
+  info: vi.fn<(obj: object, msg: string) => void>(),
+  warn: vi.fn<(obj: object, msg: string) => void>(),
+  debug: vi.fn<(obj: object, msg: string) => void>(),
+  error: vi.fn<(obj: object, msg: string) => void>(),
+};
 
 // Mock diary workflows before service import so the service uses the mock
 vi.mock('../src/workflows/diary-workflows.js', () => ({
@@ -57,6 +56,7 @@ function createMockEntry(overrides: Partial<DiaryEntry> = {}): DiaryEntry {
     embedding: null,
     tags: null,
     injectionRisk: false,
+    injectionThreats: [],
     importance: 5,
     accessCount: 0,
     lastAccessedAt: null,
@@ -83,6 +83,12 @@ function createMockDiaryEntryRepository(): {
     delete: vi.fn(),
     deleteMany: vi.fn(),
     countSignedByDiary: vi.fn(),
+    fetchEmbeddings: vi.fn(),
+    searchPublic: vi.fn(),
+    listTags: vi.fn(),
+    listPublic: vi.fn(),
+    listPublicSince: vi.fn(),
+    findPublicById: vi.fn(),
   };
 }
 
@@ -110,6 +116,21 @@ function createMockPermissionChecker(): {
     canManageTeam: vi.fn().mockResolvedValue(false),
     canManageTeamRuntime: vi.fn().mockResolvedValue(false),
     canManageTeamMembers: vi.fn().mockResolvedValue(false),
+    canWritePack: vi.fn().mockResolvedValue(false),
+    canVerifyClaimPack: vi.fn().mockResolvedValue(false),
+    canManageTeamCredentials: vi.fn().mockResolvedValue(false),
+    canViewTask: vi.fn().mockResolvedValue(false),
+    canEditTaskMetadata: vi.fn().mockResolvedValue(false),
+    canManageTask: vi.fn().mockResolvedValue(false),
+    canViewTasks: vi.fn().mockResolvedValue(new Map()),
+    checkTaskCreatePermissions: vi.fn(),
+    canClaimTask: vi.fn().mockResolvedValue(false),
+    canCancelTask: vi.fn().mockResolvedValue(false),
+    canCancelTasks: vi.fn().mockResolvedValue(new Map()),
+    canDeleteTask: vi.fn().mockResolvedValue(false),
+    canDeleteTasks: vi.fn().mockResolvedValue(new Map()),
+    canForceDeleteTasks: vi.fn().mockResolvedValue(new Map()),
+    canReportTask: vi.fn().mockResolvedValue(false),
   };
 }
 
@@ -123,6 +144,11 @@ function createMockRelationshipReader(): {
     isTeamMember: vi.fn().mockResolvedValue(false),
     listGroupMembers: vi.fn().mockResolvedValue([]),
     listGroupIdsBySubject: vi.fn().mockResolvedValue([]),
+    listDiaryGrants: vi.fn().mockResolvedValue([]),
+    listTaskGrants: vi.fn().mockResolvedValue([]),
+    listRuntimeProfilePolicies: vi.fn().mockResolvedValue([]),
+    listRuntimePolicyTools: vi.fn().mockResolvedValue([]),
+    listRuntimePolicyShellCommands: vi.fn().mockResolvedValue([]),
   };
 }
 
@@ -150,6 +176,25 @@ function createMockRelationshipWriter(): {
     grantGroupMember: vi.fn().mockResolvedValue(undefined),
     removeGroupMember: vi.fn().mockResolvedValue(undefined),
     removeGroupRelations: vi.fn().mockResolvedValue(undefined),
+    grantDiaryWriters: vi.fn().mockResolvedValue(undefined),
+    grantDiaryManagers: vi.fn().mockResolvedValue(undefined),
+    revokeDiaryWriter: vi.fn().mockResolvedValue(undefined),
+    revokeDiaryManager: vi.fn().mockResolvedValue(undefined),
+    removeAgentRelations: vi.fn().mockResolvedValue(undefined),
+    removeHumanRelations: vi.fn().mockResolvedValue(undefined),
+    grantTaskOwnership: vi.fn().mockResolvedValue(undefined),
+    grantTaskTeam: vi.fn().mockResolvedValue(undefined),
+    grantTaskWriters: vi.fn().mockResolvedValue(undefined),
+    grantTaskManagers: vi.fn().mockResolvedValue(undefined),
+    revokeTaskWriter: vi.fn().mockResolvedValue(undefined),
+    revokeTaskManager: vi.fn().mockResolvedValue(undefined),
+    grantTaskClaimant: vi.fn().mockResolvedValue(undefined),
+    removeTaskRelations: vi.fn().mockResolvedValue(undefined),
+    removeTaskRelationsBatch: vi.fn().mockResolvedValue(undefined),
+    removeTaskClaimant: vi.fn().mockResolvedValue(undefined),
+    writeRuntimePolicyEdges: vi.fn().mockResolvedValue(undefined),
+    removeRuntimePolicyRelations: vi.fn().mockResolvedValue(undefined),
+    writeRuntimeProfilePolicyEdges: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -174,6 +219,7 @@ function createMockDiaryRepository(): {
     listByTeamIds: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    updateTeam: vi.fn(),
   };
 }
 
@@ -187,6 +233,8 @@ function createMockEntryRelationRepository(): {
     updateStatus: vi.fn(),
     delete: vi.fn(),
     listSupersededTargetIds: vi.fn().mockResolvedValue([]),
+    findById: vi.fn(),
+    traverseFromEntry: vi.fn(),
   };
 }
 
@@ -290,6 +338,7 @@ describe('DiaryService', () => {
             title: 'My Entry',
             tags: ['test'],
             contentHash: 'bafkreibadcid',
+            creator: { kind: 'agent', id: OWNER_ID },
           },
           OWNER_ID,
           KetoNamespace.Agent,
@@ -306,7 +355,11 @@ describe('DiaryService', () => {
 
       await expect(
         service.createEntry(
-          { diaryId: DIARY_ID, content: 'Test' },
+          {
+            diaryId: DIARY_ID,
+            content: 'Test',
+            creator: { kind: 'agent', id: OWNER_ID },
+          },
           OWNER_ID,
           KetoNamespace.Agent,
         ),
@@ -1090,7 +1143,7 @@ describe('DiaryService — deleteEntries cleanup', () => {
   };
 
   beforeEach(() => {
-    (logger.error as Mock<(obj: object, msg: string) => void>).mockClear();
+    logger.error.mockClear();
 
     repo = createMockDiaryEntryRepository();
     diaryRepo = createMockDiaryRepository();
@@ -1143,7 +1196,7 @@ describe('DiaryService — deleteEntries cleanup', () => {
       code: 'wrong_status',
       message: 'Failed to clean up entry permissions; no entries were deleted',
     });
-    const errorMock = logger.error as Mock<(obj: object, msg: string) => void>;
+    const errorMock = logger.error;
     expect(errorMock).toHaveBeenCalledOnce();
     const [[payload, message]] = errorMock.mock.calls as [
       [{ err: unknown; entryIds: string[] }, string],

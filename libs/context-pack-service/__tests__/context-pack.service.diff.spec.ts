@@ -61,6 +61,7 @@ function makeDeps(
       }),
       findByEntryId: vi.fn(),
       listByDiary: vi.fn(),
+      listByTeam: vi.fn(),
       listEntriesExpanded: vi.fn(),
       listEntriesExpandedByPackIds: vi.fn(),
       diffPacks: vi.fn().mockResolvedValue([]),
@@ -94,7 +95,7 @@ function makeDeps(
   };
 }
 
-const actor = { identityId: 'identity-uuid', subjectNs: KetoNamespace.Agent };
+const actor = { subjectId: 'identity-uuid', subjectNs: KetoNamespace.Agent };
 
 describe('ContextPackService.diffPacks', () => {
   it('returns empty diff when packs share the same CID', async () => {
@@ -143,6 +144,16 @@ describe('ContextPackService.diffPacks', () => {
     expect(result.stats.tokenDelta).toBe(20);
     expect(result.stats.packA.totalTokens).toBe(100);
     expect(result.stats.packB.totalTokens).toBe(120);
+    expect(deps.permissionChecker.canReadPack).toHaveBeenCalledWith(
+      'pack-a-uuid',
+      'identity-uuid',
+      KetoNamespace.Agent,
+    );
+    expect(deps.permissionChecker.canReadPack).toHaveBeenCalledWith(
+      'pack-b-uuid',
+      'identity-uuid',
+      KetoNamespace.Agent,
+    );
   });
 
   it('classifies added entries correctly', async () => {
