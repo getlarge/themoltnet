@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.29.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.28.0...pi-runtime-v0.29.0) (2026-10-31)
+
+
+### Features
+
+* **pi-runtime:** add scoped review diary reads ([6759907](https://github.com/getlarge/themoltnet/commit/67599077518ebbd1eed16dda24c5fb65f6a82e41))
+
+
+### Bug Fixes
+
+* **pi-runtime:** preserve durable interruption causes ([27fb7c6](https://github.com/getlarge/themoltnet/commit/27fb7c69ccfe02cc2b706d6bbf134d8fb5102012))
+* **pi-runtime:** preserve durable interruption diagnostics ([0d8d9b1](https://github.com/getlarge/themoltnet/commit/0d8d9b1a3cc114576042ff58b680e5df75c74058))
+
 ## [0.28.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.27.0...pi-runtime-v0.28.0) (2026-10-30)
 
 
