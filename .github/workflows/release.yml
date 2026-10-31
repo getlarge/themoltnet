@@ -486,6 +486,22 @@ jobs:
               --jq "[.[] | select(.isDraft == true and (.tagName | startswith(\"${component}-v\")))][0].tagName // empty"
           }
 
+          # GitHub Actions share one publish job; list the ones to release.
+          ACTIONS="agent-daemon-action adaptive-review-action"
+
+          is_action() {
+            echo "$ACTIONS" | tr ' ' '\n' | grep -qx "$1"
+          }
+
+          # Republishing an action rebuilds its bundle and moves the stable
+          # major tag, which is safe for a release that is already published.
+          # npm and Docker versions cannot be pushed twice, so they take drafts.
+          find_published_tag() {
+            local component="$1"
+            gh release list --repo "$GITHUB_REPOSITORY" --limit 20 --exclude-drafts --json tagName \
+              --jq "[.[] | select(.tagName | startswith(\"${component}-v\"))][0].tagName // empty"
+          }
+
           version_from_tag() {
             local tag="$1" component="$2"
             echo "${tag}" | sed "s/^${component}-v//"
@@ -514,7 +530,16 @@ jobs:
                 echo "  ✓ ${name}: republish draft → ${tag}"
                 return
               fi
-              echo "  ✗ ${name}: requested but no draft release found for '${component}'"
+              if is_action "$name"; then
+                tag=$(find_published_tag "$component")
+                if [ -n "$tag" ]; then
+                  echo "${name}=true" >> "$GITHUB_OUTPUT"
+                  echo "${name}-tag=${tag}" >> "$GITHUB_OUTPUT"
+                  echo "  ✓ ${name}: republish published action → ${tag}"
+                  return
+                fi
+              fi
+              echo "  ✗ ${name}: requested but no republishable release found for '${component}'"
             fi
 
             echo "${name}=false" >> "$GITHUB_OUTPUT"
@@ -555,9 +580,8 @@ jobs:
           resolve "agent-daemon-action" "$RP_AGENT_DAEMON_ACTION_CREATED" "$RP_AGENT_DAEMON_ACTION_TAG" "agent-daemon-action"
           resolve "adaptive-review-action" "$RP_ADAPTIVE_REVIEW_ACTION_CREATED" "$RP_ADAPTIVE_REVIEW_ACTION_TAG" "adaptive-review-action"
 
-          # GitHub Actions share one publish job; list the ones to release.
           actions_matrix='[]'
-          for action in agent-daemon-action adaptive-review-action; do
+          for action in $ACTIONS; do
             if grep -qx "${action}=true" "$GITHUB_OUTPUT"; then
               tag="$(grep "^${action}-tag=" "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)"
               actions_matrix="$(jq -c --arg project "@themoltnet/${action}" --arg tag "$tag" '. + [{project: $project, tag: $tag}]' <<< "$actions_matrix")"
