@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdtempSync } from 'node:fs';
 import {
@@ -42,6 +43,8 @@ export async function runDaemonOnce(input: {
   taskId: string;
   profileId: string;
   env?: Record<string, string>;
+  /** Optional released daemon executable; defaults to the workspace entry point. */
+  executable?: string;
 }): Promise<number> {
   const oldCwd = process.cwd();
   const oldSecretRoot = process.env.MOLTNET_SECRET_ROOT;
@@ -62,7 +65,7 @@ export async function runDaemonOnce(input: {
       vi.stubEnv(name, value);
     }
     process.chdir(input.sandboxRoot);
-    return await runOnce([
+    const args = [
       '--task-id',
       input.taskId,
       '--agent',
@@ -73,7 +76,22 @@ export async function runDaemonOnce(input: {
       input.credentials.teamId,
       '--agent-root',
       input.credentials.agentRoot,
-    ]);
+    ];
+    const executable = input.executable;
+    if (executable) {
+      return await new Promise<number>((resolve, reject) => {
+        const child = spawn(executable, ['once', ...args], {
+          stdio: 'inherit',
+          signal: AbortSignal.timeout(180_000),
+        });
+        child.once('error', reject);
+        child.once('exit', (code, signal) => {
+          if (code === null) reject(new Error(`Daemon exited on ${signal}`));
+          else resolve(code);
+        });
+      });
+    }
+    return await runOnce(args);
   } finally {
     process.chdir(oldCwd);
     if (oldSecretRoot === undefined) {
