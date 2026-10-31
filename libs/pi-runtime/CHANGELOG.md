@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.29.1](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.29.0...pi-runtime-v0.29.1) (2026-10-31)
+
+
+### Bug Fixes
+
+* **pi-runtime:** price Ollama Cloud input-only classifiers ([1f5ae58](https://github.com/getlarge/themoltnet/commit/1f5ae58e5033e02c36d3809cafe39d772afd4d75))
+* **pi-runtime:** price Ollama Cloud input-only classifiers ([1643b05](https://github.com/getlarge/themoltnet/commit/1643b05a107605380be2c83a105e316d74d89f54))
+* **pi-runtime:** reconcile background compaction before continuations ([121f52e](https://github.com/getlarge/themoltnet/commit/121f52e63fc751a096da0de6e7064ee8bef3b9c1))
+* **pi-runtime:** reconcile obsolete background compaction before continuation ([6de77f9](https://github.com/getlarge/themoltnet/commit/6de77f9ea96df82e34d54cbb248d817cce90a4e1))
+
 ## [0.29.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.28.0...pi-runtime-v0.29.0) (2026-10-31)
 
 
