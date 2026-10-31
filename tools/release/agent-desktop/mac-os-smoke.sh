@@ -7,13 +7,13 @@ dmg=$(find "$bundle/dmg" -maxdepth 1 -name '*.dmg' -print -quit)
 [ -d "$app" ] && [ -s "$dmg" ]
 executable=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")
 lipo "$app/Contents/MacOS/$executable" -verify_arch arm64
-[ "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$app/Contents/Info.plist")" = 13.0 ]
+[ "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$app/Contents/Info.plist")" = 15.0 ]
 # Info.plist echoes the config; the Mach-O load command shows what the
 # toolchain actually linked for, which a newer runner SDK could raise.
 for binary in "$app"/Contents/MacOS/*; do
   build=$(otool -l "$binary" | awk '/LC_BUILD_VERSION/ { found = 1 } found && $1 == "minos" { minos = $2 } found && $1 == "sdk" { print minos, $2; exit }')
   echo "$(basename "$binary"): minos/sdk $build"
-  [ "${build%% *}" = 13.0 ]
+  [ "${build%% *}" = 15.0 ]
 done
 hdiutil verify "$dmg"
 bash tools/release/agent-desktop/native-readiness-smoke.sh \

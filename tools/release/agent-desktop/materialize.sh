@@ -36,7 +36,7 @@ case "$platform" in
     spctl --assess --type execute --verbose=2 "$app"
     xcrun stapler validate "$app"
     xcrun stapler validate "$dmg"
-    [ "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$app/Contents/Info.plist")" = '13.0' ]
+    [ "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$app/Contents/Info.plist")" = '15.0' ]
     ditto -c -k --keepParent "$app" "$output/MoltNet-Agent_${version}_aarch64.app.zip"
     cp "$dmg" "$output/MoltNet-Agent_${version}_aarch64.dmg"
     cp "$updater" "$output/MoltNet-Agent_${version}_aarch64.app.tar.gz"
