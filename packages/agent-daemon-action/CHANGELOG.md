@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.7.1...agent-daemon-action-v0.8.0) (2026-10-31)
+
+
+### Features
+
+* **review:** add scoped diary context and preserve referenced findings ([3336013](https://github.com/getlarge/themoltnet/commit/3336013441d06ccad05b735433a82e37fec8a3f6))
+
 ## [0.7.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-action-v0.7.0...agent-daemon-action-v0.7.1) (2026-10-30)
 
 

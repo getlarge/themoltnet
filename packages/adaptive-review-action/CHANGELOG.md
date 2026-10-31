@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.2.0](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.1.2...adaptive-review-action-v0.2.0) (2026-10-31)
+
+
+### Features
+
+* **adaptive-review:** investigate performance regressions ([780820b](https://github.com/getlarge/themoltnet/commit/780820b30e296d7ff89ff3b1777ad98cb1cd861b))
+* **adaptive-review:** investigate performance regressions ([9485fc0](https://github.com/getlarge/themoltnet/commit/9485fc0497b9f3d77896f98b425ee07fc47077f3))
+* **review:** add scoped diary context and preserve referenced findings ([3336013](https://github.com/getlarge/themoltnet/commit/3336013441d06ccad05b735433a82e37fec8a3f6))
+
+
+### Bug Fixes
+
+* **adaptive-review-action:** refresh released workflow runtime lock ([a951333](https://github.com/getlarge/themoltnet/commit/a951333cd61a36297a13a73a0159a41bcc13b1c1))
+* **adaptive-review-action:** refresh workflow dependency runtime lock ([59fe52a](https://github.com/getlarge/themoltnet/commit/59fe52a88e349b239ef20f8bf93db55bb94b2026))
+* **adaptive-review-action:** sync compatible daemon and action pins ([5aa08f1](https://github.com/getlarge/themoltnet/commit/5aa08f184734e29501a14f3af4e297da6b7114c1))
+* **adaptive-review-action:** sync compatible daemon and action pins ([70e10b4](https://github.com/getlarge/themoltnet/commit/70e10b4614c55199b0ff9da2ef28926e2cdc2781))
+* **adaptive-review:** align tests with rebased workspace conventions ([6960776](https://github.com/getlarge/themoltnet/commit/6960776fe1034bd497ac3ab350a3d7fb8f9f5b12))
+* **adaptive-review:** preserve referenced concerns in summaries ([66a5827](https://github.com/getlarge/themoltnet/commit/66a5827589ce35450f99b6aa1a2d0298caac2420))
+* **adaptive-review:** restore workflow pins and inferred CI tests ([ace4f98](https://github.com/getlarge/themoltnet/commit/ace4f98ba043ac4317cf799c04d7da4d7c685a9a))
+* **adaptive-review:** retain performance finding history ([18284ff](https://github.com/getlarge/themoltnet/commit/18284ff696616e6ab16599692b3ef6bb2fc6dba5))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-daemon bumped to 0.74.2
+    * @themoltnet/pi-runtime bumped to 0.29.0
+
 ## [0.1.2](https://github.com/getlarge/themoltnet/compare/adaptive-review-action-v0.1.1...adaptive-review-action-v0.1.2) (2026-10-30)
 
 
