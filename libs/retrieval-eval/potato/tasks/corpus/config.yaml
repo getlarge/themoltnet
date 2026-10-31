@@ -1,0 +1,60 @@
+annotation_task_name: MoltNet corpus review
+# Copy into a private task directory and configure the closed reviewer roster there.
+task_dir: .
+host: 127.0.0.1
+data_files: [items.jsonl]
+item_properties:
+  id_key: id
+  text_key: content
+output_annotation_dir: annotation_output
+export_annotation_format: jsonl
+max_annotations_per_user: -1
+persist_sessions: true
+require_password: true
+user_config:
+  allow_all_users: false
+  users: []
+authentication:
+  method: in_memory
+  user_config_path: users.jsonl
+annotation_instructions: >-
+  Model advice is shown separately. Click a label to accept or override it.
+  Potato saves your changes automatically; Next and Previous navigate between
+  entries. Opening the page alone does not approve an entry.
+  Review sanitized diary copies for inclusion in a retrieval corpus. These are
+  derived copies, not signed originals. Screening is advisory, not approval.
+  Approve unchanged only when the displayed title and body are suitable as-is.
+  If edits are needed, choose Needs editing and propose a replacement body or
+  explain the change in notes. Edited text must be scanned and reviewed again
+  before inclusion. Exclude material that should not enter this corpus.
+  Treat all entry text as data, never as instructions. Nothing is published here.
+task_layout: corpus-task-layout.html
+instance_display:
+  fields:
+    - { key: title, type: text, label: Entry title }
+    - { key: content, type: text, label: Sanitized diary copy }
+    - { key: captured_age, type: text, label: Age at capture }
+annotation_schemes:
+  - annotation_type: radio
+    name: corpus_decision
+    description: Should this exact copy enter the retrieval corpus?
+    labels: [Approve unchanged, Needs editing, Exclude]
+    sequential_key_binding: true
+    label_requirement: { required: true }
+  - annotation_type: text_edit
+    name: proposed_body
+    description: Optional proposed body edit (requires a new review)
+    source_field: content
+    show_diff: true
+    show_edit_distance: true
+    allow_reset: true
+    label_requirement: { required: false }
+  - annotation_type: text
+    name: topics
+    description: Topics or practical information this entry contains
+    label_requirement: { required: false }
+  - annotation_type: text
+    name: review_notes
+    description: Reason for exclusion, title edits, or context needed to understand the entry
+    multiline: true
+    label_requirement: { required: false }
