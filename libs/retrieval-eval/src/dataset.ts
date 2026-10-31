@@ -35,7 +35,17 @@ export interface Dataset {
   labelRevision: number;
   capturedAt: string;
   timePolicy: 'historical-fixture-v1' | 'relative-capture-v1';
-  provenance: { description: string; sourceRevision?: string };
+  provenance: {
+    description: string;
+    sourceRevision?: string;
+    sampling?: {
+      strategy: string;
+      populationSize?: number;
+      sampleSize: number;
+      captureVersion: string;
+      seed?: string;
+    };
+  };
   entries: Entry[];
   queries: Query[];
   judgments: Judgment[];
@@ -55,7 +65,11 @@ export function validateDataset(d: Dataset): void {
   for (const items of [d.entries, d.queries]) {
     if (
       new Set(items.map((x) => x.id)).size !== items.length ||
-      items.some((x) => !x.id.trim())
+      items.some(
+        (x) =>
+          !x.id.trim() ||
+          ['__proto__', 'constructor', 'prototype'].includes(x.id),
+      )
     )
       throw new Error('Duplicate or empty IDs');
   }
@@ -81,9 +95,11 @@ export function validateDataset(d: Dataset): void {
     families.set(q.family, q.split);
   }
   const pairs = new Set<string>();
+  const entriesById = new Map(d.entries.map((e) => [e.id, e]));
+  const queriesById = new Map(d.queries.map((q) => [q.id, q]));
   for (const j of d.judgments) {
-    const e = d.entries.find((e) => e.id === j.entryId),
-      q = d.queries.find((q) => q.id === j.queryId),
+    const e = entriesById.get(j.entryId),
+      q = queriesById.get(j.queryId),
       key = JSON.stringify([j.queryId, j.entryId]);
     if (
       !e ||
@@ -115,7 +131,9 @@ export function baselineDataset(): Dataset {
     id: q.id,
     text: q.query,
     textHash: hash(q.query),
-    family: ['signatures', 'algorithms'].includes(q.id) ? 'cryptography' : q.id,
+    family: ['protocols', 'signatures', 'algorithms'].includes(q.id)
+      ? 'cryptography'
+      : q.id,
     split: 'development' as const,
   }));
   return {
@@ -131,18 +149,16 @@ export function baselineDataset(): Dataset {
     },
     entries,
     queries,
-    judgments: queries.flatMap((q) =>
+    judgments: queries.flatMap((q, index) =>
       entries.map((e) => ({
         entryId: e.id,
         queryId: q.id,
         entryHash: e.contentHash,
         queryHash: q.textHash,
-        grade: retrievalQueries
-          .find((f) => f.id === q.id)!
-          .relevantIds.includes(e.id)
+        grade: retrievalQueries[index].relevantIds.includes(e.id)
           ? (2 as const)
           : (0 as const),
-        reason: retrievalQueries.find((f) => f.id === q.id)!.rationale,
+        reason: retrievalQueries[index].rationale,
       })),
     ),
   };
