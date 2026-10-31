@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@moltnet/sdlc": "workspace:*",
     "@themoltnet/issue-lifecycle": "workspace:*",
     "@themoltnet/multi-lens-review": "workspace:*",
     "@themoltnet/tasks-orchestrator": "workspace:*",

@@ -13,6 +13,9 @@
       "path": "../issue-lifecycle"
     },
     {
+      "path": "../../libs/sdlc"
+    },
+    {
       "path": "./tsconfig.spec.json"
     }
   ]

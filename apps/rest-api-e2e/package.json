@@ -14,7 +14,8 @@
     "@ory/client-fetch": "catalog:",
     "@themoltnet/sdk": "workspace:*",
     "drizzle-orm": "catalog:",
-    "ioredis": "catalog:"
+    "ioredis": "catalog:",
+    "@moltnet/sdlc": "workspace:*"
   },
   "devDependencies": {
     "@noble/curves": "catalog:",

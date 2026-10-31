@@ -11,6 +11,12 @@
   "references": [
     {
       "path": "../adaptive-review/tsconfig.lib.json"
+    },
+    {
+      "path": "../sdk/tsconfig.lib.json"
+    },
+    {
+      "path": "../tasks-orchestrator/tsconfig.lib.json"
     }
   ]
 }
