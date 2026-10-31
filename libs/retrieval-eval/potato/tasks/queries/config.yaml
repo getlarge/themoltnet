@@ -1,0 +1,41 @@
+annotation_task_name: MoltNet — explore queries and rankings
+task_dir: .
+host: 127.0.0.1
+data_files: [items.jsonl]
+item_properties: { id_key: id, text_key: context }
+output_annotation_dir: annotation_output
+export_annotation_format: jsonl
+max_annotations_per_user: -1
+persist_sessions: true
+require_password: true
+user_config: { allow_all_users: false, users: [] }
+authentication: { method: in_memory, user_config_path: users.jsonl }
+annotation_instructions: >-
+  Model suggestions are shown separately. Click a label to accept or override
+  the suggestion. Potato saves your changes automatically; Next and Previous
+  navigate between items.
+  Expand the ranked entry previews to compare this draft query across four configurations.
+  Keep exploring if the question is useful and clear; Revise if its wording or
+  scope needs work; Drop if the information need does not belong in this corpus.
+  Poor results alone are not a reason to drop a useful query. For Revise, propose
+  wording below. Rewrites need a fresh search. Keeping is not benchmark admission.
+task_layout: ranked-task-layout.html
+instance_display:
+  fields:
+    - { key: query, type: text, label: Proposed query }
+    - { key: intent, type: text, label: Information need }
+    - { key: family, type: text, label: Query family }
+annotation_schemes:
+  - annotation_type: radio
+    name: decision
+    description: What should happen to this exploratory query?
+    labels: [Keep exploring, Revise, Drop]
+    label_requirement: { required: true }
+  - annotation_type: text
+    name: rewrite
+    description: Proposed replacement query (empty keeps the wording)
+    multiline: true
+  - annotation_type: text
+    name: notes
+    description: What worked, what was missing, or another query to try
+    multiline: true

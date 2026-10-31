@@ -68,9 +68,10 @@ are unchanged. Old reports retain their original snapshots.
 
 Potato is the annotation UI. The library retains private workspace revisions,
 sanitization, local screening, approval checks and dataset freezing without a
-browser server. Task templates and operator tooling are supplied by the next
-layer of the PR stack; this library exposes the corpus-decision and
-relevance-judgment interchange contracts below.
+browser server. See [shared Potato operations](../../tools/potato/README.md) for hosting,
+collaborators and MCP access, the [reviewer walkthrough](potato/README.md#reviewer-walkthrough)
+and [pilot lessons](potato/README.md#pilot-journey-and-lessons), and
+the separate corpus-decision and relevance-judgment roundtrips below.
 
 ```bash
 pnpm exec nx run @moltnet/retrieval-eval:workspace -- --init --workspace /private/workspace

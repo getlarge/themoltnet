@@ -61,6 +61,21 @@
         "options": {
           "command": "tsx libs/retrieval-eval/src/capture-cli.ts"
         }
+      },
+      "test:potato": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "default",
+          "{workspaceRoot}/tools/potato/requirements.txt",
+          "{workspaceRoot}/tools/potato/run-tests.mjs",
+          {
+            "env": "POTATO_PYTHON"
+          }
+        ],
+        "options": {
+          "command": "node tools/potato/run-tests.mjs libs/retrieval-eval/potato/scripts libs/retrieval-eval/__tests__/potato"
+        }
       }
     },
     "tags": [
