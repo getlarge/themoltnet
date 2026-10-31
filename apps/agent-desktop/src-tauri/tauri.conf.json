@@ -34,7 +34,7 @@
     ],
     "macOS": {
       "hardenedRuntime": true,
-      "minimumSystemVersion": "13.0"
+      "minimumSystemVersion": "15.0"
     },
     "targets": [
       "app",
