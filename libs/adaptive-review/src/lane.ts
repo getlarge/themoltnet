@@ -13,6 +13,7 @@ import {
 import type { TaskBudget } from './config.js';
 import type { ChangedPath, Lane, ReviewIdentity } from './core.js';
 import type { AdaptivePolicy } from './policy.js';
+import type { PriorFindingOutcome } from './prior-findings.js';
 import type { PreviousFinding } from './threads.js';
 import { WorkerUnavailableError } from './workers.js';
 
@@ -33,6 +34,7 @@ export interface LaneResult {
     existingFindingKey?: string;
   }>;
   unclear?: string[];
+  priorFindingOutcomes?: PriorFindingOutcome[];
 }
 
 /** Everything one lane needs to review the pinned revision. */
@@ -72,6 +74,12 @@ export function laneFailureCode(reason: unknown): string {
     )
   )
     return 'invalid-focused-result';
+  if (
+    /^invalid (tests|conventions|blast-radius|performance) prior finding outcomes:/.test(
+      reason.message,
+    )
+  )
+    return 'invalid-prior-finding-outcomes';
   if (/ finding does not cite a changed line$/.test(reason.message))
     return 'invalid-finding-citation';
   if (reason.message === 'accepted freeform task has no result')

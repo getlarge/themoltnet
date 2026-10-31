@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { parseReviewTaskBudgets } from '../src/config.js';
 import { LANES, type ReviewIdentity } from '../src/core.js';
+import type { PriorFindingOutcome } from '../src/prior-findings.js';
 import { hasIncompleteCoverage, renderAdaptiveComment } from '../src/report.js';
 import {
   classifierTaskPossible,
@@ -134,6 +135,7 @@ function harness(
     securityFindingStatus?: 'confirmed' | 'unclear' | 'refuted';
     invalidFocusedOutput?: boolean;
     focusedResult?: {
+      priorFindingOutcomes?: PriorFindingOutcome[];
       summary: string;
       findings: Array<{
         path: string;
@@ -609,6 +611,13 @@ describe('adaptive review orchestration', () => {
       selected: 'tests',
       focusedResult: {
         summary: 'Continuing concern',
+        priorFindingOutcomes: [
+          {
+            key,
+            status: 'still_present',
+            explanation: 'Current route still lacks coverage.',
+          },
+        ],
         unclear: [],
         findings: [
           {
@@ -652,6 +661,55 @@ describe('adaptive review orchestration', () => {
       report.results.find((result) => result.lane === 'tests')?.findings[0],
     ).toMatchObject({ line: 1, existingFindingKey: key });
   });
+
+  it.each(['screened', 'failed', 'disabled'] as const)(
+    'reports an earlier concern as not checked when its lane is %s',
+    async (state) => {
+      const { tasks } = harness({
+        selected: state === 'failed' ? 'tests' : 'performance',
+        invalidFocusedOutput: state === 'failed',
+      });
+      if (state === 'disabled')
+        policyOverride = JSON.stringify({
+          version: 1,
+          lanes: ['performance'],
+          rules: [],
+          checks: [],
+        });
+      const report = await runAdaptiveReview({
+        ...reviewOptions(tasks),
+        previousFindings: [
+          {
+            key: 'tests:new:1:old.ts',
+            lane: 'tests',
+            path: 'old.ts',
+            line: 1,
+            side: 'new',
+            threadId: 'old',
+            url: 'https://github.com/example/repo/pull/1#discussion_r1',
+            head: 'd'.repeat(40),
+            isResolved: false,
+            isOutdated: true,
+            body: 'Earlier guard concern',
+            replies: [],
+          },
+        ],
+      });
+      expect(report.priorFindingOutcomes).toEqual([
+        expect.objectContaining({
+          key: 'tests:new:1:old.ts',
+          status: 'not_checked',
+        }),
+      ]);
+      expect(hasIncompleteCoverage(report)).toBe(true);
+      expect(
+        renderAdaptiveComment(report, 'https://example.com/run'),
+      ).toContain('Not checked / uncertain');
+      expect(
+        renderAdaptiveComment(report, 'https://example.com/run'),
+      ).not.toContain('Nothing needs fixing');
+    },
+  );
 
   it('preserves the old side for a finding on a deleted line', async () => {
     const { tasks } = harness({

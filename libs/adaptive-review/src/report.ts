@@ -162,6 +162,11 @@ function findingCount(
 export function hasIncompleteCoverage(report: AdaptiveReport): boolean {
   return (
     report.gaps.length > 0 ||
+    Boolean(
+      report.priorFindingOutcomes?.some(
+        (item) => item.status === 'not_checked',
+      ),
+    ) ||
     report.results.some(
       (result) =>
         result.status === 'failed' ||
@@ -238,13 +243,18 @@ export function renderAdaptiveComment(
   );
   lines.push(
     '',
-    findingCount(
-      concerns.reduce((count, result) => count + result.findings.length, 0),
-      threads,
-      concerns.some((result) =>
-        result.findings.some((finding) => Boolean(finding.existingFindingKey)),
-      ),
-    ),
+    report.priorFindingOutcomes?.length &&
+      concerns.every((result) => !result.findings.length)
+      ? 'Inline findings: 0. See the prior-finding assessments below.'
+      : findingCount(
+          concerns.reduce((count, result) => count + result.findings.length, 0),
+          threads,
+          concerns.some((result) =>
+            result.findings.some((finding) =>
+              Boolean(finding.existingFindingKey),
+            ),
+          ),
+        ),
   );
   let listed = 0;
   let omitted = 0;
@@ -285,6 +295,7 @@ export function renderAdaptiveComment(
         `- ${omitted} more findings are not shown here; the [workflow run](${runUrl}) has the full report.`,
       );
   }
+  lines.push(...renderPriorFindings(report));
   const gaps = [
     ...report.gaps,
     ...report.results
@@ -313,4 +324,52 @@ export function renderAdaptiveComment(
   );
   if (report.spend) lines.push('', formatWorkflowSpend(report.spend));
   return lines.join('\n');
+}
+
+function priorText(value: string, limit: number): string {
+  return shorten(value, limit)
+    .replace(/\r?\n/g, ' ')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/@/g, '&#64;')
+    .replace(/[\\`*_[\]~]/g, '\\$&');
+}
+
+function renderPriorFindings(report: AdaptiveReport): string[] {
+  const outcomes = report.priorFindingOutcomes ?? [];
+  if (!outcomes.length) return [];
+  const labels = {
+    still_present: 'Still present',
+    fixed: 'Fixed',
+    incorrect: 'Earlier finding was wrong',
+    not_checked: 'Not checked / uncertain',
+  };
+  const lines = [
+    '',
+    '### Previous open findings',
+    '',
+    'Assessments for this head, based on threads open when review started. These are reviewer conclusions; GitHub threads are not automatically resolved.',
+    '',
+    Object.entries(labels)
+      .map(
+        ([status, label]) =>
+          `${label}: ${outcomes.filter((item) => item.status === status).length}`,
+      )
+      .join(' · '),
+    '',
+  ];
+  for (const item of outcomes.slice(0, 40)) {
+    const url = /^https:\/\/[^\s<>]+$/.test(item.url)
+      ? item.url.replace(/\(/g, '%28').replace(/\)/g, '%29')
+      : undefined;
+    lines.push(
+      `- **${labels[item.status]}** · ${item.lane} · ${priorText(item.path, 120)}${url ? ` · [Earlier thread](${url})` : ''}: ${priorText(item.explanation, 600)}`,
+    );
+  }
+  if (outcomes.length > 40)
+    lines.push(
+      `- ${outcomes.length - 40} more individual assessments are in the workflow report; the counts above include them.`,
+    );
+  return lines;
 }

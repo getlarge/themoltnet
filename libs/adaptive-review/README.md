@@ -161,7 +161,10 @@ run reads the reviewer's existing threads and their state:
 - A resolved thread at the same location is not reopened. The summary lists
   the finding and notes that an earlier thread on that line was resolved, so a
   new concern at a settled line stays visible without arguing the old one again.
-- A finding that moved with the diff gets a new thread.
+- A finding that moved with the diff gets a new thread unless a focused
+  reviewer identifies it as the same concern in an existing open thread on
+  the same path. That continuing concern links to the earlier thread and
+  appears in the summary with its current citation.
 
 Each thread's hidden marker also carries the producing workflow run and the
 review correlation ID. Threads are posted only after the last check that the
@@ -180,6 +183,48 @@ Confirmed security findings are published like every other lane's: each
 thread states the severity, the title, and how the change is reachable, with
 the remediation as its suggested action. A pull request is unmerged code, so
 its review findings are not embargoed.
+
+### Earlier findings on subsequent reviews
+
+On a later review, the `tests`, `conventions`, `blast-radius`, and `performance`
+lanes receive earlier marked findings opened by the same reviewer App on that
+PR. The summary's **Previous open findings** section reports assessments for
+threads open when review started, against the current pinned head. Use each
+thread link and explanation to decide whether to fix the concern or resolve
+the thread with a reason.
+
+| Status                                  | Meaning                                                                                                                                                         |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `still_present` — Still present         | The reviewer concludes the concern remains, with current code evidence. It can remain present even without a current changed-line anchor for an inline finding. |
+| `fixed` — Fixed                         | The reviewer explains what changed to address the concern.                                                                                                      |
+| `incorrect` — Earlier finding was wrong | The reviewer explains why the original reasoning was wrong.                                                                                                     |
+| `not_checked` — Not checked / uncertain | The reviewer lacks enough evidence, or this run could not assess the finding. This counts as incomplete coverage.                                               |
+
+These are advisory reviewer conclusions. The workflow does not automatically
+resolve, reopen, or reply to earlier threads. GitHub's resolved or outdated
+flags, an absent diff hunk, and omission from new findings do not establish a
+fix. Earlier discussion is untrusted evidence; reviewers are instructed to
+inspect current code independently. Output validation requires one explained
+assessment per supplied open finding, but does not verify that the explanation
+is correct.
+
+Each lane receives at most 20 earlier findings, prioritizing recent open
+threads over resolved history. Finding bodies are limited to 4,000 characters.
+Reply context includes only the last three eligible replies among the first
+50 comments fetched, from the reviewer App or an owner, member, or collaborator,
+limited to 1,000 characters each. This is not the complete discussion.
+
+All retained open findings are accounted for in the workflow report. Those
+beyond the context limit, in disabled or screened lanes, or in failed lanes
+are `not_checked`; prior findings do not force a lane to run. The summary shows
+up to 40 individual assessments and counts the rest. Resolved threads may
+provide context but receive no assessment. Security, docs, complexity, and
+summary-only findings are outside this reassessment. If fetching review
+threads fails, the review stage fails rather than assuming no history exists.
+Local tests use mocked reviewer output; they do not establish live assessment
+accuracy.
+
+### Outcomes when a pull request closes
 
 When a pull request closes, the outcomes workflow
 (`adaptive-review-outcomes-reusable.yml`) reads the reviewer's threads and

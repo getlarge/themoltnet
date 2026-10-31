@@ -38,6 +38,10 @@ import {
   logLaneFailure,
   withCreateHook,
 } from './lane.js';
+import {
+  accountForPriorFindings,
+  type PriorFindingReview,
+} from './prior-findings.js';
 import { runSecurityLane } from './security-lane.js';
 import { changedPaths, loadAdaptivePolicy } from './snapshot.js';
 import type { PreviousFinding } from './threads.js';
@@ -54,6 +58,7 @@ const FullOid = /^[0-9a-f]{40}$/;
 const MAX_CLASSIFIER_PACKETS = 4;
 
 export interface AdaptiveReport {
+  priorFindingOutcomes?: PriorFindingReview[];
   spend?: WorkflowSpendReport;
   version: 1;
   mode: Mode;
@@ -393,6 +398,10 @@ export async function runRoutedAdaptiveReview(
     runtimeSha: options.runtimeSha,
     routing,
     results,
+    priorFindingOutcomes: accountForPriorFindings(
+      options.previousFindings ?? [],
+      results,
+    ),
     packetCount: preparation.packetCount,
     taskIds: [
       ...preparation.classifierTaskIds,

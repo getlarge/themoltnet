@@ -73,6 +73,14 @@ function context(tasks: FakeTasks): LaneContext {
 const output = (existingFindingKey?: string, line = 560) => ({
   result: {
     summary: 'The same guard still needs coverage.',
+    priorFindingOutcomes: [
+      {
+        key: existingFindingKey ?? key,
+        status: 'still_present',
+        explanation:
+          'The current provenance guard has no negative-path coverage.',
+      },
+    ],
     findings: [
       {
         path,
@@ -169,6 +177,13 @@ describe('prior focused review context', () => {
       {
         result: {
           summary: 'The same repeated I/O remains.',
+          priorFindingOutcomes: [
+            {
+              key: performanceKey,
+              status: 'still_present',
+              explanation: 'The list route still queries each returned item.',
+            },
+          ],
           findings: [
             {
               path,
@@ -250,7 +265,21 @@ describe('prior focused review context', () => {
       },
     };
     const result = previousFindings(
-      Array.from({ length: 50 }, () => large),
+      Array.from({ length: 50 }, (_, index) => ({
+        ...large,
+        comments: {
+          nodes: [
+            {
+              ...large.comments.nodes[0],
+              body: large.comments.nodes[0].body.replace(
+                key,
+                `tests:new:${index}:file.ts`,
+              ),
+            },
+            ...large.comments.nodes.slice(1),
+          ],
+        },
+      })),
       app,
     );
     expect(result).toHaveLength(20);
@@ -264,14 +293,30 @@ describe('prior focused review context', () => {
     const resolved = Array.from({ length: 25 }, (_, index) => ({
       ...thread,
       id: `resolved-${index}`,
+      comments: {
+        nodes: [
+          {
+            ...thread.comments.nodes[0],
+            body: `<!-- moltnet:adaptive-finding tests:new:${index}:resolved.ts -->`,
+          },
+        ],
+      },
       isResolved: true,
     }));
     const open = Array.from({ length: 25 }, (_, index) => ({
       ...thread,
       id: `open-${index}`,
+      comments: {
+        nodes: [
+          {
+            ...thread.comments.nodes[0],
+            body: `<!-- moltnet:adaptive-finding tests:new:${index}:open.ts -->`,
+          },
+        ],
+      },
     }));
     const result = previousFindings([...resolved, ...open], app);
-    expect(result).toHaveLength(20);
+    expect(result).toHaveLength(25);
     expect(result[0].threadId).toBe('open-24');
     expect(result.every((finding) => !finding.isResolved)).toBe(true);
   });
@@ -297,7 +342,19 @@ describe('prior focused review context', () => {
   it.each(['missing', 'other-lane', 'other-path', 'resolved'])(
     'rejects %s references and requests the normal single correction',
     async (kind) => {
-      const tasks = new FakeTasks([output(key), output()]);
+      const corrected = output();
+      if (kind !== 'other-path')
+        corrected.result.priorFindingOutcomes =
+          kind === 'missing'
+            ? [
+                {
+                  key: 'unrelated',
+                  status: 'still_present',
+                  explanation: 'Current guard still needs coverage.',
+                },
+              ]
+            : [];
+      const tasks = new FakeTasks([output(key), corrected]);
       const ctx = context(tasks);
       ctx.previousFindings = ctx.previousFindings!.map((previous) => ({
         ...previous,
@@ -318,4 +375,88 @@ describe('prior focused review context', () => {
     expect(tasks.created).toHaveLength(2);
     expect(result.findings[0].line).toBe(560);
   });
+});
+
+describe('explicit prior-finding assessments', () => {
+  it.each([
+    [
+      'still_present',
+      'concern',
+      'The current caller still performs one query per item at handler.ts:42.',
+    ],
+    [
+      'fixed',
+      'clear',
+      'handler.ts:42 now issues one batch query before the loop; the repeated call was removed.',
+    ],
+    [
+      'incorrect',
+      'clear',
+      'The earlier Nx claim was wrong: the resolved test target merges the script and runs Vitest as well.',
+    ],
+    [
+      'not_checked',
+      'unclear',
+      'The caller needed to verify this concern was not inspected.',
+    ],
+  ])(
+    'retains the %s conclusion and its reasoning',
+    async (status, expected, explanation) => {
+      const tasks = new FakeTasks([
+        {
+          result: {
+            summary: 'Prior concern assessed.',
+            findings: [],
+            unclear: [],
+            priorFindingOutcomes: [{ key, status, explanation }],
+          },
+        },
+      ]);
+      const result = await runFocusedLane('tests', context(tasks));
+      expect(result).toMatchObject({
+        status: expected,
+        findings: [],
+        priorFindingOutcomes: [{ key, status, explanation }],
+      });
+      expect(tasks.created[0].input.brief).toContain(
+        'Silence, a missing diff hunk',
+      );
+      expect(tasks.created[0].input.brief).toContain(
+        'why the original reasoning was wrong',
+      );
+    },
+  );
+
+  it.each(['omitted', 'duplicate', 'unknown', 'blank', 'contradictory'])(
+    'rejects %s outcomes without silently calling the concern fixed',
+    async (kind) => {
+      const correct = {
+        key,
+        status: 'fixed',
+        explanation: 'The timeout is now passed by the caller.',
+      };
+      const invalid = {
+        result: {
+          summary: 'Assessed',
+          findings: kind === 'contradictory' ? output(key).result.findings : [],
+          unclear: [],
+          priorFindingOutcomes:
+            kind === 'omitted'
+              ? []
+              : kind === 'duplicate'
+                ? [correct, correct]
+                : [
+                    {
+                      ...correct,
+                      ...(kind === 'unknown' ? { key: 'not-supplied' } : {}),
+                      ...(kind === 'blank' ? { explanation: '   ' } : {}),
+                    },
+                  ],
+        },
+      };
+      const tasks = new FakeTasks([invalid, invalid]);
+      await expect(runFocusedLane('tests', context(tasks))).rejects.toThrow();
+      expect(tasks.created).toHaveLength(2); // Existing one-correction limit, never an endless review loop.
+    },
+  );
 });
