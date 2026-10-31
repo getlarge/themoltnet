@@ -40,7 +40,7 @@ jobs:
 
       - name: Mint issue-writing App token
         id: app-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ vars.MOLTNET_GITHUB_APP_ID }}
           private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
@@ -94,7 +94,7 @@ jobs:
       - name: Extract issue evidence with MoltNet
         id: extract
         if: steps.prepare.outputs.eligible == 'true'
-        uses: getlarge/themoltnet/packages/agent-daemon-action@e82895cd187297d4531f853661e7d667a1243b35 # v0
+        uses: getlarge/themoltnet/packages/agent-daemon-action@7188bc8c46b85a938ef7710661de9274f5338989 # v0
         env:
           MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
           MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
@@ -127,7 +127,7 @@ jobs:
         id: classify
         if: steps.classifier-spec.outcome == 'success' && steps.classifier-spec.outputs.spec != ''
         continue-on-error: true
-        uses: getlarge/themoltnet/packages/agent-daemon-action@e82895cd187297d4531f853661e7d667a1243b35 # v0
+        uses: getlarge/themoltnet/packages/agent-daemon-action@7188bc8c46b85a938ef7710661de9274f5338989 # v0
         env:
           MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
           MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
@@ -146,7 +146,7 @@ jobs:
       - name: Mint issue-writing App token
         id: app-token
         if: steps.extract.outputs.task-id != ''
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           client-id: ${{ vars.MOLTNET_GITHUB_APP_ID }}
           private-key: ${{ secrets.MOLTNET_GITHUB_APP_PRIVATE_KEY }}
