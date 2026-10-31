@@ -138,6 +138,19 @@ it('labels a focused citation from the old side of the diff', () => {
   expect(renderAdaptiveComment(report, 'https://example.com/run')).toContain(
     'src/route.ts:7 (old): Guard was removed',
   );
+  for (const posted of [0, 1]) {
+    const comment = renderAdaptiveComment(report, 'https://example.com/run', {
+      posted,
+      existing: 0,
+      keys: new Set<string>(),
+      resolved: new Set<string>(),
+    });
+    expect(comment).toContain(
+      'Assess each finding; fix confirmed problems or explain why no change is needed.',
+    );
+    expect(comment).not.toContain('Fix each one');
+    if (posted === 0) expect(comment).toContain('1 listed below');
+  }
 });
 
 it.each(['clear', 'concern', 'unclear', 'failed', 'screened'] as const)(
@@ -175,6 +188,12 @@ it.each(['clear', 'concern', 'unclear', 'failed', 'screened'] as const)(
         },
       ],
     };
+    const comment = renderAdaptiveComment(report, 'https://example.com/run');
+    expect(comment).toContain(
+      'All enabled lanes were selected for investigation.',
+    );
+    expect(comment).toContain('Selection does not imply complete coverage');
+    expect(comment).not.toContain('every enabled lane was investigated');
     const incomplete = status !== 'clear' && status !== 'concern';
     expect(hasIncompleteCoverage(report)).toBe(incomplete);
     expect(

@@ -527,7 +527,9 @@ describe('publishAdaptiveReport inline threads', () => {
       ),
     ).toBe(true);
     expect(first.body).toContain('Suggested action: Add a case to a.test.ts');
-    expect(first.body).toContain('resolve this thread with a short reason');
+    expect(first.body).toContain(
+      'Assess this finding; fix confirmed problems or explain why no change is needed.',
+    );
     expect(reviewComments(recorded.reviews[0])[2].body).toContain(
       '**Adaptive review · security**',
     );

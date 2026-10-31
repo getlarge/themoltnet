@@ -138,7 +138,7 @@ export function renderFindingComment(
       ? ['', `Suggested action: ${shorten(finding.action, 2000)}`]
       : []),
     '',
-    '_Fix it, or resolve this thread with a short reason._',
+    '_Assess this finding; fix confirmed problems or explain why no change is needed._',
   ].join('\n');
 }
 
@@ -155,7 +155,7 @@ function findingCount(
     `${threads.existing} ${hasReferences ? 'linked to open threads from earlier runs' : 'already open from an earlier run'}`,
     ...(listed > 0 ? [`${listed} listed below`] : []),
   ];
-  return `Findings: ${total} (${parts.join(', ')}). Fix each one, or resolve its thread with a reason.${hasReferences ? ' Current findings referencing earlier threads are also shown below for comparison.' : ''}`;
+  return `Findings: ${total} (${parts.join(', ')}). Assess each finding; fix confirmed problems or explain why no change is needed.${hasReferences ? ' Current findings referencing earlier threads are also shown below for comparison.' : ''}`;
 }
 
 /** Coverage refers to selected investigations, never to screened-out lanes. */
@@ -215,7 +215,7 @@ export function renderAdaptiveComment(
       ? '## Adaptive review: incomplete coverage'
       : '## Adaptive review',
     '',
-    `${report.mode === 'shadow' ? 'Full review: every enabled lane was investigated.' : 'Classifier-selected investigations.'} Head \`${report.head.slice(0, 7)}\` · [workflow run](${runUrl}).`,
+    `${report.mode === 'shadow' ? 'All enabled lanes were selected for investigation. Selection does not imply complete coverage; see results and gaps below.' : 'Classifier-selected investigations.'} Head \`${report.head.slice(0, 7)}\` · [workflow run](${runUrl}).`,
     '',
     '| Lane | Classifier concern | Investigation |',
     '| --- | ---: | --- |',

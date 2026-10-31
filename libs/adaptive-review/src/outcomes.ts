@@ -65,7 +65,8 @@ function concernText(body: string): string {
     .filter(
       (line) =>
         !line.startsWith('**Adaptive review · ') &&
-        !line.startsWith('_Fix it, or resolve'),
+        !line.startsWith('_Fix it, or resolve') &&
+        !line.startsWith('_Assess this finding;'),
     )
     .join(' ')
     .trim();
