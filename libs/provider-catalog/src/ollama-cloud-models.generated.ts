@@ -8,6 +8,8 @@ import type { ModelCostRates } from './types.js';
 export type OllamaCloudModel = {
   cost?: ModelCostRates;
   offPeakCost?: ModelCostRates;
+  /** Input-only classifier rate; never used to price a chat model. */
+  classifierCost?: ModelCostRates;
   id: string;
   contextWindow: number;
   vision: boolean;
@@ -30,6 +32,12 @@ export const ollamaCloudModelData: readonly OllamaCloudModel[] = [
     contextWindow: 65536,
     vision: true,
     tools: false,
+    classifierCost: {
+      input: 0.24,
+      output: 0,
+      cacheRead: 0.24,
+      cacheWrite: 0,
+    },
   },
   {
     id: 'deepseek-v4-pro:0813',
@@ -218,6 +226,34 @@ export const ollamaCloudModelData: readonly OllamaCloudModel[] = [
     },
   },
   {
+    id: 'mimo-v2.6-flash',
+    contextWindow: 1048576,
+    vision: true,
+    tools: true,
+    thinkingLevels: ['off', 'on'],
+    defaultThinkingLevel: 'on',
+    cost: {
+      input: 0.14,
+      output: 0.28,
+      cacheRead: 0.0028,
+      cacheWrite: 0,
+    },
+  },
+  {
+    id: 'mimo-v2.6-pro',
+    contextWindow: 1048576,
+    vision: true,
+    tools: true,
+    thinkingLevels: ['off', 'on'],
+    defaultThinkingLevel: 'on',
+    cost: {
+      input: 0.435,
+      output: 0.87,
+      cacheRead: 0.0036,
+      cacheWrite: 0,
+    },
+  },
+  {
     id: 'minimax-m2.7',
     contextWindow: 196608,
     vision: false,
@@ -246,6 +282,20 @@ export const ollamaCloudModelData: readonly OllamaCloudModel[] = [
     },
   },
   {
+    id: 'minimax-m3.1-flash',
+    contextWindow: 1000000,
+    vision: true,
+    tools: true,
+    thinkingLevels: ['on'],
+    defaultThinkingLevel: 'on',
+    cost: {
+      input: 0.15,
+      output: 0.6,
+      cacheRead: 0.015,
+      cacheWrite: 0,
+    },
+  },
+  {
     id: 'mistral-large-3:675b',
     contextWindow: 262144,
     vision: true,
@@ -265,8 +315,8 @@ export const ollamaCloudModelData: readonly OllamaCloudModel[] = [
     thinkingLevels: ['on'],
     defaultThinkingLevel: 'on',
     cost: {
-      input: 0.68,
-      output: 2.09,
+      input: 0.7,
+      output: 2.1,
       cacheRead: 0.07,
       cacheWrite: 0,
     },

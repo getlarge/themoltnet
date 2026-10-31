@@ -29,8 +29,8 @@ export function isPiModelCost(value: unknown): value is PiModelCost {
   );
 }
 
-const ollamaPrices = new Map(
-  ollamaCloudModelData.map((model) => [model.id, model.cost]),
+const ollamaModels = new Map(
+  ollamaCloudModelData.map((model) => [model.id, model]),
 );
 
 /**
@@ -144,12 +144,15 @@ export type WritePiConfigInput =
  */
 function toPiModel(entry: PiModelSpec, baseUrl: string): PiStoredModelSpec {
   const endpoint = new URL(baseUrl);
-  const cloudCost =
+  const cloudModel =
     endpoint.origin === 'https://ollama.com' &&
-    endpoint.pathname.replace(/\/$/, '') === '/v1' &&
-    entry.type !== 'classifier'
-      ? ollamaPrices.get(entry.id)
+    endpoint.pathname.replace(/\/$/, '') === '/v1'
+      ? ollamaModels.get(entry.id)
       : undefined;
+  // A classifier is priced by its input-only rate, a chat model by its full
+  // rate; neither falls back to the other.
+  const cloudCost =
+    entry.type === 'classifier' ? cloudModel?.classifierCost : cloudModel?.cost;
   const cost = entry.cost ?? cloudCost;
   return {
     id: entry.id,

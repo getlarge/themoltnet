@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseOllamaCloudPricing } from '../../scripts/ollama-cloud-pricing.js';
+import {
+  parseOllamaCloudPricing,
+  pricingForCapabilities,
+} from '../../scripts/ollama-cloud-pricing.js';
 
 const page = (rows: string) => `<section id="model-pricing"><table>
   <thead><tr><th>Model</th><th>Input</th><th>Cached input</th><th>Output</th></tr></thead>
@@ -29,7 +32,7 @@ describe('Ollama Cloud pricing', () => {
     expect(prices.size).toBe(1);
   });
 
-  it('does not interpret unavailable prices as free token categories', () => {
+  it('prices input-only classifiers apart from chat models', () => {
     const prices = parseOllamaCloudPricing(
       page(
         row('classifier', '$0.24', '-', '-') +
@@ -37,8 +40,46 @@ describe('Ollama Cloud pricing', () => {
       ),
     );
 
-    expect(prices.has('classifier')).toBe(false);
-    expect(prices.get('chat')?.cost.cacheRead).toBe(0.5);
+    expect(prices.get('classifier')).toEqual({
+      classifierCost: {
+        input: 0.24,
+        output: 0,
+        cacheRead: 0.24,
+        cacheWrite: 0,
+      },
+    });
+    expect(prices.get('chat')).toMatchObject({ cost: { cacheRead: 0.5 } });
+  });
+
+  it('ignores an off-peak rate for an input-only classifier', () => {
+    const prices = parseOllamaCloudPricing(
+      page(
+        row('classifier', '$0.24', '-', '-') +
+          row('classifier (Off-Peak)', '$0.12', '-', '-') +
+          row('chat', '$0.50', '-', '$1.50'),
+      ),
+    );
+
+    expect(prices.get('classifier')).toEqual({
+      classifierCost: {
+        input: 0.24,
+        output: 0,
+        cacheRead: 0.24,
+        cacheWrite: 0,
+      },
+    });
+  });
+
+  it('rejects an off-peak chat rate for an input-only classifier', () => {
+    expect(() =>
+      parseOllamaCloudPricing(
+        page(
+          row('model', '$0.24', '-', '-') +
+            row('model (Off-Peak)', '$0.10', '$0.01', '$1.00') +
+            row('chat', '$0.50', '-', '$1.50'),
+        ),
+      ),
+    ).toThrow('Unexpected Ollama off-peak row: model (Off-Peak)');
   });
 
   it.each([
@@ -48,7 +89,43 @@ describe('Ollama Cloud pricing', () => {
     page(row('<span>model</span>', '$0.10', '$0.01', '$1.00')),
     page(row('model', '<b>$0.10</b>', '$0.01', '$1.00')),
     page(''),
+    page(row('classifier', '$0.24', '-', '-')),
   ])('rejects a missing or unparseable price table', (html) => {
     expect(() => parseOllamaCloudPricing(html)).toThrow();
+  });
+
+  describe('capability check', () => {
+    const chat = {
+      cost: { input: 0.5, output: 1.5, cacheRead: 0.5, cacheWrite: 0 },
+    };
+    const classifier = {
+      classifierCost: {
+        input: 0.24,
+        output: 0,
+        cacheRead: 0.24,
+        cacheWrite: 0,
+      },
+    };
+
+    it.each([
+      [['decision', 'vision'], classifier],
+      [['completion', 'tools'], chat],
+      [['completion', 'decision'], chat],
+      [['decision'], undefined],
+    ])('accepts %j priced as %j', (capabilities, pricing) => {
+      expect(pricingForCapabilities('model', capabilities, pricing)).toBe(
+        pricing,
+      );
+    });
+
+    it.each([
+      [['completion', 'tools'], classifier],
+      [['completion', 'decision'], classifier],
+      [['decision', 'vision'], chat],
+    ])('rejects %j priced as %j', (capabilities, pricing) => {
+      expect(() =>
+        pricingForCapabilities('model', capabilities, pricing),
+      ).toThrow();
+    });
   });
 });
