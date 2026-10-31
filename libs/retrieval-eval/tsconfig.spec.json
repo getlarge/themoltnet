@@ -2,10 +2,17 @@
   "compilerOptions": {
     "composite": true,
     "outDir": "./out-tsc/spec",
-    "tsBuildInfoFile": "./out-tsc/spec/tsconfig.tsbuildinfo"
+    "rootDir": ".",
+    "tsBuildInfoFile": "./out-tsc/spec/tsconfig.tsbuildinfo",
+    "types": ["vitest", "node"]
   },
   "extends": "./tsconfig.json",
-  "include": ["__tests__/**/*.ts"],
+  "include": [
+    "vitest*.config.ts",
+    "src/**/*.d.ts",
+    "__tests__/**/*.ts",
+    "__tests__/**/*.tsx"
+  ],
   "references": [
     {
       "path": "./tsconfig.lib.json"

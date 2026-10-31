@@ -3,7 +3,7 @@ export default defineConfig({
   test: {
     root: import.meta.dirname,
     environment: 'node',
-    include: ['__tests__/**/*.integration.test.ts'],
+    include: ['__tests__/**/*.integration.spec.ts'],
     testTimeout: 240000,
   },
 });
