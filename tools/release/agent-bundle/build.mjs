@@ -322,6 +322,7 @@ export async function fetchQemuRuntime(payloadDir, platform, cacheDir) {
   }
   const provenance = JSON.parse(readFileSync(provenancePath, 'utf8'));
   validateQemuRuntimeProvenance(provenance, platform, config, artifact);
+  const nativePaths = [];
   for (const file of provenance.nativeFiles) {
     const path = resolve(payloadDir, file.path);
     const rel = relative(payloadDir, path);
@@ -334,7 +335,9 @@ export async function fetchQemuRuntime(payloadDir, platform, cacheDir) {
         `QEMU runtime native file checksum mismatch: ${file.path}`,
       );
     }
+    nativePaths.push(path);
   }
+  assertMinimumMacos(nativePaths, artifact.minimumMacosVersion);
 
   const binary = join(payloadDir, 'vendor/qemu-img');
   const version = spawnSync(binary, ['--version'], { encoding: 'utf8' });
@@ -494,6 +497,46 @@ function machoDeps(file) {
     .filter(
       (dep) => !dep.startsWith('/usr/lib/') && !dep.startsWith('/System/'),
     );
+}
+
+/** The macOS deployment target a Mach-O was linked for (LC_BUILD_VERSION). */
+export function machoMinimumMacos(file) {
+  const out = spawnSync('otool', ['-l', file], { encoding: 'utf8' });
+  if (out.status !== 0) throw new Error(`otool -l failed for ${file}`);
+  const minos = /cmd LC_BUILD_VERSION\n(?:.*\n)*?\s*minos (\S+)/.exec(
+    out.stdout,
+  )?.[1];
+  if (!minos) throw new Error(`${file} has no LC_BUILD_VERSION minos`);
+  return minos;
+}
+
+function compareMacosVersions(left, right) {
+  const a = left.split('.').map(Number);
+  const b = right.split('.').map(Number);
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const delta = (a[i] ?? 0) - (b[i] ?? 0);
+    if (delta !== 0) return delta;
+  }
+  return 0;
+}
+
+/**
+ * Vendored dylibs keep whatever deployment target they were built with, so a
+ * newer build host can raise the runtime's real floor without touching the
+ * declared one. Refuse any Mach-O that needs a newer macOS than declared.
+ */
+export function assertMinimumMacos(files, minimumMacosVersion) {
+  const newer = files
+    .map((file) => ({ file, minos: machoMinimumMacos(file) }))
+    .filter(
+      ({ minos }) => compareMacosVersions(minos, minimumMacosVersion) > 0,
+    );
+  if (newer.length > 0) {
+    throw new Error(
+      `Mach-O files require macOS above ${minimumMacosVersion}: ` +
+        newer.map(({ file, minos }) => `${file} (${minos})`).join(', '),
+    );
+  }
 }
 
 function machoRpaths(file) {

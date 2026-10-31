@@ -13,8 +13,8 @@ permissions:
 jobs:
   build-and-release:
     name: Build and release QEMU runtime (darwin-arm64)
-    runs-on: macos-15
-    timeout-minutes: 30
+    runs-on: macos-26
+    timeout-minutes: 45
     permissions:
       artifact-metadata: write
       attestations: write
@@ -29,8 +29,15 @@ jobs:
         with:
           node-version-file: .tool-versions
 
+      # Runtime libraries are built from pinned sources by the script; only
+      # build tools come from the image.
       - name: Install build-only dependencies
-        run: brew install glib ninja pkgconf
+        run: |
+          brew install ninja pkgconf
+          python3 -m venv "$RUNNER_TEMP/build-tools"
+          "$RUNNER_TEMP/build-tools/bin/pip" install --require-hashes --only-binary=:all: \
+            -r tools/release/agent-bundle/qemu-build-requirements.txt
+          echo "$RUNNER_TEMP/build-tools/bin" >> "$GITHUB_PATH"
 
       - name: Build from official QEMU source
         run: node tools/release/agent-bundle/build-qemu-runtime.mjs

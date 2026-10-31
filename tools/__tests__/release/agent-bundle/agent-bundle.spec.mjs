@@ -25,7 +25,9 @@ import { afterEach, describe, it } from 'node:test';
 import { fileURLToPath, URL } from 'node:url';
 
 import {
+  assertMinimumMacos,
   download,
+  machoMinimumMacos,
   relocateDaemonSelfLink,
   isNativeForHost,
   sha256File,
@@ -967,6 +969,69 @@ esac
         process.env.QEMU_IMG_EXPECTED_MAJOR = originalExpectedMajor;
       }
     }
+  });
+});
+
+describe('vendored Mach-O deployment target', () => {
+  // The stub reports the minos encoded in each file's name, or no
+  // LC_BUILD_VERSION at all for files named "legacy".
+  function withOtoolStub(callback) {
+    const context = { env: { ...process.env } };
+    addCommandStubs(context, {
+      otool: `#!/bin/sh
+case "$2" in
+  *legacy*) printf 'Load command 0\\n      cmd LC_SEGMENT_64\\n' ;;
+  *) minos=$(basename "$2" | sed 's/^minos-//')
+     printf 'Load command 0\\n      cmd LC_SEGMENT_64\\nLoad command 9\\n      cmd LC_BUILD_VERSION\\n  cmdsize 32\\n platform 1\\n    minos %s\\n      sdk 26.4\\n' "$minos" ;;
+esac
+`,
+    });
+    const originalPath = process.env.PATH;
+    process.env.PATH = context.env.PATH;
+    try {
+      callback();
+    } finally {
+      process.env.PATH = originalPath;
+    }
+  }
+
+  it('reads minos from LC_BUILD_VERSION', () => {
+    withOtoolStub(() => {
+      assert.equal(machoMinimumMacos('/vendor/minos-15.0'), '15.0');
+    });
+  });
+
+  it('accepts files at or below the declared floor', () => {
+    withOtoolStub(() => {
+      assert.doesNotThrow(() =>
+        assertMinimumMacos(
+          ['/vendor/minos-11.0', '/vendor/minos-13.5', '/vendor/minos-15.0'],
+          '15.0',
+        ),
+      );
+    });
+  });
+
+  it('names every file whose floor is above the declared one', () => {
+    withOtoolStub(() => {
+      assert.throws(
+        () =>
+          assertMinimumMacos(
+            ['/vendor/minos-15.0', '/vendor/minos-15.1', '/vendor/minos-26.0'],
+            '15.0',
+          ),
+        /above 15\.0: \/vendor\/minos-15\.1 \(15\.1\), \/vendor\/minos-26\.0 \(26\.0\)$/,
+      );
+    });
+  });
+
+  it('refuses a file with no LC_BUILD_VERSION', () => {
+    withOtoolStub(() => {
+      assert.throws(
+        () => assertMinimumMacos(['/vendor/legacy'], '15.0'),
+        /\/vendor\/legacy has no LC_BUILD_VERSION minos/,
+      );
+    });
   });
 });
 
