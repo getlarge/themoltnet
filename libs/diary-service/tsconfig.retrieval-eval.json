@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "exclude": ["node_modules", "dist", "out-tsc"],
+  "extends": "../../tsconfig.json",
+  "files": [],
+  "include": [
+    "evals/**/*.ts",
+    "vitest.retrieval-eval.config.ts",
+    "__tests__/retrieval-metrics.test.ts"
+  ],
+  "references": []
+}

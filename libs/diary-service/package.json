@@ -36,6 +36,29 @@
       "type:feature",
       "scope:diary",
       "platform:server"
-    ]
+    ],
+    "targets": {
+      "retrieval-eval": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "vitest run --config vitest.retrieval-eval.config.ts",
+          "cwd": "libs/diary-service"
+        }
+      },
+      "retrieval-eval-typecheck": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "inputs": [
+          "default",
+          "^production"
+        ],
+        "outputs": [],
+        "options": {
+          "command": "tsc --project tsconfig.retrieval-eval.json",
+          "cwd": "libs/diary-service"
+        }
+      }
+    }
   }
 }
