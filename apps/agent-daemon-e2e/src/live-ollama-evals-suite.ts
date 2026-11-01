@@ -116,7 +116,11 @@ export function defineLiveOllamaEvalSuite(partitionIndex: number): void {
             maxTurns: 14,
             maxBashTimeouts: 1,
             defaultWorkspaceMode: 'shared_mount',
-            allowedWorkspaceModes: ['none', 'shared_mount'],
+            allowedWorkspaceModes: [
+              'none',
+              'shared_mount',
+              'dedicated_worktree',
+            ],
             requiredEnv: ['OLLAMA_API_KEY'],
             requiredTools: [],
             sandbox: {

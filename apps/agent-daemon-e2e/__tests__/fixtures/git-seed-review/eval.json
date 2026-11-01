@@ -1,0 +1,16 @@
+{
+  "fixtures": { "gitSeed": { "base": "repo/base", "head": "repo/head" } },
+  "mode": "vivo",
+  "outputContract": {
+    "schema": {
+      "additionalProperties": false,
+      "properties": { "verdict": { "type": "string" } },
+      "required": ["verdict"],
+      "type": "object"
+    },
+    "version": 1
+  },
+  "scoring": "gates_only",
+  "taskType": "freeform",
+  "workspace": "dedicated_worktree"
+}
