@@ -236,13 +236,22 @@ shows, not a verdict:
 - `resolved`, and who resolved it.
 - `outdated`: a later commit changed the anchored line. This does not mean the
   concern was fixed, and a fix made elsewhere leaves the thread current.
-- The latest reply from someone other than the reviewer.
+- The latest reply from someone other than the reviewer, its author
+  (`replyBy`), and GitHub's account type for that author (`replyAuthorType`:
+  `User`, `Bot`, ...). A reply, including one from the author's agent, is a
+  claim about the finding, not a verdict.
 
 Each finding also carries its thread ID and URL, the head it was raised on,
 the workflow run and review correlation ID that produced it, and
-`adjudication: "unverified"`. A person or an eval decides later whether a
-finding was a true or false positive. The entry ends with a JSON block
-(`version: 1`) holding this data for eval tooling.
+`adjudication: "unverified"`. The entry ends with a JSON block (`version: 1`)
+holding this data for eval tooling, and is never updated. An
+owner, member, or collaborator records whether a finding was correct with a
+`/review-verdict` reply in its thread, and reports a finding the reviewer
+missed with `/review-missed`. Those commands write separate
+`review:adaptive-verdict` entries; see the
+[Review Feedback Loop](../../docs/workflows/review-feedback-loop.md) for the
+commands, their records, the verdict workflow caller, and how records become
+reviewer evals.
 
 The run records only the closure that triggered it. If the pull request was
 reopened, pushed to, or closed again before the run started, it records
