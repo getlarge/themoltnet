@@ -6,7 +6,7 @@ root with Node and pnpm versions from `.tool-versions`.
 
 ## Fixture baseline
 
-The frozen PR #2821 development fixture contains twelve entries and six queries.
+The frozen development fixture contains twelve entries and six queries.
 All 72 entry/query pairs have binary judgments. Four weight settings, cutoffs
 1/3/5 and two repeats produce 144 searches. Repeats check deterministic ordering;
 they are not independent statistical samples. This is not a held-out benchmark.
