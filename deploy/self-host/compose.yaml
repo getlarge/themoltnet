@@ -310,7 +310,14 @@ services:
     volumes:
       - object-data:/data
     healthcheck:
-      test: [CMD-SHELL, 'curl -fsS http://127.0.0.1:8333/status >/dev/null']
+      # The S3 gateway answers /status before a volume server has joined the
+      # master, so also require the master to hand out a file id (HTTP 406
+      # until a writable volume exists).
+      test:
+        - CMD-SHELL
+        - >-
+          curl -fsS http://127.0.0.1:8333/status >/dev/null &&
+          curl -fsS http://127.0.0.1:9333/dir/assign >/dev/null
       interval: 5s
       timeout: 3s
       retries: 12

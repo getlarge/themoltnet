@@ -48,6 +48,10 @@ cleanup() {
     if [ "$status" -ne 0 ]; then
       "${compose[@]}" ps --all || true
       "${compose[@]}" logs --no-color --tail=80 || true
+      # SeaweedFS repeats volume-growth errors once it fails, which pushes its
+      # startup lines out of the tail above. Print the start of its log.
+      echo '--- object-store startup log ---' >&2
+      { "${compose[@]}" logs --no-color object-store 2>&1 || true; } | head -n 150 || true
     fi
     if ! "${compose[@]}" down -v; then
       echo "Compose cleanup failed for project $project_name" >&2
