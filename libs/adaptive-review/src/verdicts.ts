@@ -269,14 +269,22 @@ export interface ReviewVerdictRecord {
     correlationId: string | null;
     concern: string;
   } | null;
-  /**
-   * Base `REVIEW.md` files that apply to `path`, as the review's own loader
-   * reads them at `base`. `null` with `guidanceError` when they could not be
-   * read.
-   */
-  guidance: GuidanceDigest[] | null;
-  guidanceError: string | null;
+  guidance: RecordedGuidance;
   recordedAt: string;
+}
+
+/**
+ * The base `REVIEW.md` files that apply to `path`, read with the review's own
+ * loader. `observedAt: 'command_base'` says they were read at the pull
+ * request's base when the command ran. The review pins its base earlier and
+ * does not publish it, so these may differ from the guidance the reviewer saw.
+ */
+export interface RecordedGuidance {
+  base: string;
+  observedAt: 'command_base';
+  /** `null` when the files could not be read; `error` says why. */
+  files: GuidanceDigest[] | null;
+  error: string | null;
 }
 
 export interface VerdictEntries {
@@ -447,12 +455,16 @@ export async function recordReviewCommand(
   )
     return { status: 'already-recorded' };
 
-  let guidance: GuidanceDigest[] | null = null;
-  let guidanceError: string | null = null;
+  const guidance: RecordedGuidance = {
+    base: event.base,
+    observedAt: 'command_base',
+    files: null,
+    error: null,
+  };
   try {
-    guidance = deps.guidance(event.base, [anchor.path]);
+    guidance.files = deps.guidance(event.base, [anchor.path]);
   } catch (error) {
-    guidanceError = shorten(
+    guidance.error = shorten(
       error instanceof Error ? error.message : String(error),
       MAX_GUIDANCE_ERROR,
     );
@@ -474,7 +486,6 @@ export async function recordReviewCommand(
     },
     comment: { id: comment.id, url: comment.url },
     guidance,
-    guidanceError,
     recordedAt: (deps.now?.() ?? new Date()).toISOString(),
   };
   const entry = await deps.entries.create({

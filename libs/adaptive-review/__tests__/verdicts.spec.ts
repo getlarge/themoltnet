@@ -286,8 +286,12 @@ describe('recordReviewCommand', () => {
         correlationId: 'review-42',
         concern: 'The new branch has no test. Suggested action: Add a test',
       },
-      guidance: [{ path: 'REVIEW.md', digest: 'd'.repeat(64) }],
-      guidanceError: null,
+      guidance: {
+        base: BASE,
+        observedAt: 'command_base',
+        files: [{ path: 'REVIEW.md', digest: 'd'.repeat(64) }],
+        error: null,
+      },
       recordedAt: '2026-11-01T10:00:00.000Z',
     });
   });
@@ -432,8 +436,12 @@ describe('recordReviewCommand', () => {
     expect(result).toMatchObject({
       status: 'recorded',
       record: {
-        guidance: null,
-        guidanceError: 'review guidance exceeds 16 KiB per file: REVIEW.md',
+        guidance: {
+          base: BASE,
+          observedAt: 'command_base',
+          files: null,
+          error: 'review guidance exceeds 16 KiB per file: REVIEW.md',
+        },
       },
     });
   });

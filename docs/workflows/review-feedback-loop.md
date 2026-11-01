@@ -100,26 +100,30 @@ If GitHub delivers the same comment event twice, the second run finds the
 
 The entry ends with a JSON block (`version: 1`):
 
-| Field                       | Meaning                                                                                                                                                                     |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `kind`, `verdict`           | `verdict` with `correct` or `incorrect`, or `missed` with `missed`.                                                                                                         |
-| `repo`, `pr`                | The pull request.                                                                                                                                                           |
-| `base`                      | The pull request's base commit when the command was posted.                                                                                                                 |
-| `head`, `path`, `side`      | Where the finding is. For a verdict, `head` is the commit the reviewer flagged; for a miss, the commit the comment was posted on. `side` is `old` or `new` (the diff side). |
-| `line`, `startLine`         | The line (and first line of a multi-line comment) in `head`.                                                                                                                |
-| `lane`, `reason`            | The lane from the finding marker or the command, and the recorder's own words.                                                                                              |
-| `recorder`                  | Login, `actorKind: "human"`, and repository association.                                                                                                                    |
-| `comment`                   | The command comment's ID and URL.                                                                                                                                           |
-| `finding`                   | For a verdict: finding key, first comment ID and URL, thread ID (`null` if it could not be matched), run URL, correlation ID, and the finding text. `null` for a miss.      |
-| `guidance`, `guidanceError` | The `REVIEW.md` files that apply to `path`, as `{path, digest}`, read at `base` with the review's own loader.                                                               |
-| `recordedAt`                | When the entry was written.                                                                                                                                                 |
+| Field                  | Meaning                                                                                                                                                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `kind`, `verdict`      | `verdict` with `correct` or `incorrect`, or `missed` with `missed`.                                                                                                                                     |
+| `repo`, `pr`           | The pull request.                                                                                                                                                                                       |
+| `base`                 | The pull request's base commit when the command was posted.                                                                                                                                             |
+| `head`, `path`, `side` | Where the finding is. For a verdict, `head` is the commit the reviewer flagged; for a miss, the commit the comment was posted on. `side` is `old` or `new` (the diff side).                             |
+| `line`, `startLine`    | The line (and first line of a multi-line comment) in `head`.                                                                                                                                            |
+| `lane`, `reason`       | The lane from the finding marker or the command, and the recorder's own words.                                                                                                                          |
+| `recorder`             | Login, `actorKind: "human"`, and repository association.                                                                                                                                                |
+| `comment`              | The command comment's ID and URL.                                                                                                                                                                       |
+| `finding`              | For a verdict: finding key, first comment ID and URL, thread ID (`null` if it could not be matched), run URL, correlation ID, and the finding text. `null` for a miss.                                  |
+| `guidance`             | `base`, `observedAt: "command_base"`, and `files`: the `REVIEW.md` files that apply to `path`, as `{path, digest}`, read at that base with the review's own loader. `error` says why `files` is `null`. |
+| `recordedAt`           | When the entry was written.                                                                                                                                                                             |
 
 If the base `REVIEW.md` files cannot be read (for example, one exceeds the
-review's size limit), `guidance` is `null`, `guidanceError` says why, and the
-verdict is still recorded. `base` is the pull request's base when the command
-was posted. The review itself pins the base at review time, which can be older,
-so the digests describe the guidance at `base`, not necessarily the guidance the
-reviewer saw.
+review's size limit), `guidance.files` is `null`, `guidance.error` says why, and
+the verdict is still recorded.
+
+Two limits apply to every record. The guidance is read at the pull request's
+base when the command ran (`observedAt: "command_base"`), not at the base the
+reviewer pinned, which the review does not publish and which can be older, so it
+is not necessarily the guidance the reviewer saw. And an agent posting through a
+person's GitHub token counts as human: the recorder is a trusted `User` account,
+not proof that a person typed the command.
 
 ### Find the records
 
@@ -192,9 +196,9 @@ eval. Turning it into a scenario is authoring work. Follow
 5. **Measure the baseline.** Run the reviewer without the change you want to
    evaluate, several times, and record the raw results. Do not estimate it.
 
-The `guidance` digests say which `REVIEW.md` files applied at `base`. An eval
-can use them to check that a scenario reproduces the guidance the miss happened
-under.
+The `guidance` digests say which `REVIEW.md` files applied at the command's
+base. An eval can use them to check that a scenario reproduces the guidance the
+miss happened under.
 
 **Not built yet.** Reviewer eval scenarios cannot yet check out a pull request
 at a recorded commit, and eval runs cannot yet select a committed runtime
