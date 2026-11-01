@@ -7,7 +7,8 @@
  *                   `RunEvalInput.scenario.prompt`.
  * - `eval.json`   — `{ mode, workspace, scoring?, blocking?, contextRecipe?, fixtures? }`. A
  *                   context recipe injects versioned producer guidance;
- *                   fixtures may seed a shared workspace and/or bind
+ *                   fixtures may seed a shared workspace, build a base/head
+ *                   git repository for a dedicated worktree, and/or bind
  *                   scenario-local files as staged task input artifacts.
  * - `rubric.json` — required for judged scenarios: the HIDDEN judge key.
  *                   Never handed to the producer; only the `judge_eval_attempt`
@@ -148,9 +149,31 @@ export type ScenarioInputArtifactFixture = Static<
   typeof ScenarioInputArtifactFixture
 >;
 
+/**
+ * Two scenario-relative directories committed, in order, into a fresh git
+ * repository for every producer run. Each directory is a complete tree (head
+ * is the full head tree, not a patch). The producer gets a dedicated worktree
+ * detached at the head commit, with the base commit as its parent.
+ */
+export const ScenarioGitSeedFixture = Type.Object(
+  {
+    base: Type.String({ minLength: 1 }),
+    head: Type.String({ minLength: 1 }),
+  },
+  { additionalProperties: false },
+);
+export type ScenarioGitSeedFixture = Static<typeof ScenarioGitSeedFixture>;
+
+/** Prompt placeholders replaced with gitSeed commit ids at task creation. */
+export const GIT_SEED_PROMPT_PLACEHOLDERS = {
+  base: '{{gitSeed.base}}',
+  head: '{{gitSeed.head}}',
+} as const;
+
 export const ScenarioFixtureConfig = Type.Object(
   {
     workspaceSeed: Type.Optional(Type.String({ minLength: 1 })),
+    gitSeed: Type.Optional(ScenarioGitSeedFixture),
     inputArtifacts: Type.Optional(
       Type.Array(ScenarioInputArtifactFixture, {
         minItems: 1,
@@ -177,6 +200,8 @@ export type ResolvedScenarioInputArtifact = Omit<
 export interface ResolvedScenarioFixtures {
   /** Validated absolute path to a scenario-local directory. */
   workspaceSeedPath?: string;
+  /** Validated absolute paths to the base and head tree directories. */
+  gitSeed?: { basePath: string; headPath: string };
   inputArtifacts: ResolvedScenarioInputArtifact[];
 }
 

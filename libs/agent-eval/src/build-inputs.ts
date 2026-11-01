@@ -16,12 +16,17 @@ import {
   type TaskContext,
 } from '@moltnet/runtime-profiles';
 import type {
+  FreeformInput,
   JudgeEvalAttemptInput,
   RunEvalInput,
   SuccessCriteria,
 } from '@moltnet/tasks';
 
 import type { Scenario } from './scenario.js';
+import {
+  renderGitSeedPrompt,
+  type ScenarioGitRevisions,
+} from './scenario-fixtures.js';
 
 /** `variantLabel` must be 1..64 chars and (for the judge output) contain no
  * ` - ` sequence. Scenario slugs are kebab-case, so a single dash is fine; we
@@ -86,6 +91,41 @@ export function buildScenarioRunEvalInput(
       ? resolveRuntimeProfileContextRecipe(recipeId)
       : undefined,
   });
+}
+
+/**
+ * Build the producer input for a freeform scenario. A gitSeed scenario must
+ * pass the revisions returned by `seedScenarioGitRepo`: the task then pins a
+ * dedicated worktree at head, as production adaptive review does, and the
+ * brief's gitSeed placeholders become the real commit ids.
+ */
+export function buildScenarioFreeformInput(
+  scenario: Scenario,
+  options: { gitRevisions?: ScenarioGitRevisions | null } = {},
+): FreeformInput {
+  if (scenario.taskType !== 'freeform') {
+    throw new Error(`scenario ${scenario.slug} is not a freeform scenario`);
+  }
+  const hasGitSeed = scenario.fixtures?.gitSeed !== undefined;
+  const revisions = options.gitRevisions ?? null;
+  if (hasGitSeed !== (revisions !== null)) {
+    throw new Error(
+      hasGitSeed
+        ? `scenario ${scenario.slug} declares a gitSeed; seed the repository and pass its revisions`
+        : `scenario ${scenario.slug} has no gitSeed; git revisions are not accepted`,
+    );
+  }
+  return {
+    brief: revisions
+      ? renderGitSeedPrompt(scenario.prompt, revisions)
+      : scenario.prompt,
+    execution: revisions
+      ? { workspace: scenario.execution.workspace, revision: revisions.head }
+      : { workspace: scenario.execution.workspace },
+    ...(scenario.outputContract
+      ? { outputContract: scenario.outputContract }
+      : {}),
+  };
 }
 
 export interface BuildJudgeOptions {
