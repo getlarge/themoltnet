@@ -242,6 +242,7 @@ describe('gitSeed scenario in a dedicated worktree (e2e)', () => {
       teamId: creds.personalTeamId,
       taskType: 'freeform',
       outputContract: scenario.outputContract,
+      workspaceRevision: revisions.head,
     });
     expect(gates.failures).toEqual([]);
   }, 600_000);

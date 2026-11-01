@@ -223,6 +223,7 @@ export function defineLiveOllamaEvalSuite(partitionIndex: number): void {
                   workspace: scenario.execution.workspace,
                   teamId,
                   taskType: scenario.taskType,
+                  workspaceRevision: task.gitRevisions?.head,
                 },
               );
               spendReport.result(task.id, { gatesPassed: result.passed });

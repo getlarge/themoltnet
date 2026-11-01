@@ -152,6 +152,7 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
   let agentRoot: string;
   const perModel = new Map<string, { profileId: string; piDir: string }>();
   const producerSandboxRoots = new Map<string, string>();
+  const producerHeadRevisions = new Map<string, string>();
   const tempRoots: string[] = [];
   const models = parseModels();
   const judgeModel = process.env.MOLTNET_EVAL_JUDGE_MODEL ?? 'gemma4:31b';
@@ -247,6 +248,8 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
           evaluation: { gatesPassed: false },
         });
         producerSandboxRoots.set(task.id, sandboxRoot);
+        if (task.gitRevisions)
+          producerHeadRevisions.set(task.id, task.gitRevisions.head);
         await runTaskOnce({
           agentName,
           agentRoot,
@@ -302,6 +305,7 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
           teamId,
           taskType: scenario.taskType,
           outputContract: scenario.outputContract,
+          workspaceRevision: producerHeadRevisions.get(producer.taskId),
         }),
       runJudge: async (scenario, producer) => {
         const judgeTask = await agent.tasks.create(

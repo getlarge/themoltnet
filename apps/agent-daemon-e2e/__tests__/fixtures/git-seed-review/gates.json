@@ -1,1 +1,1 @@
-{ "requireCleanSubmit": true }
+{ "expectWorkspaceRevision": "gitSeed.head", "requireCleanSubmit": true }
