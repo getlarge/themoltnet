@@ -15,6 +15,8 @@ export const config = {
     mkdirSync('../../docs/public/screenshots', { recursive: true });
   },
   runner: 'local',
+  // Headless Chrome needs no Xvfb; its Ubuntu 26.04 wrapper breaks worker IPC.
+  autoXvfb: false,
   specs: ['./src/docs-capture.spec.ts'],
   maxInstances: 1,
   framework: 'mocha',
