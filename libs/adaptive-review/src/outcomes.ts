@@ -40,6 +40,16 @@ export interface RecordedFinding {
   resolvedBy: string | null;
   /** The latest reply from someone other than the reviewer, if any. */
   reply: string | null;
+  /** Who wrote that reply. */
+  replyBy: string | null;
+  /**
+   * GitHub's account type for the reply's author (`User`, `Bot`, ...). A
+   * reply or resolution is a claim about the finding, not a verdict: a `Bot`
+   * reply usually comes from the author's agent, which has a stake in the
+   * finding being wrong. Human verdicts are recorded separately, by the
+   * `/review-verdict` command.
+   */
+  replyAuthorType: string | null;
   adjudication: 'unverified';
 }
 
@@ -59,7 +69,7 @@ const MAX_REPLY = 500;
 const MAX_CONCERN = 1000;
 
 /** The finding text from a thread body, without marker, header, or footer. */
-function concernText(body: string): string {
+export function concernText(body: string): string {
   const lines = body.split('\n').slice(1);
   return lines
     .filter(
@@ -103,6 +113,8 @@ export function observeThreads(
       outdated: thread.isOutdated,
       resolvedBy: thread.resolvedBy?.login ?? null,
       reply: reply ? shorten(reply.body, MAX_REPLY) : null,
+      replyBy: reply?.author?.login ?? null,
+      replyAuthorType: reply ? (reply.author?.__typename ?? null) : null,
       adjudication: 'unverified',
     });
   }

@@ -13,8 +13,11 @@ export interface ReviewThread {
   resolvedBy: { login: string } | null;
   comments: {
     nodes: Array<{
-      author: { login: string } | null;
+      /** GraphQL actor type: `User`, `Bot`, `Mannequin`, and so on. */
+      author: { login: string; __typename?: string } | null;
       authorAssociation?: string;
+      /** The REST comment ID, which comment events carry. */
+      databaseId?: number | null;
       body: string;
       url: string;
       originalCommit: { oid: string } | null;
@@ -56,7 +59,7 @@ const THREADS_QUERY = `query($owner: String!, $repo: String!, $pr: Int!, $cursor
           diffSide
           resolvedBy { login }
           comments(first: 50) {
-            nodes { author { login } authorAssociation body url originalCommit { oid } }
+            nodes { author { __typename login } authorAssociation databaseId body url originalCommit { oid } }
           }
         }
       }

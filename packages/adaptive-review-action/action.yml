@@ -3,7 +3,7 @@ description: Run or publish the classifier-first advisory PR review.
 author: getlarge
 inputs:
   step:
-    description: prepare, plan, route, review, publish, or outcomes
+    description: prepare, plan, route, review, publish, outcomes, or verdicts
     required: true
 outputs:
   skip:
@@ -79,3 +79,9 @@ runs:
       env:
         DIST: ${{ github.action_path }}/dist
       run: node "$DIST/outcomes.js"
+    - name: Record a review verdict
+      if: inputs.step == 'verdicts'
+      shell: bash
+      env:
+        DIST: ${{ github.action_path }}/dist
+      run: node "$DIST/verdicts.js"

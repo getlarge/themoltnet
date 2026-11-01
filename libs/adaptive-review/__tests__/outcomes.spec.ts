@@ -106,6 +106,8 @@ describe('observeThreads', () => {
         outdated: true,
         resolvedBy: 'getlarge',
         reply: null,
+        replyBy: null,
+        replyAuthorType: null,
         reviewedHead: 'a'.repeat(40),
         runUrl: RUN,
         correlationId: 'review-42',
@@ -146,6 +148,30 @@ describe('observeThreads', () => {
 
     // Assert
     expect(findings).toEqual([]);
+  });
+
+  it('names the latest reply author and their GitHub account type', () => {
+    // Arrange
+    const threaded = thread(finding('tests', 6), {}, [
+      { login: 'getlarge', body: 'Agreed, fixing.' },
+      { login: 'claude', body: 'This finding is incorrect.' },
+    ]);
+    threaded.comments.nodes[1].author = {
+      login: 'getlarge',
+      __typename: 'User',
+    };
+    threaded.comments.nodes[2].author = { login: 'claude', __typename: 'Bot' };
+
+    // Act
+    const [observed] = observeThreads([threaded], APP);
+
+    // Assert
+    expect(observed).toMatchObject({
+      reply: 'This finding is incorrect.',
+      replyBy: 'claude',
+      replyAuthorType: 'Bot',
+      adjudication: 'unverified',
+    });
   });
 
   it('keeps threads from before markers carried their run', () => {
