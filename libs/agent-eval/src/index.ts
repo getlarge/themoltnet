@@ -27,6 +27,21 @@ export {
   type GateTaskMessage,
 } from './check-gates.js';
 export {
+  applyEvalProfileOverrides,
+  assertRuntimePolicyBody,
+  assertRuntimeProfileBody,
+  CommittedProfileError,
+  type CommittedRuntimeDefinitions,
+  type EvalProfileOverrides,
+  loadCommittedRuntimeProfile,
+  readCommittedRuntimeProfile,
+  readRuntimePolicyBindings,
+  RUNTIME_POLICIES_DIR,
+  RUNTIME_POLICY_BINDINGS_FILE,
+  RUNTIME_PROFILES_DIR,
+  type RuntimePolicyBindings,
+} from './committed-profile.js';
+export {
   formatProducerSpend,
   mergeProducerSpend,
   type ProducerSpend,

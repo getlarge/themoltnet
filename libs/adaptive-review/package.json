@@ -38,7 +38,35 @@
       "type:feature",
       "scope:agent",
       "platform:server"
-    ]
+    ],
+    "targets": {
+      "test": {
+        "inputs": [
+          "default",
+          "^production",
+          "{workspaceRoot}/.github/runtime-profiles/*.json"
+        ]
+      },
+      "test-ci--__tests__/budget-contract.spec.ts": {
+        "inputs": [
+          "default",
+          "^production",
+          {
+            "externalDependencies": [
+              "vitest"
+            ]
+          },
+          {
+            "env": "CI"
+          },
+          {
+            "dependentTasksOutputFiles": "**/*.js",
+            "transitive": true
+          },
+          "{workspaceRoot}/.github/runtime-profiles/*.json"
+        ]
+      }
+    }
   },
   "dependencies": {
     "@moltnet/complexity-review": "workspace:*",

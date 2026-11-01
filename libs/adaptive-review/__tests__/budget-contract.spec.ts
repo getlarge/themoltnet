@@ -30,13 +30,18 @@ function callerBudgets() {
   return { focused: budgets.focused, security: budgets.security };
 }
 
-function profile(name: string): { maxTurns: number; thinkingLevel?: string } {
+interface CommittedProfile {
+  maxTurns: number;
+  models: { generation?: { thinkingLevel?: string | null } };
+}
+
+function profile(name: string): CommittedProfile {
   return JSON.parse(
     readFileSync(
       resolve(root, `.github/runtime-profiles/${name}.json`),
       'utf8',
     ),
-  ) as { maxTurns: number; thinkingLevel?: string };
+  ) as CommittedProfile;
 }
 
 describe('adaptive review task budgets', () => {
@@ -50,7 +55,7 @@ describe('adaptive review task budgets', () => {
     expect(
       budgets.focused.runningTimeoutSec / focused.maxTurns,
     ).toBeGreaterThanOrEqual(18);
-    expect(security.thinkingLevel).toBe('high');
+    expect(security.models.generation?.thinkingLevel).toBe('high');
     expect(
       budgets.security.runningTimeoutSec / security.maxTurns,
     ).toBeGreaterThanOrEqual(22);

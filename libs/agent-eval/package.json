@@ -31,6 +31,40 @@
       "type:util",
       "scope:agent",
       "platform:isomorphic"
-    ]
+    ],
+    "targets": {
+      "test": {
+        "inputs": [
+          "default",
+          "^production",
+          "{workspaceRoot}/.github/runtime-profiles/*.json",
+          "{workspaceRoot}/.github/runtime-policies/*.json",
+          "{workspaceRoot}/.github/runtime-policies/README.md",
+          "{workspaceRoot}/.github/runtime-policy-bindings.json"
+        ]
+      },
+      "test-ci--__tests__/committed-profile.spec.ts": {
+        "inputs": [
+          "default",
+          "^production",
+          {
+            "externalDependencies": [
+              "vitest"
+            ]
+          },
+          {
+            "env": "CI"
+          },
+          {
+            "dependentTasksOutputFiles": "**/*.js",
+            "transitive": true
+          },
+          "{workspaceRoot}/.github/runtime-profiles/*.json",
+          "{workspaceRoot}/.github/runtime-policies/*.json",
+          "{workspaceRoot}/.github/runtime-policies/README.md",
+          "{workspaceRoot}/.github/runtime-policy-bindings.json"
+        ]
+      }
+    }
   }
 }
