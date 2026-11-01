@@ -13,6 +13,8 @@ export const config = {
     mkdirSync('test-results', { recursive: true });
   },
   runner: 'local',
+  // Headless Chrome needs no Xvfb; its Ubuntu 26.04 wrapper breaks worker IPC.
+  autoXvfb: false,
   specs: [
     './src/chrome.spec.ts',
     './src/run-flow.spec.ts',
