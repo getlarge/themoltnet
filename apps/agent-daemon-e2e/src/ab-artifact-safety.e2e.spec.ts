@@ -37,7 +37,7 @@ import { writePiConfig } from '@themoltnet/pi-runtime/pi-config';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { provisionDaemonCredentials } from './fixtures.js';
+import { createEvalProfile, provisionDaemonCredentials } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const AB_FLAG = 'MOLTNET_AB';
@@ -208,27 +208,13 @@ describeAb(
       });
       writePiConfig({ piDir, provider: LIVE_PROVIDER, model: LIVE_MODEL });
 
-      const profile = await agent.runtimeProfiles.create(
-        {
-          name: `ab-${randomUUID()}`,
-          runtimeKind: 'gondolin_pi',
-          models: {
-            generation: { provider: LIVE_PROVIDER, model: LIVE_MODEL },
-          },
-
-          maxTurns: 14,
-          maxBashTimeouts: 1,
-          defaultWorkspaceMode: 'shared_mount',
-          allowedWorkspaceModes: ['none', 'shared_mount'],
-          requiredEnv: ['OLLAMA_API_KEY'],
-          requiredTools: [],
-          sandbox: {
-            env: { NODE_OPTIONS: '--dns-result-order=ipv4first' },
-            resources: { cpus: 2, memory: '2G' },
-          },
-        },
-        { teamId },
-      );
+      const profile = await createEvalProfile({
+        agent,
+        teamId,
+        namePrefix: 'ab',
+        provider: LIVE_PROVIDER,
+        model: LIVE_MODEL,
+      });
       profileId = profile.id;
     }, 120_000);
 

@@ -16,7 +16,6 @@
  * survives across the two `runOnce` calls as long as the producer slot has not
  * expired (long `--warm-retention-sec`).
  */
-import { randomUUID } from 'node:crypto';
 import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -41,6 +40,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createEvalSpendReporter } from './eval-spend-report.js';
 import {
+  createEvalProfile,
   createScenarioProducerTask,
   provisionDaemonCredentials,
 } from './fixtures.js';
@@ -74,30 +74,18 @@ function loadScenarios(): Scenario[] {
     .map((entry) => readScenario(join(CORPUS_ROOT, entry.name)));
 }
 
-async function createProfile(
+function createProfile(
   agent: Agent,
   teamId: string,
   model: string,
 ): Promise<{ id: string }> {
-  return agent.runtimeProfiles.create(
-    {
-      // Model ids contain ':' / '.' which the profile-name pattern rejects.
-      name: `matrix-${model.replace(/[^a-zA-Z0-9_-]/g, '-')}-${randomUUID()}`,
-      runtimeKind: 'gondolin_pi',
-      models: { generation: { provider: PROVIDER, model } },
-      maxTurns: 14,
-      maxBashTimeouts: 1,
-      defaultWorkspaceMode: 'shared_mount',
-      allowedWorkspaceModes: ['none', 'shared_mount'],
-      requiredEnv: ['OLLAMA_API_KEY'],
-      requiredTools: [],
-      sandbox: {
-        env: { NODE_OPTIONS: '--dns-result-order=ipv4first' },
-        resources: { cpus: 2, memory: '2G' },
-      },
-    },
-    { teamId },
-  );
+  return createEvalProfile({
+    agent,
+    teamId,
+    namePrefix: `matrix-${model}`,
+    provider: PROVIDER,
+    model,
+  });
 }
 
 async function runTaskOnce(input: {
