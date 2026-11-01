@@ -26,6 +26,8 @@ import { Value } from 'typebox/value';
 
 import {
   GateExpectations,
+  GIT_SEED_PROMPT_PLACEHOLDERS,
+  type ResolvedScenarioFixtures,
   type Scenario,
   SCENARIO_TASK_TYPES,
   ScenarioFixtureConfig,
@@ -152,6 +154,13 @@ function assertSeedTreeIsContained(
   scenarioDir: string,
   slug: string,
   seedRoot: string,
+  {
+    label,
+    rejectGitMetadata,
+  }: { label: string; rejectGitMetadata: boolean } = {
+    label: 'workspace seed',
+    rejectGitMetadata: false,
+  },
 ): void {
   const scenarioRoot = realpathSync(scenarioDir);
   for (const entry of readdirSync(seedRoot, { withFileTypes: true })) {
@@ -159,22 +168,31 @@ function assertSeedTreeIsContained(
     if (entry.isSymbolicLink()) {
       throw new ScenarioError(
         slug,
-        `workspace seed contains symbolic link "${relative(scenarioDir, entryPath)}"`,
+        `${label} contains symbolic link "${relative(scenarioDir, entryPath)}"`,
+      );
+    }
+    if (rejectGitMetadata && entry.name === '.git') {
+      throw new ScenarioError(
+        slug,
+        `${label} must not contain git metadata "${relative(scenarioDir, entryPath)}"`,
       );
     }
     const resolvedEntry = realpathSync(entryPath);
     if (!isWithin(scenarioRoot, resolvedEntry)) {
       throw new ScenarioError(
         slug,
-        `workspace seed entry "${relative(scenarioDir, entryPath)}" resolves outside the scenario directory`,
+        `${label} entry "${relative(scenarioDir, entryPath)}" resolves outside the scenario directory`,
       );
     }
     if (entry.isDirectory()) {
-      assertSeedTreeIsContained(scenarioDir, slug, entryPath);
+      assertSeedTreeIsContained(scenarioDir, slug, entryPath, {
+        label,
+        rejectGitMetadata,
+      });
     } else if (!entry.isFile()) {
       throw new ScenarioError(
         slug,
-        `workspace seed entry "${relative(scenarioDir, entryPath)}" is not a regular file or directory`,
+        `${label} entry "${relative(scenarioDir, entryPath)}" is not a regular file or directory`,
       );
     }
   }
@@ -197,20 +215,72 @@ function defaultContentType(path: string): string {
   }
 }
 
+function resolveGitSeed(
+  dir: string,
+  slug: string,
+  gitSeed: NonNullable<ScenarioFixtureConfig['gitSeed']>,
+): NonNullable<ResolvedScenarioFixtures['gitSeed']> {
+  const scenarioRoot = realpathSync(dir);
+  const [basePath, headPath] = (['base', 'head'] as const).map((side) => {
+    const path = resolveFixturePath(dir, slug, gitSeed[side], 'directory');
+    // The scenario root holds the hidden rubric and gates; it must never
+    // become a committed tree the producer can read.
+    if (realpathSync(path) === scenarioRoot) {
+      throw new ScenarioError(
+        slug,
+        `eval.json gitSeed.${side} must be a subdirectory, not the scenario directory`,
+      );
+    }
+    assertSeedTreeIsContained(dir, slug, path, {
+      label: `gitSeed.${side}`,
+      rejectGitMetadata: true,
+    });
+    return path;
+  });
+  if (realpathSync(basePath) === realpathSync(headPath)) {
+    throw new ScenarioError(
+      slug,
+      'eval.json gitSeed.base and gitSeed.head must be different directories',
+    );
+  }
+  return { basePath, headPath };
+}
+
 function resolveFixtures(
   dir: string,
   slug: string,
   config: ScenarioFixtureConfig | undefined,
   workspace: Scenario['execution']['workspace'],
+  taskType: ScenarioTaskType,
 ): NonNullable<Scenario['fixtures']> {
   if (!config) {
     return { inputArtifacts: [] };
+  }
+  if (config.gitSeed && config.workspaceSeed) {
+    throw new ScenarioError(
+      slug,
+      'eval.json gitSeed and workspaceSeed are mutually exclusive',
+    );
   }
   if (config.workspaceSeed && workspace !== 'shared_mount') {
     throw new ScenarioError(
       slug,
       'eval.json workspaceSeed requires workspace "shared_mount"',
     );
+  }
+  if (config.gitSeed) {
+    if (taskType !== 'freeform') {
+      throw new ScenarioError(
+        slug,
+        'eval.json gitSeed requires taskType "freeform" (run_eval cannot pin a revision)',
+      );
+    }
+    if (workspace !== 'dedicated_worktree') {
+      throw new ScenarioError(
+        slug,
+        'eval.json gitSeed requires workspace "dedicated_worktree"',
+      );
+    }
   }
 
   const workspaceSeedPath = config.workspaceSeed
@@ -219,6 +289,9 @@ function resolveFixtures(
   if (workspaceSeedPath) {
     assertSeedTreeIsContained(dir, slug, workspaceSeedPath);
   }
+  const gitSeed = config.gitSeed
+    ? resolveGitSeed(dir, slug, config.gitSeed)
+    : undefined;
 
   const inputArtifacts = (config.inputArtifacts ?? []).map(
     (fixture: ScenarioInputArtifactFixture) => {
@@ -234,7 +307,38 @@ function resolveFixtures(
     },
   );
 
-  return { workspaceSeedPath, inputArtifacts };
+  return { workspaceSeedPath, gitSeed, inputArtifacts };
+}
+
+const GIT_SEED_PLACEHOLDER = /\{\{\s*gitSeed\.[^}]*\}\}/g;
+const SUPPORTED_GIT_SEED_PLACEHOLDERS: ReadonlySet<string> = new Set(
+  Object.values(GIT_SEED_PROMPT_PLACEHOLDERS),
+);
+
+/**
+ * `{{gitSeed.base}}` / `{{gitSeed.head}}` are substituted at task creation.
+ * Reject them without a gitSeed, and reject unknown keys, so a typo never
+ * reaches the producer as literal braces.
+ */
+function assertGitSeedPlaceholders(
+  slug: string,
+  prompt: string,
+  hasGitSeed: boolean,
+): void {
+  for (const match of prompt.matchAll(GIT_SEED_PLACEHOLDER)) {
+    if (!hasGitSeed) {
+      throw new ScenarioError(
+        slug,
+        `prompt.md uses ${match[0]} but eval.json declares no gitSeed fixture`,
+      );
+    }
+    if (!SUPPORTED_GIT_SEED_PLACEHOLDERS.has(match[0])) {
+      throw new ScenarioError(
+        slug,
+        `prompt.md placeholder ${match[0]} is not supported (expected ${[...SUPPORTED_GIT_SEED_PLACEHOLDERS].join(' or ')})`,
+      );
+    }
+  }
 }
 
 /**
@@ -335,7 +439,21 @@ export function readScenario(dir: string): Scenario {
     slug,
     rawFixtures as ScenarioFixtureConfig | undefined,
     (execution as Scenario['execution']).workspace,
+    taskType as ScenarioTaskType,
   );
+  assertGitSeedPlaceholders(slug, prompt, fixtures.gitSeed !== undefined);
+  // A freeform dedicated worktree needs a revision to detach at, and only a
+  // gitSeed supplies one; without it the daemon can only fail the attempt.
+  if (
+    taskType === 'freeform' &&
+    (execution as Scenario['execution']).workspace === 'dedicated_worktree' &&
+    !fixtures.gitSeed
+  ) {
+    throw new ScenarioError(
+      slug,
+      'eval.json freeform workspace "dedicated_worktree" requires a gitSeed fixture (the daemon has no revision to detach the worktree at)',
+    );
+  }
 
   let rubric: Scenario['rubric'];
   if (scoring === 'judge') {
@@ -360,6 +478,15 @@ export function readScenario(dir: string): Scenario {
 
   const gates = readJson(dir, slug, 'gates.json');
   assertSchema(slug, 'gates.json', GateExpectations, gates);
+  if (
+    (gates as Scenario['gates']).expectWorkspaceRevision &&
+    !fixtures.gitSeed
+  ) {
+    throw new ScenarioError(
+      slug,
+      'gates.json expectWorkspaceRevision requires a gitSeed fixture',
+    );
+  }
   if (
     scoring === 'gates_only' &&
     (gates as Scenario['gates']).requireCleanSubmit !== true

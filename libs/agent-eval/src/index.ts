@@ -15,6 +15,7 @@ export {
   type BuildJudgeOptions,
   buildRunEvalInput,
   type BuildRunEvalOptions,
+  buildScenarioFreeformInput,
   buildScenarioRunEvalInput,
   type BuildScenarioRunEvalOptions,
 } from './build-inputs.js';
@@ -27,6 +28,11 @@ export {
   type GateTaskMessage,
 } from './check-gates.js';
 export {
+  buildGitFixtureRepo,
+  type BuildGitFixtureRepoOptions,
+  type GitFixtureCommit,
+} from './git-repo.js';
+export {
   formatProducerSpend,
   mergeProducerSpend,
   type ProducerSpend,
@@ -36,18 +42,23 @@ export {
 export { readScenario, ScenarioError } from './read-scenario.js';
 export {
   GateExpectations,
+  GIT_SEED_PROMPT_PLACEHOLDERS,
   type ResolvedScenarioFixtures,
   type ResolvedScenarioInputArtifact,
   type Scenario,
   SCENARIO_REFERENCE_ROLES,
   SCENARIO_TASK_TYPES,
   ScenarioFixtureConfig,
+  ScenarioGitSeedFixture,
   ScenarioInputArtifactFixture,
   type ScenarioReferenceRole,
   type ScenarioTaskType,
 } from './scenario.js';
 export {
+  GIT_SEED_HEAD_BRANCH,
   type ScenarioArtifactStager,
+  type ScenarioGitRevisions,
+  seedScenarioGitRepo,
   seedScenarioWorkspace,
   type StagedScenarioInputArtifact,
   stageScenarioInputArtifacts,

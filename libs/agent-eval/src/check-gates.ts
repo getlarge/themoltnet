@@ -138,6 +138,7 @@ interface ExecuteStartPayload {
   model: string;
   provider: string;
   workspaceMode: string;
+  workspaceRevision?: string | null;
 }
 
 /**
@@ -350,6 +351,8 @@ export async function checkGates(
     teamId?: string;
     taskType?: ScenarioTaskType;
     outputContract?: { version: 1; schema: Record<string, unknown> };
+    /** Commit the workspace must be pinned at (the seeded gitSeed head). */
+    workspaceRevision?: string;
   },
 ): Promise<GateResult> {
   const failures: GateFailure[] = [];
@@ -425,6 +428,26 @@ export async function checkGates(
         gate: 'workspace_mode',
         detail: `execute_start.workspaceMode=${start.workspaceMode}, expected ${wantWorkspace}`,
       });
+    }
+  }
+
+  // Gate: the workspace was pinned at the seeded head commit. A missing
+  // expectation fails rather than passes: the runner forgot to supply it.
+  if (gates.expectWorkspaceRevision) {
+    const wantRevision = expected.workspaceRevision?.toLowerCase();
+    if (!wantRevision) {
+      failures.push({
+        gate: 'workspace_revision',
+        detail: `gates.json expects ${gates.expectWorkspaceRevision} but the runner supplied no expected revision`,
+      });
+    } else if (start) {
+      const actual = start.workspaceRevision?.toLowerCase() ?? null;
+      if (actual !== wantRevision) {
+        failures.push({
+          gate: 'workspace_revision',
+          detail: `execute_start.workspaceRevision=${actual}, expected ${wantRevision}`,
+        });
+      }
     }
   }
 

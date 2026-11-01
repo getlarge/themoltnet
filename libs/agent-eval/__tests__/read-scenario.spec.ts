@@ -387,6 +387,181 @@ describe('readScenario', () => {
     );
   });
 
+  describe('gitSeed fixtures', () => {
+    const GIT_SEED_EVAL = {
+      mode: 'vivo',
+      workspace: 'dedicated_worktree',
+      taskType: 'freeform',
+      fixtures: { gitSeed: { base: 'repo/base', head: 'repo/head' } },
+    };
+
+    function writeGitSeedScenario(
+      evalJson: unknown = GIT_SEED_EVAL,
+      prompt = 'Review {{gitSeed.base}}..{{gitSeed.head}}.',
+    ): string {
+      const dir = writeScenario({
+        prompt,
+        evalJson,
+        rubric: VALID_RUBRIC,
+        gates: VALID_GATES,
+      });
+      for (const side of ['base', 'head']) {
+        mkdirSync(join(dir, 'repo', side, 'src'), { recursive: true });
+        writeFileSync(join(dir, 'repo', side, 'src', 'a.ts'), `// ${side}\n`);
+      }
+      return dir;
+    }
+
+    it('resolves base and head trees and keeps placeholders in the prompt', () => {
+      // Arrange
+      const dir = writeGitSeedScenario();
+
+      // Act
+      const scenario = readScenario(dir);
+
+      // Assert
+      expect(scenario.fixtures?.gitSeed).toEqual({
+        basePath: join(dir, 'repo', 'base'),
+        headPath: join(dir, 'repo', 'head'),
+      });
+      expect(scenario.execution).toEqual({
+        mode: 'vivo',
+        workspace: 'dedicated_worktree',
+      });
+      expect(scenario.prompt).toBe(
+        'Review {{gitSeed.base}}..{{gitSeed.head}}.',
+      );
+    });
+
+    it.each([
+      [
+        'run_eval scenarios',
+        { ...GIT_SEED_EVAL, taskType: 'run_eval' },
+        /gitSeed requires taskType "freeform"/,
+      ],
+      [
+        'non-dedicated workspaces',
+        { ...GIT_SEED_EVAL, workspace: 'shared_mount' },
+        /gitSeed requires workspace "dedicated_worktree"/,
+      ],
+      [
+        'a combined workspaceSeed',
+        {
+          ...GIT_SEED_EVAL,
+          fixtures: { ...GIT_SEED_EVAL.fixtures, workspaceSeed: 'repo/base' },
+        },
+        /mutually exclusive/,
+      ],
+      [
+        'the scenario directory as a tree',
+        {
+          ...GIT_SEED_EVAL,
+          fixtures: { gitSeed: { base: '.', head: 'repo/head' } },
+        },
+        /gitSeed.base must be a subdirectory/,
+      ],
+      [
+        'identical trees',
+        {
+          ...GIT_SEED_EVAL,
+          fixtures: { gitSeed: { base: 'repo/head', head: 'repo/head/' } },
+        },
+        /must be different directories/,
+      ],
+      [
+        'escaping paths',
+        {
+          ...GIT_SEED_EVAL,
+          fixtures: { gitSeed: { base: '../x', head: 'repo/head' } },
+        },
+        /escapes the scenario directory/,
+      ],
+      [
+        'unknown keys',
+        {
+          ...GIT_SEED_EVAL,
+          fixtures: {
+            gitSeed: { base: 'repo/base', head: 'repo/head', ref: 'x' },
+          },
+        },
+        /fixtures failed schema validation/,
+      ],
+    ])('rejects %s', (_label, evalJson, error) => {
+      const dir = writeGitSeedScenario(evalJson);
+
+      expect(() => readScenario(dir)).toThrow(error);
+    });
+
+    it('rejects a freeform dedicated worktree without a gitSeed', () => {
+      const dir = writeGitSeedScenario(
+        { ...GIT_SEED_EVAL, fixtures: undefined },
+        'Review the change.',
+      );
+
+      expect(() => readScenario(dir)).toThrow(
+        /freeform workspace "dedicated_worktree" requires a gitSeed fixture/,
+      );
+    });
+
+    it('accepts expectWorkspaceRevision only with a gitSeed', () => {
+      const seeded = writeGitSeedScenario();
+      writeFileSync(
+        join(seeded, 'gates.json'),
+        JSON.stringify({ expectWorkspaceRevision: 'gitSeed.head' }),
+      );
+      expect(readScenario(seeded).gates).toEqual({
+        expectWorkspaceRevision: 'gitSeed.head',
+      });
+
+      const unseeded = writeScenario({
+        prompt: 'x',
+        evalJson: VALID_EVAL,
+        rubric: VALID_RUBRIC,
+        gates: { expectWorkspaceRevision: 'gitSeed.head' },
+      });
+      expect(() => readScenario(unseeded)).toThrow(
+        /expectWorkspaceRevision requires a gitSeed fixture/,
+      );
+    });
+
+    it('rejects git metadata and symbolic links inside a tree', () => {
+      const withGitDir = writeGitSeedScenario();
+      mkdirSync(join(withGitDir, 'repo', 'head', '.git'));
+      expect(() => readScenario(withGitDir)).toThrow(
+        /gitSeed.head must not contain git metadata/,
+      );
+
+      rmSync(join(withGitDir, 'repo', 'head', '.git'), { recursive: true });
+      symlinkSync(
+        '../base/src/a.ts',
+        join(withGitDir, 'repo', 'head', 'link.ts'),
+      );
+      expect(() => readScenario(withGitDir)).toThrow(
+        /gitSeed.head contains symbolic link/,
+      );
+    });
+
+    it('rejects gitSeed placeholders without a gitSeed and unknown placeholders', () => {
+      const noSeed = writeScenario({
+        prompt: 'Review {{gitSeed.head}}.',
+        evalJson: { ...VALID_EVAL, taskType: 'freeform' },
+        rubric: VALID_RUBRIC,
+        gates: VALID_GATES,
+      });
+      expect(() => readScenario(noSeed)).toThrow(
+        /uses \{\{gitSeed.head\}\} but eval.json declares no gitSeed/,
+      );
+
+      const typo = writeGitSeedScenario(
+        GIT_SEED_EVAL,
+        'Review {{gitSeed.haed}}.',
+      );
+      expect(() => readScenario(typo)).toThrow(
+        /placeholder \{\{gitSeed.haed\}\} is not supported/,
+      );
+    });
+  });
+
   it('throws when prompt.md is missing', () => {
     // Arrange
     const dir = writeScenario({

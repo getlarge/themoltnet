@@ -86,6 +86,7 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
   let agentRoot: string;
   let piDir: string;
   const tempRoots: string[] = [];
+  const producerHeadRevisions = new Map<string, string>();
   const scenarios = loadScenarios();
   const structures: Array<
     SubmitStructure & { scenario: string; taskId: string; attemptN: number }
@@ -166,7 +167,7 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
         maxTurns: 14,
         maxBashTimeouts: 1,
         defaultWorkspaceMode: 'shared_mount',
-        allowedWorkspaceModes: ['none', 'shared_mount'],
+        allowedWorkspaceModes: ['none', 'shared_mount', 'dedicated_worktree'],
         requiredEnv: LIVE_PROVIDER === 'ollama-cloud' ? ['OLLAMA_API_KEY'] : [],
         requiredTools: [],
         sandbox: {
@@ -210,6 +211,8 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
             title: `baseline ${scenario.slug}`,
             contextPolicy: 'baseline',
           });
+          if (task.gitRevisions)
+            producerHeadRevisions.set(task.id, task.gitRevisions.head);
 
           const oldPiDir = process.env.PI_CODING_AGENT_DIR;
           const oldCwd = process.cwd();
@@ -293,6 +296,7 @@ describeBaseline('Producer baseline (live model, e2e)', () => {
               teamId,
               taskType: scenario.taskType,
               outputContract: scenario.outputContract,
+              workspaceRevision: producerHeadRevisions.get(producer.taskId),
             },
           ),
       },

@@ -11,9 +11,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
+  buildScenarioFreeformInput,
   buildScenarioRunEvalInput,
   type BuildScenarioRunEvalOptions,
   type Scenario,
+  seedScenarioGitRepo,
   seedScenarioWorkspace,
   stageScenarioInputArtifacts,
 } from '@moltnet/agent-eval';
@@ -168,6 +170,9 @@ export async function createScenarioProducerTask(args: {
     contextPolicy,
   } = args;
   seedScenarioWorkspace(scenario, sandboxRoot);
+  // A gitSeed turns the daemon cwd into the repository the dedicated worktree
+  // is cut from; the task pins its head commit, as adaptive review does.
+  const gitRevisions = seedScenarioGitRepo(scenario, sandboxRoot);
   const inputArtifacts = await stageScenarioInputArtifacts(
     agent.tasks.artifacts,
     scenario,
@@ -176,11 +181,7 @@ export async function createScenarioProducerTask(args: {
   const builder =
     scenario.taskType === 'freeform'
       ? agent.tasks
-          .buildFreeform({
-            brief: scenario.prompt,
-            execution: { workspace: scenario.execution.workspace },
-            outputContract: scenario.outputContract,
-          })
+          .buildFreeform(buildScenarioFreeformInput(scenario, { gitRevisions }))
           .title(title)
           .diary(diaryId)
           .correlationId(randomUUID())
@@ -196,7 +197,8 @@ export async function createScenarioProducerTask(args: {
   for (const inputArtifact of inputArtifacts) {
     builder.artifactReference(inputArtifact.artifact, inputArtifact.role);
   }
-  return agent.tasks.create(builder.build());
+  const task = await agent.tasks.create(builder.build());
+  return { ...task, gitRevisions };
 }
 
 /**

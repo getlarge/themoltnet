@@ -116,7 +116,11 @@ export function defineLiveOllamaEvalSuite(partitionIndex: number): void {
             maxTurns: 14,
             maxBashTimeouts: 1,
             defaultWorkspaceMode: 'shared_mount',
-            allowedWorkspaceModes: ['none', 'shared_mount'],
+            allowedWorkspaceModes: [
+              'none',
+              'shared_mount',
+              'dedicated_worktree',
+            ],
             requiredEnv: ['OLLAMA_API_KEY'],
             requiredTools: [],
             sandbox: {
@@ -219,6 +223,7 @@ export function defineLiveOllamaEvalSuite(partitionIndex: number): void {
                   workspace: scenario.execution.workspace,
                   teamId,
                   taskType: scenario.taskType,
+                  workspaceRevision: task.gitRevisions?.head,
                 },
               );
               spendReport.result(task.id, { gatesPassed: result.passed });
