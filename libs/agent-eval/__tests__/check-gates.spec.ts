@@ -39,6 +39,7 @@ function messages(
     executeStart?: Partial<{
       model: string;
       workspaceMode: string;
+      workspaceRevision: string | null;
       provider: string;
     }> | null;
     promptSections?: Array<{ id: string }> | null;
@@ -65,6 +66,7 @@ function messages(
         // The daemon remaps `none` → `scratch_mount` before emitting
         // execute_start, so the realistic default here is `scratch_mount`.
         workspaceMode: overrides.executeStart?.workspaceMode ?? 'scratch_mount',
+        workspaceRevision: overrides.executeStart?.workspaceRevision ?? null,
       },
     });
   }
@@ -392,6 +394,80 @@ describe('checkGates', () => {
     const result = await checkGates(agent, 't1', 1, {}, EXPECTED);
 
     expect(result.failures.map((f) => f.gate)).toContain('workspace_mode');
+  });
+
+  describe('expectWorkspaceRevision', () => {
+    const HEAD = 'ab'.repeat(20);
+    const gates = { expectWorkspaceRevision: 'gitSeed.head' as const };
+
+    it('passes when execute_start reports the seeded head', async () => {
+      const agent = fakeAgent(
+        messages({ executeStart: { workspaceRevision: HEAD.toUpperCase() } }),
+        completedAttempt,
+      );
+
+      const result = await checkGates(agent, 't1', 1, gates, {
+        ...EXPECTED,
+        workspaceRevision: HEAD,
+      });
+
+      expect(result.failures).toEqual([]);
+    });
+
+    it('fails when the workspace was pinned elsewhere or not at all', async () => {
+      for (const workspaceRevision of ['cd'.repeat(20), null]) {
+        const agent = fakeAgent(
+          messages({ executeStart: { workspaceRevision } }),
+          completedAttempt,
+        );
+
+        const result = await checkGates(agent, 't1', 1, gates, {
+          ...EXPECTED,
+          workspaceRevision: HEAD,
+        });
+
+        expect(result.failures).toContainEqual(
+          expect.objectContaining({ gate: 'workspace_revision' }),
+        );
+      }
+    });
+
+    it('fails when the runner supplies no expected revision', async () => {
+      const agent = fakeAgent(
+        messages({ executeStart: { workspaceRevision: HEAD } }),
+        completedAttempt,
+      );
+
+      const result = await checkGates(agent, 't1', 1, gates, EXPECTED);
+
+      expect(result.failures).toContainEqual({
+        gate: 'workspace_revision',
+        detail:
+          'gates.json expects gitSeed.head but the runner supplied no expected revision',
+      });
+    });
+
+    it('is not checked when the gate is absent', async () => {
+      const agent = fakeAgent(
+        messages({ executeStart: { workspaceRevision: 'cd'.repeat(20) } }),
+        completedAttempt,
+      );
+
+      const result = await checkGates(
+        agent,
+        't1',
+        1,
+        {},
+        {
+          ...EXPECTED,
+          workspaceRevision: HEAD,
+        },
+      );
+
+      expect(result.failures.map((f) => f.gate)).not.toContain(
+        'workspace_revision',
+      );
+    });
   });
 
   it('fails when a required prompt section is missing', async () => {

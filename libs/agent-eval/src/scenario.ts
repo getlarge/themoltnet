@@ -51,6 +51,13 @@ export const GateExpectations = Type.Object(
      */
     expectWorkspaceMode: Type.Optional(Type.String({ minLength: 1 })),
     /**
+     * The `execute_start` event must report this commit as its
+     * `workspaceRevision`. `gitSeed.head` is the head commit the harness built
+     * for this run; the runner passes it to `checkGates` as
+     * `expected.workspaceRevision`. Requires a `gitSeed` fixture.
+     */
+    expectWorkspaceRevision: Type.Optional(Type.Literal('gitSeed.head')),
+    /**
      * `prompt_assembled` must be present and carry every one of these section
      * ids (see `PromptSectionTrace.id` in `@moltnet/agent-runtime`). Use this
      * to assert the runtime prompt actually wove in a given block for this

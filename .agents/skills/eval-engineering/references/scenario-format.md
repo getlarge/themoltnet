@@ -45,7 +45,10 @@ contentType? }>` names scenario-relative regular files. Every producer run
     identity and dates, so the same trees always yield the same SHAs. In
     `prompt.md`, `{{gitSeed.base}}` and `{{gitSeed.head}}` become the full
     commit ids at task creation; using them without a gitSeed, or any other
-    `{{gitSeed.*}}` key, fails `readScenario`. The e2e eval profiles allow
+    `{{gitSeed.*}}` key, fails `readScenario`. Placeholders are optional, but production
+    adaptive-review briefs always include the base and head SHAs. A freeform
+    `dedicated_worktree` scenario without a gitSeed is rejected, because the
+    daemon would have no revision to detach the worktree at. The e2e eval profiles allow
     `dedicated_worktree` for this. Example eval.json:
     `{ "mode": "vivo", "workspace": "dedicated_worktree", "taskType":
 "freeform", "fixtures": { "gitSeed": { "base": "repo/base", "head":
@@ -65,6 +68,10 @@ contentType? }>` names scenario-relative regular files. Every producer run
   - `requireCleanSubmit?` (default `true`) — accepted attempt completed, output
     non-null, passes `RunEvalOutput` schema + cross-field validation.
   - `expectWorkspaceMode?`
+  - `expectWorkspaceRevision?: "gitSeed.head"` — `execute_start` must report
+    the seeded head commit as `workspaceRevision`. The runner passes the head
+    SHA to `checkGates` (`expected.workspaceRevision`); a missing expectation
+    fails the gate. Requires a `gitSeed` fixture.
   - `requirePromptSections?: string[]` — section _ids_ in the assembled prompt
     (e.g. `run_eval.header`). Note: ids are emitted regardless of content, so
     this cannot distinguish context-present vs absent.

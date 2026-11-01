@@ -492,6 +492,38 @@ describe('readScenario', () => {
       expect(() => readScenario(dir)).toThrow(error);
     });
 
+    it('rejects a freeform dedicated worktree without a gitSeed', () => {
+      const dir = writeGitSeedScenario(
+        { ...GIT_SEED_EVAL, fixtures: undefined },
+        'Review the change.',
+      );
+
+      expect(() => readScenario(dir)).toThrow(
+        /freeform workspace "dedicated_worktree" requires a gitSeed fixture/,
+      );
+    });
+
+    it('accepts expectWorkspaceRevision only with a gitSeed', () => {
+      const seeded = writeGitSeedScenario();
+      writeFileSync(
+        join(seeded, 'gates.json'),
+        JSON.stringify({ expectWorkspaceRevision: 'gitSeed.head' }),
+      );
+      expect(readScenario(seeded).gates).toEqual({
+        expectWorkspaceRevision: 'gitSeed.head',
+      });
+
+      const unseeded = writeScenario({
+        prompt: 'x',
+        evalJson: VALID_EVAL,
+        rubric: VALID_RUBRIC,
+        gates: { expectWorkspaceRevision: 'gitSeed.head' },
+      });
+      expect(() => readScenario(unseeded)).toThrow(
+        /expectWorkspaceRevision requires a gitSeed fixture/,
+      );
+    });
+
     it('rejects git metadata and symbolic links inside a tree', () => {
       const withGitDir = writeGitSeedScenario();
       mkdirSync(join(withGitDir, 'repo', 'head', '.git'));

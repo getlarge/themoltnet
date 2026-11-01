@@ -442,6 +442,18 @@ export function readScenario(dir: string): Scenario {
     taskType as ScenarioTaskType,
   );
   assertGitSeedPlaceholders(slug, prompt, fixtures.gitSeed !== undefined);
+  // A freeform dedicated worktree needs a revision to detach at, and only a
+  // gitSeed supplies one; without it the daemon can only fail the attempt.
+  if (
+    taskType === 'freeform' &&
+    (execution as Scenario['execution']).workspace === 'dedicated_worktree' &&
+    !fixtures.gitSeed
+  ) {
+    throw new ScenarioError(
+      slug,
+      'eval.json freeform workspace "dedicated_worktree" requires a gitSeed fixture (the daemon has no revision to detach the worktree at)',
+    );
+  }
 
   let rubric: Scenario['rubric'];
   if (scoring === 'judge') {
@@ -466,6 +478,15 @@ export function readScenario(dir: string): Scenario {
 
   const gates = readJson(dir, slug, 'gates.json');
   assertSchema(slug, 'gates.json', GateExpectations, gates);
+  if (
+    (gates as Scenario['gates']).expectWorkspaceRevision &&
+    !fixtures.gitSeed
+  ) {
+    throw new ScenarioError(
+      slug,
+      'gates.json expectWorkspaceRevision requires a gitSeed fixture',
+    );
+  }
   if (
     scoring === 'gates_only' &&
     (gates as Scenario['gates']).requireCleanSubmit !== true
