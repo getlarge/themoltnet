@@ -17,6 +17,9 @@
     "@themoltnet/shell-command-analyzer": "workspace:*"
   },
   "devDependencies": {
+    "@earendil-works/chord": "catalog:",
+    "@earendil-works/pi-ai": "catalog:",
+    "@earendil-works/pi-durable": "catalog:",
     "@moltnet/models": "workspace:*",
     "@themoltnet/pi-runtime": "workspace:*",
     "typescript": "catalog:",
@@ -112,6 +115,9 @@
           },
           {
             "env": "MOLTNET_AGENT_DAEMON_CLASSIFIER_MODEL"
+          },
+          {
+            "env": "MOLTNET_AGENT_DAEMON_E2E_BIN"
           }
         ],
         "options": {
