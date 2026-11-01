@@ -4,8 +4,6 @@
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-only",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./src/index.ts",
