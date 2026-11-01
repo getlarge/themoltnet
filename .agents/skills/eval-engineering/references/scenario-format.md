@@ -30,7 +30,28 @@ contentType? }>` names scenario-relative regular files. Every producer run
     Use explicit metadata when the artifact contract matters to the scenario.
     The task prompt should tell the producer what it must inspect or create; do
     not leak the host fixture path as an alternate access route.
-  - Both fixture forms are repository-agnostic and may be used together. Prefer
+  - `fixtures.gitSeed?: { base: string, head: string }` names two
+    scenario-relative directories, each a **complete** tree (head is the full
+    head tree, not a patch). For every producer run the harness commits base,
+    then head as its child, into a fresh git repository at the daemon's cwd:
+    the main checkout sits at base on `main` (like a CI checkout of a PR base)
+    and head stays reachable on `pr-head`. The task pins
+    `execution: { workspace: "dedicated_worktree", revision: <head> }`, so
+    the daemon detaches a worktree at head exactly as production adaptive
+    review does. Requires `taskType: "freeform"` (`run_eval` cannot pin a
+    revision) and `workspace: "dedicated_worktree"`; mutually exclusive with
+    `workspaceSeed`. Trees follow the workspace-seed path rules and must not
+    be the scenario directory itself or contain `.git`. Commits use a fixed
+    identity and dates, so the same trees always yield the same SHAs. In
+    `prompt.md`, `{{gitSeed.base}}` and `{{gitSeed.head}}` become the full
+    commit ids at task creation; using them without a gitSeed, or any other
+    `{{gitSeed.*}}` key, fails `readScenario`. The e2e eval profiles allow
+    `dedicated_worktree` for this. Example eval.json:
+    `{ "mode": "vivo", "workspace": "dedicated_worktree", "taskType":
+"freeform", "fixtures": { "gitSeed": { "base": "repo/base", "head":
+"repo/head" } } }`.
+  - `workspaceSeed` and `inputArtifacts` are repository-agnostic and may be
+    used together (`gitSeed` combines with `inputArtifacts` too). Prefer
     input artifacts when the behavior under test is artifact discovery or
     provenance; prefer a workspace seed when the behavior requires ordinary
     file editing or workspace tools.
