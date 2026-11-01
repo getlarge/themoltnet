@@ -307,17 +307,22 @@ services:
     environment:
       AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?set S3_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?set S3_SECRET_ACCESS_KEY}
+      # The volume server sizes its slot count from free disk (one slot per
+      # volumeSizeLimitMB), and each new collection grows 7 volumes by
+      # default. On a small disk the first bucket takes every slot and writes
+      # to the second bucket fail. Grow one volume at a time instead.
+      WEED_MASTER_VOLUME_GROWTH_COPY_1: '1'
     volumes:
       - object-data:/data
     healthcheck:
       # The S3 gateway answers /status before a volume server has joined the
-      # master, so also require the master to hand out a file id (HTTP 406
-      # until a writable volume exists).
+      # master, so also require a registered data node. Read-only on purpose:
+      # /dir/assign would allocate volumes in the unused default collection.
       test:
         - CMD-SHELL
         - >-
           curl -fsS http://127.0.0.1:8333/status >/dev/null &&
-          curl -fsS http://127.0.0.1:9333/dir/assign >/dev/null
+          curl -fsS http://127.0.0.1:9333/dir/status | grep -q '"DataNodes":\[{'
       interval: 5s
       timeout: 3s
       retries: 12
