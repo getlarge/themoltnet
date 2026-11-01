@@ -62,12 +62,47 @@ runs:
         node-version-file: .tool-versions
         cache: ${{ inputs.pnpm-cache == 'true' && 'pnpm' || '' }}
         registry-url: ${{ inputs.registry-url }}
+    # Go toolchain cache. When the runner image does not ship the pinned Go
+    # version, setup-go downloads and unpacks it in every job (~8 s). Restore
+    # its tool-cache directory first so setup-go finds the toolchain locally.
+    # - The key is the exact pinned version, so a .tool-versions bump is a
+    #   clean miss, never a stale hit.
+    # - setup-go only accepts a tool-cache entry with its `<arch>.complete`
+    #   marker, which is inside the cached directory; an incomplete restore
+    #   falls back to a normal download.
+    # - Only main saves, so a PR branch cannot seed the shared entry.
+    # - Linux only: the hosted Linux pool is where the agents run, and archive
+    #   restore on Windows is not reliably faster than the download.
+    - name: Resolve Go toolchain version
+      id: go-toolchain
+      if: inputs.go == 'true' && runner.os == 'Linux'
+      shell: bash
+      run: |
+        version=$(awk '$1 == "golang" { print $2 }' .tool-versions)
+        [ -n "$version" ] || { echo '.tool-versions declares no golang version' >&2; exit 1; }
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+    - name: Restore Go toolchain
+      id: go-toolchain-cache
+      if: inputs.go == 'true' && runner.os == 'Linux'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      with:
+        path: ${{ runner.tool_cache }}/go/${{ steps.go-toolchain.outputs.version }}
+        key: go-toolchain-${{ runner.os }}-${{ runner.arch }}-${{ steps.go-toolchain.outputs.version }}
     - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
       if: inputs.go == 'true'
       with:
         go-version-file: .tool-versions
         cache: ${{ inputs.go-cache }}
         cache-dependency-path: ${{ inputs.go-cache-dependency-path }}
+    - name: Save Go toolchain
+      if: >-
+        inputs.go == 'true' && runner.os == 'Linux' &&
+        steps.go-toolchain-cache.outputs.cache-hit != 'true' &&
+        github.ref == 'refs/heads/main'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      with:
+        path: ${{ runner.tool_cache }}/go/${{ steps.go-toolchain.outputs.version }}
+        key: go-toolchain-${{ runner.os }}-${{ runner.arch }}-${{ steps.go-toolchain.outputs.version }}
     # Cached apt installs. The key carries the runner image version because
     # cached .deb files only satisfy the dependency set of the image they were
     # downloaded on; a new image is a cache miss and refreshes from the mirror.

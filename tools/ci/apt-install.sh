@@ -41,6 +41,11 @@ if [ "${#missing[@]}" -eq 0 ]; then
   exit 0
 fi
 
+# man-db rebuilds its index from a dpkg trigger after every install (~4 s on
+# hosted runners). The trigger is a no-op without this marker file, and CI
+# never reads man pages.
+sudo rm -f /var/lib/man-db/auto-update
+
 if [ -z "$cache_dir" ]; then
   sudo apt-get update "${apt_opts[@]}"
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "${apt_opts[@]}" "${missing[@]}"
