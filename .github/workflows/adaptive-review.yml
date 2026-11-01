@@ -13,10 +13,17 @@ permissions: {}
 
 jobs:
   review:
+    # Skip generated release/consumer pins, CLI module pins, and Renovate
+    # updates on automatic runs. Use skip-adaptive-review for individual PRs.
+    # An authorized /review comment still requests review explicitly.
     if: |
       vars.MOLTNET_ADAPTIVE_REVIEW_ENABLED == 'true' &&
       ((github.event_name == 'pull_request' &&
-          github.event.pull_request.draft == false) ||
+          github.event.pull_request.draft == false &&
+          !startsWith(github.head_ref, 'release-please--') &&
+          !startsWith(github.head_ref, 'automation/cli-go-mod-sync') &&
+          !startsWith(github.head_ref, 'renovate/') &&
+          !contains(github.event.pull_request.labels.*.name, 'skip-adaptive-review')) ||
         (github.event_name == 'issue_comment' &&
           github.event.issue.pull_request != null &&
           github.event.issue.state == 'open' &&
