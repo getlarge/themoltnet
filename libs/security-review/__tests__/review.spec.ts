@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  changedLineGuide,
   changedLines,
   isRoutineDependencyUpdate,
   renderComment,
@@ -35,6 +36,58 @@ const candidates = {
 };
 
 describe('security review evidence boundary', () => {
+  it('reports every invalid citation separately from duplicate IDs', () => {
+    const findings = [
+      { ...candidates.findings[0], line: 10 },
+      { ...candidates.findings[0], id: 'second', side: 'old', line: 12 },
+      { ...candidates.findings[0], id: 'second' },
+    ];
+    expect(() => validateCandidates({ ...candidates, findings }, diff)).toThrow(
+      [
+        'Invalid candidate references:',
+        'findings[0] id="size-cap": must cite a changed diff line; got {"path":"src/repair.ts","side":"new","line":10}; changed new lines: 11-12.',
+        'findings[1] id="second": must cite a changed diff line; got {"path":"src/repair.ts","side":"old","line":12}; changed old lines: 11.',
+        'findings[2] id="second": duplicate id; keep a unique id for each candidate.',
+      ].join('\n'),
+    );
+  });
+
+  it('supplies bounded citation ranges without including source text', () => {
+    expect(changedLineGuide(diff)).toBe(
+      '{"path":"src/repair.ts","old":"11","new":"11-12"}',
+    );
+    const large = Array.from({ length: 500 }, (_, i) =>
+      diff.replaceAll('src/repair.ts', `src/file-${i}.ts`),
+    ).join('\n');
+    const guide = changedLineGuide(large);
+    expect(guide.length).toBeLessThanOrEqual(8000);
+    expect(guide).toContain('truncated');
+    expect(guide).not.toContain('skipOneRepair');
+  });
+
+  it('keeps context gaps and old/new rename paths distinct in the citation guide', () => {
+    const renamed = [
+      'diff --git a/before.ts b/after.ts',
+      '--- a/before.ts',
+      '+++ b/after.ts',
+      '@@ -1,2 +1,2 @@',
+      '-old',
+      '+new',
+      ' context',
+      '@@ -10 +10 @@',
+      '-old',
+      '+new',
+    ].join('\n');
+    expect(
+      changedLineGuide(renamed)
+        .split('\n')
+        .map((row) => JSON.parse(row)),
+    ).toEqual([
+      { path: 'after.ts', old: 'none', new: '1, 10' },
+      { path: 'before.ts', old: '1, 10', new: 'none' },
+    ]);
+  });
+
   it('defers only dependency-only Renovate changes to existing automation', () => {
     expect(
       isRoutineDependencyUpdate('themoltnet-renovate[bot]', [
@@ -189,6 +242,15 @@ describe('security review evidence boundary', () => {
       diff,
     );
     expect(result.findings[0].status).toBe('refuted');
+    expect(() =>
+      validateResult(
+        { ...result, findings: [{ ...result.findings[0], line: 12 }] },
+        source,
+        diff,
+      ),
+    ).toThrow(
+      'expected {"path":"src/repair.ts","side":"new","line":11}, got {"path":"src/repair.ts","side":"new","line":12}',
+    );
     expect(
       renderComment(
         'a'.repeat(40),

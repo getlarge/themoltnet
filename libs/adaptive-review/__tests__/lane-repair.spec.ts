@@ -117,6 +117,12 @@ describe('review semantic correction', () => {
       attemptN: 1,
     });
     expect(tasks.created[2].tags).toContain('stage:verify');
+    expect(tasks.created[0].input.brief).toContain(
+      '{"path":"src/example.ts","old":"1","new":"1"}',
+    );
+    expect(tasks.created[2].input.brief).toContain(
+      'Retain each candidate id, path, side, and line exactly',
+    );
     expect(tasks.created[2].input.brief).toContain(
       'Check the changed behavior.',
     );
@@ -143,6 +149,57 @@ describe('review semantic correction', () => {
     expect(repair.input).not.toHaveProperty('execution');
     expect(repair.input.brief).toContain('cite a changed diff line');
     expect(tasks.creationOptions[1]?.idempotencyKey).toBeTruthy();
+  });
+
+  it('gives the single repair all citation errors across files', async () => {
+    // Same failure pattern as PR 2943: context cited in the first file,
+    // then an unchanged push trigger cited instead of the changed cron.
+    const patch = [
+      'diff --git a/renovate.json b/renovate.json',
+      '--- a/renovate.json',
+      '+++ b/renovate.json',
+      '@@ -33,2 +33,3 @@',
+      ' "osvVulnerabilityAlerts": true,',
+      ' "packageRules": [',
+      '+{"automerge": true}',
+      'diff --git a/.github/workflows/renovate.yml b/.github/workflows/renovate.yml',
+      '--- a/.github/workflows/renovate.yml',
+      '+++ b/.github/workflows/renovate.yml',
+      '@@ -12,3 +12,3 @@',
+      '   schedule:',
+      "-    - cron: '0 3 * * *'",
+      "+    - cron: '23 * * * *'",
+      '   push:',
+    ].join('\n');
+    const first = { ...candidate, id: 'rule', path: 'renovate.json', line: 33 };
+    const second = {
+      ...candidate,
+      id: 'schedule',
+      path: '.github/workflows/renovate.yml',
+      line: 14,
+    };
+    const corrected = [
+      { ...first, line: 35 },
+      { ...second, line: 13 },
+    ];
+    const tasks = new FakeTasks([
+      { result: { summary: 'Hunt', findings: [first, second] } },
+      { result: { summary: 'Hunt', findings: corrected } },
+    ]);
+    const initial = await tasks.createTask(body);
+
+    expect(
+      await acceptedReview(tasks, initial, body, [], (raw) =>
+        validateCandidates(unwrap(raw), patch),
+      ),
+    ).toEqual(corrected);
+    const feedback = tasks.created[1].input.brief as string;
+    // Feedback is JSON-encoded in the continuation brief.
+    expect(feedback).toContain('findings[0]');
+    expect(feedback).toContain('findings[1]');
+    expect(feedback).toContain('changed new lines: 35');
+    expect(feedback).toContain('changed new lines: 13');
+    expect(tasks.created).toHaveLength(2);
   });
 
   it('uses the same correction key when the original review is rerun', async () => {
