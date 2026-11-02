@@ -439,7 +439,7 @@ catalogs:
       version: 9.31.2
     '@wdio/tauri-plugin':
       specifier: ^1.5.0
-      version: 1.5.0
+      version: 1.5.1
     '@wdio/tauri-service':
       specifier: ^1.5.0
       version: 1.5.0
@@ -571,7 +571,7 @@ catalogs:
       version: 13.0.7
     smol-toml:
       specifier: ^1.7.1
-      version: 1.9.0
+      version: 1.9.1
     strip-json-comments:
       specifier: ^5.0.3
       version: 5.0.3
@@ -1172,7 +1172,7 @@ importers:
         version: 9.31.2
       '@wdio/tauri-plugin':
         specifier: 'catalog:'
-        version: 1.5.0(supports-color@8.1.1)(tsx@4.23.15)
+        version: 1.5.1(supports-color@8.1.1)(tsx@4.23.15)
       '@wdio/tauri-service':
         specifier: 'catalog:'
         version: 1.5.0(expect-webdriverio@6.0.10)(supports-color@8.1.1)(tsx@4.23.15)(webdriverio@9.31.9(supports-color@8.1.1))
@@ -4133,7 +4133,7 @@ importers:
         version: 6.2.12
       smol-toml:
         specifier: 'catalog:'
-        version: 1.9.0
+        version: 1.9.1
       tar:
         specifier: 'catalog:'
         version: 7.5.22
@@ -8399,8 +8399,8 @@ packages:
     engines: {node: '>= 10'}
     hasBin: true
 
-  '@tauri-apps/plugin-log@2.10.0':
-    resolution: {integrity: sha512-IHMspJx/fDA+8q8O6MTbrKffkemSDa1I5iXRhnLrLVnOd7xK4bAosyQbWcjnpPA7E+c6BMkpsE2kESHhkiBrDg==}
+  '@tauri-apps/plugin-log@2.10.1':
+    resolution: {integrity: sha512-QYgxDunUZP+Cd3ev+8ItOc3Q6uUFkEhRHdTolxUtlC/8SGsc5IyVjGgFclprkAx736HUCUYfh2vqUr3qwNfTTw==}
 
   '@testcontainers/postgresql@11.12.0':
     resolution: {integrity: sha512-w4ZK0H+WIYBUBk57H9wCSxPMSMZUNsFpx2MZAX4iru0Aevz9HFWDfAhFLAu+/SwsHtEJUD7XfWUDlqBGC3OF0Q==}
@@ -9197,12 +9197,25 @@ packages:
     resolution: {integrity: sha512-unsC2Vgu5T9atD478Zj/p2N+rVSK4i/NibIaaEw4rZF/T5u5bmAHChFntEiBEfyMzd62VwbhKhzwwOSKjzrfJA==}
     engines: {node: '>=18.20.0'}
 
+  '@wdio/native-spy@1.4.1':
+    resolution: {integrity: sha512-KGOmgaicHqDkqj+s2bxXsRsb27IzW6carlyTu1xcrJI34yUbC0v14F8mbhuZcewW+mt2xhmC17yITwAbNa8PKw==}
+    engines: {node: '>=18.20.0'}
+
   '@wdio/native-types@2.6.0':
     resolution: {integrity: sha512-MVMVpZTH+UY6nUtLClCzY4BQSIs/nCCHo81i4ClLR+b2NehyBvwccttXDAGPgf0icyHUhd+PgIPXaLgRcm4M9A==}
     engines: {node: '>=18.20.0'}
 
   '@wdio/native-utils@2.8.0':
     resolution: {integrity: sha512-TmIkPAd19FkJ747AdFVEtawbakVV3HHCh8zk3Kl/FLc6B2bbea7hn90jtLxqBZgCVqUuJIBcMNFg/nV/hgBFOw==}
+    engines: {node: '>=18.20.0'}
+    peerDependencies:
+      tsx: ^4.22.4
+    peerDependenciesMeta:
+      tsx:
+        optional: true
+
+  '@wdio/native-utils@2.8.1':
+    resolution: {integrity: sha512-QbmZjGkLUC2bmUJSzyqsHM11HND1D7tkxHFssUV1Kmx43+oPAeHHVR0NSZu2hMzSNrDZMBAmNYycR+3X8rqWcA==}
     engines: {node: '>=18.20.0'}
     peerDependencies:
       tsx: ^4.22.4
@@ -9232,8 +9245,8 @@ packages:
     resolution: {integrity: sha512-lNLLPUk4y1Yp5pWwBFF+tjZIy7bOv0TPTk4HDWV4LnnHnkc24abI0nN+kb2y5/JV8ZgwLCCVKUFRdRUxfKsAaQ==}
     engines: {node: '>=18.20.0'}
 
-  '@wdio/tauri-plugin@1.5.0':
-    resolution: {integrity: sha512-Bd7rWgqr3bKz6iLALULsOrwB8m3wg29GvFsOwWRzNjBxDxqwjLVg3DwCZmHr6cv1pW6RsZnNwMxqeoXemkOl9g==}
+  '@wdio/tauri-plugin@1.5.1':
+    resolution: {integrity: sha512-EShrPuHMjjxYT3lq8EjB8wlUVeMsIdKPhfH4nIvznUoZtrQ1oYyW5tiJ1EBBBXm2Epm71eXHkFDN8UH098dYQQ==}
     engines: {node: '>=18.20.0'}
 
   '@wdio/tauri-service@1.5.0':
@@ -14087,8 +14100,8 @@ packages:
     resolution: {integrity: sha512-dWUG8F5sIIARXih1DTaQAX4SsiTXhInKf1buxdY9DIg4ZYPZK5nGM1VRIYmEbDbsHt7USo99xSLFu5Q1IqTmsg==}
     engines: {node: '>= 18'}
 
-  smol-toml@1.9.0:
-    resolution: {integrity: sha512-hpd+HLON7HdZXqYchMM/+LaTTbdK0AU3NngIJ4KVyWbY9bfQqdL9cD+4yf6dUoU2Ap4VsU0JkQi6FxAI1B2mXQ==}
+  smol-toml@1.9.1:
+    resolution: {integrity: sha512-j7WyPdf0CJoutMzMoPLF/bVXHtKZIT9Rb4eGeEbWw8X2t5oirjPgpL+OpaENZrILYaXqYwnVH+qgUwVbl+pUJQ==}
     engines: {node: '>= 18'}
 
   socks-proxy-agent@8.0.5:
@@ -20222,7 +20235,7 @@ snapshots:
       '@tauri-apps/cli-win32-ia32-msvc': 2.12.2
       '@tauri-apps/cli-win32-x64-msvc': 2.12.2
 
-  '@tauri-apps/plugin-log@2.10.0':
+  '@tauri-apps/plugin-log@2.10.1':
     dependencies:
       '@tauri-apps/api': 2.12.3
 
@@ -21259,6 +21272,8 @@ snapshots:
 
   '@wdio/native-spy@1.4.0': {}
 
+  '@wdio/native-spy@1.4.1': {}
+
   '@wdio/native-types@2.6.0': {}
 
   '@wdio/native-utils@2.8.0(supports-color@8.1.1)(tsx@4.23.15)':
@@ -21268,7 +21283,21 @@ snapshots:
       esbuild: 0.28.2
       find-up-simple: 1.0.1
       json5: 2.2.3
-      smol-toml: 1.9.0
+      smol-toml: 1.9.1
+      yaml: 2.9.1
+    optionalDependencies:
+      tsx: 4.23.15
+    transitivePeerDependencies:
+      - supports-color
+
+  '@wdio/native-utils@2.8.1(supports-color@8.1.1)(tsx@4.23.15)':
+    dependencies:
+      '@wdio/logger': 9.29.1
+      debug: 4.4.3(supports-color@8.1.1)
+      esbuild: 0.28.2
+      find-up-simple: 1.0.1
+      json5: 2.2.3
+      smol-toml: 1.9.1
       yaml: 2.9.1
     optionalDependencies:
       tsx: 4.23.15
@@ -21318,12 +21347,12 @@ snapshots:
       easy-table: 1.2.0
       pretty-ms: 9.3.1
 
-  '@wdio/tauri-plugin@1.5.0(supports-color@8.1.1)(tsx@4.23.15)':
+  '@wdio/tauri-plugin@1.5.1(supports-color@8.1.1)(tsx@4.23.15)':
     dependencies:
       '@tauri-apps/api': 2.12.1
-      '@tauri-apps/plugin-log': 2.10.0
-      '@wdio/native-spy': 1.4.0
-      '@wdio/native-utils': 2.8.0(supports-color@8.1.1)(tsx@4.23.15)
+      '@tauri-apps/plugin-log': 2.10.1
+      '@wdio/native-spy': 1.4.1
+      '@wdio/native-utils': 2.8.1(supports-color@8.1.1)(tsx@4.23.15)
     transitivePeerDependencies:
       - supports-color
       - tsx
@@ -24789,7 +24818,7 @@ snapshots:
       oxc-resolver: 11.17.0(@emnapi/core@1.10.0)(@emnapi/runtime@1.11.3)
       picocolors: 1.1.1
       picomatch: 4.0.7
-      smol-toml: 1.9.0
+      smol-toml: 1.9.1
       strip-json-comments: 5.0.3
       typescript: 5.9.3
       zod: 4.4.3
@@ -27249,7 +27278,7 @@ snapshots:
 
   smol-toml@1.6.1: {}
 
-  smol-toml@1.9.0: {}
+  smol-toml@1.9.1: {}
 
   socks-proxy-agent@8.0.5(supports-color@8.1.1):
     dependencies:
