@@ -12,6 +12,7 @@ import {
 import { locksForProject } from './action-runtime-lock.js';
 import {
   authHeaderValue,
+  bundleTagFor,
   createReleaseCommit,
   releaseProblems,
   stableMajorTagFor,
@@ -212,8 +213,9 @@ async function main() {
     process.stdout.write(
       `(dry-run) git add -f -- ${bundleDirs.join(' ')}\n` +
         `(dry-run) git commit -m "${message}" (detached HEAD)\n` +
+        `(dry-run) git tag bundles/${options.stableMajorTagPrefix}${packageJson.version}-<built-commit> <built-commit>\n` +
         `(dry-run) git tag -f ${stableMajorTag} <built-commit>\n` +
-        `(dry-run) git push origin refs/tags/${stableMajorTag}:refs/tags/${stableMajorTag} --force\n`,
+        `(dry-run) git push --atomic origin <bundle-tag> +refs/tags/${stableMajorTag}:refs/tags/${stableMajorTag}\n`,
     );
     return;
   }
@@ -230,13 +232,20 @@ async function main() {
     bundleDirs,
     message,
   );
+  const bundleTag = bundleTagFor(
+    packageJson.version,
+    options.stableMajorTagPrefix,
+    target,
+  );
   process.stdout.write(
-    `built commit: ${target}\nstable major tag: ${stableMajorTag} -> ${target}\n`,
+    `built commit: ${target}\nbundle tag: ${bundleTag} -> ${target}\n` +
+      `stable major tag: ${stableMajorTag} -> ${target}\n`,
   );
   if (process.env.GITHUB_OUTPUT) {
     appendFileSync(process.env.GITHUB_OUTPUT, `built-commit=${target}\n`);
   }
 
+  git(['tag', bundleTag, target], { stdio: 'inherit' });
   git(['tag', '-f', stableMajorTag, target], { stdio: 'inherit' });
   // The release job checks out without persisted credentials and hands the
   // token to this one push.
@@ -248,6 +257,7 @@ async function main() {
     stableMajorTag,
     token,
     process.env.GITHUB_SERVER_URL,
+    [bundleTag],
   );
   git(push.args, { stdio: 'inherit', env: push.env });
 }

@@ -13,6 +13,26 @@ export function stableMajorTagFor(version: string, prefix = 'v'): string {
 }
 
 /**
+ * The immutable tag that keeps one built bundle commit reachable, e.g.
+ * `bundles/adaptive-review-action-v0.3.0-e81a938c96a6`. Bundle commits are
+ * detached, so once the stable major tag moves on, this tag is the only ref
+ * reaching a commit that callers pinned by SHA. GitHub Actions cannot resolve
+ * a reusable workflow from an unreachable commit. The `bundles/` namespace
+ * keeps these tags out of Release Please's version-tag matching.
+ */
+export function bundleTagFor(
+  version: string,
+  prefix: string,
+  commit: string,
+): string {
+  stableMajorTagFor(version, prefix);
+  if (!/^[a-f0-9]{40}$/.test(commit)) {
+    throw new Error(`Bundle commit is not a full SHA: ${commit}`);
+  }
+  return `bundles/${prefix}${version}-${commit.slice(0, 12)}`;
+}
+
+/**
  * The bundle entries an action runs (`node dist/<entry>`). A `dist/` holding
  * only shared chunks must not pass as a release, so each entry is required.
  */
@@ -33,8 +53,9 @@ export interface GitCommand {
 }
 
 /**
- * The `git` command that force-pushes the tag. With a token, it authenticates
- * only this push, so the checkout never persists a write-capable credential.
+ * The `git` command that force-pushes the moving tag and, in the same atomic
+ * push, creates each `keepTags` tag without force, so an existing immutable
+ * tag is never rewritten. With a token, it authenticates only this push, so the checkout never persists a write-capable credential.
  * The header goes through `GIT_CONFIG_*` rather than `-c`, so it is not in
  * the process arguments; callers mask `authHeaderValue` in logs.
  */
@@ -42,9 +63,16 @@ export function tagPushCommand(
   tag: string,
   token?: string,
   serverUrl = 'https://github.com',
+  keepTags: readonly string[] = [],
 ): GitCommand {
   return {
-    args: ['push', 'origin', `refs/tags/${tag}:refs/tags/${tag}`, '--force'],
+    args: [
+      'push',
+      '--atomic',
+      'origin',
+      ...keepTags.map((keep) => `refs/tags/${keep}:refs/tags/${keep}`),
+      `+refs/tags/${tag}:refs/tags/${tag}`,
+    ],
     env: token
       ? {
           GIT_CONFIG_COUNT: '1',

@@ -812,8 +812,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Version tags stay on main for release-please history traversal. Build at
-  # that tag, then put bundles in a detached release-only commit. Only the
-  # stable major tag moves to it; no branch or version tag is pushed.
+  # that tag, then put bundles in a detached release-only commit. The stable
+  # major tag moves to it, and an immutable bundles/<tag>-<sha> tag keeps that
+  # commit reachable after the major tag moves on, so SHA-pinned reusable
+  # workflow callers keep resolving. No branch or version tag is pushed.
   publish-actions:
     name: Release ${{ matrix.project }}
     needs: resolve-publish
@@ -876,7 +878,7 @@ jobs:
           git config user.name "MoltNet Release[bot]"
           git config user.email "261968324+moltnet-release[bot]@users.noreply.github.com"
 
-      - name: Commit bundles and move the stable major tag
+      - name: Commit bundles, tag them, and move the stable major tag
         id: bundle
         run: pnpm exec nx run ${{ matrix.project }}:publish-action
         env:

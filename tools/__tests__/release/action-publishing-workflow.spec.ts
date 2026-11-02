@@ -54,7 +54,9 @@ describe('action publishing authorization and source validation', () => {
       'permission-workflows': 'write',
     });
     expect(token.uses).toMatch(/^actions\/create-github-app-token@/);
-    expect(named('Commit bundles and move the stable major tag').env).toEqual({
+    expect(
+      named('Commit bundles, tag them, and move the stable major tag').env,
+    ).toEqual({
       GITHUB_ACTION_RELEASE_TOKEN: `\${{ steps.${token.id}.outputs.token }}`,
     });
     expect(steps.indexOf(token)).toBeGreaterThan(

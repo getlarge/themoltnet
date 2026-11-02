@@ -9,6 +9,7 @@ import { computeLock } from '../../src/release/action-runtime-lock.js';
 import { parsePublisherArgs } from '../../src/release/github-action-publisher.js';
 import {
   authHeaderValue,
+  bundleTagFor,
   createReleaseCommit,
   missingBundleEntries,
   releaseProblems,
@@ -30,6 +31,27 @@ describe('stableMajorTagFor', () => {
   it('rejects a version that is not semver', () => {
     // Act / Assert
     expect(() => stableMajorTagFor('latest')).toThrow('not semver');
+  });
+});
+
+describe('bundleTagFor', () => {
+  const commit = 'e81a938c96a624c78b8168f834a821c80f6a4d79';
+
+  it('names the version and commit outside the version-tag namespace', () => {
+    // Act / Assert
+    expect(bundleTagFor('0.3.0', 'adaptive-review-action-v', commit)).toBe(
+      'bundles/adaptive-review-action-v0.3.0-e81a938c96a6',
+    );
+  });
+
+  it('rejects an abbreviated commit', () => {
+    // Act / Assert
+    expect(() => bundleTagFor('0.3.0', 'v', 'e81a938')).toThrow('full SHA');
+  });
+
+  it('rejects a version that is not semver', () => {
+    // Act / Assert
+    expect(() => bundleTagFor('latest', 'v', commit)).toThrow('not semver');
   });
 });
 
@@ -64,9 +86,25 @@ describe('tagPushCommand', () => {
   it('force-pushes the tag with the ambient credentials by default', () => {
     // Act / Assert
     expect(tagPushCommand('v0')).toEqual({
-      args: ['push', 'origin', 'refs/tags/v0:refs/tags/v0', '--force'],
+      args: ['push', '--atomic', 'origin', '+refs/tags/v0:refs/tags/v0'],
       env: {},
     });
+  });
+
+  it('creates kept tags without force in the same atomic push', () => {
+    // Act
+    const command = tagPushCommand('v0', undefined, undefined, [
+      'bundles/v0.3.0-e81a938c96a6',
+    ]);
+
+    // Assert
+    expect(command.args).toEqual([
+      'push',
+      '--atomic',
+      'origin',
+      'refs/tags/bundles/v0.3.0-e81a938c96a6:refs/tags/bundles/v0.3.0-e81a938c96a6',
+      '+refs/tags/v0:refs/tags/v0',
+    ]);
   });
 
   it('authenticates only this push through the environment, not argv', () => {
