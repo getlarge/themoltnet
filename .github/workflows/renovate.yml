@@ -1,10 +1,10 @@
 name: Renovate
 
 on:
-  # Routine updates may open at any time and automerge on green CI, so run
-  # often enough to merge passing PRs and open the next ones. Lockfile
-  # maintenance keeps its own early-morning window in renovate.json, which
-  # these runs cover. Pushes to main (including automerges) rebase conflicted
+  # Routine updates open off-hours (renovate.json `schedule`) so their CI
+  # does not compete with daytime work for the shared runner quota, and
+  # automerge on green CI at any time. Run often enough to merge passing PRs
+  # and open the next ones; each automerge push also triggers a run. Pushes to main (including automerges) rebase conflicted
   # update PRs; dashboard edits process maintainer decisions without waiting
   # for the next scheduled run.
   schedule:
