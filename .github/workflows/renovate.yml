@@ -3,12 +3,14 @@ name: Renovate
 on:
   # Routine updates open off-hours (renovate.json `schedule`) so their CI
   # does not compete with daytime work for the shared runner quota, and
-  # automerge on green CI at any time. Run often enough to merge passing PRs
-  # and open the next ones; each automerge push also triggers a run. Pushes to main (including automerges) rebase conflicted
+  # automerge on green CI at any time. Renovate merges through the API on its
+  # own runs (platformAutomerge is off so its ruleset bypass of the review rule
+  # applies), so run hourly to merge passing PRs and open the next ones; each
+  # automerge push also triggers a run. Pushes to main (including automerges) rebase conflicted
   # update PRs; dashboard edits process maintainer decisions without waiting
   # for the next scheduled run.
   schedule:
-    - cron: '23 */2 * * *'
+    - cron: '23 * * * *'
   push:
     branches: [main]
   issues:

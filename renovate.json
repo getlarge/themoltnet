@@ -272,6 +272,7 @@
       ]
     }
   ],
+  "platformAutomerge": false,
   "postUpdateOptions": ["gomodTidy", "pnpmDedupe"],
   "prConcurrentLimit": 2,
   "prHourlyLimit": 0,
