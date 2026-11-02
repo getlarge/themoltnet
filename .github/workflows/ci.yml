@@ -1128,27 +1128,34 @@ jobs:
               ].join('\n');
             }
 
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-            const existing = comments.find(c => c.body.includes(marker));
-
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body,
-              });
-            } else {
-              await github.rest.issues.createComment({
+            // A comment failure (GitHub 5xx, rate limit) must not fail the job;
+            // the verdict comes from the job's own steps.
+            try {
+              const comments = await github.paginate(github.rest.issues.listComments, {
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
-                body,
+                per_page: 100,
               });
+              const existing = comments.find(c => c.body?.includes(marker));
+
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existing.id,
+                  body,
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body,
+                });
+              }
+            } catch (error) {
+              core.warning(`Could not update the audit comment: ${error.message}`);
             }
       - name: Upload report
         if: always()
@@ -1198,26 +1205,33 @@ jobs:
             if (!fs.existsSync('override-hygiene.md')) return;
             const body = fs.readFileSync('override-hygiene.md', 'utf8');
             const marker = '<!-- override-hygiene -->';
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-            const existing = comments.find(c => c.body.includes(marker));
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body,
-              });
-            } else {
-              await github.rest.issues.createComment({
+            // A comment failure (GitHub 5xx, rate limit) must not fail the job;
+            // the verdict comes from the job's own steps.
+            try {
+              const comments = await github.paginate(github.rest.issues.listComments, {
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
-                body,
+                per_page: 100,
               });
+              const existing = comments.find(c => c.body?.includes(marker));
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existing.id,
+                  body,
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body,
+                });
+              }
+            } catch (error) {
+              core.warning(`Could not update the override hygiene comment: ${error.message}`);
             }
       # Exit 2 means the check could not resolve the workspace (registry blip,
       # not a verdict). Warn and pass: a blocking gate must fail on evidence,
