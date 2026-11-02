@@ -128,6 +128,7 @@ describe('Knip regression report', () => {
 
 describe('owned cleanup backlog', () => {
   const repo = { owner: 'getlarge', repo: 'themoltnet' };
+  const workflowUser = { login: 'github-actions[bot]', type: 'Bot' };
   const client = (issues: unknown[] = []) => ({
     paginate: vi.fn().mockResolvedValue(issues),
     rest: {
@@ -150,7 +151,11 @@ describe('owned cleanup backlog', () => {
 
   it('does not notify for line changes or a new run URL', async () => {
     const github = client([
-      { number: 1, body: backlog(findings(), 'https://old').body },
+      {
+        number: 1,
+        user: workflowUser,
+        body: backlog(findings(), 'https://old').body,
+      },
     ]);
     await publishBacklog(github, repo, findings(99), 'https://new');
     expect(github.rest.issues.update).not.toHaveBeenCalled();
@@ -158,7 +163,11 @@ describe('owned cleanup backlog', () => {
 
   it('rejects a missing end marker without modifying the issue', async () => {
     const github = client([
-      { number: 1, body: `Human notes\n${backlogMarker}\nMore notes` },
+      {
+        number: 1,
+        user: workflowUser,
+        body: `Human notes\n${backlogMarker}\nMore notes`,
+      },
     ]);
 
     await expect(publishBacklog(github, repo, findings(), '')).rejects.toThrow(
@@ -172,6 +181,7 @@ describe('owned cleanup backlog', () => {
     const github = client([
       {
         number: 1,
+        user: workflowUser,
         body: `Human notes\n${backlog(findings()).body}\nMore notes`,
       },
     ]);
@@ -183,11 +193,65 @@ describe('owned cleanup backlog', () => {
       }),
     );
     const closed = client([
-      { number: 1, state: 'closed', body: backlog([]).body },
+      {
+        number: 1,
+        user: workflowUser,
+        state: 'closed',
+        body: backlog([]).body,
+      },
     ]);
     await publishBacklog(closed, repo, findings(), '');
     expect(closed.rest.issues.update).toHaveBeenCalledWith(
       expect.objectContaining({ state: 'open' }),
+    );
+  });
+
+  it.each([
+    { label: 'external user', user: { login: 'visitor', type: 'User' } },
+    {
+      label: 'contributor',
+      user: { login: 'contributor', type: 'User' },
+      author_association: 'CONTRIBUTOR',
+    },
+    { label: 'another bot', user: { login: 'other[bot]', type: 'Bot' } },
+    { label: 'missing author', user: null },
+    { label: 'pull request', user: workflowUser, pull_request: {} },
+  ])(
+    'skips a marker from $label and updates the workflow issue',
+    async (candidate) => {
+      const github = client([
+        // A matching fingerprint on an unrelated issue must not suppress updates.
+        { number: 99, body: backlog(findings()).body, ...candidate },
+        { number: 1, user: workflowUser, body: backlog([]).body },
+      ]);
+
+      await publishBacklog(github, repo, findings(), '');
+
+      expect(github.paginate).toHaveBeenCalledWith(
+        github.rest.issues.listForRepo,
+        expect.objectContaining({ creator: workflowUser.login, state: 'all' }),
+      );
+      expect(github.rest.issues.update).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ issue_number: 1 }),
+      );
+      expect(github.rest.issues.create).not.toHaveBeenCalled();
+    },
+  );
+
+  it('creates its own issue when only another author has the marker', async () => {
+    const github = client([
+      {
+        number: 99,
+        user: { login: 'other[bot]', type: 'Bot' },
+        body: backlogMarker,
+      },
+    ]);
+
+    await publishBacklog(github, repo, findings(), '');
+
+    expect(github.rest.issues.update).not.toHaveBeenCalled();
+    expect(github.rest.issues.create).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ title: 'Knip cleanup backlog' }),
     );
   });
 });

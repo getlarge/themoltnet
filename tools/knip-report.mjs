@@ -154,6 +154,8 @@ export function scan(cwd, bin, output, label) {
 
 export const backlogMarker = '<!-- knip-backlog -->';
 const backlogEnd = '<!-- /knip-backlog -->';
+// The scheduled workflow publishes with the default GITHUB_TOKEN.
+const backlogCreator = 'github-actions[bot]';
 export function backlog(findings, url = '') {
   const hash = createHash('sha256')
     .update(JSON.stringify(findings.map((f) => f.key).sort()))
@@ -199,11 +201,16 @@ export async function publishBacklog(github, repo, findings, url) {
   const next = backlog(findings, url);
   const issues = await github.paginate(github.rest.issues.listForRepo, {
     ...repo,
+    creator: backlogCreator,
     state: 'all',
     per_page: 100,
   });
   const existing = issues.find(
-    (issue) => !issue.pull_request && issue.body?.includes(backlogMarker),
+    (issue) =>
+      !issue.pull_request &&
+      issue.user?.login === backlogCreator &&
+      issue.user?.type === 'Bot' &&
+      issue.body?.includes(backlogMarker),
   );
   if (!existing) {
     if (!findings.length) return;
