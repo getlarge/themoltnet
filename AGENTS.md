@@ -171,7 +171,11 @@ mark the whole stack ready at once.
 
 Release Please and the CLI go.mod sync workflow open draft PRs. Mark them ready
 when their proposed changes should run CI and be reviewed. Other automation may
-open non-draft PRs when immediate validation is part of its workflow.
+open non-draft PRs when immediate validation is part of its workflow. Renovate
+is one: it opens update PRs ready and automerges non-major updates once the
+required checks pass. Majors and auth/crypto packages still wait for a human
+review. Renovate keeps CI demand bounded with a concurrent PR cap, rebases only
+on conflict, and groups non-major npm dev tooling into one PR.
 
 ### Visual evidence before UI review
 

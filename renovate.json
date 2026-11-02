@@ -1,7 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "automerge": false,
-  "commitHourlyLimit": 1,
   "customManagers": [
     {
       "customType": "regex",
@@ -19,7 +18,7 @@
     }
   ],
   "dependencyDashboard": true,
-  "draftPR": true,
+  "draftPR": false,
   "extends": [
     "config:recommended",
     ":semanticCommits",
@@ -28,11 +27,36 @@
   ],
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": ["* 0-6 * * 1"]
+    "schedule": ["* 0-6 * * 1,4"]
   },
   "osvVulnerabilityAlerts": true,
   "packageRules": [
     {
+      "automerge": true,
+      "description": "Automerge non-major updates once required CI checks pass; majors and auth/crypto packages are excluded by later rules",
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "pinDigest",
+        "digest",
+        "lockFileMaintenance"
+      ]
+    },
+    {
+      "description": "Let minor releases settle before automerging them, like patches",
+      "matchUpdateTypes": ["minor"],
+      "minimumReleaseAge": "3 days"
+    },
+    {
+      "description": "Batch non-major npm dev tooling into one PR to bound CI demand; named groups below take precedence",
+      "groupName": "npm dev tooling (non-major)",
+      "matchDepTypes": ["devDependencies"],
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "automerge": false,
       "dependencyDashboardApproval": true,
       "description": "Major updates require an explicit dashboard decision",
       "matchUpdateTypes": ["major"]
@@ -127,7 +151,6 @@
       "matchUpdateTypes": ["minor", "patch"]
     },
     {
-      "automerge": false,
       "description": "Review action and reusable workflow versions together, apart from toolchain inputs",
       "groupName": "GitHub Actions",
       "matchDepTypes": ["action", "workflow"],
@@ -249,12 +272,12 @@
     }
   ],
   "postUpdateOptions": ["gomodTidy", "pnpmDedupe"],
-  "prConcurrentLimit": 4,
-  "prHourlyLimit": 1,
-  "schedule": ["* 0-6 * * *"],
+  "prConcurrentLimit": 6,
+  "prHourlyLimit": 0,
+  "rebaseWhen": "conflicted",
   "timezone": "Europe/Paris",
   "vulnerabilityAlerts": {
-    "draftPR": true,
+    "draftPR": false,
     "enabled": true,
     "groupName": "{{#if (containsString depName \"golang.org/x/\")}}golang.org/x{{else if (containsString depName \"go.opentelemetry.io/collector\")}}OTel Collector{{else if (containsString depName \"opentelemetry-collector-contrib\")}}OTel Collector{{else}}dependency {{{depName}}}{{/if}}",
     "groupSlug": "{{#if (containsString depName \"golang.org/x/\")}}golang-org-x-vulnerability{{else if (containsString depName \"go.opentelemetry.io/collector\")}}otel-collector-vulnerability{{else if (containsString depName \"opentelemetry-collector-contrib\")}}otel-collector-vulnerability{{else}}{{{datasource}}}-{{{depNameSanitized}}}-vulnerability{{/if}}",
