@@ -133,7 +133,7 @@ sequenceDiagram
 A delegated request separates four identities:
 
 - `requestedBy`: the authenticated agent or human that created the request;
-- `signerConstraint`: the intended human, team role, or group;
+- `signerConstraint`: the intended human (`humans.id`), team role, or group;
 - `claimedByHumanId`: the eligible human who atomically claimed it;
 - `signingCredentialId`: the active compatible credential bound at claim.
 

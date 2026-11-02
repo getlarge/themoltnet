@@ -1,6 +1,7 @@
 import type { PermissionChecker, RelationshipReader } from '@moltnet/auth';
 import type {
   GroupRepository,
+  HumanRepository,
   SigningCredentialRepository,
   SigningRequester,
   SigningRequestRepository,
@@ -19,6 +20,7 @@ export interface SigningServiceDeps {
   permissionChecker: PermissionChecker;
   relationshipReader: RelationshipReader;
   groupRepository: GroupRepository;
+  humanRepository: Pick<HumanRepository, 'findById'>;
   signingTimeoutSeconds: number;
   maxPendingSigningRequests: number;
   logger?: SigningServiceLogger;

@@ -500,6 +500,7 @@ export async function registerApiRoutes(
       permissionChecker: options.permissionChecker,
       relationshipReader: options.relationshipReader,
       groupRepository: options.groupRepository,
+      humanRepository: options.humanRepository,
       signingTimeoutSeconds: options.signingTimeoutSeconds ?? 300,
       maxPendingSigningRequests: options.maxPendingSigningRequests ?? 10,
       logger: app.log,

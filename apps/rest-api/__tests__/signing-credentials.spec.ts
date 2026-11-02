@@ -504,7 +504,7 @@ describe('signing credential routes', () => {
     expect(mocks.signingRequestRepository.listSignable).toHaveBeenCalledWith(
       expect.objectContaining({
         teamRoles: [{ teamId: TEAM_ID, role: 'member' }],
-        humanIds: [HUMAN_ID, OWNER_ID],
+        humanIds: [HUMAN_ID],
         groups: [{ groupId: GROUP_ID, teamId: TEAM_ID }],
         limit: 1,
         offset: 20,
