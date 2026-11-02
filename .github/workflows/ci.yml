@@ -867,90 +867,43 @@ jobs:
     name: Code Analysis (Knip)
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       contents: read
-      pull-requests: write
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
       - uses: ./.github/actions/setup-workspace
         with:
           go: 'false'
-      - name: Run Knip (JSON report)
-        run: pnpm run knip --reporter json > knip-report.json 2>&1 || true
-      - name: Run Knip (human-readable)
-        id: knip
-        run: |
-          set +e
-          OUTPUT=$(pnpm run knip 2>&1)
-          EXIT_CODE=$?
-          set -e
-          # Strip the pnpm script header line
-          CLEAN_OUTPUT=$(echo "$OUTPUT" | grep -v '> moltnet@' | grep -v '> knip' | sed '/^$/N;/^\n$/d')
-          echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
-          {
-            echo "output<<KNIP_EOF"
-            echo "$CLEAN_OUTPUT"
-            echo "KNIP_EOF"
-          } >> "$GITHUB_OUTPUT"
-      - name: Comment on PR
+      - name: Prepare PR baseline
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
-        with:
-          script: |
-            const marker = '<!-- knip-report -->';
-            const exitCode = '${{ steps.knip.outputs.exit_code }}';
-            const output = `${{ steps.knip.outputs.output }}`;
-
-            let body;
-            if (exitCode === '0') {
-              body = `${marker}\n## :white_check_mark: Knip — No issues found\n\nNo unused code, dependencies, or exports detected.`;
-            } else {
-              body = [
-                marker,
-                '## :warning: Knip — Unused code or dependencies found',
-                '',
-                'Run `pnpm run knip` locally to see details, or `pnpm run knip:fix` to auto-fix some of them.',
-                '',
-                '<details>',
-                '<summary>Full report</summary>',
-                '',
-                '```',
-                output,
-                '```',
-                '',
-                '</details>',
-              ].join('\n');
-            }
-
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-            const existing = comments.find(c => c.body.includes(marker));
-
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body,
-              });
-            }
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Compare the branch's own changes, including for stacked/stale PRs.
+          base="$(git merge-base "$BASE_SHA" "$HEAD_SHA")"
+          git worktree add --detach "$RUNNER_TEMP/knip-base" "$base"
+          pnpm --dir "$RUNNER_TEMP/knip-base" install --frozen-lockfile --ignore-scripts
+          # Both revisions use the head config and head's patched Knip binary.
+          cp knip.config.ts "$RUNNER_TEMP/knip-base/knip.config.ts"
+      - name: Analyze and summarize
+        env:
+          IS_PR: ${{ github.event_name == 'pull_request' }}
+        run: |
+          args=(--out "$RUNNER_TEMP/knip-report")
+          if [ "$IS_PR" = true ]; then args+=(--base-dir "$RUNNER_TEMP/knip-base"); fi
+          node tools/knip-report.mjs "${args[@]}"
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: knip-report
-          path: knip-report.json
+          path: ${{ runner.temp }}/knip-report/
           retention-days: 30
 
   cli-go-mod-sync:

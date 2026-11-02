@@ -77,7 +77,9 @@
         "{workspaceRoot}/.github/scripts/issue-triage*.mjs",
         "{workspaceRoot}/.github/actionlint.yaml",
         "{workspaceRoot}/renovate.json",
-        "{workspaceRoot}/.tool-versions"
+        "{workspaceRoot}/.tool-versions",
+        "{workspaceRoot}/patches/knip@*.patch",
+        "{workspaceRoot}/knip.config.ts"
       ]
     },
     "tags": [
