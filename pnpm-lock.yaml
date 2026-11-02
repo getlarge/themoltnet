@@ -457,7 +457,7 @@ catalogs:
       version: 0.31.11
     drizzle-orm:
       specifier: ^0.45.2
-      version: 0.45.2
+      version: 0.45.4
     es-module-lexer:
       specifier: ^1.7.0
       version: 1.7.0
@@ -1519,7 +1519,7 @@ importers:
         version: link:../../libs/mcp-test-harness
       drizzle-orm:
         specifier: 'catalog:'
-        version: 0.45.2(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
+        version: 0.45.4(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
       pino-pretty:
         specifier: 'catalog:'
         version: 13.1.3
@@ -1657,7 +1657,7 @@ importers:
         version: 4.27.6
       '@dbos-inc/drizzle-datasource':
         specifier: 'catalog:'
-        version: 4.27.6(@dbos-inc/dbos-sdk@4.27.6)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0))
+        version: 4.27.6(@dbos-inc/dbos-sdk@4.27.6)(drizzle-orm@0.45.4(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0))
       '@fastify/cors':
         specifier: 'catalog:'
         version: 11.3.1
@@ -1822,7 +1822,7 @@ importers:
         version: link:../../libs/design-system
       drizzle-orm:
         specifier: 'catalog:'
-        version: 0.45.2(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
+        version: 0.45.4(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
       fastify:
         specifier: 'catalog:'
         version: 5.12.6
@@ -1922,7 +1922,7 @@ importers:
         version: link:../../libs/sdk
       drizzle-orm:
         specifier: 'catalog:'
-        version: 0.45.2(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
+        version: 0.45.4(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
       ioredis:
         specifier: 'catalog:'
         version: 5.9.2(supports-color@10.2.2)
@@ -2335,7 +2335,7 @@ importers:
         version: 8.16.0
       drizzle-orm:
         specifier: 'catalog:'
-        version: 0.45.2(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
+        version: 0.45.4(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
       pg:
         specifier: 'catalog:'
         version: 8.18.0
@@ -2502,7 +2502,7 @@ importers:
         version: 4.27.6
       '@dbos-inc/drizzle-datasource':
         specifier: 'catalog:'
-        version: 4.27.6(@dbos-inc/dbos-sdk@4.27.6)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0))
+        version: 4.27.6(@dbos-inc/dbos-sdk@4.27.6)(drizzle-orm@0.45.4(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0))
       '@moltnet/models':
         specifier: workspace:*
         version: link:../models
@@ -2511,7 +2511,7 @@ importers:
         version: link:../runtime-profiles
       drizzle-orm:
         specifier: 'catalog:'
-        version: 0.45.2(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
+        version: 0.45.4(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
       pg:
         specifier: 'catalog:'
         version: 8.18.0
@@ -2601,7 +2601,7 @@ importers:
         version: 11.12.0(supports-color@10.2.2)
       drizzle-orm:
         specifier: 'catalog:'
-        version: 0.45.2(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
+        version: 0.45.4(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
       fastify:
         specifier: 'catalog:'
         version: 5.12.6
@@ -3729,7 +3729,7 @@ importers:
         version: 11.12.0(supports-color@10.2.2)
       drizzle-orm:
         specifier: 'catalog:'
-        version: 0.45.2(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
+        version: 0.45.4(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
       typebox:
         specifier: 'catalog:'
         version: 1.3.27
@@ -3803,7 +3803,7 @@ importers:
         version: 11.12.0(supports-color@10.2.2)
       drizzle-orm:
         specifier: 'catalog:'
-        version: 0.45.2(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
+        version: 0.45.4(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -4124,7 +4124,7 @@ importers:
         version: 2.8.26
       drizzle-orm:
         specifier: 'catalog:'
-        version: 0.45.2(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
+        version: 0.45.4(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
       fastq:
         specifier: 'catalog:'
         version: 1.20.1
@@ -10517,8 +10517,8 @@ packages:
     resolution: {integrity: sha512-YCYqxTLIB2OCqf6w9/Vef13baBVbwQIPcbT4Y56AfO6B9ajZhDhD8Jkveg/hJvT/iuMloKD/IYYkyMMNhr7Kqg==}
     hasBin: true
 
-  drizzle-orm@0.45.2:
-    resolution: {integrity: sha512-kY0BSaTNYWnoDMVoyY8uxmyHjpJW1geOmBMdSSicKo9CIIWkSxMIj2rkeSR51b8KAPB7m+qysjuHme5nKP+E5Q==}
+  drizzle-orm@0.45.4:
+    resolution: {integrity: sha512-NiM1YZpJ2UxyeE67DpDDZ+Tsw4YLX3trSlkNT7Tm9eKoUNb1LvaAaQzXgYQsWs+AQ9TUmmwMmBOCXuqqxUWKKQ==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=4'
@@ -10526,6 +10526,7 @@ packages:
       '@libsql/client': '>=0.10.0'
       '@libsql/client-wasm': '>=0.10.0'
       '@neondatabase/serverless': '>=0.10.0'
+      '@netlify/db': '>=0.4.0'
       '@op-engineering/op-sqlite': '>=2'
       '@opentelemetry/api': ^1.4.1
       '@planetscale/database': '>=1.13'
@@ -10561,6 +10562,8 @@ packages:
       '@libsql/client-wasm':
         optional: true
       '@neondatabase/serverless':
+        optional: true
+      '@netlify/db':
         optional: true
       '@op-engineering/op-sqlite':
         optional: true
@@ -16731,10 +16734,10 @@ snapshots:
       - pg-native
       - utf-8-validate
 
-  '@dbos-inc/drizzle-datasource@4.27.6(@dbos-inc/dbos-sdk@4.27.6)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0))':
+  '@dbos-inc/drizzle-datasource@4.27.6(@dbos-inc/dbos-sdk@4.27.6)(drizzle-orm@0.45.4(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0))':
     dependencies:
       '@dbos-inc/dbos-sdk': 4.27.6
-      drizzle-orm: 0.45.2(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
+      drizzle-orm: 0.45.4(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
       pg: 8.18.0
       superjson: 1.13.3
     transitivePeerDependencies:
@@ -22724,7 +22727,7 @@ snapshots:
       esbuild: 0.25.12
       tsx: 4.23.15
 
-  drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0):
+  drizzle-orm@0.45.4(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0):
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
       '@types/better-sqlite3': 7.6.13
