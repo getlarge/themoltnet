@@ -484,7 +484,7 @@ catalogs:
       version: 5.1.0
     fastq:
       specifier: ^1.20.1
-      version: 1.20.1
+      version: 1.20.3
     globals:
       specifier: ^17.12.0
       version: 17.12.0
@@ -4127,7 +4127,7 @@ importers:
         version: 0.45.4(@opentelemetry/api@1.9.1)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
       fastq:
         specifier: 'catalog:'
-        version: 1.20.1
+        version: 1.20.3
       jose:
         specifier: 'catalog:'
         version: 6.2.12
@@ -11107,8 +11107,8 @@ packages:
   fastparallel@2.4.1:
     resolution: {integrity: sha512-qUmhxPgNHmvRjZKBFUNI0oZuuH9OlSIOXmJ98lhKPxMZZ7zS/Fi0wRHOihDSz0R1YiIOjxzOY4bq65YTcdBi2Q==}
 
-  fastq@1.20.1:
-    resolution: {integrity: sha512-GGToxJ/w1x32s/D2EKND7kTil4n8OVk/9mycTc4VDza13lOvpUZTGX3mFSCtV9ksdGBVzvsyAVLM6mHFThxXxw==}
+  fastq@1.20.3:
+    resolution: {integrity: sha512-XKv5nnLs6nLF71NgiKJLIZFLkPyIEuOselLG7ujZnGrRfQK8HpvY+WqKhAJUAdLomwVHErVS4LfxFlPq0/FTAw==}
 
   fastseries@1.7.2:
     resolution: {integrity: sha512-dTPFrPGS8SNSzAt7u/CbMKCJ3s01N04s4JFbORHcmyvVfVKmbhMD1VtRbh5enGHxkaQDqWyLefiKOGGmohGDDQ==}
@@ -18809,7 +18809,7 @@ snapshots:
   '@nodelib/fs.walk@1.2.8':
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
-      fastq: 1.20.1
+      fastq: 1.20.3
 
   '@nx-go/nx-go@4.0.0(nx@22.7.12(@swc-node/register@1.11.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.11.3)(@swc/core@1.15.33(@swc/helpers@0.5.21))(@swc/types@0.1.26)(supports-color@8.1.1)(typescript@5.9.3))(@swc/core@1.15.33(@swc/helpers@0.5.21)))':
     dependencies:
@@ -21649,7 +21649,7 @@ snapshots:
   avvio@9.1.0:
     dependencies:
       '@fastify/error': 4.2.0
-      fastq: 1.20.1
+      fastq: 1.20.3
 
   axe-core@4.13.0: {}
 
@@ -23476,7 +23476,7 @@ snapshots:
       reusify: 1.1.0
       xtend: 4.0.2
 
-  fastq@1.20.1:
+  fastq@1.20.3:
     dependencies:
       reusify: 1.1.0
 
@@ -27359,7 +27359,7 @@ snapshots:
     dependencies:
       fastfall: 1.5.1
       fastparallel: 2.4.1
-      fastq: 1.20.1
+      fastq: 1.20.3
       fastseries: 1.7.2
       reusify: 1.1.0
 
