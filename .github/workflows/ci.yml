@@ -1226,10 +1226,16 @@ jobs:
         if: steps.overrides.outputs.exit_code == '2'
         run: echo "::warning::Override hygiene could not resolve the workspace; skipping the verdict."
       # Last, so the PR comment explaining what to do is always posted first.
+      # The report also goes to the job summary and log, so the failure explains
+      # itself when the comment could not be posted (it is best-effort).
       - name: Fail on unjustified entries
         if: steps.overrides.outputs.exit_code == '1'
         run: |
-          echo "::error::pnpm-workspace.yaml overrides or ignoreGhsas contains entries that no longer earn their place. See the PR comment."
+          if [ -f override-hygiene.md ]; then
+            cat override-hygiene.md >> "$GITHUB_STEP_SUMMARY"
+            cat override-hygiene.md
+          fi
+          echo "::error::pnpm-workspace.yaml overrides or ignoreGhsas contains entries that no longer earn their place. See the job summary or the PR comment."
           exit 1
   openapi:
     name: OpenAPI Spec
