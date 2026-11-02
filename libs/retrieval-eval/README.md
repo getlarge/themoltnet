@@ -9,6 +9,15 @@ package does not tune production defaults or require deployed API credentials.
 Run commands from the repository root with Node and pnpm versions from
 `.tool-versions` and workspace dependencies installed (`pnpm install`).
 
+## Real diary corpus
+
+The [approved diary corpus](datasets/approved-diary-v1/README.md) is checked into
+this repository: 276 approved entries and seven selected development queries.
+Run it with `pnpm exec nx run @moltnet/retrieval-eval:eval:corpus` after configuring
+Docker and the local model cache below. No Potato account or private dataset
+transfer is required. Relevance judgments are pending, so this currently provides
+retrieval results and repeatability evidence rather than quality scores.
+
 ## Fixture baseline
 
 The frozen development fixture contains twelve entries and six queries.
@@ -154,7 +163,8 @@ The original temporary UI and 300-entry diary capture were not recovered. The
 starter is explicitly synthetic, with a fresh capture version; it does not claim
 to reproduce that missing sample. Imported datasets should record capture time,
 sampling strategy, population/sample sizes and capture version in provenance.
-No private diary data is committed by this library.
+Only the explicitly approved public corpus is committed; working captures and
+private review metadata remain outside the repository.
 
 `test-ci` uses the repository’s Nx Cloud atomized-test convention. Run `test`
 locally; CI selects unit files and excludes integration suites.
