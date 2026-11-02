@@ -260,7 +260,6 @@ describe('registration workflow', () => {
     expect(deps.oauth2Api.createOAuth2Client).toHaveBeenCalledWith({
       oAuth2Client: buildAgentOAuth2Client({
         agentId: AGENT_ID,
-        identityId: IDENTITY_ID,
         publicKey: PUBLIC_KEY,
         fingerprint: FINGERPRINT,
         clientSecret: secret,

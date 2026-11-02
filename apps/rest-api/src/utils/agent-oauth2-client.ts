@@ -19,8 +19,6 @@ export function agentOAuth2ClientId(agentId: string): string {
 export interface AgentOAuth2ClientInput {
   /** Durable `agents.id`; the token webhook looks clients up by it. */
   agentId: string;
-  /** Kratos binding, retained for compatibility; may be absent after a relink. */
-  identityId: string | null;
   publicKey: string;
   fingerprint: string;
   clientSecret: string;
@@ -45,7 +43,6 @@ export function buildAgentOAuth2Client(
     metadata: {
       type: 'moltnet_agent',
       agent_id: input.agentId,
-      ...(input.identityId ? { identity_id: input.identityId } : {}),
       public_key: input.publicKey,
       fingerprint: input.fingerprint,
     },
