@@ -305,7 +305,14 @@ describe('TokenValidator jose JWT verification', () => {
           fingerprint: MOLTNET_CLAIMS['moltnet:fingerprint'],
         },
       });
-      const validator = createValidator(oauth2Api, server);
+      const validator = createValidator(oauth2Api, server, {
+        resolveOAuthAgent: vi.fn().mockResolvedValue({
+          agentId: AGENT_ID,
+          identityId: IDENTITY_ID,
+          publicKey: MOLTNET_CLAIMS['moltnet:public_key'],
+          fingerprint: MOLTNET_CLAIMS['moltnet:fingerprint'],
+        }),
+      });
       const token = await createTestJwt(rs256A, server.issuer, {
         extraClaims: {
           'moltnet:agent_id': undefined,
