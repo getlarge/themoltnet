@@ -24,6 +24,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
 
 import { loadOperatorOAuthClients } from '../config.js';
+import { upstreamStatus } from '../utils/upstream-status.js';
 import {
   DEFAULT_WORKFLOW_TIMEOUT_MS,
   HUMAN_ONBOARDING_QUEUE_NAME,
@@ -77,18 +78,11 @@ declare module 'fastify' {
 }
 
 interface MoltNetClientMetadata {
-  /**
-   * Internal `agents.id`. Authoritative once present.
-   *
-   * Backfilled onto every existing MoltNet client. Clients created before the
-   * registration workflow writes it will lack it — that change alters DBOS
-   * workflow source and is gated on draining in-flight registrations, so the
-   * identity fallback below stays until then.
-   */
+  /** Internal `agents.id`, backfilled onto existing clients. */
   agent_id?: string;
-  /** Kratos identity bound to the agent. */
-  identity_id: string;
   public_key?: string;
+  fingerprint?: string;
+  type?: string;
 }
 
 function isMoltNetMetadata(
@@ -96,8 +90,9 @@ function isMoltNetMetadata(
 ): metadata is MoltNetClientMetadata {
   return (
     metadata !== undefined &&
-    'identity_id' in metadata &&
-    typeof metadata.identity_id === 'string'
+    ('agent_id' in metadata ||
+      ('type' in metadata && metadata.type === 'moltnet_agent') ||
+      ('public_key' in metadata && 'fingerprint' in metadata))
   );
 }
 
@@ -555,38 +550,56 @@ export async function hookRoutes(fastify: FastifyInstance) {
       const { request: tokenRequest, session } = request.body;
 
       try {
-        // Fetch OAuth2 client metadata from Hydra to get identity_id
+        // Fetch the client's durable agent handle from Hydra.
         const clientData = await fastify.oauth2Client.getOAuth2Client({
           id: tokenRequest.client_id,
         });
 
         // ── Agent path ───────────────────────────────────────────
         if (isMoltNetMetadata(clientData.metadata)) {
-          const { agent_id: agentId, identity_id: identityId } =
-            clientData.metadata;
-
-          // Prefer the internal ID: it is stable across identity recreation,
-          // whereas an identity lookup stops resolving the moment Kratos is
-          // rebuilt. The identity branch is a correct lookup in its own right
-          // (not an alias for the agent ID) and exists only for clients
-          // predating the agent_id backfill.
+          if (!tokenRequest.grant_types.includes('client_credentials')) {
+            return await reply.status(403).send({
+              error: 'agent_not_found',
+              error_description: 'No active agent record found for client',
+            });
+          }
+          const agentId = clientData.metadata.agent_id;
           const agent = agentId
             ? await fastify.agentRepository.findById(agentId)
-            : await fastify.agentRepository.findByIdentityId(identityId);
-
-          if (!agent) {
+            : null;
+          if (
+            !agent?.identityId ||
+            clientData.metadata.public_key !== agent.publicKey ||
+            clientData.metadata.fingerprint !== agent.fingerprint
+          ) {
             fastify.log.warn(
               {
                 agent_id: agentId ?? null,
-                identity_id: identityId,
                 client_id: tokenRequest.client_id,
-                resolved_by: agentId ? 'agent_id' : 'identity_id',
               },
-              'Token exchange: no agent record for client',
+              'Token exchange: agent client binding invalid',
             );
             return await reply.status(403).send({
               error: 'agent_not_found',
-              error_description: 'No agent record found for client',
+              error_description: 'No active agent record found for client',
+            });
+          }
+          let identity;
+          try {
+            identity = await fastify.identityApi.getIdentity({
+              id: agent.identityId,
+            });
+          } catch (error) {
+            if (upstreamStatus(error) !== 404) throw error;
+            return await reply.status(403).send({
+              error: 'agent_not_found',
+              error_description: 'No active agent record found for client',
+            });
+          }
+          if (identity.state !== 'active') {
+            return await reply.status(403).send({
+              error: 'agent_not_found',
+              error_description: 'No active agent record found for client',
             });
           }
 
@@ -745,8 +758,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
         } else {
           // ── Self-registered (DCR) client cap ─────────────────────
           // Other clients reaching this point registered through open Dynamic
-          // Client Registration: both first-party creation sites stamp
-          // `metadata.identity_id`, so they returned above. DCR is open by
+          // Client Registration. Agent clients are handled above. DCR is open by
           // design — chat agents have no other way to reach the MCP server —
           // which means registration proves nothing about the registrant and
           // the grant is the only thing limiting them.

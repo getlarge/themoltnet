@@ -118,6 +118,7 @@ import {
   createTaskService,
   type TaskService,
 } from './services/task.service.js';
+import { upstreamStatus } from './utils/upstream-status.js';
 import {
   initDiaryTransferWorkflow,
   initHumanOnboardingWorkflow,
@@ -755,6 +756,27 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     maxEntries: config.ory.ORY_AUTH_CACHE_MAX_ENTRIES,
     metrics: createRemoteAuthMetrics(),
   });
+  const resolveActiveAgent = async (agentId: string, signal?: AbortSignal) => {
+    const agent = await agentRepository.findById(agentId);
+    if (!agent?.identityId) return null;
+    let identity;
+    try {
+      identity = await oryClients.identity.getIdentity(
+        { id: agent.identityId },
+        signal ? { signal } : undefined,
+      );
+    } catch (error) {
+      if (upstreamStatus(error) === 404) return null;
+      throw error;
+    }
+    if (identity.state !== 'active') return null;
+    return {
+      agentId: agent.id,
+      identityId: agent.identityId,
+      publicKey: agent.publicKey,
+      fingerprint: agent.fingerprint,
+    };
+  };
   const tokenValidator = createTokenValidator(oryClients.oauth2, {
     jwksUri:
       config.ory.ORY_HYDRA_JWKS_URL ??
@@ -769,31 +791,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     talosIssuer: oryUrls.talosAdminUrl,
     remoteRequestTimeoutMs: config.ory.ORY_AUTH_REQUEST_TIMEOUT_MS,
     talosApi: oryClients.apiKeys,
-    resolveTalosAgent: async (actorId, signal) => {
-      // Talos `actor_id` is an agents.id: agent-key issuance writes
-      // `actor_id: input.agentId` (agent-key-service.ts), and the routes pass
-      // the internal id there. Resolving it as a Kratos identity matched
-      // nothing once the two diverged, which rejected every agent-key request.
-      //
-      // Sequential rather than parallel: the identity to check is only known
-      // after the agent row is read.
-      const agent = await agentRepository.findById(actorId);
-      // No live identity means no liveness signal to check, so the key is not
-      // honoured. This keeps the previous gate exactly as strict; widening it
-      // to identity-less agents is a separate decision.
-      if (!agent?.identityId) return null;
-      const identity = await oryClients.identity.getIdentity(
-        { id: agent.identityId },
-        signal ? { signal } : undefined,
-      );
-      if (identity.state !== 'active') return null;
-      return {
-        agentId: agent.id,
-        identityId: agent.identityId,
-        publicKey: agent.publicKey,
-        fingerprint: agent.fingerprint,
-      };
-    },
+    resolveTalosAgent: resolveActiveAgent,
+    resolveOAuthAgent: resolveActiveAgent,
     logger: app.log,
     onValidationEvent: ({ bindingScope, credentialType, keyId, reason }) => {
       tokenValidationCounter.add(1, {

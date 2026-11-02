@@ -60,6 +60,8 @@ export interface TokenValidatorConfig {
   talosApi?: Pick<ApiKeysApi, 'adminVerifyApiKey'>;
   /** Resolve the verified Talos actor to MoltNet's canonical active agent. */
   resolveTalosAgent?: TalosAgentResolver;
+  /** Resolve Hydra agent metadata against the current active agent binding. */
+  resolveOAuthAgent?: TalosAgentResolver;
   /** Secret-safe authentication diagnostics. */
   logger?: TokenValidatorLogger;
   /** Low-cardinality validation event sink (for example, an OTel counter). */
@@ -367,6 +369,7 @@ async function fetchClientMetadata(
   oauth2Api: OAuth2Api,
   clientId: string,
   scopes: string[],
+  resolveOAuthAgent: TalosAgentResolver | undefined,
   logger: TokenValidatorLogger,
   metrics: RemoteAuthMetrics | undefined,
   signal: AbortSignal | undefined,
@@ -381,17 +384,12 @@ async function fetchClientMetadata(
       return null;
     }
 
-    const metaIdentityId = metadata.identity_id;
-    if (!metaIdentityId) {
-      metrics?.recordUpstreamRequest('oauth2.client_metadata', 'invalid');
-      return null;
-    }
-
     const metaType = metadata.type;
 
     if (metaType === 'moltnet_human') {
+      const metaIdentityId = metadata.identity_id;
       const metaHumanId = metadata.human_id;
-      if (!metaHumanId) {
+      if (!metaIdentityId || !metaHumanId) {
         metrics?.recordUpstreamRequest('oauth2.client_metadata', 'invalid');
         return null;
       }
@@ -406,18 +404,21 @@ async function fetchClientMetadata(
       } satisfies HumanAuthContext;
     }
 
-    const metaPublicKey = metadata.public_key;
-    const metaFingerprint = metadata.fingerprint;
-    // Same reasoning as the JWT path: agents.id cannot be derived from the
-    // identity, so a client that predates the agent_id backfill is not
-    // resolvable. The backfill is a required deployment step.
     const metaAgentId = metadata.agent_id;
-    if (!metaAgentId) {
+    // Clients without agent_id must be backfilled before this version serves
+    // traffic. Never resolve a renewable Kratos identity as an agent key.
+    if (!metaAgentId || !resolveOAuthAgent) {
       metrics?.recordUpstreamRequest('oauth2.client_metadata', 'invalid');
       return null;
     }
 
-    if (!metaPublicKey || !metaFingerprint) {
+    const agent = await resolveOAuthAgent(metaAgentId, signal);
+    if (
+      !agent ||
+      agent.agentId !== metaAgentId ||
+      agent.publicKey !== metadata.public_key ||
+      agent.fingerprint !== metadata.fingerprint
+    ) {
       metrics?.recordUpstreamRequest('oauth2.client_metadata', 'invalid');
       return null;
     }
@@ -425,10 +426,10 @@ async function fetchClientMetadata(
     metrics?.recordUpstreamRequest('oauth2.client_metadata', 'success');
     return {
       subjectType: 'agent',
-      agentId: metaAgentId,
-      identityId: metaIdentityId,
-      publicKey: metaPublicKey,
-      fingerprint: metaFingerprint,
+      agentId: agent.agentId,
+      identityId: agent.identityId,
+      publicKey: agent.publicKey,
+      fingerprint: agent.fingerprint,
       clientId,
       scopes,
       currentTeamId: null,
@@ -877,6 +878,7 @@ export function createTokenValidator(
             oauth2Api,
             result.clientId,
             result.scopes,
+            config?.resolveOAuthAgent,
             logger,
             remoteMetrics,
             signal(),
@@ -907,6 +909,7 @@ export function createTokenValidator(
           oauth2Api,
           result.clientId,
           result.scopes,
+          config?.resolveOAuthAgent,
           logger,
           remoteMetrics,
           signal(),
