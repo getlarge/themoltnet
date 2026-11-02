@@ -25,6 +25,10 @@ Outputs default to `~/.local/share/moltnet/retrieval-eval/themoltnet/`; append
 `--workspace=/absolute/path/to/runs` to the command to choose another location. Normal unit tests validate the snapshot without
 starting Docker or loading an embedding model.
 
+To add or revise queries and create your own local Potato tasks, follow
+[Try your own queries locally](../../potato/LOCAL.md). It covers query drafts,
+retrieval, exploration, grouped relevance review, and importing your judgments.
+
 ## Files and current readiness
 
 - `dataset.json` is the runner's versioned dataset contract, including entry and

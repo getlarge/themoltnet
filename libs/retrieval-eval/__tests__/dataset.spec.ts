@@ -15,6 +15,7 @@ import {
 } from '../src/fixtures/baseline.js';
 import { hash } from '../src/hash.js';
 import { annotationQueue, rescore, score } from '../src/metrics.js';
+import { prepareQueryExperiment } from '../src/query-drafts.js';
 const ranking = {
   repeat: 1,
   configuration: 'relevance',
@@ -211,5 +212,60 @@ describe('public approved diary corpus', () => {
       verifiedNoMatch: null,
       unreviewed: retrievedIds,
     });
+  });
+});
+
+describe('editable query experiments', () => {
+  const draft = {
+    id: 'my-query',
+    text: 'How do signatures work?',
+    family: 'signatures',
+    split: 'development',
+    informationNeed: 'Understand signature verification.',
+  };
+  it('hashes revised queries and starts unlabelled without mutating the source', () => {
+    const source = baselineDataset();
+    const before = hash(source);
+    const result = prepareQueryExperiment(source, [draft], 'custom-v1');
+    expect(result.dataset.entries).toEqual(source.entries);
+    expect(result.dataset.queries).toEqual([
+      {
+        id: draft.id,
+        text: draft.text,
+        textHash: hash(draft.text),
+        family: draft.family,
+        split: draft.split,
+      },
+    ]);
+    expect(result.dataset.judgments).toEqual([]);
+    expect(result.proposals.datasetHash).toBe(hash(result.dataset));
+    expect(result.proposals.queries[0].informationNeed).toBe(
+      draft.informationNeed,
+    );
+    expect(hash(source)).toBe(before);
+    const revised = prepareQueryExperiment(
+      result.dataset,
+      [{ ...draft, text: 'Revised query' }],
+      'custom-v2',
+    );
+    expect(revised.dataset.queries[0].textHash).not.toBe(
+      result.dataset.queries[0].textHash,
+    );
+  });
+  it('rejects empty needs, duplicate IDs and query-family leakage', () => {
+    const source = baselineDataset();
+    for (const input of [
+      [],
+      [draft, draft],
+      [{ ...draft, informationNeed: '' }],
+      [draft, { ...draft, id: 'other', split: 'test' }],
+    ]) {
+      expect(() =>
+        prepareQueryExperiment(source, input, 'custom-v1'),
+      ).toThrow();
+    }
+    expect(() =>
+      prepareQueryExperiment(source, [draft], source.version),
+    ).toThrow();
   });
 });

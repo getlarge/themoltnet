@@ -26,6 +26,8 @@ valid. Do not use this workflow's schema names or grades for unrelated tasks.
 
 ## Reviewer walkthrough
 
+For a complete local contributor workflow, see [Try your own queries locally](LOCAL.md).
+
 The workflow has three different units of work. Keep their decisions separate:
 
 1. **Corpus review:** read one sanitized diary entry. Approve unchanged text,
