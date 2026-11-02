@@ -41,7 +41,6 @@ type SignerConstraint = NonNullable<SigningRequest['signerConstraint']>;
 
 interface EligibilityContext {
   humanId: string;
-  identityId: string;
   rolesByTeam: Map<string, ReturnType<typeof teamRelationToRole>>;
   groupIds: Set<string>;
   groupTeamIds: Map<string, string>;
@@ -85,7 +84,6 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
     const groups = await deps.groupRepository.findByIds(groupIds);
     return {
       humanId: actor.humanId,
-      identityId: actor.identityId,
       rolesByTeam: new Map(
         roles.map(({ teamId, relation }) => [
           teamId,
@@ -108,10 +106,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
     const constraint = row.signerConstraint;
     switch (constraint.type) {
       case SIGNER_CONSTRAINT_TYPE.Human:
-        return (
-          constraint.id === context.humanId ||
-          constraint.id === context.identityId
-        );
+        return constraint.id === context.humanId;
       case SIGNER_CONSTRAINT_TYPE.TeamRole:
         return context.rolesByTeam.get(row.teamId) === constraint.id;
       case SIGNER_CONSTRAINT_TYPE.Group:
@@ -161,6 +156,15 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
           ))
         ) {
           throw new SigningServiceError('forbidden', 'Forbidden');
+        }
+        if (
+          input.signerConstraint.type === SIGNER_CONSTRAINT_TYPE.Human &&
+          !(await deps.humanRepository.findById(input.signerConstraint.id))
+        ) {
+          throw new SigningServiceError(
+            'validation_failed',
+            'Human signer constraint must name a MoltNet human ID',
+          );
         }
       }
 
@@ -271,7 +275,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
               teamId,
               role,
             })),
-            humanIds: [eligibility.humanId, eligibility.identityId],
+            humanIds: [eligibility.humanId],
             groups: [...eligibility.groupTeamIds].map(([groupId, teamId]) => ({
               groupId,
               teamId,

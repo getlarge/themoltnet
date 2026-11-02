@@ -135,6 +135,9 @@ function createDeps(
     } as never,
     relationshipReader: {} as never,
     groupRepository: {} as never,
+    humanRepository: {
+      findById: vi.fn().mockResolvedValue({ id: human.humanId }),
+    } as never,
     signingTimeoutSeconds: 300,
     maxPendingSigningRequests: MAX_PENDING_SIGNING_REQUESTS,
     // Default the clock rather than leaving it on Date.now(): the fixtures pin
@@ -695,6 +698,32 @@ describe('createSigningService', () => {
     expect(create).not.toHaveBeenCalled();
   });
 
+  it('rejects a Kratos identity ID as a human signer constraint', async () => {
+    const create = vi.fn();
+    const findById = vi.fn().mockResolvedValue(null);
+    const service = createSigningService(
+      createDeps({
+        humanRepository: { findById } as never,
+        signingRequestRepository: { create } as never,
+      }),
+    );
+
+    await expect(
+      service.requests.create({
+        actor: agent,
+        message: 'approve release',
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        teamId: TEAM_ID,
+        purpose: 'Release approval',
+        signerConstraint: { id: human.identityId, type: 'human' },
+      }),
+    ).rejects.toMatchObject({
+      code: 'validation_failed',
+    } satisfies Partial<SigningServiceError>);
+    expect(findById).toHaveBeenCalledWith(human.identityId);
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it('creates below the pending cap inside the guarded transaction', async () => {
     const created = pendingRequest();
     const acquirePendingCreateLock = vi.fn().mockResolvedValue(undefined);
@@ -1212,6 +1241,40 @@ describe('createSigningService', () => {
     expect(claimed.challenge?.value).not.toHaveProperty('ikm');
     expect(claimed.methodState?.value).not.toHaveProperty('ikm');
     expect(claim).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not let a Kratos identity ID satisfy a human signer constraint', async () => {
+    const claim = vi.fn();
+    const service = createSigningService(
+      createDeps({
+        signingRequestRepository: {
+          findById: vi.fn().mockResolvedValue({
+            ...pendingRequest(),
+            signerConstraint: { id: human.identityId, type: 'human' },
+          }),
+          claim,
+        } as never,
+        relationshipReader: {
+          listTeamIdsAndRolesBySubject: vi
+            .fn()
+            .mockResolvedValue([{ teamId: TEAM_ID, relation: 'members' }]),
+          listGroupIdsBySubject: vi.fn().mockResolvedValue([]),
+        } as never,
+        groupRepository: {
+          findByIds: vi.fn().mockResolvedValue(new Map()),
+        } as never,
+      }),
+    );
+
+    await expect(
+      service.requests.claim({
+        actor: human,
+        teamId: TEAM_ID,
+        requestId: REQUEST_ID,
+        credentialId: CREDENTIAL_ID,
+      }),
+    ).rejects.toMatchObject({ code: 'forbidden' });
+    expect(claim).not.toHaveBeenCalled();
   });
 
   it('returns an existing claim without deriving a second ARKG key', async () => {
