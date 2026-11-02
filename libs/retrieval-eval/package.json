@@ -74,6 +74,13 @@
         "options": {
           "command": "node tools/potato/run-tests.mjs libs/retrieval-eval/potato/scripts libs/retrieval-eval/__tests__/potato"
         }
+      },
+      "eval:corpus": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "tsx libs/retrieval-eval/src/cli.ts --dataset=libs/retrieval-eval/datasets/approved-diary-v1/dataset.json --top-k=10 --repeats=2"
+        }
       }
     },
     "tags": [

@@ -4,6 +4,15 @@ Private evaluation library for the production diary-entry repository search.
 Unit tests do not start Docker or load a model. Run commands from the repository
 root with Node and pnpm versions from `.tool-versions`.
 
+## Real diary corpus
+
+The [approved diary corpus](datasets/approved-diary-v1/README.md) is checked into
+this repository: 276 approved entries and seven selected development queries.
+Run it with `pnpm exec nx run @moltnet/retrieval-eval:eval:corpus` after configuring
+Docker and the local model cache below. No Potato account or private dataset
+transfer is required. Relevance judgments are pending, so this currently provides
+retrieval results and repeatability evidence rather than quality scores.
+
 ## Fixture baseline
 
 The frozen development fixture contains twelve entries and six queries.
@@ -21,7 +30,16 @@ undefined for no-match queries. Reports retain false-positive and missed IDs.
 
 Install Docker and cache `Xenova/e5-small-v2` with `config.json`, `tokenizer.json`,
 `tokenizer_config.json` and `onnx/model_quantized.onnx`. Models are local-only;
-missing models fail explicitly. The cache directory contains `Xenova/e5-small-v2/`.
+missing models fail explicitly. The cache directory contains `Xenova/e5-small-v2/`. To fetch it using the
+repository's existing cached download target:
+
+```bash
+export NX_LOAD_DOT_ENV_FILES=false
+pnpm exec nx run @moltnet/rest-api:download-model
+```
+
+Then use the absolute path to `apps/rest-api/models` as `RETRIEVAL_MODEL_CACHE`.
+Only this preparation step downloads the model; evaluations use local files.
 
 Bash:
 
@@ -113,7 +131,8 @@ The original temporary UI and 300-entry diary capture were not recovered. The
 starter is explicitly synthetic, with a fresh capture version; it does not claim
 to reproduce that missing sample. Imported datasets should record capture time,
 sampling strategy, population/sample sizes and capture version in provenance.
-No private diary data is committed by this library.
+Only the explicitly approved public corpus is committed; working captures and
+private review metadata remain outside the repository.
 
 `test-ci` uses the repository’s Nx Cloud atomized-test convention. Run `test`
 locally; CI selects the same eight unit files and excludes integration suites.

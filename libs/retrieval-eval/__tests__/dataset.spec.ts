@@ -1,6 +1,13 @@
+import { readFileSync } from 'node:fs';
+
 import { describe, expect, it } from 'vitest';
 
-import { baselineDataset, trialDate, validateDataset } from '../src/dataset.js';
+import {
+  baselineDataset,
+  type Dataset,
+  trialDate,
+  validateDataset,
+} from '../src/dataset.js';
 import {
   retrievalEntries,
   retrievalQueries,
@@ -101,5 +108,55 @@ describe('graded metrics', () => {
         'protocols',
       ),
     ).toEqual(['key-exchange', 'weather', 'ed25519', 'fishing']);
+  });
+});
+
+describe('public approved diary corpus', () => {
+  const dataset = JSON.parse(
+    readFileSync(
+      new URL('../datasets/approved-diary-v1/dataset.json', import.meta.url),
+      'utf8',
+    ),
+  ) as Dataset;
+
+  it('preserves the approved snapshot and selected query families', () => {
+    validateDataset(dataset);
+    expect(dataset.entries).toHaveLength(276);
+    expect(dataset.queries.map((query) => query.id)).toEqual([
+      'corpus-v1-q01',
+      'corpus-v1-q02',
+      'corpus-v1-q03',
+      'corpus-v1-q04',
+      'corpus-v1-q06',
+      'corpus-v1-q07',
+      'corpus-v1-q10',
+    ]);
+    expect(
+      dataset.queries.every((query) => query.split === 'development'),
+    ).toBe(true);
+    expect(dataset.timePolicy).toBe('relative-capture-v1');
+    expect(hash(dataset)).toBe(
+      '8ad499a86dc54e42b8a7f9d313609ede778c441a79d005ed1565751b232e7ac1',
+    );
+  });
+
+  it('keeps pending judgments unknown instead of creating negative labels', () => {
+    expect(dataset.judgments).toEqual([]);
+    const retrievedIds = dataset.entries.slice(0, 10).map((entry) => entry.id);
+    expect(
+      score(dataset, {
+        queryId: 'corpus-v1-q01',
+        configuration: 'relevance',
+        repeat: 1,
+        k: 10,
+        retrievedIds,
+      }),
+    ).toMatchObject({
+      answerPrecision: null,
+      usefulPrecision: null,
+      recall: null,
+      verifiedNoMatch: null,
+      unreviewed: retrievedIds,
+    });
   });
 });
